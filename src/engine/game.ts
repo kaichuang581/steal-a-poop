@@ -1,6 +1,6 @@
 import { PERSONALITIES, bankThresholdFor } from './bots';
 import { hasPlayableWord } from './validation';
-import { INTRO_MS, MAX_PLAYERS, MIN_PLAYERS, TOKENS_PER_ROUND } from './constants';
+import { INTRO_MS, MAX_PLAYERS, MIN_PLAYERS } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawPick, drawRandom, hashSeed, shuffle } from './rng';
 import type { Difficulty, GameMode, GameState, Player, RoundModifier } from './types';
@@ -36,7 +36,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const looks = shuffle(state, BOT_EMOJIS.map((emoji, i) => ({ emoji, color: BOT_COLORS[i] })));
 
   const blank = {
-    banked: 0, tokens: TOKENS_PER_ROUND, turnsTaken: 0, lastWord: null,
+    banked: 0, turnsTaken: 0, lastWord: null,
     steals: 0, wordsPlayed: 0, longestWord: '', bestWord: null,
   };
   const players: Player[] = [

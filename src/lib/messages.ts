@@ -8,7 +8,6 @@ export function rejectMessage(reason: string | undefined, chainLetter: string): 
     case 'modifier_no_e': return 'No E allowed this round.';
     case 'modifier_six_plus': return '6+ letters only this round.';
     case 'modifier_double_letter': return 'Needs a double letter this round.';
-    case 'no_tokens': return 'No steal tokens left.';
     case 'outside_steal_window': return 'Steal window is the last 3 seconds.';
     default: return 'Not allowed right now.';
   }

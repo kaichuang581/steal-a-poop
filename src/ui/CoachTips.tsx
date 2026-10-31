@@ -19,9 +19,9 @@ const TIPS: Tip[] = [
     when: (g) => g.pile > 0,
   },
   {
-    id: 'tokens', title: 'Steal tokens',
-    text: () => 'You are in the steal window. Spend a token (the dots by your name) and submit a valid word to take their turn and the whole pile.',
-    when: (g, open) => open && g.turn?.seat !== 0 && g.players[0].tokens > 0,
+    id: 'steal', title: 'Steal window',
+    text: () => 'You are in the steal window. Type a valid word and press STEAL to take their turn and the whole pile. Steals are unlimited.',
+    when: (g, open) => open && g.turn?.seat !== 0,
   },
   {
     id: 'trap', title: 'Trap letter',

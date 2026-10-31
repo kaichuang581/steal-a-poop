@@ -1,10 +1,10 @@
-import { FAIL_PENALTY, STEAL_BONUS, STEAL_WINDOW_MS, TOKENS_PER_ROUND, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND } from '../engine';
+import { FAIL_PENALTY, STEAL_BONUS, STEAL_WINDOW_MS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND } from '../engine';
 
 export const BASICS = [
   { art: '🅲 → 🅰 → 🆃', title: 'Chain words', text: 'Each word must start with the last letter of the previous one. 3+ letters, real words, no repeats in a round.' },
   { art: '💩 ➕  or  💰', title: 'Play or bank', text: 'PLAY adds your word’s points to the shared pile. BANK takes the whole pile for yourself, and the chain letter stays.' },
   { art: '⏱️ 10s → 5s', title: 'Beat the clock', text: `You get 10s, minus 1s per 10 pile points (never under 5s). A timeout or invalid word costs ${FAIL_PENALTY} points.` },
-  { art: `🫳 ⚡ +${STEAL_BONUS}`, title: 'Steal', text: `In the last ${STEAL_WINDOW_MS / 1000}s of someone else’s turn, spend a token (${TOKENS_PER_ROUND} per round) and submit a word to take the turn, bank the whole pile, and get +${STEAL_BONUS}.` },
+  { art: `🫳 ⚡ +${STEAL_BONUS}`, title: 'Steal', text: `In the last ${STEAL_WINDOW_MS / 1000}s of someone else’s turn, type a word and press STEAL. You take the turn, bank the whole pile, and get +${STEAL_BONUS}. Steals are unlimited.` },
   { art: '❌ 🔥  3 rounds', title: 'Traps & burns', text: `End on X, Z, Q or J and, if the next player fails, you get +${TRAP_PAYOUT}. Unbanked pile burns at round end. Highest banked score after 3 rounds wins.` },
 ];
 
@@ -14,9 +14,8 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: 'Pile', def: 'The shared pool of points. It belongs to nobody until someone banks or steals it, and it burns at the end of the round.' },
   { term: 'Bank', def: 'On your turn, move the whole pile into your own score instead of playing a word. The pile resets to 0.' },
   { term: 'Banked score', def: 'Your permanent score. It carries across all 3 rounds. Penalties come off it, so it can go negative.' },
-  { term: 'Steal', def: `During the steal window, spend a token and submit a valid word. You take the turn, bank the whole pile (your word included) and get +${STEAL_BONUS}.` },
+  { term: 'Steal', def: `During the steal window, type a valid word and press STEAL. You take the turn, bank the whole pile (your word included) and get +${STEAL_BONUS}. There is no limit on steals.` },
   { term: 'Steal window', def: `The last ${STEAL_WINDOW_MS / 1000} seconds of another player’s turn, when stealing is allowed.` },
-  { term: 'Steal token', def: `You get ${TOKENS_PER_ROUND} per round. Spent when you claim a steal; refunded if the active player finishes before you submit.` },
   { term: 'Trap letter', def: `X, Z, Q or J. Ending a word on one traps the next player: if they time out or play an invalid word you get +${TRAP_PAYOUT}.` },
   { term: 'Burn', def: 'Any pile left unbanked when a round ends is destroyed.' },
   { term: 'Modifier', def: 'A special rule for one round, announced in the banner at the start of the round and shown in the top bar.' },
@@ -33,7 +32,7 @@ export const FAQ: { q: string; a: string }[] = [
   { q: 'Can I bank when the pile is empty?', a: 'Yes. It just passes your turn without gaining anything.' },
   { q: 'Is the pile mine if I played the last word?', a: 'No. The pile is shared. Whoever banks (or steals) it gets it all. Playing a word only grows it.' },
   { q: 'When should I bank?', a: 'Bank when the pile is big enough that losing it would hurt: it can be stolen, and it burns at round end. But banking skips your word, and a growing pile also shrinks everyone’s timer.' },
-  { q: 'How does stealing work?', a: `Wait for the last ${STEAL_WINDOW_MS / 1000}s of another player’s turn. Press STEAL (or type a word and press Enter): it spends a token. Submit a valid word before they finish and you take their turn and the whole pile, plus ${STEAL_BONUS}. A bad word loses the token. If they finish first, you get the token back.` },
+  { q: 'How does stealing work?', a: `Wait for the last ${STEAL_WINDOW_MS / 1000}s of another player’s turn. Type a valid word and press STEAL: you take their turn and the whole pile, plus ${STEAL_BONUS}. Steals are unlimited, but an invalid word does nothing and the window stays open.` },
   { q: 'Do I get anything if someone steals from a trap?', a: 'No. The trap pays only when the next player times out or plays an invalid word. A steal, a bank or a valid play cancels it.' },
   { q: 'Why do some words score so much?', a: 'Points are length × rarity plus letter bonuses, and X, Z, Q, J, Y, K, V and W are worth extra. A long word full of unusual letters can be worth many times a short common one. See the Scoring tab.' },
   { q: 'Is my progress saved?', a: 'Only in this browser: your nickname, settings, whether you have seen the tutorial, tips, and your Daily Table result and streak. There are no accounts, so clearing site data erases it, and it does not follow you to another device.' },

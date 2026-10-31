@@ -39,7 +39,7 @@ export function Table() {
       <Flights />
       {game.players.map((p) => {
         const { x, y } = seatPosition(p.id, n);
-        return <Seat key={p.id} player={p} x={x} y={y} turn={game.turn} stealOpen={stealOpen} />;
+        return <Seat key={p.id} player={p} x={x} y={y} turn={game.turn} />;
       })}
     </div>
   );

@@ -1,4 +1,3 @@
-import { TOKENS_PER_ROUND } from '../engine';
 import type { Player, TurnState } from '../engine';
 import { Countdown, SecondsLeft } from './Countdown';
 import { WordText } from './WordText';
@@ -8,10 +7,9 @@ interface Props {
   x: number;
   y: number;
   turn: TurnState | null;
-  stealOpen: boolean;
 }
 
-export function Seat({ player, x, y, turn, stealOpen }: Props) {
+export function Seat({ player, x, y, turn }: Props) {
   const active = turn?.seat === player.id;
   const cardAbove = y > 55; // keep the last-word card between the seat and the table centre
   const card = (
@@ -52,16 +50,6 @@ export function Seat({ player, x, y, turn, stealOpen }: Props) {
       </div>
       <div className="flex items-center gap-1 text-[11px] leading-none sm:text-xs">
         <span className="font-black tabular-nums">{player.banked}</span>
-        <span className="flex gap-0.5" aria-label={`${player.tokens} steal tokens`} title="Steal tokens" data-tour={player.isHuman ? 'tokens' : undefined}>
-          {Array.from({ length: TOKENS_PER_ROUND }, (_, i) => (
-            <span
-              key={i}
-              className={`size-1.5 rounded-full sm:size-2 ${i < player.tokens ? 'bg-amber-400' : 'bg-white/15'} ${
-                stealOpen && !active && i < player.tokens ? 'animate-pulse' : ''
-              }`}
-            />
-          ))}
-        </span>
       </div>
       {active && turn && (
         <div className="text-[10px] font-bold tabular-nums text-white/80 sm:text-xs">

@@ -1,6 +1,6 @@
 import { BOT_PROFILES, pickBotWord } from './bots';
 import {
-  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS, TOKENS_PER_ROUND,
+  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS,
   TRAP_LETTERS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
@@ -44,18 +44,17 @@ function startTurn(s: GameState, seat: number, t: number) {
   }
   const stealPlans: { seat: number; at: number }[] = [];
   for (const p of s.players) {
-    if (tour || p.id === seat || p.isHuman || p.tokens <= 0) continue;
+    if (tour || p.id === seat || p.isHuman) continue;
     if (drawRandom(s) < BOT_PROFILES[p.difficulty!].stealChance) {
       stealPlans.push({ seat: p.id, at: endsAt - STEAL_WINDOW_MS + drawRandom(s) * (STEAL_WINDOW_MS - 500) });
     }
   }
-  s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt, stealPlans, claims: [] };
+  s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt, stealPlans };
 }
 
 function concludeTurn(s: GameState, t: number) {
   const turn = s.turn!;
   s.players[turn.seat].turnsTaken += 1;
-  for (const seat of turn.claims) s.players[seat].tokens += 1; // active player finished first: refund
   s.turn = null;
   if (s.players.every((p) => p.turnsTaken >= TURNS_PER_PLAYER_PER_ROUND)) return endRound(s, t);
   startTurn(s, nextSeat(s, turn.seat), t);
@@ -76,7 +75,6 @@ function endRound(s: GameState, t: number) {
   s.used = [];
   s.history = [];
   for (const p of s.players) {
-    p.tokens = TOKENS_PER_ROUND;
     p.turnsTaken = 0;
   }
   s.phase = 'intro';
@@ -144,8 +142,6 @@ function failTurn(s: GameState, seat: number, kind: 'timeout' | 'invalid', t: nu
 }
 
 function stealFailed(s: GameState, seat: number, t: number) {
-  const turn = s.turn!;
-  turn.claims = turn.claims.filter((c) => c !== seat); // token stays spent
   emit(s, t, 'stealFail', seat, `${s.players[seat].name}'s steal failed`);
 }
 
@@ -154,7 +150,6 @@ function stealSucceeded(s: GameState, stealerSeat: number, word: string, t: numb
   const stealer = s.players[stealerSeat];
   const points = scoreWord(word, s.modifier);
   const gain = s.pile + points + STEAL_BONUS;
-  turn.claims = turn.claims.filter((c) => c !== stealerSeat); // token stays spent
   stealer.banked += gain;
   stealer.steals += 1;
   s.pile = 0;
@@ -212,11 +207,7 @@ function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
 }
 
 function runBotSteal(s: GameState, ctx: EngineContext, seat: number, t: number) {
-  const turn = s.turn!;
   const bot = s.players[seat];
-  if (bot.tokens <= 0 || turn.claims.includes(seat)) return;
-  bot.tokens -= 1;
-  turn.claims.push(seat);
   const profile = BOT_PROFILES[bot.difficulty!];
   const word =
     drawRandom(s) < profile.failRate
@@ -303,19 +294,12 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
       if (action.seat !== turn.seat) return reject('not_your_turn');
       bankTurn(s, now);
       return { state: s, accepted: true };
-    case 'stealClaim':
+    case 'steal': {
       if (action.seat === turn.seat) return reject('own_turn');
       if (!inStealWindow(s, now)) return reject('outside_steal_window');
-      if (player.tokens <= 0) return reject('no_tokens');
-      if (turn.claims.includes(action.seat)) return reject('already_claimed');
-      player.tokens -= 1;
-      turn.claims.push(action.seat);
-      return { state: s, accepted: true };
-    case 'stealSubmit': {
-      if (!turn.claims.includes(action.seat)) return reject('no_claim');
       const v = check(action.word);
       if (!v.ok) {
-        if (s.mode !== 'normal') return reject(v.reason); // practice: claim stays, try again
+        if (s.mode !== 'normal') return reject(v.reason); // practice: try again
         stealFailed(s, action.seat, now);
         return { state: s, accepted: true, reason: v.reason };
       }

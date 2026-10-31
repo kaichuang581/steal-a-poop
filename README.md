@@ -50,7 +50,7 @@ interface. Note `apply` already rejects actions from non-human seats.
 |---|---|
 | `src/config.ts` | Game title and tagline |
 | `src/engine/types.ts` | `Player`, `GameState`, `Action`, `RoundModifier`, events |
-| `src/engine/constants.ts` | Every tunable rule number (tokens, penalties, windows) |
+| `src/engine/constants.ts` | Every tunable rule number (penalties, windows, timers) |
 | `src/engine/rng.ts` | Seeded RNG, shuffle, pick |
 | `src/engine/dictionary.ts` | `Set`-backed dictionary + first-letter index for bots |
 | `src/engine/rarity.ts` | **`rarityOf`: the single placeholder heuristic to replace** |
@@ -82,18 +82,16 @@ interface. Note `apply` already rejects actions from non-human seats.
   while the steal prompt is up.
 - **Practice (`mode: 'practice'`).** Easy bots, 25s human turns, no penalties, an invalid word is
   rejected so you can retry, and a Hint button suggests valid words. Not recorded anywhere.
-- **Tips** (round modifier, pile, steal tokens, trap) show once each; "Show gameplay tips again" in
+- **Tips** (round modifier, pile, steal window, trap) show once each; "Show gameplay tips again" in
   Settings resets them. Everything is stored in this browser only.
 
 ## Rule ambiguities and how they were resolved
 
 1. **Invalid word ends the turn.** Taken literally: an invalid submission costs −5 and
    passes the turn immediately (no retry). A typo therefore costs a whole turn.
-2. **Steal is claim, then submit.** A refund ("if the active player finishes first")
-   only makes sense if a steal can be pending. Pressing STEAL in the last 3s spends a
-   token and arms the claim; submitting a valid word completes it. If the active player
-   finishes first, pending claims are refunded. Invalid steal word: token lost, claim
-   cleared, the turn continues. Typing a word and pressing STEAL/Enter does both steps.
+2. **Steal is one step, unlimited.** Type a valid word and press STEAL during the last 3s of
+   someone else's turn. There are no tokens, so steals cost nothing. An invalid word does nothing:
+   the turn goes on and the window stays open, so you can try again.
 3. **Who plays after a steal.** The victim's turn is consumed (counts toward their 5),
    the stealer's turn count is unchanged, and play continues with the seat after the victim.
 4. **Trap.** A word ending in X/Z/Q/J traps whoever owns the *next turn*. The trapper
@@ -109,7 +107,7 @@ interface. Note `apply` already rejects actions from non-human seats.
     start letter (from letters with ≥300 dictionary words). The first player rotates each
     round (seat 0, then 1, then 2). The three modifiers are drawn without repeats at game start.
 11. **Timer** is fixed from the pile at the start of a turn; it does not shrink mid-turn.
-12. **Tokens** reset each round; steal/word stats are game-wide.
+12. **Steals are unlimited.** Steal and word stats are game-wide. Failed steals cost nothing (see the open question below).
 13. **Tie-break "longest word"** is the longest single word a player played in the game.
     A complete tie shares the win.
 14. **Bots steal from any player's turn**, not only the human's. Medium difficulty is

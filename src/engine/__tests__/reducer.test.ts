@@ -71,44 +71,39 @@ describe('steal resolution', () => {
     const end = s.turn!.endsAt;
     expect(inStealWindow(s, end - 3001)).toBe(false);
     expect(inStealWindow(s, end - 3000)).toBe(true);
-    expect(apply(s, ctx, { type: 'stealClaim', seat: 0 }, end - 4000).accepted).toBe(false);
+    expect(apply(s, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 4000).accepted).toBe(false);
   });
   it('valid steal: stealer plays, banks the whole pile incl. their word, +5', () => {
     const s = botTurnWithPile();
     const pileBefore = s.pile;
     const end = s.turn!.endsAt;
-    const claim = apply(s, ctx, { type: 'stealClaim', seat: 0 }, end - 2000);
-    expect(claim.state.players[0].tokens).toBe(2);
-    const r = apply(claim.state, ctx, { type: 'stealSubmit', seat: 0, word: 'tiger' }, end - 1000);
+    const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 1000);
     const pts = scoreWord('tiger', s.modifier);
     expect(r.state.players[0].banked).toBe(pileBefore + pts + 5);
     expect(r.state.players[0].steals).toBe(1);
     expect(r.state.pile).toBe(0);
     expect(r.state.chainLetter).toBe('r');
-    expect(r.state.players[0].tokens).toBe(2); // token stays spent
     expect(r.state.turn!.seat).toBe(2); // play continues after the victim
   });
-  it('invalid steal word loses the token and the turn continues', () => {
+  it('an invalid steal word changes nothing and the turn continues', () => {
     const s = botTurnWithPile();
     const end = s.turn!.endsAt;
-    const claim = apply(s, ctx, { type: 'stealClaim', seat: 0 }, end - 2000);
-    const r = apply(claim.state, ctx, { type: 'stealSubmit', seat: 0, word: 'nope' }, end - 1000);
-    expect(r.state.players[0].tokens).toBe(2);
+    const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'nope' }, end - 1000);
     expect(r.state.turn!.seat).toBe(1);
     expect(r.state.pile).toBe(s.pile);
+    expect(r.state.players[0].steals).toBe(0);
   });
-  it('token is refunded when the active player finishes first', () => {
+  it('steals are unlimited: the same player can steal again in a later turn', () => {
     const s = botTurnWithPile();
-    const end = s.turn!.endsAt;
-    const claim = apply(s, ctx, { type: 'stealClaim', seat: 0 }, end - 2000);
-    expect(claim.state.players[0].tokens).toBe(2);
-    const out = advance(claim.state, ctx, end); // bot times out
-    expect(out.players[0].tokens).toBe(3);
+    const first = apply(s, ctx, { type: 'steal', seat: 0, word: 'tiger' }, s.turn!.endsAt - 1000).state;
+    const again = structuredClone(first);
+    again.turn!.seat = 1; again.turn!.botActAt = null; again.turn!.stealPlans = [];
+    const second = apply(again, ctx, { type: 'steal', seat: 0, word: 'rat' }, again.turn!.endsAt - 1000);
+    expect(second.accepted).toBe(true);
+    expect(second.state.players[0].steals).toBe(2);
   });
-  it('cannot claim without tokens', () => {
-    const s = botTurnWithPile();
-    s.players[0].tokens = 0;
-    expect(apply(s, ctx, { type: 'stealClaim', seat: 0 }, s.turn!.endsAt - 1000).reason).toBe('no_tokens');
+  it('players never have a token count', () => {
+    expect(botTurnWithPile().players[0]).not.toHaveProperty('tokens');
   });
 });
 
@@ -152,7 +147,7 @@ describe('pile burn and rounds', () => {
     expect(out.pile).toBe(0);
     expect(out.events.some((e) => e.kind === 'burn')).toBe(true);
     expect(out.players[2].banked).toBe(12);
-    expect(out.players.every((p) => p.tokens === 3 && p.turnsTaken === 0)).toBe(true);
+    expect(out.players.every((p) => p.turnsTaken === 0)).toBe(true);
     expect(out.used).toEqual([]);
   });
   it('game ends after round 3 with winners', () => {

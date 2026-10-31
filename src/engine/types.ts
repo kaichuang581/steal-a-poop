@@ -30,8 +30,6 @@ export interface Player {
   bankThreshold: number;
   /** Game-wide banked score. May go negative from penalties. */
   banked: number;
-  /** Steal tokens, reset to 3 each round. */
-  tokens: number;
   /** Turns used this round. A round ends when every player has used 5. */
   turnsTaken: number;
   lastWord: string | null;
@@ -50,8 +48,6 @@ export interface TurnState {
   botActAt: number | null;
   /** Scheduled steal attempts by bots on this turn. */
   stealPlans: { seat: number; at: number }[];
-  /** Seats that have spent a token on a steal claim and not yet submitted. */
-  claims: number[];
 }
 
 export interface Trap {
@@ -118,8 +114,7 @@ export interface GameState {
 export type Action =
   | { type: 'play'; seat: number; word: string }
   | { type: 'bank'; seat: number }
-  | { type: 'stealClaim'; seat: number }
-  | { type: 'stealSubmit'; seat: number; word: string };
+  | { type: 'steal'; seat: number; word: string };
 
 export interface ActionResult {
   state: GameState;

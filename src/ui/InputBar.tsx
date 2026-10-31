@@ -14,11 +14,9 @@ export function InputBar() {
   const [hint, setHint] = useState('');
   const [ideas, setIdeas] = useState<string[]>([]);
 
-  const me = game.players[0];
   const playing = game.phase === 'playing' && !!game.turn;
   const myTurn = playing && game.turn!.seat === 0;
-  const claimed = playing && game.turn!.claims.includes(0);
-  const canSteal = stealOpen && !myTurn && (claimed || me.tokens > 0);
+  const canSteal = stealOpen && !myTurn;
   const learning = mode === 'practice' || mode === 'tour';
 
   useEffect(() => {
@@ -44,15 +42,10 @@ export function InputBar() {
     }
   };
 
-  // A steal needs the word typed first. Nothing is claimed until a word is present, so an
-  // empty click never spends a token.
+  // A steal needs the word typed first, so an empty click does nothing.
   const steal = () => {
     if (!value.trim()) return setHint('Type your word first, then press STEAL.');
-    if (!claimed) {
-      const claim = act({ type: 'stealClaim', seat: 0 });
-      if (!claim?.accepted) return setHint(rejectMessage(claim?.reason, game.chainLetter));
-    }
-    const res = act({ type: 'stealSubmit', seat: 0, word: value });
+    const res = act({ type: 'steal', seat: 0, word: value });
     if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
     if (res?.accepted) setValue('');
   };
@@ -100,7 +93,7 @@ export function InputBar() {
               onMouseDown={keep} onClick={steal} data-tour="steal"
               className={`${btn} animate-pulse bg-fuchsia-500 text-white`}
             >
-              {claimed ? 'Steal!' : 'Steal'}
+              Steal
             </button>
           ) : (
             <button onMouseDown={keep} onClick={submit} disabled={!myTurn} className={`${btn} bg-emerald-500 text-emerald-950`}>

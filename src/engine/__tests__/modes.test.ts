@@ -42,17 +42,16 @@ describe('practice mode', () => {
     expect(r.accepted).toBe(true);
     expect(r.state.players[0].banked).toBe(-5);
   });
-  it('a bad steal word keeps the claim so the player can retry', () => {
+  it('a bad steal word is rejected so the player can retry', () => {
     const s = humanTurn('practice');
     const p = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
     const c = structuredClone(p);
     c.turn!.botActAt = null;
     c.turn!.stealPlans = [];
     const end = c.turn!.endsAt;
-    const claimed = apply(c, ctx, { type: 'stealClaim', seat: 0 }, end - 2000).state;
-    const bad = apply(claimed, ctx, { type: 'stealSubmit', seat: 0, word: 'nope' }, end - 1500);
+    const bad = apply(c, ctx, { type: 'steal', seat: 0, word: 'nope' }, end - 1500);
     expect(bad.accepted).toBe(false);
-    const good = apply(bad.state, ctx, { type: 'stealSubmit', seat: 0, word: 'tiger' }, end - 1000);
+    const good = apply(bad.state, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 1000);
     expect(good.state.players[0].steals).toBe(1);
   });
 });

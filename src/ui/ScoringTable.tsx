@@ -1,6 +1,6 @@
 import {
   BASE_TURN_MS, FAIL_PENALTY, LETTER_BONUS, MIN_TURN_MS, RARITY_MULTIPLIER, STEAL_BONUS,
-  STEAL_WINDOW_MS, TOKENS_PER_ROUND, TRAP_PAYOUT, basePoints, letterBonus, rarityOf,
+  STEAL_WINDOW_MS, TRAP_PAYOUT, basePoints, letterBonus, rarityOf,
 } from '../engine';
 import type { Rarity } from '../engine';
 import { MODIFIER_INFO } from '../lib/modifiers';
@@ -91,7 +91,7 @@ export function ScoringTable() {
 
       <Section title="Other numbers">
         <ul className="space-y-1">
-          <li className="rounded-lg bg-white/5 p-2"><b>Steal:</b> take the whole pile (including your word) and +{STEAL_BONUS}. {TOKENS_PER_ROUND} tokens per round, usable in the last {STEAL_WINDOW_MS / 1000}s of someone else’s turn.</li>
+          <li className="rounded-lg bg-white/5 p-2"><b>Steal:</b> take the whole pile (including your word) and +{STEAL_BONUS}, during the last {STEAL_WINDOW_MS / 1000}s of someone else’s turn. Unlimited.</li>
           <li className="rounded-lg bg-white/5 p-2"><b>Trap:</b> end on X, Z, Q or J. If the next player fails, you get +{TRAP_PAYOUT}.</li>
           <li className="rounded-lg bg-white/5 p-2"><b>Timeout or invalid word:</b> −{FAIL_PENALTY} (none in practice).</li>
           <li className="rounded-lg bg-white/5 p-2"><b>Burn:</b> any pile still unbanked at the end of a round is lost.</li>

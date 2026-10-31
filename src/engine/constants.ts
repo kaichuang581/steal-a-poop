@@ -1,6 +1,5 @@
 export const ROUNDS = 3;
 export const TURNS_PER_PLAYER_PER_ROUND = 5;
-export const TOKENS_PER_ROUND = 3;
 export const MIN_WORD_LENGTH = 3;
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 8;

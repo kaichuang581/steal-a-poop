@@ -13,6 +13,8 @@ export function InputBar() {
   const [value, setValue] = useState('');
   const [hint, setHint] = useState('');
   const [ideas, setIdeas] = useState<string[]>([]);
+  // A suggested fix for a clear typo. Submitting the same text again accepts it; editing cancels it.
+  const [fix, setFix] = useState<{ from: string; to: string } | null>(null);
 
   const playing = game.phase === 'playing' && !!game.turn;
   const myTurn = playing && game.turn!.seat === 0;
@@ -30,24 +32,35 @@ export function InputBar() {
     return () => clearTimeout(id);
   }, [hint]);
 
-  const submit = () => {
-    const word = value.trim();
-    if (myTurn) {
-      if (!word) return;
-      const res = act({ type: 'play', seat: 0, word });
-      if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
-      if (res?.accepted) setValue('');
-    } else if (stealOpen) {
-      steal();
+  const send = (type: 'play' | 'steal') => {
+    const typed = value.trim();
+    if (!typed) return;
+    const confirmed = fix !== null && typed.toLowerCase() === fix.from;
+    const res = act({ type, seat: 0, word: confirmed ? fix.to : typed });
+    if (res?.suggestion) {
+      setFix({ from: typed.toLowerCase(), to: res.suggestion });
+      setHint('');
+      return;
     }
+    setFix(null);
+    if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
+    if (res?.accepted) setValue('');
+  };
+
+  const submit = () => {
+    if (myTurn) send('play');
+    else if (stealOpen) steal();
   };
 
   // A steal needs the word typed first, so an empty click does nothing.
   const steal = () => {
     if (!value.trim()) return setHint('Type your word first, then press STEAL.');
-    const res = act({ type: 'steal', seat: 0, word: value });
-    if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
-    if (res?.accepted) setValue('');
+    send('steal');
+  };
+
+  const onChange = (next: string) => {
+    setValue(next);
+    if (fix && next.trim().toLowerCase() !== fix.from) setFix(null);
   };
 
   const keep = (e: React.MouseEvent) => e.preventDefault(); // buttons never steal focus from the input
@@ -56,6 +69,22 @@ export function InputBar() {
   return (
     <div className="px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 sm:px-4 sm:pb-4">
       <div className="mx-auto max-w-2xl">
+        {fix && (
+          <div
+            role="status"
+            className="mb-1 rounded-xl border-2 border-sky-300 bg-[#12214a] px-3 py-2 text-center"
+            data-typo-fix
+          >
+            <div className="text-lg font-black tracking-wide">
+              <span className="text-white/60">“{fix.from}”</span>
+              <span className="mx-2" aria-hidden="true">→</span>
+              <span className="text-sky-300">“{fix.to}”</span>
+            </div>
+            <div className="text-xs font-bold uppercase tracking-widest text-white/60">
+              submit again to confirm · or edit
+            </div>
+          </div>
+        )}
         <div className="h-5 text-center text-xs font-bold text-amber-300" role="status">
           {hint || (stealOpen && !myTurn ? 'Steal window: type your word, then press STEAL.' : '')}
         </div>
@@ -75,7 +104,7 @@ export function InputBar() {
           <input
             ref={inputRef}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
             onBlur={(e) => {
               if (!e.relatedTarget) requestAnimationFrame(() => inputRef.current?.focus());

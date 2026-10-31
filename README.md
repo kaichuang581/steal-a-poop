@@ -87,15 +87,18 @@ interface. Note `apply` already rejects actions from non-human seats.
 
 ## Rule ambiguities and how they were resolved
 
-1. **Invalid word ends the turn.** Taken literally: an invalid submission costs −5 and
-   passes the turn immediately (no retry). A typo therefore costs a whole turn.
+1. **Invalid words are free.** An invalid word never costs points or the turn: the player sees why
+   and retypes while the timer runs. Only a turn with no word submitted (timeout) costs −5. If a
+   word is one edit away from exactly one valid word, the game suggests it ("batmans → batman")
+   and the player submits again to confirm, or edits to dismiss. A confirmed suggestion is a normal play.
 2. **Steal is one step, unlimited.** Type a valid word and press STEAL during the last 3s of
-   someone else's turn. There are no tokens, so steals cost nothing. An invalid word does nothing:
-   the turn goes on and the window stays open, so you can try again.
+   someone else's turn. There are no tokens. The same typo suggestion applies. A steal word that is
+   invalid and not a clear typo is a failed steal: the stealer's whole banked score is halved and
+   rounded down (33 → 16, 0 stays 0, negatives get worse by half: −22 → −33, −21 → −32). The turn continues.
 3. **Who plays after a steal.** The victim's turn is consumed (counts toward their 5),
    the stealer's turn count is unchanged, and play continues with the seat after the victim.
 4. **Trap.** A word ending in X/Z/Q/J traps whoever owns the *next turn*. The trapper
-   gets +5 if that player times out or submits an invalid word. Playing, banking, or being
+   gets +5 if that player times out. Playing, banking, or being
    stolen from clears the trap with no payout. A word played by a stealer can set a trap too.
 5. **Penalties hit the banked score** and can make it negative. The pile is untouched.
 6. **Rounding.** `length × rarity` is rounded to a whole number before adding letter
@@ -107,7 +110,7 @@ interface. Note `apply` already rejects actions from non-human seats.
     start letter (from letters with ≥300 dictionary words). The first player rotates each
     round (seat 0, then 1, then 2). The three modifiers are drawn without repeats at game start.
 11. **Timer** is fixed from the pile at the start of a turn; it does not shrink mid-turn.
-12. **Steals are unlimited.** Steal and word stats are game-wide. Failed steals cost nothing (see the open question below).
+12. **Steals are unlimited.** Steal and word stats are game-wide.
 13. **Tie-break "longest word"** is the longest single word a player played in the game.
     A complete tie shares the win.
 14. **Bots steal from any player's turn**, not only the human's. Medium difficulty is
@@ -120,8 +123,7 @@ interface. Note `apply` already rejects actions from non-human seats.
 18. **Dead rounds.** A round could open on a letter with no legal word (letter E under "No E",
     since the chain letter carries over). The first round never starts on one, and when a later
     round opens on one the chain letter is re-drawn (seeded) and announced.
-19. **Practice rules.** No −5 for timeouts or invalid words, invalid words and bad steal words
-    are rejected (claim kept) instead of ending the turn, and the human timer is 25s.
+19. **Practice rules.** No −5 for timeouts, no halving for failed steals, and the human timer is 25s.
 17. **Dictionary.** Words are used as-is from ENABLE; the 3-letter minimum filters its
     2-letter words at validation time.
 

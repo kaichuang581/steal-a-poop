@@ -9,6 +9,8 @@ import { scoreWord } from './scoring';
 import { computeWinners } from './standings';
 import { turnDurationMs } from './timer';
 import type { Action, ActionResult, EventKind, GameState, Round } from './types';
+import { halveScore } from './penalties';
+import { suggestCorrection } from './typos';
 import { hasPlayableWord, validateWord } from './validation';
 
 export interface EngineContext {
@@ -130,19 +132,26 @@ function bankTurn(s: GameState, t: number) {
   concludeTurn(s, t);
 }
 
-function failTurn(s: GameState, seat: number, kind: 'timeout' | 'invalid', t: number) {
+/** Only a turn with no word submitted ends this way. A bad word never costs a turn. */
+function failTurn(s: GameState, seat: number, t: number) {
   const p = s.players[seat];
   const penalty = s.mode === 'normal' ? FAIL_PENALTY : 0;
   p.banked -= penalty;
-  s.history.push({ round: s.round, seat, kind, word: null, points: penalty ? -penalty : 0 });
-  const label = kind === 'timeout' ? 'Timeout' : 'Invalid word';
-  emit(s, t, kind, seat, `${label} ${p.name}${penalty ? ` -${penalty}` : ' (no penalty)'}`, penalty ? -penalty : 0);
+  s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: penalty ? -penalty : 0 });
+  emit(s, t, 'timeout', seat, `Timeout ${p.name}${penalty ? ` -${penalty}` : ' (no penalty)'}`, penalty ? -penalty : 0);
   resolveTrap(s, seat, true, t);
   concludeTurn(s, t);
 }
 
+/** A failed steal halves the stealer's whole banked score (normal games only). */
 function stealFailed(s: GameState, seat: number, t: number) {
-  emit(s, t, 'stealFail', seat, `${s.players[seat].name}'s steal failed`);
+  const p = s.players[seat];
+  const before = p.banked;
+  const after = s.mode === 'normal' ? halveScore(before) : before;
+  p.banked = after;
+  const delta = after - before;
+  s.history.push({ round: s.round, seat, kind: 'stealFail', word: null, points: delta });
+  emit(s, t, 'stealFail', seat, delta ? `${p.name}'s steal failed: ${before} → ${after}` : `${p.name}'s steal failed`, delta);
 }
 
 function stealSucceeded(s: GameState, stealerSeat: number, word: string, t: number) {
@@ -197,12 +206,12 @@ function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
   turn.botActAt = null;
   const scripted = s.mode === 'tour'; // tutorial bots never bank or fumble
   if (!scripted && s.pile > 0 && s.pile >= bot.bankThreshold) return bankTurn(s, t);
-  if (!scripted && drawRandom(s) < profile.failRate) return failTurn(s, turn.seat, 'timeout', t);
+  if (!scripted && drawRandom(s) < profile.failRate) return failTurn(s, turn.seat, t);
   const word = pickBotWord({
     dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
     prefer: profile.prefer, random: () => drawRandom(s),
   });
-  if (!word) return failTurn(s, turn.seat, 'timeout', t);
+  if (!word) return failTurn(s, turn.seat, t);
   playTurn(s, turn.seat, word, t);
 }
 
@@ -249,7 +258,7 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
     if (!due) break;
     switch (due.kind) {
       case 'timeout':
-        failTurn(s, s.turn.seat, 'timeout', due.at);
+        failTurn(s, s.turn.seat, due.at);
         break;
       case 'botAct':
         runBotTurn(s, ctx, due.at);
@@ -275,17 +284,20 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
   if (s.phase !== 'playing' || !turn) return reject('not_playing');
   const player = s.players[action.seat];
   if (!player || !player.isHuman) return reject('no_such_player');
-  const check = (word: string) =>
-    validateWord(word, { dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier });
+  const vctx = { dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier };
+  const check = (word: string) => validateWord(word, vctx);
+  // Only a word that is not in the dictionary or starts with the wrong letter can be a typo.
+  const typoFix = (reason: string, word: string) =>
+    reason === 'not_in_dictionary' || reason === 'wrong_start' ? suggestCorrection(word, vctx) : null;
 
   switch (action.type) {
     case 'play': {
       if (action.seat !== turn.seat) return reject('not_your_turn');
       const v = check(action.word);
       if (!v.ok) {
-        if (s.mode !== 'normal') return reject(v.reason); // practice: no penalty, try again
-        failTurn(s, turn.seat, 'invalid', now);
-        return { state: s, accepted: true, reason: v.reason };
+        // Never a penalty and the turn keeps running. A clear typo comes back with a suggested fix.
+        const suggestion = typoFix(v.reason, action.word);
+        return suggestion ? { ...reject(v.reason), suggestion } : reject(v.reason);
       }
       playTurn(s, turn.seat, v.word, now);
       return { state: s, accepted: true };
@@ -299,6 +311,9 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
       if (!inStealWindow(s, now)) return reject('outside_steal_window');
       const v = check(action.word);
       if (!v.ok) {
+        // A clear typo gets a suggestion and no penalty. Anything else is a failed steal.
+        const suggestion = typoFix(v.reason, action.word);
+        if (suggestion) return { ...reject(v.reason), suggestion };
         if (s.mode !== 'normal') return reject(v.reason); // practice: try again
         stealFailed(s, action.seat, now);
         return { state: s, accepted: true, reason: v.reason };

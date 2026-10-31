@@ -25,6 +25,7 @@ function describe(e: ChainEntry): string {
     case 'play': return `${e.word!.toUpperCase()} +${e.points}`;
     case 'steal': return `${e.word!.toUpperCase()} STEAL +${e.points}`;
     case 'bank': return `banked ${e.points}`;
+    case 'stealFail': return e.points ? `steal failed ${e.points} pts` : 'steal failed (no penalty)';
     case 'timeout': return e.points ? 'timed out −5' : 'timed out (no penalty)';
     case 'invalid': return e.points ? 'invalid word −5' : 'invalid word (no penalty)';
   }

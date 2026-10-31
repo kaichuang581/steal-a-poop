@@ -93,7 +93,8 @@ export function ScoringTable() {
         <ul className="space-y-1">
           <li className="rounded-lg bg-white/5 p-2"><b>Steal:</b> take the whole pile (including your word) and +{STEAL_BONUS}, during the last {STEAL_WINDOW_MS / 1000}s of someone else’s turn. Unlimited.</li>
           <li className="rounded-lg bg-white/5 p-2"><b>Trap:</b> end on X, Z, Q or J. If the next player fails, you get +{TRAP_PAYOUT}.</li>
-          <li className="rounded-lg bg-white/5 p-2"><b>Timeout or invalid word:</b> −{FAIL_PENALTY} (none in practice).</li>
+          <li className="rounded-lg bg-white/5 p-2"><b>Timeout</b> (no word submitted): −{FAIL_PENALTY}. An invalid word costs nothing. You just retype it.</li>
+          <li className="rounded-lg bg-white/5 p-2"><b>Failed steal:</b> your whole banked score is halved, rounded down (33 → 16; −22 → −33). A clear typo gets a suggested fix instead.</li>
           <li className="rounded-lg bg-white/5 p-2"><b>Burn:</b> any pile still unbanked at the end of a round is lost.</li>
         </ul>
       </Section>

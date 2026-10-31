@@ -59,7 +59,7 @@ export interface Trap {
 export interface ChainEntry {
   round: Round;
   seat: number;
-  kind: 'play' | 'steal' | 'bank' | 'timeout' | 'invalid';
+  kind: 'play' | 'steal' | 'bank' | 'timeout' | 'invalid' | 'stealFail';
   word: string | null;
   points: number;
 }
@@ -122,4 +122,6 @@ export interface ActionResult {
   accepted: boolean;
   /** Rejection reason, or the validation reason for a submitted word that failed. */
   reason?: string;
+  /** A one-edit fix for a clear typo. Nothing has changed; the player confirms by resubmitting it. */
+  suggestion?: string;
 }

@@ -42,11 +42,14 @@ describe('play and bank', () => {
     expect(r2.state.pile).toBe(0);
     expect(r2.state.chainLetter).toBe('t');
   });
-  it('invalid word costs 5, pile stays, turn passes', () => {
+  it('an invalid word is free: nothing changes and the turn keeps running', () => {
     const r = apply(humanTurn('c'), ctx, { type: 'play', seat: 0, word: 'zzz' }, start + 500);
+    expect(r.accepted).toBe(false);
     expect(r.reason).toBe('wrong_start');
-    expect(r.state.players[0].banked).toBe(-5);
-    expect(r.state.turn!.seat).toBe(1);
+    expect(r.state.players[0].banked).toBe(0);
+    expect(r.state.turn!.seat).toBe(0);
+    const ok = apply(r.state, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 900);
+    expect(ok.accepted).toBe(true);
   });
   it('timeout costs 5 and passes the turn', () => {
     const s = humanTurn();
@@ -85,13 +88,23 @@ describe('steal resolution', () => {
     expect(r.state.chainLetter).toBe('r');
     expect(r.state.turn!.seat).toBe(2); // play continues after the victim
   });
-  it('an invalid steal word changes nothing and the turn continues', () => {
+  it('an invalid steal word halves the stealer\'s whole banked score and the turn continues', () => {
     const s = botTurnWithPile();
-    const end = s.turn!.endsAt;
-    const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'nope' }, end - 1000);
+    s.players[0].banked = 33;
+    const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'nope' }, s.turn!.endsAt - 1000);
+    expect(r.accepted).toBe(true);
+    expect(r.state.players[0].banked).toBe(16);
     expect(r.state.turn!.seat).toBe(1);
     expect(r.state.pile).toBe(s.pile);
-    expect(r.state.players[0].steals).toBe(0);
+    expect(r.state.events.at(-1)!.text).toContain('33 → 16');
+  });
+  it('failed-steal penalty on negative and zero scores', () => {
+    for (const [from, to] of [[-22, -33], [-21, -32], [0, 0], [1, 0]] as const) {
+      const s = botTurnWithPile();
+      s.players[0].banked = from;
+      const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'nope' }, s.turn!.endsAt - 1000);
+      expect(r.state.players[0].banked).toBe(to);
+    }
   });
   it('steals are unlimited: the same player can steal again in a later turn', () => {
     const s = botTurnWithPile();

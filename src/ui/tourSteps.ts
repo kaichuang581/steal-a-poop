@@ -37,13 +37,13 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'me', target: 'me', kind: 'info', pause: true,
     title: 'This is you',
-    body: () => `The ring around your seat is your turn timer. It drains, turns yellow, then red. In a real game, running out costs ${FAIL_PENALTY} points.`,
+    body: () => `The ring around your seat is your turn timer. It drains, turns yellow, then red. In a real game, running out without submitting a word costs ${FAIL_PENALTY} points.`,
   },
   {
     id: 'play', target: 'input', kind: 'wait', pause: false,
     title: 'Your turn: play a word',
     body: (c) => c.game.turn?.seat === 0
-      ? `Type a word starting with ${letter(c)} and press Enter. Stuck? Tap Hint for ideas. Invalid words just bounce back in the tutorial.`
+      ? `Type a word starting with ${letter(c)} and press Enter. Stuck? Tap Hint for ideas. A word that does not work just bounces back with no penalty, and a clear typo gets a suggested fix: submit again to accept it.`
       : 'Your turn starts in a moment…',
     done: (c) => c.game.history.some((h) => h.kind === 'play' && h.seat === 0),
   },
@@ -82,12 +82,12 @@ export const TOUR_STEPS: TourStep[] = [
     title: 'Steal result',
     body: (c) => mySteal(c)
       ? `STOLEN! You banked ${mySteal(c)!.points} in one move.`
-      : 'That word was not valid, so the steal did not go through. Check the spelling and try again while the window is open.',
+      : 'That word was not valid, so the steal did not go through. In a real game a failed steal halves your banked score, so be sure before you press STEAL. A clear typo gets a suggested fix instead.',
   },
   {
     id: 'traps', target: null, kind: 'info', pause: true,
     title: 'Trap letters',
-    body: () => `End a word on X, Z, Q or J (shown in gold) and you set a trap. If the next player times out or plays an invalid word, you get +${TRAP_PAYOUT}.`,
+    body: () => `End a word on X, Z, Q or J (shown in gold) and you set a trap. If the next player runs out of time, you get +${TRAP_PAYOUT}.`,
   },
   {
     id: 'modifier', target: 'modifier', kind: 'info', pause: true,

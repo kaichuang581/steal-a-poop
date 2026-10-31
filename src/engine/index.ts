@@ -4,6 +4,8 @@ export * from './dictionary';
 export * from './rarity';
 export * from './scoring';
 export * from './validation';
+export * from './typos';
+export * from './penalties';
 export * from './timer';
 export * from './standings';
 export * from './bots';

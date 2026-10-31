@@ -37,11 +37,6 @@ describe('practice mode', () => {
     expect(ok.accepted).toBe(true);
     expect(ok.state.turn!.seat).toBe(1);
   });
-  it('normal mode still punishes an invalid word', () => {
-    const r = apply(humanTurn('normal'), ctx, { type: 'play', seat: 0, word: 'zzz' }, start + 500);
-    expect(r.accepted).toBe(true);
-    expect(r.state.players[0].banked).toBe(-5);
-  });
   it('a bad steal word is rejected so the player can retry', () => {
     const s = humanTurn('practice');
     const p = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;

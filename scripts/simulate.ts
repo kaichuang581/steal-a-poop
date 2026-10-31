@@ -2,7 +2,7 @@
  * Headless balance simulation. Every seat (including seat 0) is played by the engine's bot logic.
  * Run: npx vite-node scripts/simulate.ts [gamesPerConfig]
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { advance, createDictionary, createGame, rankPlayers } from '../src/engine';
 import type { Difficulty, GameState } from '../src/engine';
 
@@ -75,5 +75,6 @@ for (const r of rows) {
 }
 md += `\n## Win share by seat\n\n`;
 for (const r of rows) md += `- **${r.n} seats, ${r.difficulty}:** ${r.winBySeat.map((w, i) => `s${i} ${f((w / r.games) * 100, 0)}%`).join(', ')}\n`;
+mkdirSync('docs', { recursive: true });
 writeFileSync('docs/BALANCE.md', md);
 console.log('wrote docs/BALANCE.md');

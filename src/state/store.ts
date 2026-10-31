@@ -27,6 +27,11 @@ interface Store {
   /** performance.now() of the latest frame. */
   now: number;
   muted: boolean;
+  /** Master volume, 0 to 1. */
+  volume: number;
+  /** Overrides the OS reduced-motion setting when on. */
+  reduceMotion: boolean;
+  largeText: boolean;
   /** Tutorial pause: the game clock stops; `now` stays at the moment of the pause. */
   paused: boolean;
   pausedRaw: number;
@@ -42,6 +47,10 @@ interface Store {
   act(action: Action): ActionResult | null;
   frame(now: number): void;
   toggleMute(): void;
+  setVolume(v: number): void;
+  setReduceMotion(on: boolean): void;
+  setLargeText(on: boolean): void;
+  retryDictionary(): Promise<void>;
   pause(): void;
   resume(): void;
   startTour(after: 'menu' | 'quick'): boolean;
@@ -52,6 +61,9 @@ interface Store {
 
 const SETTINGS_KEY = 'sap:settings';
 const MUTE_KEY = 'sap:muted';
+const VOLUME_KEY = 'sap:volume';
+const REDUCE_KEY = 'sap:reduceMotion';
+const LARGE_KEY = 'sap:largeText';
 
 export const useStore = create<Store>((set, get) => ({
   client: null,
@@ -64,6 +76,9 @@ export const useStore = create<Store>((set, get) => ({
   settings: load<Settings>(SETTINGS_KEY, { name: '', playerCount: 6, difficulty: 'medium' }),
   now: performance.now(),
   muted: load<boolean>(MUTE_KEY, false),
+  volume: Math.min(1, Math.max(0, load<number>(VOLUME_KEY, 0.8))),
+  reduceMotion: load<boolean>(REDUCE_KEY, false),
+  largeText: load<boolean>(LARGE_KEY, false),
   paused: false,
   pausedRaw: 0,
   timeOffset: 0,
@@ -188,6 +203,28 @@ export const useStore = create<Store>((set, get) => ({
     return suggestWords({
       dict, chainLetter: game.chainLetter, used: game.used, modifier: game.modifier, count, random: Math.random,
     });
+  },
+
+  setVolume(v) {
+    const volume = Math.min(1, Math.max(0, v));
+    save(VOLUME_KEY, volume);
+    set({ volume });
+  },
+
+  setReduceMotion(on) {
+    save(REDUCE_KEY, on);
+    set({ reduceMotion: on });
+  },
+
+  setLargeText(on) {
+    save(LARGE_KEY, on);
+    set({ largeText: on });
+  },
+
+  async retryDictionary() {
+    if (get().client) return;
+    set({ dictStatus: 'loading' });
+    await get().loadDictionary();
   },
 
   toggleMute() {

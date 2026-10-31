@@ -1,9 +1,10 @@
-import { animate, motion, useReducedMotion } from 'framer-motion';
+import { animate, motion } from 'framer-motion';
+import { useReduceMotion } from './useReduceMotion';
 import { useEffect, useRef, useState } from 'react';
 import { pileColor } from './geometry';
 
 export function Pile({ pile }: { pile: number }) {
-  const reduced = useReducedMotion();
+  const reduced = useReduceMotion();
   const [shown, setShown] = useState(pile);
   const shownRef = useRef(pile);
 

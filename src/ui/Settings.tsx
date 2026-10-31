@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { resetTips } from '../lib/tips';
+import { Credits } from './Credits';
 import { useStore } from '../state/store';
 
 export function Settings({ onClose }: { onClose: () => void }) {
@@ -8,7 +9,14 @@ export function Settings({ onClose }: { onClose: () => void }) {
   const toggleMute = useStore((s) => s.toggleMute);
   const startTour = useStore((s) => s.startTour);
   const ready = useStore((s) => s.dictStatus === 'ready');
+  const volume = useStore((s) => s.volume);
+  const setVolume = useStore((s) => s.setVolume);
+  const reduceMotion = useStore((s) => s.reduceMotion);
+  const setReduceMotion = useStore((s) => s.setReduceMotion);
+  const largeText = useStore((s) => s.largeText);
+  const setLargeText = useStore((s) => s.setLargeText);
   const [tipsCleared, setTipsCleared] = useState(false);
+  const [credits, setCredits] = useState(false);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -33,6 +41,20 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <button className={row} onClick={toggleMute} aria-pressed={muted}>
             <span>Sound</span><span>{muted ? '🔇 Off' : '🔊 On'}</span>
           </button>
+          <label className={`${row} cursor-pointer`}>
+            <span>Volume</span>
+            <input
+              type="range" min={0} max={100} step={5} value={Math.round(volume * 100)}
+              onChange={(e) => setVolume(Number(e.target.value) / 100)}
+              aria-label="Volume" className="h-6 w-32 accent-amber-400"
+            />
+          </label>
+          <button className={row} onClick={() => setReduceMotion(!reduceMotion)} aria-pressed={reduceMotion}>
+            <span>Reduce motion</span><span>{reduceMotion ? 'On' : 'Off'}</span>
+          </button>
+          <button className={row} onClick={() => setLargeText(!largeText)} aria-pressed={largeText}>
+            <span>Larger text</span><span>{largeText ? 'On' : 'Off'}</span>
+          </button>
           <button className={row} disabled={!ready} onClick={() => startTour('menu')}>
             <span>Replay tutorial</span><span aria-hidden="true">▶</span>
           </button>
@@ -42,8 +64,12 @@ export function Settings({ onClose }: { onClose: () => void }) {
           >
             <span>Show gameplay tips again</span><span>{tipsCleared ? '✓ Reset' : '↺'}</span>
           </button>
+          <button className={row} onClick={() => setCredits(true)}>
+            <span>Credits and licenses</span><span aria-hidden="true">›</span>
+          </button>
         </div>
       </div>
+      {credits && <Credits onClose={() => setCredits(false)} />}
     </div>
   );
 }

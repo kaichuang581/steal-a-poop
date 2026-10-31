@@ -4,6 +4,17 @@ export type SoundKind = 'play' | 'bank' | 'steal' | 'fail' | 'trap' | 'roundEnd'
 
 let ctx: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
+let master: GainNode | null = null;
+
+/** One gain node in front of the speakers, set from the volume setting before every sound. */
+function destination(c: AudioContext): GainNode {
+  if (!master) {
+    master = c.createGain();
+    master.connect(c.destination);
+  }
+  master.gain.value = useStore.getState().volume;
+  return master;
+}
 
 /** Creates/resumes the AudioContext. Browsers only allow this inside a user gesture. */
 export function unlockAudio(): void {
@@ -49,7 +60,7 @@ function tone(c: AudioContext, { freq, at = 0, dur, type = 'sine', vol = 0.15, t
   gain.gain.setValueAtTime(0.0001, t0);
   gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  osc.connect(gain).connect(c.destination);
+  osc.connect(gain).connect(destination(c));
   osc.start(t0);
   osc.stop(t0 + dur + 0.03);
 }
@@ -73,7 +84,7 @@ function whoosh(c: AudioContext, at: number, dur: number, from: number, to: numb
   gain.gain.setValueAtTime(0.0001, t0);
   gain.gain.exponentialRampToValueAtTime(vol, t0 + dur * 0.3);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  src.connect(filter).connect(gain).connect(c.destination);
+  src.connect(filter).connect(gain).connect(destination(c));
   src.start(t0);
   src.stop(t0 + dur + 0.05);
 }

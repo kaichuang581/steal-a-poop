@@ -1,4 +1,5 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useReduceMotion } from './useReduceMotion';
 import { useState } from 'react';
 import { seatPosition } from './geometry';
 import { useStore } from '../state/store';
@@ -9,7 +10,7 @@ interface Flight { id: number; seat: number; word: string; amount: number; steal
 
 /** Word card slides from the seat to the pile, then a "+N" floater rises from the pile. */
 export function Flights() {
-  const reduced = useReducedMotion();
+  const reduced = useReduceMotion();
   const n = useStore((s) => s.game?.players.length ?? 0);
   const [flights, setFlights] = useState<Flight[]>([]);
 

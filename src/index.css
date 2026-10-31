@@ -52,3 +52,11 @@ button { font-family: inherit; touch-action: manipulation; }
   0%, 100% { text-shadow: none; transform: scale(1); }
   50% { text-shadow: 0 0 10px #fde047, 0 0 22px #f59e0b; transform: scale(1.35); }
 }
+
+/* Settings: larger text scales every rem-based size; reduce motion overrides the OS preference. */
+html.large-text { font-size: 118.75%; }
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

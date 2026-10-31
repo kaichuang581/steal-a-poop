@@ -13,7 +13,15 @@ export default function App() {
   const tourDone = useStore((s) => s.tourDone);
   const startTour = useStore((s) => s.startTour);
   const autoTour = useRef(false);
+  const reduceMotion = useStore((s) => s.reduceMotion);
+  const largeText = useStore((s) => s.largeText);
   useViewport();
+
+  // Player display settings apply to the whole page through classes on <html>.
+  useEffect(() => {
+    document.documentElement.classList.toggle('reduce-motion', reduceMotion);
+    document.documentElement.classList.toggle('large-text', largeText);
+  }, [reduceMotion, largeText]);
 
   // First time opening the app: go straight into the tutorial. Finishing or skipping it marks it
   // done, so it never auto-opens again; How to Play and Settings can always reopen it.
@@ -28,7 +36,7 @@ export default function App() {
     void loadDictionary();
   }, [loadDictionary]);
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion={reduceMotion ? 'always' : 'user'}>
       <div className="fixed inset-x-0" style={{ top: 'var(--vvtop, 0px)', height: 'var(--vvh, 100dvh)' }}>
         {inGame ? <GameScreen /> : <StartScreen />}
       </div>

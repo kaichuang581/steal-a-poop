@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import pkg from '../../package.json';
 import { GAME_TAGLINE, GAME_TITLE } from '../config';
 import { MAX_PLAYERS, MIN_PLAYERS, utcDateKey } from '../engine';
 import type { Difficulty } from '../engine';
@@ -13,7 +14,7 @@ const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 
 export function StartScreen() {
-  const { settings, setSettings, start, dictStatus } = useStore();
+  const { settings, setSettings, start, dictStatus, retryDictionary } = useStore();
   const [help, setHelp] = useState(false);
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
@@ -88,8 +89,19 @@ export function StartScreen() {
               onClick={() => go('quick')} disabled={!ready}
               className="min-h-12 rounded-xl bg-emerald-500 text-lg font-black text-emerald-950 disabled:opacity-40"
             >
-              {ready ? 'Quick Game' : dictStatus === 'error' ? 'Dictionary failed to load' : 'Loading dictionary…'}
+              {ready ? 'Quick Game' : 'Loading dictionary…'}
             </button>
+            {dictStatus === 'error' && (
+              <div role="alert" className="rounded-xl border-2 border-red-300 bg-red-900/40 p-3 text-center">
+                <p className="text-sm font-bold">The word list did not load. Check your connection, then try again.</p>
+                <button
+                  onClick={() => void retryDictionary()}
+                  className="mt-2 min-h-11 rounded-lg bg-red-300 px-4 font-black text-red-950"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
             {daily ? (
               <button
                 onClick={shareDaily} disabled={daily.status !== 'done'}
@@ -119,6 +131,16 @@ export function StartScreen() {
           </div>
         </div>
       </div>
+      <footer className="mt-4 flex items-center justify-center gap-4 text-xs text-white/55">
+        <span>v{pkg.version}</span>
+        <a
+          className="min-h-11 content-center underline"
+          href="https://github.com/kaichuang581/steal-a-poop/issues/new/choose"
+          target="_blank" rel="noreferrer"
+        >
+          Send feedback
+        </a>
+      </footer>
       {help && <Guide onClose={() => setHelp(false)} />}
       {gear && <Settings onClose={() => setGear(false)} />}
     </main>

@@ -1,10 +1,11 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReduceMotion } from './useReduceMotion';
 import { useMemo } from 'react';
 
 const COLORS = ['#f5c26b', '#c98a4b', '#f472b6', '#38bdf8', '#a3e635'];
 
 export function Confetti() {
-  const reduced = useReducedMotion();
+  const reduced = useReduceMotion();
   const pieces = useMemo(
     () => Array.from({ length: 36 }, (_, i) => ({
       left: Math.random() * 100, delay: Math.random() * 0.8, dur: 2.2 + Math.random() * 1.8,

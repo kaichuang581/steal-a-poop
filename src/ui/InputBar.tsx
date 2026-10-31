@@ -44,13 +44,13 @@ export function InputBar() {
     }
   };
 
+  // A steal needs the word typed first. Nothing is claimed until a word is present, so an
+  // empty click never spends a token.
   const steal = () => {
+    if (!value.trim()) return setHint('Type your word first, then press STEAL.');
     if (!claimed) {
-      const res = act({ type: 'stealClaim', seat: 0 });
-      if (!res?.accepted) return setHint(rejectMessage(res?.reason, game.chainLetter));
-      if (!value.trim()) return setHint('Steal armed: type a word and press Enter.');
-    } else if (!value.trim()) {
-      return setHint('Type a word to complete the steal.');
+      const claim = act({ type: 'stealClaim', seat: 0 });
+      if (!claim?.accepted) return setHint(rejectMessage(claim?.reason, game.chainLetter));
     }
     const res = act({ type: 'stealSubmit', seat: 0, word: value });
     if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
@@ -64,7 +64,7 @@ export function InputBar() {
     <div className="px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 sm:px-4 sm:pb-4">
       <div className="mx-auto max-w-2xl">
         <div className="h-5 text-center text-xs font-bold text-amber-300" role="status">
-          {hint || (claimed ? 'Steal armed. Type a word and press Enter!' : '')}
+          {hint || (stealOpen && !myTurn ? 'Steal window: type your word, then press STEAL.' : '')}
         </div>
         {learning && ideas.length > 0 && (
           <div className="mb-1 flex flex-wrap items-center justify-center gap-1.5" aria-label="Word ideas">

@@ -2,7 +2,7 @@ export const ROUNDS = 3;
 export const TURNS_PER_PLAYER_PER_ROUND = 5;
 export const MIN_WORD_LENGTH = 3;
 export const MIN_PLAYERS = 4;
-export const MAX_PLAYERS = 8;
+export const MAX_PLAYERS = 10;
 
 export const BASE_TURN_MS = 10_000;
 export const MIN_TURN_MS = 5_000;

@@ -11,10 +11,16 @@ interface Props {
 
 export function Seat({ player, x, y, turn }: Props) {
   const active = turn?.seat === player.id;
-  const cardAbove = y > 55; // keep the last-word card between the seat and the table centre
+  // Seats on the left and right edges put their word card inward, beside the avatar, where the
+  // table is empty. Top and bottom seats keep it between the seat and the table centre.
+  const sideSeat = Math.abs(x - 50) > 30;
+  const inward = x < 50 ? 'left-full ml-1' : 'right-full mr-1';
+  const cardAbove = !sideSeat && y > 55;
   const card = (
     <div
-      className="min-h-5 max-w-full truncate rounded-md border border-white/10 bg-black/35 px-1.5 text-[10px] font-bold uppercase tracking-wide sm:text-xs"
+      className={`min-h-5 max-w-[4.5rem] truncate rounded-md border border-white/10 bg-black/35 px-1.5 text-[10px] font-bold uppercase tracking-wide sm:max-w-28 sm:text-xs ${
+        sideSeat ? `absolute top-1/2 z-[1] -translate-y-1/2 ${inward}` : ''
+      }`}
       data-seat-word={player.id}
     >
       {player.lastWord ? <WordText word={player.lastWord} flash={false} /> : <span className="opacity-30">—</span>}
@@ -38,6 +44,7 @@ export function Seat({ player, x, y, turn }: Props) {
             <Countdown endsAt={turn.endsAt} durationMs={turn.durationMs} />
           </>
         )}
+        {sideSeat && card}
         <div
           className="relative flex size-full items-center justify-center rounded-full border-2 text-xl sm:text-3xl"
           style={{ borderColor: player.color, background: 'rgba(20,12,45,0.92)' }}
@@ -45,7 +52,7 @@ export function Seat({ player, x, y, turn }: Props) {
           <span aria-hidden="true">{player.emoji}</span>
         </div>
       </div>
-      <div className="max-w-full truncate text-[11px] font-bold leading-tight sm:text-sm" style={{ color: player.color }}>
+      <div className="max-w-full truncate text-[11px] font-bold leading-tight sm:text-sm" style={{ color: player.color }} data-seat-name={player.id}>
         {player.name}
       </div>
       <div className="flex items-center gap-1 text-[11px] leading-none sm:text-xs">
@@ -56,7 +63,7 @@ export function Seat({ player, x, y, turn }: Props) {
           <SecondsLeft endsAt={turn.endsAt} />
         </div>
       )}
-      {!cardAbove && card}
+      {!cardAbove && !sideSeat && card}
     </div>
   );
 }

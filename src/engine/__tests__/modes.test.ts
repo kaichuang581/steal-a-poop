@@ -126,3 +126,20 @@ describe('dead rounds', () => {
     }
   });
 });
+
+describe('10-player tables', () => {
+  it('creates 10 distinct players and rejects nothing at the cap', () => {
+    const g = createGame({ seed: 'ten', now: 0, humanName: 'Me', playerCount: 10, difficulty: 'medium' }, dict);
+    expect(g.players).toHaveLength(10);
+    expect(new Set(g.players.map((p) => p.name)).size).toBe(10);
+    expect(new Set(g.players.map((p) => p.emoji)).size).toBe(10);
+    expect(createGame({ seed: 'x', now: 0, humanName: 'Me', playerCount: 14, difficulty: 'easy' }, dict).players).toHaveLength(10);
+  });
+  it('a 10-seat game runs to the end', () => {
+    let s = createGame({ seed: 'ten-sim', now: 0, humanName: 'h', playerCount: 10, difficulty: 'hard' }, dict);
+    s.players[0].isHuman = false; s.players[0].difficulty = 'hard'; s.players[0].personality = 'random'; s.players[0].bankThreshold = 30;
+    s = advance(s, ctx, 3_000_000);
+    expect(s.phase).toBe('gameOver');
+    expect(s.players.every((p) => p.turnsTaken >= 5)).toBe(true);
+  });
+});

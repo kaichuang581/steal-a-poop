@@ -1,0 +1,31 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(160deg, #14122b 0%, #2a1a3d 60%, #3b2417 100%);
+  color: #f3ead9;
+}
+
+.splash {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.splash h1 {
+  font-size: clamp(2.5rem, 9vw, 5rem);
+  margin: 0;
+}
+
+.splash .soon {
+  opacity: 0.6;
+}

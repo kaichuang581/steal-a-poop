@@ -1,31 +1,54 @@
-:root {
-  color-scheme: dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #0b1030;
+  --color-plum: #2a1450;
+  --color-wood: #6b4423;
+  --color-wood-light: #c98a4b;
+  --color-felt: #1d3a33;
+  --font-display: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
 }
 
+html, body, #root { height: 100%; margin: 0; }
 body {
-  margin: 0;
-  min-height: 100vh;
-  background: linear-gradient(160deg, #14122b 0%, #2a1a3d 60%, #3b2417 100%);
-  color: #f3ead9;
+  font-family: var(--font-display);
+  color: #f3ecff;
+  background: radial-gradient(120% 90% at 50% 0%, #3a1c63 0%, #1a1245 45%, #0b1030 100%);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.splash {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  text-align: center;
+button { font-family: inherit; touch-action: manipulation; }
+:focus-visible { outline: 3px solid #f5c26b; outline-offset: 2px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
-.splash h1 {
-  font-size: clamp(2.5rem, 9vw, 5rem);
-  margin: 0;
+.ring-pulse { animation: ringPulse 0.5s ease-in-out infinite alternate; }
+@keyframes ringPulse { from { opacity: 1; transform: scale(1); } to { opacity: 0.55; transform: scale(1.08); } }
+
+.shake { animation: shake 0.45s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 1px, 0); }
+  30%, 50%, 70% { transform: translate3d(-8px, -2px, 0); }
+  40%, 60% { transform: translate3d(8px, 2px, 0); }
 }
 
-.splash .soon {
-  opacity: 0.6;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.gold-flash { animation: goldFlash 0.9s ease-in-out 2; }
+@keyframes goldFlash {
+  0%, 100% { text-shadow: none; transform: scale(1); }
+  50% { text-shadow: 0 0 10px #fde047, 0 0 22px #f59e0b; transform: scale(1.35); }
 }

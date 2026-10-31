@@ -1,0 +1,294 @@
+import { BOT_PROFILES, pickBotWord } from './bots';
+import {
+  FAIL_PENALTY, INTRO_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS, TOKENS_PER_ROUND,
+  TRAP_LETTERS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND,
+} from './constants';
+import type { Dictionary } from './dictionary';
+import { drawInt, drawRandom } from './rng';
+import { scoreWord } from './scoring';
+import { computeWinners } from './standings';
+import { turnDurationMs } from './timer';
+import type { Action, ActionResult, EventKind, GameState, Round } from './types';
+import { validateWord } from './validation';
+
+export interface EngineContext {
+  dict: Dictionary;
+}
+
+const MAX_EVENTS = 40;
+const nextSeat = (s: GameState, seat: number) => (seat + 1) % s.players.length;
+
+function emit(s: GameState, at: number, kind: EventKind, seat: number | null, text: string, amount = 0, word?: string) {
+  s.eventSeq += 1;
+  s.events.push({ id: s.eventSeq, at, kind, seat, text, amount, ...(word ? { word } : {}) });
+  if (s.events.length > MAX_EVENTS) s.events.splice(0, s.events.length - MAX_EVENTS);
+}
+
+function startTurn(s: GameState, seat: number, t: number) {
+  const durationMs = turnDurationMs(s.pile, s.modifier);
+  const endsAt = t + durationMs;
+  const active = s.players[seat];
+  const botActAt = active.isHuman
+    ? null
+    : t + drawInt(s, ...BOT_PROFILES[active.difficulty!].responseMs);
+  const stealPlans: { seat: number; at: number }[] = [];
+  for (const p of s.players) {
+    if (p.id === seat || p.isHuman || p.tokens <= 0) continue;
+    if (drawRandom(s) < BOT_PROFILES[p.difficulty!].stealChance) {
+      stealPlans.push({ seat: p.id, at: endsAt - STEAL_WINDOW_MS + drawRandom(s) * (STEAL_WINDOW_MS - 500) });
+    }
+  }
+  s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt, stealPlans, claims: [] };
+}
+
+function concludeTurn(s: GameState, t: number) {
+  const turn = s.turn!;
+  s.players[turn.seat].turnsTaken += 1;
+  for (const seat of turn.claims) s.players[seat].tokens += 1; // active player finished first: refund
+  s.turn = null;
+  if (s.players.every((p) => p.turnsTaken >= TURNS_PER_PLAYER_PER_ROUND)) return endRound(s, t);
+  startTurn(s, nextSeat(s, turn.seat), t);
+}
+
+function endRound(s: GameState, t: number) {
+  if (s.pile > 0) emit(s, t, 'burn', null, 'Pile burned', s.pile);
+  s.pile = 0;
+  s.trap = null;
+  if (s.round === ROUNDS) {
+    s.phase = 'gameOver';
+    s.winners = computeWinners(s.players);
+    emit(s, t, 'gameOver', null, 'Game over');
+    return;
+  }
+  s.round = (s.round + 1) as Round;
+  s.modifier = s.modifierDeck[s.round - 1];
+  s.used = [];
+  s.history = [];
+  for (const p of s.players) {
+    p.tokens = TOKENS_PER_ROUND;
+    p.turnsTaken = 0;
+  }
+  s.phase = 'intro';
+  s.introEndsAt = t + INTRO_MS;
+  emit(s, t, 'roundStart', null, `Round ${s.round}`);
+}
+
+/** Clears a trap aimed at `seat`. Pays the trapper only if that seat failed. */
+function resolveTrap(s: GameState, seat: number, failed: boolean, t: number) {
+  const trap = s.trap;
+  if (!trap || trap.victimSeat !== seat) return;
+  s.trap = null;
+  if (!failed) return;
+  s.players[trap.trapperSeat].banked += TRAP_PAYOUT;
+  emit(s, t, 'trapSprung', seat, `TRAP! ${s.players[seat].name} failed`, TRAP_PAYOUT);
+}
+
+/** A word ending in X/Z/Q/J traps whoever owns the next turn. */
+function setTrap(s: GameState, word: string, trapperSeat: number, turnSeat: number) {
+  const letter = word[word.length - 1];
+  s.trap = TRAP_LETTERS.has(letter) ? { trapperSeat, victimSeat: nextSeat(s, turnSeat), letter } : null;
+}
+
+function recordWord(s: GameState, seat: number, word: string, points: number) {
+  const p = s.players[seat];
+  p.lastWord = word;
+  p.wordsPlayed += 1;
+  if (word.length > p.longestWord.length) p.longestWord = word;
+  if (!p.bestWord || points > p.bestWord.points) p.bestWord = { word, points };
+  s.used.push(word);
+  s.chainLetter = word[word.length - 1];
+}
+
+function playTurn(s: GameState, seat: number, word: string, t: number) {
+  const points = scoreWord(word, s.modifier);
+  s.pile += points;
+  recordWord(s, seat, word, points);
+  s.history.push({ round: s.round, seat, kind: 'play', word, points });
+  emit(s, t, 'play', seat, `${s.players[seat].name}: ${word.toUpperCase()} +${points}`, points, word);
+  resolveTrap(s, seat, false, t);
+  setTrap(s, word, seat, seat);
+  concludeTurn(s, t);
+}
+
+function bankTurn(s: GameState, t: number) {
+  const seat = s.turn!.seat;
+  const amount = s.pile;
+  s.players[seat].banked += amount;
+  s.pile = 0;
+  s.history.push({ round: s.round, seat, kind: 'bank', word: null, points: amount });
+  emit(s, t, 'bank', seat, `${s.players[seat].name} banked ${amount}`, amount);
+  resolveTrap(s, seat, false, t);
+  concludeTurn(s, t);
+}
+
+function failTurn(s: GameState, seat: number, kind: 'timeout' | 'invalid', t: number) {
+  const p = s.players[seat];
+  p.banked -= FAIL_PENALTY;
+  s.history.push({ round: s.round, seat, kind, word: null, points: -FAIL_PENALTY });
+  const label = kind === 'timeout' ? 'Timeout' : 'Invalid word';
+  emit(s, t, kind, seat, `${label} ${p.name} -${FAIL_PENALTY}`, -FAIL_PENALTY);
+  resolveTrap(s, seat, true, t);
+  concludeTurn(s, t);
+}
+
+function stealFailed(s: GameState, seat: number, t: number) {
+  const turn = s.turn!;
+  turn.claims = turn.claims.filter((c) => c !== seat); // token stays spent
+  emit(s, t, 'stealFail', seat, `${s.players[seat].name}'s steal failed`);
+}
+
+function stealSucceeded(s: GameState, stealerSeat: number, word: string, t: number) {
+  const turn = s.turn!;
+  const stealer = s.players[stealerSeat];
+  const points = scoreWord(word, s.modifier);
+  const gain = s.pile + points + STEAL_BONUS;
+  turn.claims = turn.claims.filter((c) => c !== stealerSeat); // token stays spent
+  stealer.banked += gain;
+  stealer.steals += 1;
+  s.pile = 0;
+  recordWord(s, stealerSeat, word, points);
+  s.history.push({ round: s.round, seat: stealerSeat, kind: 'steal', word, points: gain });
+  emit(s, t, 'steal', stealerSeat, `STOLEN by ${stealer.name}! +${gain}`, gain, word);
+  resolveTrap(s, turn.seat, false, t);
+  setTrap(s, word, stealerSeat, turn.seat);
+  concludeTurn(s, t);
+}
+
+type Due = { at: number; kind: 'botAct' | 'timeout' } | { at: number; kind: 'botSteal'; index: number };
+
+function nextDue(s: GameState, now: number): Due | null {
+  const turn = s.turn!;
+  const candidates: Due[] = [];
+  if (turn.botActAt !== null) candidates.push({ at: turn.botActAt, kind: 'botAct' });
+  turn.stealPlans.forEach((p, index) => candidates.push({ at: p.at, kind: 'botSteal', index }));
+  candidates.push({ at: turn.endsAt, kind: 'timeout' });
+  let best: Due | null = null;
+  for (const c of candidates) if (c.at <= now && (!best || c.at < best.at)) best = c;
+  return best;
+}
+
+function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
+  const turn = s.turn!;
+  const bot = s.players[turn.seat];
+  const profile = BOT_PROFILES[bot.difficulty!];
+  turn.botActAt = null;
+  if (s.pile > 0 && s.pile >= bot.bankThreshold) return bankTurn(s, t);
+  if (drawRandom(s) < profile.failRate) return failTurn(s, turn.seat, 'timeout', t);
+  const word = pickBotWord({
+    dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
+    prefer: profile.prefer, random: () => drawRandom(s),
+  });
+  if (!word) return failTurn(s, turn.seat, 'timeout', t);
+  playTurn(s, turn.seat, word, t);
+}
+
+function runBotSteal(s: GameState, ctx: EngineContext, seat: number, t: number) {
+  const turn = s.turn!;
+  const bot = s.players[seat];
+  if (bot.tokens <= 0 || turn.claims.includes(seat)) return;
+  bot.tokens -= 1;
+  turn.claims.push(seat);
+  const profile = BOT_PROFILES[bot.difficulty!];
+  const word =
+    drawRandom(s) < profile.failRate
+      ? null
+      : pickBotWord({
+          dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
+          prefer: profile.prefer, random: () => drawRandom(s),
+        });
+  if (!word) return stealFailed(s, seat, t);
+  stealSucceeded(s, seat, word, t);
+}
+
+export function needsAdvance(s: GameState, now: number): boolean {
+  if (s.phase === 'intro') return s.introEndsAt !== null && now >= s.introEndsAt;
+  const t = s.turn;
+  if (s.phase !== 'playing' || !t) return false;
+  return t.endsAt <= now || (t.botActAt !== null && t.botActAt <= now) || t.stealPlans.some((p) => p.at <= now);
+}
+
+/**
+ * Runs everything that became due by `now` (intro end, bot moves, bot steals,
+ * timeouts) in timestamp order. Returns the same object if nothing was due.
+ */
+export function advance(state: GameState, ctx: EngineContext, now: number): GameState {
+  if (!needsAdvance(state, now)) return state;
+  const s = structuredClone(state);
+  for (;;) {
+    if (s.phase === 'intro') {
+      if (s.introEndsAt === null || now < s.introEndsAt) break;
+      const at = s.introEndsAt;
+      s.introEndsAt = null;
+      s.phase = 'playing';
+      startTurn(s, (s.round - 1) % s.players.length, at);
+      continue;
+    }
+    if (s.phase !== 'playing' || !s.turn) break;
+    const due = nextDue(s, now);
+    if (!due) break;
+    switch (due.kind) {
+      case 'timeout':
+        failTurn(s, s.turn.seat, 'timeout', due.at);
+        break;
+      case 'botAct':
+        runBotTurn(s, ctx, due.at);
+        break;
+      case 'botSteal':
+        runBotSteal(s, ctx, s.turn.stealPlans.splice(due.index, 1)[0].seat, due.at);
+        break;
+    }
+  }
+  return s;
+}
+
+export function inStealWindow(s: GameState, now: number): boolean {
+  const t = s.turn;
+  return s.phase === 'playing' && !!t && now >= t.endsAt - STEAL_WINDOW_MS && now < t.endsAt;
+}
+
+/** Applies a human action at time `now`. Never mutates the input state. */
+export function apply(state: GameState, ctx: EngineContext, action: Action, now: number): ActionResult {
+  const s = structuredClone(advance(state, ctx, now));
+  const reject = (reason: string): ActionResult => ({ state: s, accepted: false, reason });
+  const turn = s.turn;
+  if (s.phase !== 'playing' || !turn) return reject('not_playing');
+  const player = s.players[action.seat];
+  if (!player || !player.isHuman) return reject('no_such_player');
+  const check = (word: string) =>
+    validateWord(word, { dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier });
+
+  switch (action.type) {
+    case 'play': {
+      if (action.seat !== turn.seat) return reject('not_your_turn');
+      const v = check(action.word);
+      if (!v.ok) {
+        failTurn(s, turn.seat, 'invalid', now);
+        return { state: s, accepted: true, reason: v.reason };
+      }
+      playTurn(s, turn.seat, v.word, now);
+      return { state: s, accepted: true };
+    }
+    case 'bank':
+      if (action.seat !== turn.seat) return reject('not_your_turn');
+      bankTurn(s, now);
+      return { state: s, accepted: true };
+    case 'stealClaim':
+      if (action.seat === turn.seat) return reject('own_turn');
+      if (!inStealWindow(s, now)) return reject('outside_steal_window');
+      if (player.tokens <= 0) return reject('no_tokens');
+      if (turn.claims.includes(action.seat)) return reject('already_claimed');
+      player.tokens -= 1;
+      turn.claims.push(action.seat);
+      return { state: s, accepted: true };
+    case 'stealSubmit': {
+      if (!turn.claims.includes(action.seat)) return reject('no_claim');
+      const v = check(action.word);
+      if (!v.ok) {
+        stealFailed(s, action.seat, now);
+        return { state: s, accepted: true, reason: v.reason };
+      }
+      stealSucceeded(s, action.seat, v.word, now);
+      return { state: s, accepted: true };
+    }
+  }
+}

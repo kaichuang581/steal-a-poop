@@ -1,0 +1,114 @@
+import { useState } from 'react';
+import { GAME_TAGLINE, GAME_TITLE } from '../config';
+import { MAX_PLAYERS, MIN_PLAYERS, utcDateKey } from '../engine';
+import type { Difficulty } from '../engine';
+import { getDaily, getStreak } from '../lib/daily';
+import { checkNickname, MAX_NICKNAME } from '../lib/nickname';
+import { buildShareText } from '../lib/share';
+import { useStore } from '../state/store';
+import { HowToPlay } from './HowToPlay';
+
+const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
+const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
+
+export function StartScreen() {
+  const { settings, setSettings, start, dictStatus } = useStore();
+  const [help, setHelp] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const today = utcDateKey(new Date());
+  const daily = getDaily(today);
+  const streak = getStreak(today);
+  const ready = dictStatus === 'ready';
+
+  const go = (mode: 'quick' | 'daily') => {
+    const nick = checkNickname(settings.name);
+    if (!nick.ok) return setError(nick.message);
+    setError('');
+    start(mode);
+  };
+
+  const shareDaily = async () => {
+    if (daily?.status !== 'done') return;
+    const text = buildShareText({
+      daily: today, rank: daily.rank ?? 1, players: daily.players ?? 0, banked: daily.banked ?? 0,
+      steals: daily.steals ?? 0, longest: daily.longest ?? 0, streak,
+    });
+    try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const seg = (on: boolean) =>
+    `min-h-11 flex-1 rounded-lg px-3 text-sm font-bold capitalize ${on ? 'bg-amber-400 text-amber-950' : 'bg-white/10 hover:bg-white/15'}`;
+
+  return (
+    <main className="flex h-full flex-col items-center justify-center overflow-y-auto px-4 py-6">
+      <div className="w-full max-w-md">
+        <div className="text-center">
+          <div className="text-6xl" aria-hidden="true">💩</div>
+          <h1 className="mt-1 text-4xl font-black tracking-tight text-amber-300 sm:text-5xl">{GAME_TITLE}</h1>
+          <p className="mt-1 text-sm text-white/70">{GAME_TAGLINE}</p>
+        </div>
+
+        <div className="mt-6 space-y-4 rounded-3xl border border-white/10 bg-white/5 p-4">
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-wide text-white/60">Nickname</span>
+            <input
+              value={settings.name}
+              onChange={(e) => { setSettings({ name: e.target.value.slice(0, MAX_NICKNAME) }); setError(''); }}
+              maxLength={MAX_NICKNAME} placeholder="You" autoComplete="off" spellCheck={false}
+              className="mt-1 min-h-12 w-full rounded-xl border-2 border-white/20 bg-black/40 px-4 text-lg font-bold focus:border-amber-300 focus:outline-none"
+            />
+            {error && <span role="alert" className="mt-1 block text-sm font-bold text-red-300">{error}</span>}
+          </label>
+
+          <fieldset>
+            <legend className="text-xs font-bold uppercase tracking-wide text-white/60">Players</legend>
+            <div className="mt-1 flex gap-1.5">
+              {COUNTS.map((c) => (
+                <button key={c} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c} className={seg(settings.playerCount === c)}>{c}</button>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="text-xs font-bold uppercase tracking-wide text-white/60">Bot difficulty</legend>
+            <div className="mt-1 flex gap-1.5">
+              {DIFFS.map((d) => (
+                <button key={d} onClick={() => setSettings({ difficulty: d })} aria-pressed={settings.difficulty === d} className={seg(settings.difficulty === d)}>{d}</button>
+              ))}
+            </div>
+          </fieldset>
+
+          <div className="flex flex-col gap-2 pt-1">
+            <button
+              onClick={() => go('quick')} disabled={!ready}
+              className="min-h-12 rounded-xl bg-emerald-500 text-lg font-black text-emerald-950 disabled:opacity-40"
+            >
+              {ready ? 'Quick Game' : dictStatus === 'error' ? 'Dictionary failed to load' : 'Loading dictionary…'}
+            </button>
+            {daily ? (
+              <button
+                onClick={shareDaily} disabled={daily.status !== 'done'}
+                className="min-h-12 rounded-xl bg-fuchsia-500/60 text-base font-black disabled:opacity-60"
+              >
+                {daily.status === 'done' ? (copied ? 'Copied!' : `Daily done · #${daily.rank} · share`) : 'Daily attempt used — back tomorrow'}
+              </button>
+            ) : (
+              <button
+                onClick={() => go('daily')} disabled={!ready}
+                className="min-h-12 rounded-xl bg-fuchsia-500 text-lg font-black disabled:opacity-40"
+              >
+                Daily Table <span className="text-sm font-bold opacity-80">· one attempt</span>
+              </button>
+            )}
+            {streak > 0 && <p className="text-center text-sm text-amber-200">🔥 {streak}-day streak</p>}
+            <button onClick={() => setHelp(true)} className="min-h-12 rounded-xl bg-white/10 font-bold hover:bg-white/15">How to Play</button>
+          </div>
+        </div>
+      </div>
+      {help && <HowToPlay onClose={() => setHelp(false)} />}
+    </main>
+  );
+}

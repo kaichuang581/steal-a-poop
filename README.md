@@ -72,6 +72,8 @@ interface. Note `apply` already rejects actions from non-human seats.
 | `src/ui/CoachTips.tsx`, `src/lib/tips.ts` | One-time contextual tips and the first-run flag |
 | `src/ui/Settings.tsx` | Sound, replay tutorial, reset tips |
 | `src/audio/sound.ts` | Synthesized sounds, unlocked on first tap, mute persisted |
+| `server/` | Multiplayer game server (not deployed, not connected to the app yet). See `docs/SERVER.md` |
+| `docs/` | Balance results, performance audit, moderation notes, server notes |
 
 ## Learning modes
 

@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "simulate": "vite-node scripts/simulate.ts",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "server": "vite-node server/main.ts"
   },
   "dependencies": {
     "framer-motion": "^14.9.0",

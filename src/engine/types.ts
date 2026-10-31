@@ -75,6 +75,7 @@ export type EventKind =
   | 'trapSprung'
   | 'burn'
   | 'chainReset'
+  | 'seatBot'
   | 'gameOver';
 
 export interface GameEvent {

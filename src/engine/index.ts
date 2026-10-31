@@ -11,5 +11,5 @@ export * from './standings';
 export * from './bots';
 export * from './hints';
 export * from './game';
-export { advance, apply, inStealWindow, needsAdvance } from './reducer';
+export { advance, apply, inStealWindow, needsAdvance, replaceWithBot } from './reducer';
 export type { EngineContext } from './reducer';

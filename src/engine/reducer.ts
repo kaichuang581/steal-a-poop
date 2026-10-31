@@ -1,14 +1,14 @@
-import { BOT_PROFILES, pickBotWord } from './bots';
+import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
   FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS,
   TRAP_LETTERS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
-import { drawInt, drawRandom } from './rng';
+import { drawInt, drawPick, drawRandom } from './rng';
 import { scoreWord } from './scoring';
 import { computeWinners } from './standings';
 import { turnDurationMs } from './timer';
-import type { Action, ActionResult, EventKind, GameState, Round } from './types';
+import type { Action, ActionResult, Difficulty, EventKind, GameState, Round } from './types';
 import { halveScore } from './penalties';
 import { suggestCorrection } from './typos';
 import { hasPlayableWord, validateWord } from './validation';
@@ -267,6 +267,27 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
         runBotSteal(s, ctx, s.turn.stealPlans.splice(due.index, 1)[0].seat, due.at);
         break;
     }
+  }
+  return s;
+}
+
+/**
+ * A human left mid-game: a bot takes the seat and keeps the score, so the round keeps its size.
+ * If it is their turn the bot answers on its normal schedule.
+ */
+export function replaceWithBot(state: GameState, seat: number, difficulty: Difficulty, now: number): GameState {
+  const player = state.players[seat];
+  if (!player || !player.isHuman || state.phase === 'gameOver') return state;
+  const s = structuredClone(state);
+  const p = s.players[seat];
+  const personality = drawPick(s, PERSONALITIES);
+  p.isHuman = false;
+  p.difficulty = difficulty;
+  p.personality = personality;
+  p.bankThreshold = bankThresholdFor(personality, drawRandom(s));
+  emit(s, now, 'seatBot', seat, `${p.name} left. A bot took their seat`);
+  if (s.turn && s.turn.seat === seat) {
+    s.turn.botActAt = now + drawInt(s, ...BOT_PROFILES[difficulty].responseMs);
   }
   return s;
 }

@@ -11,6 +11,12 @@ export type RoundModifier =
 
 export type Phase = 'intro' | 'playing' | 'gameOver';
 
+/**
+ * normal: full rules. practice: no penalties, invalid words can be retried, roomy human timer.
+ * tour: practice plus scripted bots, used by the interactive tutorial.
+ */
+export type GameMode = 'normal' | 'practice' | 'tour';
+
 export interface Player {
   /** Seat index. Seat 0 is always the human. Turns go seat 0 -> 1 -> ... -> n-1 -> 0. */
   id: number;
@@ -72,6 +78,7 @@ export type EventKind =
   | 'invalid'
   | 'trapSprung'
   | 'burn'
+  | 'chainReset'
   | 'gameOver';
 
 export interface GameEvent {
@@ -89,6 +96,7 @@ export interface GameState {
   seed: string;
   /** Mulberry32 state. Every random draw advances it, so replays are exact. */
   rng: number;
+  mode: GameMode;
   phase: Phase;
   round: Round;
   modifier: RoundModifier;

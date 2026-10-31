@@ -7,7 +7,7 @@ export function RoundBanner() {
   const mod = MODIFIER_INFO[game.modifier];
   return (
     <AnimatePresence>
-      {game.phase === 'intro' && (
+      {game.phase === 'intro' && game.mode !== 'tour' && (
         <motion.div
           key={game.round}
           className="pointer-events-none fixed inset-0 z-20 flex items-center justify-center bg-black/55 px-4"

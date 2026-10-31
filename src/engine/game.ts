@@ -1,8 +1,9 @@
 import { PERSONALITIES, bankThresholdFor } from './bots';
+import { hasPlayableWord } from './validation';
 import { INTRO_MS, MAX_PLAYERS, MIN_PLAYERS, TOKENS_PER_ROUND } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawPick, drawRandom, hashSeed, shuffle } from './rng';
-import type { Difficulty, GameState, Player, RoundModifier } from './types';
+import type { Difficulty, GameMode, GameState, Player, RoundModifier } from './types';
 
 export interface GameSetup {
   seed: string;
@@ -10,6 +11,8 @@ export interface GameSetup {
   humanName: string;
   playerCount: number;
   difficulty: Difficulty;
+  /** Defaults to 'normal'. */
+  mode?: GameMode;
 }
 
 const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter', 'vowel_double', 'double_points_fast'];
@@ -24,8 +27,10 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const n = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.round(setup.playerCount)));
 
   const modifierDeck = shuffle(state, ALL_MODIFIERS).slice(0, 3);
-  const common = ALPHABET.filter((l) => dict.startingWith(l).length >= MIN_START_WORDS);
-  const chainLetter = drawPick(state, common.length ? common : ALPHABET);
+  const playable = ALPHABET.filter((l) => hasPlayableWord(dict, l, [], modifierDeck[0]));
+  const base = playable.length ? playable : ALPHABET;
+  const common = base.filter((l) => dict.startingWith(l).length >= MIN_START_WORDS);
+  const chainLetter = drawPick(state, common.length ? common : base);
 
   const names = shuffle(state, BOT_NAMES);
   const looks = shuffle(state, BOT_EMOJIS.map((emoji, i) => ({ emoji, color: BOT_COLORS[i] })));
@@ -52,6 +57,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   return {
     seed: setup.seed,
     rng: state.rng,
+    mode: setup.mode ?? 'normal',
     phase: 'intro',
     round: 1,
     modifier: modifierDeck[0],

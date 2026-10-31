@@ -6,19 +6,24 @@ import { useStore } from '../state/store';
 export function InputBar() {
   const game = useStore((s) => s.game)!;
   const act = useStore((s) => s.act);
+  const mode = useStore((s) => s.mode);
+  const suggest = useStore((s) => s.suggest);
   const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState('');
   const [hint, setHint] = useState('');
+  const [ideas, setIdeas] = useState<string[]>([]);
 
   const me = game.players[0];
   const playing = game.phase === 'playing' && !!game.turn;
   const myTurn = playing && game.turn!.seat === 0;
   const claimed = playing && game.turn!.claims.includes(0);
   const canSteal = stealOpen && !myTurn && (claimed || me.tokens > 0);
+  const learning = mode === 'practice' || mode === 'tour';
 
   useEffect(() => {
     inputRef.current?.focus();
+    setIdeas([]);
   }, [game.turn?.seat]);
 
   useEffect(() => {
@@ -33,7 +38,7 @@ export function InputBar() {
       if (!word) return;
       const res = act({ type: 'play', seat: 0, word });
       if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
-      setValue('');
+      if (res?.accepted) setValue('');
     } else if (stealOpen) {
       steal();
     }
@@ -49,11 +54,11 @@ export function InputBar() {
     }
     const res = act({ type: 'stealSubmit', seat: 0, word: value });
     if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
-    setValue('');
+    if (res?.accepted) setValue('');
   };
 
   const keep = (e: React.MouseEvent) => e.preventDefault(); // buttons never steal focus from the input
-  const btn = 'min-h-12 rounded-xl px-4 text-base font-black uppercase tracking-wide shadow disabled:opacity-35 sm:px-6';
+  const btn = 'min-h-12 rounded-xl px-3 text-sm font-black uppercase tracking-wide shadow disabled:opacity-35 sm:px-6 sm:text-base';
 
   return (
     <div className="px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 sm:px-4 sm:pb-4">
@@ -61,7 +66,19 @@ export function InputBar() {
         <div className="h-5 text-center text-xs font-bold text-amber-300" role="status">
           {hint || (claimed ? 'Steal armed. Type a word and press Enter!' : '')}
         </div>
-        <div className="flex gap-2">
+        {learning && ideas.length > 0 && (
+          <div className="mb-1 flex flex-wrap items-center justify-center gap-1.5" aria-label="Word ideas">
+            {ideas.map((w) => (
+              <button
+                key={w} onMouseDown={keep} onClick={() => setValue(w)}
+                className="min-h-11 rounded-lg bg-sky-500/30 px-3 text-sm font-bold uppercase tracking-wide hover:bg-sky-500/50"
+              >
+                {w}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2" data-tour="input">
           <input
             ref={inputRef}
             value={value}
@@ -80,7 +97,7 @@ export function InputBar() {
           />
           {canSteal ? (
             <button
-              onMouseDown={keep} onClick={steal}
+              onMouseDown={keep} onClick={steal} data-tour="steal"
               className={`${btn} animate-pulse bg-fuchsia-500 text-white`}
             >
               {claimed ? 'Steal!' : 'Steal'}
@@ -90,8 +107,19 @@ export function InputBar() {
               Play
             </button>
           )}
+          {learning && (
+            <button
+              onMouseDown={keep} onClick={() => setIdeas(suggest(3))}
+              disabled={!myTurn && !canSteal}
+              className={`${btn} min-w-12 bg-sky-500 text-sky-950`}
+              aria-label="Hint"
+            >
+              <span className="sm:hidden" aria-hidden="true">💡</span>
+              <span className="hidden sm:inline">Hint</span>
+            </button>
+          )}
           <button
-            onMouseDown={keep}
+            onMouseDown={keep} data-tour="bank"
             onClick={() => act({ type: 'bank', seat: 0 })}
             disabled={!myTurn}
             className={`${btn} bg-amber-400 text-amber-950`}

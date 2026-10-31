@@ -22,7 +22,7 @@ export function Pile({ pile }: { pile: number }) {
   const chips = Math.min(14, Math.ceil(pile / 8));
   const color = pileColor(pile);
   return (
-    <div className="flex flex-col items-center" data-pile>
+    <div className="flex flex-col items-center" data-pile data-tour="pile" title="Shared pile: bank it on your turn to take it all">
       <div className="relative h-10 w-14 sm:h-16 sm:w-20" aria-hidden="true">
         {Array.from({ length: chips }, (_, i) => (
           <motion.span

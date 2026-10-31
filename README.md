@@ -7,7 +7,7 @@ The title lives in one constant: `src/config.ts` (`GAME_TITLE`).
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:5173/steal-a-poop/  (the Vite base path matches GitHub Pages)
 ```
 
 ```bash
@@ -23,7 +23,7 @@ one per line). It is fetched once at startup and held in a `Set`.
 ```
 src/engine/   pure TypeScript, zero React imports. Deterministic given a seed.
 src/state/    zustand store + GameClient seam (the thing a server replaces)
-src/ui/       React components: read state, dispatch actions
+src/ui/       React components: read state, dispatch actions (incl. tour, guide, tips)
 src/audio/    Web Audio synth (no audio files)
 src/lib/      nickname filter, storage, share card, daily streak, copy
 ```
@@ -61,11 +61,29 @@ interface. Note `apply` already rejects actions from non-human seats.
 | `src/engine/game.ts` | `createGame`, daily setup |
 | `src/engine/reducer.ts` | `advance` + `apply`: turns, bank, steal, trap, burn, rounds |
 | `src/engine/standings.ts` | Ranking, tie-breaks, winners, stats |
+| `src/engine/hints.ts` | `suggestWords`: practice-mode word ideas |
 | `src/engine/__tests__/` | Vitest suites |
 | `src/state/store.ts` | zustand store, settings, daily attempt bookkeeping |
 | `src/state/gameClient.ts` | The client interface a server replaces |
 | `src/ui/*` | Screens and components (Table, Seat, Pile, InputBar, panels, toasts, end screen…) |
+| `src/ui/Tour.tsx`, `tourSteps.ts` | Interactive first-game tutorial (data-driven steps) |
+| `src/ui/Guide.tsx`, `guideContent.ts` | How to Play hub: basics, scoring, glossary, FAQ |
+| `src/ui/ScoringTable.tsx` | Scoring reference, built from the engine's own constants and functions |
+| `src/ui/CoachTips.tsx`, `src/lib/tips.ts` | One-time contextual tips and the first-run flag |
+| `src/ui/Settings.tsx` | Sound, replay tutorial, reset tips |
 | `src/audio/sound.ts` | Synthesized sounds, unlocked on first tap, mute persisted |
+
+## Learning modes
+
+- **Tutorial (`mode: 'tour'`).** First Quick Game launches it once (skippable); replay it from
+  Settings. It is a real game with scripted bots: they answer quickly, never bank or fumble, and
+  after you bank the last bot runs into its steal window so you can try one. The game clock is
+  paused on explanation steps (the store tracks an offset against `performance.now()`), and also
+  while the steal prompt is up.
+- **Practice (`mode: 'practice'`).** Easy bots, 25s human turns, no penalties, an invalid word is
+  rejected so you can retry, and a Hint button suggests valid words. Not recorded anywhere.
+- **Tips** (round modifier, pile, steal tokens, trap) show once each; "Show gameplay tips again" in
+  Settings resets them. Everything is stored in this browser only.
 
 ## Rule ambiguities and how they were resolved
 
@@ -101,6 +119,11 @@ interface. Note `apply` already rejects actions from non-human seats.
 16. **Daily Table:** starting it uses the day's one attempt (closing the tab mid-game
     forfeits it). Streak counts consecutive UTC days *played*, win or lose. Lineup size
     (4–8 seats), bots, letter and modifiers all derive from the date seed; difficulty is Medium.
+18. **Dead rounds.** A round could open on a letter with no legal word (letter E under "No E",
+    since the chain letter carries over). The first round never starts on one, and when a later
+    round opens on one the chain letter is re-drawn (seeded) and announced.
+19. **Practice rules.** No −5 for timeouts or invalid words, invalid words and bad steal words
+    are rejected (claim kept) instead of ending the turn, and the human timer is 25s.
 17. **Dictionary.** Words are used as-is from ENABLE; the 3-letter minimum filters its
     2-letter words at validation time.
 

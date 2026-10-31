@@ -29,7 +29,7 @@ export function Seat({ player, x, y, turn, stealOpen }: Props) {
       data-seat={player.id}
     >
       {cardAbove && card}
-      <div className="relative size-10 sm:size-16" data-seat-avatar={player.id}>
+      <div className="relative size-10 sm:size-16" data-seat-avatar={player.id} data-tour={player.isHuman ? 'me' : undefined}>
         {active && turn && (
           <>
             <span
@@ -52,7 +52,7 @@ export function Seat({ player, x, y, turn, stealOpen }: Props) {
       </div>
       <div className="flex items-center gap-1 text-[11px] leading-none sm:text-xs">
         <span className="font-black tabular-nums">{player.banked}</span>
-        <span className="flex gap-0.5" aria-label={`${player.tokens} steal tokens`}>
+        <span className="flex gap-0.5" aria-label={`${player.tokens} steal tokens`} title="Steal tokens" data-tour={player.isHuman ? 'tokens' : undefined}>
           {Array.from({ length: TOKENS_PER_ROUND }, (_, i) => (
             <span
               key={i}

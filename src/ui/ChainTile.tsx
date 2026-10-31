@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 export function ChainTile({ letter }: { letter: string }) {
   return (
-    <div className="flex flex-col items-center gap-1" data-chain-tile style={{ perspective: 400 }}>
+    <div className="flex flex-col items-center gap-1" data-chain-tile data-tour="chain" title="Your word must start with this letter" style={{ perspective: 400 }}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={letter}

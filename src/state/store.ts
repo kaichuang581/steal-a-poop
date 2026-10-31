@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { createDictionary, dailySetup, rankPlayers, utcDateKey } from '../engine';
-import type { Action, ActionResult, Difficulty, GameState } from '../engine';
+import { createDictionary, dailySetup, rankPlayers, suggestWords, utcDateKey } from '../engine';
+import type { Action, ActionResult, Dictionary, Difficulty, GameState } from '../engine';
 import { getDaily, getStreak, markStarted, recordResult } from '../lib/daily';
 import { checkNickname } from '../lib/nickname';
 import { load, save } from '../lib/storage';
+import { isTourDone, setTourDone } from '../lib/tips';
 import { createLocalClient } from './gameClient';
 import type { GameClient } from './gameClient';
 
@@ -12,10 +13,11 @@ export interface Settings {
   playerCount: number;
   difficulty: Difficulty;
 }
-export type Mode = 'quick' | 'daily';
+export type Mode = 'quick' | 'daily' | 'practice' | 'tour';
 
 interface Store {
   client: GameClient | null;
+  dict: Dictionary | null;
   dictStatus: 'loading' | 'ready' | 'error';
   game: GameState | null;
   mode: Mode;
@@ -25,6 +27,13 @@ interface Store {
   /** performance.now() of the latest frame. */
   now: number;
   muted: boolean;
+  /** Tutorial pause: the game clock stops; `now` stays at the moment of the pause. */
+  paused: boolean;
+  pausedRaw: number;
+  /** Total time spent paused. Engine time is performance.now() minus this. */
+  timeOffset: number;
+  tourDone: boolean;
+  afterTour: 'menu' | 'quick';
   loadDictionary(): Promise<void>;
   setSettings(patch: Partial<Settings>): void;
   start(mode: Mode): boolean;
@@ -33,6 +42,12 @@ interface Store {
   act(action: Action): ActionResult | null;
   frame(now: number): void;
   toggleMute(): void;
+  pause(): void;
+  resume(): void;
+  startTour(after: 'menu' | 'quick'): boolean;
+  endTour(next: 'menu' | 'quick'): void;
+  /** Valid words for the current chain letter (practice hints). */
+  suggest(count: number): string[];
 }
 
 const SETTINGS_KEY = 'sap:settings';
@@ -40,6 +55,7 @@ const MUTE_KEY = 'sap:muted';
 
 export const useStore = create<Store>((set, get) => ({
   client: null,
+  dict: null,
   dictStatus: 'loading',
   game: null,
   mode: 'quick',
@@ -48,6 +64,11 @@ export const useStore = create<Store>((set, get) => ({
   settings: load<Settings>(SETTINGS_KEY, { name: '', playerCount: 6, difficulty: 'medium' }),
   now: performance.now(),
   muted: load<boolean>(MUTE_KEY, false),
+  paused: false,
+  pausedRaw: 0,
+  timeOffset: 0,
+  tourDone: isTourDone(),
+  afterTour: 'menu',
 
   async loadDictionary() {
     if (get().client) return;
@@ -55,7 +76,7 @@ export const useStore = create<Store>((set, get) => ({
       const res = await fetch('words.txt');
       if (!res.ok) throw new Error(String(res.status));
       const dict = createDictionary((await res.text()).split('\n'));
-      set({ client: createLocalClient(dict), dictStatus: 'ready' });
+      set({ client: createLocalClient(dict), dict, dictStatus: 'ready' });
     } catch {
       set({ dictStatus: 'error' });
     }
@@ -80,36 +101,45 @@ export const useStore = create<Store>((set, get) => ({
       if (getDaily(dailyDate)) return false; // one attempt per day
       markStarted(dailyDate);
       setup = dailySetup(new Date(), nick.name, now);
+    } else if (mode === 'practice' || mode === 'tour') {
+      setup = {
+        seed: `${mode}:${Date.now()}:${Math.random()}`,
+        now, humanName: nick.name, playerCount: 4, difficulty: 'easy' as Difficulty, mode,
+      };
     } else {
       setup = {
         seed: `quick:${Date.now()}:${Math.random()}`,
         now, humanName: nick.name, playerCount: settings.playerCount, difficulty: settings.difficulty,
       };
     }
-    set({ game: client.create(setup), mode, dailyDate, now, streak: 0 });
+    set({ game: client.create(setup), mode, dailyDate, now, streak: 0, paused: false, timeOffset: 0 });
     return true;
   },
 
   rematch() {
-    if (get().mode === 'quick') get().start('quick');
+    const { mode } = get();
+    if (mode === 'quick' || mode === 'practice') get().start(mode);
   },
 
   quit() {
-    set({ game: null });
+    set({ game: null, paused: false, timeOffset: 0 });
   },
 
   act(action) {
-    const { client, game } = get();
+    const { client, game, paused, mode, timeOffset } = get();
     if (!client || !game) return null;
-    const now = performance.now();
+    if (paused && mode !== 'tour') return null;
+    // While the tour pauses the clock, actions land at the frozen moment.
+    const now = paused ? get().now : performance.now() - timeOffset;
     const result = client.act(game, action, now);
     set({ game: result.state, now });
     return result;
   },
 
-  frame(now) {
-    const { client, game, mode, dailyDate } = get();
-    if (!client || !game) return;
+  frame(raw) {
+    const { client, game, mode, dailyDate, paused, timeOffset } = get();
+    if (!client || !game || paused) return;
+    const now = raw - timeOffset;
     const next = client.tick(game, now);
     if (next === game) {
       set({ now });
@@ -127,6 +157,37 @@ export const useStore = create<Store>((set, get) => ({
       });
       set({ streak });
     }
+  },
+
+  pause() {
+    if (get().paused) return;
+    set({ paused: true, pausedRaw: performance.now() });
+  },
+
+  resume() {
+    const { paused, pausedRaw, timeOffset } = get();
+    if (!paused) return;
+    set({ paused: false, timeOffset: timeOffset + (performance.now() - pausedRaw) });
+  },
+
+  startTour(after) {
+    set({ afterTour: after });
+    return get().start('tour');
+  },
+
+  endTour(next) {
+    setTourDone(true);
+    set({ tourDone: true });
+    get().quit();
+    if (next === 'quick') get().start('quick');
+  },
+
+  suggest(count) {
+    const { dict, game } = get();
+    if (!dict || !game) return [];
+    return suggestWords({
+      dict, chainLetter: game.chainLetter, used: game.used, modifier: game.modifier, count, random: Math.random,
+    });
   },
 
   toggleMute() {

@@ -9,6 +9,8 @@ export const BASE_TURN_MS = 10_000;
 export const MIN_TURN_MS = 5_000;
 export const STEAL_WINDOW_MS = 3_000;
 export const INTRO_MS = 2_500;
+/** Human turn length in practice and tour games. */
+export const PRACTICE_TURN_MS = 25_000;
 
 export const FAIL_PENALTY = 5;
 export const TRAP_PAYOUT = 5;

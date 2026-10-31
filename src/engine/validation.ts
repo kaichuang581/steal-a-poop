@@ -25,6 +25,11 @@ export function normalizeWord(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
+/** True if at least one dictionary word is legal for this letter under the modifier. */
+export function hasPlayableWord(dict: Dictionary, letter: string, used: readonly string[], modifier: RoundModifier): boolean {
+  return dict.startingWith(letter).some((w) => validateWord(w, { dict, chainLetter: letter, used, modifier }).ok);
+}
+
 export function validateWord(raw: string, ctx: ValidationContext): ValidationResult {
   const word = normalizeWord(raw);
   if (!/^[a-z]+$/.test(word)) return { ok: false, reason: 'format' };

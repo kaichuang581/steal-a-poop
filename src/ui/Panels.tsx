@@ -25,8 +25,8 @@ function describe(e: ChainEntry): string {
     case 'play': return `${e.word!.toUpperCase()} +${e.points}`;
     case 'steal': return `${e.word!.toUpperCase()} STEAL +${e.points}`;
     case 'bank': return `banked ${e.points}`;
-    case 'timeout': return 'timed out −5';
-    case 'invalid': return 'invalid word −5';
+    case 'timeout': return e.points ? 'timed out −5' : 'timed out (no penalty)';
+    case 'invalid': return e.points ? 'invalid word −5' : 'invalid word (no penalty)';
   }
 }
 
@@ -80,7 +80,7 @@ export function BottomSheet(props: { title: string; open: boolean; onClose: () =
         >
           <motion.div
             role="dialog" aria-modal="true" aria-label={props.title}
-            className="max-h-[70%] w-full overflow-y-auto rounded-t-2xl border-t border-white/15 bg-[#17103a] p-4"
+            className="mx-auto max-h-[80%] w-full overflow-y-auto rounded-t-2xl sm:max-w-2xl border-t border-white/15 bg-[#17103a] p-4"
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 320 }}
             onClick={(e) => e.stopPropagation()}

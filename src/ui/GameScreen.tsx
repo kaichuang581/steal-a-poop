@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../state/store';
 import { Confetti } from './Confetti';
+import { CoachTips } from './CoachTips';
 import { EndScreen } from './EndScreen';
 import { useGameLoop, useIsMobile } from './hooks';
 import { InputBar } from './InputBar';
+import { ScoringTable } from './ScoringTable';
+import { Tour } from './Tour';
 import { BottomSheet, ChainHistory, Scoreboard, SidePanel } from './Panels';
 import { RoundBanner } from './RoundBanner';
 import { Table } from './Table';
@@ -19,7 +22,8 @@ export function GameScreen() {
   const mobile = useIsMobile();
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const [sheet, setSheet] = useState<'score' | 'chain' | null>(null);
+  const mode = useStore((s) => s.mode);
+  const [sheet, setSheet] = useState<'score' | 'chain' | 'cheat' | null>(null);
   const [shaking, setShaking] = useState(false);
   const shakeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(shakeTimer.current), []);
@@ -34,6 +38,7 @@ export function GameScreen() {
   return (
     <div className={`flex h-full flex-col ${shaking ? 'shake' : ''}`}>
       <TopBar
+        onCheat={() => setSheet('cheat')}
         onScore={mobile ? () => setSheet('score') : undefined}
         onChain={mobile ? () => setSheet('chain') : undefined}
       />
@@ -58,7 +63,9 @@ export function GameScreen() {
       <InputBar />
       <RoundBanner />
       <EventFeed />
+      {mode === 'tour' ? <Tour /> : <CoachTips />}
       <BottomSheet title="Scoreboard" open={sheet === 'score'} onClose={() => setSheet(null)}><Scoreboard game={game} /></BottomSheet>
+      <BottomSheet title="Scoring cheat sheet" open={sheet === 'cheat'} onClose={() => setSheet(null)}><ScoringTable /></BottomSheet>
       <BottomSheet title="Chain history" open={sheet === 'chain'} onClose={() => setSheet(null)}><ChainHistory game={game} /></BottomSheet>
       {game.phase === 'gameOver' && <EndScreen />}
       {game.phase === 'gameOver' && game.winners?.includes(0) && <Confetti />}

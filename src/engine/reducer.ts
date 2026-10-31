@@ -1,6 +1,6 @@
 import { BOT_PROFILES, pickBotWord } from './bots';
 import {
-  FAIL_PENALTY, INTRO_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS, TOKENS_PER_ROUND,
+  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS, TOKENS_PER_ROUND,
   TRAP_LETTERS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
@@ -9,7 +9,7 @@ import { scoreWord } from './scoring';
 import { computeWinners } from './standings';
 import { turnDurationMs } from './timer';
 import type { Action, ActionResult, EventKind, GameState, Round } from './types';
-import { validateWord } from './validation';
+import { hasPlayableWord, validateWord } from './validation';
 
 export interface EngineContext {
   dict: Dictionary;
@@ -25,15 +25,26 @@ function emit(s: GameState, at: number, kind: EventKind, seat: number | null, te
 }
 
 function startTurn(s: GameState, seat: number, t: number) {
-  const durationMs = turnDurationMs(s.pile, s.modifier);
-  const endsAt = t + durationMs;
   const active = s.players[seat];
-  const botActAt = active.isHuman
-    ? null
-    : t + drawInt(s, ...BOT_PROFILES[active.difficulty!].responseMs);
+  const learning = s.mode !== 'normal';
+  const tour = s.mode === 'tour';
+  const baseMs = turnDurationMs(s.pile, s.modifier);
+  const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : baseMs;
+  const endsAt = t + durationMs;
+  let botActAt: number | null = null;
+  if (!active.isHuman) {
+    if (tour) {
+      // Bots answer quickly, except the last seat once the human has banked: that slow turn
+      // runs into its steal window so the tutorial can show a steal.
+      const slow = seat === s.players.length - 1 && s.history.some((h) => h.kind === 'bank' && h.seat === 0);
+      botActAt = slow ? t + Math.max(1000, durationMs - 1500) : t + drawInt(s, 1200, 2200);
+    } else {
+      botActAt = t + drawInt(s, ...BOT_PROFILES[active.difficulty!].responseMs);
+    }
+  }
   const stealPlans: { seat: number; at: number }[] = [];
   for (const p of s.players) {
-    if (p.id === seat || p.isHuman || p.tokens <= 0) continue;
+    if (tour || p.id === seat || p.isHuman || p.tokens <= 0) continue;
     if (drawRandom(s) < BOT_PROFILES[p.difficulty!].stealChance) {
       stealPlans.push({ seat: p.id, at: endsAt - STEAL_WINDOW_MS + drawRandom(s) * (STEAL_WINDOW_MS - 500) });
     }
@@ -123,10 +134,11 @@ function bankTurn(s: GameState, t: number) {
 
 function failTurn(s: GameState, seat: number, kind: 'timeout' | 'invalid', t: number) {
   const p = s.players[seat];
-  p.banked -= FAIL_PENALTY;
-  s.history.push({ round: s.round, seat, kind, word: null, points: -FAIL_PENALTY });
+  const penalty = s.mode === 'normal' ? FAIL_PENALTY : 0;
+  p.banked -= penalty;
+  s.history.push({ round: s.round, seat, kind, word: null, points: penalty ? -penalty : 0 });
   const label = kind === 'timeout' ? 'Timeout' : 'Invalid word';
-  emit(s, t, kind, seat, `${label} ${p.name} -${FAIL_PENALTY}`, -FAIL_PENALTY);
+  emit(s, t, kind, seat, `${label} ${p.name}${penalty ? ` -${penalty}` : ' (no penalty)'}`, penalty ? -penalty : 0);
   resolveTrap(s, seat, true, t);
   concludeTurn(s, t);
 }
@@ -154,6 +166,22 @@ function stealSucceeded(s: GameState, stealerSeat: number, word: string, t: numb
   concludeTurn(s, t);
 }
 
+const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('');
+
+/**
+ * A round can open on a letter nothing is legal for (letter E under "No E" is the classic case, and
+ * the chain letter carries over between rounds). Pick another seeded letter so no round is dead.
+ */
+function ensurePlayable(s: GameState, ctx: EngineContext, at: number) {
+  if (hasPlayableWord(ctx.dict, s.chainLetter, s.used, s.modifier)) return;
+  const options = ALPHABET.filter((l) => hasPlayableWord(ctx.dict, l, s.used, s.modifier));
+  if (!options.length) return;
+  const common = options.filter((l) => ctx.dict.startingWith(l).length >= 300);
+  const pool = common.length ? common : options;
+  s.chainLetter = pool[Math.floor(drawRandom(s) * pool.length)];
+  emit(s, at, 'chainReset', null, `No legal word starts here, so the chain letter is now ${s.chainLetter.toUpperCase()}`);
+}
+
 type Due = { at: number; kind: 'botAct' | 'timeout' } | { at: number; kind: 'botSteal'; index: number };
 
 function nextDue(s: GameState, now: number): Due | null {
@@ -172,8 +200,9 @@ function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
   const bot = s.players[turn.seat];
   const profile = BOT_PROFILES[bot.difficulty!];
   turn.botActAt = null;
-  if (s.pile > 0 && s.pile >= bot.bankThreshold) return bankTurn(s, t);
-  if (drawRandom(s) < profile.failRate) return failTurn(s, turn.seat, 'timeout', t);
+  const scripted = s.mode === 'tour'; // tutorial bots never bank or fumble
+  if (!scripted && s.pile > 0 && s.pile >= bot.bankThreshold) return bankTurn(s, t);
+  if (!scripted && drawRandom(s) < profile.failRate) return failTurn(s, turn.seat, 'timeout', t);
   const word = pickBotWord({
     dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
     prefer: profile.prefer, random: () => drawRandom(s),
@@ -220,6 +249,7 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
       const at = s.introEndsAt;
       s.introEndsAt = null;
       s.phase = 'playing';
+      ensurePlayable(s, ctx, at);
       startTurn(s, (s.round - 1) % s.players.length, at);
       continue;
     }
@@ -262,6 +292,7 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
       if (action.seat !== turn.seat) return reject('not_your_turn');
       const v = check(action.word);
       if (!v.ok) {
+        if (s.mode !== 'normal') return reject(v.reason); // practice: no penalty, try again
         failTurn(s, turn.seat, 'invalid', now);
         return { state: s, accepted: true, reason: v.reason };
       }
@@ -284,6 +315,7 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
       if (!turn.claims.includes(action.seat)) return reject('no_claim');
       const v = check(action.word);
       if (!v.ok) {
+        if (s.mode !== 'normal') return reject(v.reason); // practice: claim stays, try again
         stealFailed(s, action.seat, now);
         return { state: s, accepted: true, reason: v.reason };
       }

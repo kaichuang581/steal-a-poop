@@ -6,14 +6,16 @@ import { getDaily, getStreak } from '../lib/daily';
 import { checkNickname, MAX_NICKNAME } from '../lib/nickname';
 import { buildShareText } from '../lib/share';
 import { useStore } from '../state/store';
-import { HowToPlay } from './HowToPlay';
+import { Guide } from './Guide';
+import { Settings } from './Settings';
 
 const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 
 export function StartScreen() {
-  const { settings, setSettings, start, dictStatus } = useStore();
+  const { settings, setSettings, start, startTour, tourDone, dictStatus } = useStore();
   const [help, setHelp] = useState(false);
+  const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const today = utcDateKey(new Date());
@@ -21,11 +23,13 @@ export function StartScreen() {
   const streak = getStreak(today);
   const ready = dictStatus === 'ready';
 
-  const go = (mode: 'quick' | 'daily') => {
+  const go = (mode: 'quick' | 'daily' | 'practice') => {
     const nick = checkNickname(settings.name);
     if (!nick.ok) return setError(nick.message);
     setError('');
-    start(mode);
+    // First time ever: teach before the first real game. Skipping the tour still starts the game.
+    if (mode === 'quick' && !tourDone) startTour('quick');
+    else start(mode);
   };
 
   const shareDaily = async () => {
@@ -88,6 +92,9 @@ export function StartScreen() {
             >
               {ready ? 'Quick Game' : dictStatus === 'error' ? 'Dictionary failed to load' : 'Loading dictionary…'}
             </button>
+            {!tourDone && ready && (
+              <p className="text-center text-xs text-white/60">First time? A one-minute tour comes first. You can skip it.</p>
+            )}
             {daily ? (
               <button
                 onClick={shareDaily} disabled={daily.status !== 'done'}
@@ -104,11 +111,21 @@ export function StartScreen() {
               </button>
             )}
             {streak > 0 && <p className="text-center text-sm text-amber-200">🔥 {streak}-day streak</p>}
-            <button onClick={() => setHelp(true)} className="min-h-12 rounded-xl bg-white/10 font-bold hover:bg-white/15">How to Play</button>
+            <button
+              onClick={() => go('practice')} disabled={!ready}
+              className="min-h-12 rounded-xl bg-sky-500/70 font-black disabled:opacity-40"
+            >
+              Practice <span className="text-sm font-bold opacity-80">· no penalties, hints</span>
+            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setHelp(true)} className="min-h-12 flex-1 rounded-xl bg-white/10 font-bold hover:bg-white/15">How to Play</button>
+              <button onClick={() => setGear(true)} className="min-h-12 min-w-12 rounded-xl bg-white/10 text-lg hover:bg-white/15" aria-label="Settings">⚙️</button>
+            </div>
           </div>
         </div>
       </div>
-      {help && <HowToPlay onClose={() => setHelp(false)} />}
+      {help && <Guide onClose={() => setHelp(false)} />}
+      {gear && <Settings onClose={() => setGear(false)} />}
     </main>
   );
 }

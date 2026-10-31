@@ -1,5 +1,5 @@
 import { MotionConfig } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { GAME_TITLE } from '../config';
 import { useStore } from '../state/store';
 import { GameScreen } from './GameScreen';
@@ -9,7 +9,20 @@ import { StartScreen } from './StartScreen';
 export default function App() {
   const inGame = useStore((s) => s.game !== null);
   const loadDictionary = useStore((s) => s.loadDictionary);
+  const ready = useStore((s) => s.dictStatus === 'ready');
+  const tourDone = useStore((s) => s.tourDone);
+  const startTour = useStore((s) => s.startTour);
+  const autoTour = useRef(false);
   useViewport();
+
+  // First time opening the app: go straight into the tutorial. Finishing or skipping it marks it
+  // done, so it never auto-opens again; How to Play and Settings can always reopen it.
+  useEffect(() => {
+    if (!ready || tourDone || inGame || autoTour.current) return;
+    autoTour.current = true;
+    startTour('menu');
+  }, [ready, tourDone, inGame, startTour]);
+
   useEffect(() => {
     document.title = GAME_TITLE;
     void loadDictionary();

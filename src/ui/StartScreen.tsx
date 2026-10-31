@@ -13,7 +13,7 @@ const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 
 export function StartScreen() {
-  const { settings, setSettings, start, startTour, tourDone, dictStatus } = useStore();
+  const { settings, setSettings, start, dictStatus } = useStore();
   const [help, setHelp] = useState(false);
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
@@ -27,9 +27,7 @@ export function StartScreen() {
     const nick = checkNickname(settings.name);
     if (!nick.ok) return setError(nick.message);
     setError('');
-    // First time ever: teach before the first real game. Skipping the tour still starts the game.
-    if (mode === 'quick' && !tourDone) startTour('quick');
-    else start(mode);
+    start(mode);
   };
 
   const shareDaily = async () => {
@@ -92,9 +90,6 @@ export function StartScreen() {
             >
               {ready ? 'Quick Game' : dictStatus === 'error' ? 'Dictionary failed to load' : 'Loading dictionary…'}
             </button>
-            {!tourDone && ready && (
-              <p className="text-center text-xs text-white/60">First time? A one-minute tour comes first. You can skip it.</p>
-            )}
             {daily ? (
               <button
                 onClick={shareDaily} disabled={daily.status !== 'done'}

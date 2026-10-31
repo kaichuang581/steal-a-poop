@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { inStealWindow } from '../engine';
 import { useStore } from '../state/store';
 import { ChainTile } from './ChainTile';
-import { seatPosition } from './geometry';
+import { relativeSeat, seatPosition } from './geometry';
 import { Flights } from './Flights';
 import { Pile } from './Pile';
 import { Seat } from './Seat';
@@ -10,6 +10,8 @@ import { Seat } from './Seat';
 export function Table() {
   const game = useStore((s) => s.game)!;
   const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
+  const mySeat = useStore((s) => s.mySeat);
+  const room = useStore((s) => s.mode === 'room');
   const n = game.players.length;
   return (
     <div className="relative size-full" data-table>
@@ -32,14 +34,14 @@ export function Table() {
             className="absolute left-1/2 top-[27%] z-10 -translate-x-1/2 rounded-full border-2 border-fuchsia-300 bg-fuchsia-600/90 px-3 py-1 text-xs font-black uppercase tracking-wider shadow-lg sm:top-[24%] sm:text-sm"
             role="status"
           >
-            {game.turn?.seat === 0 ? '⚠ Others can steal!' : '⚡ Steal window'}
+            {game.turn?.seat === mySeat ? '⚠ Others can steal!' : '⚡ Steal window'}
           </motion.div>
         )}
       </AnimatePresence>
       <Flights />
       {game.players.map((p) => {
-        const { x, y } = seatPosition(p.id, n);
-        return <Seat key={p.id} player={p} x={x} y={y} turn={game.turn} />;
+        const { x, y } = seatPosition(relativeSeat(p.id, mySeat, n), n);
+        return <Seat key={p.id} player={p} x={x} y={y} turn={game.turn} mine={room && p.id === mySeat} />;
       })}
     </div>
   );

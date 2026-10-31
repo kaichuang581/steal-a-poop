@@ -1,12 +1,17 @@
 # Game server
 
 `server/` is a WebSocket server that runs rooms, the game (using the same `src/engine` as the
-browser), and chat. It is **not deployed anywhere** and the web app does not talk to it yet.
+browser), and chat. It is **not deployed anywhere**. The web app can talk to it, but only when built
+with a server URL, so the public site does not show multiplayer yet.
 
 ```bash
-ALLOW_DEV_AUTH=1 npm run server        # ws://localhost:8787, dev sign-in only
-npm test                                # includes the server tests
+ALLOW_DEV_AUTH=1 npm run server                          # ws://localhost:8787, dev sign-in only
+VITE_SERVER_URL=ws://localhost:8787 npm run dev          # the app, with "Play with others" turned on
+npm test                                                  # includes the server tests
+npm run e2e                                               # four browsers playing through a room
 ```
+
+Without `VITE_SERVER_URL` (the GitHub Pages build) the "Play with others" button is hidden.
 
 ## What exists
 
@@ -38,14 +43,27 @@ Server to client: `welcome`, `rooms {list}`, `room {view, you}`, `left`, `result
 suggestion}`, `chat {message}`, `chatBlocked {reason, until}`, `reportResult`, `appealResult`,
 `error {error}`.
 
+## The web app side
+
+| File | Does |
+|---|---|
+| `src/net/client.ts` | WebSocket that signs in and reconnects within the grace period |
+| `src/state/roomStore.ts` | Room, lobby and chat state; feeds each server snapshot into the game store |
+| `src/state/bridge.ts` | Lets the game store send moves and leave without importing the room store |
+| `src/ui/Lobby.tsx`, `RoomScreen.tsx` | Browse public rooms, create, join by code; waiting room with the host's Start button |
+| `src/ui/ChatPanel.tsx`, `ChatRules.tsx` | Chat, the always-visible rules banner, the first-time rules screen, report and appeal buttons |
+
+In a room, your own seat is always at the bottom of the table, and the browser keeps a clock in
+the server's time (the server sends its clock with every update).
+
 ## NOT built
 
 - **Real sign-in.** `VerifyToken` in `server/index.ts` is where Supabase JWT verification goes. Only
-  a dev stub exists, so there are no accounts, no email, Google or Meta login, and no age or
-  country checks.
+  a dev stub exists (the app signs in as `dev:<nickname>`, which a real server refuses), so there
+  are no accounts, no email, Google or Meta login, and no age or country checks. Anyone can pick any
+  nickname.
 - **Persistence.** Rooms, suspensions, bans and review items are in memory and vanish on restart.
-- **The web app screens.** There is no lobby, room, or chat UI, no chat warning, and no networked
-  `GameClient`. The browser still plays solo against bots.
+- **A public server URL.** Nothing is deployed, so there is nothing for the live site to connect to.
 - **Deployment, TLS, scaling.** One process, one machine.
 - **Steal fairness under latency.** Arrival order at the server is the only rule; a player on a
   slow connection loses close races. See the note in the item list.

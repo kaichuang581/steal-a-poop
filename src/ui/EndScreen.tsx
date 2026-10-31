@@ -10,14 +10,15 @@ export function EndScreen() {
   const dailyDate = useStore((s) => s.dailyDate);
   const streak = useStore((s) => s.streak);
   const rematch = useStore((s) => s.rematch);
+  const mySeat = useStore((s) => s.mySeat);
   const quit = useStore((s) => s.quit);
   const [copied, setCopied] = useState(false);
 
   const ranked = rankPlayers(game.players);
   const stats = summarize(game.players);
-  const me = game.players[0];
-  const myRank = ranked.findIndex((p) => p.id === 0) + 1;
-  const iWon = game.winners?.includes(0) ?? false;
+  const me = game.players[mySeat];
+  const myRank = ranked.findIndex((p) => p.id === mySeat) + 1;
+  const iWon = game.winners?.includes(mySeat) ?? false;
   const podium = [ranked[1], ranked[0], ranked[2]].filter(Boolean);
   const heights: Record<number, string> = { 0: 'h-28', 1: 'h-20', 2: 'h-14' };
 
@@ -82,7 +83,7 @@ export function EndScreen() {
           <button onClick={share} className="min-h-12 flex-1 rounded-xl bg-fuchsia-500 px-4 font-black">
             {copied ? 'Copied!' : 'Share'}
           </button>
-          <button onClick={quit} className="min-h-12 flex-1 rounded-xl bg-white/10 px-4 font-bold">Menu</button>
+          <button onClick={quit} className="min-h-12 flex-1 rounded-xl bg-white/10 px-4 font-bold">{mode === 'room' ? 'Leave room' : 'Menu'}</button>
         </div>
       </motion.div>
     </div>

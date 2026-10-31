@@ -1,13 +1,18 @@
 import { MotionConfig } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 import { GAME_TITLE } from '../config';
+import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
+import { Lobby } from './Lobby';
+import { RoomScreen } from './RoomScreen';
 import { GameScreen } from './GameScreen';
 import { useViewport } from './hooks';
 import { StartScreen } from './StartScreen';
 
 export default function App() {
   const inGame = useStore((s) => s.game !== null);
+  const inRoom = useRoomStore((s) => s.room !== null);
+  const lobbyOpen = useRoomStore((s) => s.open);
   const loadDictionary = useStore((s) => s.loadDictionary);
   const ready = useStore((s) => s.dictStatus === 'ready');
   const tourDone = useStore((s) => s.tourDone);
@@ -38,7 +43,7 @@ export default function App() {
   return (
     <MotionConfig reducedMotion={reduceMotion ? 'always' : 'user'}>
       <div className="fixed inset-x-0" style={{ top: 'var(--vvtop, 0px)', height: 'var(--vvh, 100dvh)' }}>
-        {inGame ? <GameScreen /> : <StartScreen />}
+        {inGame ? <GameScreen /> : inRoom ? <RoomScreen /> : lobbyOpen ? <Lobby /> : <StartScreen />}
       </div>
     </MotionConfig>
   );

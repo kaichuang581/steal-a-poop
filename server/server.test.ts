@@ -140,6 +140,7 @@ describe('rooms over the wire', () => {
     expect(started.view.code).toBe(code);
     expect(started.view.game.players).toHaveLength(4);
     expect(started.you).toEqual({ userId: 'dev:Ana', seat: 0 });
+    expect(Math.abs(started.serverNow - Date.now())).toBeLessThan(5000); // clients use this to correct their clock
     const late = await Client.connect(server.port, 'Late');
     clients.push(late);
     await late.waitFor((m) => m.t === 'welcome');

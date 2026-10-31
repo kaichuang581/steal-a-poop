@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useReduceMotion } from './useReduceMotion';
 import { useState } from 'react';
-import { seatPosition } from './geometry';
+import { relativeSeat, seatPosition } from './geometry';
 import { useStore } from '../state/store';
 import { useNewEvents } from './useNewEvents';
 import { WordText } from './WordText';
@@ -12,6 +12,7 @@ interface Flight { id: number; seat: number; word: string; amount: number; steal
 export function Flights() {
   const reduced = useReduceMotion();
   const n = useStore((s) => s.game?.players.length ?? 0);
+  const mySeat = useStore((s) => s.mySeat);
   const [flights, setFlights] = useState<Flight[]>([]);
 
   useNewEvents((e) => {
@@ -26,7 +27,7 @@ export function Flights() {
     <div className="pointer-events-none absolute inset-0 z-10" aria-hidden="true">
       <AnimatePresence>
         {flights.map((f) => {
-          const { x, y } = seatPosition(f.seat, n);
+          const { x, y } = seatPosition(relativeSeat(f.seat, mySeat, n), n);
           return (
             <div key={f.id}>
               <motion.div

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../state/store';
+import { ChatPanel } from './ChatPanel';
 import { Confetti } from './Confetti';
 import { CoachTips } from './CoachTips';
 import { EndScreen } from './EndScreen';
@@ -23,7 +24,8 @@ export function GameScreen() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const mode = useStore((s) => s.mode);
-  const [sheet, setSheet] = useState<'score' | 'chain' | 'cheat' | null>(null);
+  const mySeat = useStore((s) => s.mySeat);
+  const [sheet, setSheet] = useState<'score' | 'chain' | 'cheat' | 'chat' | null>(null);
   const [shaking, setShaking] = useState(false);
   const shakeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(shakeTimer.current), []);
@@ -39,6 +41,7 @@ export function GameScreen() {
     <div className={`flex h-full flex-col ${shaking ? 'shake' : ''}`}>
       <TopBar
         onCheat={() => setSheet('cheat')}
+        onChat={mode === 'room' ? () => setSheet('chat') : undefined}
         onScore={mobile ? () => setSheet('score') : undefined}
         onChain={mobile ? () => setSheet('chain') : undefined}
       />
@@ -66,9 +69,10 @@ export function GameScreen() {
       {mode === 'tour' ? <Tour /> : <CoachTips />}
       <BottomSheet title="Scoreboard" open={sheet === 'score'} onClose={() => setSheet(null)}><Scoreboard game={game} /></BottomSheet>
       <BottomSheet title="Scoring cheat sheet" open={sheet === 'cheat'} onClose={() => setSheet(null)}><ScoringTable /></BottomSheet>
+      <BottomSheet title="Room chat" open={sheet === 'chat'} onClose={() => setSheet(null)}><ChatPanel height="h-40" compact /></BottomSheet>
       <BottomSheet title="Chain history" open={sheet === 'chain'} onClose={() => setSheet(null)}><ChainHistory game={game} /></BottomSheet>
       {game.phase === 'gameOver' && <EndScreen />}
-      {game.phase === 'gameOver' && game.winners?.includes(0) && <Confetti />}
+      {game.phase === 'gameOver' && game.winners?.includes(mySeat) && <Confetti />}
     </div>
   );
 }

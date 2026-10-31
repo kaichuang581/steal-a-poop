@@ -62,7 +62,8 @@ export async function startServer(opts: ServerOptions) {
   const broadcastRoom = (code: string) => {
     const view = rooms.view(code);
     if (!view) return;
-    for (const m of view.members) sendTo(m.userId, { t: 'room', view, you: { userId: m.userId, seat: view.seatOf[m.userId] ?? null } });
+    const serverNow = now(); // timers in the game state are in server time; clients correct for the difference
+    for (const m of view.members) sendTo(m.userId, { t: 'room', view, serverNow, you: { userId: m.userId, seat: view.seatOf[m.userId] ?? null } });
   };
   const fail = (ws: WebSocket, error: RoomError | 'bad_message' | 'rate_limited' | 'not_signed_in') => send(ws, { t: 'error', error });
 
@@ -80,7 +81,7 @@ export async function startServer(opts: ServerOptions) {
       const old = sockets.get(user.userId);
       sockets.set(user.userId, ws);
       if (old && old !== ws) old.close(4002, 'signed in elsewhere');
-      send(ws, { t: 'welcome', userId: user.userId, name: user.name, chat: opts.chat.state(user.userId) });
+      send(ws, { t: 'welcome', userId: user.userId, name: user.name, serverNow: now(), chat: opts.chat.state(user.userId) });
       const room = rooms.roomFor(user.userId);
       if (room) broadcastRoom(room.code);
       return;
@@ -91,7 +92,7 @@ export async function startServer(opts: ServerOptions) {
 
     switch (msg.t) {
       case 'rooms':
-        return send(ws, { t: 'rooms', list: rooms.listPublic() });
+        return send(ws, { t: 'rooms', list: rooms.listPublic(), serverNow: now() });
       case 'create': {
         if (!createLimit.allow(userId, now())) return fail(ws, 'rate_limited');
         const r = rooms.createRoom(userId, name, { visibility: msg.visibility === 'private' ? 'private' : 'public', roomName: msg.roomName });

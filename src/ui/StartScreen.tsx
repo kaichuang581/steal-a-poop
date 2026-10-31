@@ -6,6 +6,8 @@ import type { Difficulty } from '../engine';
 import { getDaily, getStreak } from '../lib/daily';
 import { checkNickname, MAX_NICKNAME } from '../lib/nickname';
 import { buildShareText } from '../lib/share';
+import { getServerUrl } from '../net/config';
+import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
 import { Guide } from './Guide';
 import { Settings } from './Settings';
@@ -118,6 +120,19 @@ export function StartScreen() {
               </button>
             )}
             {streak > 0 && <p className="text-center text-sm text-amber-200">🔥 {streak}-day streak</p>}
+            {getServerUrl() && (
+              <button
+                onClick={() => {
+                  const nick = checkNickname(settings.name);
+                  if (!nick.ok) return setError(nick.message);
+                  setError('');
+                  useRoomStore.getState().openLobby(nick.name);
+                }}
+                className="min-h-12 rounded-xl bg-orange-500 text-lg font-black text-orange-950"
+              >
+                Play with others <span className="text-sm font-bold opacity-80">· rooms</span>
+              </button>
+            )}
             <button
               onClick={() => go('practice')} disabled={!ready}
               className="min-h-12 rounded-xl bg-sky-500/70 font-black disabled:opacity-40"

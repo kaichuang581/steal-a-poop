@@ -7,9 +7,11 @@ interface Props {
   x: number;
   y: number;
   turn: TurnState | null;
+  /** This seat is the local player in a room game. */
+  mine?: boolean;
 }
 
-export function Seat({ player, x, y, turn }: Props) {
+export function Seat({ player, x, y, turn, mine }: Props) {
   const active = turn?.seat === player.id;
   // Seats on the left and right edges put their word card inward, beside the avatar, where the
   // table is empty. Top and bottom seats keep it between the seat and the table centre.
@@ -47,13 +49,13 @@ export function Seat({ player, x, y, turn }: Props) {
         {sideSeat && card}
         <div
           className="relative flex size-full items-center justify-center rounded-full border-2 text-xl sm:text-3xl"
-          style={{ borderColor: player.color, background: 'rgba(20,12,45,0.92)' }}
+          style={{ borderColor: player.color, background: 'rgba(20,12,45,0.92)', boxShadow: mine ? '0 0 0 3px #fff' : undefined }}
         >
           <span aria-hidden="true">{player.emoji}</span>
         </div>
       </div>
       <div className="max-w-full truncate text-[11px] font-bold leading-tight sm:text-sm" style={{ color: player.color }} data-seat-name={player.id}>
-        {player.name}
+        {player.name}{mine ? ' (you)' : ''}
       </div>
       <div className="flex items-center gap-1 text-[11px] leading-none sm:text-xs">
         <span className="font-black tabular-nums">{player.banked}</span>

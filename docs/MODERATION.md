@@ -53,5 +53,6 @@ What is built (all in `server/`, covered by tests) and what is not.
 1. Persist suspensions, bans, items and evidence in the database with restricted access.
 2. Register for NCMEC reporting and connect it to `ChildSafetySink`. Get legal review.
 3. Name the people who work the human queue and give them a tool.
-4. Build the chat warning screen and the in-game report and appeal buttons.
+4. ~~Build the chat warning screen and the in-game report and appeal buttons.~~ Done: the rules
+   screen (first time) and banner (always), plus Report and Appeal buttons, are in `src/ui/ChatPanel.tsx`.
 5. Decide the suspension length and whether the filter list needs a mild/severe split.

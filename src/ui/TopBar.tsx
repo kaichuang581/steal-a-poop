@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { ROUNDS, TURNS_PER_PLAYER_PER_ROUND } from '../engine';
 import { MODIFIER_INFO } from '../lib/modifiers';
+import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
 
-interface Props { onScore?: () => void; onChain?: () => void; onCheat: () => void }
+interface Props { onScore?: () => void; onChain?: () => void; onCheat: () => void; onChat?: () => void }
 
-export function TopBar({ onScore, onChain, onCheat }: Props) {
+export function TopBar({ onScore, onChain, onCheat, onChat }: Props) {
+  const unread = useRoomStore((s) => s.unread);
   const game = useStore((s) => s.game)!;
   const muted = useStore((s) => s.muted);
   const toggleMute = useStore((s) => s.toggleMute);
@@ -15,9 +17,10 @@ export function TopBar({ onScore, onChain, onCheat }: Props) {
   const left = game.players.reduce((sum, p) => sum + TURNS_PER_PLAYER_PER_ROUND - p.turnsTaken, 0);
   const btn = 'min-h-11 min-w-11 rounded-lg bg-white/10 px-2 text-lg hover:bg-white/15';
   return (
-    <header className="flex flex-wrap items-center gap-2 px-2 py-1.5 sm:px-4">
+    <header className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-4">
       <div className="mr-auto rounded-lg bg-white/10 px-3 py-1.5 text-sm font-black sm:mr-0">
-        Round {game.round}/{ROUNDS}
+        <span className="sm:hidden" aria-label={`Round ${game.round} of ${ROUNDS}`}>R{game.round}/{ROUNDS}</span>
+        <span className="hidden sm:inline">Round {game.round}/{ROUNDS}</span>
       </div>
       <div
         className="order-last min-w-0 basis-full truncate rounded-lg border border-wood-light/40 bg-wood/40 px-3 py-1.5 text-center text-xs font-bold sm:order-none sm:flex-1 sm:basis-0 sm:text-sm"
@@ -28,6 +31,11 @@ export function TopBar({ onScore, onChain, onCheat }: Props) {
         <span className="font-normal text-white/70 sm:hidden"> · {left} turns left</span>
       </div>
       <div className="ml-auto hidden text-xs text-white/70 sm:ml-0 sm:block">{left} turns left</div>
+      {onChat && (
+        <button className={`${btn} relative`} onClick={onChat} aria-label={unread ? `Room chat, ${unread} new` : 'Room chat'}>
+          💬{unread > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-xs font-black">{Math.min(unread, 99)}</span>}
+        </button>
+      )}
       <button className={btn} onClick={onCheat} aria-label="Scoring cheat sheet" title="Scoring cheat sheet">📖</button>
       {onScore && <button className={btn} onClick={onScore} aria-label="Scoreboard">📊</button>}
       {onChain && <button className={btn} onClick={onChain} aria-label="Chain history">🔗</button>}

@@ -5,6 +5,7 @@ import { getDaily, getStreak, markStarted, recordResult } from '../lib/daily';
 import { checkNickname } from '../lib/nickname';
 import { load, save } from '../lib/storage';
 import { isTourDone, setTourDone } from '../lib/tips';
+import { bridge } from './bridge';
 import { createLocalClient } from './gameClient';
 import type { GameClient } from './gameClient';
 
@@ -13,7 +14,7 @@ export interface Settings {
   playerCount: number;
   difficulty: Difficulty;
 }
-export type Mode = 'quick' | 'daily' | 'practice' | 'tour';
+export type Mode = 'quick' | 'daily' | 'practice' | 'tour' | 'room';
 
 interface Store {
   client: GameClient | null;
@@ -21,6 +22,8 @@ interface Store {
   dictStatus: 'loading' | 'ready' | 'error';
   game: GameState | null;
   mode: Mode;
+  /** Which seat is the local player's. Always 0 in solo games; set by the server in rooms. */
+  mySeat: number;
   dailyDate: string | null;
   streak: number;
   settings: Settings;
@@ -44,7 +47,8 @@ interface Store {
   start(mode: Mode): boolean;
   rematch(): void;
   quit(): void;
-  act(action: Action): ActionResult | null;
+  /** Solo games answer at once; room games answer after the server replies. */
+  act(action: Action): ActionResult | null | Promise<ActionResult | null>;
   frame(now: number): void;
   toggleMute(): void;
   setVolume(v: number): void;
@@ -71,6 +75,7 @@ export const useStore = create<Store>((set, get) => ({
   dictStatus: 'loading',
   game: null,
   mode: 'quick',
+  mySeat: 0,
   dailyDate: null,
   streak: 0,
   settings: load<Settings>(SETTINGS_KEY, { name: '', playerCount: 6, difficulty: 'medium' }),
@@ -127,7 +132,7 @@ export const useStore = create<Store>((set, get) => ({
         now, humanName: nick.name, playerCount: settings.playerCount, difficulty: settings.difficulty,
       };
     }
-    set({ game: client.create(setup), mode, dailyDate, now, streak: 0, paused: false, timeOffset: 0 });
+    set({ game: client.create(setup), mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0 });
     return true;
   },
 
@@ -137,11 +142,13 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   quit() {
+    if (get().mode === 'room') bridge.leaveRoom?.();
     set({ game: null, paused: false, timeOffset: 0 });
   },
 
   act(action) {
     const { client, game, paused, mode, timeOffset } = get();
+    if (mode === 'room') return bridge.act ? bridge.act(action) : null;
     if (!client || !game) return null;
     if (paused && mode !== 'tour') return null;
     // While the tour pauses the clock, actions land at the frozen moment.
@@ -153,6 +160,11 @@ export const useStore = create<Store>((set, get) => ({
 
   frame(raw) {
     const { client, game, mode, dailyDate, paused, timeOffset } = get();
+    if (mode === 'room') {
+      // The server runs the game. This browser only keeps a clock in the server's time.
+      if (game) set({ now: Date.now() + bridge.skew() });
+      return;
+    }
     if (!client || !game || paused) return;
     const now = raw - timeOffset;
     const next = client.tick(game, now);

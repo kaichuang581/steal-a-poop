@@ -7,6 +7,11 @@ export function seatPosition(i: number, n: number): { x: number; y: number } {
   return { x: 50 + 41 * Math.cos(theta), y: 50 - 40 * Math.sin(theta) };
 }
 
+/** Rotates seat numbers so `mySeat` lands at index 0, the bottom of the table. */
+export function relativeSeat(seat: number, mySeat: number, n: number): number {
+  return (seat - mySeat + n) % n;
+}
+
 /** Pile heat: cool blue at 0 to hot red at 100+. */
 export function pileColor(pile: number): string {
   const t = Math.min(1, pile / 100);

@@ -1,9 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { rankPlayers } from '../engine';
+import { useStore } from '../state/store';
 import type { ChainEntry, GameState } from '../engine';
 
 export function Scoreboard({ game }: { game: GameState }) {
+  const mySeat = useStore((s) => s.mySeat);
+  const room = useStore((s) => s.mode === 'room');
   const ranked = rankPlayers(game.players);
   return (
     <ol className="space-y-1" aria-label="Scoreboard">
@@ -11,7 +14,7 @@ export function Scoreboard({ game }: { game: GameState }) {
         <li key={p.id} className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1.5 text-sm">
           <span className="w-4 text-white/50 tabular-nums">{i + 1}</span>
           <span aria-hidden="true">{p.emoji}</span>
-          <span className="min-w-0 flex-1 truncate font-bold" style={{ color: p.color }}>{p.name}</span>
+          <span className="min-w-0 flex-1 truncate font-bold" style={{ color: p.color }}>{p.name}{room && p.id === mySeat ? ' (you)' : ''}</span>
           {p.steals > 0 && <span className="text-xs text-amber-300" title="steals">⚡{p.steals}</span>}
           <span className="font-black tabular-nums">{p.banked}</span>
         </li>

@@ -13,6 +13,8 @@ npm run dev      # http://localhost:5173/steal-a-poop/  (the Vite base path matc
 ```bash
 npm test         # Vitest, engine unit tests
 npm run build    # typecheck + production build
+npm run e2e      # Playwright end-to-end tests (set PW_CHROMIUM to use an installed Chromium)
+npm run simulate # headless bot-vs-bot balance runs
 ```
 
 The dictionary is the ENABLE word list in `public/words.txt` (172,823 lowercase words,
@@ -72,7 +74,8 @@ interface. Note `apply` already rejects actions from non-human seats.
 | `src/ui/CoachTips.tsx`, `src/lib/tips.ts` | One-time contextual tips and the first-run flag |
 | `src/ui/Settings.tsx` | Sound, replay tutorial, reset tips |
 | `src/audio/sound.ts` | Synthesized sounds, unlocked on first tap, mute persisted |
-| `server/` | Multiplayer game server (not deployed, not connected to the app yet). See `docs/SERVER.md` |
+| `server/` | Multiplayer game server (not deployed; the app only offers it when built with `VITE_SERVER_URL`). See `docs/SERVER.md` |
+| `src/net/`, `src/state/roomStore.ts` | The app's side of multiplayer: socket client, room and chat state |
 | `docs/` | Balance results, performance audit, moderation notes, server notes |
 
 ## Learning modes

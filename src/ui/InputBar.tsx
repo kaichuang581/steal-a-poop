@@ -7,6 +7,7 @@ export function InputBar() {
   const game = useStore((s) => s.game)!;
   const act = useStore((s) => s.act);
   const mode = useStore((s) => s.mode);
+  const mySeat = useStore((s) => s.mySeat);
   const suggest = useStore((s) => s.suggest);
   const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -17,7 +18,7 @@ export function InputBar() {
   const [fix, setFix] = useState<{ from: string; to: string } | null>(null);
 
   const playing = game.phase === 'playing' && !!game.turn;
-  const myTurn = playing && game.turn!.seat === 0;
+  const myTurn = playing && game.turn!.seat === mySeat;
   const canSteal = stealOpen && !myTurn;
   const learning = mode === 'practice' || mode === 'tour';
 
@@ -32,11 +33,11 @@ export function InputBar() {
     return () => clearTimeout(id);
   }, [hint]);
 
-  const send = (type: 'play' | 'steal') => {
+  const send = async (type: 'play' | 'steal') => {
     const typed = value.trim();
     if (!typed) return;
     const confirmed = fix !== null && typed.toLowerCase() === fix.from;
-    const res = act({ type, seat: 0, word: confirmed ? fix.to : typed });
+    const res = await act({ type, seat: mySeat, word: confirmed ? fix.to : typed });
     if (res?.suggestion) {
       setFix({ from: typed.toLowerCase(), to: res.suggestion });
       setHint('');
@@ -48,14 +49,14 @@ export function InputBar() {
   };
 
   const submit = () => {
-    if (myTurn) send('play');
+    if (myTurn) void send('play');
     else if (stealOpen) steal();
   };
 
   // A steal needs the word typed first, so an empty click does nothing.
   const steal = () => {
     if (!value.trim()) return setHint('Type your word first, then press STEAL.');
-    send('steal');
+    void send('steal');
   };
 
   const onChange = (next: string) => {
@@ -142,7 +143,7 @@ export function InputBar() {
           )}
           <button
             onMouseDown={keep} data-tour="bank"
-            onClick={() => act({ type: 'bank', seat: 0 })}
+            onClick={() => void act({ type: 'bank', seat: mySeat })}
             disabled={!myTurn}
             className={`${btn} bg-amber-400 text-amber-950`}
           >

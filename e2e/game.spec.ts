@@ -57,20 +57,36 @@ test('practice: a clear typo is suggested, confirmed by submitting again, and co
 });
 
 test('practice: a steal needs a typed word, then takes the turn', async ({ page }) => {
+  test.setTimeout(240_000); // how soon a bot opens a usable steal window is random
   await skipTourFlag(page);
   await page.goto('./');
   await ready(page, 'Practice');
   await page.getByRole('button', { name: /^Practice/ }).click();
   const stealBtn = page.locator('[data-tour="steal"]');
-  await expect(stealBtn).toBeVisible({ timeout: 90_000 });
   const input = page.getByLabel(/^Type a word/);
 
-  await stealBtn.click(); // empty: nothing happens
-  await expect(input).toHaveValue('');
-  await page.getByRole('button', { name: 'Hint' }).click();
-  await page.locator('[aria-label="Word ideas"] button').first().click();
-  await stealBtn.click();
-  await expect(page.locator('aside').last()).toContainText('STEAL', { timeout: 5_000 });
+  // A steal window can be very short (a bot that answers late in its turn leaves a fraction of a
+  // second), so a missed window just means waiting for the next one, as a real player would.
+  let stole = false;
+  let checkedEmpty = false;
+  for (let attempt = 0; attempt < 8 && !stole; attempt++) {
+    await expect(stealBtn).toBeVisible({ timeout: 90_000 });
+    try {
+      if (!checkedEmpty) {
+        await stealBtn.click({ timeout: 2000 }); // empty: nothing happens
+        await expect(input).toHaveValue('', { timeout: 1000 });
+        checkedEmpty = true;
+      }
+      await page.getByRole('button', { name: 'Hint' }).click({ timeout: 2000 });
+      await page.locator('[aria-label="Word ideas"] button').first().click({ timeout: 2000 });
+      await stealBtn.click({ timeout: 2000 });
+      await expect(page.locator('aside').last()).toContainText('STEAL', { timeout: 2000 });
+      stole = true;
+    } catch {
+      await page.waitForTimeout(1500); // window closed under us: wait for the next one
+    }
+  }
+  expect(stole, 'a steal should land within a few windows').toBe(true);
 });
 
 test('a full game reaches the end screen', async ({ browser }) => {

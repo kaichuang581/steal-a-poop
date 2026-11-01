@@ -1,5 +1,7 @@
 import { WebSocketServer } from 'ws';
+import type { AuthUser, VerifyToken } from './contracts';
 import type { WebSocket } from 'ws';
+import type { Server } from 'node:http';
 import type { EngineContext } from '../src/engine';
 import { ChatService } from './chat';
 import { RateLimiter } from './ratelimit';
@@ -7,16 +9,12 @@ import { RoomManager } from './rooms';
 import type { ClientAction } from './rooms';
 import type { RoomError, Visibility } from './types';
 
-export interface AuthUser {
-  userId: string;
-  name: string;
-}
-
-/** Turns a login token into a user, or null. Production plugs Supabase JWT verification in here. */
-export type VerifyToken = (token: string) => Promise<AuthUser | null>;
+export type { AuthUser, VerifyToken } from './contracts';
 
 export interface ServerOptions {
+  /** Listen on this port, or attach to `httpServer` when one is given. */
   port: number;
+  httpServer?: Server;
   ctx: EngineContext;
   chat: ChatService;
   verifyToken: VerifyToken;
@@ -51,8 +49,10 @@ export async function startServer(opts: ServerOptions) {
   const pendingLeave = new Map<string, ReturnType<typeof setTimeout>>();
   const createLimit = new RateLimiter(3, 60_000);
   const joinLimit = new RateLimiter(20, 60_000);
-  const wss = new WebSocketServer({ port: opts.port, maxPayload: MAX_PAYLOAD });
-  await new Promise<void>((resolve) => wss.once('listening', () => resolve()));
+  const wss = opts.httpServer
+    ? new WebSocketServer({ server: opts.httpServer, maxPayload: MAX_PAYLOAD })
+    : new WebSocketServer({ port: opts.port, maxPayload: MAX_PAYLOAD });
+  if (!opts.httpServer) await new Promise<void>((resolve) => wss.once('listening', () => resolve()));
 
   const send = (ws: WebSocket | undefined, msg: object) => {
     if (ws && ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
@@ -130,6 +130,8 @@ export async function startServer(opts: ServerOptions) {
       case 'chat': {
         const room = rooms.roomFor(userId);
         if (!room) return fail(ws, 'not_in_room');
+        // Accounts that may not chat (for example under 13 without parental consent) are refused here.
+        if (!user.chatAllowed) return send(ws, { t: 'chatBlocked', reason: 'not_allowed', until: null, retryAfterMs: null });
         const res = opts.chat.submit({ userId, name, roomCode: room.code, text: String(msg.text ?? '') });
         if (res.delivered) {
           for (const id of roomMembers(room.code)) sendTo(id, { t: 'chat', message: res.message });
@@ -191,7 +193,7 @@ export async function startServer(opts: ServerOptions) {
   const reviewTimer = setInterval(() => void opts.chat.processReviews(), opts.reviewEveryMs ?? 5000);
 
   return {
-    port: (wss.address() as { port: number }).port,
+    port: opts.httpServer ? ((opts.httpServer.address() as { port: number } | null)?.port ?? opts.port) : (wss.address() as { port: number }).port,
     rooms,
     chat: opts.chat,
     async close() {

@@ -64,7 +64,7 @@ async function boot(extra: { reconnectGraceMs?: number } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
-    verifyToken: async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4) } : null),
+    verifyToken: async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null),
   });
   open.push(server);
   return server;
@@ -232,6 +232,24 @@ describe('chat over the wire', () => {
     cs[1].send({ t: 'appeal', note: 'it was a mistake' });
     expect(await cs[1].waitFor((m) => m.t === 'appealResult')).toMatchObject({ ok: true });
     expect(server.chat.queue('human').some((i) => i.category === 'appeal')).toBe(true);
+  });
+});
+
+describe('accounts that may not chat', () => {
+  it('are told so, and nobody receives their message', async () => {
+    const server = await boot();
+    const mute = await Client.connect(server.port, 'Mute1');
+    const other = await Client.connect(server.port, 'Other1');
+    clients.push(mute, other);
+    await Promise.all([mute, other].map((c) => c.waitFor((m) => m.t === 'welcome')));
+    mute.send({ t: 'create', visibility: 'private' });
+    const code = (await mute.waitFor((m) => m.t === 'room')).view.code;
+    other.send({ t: 'join', code });
+    await other.waitFor((m) => m.t === 'room');
+    mute.send({ t: 'chat', text: 'hello' });
+    expect((await mute.waitFor((m) => m.t === 'chatBlocked')).reason).toBe('not_allowed');
+    await new Promise((r) => setTimeout(r, 150));
+    expect(other.msgs.some((m) => m.t === 'chat')).toBe(false);
   });
 });
 

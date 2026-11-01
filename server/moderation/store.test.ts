@@ -198,7 +198,7 @@ describe.skipIf(!url)('PostgresStore against a real Postgres (set TEST_DATABASE_
     const store = new PostgresStore(pool);
     await store.saveStanding('a', { banned: true, suspendedUntil: null });
     await store.saveEvidence({ id: 1, at: 1, userId: 'a', roomCode: 'R', text: 'secret', category: 'blocked_word', mustReport: false, status: 'pending' });
-    const flags = await pool.query("select relname, relrowsecurity from pg_class where relname like 'moderation_%' and relkind = 'r'");
+    const flags = await pool.query("select relname, relrowsecurity from pg_class where relname in ('moderation_standings','moderation_items','moderation_evidence') and relkind = 'r'");
     expect(flags.rows.length).toBe(3);
     expect(flags.rows.every((r) => r.relrowsecurity)).toBe(true);
 

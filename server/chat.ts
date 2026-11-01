@@ -3,6 +3,7 @@ import type { SpellBuffer } from './filter';
 import { resolveConfig, suspensionFor } from './moderation/config';
 import type { ModerationConfig } from './moderation/config';
 import type { ModerationStatus } from '../src/net/protocol';
+import type { AuditEntry, AuditLog } from './moderation/audit';
 import type { ModerationStore } from './moderation/store';
 import { RateLimiter } from './ratelimit';
 
@@ -74,6 +75,8 @@ export interface ChatDeps {
   maxLength?: number;
   /** Where state is kept between restarts. Without one, state lives only in memory. */
   store?: ModerationStore;
+  /** Append-only record of who did what. Failures are counted like store failures and never break chat. */
+  audit?: AuditLog;
   /** Told when a write to the store fails. The failure never reaches the chat path. */
   onPersistError?: (error: unknown) => void;
 }
@@ -132,6 +135,18 @@ export class ChatService {
   /** Waits for every pending write. Call before shutting down, and in tests. */
   async flush(): Promise<void> {
     await this.persistQueue;
+  }
+
+  private record(entry: Omit<AuditEntry, 'at'>) {
+    const audit = this.deps.audit;
+    if (!audit) return;
+    const full = { ...entry, at: this.deps.now() };
+    this.persistQueue = this.persistQueue
+      .then(() => audit.record(full))
+      .catch((error) => {
+        this.persistFailures += 1;
+        this.deps.onPersistError?.(error);
+      });
   }
 
   /** Writes happen one after another in the background, and a failure is counted, never thrown. */
@@ -202,6 +217,7 @@ export class ChatService {
         term: hit?.term, mustReport: childSafety, status: 'pending',
       });
       if (childSafety) this.deps.sink?.record(item);
+      this.record({ actor: 'system', action: 'message_held', itemId: item.id, userId, details: { category: item.category, tier, suspendedUntil: heldUntil } });
       this.changed(userId);
       return { delivered: false, reason: 'blocked', until: heldUntil };
     }
@@ -227,6 +243,7 @@ export class ChatService {
       reportedBy: input.reporterId, mustReport: childSafety, status: 'pending', reason: input.note?.slice(0, 200),
     });
     if (childSafety) this.deps.sink?.record(item);
+    this.record({ actor: input.reporterId, action: 'message_reported', itemId: item.id, userId: msg.userId, details: { category: item.category } });
     return { ok: true };
   }
 
@@ -240,6 +257,7 @@ export class ChatService {
     this.addItem({
       userId, roomCode: '', text: note.slice(0, 500), at: this.deps.now(), category: 'appeal', mustReport: false, status: 'human',
     });
+    this.record({ actor: userId, action: 'appeal_filed', userId, details: {} });
     this.changed(userId);
     return { ok: true };
   }
@@ -257,6 +275,7 @@ export class ChatService {
         const { verdict, reason } = await reviewer.review(item);
         item.reason = reason;
         item.opinion = { verdict, reason };
+        this.record({ actor: 'reviewer', action: 'reviewer_verdict', itemId: item.id, userId: item.userId, details: { verdict } });
         // Child-safety items always get a person, whatever the reviewer says.
         if (item.category === 'child_safety') {
           item.verdict = verdict;
@@ -289,6 +308,7 @@ export class ChatService {
       const config = resolveConfig({ ...(this.deps.suspendMs !== undefined ? { suspendMs: this.deps.suspendMs } : {}), ...this.deps.config });
       this.suspended.set(item.userId, now + config.suspendMs);
     }
+    this.record({ actor: decidedBy, action: 'human_decision', itemId: item.id, userId: item.userId, details: { verdict, category: item.category, reason: item.reason ?? null } });
     this.apply(item, verdict);
     return true;
   }
@@ -359,6 +379,9 @@ export class ChatService {
       );
       // Winning an appeal restores the player outright. Otherwise standing is restored once nothing else is open.
       if (item.category === 'appeal' || !stillOpen) {
+        if (this.suspended.has(item.userId) || this.banned.has(item.userId)) {
+          this.record({ actor: item.decidedBy ?? 'reviewer', action: 'standing_restored', itemId: item.id, userId: item.userId, details: { wasBanned: this.banned.has(item.userId) } });
+        }
         this.suspended.delete(item.userId);
         if (item.category === 'appeal') this.banned.delete(item.userId); // only an appeal can lift a ban
         // An appeal that is still open is moot once the player has been restored.

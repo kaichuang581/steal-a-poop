@@ -11,6 +11,7 @@
  */
 import { createHash } from 'node:crypto';
 import type { ChatMessage, ChildSafetySink, ReviewItem } from '../chat';
+import type { AuditLog } from './audit';
 
 export type ReportStatus = 'awaiting_confirmation' | 'dry_run' | 'submitted' | 'failed' | 'not_configured';
 
@@ -114,6 +115,7 @@ export interface ReportingDeps {
   fallback?: ChildSafetyReporter;
   countryOf?: (userId: string) => string | null | undefined;
   onError?: (error: unknown) => void;
+  audit?: AuditLog;
 }
 
 export class ChildSafetyService implements ChildSafetySink {
@@ -183,6 +185,9 @@ export class ChildSafetyService implements ChildSafetySink {
       if (report.status === 'failed') this.deps.onError?.(error);
     }
     this.persist(report);
+    this.queue = this.queue
+      .then(() => this.deps.audit?.record({ at: this.deps.now(), actor: by, action: 'child_safety_report_confirmed', itemId, userId: report.evidence.userId, details: { status: report.status, reporter: report.reporter } }))
+      .catch((e) => this.deps.onError?.(e));
     return report;
   }
 

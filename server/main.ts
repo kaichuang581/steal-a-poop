@@ -5,6 +5,7 @@ import { createDictionary } from '../src/engine';
 import { ChatService } from './chat';
 import { ChatFilter } from './filter';
 import { createModerationRoutes } from './routes/moderation';
+import { MemoryAudit, PostgresAudit } from './moderation/audit';
 import { PostgresReportStore, PostgresStore } from './moderation/postgres';
 import { ChildSafetyService, MemoryReportStore } from './moderation/reporting';
 import { createHttpServer } from './http';
@@ -50,7 +51,9 @@ const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new Pool({ connectionString: databaseUrl, max: 5 }) : null;
 if (!pool) console.warn('No DATABASE_URL: suspensions, bans and the review queue are lost on restart.');
 // Child-safety reports are kept but go nowhere yet (dry run): no reporter is registered. See docs/lanes/trust.md.
+const audit = pool ? new PostgresAudit(pool) : new MemoryAudit();
 const reporting = new ChildSafetyService({
+  audit,
   store: pool ? new PostgresReportStore(pool) : new MemoryReportStore(),
   now: Date.now,
   onError: () => console.error('child-safety report write failed'),
@@ -61,6 +64,7 @@ const chat = new ChatService({
   filter,
   reviewer,
   sink: reporting,
+  audit,
   store: pool ? new PostgresStore(pool) : undefined,
   // Deliberately generic: the error text could contain a message under review.
   onPersistError: () => console.error('moderation store write failed'),

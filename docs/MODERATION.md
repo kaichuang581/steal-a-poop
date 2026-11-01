@@ -50,12 +50,24 @@ What is built (all in `server/`, covered by tests) and what is not.
 
 ## Before launch
 
-1. ~~Persist suspensions, bans, items and evidence in the database with restricted access.~~ Built (see Persistence below); still needs a real database, the migration applied, and a decision on retention periods from your lawyer.
-2. Register for NCMEC reporting and connect it to `ChildSafetySink`. Get legal review.
-3. Name the people who work the human queue and give them a tool.
-4. ~~Build the chat warning screen and the in-game report and appeal buttons.~~ Done: the rules
-   screen (first time) and banner (always), plus Report and Appeal buttons, are in `src/ui/ChatPanel.tsx`.
-5. Decide the suspension length and whether the filter list needs a mild/severe split.
+Status of each item as of the trust lane's task 8. "Built" means code and tests exist, not that it has been used for real.
+
+1. ~~Persist suspensions, bans, items and evidence in the database with restricted access.~~ Built (see Persistence below). Still needs: a real database with migrations 200, 201 and 202 applied, and your lawyer's retention periods.
+2. **Child-safety reporting: adapter built, nothing connected.** Reports are stored with a dry-run reporter; the NCMEC reporter refuses to run. Needs your registration, their documentation and credentials, and legal review. The list is in `docs/lanes/trust.md`.
+3. **A person to work the queue: tool built, nobody named.** The moderator screen is at `#/mod`. Name the people, give them moderator accounts, and decide how fast items must be answered (`npm run mod:stats` shows the actual wait).
+4. ~~Build the chat warning screen and the in-game report and appeal buttons.~~ Done.
+5. ~~Decide the suspension length and whether the filter list needs a mild/severe split.~~ Built as options (`server/moderation/config.ts`), defaults unchanged (24 hours, every match the same). Turning on tiers or repeat multipliers is your decision.
+6. **Reviewer on the live API: hardened, never run live.** Timeouts, retries, caps and strict parsing are tested against a mock only. Run it on real held messages with a person double-checking before relying on it.
+7. **Appeals: built.** Players see their case and the decision. Nobody is paged when an item gets old.
+8. **Audit log and lawyer export: built.** `moderation_audit` is append-only; `npm run mod:export` makes a checksummed case file.
+9. **Block, mute, kick** (task 9) and **abuse limits** (task 10) are separate items in the trust lane.
+10. **Not started anywhere:** the age and country rules at sign-up (accounts lane), a privacy policy and terms, an opt-in for storing chat, and a policy for what happens to a player's records when they delete their account (evidence must stay).
+
+## Audit log, statistics and the lawyer export
+
+- `moderation_audit` (migration `201_moderation_audit.sql`): one row per event (message held, reported, appeal filed, reviewer verdict, a person's decision, standing restored, child-safety report confirmed, case exported). It holds ids, verdicts and moderator-written reasons, never message text. The database refuses UPDATE, DELETE and TRUNCATE.
+- `DATABASE_URL=... npm run mod:stats`: volume, the filter's false-positive rate (held messages that ended cleared, split by person and reviewer), time from hold to a person's decision (median, p90, max), what is open and how old the oldest is, and how often the reviewer agreed with the person. Items still undecided are not in the false-positive rate, so early numbers flatter the filter.
+- `DATABASE_URL=... npm run mod:export -- --user <id> --by <your moderator id> [--out file.json]`: everything held about one player (items, evidence snapshots, reports, audit) with a SHA-256 checksum (`verifyExport` recomputes it). Writing the export is logged. Treat the file as sensitive: it contains the held messages. It is written with owner-only permissions when `--out` is used.
 
 ## Persistence and retention
 

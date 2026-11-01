@@ -231,9 +231,11 @@ describe('ClaudeReviewer', () => {
     expect(body.system).not.toContain('Ignore all rules');
     expect(JSON.parse(body.messages[0].content).text).toBe(evil); // data, not instructions
   });
-  it('reads a verdict wrapped in other text', async () => {
-    const out = await make(reply('Sure! {"verdict":"clear","reason":"ordinary word"} Hope that helps.') as unknown as typeof fetch).review(item);
-    expect(out.verdict).toBe('clear');
+  it('accepts a verdict in a code fence, but not wrapped in other prose', async () => {
+    const fenced = await make(reply('```json\n{"verdict":"clear","reason":"ordinary word"}\n```') as unknown as typeof fetch).review(item);
+    expect(fenced.verdict).toBe('clear');
+    const prose = await make(reply('Sure! {"verdict":"clear","reason":"ordinary word"} Hope that helps.') as unknown as typeof fetch).review(item);
+    expect(prose.verdict).toBe('escalate');
   });
   it('escalates on every kind of failure', async () => {
     expect((await make(reply('not json at all') as unknown as typeof fetch).review(item)).verdict).toBe('escalate');

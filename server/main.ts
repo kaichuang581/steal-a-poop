@@ -32,7 +32,7 @@ const filter = new ChatFilter({
 
 const apiKey = process.env.ANTHROPIC_API_KEY;
 const model = process.env.REVIEW_MODEL;
-const reviewer = apiKey && model ? new ClaudeReviewer({ apiKey, model }) : undefined;
+const reviewer = apiKey && model ? new ClaudeReviewer({ apiKey, model, log: console.log }) : undefined;
 if (apiKey && !model) console.warn('ANTHROPIC_API_KEY is set but REVIEW_MODEL is not: reviews will wait for a person.');
 
 

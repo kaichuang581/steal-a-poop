@@ -39,6 +39,11 @@ export interface Room {
   kicked: string[];
   /** When the game ended, for clean-up. */
   finishedAt: number | null;
+  /**
+   * Set while steals are being collected for fair ordering (compensated mode). `base` is the game as of
+   * `at`; the game is not advanced by the clock until the held actions are resolved.
+   */
+  hold: { at: number; base: GameState } | null;
 }
 
 export type RoomError =

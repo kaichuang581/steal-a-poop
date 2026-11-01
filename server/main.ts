@@ -25,6 +25,8 @@ import { ClaudeReviewer } from './review';
  *   MAX_CONNECTIONS       open sockets in total, default 2000
  *   HEARTBEAT_MS          ping interval, default 25000
  *   TRUST_PROXY=1         take the client address from Fly-Client-IP / X-Forwarded-For. Only behind a proxy you control
+ *   STEAL_ORDERING        'arrival' (default) or 'compensated'. See docs/SERVER.md before using compensated
+ *   STEAL_BUFFER_MS       how long compensated mode collects steals, default 250
  *   FINISHED_ROOM_TTL_MS  how long a finished game stays in memory, default 600000
  *   DEV_MODERATORS        comma-separated dev nicknames treated as moderators (dev sign-in only)
  *   DATABASE_URL          Postgres for moderation state (run db/migrations/200_moderation.sql first). Without it, state is in memory only
@@ -110,6 +112,10 @@ const server = await startServer({
   chat,
   verifyToken,
   randomInt: (n) => randomInt(n),
+  steals: {
+    ordering: process.env.STEAL_ORDERING === 'compensated' ? 'compensated' : 'arrival',
+    bufferMs: envNumber('STEAL_BUFFER_MS'),
+  },
   limits: {
     allowedOrigins: allowedOrigins.length ? allowedOrigins : undefined,
     maxPerIp: envNumber('MAX_CONNECTIONS_PER_IP'),

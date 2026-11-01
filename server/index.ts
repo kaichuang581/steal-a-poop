@@ -10,6 +10,8 @@ import { RoomManager, toGameResult } from './rooms';
 import type { ClientAction } from './rooms';
 import type { RoomError, Visibility } from './types';
 import { BlockList } from './blocks';
+import { DEFAULT_BUFFER_MS, DEFAULT_MAX_COMPENSATION_MS, RttTracker, estimatedSendTime } from './steals';
+import type { PendingAction, StealOptions } from './steals';
 import type { AuditLog } from './moderation/audit';
 
 export type { AuthUser, VerifyToken } from './contracts';
@@ -36,6 +38,8 @@ export interface ServerOptions {
   tickMs?: number;
   reviewEveryMs?: number;
   limits?: ConnectionLimits;
+  /** How competing steals are ordered. Default: arrival order (unchanged). See server/steals.ts. */
+  steals?: StealOptions;
 }
 
 export interface ConnectionLimits {
@@ -47,6 +51,8 @@ export interface ConnectionLimits {
   maxTotal?: number;
   /** How often to ping every socket; one that misses a whole interval is dropped. Default 25 s. */
   heartbeatMs?: number;
+  /** How often each socket is pinged to measure its round trip. Default 5 s. */
+  rttProbeMs?: number;
   /** Read the client address from the proxy's header (Fly-Client-IP, then X-Forwarded-For) instead of the socket. Only turn on behind a proxy you control. */
   trustProxy?: boolean;
   /** How long a finished game stays in memory. Default 10 minutes. */
@@ -235,6 +241,23 @@ export async function startServer(opts: ServerOptions) {
         const a = msg.action;
         const valid = a && ((a.type === 'bank') || ((a.type === 'play' || a.type === 'steal') && typeof a.word === 'string' && a.word.length <= 40));
         if (!valid) return fail(ws, 'bad_message');
+        // Compensated ordering: competing steals wait a moment and are then applied in order of when they
+        // were probably sent. While a hold is open, every action from the room joins it so none jumps the queue.
+        const heldRoom = compensated ? rooms.roomFor(userId) : null;
+        if (heldRoom && rooms.contested(heldRoom) && (a.type === 'steal' || rooms.isHeld(heldRoom.code))) {
+          const arrivalAt = now();
+          const rtt = stealOpts.rttOverride ? stealOpts.rttOverride(userId) : rtts.minRtt(userId);
+          const entry: PendingAction<ClientAction> = { userId, action: a, arrivalAt, estSendAt: estimatedSendTime(arrivalAt, rtt, stealOpts.maxCompensationMs ?? DEFAULT_MAX_COMPENSATION_MS) };
+          let batch = held.get(heldRoom.code);
+          if (!batch) {
+            if (!rooms.beginHold(heldRoom.code, arrivalAt)) return fail(ws, 'game_not_running');
+            const code = heldRoom.code;
+            batch = { entries: [], timer: setTimeout(() => flushHeld(code), stealOpts.bufferMs ?? DEFAULT_BUFFER_MS) };
+            held.set(code, batch);
+          }
+          batch.entries.push(entry);
+          return; // the result is sent when the batch is ordered
+        }
         const r = rooms.act(userId, a);
         if (!r.ok) return fail(ws, r.error);
         send(ws, { t: 'result', accepted: r.result.accepted, reason: r.result.reason ?? null, suggestion: r.result.suggestion ?? null });
@@ -301,6 +324,24 @@ export async function startServer(opts: ServerOptions) {
     }
   }
 
+  // Round trips for the optional steal compensation, and the steals being held per room.
+  const stealOpts = opts.steals ?? {};
+  const compensated = stealOpts.ordering === 'compensated';
+  const rtts = new RttTracker(stealOpts.rttWindow);
+  const held = new Map<string, { entries: PendingAction<ClientAction>[]; timer: ReturnType<typeof setTimeout> }>();
+  const flushHeld = (code: string) => {
+    const batch = held.get(code);
+    if (!batch) return;
+    clearTimeout(batch.timer);
+    held.delete(code);
+    for (const { entry, outcome } of rooms.resolveHold(code, batch.entries, now())) {
+      const target = sockets.get(entry.userId);
+      if (!outcome.ok) send(target, { t: 'error', error: outcome.error });
+      else send(target, { t: 'result', accepted: outcome.result.accepted, reason: outcome.result.reason ?? null, suggestion: outcome.result.suggestion ?? null });
+    }
+    broadcastRoom(code);
+  };
+
   // One limiter per message type, keyed by player (or by connection before sign-in).
   const budgets = { ...DEFAULT_MESSAGE_LIMITS, ...lim.messageLimits };
   const limiters = new Map<string, RateLimiter>();
@@ -315,7 +356,7 @@ export async function startServer(opts: ServerOptions) {
     return l;
   };
   const abuse = new RateLimiter(30, 10_000); // refusals; a client that ignores them is disconnected
-  const heartbeat = new WeakMap<WebSocket, { alive: boolean; pingAt: number; rtt: number | null }>();
+  const heartbeat = new WeakMap<WebSocket, { alive: boolean; pingAt: number; rtt: number | null; lastPong: number }>();
   let connectionSeq = 0;
 
   wss.on('connection', (ws, req) => {
@@ -323,15 +364,17 @@ export async function startServer(opts: ServerOptions) {
     const connKey = `conn:${++connectionSeq}`;
     perIp.set(ip, (perIp.get(ip) ?? 0) + 1);
     total += 1;
-    heartbeat.set(ws, { alive: true, pingAt: 0, rtt: null });
+    const ref: { user: AuthUser | null } = { user: null };
+    heartbeat.set(ws, { alive: true, pingAt: 0, rtt: null, lastPong: Date.now() });
     ws.on('pong', () => {
       const h = heartbeat.get(ws);
       if (!h) return;
       h.alive = true;
-      h.rtt = Date.now() - h.pingAt;
+      h.lastPong = Date.now();
+      h.rtt = h.lastPong - h.pingAt;
+      if (ref.user && h.pingAt) rtts.record(ref.user.userId, h.rtt);
     });
     ws.on('error', () => undefined); // a broken socket is handled by 'close'; it must not crash the server
-    const ref: { user: AuthUser | null } = { user: null };
     const helloTimer = setTimeout(() => !ref.user && ws.close(4000, 'no hello'), 5000);
     ws.on('message', (data) => {
       let msg: ClientMsg;
@@ -365,6 +408,7 @@ export async function startServer(opts: ServerOptions) {
         user.userId,
         setTimeout(() => {
           pendingLeave.delete(user.userId);
+          rtts.forget(user.userId);
           const r = rooms.leave(user.userId);
           if (r.ok) broadcastRoom(r.code);
         }, grace),
@@ -382,24 +426,26 @@ export async function startServer(opts: ServerOptions) {
   });
   const reviewTimer = setInterval(() => void opts.chat.processReviews(), opts.reviewEveryMs ?? 5000);
 
-  // Heartbeat: a socket that did not answer the last ping is gone (a phone that lost signal, a laptop that slept).
+  // Heartbeat: a socket that has not answered a ping for two heartbeat periods is gone (a phone that lost
+  // signal, a laptop that slept). Pings go out more often than that so round trips can be measured.
+  const heartbeatMs = lim.heartbeatMs ?? 25_000;
   const heartbeatTimer = setInterval(() => {
+    const at = Date.now();
     for (const ws of wss.clients) {
       const h = heartbeat.get(ws);
       if (!h) continue;
-      if (!h.alive) {
+      if (at - h.lastPong > heartbeatMs * 2) {
         ws.terminate(); // the 'close' handler then holds the seat for the reconnect grace period
         continue;
       }
-      h.alive = false;
-      h.pingAt = Date.now();
+      h.pingAt = at;
       try {
         ws.ping();
       } catch {
         ws.terminate();
       }
     }
-  }, lim.heartbeatMs ?? 25_000);
+  }, Math.min(heartbeatMs, lim.rttProbeMs ?? 5000));
 
   // Housekeeping: forget finished games and idle rate-limit entries.
   const finishedTtl = lim.finishedRoomTtlMs ?? 10 * 60_000;
@@ -424,6 +470,8 @@ export async function startServer(opts: ServerOptions) {
       clearInterval(reviewTimer);
       clearInterval(heartbeatTimer);
       clearInterval(sweepTimer);
+      for (const b of held.values()) clearTimeout(b.timer);
+      held.clear();
       unsubscribeModeration();
       // Tell everyone before cutting them off, so the app can say "restarting" instead of "connection lost".
       for (const ws of wss.clients) send(ws, { t: 'shutdown', reconnectInMs: 3000 });

@@ -9,6 +9,7 @@ import { MemoryAudit } from './moderation/audit';
 import type { DailyGate, GameResultSink } from './contracts';
 import { startServer } from './index';
 import type { ConnectionLimits } from './index';
+import type { StealOptions } from './steals';
 
 const dict = createDictionary(readFileSync('public/words.txt', 'utf8').split('\n'));
 const filter = new ChatFilter({ blocklist: ['blorf'], isWord: (w) => dict.has(w) });
@@ -63,12 +64,12 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
+async function boot(extra: { now?: () => number; steals?: StealOptions; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
     dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit,
-    limits: { shutdownGraceMs: 0, ...extra.limits },
+    limits: { shutdownGraceMs: 0, ...extra.limits }, now: extra.now, steals: extra.steals,
     verifyToken: async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null),
   });
   open.push(server);
@@ -561,5 +562,67 @@ describe('connection limits and resilience', () => {
     await c.waitFor((m) => m.t === 'welcome');
     c.send({ t: 'leave' });
     await c.waitFor((m) => m.t === 'left');
+  });
+});
+
+describe('steal ordering over the wire', () => {
+  async function stealTable(steals: StealOptions | undefined, rtt: Record<string, number>) {
+    let clock = 5_000_000;
+    const server = await boot({ now: () => clock, steals: steals && { ...steals, rttOverride: (id) => rtt[id] } });
+    const { cs, code } = await join4(server);
+    cs[0].send({ t: 'start' });
+    await cs[0].waitFor((m) => m.t === 'room' && m.view.phase === 'playing'); // the game exists, in its intro
+    clock += 3000; // past the round intro; the server's clock is ours
+    await cs[0].waitFor((m) => m.t === 'room' && m.view.phase === 'playing' && !!m.view.game?.turn);
+    const room = server.rooms.room(code)!;
+    room.game = structuredClone(room.game!);
+    room.game.turn!.botActAt = null;
+    room.game.turn!.stealPlans = [];
+    const owner = room.game.turn!.seat;
+    clock = room.game.turn!.endsAt - 2000; // inside the steal window
+    const ids = ['dev:Ana', 'dev:Ben', 'dev:Cy', 'dev:Di'];
+    const [x, y] = [0, 1, 2, 3].filter((i) => room.seatOf[ids[i]] !== owner);
+    const words = suggestWords({ dict, chainLetter: room.game.chainLetter, used: room.game.used, modifier: room.game.modifier, count: 2, random: Math.random });
+    return { server, room, cs, x: { c: cs[x], id: ids[x] }, y: { c: cs[y], id: ids[y] }, words };
+  }
+  const steals = (r: ReturnType<typeof stealTable> extends Promise<infer T> ? T : never, id: string) => r.room.game!.players[r.room.seatOf[id]].steals;
+
+  it('arrival order (default): the steal that reaches the server first wins', async () => {
+    const t = await stealTable(undefined, {});
+    const ry = t.y.c.next('result');
+    t.y.c.send({ t: 'act', action: { type: 'steal', word: t.words[0] } });
+    await ry;
+    t.x.c.send({ t: 'act', action: { type: 'steal', word: t.words[1] } });
+    await t.x.c.next('result');
+    expect([steals(t, t.y.id), steals(t, t.x.id)]).toEqual([1, 0]);
+  });
+
+  it('compensated: a slow link that pressed first beats a fast link that pressed 50 ms later', async () => {
+    // Y's message reaches the server first (as for a fast connection) and X's 50 ms later, but X's measured
+    // round trip is 200 ms against Y's 20 ms, so X is judged to have pressed first.
+    const rtt: Record<string, number> = {};
+    const t = await stealTable({ ordering: 'compensated', bufferMs: 150 }, rtt);
+    rtt[t.x.id] = 200;
+    rtt[t.y.id] = 20;
+    const rx = t.x.c.next('result');
+    const ry = t.y.c.next('result');
+    t.y.c.send({ t: 'act', action: { type: 'steal', word: t.words[0] } });
+    await new Promise((r) => setTimeout(r, 50));
+    t.x.c.send({ t: 'act', action: { type: 'steal', word: t.words[1] } });
+    const [resultX, resultY] = await Promise.all([rx, ry]);
+    expect(resultX).toMatchObject({ accepted: true });
+    expect(resultY.accepted).toBe(false); // too late: the turn already changed hands
+    expect([steals(t, t.x.id), steals(t, t.y.id)]).toEqual([1, 0]);
+  });
+
+  it('compensated mode leaves play and bank alone when no steal is pending', async () => {
+    const t = await stealTable({ ordering: 'compensated', bufferMs: 150 }, {});
+    const ownerSeat = t.room.game!.turn!.seat;
+    const ownerId = ['dev:Ana', 'dev:Ben', 'dev:Cy', 'dev:Di'].find((id) => t.room.seatOf[id] === ownerSeat)!;
+    const owner = t.cs[['dev:Ana', 'dev:Ben', 'dev:Cy', 'dev:Di'].indexOf(ownerId)];
+    const r = owner.next('result');
+    owner.send({ t: 'act', action: { type: 'bank' } });
+    expect((await r).accepted).toBe(true); // answered at once, not after the buffer
+    expect(t.server.rooms.isHeld(t.room.code)).toBe(false);
   });
 });

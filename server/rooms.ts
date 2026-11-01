@@ -4,6 +4,8 @@ import type { GameResult } from './contracts';
 import { CODE_PATTERN, generateCode, normalizeCode } from './codes';
 import { MAX_ROOM_SIZE, MIN_TO_START } from './types';
 import type { Member, PublicRoomInfo, Result, Room, Visibility } from './types';
+import { orderPending } from './steals';
+import type { PendingAction } from './steals';
 
 /** What a client may send during a game. The server fills in the seat from who is asking. */
 export type ClientAction = { type: 'play'; word: string } | { type: 'bank' } | { type: 'steal'; word: string };
@@ -77,6 +79,7 @@ export class RoomManager {
       mutedIds: [],
       kicked: [],
       finishedAt: null,
+      hold: null,
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -120,6 +123,8 @@ export class RoomManager {
     if (room.phase === 'playing' && room.game && userId in room.seatOf) {
       botSeat = room.seatOf[userId];
       room.game = replaceWithBot(room.game, botSeat, 'medium', this.deps.now());
+      // While steals are being held, the game they will be applied to must also lose this player.
+      if (room.hold) room.hold.base = replaceWithBot(room.hold.base, botSeat, 'medium', this.deps.now());
       delete room.seatOf[userId];
     }
     room.members = room.members.filter((m) => m.userId !== userId);
@@ -204,6 +209,7 @@ export class RoomManager {
       mutedIds: [],
       kicked: [],
       finishedAt: null,
+      hold: null,
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -242,12 +248,60 @@ export class RoomManager {
     return { ok: true, result };
   }
 
+  /** True if more than one human is playing, so steals can actually compete. */
+  contested(room: Room): boolean {
+    return room.kind === 'room' && room.phase === 'playing' && Object.keys(room.seatOf).length >= 2;
+  }
+
+  /** True while the room is collecting actions to order them fairly. */
+  isHeld(code: string): boolean {
+    return !!this.rooms.get(code)?.hold;
+  }
+
+  /**
+   * Starts collecting steals. The game is brought up to `at` and then stands still, so a steal that
+   * was sent in time is judged by the state it was sent into, not by what happened while it waited.
+   */
+  beginHold(code: string, at: number): boolean {
+    const room = this.rooms.get(code);
+    if (!room || room.phase !== 'playing' || !room.game || room.hold) return false;
+    room.hold = { at, base: advance(room.game, this.deps.ctx, at) };
+    return true;
+  }
+
+  /**
+   * Applies the collected actions in order of estimated send time, each judged at that time (but never
+   * before the hold began), then catches the game up to `now`. Returns one outcome per action, in the
+   * order they were applied.
+   */
+  resolveHold(code: string, entries: readonly PendingAction<ClientAction>[], now: number): { entry: PendingAction<ClientAction>; outcome: Result<{ result: ActionResult }> }[] {
+    const room = this.rooms.get(code);
+    if (!room?.hold) return [];
+    const { at, base } = room.hold;
+    let state = base;
+    const out: { entry: PendingAction<ClientAction>; outcome: Result<{ result: ActionResult }> }[] = [];
+    for (const entry of orderPending(entries)) {
+      const seat = room.seatOf[entry.userId];
+      if (seat === undefined) {
+        out.push({ entry, outcome: { ok: false, error: 'not_in_room' } });
+        continue;
+      }
+      const result = apply(state, this.deps.ctx, { ...entry.action, seat }, Math.max(entry.estSendAt, at));
+      state = result.state;
+      out.push({ entry, outcome: { ok: true, result } });
+    }
+    room.hold = null;
+    room.game = advance(state, this.deps.ctx, now);
+    this.finishIfOver(room);
+    return out;
+  }
+
   /** Runs timers (timeouts, bots) for every running game. Returns the codes whose state changed. */
   tick(): string[] {
     const now = this.deps.now();
     const changed: string[] = [];
     for (const room of this.rooms.values()) {
-      if (room.phase !== 'playing' || !room.game) continue;
+      if (room.phase !== 'playing' || !room.game || room.hold) continue; // a hold keeps the clock still until its steals are ordered
       const next = advance(room.game, this.deps.ctx, now);
       if (next !== room.game) {
         room.game = next;

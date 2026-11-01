@@ -14,6 +14,7 @@ Status: in progress.
 8. Audit log and reporting: migration `201_moderation_audit.sql` (append-only, RLS), `server/moderation/audit.ts` (`MemoryAudit`, `PostgresAudit`), hooks in `ChatService` and `ChildSafetyService`, `server/moderation/stats.ts` + `npm run mod:stats`, `server/moderation/export.ts` + `npm run mod:export`, and the rewritten "Before launch" in `docs/MODERATION.md`.
 9. Block, mute, kick: `server/blocks.ts` + migration `203_user_blocks.sql`; `RoomManager.kick/setMute/isMuted` (kicked players cannot rejoin; a bot takes a kicked player's seat and keeps the score); WebSocket `block`, `unblock`, `mute`, `kick` and `blocks`/`kicked` messages; host actions in the audit log; UI in `ChatPanel` (Block, Mute, Kick, pause chat, blocked list) and `RoomScreen` (host controls per player). Tests: `server/blocks.test.ts`, `server/rooms.test.ts`, `server/server.test.ts`, four-browser `e2e/safety.spec.ts`. Request to the accounts lane about invites is in `REQUESTS.md`.
 10. Connection resilience and abuse limits: `ConnectionLimits` in `server/index.ts` (origin check, per-address and global caps, heartbeat, per-type rate limits with disconnect for floods, graceful shutdown with a `shutdown` message, finished-room clean-up, limiter pruning), env settings in `server/main.ts`, client handling of `shutdown` and stale rooms, `npm run loadtest` (`server/loadtest/run.ts`) and `docs/LOADTEST.md`.
+11. Steal fairness under latency: `server/steals.ts` (`RttTracker`, `estimatedSendTime`, `orderPending`), ping-based round trips in `server/index.ts` (every 5 s, rolling minimum of 8), `RoomManager.beginHold/resolveHold`, `STEAL_ORDERING=arrival|compensated` (default `arrival`, unchanged behaviour) and `STEAL_BUFFER_MS`, docs and the cheating risk in `docs/SERVER.md`, tests in `server/steals.test.ts` and `server/server.test.ts`.
 
 ## Not done
 - Task 2 follow-ups: add a Postgres service to CI so the 10 database tests run there; retention periods; `anonymizeUser` for account deletion is not built.
@@ -45,8 +46,15 @@ Status: in progress.
 
 - Task 10: the load test ran in this container with idle players, over loopback, with no database; see `docs/LOADTEST.md` for what it can and cannot show. The origin check stops other websites from using a visitor's browser to open sockets; it does not stop a script that sends a fake `Origin` header, so the per-address cap and rate limits are the defence there, and a determined attacker with many addresses is not stopped by anything here (that is a job for your host or a CDN). `TRUST_PROXY` has not been tested behind a real proxy. Origins are compared exactly (scheme, host, port).
 
+- Task 11: tested with injected round trips and a fake clock, never over a real slow network, and not in a browser. The compensated rule can be gamed by delaying pong replies (see the cheating-risk section in `docs/SERVER.md`), which is why it is off. The client shows nothing while a steal is held, so a held steal feels about 250 ms slower. A steal result for a player who disconnects during a hold is dropped.
+
 ## Environment variables
 - `DATABASE_URL` (secret): Postgres for moderation state.
 - `TEST_DATABASE_URL`: only for running the database tests.
+- `ANTHROPIC_API_KEY` (secret) and `REVIEW_MODEL`: turn on the Claude reviewer.
+- `ALLOWED_ORIGINS`: site origins allowed to use the API and open game sockets. **Required in production.**
+- `DEV_MODERATORS`, `ALLOW_DEV_AUTH`: local development only.
+- `MAX_CONNECTIONS_PER_IP`, `MAX_CONNECTIONS`, `HEARTBEAT_MS`, `TRUST_PROXY`, `FINISHED_ROOM_TTL_MS`: connection limits (task 10).
+- `STEAL_ORDERING`, `STEAL_BUFFER_MS`: steal fairness (task 11), default arrival order.
 
 ## Needs from other lanes

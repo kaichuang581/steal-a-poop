@@ -101,3 +101,39 @@ Details worth knowing:
 - The per-address limit counts the address the server sees. Behind a proxy without `TRUST_PROXY=1` that is the proxy itself, so everyone shares one limit. Behind a proxy with it on, the header must be set by the proxy and not by the client.
 - Rate-limit and spelling-buffer entries for idle players are pruned every 30 seconds so memory does not grow with every player ever seen.
 - Load test results and their limits: `docs/LOADTEST.md`.
+
+
+## Steal fairness under latency
+
+**The problem.** Two players press STEAL 50 ms apart. If the first one is on a slow connection (say a 200 ms round trip) and the
+second on a fast one (20 ms), the second player's message reaches the server first and wins, even though the first player pressed
+first. With "arrival order" the faster connection beats the faster finger.
+
+**The rules** (`server/steals.ts`, chosen with `STEAL_ORDERING`):
+
+| Rule | What happens | Default |
+|---|---|---|
+| `arrival` | A steal is applied the moment it arrives. First to arrive wins. | **yes, unchanged** |
+| `compensated` | The first steal in a room starts a short hold (`STEAL_BUFFER_MS`, default 250 ms). The game stands still. Every action from the room during the hold joins it. When the hold ends the actions are applied in order of **estimated press time** = arrival − half the sender's round trip, each judged as of that time (so a steal sent just before the turn ended still counts), and the game then catches up to now. | no |
+
+How the round trip is measured: the server pings every connection every 5 s (`rttProbeMs`) and keeps the last 8 answers per player. It uses
+the **smallest** of those, because one-off delays (a Wi-Fi hiccup) only ever make a round trip look bigger, never smaller. The correction
+is **capped at 150 ms** per player (`maxCompensationMs`). A player with no measurement yet gets no correction. Holds only happen in rooms
+with two or more human players; a solo Daily Table never waits.
+
+Cost: in compensated mode the answer to a steal arrives about `STEAL_BUFFER_MS` later, and a bot's move that falls inside a hold waits for it.
+
+**The cheating risk. Read this before turning it on.**
+
+- The round trip is measured from how fast the client answers pings, and the client controls that. A cheater can delay every pong so their
+  round trip looks like 300 ms, which earns the full 150 ms head start on every steal. The cap limits the advantage; it does not remove it.
+  Taking the minimum of a window does not help against someone who delays every answer.
+- Measured honestly, the same head start is a real fix for slow connections, so the incentive is there: a player on a bad connection and a
+  cheater look identical to the server.
+- Mitigations not built: comparing the ping-based figure with the delay between "the server showed the window opening" and the client's
+  press (needs a client acknowledgement), flagging players whose round trip is high for a long time but whose other messages are fast,
+  and capping how often compensation can decide a steal.
+- For these reasons it is **off by default**. Do not enable it for anything with rewards or rankings until it has been watched on real players.
+- Network time also differs from reaction time: this evens out the connection, not the device (a phone with a laggy screen is not compensated).
+
+Tests: `server/steals.test.ts` (including two steals 50 ms apart with different latencies, the cap, a steal sent just before the turn ended, the clock standing still during a hold, and a player leaving during a hold) and the two-client tests under "steal ordering over the wire" in `server/server.test.ts`.

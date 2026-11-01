@@ -12,7 +12,10 @@ export type AuditAction =
   | 'human_decision'
   | 'standing_restored'
   | 'child_safety_report_confirmed'
-  | 'case_exported';
+  | 'case_exported'
+  | 'host_kick'
+  | 'host_mute'
+  | 'host_unmute';
 
 export interface AuditEntry {
   at: number;

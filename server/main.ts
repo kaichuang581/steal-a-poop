@@ -5,6 +5,7 @@ import { createDictionary } from '../src/engine';
 import { ChatService } from './chat';
 import { ChatFilter } from './filter';
 import { createModerationRoutes } from './routes/moderation';
+import { BlockList, PostgresBlockStore } from './blocks';
 import { MemoryAudit, PostgresAudit } from './moderation/audit';
 import { PostgresReportStore, PostgresStore } from './moderation/postgres';
 import { ChildSafetyService, MemoryReportStore } from './moderation/reporting';
@@ -80,7 +81,12 @@ const httpServer = createHttpServer({
 const port = Number(process.env.PORT ?? 8787);
 await new Promise<void>((resolve) => httpServer.listen(port, resolve));
 
+const blocks = new BlockList(pool ? new PostgresBlockStore(pool) : undefined, Date.now, () => console.error('block list write failed'));
+await blocks.load();
+
 const server = await startServer({
+  blocks,
+  audit,
   port,
   httpServer,
   ctx: { dict },
@@ -96,6 +102,7 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
     void (async () => {
       await server.close();
       await reporting.flush();
+      await blocks.flush();
       await pool?.end();
       process.exit(0);
     })();

@@ -28,6 +28,8 @@ interface RoomStore {
   chatNotice: { reason: string; until: number | null } | null;
   /** The player's own moderation case, pushed by the server whenever it changes. */
   moderation: ModerationStatus | null;
+  /** Ids this player has blocked. The server never sends their messages; this is for the buttons. */
+  blocked: string[];
   /** The player has read and accepted the chat rules on this browser. */
   rulesAccepted: boolean;
   notice: string | null;
@@ -42,6 +44,11 @@ interface RoomStore {
   sendChat(text: string): void;
   report(messageId: number): void;
   appeal(note: string): void;
+  block(userId: string): void;
+  unblock(userId: string): void;
+  /** Host only. With a userId: silence that player. Without: stop chat for everyone but the host. */
+  mute(on: boolean, userId?: string): void;
+  kick(userId: string): void;
   acceptRules(): void;
   markRead(): void;
   clearNotice(): void;
@@ -69,6 +76,12 @@ export const useRoomStore = create<RoomStore>((set, get) => {
           moderation: msg.moderation ?? null,
         });
         send({ t: 'rooms' });
+        break;
+      case 'blocks':
+        set((s) => ({ blocked: msg.list, chat: s.chat.filter((m) => !msg.list.includes(m.userId)) }));
+        break;
+      case 'kicked':
+        set({ notice: 'The host removed you from the room.' });
         break;
       case 'moderation':
         // The server decides; the chat locks or unlocks to match, with no reload.
@@ -103,6 +116,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         break;
       }
       case 'chat':
+        if (get().blocked.includes(msg.message.userId)) break; // belt and braces: the server already withholds these
         set((s) => ({ chat: [...s.chat, msg.message].slice(-CHAT_KEEP), unread: s.unread + 1 }));
         break;
       case 'chatBlocked':
@@ -151,6 +165,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     unread: 0,
     chatNotice: null,
     moderation: null,
+    blocked: [],
     rulesAccepted: load<boolean>(RULES_KEY, false),
     notice: null,
 
@@ -182,6 +197,10 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     sendChat: (text) => send({ t: 'chat', text }),
     report: (messageId) => send({ t: 'report', messageId }),
     appeal: (note) => send({ t: 'appeal', note }),
+    block: (userId) => send({ t: 'block', userId }),
+    unblock: (userId) => send({ t: 'unblock', userId }),
+    mute: (on, userId) => send(userId === undefined ? { t: 'mute', on } : { t: 'mute', on, userId }),
+    kick: (userId) => send({ t: 'kick', userId }),
     acceptRules() {
       save(RULES_KEY, true);
       set({ rulesAccepted: true });

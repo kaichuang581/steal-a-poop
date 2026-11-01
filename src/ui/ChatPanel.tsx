@@ -15,7 +15,14 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
   const me = useRoomStore((s) => s.user?.userId);
   const accepted = useRoomStore((s) => s.rulesAccepted);
   const notice = useRoomStore((s) => s.chatNotice);
-  const { sendChat, report, appeal, markRead } = useRoomStore.getState();
+  const room = useRoomStore((s) => s.room);
+  const blocked = useRoomStore((s) => s.blocked);
+  const { sendChat, report, appeal, markRead, block, unblock, mute, kick } = useRoomStore.getState();
+  const isHost = !!room && room.hostId === me;
+  const nameOf = (id: string) => room?.members.find((m) => m.userId === id)?.name ?? 'a player';
+  const [confirmKick, setConfirmKick] = useState<string | null>(null);
+  // Muted by the host: the whole room (everyone but the host) or this player alone.
+  const hostMuted = !!room && !!me && (room.mutedIds.includes(me) || (room.chatMuted && !isHost));
   const [text, setText] = useState('');
   const [appealing, setAppealing] = useState(false);
   const [note, setNote] = useState('');
@@ -29,7 +36,7 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
 
   const submit = () => {
     const t = text.trim();
-    if (!t || muted) return;
+    if (!t || muted || hostMuted) return;
     sendChat(t);
     setText('');
   };
@@ -57,6 +64,33 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
           )}
         </div>
       )}
+      {hostMuted && (
+        <div role="status" className="rounded-xl border border-amber-300/60 bg-amber-900/30 p-3 text-sm font-bold">
+          {room!.mutedIds.includes(me!) ? 'The host has muted you in this room.' : 'The host has paused chat for this room.'}
+        </div>
+      )}
+      {isHost && room && (
+        <button
+          onClick={() => mute(!room.chatMuted)}
+          aria-pressed={room.chatMuted}
+          className="min-h-11 self-start rounded-lg bg-white/15 px-3 text-sm font-bold"
+        >
+          {room.chatMuted ? 'Resume chat for everyone' : 'Pause chat for everyone'}
+        </button>
+      )}
+      {blocked.length > 0 && (
+        <details className="rounded-xl bg-black/20 px-3 py-1 text-sm">
+          <summary className="min-h-11 cursor-pointer py-2 font-bold">Blocked people ({blocked.length})</summary>
+          <ul className="pb-2">
+            {blocked.map((id) => (
+              <li key={id} className="flex items-center justify-between gap-2 py-1">
+                <span className="min-w-0 truncate">{nameOf(id)}</span>
+                <button onClick={() => unblock(id)} className="min-h-11 rounded-md px-2 text-xs font-bold underline" aria-label={`Unblock ${nameOf(id)}`}>Unblock</button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       <div className={`${height} min-h-0 overflow-y-auto rounded-xl bg-black/30 p-2`} role="log" aria-live="polite">
         {!accepted ? (
           <p className="p-2 text-sm text-white/60">Accept the chat rules to see messages.</p>
@@ -70,13 +104,40 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
                 <span className="text-white/90">{m.text}</span>
               </div>
               {m.userId !== me && (
-                <button
-                  onClick={() => report(m.id)}
-                  className="min-h-11 shrink-0 rounded-md px-2 text-xs font-bold text-white/50 underline hover:text-white"
-                  aria-label={`Report message from ${m.name}`}
-                >
-                  Report
-                </button>
+                <div className="flex shrink-0 flex-wrap justify-end">
+                  <button
+                    onClick={() => report(m.id)}
+                    className="min-h-11 rounded-md px-2 text-xs font-bold text-white/50 underline hover:text-white"
+                    aria-label={`Report message from ${m.name}`}
+                  >
+                    Report
+                  </button>
+                  <button
+                    onClick={() => block(m.userId)}
+                    className="min-h-11 rounded-md px-2 text-xs font-bold text-white/50 underline hover:text-white"
+                    aria-label={`Block ${m.name}`}
+                  >
+                    Block
+                  </button>
+                  {isHost && (
+                    <>
+                      <button
+                        onClick={() => mute(true, m.userId)}
+                        className="min-h-11 rounded-md px-2 text-xs font-bold text-amber-200/80 underline hover:text-amber-200"
+                        aria-label={`Mute ${m.name}`}
+                      >
+                        Mute
+                      </button>
+                      <button
+                        onClick={() => (confirmKick === m.userId ? (kick(m.userId), setConfirmKick(null)) : setConfirmKick(m.userId))}
+                        className="min-h-11 rounded-md px-2 text-xs font-bold text-red-300/90 underline hover:text-red-200"
+                        aria-label={confirmKick === m.userId ? `Confirm: remove ${m.name} from the room` : `Remove ${m.name} from the room`}
+                      >
+                        {confirmKick === m.userId ? 'Confirm kick' : 'Kick'}
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           ))
@@ -86,11 +147,11 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <input
           value={text} onChange={(e) => setText(e.target.value)} maxLength={200}
-          disabled={!accepted || muted} aria-label="Chat message" placeholder={muted ? 'Chat is suspended' : 'Be kind…'}
+          disabled={!accepted || muted || hostMuted} aria-label="Chat message" placeholder={muted ? 'Chat is suspended' : hostMuted ? 'Chat is muted by the host' : 'Be kind…'}
           autoComplete="off" autoCapitalize="sentences" enterKeyHint="send"
           className="min-h-12 min-w-0 flex-1 rounded-xl border-2 border-white/20 bg-black/40 px-3 disabled:opacity-50"
         />
-        <button type="submit" disabled={!accepted || muted || !text.trim()} className="min-h-12 rounded-xl bg-sky-500 px-4 font-black text-sky-950 disabled:opacity-40">Send</button>
+        <button type="submit" disabled={!accepted || muted || hostMuted || !text.trim()} className="min-h-12 rounded-xl bg-sky-500 px-4 font-black text-sky-950 disabled:opacity-40">Send</button>
       </form>
     </section>
   );

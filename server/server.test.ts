@@ -5,6 +5,7 @@ import { createDictionary, suggestWords } from '../src/engine';
 import type { GameState } from '../src/engine';
 import { ChatService } from './chat';
 import { ChatFilter } from './filter';
+import { MemoryAudit } from './moderation/audit';
 import type { DailyGate, GameResultSink } from './contracts';
 import { startServer } from './index';
 
@@ -61,11 +62,11 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink } = {}) {
+async function boot(extra: { reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
-    dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished,
+    dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit,
     verifyToken: async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null),
   });
   open.push(server);
@@ -256,6 +257,84 @@ describe('chat over the wire', () => {
     server.chat.resolveByHuman(held.id, 'clear', 'false alarm', 'mod1');
     const pushed = await cs[1].waitFor((m) => m.t === 'moderation' && m.status.suspendedUntil === null);
     expect(pushed.status).toMatchObject({ banned: false, openItems: 0, lastDecision: { verdict: 'clear', byPerson: true, reason: 'false alarm' } });
+  });
+});
+
+describe('block, mute and kick over the wire', () => {
+  it('a blocker never receives the blocked player\'s messages; others do; unblocking restores them', async () => {
+    const server = await boot();
+    const { cs } = await join4(server);
+    const [ana, ben, cy, di] = cs;
+    const benId = (await ben.waitFor((m) => m.t === 'welcome')).userId as string;
+    cy.send({ t: 'block', userId: benId });
+    expect(await cy.waitFor((m) => m.t === 'blocks' && m.list.includes(benId))).toBeTruthy();
+    ben.send({ t: 'chat', text: 'hello from ben' });
+    await ana.waitFor((m) => m.t === 'chat' && m.message.text === 'hello from ben');
+    await di.waitFor((m) => m.t === 'chat' && m.message.text === 'hello from ben');
+    await ben.waitFor((m) => m.t === 'chat' && m.message.text === 'hello from ben'); // the sender still sees their own
+    await new Promise((r) => setTimeout(r, 200));
+    expect(cy.msgs.some((m) => m.t === 'chat' && m.message.userId === benId)).toBe(false);
+    // Cy can still talk to Ben; blocking is one way
+    cy.send({ t: 'chat', text: 'cy here' });
+    await ben.waitFor((m) => m.t === 'chat' && m.message.text === 'cy here');
+    cy.send({ t: 'unblock', userId: benId });
+    await cy.next('blocks');
+    ben.send({ t: 'chat', text: 'second message' });
+    await cy.waitFor((m) => m.t === 'chat' && m.message.text === 'second message');
+  });
+
+  it('you cannot block yourself', async () => {
+    const server = await boot();
+    const { cs } = await join4(server);
+    const me = (await cs[0].waitFor((m) => m.t === 'welcome')).userId as string;
+    cs[0].send({ t: 'block', userId: me });
+    expect(await cs[0].waitFor((m) => m.t === 'error')).toMatchObject({ error: 'cannot_target' });
+  });
+
+  it('a host mute silences one player or everyone else, only the host can do it, and it is logged', async () => {
+    const audit = new MemoryAudit();
+    const server = await boot({ audit });
+    const { cs } = await join4(server);
+    const [ana, ben, cy] = cs;
+    const benId = (await ben.waitFor((m) => m.t === 'welcome')).userId as string;
+    ben.send({ t: 'mute', on: true });
+    expect(await ben.waitFor((m) => m.t === 'error')).toMatchObject({ error: 'not_host' });
+    ana.send({ t: 'mute', on: true, userId: benId });
+    await cy.waitFor((m) => m.t === 'room' && m.view.mutedIds.includes(benId));
+    ben.send({ t: 'chat', text: 'can anyone hear me' });
+    expect(await ben.waitFor((m) => m.t === 'chatBlocked')).toMatchObject({ reason: 'muted' });
+    cy.send({ t: 'chat', text: 'cy is fine' });
+    await ana.waitFor((m) => m.t === 'chat' && m.message.text === 'cy is fine');
+    ana.send({ t: 'mute', on: false, userId: benId });
+    ana.send({ t: 'mute', on: true }); // now the whole room
+    await cy.waitFor((m) => m.t === 'room' && m.view.chatMuted === true);
+    cy.send({ t: 'chat', text: 'blocked by room mute' });
+    await cy.waitFor((m) => m.t === 'chatBlocked' && m.reason === 'muted');
+    ana.send({ t: 'chat', text: 'the host can still talk' });
+    await cy.waitFor((m) => m.t === 'chat' && m.message.text === 'the host can still talk');
+    expect(server.chat.queue()).toHaveLength(0); // a mute is not a rule violation
+    expect(audit.entries.map((e) => e.action)).toEqual(['host_mute', 'host_unmute', 'host_mute']);
+    expect(audit.entries[0]).toMatchObject({ actor: expect.stringContaining('Ana'), userId: benId });
+  });
+
+  it('a host kick removes the player, tells them, keeps the game going with a bot, and blocks rejoining', async () => {
+    const audit = new MemoryAudit();
+    const server = await boot({ audit });
+    const { cs, code } = await join4(server);
+    const [ana, ben, , di] = cs;
+    const diId = (await di.waitFor((m) => m.t === 'welcome')).userId as string;
+    ben.send({ t: 'kick', userId: diId });
+    expect(await ben.waitFor((m) => m.t === 'error')).toMatchObject({ error: 'not_host' });
+    ana.send({ t: 'start' });
+    await di.waitFor((m) => m.t === 'room' && m.view.phase === 'playing');
+    ana.send({ t: 'kick', userId: diId });
+    await di.waitFor((m) => m.t === 'kicked');
+    await di.waitFor((m) => m.t === 'left');
+    const after = await ana.waitFor((m) => m.t === 'room' && m.view.phase === 'playing' && m.view.members.length === 3);
+    expect(after.view.game.players.filter((p: any) => p.isHuman)).toHaveLength(3); // the seat is now a bot
+    di.send({ t: 'join', code });
+    expect(await di.waitFor((m) => m.t === 'error')).toMatchObject({ error: 'kicked' });
+    expect(audit.entries).toEqual([expect.objectContaining({ action: 'host_kick', userId: diId, details: { roomCode: code } })]);
   });
 });
 

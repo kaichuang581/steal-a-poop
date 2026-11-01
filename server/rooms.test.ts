@@ -367,3 +367,60 @@ describe('server-run Daily Table', () => {
     expect(result.players[0].userId).toBe('u0');
   });
 });
+
+describe('kick and mute (host powers)', () => {
+  it('only the host can kick; not themselves, not strangers', () => {
+    const { m } = manager();
+    lobby(m, 5);
+    expect(m.kick('u1', 'u2')).toEqual({ ok: false, error: 'not_host' });
+    expect(m.kick('u0', 'u0')).toEqual({ ok: false, error: 'cannot_target' });
+    expect(m.kick('u0', 'nobody')).toEqual({ ok: false, error: 'not_in_room' });
+    expect(m.kick('nobody', 'u1')).toEqual({ ok: false, error: 'not_in_room' });
+  });
+
+  it('a kicked player leaves the lobby, cannot rejoin, and is free to join other rooms', () => {
+    const { m } = manager();
+    const code = lobby(m, 5);
+    expect(m.kick('u0', 'u3')).toMatchObject({ ok: true, code, botSeat: null });
+    expect(m.view(code)!.members.map((x) => x.userId)).not.toContain('u3');
+    expect(m.roomFor('u3')).toBeNull();
+    expect(m.join('u3', 'Player3', code)).toEqual({ ok: false, error: 'kicked' });
+    const other = m.createRoom('u9', 'Other', { visibility: 'public' });
+    if (!other.ok) throw new Error('x');
+    expect(m.join('u3', 'Player3', other.code)).toMatchObject({ ok: true });
+  });
+
+  it('kicking during a game puts a bot in the seat and keeps the score', () => {
+    const { m, tick } = manager();
+    const code = lobby(m, 5, 'public', tick);
+    m.start('u0');
+    const room = m.room(code)!;
+    const seat = room.seatOf['u2'];
+    const before = room.game!.players[seat].banked;
+    const r = m.kick('u0', 'u2');
+    expect(r).toMatchObject({ ok: true, botSeat: seat });
+    expect(room.game!.players[seat].isHuman).toBe(false);
+    expect(room.game!.players[seat].banked).toBe(before);
+    expect('u2' in room.seatOf).toBe(false);
+    expect(m.join('u2', 'Player2', code)).toEqual({ ok: false, error: 'kicked' }); // kicked is checked before "started"
+  });
+
+  it('mute: room-wide stops everyone but the host; per player stops just them; leaving clears it', () => {
+    const { m } = manager();
+    const code = lobby(m, 5);
+    expect(m.setMute('u1', true)).toEqual({ ok: false, error: 'not_host' });
+    expect(m.setMute('u0', true, 'u0')).toEqual({ ok: false, error: 'cannot_target' });
+    expect(m.isMuted('u1')).toBe(false);
+    m.setMute('u0', true);
+    expect([m.isMuted('u0'), m.isMuted('u1')]).toEqual([false, true]);
+    expect(m.view(code)!.chatMuted).toBe(true);
+    m.setMute('u0', false);
+    expect(m.isMuted('u1')).toBe(false);
+    m.setMute('u0', true, 'u2');
+    expect([m.isMuted('u1'), m.isMuted('u2')]).toEqual([false, true]);
+    expect(m.view(code)!.mutedIds).toEqual(['u2']);
+    m.leave('u2');
+    expect(m.view(code)!.mutedIds).toEqual([]);
+    m.setMute('u0', false, 'u2'); // no longer a member
+  });
+});

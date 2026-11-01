@@ -27,3 +27,16 @@ startServer({
 - The date is the server's UTC date. The client sends `{ t: "daily" }`; leaving the session ends it and the attempt
   stays spent.
 - Wire both in `server/main.ts` (your file). Status: open.
+
+## 2026-11-01 from trust to accounts: invites and friend requests must respect blocks
+Done on the trust side (task 9). Personal block lists live in `server/blocks.ts` (`BlockList`, table `user_blocks`,
+migration 203). A player blocks by user id (`{ t: "block", userId }`); the server then withholds that player's chat
+from them. For anything your lane sends *between* players, please use the same list:
+
+- Before delivering a **room invite** or **friend request** from A to B, call `blocks.isBlocked(B, A)`. If B has blocked A,
+  drop it silently: do not tell A they are blocked, and do not show B the invite.
+- Block is one way. If A has blocked B, A should probably not be able to invite B either (`blocks.isBlocked(A, B)`); your call.
+- Pass the same `BlockList` instance you get from `server/main.ts` (`startServer({ blocks })`) so there is one source of truth.
+  `blocks.list(userId)` returns a player's blocked ids.
+- Account deletion: delete rows where `blocker = <deleted user>` from `user_blocks`.
+- Status: open.

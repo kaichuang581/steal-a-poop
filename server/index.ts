@@ -9,6 +9,8 @@ import { RateLimiter } from './ratelimit';
 import { RoomManager, toGameResult } from './rooms';
 import type { ClientAction } from './rooms';
 import type { RoomError, Visibility } from './types';
+import { BlockList } from './blocks';
+import type { AuditLog } from './moderation/audit';
 
 export type { AuthUser, VerifyToken } from './contracts';
 
@@ -23,6 +25,10 @@ export interface ServerOptions {
   onGameFinished?: GameResultSink;
   /** Without a gate, the server-run Daily Table is unavailable: it must never be playable without limit. */
   dailyGate?: DailyGate;
+  /** Personal block lists. Without one, an in-memory list is used. */
+  blocks?: BlockList;
+  /** Where host actions (kick, mute) are logged. */
+  audit?: AuditLog;
   randomInt: (n: number) => number;
   now?: () => number;
   /** How long a dropped connection keeps its seat before a bot takes over. */
@@ -42,7 +48,11 @@ type ClientMsg =
   | { t: 'act'; action: ClientAction }
   | { t: 'chat'; text: string }
   | { t: 'report'; messageId: number }
-  | { t: 'appeal'; note: string };
+  | { t: 'appeal'; note: string }
+  | { t: 'block'; userId: string }
+  | { t: 'unblock'; userId: string }
+  | { t: 'mute'; on: boolean; userId?: string }
+  | { t: 'kick'; userId: string };
 
 const MAX_PAYLOAD = 4096;
 
@@ -67,6 +77,7 @@ export async function startServer(opts: ServerOptions) {
   const pendingLeave = new Map<string, ReturnType<typeof setTimeout>>();
   const createLimit = new RateLimiter(3, 60_000);
   const joinLimit = new RateLimiter(20, 60_000);
+  const blockLimit = new RateLimiter(30, 60_000);
   const wss = opts.httpServer
     ? new WebSocketServer({ server: opts.httpServer, maxPayload: MAX_PAYLOAD })
     : new WebSocketServer({ port: opts.port, maxPayload: MAX_PAYLOAD });
@@ -82,6 +93,11 @@ export async function startServer(opts: ServerOptions) {
     if (!view) return;
     const serverNow = now(); // timers in the game state are in server time; clients correct for the difference
     for (const m of view.members) sendTo(m.userId, { t: 'room', view, serverNow, you: { userId: m.userId, seat: view.seatOf[m.userId] ?? null } });
+  };
+  const blocks = opts.blocks ?? new BlockList();
+  const sendBlocks = (userId: string) => sendTo(userId, { t: 'blocks', list: blocks.list(userId) });
+  const hostAction = (hostId: string, action: 'host_kick' | 'host_mute' | 'host_unmute', roomCode: string, target: string | null) => {
+    void opts.audit?.record({ at: now(), actor: hostId, action, userId: target ?? undefined, details: { roomCode } }).catch(() => {});
   };
   const fail = (ws: WebSocket, error: RoomError | 'bad_message' | 'rate_limited' | 'not_signed_in') => send(ws, { t: 'error', error });
 
@@ -100,6 +116,7 @@ export async function startServer(opts: ServerOptions) {
       sockets.set(user.userId, ws);
       if (old && old !== ws) old.close(4002, 'signed in elsewhere');
       send(ws, { t: 'welcome', userId: user.userId, name: user.name, serverNow: now(), chat: opts.chat.state(user.userId), moderation: opts.chat.status(user.userId) });
+      sendBlocks(user.userId);
       const room = rooms.roomFor(user.userId);
       if (room) broadcastRoom(room.code);
       return;
@@ -165,9 +182,12 @@ export async function startServer(opts: ServerOptions) {
         if (!room) return fail(ws, 'not_in_room');
         // Accounts that may not chat (for example under 13 without parental consent) are refused here.
         if (!user.chatAllowed) return send(ws, { t: 'chatBlocked', reason: 'not_allowed', until: null, retryAfterMs: null });
+        // A host mute stops the message before it is checked or recorded: it is not a rule violation.
+        if (rooms.isMuted(userId)) return send(ws, { t: 'chatBlocked', reason: 'muted', until: null, retryAfterMs: null });
         const res = opts.chat.submit({ userId, name, roomCode: room.code, text: String(msg.text ?? '') });
         if (res.delivered) {
-          for (const id of roomMembers(room.code)) sendTo(id, { t: 'chat', message: res.message });
+          // Anyone who blocked the sender never receives the message, and is not told it existed.
+          for (const id of roomMembers(room.code)) if (id === userId || !blocks.isBlocked(id, userId)) sendTo(id, { t: 'chat', message: res.message });
         } else {
           // Only the sender hears about a held message; nobody else ever receives it.
           send(ws, { t: 'chatBlocked', reason: res.reason, until: 'until' in res ? res.until : null, retryAfterMs: 'retryAfterMs' in res ? res.retryAfterMs : null });
@@ -183,6 +203,33 @@ export async function startServer(opts: ServerOptions) {
       case 'appeal': {
         const r = opts.chat.appeal(userId, String(msg.note ?? ''));
         return send(ws, { t: 'appealResult', ok: r.ok, reason: r.reason ?? null });
+      }
+      case 'block': {
+        if (!blockLimit.allow(userId, now())) return fail(ws, 'rate_limited');
+        const r = blocks.block(userId, String(msg.userId ?? ''));
+        if (r === 'self') return fail(ws, 'cannot_target');
+        if (r !== 'ok') return fail(ws, 'bad_message');
+        return sendBlocks(userId);
+      }
+      case 'unblock':
+        blocks.unblock(userId, String(msg.userId ?? ''));
+        return sendBlocks(userId);
+      case 'mute': {
+        const target = msg.userId === undefined ? undefined : String(msg.userId);
+        const on = msg.on === true;
+        const r = rooms.setMute(userId, on, target);
+        if (!r.ok) return fail(ws, r.error);
+        hostAction(userId, on ? 'host_mute' : 'host_unmute', r.code, target ?? null);
+        return broadcastRoom(r.code);
+      }
+      case 'kick': {
+        const target = String(msg.userId ?? '');
+        const r = rooms.kick(userId, target);
+        if (!r.ok) return fail(ws, r.error);
+        hostAction(userId, 'host_kick', r.code, target);
+        sendTo(target, { t: 'kicked' });
+        sendTo(target, { t: 'left' });
+        return broadcastRoom(r.code);
       }
       default:
         return fail(ws, 'bad_message');

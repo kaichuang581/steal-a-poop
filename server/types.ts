@@ -31,6 +31,12 @@ export interface Room {
   gameId: string | null;
   /** True once the finished game has been reported, so it is reported only once. */
   reported: boolean;
+  /** Host has stopped chat for everyone but themselves. */
+  chatMuted: boolean;
+  /** Players the host has silenced in this room. */
+  mutedIds: string[];
+  /** Players the host removed. They cannot rejoin this room. */
+  kicked: string[];
 }
 
 export type RoomError =
@@ -44,6 +50,8 @@ export type RoomError =
   | 'game_not_running'
   | 'bad_name'
   | 'bad_code'
+  | 'kicked'
+  | 'cannot_target'
   | 'daily_used'
   | 'daily_unavailable';
 

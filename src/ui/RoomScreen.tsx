@@ -8,7 +8,8 @@ export function RoomScreen() {
   const me = useRoomStore((s) => s.user?.userId);
   const notice = useRoomStore((s) => s.notice);
   const status = useRoomStore((s) => s.status);
-  const { start, leave, clearNotice } = useRoomStore.getState();
+  const { start, leave, clearNotice, mute, kick } = useRoomStore.getState();
+  const [confirmKick, setConfirmKick] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const isHost = room.hostId === me;
   const enough = room.members.length >= room.min;
@@ -56,6 +57,25 @@ export function RoomScreen() {
               <span className="flex size-8 items-center justify-center rounded-full bg-amber-400 font-black text-amber-950">{m.name[0]?.toUpperCase()}</span>
               <span className="min-w-0 flex-1 truncate font-bold">{m.name}{m.userId === me ? ' (you)' : ''}</span>
               {m.userId === room.hostId && <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-black text-amber-950">HOST</span>}
+              {isHost && m.userId !== me && (
+                <span className="flex gap-1">
+                  <button
+                    onClick={() => mute(!room.mutedIds.includes(m.userId), m.userId)}
+                    aria-pressed={room.mutedIds.includes(m.userId)}
+                    aria-label={`${room.mutedIds.includes(m.userId) ? 'Unmute' : 'Mute'} ${m.name}`}
+                    className="min-h-11 rounded-md bg-white/10 px-2 text-xs font-bold"
+                  >
+                    {room.mutedIds.includes(m.userId) ? 'Unmute' : 'Mute'}
+                  </button>
+                  <button
+                    onClick={() => (confirmKick === m.userId ? (kick(m.userId), setConfirmKick(null)) : setConfirmKick(m.userId))}
+                    aria-label={confirmKick === m.userId ? `Confirm: remove ${m.name}` : `Remove ${m.name}`}
+                    className="min-h-11 rounded-md bg-red-400/80 px-2 text-xs font-black text-red-950"
+                  >
+                    {confirmKick === m.userId ? 'Sure?' : 'Kick'}
+                  </button>
+                </span>
+              )}
             </li>
           ))}
         </ul>

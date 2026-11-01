@@ -28,6 +28,8 @@ export interface RoomView {
   max: number;
   seatOf: Record<string, number>;
   game: Room['game'];
+  chatMuted: boolean;
+  mutedIds: string[];
 }
 
 const NAME_MAX = 12;
@@ -71,6 +73,9 @@ export class RoomManager {
       dailyDate: null,
       gameId: null,
       reported: false,
+      chatMuted: false,
+      mutedIds: [],
+      kicked: [],
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -85,6 +90,7 @@ export class RoomManager {
     if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
     const room = this.rooms.get(code);
     if (!room) return { ok: false, error: 'room_not_found' };
+    if (room.kicked.includes(userId)) return { ok: false, error: 'kicked' };
     if (room.phase !== 'lobby') return { ok: false, error: 'room_started' };
     if (room.members.length >= MAX_ROOM_SIZE) return { ok: false, error: 'room_full' };
     room.members.push({ userId, name: this.uniqueName(room, name), joinedAt: this.deps.now() });
@@ -104,6 +110,11 @@ export class RoomManager {
       this.roomOfUser.delete(userId);
       return { ok: true, code: room.code, newHostId: null, botSeat: null, roomClosed: true };
     }
+    return { ok: true, code: room.code, ...this.removeMember(room, userId) };
+  }
+
+  /** Takes a member out. In a running game a bot takes the seat and keeps the score. */
+  private removeMember(room: Room, userId: string): { newHostId: string | null; botSeat: number | null; roomClosed: boolean } {
     let botSeat: number | null = null;
     if (room.phase === 'playing' && room.game && userId in room.seatOf) {
       botSeat = room.seatOf[userId];
@@ -111,6 +122,7 @@ export class RoomManager {
       delete room.seatOf[userId];
     }
     room.members = room.members.filter((m) => m.userId !== userId);
+    room.mutedIds = room.mutedIds.filter((id) => id !== userId);
     this.roomOfUser.delete(userId);
 
     let newHostId: string | null = null;
@@ -120,7 +132,47 @@ export class RoomManager {
     }
     const roomClosed = room.members.length === 0;
     if (roomClosed) this.rooms.delete(room.code);
-    return { ok: true, code: room.code, newHostId, botSeat, roomClosed };
+    return { newHostId, botSeat, roomClosed };
+  }
+
+  /**
+   * The host removes a player. A bot takes the seat in a running game and keeps the score, and the
+   * player cannot rejoin this room. The host cannot kick themselves (they leave instead).
+   */
+  kick(hostId: string, targetId: string): Result<{ code: string; botSeat: number | null }> {
+    const room = this.roomFor(hostId);
+    if (!room || room.kind === 'daily') return { ok: false, error: 'not_in_room' };
+    if (room.hostId !== hostId) return { ok: false, error: 'not_host' };
+    if (targetId === hostId) return { ok: false, error: 'cannot_target' };
+    if (!room.members.some((m) => m.userId === targetId)) return { ok: false, error: 'not_in_room' };
+    const { botSeat } = this.removeMember(room, targetId);
+    if (!room.kicked.includes(targetId)) room.kicked.push(targetId);
+    return { ok: true, code: room.code, botSeat };
+  }
+
+  /**
+   * Host-only. With a userId, silences or unsilences that player in this room. Without one, stops or
+   * resumes chat for everyone except the host.
+   */
+  setMute(hostId: string, on: boolean, targetId?: string): Result<{ code: string }> {
+    const room = this.roomFor(hostId);
+    if (!room || room.kind === 'daily') return { ok: false, error: 'not_in_room' };
+    if (room.hostId !== hostId) return { ok: false, error: 'not_host' };
+    if (targetId === undefined) {
+      room.chatMuted = on;
+      return { ok: true, code: room.code };
+    }
+    if (targetId === hostId) return { ok: false, error: 'cannot_target' };
+    if (!room.members.some((m) => m.userId === targetId)) return { ok: false, error: 'not_in_room' };
+    room.mutedIds = on ? [...new Set([...room.mutedIds, targetId])] : room.mutedIds.filter((id) => id !== targetId);
+    return { ok: true, code: room.code };
+  }
+
+  /** True if this player may not chat in their room because of a host mute. */
+  isMuted(userId: string): boolean {
+    const room = this.roomFor(userId);
+    if (!room) return false;
+    return room.mutedIds.includes(userId) || (room.chatMuted && room.hostId !== userId);
   }
 
   /**
@@ -147,6 +199,9 @@ export class RoomManager {
       dailyDate,
       gameId: `daily:${dailyDate}:${userId}:${now}`,
       reported: false,
+      chatMuted: false,
+      mutedIds: [],
+      kicked: [],
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -220,7 +275,7 @@ export class RoomManager {
     return {
       code: r.code, name: r.name, visibility: r.visibility, hostId: r.hostId,
       members: r.members.map((m: Member) => ({ userId: m.userId, name: m.name })),
-      phase: r.phase, min: MIN_TO_START, max: MAX_ROOM_SIZE, seatOf: { ...r.seatOf }, game: r.game,
+      phase: r.phase, min: MIN_TO_START, max: MAX_ROOM_SIZE, seatOf: { ...r.seatOf }, game: r.game, chatMuted: r.chatMuted, mutedIds: [...r.mutedIds],
     };
   }
 

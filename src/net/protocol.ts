@@ -21,6 +21,10 @@ export interface RoomViewDTO {
   max: number;
   seatOf: Record<string, number>;
   game: GameState | null;
+  /** Host has stopped chat for everyone but themselves. */
+  chatMuted: boolean;
+  /** Players the host has silenced. */
+  mutedIds: string[];
 }
 
 export interface ChatMsg {
@@ -53,6 +57,10 @@ export type ServerMsg =
   | { t: 'rooms'; list: PublicRoomInfo[]; serverNow: number }
   | { t: 'room'; view: RoomViewDTO; serverNow: number; you: { userId: string; seat: number | null } }
   | { t: 'left' }
+  /** The host removed you. Sent just before 'left'. */
+  | { t: 'kicked' }
+  /** Your own block list (user ids), sent after sign-in and whenever it changes. */
+  | { t: 'blocks'; list: string[] }
   | { t: 'result'; accepted: boolean; reason: string | null; suggestion: string | null }
   | { t: 'chat'; message: ChatMsg }
   | { t: 'chatBlocked'; reason: string; until: number | null; retryAfterMs: number | null }
@@ -71,7 +79,12 @@ export type ClientMsg =
   | { t: 'act'; action: { type: 'play'; word: string } | { type: 'steal'; word: string } | { type: 'bank' } }
   | { t: 'chat'; text: string }
   | { t: 'report'; messageId: number }
-  | { t: 'appeal'; note: string };
+  | { t: 'appeal'; note: string }
+  | { t: 'block'; userId: string }
+  | { t: 'unblock'; userId: string }
+  /** Host only. With userId: silence that player. Without: stop chat for everyone but the host. */
+  | { t: 'mute'; on: boolean; userId?: string }
+  | { t: 'kick'; userId: string };
 
 /** Human-readable text for a server error code. */
 export function describeError(code: string): string {
@@ -87,6 +100,8 @@ export function describeError(code: string): string {
     case 'not_in_room': return 'You are not in a room.';
     case 'game_not_running': return 'The game is not running.';
     case 'bad_name': return 'Pick a nickname first.';
+    case 'kicked': return 'The host removed you from that room.';
+    case 'cannot_target': return 'You cannot do that to yourself or the host.';
     case 'daily_used': return 'You have already played today\'s Daily Table.';
     case 'daily_unavailable': return 'The Daily Table is not available right now.';
     default: return 'Something went wrong. Try again.';

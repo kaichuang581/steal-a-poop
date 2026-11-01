@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Pool } from 'pg';
 import type { ReviewItem } from '../chat';
+import type { ChildSafetyReport, ReportStore } from './reporting';
 import type { ModerationStore, Standing } from './store';
 
 /** Stores moderation state in Postgres. Needs the tables from db/migrations/200_moderation.sql. */
@@ -46,5 +47,22 @@ export class PostgresStore implements ModerationStore {
        values ($1, $2, $3, $4, $5)`,
       [item.id, item.userId, Date.now(), createHash('sha256').update(payload).digest('hex'), payload],
     );
+  }
+}
+
+export class PostgresReportStore implements ReportStore {
+  constructor(private pool: Pick<Pool, 'query'>) {}
+  async save(r: ChildSafetyReport): Promise<void> {
+    await this.pool.query(
+      `insert into child_safety_reports (id, item_id, status, reporter, country, created_at, updated_at, content_hash, legal_hold, report)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       on conflict (id) do update set status = excluded.status, reporter = excluded.reporter, country = excluded.country,
+         updated_at = excluded.updated_at, report = excluded.report`,
+      [r.id, r.itemId, r.status, r.reporter, r.country, r.createdAt, Date.now(), r.evidence.contentHash, r.legalHold, JSON.stringify(r)],
+    );
+  }
+  async load(): Promise<ChildSafetyReport[]> {
+    const { rows } = await this.pool.query('select report from child_safety_reports order by item_id');
+    return rows.map((r) => r.report as ChildSafetyReport);
   }
 }

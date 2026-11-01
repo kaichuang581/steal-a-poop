@@ -3,10 +3,10 @@ import { Pool } from 'pg';
 import { readFileSync } from 'node:fs';
 import { createDictionary } from '../src/engine';
 import { ChatService } from './chat';
-import type { ChildSafetySink } from './chat';
 import { ChatFilter } from './filter';
 import { createModerationRoutes } from './routes/moderation';
-import { PostgresStore } from './moderation/postgres';
+import { PostgresReportStore, PostgresStore } from './moderation/postgres';
+import { ChildSafetyService, MemoryReportStore } from './moderation/reporting';
 import { createHttpServer } from './http';
 import { startServer } from './index';
 import type { VerifyToken } from './contracts';
@@ -35,8 +35,6 @@ const model = process.env.REVIEW_MODEL;
 const reviewer = apiKey && model ? new ClaudeReviewer({ apiKey, model }) : undefined;
 if (apiKey && !model) console.warn('ANTHROPIC_API_KEY is set but REVIEW_MODEL is not: reviews will wait for a person.');
 
-// Placeholder for the NCMEC reporting process: it only logs. See docs/MODERATION.md.
-const sink: ChildSafetySink = { record: (item) => console.error('[child-safety item recorded, NOT reported]', item.id, item.userId) };
 
 if (process.env.ALLOW_DEV_AUTH !== '1') {
   console.error('No sign-in is configured. Set ALLOW_DEV_AUTH=1 for local development only.');
@@ -51,11 +49,18 @@ const verifyToken: VerifyToken = async (token) =>
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new Pool({ connectionString: databaseUrl, max: 5 }) : null;
 if (!pool) console.warn('No DATABASE_URL: suspensions, bans and the review queue are lost on restart.');
+// Child-safety reports are kept but go nowhere yet (dry run): no reporter is registered. See docs/lanes/trust.md.
+const reporting = new ChildSafetyService({
+  store: pool ? new PostgresReportStore(pool) : new MemoryReportStore(),
+  now: Date.now,
+  onError: () => console.error('child-safety report write failed'),
+});
+await reporting.load();
 const chat = new ChatService({
   now: Date.now,
   filter,
   reviewer,
-  sink,
+  sink: reporting,
   store: pool ? new PostgresStore(pool) : undefined,
   // Deliberately generic: the error text could contain a message under review.
   onPersistError: () => console.error('moderation store write failed'),
@@ -64,7 +69,7 @@ await chat.load();
 
 // One port serves the HTTP API and the WebSocket game connection.
 const httpServer = createHttpServer({
-  routes: [...allRoutes, ...createModerationRoutes({ chat, log: console.log })],
+  routes: [...allRoutes, ...createModerationRoutes({ chat, reporting, log: console.log })],
   verifyToken,
   allowedOrigins: (process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
 });
@@ -86,6 +91,7 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(signal, () => {
     void (async () => {
       await server.close();
+      await reporting.flush();
       await pool?.end();
       process.exit(0);
     })();

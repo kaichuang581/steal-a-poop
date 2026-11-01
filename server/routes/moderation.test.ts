@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ChatService } from '../chat';
 import { ChatFilter } from '../filter';
 import { createHttpServer } from '../http';
+import { ChildSafetyService, MemoryReportStore } from '../moderation/reporting';
 import { createModerationRoutes } from './moderation';
 
 let server: Server | undefined;
@@ -17,8 +18,10 @@ async function boot(reviewVerdict?: 'escalate') {
     reviewer: reviewVerdict ? { review: async () => ({ verdict: 'escalate', reason: 'unclear, looks like banter' }) } : undefined,
   });
   const lines: string[] = [];
+  const reporting = new ChildSafetyService({ store: new MemoryReportStore(), now: () => t });
+  (chat as any).deps.sink = reporting;
   server = createHttpServer({
-    routes: createModerationRoutes({ chat, log: (l) => lines.push(l) }),
+    routes: createModerationRoutes({ chat, reporting, log: (l) => lines.push(l) }),
     verifyToken: async (tok) => (tok === 'mod' ? { userId: 'm1', name: 'Mo', chatAllowed: true, isModerator: true } : tok === 'user' ? { userId: 'u1', name: 'U', chatAllowed: true, isModerator: false } : null),
   });
   await new Promise<void>((r) => server!.listen(0, r));
@@ -33,7 +36,7 @@ async function boot(reviewVerdict?: 'escalate') {
   chat.submit({ userId: 'bad', name: 'Bad', roomCode: 'R1', text: 'hello' });
   chat.submit({ userId: 'bad', name: 'Bad', roomCode: 'R1', text: 'you blorf' });
   await chat.processReviews();
-  return { chat, call, lines, tick: (ms: number) => (t += ms) };
+  return { chat, reporting, call, lines, tick: (ms: number) => (t += ms) };
 }
 
 describe('moderation routes', () => {
@@ -79,5 +82,19 @@ describe('moderation routes', () => {
     await call('POST', `/api/mod/items/${id}/resolve`, 'mod', { verdict: 'clear', reason: 'banter' });
     expect(chat.state('bad').suspendedUntil).toBeNull();
     expect((await call('GET', '/api/mod/users/bad', 'mod')).json.banned).toBe(false);
+  });
+
+  it('a person confirms a child-safety report; ordinary items cannot be reported', async () => {
+    const { chat, call, lines } = await boot();
+    chat.submit({ userId: 'g', name: 'G', roomCode: 'R2', text: 'are you home alone' });
+    const items = (await call('GET', '/api/mod/queue?status=all', 'mod')).json.items;
+    const cs = items.find((i: any) => i.mustReport);
+    const plain = items.find((i: any) => !i.mustReport);
+    expect((await call('POST', `/api/mod/items/${plain.id}/report`, 'mod')).status).toBe(409);
+    expect((await call('POST', `/api/mod/items/${cs.id}/report`, 'user')).status).toBe(403);
+    const out = await call('POST', `/api/mod/items/${cs.id}/report`, 'mod');
+    expect(out.json).toMatchObject({ status: 'dry_run', reporter: 'dry_run' });
+    expect(lines.at(-1)).toContain('dry_run');
+    expect(lines.at(-1)).not.toContain('home alone');
   });
 });

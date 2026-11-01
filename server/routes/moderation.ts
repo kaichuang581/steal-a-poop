@@ -1,5 +1,6 @@
 import type { ChatService, ReviewItem, Verdict } from '../chat';
 import type { Route, RouteResponse } from '../contracts';
+import type { ChildSafetyService } from '../moderation/reporting';
 
 /**
  * HTTP endpoints owned by the "moderation" lane. They need the live ChatService, so main.ts
@@ -19,11 +20,13 @@ const summary = (i: ReviewItem) => ({
 
 export interface ModerationRouteDeps {
   chat: ChatService;
+  /** Child-safety reporting. Without it, the report route answers 503. */
+  reporting?: ChildSafetyService;
   /** Logged for every decision; never contains message text. */
   log?: (line: string) => void;
 }
 
-export function createModerationRoutes({ chat, log = () => {} }: ModerationRouteDeps): Route[] {
+export function createModerationRoutes({ chat, reporting, log = () => {} }: ModerationRouteDeps): Route[] {
   const bad = (error: string, status = 400): RouteResponse => ({ status, json: { error } });
   return [
     {
@@ -49,6 +52,21 @@ export function createModerationRoutes({ chat, log = () => {} }: ModerationRoute
     {
       method: 'GET', path: '/api/mod/users/:id', auth: 'moderator',
       handler: (req) => ({ status: 200, json: chat.userFile(req.params.id) }),
+    },
+    {
+      // A person confirms that a child-safety item must be reported. Chooses the reporter by country.
+      method: 'POST', path: '/api/mod/items/:id/report', auth: 'moderator',
+      handler: async (req) => {
+        if (!reporting) return bad('reporting_unavailable', 503);
+        const id = Number(req.params.id);
+        const item = chat.getItem(id);
+        if (!item) return bad('not_found', 404);
+        if (!item.mustReport) return bad('not_a_child_safety_item', 409);
+        const report = await reporting.confirm(id, req.user!.userId);
+        if (!report) return bad('no_report_on_file', 409);
+        log(`[child-safety] item ${id} report ${report.status} (${report.reporter ?? 'none'}) confirmed by ${req.user!.userId}`);
+        return { status: 200, json: { status: report.status, reporter: report.reporter, receipt: report.receipt } };
+      },
     },
     {
       method: 'POST', path: '/api/mod/items/:id/resolve', auth: 'moderator',

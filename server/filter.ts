@@ -11,6 +11,20 @@ const LEET: Record<string, string> = {
 };
 const AMBIGUOUS = ['1', '|'];
 const ZERO_WIDTH = /[\u200b-\u200f\u2060\ufeff\u00ad]/g;
+/**
+ * Letters from other alphabets that look like Latin ones. Full-width and circled letters need no
+ * entry here: NFKD turns them into plain letters first.
+ */
+const HOMOGLYPHS: Record<string, string> = {
+  // Cyrillic
+  'а': 'a', 'в': 'b', 'е': 'e', 'к': 'k', 'м': 'm', 'н': 'h', 'о': 'o', 'р': 'p', 'с': 'c', 'т': 't', 'у': 'y', 'х': 'x',
+  'і': 'i', 'ј': 'j', 'ѕ': 's', 'ԁ': 'd', 'ɡ': 'g', 'һ': 'h', 'ӏ': 'l',
+  // Greek
+  'α': 'a', 'β': 'b', 'ε': 'e', 'ι': 'i', 'κ': 'k', 'ν': 'v', 'ο': 'o', 'ρ': 'p', 'τ': 't', 'υ': 'u', 'χ': 'x', 'ω': 'w',
+  // Other lookalikes
+  'ı': 'i', 'ø': 'o', 'ß': 's', 'đ': 'd', 'ł': 'l',
+};
+export type Tier = 'mild' | 'standard' | 'severe';
 export type Variant = 'i' | 'l';
 export const VARIANTS: readonly Variant[] = ['i', 'l'];
 
@@ -18,7 +32,7 @@ export const VARIANTS: readonly Variant[] = ['i', 'l'];
 export function deLeet(text: string, variant: Variant = 'i'): string {
   const base = text.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(ZERO_WIDTH, '').toLowerCase();
   let out = '';
-  for (const ch of base) out += AMBIGUOUS.includes(ch) ? variant : (LEET[ch] ?? ch);
+  for (const ch of base) out += AMBIGUOUS.includes(ch) ? variant : (LEET[ch] ?? HOMOGLYPHS[ch] ?? ch);
   return out;
 }
 
@@ -35,11 +49,12 @@ export function squash(text: string, variant: Variant = 'i'): string {
 /**
  * Splits a message into word-like tokens. A symbol counts as a letter only inside or at the start
  * of a word ("sh!t", "$hit"): punctuation at the end ("shit!") is dropped, so it cannot hide a word.
+ * "$" and "@" are kept at the end too, because they stand for "s" and "a" ("anu$").
  */
 export function tokenize(text: string, variant: Variant = 'i'): string[] {
   const tokens: string[] = [];
   for (const chunk of text.split(/\s+/)) {
-    const trimmed = chunk.replace(/[^\p{L}\p{N}]+$/u, '').replace(/^[^\p{L}\p{N}$@]+/u, '');
+    const trimmed = chunk.replace(/[^\p{L}\p{N}$@]+$/u, '').replace(/^[^\p{L}\p{N}$@]+/u, '');
     if (!trimmed) continue;
     for (const part of deLeet(trimmed, variant).split(/[^a-z]+/)) if (part) tokens.push(trimRuns(part));
   }
@@ -75,10 +90,16 @@ export interface FilterOptions {
   isWord: (w: string) => boolean;
   /** Entries at least this long are also searched for inside longer text. */
   minSubstring?: number;
+  /** Extra entries that only change how long the sender is suspended. */
+  mildTerms?: readonly string[];
+  severeTerms?: readonly string[];
+  /** Ordinary words never flagged, even when they contain a blocked string. Default empty. */
+  allowlist?: readonly string[];
 }
 
 export interface FilterHit {
   term: string;
+  tier: Tier;
   kind: 'word' | 'phrase' | 'spaced' | 'embedded';
 }
 
@@ -87,22 +108,49 @@ export class ChatFilter {
   private aggressiveSingle = new Set<string>();
   private long: string[] = []; // squashed entries searched as substrings
   private minSubstring: number;
+  private tiers = new Map<string, Tier>(); // squashed entry (and its stretched-out form) -> tier
+  private allow: Set<string>;
+  private static rank: Record<Tier, number> = { mild: 0, standard: 1, severe: 2 };
 
   constructor(private opts: FilterOptions) {
     this.minSubstring = opts.minSubstring ?? 5;
+    this.allow = new Set((opts.allowlist ?? []).map((w) => squash(w)).filter(Boolean));
     const longSet = new Set<string>();
-    for (const raw of opts.blocklist) {
+    const add = (raw: string, tier: Tier) => {
       const entry = raw.trim().toLowerCase();
-      if (!entry) continue;
+      if (!entry || entry.startsWith('#')) return;
       const sq = squash(entry);
-      if (!sq) continue;
+      if (!sq) return;
+      this.setTier(sq, tier);
       if (!entry.includes(' ')) {
-        this.single.add(trimRuns(deLeet(entry).replace(/[^a-z]/g, '')));
-        if (sq.length >= 4) this.aggressiveSingle.add(aggressive(sq));
+        const one = trimRuns(deLeet(entry).replace(/[^a-z]/g, ''));
+        this.single.add(one);
+        this.setTier(one, tier);
+        if (sq.length >= 4) {
+          this.aggressiveSingle.add(aggressive(sq));
+          this.setTier(aggressive(sq), tier);
+        }
       }
       if (sq.length >= this.minSubstring) longSet.add(sq);
-    }
+    };
+    for (const raw of opts.mildTerms ?? []) add(raw, 'mild');
+    for (const raw of opts.blocklist) add(raw, 'standard');
+    for (const raw of opts.severeTerms ?? []) add(raw, 'severe');
     this.long = [...longSet];
+  }
+
+  /** The most serious tier an entry was listed under wins. */
+  private setTier(key: string, tier: Tier) {
+    const cur = this.tiers.get(key);
+    if (!cur || ChatFilter.rank[tier] > ChatFilter.rank[cur]) this.tiers.set(key, tier);
+  }
+
+  private tierOf(term: string): Tier {
+    return this.tiers.get(term) ?? this.tiers.get(aggressive(term)) ?? 'standard';
+  }
+
+  private hit(term: string, kind: FilterHit['kind']): FilterHit {
+    return { term, kind, tier: this.tierOf(term) };
   }
 
   /** The first match in one message, or null. Tries both readings of "1" and "|". */
@@ -118,8 +166,9 @@ export class ChatFilter {
     const tokens = tokenize(text, variant);
     for (const { text: t, joined } of joinSpelledRuns(tokens)) {
       const kind = joined ? 'spaced' : 'word';
-      if (this.single.has(t)) return { term: t, kind };
-      if (t.length >= 4 && this.aggressiveSingle.has(aggressive(t))) return { term: t, kind };
+      if (!joined && this.allow.has(t)) continue;
+      if (this.single.has(t)) return this.hit(t, kind);
+      if (t.length >= 4 && this.aggressiveSingle.has(aggressive(t))) return this.hit(t, kind);
     }
     return this.searchSquashed(tokens);
   }
@@ -145,10 +194,14 @@ export class ChatFilter {
         if (i === -1) break;
         const end = i + entry.length;
         const span = spans.find(([a, b]) => i >= a && end <= b);
-        if (!span) return { term: entry, kind: tokens.length > 1 ? 'spaced' : 'embedded' };
+        if (!span) return this.hit(entry, tokens.length > 1 ? 'spaced' : 'embedded');
         const token = joined.slice(span[0], span[1]);
+        if (this.allow.has(token)) {
+          from = i + 1;
+          continue;
+        }
         const isExact = token === entry;
-        if (isExact || !this.opts.isWord(token)) return { term: entry, kind: isExact ? 'word' : 'embedded' };
+        if (isExact || !this.opts.isWord(token)) return this.hit(entry, isExact ? 'word' : 'embedded');
         from = i + 1;
       }
     }
@@ -158,8 +211,8 @@ export class ChatFilter {
   /** For letter-by-letter spelling: the recent squashed text of one user, checked across messages. */
   checkBuffer(buffer: SpellBuffer): FilterHit | null {
     for (const variant of VARIANTS) {
-      for (const entry of this.long) if (buffer[variant].includes(entry)) return { term: entry, kind: 'spaced' };
-      for (const word of this.single) if (word.length >= 4 && buffer[variant].endsWith(word)) return { term: word, kind: 'spaced' };
+      for (const entry of this.long) if (buffer[variant].includes(entry)) return this.hit(entry, 'spaced');
+      for (const word of this.single) if (word.length >= 4 && buffer[variant].endsWith(word)) return this.hit(word, 'spaced');
     }
     return null;
   }

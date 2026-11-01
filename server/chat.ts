@@ -1,5 +1,7 @@
 import { ChatFilter, childSafetySignal, emptyBuffer, pushBuffer } from './filter';
 import type { SpellBuffer } from './filter';
+import { resolveConfig, suspensionFor } from './moderation/config';
+import type { ModerationConfig } from './moderation/config';
 import type { ModerationStore } from './moderation/store';
 import { RateLimiter } from './ratelimit';
 
@@ -57,8 +59,10 @@ export interface ChatDeps {
   filter: ChatFilter;
   reviewer?: Reviewer;
   sink?: ChildSafetySink;
-  /** How long a violation suspends the sender before review. Default 24 hours. */
+  /** How long a violation suspends the sender before review. Default 24 hours. Shortcut for config.suspendMs. */
   suspendMs?: number;
+  /** Tiers, graduated lengths and the allowlist. Defaults: every match suspends for 24 hours. */
+  config?: Partial<ModerationConfig>;
   maxLength?: number;
   /** Where state is kept between restarts. Without one, state lives only in memory. */
   store?: ModerationStore;
@@ -160,7 +164,11 @@ export class ChatService {
     const hit = this.deps.filter.check(text) ?? (text.length <= 3 ? this.deps.filter.checkBuffer(buffer) : null);
     const childSafety = childSafetySignal(text);
     if (hit || childSafety) {
-      const heldUntil = now + (this.deps.suspendMs ?? DEFAULT_SUSPEND_MS);
+      const config = resolveConfig({ ...(this.deps.suspendMs !== undefined ? { suspendMs: this.deps.suspendMs } : {}), ...this.deps.config });
+      // A child-safety signal is always treated as the most serious tier.
+      const tier = childSafety ? 'severe' : (hit?.tier ?? 'standard');
+      const prior = this.items.filter((i) => i.userId === userId && (i.category === 'blocked_word' || i.category === 'child_safety') && i.verdict !== 'clear').length;
+      const heldUntil = now + suspensionFor(config, tier, prior);
       this.suspended.set(userId, heldUntil);
       this.persistStanding(userId);
       const item = this.addItem({

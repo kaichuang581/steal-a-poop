@@ -6,12 +6,12 @@ on with something else. Never overwrite another lane's file to get unblocked.
 
 | Lane | Person | Owns |
 |---|---|---|
-| **accounts** | Brian | `server/auth.ts`, `server/routes/accounts.ts`, `src/auth/**`, `src/ui/auth/**`, `src/ui/StartScreen.tsx`, `src/ui/Settings.tsx`, `src/ui/App.tsx`, `src/lib/ageRules.ts`, `db/migrations/1xx_*`, `docs/AUTH.md`, the sign-in wiring in `server/main.ts` |
+| **accounts** | Brian | `server/auth.ts`, `server/routes/accounts.ts`, `src/auth/**`, `src/ui/auth/**`, `src/ui/StartScreen.tsx`, `src/ui/Settings.tsx`, `src/ui/App.tsx`, `src/lib/ageRules.ts`, `src/lib/nickname.ts`, `db/migrations/1xx_*`, `docs/AUTH.md`, the sign-in wiring in `server/main.ts` |
 | **moderation** | Kai | `server/chat.ts`, `server/filter.ts`, `server/review.ts`, `server/moderation/**`, `server/routes/moderation.ts`, `server/data/**`, `src/ui/mod/**`, `src/ui/ChatRules.tsx`, `db/migrations/2xx_*`, `docs/MODERATION.md` |
-| **rooms** | Brian | `server/rooms.ts`, `server/index.ts`, `server/types.ts`, `server/codes.ts`, `server/routes/rooms.ts`, `src/net/**`, `src/state/roomStore.ts`, `src/ui/Lobby.tsx`, `src/ui/RoomScreen.tsx`, `src/ui/ChatPanel.tsx`, `e2e/rooms*`, `db/migrations/3xx_*`, `docs/SERVER.md` |
-| **ops** | Kai | `src/engine/**`, the solo game screens in `src/ui/**` not listed above, `src/state/store.ts`, `scripts/**`, `.github/**`, `Dockerfile`, `fly.toml`, `public/**`, `server/routes/ops.ts`, `e2e/game*`, `db/migrations/4xx_*`, `docs/BALANCE*.md`, `docs/PERFORMANCE.md`, `docs/OPERATIONS.md` |
+| **rooms** | Brian | `server/rooms.ts`, `server/index.ts`, `server/types.ts`, `server/codes.ts`, `server/routes/rooms.ts`, `src/net/**`, `src/state/roomStore.ts`, `src/ui/Lobby.tsx`, `src/ui/RoomScreen.tsx`, `src/ui/ChatPanel.tsx`, `server/loadtest/**`, `src/ui/friends/**`, `src/ui/replay/**`, `e2e/rooms*`, `db/migrations/3xx_*`, `docs/SERVER.md` |
+| **ops** | Kai | `src/engine/**`, the solo game screens in `src/ui/**` not listed above, `src/state/store.ts`, `scripts/**`, `server/log.ts`, `.github/**`, `Dockerfile`, `fly.toml`, `public/**`, `server/routes/ops.ts`, `e2e/game*`, `db/migrations/4xx_*`, `docs/BALANCE*.md`, `docs/PERFORMANCE.md`, `docs/OPERATIONS.md` |
 
-**Nobody owns:** `server/contracts.ts`, `server/http.ts`, `server/routes/index.ts`. They are finished.
+**Nobody owns:** `server/contracts.ts` (it also defines `GameResult`, `GameResultSink` and `DailyGate`: the rooms lane reports finished games and runs the server-side Daily Table, the accounts lane implements both), `server/http.ts`, `server/routes/index.ts`. They are finished.
 Add a route by editing only your lane's file in `server/routes/`.
 
 ## Rules

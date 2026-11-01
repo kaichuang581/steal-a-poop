@@ -42,3 +42,34 @@ export interface Route {
   auth: 'none' | 'user' | 'moderator';
   handler: (req: RouteRequest) => Promise<RouteResponse> | RouteResponse;
 }
+
+/** One finished game, reported by the rooms lane and consumed by the accounts lane (leaderboards). */
+export interface GameResult {
+  gameId: string;
+  /** "room" for a multiplayer game, "daily" for a server-run Daily Table session. */
+  mode: 'room' | 'daily';
+  roomCode: string | null;
+  /** UTC date key such as 2026-11-01, for daily games. */
+  dailyDate: string | null;
+  finishedAt: number;
+  players: {
+    /** null for a bot, including a bot that replaced someone who left. */
+    userId: string | null;
+    name: string;
+    seat: number;
+    banked: number;
+    steals: number;
+    wordsPlayed: number;
+    longestWord: string;
+  }[];
+  /** userIds of the winner(s); bots are never listed. */
+  winners: string[];
+}
+
+export type GameResultSink = (result: GameResult) => Promise<void> | void;
+
+/** Decides whether a player may start today's Daily Table. Implemented by the accounts lane. */
+export interface DailyGate {
+  /** Reserves the one attempt for this user and date. False if they already used it. */
+  reserve(userId: string, dailyDate: string): Promise<boolean>;
+}

@@ -1,5 +1,6 @@
-import { advance, apply, createGame, replaceWithBot } from '../src/engine';
+import { advance, apply, createGame, dailySetup, replaceWithBot } from '../src/engine';
 import type { ActionResult, EngineContext } from '../src/engine';
+import type { GameResult } from './contracts';
 import { CODE_PATTERN, generateCode, normalizeCode } from './codes';
 import { MAX_ROOM_SIZE, MIN_TO_START } from './types';
 import type { Member, PublicRoomInfo, Result, Room, Visibility } from './types';
@@ -12,6 +13,8 @@ export interface RoomManagerDeps {
   now: () => number;
   /** Integer in [0, n). Production uses crypto.randomInt. */
   randomInt: (n: number) => number;
+  /** Called once when a game ends. Must not throw; failures are the caller's to handle. */
+  onFinished?: (room: Room) => void;
 }
 
 export interface RoomView {
@@ -64,6 +67,10 @@ export class RoomManager {
       phase: 'lobby',
       game: null,
       seatOf: {},
+      kind: 'room',
+      dailyDate: null,
+      gameId: null,
+      reported: false,
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -92,6 +99,11 @@ export class RoomManager {
   leave(userId: string): Result<{ code: string; newHostId: string | null; botSeat: number | null; roomClosed: boolean }> {
     const room = this.roomFor(userId);
     if (!room) return { ok: false, error: 'not_in_room' };
+    if (room.kind === 'daily') {
+      this.rooms.delete(room.code);
+      this.roomOfUser.delete(userId);
+      return { ok: true, code: room.code, newHostId: null, botSeat: null, roomClosed: true };
+    }
     let botSeat: number | null = null;
     if (room.phase === 'playing' && room.game && userId in room.seatOf) {
       botSeat = room.seatOf[userId];
@@ -111,6 +123,36 @@ export class RoomManager {
     return { ok: true, code: room.code, newHostId, botSeat, roomClosed };
   }
 
+  /**
+   * Starts today's Daily Table for one player: a game against bots whose lineup comes from the date.
+   * The caller must already have reserved the player's one attempt for this date.
+   */
+  startDaily(userId: string, rawName: string, dailyDate: string): Result<{ code: string }> {
+    const name = rawName.trim().slice(0, NAME_MAX);
+    if (!name) return { ok: false, error: 'bad_name' };
+    if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
+    const now = this.deps.now();
+    const code = generateCode(new Set(this.rooms.keys()), this.deps.randomInt);
+    const setup = dailySetup(new Date(`${dailyDate}T00:00:00Z`), name, now);
+    const room: Room = {
+      code,
+      name: `Daily Table ${dailyDate}`,
+      visibility: 'private',
+      hostId: userId,
+      members: [{ userId, name, joinedAt: now }],
+      phase: 'playing',
+      game: createGame(setup, this.deps.ctx.dict),
+      seatOf: { [userId]: 0 },
+      kind: 'daily',
+      dailyDate,
+      gameId: `daily:${dailyDate}:${userId}:${now}`,
+      reported: false,
+    };
+    this.rooms.set(code, room);
+    this.roomOfUser.set(userId, code);
+    return { ok: true, code };
+  }
+
   /** The host starts the game by hand once at least four players are in. */
   start(userId: string): Result<{ code: string }> {
     const room = this.roomFor(userId);
@@ -126,6 +168,7 @@ export class RoomManager {
       this.deps.ctx.dict,
     );
     room.phase = 'playing';
+    room.gameId = `${room.code}:${now}`;
     return { ok: true, code: room.code };
   }
 
@@ -182,7 +225,11 @@ export class RoomManager {
   }
 
   private finishIfOver(room: Room) {
-    if (room.game?.phase === 'gameOver') room.phase = 'finished';
+    if (room.game?.phase !== 'gameOver') return;
+    room.phase = 'finished';
+    if (room.reported) return;
+    room.reported = true;
+    this.deps.onFinished?.(room);
   }
 
   private uniqueName(room: Room, name: string): string {
@@ -194,4 +241,33 @@ export class RoomManager {
     }
     return name;
   }
+}
+
+/**
+ * A finished game as the accounts lane stores it. Seats held by bots, including a bot that took over
+ * from someone who left, have a null userId, and bots are never listed as winners.
+ */
+export function toGameResult(room: Room, finishedAt: number): GameResult {
+  const userOfSeat = new Map<number, string>(Object.entries(room.seatOf).map(([userId, seat]) => [seat, userId]));
+  const game = room.game!;
+  return {
+    gameId: room.gameId ?? `${room.code}:${finishedAt}`,
+    mode: room.kind === 'daily' ? 'daily' : 'room',
+    roomCode: room.kind === 'daily' ? null : room.code,
+    dailyDate: room.dailyDate,
+    finishedAt,
+    players: game.players.map((p) => ({
+      userId: p.isHuman ? (userOfSeat.get(p.id) ?? null) : null,
+      name: p.name,
+      seat: p.id,
+      banked: p.banked,
+      steals: p.steals,
+      wordsPlayed: p.wordsPlayed,
+      longestWord: p.longestWord,
+    })),
+    winners: (game.winners ?? []).flatMap((seat) => {
+      const id = userOfSeat.get(seat);
+      return id && game.players[seat].isHuman ? [id] : [];
+    }),
+  };
 }

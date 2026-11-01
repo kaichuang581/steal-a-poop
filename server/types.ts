@@ -23,6 +23,14 @@ export interface Room {
   game: GameState | null;
   /** userId -> engine seat. Set when the host starts the game. */
   seatOf: Record<string, number>;
+  /** "daily" is a server-run Daily Table session: one human against bots, no joining. */
+  kind: 'room' | 'daily';
+  /** UTC date key for a daily session, otherwise null. */
+  dailyDate: string | null;
+  /** Identifies one game, for results. Set when the game starts. */
+  gameId: string | null;
+  /** True once the finished game has been reported, so it is reported only once. */
+  reported: boolean;
 }
 
 export type RoomError =
@@ -35,7 +43,9 @@ export type RoomError =
   | 'not_enough_players'
   | 'game_not_running'
   | 'bad_name'
-  | 'bad_code';
+  | 'bad_code'
+  | 'daily_used'
+  | 'daily_unavailable';
 
 export type Ok<T = object> = { ok: true } & T;
 export type Err = { ok: false; error: RoomError };

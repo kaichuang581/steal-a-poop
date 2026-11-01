@@ -5,6 +5,7 @@ import { createDictionary, suggestWords } from '../src/engine';
 import type { GameState } from '../src/engine';
 import { ChatService } from './chat';
 import { ChatFilter } from './filter';
+import type { DailyGate, GameResultSink } from './contracts';
 import { startServer } from './index';
 
 const dict = createDictionary(readFileSync('public/words.txt', 'utf8').split('\n'));
@@ -60,10 +61,11 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { reconnectGraceMs?: number } = {}) {
+async function boot(extra: { reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
+    dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished,
     verifyToken: async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null),
   });
   open.push(server);
@@ -232,6 +234,48 @@ describe('chat over the wire', () => {
     cs[1].send({ t: 'appeal', note: 'it was a mistake' });
     expect(await cs[1].waitFor((m) => m.t === 'appealResult')).toMatchObject({ ok: true });
     expect(server.chat.queue('human').some((i) => i.category === 'appeal')).toBe(true);
+  });
+});
+
+describe('server-run Daily Table over the wire', () => {
+  async function one(server: Awaited<ReturnType<typeof boot>>, name: string) {
+    const c = await Client.connect(server.port, name);
+    clients.push(c);
+    await c.waitFor((m) => m.t === 'welcome');
+    return c;
+  }
+  it('is unavailable when no gate is configured', async () => {
+    const server = await boot();
+    const c = await one(server, 'Solo1');
+    c.send({ t: 'daily' });
+    expect((await c.waitFor((m) => m.t === 'error')).error).toBe('daily_unavailable');
+  });
+  it('is refused when the gate says the attempt is spent', async () => {
+    const server = await boot({ dailyGate: { reserve: async () => false } });
+    const c = await one(server, 'Solo2');
+    c.send({ t: 'daily' });
+    expect((await c.waitFor((m) => m.t === 'error')).error).toBe('daily_used');
+    expect(server.rooms.roomCount).toBe(0);
+  });
+  it('is unavailable if the gate itself fails, rather than letting anyone play', async () => {
+    const server = await boot({ dailyGate: { reserve: async () => { throw new Error('db down'); } } });
+    const c = await one(server, 'Solo3');
+    c.send({ t: 'daily' });
+    expect((await c.waitFor((m) => m.t === 'error')).error).toBe('daily_unavailable');
+  });
+  it('starts a solo game once the gate agrees, and does not spend a second attempt', async () => {
+    const reserved: string[] = [];
+    const server = await boot({ dailyGate: { reserve: async (u, d) => (reserved.push(`${u}@${d}`), true) } });
+    const c = await one(server, 'Solo4');
+    c.send({ t: 'daily' });
+    const room = await c.waitFor((m) => m.t === 'room');
+    expect(room.view.phase).toBe('playing');
+    expect(room.view.game.players.filter((p: { isHuman: boolean }) => p.isHuman)).toHaveLength(1);
+    expect(room.you.seat).toBe(0);
+    c.send({ t: 'daily' }); // already playing: must not reserve again
+    expect((await c.waitFor((m) => m.t === 'error')).error).toBe('already_in_room');
+    expect(reserved).toHaveLength(1);
+    expect(reserved[0]).toMatch(/^dev:Solo4@\d{4}-\d{2}-\d{2}$/);
   });
 });
 

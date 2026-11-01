@@ -1,11 +1,12 @@
 import { WebSocketServer } from 'ws';
-import type { AuthUser, VerifyToken } from './contracts';
+import type { AuthUser, DailyGate, GameResultSink, VerifyToken } from './contracts';
 import type { WebSocket } from 'ws';
 import type { Server } from 'node:http';
+import { utcDateKey } from '../src/engine';
 import type { EngineContext } from '../src/engine';
 import { ChatService } from './chat';
 import { RateLimiter } from './ratelimit';
-import { RoomManager } from './rooms';
+import { RoomManager, toGameResult } from './rooms';
 import type { ClientAction } from './rooms';
 import type { RoomError, Visibility } from './types';
 
@@ -18,6 +19,10 @@ export interface ServerOptions {
   ctx: EngineContext;
   chat: ChatService;
   verifyToken: VerifyToken;
+  /** Told about every finished game (rooms and Daily Table). The accounts lane stores them. */
+  onGameFinished?: GameResultSink;
+  /** Without a gate, the server-run Daily Table is unavailable: it must never be playable without limit. */
+  dailyGate?: DailyGate;
   randomInt: (n: number) => number;
   now?: () => number;
   /** How long a dropped connection keeps its seat before a bot takes over. */
@@ -33,6 +38,7 @@ type ClientMsg =
   | { t: 'join'; code: string }
   | { t: 'leave' }
   | { t: 'start' }
+  | { t: 'daily' }
   | { t: 'act'; action: ClientAction }
   | { t: 'chat'; text: string }
   | { t: 'report'; messageId: number }
@@ -43,7 +49,19 @@ const MAX_PAYLOAD = 4096;
 export async function startServer(opts: ServerOptions) {
   const now = opts.now ?? Date.now;
   const grace = opts.reconnectGraceMs ?? 15_000;
-  const rooms = new RoomManager({ ctx: opts.ctx, now, randomInt: opts.randomInt });
+  const rooms = new RoomManager({
+    ctx: opts.ctx,
+    now,
+    randomInt: opts.randomInt,
+    onFinished: (room) => {
+      // A failing sink must never break the game or the server.
+      try {
+        void Promise.resolve(opts.onGameFinished?.(toGameResult(room, now()))).catch(() => undefined);
+      } catch {
+        /* ignored on purpose */
+      }
+    },
+  });
   const sockets = new Map<string, WebSocket>(); // userId -> live socket
   const names = new Map<string, string>();
   const pendingLeave = new Map<string, ReturnType<typeof setTimeout>>();
@@ -109,6 +127,21 @@ export async function startServer(opts: ServerOptions) {
         const r = rooms.leave(userId);
         if (!r.ok) return fail(ws, r.error);
         send(ws, { t: 'left' });
+        return broadcastRoom(r.code);
+      }
+      case 'daily': {
+        if (!opts.dailyGate) return fail(ws, 'daily_unavailable');
+        if (rooms.roomFor(userId)) return fail(ws, 'already_in_room'); // checked first, so the attempt is not wasted
+        const date = utcDateKey(new Date(now()));
+        let reserved = false;
+        try {
+          reserved = await opts.dailyGate.reserve(userId, date);
+        } catch {
+          return fail(ws, 'daily_unavailable');
+        }
+        if (!reserved) return fail(ws, 'daily_used');
+        const r = rooms.startDaily(userId, name, date);
+        if (!r.ok) return fail(ws, r.error);
         return broadcastRoom(r.code);
       }
       case 'start': {

@@ -36,7 +36,7 @@ Without `VITE_SERVER_URL` (the GitHub Pages build) the "Play with others" button
 ## Protocol (JSON text frames)
 
 Client to server: `hello {token}` (first), `rooms`, `create {visibility, roomName?}`, `join {code}`,
-`leave`, `start`, `act {action: {type:'play'|'steal', word} | {type:'bank'}}`, `chat {text}`,
+`leave`, `start`, `daily`, `act {action: {type:'play'|'steal', word} | {type:'bank'}}`, `chat {text}`,
 `report {messageId}`, `appeal {note}`.
 
 Server to client: `welcome`, `rooms {list}`, `room {view, you}`, `left`, `result {accepted, reason,
@@ -68,3 +68,12 @@ the server's time (the server sends its clock with every update).
 - **Steal fairness under latency.** Arrival order at the server is the only rule; a player on a
   slow connection loses close races. See the note in the item list.
 - **Spectating, replays, friends, leaderboards.**
+
+## Finished games and the server-run Daily Table
+
+- When a game ends, `startServer` calls the optional `onGameFinished(result)` once with a `GameResult`
+  (`server/contracts.ts`). Bots, including one that replaced a player who left, have `userId: null`.
+- `{ t: 'daily' }` starts today's Daily Table: one human against bots whose lineup, letter and
+  modifiers come from the UTC date, so everyone gets the same table. It needs a `dailyGate`; without one
+  the answer is `daily_unavailable`. A spent attempt answers `daily_used`. Leaving ends the session and
+  the attempt stays spent.

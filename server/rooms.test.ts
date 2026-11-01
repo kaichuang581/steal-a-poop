@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { CODE_ALPHABET, CODE_PATTERN, generateCode, normalizeCode } from './codes';
-import { RoomManager } from './rooms';
+import { RoomManager, toGameResult } from './rooms';
+import type { Room } from './types';
 import { ctx } from '../src/engine/__tests__/helpers';
 
-function manager() {
+function manager(onFinished?: (room: Room) => void) {
   let t = 1_000_000;
   let seed = 12345;
   const randomInt = (n: number) => {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return seed % n;
   };
-  const m = new RoomManager({ ctx, now: () => t, randomInt });
+  const m = new RoomManager({ ctx, now: () => t, randomInt, onFinished });
   return { m, tick: (ms: number) => (t += ms), clock: () => t };
 }
 
@@ -263,5 +264,106 @@ describe('playing', () => {
     for (let i = 0; i < 400 && room.phase === 'playing'; i++) { tick(60_000); m.tick(); }
     expect(m.view(code)!.phase).toBe('finished');
     expect(m.view(code)!.game!.phase).toBe('gameOver');
+  });
+});
+
+describe('finished games are reported', () => {
+  function playOut(m: RoomManager, tick: (ms: number) => number, code: string) {
+    for (let i = 0; i < 600 && m.room(code)!.phase === 'playing'; i++) {
+      tick(60_000);
+      m.tick();
+    }
+  }
+
+  it('calls the hook once, with bots as null players and only humans as winners', () => {
+    const finished: Room[] = [];
+    const { m, tick, clock } = manager((r) => finished.push(r));
+    const code = lobby(m, 4, 'public', tick);
+    m.start('u0');
+    m.leave('u2'); // a bot takes seat 2
+    playOut(m, tick, code);
+    expect(finished).toHaveLength(1);
+    m.tick();
+    m.tick();
+    expect(finished).toHaveLength(1); // never twice
+
+    const result = toGameResult(finished[0], clock());
+    expect(result).toMatchObject({ mode: 'room', roomCode: code, dailyDate: null });
+    expect(result.gameId).toContain(code);
+    expect(result.players).toHaveLength(4);
+    expect(result.players.map((p) => p.userId)).toEqual(['u0', 'u1', null, 'u3']); // seat 2 is the bot that replaced u2
+    expect(result.winners.every((id) => ['u0', 'u1', 'u3'].includes(id))).toBe(true);
+    expect(result.players[0]).toMatchObject({ seat: 0, name: 'Host' });
+  });
+  it('a game with no humans left still ends and reports no human winner', () => {
+    const finished: Room[] = [];
+    const { m, tick, clock } = manager((r) => finished.push(r));
+    const code = lobby(m, 4, 'public', tick);
+    m.start('u0');
+    const room = m.room(code)!;
+    // everyone leaves except one, who stays so the room is kept
+    for (const id of ['u1', 'u2', 'u3']) m.leave(id);
+    playOut(m, tick, code);
+    expect(finished).toHaveLength(1);
+    const result = toGameResult(room, clock());
+    expect(result.players.filter((p) => p.userId !== null)).toHaveLength(1);
+  });
+});
+
+describe('server-run Daily Table', () => {
+  it('starts a solo game against bots, ready to play, and not joinable or listed', () => {
+    const { m } = manager();
+    const r = m.startDaily('u0', 'Kai', '2026-11-01');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const room = m.room(r.code)!;
+    expect(room).toMatchObject({ kind: 'daily', phase: 'playing', visibility: 'private', dailyDate: '2026-11-01' });
+    expect(room.game!.players.filter((p) => p.isHuman)).toHaveLength(1);
+    expect(room.game!.players.length).toBeGreaterThanOrEqual(4);
+    expect(room.seatOf).toEqual({ u0: 0 });
+    expect(m.listPublic()).toHaveLength(0);
+    expect(m.join('u9', 'Late', r.code)).toEqual({ ok: false, error: 'room_started' });
+  });
+  it('gives everyone the same bots, letter and modifiers on the same date', () => {
+    const { m } = manager();
+    const a = m.startDaily('u0', 'Ana', '2026-11-01');
+    const b = m.startDaily('u1', 'Ben', '2026-11-01');
+    const c = m.startDaily('u2', 'Cy', '2026-11-02');
+    if (!a.ok || !b.ok || !c.ok) throw new Error('setup');
+    const ga = m.room(a.code)!.game!;
+    const gb = m.room(b.code)!.game!;
+    const gc = m.room(c.code)!.game!;
+    expect(ga.players.slice(1).map((p) => p.name)).toEqual(gb.players.slice(1).map((p) => p.name));
+    expect(ga.modifierDeck).toEqual(gb.modifierDeck);
+    expect(ga.chainLetter).toBe(gb.chainLetter);
+    expect(gc.modifierDeck.join() + gc.chainLetter).not.toBe(ga.modifierDeck.join() + ga.chainLetter);
+  });
+  it('refuses a player who is already in a room, and an empty name', () => {
+    const { m } = manager();
+    lobby(m, 1);
+    expect(m.startDaily('u0', 'Host', '2026-11-01')).toEqual({ ok: false, error: 'already_in_room' });
+    expect(m.startDaily('x', '  ', '2026-11-01')).toEqual({ ok: false, error: 'bad_name' });
+  });
+  it('leaving ends the session for good', () => {
+    const { m } = manager();
+    const r = m.startDaily('u0', 'Kai', '2026-11-01');
+    if (!r.ok) throw new Error('setup');
+    expect(m.leave('u0')).toMatchObject({ ok: true, roomClosed: true });
+    expect(m.room(r.code)).toBeNull();
+    expect(m.roomFor('u0')).toBeNull();
+  });
+  it('reports a finished daily game as mode "daily" with the date and no room code', () => {
+    const finished: Room[] = [];
+    const { m, tick, clock } = manager((r) => finished.push(r));
+    const r = m.startDaily('u0', 'Kai', '2026-11-01');
+    if (!r.ok) throw new Error('setup');
+    for (let i = 0; i < 600 && m.room(r.code)!.phase === 'playing'; i++) {
+      tick(60_000);
+      m.tick();
+    }
+    expect(finished).toHaveLength(1);
+    const result = toGameResult(finished[0], clock());
+    expect(result).toMatchObject({ mode: 'daily', roomCode: null, dailyDate: '2026-11-01' });
+    expect(result.players[0].userId).toBe('u0');
   });
 });

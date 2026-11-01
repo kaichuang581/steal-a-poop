@@ -51,6 +51,7 @@ export type ClientMsg =
   | { t: 'join'; code: string }
   | { t: 'leave' }
   | { t: 'start' }
+  | { t: 'daily' }
   | { t: 'act'; action: { type: 'play'; word: string } | { type: 'steal'; word: string } | { type: 'bank' } }
   | { t: 'chat'; text: string }
   | { t: 'report'; messageId: number }
@@ -70,6 +71,8 @@ export function describeError(code: string): string {
     case 'not_in_room': return 'You are not in a room.';
     case 'game_not_running': return 'The game is not running.';
     case 'bad_name': return 'Pick a nickname first.';
+    case 'daily_used': return 'You have already played today\'s Daily Table.';
+    case 'daily_unavailable': return 'The Daily Table is not available right now.';
     default: return 'Something went wrong. Try again.';
   }
 }

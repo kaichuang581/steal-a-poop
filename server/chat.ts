@@ -27,6 +27,11 @@ export interface ReviewItem {
   reason?: string;
   /** The messages sent in the room just before a held message, so a reviewer sees what led to it. */
   context?: ChatMessage[];
+  /** What the automatic reviewer thought, kept when a person makes the final call. */
+  opinion?: { verdict: Verdict; reason: string };
+  /** Who made the final call, and when. Set only by a person. */
+  decidedBy?: string;
+  decidedAt?: number;
 }
 
 export interface Reviewer {
@@ -230,6 +235,7 @@ export class ChatService {
       try {
         const { verdict, reason } = await reviewer.review(item);
         item.reason = reason;
+        item.opinion = { verdict, reason };
         // Child-safety items always get a person, whatever the reviewer says.
         if (item.category === 'child_safety') {
           item.verdict = verdict;
@@ -246,13 +252,33 @@ export class ChatService {
     }
   }
 
-  /** A person's decision on an item waiting for a human. */
-  resolveByHuman(itemId: number, verdict: Verdict, reason: string): boolean {
+  /**
+   * A person's decision on an item waiting for a human. Only clear, suspend and ban are allowed.
+   * `decidedBy` and the time are kept on the item, which is never deleted.
+   */
+  resolveByHuman(itemId: number, verdict: Verdict, reason: string, decidedBy = 'unknown'): boolean {
+    if (verdict !== 'clear' && verdict !== 'suspend' && verdict !== 'ban') return false;
     const item = this.items.find((i) => i.id === itemId && i.status === 'human');
     if (!item) return false;
-    item.reason = reason;
+    const now = this.deps.now();
+    item.reason = reason.slice(0, 500);
+    item.decidedBy = decidedBy;
+    item.decidedAt = now;
+    if (verdict === 'suspend' && !this.state(item.userId).suspendedUntil) {
+      const config = resolveConfig({ ...(this.deps.suspendMs !== undefined ? { suspendMs: this.deps.suspendMs } : {}), ...this.deps.config });
+      this.suspended.set(item.userId, now + config.suspendMs);
+    }
     this.apply(item, verdict);
     return true;
+  }
+
+  getItem(id: number): ReviewItem | undefined {
+    return this.items.find((i) => i.id === id);
+  }
+
+  /** Everything a moderator needs to judge a person: current standing and every item about them. */
+  userFile(userId: string): { userId: string; banned: boolean; suspendedUntil: number | null; items: ReviewItem[] } {
+    return { userId, ...this.state(userId), items: this.items.filter((i) => i.userId === userId) };
   }
 
   queue(status?: ItemStatus): readonly ReviewItem[] {

@@ -5,6 +5,7 @@ import { createDictionary } from '../src/engine';
 import { ChatService } from './chat';
 import type { ChildSafetySink } from './chat';
 import { ChatFilter } from './filter';
+import { createModerationRoutes } from './routes/moderation';
 import { PostgresStore } from './moderation/postgres';
 import { createHttpServer } from './http';
 import { startServer } from './index';
@@ -47,15 +48,6 @@ const verifyToken: VerifyToken = async (token) =>
     ? { userId: token, name: token.slice(4, 16), chatAllowed: true, isModerator: devModerators.has(token.slice(4)) }
     : null;
 
-// One port serves the HTTP API and the WebSocket game connection.
-const httpServer = createHttpServer({
-  routes: allRoutes,
-  verifyToken,
-  allowedOrigins: (process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
-});
-const port = Number(process.env.PORT ?? 8787);
-await new Promise<void>((resolve) => httpServer.listen(port, resolve));
-
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new Pool({ connectionString: databaseUrl, max: 5 }) : null;
 if (!pool) console.warn('No DATABASE_URL: suspensions, bans and the review queue are lost on restart.');
@@ -69,6 +61,15 @@ const chat = new ChatService({
   onPersistError: () => console.error('moderation store write failed'),
 });
 await chat.load();
+
+// One port serves the HTTP API and the WebSocket game connection.
+const httpServer = createHttpServer({
+  routes: [...allRoutes, ...createModerationRoutes({ chat, log: console.log })],
+  verifyToken,
+  allowedOrigins: (process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+});
+const port = Number(process.env.PORT ?? 8787);
+await new Promise<void>((resolve) => httpServer.listen(port, resolve));
 
 const server = await startServer({
   port,

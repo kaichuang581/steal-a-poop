@@ -16,8 +16,9 @@ export default defineConfig({
   },
   webServer: [
     {
-      // The multiplayer server, with its development sign-in. Tests only.
-      command: `ALLOW_DEV_AUTH=1 PORT=${SERVER_PORT} npm run server`,
+      // The multiplayer server, with its development sign-in. Tests only. "Mona" is the test moderator,
+      // and the preview app's origin may call the HTTP API.
+      command: `ALLOW_DEV_AUTH=1 DEV_MODERATORS=Mona ALLOWED_ORIGINS=http://127.0.0.1:4173 PORT=${SERVER_PORT} npm run server`,
       port: SERVER_PORT,
       reuseExistingServer: true,
       timeout: 60_000,

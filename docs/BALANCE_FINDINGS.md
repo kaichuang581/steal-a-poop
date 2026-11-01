@@ -1,6 +1,7 @@
 # Balance findings
 
-From `docs/BALANCE.md` (2,400 bot-only games: 4, 6, 8 and 10 seats at each difficulty). Re-run with
+From `docs/BALANCE.md`: two runs of 2,400 bot-only games each (4, 6, 8 and 10 seats at each
+difficulty), one with the shipped rules and one with 3 turns at 8 to 10 seats. Re-run with
 `npm run simulate`; the generated tables are overwritten each run, so notes live here.
 
 ## What the data supports
@@ -36,6 +37,44 @@ human playtests. Revisit after the 10-player playtest.
 
 ## Open recommendations
 
-1. Consider fewer turns per player per round at 8 to 10 seats (for example 3 instead of 5) to bring
-   game length under about 8 minutes. This is a rules change and needs a decision.
+1. Fewer turns per player per round at 8 to 10 seats would cut game length by about 40% (measured
+   below); 3 turns brings 8- and 10-seat Medium under 8 minutes. Still a rules change, and still
+   needs a decision plus a human playtest.
 2. Playtest steal frequency with real people at 6+ seats.
+
+## Turn-count experiment at 8 to 10 seats
+
+`TURNS_BY_SEATS` in `src/engine/constants.ts` lets a table size use its own turns per round. It ships
+with no overrides, so the game is unchanged; this run measures what pulling that lever would do. Both
+runs are 200 games per row on the same seeds, so rows compare directly. Full tables in
+`docs/BALANCE.md`.
+
+| Seats | Bots | Length, 5 turns | Length, 3 turns | Change | Winner score, 5 → 3 |
+|---|---|---|---|---|---|
+| 8 | easy | 12.5 min | 7.5 min | −40% | 155 → 107 |
+| 8 | medium | 9.6 min | 5.9 min | −39% | 339 → 220 |
+| 8 | hard | 7.8 min | 4.7 min | −40% | 403 → 263 |
+| 10 | easy | 15.6 min | 9.4 min | −40% | 165 → 119 |
+| 10 | medium | 12.0 min | 7.3 min | −39% | 344 → 237 |
+| 10 | hard | 9.7 min | 5.8 min | −40% | 402 → 267 |
+
+What the numbers say:
+
+- **Game length drops about 40%**, close to the 2-in-5 you would predict from removing two of five
+turns per round. 8-seat Medium lands at 5.9 minutes and 10-seat Medium at 7.3, both under the
+8-minute target in recommendation 1. Only 10-seat Easy (9.4 min) stays above it.
+- **Winner scores drop 28–35%**, about the same proportion. Nothing in the spread suggests scoring
+breaks down; the gap between first and last stays wide.
+- **Last place gets worse and more games end in the red.** At 10 seats Medium, last place falls from
+32 to 4 and players finishing below zero rise from 0.2 to 0.6 per game. Fewer turns to recover from
+one bad round.
+- **Steals fall proportionally** (10 seats Medium: 28.5 → 17.0 per game) because there are fewer
+turns to steal from, not because the steal rate changed.
+- **The 4- and 6-seat rows are identical in both runs**, which is the check that the override is
+scoped to 8 seats and up and nothing else moved.
+
+Not modelled: whether a three-turn game feels *too* short to a person. Bot games are not human games,
+and human turns (typing, hints, hesitation) are the slow ones.
+
+**The default is unchanged.** No override ships, so the live game still plays 5 turns at every table
+size. This is a measured lever, not a rules change.

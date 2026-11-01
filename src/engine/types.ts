@@ -30,7 +30,7 @@ export interface Player {
   bankThreshold: number;
   /** Game-wide banked score. May go negative from penalties. */
   banked: number;
-  /** Turns used this round. A round ends when every player has used 5. */
+  /** Turns used this round. A round ends when every player has used TURNS_BY_SEATS (5 by default). */
   turnsTaken: number;
   lastWord: string | null;
   steals: number;

@@ -1,4 +1,4 @@
-# Lane: rooms
+# Lane: trust (moderation and rooms)
 
 Status: not started.
 

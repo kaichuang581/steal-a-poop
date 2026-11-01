@@ -1,4 +1,4 @@
-# Lane: moderation
+# Lane: freebuff (game rules and quality)
 
 Status: not started.
 

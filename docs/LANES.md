@@ -1,18 +1,25 @@
 # Working in parallel: three lanes
 
-Three Claude sessions work at the same time: Brian runs one, Kai runs two. They can because each one
-owns different files. Read this before starting. If a rule here blocks you, write the problem in
-`docs/lanes/REQUESTS.md` and carry on with something else. Never overwrite another lane's file to
-get unblocked.
+Three AI coding sessions work at the same time. They can because each one owns different files.
+Read this before starting. If a rule here blocks you, write the problem in `docs/lanes/REQUESTS.md`
+and carry on with something else. Never overwrite another lane's file to get unblocked.
 
-| Lane | Run by | Owns |
+| Lane | Who runs it | Why it is split this way |
 |---|---|---|
-| **accounts** (also infrastructure) | Brian | Accounts: `server/auth.ts`, `server/routes/accounts.ts`, `src/auth/**`, `src/ui/auth/**`, `src/ui/StartScreen.tsx`, `src/ui/Settings.tsx`, `src/ui/App.tsx`, `src/lib/ageRules.ts`, `src/lib/nickname.ts`, `db/migrations/1xx_*`, `docs/AUTH.md`, the sign-in wiring in `server/main.ts`. Infrastructure: `Dockerfile`, `fly.toml`, `.github/**`, `server/log.ts`, `server/routes/ops.ts`, `db/migrations/4xx_*`, `docs/OPERATIONS.md` |
-| **moderation** (also game rules and content) | Kai | Moderation: `server/chat.ts`, `server/filter.ts`, `server/review.ts`, `server/moderation/**`, `server/routes/moderation.ts`, `server/data/**`, `src/ui/mod/**`, `src/ui/ChatRules.tsx`, `db/migrations/2xx_*`, `docs/MODERATION.md`. Game: `src/engine/**`, `src/state/store.ts`, `scripts/**`, `public/**`, the solo game screens in `src/ui/**` not listed in another row, `src/ui/solo/**`, `e2e/game*`, `docs/BALANCE*.md`, `docs/PERFORMANCE.md` |
-| **rooms** (also integration) | Kai | `server/rooms.ts`, `server/index.ts`, `server/types.ts`, `server/codes.ts`, `server/routes/rooms.ts`, `server/loadtest/**`, `src/net/**`, `src/state/roomStore.ts`, `src/ui/Lobby.tsx`, `src/ui/RoomScreen.tsx`, `src/ui/ChatPanel.tsx`, `src/ui/friends/**`, `src/ui/replay/**`, `e2e/rooms*`, `db/migrations/3xx_*`, `docs/SERVER.md`. At the very end only: `README.md`, `CHANGELOG.md`, the version in `package.json` |
+| **accounts** | Brian's Claude session | Sign-in, accounts and infrastructure: needs the most care with secrets and personal data |
+| **trust** | Kai's Claude session | Chat moderation, child safety, and the room server: the code where a mistake hurts children or opens the server to abuse |
+| **freebuff** | Kai's Freebuff session | Game rules, content and quality gates: self-contained work covered by strong tests, with no secrets, no accounts, and no child-safety code |
+
+| Lane | Owns |
+|---|---|
+| **accounts** | `server/auth.ts`, `server/routes/accounts.ts`, `server/routes/friends.ts`, `server/routes/ops.ts`, `src/auth/**`, `src/ui/auth/**`, `src/ui/friends/**`, `src/ui/StartScreen.tsx`, `src/ui/Settings.tsx`, `src/ui/App.tsx`, `src/lib/ageRules.ts`, `src/lib/nickname.ts`, `server/log.ts`, `Dockerfile`, `fly.toml`, `.github/workflows/deploy.yml`, `.github/workflows/deploy-server.yml`, `db/migrations/1xx_*` (including friends) and `4xx_*`, `docs/AUTH.md`, `docs/OPERATIONS.md`, the sign-in wiring in `server/main.ts`. At the very end only: `README.md`, `CHANGELOG.md`, the version in `package.json` |
+| **trust** | `server/chat.ts`, `server/filter.ts`, `server/review.ts`, `server/moderation/**`, `server/routes/moderation.ts`, `server/routes/rooms.ts`, `server/data/**`, `server/rooms.ts`, `server/index.ts`, `server/types.ts`, `server/codes.ts`, `server/loadtest/**`, `src/ui/mod/**`, `src/ui/ChatRules.tsx`, `src/ui/ChatPanel.tsx`, `src/ui/Lobby.tsx`, `src/ui/RoomScreen.tsx`, `src/net/**`, `src/state/roomStore.ts`, `e2e/rooms*`, `db/migrations/2xx_*` and `3xx_*`, `docs/MODERATION.md`, `docs/SERVER.md` |
+| **freebuff** | `src/engine/**`, `src/state/store.ts`, `scripts/**`, `public/**`, `src/ui/solo/**`, the solo game screens in `src/ui/**` not listed in another row, `e2e/game*`, `.github/workflows/quality.yml`, `.github/dependabot.yml`, `docs/BALANCE*.md`, `docs/PERFORMANCE.md`. One exception: the final accessibility pass may add accessibility attributes to other lanes' screens, but only after those lanes' status files say they are done |
+
+Not run in this round (do later): spectating and replays.
 
 **Nobody owns:** `server/contracts.ts` (it also defines `GameResult`, `GameResultSink` and `DailyGate`: the rooms lane reports finished games and runs the server-side Daily Table, the accounts lane implements both), `server/http.ts`, `server/routes/index.ts`. They are finished.
-Add a route by editing only your lane's file in `server/routes/` (the moderation lane has no infrastructure route; ops routes belong to the accounts lane).
+Add a route by editing only your lane's file in `server/routes/`.
 
 ## Rules
 
@@ -39,7 +46,7 @@ Add a route by editing only your lane's file in `server/routes/` (the moderation
    ones in your lane doc.
 8. **Be honest in your lane doc.** Under "Not verified", list everything you did not run or could not
    run. A lane doc that says "done" with nothing under "Not verified" is not believed.
-9. **The engine is shared.** The moderation lane edits `src/engine/**`, but the rooms server runs it.
+9. **The engine is shared.** The freebuff lane edits `src/engine/**`, but the room server (trust lane) runs it.
    Engine changes must keep the default behaviour and every existing function signature. Add options
    and exports; never change or remove one. The engine tests and the four-browser room test must pass.
 10. **Do not weaken a test to make it pass.** If a test is wrong, say why in the pull request.
@@ -70,3 +77,17 @@ below, so the decision later is a one-line change.
 Each lane keeps `docs/lanes/<name>.md`: what is done (with pull request links), what is not, what was
 not verified, environment variables, and anything another lane must do. `docs/lanes/REQUESTS.md` is
 the only place lanes ask each other for things.
+
+## Extra rules for the freebuff lane
+
+Freebuff is a different tool from the Claude sessions: a free, ad-supported agent whose AI work runs on
+the vendor's servers, so anything it can read leaves the machine. Therefore:
+
+1. **Its folder must hold no secrets.** A fresh clone, no `.env` file, no keys or tokens in the shell,
+   no legal or moderation documents. It does not need any: tests and the build run without secrets.
+2. **One task at a time**, with a short prompt and a clear finish line. Do not hand it a long list.
+3. **A person reads every pull request it opens before it merges.** It does not merge itself.
+4. **It stays out of** `server/**`, `src/auth/**`, `src/ui/auth/**`, anything about accounts, children,
+   chat moderation, or deployment. If a task seems to need that, it stops and writes a request.
+5. **Tests are its safety net.** It must run `npm test`, `npm run build` and `npm run e2e`, paste the
+   result, and say what it did not run. A pull request without that is sent back.

@@ -117,6 +117,14 @@ export class ChatService {
     this.nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
   }
 
+  /** Drops rate-limit and spelling-buffer entries nobody needs any more. Call now and then. */
+  prune(): void {
+    const now = this.deps.now();
+    this.chatLimit.prune(now);
+    this.reportLimit.prune(now);
+    for (const [id, b] of this.buffers) if (now - b.at > SPELL_WINDOW_MS) this.buffers.delete(id);
+  }
+
   /** Told whenever something about a player's case changes (held, decided, appealed). Returns an unsubscribe. */
   onChange(listener: (userId: string) => void): () => void {
     this.listeners.add(listener);

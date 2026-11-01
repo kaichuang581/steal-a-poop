@@ -37,6 +37,8 @@ export interface Room {
   mutedIds: string[];
   /** Players the host removed. They cannot rejoin this room. */
   kicked: string[];
+  /** When the game ended, for clean-up. */
+  finishedAt: number | null;
 }
 
 export type RoomError =

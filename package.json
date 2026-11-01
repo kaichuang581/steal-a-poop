@@ -12,7 +12,8 @@
     "e2e": "playwright test",
     "server": "vite-node server/main.ts",
     "mod:stats": "vite-node scripts/mod-stats.ts",
-    "mod:export": "vite-node scripts/mod-export.ts --"
+    "mod:export": "vite-node scripts/mod-export.ts --",
+    "loadtest": "vite-node server/loadtest/run.ts --"
   },
   "dependencies": {
     "framer-motion": "^14.9.0",

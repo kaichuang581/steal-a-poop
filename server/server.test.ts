@@ -8,6 +8,7 @@ import { ChatFilter } from './filter';
 import { MemoryAudit } from './moderation/audit';
 import type { DailyGate, GameResultSink } from './contracts';
 import { startServer } from './index';
+import type { ConnectionLimits } from './index';
 
 const dict = createDictionary(readFileSync('public/words.txt', 'utf8').split('\n'));
 const filter = new ChatFilter({ blocklist: ['blorf'], isWord: (w) => dict.has(w) });
@@ -62,11 +63,12 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
+async function boot(extra: { limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
     dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit,
+    limits: { shutdownGraceMs: 0, ...extra.limits },
     verifyToken: async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null),
   });
   open.push(server);
@@ -450,5 +452,114 @@ describe('leaving and disconnecting', () => {
     }
     for (const m of c.msgs) if (m.t === 'error') errors.push(m.error);
     expect(errors).toContain('rate_limited');
+  });
+});
+
+describe('connection limits and resilience', () => {
+  const raw = (port: number, headers: Record<string, string> = {}) =>
+    new Promise<{ status: number | 'open'; ws?: WebSocket }>((resolve) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}`, { headers });
+      ws.once('open', () => resolve({ status: 'open', ws }));
+      ws.once('unexpected-response', (_req, res) => resolve({ status: res.statusCode ?? 0 }));
+      ws.once('error', () => resolve({ status: 0 })); // refused outright (the server is gone)
+    });
+
+  it('only lets listed origins open a socket', async () => {
+    const server = await boot({ limits: { allowedOrigins: ['https://game.example'] } });
+    expect((await raw(server.port, { origin: 'https://evil.example' })).status).toBe(403);
+    expect((await raw(server.port)).status).toBe(403); // no Origin header at all
+    const ok = await raw(server.port, { origin: 'https://game.example' });
+    expect(ok.status).toBe('open');
+    ok.ws!.close();
+  });
+
+  it('refuses a third connection from one address, and counts it again when one closes', async () => {
+    const server = await boot({ limits: { maxPerIp: 2 } });
+    const a = await raw(server.port);
+    const b = await raw(server.port);
+    expect([a.status, b.status]).toEqual(['open', 'open']);
+    expect((await raw(server.port)).status).toBe(429);
+    a.ws!.close();
+    await new Promise((r) => setTimeout(r, 100));
+    const c = await raw(server.port);
+    expect(c.status).toBe('open');
+    b.ws!.close();
+    c.ws!.close();
+  });
+
+  it('refuses connections beyond the global cap', async () => {
+    const server = await boot({ limits: { maxTotal: 2, maxPerIp: 99 } });
+    const a = await raw(server.port);
+    const b = await raw(server.port);
+    expect((await raw(server.port)).status).toBe(503);
+    expect(server.connections()).toBe(2);
+    a.ws!.close();
+    b.ws!.close();
+  });
+
+  it('with trustProxy, limits by the proxy-reported address instead of the socket', async () => {
+    const server = await boot({ limits: { maxPerIp: 1, trustProxy: true } });
+    const a = await raw(server.port, { 'x-forwarded-for': '203.0.113.1' });
+    const b = await raw(server.port, { 'x-forwarded-for': '203.0.113.2' });
+    expect([a.status, b.status]).toEqual(['open', 'open']);
+    expect((await raw(server.port, { 'x-forwarded-for': '203.0.113.1, 10.0.0.1' })).status).toBe(429);
+    a.ws!.close();
+    b.ws!.close();
+  });
+
+  it('drops a connection that stops answering heartbeats, and keeps one that answers', async () => {
+    const server = await boot({ limits: { heartbeatMs: 60 } });
+    const dead = new WebSocket(`ws://127.0.0.1:${server.port}`, { autoPong: false });
+    await new Promise((r) => dead.once('open', r));
+    const closed = new Promise<number>((r) => dead.once('close', r));
+    const alive = await Client.connect(server.port, 'Alive1');
+    clients.push(alive);
+    await alive.waitFor((m) => m.t === 'welcome');
+    await closed;
+    await new Promise((r) => setTimeout(r, 200));
+    expect(alive.ws.readyState).toBe(WebSocket.OPEN);
+    expect(server.connections()).toBe(1);
+  });
+
+  it('rate limits every message type and disconnects a client that keeps flooding', async () => {
+    const server = await boot({ limits: { messageLimits: { rooms: [3, 60_000], '*': [1000, 60_000] } } });
+    const c = await Client.connect(server.port, 'Flood1');
+    clients.push(c);
+    await c.waitFor((m) => m.t === 'welcome');
+    for (let i = 0; i < 4; i++) c.send({ t: 'rooms' });
+    await c.waitFor((m) => m.t === 'error' && m.error === 'rate_limited');
+    expect(c.msgs.filter((m) => m.t === 'rooms')).toHaveLength(3); // three allowed, the fourth refused
+    const closed = new Promise<number>((r) => c.ws.once('close', r));
+    for (let i = 0; i < 80; i++) c.send({ t: 'rooms' });
+    expect(await closed).toBe(4008);
+  });
+
+  it('other message types have their own budgets', async () => {
+    const server = await boot({ limits: { messageLimits: { appeal: [2, 60_000] } } });
+    const { cs } = await join4(server);
+    for (let i = 0; i < 3; i++) cs[0].send({ t: 'appeal', note: 'x' });
+    await cs[0].waitFor((m) => m.t === 'error' && m.error === 'rate_limited');
+  });
+
+  it('tells clients before it shuts down, then closes them politely', async () => {
+    const server = await boot({ limits: { shutdownGraceMs: 100 } });
+    const c = await Client.connect(server.port, 'Bye1');
+    clients.push(c);
+    await c.waitFor((m) => m.t === 'welcome');
+    const closed = new Promise<number>((r) => c.ws.once('close', r));
+    const closing = server.close();
+    expect(await c.waitFor((m) => m.t === 'shutdown')).toMatchObject({ reconnectInMs: 3000 });
+    expect(await closed).toBe(1001);
+    await closing;
+    expect((await raw(server.port)).status).not.toBe('open');
+  });
+
+  it('leaving when the room is already gone just answers "left"', async () => {
+    const server = await boot();
+    const c = await Client.connect(server.port, 'Gone1');
+    clients.push(c);
+    await c.waitFor((m) => m.t === 'welcome');
+    c.send({ t: 'leave' });
+    await c.waitFor((m) => m.t === 'left');
   });
 });

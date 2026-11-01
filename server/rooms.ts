@@ -76,6 +76,7 @@ export class RoomManager {
       chatMuted: false,
       mutedIds: [],
       kicked: [],
+      finishedAt: null,
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -202,6 +203,7 @@ export class RoomManager {
       chatMuted: false,
       mutedIds: [],
       kicked: [],
+      finishedAt: null,
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -256,6 +258,30 @@ export class RoomManager {
     return changed;
   }
 
+  /**
+   * Removes finished rooms that have been over for `ttlMs`, so a long-running server does not keep
+   * every game it ever hosted. Returns the removed rooms' members so the caller can tell them.
+   */
+  sweepFinished(ttlMs: number): { code: string; members: string[] }[] {
+    const now = this.deps.now();
+    const gone: { code: string; members: string[] }[] = [];
+    for (const room of [...this.rooms.values()]) {
+      if (room.phase !== 'finished' || room.finishedAt === null || now - room.finishedAt < ttlMs) continue;
+      const members = room.members.map((m) => m.userId);
+      for (const id of members) if (this.roomOfUser.get(id) === room.code) this.roomOfUser.delete(id);
+      this.rooms.delete(room.code);
+      gone.push({ code: room.code, members });
+    }
+    return gone;
+  }
+
+  /** Counts for monitoring. */
+  stats(): { rooms: number; players: number } {
+    let players = 0;
+    for (const r of this.rooms.values()) players += r.members.length;
+    return { rooms: this.rooms.size, players };
+  }
+
   listPublic(): PublicRoomInfo[] {
     return [...this.rooms.values()]
       .filter((r) => r.visibility === 'public' && r.phase === 'lobby' && r.members.length < MAX_ROOM_SIZE)
@@ -282,6 +308,7 @@ export class RoomManager {
   private finishIfOver(room: Room) {
     if (room.game?.phase !== 'gameOver') return;
     room.phase = 'finished';
+    room.finishedAt ??= this.deps.now();
     if (room.reported) return;
     room.reported = true;
     this.deps.onFinished?.(room);

@@ -57,6 +57,8 @@ export type ServerMsg =
   | { t: 'rooms'; list: PublicRoomInfo[]; serverNow: number }
   | { t: 'room'; view: RoomViewDTO; serverNow: number; you: { userId: string; seat: number | null } }
   | { t: 'left' }
+  /** The server is restarting. Reconnect after the given time. */
+  | { t: 'shutdown'; reconnectInMs: number }
   /** The host removed you. Sent just before 'left'. */
   | { t: 'kicked' }
   /** Your own block list (user ids), sent after sign-in and whenever it changes. */

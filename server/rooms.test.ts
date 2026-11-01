@@ -424,3 +424,33 @@ describe('kick and mute (host powers)', () => {
     m.setMute('u0', false, 'u2'); // no longer a member
   });
 });
+
+describe('clean-up of finished games', () => {
+  it('removes a finished room after the delay and frees its players, but not before', () => {
+    const { m, tick, clock } = manager();
+    const code = lobby(m, 4, 'public', tick);
+    const room = m.room(code)!;
+    room.phase = 'finished';
+    room.finishedAt = clock();
+    expect(m.sweepFinished(60_000)).toEqual([]);
+    tick(59_999);
+    expect(m.sweepFinished(60_000)).toEqual([]);
+    tick(1);
+    expect(m.sweepFinished(60_000)).toEqual([{ code, members: ['u0', 'u1', 'u2', 'u3'] }]);
+    expect(m.room(code)).toBeNull();
+    expect(m.roomFor('u0')).toBeNull();
+    expect(m.createRoom('u0', 'Host', { visibility: 'public' })).toMatchObject({ ok: true }); // free to play again
+    expect(m.stats()).toEqual({ rooms: 1, players: 1 });
+  });
+  it('never touches a lobby or a running game', () => {
+    const { m, tick } = manager();
+    lobby(m, 2); // u0, u1 in a lobby
+    const made = m.createRoom('h', 'Host2', { visibility: 'private' });
+    if (!made.ok) throw new Error('create failed');
+    for (const id of ['p1', 'p2', 'p3']) m.join(id, id, made.code);
+    expect(m.start('h')).toMatchObject({ ok: true });
+    tick(10 * 60_000);
+    expect(m.sweepFinished(1)).toEqual([]);
+    expect(m.stats().rooms).toBe(2);
+  });
+});

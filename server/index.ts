@@ -1,7 +1,7 @@
 import { WebSocketServer } from 'ws';
 import type { AuthUser, DailyGate, GameResultSink, VerifyToken } from './contracts';
 import type { WebSocket } from 'ws';
-import type { Server } from 'node:http';
+import type { IncomingMessage, Server } from 'node:http';
 import { utcDateKey } from '../src/engine';
 import type { EngineContext } from '../src/engine';
 import { ChatService } from './chat';
@@ -35,7 +35,47 @@ export interface ServerOptions {
   reconnectGraceMs?: number;
   tickMs?: number;
   reviewEveryMs?: number;
+  limits?: ConnectionLimits;
 }
+
+export interface ConnectionLimits {
+  /** Site origins allowed to open a socket. Unset means not checked (tests and local development only). */
+  allowedOrigins?: readonly string[];
+  /** Open sockets per address. Default 20 (a household or classroom can share one). */
+  maxPerIp?: number;
+  /** Open sockets in total. Default 2000. */
+  maxTotal?: number;
+  /** How often to ping every socket; one that misses a whole interval is dropped. Default 25 s. */
+  heartbeatMs?: number;
+  /** Read the client address from the proxy's header (Fly-Client-IP, then X-Forwarded-For) instead of the socket. Only turn on behind a proxy you control. */
+  trustProxy?: boolean;
+  /** How long a finished game stays in memory. Default 10 minutes. */
+  finishedRoomTtlMs?: number;
+  /** After telling clients the server is restarting, wait this long before closing them. Default 1000 ms. */
+  shutdownGraceMs?: number;
+  /** Per-type message budgets as [max, windowMs] per player ("*" is the overall budget). */
+  messageLimits?: Record<string, readonly [number, number]>;
+}
+
+/** Every message type has a budget, so no single kind of message can flood the server. */
+export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> = {
+  '*': [120, 10_000],
+  hello: [5, 60_000],
+  rooms: [10, 10_000],
+  create: [10, 60_000],
+  join: [30, 60_000],
+  leave: [10, 60_000],
+  start: [10, 60_000],
+  daily: [5, 60_000],
+  act: [40, 10_000],
+  chat: [12, 10_000],
+  report: [10, 60_000],
+  appeal: [5, 3_600_000],
+  block: [30, 60_000],
+  unblock: [30, 60_000],
+  mute: [30, 60_000],
+  kick: [20, 60_000],
+};
 
 type ClientMsg =
   | { t: 'hello'; token: string }
@@ -78,9 +118,33 @@ export async function startServer(opts: ServerOptions) {
   const createLimit = new RateLimiter(3, 60_000);
   const joinLimit = new RateLimiter(20, 60_000);
   const blockLimit = new RateLimiter(30, 60_000);
+  const lim = opts.limits ?? {};
+  const allowedOrigins = lim.allowedOrigins ? new Set(lim.allowedOrigins) : null;
+  const maxPerIp = lim.maxPerIp ?? 20;
+  const maxTotal = lim.maxTotal ?? 2000;
+  let closing = false;
+  const perIp = new Map<string, number>();
+  let total = 0;
+  const addressOf = (req: IncomingMessage): string => {
+    if (lim.trustProxy) {
+      const fly = req.headers['fly-client-ip'];
+      const fwd = req.headers['x-forwarded-for'];
+      const first = (typeof fly === 'string' ? fly : typeof fwd === 'string' ? fwd.split(',')[0] : '')?.trim();
+      if (first) return first;
+    }
+    return req.socket.remoteAddress ?? 'unknown';
+  };
+  // Decided before the upgrade completes, so a refused client costs almost nothing.
+  const verifyClient = (info: { origin: string; req: IncomingMessage }, cb: (ok: boolean, code?: number, message?: string) => void) => {
+    if (closing) return cb(false, 503, 'server restarting');
+    if (allowedOrigins && !allowedOrigins.has(info.origin)) return cb(false, 403, 'origin not allowed');
+    if (total >= maxTotal) return cb(false, 503, 'server full');
+    if ((perIp.get(addressOf(info.req)) ?? 0) >= maxPerIp) return cb(false, 429, 'too many connections');
+    cb(true);
+  };
   const wss = opts.httpServer
-    ? new WebSocketServer({ server: opts.httpServer, maxPayload: MAX_PAYLOAD })
-    : new WebSocketServer({ port: opts.port, maxPayload: MAX_PAYLOAD });
+    ? new WebSocketServer({ server: opts.httpServer, maxPayload: MAX_PAYLOAD, verifyClient })
+    : new WebSocketServer({ port: opts.port, maxPayload: MAX_PAYLOAD, verifyClient });
   if (!opts.httpServer) await new Promise<void>((resolve) => wss.once('listening', () => resolve()));
 
   const send = (ws: WebSocket | undefined, msg: object) => {
@@ -141,6 +205,7 @@ export async function startServer(opts: ServerOptions) {
         return broadcastRoom(r.code);
       }
       case 'leave': {
+        if (!rooms.roomFor(userId)) return send(ws, { t: 'left' }); // the room may already be gone (a finished game is cleaned up)
         const r = rooms.leave(userId);
         if (!r.ok) return fail(ws, r.error);
         send(ws, { t: 'left' });
@@ -236,7 +301,36 @@ export async function startServer(opts: ServerOptions) {
     }
   }
 
-  wss.on('connection', (ws) => {
+  // One limiter per message type, keyed by player (or by connection before sign-in).
+  const budgets = { ...DEFAULT_MESSAGE_LIMITS, ...lim.messageLimits };
+  const limiters = new Map<string, RateLimiter>();
+  const limiterFor = (type: string) => {
+    const key = type in budgets ? type : '*';
+    let l = limiters.get(key);
+    if (!l) {
+      const [max, windowMs] = budgets[key];
+      l = new RateLimiter(max, windowMs);
+      limiters.set(key, l);
+    }
+    return l;
+  };
+  const abuse = new RateLimiter(30, 10_000); // refusals; a client that ignores them is disconnected
+  const heartbeat = new WeakMap<WebSocket, { alive: boolean; pingAt: number; rtt: number | null }>();
+  let connectionSeq = 0;
+
+  wss.on('connection', (ws, req) => {
+    const ip = addressOf(req);
+    const connKey = `conn:${++connectionSeq}`;
+    perIp.set(ip, (perIp.get(ip) ?? 0) + 1);
+    total += 1;
+    heartbeat.set(ws, { alive: true, pingAt: 0, rtt: null });
+    ws.on('pong', () => {
+      const h = heartbeat.get(ws);
+      if (!h) return;
+      h.alive = true;
+      h.rtt = Date.now() - h.pingAt;
+    });
+    ws.on('error', () => undefined); // a broken socket is handled by 'close'; it must not crash the server
     const ref: { user: AuthUser | null } = { user: null };
     const helloTimer = setTimeout(() => !ref.user && ws.close(4000, 'no hello'), 5000);
     ws.on('message', (data) => {
@@ -247,10 +341,21 @@ export async function startServer(opts: ServerOptions) {
         return fail(ws, 'bad_message');
       }
       if (!msg || typeof msg !== 'object' || typeof msg.t !== 'string') return fail(ws, 'bad_message');
+      // Every message counts against the overall budget and its own type's budget.
+      const who = ref.user?.userId ?? connKey;
+      const at = now();
+      if (!limiterFor('*').allow(who, at) || !limiterFor(msg.t).allow(who, at)) {
+        if (!abuse.allow(who, at)) return void ws.close(4008, 'too many messages');
+        return fail(ws, 'rate_limited');
+      }
       handle(ws, ref, msg).catch(() => fail(ws, 'bad_message'));
     });
     ws.on('close', () => {
       clearTimeout(helloTimer);
+      total -= 1;
+      const left = (perIp.get(ip) ?? 1) - 1;
+      if (left <= 0) perIp.delete(ip);
+      else perIp.set(ip, left);
       const user = ref.user;
       if (!user || sockets.get(user.userId) !== ws) return;
       sockets.delete(user.userId);
@@ -277,17 +382,58 @@ export async function startServer(opts: ServerOptions) {
   });
   const reviewTimer = setInterval(() => void opts.chat.processReviews(), opts.reviewEveryMs ?? 5000);
 
+  // Heartbeat: a socket that did not answer the last ping is gone (a phone that lost signal, a laptop that slept).
+  const heartbeatTimer = setInterval(() => {
+    for (const ws of wss.clients) {
+      const h = heartbeat.get(ws);
+      if (!h) continue;
+      if (!h.alive) {
+        ws.terminate(); // the 'close' handler then holds the seat for the reconnect grace period
+        continue;
+      }
+      h.alive = false;
+      h.pingAt = Date.now();
+      try {
+        ws.ping();
+      } catch {
+        ws.terminate();
+      }
+    }
+  }, lim.heartbeatMs ?? 25_000);
+
+  // Housekeeping: forget finished games and idle rate-limit entries.
+  const finishedTtl = lim.finishedRoomTtlMs ?? 10 * 60_000;
+  const sweepTimer = setInterval(() => {
+    rooms.sweepFinished(finishedTtl);
+    const at = now();
+    for (const l of limiters.values()) l.prune(at);
+    for (const l of [createLimit, joinLimit, blockLimit, abuse]) l.prune(at);
+    opts.chat.prune();
+    for (const id of [...names.keys()]) if (!sockets.has(id) && !rooms.roomFor(id)) names.delete(id);
+  }, Math.min(30_000, Math.max(1000, finishedTtl / 4)));
+
   return {
     port: opts.httpServer ? ((opts.httpServer.address() as { port: number } | null)?.port ?? opts.port) : (wss.address() as { port: number }).port,
     rooms,
     chat: opts.chat,
+    /** Open sockets, for monitoring. */
+    connections: () => total,
     async close() {
+      closing = true; // new connections are refused from here on
       clearInterval(tickTimer);
       clearInterval(reviewTimer);
+      clearInterval(heartbeatTimer);
+      clearInterval(sweepTimer);
       unsubscribeModeration();
+      // Tell everyone before cutting them off, so the app can say "restarting" instead of "connection lost".
+      for (const ws of wss.clients) send(ws, { t: 'shutdown', reconnectInMs: 3000 });
+      const grace = lim.shutdownGraceMs ?? 1000;
+      if (grace > 0) await new Promise((r) => setTimeout(r, grace));
+      for (const ws of wss.clients) ws.close(1001, 'server restarting');
       await opts.chat.flush(); // pending moderation writes must not be lost on shutdown
       for (const t of pendingLeave.values()) clearTimeout(t);
-      for (const ws of wss.clients) ws.terminate();
+      await new Promise((r) => setTimeout(r, 50));
+      for (const ws of wss.clients) ws.terminate(); // anyone who did not close in time
       await new Promise<void>((resolve) => wss.close(() => resolve()));
     },
   };

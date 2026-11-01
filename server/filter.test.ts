@@ -128,3 +128,15 @@ describe('RateLimiter', () => {
     expect(r.allow('a', 1001)).toBe(true);
   });
 });
+
+describe('RateLimiter.prune', () => {
+  it('forgets keys whose events have all expired, and keeps active ones', () => {
+    const r = new RateLimiter(3, 1000);
+    r.allow('old', 0);
+    r.allow('fresh', 900);
+    expect(r.size).toBe(2);
+    r.prune(1500);
+    expect(r.size).toBe(1);
+    expect(r.allow('fresh', 1500)).toBe(true);
+  });
+});

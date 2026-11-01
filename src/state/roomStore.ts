@@ -55,6 +55,8 @@ interface RoomStore {
 }
 
 let net: NetClient | null = null;
+let welcomedAt = 0;
+let lastRoomMsgAt = 0;
 let pending: ((r: ActionResult | null) => void)[] = [];
 
 function noticeFrom(c: { banned: boolean; suspendedUntil: number | null }): { reason: string; until: number | null } | null {
@@ -75,10 +77,24 @@ export const useRoomStore = create<RoomStore>((set, get) => {
           chatNotice: noticeFrom(msg.chat),
           moderation: msg.moderation ?? null,
         });
+        // After a server restart the room is gone. The server sends the room right after the welcome if it still exists.
+        if (get().room) {
+          const code = get().room!.code;
+          setTimeout(() => {
+            if (lastRoomMsgAt < welcomedAt && get().room?.code === code) {
+              set({ room: null, mySeat: null, chat: [], unread: 0, notice: 'The server restarted, so that game ended.' });
+              useStore.setState({ game: null, mode: 'quick', mySeat: 0 });
+            }
+          }, 2000);
+        }
+        welcomedAt = Date.now();
         send({ t: 'rooms' });
         break;
       case 'blocks':
         set((s) => ({ blocked: msg.list, chat: s.chat.filter((m) => !msg.list.includes(m.userId)) }));
+        break;
+      case 'shutdown':
+        set({ notice: 'The server is restarting. Reconnecting in a moment…' });
         break;
       case 'kicked':
         set({ notice: 'The host removed you from the room.' });
@@ -91,6 +107,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         set({ publicRooms: msg.list, skew: msg.serverNow - Date.now() });
         break;
       case 'room': {
+        lastRoomMsgAt = Date.now();
         const previous = get().room;
         set({
           room: msg.view,

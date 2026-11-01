@@ -25,4 +25,13 @@ export class RateLimiter {
     if (recent.length < this.max) return 0;
     return Math.max(0, recent[0] + this.windowMs - now);
   }
+
+  /** Forgets keys with no recent events, so a long-running server does not collect one entry per player ever seen. */
+  prune(now: number): void {
+    for (const [key, times] of this.hits) if (!times.some((t) => now - t < this.windowMs)) this.hits.delete(key);
+  }
+
+  get size(): number {
+    return this.hits.size;
+  }
 }

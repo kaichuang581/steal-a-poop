@@ -19,13 +19,30 @@ import { ClaudeReviewer } from './review';
  * Starts the game server.
  *   PORT                  default 8787
  *   ALLOW_DEV_AUTH=1      accept "dev:<name>" tokens. Local development only.
- *   ALLOWED_ORIGINS       comma-separated site origins allowed to call the HTTP API
+ *   ALLOWED_ORIGINS       comma-separated site origins allowed to call the HTTP API and to open a game socket.
+ *                         Required when NODE_ENV=production (the server refuses to start without it).
+ *   MAX_CONNECTIONS_PER_IP  open sockets per address, default 20
+ *   MAX_CONNECTIONS       open sockets in total, default 2000
+ *   HEARTBEAT_MS          ping interval, default 25000
+ *   TRUST_PROXY=1         take the client address from Fly-Client-IP / X-Forwarded-For. Only behind a proxy you control
+ *   FINISHED_ROOM_TTL_MS  how long a finished game stays in memory, default 600000
  *   DEV_MODERATORS        comma-separated dev nicknames treated as moderators (dev sign-in only)
  *   DATABASE_URL          Postgres for moderation state (run db/migrations/200_moderation.sql first). Without it, state is in memory only
  *   ANTHROPIC_API_KEY     turns on Claude review of held messages and reports
  *   REVIEW_MODEL          model id for the reviewer (required with the key)
  * Real sign-in (Supabase) is not wired yet: without ALLOW_DEV_AUTH the server refuses to start.
  */
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+  console.error('ALLOWED_ORIGINS must list the site origin(s) in production, for example https://kaichuang581.github.io');
+  process.exit(1);
+}
+if (allowedOrigins.length === 0) console.warn('No ALLOWED_ORIGINS: any website can open a game socket and call the API. Fine for local development only.');
+const envNumber = (name: string): number | undefined => {
+  const n = Number(process.env[name]);
+  return process.env[name] && Number.isFinite(n) && n > 0 ? n : undefined;
+};
+
 const dict = createDictionary(readFileSync('public/words.txt', 'utf8').split('\n'));
 const filter = new ChatFilter({
   blocklist: readFileSync('server/data/blocklist-en.txt', 'utf8').split('\n'),
@@ -76,7 +93,7 @@ await chat.load();
 const httpServer = createHttpServer({
   routes: [...allRoutes, ...createModerationRoutes({ chat, reporting, log: console.log })],
   verifyToken,
-  allowedOrigins: (process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+  allowedOrigins,
 });
 const port = Number(process.env.PORT ?? 8787);
 await new Promise<void>((resolve) => httpServer.listen(port, resolve));
@@ -93,6 +110,14 @@ const server = await startServer({
   chat,
   verifyToken,
   randomInt: (n) => randomInt(n),
+  limits: {
+    allowedOrigins: allowedOrigins.length ? allowedOrigins : undefined,
+    maxPerIp: envNumber('MAX_CONNECTIONS_PER_IP'),
+    maxTotal: envNumber('MAX_CONNECTIONS'),
+    heartbeatMs: envNumber('HEARTBEAT_MS'),
+    finishedRoomTtlMs: envNumber('FINISHED_ROOM_TTL_MS'),
+    trustProxy: process.env.TRUST_PROXY === '1',
+  },
 });
 console.log(`game server on ws://localhost:${server.port} and http://localhost:${server.port} (dev sign-in, reviewer ${reviewer ? 'on' : 'off'})`);
 

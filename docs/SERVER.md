@@ -77,3 +77,27 @@ the server's time (the server sends its clock with every update).
   modifiers come from the UTC date, so everyone gets the same table. It needs a `dailyGate`; without one
   the answer is `daily_unavailable`. A spent attempt answers `daily_used`. Leaving ends the session and
   the attempt stays spent.
+
+
+## Connection limits and resilience
+
+All of this is in `server/index.ts` (`ConnectionLimits`) and configured by environment variables in `server/main.ts`.
+
+| Protection | Default | Setting |
+|---|---|---|
+| Only listed sites may open a game socket (checked before the upgrade; a request with no `Origin` is refused when a list is set) | no check when `ALLOWED_ORIGINS` is empty; **the server refuses to start in production without it** | `ALLOWED_ORIGINS` |
+| Open sockets per address | 20 | `MAX_CONNECTIONS_PER_IP` |
+| Open sockets in total | 2000 (then HTTP 503) | `MAX_CONNECTIONS` |
+| Heartbeat: ping every socket, drop one that missed a whole interval (its seat is held for the reconnect grace period) | 25 s | `HEARTBEAT_MS` |
+| Address taken from `Fly-Client-IP` / `X-Forwarded-For` instead of the socket | off | `TRUST_PROXY=1` (only behind a proxy you control, or anyone can fake an address) |
+| Per-message-type budgets per player, plus an overall one; a client that keeps flooding is disconnected (code 4008) | see `DEFAULT_MESSAGE_LIMITS` | `limits.messageLimits` |
+| Finished games removed from memory | 10 minutes | `FINISHED_ROOM_TTL_MS` |
+| Shutdown (SIGTERM): clients get `{ t: "shutdown", reconnectInMs }`, then close code 1001 after 1 s; new connections get 503 | 1 s | `limits.shutdownGraceMs` |
+
+Details worth knowing:
+
+- Leaving a room that no longer exists answers `left` instead of an error, so a player on the end screen of a cleaned-up game can still press Leave.
+- After a reconnect, if the browser thought it was in a room but the server (restarted) has none, the app ends that game and says so.
+- The per-address limit counts the address the server sees. Behind a proxy without `TRUST_PROXY=1` that is the proxy itself, so everyone shares one limit. Behind a proxy with it on, the header must be set by the proxy and not by the client.
+- Rate-limit and spelling-buffer entries for idle players are pruned every 30 seconds so memory does not grow with every player ever seen.
+- Load test results and their limits: `docs/LOADTEST.md`.

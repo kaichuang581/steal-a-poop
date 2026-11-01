@@ -4,7 +4,7 @@ import { load, save } from '../lib/storage';
 import { NetClient } from '../net/client';
 import { getServerUrl } from '../net/config';
 import { describeError } from '../net/protocol';
-import type { ChatMsg, PublicRoomInfo, RoomViewDTO, ServerMsg } from '../net/protocol';
+import type { ChatMsg, ModerationStatus, PublicRoomInfo, RoomViewDTO, ServerMsg } from '../net/protocol';
 import { bridge } from './bridge';
 import { useStore } from './store';
 
@@ -26,6 +26,8 @@ interface RoomStore {
   chat: ChatMsg[];
   unread: number;
   chatNotice: { reason: string; until: number | null } | null;
+  /** The player's own moderation case, pushed by the server whenever it changes. */
+  moderation: ModerationStatus | null;
   /** The player has read and accepted the chat rules on this browser. */
   rulesAccepted: boolean;
   notice: string | null;
@@ -48,6 +50,10 @@ interface RoomStore {
 let net: NetClient | null = null;
 let pending: ((r: ActionResult | null) => void)[] = [];
 
+function noticeFrom(c: { banned: boolean; suspendedUntil: number | null }): { reason: string; until: number | null } | null {
+  return c.banned ? { reason: 'banned', until: null } : c.suspendedUntil ? { reason: 'suspended', until: c.suspendedUntil } : null;
+}
+
 export const useRoomStore = create<RoomStore>((set, get) => {
   const send = (msg: Parameters<NetClient['send']>[0]) => {
     if (!net?.send(msg)) set({ notice: 'Not connected to the game server.' });
@@ -59,13 +65,14 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         set({
           user: { userId: msg.userId, name: msg.name },
           skew: msg.serverNow - Date.now(),
-          chatNotice: msg.chat.banned
-            ? { reason: 'banned', until: null }
-            : msg.chat.suspendedUntil
-              ? { reason: 'suspended', until: msg.chat.suspendedUntil }
-              : null,
+          chatNotice: noticeFrom(msg.chat),
+          moderation: msg.moderation ?? null,
         });
         send({ t: 'rooms' });
+        break;
+      case 'moderation':
+        // The server decides; the chat locks or unlocks to match, with no reload.
+        set({ moderation: msg.status, chatNotice: noticeFrom(msg.status) });
         break;
       case 'rooms':
         set({ publicRooms: msg.list, skew: msg.serverNow - Date.now() });
@@ -143,6 +150,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     chat: [],
     unread: 0,
     chatNotice: null,
+    moderation: null,
     rulesAccepted: load<boolean>(RULES_KEY, false),
     notice: null,
 

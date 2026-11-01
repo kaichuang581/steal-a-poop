@@ -22,7 +22,7 @@ async function boot(reviewVerdict?: 'escalate') {
   (chat as any).deps.sink = reporting;
   server = createHttpServer({
     routes: createModerationRoutes({ chat, reporting, log: (l) => lines.push(l) }),
-    verifyToken: async (tok) => (tok === 'mod' ? { userId: 'm1', name: 'Mo', chatAllowed: true, isModerator: true } : tok === 'user' ? { userId: 'u1', name: 'U', chatAllowed: true, isModerator: false } : null),
+    verifyToken: async (tok) => (tok === 'mod' ? { userId: 'm1', name: 'Mo', chatAllowed: true, isModerator: true } : tok === 'user' ? { userId: 'u1', name: 'U', chatAllowed: true, isModerator: false } : tok === 'bad' ? { userId: 'bad', name: 'Bad', chatAllowed: true, isModerator: false } : null),
   });
   await new Promise<void>((r) => server!.listen(0, r));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -40,6 +40,22 @@ async function boot(reviewVerdict?: 'escalate') {
 }
 
 describe('moderation routes', () => {
+  it('GET /api/me/moderation shows a player only their own case', async () => {
+    const { call } = await boot('escalate');
+    expect((await call('GET', '/api/me/moderation')).status).toBe(401);
+    const mine = await call('GET', '/api/me/moderation', 'bad');
+    expect(mine.json).toMatchObject({ banned: false, openItems: 1, heldMessage: { text: 'you blorf' }, appeal: { state: 'none' } });
+    expect(JSON.stringify(mine.json)).not.toMatch(/blorf".*term|opinion|unclear, looks like banter/);
+    expect((await call('GET', '/api/me/moderation', 'user')).json).toMatchObject({ openItems: 0, heldMessage: null });
+  });
+
+  it('the queue reports how long the oldest open item has waited', async () => {
+    const { call, tick } = await boot('escalate');
+    tick(90_000);
+    const q = await call('GET', '/api/mod/queue', 'mod');
+    expect(q.json.oldestUnreviewed).toMatchObject({ ageMs: 90_000, status: 'human' });
+  });
+
   it('require a moderator', async () => {
     const { call } = await boot();
     expect((await call('GET', '/api/mod/queue')).status).toBe(401);

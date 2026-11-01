@@ -244,3 +244,78 @@ describe('ClaudeReviewer', () => {
     expect((await make((async () => { throw new Error('offline'); }) as unknown as typeof fetch).review(item)).verdict).toBe('escalate');
   });
 });
+
+describe('what a player sees about their own case (task 7)', () => {
+  it('shows a held message, how long it has waited, and hides the filter term and opinion', async () => {
+    const { svc, advance } = service();
+    say(svc, 'a', 'you blorf');
+    advance(120_000);
+    const st = svc.status('a');
+    expect(st).toMatchObject({ banned: false, openItems: 1, heldMessage: { text: 'you blorf' }, appeal: { state: 'none' }, lastDecision: null });
+    expect(st.suspendedUntil).not.toBeNull();
+    expect(st.waitingSince).toBe(1_000_000);
+    expect(JSON.stringify(st)).not.toMatch(/"term"|opinion|matchedTerm/);
+    expect(svc.oldestUnreviewed()).toMatchObject({ ageMs: 120_000, status: 'pending' });
+  });
+
+  it('stores the appeal text and shows it as open, then decided with the person\'s reason', () => {
+    const { svc } = service();
+    say(svc, 'a', 'you blorf');
+    svc.appeal('a', 'it was a joke');
+    expect(svc.status('a').appeal).toMatchObject({ state: 'open', note: 'it was a joke' });
+    const appeal = svc.queue('human').find((i) => i.category === 'appeal')!;
+    svc.resolveByHuman(appeal.id, 'clear', 'agreed, quoting a song', 'mod1');
+    const st = svc.status('a');
+    expect(st.appeal).toMatchObject({ state: 'decided', verdict: 'clear', reason: 'agreed, quoting a song' });
+    expect(st.suspendedUntil).toBeNull();
+    expect(st.lastDecision).toMatchObject({ verdict: 'clear', byPerson: true, reason: 'agreed, quoting a song' });
+  });
+
+  it('a reviewer\'s own reason is not shown to the player', async () => {
+    const { svc } = service({ reviewer: reviewerSaying('clear', 'internal opinion text') });
+    say(svc, 'a', 'you blorf');
+    await svc.processReviews();
+    const st = svc.status('a');
+    expect(st.lastDecision).toMatchObject({ verdict: 'clear', byPerson: false });
+    expect(JSON.stringify(st)).not.toContain('internal opinion text');
+  });
+
+  it('clearing the held message closes an appeal that is now moot', () => {
+    const { svc } = service();
+    say(svc, 'a', 'you blorf');
+    svc.appeal('a', 'please');
+    const held = svc.queue().find((i) => i.category === 'blocked_word')!;
+    svc.queue()[0].status = 'human';
+    svc.resolveByHuman(held.id, 'clear', 'fine', 'mod1');
+    expect(svc.status('a')).toMatchObject({ suspendedUntil: null, openItems: 0, appeal: { state: 'decided' } });
+  });
+
+  it('a clear on an ordinary item never lifts a ban', () => {
+    const { svc } = service();
+    say(svc, 'a', 'you blorf');
+    const item = svc.queue()[0];
+    item.status = 'human';
+    svc.resolveByHuman(item.id, 'ban', 'serious', 'mod1');
+    expect(svc.state('a').banned).toBe(true);
+    say(svc, 'b', 'blorf');
+    const other = svc.queue().find((i) => i.userId === 'b')!;
+    other.status = 'human';
+    svc.resolveByHuman(other.id, 'clear', 'ok', 'mod1');
+    expect(svc.state('a').banned).toBe(true);
+  });
+
+  it('tells listeners when a case changes, and a broken listener does no harm', () => {
+    const { svc } = service();
+    const seen: string[] = [];
+    svc.onChange(() => { throw new Error('boom'); });
+    const off = svc.onChange((u) => seen.push(u));
+    say(svc, 'a', 'you blorf'); // held
+    svc.appeal('a', 'sorry');
+    const appeal = svc.queue('human').find((i) => i.category === 'appeal')!;
+    svc.resolveByHuman(appeal.id, 'clear', 'ok', 'm');
+    expect(seen).toEqual(['a', 'a', 'a']);
+    off();
+    say(svc, 'b', 'blorf');
+    expect(seen).toHaveLength(3);
+  });
+});

@@ -235,6 +235,28 @@ describe('chat over the wire', () => {
     expect(await cs[1].waitFor((m) => m.t === 'appealResult')).toMatchObject({ ok: true });
     expect(server.chat.queue('human').some((i) => i.category === 'appeal')).toBe(true);
   });
+
+  it('tells a returning player their standing in the welcome message', async () => {
+    const server = await boot();
+    server.chat.submit({ userId: 'dev:Held1', name: 'Held1', roomCode: 'R', text: 'blorf' });
+    const c = await Client.connect(server.port, 'Held1');
+    clients.push(c);
+    const w = await c.waitFor((m) => m.t === 'welcome');
+    expect(w.moderation).toMatchObject({ openItems: 1, heldMessage: { text: 'blorf' }, appeal: { state: 'none' } });
+    expect(w.moderation.suspendedUntil).toBe(w.chat.suspendedUntil);
+  });
+
+  it('pushes the new standing to the player when a person decides, without a reload', async () => {
+    const server = await boot();
+    const { cs } = await join4(server);
+    cs[1].send({ t: 'chat', text: 'blorf' });
+    await cs[1].waitFor((m) => m.t === 'chatBlocked');
+    const held = server.chat.queue()[0];
+    held.status = 'human';
+    server.chat.resolveByHuman(held.id, 'clear', 'false alarm', 'mod1');
+    const pushed = await cs[1].waitFor((m) => m.t === 'moderation' && m.status.suspendedUntil === null);
+    expect(pushed.status).toMatchObject({ banned: false, openItems: 0, lastDecision: { verdict: 'clear', byPerson: true, reason: 'false alarm' } });
+  });
 });
 
 describe('server-run Daily Table over the wire', () => {

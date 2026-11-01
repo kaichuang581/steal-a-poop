@@ -32,8 +32,24 @@ export interface ChatMsg {
   at: number;
 }
 
+/** What a player may see about their own moderation case. Never the filter term or the reviewer's opinion. */
+export interface ModerationStatus {
+  banned: boolean;
+  suspendedUntil: number | null;
+  /** Items about this player still waiting for a reviewer or a person. */
+  openItems: number;
+  waitingSince: number | null;
+  /** Their own held message, so they know what is being reviewed. */
+  heldMessage: { text: string; at: number } | null;
+  appeal: { state: 'none' | 'open' | 'decided'; note?: string; at?: number; verdict?: string; reason?: string };
+  /** The reason is present only when a person wrote it. */
+  lastDecision: { verdict: string; at: number; byPerson: boolean; reason?: string } | null;
+}
+
 export type ServerMsg =
-  | { t: 'welcome'; userId: string; name: string; serverNow: number; chat: { banned: boolean; suspendedUntil: number | null } }
+  | { t: 'welcome'; userId: string; name: string; serverNow: number; chat: { banned: boolean; suspendedUntil: number | null }; moderation: ModerationStatus }
+  /** Pushed to a player whenever their moderation case changes (held, decided, appealed). */
+  | { t: 'moderation'; status: ModerationStatus }
   | { t: 'rooms'; list: PublicRoomInfo[]; serverNow: number }
   | { t: 'room'; view: RoomViewDTO; serverNow: number; you: { userId: string; seat: number | null } }
   | { t: 'left' }

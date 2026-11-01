@@ -2,6 +2,7 @@ import { ChatFilter, childSafetySignal, emptyBuffer, pushBuffer } from './filter
 import type { SpellBuffer } from './filter';
 import { resolveConfig, suspensionFor } from './moderation/config';
 import type { ModerationConfig } from './moderation/config';
+import type { ModerationStatus } from '../src/net/protocol';
 import type { ModerationStore } from './moderation/store';
 import { RateLimiter } from './ratelimit';
 
@@ -59,6 +60,8 @@ export type SubmitResult =
   | { delivered: false; reason: 'suspended'; until: number }
   | { delivered: false; reason: 'blocked'; until: number };
 
+export type PlayerModerationStatus = ModerationStatus;
+
 export interface ChatDeps {
   now: () => number;
   filter: ChatFilter;
@@ -93,6 +96,7 @@ export class ChatService {
   private buffers = new Map<string, { buffer: SpellBuffer; at: number }>();
   private chatLimit = new RateLimiter(5, 10_000);
   private reportLimit = new RateLimiter(5, 60_000);
+  private listeners = new Set<(userId: string) => void>();
 
   constructor(private deps: ChatDeps) {}
 
@@ -108,6 +112,21 @@ export class ChatService {
     }
     this.items = items;
     this.nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
+  }
+
+  /** Told whenever something about a player's case changes (held, decided, appealed). Returns an unsubscribe. */
+  onChange(listener: (userId: string) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+  private changed(userId: string) {
+    for (const l of this.listeners) {
+      try {
+        l(userId);
+      } catch {
+        /* a broken listener must not break moderation */
+      }
+    }
   }
 
   /** Waits for every pending write. Call before shutting down, and in tests. */
@@ -183,6 +202,7 @@ export class ChatService {
         term: hit?.term, mustReport: childSafety, status: 'pending',
       });
       if (childSafety) this.deps.sink?.record(item);
+      this.changed(userId);
       return { delivered: false, reason: 'blocked', until: heldUntil };
     }
 
@@ -220,6 +240,7 @@ export class ChatService {
     this.addItem({
       userId, roomCode: '', text: note.slice(0, 500), at: this.deps.now(), category: 'appeal', mustReport: false, status: 'human',
     });
+    this.changed(userId);
     return { ok: true };
   }
 
@@ -272,6 +293,38 @@ export class ChatService {
     return true;
   }
 
+  /** The player's own view of their case. */
+  status(userId: string): PlayerModerationStatus {
+    const mine = this.items.filter((i) => i.userId === userId);
+    const open = mine.filter((i) => i.status !== 'reviewed');
+    const held = [...mine].reverse().find((i) => i.category === 'blocked_word' || i.category === 'child_safety');
+    const appeals = mine.filter((i) => i.category === 'appeal');
+    const lastAppeal = appeals[appeals.length - 1];
+    const decided = mine.filter((i) => i.status === 'reviewed' && i.verdict).sort((a, b) => (b.decidedAt ?? b.at) - (a.decidedAt ?? a.at))[0];
+    return {
+      ...this.state(userId),
+      openItems: open.length,
+      waitingSince: open.length ? Math.min(...open.map((i) => i.at)) : null,
+      heldMessage: held ? { text: held.text, at: held.at } : null,
+      appeal: !lastAppeal
+        ? { state: 'none' }
+        : lastAppeal.status === 'reviewed'
+          ? { state: 'decided', note: lastAppeal.text, at: lastAppeal.at, verdict: lastAppeal.verdict, reason: lastAppeal.decidedBy ? lastAppeal.reason : undefined }
+          : { state: 'open', note: lastAppeal.text, at: lastAppeal.at },
+      lastDecision: decided
+        ? { verdict: decided.verdict!, at: decided.decidedAt ?? decided.at, byPerson: !!decided.decidedBy, reason: decided.decidedBy ? decided.reason : undefined }
+        : null,
+    };
+  }
+
+  /** The item that has waited longest for a reviewer or a person, so nothing sits unseen. */
+  oldestUnreviewed(): { id: number; at: number; ageMs: number; status: ItemStatus } | null {
+    const open = this.items.filter((i) => i.status !== 'reviewed');
+    if (!open.length) return null;
+    const oldest = open.reduce((a, b) => (b.at < a.at ? b : a));
+    return { id: oldest.id, at: oldest.at, ageMs: Math.max(0, this.deps.now() - oldest.at), status: oldest.status };
+  }
+
   getItem(id: number): ReviewItem | undefined {
     return this.items.find((i) => i.id === id);
   }
@@ -304,14 +357,25 @@ export class ChatService {
       const stillOpen = this.items.some(
         (i) => i.userId === item.userId && i.id !== item.id && i.status !== 'reviewed' && i.category !== 'appeal',
       );
-      if (!stillOpen) {
+      // Winning an appeal restores the player outright. Otherwise standing is restored once nothing else is open.
+      if (item.category === 'appeal' || !stillOpen) {
         this.suspended.delete(item.userId);
-        if (item.category === 'appeal') this.banned.delete(item.userId);
+        if (item.category === 'appeal') this.banned.delete(item.userId); // only an appeal can lift a ban
+        // An appeal that is still open is moot once the player has been restored.
+        for (const other of this.items) {
+          if (other.userId === item.userId && other.id !== item.id && other.category === 'appeal' && other.status === 'human') {
+            other.status = 'reviewed';
+            other.verdict = 'clear';
+            other.reason = 'standing already restored';
+            this.persistItem(other);
+          }
+        }
       }
     }
     // 'suspend' keeps the suspension that is already in place.
     this.persistItem(item);
     this.persistStanding(item.userId);
+    this.changed(item.userId);
   }
 
   private addItem(partial: Omit<ReviewItem, 'id'>): ReviewItem {

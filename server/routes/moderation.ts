@@ -37,8 +37,14 @@ export function createModerationRoutes({ chat, reporting, log = () => {} }: Mode
         if (!['pending', 'human', 'reviewed', 'all'].includes(status)) return bad('bad_status');
         const list = status === 'all' ? chat.queue() : chat.queue(status as 'pending' | 'human' | 'reviewed');
         const items = [...list].sort((a, b) => a.at - b.at).map(summary);
-        return { status: 200, json: { items } };
+        // How long the oldest open item has waited, so nothing sits unseen.
+        return { status: 200, json: { items, oldestUnreviewed: chat.oldestUnreviewed() } };
       },
+    },
+    {
+      // A player's own case: standing, what is waiting, their appeal and the last decision.
+      method: 'GET', path: '/api/me/moderation', auth: 'user',
+      handler: (req) => ({ status: 200, json: chat.status(req.user!.userId) }),
     },
     {
       method: 'GET', path: '/api/mod/items/:id', auth: 'moderator',

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '../state/roomStore';
 import { ChatBanner, ChatRulesModal } from './ChatRules';
+import { ModerationNotice } from './mod/ModerationNotice';
 
 function formatUntil(until: number | null): string {
   if (!until) return 'permanently';
@@ -37,6 +38,7 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
     <section aria-label="Room chat" className="flex min-h-0 flex-col gap-2">
       {!accepted && <ChatRulesModal />}
       <ChatBanner compact={compact} />
+      <ModerationNotice />
       {muted && (
         <div role="alert" className="rounded-xl border-2 border-red-400 bg-red-900/40 p-3 text-sm">
           <b>Your chat is {notice!.reason === 'banned' ? 'banned' : 'suspended'} {notice!.reason === 'banned' ? '' : formatUntil(notice!.until)}.</b>{' '}

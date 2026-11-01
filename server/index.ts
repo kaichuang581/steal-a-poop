@@ -99,7 +99,7 @@ export async function startServer(opts: ServerOptions) {
       const old = sockets.get(user.userId);
       sockets.set(user.userId, ws);
       if (old && old !== ws) old.close(4002, 'signed in elsewhere');
-      send(ws, { t: 'welcome', userId: user.userId, name: user.name, serverNow: now(), chat: opts.chat.state(user.userId) });
+      send(ws, { t: 'welcome', userId: user.userId, name: user.name, serverNow: now(), chat: opts.chat.state(user.userId), moderation: opts.chat.status(user.userId) });
       const room = rooms.roomFor(user.userId);
       if (room) broadcastRoom(room.code);
       return;
@@ -223,6 +223,11 @@ export async function startServer(opts: ServerOptions) {
   const tickTimer = setInterval(() => {
     for (const code of rooms.tick()) broadcastRoom(code);
   }, opts.tickMs ?? 100);
+  // Tell a player right away when their case changes, so the chat unlocks (or locks) without a reload.
+  const unsubscribeModeration = opts.chat.onChange((userId) => {
+    const ws = sockets.get(userId);
+    if (ws) send(ws, { t: 'moderation', status: opts.chat.status(userId) });
+  });
   const reviewTimer = setInterval(() => void opts.chat.processReviews(), opts.reviewEveryMs ?? 5000);
 
   return {
@@ -232,6 +237,7 @@ export async function startServer(opts: ServerOptions) {
     async close() {
       clearInterval(tickTimer);
       clearInterval(reviewTimer);
+      unsubscribeModeration();
       await opts.chat.flush(); // pending moderation writes must not be lost on shutdown
       for (const t of pendingLeave.values()) clearTimeout(t);
       for (const ws of wss.clients) ws.terminate();

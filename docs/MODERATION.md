@@ -44,15 +44,31 @@ What is built (all in `server/`, covered by tests) and what is not.
   specify one.
 - **No humans yet.** Escalations and appeals go to a queue (`ChatService.queue('human')`), but there
   is no tool for a person to work it and nobody is assigned.
-- **State is in memory.** Suspensions, bans, the review queue and evidence reset on restart.
+- **Persistence needs a database.** With `DATABASE_URL` set, suspensions, bans, the review queue and evidence survive restarts. Without it they are in memory and reset. Chat history itself is not stored beyond the 20 messages kept as context with a held message.
 - **Country rules are not applied.** The age-by-country sign-up check is not built.
 - The reviewer was tested against a mocked API only. It has not been run against the live API.
 
 ## Before launch
 
-1. Persist suspensions, bans, items and evidence in the database with restricted access.
+1. ~~Persist suspensions, bans, items and evidence in the database with restricted access.~~ Built (see Persistence below); still needs a real database, the migration applied, and a decision on retention periods from your lawyer.
 2. Register for NCMEC reporting and connect it to `ChildSafetySink`. Get legal review.
 3. Name the people who work the human queue and give them a tool.
 4. ~~Build the chat warning screen and the in-game report and appeal buttons.~~ Done: the rules
    screen (first time) and banner (always), plus Report and Appeal buttons, are in `src/ui/ChatPanel.tsx`.
 5. Decide the suspension length and whether the filter list needs a mild/severe split.
+
+## Persistence and retention
+
+Set `DATABASE_URL` and apply `db/migrations/200_moderation.sql` (`psql "$DATABASE_URL" -f db/migrations/200_moderation.sql`; it can be run again safely).
+
+| Table | Holds | Kept |
+|---|---|---|
+| `moderation_standings` | who is banned or suspended, and until when | updated in place |
+| `moderation_items` | the review queue: held messages, reports, appeals, and what was decided | updated in place; never deleted by the application |
+| `moderation_evidence` | a snapshot of each held message or report (text, who, room, category, the 20 messages before it), with a SHA-256 of the snapshot | **append-only: the database refuses UPDATE, DELETE and TRUNCATE; the application never removes it** |
+
+- **Writes are in the background.** The chat path is never slowed or broken by the database. If a write fails it is counted (`ChatService.persistFailures`) and reported, and the in-memory state still applies. While the database is down, a restart would lose what was not yet saved.
+- **Access.** Row-level security is on for all three tables with no policies, so ordinary database roles see nothing. Only the table owner and roles that bypass RLS (Supabase's service role) can read or write. The browser must never be given a key that can reach them. A database superuser can still disable the triggers, so keep that access to the fewest people possible.
+- **One server.** Item numbers come from the server's memory, so run one server process against this database. Running two would reuse ids.
+- **Retention periods are not decided.** The application keeps evidence forever. How long the law requires, and when it must be deleted, is a question for your lawyer (see the lawyer brief). Account deletion must leave evidence in place.
+- **Verified against** PostgreSQL 16 with `TEST_DATABASE_URL` set (including the append-only triggers and RLS). The 10 database tests are skipped when that variable is not set, so the normal CI run does not exercise them until a Postgres service is added to the workflow.

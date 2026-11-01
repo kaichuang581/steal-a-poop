@@ -1,5 +1,6 @@
 import { ChatFilter, childSafetySignal, emptyBuffer, pushBuffer } from './filter';
 import type { SpellBuffer } from './filter';
+import type { ModerationStore } from './moderation/store';
 import { RateLimiter } from './ratelimit';
 
 export type Category = 'blocked_word' | 'child_safety' | 'player_report' | 'appeal';
@@ -22,6 +23,8 @@ export interface ReviewItem {
   status: ItemStatus;
   verdict?: Verdict;
   reason?: string;
+  /** The messages sent in the room just before a held message, so a reviewer sees what led to it. */
+  context?: ChatMessage[];
 }
 
 export interface Reviewer {
@@ -57,14 +60,23 @@ export interface ChatDeps {
   /** How long a violation suspends the sender before review. Default 24 hours. */
   suspendMs?: number;
   maxLength?: number;
+  /** Where state is kept between restarts. Without one, state lives only in memory. */
+  store?: ModerationStore;
+  /** Told when a write to the store fails. The failure never reaches the chat path. */
+  onPersistError?: (error: unknown) => void;
 }
 
 export const DEFAULT_SUSPEND_MS = 24 * 60 * 60 * 1000;
 const HISTORY_PER_ROOM = 50;
+const CONTEXT_MESSAGES = 20;
 const SPELL_WINDOW_MS = 30_000;
 
 export class ChatService {
   private nextId = 1;
+  private nextItemId = 1;
+  private persistQueue: Promise<void> = Promise.resolve();
+  /** Writes that failed. If this is above zero, the store is behind the in-memory state. */
+  persistFailures = 0;
   private suspended = new Map<string, number>();
   private banned = new Set<string>();
   private items: ReviewItem[] = [];
@@ -74,6 +86,48 @@ export class ChatService {
   private reportLimit = new RateLimiter(5, 60_000);
 
   constructor(private deps: ChatDeps) {}
+
+  /** Restores suspensions, bans and the review queue from the store. Call once at startup. */
+  async load(): Promise<void> {
+    const store = this.deps.store;
+    if (!store) return;
+    const [standings, items] = await Promise.all([store.loadStandings(), store.loadItems()]);
+    const now = this.deps.now();
+    for (const [userId, s] of standings) {
+      if (s.banned) this.banned.add(userId);
+      if (s.suspendedUntil && s.suspendedUntil > now) this.suspended.set(userId, s.suspendedUntil);
+    }
+    this.items = items;
+    this.nextItemId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
+  }
+
+  /** Waits for every pending write. Call before shutting down, and in tests. */
+  async flush(): Promise<void> {
+    await this.persistQueue;
+  }
+
+  /** Writes happen one after another in the background, and a failure is counted, never thrown. */
+  private persist(write: (store: ModerationStore) => Promise<void>) {
+    const store = this.deps.store;
+    if (!store) return;
+    this.persistQueue = this.persistQueue
+      .then(() => write(store))
+      .catch((error) => {
+        this.persistFailures += 1;
+        this.deps.onPersistError?.(error);
+      });
+  }
+
+  private persistStanding(userId: string) {
+    const until = this.suspended.get(userId);
+    const standing = { banned: this.banned.has(userId), suspendedUntil: until && until > this.deps.now() ? until : null };
+    this.persist((store) => store.saveStanding(userId, standing));
+  }
+
+  private persistItem(item: ReviewItem) {
+    const snapshot = structuredClone(item);
+    this.persist((store) => store.saveItem(snapshot));
+  }
 
   state(userId: string): { banned: boolean; suspendedUntil: number | null } {
     const until = this.suspended.get(userId);
@@ -108,8 +162,10 @@ export class ChatService {
     if (hit || childSafety) {
       const heldUntil = now + (this.deps.suspendMs ?? DEFAULT_SUSPEND_MS);
       this.suspended.set(userId, heldUntil);
+      this.persistStanding(userId);
       const item = this.addItem({
         userId, roomCode, text, at: now,
+        context: (this.history.get(roomCode) ?? []).slice(-CONTEXT_MESSAGES),
         category: childSafety ? 'child_safety' : 'blocked_word',
         term: hit?.term, mustReport: childSafety, status: 'pending',
       });
@@ -160,6 +216,7 @@ export class ChatService {
     for (const item of this.items.filter((i) => i.status === 'pending')) {
       if (!reviewer) {
         item.status = 'human';
+        this.persistItem(item);
         continue;
       }
       try {
@@ -169,12 +226,14 @@ export class ChatService {
         if (item.category === 'child_safety') {
           item.verdict = verdict;
           item.status = 'human';
+          this.persistItem(item);
           continue;
         }
         this.apply(item, verdict);
       } catch {
         item.status = 'human';
         item.reason = 'review failed; needs a person';
+        this.persistItem(item);
       }
     }
   }
@@ -200,6 +259,7 @@ export class ChatService {
     item.verdict = verdict;
     if (verdict === 'escalate') {
       item.status = 'human';
+      this.persistItem(item);
       return;
     }
     item.status = 'reviewed';
@@ -216,11 +276,16 @@ export class ChatService {
       }
     }
     // 'suspend' keeps the suspension that is already in place.
+    this.persistItem(item);
+    this.persistStanding(item.userId);
   }
 
   private addItem(partial: Omit<ReviewItem, 'id'>): ReviewItem {
-    const item: ReviewItem = { id: this.items.length + 1, ...partial };
+    const item: ReviewItem = { id: this.nextItemId++, ...partial };
     this.items.push(item);
+    this.persistItem(item);
+    const snapshot = structuredClone(item);
+    this.persist((store) => store.saveEvidence(snapshot)); // evidence is captured when it happens, and kept
     return item;
   }
 }

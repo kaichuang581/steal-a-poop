@@ -232,6 +232,7 @@ export async function startServer(opts: ServerOptions) {
     async close() {
       clearInterval(tickTimer);
       clearInterval(reviewTimer);
+      await opts.chat.flush(); // pending moderation writes must not be lost on shutdown
       for (const t of pendingLeave.values()) clearTimeout(t);
       for (const ws of wss.clients) ws.terminate();
       await new Promise<void>((resolve) => wss.close(() => resolve()));

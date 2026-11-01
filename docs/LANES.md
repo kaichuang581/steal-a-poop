@@ -1,18 +1,18 @@
-# Working in parallel: four lanes
+# Working in parallel: three lanes
 
-Four Claude sessions can work at the same time because each one owns different files. Read this
-before starting. If a rule here blocks you, write the problem in `docs/lanes/REQUESTS.md` and carry
-on with something else. Never overwrite another lane's file to get unblocked.
+Three Claude sessions work at the same time: Brian runs one, Kai runs two. They can because each one
+owns different files. Read this before starting. If a rule here blocks you, write the problem in
+`docs/lanes/REQUESTS.md` and carry on with something else. Never overwrite another lane's file to
+get unblocked.
 
-| Lane | Person | Owns |
+| Lane | Run by | Owns |
 |---|---|---|
-| **accounts** | Brian | `server/auth.ts`, `server/routes/accounts.ts`, `src/auth/**`, `src/ui/auth/**`, `src/ui/StartScreen.tsx`, `src/ui/Settings.tsx`, `src/ui/App.tsx`, `src/lib/ageRules.ts`, `src/lib/nickname.ts`, `db/migrations/1xx_*`, `docs/AUTH.md`, the sign-in wiring in `server/main.ts` |
-| **moderation** | Kai | `server/chat.ts`, `server/filter.ts`, `server/review.ts`, `server/moderation/**`, `server/routes/moderation.ts`, `server/data/**`, `src/ui/mod/**`, `src/ui/ChatRules.tsx`, `db/migrations/2xx_*`, `docs/MODERATION.md` |
-| **rooms** | Brian | `server/rooms.ts`, `server/index.ts`, `server/types.ts`, `server/codes.ts`, `server/routes/rooms.ts`, `src/net/**`, `src/state/roomStore.ts`, `src/ui/Lobby.tsx`, `src/ui/RoomScreen.tsx`, `src/ui/ChatPanel.tsx`, `server/loadtest/**`, `src/ui/friends/**`, `src/ui/replay/**`, `e2e/rooms*`, `db/migrations/3xx_*`, `docs/SERVER.md` |
-| **ops** | Kai | `src/engine/**`, the solo game screens in `src/ui/**` not listed above, `src/state/store.ts`, `scripts/**`, `server/log.ts`, `.github/**`, `Dockerfile`, `fly.toml`, `public/**`, `server/routes/ops.ts`, `e2e/game*`, `db/migrations/4xx_*`, `docs/BALANCE*.md`, `docs/PERFORMANCE.md`, `docs/OPERATIONS.md` |
+| **accounts** (also infrastructure) | Brian | Accounts: `server/auth.ts`, `server/routes/accounts.ts`, `src/auth/**`, `src/ui/auth/**`, `src/ui/StartScreen.tsx`, `src/ui/Settings.tsx`, `src/ui/App.tsx`, `src/lib/ageRules.ts`, `src/lib/nickname.ts`, `db/migrations/1xx_*`, `docs/AUTH.md`, the sign-in wiring in `server/main.ts`. Infrastructure: `Dockerfile`, `fly.toml`, `.github/**`, `server/log.ts`, `server/routes/ops.ts`, `db/migrations/4xx_*`, `docs/OPERATIONS.md` |
+| **moderation** (also game rules and content) | Kai | Moderation: `server/chat.ts`, `server/filter.ts`, `server/review.ts`, `server/moderation/**`, `server/routes/moderation.ts`, `server/data/**`, `src/ui/mod/**`, `src/ui/ChatRules.tsx`, `db/migrations/2xx_*`, `docs/MODERATION.md`. Game: `src/engine/**`, `src/state/store.ts`, `scripts/**`, `public/**`, the solo game screens in `src/ui/**` not listed in another row, `src/ui/solo/**`, `e2e/game*`, `docs/BALANCE*.md`, `docs/PERFORMANCE.md` |
+| **rooms** (also integration) | Kai | `server/rooms.ts`, `server/index.ts`, `server/types.ts`, `server/codes.ts`, `server/routes/rooms.ts`, `server/loadtest/**`, `src/net/**`, `src/state/roomStore.ts`, `src/ui/Lobby.tsx`, `src/ui/RoomScreen.tsx`, `src/ui/ChatPanel.tsx`, `src/ui/friends/**`, `src/ui/replay/**`, `e2e/rooms*`, `db/migrations/3xx_*`, `docs/SERVER.md`. At the very end only: `README.md`, `CHANGELOG.md`, the version in `package.json` |
 
 **Nobody owns:** `server/contracts.ts` (it also defines `GameResult`, `GameResultSink` and `DailyGate`: the rooms lane reports finished games and runs the server-side Daily Table, the accounts lane implements both), `server/http.ts`, `server/routes/index.ts`. They are finished.
-Add a route by editing only your lane's file in `server/routes/`.
+Add a route by editing only your lane's file in `server/routes/` (the moderation lane has no infrastructure route; ops routes belong to the accounts lane).
 
 ## Rules
 
@@ -39,7 +39,10 @@ Add a route by editing only your lane's file in `server/routes/`.
    ones in your lane doc.
 8. **Be honest in your lane doc.** Under "Not verified", list everything you did not run or could not
    run. A lane doc that says "done" with nothing under "Not verified" is not believed.
-9. **Do not weaken a test to make it pass.** If a test is wrong, say why in the pull request.
+9. **The engine is shared.** The moderation lane edits `src/engine/**`, but the rooms server runs it.
+   Engine changes must keep the default behaviour and every existing function signature. Add options
+   and exports; never change or remove one. The engine tests and the four-browser room test must pass.
+10. **Do not weaken a test to make it pass.** If a test is wrong, say why in the pull request.
 
 ## Decisions are not blockers: use these defaults
 

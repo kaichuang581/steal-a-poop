@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "size": "node scripts/check-bundle-size.mjs",
     "simulate": "vite-node scripts/simulate.ts",
     "e2e": "playwright test",
     "server": "vite-node server/main.ts"

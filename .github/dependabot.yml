@@ -1,0 +1,21 @@
+version: 2
+
+updates:
+  # Runtime and dev dependencies. Grouped so a weekly run is a few reviewable PRs, not a dozen.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        dependency-type: development
+      production-dependencies:
+        dependency-type: production
+
+  # Keeps the actions in .github/workflows current (checkout, setup-node, cache, ...).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

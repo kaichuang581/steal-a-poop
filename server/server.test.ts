@@ -10,6 +10,8 @@ import type { DailyGate, GameResultSink } from './contracts';
 import { startServer } from './index';
 import type { ConnectionLimits } from './index';
 import type { StealOptions } from './steals';
+import type { AuthUser } from './contracts';
+import { RevocationBus } from './auth/revocations';
 
 const dict = createDictionary(readFileSync('public/words.txt', 'utf8').split('\n'));
 const filter = new ChatFilter({ blocklist: ['blorf'], isWord: (w) => dict.has(w) });
@@ -64,13 +66,14 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { now?: () => number; steals?: StealOptions; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
+async function boot(extra: { verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; steals?: StealOptions; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
     dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit,
     limits: { shutdownGraceMs: 0, ...extra.limits }, now: extra.now, steals: extra.steals,
-    verifyToken: async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null),
+    revocations: extra.revocations,
+    verifyToken: extra.verifyToken ?? (async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null)),
   });
   open.push(server);
   return server;
@@ -624,5 +627,77 @@ describe('steal ordering over the wire', () => {
     owner.send({ t: 'act', action: { type: 'bank' } });
     expect((await r).accepted).toBe(true); // answered at once, not after the buffer
     expect(t.server.rooms.isHeld(t.room.code)).toBe(false);
+  });
+});
+
+describe('logins on open connections', () => {
+  /** Tokens look like "sess:<name>:<session>:<ms until it expires>". */
+  const sessions = async (token: string): Promise<AuthUser | null> => {
+    const [kind, name, session, ms] = token.split(':');
+    if (kind !== 'sess') return null;
+    return { userId: `sess:${name}`, name, chatAllowed: true, isModerator: false, session: { id: session, expiresAt: Date.now() + Number(ms) } };
+  };
+  const connect = async (server: Awaited<ReturnType<typeof boot>>, token: string) => {
+    const c = await Client.connect(server.port, 'x', token);
+    clients.push(c);
+    await c.waitFor((m) => m.t === 'welcome');
+    return c;
+  };
+  const closeCode = (c: Client) => new Promise<number>((r) => c.ws.once('close', r));
+
+  it('a logout closes only the matching session, with a code that means "do not reconnect"', async () => {
+    const bus = new RevocationBus();
+    const server = await boot({ verifyToken: sessions, revocations: bus });
+    const c = await connect(server, 'sess:Ann:A:600000');
+    bus.emit('sess:Ann', 'OTHER', 'logout');
+    await new Promise((r) => setTimeout(r, 100));
+    expect(c.ws.readyState).toBe(WebSocket.OPEN);
+    const closed = closeCode(c);
+    bus.emit('sess:Ann', 'A', 'logout');
+    expect(await closed).toBe(4003);
+  });
+
+  it('logging out everywhere closes the connection, and a change of account status asks it to reconnect', async () => {
+    const bus = new RevocationBus();
+    const server = await boot({ verifyToken: sessions, revocations: bus });
+    const a = await connect(server, 'sess:Ann:A:600000');
+    const closedA = closeCode(a);
+    bus.emit('sess:Ann', null, 'logout');
+    expect(await closedA).toBe(4003);
+    const b = await connect(server, 'sess:Bob:B:600000');
+    const closedB = closeCode(b);
+    bus.emit('sess:Bob', null, 'status');
+    expect(await closedB).toBe(4004);
+  });
+
+  it('asks for a fresh token before the login expires, and keeps the connection if it gets one', async () => {
+    const server = await boot({ verifyToken: sessions, limits: { heartbeatMs: 40, reauthLeadMs: 150, sessionGraceMs: 100 } });
+    const c = await connect(server, 'sess:Ann:A:250');
+    await c.waitFor((m) => m.t === 'reauth');
+    c.send({ t: 'auth', token: 'sess:Ann:A:600000' });
+    await new Promise((r) => setTimeout(r, 500)); // well past the old expiry and its grace period
+    expect(c.ws.readyState).toBe(WebSocket.OPEN);
+  });
+
+  it('closes a connection whose login expired and was not refreshed', async () => {
+    const server = await boot({ verifyToken: sessions, limits: { heartbeatMs: 40, reauthLeadMs: 150, sessionGraceMs: 100 } });
+    const c = await connect(server, 'sess:Ann:A:200');
+    expect(await closeCode(c)).toBe(4003);
+  });
+
+  it('refuses a "refresh" with a token for a different account', async () => {
+    const server = await boot({ verifyToken: sessions });
+    const c = await connect(server, 'sess:Ann:A:600000');
+    const closed = closeCode(c);
+    c.send({ t: 'auth', token: 'sess:Mallory:M:600000' });
+    expect(await closed).toBe(4003);
+  });
+
+  it('a connection without a login session (development sign-in) never expires', async () => {
+    const server = await boot({ limits: { heartbeatMs: 40, reauthLeadMs: 150, sessionGraceMs: 50 } });
+    const c = await connect(server, 'dev:Dev1');
+    await new Promise((r) => setTimeout(r, 300));
+    expect(c.ws.readyState).toBe(WebSocket.OPEN);
+    expect(c.msgs.some((m) => m.t === 'reauth')).toBe(false);
   });
 });

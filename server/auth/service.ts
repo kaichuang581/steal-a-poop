@@ -129,7 +129,11 @@ export class AccountService {
       userId: claims.userId, nickname, emailHash, dateOfBirth: String(input.dateOfBirth), country: country.country,
       consentStatus: needsConsent ? 'pending' : 'not_required', isModerator: false, sessionsValidAfter: 0, createdAt: now, updatedAt: now, deletedAt: null,
     };
-    if (!(await this.d.store.createProfile(profile))) return fail('profile_exists'); // lost a race with ourselves
+    try {
+      if (!(await this.d.store.createProfile(profile))) return fail('profile_exists'); // lost a race with ourselves
+    } catch {
+      return fail('nickname_taken'); // the database's unique nickname rule caught someone who picked the same name a moment earlier
+    }
 
     let mailed = true;
     if (needsConsent) mailed = await this.requestConsent(profile, parentEmail);

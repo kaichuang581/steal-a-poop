@@ -1,3 +1,4 @@
+import { legalHref } from './legal/legalLinks';
 import { useEffect, useRef } from 'react';
 import { useRoomStore } from '../state/roomStore';
 
@@ -44,6 +45,11 @@ export function ChatBanner({ compact = false }: { compact?: boolean }) {
         ))}
       </ul>
       <p className="mt-1 text-xs text-white/70">{CHAT_CONSEQUENCES}</p>
+      <p className="mt-1 text-xs text-white/70">
+        <a className="underline" href={legalHref('terms')} target="_blank" rel="noopener">Terms</a>
+        {' · '}
+        <a className="underline" href={legalHref('child-safety')} target="_blank" rel="noopener">Child safety</a>
+      </p>
     </div>
   );
 }
@@ -68,6 +74,12 @@ export function ChatRulesModal() {
           ))}
         </ul>
         <p className="mt-3 text-sm text-white/75">{CHAT_CONSEQUENCES}</p>
+        <p className="mt-2 text-xs text-white/70">
+          By continuing you agree to the{' '}
+          <a className="underline" href={legalHref('terms')} target="_blank" rel="noopener">terms</a>. See also{' '}
+          <a className="underline" href={legalHref('child-safety')} target="_blank" rel="noopener">child safety</a> and the{' '}
+          <a className="underline" href={legalHref('privacy')} target="_blank" rel="noopener">privacy policy</a>.
+        </p>
         <button
           ref={btn} onClick={accept}
           className="mt-4 min-h-12 w-full rounded-xl bg-amber-400 text-lg font-black text-amber-950"

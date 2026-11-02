@@ -1,3 +1,4 @@
+import { LEGAL_TITLES, legalHref } from './legal/legalLinks';
 import { useState } from 'react';
 import pkg from '../../package.json';
 import { GAME_TAGLINE, GAME_TITLE } from '../config';
@@ -155,6 +156,11 @@ export function StartScreen() {
         >
           Send feedback
         </a>
+        {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
+          <a key={slug} className="min-h-11 content-center underline" href={legalHref(slug)} target="_blank" rel="noopener">
+            {LEGAL_TITLES[slug]}
+          </a>
+        ))}
       </footer>
       {help && <Guide onClose={() => setHelp(false)} />}
       {gear && <Settings onClose={() => setGear(false)} />}

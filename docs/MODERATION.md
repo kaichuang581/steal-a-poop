@@ -61,7 +61,7 @@ Status of each item as of the trust lane's task 8. "Built" means code and tests 
 7. **Appeals: built.** Players see their case and the decision. Nobody is paged when an item gets old.
 8. **Audit log and lawyer export: built.** `moderation_audit` is append-only; `npm run mod:export` makes a checksummed case file.
 9. **Block, mute, kick** (task 9) and **abuse limits** (task 10) are separate items in the trust lane.
-10. **Not started anywhere:** the age and country rules at sign-up (accounts lane), a privacy policy and terms, an opt-in for storing chat, and a policy for what happens to a player's records when they delete their account (evidence must stay).
+10. **Drafts written, not reviewed:** privacy policy, terms, child-safety policy, retention table, requests procedure and lawyer brief are in `docs/legal/` and shown in the app marked DRAFT. **Not started:** the age and country rules at sign-up, the parental-consent flow, and account deletion that leaves evidence in place.
 
 ## Audit log, statistics and the lawyer export
 
@@ -82,5 +82,5 @@ Set `DATABASE_URL` and apply `db/migrations/200_moderation.sql` (`psql "$DATABAS
 - **Writes are in the background.** The chat path is never slowed or broken by the database. If a write fails it is counted (`ChatService.persistFailures`) and reported, and the in-memory state still applies. While the database is down, a restart would lose what was not yet saved.
 - **Access.** Row-level security is on for all three tables with no policies, so ordinary database roles see nothing. Only the table owner and roles that bypass RLS (Supabase's service role) can read or write. The browser must never be given a key that can reach them. A database superuser can still disable the triggers, so keep that access to the fewest people possible.
 - **One server.** Item numbers come from the server's memory, so run one server process against this database. Running two would reuse ids.
-- **Retention periods are not decided.** The application keeps evidence forever. How long the law requires, and when it must be deleted, is a question for your lawyer (see the lawyer brief). Account deletion must leave evidence in place.
+- **Retention periods are not decided.** The application keeps evidence forever. How long the law requires, and when it must be deleted, is a question for your lawyer (see `docs/legal/lawyer-brief.md`). Account deletion must leave evidence in place.
 - **Verified against** PostgreSQL 16 with `TEST_DATABASE_URL` set (including the append-only triggers and RLS). The 10 database tests are skipped when that variable is not set, so the normal CI run does not exercise them until a Postgres service is added to the workflow.

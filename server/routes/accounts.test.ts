@@ -33,7 +33,9 @@ async function boot() {
   const events: unknown[] = [];
   bus.on((...e) => events.push(e));
   const verifier = new TokenVerifier({ issuer: ISS, key: pub, algorithms: ['ES256'] }, store);
+  const standing = { suspendedUntil: null as number | null, openItems: 0 };
   const service = new AccountService({
+    standing: () => standing,
     store, now: Date.now, mailer, agePolicy: DEFAULT_AGE_POLICY, nicknameAllowed: () => true, blocks: new BlockList(), bus,
     authAdmin: { deleteUser: async () => {} }, appUrl: 'https://game.example/',
   });
@@ -51,7 +53,7 @@ async function boot() {
     });
     return { status: res.status, json: (await res.json().catch(() => null)) as any }; // eslint-disable-line @typescript-eslint/no-explicit-any
   };
-  return { call, store, mailer, events };
+  return { call, store, mailer, events, standing };
 }
 const GOOD = { nickname: 'Ana', dateOfBirth: '1990-05-05', country: 'CA', captchaToken: 'dev-ok' };
 
@@ -168,5 +170,19 @@ describe('consent resend', () => {
     await call('POST', '/api/account/profile', kid, { ...GOOD, nickname: 'Kiddo', dateOfBirth: '2018-01-01', parentEmail: 'mum@example.org' });
     expect((await call('POST', '/api/account/consent/resend', kid)).json).toEqual({ parentMailed: true });
     expect(mailer.sent).toHaveLength(2);
+  });
+});
+
+describe('deleting an account while suspended', () => {
+  it('the same email cannot sign up again until the suspension would have ended, and the answer gives no reason', async () => {
+    const { call, standing } = await boot();
+    const t = await sign('u1', { email: 'someone@example.org' });
+    await call('POST', '/api/account/profile', t, GOOD);
+    standing.suspendedUntil = Date.now() + 3600_000;
+    expect((await call('POST', '/api/account/delete', t, { confirm: 'DELETE' })).status).toBe(200);
+    const again = await call('POST', '/api/account/profile', await sign('u2', { email: 'SomeOne@Example.org' }), { ...GOOD, nickname: 'Fresh' });
+    expect([again.status, again.json.error]).toEqual([403, 'cannot_create_account']);
+    const stranger = await call('POST', '/api/account/profile', await sign('u3', { email: 'other@example.org' }), { ...GOOD, nickname: 'Other' });
+    expect(stranger.status).toBe(201); // nobody else is affected
   });
 });

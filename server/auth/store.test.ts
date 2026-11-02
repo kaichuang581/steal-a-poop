@@ -60,6 +60,25 @@ function behaves(make: () => Promise<AccountStore>) {
     expect(await s.isBannedIdentity('abc')).toBe(true);
     expect(await s.isBannedIdentity('zzz')).toBe(false);
   });
+  it('holds an email until a time, never shortens a hold, finds holds by the deleted account, lifts them, and purges the expired', async () => {
+    const s = await make();
+    const hold = (hash: string, until: number, source = 'u1') => s.addRestriction({ identityHash: hash, reason: 'suspension', until, createdAt: 1, sourceUserId: source });
+    await hold('h1', 5000);
+    expect(await s.restrictedUntil('h1', 1000)).toBe(5000);
+    expect(await s.restrictedUntil('h1', 5000)).toBeNull(); // over exactly at the end
+    expect(await s.restrictedUntil('other', 1000)).toBeNull();
+    await hold('h1', 3000); // a shorter hold does not shorten it
+    expect(await s.restrictedUntil('h1', 1000)).toBe(5000);
+    await hold('h1', 9000); // a longer one lengthens it
+    expect(await s.restrictedUntil('h1', 1000)).toBe(9000);
+    await hold('h2', 2000, 'u1');
+    await hold('h3', 8000, 'u2');
+    expect((await s.restrictionsFrom('u1')).sort()).toEqual(['h1', 'h2']);
+    await s.removeRestriction('h1');
+    expect(await s.restrictedUntil('h1', 1000)).toBeNull();
+    expect(await s.purgeRestrictions(3000)).toBe(1); // h2 ran out; h3 did not
+    expect(await s.restrictedUntil('h3', 3000)).toBe(8000);
+  });
   it('remembers revoked sessions until they expire, then purges them', async () => {
     const s = await make();
     await s.revokeSession('s1', 'u1', 100, 1000);
@@ -81,7 +100,7 @@ describe.skipIf(!url)('PostgresAccountStore against a real Postgres (set TEST_DA
   const pool = new Pool({ connectionString: url, options: '-c search_path=test_accounts' });
   const admin = new Pool({ connectionString: url });
   // 101 adds the leaderboard_visible column the store now writes.
-  const migration = readFileSync('db/migrations/100_accounts.sql', 'utf8') + readFileSync('db/migrations/101_game_results.sql', 'utf8');
+  const migration = readFileSync('db/migrations/100_accounts.sql', 'utf8') + readFileSync('db/migrations/101_game_results.sql', 'utf8') + readFileSync('db/migrations/104_restricted_identities.sql', 'utf8');
   afterAll(async () => {
     await pool.end();
     await admin.end();
@@ -103,8 +122,8 @@ describe.skipIf(!url)('PostgresAccountStore against a real Postgres (set TEST_DA
     await expect(pool.query('truncate parental_consents')).rejects.toThrow(/cannot be deleted/);
   });
   it('row security is on for every table, so the browser keys see nothing', async () => {
-    const { rows } = await pool.query("select relname, relrowsecurity from pg_class where relname in ('profiles','parental_consents','banned_identities','revoked_sessions') and relkind = 'r' and relnamespace = 'test_accounts'::regnamespace");
-    expect(rows).toHaveLength(4);
+    const { rows } = await pool.query("select relname, relrowsecurity from pg_class where relname in ('profiles','parental_consents','banned_identities','revoked_sessions','restricted_identities') and relkind = 'r' and relnamespace = 'test_accounts'::regnamespace");
+    expect(rows).toHaveLength(5);
     expect(rows.every((r) => r.relrowsecurity)).toBe(true);
   });
   it('two live accounts cannot share a nickname even by case, but a deleted one frees it', async () => {

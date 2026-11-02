@@ -17,6 +17,7 @@
 | Coins, items, what is worn (`wallets`, `inventory`, `equipped`) | Database | While the account exists | The shop | Yes |
 | Coin ledger (`wallet_ledger`) | Database, append-only | [decide] (ids and amounts only, no real money) | Shows where coins came from; stops a game paying twice | Kept as ids and amounts [decide] |
 | Friend codes and friendships (`friend_codes`, `friendships`) | Database | While the account exists | Friends | Yes, all links removed |
+| Temporary email holds (`restricted_identities`) | Database | Only a one-way hash of the email, kept until a suspension would have ended, or 7 days for an open case, or until a person clears the case; then deleted | So deleting an account does not erase a suspension | Not deleted on request while the hold lasts; never kept longer than the suspension or case [decide: confirm this basis] |
 | Blocks (`user_blocks`) | Database | While the account exists | Your block list | Yes, the player's own blocks are deleted. Blocks of that player by others may stay (no personal data) |
 | Standings (suspension, ban) (`moderation_standings`) | Database | While a suspension or ban applies, then [decide: keep a record of past bans] | Enforcement | Bans are kept so a banned person cannot simply return [decide] |
 | Technical logs (IP address, errors) | Host logs | [30 days] | Security and debugging | No |

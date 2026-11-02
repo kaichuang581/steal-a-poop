@@ -29,7 +29,7 @@
 | The result of a bot check (Cloudflare Turnstile) when you sign up or reset a password | Stopping automated sign-ups | Cloudflare |
 | Technical data: IP address for connection limits and abuse prevention, and error logs without message text | Keeping the service running and safe | Automatic |
 
-We do not read or keep your email address in our own game database: it is held by our sign-in provider, and we keep only a one-way hash of it so that a banned person cannot sign up again.
+We do not read or keep your email address in our own game database: it is held by our sign-in provider. We keep only a one-way hash of it, and only in two cases: so that a banned person cannot sign up again, and, for a limited time, if you delete your account while you are suspended or while a moderation case about you is open (until the suspension would have ended, or for 7 days if a case is still open, or until a person clears the case).
 
 We do **not** collect precise location, contacts, or device identifiers for advertising. We do **not** show advertising. [Confirm: no analytics cookies. If analytics are added, this section must change.]
 

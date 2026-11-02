@@ -30,6 +30,7 @@ const STATUS: Record<CreateProfileFailure, [number, string]> = {
   bad_country: [400, 'bad_country'],
   country_not_supported: [403, 'country_not_supported'],
   identity_banned: [403, 'cannot_create_account'],
+  identity_restricted: [403, 'cannot_create_account'], // same answer: the reason is not revealed
   parent_email_required: [400, 'parent_email_required'],
   parent_email_invalid: [400, 'parent_email_invalid'],
   parent_email_same: [400, 'parent_email_same'],

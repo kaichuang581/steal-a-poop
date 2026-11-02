@@ -47,6 +47,10 @@ export interface AccountServiceDeps {
   appUrl: string;
   /** Other modules that hold a player's personal data (game results, friends) register their erasers here. */
   erasers?: ((userId: string) => Promise<void>)[];
+  /** What the moderation system knows about a player right now. Used so deleting an account does not wipe a suspension. */
+  standing?: (userId: string) => { suspendedUntil: number | null; openItems: number };
+  /** How long an email stays held after its account was deleted with a moderation case still open. Default 7 days. */
+  openCaseHoldMs?: number;
   log?: (line: string) => void;
   randomToken?: () => string;
 }
@@ -54,7 +58,7 @@ export interface AccountServiceDeps {
 export type CreateProfileInput = { nickname: string; dateOfBirth: string; country: string; parentEmail?: string };
 export type CreateProfileFailure =
   | 'profile_exists' | 'email_required' | 'bad_nickname' | 'nickname_taken' | 'bad_dob' | 'bad_country' | 'country_not_supported'
-  | 'identity_banned' | 'parent_email_required' | 'parent_email_invalid' | 'parent_email_same' | 'consent_unavailable';
+  | 'identity_banned' | 'identity_restricted' | 'parent_email_required' | 'parent_email_invalid' | 'parent_email_same' | 'consent_unavailable';
 
 export interface PublicProfile {
   nickname: string;
@@ -124,6 +128,7 @@ export class AccountService {
 
     const emailHash = identityHash(claims.email);
     if (await this.d.store.isBannedIdentity(emailHash)) return fail('identity_banned');
+    if (await this.d.store.restrictedUntil(emailHash, now)) return fail('identity_restricted');
 
     const needsConsent = needsParentalConsent(age, country.consentAge);
     let parentEmail = '';
@@ -279,14 +284,42 @@ export class AccountService {
     this.d.bus.emit(claims.userId, null, 'logout');
     await this.d.blocks.removeAllBy(claims.userId);
     for (const erase of this.d.erasers ?? []) await erase(claims.userId);
+    await this.holdIdentity(claims.userId, now); // before the profile is anonymised: that clears the email hash
     await this.d.store.anonymizeProfile(claims.userId, now);
     this.log('account deleted');
     return { ok: true };
   }
 
-  /** Housekeeping: forget logouts whose tokens have expired anyway. */
+  /**
+   * If the account being deleted is suspended or has a case open, remember its email (as a hash) for a limited time, so deleting
+   * the account is not a way out of a suspension. A suspension is held until it would have ended; an open case for a short while.
+   * A ban is already permanent (recordBan). Nothing is held for an account in good standing.
+   */
+  private async holdIdentity(userId: string, now: number): Promise<void> {
+    const profile = await this.d.store.getProfile(userId);
+    const standing = this.d.standing?.(userId);
+    if (!profile?.emailHash || !standing) return;
+    const suspensionEnd = standing.suspendedUntil && standing.suspendedUntil > now ? standing.suspendedUntil : 0;
+    const caseEnd = standing.openItems > 0 ? now + (this.d.openCaseHoldMs ?? 7 * 24 * 3600_000) : 0;
+    const until = Math.max(suspensionEnd, caseEnd);
+    if (!until) return;
+    await this.d.store.addRestriction({ identityHash: profile.emailHash, reason: suspensionEnd >= caseEnd ? 'suspension' : 'open_case', until, createdAt: now, sourceUserId: userId });
+    this.log('email held after deletion while suspended or under review');
+  }
+
+  /** Called whenever a moderation case changes. If a person has cleared the deleted account, the hold on its email is lifted at once. */
+  async refreshRestriction(userId: string): Promise<void> {
+    const standing = this.d.standing?.(userId);
+    if (!standing) return;
+    if (standing.suspendedUntil && standing.suspendedUntil > this.d.now()) return;
+    if (standing.openItems > 0) return;
+    for (const hash of await this.d.store.restrictionsFrom(userId)) await this.d.store.removeRestriction(hash);
+  }
+
+  /** Housekeeping: forget logouts whose tokens have expired anyway, and holds that have run out. */
   async purge(): Promise<number> {
-    return this.d.store.purgeRevokedSessions(this.d.now());
+    const n = await this.d.store.purgeRevokedSessions(this.d.now());
+    return n + (await this.d.store.purgeRestrictions(this.d.now()));
   }
 }
 

@@ -8,7 +8,7 @@ publishable key reaches nothing here.
 
 | | Ref | Region | Role |
 |---|---|---|---|
-| steal-a-poop | `hmcwncqgafwijjlwezgf` | us-east-1 | the only project so far: **staging** |
+| steal-a-poop | `hmcwncqgafwijjlwezgf` | us-east-1 | the only project so far: **staging** (migrations 100 to 104 applied and recorded) |
 | (to create) | | | **production**, before real players |
 
 - A region cannot be changed later. If player data should be held in Canada (`ca-central-1`), create production there and do not put real
@@ -41,7 +41,7 @@ DATABASE_URL=... npm run migrate
 
 - It applies pending files in number order, each in its own transaction, and stops at the first failure (that file is rolled back; earlier ones stay).
 - If it says a file "was changed after it was applied", someone edited an old migration. Put the file back as it was and add a new one.
-- A database that was set up some other way (for example the Supabase project, whose nine files were applied through the Supabase tooling)
+- A database that was set up some other way (for example the Supabase project, whose files were applied through the Supabase tooling)
   is marked once with `npm run migrate -- --baseline`, which records the files without running them. **The staging project is already baselined.**
 - Supabase also keeps its own list of migrations applied through its dashboard or tooling. The two lists can differ; `schema_migrations` is the one this runner trusts.
 

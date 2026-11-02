@@ -15,7 +15,7 @@ const claims = (over: Partial<SessionClaims> = {}): SessionClaims => ({
 const ADULT = { nickname: 'Ana', dateOfBirth: '1990-05-05', country: 'CA' };
 const CHILD = { nickname: 'Kiddo', dateOfBirth: '2016-05-05', country: 'CA', parentEmail: 'mum@example.org' };
 
-function setup(over: { mailer?: MemoryMailer | null; adminFails?: boolean } = {}) {
+function setup(over: { mailer?: MemoryMailer | null; adminFails?: boolean; standing?: () => { suspendedUntil: number | null; openItems: number } } = {}) {
   let t = NOW;
   const store = new MemoryAccountStore();
   const mailer = over.mailer === undefined ? new MemoryMailer() : over.mailer;
@@ -28,7 +28,7 @@ function setup(over: { mailer?: MemoryMailer | null; adminFails?: boolean } = {}
   const svc = new AccountService({
     store, now: () => t, mailer, agePolicy: DEFAULT_AGE_POLICY, nicknameAllowed: (nick) => !/blorf/i.test(nick), blocks, bus,
     authAdmin: { deleteUser: async (id) => { if (over.adminFails) throw new Error('down'); deleted.push(id); } },
-    appUrl: 'https://game.example/', randomToken: () => `tok${++n}`,
+    appUrl: 'https://game.example/', randomToken: () => `tok${++n}`, standing: over.standing,
   });
   return { svc, store, mailer, bus, events, blocks, deleted, advance: (ms: number) => (t += ms) };
 }
@@ -241,6 +241,104 @@ describe('deleting an account', () => {
     const svc = new AccountService({ ...(t.svc as unknown as { d: ConstructorParameters<typeof AccountService>[0] }).d, erasers: [async (id) => void seen.push(id)] });
     await svc.deleteAccount(claims());
     expect(seen).toEqual(['u1']);
+  });
+});
+
+describe('deleting an account does not wipe a suspension', () => {
+  const HOUR = 3600_000;
+  const email = 'Sus.Pended+x@gmail.com';
+  async function signedUp(standing: () => { suspendedUntil: number | null; openItems: number }) {
+    const t = setup({ standing });
+    await t.svc.createProfile(claims({ email }), { ...ADULT, nickname: 'Sus' });
+    return t;
+  }
+  const signUpAgain = (t: Awaited<ReturnType<typeof signedUp>>, userId = 'u2') =>
+    t.svc.createProfile(claims({ userId, email: 'suspended@googlemail.com' }), { ...ADULT, nickname: `New${userId}` });
+
+  it('a suspended account that is deleted cannot be re-created, under any spelling of the email, until the suspension would have ended', async () => {
+    const t = await signedUp(() => ({ suspendedUntil: NOW + 10 * HOUR, openItems: 0 }));
+    await t.svc.deleteAccount(claims());
+    expect(await signUpAgain(t)).toEqual({ ok: false, reason: 'identity_restricted' });
+    t.advance(9 * HOUR);
+    expect(await signUpAgain(t)).toEqual({ ok: false, reason: 'identity_restricted' });
+    t.advance(2 * HOUR); // 11 hours: the suspension is over
+    const again = await signUpAgain(t);
+    expect(again, JSON.stringify(again)).toMatchObject({ ok: true });
+  });
+
+  it('only a hash is kept, with the end time, and the deleted profile holds no email', async () => {
+    const t = await signedUp(() => ({ suspendedUntil: NOW + HOUR, openItems: 0 }));
+    await t.svc.deleteAccount(claims());
+    const [hold] = [...t.store.restricted.values()];
+    expect(hold).toMatchObject({ reason: 'suspension', until: NOW + HOUR, sourceUserId: 'u1' });
+    expect(hold.identityHash).toBe(sha256('suspended@gmail.com'));
+    expect(JSON.stringify(hold)).not.toMatch(/gmail|Sus/);
+    expect((await t.store.getProfile('u1'))!.emailHash).toBe('');
+  });
+
+  it('an account in good standing is not held: deleting it frees the email at once', async () => {
+    const t = await signedUp(() => ({ suspendedUntil: null, openItems: 0 }));
+    await t.svc.deleteAccount(claims());
+    expect(t.store.restricted.size).toBe(0);
+    expect(await signUpAgain(t)).toMatchObject({ ok: true });
+  });
+
+  it('a suspension AND an open case hold for whichever is longer', async () => {
+    const t = await signedUp(() => ({ suspendedUntil: NOW + 10 * HOUR, openItems: 1 }));
+    await t.svc.deleteAccount(claims());
+    t.advance(11 * HOUR); // the suspension has ended but the case is still open
+    expect(await signUpAgain(t)).toEqual({ ok: false, reason: 'identity_restricted' });
+    t.advance(7 * 24 * HOUR);
+    expect(await signUpAgain(t)).toMatchObject({ ok: true });
+  });
+
+  it('an expired suspension does not count, and an open case holds only for the short hold period', async () => {
+    const past = await signedUp(() => ({ suspendedUntil: NOW - HOUR, openItems: 0 }));
+    await past.svc.deleteAccount(claims());
+    expect(past.store.restricted.size).toBe(0);
+
+    const open = await signedUp(() => ({ suspendedUntil: null, openItems: 2 }));
+    await open.svc.deleteAccount(claims());
+    expect([...open.store.restricted.values()][0]).toMatchObject({ reason: 'open_case', until: NOW + 7 * 24 * HOUR });
+    open.advance(6 * 24 * HOUR);
+    expect(await signUpAgain(open)).toEqual({ ok: false, reason: 'identity_restricted' });
+    open.advance(2 * 24 * HOUR);
+    expect(await signUpAgain(open)).toMatchObject({ ok: true });
+  });
+
+  it('when a person clears the case, the hold ends at once; while it is still open, it stays', async () => {
+    let standing = { suspendedUntil: NOW + 10 * HOUR as number | null, openItems: 1 };
+    const t = await signedUp(() => standing);
+    await t.svc.deleteAccount(claims());
+    await t.svc.refreshRestriction('u1'); // something changed but the suspension still stands
+    expect(t.store.restricted.size).toBe(1);
+    standing = { suspendedUntil: null, openItems: 0 }; // cleared
+    await t.svc.refreshRestriction('u1');
+    expect(t.store.restricted.size).toBe(0);
+    expect(await signUpAgain(t)).toMatchObject({ ok: true });
+  });
+
+  it('a ban is still permanent and the answer does not say which rule applied', async () => {
+    const t = await signedUp(() => ({ suspendedUntil: null, openItems: 0 }));
+    await t.svc.recordBan('u1', 'slurs');
+    await t.svc.deleteAccount(claims());
+    t.advance(1000 * 24 * HOUR);
+    expect(await signUpAgain(t)).toEqual({ ok: false, reason: 'identity_banned' });
+  });
+
+  it('housekeeping drops holds that have run out', async () => {
+    const t = await signedUp(() => ({ suspendedUntil: NOW + HOUR, openItems: 0 }));
+    await t.svc.deleteAccount(claims());
+    t.advance(2 * HOUR);
+    expect(await t.svc.purge()).toBeGreaterThanOrEqual(1);
+    expect(t.store.restricted.size).toBe(0);
+  });
+
+  it('with no moderation information available, deleting works and nothing is held', async () => {
+    const t = setup();
+    await t.svc.createProfile(claims({ email }), { ...ADULT, nickname: 'Sus' });
+    expect(await t.svc.deleteAccount(claims())).toEqual({ ok: true });
+    expect(t.store.restricted.size).toBe(0);
   });
 });
 

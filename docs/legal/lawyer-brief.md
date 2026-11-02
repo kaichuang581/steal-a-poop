@@ -40,7 +40,7 @@ A free browser word game. Players sign in (email, Google, Meta), play alone or i
 Questions: (12) Does earned virtual currency used by children raise any rules (consumer protection, loot-box style rules, unfair
 commercial practices) when no money is involved? (13) Are public leaderboards with nicknames acceptable for 13 to 17 year olds, and should
 they default to hidden for teenagers? (14) Is a friend-code system enough protection against contact by strangers, or do you want friends
-disabled for under-16s? (15) What should happen to coins and items when an account is closed by us for breaking the rules?
+disabled for under-16s? (15) What should happen to coins and items when an account is closed by us for breaking the rules? (16) If someone deletes their account while suspended, we keep a one-way hash of their email for the length of the suspension (or 7 days for an open case) so they cannot simply start over. Is that a lawful basis, and is the period proportionate, given they asked for deletion?
 
 ## What we are not asking
 

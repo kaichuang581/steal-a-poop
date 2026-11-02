@@ -206,6 +206,7 @@ const gameData = new GameDataService({
 });
 
 const accounts = new AccountService({
+  standing: (id) => ({ suspendedUntil: chat.state(id).suspendedUntil, openItems: chat.status(id).openItems }),
   erasers: [(id) => gameData.erase(id), (id) => friends.erase(id)],
   store: accountStore,
   now: Date.now,
@@ -221,6 +222,8 @@ const accounts = new AccountService({
 // A ban also bans the email, so the same person cannot simply sign up again.
 chat.onChange((userId) => {
   if (chat.state(userId).banned) void accounts.recordBan(userId, 'banned by moderation').catch(() => console.error('could not record banned identity'));
+  // If a person clears a deleted account's case, the hold on its email ends at once.
+  void accounts.refreshRestriction(userId).catch(() => console.error('could not refresh email hold'));
 });
 setInterval(() => void accounts.purge().catch(() => undefined), 3_600_000).unref();
 

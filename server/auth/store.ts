@@ -32,6 +32,16 @@ export interface ConsentRecord {
   decision: 'granted' | 'refused' | 'withdrawn' | null;
 }
 
+/** A temporary hold on an email address: the account that used it was deleted while suspended or under review. */
+export interface RestrictedIdentity {
+  identityHash: string;
+  reason: 'suspension' | 'open_case';
+  /** Epoch ms. After this the hold means nothing and is purged. */
+  until: number;
+  createdAt: number;
+  sourceUserId: string;
+}
+
 export interface BannedIdentity {
   identityHash: string;
   reason: string;
@@ -58,6 +68,14 @@ export interface AccountStore {
   addBannedIdentity(b: BannedIdentity): Promise<void>;
   isBannedIdentity(hash: string): Promise<boolean>;
 
+  /** Adds a hold, or lengthens an existing one (a hold is never shortened by adding another). */
+  addRestriction(r: RestrictedIdentity): Promise<void>;
+  /** When the hold on this email ends, or null if there is none (or it has ended). */
+  restrictedUntil(hash: string, now: number): Promise<number | null>;
+  restrictionsFrom(sourceUserId: string): Promise<string[]>;
+  removeRestriction(hash: string): Promise<void>;
+  purgeRestrictions(now: number): Promise<number>;
+
   revokeSession(sessionId: string, userId: string, now: number, expiresAt: number): Promise<void>;
   isSessionRevoked(sessionId: string): Promise<boolean>;
   purgeRevokedSessions(now: number): Promise<number>;
@@ -70,6 +88,7 @@ export class MemoryAccountStore implements AccountStore {
   readonly consents = new Map<string, ConsentRecord>();
   readonly banned = new Map<string, BannedIdentity>();
   readonly revoked = new Map<string, { userId: string; expiresAt: number }>();
+  readonly restricted = new Map<string, RestrictedIdentity>();
 
   async getProfile(userId: string) {
     const p = this.profiles.get(userId);
@@ -110,6 +129,26 @@ export class MemoryAccountStore implements AccountStore {
   }
   async isBannedIdentity(hash: string) {
     return this.banned.has(hash);
+  }
+  async addRestriction(r: RestrictedIdentity) {
+    const cur = this.restricted.get(r.identityHash);
+    if (!cur) this.restricted.set(r.identityHash, { ...r });
+    else if (r.until > cur.until) this.restricted.set(r.identityHash, { ...cur, until: r.until, reason: r.reason }); // lengthened, never shortened
+  }
+  async restrictedUntil(hash: string, now: number) {
+    const r = this.restricted.get(hash);
+    return r && r.until > now ? r.until : null;
+  }
+  async restrictionsFrom(sourceUserId: string) {
+    return [...this.restricted.values()].filter((r) => r.sourceUserId === sourceUserId).map((r) => r.identityHash);
+  }
+  async removeRestriction(hash: string) {
+    this.restricted.delete(hash);
+  }
+  async purgeRestrictions(now: number) {
+    let n = 0;
+    for (const [h, r] of this.restricted) if (r.until <= now) (this.restricted.delete(h), n++);
+    return n;
   }
   async revokeSession(sessionId: string, userId: string, _now: number, expiresAt: number) {
     this.revoked.set(sessionId, { userId, expiresAt });
@@ -222,6 +261,29 @@ export class PostgresAccountStore implements AccountStore {
   async isBannedIdentity(hash: string) {
     const { rows } = await this.pool.query('select 1 from banned_identities where identity_hash = $1', [hash]);
     return rows.length > 0;
+  }
+  async addRestriction(r: RestrictedIdentity) {
+    await this.pool.query(
+      `insert into restricted_identities (identity_hash, reason, restricted_until, created_at, source_user_id) values ($1,$2,$3,$4,$5)
+       on conflict (identity_hash) do update set restricted_until = greatest(restricted_identities.restricted_until, excluded.restricted_until),
+         reason = case when excluded.restricted_until > restricted_identities.restricted_until then excluded.reason else restricted_identities.reason end`,
+      [r.identityHash, r.reason, r.until, r.createdAt, r.sourceUserId],
+    );
+  }
+  async restrictedUntil(hash: string, now: number) {
+    const { rows } = await this.pool.query('select restricted_until from restricted_identities where identity_hash = $1 and restricted_until > $2', [hash, now]);
+    return rows[0] ? Number(rows[0].restricted_until) : null;
+  }
+  async restrictionsFrom(sourceUserId: string) {
+    const { rows } = await this.pool.query('select identity_hash from restricted_identities where source_user_id = $1', [sourceUserId]);
+    return rows.map((r) => r.identity_hash as string);
+  }
+  async removeRestriction(hash: string) {
+    await this.pool.query('delete from restricted_identities where identity_hash = $1', [hash]);
+  }
+  async purgeRestrictions(now: number) {
+    const { rowCount } = await this.pool.query('delete from restricted_identities where restricted_until <= $1', [now]);
+    return rowCount ?? 0;
   }
   async revokeSession(sessionId: string, userId: string, now: number, expiresAt: number) {
     await this.pool.query('insert into revoked_sessions (session_id, user_id, revoked_at, expires_at) values ($1,$2,$3,$4) on conflict do nothing', [sessionId, userId, now, expiresAt]);

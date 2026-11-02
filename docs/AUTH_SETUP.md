@@ -101,6 +101,7 @@ the service key are set. Development sign-in (`dev:name`) cannot be switched on 
 - **Can a banned person make a new account? No.** When a moderator bans an account, a hash of its (normalised) email is stored, and
   sign-up with that email, however it is typed (dots, `+tags`, `googlemail`), is refused with a neutral message. This stops casual
   return, not a determined person with a new email address. Ban evasion found later is handled by banning again.
+- **Can a suspended person delete their account to start over? No, not on the same email.** If an account is deleted while suspended, a one-way hash of its normalised email is held until the suspension would have ended; if a moderation case is still open, for 7 days (`openCaseHoldMs`) or until a person clears it, whichever applies; the longer of the two wins. During the hold, signing up with that email fails with the same neutral message as a ban. The hold is removed early if a person clears the case, and purged when it expires. An account in good standing is not held at all. Table: `restricted_identities`.
 - **Date of birth is stored** (to apply the age rule and to know when a child reaches the age). It is removed when the account is deleted.
 - **Email address is not copied into our tables**; only its hash is, for the ban check. Supabase holds the address.
 - **The parent's email is kept** in the consent record as proof of consent, even after the child's account is deleted. Whether to keep it is a question for your lawyer.

@@ -8,7 +8,7 @@ Fly.io, the real Claude API, a real phone, or a real child's parent.** The publi
 
 | # | What | Who | Instructions |
 |---|---|---|---|
-| 1 | A lawyer reviews the privacy policy, terms and child-safety policy, fills the `[brackets]`, and answers the 15 questions. Then set `LEGAL_REVIEWED` to `true` in `src/config.ts`. | You + lawyer | `docs/legal/lawyer-brief.md` |
+| 1 | A lawyer reviews the privacy policy, terms and child-safety policy, fills the `[brackets]`, and answers the 16 questions. Then set `LEGAL_REVIEWED` to `true` in `src/config.ts`. | You + lawyer | `docs/legal/lawyer-brief.md` |
 | 2 | Decide where player data lives. The Supabase project is in `us-east-1`; if it should be Canada, create the production project in `ca-central-1` **before** anyone signs up. | You | `docs/DATABASE.md` |
 | 3 | Create the production Supabase project; paid plan with backups and point-in-time recovery; run the restore drill once. | You | `docs/DATABASE.md` |
 | 4 | Supabase dashboard settings: email confirmation, CAPTCHA, redirect URLs, a real email sender (SMTP). | You | `docs/AUTH_SETUP.md` |
@@ -34,7 +34,7 @@ Fly.io, the real Claude API, a real phone, or a real child's parent.** The publi
 | 19 | Rehearse the incident plans: the database is down; a child-safety report arrives; a moderator is unreachable; the server must be stopped. Write down who does what. | You |
 | 20 | Tell your lawyer the retention periods and ask them to fill the table in `docs/legal/data-retention.md`; then the deletion jobs can be built. | You + lawyer |
 | 21 | Put an external uptime monitor on `/healthz` (the server cannot report its own crash). | You |
-| 22 | Decide the open policy questions: leaderboard default for teenagers; suspension tiers and repeat-offence lengths; whether to remember suspended (not just banned) accounts. | You |
+| 22 | Decide the open policy questions: leaderboard default for teenagers; suspension tiers and repeat-offence lengths; ~~whether to remember suspended accounts~~ (built: the email is held while a deleted account is suspended; the lawyer must confirm it, question 16). | You |
 
 ## 3. Can wait until after launch
 

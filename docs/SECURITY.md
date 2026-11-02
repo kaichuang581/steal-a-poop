@@ -26,7 +26,7 @@ security test.** Before real players, get a person who did not write the code (o
 
 1. **One server process holds everything in memory.** Rate-limit counters, rooms and chat history vanish on restart, and a restart ends every game. This is also the reason the server must run as one machine.
 2. **Several accounts can farm coins from each other.** The daily cap and the bot check slow it; they do not stop it.
-3. **A suspended person can delete their account and sign up again** with the same email. Only bans are remembered, not suspensions.
+3. **Suspension evasion is limited, not eliminated.** Deleting an account while suspended (or with a case open) holds the email, by hash, until the suspension would have ended (open case: 7 days, or until a person clears it). A person with a second email address, or who *waits out* the hold, is not stopped. Someone suspended who has not deleted anything can still make a second account with a different email while suspended; only the deleted-and-recreated route is closed.
 4. **Ban evasion with a new email is not detected.** There is no device or address matching, on purpose (privacy).
 5. **A recently-signed-in check for deleting an account** uses the time the person last typed a password (Supabase's `amr` timestamp). A stolen *refresh token* does not extend it, but a stolen *session with a fresh sign-in* can delete the account.
 6. **Email-link parental consent is weak** and may not satisfy the law in some countries (see `docs/legal/`).

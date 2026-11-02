@@ -1,6 +1,8 @@
 # Steal a Poop
 
-A free browser word-chain game: solo against 3–7 bots, no backend, no accounts.
+A free browser word-chain game: solo against 3–7 bots, in rooms of 4–10 people, or the Daily Table.
+Playing alone needs nothing. Multiplayer, accounts, friends, leaderboards and the coin shop need the game server and a Supabase project
+(not live yet; the public site hides them until it is configured). Read `docs/LAUNCH.md` for what is left before real players.
 The title lives in one constant: `src/config.ts` (`GAME_TITLE`).
 
 ## Run
@@ -15,7 +17,13 @@ npm test         # Vitest, engine unit tests
 npm run build    # typecheck + production build
 npm run e2e      # Playwright end-to-end tests (set PW_CHROMIUM to use an installed Chromium)
 npm run simulate # headless bot-vs-bot balance runs
+npm run server   # the game server for local development (needs ALLOW_DEV_AUTH=1)
+npm run migrate  # apply database migrations (needs DATABASE_URL)
+npm run loadtest # 200 clients against a real server process
 ```
+
+Docs: `docs/LAUNCH.md` (start here), `docs/DEPLOY.md`, `docs/DATABASE.md`, `docs/AUTH_SETUP.md`, `docs/COMMUNITY.md`,
+`docs/MODERATION.md`, `docs/MONITORING.md`, `docs/SECURITY.md`, `docs/legal/` (drafts, not reviewed).
 
 The dictionary is the ENABLE word list in `public/words.txt` (172,823 lowercase words,
 one per line). It is fetched once at startup and held in a `Set`.
@@ -76,7 +84,13 @@ interface. Note `apply` already rejects actions from non-human seats.
 | `src/audio/sound.ts` | Synthesized sounds, unlocked on first tap, mute persisted |
 | `server/` | Multiplayer game server (not deployed; the app only offers it when built with `VITE_SERVER_URL`). See `docs/SERVER.md` |
 | `src/net/`, `src/state/roomStore.ts` | The app's side of multiplayer: socket client, room and chat state |
-| `docs/` | Balance results, performance audit, moderation notes, server notes |
+| `server/auth`, `server/routes` | Sign-in checks, profiles, parental consent, account endpoints |
+| `server/game`, `server/economy`, `server/social` | Stored results and leaderboards, coins and the shop, friends |
+| `server/moderation`, `server/chat.ts`, `server/filter.ts` | Chat filter, review queue, audit log, child-safety reporting |
+| `server/db` | The migration runner |
+| `db/migrations` | The database schema, forward-only |
+| `src/auth`, `src/ui/auth`, `src/ui/social`, `src/ui/mod`, `src/ui/legal` | Sign-in, Community window, moderator screen, legal pages |
+| `docs/` | Launch checklist, runbooks, balance results, moderation notes, legal drafts |
 
 ## Learning modes
 

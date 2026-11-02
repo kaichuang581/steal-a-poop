@@ -42,7 +42,16 @@ fly secrets set \
 7. Check: `curl https://<app>.fly.dev/healthz` answers `{"ok":true}`. Look at `fly logs`: you should see "game server on ..." and **no** "No ALLOWED_ORIGINS" or "No DATABASE_URL" warning.
 8. Point the website at it: add `VITE_SERVER_URL=wss://<app>.fly.dev`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_TURNSTILE_SITE_KEY` to the website build (GitHub Pages workflow environment) and redeploy the site. Until you do, multiplayer stays hidden on the public site.
 9. Add the website address to Supabase Authentication, URL Configuration (Site URL and Redirect URLs).
-10. Smoke test on a real phone and a real laptop: sign up, verify the email, finish the profile, make a room, play a game, check the coins arrive.
+10. Run the safety check against the live server (read-only, creates nothing):
+
+```bash
+node scripts/smoke.mjs https://<app>.fly.dev https://your-site-origin
+```
+
+    It confirms: the health check answers; account, shop, friends, wallet and moderator routes refuse strangers; the leaderboard is public and
+    sane; a foreign website is refused by both the API and the game connection; and the development sign-in does not work. All lines must say `ok`.
+    (It was run against the production build with a real, freshly migrated Postgres and passed all 13 checks; it has not been run against Fly.io.)
+11. Smoke test on a real phone and a real laptop: sign up, verify the email, finish the profile, make a room, play a game, check the coins arrive.
 
 The server refuses to start in production unless real sign-in, the database, the bot check, `APP_URL`, the service key and `ALLOWED_ORIGINS` are all set, and says which is missing.
 

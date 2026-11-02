@@ -2,6 +2,15 @@
 
 All user-visible changes, newest first.
 
+## Unreleased (not live until the server is deployed and sign-in is configured)
+
+- Accounts: email, Google and Meta sign-in, date of birth and country at sign-up, parental permission for young children, log out everywhere, delete account
+- Friends by private code, invitations to rooms, leaderboards (Daily Table, today, week, all time), personal stats
+- Coins earned by playing, and a cosmetic shop (name colors, titles, badges, table themes); no real money
+- Room chat is checked before anyone sees it; report, block, mute and kick; appeals and a moderator screen
+- Privacy policy, terms and child-safety pages (drafts)
+- Accessibility fixes: higher contrast buttons, keyboard access to scrolling areas
+
 ## 0.2.0
 
 - Typo suggestions with a confirm step; invalid words are free and only a timeout costs −5

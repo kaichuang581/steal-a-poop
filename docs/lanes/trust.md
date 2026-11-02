@@ -16,6 +16,8 @@ Status: in progress.
 10. Connection resilience and abuse limits: `ConnectionLimits` in `server/index.ts` (origin check, per-address and global caps, heartbeat, per-type rate limits with disconnect for floods, graceful shutdown with a `shutdown` message, finished-room clean-up, limiter pruning), env settings in `server/main.ts`, client handling of `shutdown` and stale rooms, `npm run loadtest` (`server/loadtest/run.ts`) and `docs/LOADTEST.md`.
 11. Steal fairness under latency: `server/steals.ts` (`RttTracker`, `estimatedSendTime`, `orderPending`), ping-based round trips in `server/index.ts` (every 5 s, rolling minimum of 8), `RoomManager.beginHold/resolveHold`, `STEAL_ORDERING=arrival|compensated` (default `arrival`, unchanged behaviour) and `STEAL_BUFFER_MS`, docs and the cheating risk in `docs/SERVER.md`, tests in `server/steals.test.ts` and `server/server.test.ts`.
 
+12. Operations (added later): `docs/MONITORING.md` alerts and `GET /api/ops/status`, coin support tool in `#/mod`, `docs/SECURITY.md`, `docs/DEPLOY.md`, and the launch list `docs/LAUNCH.md` which supersedes the open items below where they overlap.
+
 ## Not done
 - Task 2 follow-ups: add a Postgres service to CI so the 10 database tests run there; retention periods; `anonymizeUser` for account deletion is not built.
 

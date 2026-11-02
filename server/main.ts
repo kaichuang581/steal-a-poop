@@ -306,7 +306,7 @@ const stopAlerts = alertUrl
     }).start()
   : null;
 if (!alertUrl) console.warn('No ALERT_WEBHOOK_URL: nobody will be told if the moderation queue or the database has a problem.');
-console.log(`game server on ws://localhost:${server.port} and http://localhost:${server.port} (dev sign-in, reviewer ${reviewer ? 'on' : 'off'})`);
+console.log(`game server on ws://localhost:${server.port} and http://localhost:${server.port} (${supabaseUrl ? 'real sign-in' : 'DEV sign-in'}, reviewer ${reviewer ? 'on' : 'off'})`);
 
 // Finish pending moderation writes before the process exits.
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {

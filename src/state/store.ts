@@ -3,6 +3,7 @@ import { createDictionary, dailySetup, rankPlayers, suggestWords, utcDateKey } f
 import type { Action, ActionResult, Dictionary, Difficulty, GameState } from '../engine';
 import { getDaily, getStreak, markStarted, recordResult } from '../lib/daily';
 import { checkNickname } from '../lib/nickname';
+import { loadStats, recordGame, resetStats as resetStoredStats, type StatsData } from '../lib/stats';
 import { load, save } from '../lib/storage';
 import { isTourDone, setTourDone } from '../lib/tips';
 import { bridge } from './bridge';
@@ -42,6 +43,8 @@ interface Store {
   timeOffset: number;
   tourDone: boolean;
   afterTour: 'menu' | 'quick';
+  /** Local-only stats for finished Quick and Practice games. */
+  stats: StatsData;
   loadDictionary(): Promise<void>;
   setSettings(patch: Partial<Settings>): void;
   start(mode: Mode): boolean;
@@ -57,6 +60,8 @@ interface Store {
   retryDictionary(): Promise<void>;
   pause(): void;
   resume(): void;
+  /** Wipes local stats. Callers ask the player to confirm first. */
+  resetStats(): void;
   startTour(after: 'menu' | 'quick'): boolean;
   endTour(next: 'menu' | 'quick'): void;
   /** Valid words for the current chain letter (practice hints). */
@@ -68,6 +73,16 @@ const MUTE_KEY = 'sap:muted';
 const VOLUME_KEY = 'sap:volume';
 const REDUCE_KEY = 'sap:reduceMotion';
 const LARGE_KEY = 'sap:largeText';
+
+/** Quick and Practice games run in this browser; only their results count towards local stats. */
+function isSolo(mode: Mode): mode is 'quick' | 'practice' {
+  return mode === 'quick' || mode === 'practice';
+}
+
+/** True on the update that finishes the game, so a result is recorded exactly once. */
+function finished(prev: GameState, next: GameState): boolean {
+  return next.phase === 'gameOver' && prev.phase !== 'gameOver';
+}
 
 export const useStore = create<Store>((set, get) => ({
   client: null,
@@ -89,6 +104,7 @@ export const useStore = create<Store>((set, get) => ({
   timeOffset: 0,
   tourDone: isTourDone(),
   afterTour: 'menu',
+  stats: loadStats(),
 
   async loadDictionary() {
     if (get().client) return;
@@ -155,6 +171,9 @@ export const useStore = create<Store>((set, get) => ({
     const now = paused ? get().now : performance.now() - timeOffset;
     const result = client.act(game, action, now);
     set({ game: result.state, now });
+    if (finished(game, result.state) && isSolo(mode)) {
+      set({ stats: recordGame(result.state, mode) });
+    }
     return result;
   },
 
@@ -173,6 +192,9 @@ export const useStore = create<Store>((set, get) => ({
       return;
     }
     set({ game: next, now });
+    if (finished(game, next) && isSolo(mode)) {
+      set({ stats: recordGame(next, mode) });
+    }
     if (next.phase === 'gameOver' && game.phase !== 'gameOver' && mode === 'daily' && dailyDate) {
       const ranked = rankPlayers(next.players);
       const me = next.players[0];
@@ -195,6 +217,10 @@ export const useStore = create<Store>((set, get) => ({
     const { paused, pausedRaw, timeOffset } = get();
     if (!paused) return;
     set({ paused: false, timeOffset: timeOffset + (performance.now() - pausedRaw) });
+  },
+
+  resetStats() {
+    set({ stats: resetStoredStats() });
   },
 
   startTour(after) {

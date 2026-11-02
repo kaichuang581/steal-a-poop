@@ -39,3 +39,60 @@ human playtests. Revisit after the 10-player playtest.
 1. Consider fewer turns per player per round at 8 to 10 seats (for example 3 instead of 5) to bring
    game length under about 8 minutes. This is a rules change and needs a decision.
 2. Playtest steal frequency with real people at 6+ seats.
+
+## Word-frequency rarity (F3)
+
+Run on 2026-11-01 with `npm run simulate -- 200` (200 games per row, 2,400 games). `rarityOf` now reads
+`public/word-frequency.txt`, a Google Books Ngram frequency list filtered to the ENABLE dictionary. Words
+the list does not cover keep the old letter-frequency estimate, as specified.
+
+### Data and tiers
+
+- **Coverage:** 88,400 of the 172,727 playable ENABLE words are in the list (51.2%); 84,327 fall back.
+- **Thresholds:** source ranks 1–10,000 are common, 10,001–30,000 uncommon, above 30,000 rare. The top
+  10,000 words cover 94.3% of the source corpus's word occurrences; the top 30,000 cover 98.7%.
+- **All playable words:** 30.7% common, 31.5% uncommon, 37.8% rare (previously 51.2% / 44.9% / 3.9%).
+- **Words in the list:** 9,079 common, 16,532 uncommon, 62,789 rare.
+- **Words outside the list:** 43,980 common, 37,823 uncommon, 2,524 rare. The fallback still calls 97.0%
+  of these obscure words common or uncommon, which is why the shift is smaller than the covered-word
+  numbers alone suggest.
+
+### Generated table
+
+| Seats | Bots | Steals/game | Failed steals/game | Timeouts/game | Avg bank | Winner score | Last place | Players ending < 0 | Game length (min) | Seat-0 win % |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 4 | easy | 5.0 | 1.3 | 17.4 | 29.6 | 113 | -9 | 0.9 | 6.3 | 21% |
+| 4 | medium | 6.5 | 0.9 | 7.8 | 36.3 | 283 | 54 | 0.2 | 4.9 | 22% |
+| 4 | hard | 6.3 | 0.3 | 2.6 | 38.7 | 353 | 79 | 0.1 | 4.0 | 37% |
+| 6 | easy | 11.2 | 2.7 | 21.9 | 28.0 | 145 | -5 | 0.8 | 9.4 | 10% |
+| 6 | medium | 13.8 | 1.9 | 10.4 | 34.5 | 339 | 51 | 0.1 | 7.3 | 15% |
+| 6 | hard | 12.9 | 0.6 | 3.4 | 35.8 | 397 | 65 | 0.1 | 5.9 | 17% |
+| 8 | easy | 19.0 | 4.7 | 26.9 | 27.7 | 161 | -5 | 0.8 | 12.5 | 12% |
+| 8 | medium | 22.2 | 3.2 | 12.1 | 33.0 | 382 | 42 | 0.2 | 9.6 | 12% |
+| 8 | hard | 20.1 | 1.1 | 4.5 | 34.4 | 433 | 64 | 0.1 | 7.7 | 14% |
+| 10 | easy | 28.2 | 7.0 | 30.5 | 27.2 | 179 | -3 | 0.8 | 15.5 | 10% |
+| 10 | medium | 30.5 | 4.0 | 13.6 | 32.2 | 394 | 45 | 0.1 | 11.9 | 9% |
+| 10 | hard | 26.9 | 1.5 | 5.1 | 34.0 | 445 | 58 | 0.1 | 9.6 | 11% |
+
+### What changed
+
+- **Winner scores rose by 3–50 points** (roughly 3–15%). Easy moved least (+3 to +14), medium +15 to +50,
+  hard +30 to +43. Hard bots deliberately seek rare words, and rare words are now 37.8% of the dictionary
+  instead of 3.9%, so the multiplier change lands hardest there.
+- **Game length did not move** (at most 0.1 minutes in any row), and timeouts moved by at most 0.5/game.
+  Rarity changes points, not timers.
+- **Steals rose slightly** (0.0 to 2.1/game), consistent with more turns producing bankable piles, not with
+  a rules change.
+- **Fewer medium-table players finish below zero** (for example 4 medium: 0.3 to 0.2 per game), because the
+  same play now scores more.
+- **Seat-0 win share is still within noise** at 200 games per row; the 4-hard row moved from 33% to 37%,
+  which is about one standard error and should not be read as a first-seat effect.
+
+### Decision needed
+
+The data makes medium and hard scores about 10% higher. I did not change `RARITY_MULTIPLIER` or the rank
+thresholds in this PR; that is a balance decision. Accepting the new numbers is reasonable, since the tiers
+now reflect real usage. The alternative is to raise the thresholds (making fewer words rare) or lower the
+uncommon/rare multipliers. Separately, 97% of the words outside the list are still called common or
+uncommon by the fallback; treating "not in the list" as rare would use real frequency more aggressively,
+but it would no longer be the old letter-frequency fallback the task specified.

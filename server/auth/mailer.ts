@@ -36,7 +36,7 @@ import type { Transporter } from 'nodemailer';
 export class SmtpMailer implements Mailer {
   private transport: Transporter;
   constructor(private opts: { url?: string; from: string; transport?: Transporter }) {
-    this.transport = opts.transport ?? nodemailer.createTransport(opts.url!, { connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 20_000 });
+    this.transport = opts.transport ?? nodemailer.createTransport({ url: opts.url!, connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 20_000 });
   }
   async send(mail: Mail): Promise<void> {
     await this.transport.sendMail({ from: this.opts.from, to: mail.to, subject: mail.subject, text: mail.text });

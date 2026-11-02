@@ -22,7 +22,7 @@
     "@supabase/supabase-js": "^2.118.0",
     "framer-motion": "^14.9.0",
     "jose": "^6.2.15",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^10.3.1",
     "pg": "^8.23.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

@@ -25,3 +25,20 @@ export class ConsoleMailer implements Mailer {
     console.log(`[dev mail] to ${mail.to}: ${mail.subject}\n${mail.text}`);
   }
 }
+
+/**
+ * Sends real mail through any SMTP service (Resend, SendGrid, Mailgun, Postmark, Amazon SES and others all offer SMTP).
+ * SMTP_URL looks like smtps://user:password@smtp.example.com:465 and is a secret. Plain text only, no tracking, no images.
+ */
+import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
+
+export class SmtpMailer implements Mailer {
+  private transport: Transporter;
+  constructor(private opts: { url?: string; from: string; transport?: Transporter }) {
+    this.transport = opts.transport ?? nodemailer.createTransport(opts.url!, { connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 20_000 });
+  }
+  async send(mail: Mail): Promise<void> {
+    await this.transport.sendMail({ from: this.opts.from, to: mail.to, subject: mail.subject, text: mail.text });
+  }
+}

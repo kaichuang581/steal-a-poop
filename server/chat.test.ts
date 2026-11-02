@@ -319,3 +319,15 @@ describe('what a player sees about their own case (task 7)', () => {
     expect(seen).toHaveLength(3);
   });
 });
+
+describe('child-safety waiting time', () => {
+  it('reports the oldest child-safety item still waiting for a person, and nothing for ordinary items', () => {
+    const { svc, advance } = service();
+    expect(svc.oldestChildSafetyOpen()).toBeNull();
+    say(svc, 'a', 'you blorf'); // an ordinary held word
+    expect(svc.oldestChildSafetyOpen()).toBeNull();
+    say(svc, 'b', 'are you home alone');
+    advance(90_000);
+    expect(svc.oldestChildSafetyOpen()).toMatchObject({ ageMs: 90_000 });
+  });
+});

@@ -13,7 +13,7 @@ import { createHttpServer } from './http';
 import { startServer } from './index';
 import type { SessionClaims, VerifyToken } from './contracts';
 import { DevCaptcha, TurnstileVerifier } from './auth/captcha';
-import { ConsoleMailer } from './auth/mailer';
+import { ConsoleMailer, SmtpMailer } from './auth/mailer';
 import type { Mailer } from './auth/mailer';
 import { DEFAULT_AGE_POLICY } from './auth/policy';
 import { RevocationBus } from './auth/revocations';
@@ -24,6 +24,9 @@ import { createAccountRoutes } from './routes/accounts';
 import { createFriendRoutes } from './routes/friends';
 import { createLeaderboardRoutes } from './routes/leaderboard';
 import { createShopRoutes } from './routes/shop';
+import { createOpsRoutes } from './routes/ops';
+import { AlertMonitor, WebhookSender } from './ops/alerts';
+import type { Snapshot } from './ops/alerts';
 import { EconomyService } from './economy/service';
 import { MemoryEconomyStore, PostgresEconomyStore } from './economy/store';
 import { MemoryResultsStore, PostgresResultsStore } from './game/results';
@@ -52,6 +55,8 @@ import { ClaudeReviewer } from './review';
  *   REVIEW_MODEL          model id for the reviewer (required with the key)
  * Sign-in: set SUPABASE_URL (and SUPABASE_JWT_SECRET only for a legacy project) to verify real Supabase logins.
  *   SUPABASE_URL, SUPABASE_JWKS_URL (optional), SUPABASE_JWT_SECRET (legacy), SUPABASE_SERVICE_ROLE_KEY (account deletion)
+ *   ALERT_WEBHOOK_URL     Slack or Discord webhook for alerts (stuck moderation queue, database down, reviewer limit). ALERT_QUEUE_MINUTES, ALERT_CHILD_SAFETY_MINUTES, ALERT_MEMORY_MB tune it
+ *   SMTP_URL, MAIL_FROM   sends the parent's consent email (any SMTP service). Without them, children who need a parent's consent cannot sign up
  *   TURNSTILE_SECRET      CAPTCHA for our own sign-up endpoint. APP_URL: the site address used in emails
  *   AGE_OF_CONSENT_BY_COUNTRY (JSON, from your lawyer), ALLOWED_COUNTRIES, BLOCKED_COUNTRIES (comma-separated ISO codes)
  * With NODE_ENV=production the server refuses to start unless real sign-in, DATABASE_URL, CAPTCHA and ALLOWED_ORIGINS are set.
@@ -173,8 +178,9 @@ if (isProduction) {
   }
 }
 // No real mail sender exists yet. Without one, a child who needs a parent's consent cannot sign up (the request fails, it is never left stuck).
-const mailer: Mailer | null = isProduction ? null : new ConsoleMailer();
-if (!mailer) console.warn('No mail sender is configured: sign-ups that need a parent\'s consent will be refused.');
+const mailer: Mailer | null =
+  process.env.SMTP_URL && process.env.MAIL_FROM ? new SmtpMailer({ url: process.env.SMTP_URL, from: process.env.MAIL_FROM }) : isProduction ? null : new ConsoleMailer();
+if (!mailer) console.warn('No mail sender is configured (SMTP_URL and MAIL_FROM): sign-ups that need a parent\'s consent will be refused.');
 
 // ---- game data: results, coins, friends ---------------------------------------------------------------
 const economyStore = pool ? new PostgresEconomyStore(pool) : new MemoryEconomyStore();
@@ -218,6 +224,29 @@ chat.onChange((userId) => {
 });
 setInterval(() => void accounts.purge().catch(() => undefined), 3_600_000).unref();
 
+// ---- watching the server -------------------------------------------------------------------------------
+let serverRef: Awaited<ReturnType<typeof startServer>> | null = null;
+const maxConnections = envNumber('MAX_CONNECTIONS') ?? 2000;
+const takeSnapshot = async (): Promise<Snapshot> => {
+  let databaseOk: boolean | null = null;
+  if (pool) databaseOk = await pool.query('select 1').then(() => true, () => false);
+  const stats = serverRef?.rooms.stats() ?? { rooms: 0, players: 0 };
+  const rc = reviewer?.counters;
+  return {
+    at: Date.now(),
+    connections: serverRef?.connections() ?? 0,
+    maxConnections,
+    rooms: stats.rooms,
+    players: stats.players,
+    memoryMb: process.memoryUsage().rss / 1048576,
+    databaseOk,
+    oldestModerationItemMs: chat.oldestUnreviewed()?.ageMs ?? null,
+    oldestChildSafetyItemMs: chat.oldestChildSafetyOpen()?.ageMs ?? null,
+    moderationWriteFailures: chat.persistFailures,
+    reviewer: rc ? { calls: rc.calls, escalated: rc.escalated, capped: rc.failures.capped, failures: rc.failures.timeout + rc.failures.network + rc.failures.http + rc.failures.unreadable, tokensIn: rc.tokensIn, tokensOut: rc.tokensOut, estimatedCostUsd: rc.estimatedCostUsd } : null,
+  };
+};
+
 // One port serves the HTTP API and the WebSocket game connection.
 const httpServer = createHttpServer({
   routes: [
@@ -226,6 +255,7 @@ const httpServer = createHttpServer({
     ...createFriendRoutes({ friends }),
     ...createLeaderboardRoutes({ data: gameData, accounts }),
     ...createShopRoutes({ economy, store: economyStore }),
+    ...createOpsRoutes({ snapshot: takeSnapshot }),
     ...createAccountRoutes({ service: accounts, captcha: turnstileSecret ? new TurnstileVerifier({ secret: turnstileSecret }) : new DevCaptcha() }),
   ],
   verifyToken,
@@ -263,14 +293,26 @@ const server = await startServer({
     trustProxy: process.env.TRUST_PROXY === '1',
   },
 });
+serverRef = server;
 presence.online = server.isOnline;
 notify = server.notify;
+const alertUrl = process.env.ALERT_WEBHOOK_URL;
+const stopAlerts = alertUrl
+  ? new AlertMonitor({
+      snapshot: takeSnapshot,
+      sender: new WebhookSender({ url: alertUrl }),
+      cfg: { queueMs: (envNumber('ALERT_QUEUE_MINUTES') ?? 120) * 60_000, childSafetyMs: (envNumber('ALERT_CHILD_SAFETY_MINUTES') ?? 30) * 60_000, connectionsFraction: 0.8, memoryMb: envNumber('ALERT_MEMORY_MB') ?? 420 },
+      log: console.error,
+    }).start()
+  : null;
+if (!alertUrl) console.warn('No ALERT_WEBHOOK_URL: nobody will be told if the moderation queue or the database has a problem.');
 console.log(`game server on ws://localhost:${server.port} and http://localhost:${server.port} (dev sign-in, reviewer ${reviewer ? 'on' : 'off'})`);
 
 // Finish pending moderation writes before the process exits.
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(signal, () => {
     void (async () => {
+      stopAlerts?.();
       await server.close();
       await reporting.flush();
       await blocks.flush();

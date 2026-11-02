@@ -353,6 +353,14 @@ export class ChatService {
     return { id: oldest.id, at: oldest.at, ageMs: Math.max(0, this.deps.now() - oldest.at), status: oldest.status };
   }
 
+  /** The child-safety item that has waited longest for a person, or null. These are the most urgent items there are. */
+  oldestChildSafetyOpen(): { id: number; ageMs: number } | null {
+    const open = this.items.filter((i) => i.mustReport && i.status !== 'reviewed');
+    if (!open.length) return null;
+    const oldest = open.reduce((a, b) => (b.at < a.at ? b : a));
+    return { id: oldest.id, ageMs: Math.max(0, this.deps.now() - oldest.at) };
+  }
+
   getItem(id: number): ReviewItem | undefined {
     return this.items.find((i) => i.id === id);
   }

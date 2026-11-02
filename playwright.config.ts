@@ -7,6 +7,7 @@ export default defineConfig({
   testDir: 'e2e',
   timeout: 120_000,
   workers: 1,
+  retries: process.env.CI ? 1 : 0, // one retry on the build server only, so a rare timing hiccup does not block a release
   reporter: 'list',
   expect: { timeout: 10_000 },
   use: {

@@ -1,4 +1,4 @@
-import { FAIL_PENALTY, STEAL_BONUS, STEAL_WINDOW_MS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND } from '../engine';
+import { FAIL_PENALTY, MIN_PLAYERS, STEAL_BONUS, STEAL_WINDOW_MS, TRAP_PAYOUT, TURNS_BY_SEATS } from '../engine';
 
 export const BASICS = [
   { art: '🅲 → 🅰 → 🆃', title: 'Chain words', text: 'Each word must start with the last letter of the previous one. 3+ letters, real words, no repeats in a round.' },
@@ -20,7 +20,7 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: 'Burn', def: 'Any pile left unbanked when a round ends is destroyed.' },
   { term: 'Modifier', def: 'A special rule for one round, announced in the banner at the start of the round and shown in the top bar.' },
   { term: 'Rarity', def: 'Common, uncommon or rare. Multiplies a word’s length for points. Estimated from letter frequency.' },
-  { term: 'Round', def: `One of three. Each player gets ${TURNS_PER_PLAYER_PER_ROUND} turns per round.` },
+  { term: 'Round', def: `One of three. Each player gets ${TURNS_BY_SEATS(MIN_PLAYERS)} turns per round.` },
   { term: 'Tiebreak', def: 'Equal banked scores are broken by most steals, then by longest word played.' },
   { term: 'Practice', def: 'A game against easy bots with no penalties, a longer timer and hints.' },
   { term: 'Daily Table', def: 'One game per UTC day with the same letter, modifiers and bots for everyone. Your result and streak are saved in this browser.' },

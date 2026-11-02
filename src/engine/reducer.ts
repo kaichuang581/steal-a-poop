@@ -1,7 +1,7 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS,
-  TRAP_LETTERS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND,
+  BOTS_HALVE_ON_FAILED_STEAL, FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, ROUNDS, STEAL_BONUS,
+  STEAL_WINDOW_MS, TRAP_LETTERS, TRAP_PAYOUT, TURNS_BY_SEATS,
 } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawInt, drawPick, drawRandom } from './rng';
@@ -58,7 +58,7 @@ function concludeTurn(s: GameState, t: number) {
   const turn = s.turn!;
   s.players[turn.seat].turnsTaken += 1;
   s.turn = null;
-  if (s.players.every((p) => p.turnsTaken >= TURNS_PER_PLAYER_PER_ROUND)) return endRound(s, t);
+  if (s.players.every((p) => p.turnsTaken >= TURNS_BY_SEATS(s.players.length))) return endRound(s, t);
   startTurn(s, nextSeat(s, turn.seat), t);
 }
 
@@ -143,11 +143,15 @@ function failTurn(s: GameState, seat: number, t: number) {
   concludeTurn(s, t);
 }
 
-/** A failed steal halves the stealer's whole banked score (normal games only). */
+/**
+ * A failed steal halves the stealer's whole banked score (normal games only). A bot's is left
+ * alone when BOTS_HALVE_ON_FAILED_STEAL is off; a human's always halves.
+ */
 function stealFailed(s: GameState, seat: number, t: number) {
   const p = s.players[seat];
   const before = p.banked;
-  const after = s.mode === 'normal' ? halveScore(before) : before;
+  const halved = s.mode === 'normal' && (p.isHuman || BOTS_HALVE_ON_FAILED_STEAL);
+  const after = halved ? halveScore(before) : before;
   p.banked = after;
   const delta = after - before;
   s.history.push({ round: s.round, seat, kind: 'stealFail', word: null, points: delta });

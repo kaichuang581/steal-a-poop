@@ -133,7 +133,7 @@ describe.skipIf(!url)('PostgresAudit against a real Postgres', () => {
     await expect(pool.query("update moderation_audit set actor = 'x'")).rejects.toThrow(/append-only/);
     await expect(pool.query('delete from moderation_audit')).rejects.toThrow(/append-only/);
     await expect(pool.query('truncate moderation_audit')).rejects.toThrow(/append-only/);
-    const { rows } = await pool.query("select relrowsecurity from pg_class where relname = 'moderation_audit'");
+    const { rows } = await pool.query("select relrowsecurity from pg_class where relname = 'moderation_audit' and relnamespace = current_schema()::regnamespace");
     expect(rows[0].relrowsecurity).toBe(true);
   });
 });

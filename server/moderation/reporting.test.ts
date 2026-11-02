@@ -132,7 +132,7 @@ describe.skipIf(!url)('PostgresReportStore against a real Postgres', () => {
     await s.flush();
     await expect(pool.query('delete from child_safety_reports')).rejects.toThrow(/cannot be deleted/);
     await expect(pool.query('truncate child_safety_reports')).rejects.toThrow(/cannot be deleted/);
-    const { rows } = await pool.query("select relrowsecurity from pg_class where relname = 'child_safety_reports'");
+    const { rows } = await pool.query("select relrowsecurity from pg_class where relname = 'child_safety_reports' and relnamespace = current_schema()::regnamespace");
     expect(rows[0].relrowsecurity).toBe(true);
   });
 });

@@ -198,7 +198,7 @@ describe.skipIf(!url)('PostgresEconomyStore against a real Postgres', () => {
     await expect(pool.query('delete from wallet_ledger')).rejects.toThrow(/append-only/);
     await expect(pool.query('truncate wallet_ledger')).rejects.toThrow(/append-only/);
     await expect(pool.query("update wallets set balance = -1 where user_id = 'a'")).rejects.toThrow();
-    const { rows } = await pool.query("select relname, relrowsecurity from pg_class where relname in ('wallets','wallet_ledger','inventory','equipped') and relkind = 'r'");
+    const { rows } = await pool.query("select relname, relrowsecurity from pg_class where relname in ('wallets','wallet_ledger','inventory','equipped') and relkind = 'r' and relnamespace = current_schema()::regnamespace");
     expect(rows.every((r) => r.relrowsecurity) && rows.length === 4).toBe(true);
   });
 });

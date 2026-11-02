@@ -175,7 +175,7 @@ describe.skipIf(!url)('FriendsService against a real Postgres', () => {
     expect(await s.createRequest('b', 'a', 1)).toBe(true);
     expect(await s.createRequest('a', 'b', 2)).toBe(false);
     await expect(pool.query("insert into friendships values ('z','a','z','pending',1,1)")).rejects.toThrow();
-    const { rows } = await pool.query("select relrowsecurity from pg_class where relname in ('friend_codes','friendships') and relkind = 'r'");
+    const { rows } = await pool.query("select relrowsecurity from pg_class where relname in ('friend_codes','friendships') and relkind = 'r' and relnamespace = current_schema()::regnamespace");
     expect(rows).toHaveLength(2);
     expect(rows.every((r) => r.relrowsecurity)).toBe(true);
   });

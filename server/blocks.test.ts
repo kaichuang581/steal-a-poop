@@ -70,7 +70,7 @@ describe.skipIf(!url)('PostgresBlockStore against a real Postgres', () => {
     again.unblock('a', 'b');
     await again.flush();
     expect((await s.load()).sort()).toEqual([['a', 'c'], ['x', 'b']]);
-    const { rows } = await pool.query("select relrowsecurity from pg_class where relname = 'user_blocks'");
+    const { rows } = await pool.query("select relrowsecurity from pg_class where relname = 'user_blocks' and relnamespace = current_schema()::regnamespace");
     expect(rows[0].relrowsecurity).toBe(true);
   });
 });

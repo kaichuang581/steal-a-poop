@@ -7,7 +7,7 @@ security test.** Before real players, get a person who did not write the code (o
 
 | Area | Result |
 |---|---|
-| **Dependencies** | `npm audit`: 0 known vulnerabilities. A high-severity set in the mail library (`nodemailer`) was found and fixed by upgrading to 10.x. Run `npm audit` before every release; CI does not yet. |
+| **Dependencies** | `npm audit`: 0 known vulnerabilities. A high-severity set in the mail library (`nodemailer`) was found and fixed by upgrading to 10.x. CI now runs `npm audit --audit-level=high` on every branch, so a new serious advisory fails the branch check (it does not block a deploy from main). |
 | **SQL injection** | Every query takes its values as parameters. The only built SQL text uses fixed column names chosen from a list in the code (`updateProfile`, the leaderboard metric), never player input. Searched: no other string-built queries. |
 | **Cross-site scripting** | No `dangerouslySetInnerHTML`, `innerHTML` or `eval` anywhere. The legal pages render Markdown through React elements, tested to turn `<script>` into text. The built site carries a Content-Security-Policy (see below). |
 | **Content-Security-Policy** | `default-src 'self'`; scripts only from the site and (when configured) Cloudflare's bot check; connections only to the site, the game server and Supabase; no frames, objects or base changes. Tested: a page-injected `fetch` to a foreign server and a foreign `<script>` are both blocked, and nothing the app legitimately does is. Limits: it is a `<meta>` tag (GitHub Pages cannot send headers), so `frame-ancestors` (clickjacking) is not covered; styles allow inline because the interface uses inline style attributes. |
@@ -33,7 +33,7 @@ security test.** Before real players, get a person who did not write the code (o
 7. **The chat filter is a net, not a guarantee.** It is tested against disguises of its own word list only, not against words missing from the list, other languages or images.
 8. **The Claude reviewer's resistance to prompt injection is untested against the real model.** The server's handling is tested with a mock.
 9. **No independent testing**, no bug bounty, no security contact published yet. Add a `security.txt` or a contact in the privacy policy.
-10. **CI does not run `npm audit`.** Add it when you want releases to fail on known vulnerabilities.
+10. **`npm audit` runs in branch CI only**, not in the deploy from main, so a new advisory never blocks an urgent release; read the branch check.
 11. **Clickjacking** (the site inside someone else's frame) is not prevented, because GitHub Pages cannot set `X-Frame-Options`. Serve the site from a host that can set headers if this matters to you.
 
 ## Before launch

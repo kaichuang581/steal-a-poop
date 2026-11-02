@@ -36,7 +36,7 @@ describe('BlockList', () => {
     await two.load();
     expect(two.list('a').sort()).toEqual(['b', 'c']);
     const errors: unknown[] = [];
-    const bad = new BlockList({ load: async () => [], add: async () => { throw new Error('down'); }, remove: async () => {} }, Date.now, (e) => errors.push(e));
+    const bad = new BlockList({ load: async () => [], add: async () => { throw new Error('down'); }, remove: async () => {}, removeAllBy: async () => {} }, Date.now, (e) => errors.push(e));
     expect(bad.block('a', 'b')).toBe('ok');
     await bad.flush();
     expect([bad.failures, errors.length, bad.isBlocked('a', 'b')]).toEqual([1, 1, true]);
@@ -72,5 +72,20 @@ describe.skipIf(!url)('PostgresBlockStore against a real Postgres', () => {
     expect((await s.load()).sort()).toEqual([['a', 'c'], ['x', 'b']]);
     const { rows } = await pool.query("select relrowsecurity from pg_class where relname = 'user_blocks'");
     expect(rows[0].relrowsecurity).toBe(true);
+  });
+});
+
+describe('BlockList.removeAllBy (account deletion)', () => {
+  it('forgets only that player\'s blocks, in memory and in the store', async () => {
+    const store = new MemoryBlockStore();
+    const b = new BlockList(store);
+    b.block('gone', 'x');
+    b.block('gone', 'y');
+    b.block('stays', 'gone'); // someone else blocked the deleted player: not personal data of the deleted player
+    b.block('stays', 'z');
+    await b.removeAllBy('gone');
+    expect(b.list('gone')).toEqual([]);
+    expect(b.list('stays').sort()).toEqual(['gone', 'z']);
+    expect((await store.load()).sort()).toEqual([['stays', 'gone'], ['stays', 'z']]);
   });
 });

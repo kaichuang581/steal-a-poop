@@ -13,6 +13,7 @@ import { BlockList } from './blocks';
 import { DEFAULT_BUFFER_MS, DEFAULT_MAX_COMPENSATION_MS, RttTracker, estimatedSendTime } from './steals';
 import type { PendingAction, StealOptions } from './steals';
 import type { AuditLog } from './moderation/audit';
+import type { RevocationBus } from './auth/revocations';
 
 export type { AuthUser, VerifyToken } from './contracts';
 
@@ -31,6 +32,8 @@ export interface ServerOptions {
   blocks?: BlockList;
   /** Where host actions (kick, mute) are logged. */
   audit?: AuditLog;
+  /** Told when a login ends or an account changes, so open connections can be closed or refreshed. */
+  revocations?: RevocationBus;
   randomInt: (n: number) => number;
   now?: () => number;
   /** How long a dropped connection keeps its seat before a bot takes over. */
@@ -59,6 +62,10 @@ export interface ConnectionLimits {
   finishedRoomTtlMs?: number;
   /** After telling clients the server is restarting, wait this long before closing them. Default 1000 ms. */
   shutdownGraceMs?: number;
+  /** How long before a login expires the client is asked for a fresh token. Default 60 s. */
+  reauthLeadMs?: number;
+  /** How long after expiry a connection that never refreshed is closed. Default 30 s. */
+  sessionGraceMs?: number;
   /** Per-type message budgets as [max, windowMs] per player ("*" is the overall budget). */
   messageLimits?: Record<string, readonly [number, number]>;
 }
@@ -81,6 +88,7 @@ export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> =
   unblock: [30, 60_000],
   mute: [30, 60_000],
   kick: [20, 60_000],
+  auth: [10, 60_000],
 };
 
 type ClientMsg =
@@ -98,7 +106,8 @@ type ClientMsg =
   | { t: 'block'; userId: string }
   | { t: 'unblock'; userId: string }
   | { t: 'mute'; on: boolean; userId?: string }
-  | { t: 'kick'; userId: string };
+  | { t: 'kick'; userId: string }
+  | { t: 'auth'; token: string };
 
 const MAX_PAYLOAD = 4096;
 
@@ -176,6 +185,7 @@ export async function startServer(opts: ServerOptions) {
       const user = typeof msg.token === 'string' ? await opts.verifyToken(msg.token) : null;
       if (!user) return ws.close(4001, 'bad token');
       userRef.user = user;
+      trackSession(ws, user);
       names.set(user.userId, user.name);
       const timer = pendingLeave.get(user.userId);
       if (timer) {
@@ -196,6 +206,13 @@ export async function startServer(opts: ServerOptions) {
     const { userId, name } = user;
 
     switch (msg.t) {
+      case 'auth': {
+        // A fresh token for the same login before the old one expires. Anything else ends the connection.
+        const fresh = typeof msg.token === 'string' ? await opts.verifyToken(msg.token).catch(() => null) : null;
+        if (!fresh || fresh.userId !== userId) return void ws.close(4003, 'session invalid');
+        trackSession(ws, fresh);
+        return;
+      }
       case 'rooms':
         return send(ws, { t: 'rooms', list: rooms.listPublic(), serverNow: now() });
       case 'create': {
@@ -357,6 +374,9 @@ export async function startServer(opts: ServerOptions) {
   };
   const abuse = new RateLimiter(30, 10_000); // refusals; a client that ignores them is disconnected
   const heartbeat = new WeakMap<WebSocket, { alive: boolean; pingAt: number; rtt: number | null; lastPong: number }>();
+  // The login behind each connection: when it expires (the client is asked for a fresh token before then) and which session it is.
+  const conns = new WeakMap<WebSocket, { userId: string; sessionId: string | null; expiresAt: number | null; asked: boolean }>();
+  const trackSession = (ws: WebSocket, user: AuthUser) => conns.set(ws, { userId: user.userId, sessionId: user.session?.id ?? null, expiresAt: user.session?.expiresAt ?? null, asked: false });
   let connectionSeq = 0;
 
   wss.on('connection', (ws, req) => {
@@ -424,6 +444,14 @@ export async function startServer(opts: ServerOptions) {
     const ws = sockets.get(userId);
     if (ws) send(ws, { t: 'moderation', status: opts.chat.status(userId) });
   });
+  // A logout (this session or all) closes the matching connection at once; an account change makes the client reconnect.
+  const unsubscribeRevocations = opts.revocations?.on((userId, sessionId, reason) => {
+    const ws = sockets.get(userId);
+    const c = ws && conns.get(ws);
+    if (!ws || !c) return;
+    if (sessionId !== null && c.sessionId !== sessionId) return;
+    ws.close(reason === 'logout' ? 4003 : 4004, reason === 'logout' ? 'signed out' : 'account changed');
+  });
   const reviewTimer = setInterval(() => void opts.chat.processReviews(), opts.reviewEveryMs ?? 5000);
 
   // Heartbeat: a socket that has not answered a ping for two heartbeat periods is gone (a phone that lost
@@ -437,6 +465,17 @@ export async function startServer(opts: ServerOptions) {
       if (at - h.lastPong > heartbeatMs * 2) {
         ws.terminate(); // the 'close' handler then holds the seat for the reconnect grace period
         continue;
+      }
+      const c = conns.get(ws);
+      if (c?.expiresAt) {
+        if (at > c.expiresAt + (lim.sessionGraceMs ?? 30_000)) {
+          ws.close(4003, 'session expired'); // never refreshed: the login is over
+          continue;
+        }
+        if (at > c.expiresAt - (lim.reauthLeadMs ?? 60_000) && !c.asked) {
+          c.asked = true;
+          send(ws, { t: 'reauth' });
+        }
       }
       h.pingAt = at;
       try {
@@ -473,6 +512,7 @@ export async function startServer(opts: ServerOptions) {
       for (const b of held.values()) clearTimeout(b.timer);
       held.clear();
       unsubscribeModeration();
+      unsubscribeRevocations?.();
       // Tell everyone before cutting them off, so the app can say "restarting" instead of "connection lost".
       for (const ws of wss.clients) send(ws, { t: 'shutdown', reconnectInMs: 3000 });
       const grace = lim.shutdownGraceMs ?? 1000;

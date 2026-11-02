@@ -61,6 +61,8 @@ export type ServerMsg =
   | { t: 'shutdown'; reconnectInMs: number }
   /** The host removed you. Sent just before 'left'. */
   | { t: 'kicked' }
+  /** The login is about to expire: send { t: 'auth', token } with a fresh one. */
+  | { t: 'reauth' }
   /** Your own block list (user ids), sent after sign-in and whenever it changes. */
   | { t: 'blocks'; list: string[] }
   | { t: 'result'; accepted: boolean; reason: string | null; suggestion: string | null }
@@ -86,7 +88,9 @@ export type ClientMsg =
   | { t: 'unblock'; userId: string }
   /** Host only. With userId: silence that player. Without: stop chat for everyone but the host. */
   | { t: 'mute'; on: boolean; userId?: string }
-  | { t: 'kick'; userId: string };
+  | { t: 'kick'; userId: string }
+  /** A fresh login token for the same account, sent when the server asks with 'reauth'. */
+  | { t: 'auth'; token: string };
 
 /** Human-readable text for a server error code. */
 export function describeError(code: string): string {

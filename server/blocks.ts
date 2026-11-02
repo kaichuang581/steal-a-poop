@@ -5,6 +5,8 @@ export interface BlockStore {
   load(): Promise<[blocker: string, blocked: string][]>;
   add(blocker: string, blocked: string, at: number): Promise<void>;
   remove(blocker: string, blocked: string): Promise<void>;
+  /** Removes every block this player made (account deletion). */
+  removeAllBy(blocker: string): Promise<void>;
 }
 
 export class MemoryBlockStore implements BlockStore {
@@ -17,6 +19,9 @@ export class MemoryBlockStore implements BlockStore {
   }
   async remove(blocker: string, blocked: string) {
     this.pairs.delete(JSON.stringify([blocker, blocked]));
+  }
+  async removeAllBy(blocker: string) {
+    for (const p of [...this.pairs]) if ((JSON.parse(p) as [string, string])[0] === blocker) this.pairs.delete(p);
   }
 }
 
@@ -32,6 +37,9 @@ export class PostgresBlockStore implements BlockStore {
   }
   async remove(blocker: string, blocked: string) {
     await this.pool.query('delete from user_blocks where blocker = $1 and blocked = $2', [blocker, blocked]);
+  }
+  async removeAllBy(blocker: string) {
+    await this.pool.query('delete from user_blocks where blocker = $1', [blocker]);
   }
 }
 
@@ -74,6 +82,16 @@ export class BlockList {
   unblock(blocker: string, blocked: string): void {
     const set = this.by.get(blocker);
     if (set?.delete(blocked)) this.write(() => this.store.remove(blocker, blocked));
+  }
+
+  /** Forgets every block this player made, in memory and in the store. */
+  async removeAllBy(blocker: string): Promise<void> {
+    this.by.delete(blocker);
+    this.queue = this.queue.then(() => this.store.removeAllBy(blocker)).catch((e) => {
+      this.failures += 1;
+      this.onError?.(e);
+    });
+    await this.queue;
   }
 
   private add(blocker: string, blocked: string) {

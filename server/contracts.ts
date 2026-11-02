@@ -13,6 +13,22 @@ export interface AuthUser {
   isModerator: boolean;
   /** Two-letter country code from sign-up, if known. */
   country?: string;
+  /** The login session this user signed in with. Lets the server expire and end it. Absent for dev sign-in. */
+  session?: { id: string; expiresAt: number };
+  /** False for a child whose parent has not consented: they may play, but results are not stored. Default true. */
+  resultsAllowed?: boolean;
+}
+
+/** A verified login that may not have a profile yet (the moment right after sign-up). */
+export interface SessionClaims {
+  userId: string;
+  email: string | null;
+  sessionId: string;
+  /** Epoch ms. */
+  issuedAt: number;
+  expiresAt: number;
+  /** When the person last proved who they are (typed a password, or completed Google/Meta sign-in). Epoch ms. */
+  authenticatedAt: number;
 }
 
 /** Turns a login token into a user, or null. Used by the WebSocket and the HTTP API. */
@@ -27,6 +43,10 @@ export interface RouteRequest {
   /** Parsed JSON body, or null when there is none. */
   body: unknown;
   user: AuthUser | null;
+  /** For routes with auth "session": the verified login, with or without a profile. */
+  session?: SessionClaims | null;
+  /** The caller's address as the server sees it (the proxy's header when trusted). For rate limits only. */
+  ip: string;
 }
 
 export interface RouteResponse {
@@ -38,8 +58,8 @@ export interface Route {
   method: HttpMethod;
   /** For example "/api/leaderboard/:period". */
   path: string;
-  /** none: anyone. user: a signed-in user. moderator: a signed-in moderator. */
-  auth: 'none' | 'user' | 'moderator';
+  /** none: anyone. session: a verified login (a profile is not required yet). user: a signed-in user with a profile. moderator: a signed-in moderator. */
+  auth: 'none' | 'session' | 'user' | 'moderator';
   handler: (req: RouteRequest) => Promise<RouteResponse> | RouteResponse;
 }
 

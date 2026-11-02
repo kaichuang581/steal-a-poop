@@ -1,16 +1,31 @@
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server } from 'node:http';
-import type { Route, RouteRequest, VerifyToken } from './contracts';
+import type { Route, RouteRequest, SessionClaims, VerifyToken } from './contracts';
 
 export interface HttpOptions {
   routes: readonly Route[];
   verifyToken: VerifyToken;
+  /** Verifies a login without needing a profile. Required for routes with auth "session". */
+  verifySession?: (token: string) => Promise<SessionClaims | null>;
+  /** Take the caller's address from Fly-Client-IP / X-Forwarded-For. Only behind a proxy you control. */
+  trustProxy?: boolean;
   /** Origins allowed to call the API from a browser. Empty means no cross-origin calls. */
   allowedOrigins?: readonly string[];
   maxBodyBytes?: number;
 }
 
 const DEFAULT_MAX_BODY = 64 * 1024;
+
+/** The caller's address. Behind a trusted proxy, the first value of its forwarding header. */
+function addressOf(req: IncomingMessage, trustProxy?: boolean): string {
+  if (trustProxy) {
+    const fly = req.headers['fly-client-ip'];
+    const fwd = req.headers['x-forwarded-for'];
+    const first = (typeof fly === 'string' ? fly : typeof fwd === 'string' ? fwd.split(',')[0] : '')?.trim();
+    if (first) return first;
+  }
+  return req.socket.remoteAddress ?? 'unknown';
+}
 
 const compile = (path: string) => {
   const names: string[] = [];
@@ -80,19 +95,25 @@ export function createHttpServer(opts: HttpOptions): Server {
       }
 
       let user = null;
+      let session: SessionClaims | null = null;
       if (route.auth !== 'none') {
         const header = req.headers.authorization ?? '';
         const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-        user = token ? await opts.verifyToken(token).catch(() => null) : null;
-        if (!user) return send(401, { error: 'not_signed_in' });
-        if (route.auth === 'moderator' && !user.isModerator) return send(403, { error: 'not_a_moderator' });
+        if (route.auth === 'session') {
+          session = token && opts.verifySession ? await opts.verifySession(token).catch(() => null) : null;
+          if (!session) return send(401, { error: 'not_signed_in' });
+        } else {
+          user = token ? await opts.verifyToken(token).catch(() => null) : null;
+          if (!user) return send(401, { error: 'not_signed_in' });
+          if (route.auth === 'moderator' && !user.isModerator) return send(403, { error: 'not_a_moderator' });
+        }
       }
 
       const body = req.method === 'GET' || req.method === 'DELETE' ? null : await readBody(req, opts.maxBodyBytes ?? DEFAULT_MAX_BODY);
       if (body === 'too_large') return send(413, { error: 'body_too_large' });
       if (body === 'bad_json') return send(400, { error: 'bad_json' });
 
-      const request: RouteRequest = { params, query: Object.fromEntries(url.searchParams), body, user };
+      const request: RouteRequest = { params, query: Object.fromEntries(url.searchParams), body, user, session, ip: addressOf(req, opts.trustProxy) };
       try {
         const out = await route.handler(request);
         return send(out.status, out.json);

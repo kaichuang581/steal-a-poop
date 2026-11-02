@@ -44,9 +44,10 @@ export class NetClient {
     };
     ws.onclose = (ev) => {
       if (this.ws === ws) this.ws = null;
-      // 4001: bad sign-in, 4002: signed in from somewhere else. Neither should retry.
-      if (this.stopped || ev.code === 4001 || ev.code === 4002) {
-        this.handlers.onStatus('closed', ev.code === 4002 ? 'signed in elsewhere' : ev.code === 4001 ? 'sign-in refused' : undefined);
+      // 4001: bad sign-in, 4002: signed in from somewhere else, 4003: signed out or the login expired. None should retry.
+      // 4004 (the account changed) does: reconnecting picks up the new state.
+      if (this.stopped || ev.code === 4001 || ev.code === 4002 || ev.code === 4003) {
+        this.handlers.onStatus('closed', ev.code === 4002 ? 'signed in elsewhere' : ev.code === 4001 ? 'sign-in refused' : ev.code === 4003 ? 'signed out' : undefined);
         return;
       }
       if (this.retries >= MAX_RETRIES) {

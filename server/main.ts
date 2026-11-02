@@ -11,7 +11,16 @@ import { PostgresReportStore, PostgresStore } from './moderation/postgres';
 import { ChildSafetyService, MemoryReportStore } from './moderation/reporting';
 import { createHttpServer } from './http';
 import { startServer } from './index';
-import type { VerifyToken } from './contracts';
+import type { SessionClaims, VerifyToken } from './contracts';
+import { DevCaptcha, TurnstileVerifier } from './auth/captcha';
+import { ConsoleMailer } from './auth/mailer';
+import type { Mailer } from './auth/mailer';
+import { DEFAULT_AGE_POLICY } from './auth/policy';
+import { RevocationBus } from './auth/revocations';
+import { AccountService, SupabaseAuthAdmin } from './auth/service';
+import { MemoryAccountStore, PostgresAccountStore } from './auth/store';
+import { TokenVerifier } from './auth/tokens';
+import { createAccountRoutes } from './routes/accounts';
 import { allRoutes } from './routes';
 import { ClaudeReviewer } from './review';
 
@@ -32,7 +41,12 @@ import { ClaudeReviewer } from './review';
  *   DATABASE_URL          Postgres for moderation state (run db/migrations/200_moderation.sql first). Without it, state is in memory only
  *   ANTHROPIC_API_KEY     turns on Claude review of held messages and reports
  *   REVIEW_MODEL          model id for the reviewer (required with the key)
- * Real sign-in (Supabase) is not wired yet: without ALLOW_DEV_AUTH the server refuses to start.
+ * Sign-in: set SUPABASE_URL (and SUPABASE_JWT_SECRET only for a legacy project) to verify real Supabase logins.
+ *   SUPABASE_URL, SUPABASE_JWKS_URL (optional), SUPABASE_JWT_SECRET (legacy), SUPABASE_SERVICE_ROLE_KEY (account deletion)
+ *   TURNSTILE_SECRET      CAPTCHA for our own sign-up endpoint. APP_URL: the site address used in emails
+ *   AGE_OF_CONSENT_BY_COUNTRY (JSON, from your lawyer), ALLOWED_COUNTRIES, BLOCKED_COUNTRIES (comma-separated ISO codes)
+ * With NODE_ENV=production the server refuses to start unless real sign-in, DATABASE_URL, CAPTCHA and ALLOWED_ORIGINS are set.
+ * Without SUPABASE_URL it needs ALLOW_DEV_AUTH=1 (local development only).
  */
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
@@ -56,16 +70,6 @@ const model = process.env.REVIEW_MODEL;
 const reviewer = apiKey && model ? new ClaudeReviewer({ apiKey, model, log: console.log }) : undefined;
 if (apiKey && !model) console.warn('ANTHROPIC_API_KEY is set but REVIEW_MODEL is not: reviews will wait for a person.');
 
-
-if (process.env.ALLOW_DEV_AUTH !== '1') {
-  console.error('No sign-in is configured. Set ALLOW_DEV_AUTH=1 for local development only.');
-  process.exit(1);
-}
-const devModerators = new Set((process.env.DEV_MODERATORS ?? '').split(',').map((s) => s.trim()).filter(Boolean));
-const verifyToken: VerifyToken = async (token) =>
-  token.startsWith('dev:') && token.length > 4
-    ? { userId: token, name: token.slice(4, 16), chatAllowed: true, isModerator: devModerators.has(token.slice(4)) }
-    : null;
 
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new Pool({ connectionString: databaseUrl, max: 5 }) : null;
@@ -91,20 +95,107 @@ const chat = new ChatService({
 });
 await chat.load();
 
+const blocks = new BlockList(pool ? new PostgresBlockStore(pool) : undefined, Date.now, () => console.error('block list write failed'));
+await blocks.load();
+
+// ---- sign-in -------------------------------------------------------------------------------------------
+const isProduction = process.env.NODE_ENV === 'production';
+const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, '');
+const accountStore = pool ? new PostgresAccountStore(pool) : new MemoryAccountStore();
+const bus = new RevocationBus();
+const csv = (name: string) => (process.env[name] ?? '').split(',').map((x) => x.trim().toUpperCase()).filter(Boolean);
+const ageByCountry = (() => {
+  try {
+    return JSON.parse(process.env.AGE_OF_CONSENT_BY_COUNTRY ?? '{}') as Record<string, number>;
+  } catch {
+    console.error('AGE_OF_CONSENT_BY_COUNTRY is not valid JSON');
+    process.exit(1);
+  }
+})();
+const agePolicy = {
+  ...DEFAULT_AGE_POLICY,
+  byCountry: ageByCountry,
+  allowedCountries: csv('ALLOWED_COUNTRIES').length ? csv('ALLOWED_COUNTRIES') : undefined,
+  blockedCountries: csv('BLOCKED_COUNTRIES'),
+};
+
+let verifyToken: VerifyToken;
+let verifySession: (token: string) => Promise<SessionClaims | null>;
+if (supabaseUrl) {
+  const verifier = new TokenVerifier(
+    {
+      issuer: `${supabaseUrl}/auth/v1`,
+      jwksUrl: process.env.SUPABASE_JWT_SECRET ? undefined : (process.env.SUPABASE_JWKS_URL ?? `${supabaseUrl}/auth/v1/.well-known/jwks.json`),
+      jwtSecret: process.env.SUPABASE_JWT_SECRET,
+    },
+    accountStore,
+  );
+  verifyToken = (t) => verifier.authenticate(t);
+  verifySession = (t) => verifier.claims(t);
+} else {
+  if (isProduction || process.env.ALLOW_DEV_AUTH !== '1') {
+    console.error('No sign-in is configured. Set SUPABASE_URL, or ALLOW_DEV_AUTH=1 for local development (never in production).');
+    process.exit(1);
+  }
+  const devModerators = new Set((process.env.DEV_MODERATORS ?? '').split(',').map((s) => s.trim()).filter(Boolean));
+  verifyToken = async (token) =>
+    token.startsWith('dev:') && token.length > 4
+      ? { userId: token, name: token.slice(4, 16), chatAllowed: true, isModerator: devModerators.has(token.slice(4)) }
+      : null;
+  verifySession = async () => null; // the account endpoints need a real login
+}
+
+const turnstileSecret = process.env.TURNSTILE_SECRET;
+if (isProduction) {
+  const missing = [
+    !supabaseUrl && 'SUPABASE_URL', !pool && 'DATABASE_URL', !turnstileSecret && 'TURNSTILE_SECRET', !process.env.APP_URL && 'APP_URL',
+    !process.env.SUPABASE_SERVICE_ROLE_KEY && 'SUPABASE_SERVICE_ROLE_KEY',
+  ].filter(Boolean);
+  if (missing.length) {
+    console.error(`Production needs: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+}
+// No real mail sender exists yet. Without one, a child who needs a parent's consent cannot sign up (the request fails, it is never left stuck).
+const mailer: Mailer | null = isProduction ? null : new ConsoleMailer();
+if (!mailer) console.warn('No mail sender is configured: sign-ups that need a parent\'s consent will be refused.');
+
+const accounts = new AccountService({
+  store: accountStore,
+  now: Date.now,
+  mailer,
+  agePolicy,
+  nicknameAllowed: (n) => !filter.check(n),
+  blocks,
+  bus,
+  authAdmin: supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY ? new SupabaseAuthAdmin({ url: supabaseUrl, serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY }) : undefined,
+  appUrl: process.env.APP_URL ?? 'http://localhost:5173/',
+  log: console.log,
+});
+// A ban also bans the email, so the same person cannot simply sign up again.
+chat.onChange((userId) => {
+  if (chat.state(userId).banned) void accounts.recordBan(userId, 'banned by moderation').catch(() => console.error('could not record banned identity'));
+});
+setInterval(() => void accounts.purge().catch(() => undefined), 3_600_000).unref();
+
 // One port serves the HTTP API and the WebSocket game connection.
 const httpServer = createHttpServer({
-  routes: [...allRoutes, ...createModerationRoutes({ chat, reporting, log: console.log })],
+  routes: [
+    ...allRoutes,
+    ...createModerationRoutes({ chat, reporting, log: console.log }),
+    ...createAccountRoutes({ service: accounts, captcha: turnstileSecret ? new TurnstileVerifier({ secret: turnstileSecret }) : new DevCaptcha() }),
+  ],
   verifyToken,
+  verifySession,
+  trustProxy: process.env.TRUST_PROXY === '1',
   allowedOrigins,
 });
 const port = Number(process.env.PORT ?? 8787);
 await new Promise<void>((resolve) => httpServer.listen(port, resolve));
 
-const blocks = new BlockList(pool ? new PostgresBlockStore(pool) : undefined, Date.now, () => console.error('block list write failed'));
-await blocks.load();
-
 const server = await startServer({
   blocks,
+  revocations: bus,
   audit,
   port,
   httpServer,

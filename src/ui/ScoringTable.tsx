@@ -1,6 +1,6 @@
 import {
-  BASE_TURN_MS, FAIL_PENALTY, LETTER_BONUS, MIN_TURN_MS, RARITY_MULTIPLIER, STEAL_BONUS,
-  STEAL_WINDOW_MS, TRAP_PAYOUT, basePoints, letterBonus, rarityOf,
+  BASE_TURN_MS, COMMON_MAX_RANK, FAIL_PENALTY, LETTER_BONUS, MIN_TURN_MS, RARITY_MULTIPLIER,
+  STEAL_BONUS, STEAL_WINDOW_MS, TRAP_PAYOUT, UNCOMMON_MAX_RANK, basePoints, letterBonus, rarityOf,
 } from '../engine';
 import type { Rarity } from '../engine';
 import { MODIFIER_INFO } from '../lib/modifiers';
@@ -58,8 +58,11 @@ export function ScoringTable() {
           </tbody>
         </table>
         <p className="mt-2 text-xs text-white/55">
-          Rarity is an estimate from how common a word’s letters are, not from real word usage. Words made of
-          unusual letters, and very long words, rank higher.
+          Rarity comes from an English word-frequency list derived from the Google Books Ngram Corpus
+          (CC BY 3.0). The {COMMON_MAX_RANK.toLocaleString('en-US')} most frequent words are common, the
+          next {(UNCOMMON_MAX_RANK - COMMON_MAX_RANK).toLocaleString('en-US')} uncommon, and everything
+          rarer is rare. Words the list does not cover fall back to the older letter-frequency estimate,
+          where unusual letters and long words rank higher.
         </p>
       </Section>
 

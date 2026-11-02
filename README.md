@@ -20,6 +20,11 @@ npm run simulate # headless bot-vs-bot balance runs
 The dictionary is the ENABLE word list in `public/words.txt` (172,823 lowercase words,
 one per line). It is fetched once at startup and held in a `Set`.
 
+Word rarity uses a frequency list derived from the Google Books Ngram Corpus, via
+[hackerb9/gwordlist](https://github.com/hackerb9/gwordlist), licensed under
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The game ships a filtered copy in
+`public/word-frequency.txt`; words it does not cover fall back to the old letter-frequency estimate.
+
 ## Architecture
 
 ```

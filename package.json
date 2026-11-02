@@ -13,7 +13,8 @@
     "server": "vite-node server/main.ts",
     "mod:stats": "vite-node scripts/mod-stats.ts",
     "mod:export": "vite-node scripts/mod-export.ts --",
-    "loadtest": "vite-node server/loadtest/run.ts --"
+    "loadtest": "vite-node server/loadtest/run.ts --",
+    "migrate": "vite-node scripts/migrate.ts --"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

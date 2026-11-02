@@ -1,4 +1,7 @@
 import { LEGAL_TITLES, legalHref } from './legal/legalLinks';
+import { authEnabled } from '../auth/config';
+import { useAuth } from '../auth/authStore';
+import { AuthDialog } from './auth/AuthDialog';
 import { useState } from 'react';
 import pkg from '../../package.json';
 import { GAME_TAGLINE, GAME_TITLE } from '../config';
@@ -22,6 +25,8 @@ export function StartScreen() {
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [signIn, setSignIn] = useState(false);
+  const authStatus = useAuth((st) => st.status);
   const today = utcDateKey(new Date());
   const daily = getDaily(today);
   const streak = getStreak(today);
@@ -124,6 +129,11 @@ export function StartScreen() {
             {getServerUrl() && (
               <button
                 onClick={() => {
+                  // With real sign-in the nickname comes from the account, and a login is required first.
+                  if (authEnabled()) {
+                    if (authStatus !== 'ready') return setSignIn(true);
+                    return useRoomStore.getState().openLobby(useAuth.getState().profile?.nickname ?? '');
+                  }
                   const nick = checkNickname(settings.name);
                   if (!nick.ok) return setError(nick.message);
                   setError('');
@@ -162,6 +172,7 @@ export function StartScreen() {
           </a>
         ))}
       </footer>
+      {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
       {help && <Guide onClose={() => setHelp(false)} />}
       {gear && <Settings onClose={() => setGear(false)} />}
     </main>

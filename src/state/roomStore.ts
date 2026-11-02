@@ -5,6 +5,8 @@ import { NetClient } from '../net/client';
 import { getServerUrl } from '../net/config';
 import { describeError } from '../net/protocol';
 import type { ChatMsg, ModerationStatus, PublicRoomInfo, RoomViewDTO, ServerMsg } from '../net/protocol';
+import { authEnabled } from '../auth/config';
+import { getAccessToken } from '../auth/authStore';
 import { bridge } from './bridge';
 import { useStore } from './store';
 
@@ -92,6 +94,10 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         break;
       case 'blocks':
         set((s) => ({ blocked: msg.list, chat: s.chat.filter((m) => !msg.list.includes(m.userId)) }));
+        break;
+      case 'reauth':
+        // The server wants a fresh login token before the old one expires.
+        void getAccessToken().then((token) => token && net?.send({ t: 'auth', token }));
         break;
       case 'shutdown':
         set({ notice: 'The server is restarting. Reconnecting in a moment…' });
@@ -193,7 +199,8 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       if (net) return;
       // Sign-in is a development stub until real accounts exist: the server only accepts it locally.
       const nickname = name.trim() || `Player${Math.floor(Math.random() * 900 + 100)}`;
-      net = new NetClient(url, `dev:${nickname}`, {
+      // With real sign-in the token is the Supabase login (fetched fresh on every connect); the dev stub is for local servers only.
+      net = new NetClient(url, authEnabled() ? getAccessToken : `dev:${nickname}`, {
         onMessage,
         onStatus: (status, detail) => set({ status, statusDetail: detail ?? null }),
       });

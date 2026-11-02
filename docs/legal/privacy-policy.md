@@ -23,7 +23,11 @@
 | Appeals you send | Review of your case | You |
 | Blocks you make | So you do not see that person's messages | You |
 | Moderation decisions about you, and who made them (moderator id, not their details) | Your case record | Our moderators |
+| Your login session, kept in your browser's local storage so you stay signed in | Keeping you signed in | Supabase |
+| The result of a bot check (Cloudflare Turnstile) when you sign up or reset a password | Stopping automated sign-ups | Cloudflare |
 | Technical data: IP address for connection limits and abuse prevention, and error logs without message text | Keeping the service running and safe | Automatic |
+
+We do not read or keep your email address in our own game database: it is held by our sign-in provider, and we keep only a one-way hash of it so that a banned person cannot sign up again.
 
 We do **not** collect precise location, contacts, or device identifiers for advertising. We do **not** show advertising. [Confirm: no analytics cookies. If analytics are added, this section must change.]
 

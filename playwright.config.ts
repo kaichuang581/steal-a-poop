@@ -18,7 +18,7 @@ export default defineConfig({
     {
       // The multiplayer server, with its development sign-in. Tests only. "Mona" is the test moderator,
       // and the preview app's origin may call the HTTP API.
-      command: `ALLOW_DEV_AUTH=1 DEV_MODERATORS=Mona ALLOWED_ORIGINS=http://127.0.0.1:4173 PORT=${SERVER_PORT} npm run server`,
+      command: `ALLOW_DEV_AUTH=1 DEV_MODERATORS=Mona ALLOWED_ORIGINS=http://127.0.0.1:4173,http://127.0.0.1:4174 PORT=${SERVER_PORT} npm run server`,
       port: SERVER_PORT,
       reuseExistingServer: true,
       timeout: 60_000,
@@ -27,6 +27,14 @@ export default defineConfig({
       // The app, built to talk to that server.
       command: `VITE_SERVER_URL=ws://127.0.0.1:${SERVER_PORT} npm run build && npx vite preview --port 4173 --host 127.0.0.1`,
       url: 'http://127.0.0.1:4173/steal-a-poop/',
+      reuseExistingServer: true,
+      timeout: 180_000,
+    },
+      {
+      // The same app built with real sign-in switched on, pointed at addresses the tests fake in the browser
+      // (nothing real is contacted). Tests only.
+      command: `VITE_SERVER_URL=ws://127.0.0.1:${SERVER_PORT} VITE_SUPABASE_URL=http://127.0.0.1:8790 VITE_SUPABASE_ANON_KEY=sb_publishable_test VITE_TURNSTILE_SITE_KEY=test-site-key npx vite build --outDir dist-auth && npx vite preview --outDir dist-auth --port 4174 --host 127.0.0.1`,
+      url: 'http://127.0.0.1:4174/steal-a-poop/',
       reuseExistingServer: true,
       timeout: 180_000,
     },

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { getAccessToken } from '../../auth/authStore';
+import { authEnabled } from '../../auth/config';
 import { getServerUrl } from '../../net/config';
 
 interface Summary {
@@ -19,9 +21,14 @@ const KEY = 'sap:modToken';
 
 /** Moderator screen at #/mod. The server checks the token; this page only shows what it is given. */
 export default function ModScreen() {
+  // With real sign-in the moderator's own login is used (and refreshed); the pasted token is for the development server only.
+  const real = authEnabled();
   const [token, setToken] = useState(() => {
     try { return sessionStorage.getItem(KEY) ?? ''; } catch { return ''; }
   });
+  useEffect(() => {
+    if (real) void getAccessToken().then((t) => t && setToken(t));
+  }, [real]);
   const [draft, setDraft] = useState('');
   const [items, setItems] = useState<Summary[] | null>(null);
   const [error, setError] = useState('');
@@ -29,15 +36,16 @@ export default function ModScreen() {
   const [reason, setReason] = useState('');
 
   const call = useCallback(async (method: string, path: string, body?: unknown) => {
+    const bearer = real ? ((await getAccessToken()) ?? token) : token;
     const res = await fetch(httpBase() + path, {
       method,
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      headers: { authorization: `Bearer ${bearer}`, 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error((json as { error?: string }).error ?? `error ${res.status}`);
     return json;
-  }, [token]);
+  }, [token, real]);
 
   const refresh = useCallback(async () => {
     try {
@@ -70,6 +78,7 @@ export default function ModScreen() {
     return (
       <main className="mx-auto max-w-md p-6 text-white">
         <h1 className="text-2xl font-black">Moderation</h1>
+        {real && <p className="mt-2 text-sm text-white/70">Sign in to the game first (Settings, Sign in) in this browser, then reload this page. Moderator access comes from your account.</p>}
         <label className="mt-4 block text-sm font-bold">
           Moderator token
           <input value={draft} onChange={(e) => setDraft(e.target.value)} className="mt-1 w-full rounded bg-white/10 p-2" />

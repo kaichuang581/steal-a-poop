@@ -19,7 +19,7 @@ export class NetClient {
 
   constructor(
     private url: string,
-    private token: string,
+    private token: string | (() => Promise<string | null>),
     private handlers: NetHandlers,
   ) {}
 
@@ -28,9 +28,12 @@ export class NetClient {
     this.handlers.onStatus(this.retries ? 'reconnecting' : 'connecting');
     const ws = new WebSocket(this.url);
     this.ws = ws;
-    ws.onopen = () => {
+    ws.onopen = async () => {
       this.retries = 0;
-      ws.send(JSON.stringify({ t: 'hello', token: this.token } satisfies ClientMsg));
+      // A function gives a fresh login token each time, so a reconnect after an hour still signs in.
+      const token = typeof this.token === 'function' ? await this.token() : this.token;
+      if (!token) return ws.close(4001, 'no login'); // signed out meanwhile
+      ws.send(JSON.stringify({ t: 'hello', token } satisfies ClientMsg));
     };
     ws.onmessage = (ev) => {
       let msg: ServerMsg;

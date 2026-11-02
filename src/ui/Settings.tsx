@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { resetTips } from '../lib/tips';
 import { Credits } from './Credits';
 import { useStore } from '../state/store';
+import { AccountPanel } from './auth/AccountPanel';
+import { AuthDialog } from './auth/AuthDialog';
 
 export function Settings({ onClose }: { onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -17,6 +19,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
   const setLargeText = useStore((s) => s.setLargeText);
   const [tipsCleared, setTipsCleared] = useState(false);
   const [credits, setCredits] = useState(false);
+  const [signIn, setSignIn] = useState(false);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -38,6 +41,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <button ref={closeRef} onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close">✕</button>
         </div>
         <div className="space-y-2">
+          <AccountPanel onSignIn={() => setSignIn(true)} />
           <button className={row} onClick={toggleMute} aria-pressed={muted}>
             <span>Sound</span><span>{muted ? '🔇 Off' : '🔊 On'}</span>
           </button>
@@ -70,6 +74,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       {credits && <Credits onClose={() => setCredits(false)} />}
+      {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
     </div>
   );
 }

@@ -1,60 +1,11 @@
 import { expect, test } from '@playwright/test';
-import type { Page, Route } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { API, CORS, fakeBackends, json } from './fakes';
 
 // The app here is built with real sign-in on, pointed at made-up addresses. Everything it would send to Supabase,
 // Cloudflare or the game server is answered by this file, so these tests check the SCREENS and what they send.
 // They do not talk to the real Supabase, and passing them says nothing about a real sign-in working.
 test.use({ baseURL: 'http://127.0.0.1:4174/steal-a-poop/' });
-
-const SB = 'http://127.0.0.1:8790';
-const API = 'http://127.0.0.1:8788';
-const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: CORS, body: JSON.stringify(body) });
-
-const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
-const fakeJwt = () => `${b64({ alg: 'ES256', typ: 'JWT' })}.${b64({ sub: 'u1', exp: Math.floor(Date.now() / 1000) + 3600, session_id: 's1' })}.sig`;
-
-interface Seen { url: string; method: string; auth?: string; body?: any } // eslint-disable-line @typescript-eslint/no-explicit-any
-
-async function fakeBackends(page: Page, opts: { profile?: object | null; parentMailed?: boolean; consent?: object } = {}) {
-  const seen: Seen[] = [];
-  let profile: object | null = opts.profile ?? null;
-  await page.route('https://challenges.cloudflare.com/**', (r) =>
-    r.fulfill({ contentType: 'text/javascript', body: "window.turnstile={render:function(el,o){setTimeout(function(){o.callback('cf-test-token')},10);return 'w1'},remove:function(){}};" }));
-  await page.route(`${SB}/**`, async (route) => {
-    const req = route.request();
-    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
-    const url = new URL(req.url());
-    const body = req.postData() ? JSON.parse(req.postData()!) : undefined;
-    seen.push({ url: url.pathname + url.search, method: req.method(), body });
-    if (url.pathname.endsWith('/signup')) return json(route, { id: 'u1', email: body.email, aud: 'authenticated' }); // no session: email not confirmed yet
-    if (url.pathname.endsWith('/token')) {
-      return json(route, { access_token: fakeJwt(), token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'r1', user: { id: 'u1', email: body.email, aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } });
-    }
-    if (url.pathname.endsWith('/logout')) return route.fulfill({ status: 204, headers: CORS });
-    if (url.pathname.endsWith('/recover')) return json(route, {});
-    return json(route, {});
-  });
-  await page.route(`${API}/api/**`, async (route) => {
-    const req = route.request();
-    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
-    const path = new URL(req.url()).pathname;
-    const body = req.postData() ? JSON.parse(req.postData()!) : undefined;
-    seen.push({ url: path, method: req.method(), auth: req.headers().authorization, body });
-    if (path === '/api/account/me') return json(route, { profile });
-    if (path === '/api/account/profile') {
-      profile = { nickname: body.nickname, country: body.country, consentStatus: body.parentEmail ? 'pending' : 'not_required', createdAt: 1 };
-      return json(route, { profile, parentMailed: opts.parentMailed ?? true }, 201);
-    }
-    if (path.startsWith('/api/consent/manage/')) return json(route, { state: 'withdrawn' });
-    if (path.startsWith('/api/consent/')) {
-      if (req.method() === 'GET') return opts.consent ? json(route, opts.consent) : json(route, { error: 'not_found' }, 404);
-      return json(route, { state: body.decision === 'grant' ? 'granted' : 'refused' });
-    }
-    return json(route, { ok: true });
-  });
-  return seen;
-}
 
 async function openAccountDialog(page: Page) {
   await page.addInitScript(() => localStorage.setItem('sap:tourDone', 'true'));

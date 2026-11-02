@@ -8,6 +8,7 @@ import type { ChatMsg, ModerationStatus, PublicRoomInfo, RoomViewDTO, ServerMsg 
 import { authEnabled } from '../auth/config';
 import { getAccessToken } from '../auth/authStore';
 import { bridge } from './bridge';
+import { useSocial } from './socialStore';
 import { useStore } from './store';
 
 const RULES_KEY = 'sap:chatRulesAccepted';
@@ -36,6 +37,18 @@ interface RoomStore {
   rulesAccepted: boolean;
   notice: string | null;
 
+  /** Friends who invited you to a room. Each lasts a minute. */
+  invites: Invite[];
+  /** What the last finished game paid, for the end screen. */
+  lastReward: Reward | null;
+  /** Opens the connection without showing the lobby (signed-in players stay connected so friends can invite them). */
+  connect(): void;
+  disconnect(): void;
+  invite(userId: string): void;
+  acceptInvite(code: string): void;
+  dismissInvite(code: string): void;
+  /** Starts today's server-run Daily Table. */
+  startDaily(): void;
   openLobby(name: string): void;
   closeLobby(): void;
   refresh(): void;
@@ -56,7 +69,19 @@ interface RoomStore {
   clearNotice(): void;
 }
 
+export interface Invite {
+  code: string;
+  roomName: string;
+  from: { userId: string; name: string };
+}
+export interface Reward {
+  coins: number;
+  parts: { label: string; coins: number }[];
+  balance: number;
+}
+
 let net: NetClient | null = null;
+let dailyWhenOnline = false;
 let welcomedAt = 0;
 let lastRoomMsgAt = 0;
 let pending: ((r: ActionResult | null) => void)[] = [];
@@ -91,9 +116,26 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         }
         welcomedAt = Date.now();
         send({ t: 'rooms' });
+        if (dailyWhenOnline) {
+          dailyWhenOnline = false;
+          send({ t: 'daily' });
+        }
         break;
       case 'blocks':
         set((s) => ({ blocked: msg.list, chat: s.chat.filter((m) => !msg.list.includes(m.userId)) }));
+        break;
+      case 'invited': {
+        const inv: Invite = { code: msg.code, roomName: msg.roomName, from: msg.from };
+        set((st) => ({ invites: [...st.invites.filter((i) => i.code !== inv.code || i.from.userId !== inv.from.userId), inv] }));
+        setTimeout(() => get().dismissInvite(inv.code), 60_000);
+        break;
+      }
+      case 'inviteResult':
+        set({ notice: msg.ok ? 'Invite sent.' : msg.reason === 'offline' ? 'That friend is not online.' : msg.reason === 'busy' ? 'That friend is already in a room.' : msg.reason === 'already_invited' ? 'You just invited them.' : msg.reason === 'not_in_lobby' ? 'You can invite friends before the game starts.' : 'You can only invite friends.' });
+        break;
+      case 'reward':
+        set({ lastReward: { coins: msg.coins, parts: msg.parts, balance: msg.balance } });
+        useSocial.getState().setBalance(msg.balance);
         break;
       case 'reauth':
         // The server wants a fresh login token before the old one expires.
@@ -130,7 +172,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         break;
       }
       case 'left':
-        set({ room: null, mySeat: null, chat: [], unread: 0 });
+        set({ room: null, mySeat: null, chat: [], unread: 0, lastReward: null });
         useStore.setState({ game: null, mode: 'quick', mySeat: 0 });
         break;
       case 'result': {
@@ -189,17 +231,36 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     chatNotice: null,
     moderation: null,
     blocked: [],
+    invites: [],
+    lastReward: null,
     rulesAccepted: load<boolean>(RULES_KEY, false),
     notice: null,
 
+    connect() {
+      const url = getServerUrl();
+      if (!url || net) return;
+      // With real sign-in the token is the Supabase login (fetched fresh on every connect). The dev stub is for local servers only.
+      const nickname = `Player${Math.floor(Math.random() * 900 + 100)}`;
+      net = new NetClient(url, authEnabled() ? getAccessToken : `dev:${nickname}`, {
+        onMessage,
+        onStatus: (status, detail) => set({ status, statusDetail: detail ?? null }),
+      });
+      net.connect();
+    },
+    disconnect() {
+      net?.close();
+      net = null;
+      pending = [];
+      dailyWhenOnline = false;
+      set({ open: false, status: 'off', user: null, publicRooms: [], room: null, notice: null, invites: [], lastReward: null });
+    },
     openLobby(name) {
       const url = getServerUrl();
       set({ open: true, notice: null });
       if (!url) return set({ notice: 'The game server is not set up yet.' });
       if (net) return;
-      // Sign-in is a development stub until real accounts exist: the server only accepts it locally.
+      // Development sign-in (no accounts configured): the typed nickname becomes the dev token. The server only accepts it locally.
       const nickname = name.trim() || `Player${Math.floor(Math.random() * 900 + 100)}`;
-      // With real sign-in the token is the Supabase login (fetched fresh on every connect); the dev stub is for local servers only.
       net = new NetClient(url, authEnabled() ? getAccessToken : `dev:${nickname}`, {
         onMessage,
         onStatus: (status, detail) => set({ status, statusDetail: detail ?? null }),
@@ -208,10 +269,24 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     },
     closeLobby() {
       if (get().room) get().leave();
+      // A signed-in player stays connected, so a friend's invite still reaches them.
+      if (authEnabled()) return set({ open: false, notice: null });
       net?.close();
       net = null;
       pending = [];
       set({ open: false, status: 'off', user: null, publicRooms: [], notice: null });
+    },
+    invite: (userId) => send({ t: 'invite', userId }),
+    acceptInvite(code) {
+      set((st) => ({ invites: st.invites.filter((i) => i.code !== code), open: true }));
+      send({ t: 'join', code });
+    },
+    dismissInvite: (code) => set((st) => ({ invites: st.invites.filter((i) => i.code !== code) })),
+    startDaily() {
+      if (!getServerUrl()) return;
+      get().connect();
+      if (get().status === 'online') send({ t: 'daily' });
+      else dailyWhenOnline = true; // sent as soon as the connection is up
     },
     refresh: () => send({ t: 'rooms' }),
     create: (visibility, roomName) => send({ t: 'create', visibility, roomName }),

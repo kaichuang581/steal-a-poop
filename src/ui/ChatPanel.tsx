@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '../state/roomStore';
 import { ChatBanner, ChatRulesModal } from './ChatRules';
 import { ModerationNotice } from './mod/ModerationNotice';
+import { NameTag } from './social/NameTag';
 
 function formatUntil(until: number | null): string {
   if (!until) return 'permanently';
@@ -100,7 +101,9 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
           chat.map((m) => (
             <div key={m.id} className="group flex items-start gap-2 rounded-lg px-2 py-1 text-sm hover:bg-white/5">
               <div className="min-w-0 flex-1 break-words">
-                <b className={m.userId === me ? 'text-amber-300' : 'text-sky-300'}>{m.name}</b>{' '}
+                {room?.members.find((x) => x.userId === m.userId)?.cosmetics
+                  ? <NameTag name={m.name} cosmetics={room.members.find((x) => x.userId === m.userId)!.cosmetics} />
+                  : <b className={m.userId === me ? 'text-amber-300' : 'text-sky-300'}>{m.name}</b>}{' '}
                 <span className="text-white/90">{m.text}</span>
               </div>
               {m.userId !== me && (

@@ -2,6 +2,9 @@ import { LEGAL_TITLES, legalHref } from './legal/legalLinks';
 import { authEnabled } from '../auth/config';
 import { useAuth } from '../auth/authStore';
 import { AuthDialog } from './auth/AuthDialog';
+import { Hub } from './social/Hub';
+import type { HubTab } from './social/Hub';
+import { useSocial } from '../state/socialStore';
 import { useState } from 'react';
 import pkg from '../../package.json';
 import { GAME_TAGLINE, GAME_TITLE } from '../config';
@@ -26,6 +29,9 @@ export function StartScreen() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [signIn, setSignIn] = useState(false);
+  const [hub, setHub] = useState<HubTab | null>(null);
+  const coins = useSocial((st) => st.balance);
+  const roomNotice = useRoomStore((st) => st.notice);
   const authStatus = useAuth((st) => st.status);
   const today = utcDateKey(new Date());
   const daily = getDaily(today);
@@ -119,7 +125,11 @@ export function StartScreen() {
               </button>
             ) : (
               <button
-                onClick={() => go('daily')} disabled={!ready}
+                onClick={() => {
+                  // Signed in: the server runs the Daily Table (so it can be on the leaderboard). Otherwise it is played on this device only.
+                  if (authEnabled() && authStatus === 'ready' && getServerUrl()) return useRoomStore.getState().startDaily();
+                  go('daily');
+                }} disabled={!ready}
                 className="min-h-12 rounded-xl bg-fuchsia-500 text-lg font-black disabled:opacity-40"
               >
                 Daily Table <span className="text-sm font-bold opacity-80">· one attempt</span>
@@ -144,6 +154,15 @@ export function StartScreen() {
                 Play with others <span className="text-sm font-bold opacity-80">· rooms</span>
               </button>
             )}
+            {authEnabled() && authStatus === 'ready' && getServerUrl() && (
+              <div className="flex gap-2" role="group" aria-label="Community">
+                {([['friends', '👥 Friends'], ['boards', '🏆 Boards'], ['shop', '🛍️ Shop']] as const).map(([t, label]) => (
+                  <button key={t} onClick={() => setHub(t)} className="min-h-12 flex-1 rounded-xl bg-white/10 text-sm font-bold hover:bg-white/15">{label}</button>
+                ))}
+                {coins !== null && <span aria-label="Coins" className="flex min-h-12 items-center rounded-xl bg-black/30 px-3 font-black">{coins} 🪙</span>}
+              </div>
+            )}
+            {roomNotice && !useRoomStore.getState().open && <p role="status" className="text-center text-sm text-amber-200">{roomNotice}</p>}
             <button
               onClick={() => go('practice')} disabled={!ready}
               className="min-h-12 rounded-xl bg-sky-500/70 font-black disabled:opacity-40"
@@ -173,6 +192,7 @@ export function StartScreen() {
         ))}
       </footer>
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
+      {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
       {help && <Guide onClose={() => setHelp(false)} />}
       {gear && <Settings onClose={() => setGear(false)} />}
     </main>

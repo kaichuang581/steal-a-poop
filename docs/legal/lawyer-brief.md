@@ -29,6 +29,19 @@ A free browser word game. Players sign in (email, Google, Meta), play alone or i
 10. **Data subject requests.** Is `data-requests.md` an adequate procedure?
 11. **Moderator welfare and access.** Any legal duties around staff who see this material, and who may be given access?
 
+## Added with friends, leaderboards and coins
+
+- Players find friends by a private code; there is no name search. Friends can invite each other to rooms and see who is online. A child
+  waiting for a parent's consent cannot use friends.
+- Public leaderboards show nicknames and scores. Players who needed a parent's consent are never shown.
+- An in-game currency ("coins") is earned only by playing and spent only on cosmetic items. It cannot be bought with money, given or
+  traded. There is no gambling-like mechanic.
+
+Questions: (12) Does earned virtual currency used by children raise any rules (consumer protection, loot-box style rules, unfair
+commercial practices) when no money is involved? (13) Are public leaderboards with nicknames acceptable for 13 to 17 year olds, and should
+they default to hidden for teenagers? (14) Is a friend-code system enough protection against contact by strangers, or do you want friends
+disabled for under-16s? (15) What should happen to coins and items when an account is closed by us for breaking the rules?
+
 ## What we are not asking
 
 We do not need advice on game design, pricing, or trademark right now.

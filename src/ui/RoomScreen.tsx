@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useRoomStore } from '../state/roomStore';
 import { ChatPanel } from './ChatPanel';
+import { authEnabled } from '../auth/config';
+import { Hub } from './social/Hub';
+import { NameTag } from './social/NameTag';
 
 /** Waiting room: share the code, see who is in, and (for the host) start the game. */
 export function RoomScreen() {
@@ -11,6 +14,7 @@ export function RoomScreen() {
   const { start, leave, clearNotice, mute, kick } = useRoomStore.getState();
   const [confirmKick, setConfirmKick] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [invite, setInvite] = useState(false);
   const isHost = room.hostId === me;
   const enough = room.members.length >= room.min;
 
@@ -47,6 +51,7 @@ export function RoomScreen() {
         <div className="my-1 text-5xl font-black tracking-[0.3em] text-amber-300" data-room-code>{room.code}</div>
         <button onClick={copy} className="min-h-11 rounded-lg bg-white/15 px-4 font-bold">{copied ? 'Copied!' : 'Copy code'}</button>
         <p className="mt-1 text-xs text-white/60">Anyone with this code can join before the game starts.</p>
+        {authEnabled() && <button onClick={() => setInvite(true)} className="mt-2 min-h-11 rounded-lg bg-sky-500 px-4 font-bold text-sky-950">Invite friends</button>}
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-white/5 p-3" aria-label="Players">
@@ -55,7 +60,7 @@ export function RoomScreen() {
           {room.members.map((m) => (
             <li key={m.userId} className="flex items-center gap-2 rounded-xl bg-black/30 px-3 py-2">
               <span className="flex size-8 items-center justify-center rounded-full bg-amber-400 font-black text-amber-950">{m.name[0]?.toUpperCase()}</span>
-              <span className="min-w-0 flex-1 truncate font-bold">{m.name}{m.userId === me ? ' (you)' : ''}</span>
+              <span className="min-w-0 flex-1 truncate font-bold"><NameTag name={m.name} cosmetics={m.cosmetics} you={m.userId === me} /></span>
               {m.userId === room.hostId && <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-black text-amber-950">HOST</span>}
               {isHost && m.userId !== me && (
                 <span className="flex gap-1">
@@ -99,6 +104,7 @@ export function RoomScreen() {
       </section>
 
       <ChatPanel />
+      {invite && <Hub initial="friends" onClose={() => setInvite(false)} />}
     </main>
   );
 }

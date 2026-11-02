@@ -16,7 +16,9 @@
 | Date of birth or age band | To apply the age rules below | You |
 | Country | To apply that country's rules | You (sign-up) |
 | Parent's email, and the date the parent consented (under-13 accounts only) | Verifiable parental consent | You and your parent |
-| Game results: points, words played, wins, when a game finished | Stats, leaderboards and the Daily Table | The game |
+| Game results: points, words played, wins, steals, when a game finished | Stats, leaderboards, coin rewards and the Daily Table | The game |
+| Your coin balance, the items you bought and which ones you wear | The shop (coins are earned by playing and cannot be bought) | The game |
+| Your private friend code, and who you are friends with or have asked | Friends and invitations | You |
 | Chat messages | Delivering chat to your room | You |
 | Chat messages that break the rules, with up to 20 earlier messages from the same room, your user id and room code | Review, and the record needed for safety and legal reasons | Automatic filter and player reports |
 | Reports you make about another player's message, and your note | Review of reports | You |
@@ -37,7 +39,7 @@ We do **not** collect precise location, contacts, or device identifiers for adve
 
 ## 3. Who we share it with
 
-- **Other players** see your nickname, your chat messages and your game results. They do not see your email, date of birth or country.
+- **Other players** see your nickname, your chat messages, and what you wear (a name color, badge and title). Your wins and scores appear on public leaderboards unless you hide them. Players who needed a parent's permission are never shown on leaderboards. Your friends see whether you are online. Nobody sees your email, date of birth or country.
 - **Our moderators** see the content of held messages and reports, your case history, and your country.
 - **Service providers** that process data for us (see `processors.md`): database hosting, server hosting, the AI review service, and email.
 - **Authorities.** Child-safety material is reported to the relevant body where the law requires it, after a person confirms the report. [Lawyer: list the bodies and the countries.]

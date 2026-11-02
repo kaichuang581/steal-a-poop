@@ -10,7 +10,8 @@ Supabase, Google and Meta change now and then; where a name below is missing, lo
   make a new project there **before** real players sign up and move the migrations over.
 - This is the only project so far, so treat it as **staging**. Make a second one for production when you launch.
 - Migrations applied: `100_accounts`, `200_moderation`, `201_moderation_audit`, `202_child_safety_reports`,
-  `203_user_blocks`, `204_harden_trigger_functions`. All tables have row security on and no policies, so only the
+  `203_user_blocks`, `204_harden_trigger_functions`, `101_game_results`, `102_economy`, `103_friends`.
+  Order matters only for 100 before 101 (101 adds a column to `profiles`). All tables have row security on and no policies, so only the
   server (with the service key) can read them. Supabase's security advisor reports only that intended "no policy" notice.
 
 ## What you do in the Supabase dashboard

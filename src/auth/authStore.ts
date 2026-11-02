@@ -7,6 +7,8 @@ export interface Profile {
   nickname: string;
   country: string | null;
   consentStatus: 'not_required' | 'pending' | 'granted' | 'refused' | 'withdrawn';
+  /** Shown on public leaderboards. */
+  leaderboardVisible?: boolean;
   createdAt: number;
 }
 

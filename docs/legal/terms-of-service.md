@@ -45,6 +45,14 @@ These rules apply in every room chat:
 
 You can block a player. You will not see their chat messages, and they will not see your invitations [when built]. Room hosts can mute players in a room and remove them. A removed player cannot rejoin that room.
 
+## 5a. Coins, items and friends
+
+- Coins are earned by playing. They cannot be bought, sold, given or traded, and have no cash value. Items you buy with coins are cosmetic and
+  have no effect on the game. We may change prices and what is available, and we may reset coins and items if there is a serious
+  problem such as a bug or cheating. [Lawyer: confirm this wording and what happens to coins when an account is closed.]
+- You find friends by a private code. Do not share your code with strangers. You can change it at any time.
+- Cheating to earn coins (for example, playing against your own accounts) can lead to coins being removed and the account closed.
+
 ## 6. Content and data you give us
 
 You keep ownership of your nickname and your chat messages. You give us permission to show them to other players in the room, and to store and review them for the reasons in the privacy policy.

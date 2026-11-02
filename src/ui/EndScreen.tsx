@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { rankPlayers, summarize } from '../engine';
 import { buildShareText } from '../lib/share';
 import { useStore } from '../state/store';
+import { RewardBanner } from './social/RewardBanner';
 
 export function EndScreen() {
   const game = useStore((s) => s.game)!;
@@ -74,6 +75,7 @@ export function EndScreen() {
             </div>
           ))}
         </dl>
+        {mode === 'room' && <RewardBanner />}
         {mode === 'practice' && <p className="mt-3 text-center text-sm text-emerald-200">Practice game: no penalties were applied.</p>}
         {mode === 'daily' && <p className="mt-3 text-center text-sm text-amber-200">🔥 Daily streak: {streak}</p>}
         <div className="mt-4 flex flex-wrap gap-2">

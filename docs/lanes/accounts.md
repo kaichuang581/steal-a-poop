@@ -10,9 +10,11 @@ Status: taken over by Kai's Claude session (the lane was unstarted). Setup steps
 - App: sign-in, sign-up, reset and profile dialog, parent consent page, account section in Settings (`src/ui/auth`, `src/auth`).
 - Tests: `server/auth/*.test.ts`, `server/routes/accounts.test.ts`, socket tests in `server/server.test.ts`, `src/auth/__tests__`, `e2e/auth.spec.ts`.
 
+- Friends and invites, leaderboards, stored game results, server-run Daily Table with its gate, coins and a cosmetic shop (`docs/COMMUNITY.md`).
+
 ## Not done
 - Real Google, Meta and Turnstile configuration, and a real mail sender (parental-consent email is refused in production until one exists).
-- Friends, invites (must check `BlockList`), leaderboards, stored game results (`onGameFinished`, `dailyGate`), per-country age table.
+- Per-country age table. Seasons or resets for leaderboards. Cosmetics on in-game seat labels.
 - Moderator sign-in on `#/mod` still takes a pasted token; it should use the real login.
 
 ## Not verified

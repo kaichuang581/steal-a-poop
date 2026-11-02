@@ -1,0 +1,43 @@
+name: Deploy server
+
+# Manual on purpose: a server deploy restarts every game in progress (rooms live in memory) and may change the database.
+# Run it from the Actions tab: choose the branch, and whether to apply pending database migrations first.
+on:
+  workflow_dispatch:
+    inputs:
+      migrate:
+        description: 'Apply pending database migrations first'
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Put a required reviewer on this environment (Settings, Environments) so a second person approves every server deploy.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build:server
+      - name: Show pending migrations
+        if: inputs.migrate
+        run: npm run migrate -- --dry-run
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Apply migrations
+        if: inputs.migrate
+        run: npm run migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

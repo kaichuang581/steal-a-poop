@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-auth
+dist-server
+test-results
+playwright-report
+.git
+.github
+docs
+e2e
+*.md

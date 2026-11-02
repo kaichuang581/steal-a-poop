@@ -1,0 +1,36 @@
+# Fly.io settings for the game server. Create the app once with:  fly launch --no-deploy --copy-config
+# The app name and region below are placeholders: choose your own, and keep players near it.
+app = "steal-a-poop-server"
+primary_region = "yyz" # Toronto; change to the region closest to most players
+
+[build]
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
+  TRUST_PROXY = "1" # Fly puts the real address in Fly-Client-IP; safe because only Fly's proxy can reach the app
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # The server keeps rooms and games in memory, so exactly ONE machine, always on. Never scale this above 1 until state is shared.
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 800
+    hard_limit = 1500
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "15s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "5s"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

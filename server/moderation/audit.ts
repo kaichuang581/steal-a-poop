@@ -15,7 +15,8 @@ export type AuditAction =
   | 'case_exported'
   | 'host_kick'
   | 'host_mute'
-  | 'host_unmute';
+  | 'host_unmute'
+  | 'coins_adjusted';
 
 export interface AuditEntry {
   at: number;

@@ -1,6 +1,8 @@
 import type { ChatService, ReviewItem, Verdict } from '../chat';
 import type { Route, RouteResponse } from '../contracts';
 import type { ChildSafetyService } from '../moderation/reporting';
+import type { AuditLog } from '../moderation/audit';
+import type { EconomyStore } from '../economy/store';
 
 /**
  * HTTP endpoints owned by the "moderation" lane. They need the live ChatService, so main.ts
@@ -24,9 +26,15 @@ export interface ModerationRouteDeps {
   reporting?: ChildSafetyService;
   /** Logged for every decision; never contains message text. */
   log?: (line: string) => void;
+  /** Coins support tool. Without them the coin routes answer 503. */
+  economy?: EconomyStore;
+  audit?: AuditLog;
 }
 
-export function createModerationRoutes({ chat, reporting, log = () => {} }: ModerationRouteDeps): Route[] {
+/** The most one adjustment may change a balance. Bigger fixes should be several deliberate steps. */
+export const MAX_COIN_ADJUSTMENT = 5000;
+
+export function createModerationRoutes({ chat, reporting, economy, audit, log = () => {} }: ModerationRouteDeps): Route[] {
   const bad = (error: string, status = 400): RouteResponse => ({ status, json: { error } });
   return [
     {
@@ -72,6 +80,35 @@ export function createModerationRoutes({ chat, reporting, log = () => {} }: Mode
         if (!report) return bad('no_report_on_file', 409);
         log(`[child-safety] item ${id} report ${report.status} (${report.reporter ?? 'none'}) confirmed by ${req.user!.userId}`);
         return { status: 200, json: { status: report.status, reporter: report.reporter, receipt: report.receipt } };
+      },
+    },
+    {
+      // A player's coins: balance and recent history, for support.
+      method: 'GET', path: '/api/mod/coins/:userId', auth: 'moderator',
+      handler: async (req) => {
+        if (!economy) return bad('economy_unavailable', 503);
+        const [balance, history] = await Promise.all([economy.balance(req.params.userId), economy.recent(req.params.userId, 30)]);
+        return { status: 200, json: { balance, history } };
+      },
+    },
+    {
+      // Adds or removes coins with a reason, once. The balance cannot go below zero. Every change is logged with who made it.
+      method: 'POST', path: '/api/mod/coins/:userId', auth: 'moderator',
+      handler: async (req) => {
+        if (!economy) return bad('economy_unavailable', 503);
+        const b = (req.body ?? {}) as { delta?: unknown; note?: unknown; requestId?: unknown };
+        const delta = b.delta;
+        if (typeof delta !== 'number' || !Number.isInteger(delta) || delta === 0 || Math.abs(delta) > MAX_COIN_ADJUSTMENT) return bad('bad_amount');
+        const note = typeof b.note === 'string' ? b.note.trim().slice(0, 200) : '';
+        if (!note) return bad('note_required');
+        // The caller's request id makes a double click or a retry do the change once.
+        const requestId = typeof b.requestId === 'string' && /^[\w-]{6,64}$/.test(b.requestId) ? b.requestId : null;
+        if (!requestId) return bad('request_id_required');
+        const r = await economy.apply({ userId: req.params.userId, delta, reason: 'adjustment', ref: `${req.user!.userId}:${requestId}`, at: Date.now() });
+        if (!r.ok) return bad(r.reason, 409);
+        await audit?.record({ at: Date.now(), actor: req.user!.userId, action: 'coins_adjusted', userId: req.params.userId, details: { delta, note } }).catch(() => undefined);
+        log(`[moderation] coins ${delta > 0 ? '+' : ''}${delta} by ${req.user!.userId}`);
+        return { status: 200, json: { balance: r.balance } };
       },
     },
     {

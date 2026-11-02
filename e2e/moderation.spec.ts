@@ -66,3 +66,27 @@ test('a held message reaches the moderator screen and a person clears it', async
   await pctx.close();
   await mctx.close();
 });
+
+test('a moderator can look up and adjust a player\'s coins, with a reason', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1000, height: 900 } });
+  const mod = await ctx.newPage();
+  await mod.goto('./#/mod');
+  await mod.getByLabel('Moderator token').fill('dev:Mona');
+  await mod.getByRole('button', { name: 'Sign in' }).click();
+  await mod.getByText('Coins (support)').click();
+  await mod.getByLabel('Player id').fill(`dev:Coin${run}`);
+  await mod.getByRole('button', { name: 'Look up' }).click();
+  await expect(mod.getByTestId('coin-balance')).toContainText('Balance 0');
+  const apply = mod.getByRole('button', { name: 'Apply' });
+  await expect(apply).toBeDisabled(); // needs an amount and a reason
+  await mod.getByLabel(/Amount/).fill('40');
+  await mod.getByLabel('Note for the log').fill('refund for a bug');
+  await apply.click();
+  await expect(mod.getByRole('status')).toContainText('New balance 40');
+  await expect(mod.getByTestId('coin-balance')).toContainText('Balance 40');
+  await mod.getByLabel(/Amount/).fill('-500');
+  await mod.getByLabel('Note for the log').fill('too much');
+  await apply.click();
+  await expect(mod.getByRole('status')).toContainText('insufficient');
+  await ctx.close();
+});

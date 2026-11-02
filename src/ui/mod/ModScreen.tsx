@@ -111,6 +111,7 @@ export default function ModScreen() {
           </li>
         ))}
       </ul>
+      <CoinTool call={call} />
       {open && (
         <section aria-label="Item" className="mt-4 rounded border-2 border-amber-400 p-3">
           <h2 className="font-black">Item #{open.item.id} · {open.item.category}</h2>
@@ -145,5 +146,61 @@ export default function ModScreen() {
         </section>
       )}
     </main>
+  );
+}
+
+/** Support tool: look up a player's coins and add or take some, with a reason. Every change is logged with the moderator's id. */
+function CoinTool({ call }: { call: (method: string, path: string, body?: unknown) => Promise<unknown> }) {
+  const [userId, setUserId] = useState('');
+  const [info, setInfo] = useState<{ balance: number; history: { delta: number; reason: string; at: number }[] } | null>(null);
+  const [delta, setDelta] = useState('');
+  const [note, setNote] = useState('');
+  const [msg, setMsg] = useState('');
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+
+  const lookup = async () => {
+    setMsg('');
+    try {
+      setInfo((await call('GET', `/api/mod/coins/${encodeURIComponent(userId.trim())}`)) as never);
+    } catch (e) {
+      setInfo(null);
+      setMsg(e instanceof Error ? e.message : 'failed');
+    }
+  };
+  const apply = async () => {
+    setMsg('');
+    try {
+      const out = (await call('POST', `/api/mod/coins/${encodeURIComponent(userId.trim())}`, { delta: Number(delta), note, requestId })) as { balance: number };
+      setRequestId(crypto.randomUUID()); // the next change is a new action
+      setDelta('');
+      setNote('');
+      await lookup();
+      setMsg(`Done. New balance ${out.balance}.`);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'failed');
+    }
+  };
+  const field = 'mt-1 w-full rounded bg-white/10 p-2';
+  return (
+    <details className="mt-6 rounded border border-white/20 p-3">
+      <summary className="cursor-pointer font-bold">Coins (support)</summary>
+      <label className="mt-2 block text-sm font-bold">Player id
+        <input value={userId} onChange={(e) => setUserId(e.target.value)} className={field} />
+      </label>
+      <button className="mt-2 rounded bg-white/10 px-3 py-1" disabled={!userId.trim()} onClick={() => void lookup()}>Look up</button>
+      {info && (
+        <p className="mt-2 text-sm" data-testid="coin-balance">Balance <b>{info.balance}</b>. Recent: {info.history.slice(0, 5).map((h) => `${h.delta > 0 ? '+' : ''}${h.delta} ${h.reason}`).join(', ') || 'none'}</p>
+      )}
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <label className="text-sm font-bold">Amount (+ or −)
+          <input value={delta} onChange={(e) => setDelta(e.target.value)} inputMode="numeric" className={field} />
+        </label>
+        <label className="text-sm font-bold">Note for the log
+          <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} className={field} />
+        </label>
+      </div>
+      <button className="mt-2 rounded bg-amber-400 px-3 py-2 font-black text-black disabled:opacity-40" disabled={!userId.trim() || !Number.isInteger(Number(delta)) || Number(delta) === 0 || !note.trim()} onClick={() => void apply()}>Apply</button>
+      {msg && <p role="status" className="mt-2 text-sm">{msg}</p>}
+    </details>
   );
 }

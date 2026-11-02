@@ -1,4 +1,5 @@
 import type { Player, TurnState } from '../engine';
+import type { Cosmetics } from '../net/protocol';
 import { Countdown, SecondsLeft } from './Countdown';
 import { WordText } from './WordText';
 
@@ -9,9 +10,11 @@ interface Props {
   turn: TurnState | null;
   /** This seat is the local player in a room game. */
   mine?: boolean;
+  /** What the human in this seat wears. Only the badge and title show here; the seat keeps its own color so seats stay easy to tell apart. */
+  cosmetics?: Cosmetics;
 }
 
-export function Seat({ player, x, y, turn, mine }: Props) {
+export function Seat({ player, x, y, turn, mine, cosmetics }: Props) {
   const active = turn?.seat === player.id;
   // Seats on the left and right edges put their word card inward, beside the avatar, where the
   // table is empty. Top and bottom seats keep it between the seat and the table centre.
@@ -54,8 +57,8 @@ export function Seat({ player, x, y, turn, mine }: Props) {
           <span aria-hidden="true">{player.emoji}</span>
         </div>
       </div>
-      <div className="max-w-full truncate text-[11px] font-bold leading-tight sm:text-sm" style={{ color: player.color }} data-seat-name={player.id}>
-        {player.name}{mine ? ' (you)' : ''}
+      <div className="max-w-full truncate text-[11px] font-bold leading-tight sm:text-sm" style={{ color: player.color }} data-seat-name={player.id} title={cosmetics?.title}>
+        {cosmetics?.badge && <span aria-hidden="true">{cosmetics.badge} </span>}{player.name}{mine ? ' (you)' : ''}
       </div>
       <div className="flex items-center gap-1 text-[11px] leading-none sm:text-xs">
         <span className="font-black tabular-nums">{player.banked}</span>

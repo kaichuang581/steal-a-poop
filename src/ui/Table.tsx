@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { inStealWindow } from '../engine';
+import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
 import { ChainTile } from './ChainTile';
 import { relativeSeat, seatPosition } from './geometry';
@@ -12,7 +13,13 @@ export function Table() {
   const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
   const mySeat = useStore((s) => s.mySeat);
   const room = useStore((s) => s.mode === 'room');
+  const roomView = useRoomStore((s) => s.room);
   const n = game.players.length;
+  // Who sits where, so a human's badge can be shown on their seat.
+  const wearing = (seat: number) => {
+    const uid = roomView && Object.keys(roomView.seatOf).find((u) => roomView.seatOf[u] === seat);
+    return roomView?.members.find((m) => m.userId === uid)?.cosmetics;
+  };
   return (
     <div className="relative size-full" data-table>
       <div className="absolute inset-x-[10%] inset-y-[14%] rounded-[50%] border-[10px] border-wood bg-felt shadow-[0_20px_60px_rgba(0,0,0,0.6),inset_0_0_60px_rgba(0,0,0,0.55)] sm:border-[14px]"
@@ -41,7 +48,7 @@ export function Table() {
       <Flights />
       {game.players.map((p) => {
         const { x, y } = seatPosition(relativeSeat(p.id, mySeat, n), n);
-        return <Seat key={p.id} player={p} x={x} y={y} turn={game.turn} mine={room && p.id === mySeat} />;
+        return <Seat key={p.id} player={p} x={x} y={y} turn={game.turn} mine={room && p.id === mySeat} cosmetics={room ? wearing(p.id) : undefined} />;
       })}
     </div>
   );

@@ -251,7 +251,7 @@ const takeSnapshot = async (): Promise<Snapshot> => {
 const httpServer = createHttpServer({
   routes: [
     ...allRoutes,
-    ...createModerationRoutes({ chat, reporting, log: console.log }),
+    ...createModerationRoutes({ chat, reporting, economy: economyStore, audit, log: console.log }),
     ...createFriendRoutes({ friends }),
     ...createLeaderboardRoutes({ data: gameData, accounts }),
     ...createShopRoutes({ economy, store: economyStore }),

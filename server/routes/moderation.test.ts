@@ -5,6 +5,8 @@ import { ChatService } from '../chat';
 import { ChatFilter } from '../filter';
 import { createHttpServer } from '../http';
 import { ChildSafetyService, MemoryReportStore } from '../moderation/reporting';
+import { MemoryAudit } from '../moderation/audit';
+import { MemoryEconomyStore } from '../economy/store';
 import { createModerationRoutes } from './moderation';
 
 let server: Server | undefined;
@@ -19,9 +21,11 @@ async function boot(reviewVerdict?: 'escalate') {
   });
   const lines: string[] = [];
   const reporting = new ChildSafetyService({ store: new MemoryReportStore(), now: () => t });
+  const economy = new MemoryEconomyStore();
+  const audit = new MemoryAudit();
   (chat as any).deps.sink = reporting;
   server = createHttpServer({
-    routes: createModerationRoutes({ chat, reporting, log: (l) => lines.push(l) }),
+    routes: createModerationRoutes({ chat, reporting, economy, audit, log: (l) => lines.push(l) }),
     verifyToken: async (tok) => (tok === 'mod' ? { userId: 'm1', name: 'Mo', chatAllowed: true, isModerator: true } : tok === 'user' ? { userId: 'u1', name: 'U', chatAllowed: true, isModerator: false } : tok === 'bad' ? { userId: 'bad', name: 'Bad', chatAllowed: true, isModerator: false } : null),
   });
   await new Promise<void>((r) => server!.listen(0, r));
@@ -36,7 +40,7 @@ async function boot(reviewVerdict?: 'escalate') {
   chat.submit({ userId: 'bad', name: 'Bad', roomCode: 'R1', text: 'hello' });
   chat.submit({ userId: 'bad', name: 'Bad', roomCode: 'R1', text: 'you blorf' });
   await chat.processReviews();
-  return { chat, reporting, call, lines, tick: (ms: number) => (t += ms) };
+  return { chat, reporting, economy, audit, call, lines, tick: (ms: number) => (t += ms) };
 }
 
 describe('moderation routes', () => {
@@ -112,5 +116,24 @@ describe('moderation routes', () => {
     expect(out.json).toMatchObject({ status: 'dry_run', reporter: 'dry_run' });
     expect(lines.at(-1)).toContain('dry_run');
     expect(lines.at(-1)).not.toContain('home alone');
+  });
+
+  it('coin support: moderators can look up and adjust a balance once, with a reason, and it is logged', async () => {
+    const { call, economy, audit } = await boot();
+    await economy.apply({ userId: 'p1', delta: 100, reason: 'game_reward', ref: 'g', at: 1 });
+    expect((await call('GET', '/api/mod/coins/p1', 'user')).status).toBe(403);
+    expect((await call('GET', '/api/mod/coins/p1', 'mod')).json.balance).toBe(100);
+    const post = (body: object, tok = 'mod') => call('POST', '/api/mod/coins/p1', tok, body);
+    expect((await post({ delta: 50, note: 'refund for bug', requestId: 'req-0001' }, 'user')).status).toBe(403);
+    expect((await post({ delta: 0, note: 'x', requestId: 'req-0002' })).json.error).toBe('bad_amount');
+    expect((await post({ delta: 1.5, note: 'x', requestId: 'req-0003' })).json.error).toBe('bad_amount');
+    expect((await post({ delta: 99999, note: 'x', requestId: 'req-0004' })).json.error).toBe('bad_amount');
+    expect((await post({ delta: 10, requestId: 'req-0005' })).json.error).toBe('note_required');
+    expect((await post({ delta: 10, note: 'x' })).json.error).toBe('request_id_required');
+    expect((await post({ delta: 50, note: 'refund for bug', requestId: 'req-0006' })).json).toEqual({ balance: 150 });
+    expect((await post({ delta: 50, note: 'refund for bug', requestId: 'req-0006' })).status).toBe(409); // a retry does not pay twice
+    expect((await post({ delta: -500, note: 'remove', requestId: 'req-0007' })).json.error).toBe('insufficient'); // never below zero
+    expect(await economy.balance('p1')).toBe(150);
+    expect(audit.entries.filter((e) => e.action === 'coins_adjusted')).toEqual([expect.objectContaining({ actor: 'm1', userId: 'p1', details: { delta: 50, note: 'refund for bug' } })]);
   });
 });

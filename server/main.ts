@@ -21,6 +21,15 @@ import { AccountService, SupabaseAuthAdmin } from './auth/service';
 import { MemoryAccountStore, PostgresAccountStore } from './auth/store';
 import { TokenVerifier } from './auth/tokens';
 import { createAccountRoutes } from './routes/accounts';
+import { createFriendRoutes } from './routes/friends';
+import { createLeaderboardRoutes } from './routes/leaderboard';
+import { createShopRoutes } from './routes/shop';
+import { EconomyService } from './economy/service';
+import { MemoryEconomyStore, PostgresEconomyStore } from './economy/store';
+import { MemoryResultsStore, PostgresResultsStore } from './game/results';
+import { GameDataService } from './game/service';
+import { FriendsService } from './social/friends';
+import { MemoryFriendStore, PostgresFriendStore } from './social/friends';
 import { allRoutes } from './routes';
 import { ClaudeReviewer } from './review';
 
@@ -138,10 +147,17 @@ if (supabaseUrl) {
     process.exit(1);
   }
   const devModerators = new Set((process.env.DEV_MODERATORS ?? '').split(',').map((s) => s.trim()).filter(Boolean));
-  verifyToken = async (token) =>
-    token.startsWith('dev:') && token.length > 4
-      ? { userId: token, name: token.slice(4, 16), chatAllowed: true, isModerator: devModerators.has(token.slice(4)) }
-      : null;
+  verifyToken = async (token) => {
+    if (!(token.startsWith('dev:') && token.length > 4)) return null;
+    const name = token.slice(4, 16);
+    // Development players get a profile at once so friends, leaderboards and coins can be tried locally.
+    const now = Date.now();
+    await accountStore.createProfile({
+      userId: token, nickname: name, emailHash: '', dateOfBirth: '1990-01-01', country: 'CA', consentStatus: 'not_required', leaderboardVisible: true,
+      isModerator: false, sessionsValidAfter: 0, createdAt: now, updatedAt: now, deletedAt: null,
+    }).catch(() => false);
+    return { userId: token, name, chatAllowed: true, resultsAllowed: true, isModerator: devModerators.has(token.slice(4)) };
+  };
   verifySession = async () => null; // the account endpoints need a real login
 }
 
@@ -160,7 +176,31 @@ if (isProduction) {
 const mailer: Mailer | null = isProduction ? null : new ConsoleMailer();
 if (!mailer) console.warn('No mail sender is configured: sign-ups that need a parent\'s consent will be refused.');
 
+// ---- game data: results, coins, friends ---------------------------------------------------------------
+const economyStore = pool ? new PostgresEconomyStore(pool) : new MemoryEconomyStore();
+const economy = new EconomyService(economyStore);
+const presence = { online: (_id: string) => false };
+let notify: (userId: string, msg: object) => void = () => undefined;
+const friends = new FriendsService({
+  store: pool ? new PostgresFriendStore(pool) : new MemoryFriendStore(),
+  accounts: accountStore,
+  blocks,
+  now: Date.now,
+  online: (id) => presence.online(id),
+  cosmetics: (id) => economy.cachedCosmetics(id),
+});
+const gameData = new GameDataService({
+  results: pool ? new PostgresResultsStore(pool) : new MemoryResultsStore(),
+  accounts: accountStore,
+  economy,
+  isBanned: (id) => chat.state(id).banned,
+  now: Date.now,
+  onAward: (userId, reward) => notify(userId, { t: 'reward', coins: reward.coins, parts: reward.parts, balance: reward.balance }),
+  log: console.log,
+});
+
 const accounts = new AccountService({
+  erasers: [(id) => gameData.erase(id), (id) => friends.erase(id)],
   store: accountStore,
   now: Date.now,
   mailer,
@@ -183,6 +223,9 @@ const httpServer = createHttpServer({
   routes: [
     ...allRoutes,
     ...createModerationRoutes({ chat, reporting, log: console.log }),
+    ...createFriendRoutes({ friends }),
+    ...createLeaderboardRoutes({ data: gameData, accounts }),
+    ...createShopRoutes({ economy, store: economyStore }),
     ...createAccountRoutes({ service: accounts, captcha: turnstileSecret ? new TurnstileVerifier({ secret: turnstileSecret }) : new DevCaptcha() }),
   ],
   verifyToken,
@@ -194,6 +237,10 @@ const port = Number(process.env.PORT ?? 8787);
 await new Promise<void>((resolve) => httpServer.listen(port, resolve));
 
 const server = await startServer({
+  onGameFinished: (result) => gameData.record(result),
+  dailyGate: { reserve: (userId, date) => gameData.claimDaily(userId, date) },
+  friends,
+  cosmetics: economy,
   blocks,
   revocations: bus,
   audit,
@@ -216,6 +263,8 @@ const server = await startServer({
     trustProxy: process.env.TRUST_PROXY === '1',
   },
 });
+presence.online = server.isOnline;
+notify = server.notify;
 console.log(`game server on ws://localhost:${server.port} and http://localhost:${server.port} (dev sign-in, reviewer ${reviewer ? 'on' : 'off'})`);
 
 // Finish pending moderation writes before the process exits.

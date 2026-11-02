@@ -14,6 +14,7 @@ import { DEFAULT_BUFFER_MS, DEFAULT_MAX_COMPENSATION_MS, RttTracker, estimatedSe
 import type { PendingAction, StealOptions } from './steals';
 import type { AuditLog } from './moderation/audit';
 import type { RevocationBus } from './auth/revocations';
+import type { Cosmetics } from '../src/net/protocol';
 
 export type { AuthUser, VerifyToken } from './contracts';
 
@@ -34,6 +35,10 @@ export interface ServerOptions {
   audit?: AuditLog;
   /** Told when a login ends or an account changes, so open connections can be closed or refreshed. */
   revocations?: RevocationBus;
+  /** Friends, for invites. Without it invites are refused. */
+  friends?: { areFriends(a: string, b: string): Promise<boolean> };
+  /** Cosmetics shown beside names in rooms. */
+  cosmetics?: { cosmetics(userId: string): Promise<Cosmetics>; cachedCosmetics(userId: string): Cosmetics | undefined; onCosmetics(l: (userId: string, c: Cosmetics) => void): () => void };
   randomInt: (n: number) => number;
   now?: () => number;
   /** How long a dropped connection keeps its seat before a bot takes over. */
@@ -89,6 +94,7 @@ export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> =
   mute: [30, 60_000],
   kick: [20, 60_000],
   auth: [10, 60_000],
+  invite: [20, 60_000],
 };
 
 type ClientMsg =
@@ -107,7 +113,8 @@ type ClientMsg =
   | { t: 'unblock'; userId: string }
   | { t: 'mute'; on: boolean; userId?: string }
   | { t: 'kick'; userId: string }
-  | { t: 'auth'; token: string };
+  | { t: 'auth'; token: string }
+  | { t: 'invite'; userId: string };
 
 const MAX_PAYLOAD = 4096;
 
@@ -171,9 +178,11 @@ export async function startServer(opts: ServerOptions) {
     const view = rooms.view(code);
     if (!view) return;
     const serverNow = now(); // timers in the game state are in server time; clients correct for the difference
-    for (const m of view.members) sendTo(m.userId, { t: 'room', view, serverNow, you: { userId: m.userId, seat: view.seatOf[m.userId] ?? null } });
+    const dressed = { ...view, members: view.members.map((m) => ({ ...m, cosmetics: opts.cosmetics?.cachedCosmetics(m.userId) })) };
+    for (const m of view.members) sendTo(m.userId, { t: 'room', view: dressed, serverNow, you: { userId: m.userId, seat: view.seatOf[m.userId] ?? null } });
   };
   const blocks = opts.blocks ?? new BlockList();
+  const recentInvites = new Map<string, number>();
   const sendBlocks = (userId: string) => sendTo(userId, { t: 'blocks', list: blocks.list(userId) });
   const hostAction = (hostId: string, action: 'host_kick' | 'host_mute' | 'host_unmute', roomCode: string, target: string | null) => {
     void opts.audit?.record({ at: now(), actor: hostId, action, userId: target ?? undefined, details: { roomCode } }).catch(() => {});
@@ -196,6 +205,7 @@ export async function startServer(opts: ServerOptions) {
       sockets.set(user.userId, ws);
       if (old && old !== ws) old.close(4002, 'signed in elsewhere');
       send(ws, { t: 'welcome', userId: user.userId, name: user.name, serverNow: now(), chat: opts.chat.state(user.userId), moderation: opts.chat.status(user.userId) });
+      await opts.cosmetics?.cosmetics(user.userId).catch(() => undefined); // so the first room view already shows what they wear
       sendBlocks(user.userId);
       const room = rooms.roomFor(user.userId);
       if (room) broadcastRoom(room.code);
@@ -206,6 +216,22 @@ export async function startServer(opts: ServerOptions) {
     const { userId, name } = user;
 
     switch (msg.t) {
+      case 'invite': {
+        const target = String(msg.userId ?? '');
+        const reply = (ok: boolean, reason: string | null = null) => send(ws, { t: 'inviteResult', ok, reason });
+        const room = rooms.roomFor(userId);
+        if (!room || room.kind !== 'room' || room.phase !== 'lobby') return reply(false, 'not_in_lobby');
+        if (!user.chatAllowed || !opts.friends || !(await opts.friends.areFriends(userId, target))) return reply(false, 'friends_only');
+        if (blocks.isBlocked(userId, target) || blocks.isBlocked(target, userId)) return reply(false, 'friends_only'); // never says which way
+        if (rooms.roomFor(target)) return reply(false, 'busy');
+        const targetSocket = sockets.get(target);
+        if (!targetSocket) return reply(false, 'offline');
+        const key = `${userId}|${target}|${room.code}`;
+        if (now() - (recentInvites.get(key) ?? -Infinity) < 30_000) return reply(false, 'already_invited');
+        recentInvites.set(key, now());
+        send(targetSocket, { t: 'invited', from: { userId, name }, code: room.code, roomName: room.name });
+        return reply(true);
+      }
       case 'auth': {
         // A fresh token for the same login before the old one expires. Anything else ends the connection.
         const fresh = typeof msg.token === 'string' ? await opts.verifyToken(msg.token).catch(() => null) : null;
@@ -452,6 +478,11 @@ export async function startServer(opts: ServerOptions) {
     if (sessionId !== null && c.sessionId !== sessionId) return;
     ws.close(reason === 'logout' ? 4003 : 4004, reason === 'logout' ? 'signed out' : 'account changed');
   });
+  // When someone changes what they wear, their room sees it straight away.
+  const unsubscribeCosmetics = opts.cosmetics?.onCosmetics((userId) => {
+    const r = rooms.roomFor(userId);
+    if (r) broadcastRoom(r.code);
+  });
   const reviewTimer = setInterval(() => void opts.chat.processReviews(), opts.reviewEveryMs ?? 5000);
 
   // Heartbeat: a socket that has not answered a ping for two heartbeat periods is gone (a phone that lost
@@ -494,6 +525,7 @@ export async function startServer(opts: ServerOptions) {
     for (const l of limiters.values()) l.prune(at);
     for (const l of [createLimit, joinLimit, blockLimit, abuse]) l.prune(at);
     opts.chat.prune();
+    for (const [k, t] of recentInvites) if (at - t > 60_000) recentInvites.delete(k);
     for (const id of [...names.keys()]) if (!sockets.has(id) && !rooms.roomFor(id)) names.delete(id);
   }, Math.min(30_000, Math.max(1000, finishedTtl / 4)));
 
@@ -503,6 +535,9 @@ export async function startServer(opts: ServerOptions) {
     chat: opts.chat,
     /** Open sockets, for monitoring. */
     connections: () => total,
+    isOnline: (userId: string) => sockets.get(userId)?.readyState === 1,
+    /** Sends a message to one signed-in player, if they are connected. */
+    notify: (userId: string, msg: object) => sendTo(userId, msg),
     async close() {
       closing = true; // new connections are refused from here on
       clearInterval(tickTimer);
@@ -513,6 +548,7 @@ export async function startServer(opts: ServerOptions) {
       held.clear();
       unsubscribeModeration();
       unsubscribeRevocations?.();
+      unsubscribeCosmetics?.();
       // Tell everyone before cutting them off, so the app can say "restarting" instead of "connection lost".
       for (const ws of wss.clients) send(ws, { t: 'shutdown', reconnectInMs: 3000 });
       const grace = lim.shutdownGraceMs ?? 1000;

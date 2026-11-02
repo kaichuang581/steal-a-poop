@@ -8,7 +8,8 @@ import { ChatFilter } from './filter';
 import { MemoryAudit } from './moderation/audit';
 import type { DailyGate, GameResultSink } from './contracts';
 import { startServer } from './index';
-import type { ConnectionLimits } from './index';
+import type { ConnectionLimits, ServerOptions } from './index';
+import { BlockList } from './blocks';
 import type { StealOptions } from './steals';
 import type { AuthUser } from './contracts';
 import { RevocationBus } from './auth/revocations';
@@ -66,13 +67,13 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; steals?: StealOptions; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
+async function boot(extra: { friends?: { areFriends(a: string, b: string): Promise<boolean> }; cosmetics?: ServerOptions['cosmetics']; blocks?: BlockList; verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; steals?: StealOptions; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
     dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit,
     limits: { shutdownGraceMs: 0, ...extra.limits }, now: extra.now, steals: extra.steals,
-    revocations: extra.revocations,
+    revocations: extra.revocations, friends: extra.friends, cosmetics: extra.cosmetics, blocks: extra.blocks,
     verifyToken: extra.verifyToken ?? (async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null)),
   });
   open.push(server);
@@ -699,5 +700,92 @@ describe('logins on open connections', () => {
     await new Promise((r) => setTimeout(r, 300));
     expect(c.ws.readyState).toBe(WebSocket.OPEN);
     expect(c.msgs.some((m) => m.t === 'reauth')).toBe(false);
+  });
+});
+
+describe('invites and cosmetics over the wire', () => {
+  const friendsOf = (pairs: [string, string][]) => ({ areFriends: async (a: string, b: string) => pairs.some(([x, y]) => (x === a && y === b) || (x === b && y === a)) });
+  const id = (n: string) => `dev:${n}`;
+  async function pair(extra: Parameters<typeof boot>[0] = {}) {
+    const server = await boot({ friends: friendsOf([[id('Ana'), id('Ben')]]), ...extra });
+    const [ana, ben, cy] = await Promise.all(['Ana', 'Ben', 'Cy'].map((n) => Client.connect(server.port, n)));
+    clients.push(ana, ben, cy);
+    await Promise.all([ana, ben, cy].map((c) => c.waitFor((m) => m.t === 'welcome')));
+    return { server, ana, ben, cy };
+  }
+  const makeRoom = async (c: Client) => {
+    c.send({ t: 'create', visibility: 'private' });
+    return (await c.waitFor((m) => m.t === 'room')).view.code as string;
+  };
+
+  it('a friend in the lobby gets the room code; a non-friend is refused without being told anything', async () => {
+    const { ana, ben, cy } = await pair();
+    const code = await makeRoom(ana);
+    ana.send({ t: 'invite', userId: id('Cy') });
+    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'friends_only' });
+    expect(cy.msgs.some((m) => m.t === 'invited')).toBe(false);
+    ana.send({ t: 'invite', userId: id('Ben') });
+    expect(await ana.next('inviteResult')).toMatchObject({ ok: true });
+    expect(await ben.waitFor((m) => m.t === 'invited')).toMatchObject({ from: { userId: id('Ana'), name: 'Ana' }, code, roomName: expect.stringContaining('Ana') });
+  });
+
+  it('is refused when you are not in a lobby, the friend is busy or offline, or you already asked', async () => {
+    const { ana } = await pair();
+    ana.send({ t: 'invite', userId: id('Ben') });
+    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'not_in_lobby' });
+    await makeRoom(ana);
+    ana.send({ t: 'invite', userId: id('Ben') });
+    expect(await ana.next('inviteResult')).toMatchObject({ ok: true });
+    ana.send({ t: 'invite', userId: id('Ben') });
+    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'already_invited' });
+    // a friend who is not connected
+    const s2 = await boot({ friends: friendsOf([[id('Ann'), id('Ghost')]]) });
+    const ann = await Client.connect(s2.port, 'Ann');
+    clients.push(ann);
+    await ann.waitFor((m) => m.t === 'welcome');
+    await makeRoom(ann);
+    ann.send({ t: 'invite', userId: id('Ghost') });
+    expect(await ann.next('inviteResult')).toMatchObject({ ok: false, reason: 'offline' });
+    const s3 = await boot({ friends: friendsOf([[id('Ana'), id('Ben')]]) });
+    const [a3, b3] = await Promise.all(['Ana', 'Ben'].map((n) => Client.connect(s3.port, n)));
+    clients.push(a3, b3);
+    await Promise.all([a3, b3].map((c) => c.waitFor((m) => m.t === 'welcome')));
+    await makeRoom(b3);
+    await makeRoom(a3);
+    a3.send({ t: 'invite', userId: id('Ben') });
+    expect(await a3.next('inviteResult')).toMatchObject({ ok: false, reason: 'busy' });
+  });
+
+  it('a block in either direction stops an invite, with the same answer as a non-friend', async () => {
+    const blocks = new BlockList();
+    const { ana, ben } = await pair({ blocks });
+    await makeRoom(ana);
+    blocks.block(id('Ben'), id('Ana'));
+    ana.send({ t: 'invite', userId: id('Ben') });
+    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'friends_only' });
+    blocks.unblock(id('Ben'), id('Ana'));
+    blocks.block(id('Ana'), id('Ben'));
+    ana.send({ t: 'invite', userId: id('Ben') });
+    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'friends_only' });
+    expect(ben.msgs.some((m) => m.t === 'invited')).toBe(false);
+  });
+
+  it('shows what players wear in the room, and updates when they change it', async () => {
+    const worn = new Map<string, Record<string, string>>([[id('Ana'), { badge: '🔥' }]]);
+    const listeners: ((u: string, c: Record<string, string>) => void)[] = [];
+    const cosmetics = {
+      cosmetics: async (u: string) => worn.get(u) ?? {},
+      cachedCosmetics: (u: string) => worn.get(u),
+      onCosmetics: (l: (u: string, c: Record<string, string>) => void) => (listeners.push(l), () => undefined),
+    };
+    const { ana, ben } = await pair({ cosmetics });
+    const code = await makeRoom(ana);
+    ben.send({ t: 'join', code });
+    const view = (await ben.waitFor((m) => m.t === 'room' && m.view.members.length === 2)).view;
+    expect(view.members.find((m: any) => m.userId === id('Ana')).cosmetics).toEqual({ badge: '🔥' }); // eslint-disable-line @typescript-eslint/no-explicit-any
+    worn.set(id('Ben'), { color: '#fbbf24' });
+    listeners.forEach((l) => l(id('Ben'), { color: '#fbbf24' }));
+    const again = await ana.waitFor((m) => m.t === 'room' && m.view.members.some((x: any) => x.cosmetics?.color === '#fbbf24')); // eslint-disable-line @typescript-eslint/no-explicit-any
+    expect(again).toBeTruthy();
   });
 });

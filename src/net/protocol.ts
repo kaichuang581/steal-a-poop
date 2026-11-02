@@ -10,12 +10,19 @@ export interface PublicRoomInfo {
   min: number;
 }
 
+/** What a player has put on, shown beside their name. Chosen from a fixed shop list, never typed text. */
+export interface Cosmetics {
+  color?: string;
+  title?: string;
+  badge?: string;
+}
+
 export interface RoomViewDTO {
   code: string;
   name: string;
   visibility: 'public' | 'private';
   hostId: string;
-  members: { userId: string; name: string }[];
+  members: { userId: string; name: string; cosmetics?: Cosmetics }[];
   phase: 'lobby' | 'playing' | 'finished';
   min: number;
   max: number;
@@ -63,6 +70,11 @@ export type ServerMsg =
   | { t: 'kicked' }
   /** The login is about to expire: send { t: 'auth', token } with a fresh one. */
   | { t: 'reauth' }
+  /** A friend invites you to a room. The code is sent only to friends. */
+  | { t: 'invited'; from: { userId: string; name: string }; code: string; roomName: string }
+  | { t: 'inviteResult'; ok: boolean; reason: string | null }
+  /** Coins earned from a game that just finished. */
+  | { t: 'reward'; coins: number; parts: { label: string; coins: number }[]; balance: number }
   /** Your own block list (user ids), sent after sign-in and whenever it changes. */
   | { t: 'blocks'; list: string[] }
   | { t: 'result'; accepted: boolean; reason: string | null; suggestion: string | null }
@@ -90,7 +102,9 @@ export type ClientMsg =
   | { t: 'mute'; on: boolean; userId?: string }
   | { t: 'kick'; userId: string }
   /** A fresh login token for the same account, sent when the server asks with 'reauth'. */
-  | { t: 'auth'; token: string };
+  | { t: 'auth'; token: string }
+  /** Invite a friend to the room you are in (before the game starts). */
+  | { t: 'invite'; userId: string };
 
 /** Human-readable text for a server error code. */
 export function describeError(code: string): string {
@@ -106,6 +120,7 @@ export function describeError(code: string): string {
     case 'not_in_room': return 'You are not in a room.';
     case 'game_not_running': return 'The game is not running.';
     case 'bad_name': return 'Pick a nickname first.';
+    case 'friends_only': return 'You can only invite friends.';
     case 'kicked': return 'The host removed you from that room.';
     case 'cannot_target': return 'You cannot do that to yourself or the host.';
     case 'daily_used': return 'You have already played today\'s Daily Table.';

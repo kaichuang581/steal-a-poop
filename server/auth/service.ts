@@ -58,11 +58,12 @@ export type CreateProfileFailure =
 
 export interface PublicProfile {
   nickname: string;
+  leaderboardVisible: boolean;
   country: string | null;
   consentStatus: ConsentStatus;
   createdAt: number;
 }
-const publicOf = (p: Profile): PublicProfile => ({ nickname: p.nickname, country: p.country, consentStatus: p.consentStatus, createdAt: p.createdAt });
+const publicOf = (p: Profile): PublicProfile => ({ nickname: p.nickname, leaderboardVisible: p.leaderboardVisible, country: p.country, consentStatus: p.consentStatus, createdAt: p.createdAt });
 
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/;
 
@@ -91,6 +92,15 @@ export class AccountService {
   private log = (line: string) => this.d.log?.(`[accounts] ${line}`);
 
   // ---------------------------------------------------------------- sign-up
+
+  /** Show or hide the player on public leaderboards. A player who needed a parent's consent cannot turn it on. */
+  async setLeaderboardVisible(userId: string, visible: boolean): Promise<'ok' | 'not_allowed' | 'no_profile'> {
+    const p = await this.d.store.getProfile(userId);
+    if (!p || p.deletedAt !== null) return 'no_profile';
+    if (visible && p.consentStatus !== 'not_required') return 'not_allowed';
+    await this.d.store.updateProfile(userId, { leaderboardVisible: visible, updatedAt: this.d.now() });
+    return 'ok';
+  }
 
   async getProfile(userId: string): Promise<PublicProfile | null> {
     const p = await this.d.store.getProfile(userId);
@@ -127,7 +137,7 @@ export class AccountService {
 
     const profile: Profile = {
       userId: claims.userId, nickname, emailHash, dateOfBirth: String(input.dateOfBirth), country: country.country,
-      consentStatus: needsConsent ? 'pending' : 'not_required', isModerator: false, sessionsValidAfter: 0, createdAt: now, updatedAt: now, deletedAt: null,
+      consentStatus: needsConsent ? 'pending' : 'not_required', leaderboardVisible: !needsConsent, isModerator: false, sessionsValidAfter: 0, createdAt: now, updatedAt: now, deletedAt: null,
     };
     try {
       if (!(await this.d.store.createProfile(profile))) return fail('profile_exists'); // lost a race with ourselves

@@ -8,6 +8,8 @@ export interface Profile {
   dateOfBirth: string | null;
   country: string | null;
   consentStatus: ConsentStatus;
+  /** Shown on public leaderboards. Starts off for anyone who needed a parent's consent. */
+  leaderboardVisible: boolean;
   isModerator: boolean;
   sessionsValidAfter: number;
   createdAt: number;
@@ -130,6 +132,7 @@ const profileFrom = (r: Record<string, unknown>): Profile => ({
   dateOfBirth: r.date_of_birth ? (r.date_of_birth instanceof Date ? r.date_of_birth.toISOString().slice(0, 10) : String(r.date_of_birth).slice(0, 10)) : null,
   country: (r.country as string | null) ?? null,
   consentStatus: r.consent_status as ConsentStatus,
+  leaderboardVisible: r.leaderboard_visible as boolean,
   isModerator: r.is_moderator as boolean,
   sessionsValidAfter: Number(r.sessions_valid_after),
   createdAt: Number(r.created_at),
@@ -161,15 +164,15 @@ export class PostgresAccountStore implements AccountStore {
   }
   async createProfile(p: Profile) {
     const { rowCount } = await this.pool.query(
-      `insert into profiles (user_id, nickname, email_hash, date_of_birth, country, consent_status, is_moderator, sessions_valid_after, created_at, updated_at)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) on conflict (user_id) do nothing`,
-      [p.userId, p.nickname, p.emailHash, p.dateOfBirth, p.country, p.consentStatus, p.isModerator, p.sessionsValidAfter, p.createdAt, p.updatedAt],
+      `insert into profiles (user_id, nickname, email_hash, date_of_birth, country, consent_status, leaderboard_visible, is_moderator, sessions_valid_after, created_at, updated_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) on conflict (user_id) do nothing`,
+      [p.userId, p.nickname, p.emailHash, p.dateOfBirth, p.country, p.consentStatus, p.leaderboardVisible, p.isModerator, p.sessionsValidAfter, p.createdAt, p.updatedAt],
     );
     return rowCount === 1;
   }
   async updateProfile(userId: string, patch: Partial<Omit<Profile, 'userId'>>) {
     const cols: Record<string, string> = {
-      nickname: 'nickname', emailHash: 'email_hash', dateOfBirth: 'date_of_birth', country: 'country', consentStatus: 'consent_status',
+      nickname: 'nickname', emailHash: 'email_hash', dateOfBirth: 'date_of_birth', country: 'country', consentStatus: 'consent_status', leaderboardVisible: 'leaderboard_visible',
       isModerator: 'is_moderator', sessionsValidAfter: 'sessions_valid_after', updatedAt: 'updated_at', deletedAt: 'deleted_at',
     };
     const sets: string[] = [];

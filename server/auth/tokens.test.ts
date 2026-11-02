@@ -25,7 +25,7 @@ async function token(over: Record<string, unknown> = {}, opts: { key?: CryptoKey
 }
 const profile = (over: Partial<Profile> = {}): Profile => ({
   userId: 'u1', nickname: 'Ana', emailHash: 'h', dateOfBirth: '2000-01-01', country: 'CA', consentStatus: 'not_required',
-  isModerator: false, sessionsValidAfter: 0, createdAt: 1, updatedAt: 1, deletedAt: null, ...over,
+  leaderboardVisible: true, isModerator: false, sessionsValidAfter: 0, createdAt: 1, updatedAt: 1, deletedAt: null, ...over,
 });
 function setup() {
   const store = new MemoryAccountStore();

@@ -5,7 +5,7 @@ import { DELETED_NICKNAME, MemoryAccountStore, PostgresAccountStore } from './st
 import type { AccountStore, ConsentRecord, Profile } from './store';
 
 const profile = (id: string, nickname: string, over: Partial<Profile> = {}): Profile => ({
-  userId: id, nickname, emailHash: `h-${id}`, dateOfBirth: '2016-05-05', country: 'CA', consentStatus: 'pending', isModerator: false,
+  userId: id, nickname, emailHash: `h-${id}`, dateOfBirth: '2016-05-05', country: 'CA', consentStatus: 'pending', leaderboardVisible: true, isModerator: false,
   sessionsValidAfter: 0, createdAt: 1000, updatedAt: 1000, deletedAt: null, ...over,
 });
 const consent = (id: string, child: string, over: Partial<ConsentRecord> = {}): ConsentRecord => ({
@@ -77,13 +77,18 @@ describe('MemoryAccountStore', () => {
 
 const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('PostgresAccountStore against a real Postgres (set TEST_DATABASE_URL)', () => {
-  const pool = new Pool({ connectionString: url });
-  const migration = readFileSync('db/migrations/100_accounts.sql', 'utf8');
+  // Its own schema, so test files that share a table name do not interfere when they run at the same time.
+  const pool = new Pool({ connectionString: url, options: '-c search_path=test_accounts' });
+  const admin = new Pool({ connectionString: url });
+  // 101 adds the leaderboard_visible column the store now writes.
+  const migration = readFileSync('db/migrations/100_accounts.sql', 'utf8') + readFileSync('db/migrations/101_game_results.sql', 'utf8');
   afterAll(async () => {
     await pool.end();
+    await admin.end();
   });
   beforeEach(async () => {
-    await pool.query('drop table if exists profiles, parental_consents, banned_identities, revoked_sessions cascade');
+    await admin.query('drop schema if exists test_accounts cascade');
+    await admin.query('create schema test_accounts');
     await pool.query(migration);
   });
   it('the migration can be run twice', async () => {
@@ -98,7 +103,7 @@ describe.skipIf(!url)('PostgresAccountStore against a real Postgres (set TEST_DA
     await expect(pool.query('truncate parental_consents')).rejects.toThrow(/cannot be deleted/);
   });
   it('row security is on for every table, so the browser keys see nothing', async () => {
-    const { rows } = await pool.query("select relname, relrowsecurity from pg_class where relname in ('profiles','parental_consents','banned_identities','revoked_sessions') and relkind = 'r'");
+    const { rows } = await pool.query("select relname, relrowsecurity from pg_class where relname in ('profiles','parental_consents','banned_identities','revoked_sessions') and relkind = 'r' and relnamespace = 'test_accounts'::regnamespace");
     expect(rows).toHaveLength(4);
     expect(rows.every((r) => r.relrowsecurity)).toBe(true);
   });

@@ -36,7 +36,7 @@ export function Guide({ onClose }: { onClose: () => void }) {
         <div className="flex flex-wrap gap-2 px-4 pb-2">
           <button
             disabled={!ready} onClick={() => startTour('menu')}
-            className="min-h-11 flex-1 rounded-xl bg-fuchsia-500 px-3 font-black disabled:opacity-40"
+            className="min-h-11 flex-1 rounded-xl bg-fuchsia-700 px-3 font-black disabled:opacity-40"
           >
             ▶ Interactive tour
           </button>
@@ -57,7 +57,7 @@ export function Guide({ onClose }: { onClose: () => void }) {
             </button>
           ))}
         </div>
-        <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        <div role="tabpanel" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           {tab === 'Basics' && (
             <ol className="space-y-3">
               {BASICS.map((s, i) => (

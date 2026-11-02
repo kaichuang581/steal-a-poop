@@ -92,7 +92,7 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
           </ul>
         </details>
       )}
-      <div className={`${height} min-h-0 overflow-y-auto rounded-xl bg-black/30 p-2`} role="log" aria-live="polite">
+      <div className={`${height} min-h-0 overflow-y-auto rounded-xl bg-black/30 p-2`} role="log" aria-live="polite" aria-label="Chat messages" tabIndex={0}>
         {!accepted ? (
           <p className="p-2 text-sm text-white/60">Accept the chat rules to see messages.</p>
         ) : chat.length === 0 ? (

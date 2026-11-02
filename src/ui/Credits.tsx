@@ -30,7 +30,7 @@ export function Credits({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-3" onClick={onClose}>
       <div
         role="dialog" aria-modal="true" aria-label="Credits"
-        className="max-h-full w-full max-w-md overflow-y-auto rounded-3xl border-2 border-wood-light bg-[#1a1145] p-4"
+        tabIndex={0} className="max-h-full w-full max-w-md overflow-y-auto rounded-3xl border-2 border-wood-light bg-[#1a1145] p-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">

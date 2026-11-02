@@ -48,7 +48,7 @@ export function GameScreen() {
       {mobile ? (
         <>
           <div className="h-1/2 min-h-[13rem] shrink-0"><Table /></div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-1">
+          <div tabIndex={0} aria-label="Game panels" className="min-h-0 flex-1 overflow-y-auto px-3 pb-1">
             <ChainHistory game={game} limit={4} />
           </div>
         </>

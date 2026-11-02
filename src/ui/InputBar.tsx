@@ -121,7 +121,7 @@ export function InputBar() {
           {canSteal ? (
             <button
               onMouseDown={keep} onClick={steal} data-tour="steal"
-              className={`${btn} animate-pulse bg-fuchsia-500 text-white`}
+              className={`${btn} animate-pulse bg-fuchsia-700 text-white`}
             >
               Steal
             </button>

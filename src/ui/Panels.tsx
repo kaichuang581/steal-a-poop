@@ -68,7 +68,7 @@ export function SidePanel(props: {
         <span>{open ? title : title[0]}</span>
         <span aria-hidden="true">{open ? (side === 'left' ? '◀' : '▶') : side === 'left' ? '▶' : '◀'}</span>
       </button>
-      {open && <div className="w-56 min-h-0 flex-1 overflow-y-auto pr-1 lg:w-64">{children}</div>}
+      {open && <div tabIndex={0} className="w-56 min-h-0 flex-1 overflow-y-auto pr-1 lg:w-64">{children}</div>}
     </aside>
   );
 }

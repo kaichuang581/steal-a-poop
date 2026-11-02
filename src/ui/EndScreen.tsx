@@ -82,7 +82,7 @@ export function EndScreen() {
           {(mode === 'quick' || mode === 'practice') && (
             <button onClick={rematch} className="min-h-12 flex-1 rounded-xl bg-emerald-500 px-4 font-black text-emerald-950">Rematch</button>
           )}
-          <button onClick={share} className="min-h-12 flex-1 rounded-xl bg-fuchsia-500 px-4 font-black">
+          <button onClick={share} className="min-h-12 flex-1 rounded-xl bg-fuchsia-700 px-4 font-black">
             {copied ? 'Copied!' : 'Share'}
           </button>
           <button onClick={quit} className="min-h-12 flex-1 rounded-xl bg-white/10 px-4 font-bold">{mode === 'room' ? 'Leave room' : 'Menu'}</button>

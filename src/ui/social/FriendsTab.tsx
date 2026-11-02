@@ -71,7 +71,7 @@ export function FriendsTab() {
         <ul className="mt-1 space-y-1">
           {friends?.friends.map((f) => (
             <li key={f.userId} className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1">
-              <span aria-label={f.online ? 'Online' : 'Offline'} className={`size-2.5 rounded-full ${f.online ? 'bg-emerald-400' : 'bg-white/25'}`} />
+              <span role="img" aria-label={f.online ? 'Online' : 'Offline'} className={`size-2.5 rounded-full ${f.online ? 'bg-emerald-400' : 'bg-white/25'}`} />
               <span className="min-w-0 flex-1"><NameTag name={f.name} cosmetics={f.cosmetics} /></span>
               {inRoom && f.online && (
                 <button className={`${small} bg-sky-500 text-sky-950`} aria-label={`Invite ${f.name}`} onClick={() => useRoomStore.getState().invite(f.userId)}>Invite</button>

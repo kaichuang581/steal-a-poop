@@ -69,7 +69,7 @@ export function Lobby() {
             autoCapitalize="characters" autoComplete="off" spellCheck={false}
             className="min-h-12 min-w-0 flex-1 rounded-xl border-2 border-white/20 bg-black/40 px-3 text-center text-xl font-black uppercase tracking-[0.3em]"
           />
-          <button type="submit" disabled={!online || !code.trim()} className="min-h-12 rounded-xl bg-fuchsia-500 px-5 font-black disabled:opacity-40">Join</button>
+          <button type="submit" disabled={!online || !code.trim()} className="min-h-12 rounded-xl bg-fuchsia-700 px-5 font-black disabled:opacity-40">Join</button>
         </form>
       </section>
 

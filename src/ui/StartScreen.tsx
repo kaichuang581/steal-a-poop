@@ -57,7 +57,7 @@ export function StartScreen() {
   };
 
   const seg = (on: boolean) =>
-    `min-h-11 flex-1 rounded-lg px-3 text-sm font-bold capitalize ${on ? 'bg-amber-400 text-amber-950' : 'bg-white/10 hover:bg-white/15'}`;
+    `min-h-11 min-w-10 flex-1 rounded-lg px-2 text-sm font-bold capitalize ${on ? 'bg-amber-400 text-amber-950' : 'bg-white/10 hover:bg-white/15'}`;
 
   return (
     <main className="flex h-full flex-col items-center justify-center overflow-y-auto px-4 py-6">
@@ -119,7 +119,7 @@ export function StartScreen() {
             {daily ? (
               <button
                 onClick={shareDaily} disabled={daily.status !== 'done'}
-                className="min-h-12 rounded-xl bg-fuchsia-500/60 text-base font-black disabled:opacity-60"
+                className="min-h-12 rounded-xl bg-fuchsia-700/60 text-base font-black disabled:opacity-60"
               >
                 {daily.status === 'done' ? (copied ? 'Copied!' : `Daily done · #${daily.rank} · share`) : 'Daily attempt used — back tomorrow'}
               </button>
@@ -130,9 +130,9 @@ export function StartScreen() {
                   if (authEnabled() && authStatus === 'ready' && getServerUrl()) return useRoomStore.getState().startDaily();
                   go('daily');
                 }} disabled={!ready}
-                className="min-h-12 rounded-xl bg-fuchsia-500 text-lg font-black disabled:opacity-40"
+                className="min-h-12 rounded-xl bg-fuchsia-700 text-lg font-black disabled:opacity-40"
               >
-                Daily Table <span className="text-sm font-bold opacity-80">· one attempt</span>
+                Daily Table <span className="text-sm font-bold">· one attempt</span>
               </button>
             )}
             {streak > 0 && <p className="text-center text-sm text-amber-200">🔥 {streak}-day streak</p>}
@@ -151,7 +151,7 @@ export function StartScreen() {
                 }}
                 className="min-h-12 rounded-xl bg-orange-500 text-lg font-black text-orange-950"
               >
-                Play with others <span className="text-sm font-bold opacity-80">· rooms</span>
+                Play with others <span className="text-sm font-bold">· rooms</span>
               </button>
             )}
             {authEnabled() && authStatus === 'ready' && getServerUrl() && (
@@ -167,7 +167,7 @@ export function StartScreen() {
               onClick={() => go('practice')} disabled={!ready}
               className="min-h-12 rounded-xl bg-sky-500/70 font-black disabled:opacity-40"
             >
-              Practice <span className="text-sm font-bold opacity-80">· no penalties, hints</span>
+              Practice <span className="text-sm font-bold">· no penalties, hints</span>
             </button>
             <div className="flex gap-2">
               <button onClick={() => setHelp(true)} className="min-h-12 flex-1 rounded-xl bg-white/10 font-bold hover:bg-white/15">How to Play</button>

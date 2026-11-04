@@ -5,7 +5,7 @@ export interface DreamRecord {
   date: string;
   status: 'started' | 'done';
   count?: number;
-  lucid?: number;
+  longest?: number;
 }
 interface Streak { count: number; last: string }
 

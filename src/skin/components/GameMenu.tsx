@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { playTick } from '../../audio/sound';
 import { LanternIcon } from './Icons';
+import { SnowCap } from './SnowCap';
 
 export interface MenuItem {
   id: string;
@@ -77,6 +78,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false }: {
               onPointerEnter={() => { if (!it.disabled && i !== active) { setActive(i); playTick(0.15); } }}
               aria-describedby={i === active ? 'sk-menu-caption' : undefined}
             >
+              {i === 0 && <><SnowCap className="sk-menu-snow" /><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" /><span className="sk-nail sk-nail-bl" /><span className="sk-nail sk-nail-br" /></>}
               <span className="sk-menu-lantern" aria-hidden="true"><LanternIcon size={i === 0 ? 30 : 24} /></span>
               <span className="sk-menu-label">{it.label}</span>
               {it.badge && <span className="sk-menu-badge">{it.badge}</span>}

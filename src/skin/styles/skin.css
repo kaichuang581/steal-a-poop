@@ -150,20 +150,26 @@
 .sk-title { --tile: 72px; display: inline-flex; flex-direction: column; align-items: flex-start; }
 .sk-title-compact { --tile: 52px; align-items: center; }
 .sk-title-plank {
-  position: relative; padding: 10px 26px 8px; border-radius: 10px 12px 9px 11px;
-  background: linear-gradient(180deg, var(--wood) 0 12%, var(--wood-dark) 12% 88%, var(--wood-ink) 88%);
-  box-shadow: 0 6px 0 rgba(40, 24, 10, 0.35), var(--shadow-warm);
+  position: relative; margin-top: 10px; padding: 12px 34px 9px; border-radius: 10px 12px 9px 11px;
+  background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 12%, var(--wood-dark) 12% 88%, var(--wood-ink) 88%);
+  box-shadow: inset 0 0 0 2px rgba(40, 24, 10, 0.35), inset 0 3px 0 rgba(255, 220, 170, 0.25), 0 6px 0 rgba(40, 24, 10, 0.35), var(--shadow-warm);
   animation: sk-title-drop 600ms var(--ease-spring) both;
 }
 .sk-title-lead {
   display: block; font-family: var(--skin-font-display); font-weight: 800; letter-spacing: 0.12em;
   font-size: calc(var(--tile) * 0.42); line-height: 1; color: var(--button-text);
-  text-shadow: 0 -1px 0 var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.5);
+  /* Carved into the board: dark cut above, light lip below. */
+  text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.75), 0 1px 0 rgba(255, 220, 170, 0.35), 0 3px 4px rgba(40, 24, 10, 0.35);
 }
-.sk-title-snow {
-  position: absolute; inset: -7px 6px auto; height: 12px; border-radius: 8px 10px 6px 9px / 8px 8px 4px 4px;
-  background: #fff; box-shadow: 0 2px 0 var(--ice-mid);
+.sk-title-snow { position: absolute; left: -6px; right: -4px; top: -13px; width: calc(100% + 10px); height: 26px; overflow: visible; pointer-events: none; }
+/* Iron nail heads holding a board up. */
+.sk-nail {
+  position: absolute; width: 8px; height: 8px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 35% 35%, #E9DCC8 0 18%, #8D8173 45%, #4A4038 80%);
+  box-shadow: 0 1px 0 rgba(255, 220, 170, 0.3), inset 0 -1px 1px rgba(0, 0, 0, 0.4);
 }
+.sk-nail-l { left: 11px; top: 50%; transform: translateY(-30%); }
+.sk-nail-r { right: 11px; top: 50%; transform: translateY(-30%); }
 .sk-title-tiles { display: flex; gap: calc(var(--tile) * 0.12); padding: calc(var(--tile) * 0.32) calc(var(--tile) * 0.25) 0; }
 .sk-title-compact .sk-title-tiles { padding-left: 0; padding-right: 0; }
 .sk-title-tile {
@@ -172,19 +178,22 @@
   color: var(--wood-ink);
   /* Carved: the letter is cut into the board, lit from above. */
   text-shadow: 0 2px 0 rgba(255, 236, 200, 0.55), 0 -1px 0 rgba(40, 24, 10, 0.6);
-  background: linear-gradient(180deg, #EBC48E, var(--tile-face, #DDAE72));
+  background: repeating-linear-gradient(92deg, rgba(140, 90, 46, 0.07) 0 2px, transparent 2px 9px), linear-gradient(180deg, #EBC48E, var(--tile-face, #DDAE72));
   box-shadow: inset 0 -6px 0 var(--wood), inset 0 3px 0 rgba(255, 240, 210, 0.6), 0 8px 14px rgba(40, 24, 10, 0.35);
   transform-origin: 50% calc(var(--tile) * -0.32);
   animation: sk-title-hang 700ms var(--ease-spring) both, sk-title-sway 4.6s ease-in-out infinite;
 }
 .sk-title-rope {
-  position: absolute; left: 50%; top: calc(var(--tile) * -0.32); width: 2px; height: calc(var(--tile) * 0.32);
-  transform: translateX(-50%); background: var(--wood-ink); opacity: 0.8;
+  /* Twisted twine down to a little iron eye on the tile. */
+  position: absolute; left: 50%; top: calc(var(--tile) * -0.34); width: 3px; height: calc(var(--tile) * 0.34);
+  transform: translateX(-50%); border-radius: 2px;
+  background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px);
 }
-.sk-title-cap {
-  position: absolute; inset: -5px 4px auto; height: 9px; border-radius: 6px 8px 4px 6px / 6px 6px 3px 3px;
-  background: #fff; box-shadow: 0 2px 0 var(--ice-mid);
+.sk-title-rope::after {
+  content: ''; position: absolute; left: 50%; bottom: -4px; width: 7px; height: 7px; transform: translateX(-50%);
+  border-radius: 50%; border: 2px solid #5A4E44; background: transparent;
 }
+.sk-title-cap { position: absolute; left: -3px; right: -3px; top: -7px; width: calc(100% + 6px); height: 15px; overflow: visible; pointer-events: none; }
 /* The chain letter: the one the next word must start with. */
 .sk-title-tile-next {
   --tile-face: var(--glow); color: #7A3E12;
@@ -192,8 +201,11 @@
   animation: sk-title-hang 700ms var(--ease-spring) both, sk-title-sway 4.6s ease-in-out infinite, sk-title-glow 2.2s ease-in-out infinite;
 }
 .sk-title-tagline {
-  margin-top: 14px; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: 15px;
-  color: var(--button-text); background: rgba(59, 48, 40, 0.55); backdrop-filter: blur(3px);
+  /* A paper ribbon with notched ends. */
+  margin-top: 16px; padding: 5px 22px; font-weight: 800; font-size: 15px; color: var(--ink);
+  background: linear-gradient(180deg, var(--paper) 0 70%, var(--paper-edge));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%, 9px 50%);
+  filter: drop-shadow(0 3px 0 rgba(40, 24, 10, 0.35));
   animation: sk-title-fade 500ms 600ms var(--ease-out) both;
 }
 @keyframes sk-title-drop { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -212,7 +224,12 @@
   transition: background var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out), color var(--t-fast);
 }
 .sk-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
-.sk-menu-item[data-active] { background: linear-gradient(90deg, rgba(255, 217, 138, 0.28), rgba(255, 217, 138, 0)); transform: translateX(10px); color: #fff; }
+.sk-menu-item[data-active] {
+  /* The row in focus becomes a small lit wooden plaque. */
+  background: linear-gradient(90deg, rgba(255, 196, 90, 0.22), rgba(255, 196, 90, 0) 70%), repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, rgba(181, 127, 74, 0.92) 0 8%, rgba(140, 90, 46, 0.9) 8% 90%, rgba(91, 58, 30, 0.95) 90%);
+  box-shadow: inset 0 0 0 2px rgba(40, 24, 10, 0.4), 0 4px 0 rgba(40, 24, 10, 0.35);
+  transform: translateX(10px); color: #fff;
+}
 /* The lantern and the lit row are the focus indicator; a left amber bar keeps it visible without colour cues. */
 :root[data-skin="painted"] .sk-menu-item:focus-visible { outline: none; box-shadow: inset 4px 0 0 var(--amber); }
 :root[data-skin="painted"] .sk-menu-primary:focus-visible { box-shadow: inset 4px 0 0 var(--amber), 0 6px 0 rgba(20, 30, 20, 0.45), var(--shadow-warm); }
@@ -220,15 +237,37 @@
 .sk-menu-item[data-active] .sk-menu-lantern { opacity: 1; transform: none; filter: drop-shadow(0 0 8px rgba(255, 196, 90, 0.9)); }
 .sk-menu-item[data-active] .sk-menu-lantern svg { animation: sk-flicker 0.9s ease-in-out infinite; }
 .sk-menu-primary {
-  min-height: 74px; font-size: 44px; letter-spacing: 0.04em; margin-bottom: 6px;
-  background: linear-gradient(180deg, var(--cloth) 0 10%, var(--cloth-dark) 10% 90%, #2C4C34 90%);
-  box-shadow: 0 6px 0 rgba(20, 30, 20, 0.45), var(--shadow-warm);
+  /* The Play sign: a painted green board in a wooden frame, nailed at the corners, snow along the top. */
+  min-height: 78px; font-size: 44px; letter-spacing: 0.04em; margin: 12px 0 8px; padding-left: 16px;
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.14), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px, rgba(0, 0, 0, 0.06) 7px 8px, transparent 8px 12px),
+    linear-gradient(180deg, #7DB583 0 9%, var(--cloth-dark) 9% 88%, #2C4C34 88%);
+  border: 4px solid var(--wood-dark); border-radius: 14px;
+  box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.22), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink), 0 7px 0 rgba(40, 24, 10, 0.45), var(--shadow-warm);
+  text-shadow: 0 -2px 0 rgba(20, 30, 20, 0.6), 0 2px 0 rgba(20, 30, 20, 0.45);
 }
-.sk-menu-primary[data-active] { background: linear-gradient(180deg, #86C08C 0 10%, var(--cloth-dark) 10% 90%, #2C4C34 90%); transform: translateX(10px) scale(1.02); }
+.sk-menu-primary[data-active] {
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.2), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px, rgba(0, 0, 0, 0.06) 7px 8px, transparent 8px 12px),
+    linear-gradient(180deg, #8BC891 0 9%, #467654 9% 88%, #2C4C34 88%);
+  box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink), 0 0 0 5px rgba(255, 196, 90, 0.45), 0 7px 0 rgba(40, 24, 10, 0.45), 0 0 30px rgba(255, 196, 90, 0.35);
+  transform: translateX(10px) scale(1.02);
+}
+.sk-menu-snow { position: absolute; left: -8px; right: -6px; top: -17px; width: calc(100% + 14px); height: 28px; overflow: visible; pointer-events: none; }
+.sk-nail-tl { left: 7px; top: 7px; }
+.sk-nail-tr { right: 7px; top: 7px; }
+.sk-nail-bl { left: 7px; bottom: 7px; }
+.sk-nail-br { right: 7px; bottom: 7px; }
 .sk-menu-primary:active:not(:disabled) { transform: translateX(10px) translateY(3px); box-shadow: 0 3px 0 rgba(20, 30, 20, 0.45); }
 .sk-menu-badge {
-  margin-left: auto; padding: 2px 10px; border-radius: 999px; font-family: var(--skin-font-body); font-size: 13px; font-weight: 900;
-  letter-spacing: 0.02em; text-shadow: none; color: var(--wood-ink); background: var(--glow);
+  /* A paper tag with a notched end and a punched hole. */
+  margin-left: auto; padding: 3px 11px 3px 18px; font-family: var(--skin-font-body); font-size: 13px; font-weight: 900;
+  letter-spacing: 0.02em; text-shadow: none; color: var(--wood-ink);
+  background: radial-gradient(circle at 9px 50%, rgba(40, 24, 10, 0.75) 0 2.5px, transparent 3px), linear-gradient(180deg, var(--glow) 0 75%, #E9BE6A);
+  clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 50%);
+  filter: drop-shadow(0 2px 0 rgba(40, 24, 10, 0.4));
 }
 .sk-menu-caption {
   min-height: 2.6em; margin-top: 10px; padding-left: 54px; font-family: var(--skin-font-hand); font-size: 20px; line-height: 1.3;

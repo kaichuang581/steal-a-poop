@@ -1,3 +1,5 @@
+import { SnowCap } from './SnowCap';
+
 /**
  * The game's title as its own letter board: "FINISH THE" carved on a snowy plank, and "WORD" hanging beneath it on
  * ropes as four wooden letter tiles, each swinging on its own. The last tile glows like the chain letter in a game,
@@ -12,7 +14,9 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
     <div className={`sk-title ${compact ? 'sk-title-compact' : ''}`}>
       <h1 className="sr-only">{title}</h1>
       <div className="sk-title-plank" aria-hidden="true">
-        <span className="sk-title-snow" />
+        <SnowCap className="sk-title-snow" />
+        <span className="sk-nail sk-nail-l" />
+        <span className="sk-nail sk-nail-r" />
         <span className="sk-title-lead">{lead.toUpperCase()}</span>
       </div>
       <div className="sk-title-tiles" aria-hidden="true">
@@ -23,7 +27,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
             style={{ animationDelay: `${120 + i * 90}ms, ${i * -1.3}s` }}
           >
             <span className="sk-title-rope" />
-            <span className="sk-title-cap" />
+            <SnowCap className="sk-title-cap" variant="small" />
             {ch}
           </span>
         ))}

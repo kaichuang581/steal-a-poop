@@ -3,7 +3,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { utcDateKey } from '../../engine';
 import { getDreamBest, getDreamStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
-import { dreamSeed, dreamShareText, faceOf, fenceAt, FIELD, JUMP_MS, jumpHeight, speedAt, takeoffDistance, tryFill } from '../../dream/dream';
+import { check, dreamSeed, dreamShareText, fenceAt, FIELD, JUMP_MS, jumpHeight, matched, signOf, speedAt, takeoffDistance } from '../../dream/dream';
 import type { Fence } from '../../dream/dream';
 import { useStore } from '../../state/store';
 import { useMotionLevel } from '../hooks/useAmbient';
@@ -13,24 +13,28 @@ import './dream.css';
 
 /**
  * Counting Sheep: the farmer asleep in bed, and above him the classic thought bubble where sheep leap a fence one by
- * one while he counts. You keep him asleep: each fence has letters missing, type ones that finish a real word and the
- * sheep clears it. Miss one and the sheep bumps the fence, the bubble pops and the farmer wakes. Runs like the
- * offline dinosaur: one life, faster and harder the longer it goes. Drawn on a 320 x 180 canvas, pixel-crisp.
+ * one while he counts. You keep him asleep: each fence names letters in order, type any real word that has them and
+ * press Enter, and the sheep clears it. Miss one and the sheep bumps the fence, the bubble pops and the farmer wakes.
+ * Runs like the offline dinosaur: one life, faster and harder the longer it goes. Drawn on a 320 x 180 canvas.
  */
 const W = 320, H = 180;
 const { ground: GROUND, sheepX: SX, sheepW: SW, fenceW: FW, fenceH: FH } = FIELD;
 const SPAWN_X = W + 24;
-/** A fence takes letters only once it is about to come into view, so nobody can bank fences far ahead. */
-const TYPE_X = W + 30;
+/** A fence takes a word only once it is about to come into view, so nobody can bank fences far ahead. */
+const TYPE_X = W + 70;
+const MAX_TYPED = 16;
+const SAYS: Record<string, string> = { short: 'Three letters or more', letters: 'Needs those letters, in order', word: 'Not in the dictionary', used: 'Already counted that one', wait: 'Wait for the next fence' };
 
 type Phase = 'ready' | 'running' | 'crashed' | 'results';
 interface Live {
-  fences: { f: Fence; x: number; locked: boolean; passed: boolean; jumped: boolean; lucid: boolean }[];
+  fences: { f: Fence; x: number; locked: boolean; passed: boolean; jumped: boolean; word: string }[];
   next: number;
   typed: string;
   wrongUntil: number;
+  say: string;
   count: number;
-  lucid: number;
+  longest: number;
+  used: Set<string>;
   speed: number;
   dist: number;
   jumpAt: number | null;
@@ -49,8 +53,8 @@ const TRAIL: [number, number, number][] = [[40, 141, 2.5], [47, 133, 3.5], [55, 
 function freshLive(seed: string): Live {
   const first = fenceAt(seed, 0);
   return {
-    fences: [{ f: first, x: SX + SW + 120, locked: false, passed: false, jumped: false, lucid: false }],
-    next: 1, typed: '', wrongUntil: 0, count: 0, lucid: 0, speed: speedAt(0), dist: 0, jumpAt: null, t: 0, crashAt: null, pops: [],
+    fences: [{ f: first, x: SX + SW + 150, locked: false, passed: false, jumped: false, word: '' }],
+    next: 1, typed: '', wrongUntil: 0, say: '', count: 0, longest: 0, used: new Set(), speed: speedAt(0), dist: 0, jumpAt: null, t: 0, crashAt: null, pops: [],
   };
 }
 
@@ -100,14 +104,14 @@ export function DreamScreen() {
     setPhase('results');
     if (practice) setBest(recordBest(L.count));
     else {
-      setStreak(recordDream({ date: today, status: 'done', count: L.count, lucid: L.lucid }));
+      setStreak(recordDream({ date: today, status: 'done', count: L.count, longest: L.longest }));
       setBest(getDreamBest());
     }
   }, [practice, today]);
 
   // Leaving mid-dream still uses up the night's attempt, with what was counted so far.
   useEffect(() => () => {
-    if (phaseRef.current === 'running' && !practice) recordDream({ date: today, status: 'done', count: live.current.count, lucid: live.current.lucid });
+    if (phaseRef.current === 'running' && !practice) recordDream({ date: today, status: 'done', count: live.current.count, longest: live.current.longest });
   }, [practice, today]);
 
   // ---------- typing ----------
@@ -117,32 +121,41 @@ export function DreamScreen() {
   };
   const typeLetter = (ch: string) => {
     if (phaseRef.current === 'ready') { begin(); return; }
+    if (phaseRef.current !== 'running') return;
+    const L = live.current;
+    if (L.typed.length >= MAX_TYPED) return;
+    L.typed += ch;
+    L.say = '';
+    const a = active();
+    playTick(a ? matched(a.f, L.typed) / a.f.letters.length : 0.2);
+  };
+  const backspace = () => { live.current.typed = live.current.typed.slice(0, -1); live.current.say = ''; };
+  const submit = () => {
     if (phaseRef.current !== 'running' || !dict) return;
     const L = live.current;
+    if (!L.typed) return;
     const a = active();
-    if (!a || L.t < L.wrongUntil) return;
-    if (L.typed.length >= a.f.blanks.length) return;
-    L.typed += ch;
-    playTick(L.typed.length / a.f.blanks.length);
-    const res = tryFill(dict, a.f, L.typed);
-    if (res === 'ok') {
+    const v = a ? check(dict, a.f, L.typed, L.used) : ({ ok: false, reason: 'wait' } as const);
+    if (a && v.ok) {
+      const w = L.typed.toLowerCase();
       a.locked = true;
-      a.lucid = faceOf(a.f, L.typed).toLowerCase() !== a.f.word;
-      if (a.lucid) L.lucid++;
-      (a as { shown?: string }).shown = faceOf(a.f, L.typed);
+      a.word = w;
+      L.used.add(w);
+      L.longest = Math.max(L.longest, w.length);
       L.typed = '';
       playSound('bank');
-    } else if (res === 'wrong') {
-      L.wrongUntil = L.t + 260;
+    } else if (!v.ok) {
+      L.wrongUntil = L.t + 320;
+      L.say = SAYS[v.reason];
       playSound('fail');
     }
   };
-  const backspace = () => { live.current.typed = live.current.typed.slice(0, -1); };
 
   const onKey = (e: ReactKeyboardEvent) => {
     if (e.key === 'Escape') { e.preventDefault(); close(); return; }
     if (phase === 'ready' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); begin(); return; }
     if (e.key === 'Backspace') { e.preventDefault(); backspace(); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); submit(); }
   };
   const onInput = (value: string) => {
     for (const ch of value.toLowerCase()) if (ch >= 'a' && ch <= 'z') typeLetter(ch);
@@ -174,7 +187,7 @@ export function DreamScreen() {
       if (phaseRef.current === 'crashed' && L.crashAt !== null) L.t += dt;
       draw(g, px, L, now, stars);
       const a = L.fences.find((x) => !x.locked && !x.passed && x.x < TYPE_X);
-      const shownFace = a ? faceOf(a.f, L.typed) : '';
+      const shownFace = a ? signOf(a.f) : '';
       setFace((f) => (f === shownFace ? f : shownFace));
       raf = requestAnimationFrame(step);
     };
@@ -189,7 +202,7 @@ export function DreamScreen() {
       while (L.fences.length < 4) {
         const prev = L.fences[L.fences.length - 1];
         const f = fenceAt(seed, L.next++);
-        L.fences.push({ f, x: Math.max(SPAWN_X, prev.x + f.gap * speedAt(f.index)), locked: false, passed: false, jumped: false, lucid: false });
+        L.fences.push({ f, x: Math.max(SPAWN_X, prev.x + f.gap * speedAt(f.index)), locked: false, passed: false, jumped: false, word: '' });
       }
       // Jump the next finished fence when it reaches the take-off point (or at once if it was finished late).
       const ahead = L.fences.find((fe) => !fe.passed && fe.x + FW > SX);
@@ -241,8 +254,11 @@ export function DreamScreen() {
         // Glow, rim, then the dream clipped inside.
         g.fillStyle = 'rgba(200,185,255,0.18)';
         bubblePath(g, 5); g.fill();
+        // The rim: a white sliver up and to the left, lavender below, so the cloud looks lit by the moon.
+        g.fillStyle = '#ffffff';
+        g.save(); g.translate(-1, -1); bubblePath(g, 2); g.fill(); g.restore();
         g.fillStyle = C.bubbleEdge;
-        bubblePath(g, 2); g.fill();
+        g.save(); g.translate(0.5, 1); bubblePath(g, 2); g.fill(); g.restore();
         for (const [x, y, r] of TRAIL) { g.beginPath(); g.arc(x, y, r + 1.5, 0, Math.PI * 2); g.fill(); }
         g.fillStyle = C.bubble;
         for (const [x, y, r] of TRAIL) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
@@ -268,11 +284,17 @@ export function DreamScreen() {
         if (tw > 0.85) { g.fillRect(Math.round(s.x) - 1, Math.round(s.y), 3, 1); g.fillRect(Math.round(s.x), Math.round(s.y) - 1, 1, 3); }
       }
       g.globalAlpha = 1;
-      // A crescent moon.
-      g.fillStyle = C.moon;
-      g.beginPath(); g.arc(236, 50, 9, 0, Math.PI * 2); g.fill();
-      g.fillStyle = C.skyMid;
-      g.beginPath(); g.arc(240, 46, 8, 0, Math.PI * 2); g.fill();
+      // A crescent moon in a soft halo.
+      for (const [r, a] of [[22, 0.05], [16, 0.07], [12, 0.09]] as const) {
+        g.fillStyle = `rgba(255,241,184,${a})`;
+        g.beginPath(); g.arc(222, 52, r, 0, Math.PI * 2); g.fill();
+      }
+      // The crescent: the moon's disc minus an offset disc, clipped to the moon so the halo shows through the bite.
+      g.save();
+      g.beginPath(); g.arc(222, 52, 9, 0, Math.PI * 2); g.clip();
+      g.beginPath(); g.arc(222, 52, 9, 0, Math.PI * 2); g.arc(226, 48, 8, 0, Math.PI * 2);
+      g.fillStyle = C.moon; g.fill('evenodd');
+      g.restore();
       // Rolling hills, far and near, drifting slower than the ground.
       hills(g, L.dist * 0.15, 92, 7, 0.031, C.hillFar);
       hills(g, L.dist * 0.4, 99, 5, 0.05, C.hillNear);
@@ -282,6 +304,18 @@ export function DreamScreen() {
         const x = ((i * 120 - L.dist * 0.08) % 380 + 380) % 380 - 30;
         const y = 54 + i * 9;
         g.fillRect(Math.round(x), y, 26, 3); g.fillRect(Math.round(x) + 6, y - 2, 12, 2);
+      }
+      // Dream sparkles drifting up and back.
+      if (!reduced) {
+        for (let i = 0; i < 14; i++) {
+          const k = ((now / 7000 + i / 14) % 1);
+          const x = ((i * 61 - L.dist * 0.3) % 300 + 300) % 300 + 20;
+          const y = 100 - k * 70;
+          g.globalAlpha = Math.sin(k * Math.PI) * 0.8;
+          g.fillStyle = i % 3 ? '#d9d0ff' : C.star;
+          g.fillRect(Math.round(x + Math.sin(now / 900 + i) * 3), Math.round(y), 1, 1);
+        }
+        g.globalAlpha = 1;
       }
       // The meadow.
       g.fillStyle = C.grass; g.fillRect(0, GROUND, W, 40);
@@ -299,9 +333,10 @@ export function DreamScreen() {
       for (const fe of L.fences) {
         const x = Math.round(fe.x);
         if (x > W + 10) continue;
+        g.fillStyle = 'rgba(20,30,40,0.28)'; g.fillRect(x - 1, GROUND + 1, FW + 4, 2);
         g.drawImage(art.fence, x - 1, GROUND - FH);
-        const text = fe.locked ? (fe as { shown?: string }).shown ?? fe.f.word.toUpperCase() : faceOf(fe.f, fe === a ? L.typed : '');
-        sign(g, x + FW / 2, GROUND - FH - 4, text, fe.locked ? C.signOk : fe === a && wrong ? C.signBad : C.sign, fe === a);
+        const label = fe.locked ? fe.word.toUpperCase() : signOf(fe.f);
+        sign(g, x + FW / 2, GROUND - FH - 4, label, fe.locked ? C.signOk : fe === a && wrong ? C.signBad : C.sign, fe === a);
       }
 
       // The sheep.
@@ -311,6 +346,8 @@ export function DreamScreen() {
       const img = crashed ? art.sheep.bonk : air > 0 ? art.sheep.jump : phaseRef.current === 'ready' ? art.sheep.a : run ? art.sheep.a : art.sheep.b;
       const back = crashed ? Math.min(6, (L.t - L.crashAt!) / 30) : 0;
       const bob = !crashed && air === 0 && phaseRef.current === 'running' && run ? 1 : 0;
+      const shadowW = Math.round(16 - air / 4);
+      g.fillStyle = 'rgba(20,30,40,0.3)'; g.fillRect(Math.round(SX + 2 - back + (16 - shadowW) / 2), GROUND + 1, shadowW, 2);
       g.drawImage(img, SX - 1 - Math.round(back), GROUND - img.height + 1 - Math.round(air) - bob);
       if (crashed) {
         // Little stars round its head.
@@ -331,17 +368,17 @@ export function DreamScreen() {
       }
       g.globalAlpha = 1;
 
-      // The tally, top right, and the word to finish, top centre.
-      g.drawImage(art.icon, 262, 30);
-      g.textAlign = 'left';
-      text(g, String(L.count), 272, 37, 11, C.star);
+      // The tally, top right, and the letters to use with the word being typed, top centre.
+      plaque(g, 254, 32, L.count);
       if (phaseRef.current === 'ready') {
         g.textAlign = 'center';
-        text(g, 'Count sheep to fall asleep', 176, 48, 11, C.star);
-        text(g, 'Fill the blanks to jump each fence', 176, 61, 8, '#d9d0ff');
-        text(g, Math.floor(L.t / 500) % 2 ? 'press any key' : '', 176, 80, 8, C.signOk);
-      } else if (a && phaseRef.current === 'running') {
-        banner(g, faceOf(a.f, L.typed), wrong);
+        text(g, 'Count sheep to fall asleep', 168, 48, 11, C.star);
+        text(g, 'Type a word with the fence\'s letters, in order', 168, 61, 8, '#d9d0ff');
+        text(g, 'S·P  →  SHEEP, STOP, WHISPER', 168, 72, 8, '#b9aef0');
+        if (Math.floor(L.t / 500) % 2) text(g, 'press any key', 168, 88, 8, C.signOk);
+      } else if (phaseRef.current === 'running') {
+        tiles(g, a ? a.f.letters : [], a ? matched(a.f, L.typed) : 0, wrong);
+        typedLine(g, L.typed, L.say, now);
       }
     };
 
@@ -349,6 +386,15 @@ export function DreamScreen() {
       const wall = g.createLinearGradient(0, 0, 0, H);
       wall.addColorStop(0, C.wall); wall.addColorStop(1, C.wallLow);
       g.fillStyle = wall; g.fillRect(0, 0, W, H);
+      // Wallpaper: a faint diamond of dots.
+      g.fillStyle = 'rgba(200,190,255,0.07)';
+      for (let y = 4; y < 162; y += 10) for (let x = (y / 10) % 2 ? 4 : 9; x < W; x += 10) g.fillRect(x, y, 1, 1);
+      // A little framed picture of a sheep, right of the bed.
+      g.fillStyle = C.bedDark; g.fillRect(292, 132, 22, 18);
+      g.fillStyle = '#4a3f8e'; g.fillRect(294, 134, 18, 14);
+      g.fillStyle = C.grass; g.fillRect(294, 144, 18, 4);
+      g.drawImage(art.icon, 299, 138);
+      g.fillStyle = C.woodDark; g.fillRect(302, 128, 2, 4);
       // Moonlight from a window off to the right.
       g.fillStyle = C.moonlight;
       g.beginPath(); g.moveTo(320, 60); g.lineTo(320, 180); g.lineTo(190, 180); g.lineTo(250, 120); g.fill();
@@ -357,11 +403,23 @@ export function DreamScreen() {
       g.fillStyle = C.floorLine;
       for (let x = 6; x < W; x += 22) g.fillRect(x, 164, 1, 16);
       g.fillRect(0, 164, W, 1);
+      g.fillStyle = '#2a1f33'; g.fillRect(0, 160, W, 4);
       g.fillStyle = C.rugEdge; g.fillRect(196, 167, 92, 10);
       g.fillStyle = C.rug; g.fillRect(198, 168, 88, 8);
+      g.fillStyle = 'rgba(255,240,220,0.18)';
+      for (let x = 202; x < 284; x += 6) g.fillRect(x, 171, 3, 1);
+      for (let x = 197; x < 288; x += 3) { g.fillRect(x, 166, 1, 1); g.fillRect(x, 177, 1, 1); }
+      // Slippers by the bed.
+      g.fillStyle = C.capA; g.fillRect(204, 170, 9, 4); g.fillRect(216, 171, 9, 4);
+      g.fillStyle = C.pom; g.fillRect(204, 170, 3, 2); g.fillRect(216, 171, 3, 2);
       // Bedside table and alarm clock (it rings when he wakes).
       g.fillStyle = C.bedDark; g.fillRect(166, 146, 22, 18);
       g.fillStyle = C.bed; g.fillRect(164, 144, 26, 4);
+      // A blown-out candle with a curl of smoke.
+      g.fillStyle = '#efe6d2'; g.fillRect(166, 138, 3, 6);
+      g.fillStyle = C.ink; g.fillRect(167, 137, 1, 1);
+      g.fillStyle = 'rgba(220,210,255,0.35)';
+      if (!awake) { const k = Math.floor(now / 400) % 3; g.fillRect(167 + (k === 1 ? 1 : 0), 134 - k, 1, 2); }
       const ring = awake ? Math.round(Math.sin(now / 30)) : 0;
       g.fillStyle = C.clock; g.fillRect(170 + ring, 134, 14, 10); g.fillRect(169 + ring, 132, 4, 3); g.fillRect(181 + ring, 132, 4, 3);
       g.fillStyle = C.clockFace; g.fillRect(172 + ring, 136, 10, 7);
@@ -383,6 +441,10 @@ export function DreamScreen() {
         g.fillRect(40 + i * 12, 155, 12, 3);
       }
       g.fillStyle = C.line; g.fillRect(40, 157, 108, 1);
+      // Stitching along the patch seams.
+      g.fillStyle = 'rgba(255,248,230,0.5)';
+      for (let i = 1; i < 9; i++) for (let y = 143; y < 156; y += 3) g.fillRect(40 + i * 12, y, 1, 1);
+      for (let x = 41; x < 148; x += 3) g.fillRect(x, 152, 1, 1);
       // Pillow.
       g.fillStyle = C.pillowShade; g.fillRect(14, 140, 30, 13);
       g.fillStyle = C.pillow; g.fillRect(15, 140, 28, 10);
@@ -450,21 +512,46 @@ export function DreamScreen() {
       g.fillText(s, Math.round(cx), y + 8);
     };
 
-    const banner = (g: CanvasRenderingContext2D, s: string, wrong: boolean) => {
-      g.font = '14px "DotGothic16", monospace';
-      const letters = s.split('');
-      const step = 13;
-      const w = letters.length * step + 12;
-      const x = Math.round(176 - w / 2), y = 34;
-      g.fillStyle = C.line; g.fillRect(x - 1, y - 1, w + 2, 22);
-      g.fillStyle = wrong ? C.signBad : C.sign; g.fillRect(x, y, w, 20);
-      g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(x, y, w, 2);
+    // The fence's letters as little wooden tiles, like the WORD tiles on the title; each lights up once typed in order.
+    const tiles = (g: CanvasRenderingContext2D, letters: string[], lit: number, wrong: boolean) => {
+      const size = 15, gapX = 4;
+      const w = letters.length * size + Math.max(0, letters.length - 1) * gapX;
+      let x = Math.round(168 - w / 2);
+      const y = 36;
       g.textAlign = 'center';
+      if (!letters.length) { text(g, '· · ·', 168, 48, 10, '#9d93cf'); return; }
+      g.font = '11px "DotGothic16", monospace';
       letters.forEach((ch, i) => {
-        const cx = x + 6 + step * i + step / 2;
-        if (ch === '_') { g.fillStyle = C.woodDark; g.fillRect(Math.round(cx) - 4, y + 15, 8, 2); }
-        else { g.fillStyle = C.ink; g.fillText(ch, cx, y + 15); }
+        const on = i < lit;
+        const sx = x + (wrong && !reduced ? Math.round(Math.sin(performance.now() / 18 + i)) : 0);
+        g.fillStyle = C.line; g.fillRect(sx - 1, y - 1, size + 2, size + 3);
+        g.fillStyle = on ? '#c99a2e' : '#a8774f'; g.fillRect(sx, y + size - 2, size, 3);
+        g.fillStyle = wrong ? C.signBad : on ? C.signOk : C.sign; g.fillRect(sx, y, size, size - 2);
+        g.fillStyle = 'rgba(255,255,255,0.55)'; g.fillRect(sx, y, size, 1); g.fillRect(sx, y, 1, size - 2);
+        g.fillStyle = C.ink; g.fillText(ch.toUpperCase(), sx + size / 2, y + 10);
+        if (i < letters.length - 1) { g.fillStyle = '#d9d0ff'; g.fillRect(x + size + 1, y + 6, 2, 2); }
+        x += size + gapX;
       });
+    };
+
+    // What is being typed, under the tiles, with a blinking caret; or why the last word bounced.
+    const typedLine = (g: CanvasRenderingContext2D, typed: string, say: string, now: number) => {
+      g.textAlign = 'center';
+      if (say) { text(g, say, 168, 66, 8, C.signBad); return; }
+      const blink = Math.floor(now / 450) % 2 === 0;
+      if (typed) text(g, typed.toUpperCase() + (blink ? '_' : ' '), 168, 67, 11, C.star);
+      else text(g, 'type a word, then Enter', 168, 66, 8, '#9d93cf');
+    };
+
+    // A small framed tally: a sheep and the count.
+    const plaque = (g: CanvasRenderingContext2D, x: number, y: number, n: number) => {
+      const w = 34;
+      g.fillStyle = C.line; g.fillRect(x - 1, y - 1, w + 2, 15);
+      g.fillStyle = '#2e2768'; g.fillRect(x, y, w, 13);
+      g.fillStyle = 'rgba(255,255,255,0.18)'; g.fillRect(x, y, w, 1);
+      g.drawImage(art.icon, x + 2, y + 3);
+      g.textAlign = 'right';
+      text(g, String(n), x + w - 3, y + 10, 10, C.star);
     };
 
     raf = requestAnimationFrame(step);
@@ -472,7 +559,7 @@ export function DreamScreen() {
   }, [scale, seed, finish, reduced]);
 
   const share = async () => {
-    const text = dreamShareText({ date: today, count, lucid: live.current.lucid, streak: streak || getDreamStreak(today) });
+    const text = dreamShareText({ date: today, count, longest: live.current.longest, streak: streak || getDreamStreak(today) });
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -495,18 +582,18 @@ export function DreamScreen() {
       <div className="dr-frame" style={{ width: W * scale, height: H * scale }} onPointerDown={() => { ghost.current?.focus(); if (phase === 'ready') begin(); }}>
         <canvas ref={canvas} className="dr-canvas" style={{ width: W * scale, height: H * scale }} aria-hidden="true" />
         <input
-          ref={ghost} className="dr-ghost" autoFocus aria-label="Missing letters" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+          ref={ghost} className="dr-ghost" autoFocus aria-label="Your word" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false}
           onChange={(e) => onInput(e.target.value)}
           onBlur={() => { if (phaseRef.current === 'running') setTimeout(() => ghost.current?.focus(), 0); }}
         />
-        <p className="sr-only" aria-live="polite">{phase === 'running' ? `${face.split('').join(' ')}. ${count} sheep.` : ''}</p>
+        <p className="sr-only" aria-live="polite">{phase === 'running' ? `${face}. ${count} sheep.` : ''}</p>
         {phase === 'results' && (
           <div className="dr-results" role="dialog" aria-label="The farmer woke up">
             <h2>The farmer woke up!</h2>
             <p className="dr-big"><b>{count}</b> sheep counted</p>
             <dl>
               <div><dt>Best</dt><dd>{best}</dd></div>
-              <div><dt>Lucid jumps</dt><dd>{live.current.lucid}</dd></div>
+              <div><dt>Longest word</dt><dd>{live.current.longest || '–'}</dd></div>
               {!practice && <div><dt>Streak</dt><dd>{streak} night{streak === 1 ? '' : 's'}</dd></div>}
             </dl>
             <div className="dr-actions">
@@ -518,7 +605,7 @@ export function DreamScreen() {
           </div>
         )}
       </div>
-      <p className="dr-help">Type letters that finish each fence’s word — any real word counts. Backspace fixes, Esc wakes up.</p>
+      <p className="dr-help">Each fence names letters: type any real word with them in that order and press Enter. Esc wakes up.</p>
       <button className="dr-quit" onClick={close} aria-label="Leave the dream">✕</button>
     </main>
   );

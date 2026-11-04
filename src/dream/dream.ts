@@ -2,10 +2,11 @@ import type { Dictionary } from '../engine/dictionary';
 
 /**
  * Counting Sheep, the daily dream: the farmer is asleep, and in the thought bubble a sheep runs at a row of fences.
- * Each fence carries a word with letters missing. Type letters that finish it into any real word and the sheep
- * jumps it, and the farmer counts one more. Reach a fence unfinished and the sheep bumps it: the farmer wakes up.
- * The fences speed up and lose more letters as the count climbs. Everything here is pure and seeded, so the
- * daily dream is the same for everyone; the screen (src/skin/dream) only plays it out.
+ * Each fence names a few letters in order. Type any real word that has those letters in that order (any letters
+ * before, between or after) and the sheep jumps it, and the farmer counts one more. Reach a fence without one and
+ * the sheep bumps it: the farmer wakes up. Fences start with one letter and ask for more as the count climbs, and the
+ * sheep runs faster. Everything here is pure and seeded, so the daily dream is the same for everyone; the screen
+ * (src/skin/dream) only plays it out.
  */
 
 /** Words the fences are cut from: common, sleepy, farmy. Any real word that fits the blanks is accepted. */
@@ -26,10 +27,10 @@ export const FENCE_WORDS: readonly string[] = (
 
 export interface Fence {
   index: number;
-  /** The word the fence was cut from (the letters it shows are this word's). */
-  word: string;
-  /** Positions in `word` that are blank, ascending. */
-  blanks: number[];
+  /** The letters a word must contain, in this order, e.g. ['s', 'p'] for S...P. */
+  letters: string[];
+  /** A word the letters were taken from, so every fence can be cleared. */
+  source: string;
   /** Seconds of running from the previous fence to this one. */
   gap: number;
 }
@@ -56,50 +57,57 @@ export function dreamSeed(dateKey: string): string {
   return `dream:${dateKey}`;
 }
 
-/** Word lengths allowed at a fence: short words first, longer ones as the count climbs. */
-export function lengthsAt(index: number): [number, number] {
-  if (index < 6) return [3, 4];
-  if (index < 16) return [4, 5];
-  if (index < 30) return [5, 6];
-  return [5, 8];
+/** How many letters a fence asks for: one for the first few jumps, then two, three, four and five. */
+export function lettersAt(index: number): number {
+  if (index < 3) return 1;
+  if (index < 8) return 2;
+  if (index < 15) return 3;
+  if (index < 25) return 4;
+  return 5;
 }
 
-/** How many letters a fence hides: one at first, then two, then sometimes three in the long words. */
-export function blanksAt(index: number, length: number, roll: number): number {
-  if (index < 5) return 1;
-  if (index < 14) return roll < 0.5 ? 1 : 2;
-  if (index < 28 || length < 6) return 2;
-  return roll < 0.5 ? 2 : 3;
-}
+/** The shortest word that counts. */
+export const MIN_WORD = 3;
 
 /** The fence at position `index` of the dream with this seed. */
 export function fenceAt(seed: string, index: number): Fence {
   const r = rng(`${seed}#${index}`);
-  const [lo, hi] = lengthsAt(index);
-  const pool = FENCE_WORDS.filter((w) => w.length >= lo && w.length <= hi);
-  const word = pool[Math.floor(r() * pool.length)];
-  const count = blanksAt(index, word.length, r());
-  const spots = Array.from(word, (_, i) => i);
-  const blanks: number[] = [];
-  while (blanks.length < count) blanks.push(spots.splice(Math.floor(r() * spots.length), 1)[0]);
-  blanks.sort((a, b) => a - b);
-  // Time to type: a long breath at first, tightening to a floor, plus a little for every extra blank.
-  const gap = index === 0 ? 3.2 : Math.max(2.1, 4.4 - index * 0.07) + (count - 1) * 0.55 + r() * 0.7;
-  return { index, word, blanks, gap };
+  const k = lettersAt(index);
+  // Take the letters, in order, from a word long enough to leave room around them.
+  const pool = FENCE_WORDS.filter((w) => w.length >= Math.max(MIN_WORD, k + 1));
+  const source = pool[Math.floor(r() * pool.length)];
+  const spots = Array.from(source, (_, i) => i);
+  const picked: number[] = [];
+  while (picked.length < k) picked.push(spots.splice(Math.floor(r() * spots.length), 1)[0]);
+  picked.sort((a, b) => a - b);
+  const letters = picked.map((i) => source[i]);
+  // Time to think and type: a long breath at first, tightening to a floor, a little more for each letter asked.
+  const gap = index === 0 ? 3.6 : Math.max(2.8, 4.8 - index * 0.05) + (k - 1) * 0.35 + r() * 0.6;
+  return { index, letters, source, gap };
 }
 
-/** The fence's face with the typed letters filled in, blanks as `_`, e.g. `SH_EP`. */
-export function faceOf(fence: Fence, typed: string): string {
+/** How many of the fence's letters `typed` already has in order (greedy from the left). */
+export function matched(fence: Fence, typed: string): number {
   let k = 0;
-  return Array.from(fence.word, (ch, i) => (fence.blanks.includes(i) ? (typed[k++] ?? '_') : ch)).join('').toUpperCase();
+  for (const ch of typed.toLowerCase()) if (k < fence.letters.length && ch === fence.letters[k]) k++;
+  return k;
 }
 
-export type Fill = 'more' | 'ok' | 'wrong';
+export type Verdict = { ok: true } | { ok: false; reason: 'short' | 'letters' | 'word' | 'used' };
 
-/** Whether the typed letters finish the fence: any real word that fits counts, not only the one it was cut from. */
-export function tryFill(dict: Dictionary, fence: Fence, typed: string): Fill {
-  if (typed.length < fence.blanks.length) return 'more';
-  return dict.has(faceOf(fence, typed).toLowerCase()) ? 'ok' : 'wrong';
+/** Whether `typed` clears the fence: a real word of 3+ letters, not used yet this dream, with the letters in order. */
+export function check(dict: Dictionary, fence: Fence, typed: string, used: ReadonlySet<string>): Verdict {
+  const w = typed.trim().toLowerCase();
+  if (w.length < MIN_WORD) return { ok: false, reason: 'short' };
+  if (matched(fence, w) < fence.letters.length) return { ok: false, reason: 'letters' };
+  if (!dict.has(w)) return { ok: false, reason: 'word' };
+  if (used.has(w)) return { ok: false, reason: 'used' };
+  return { ok: true };
+}
+
+/** The fence's sign: its letters with dots between, e.g. `S·P`. */
+export function signOf(fence: Fence): string {
+  return fence.letters.join('·').toUpperCase();
 }
 
 // ---------- the run ----------
@@ -110,7 +118,7 @@ export const JUMP_HEIGHT = 28;
 
 /** Running speed in logical pixels a second after `count` fences, rising to a cap like the offline dinosaur. */
 export function speedAt(count: number): number {
-  return Math.min(120, 64 + count * 2.5);
+  return Math.min(100, 58 + count * 2);
 }
 
 /** The gap between the sheep and a finished fence when the sheep takes off, so the top of the jump is over it. */
@@ -129,8 +137,8 @@ export function jumpHeight(ms: number): number {
 export interface DreamResult {
   date: string;
   count: number;
-  /** Fences finished with a different word than the one they were cut from. */
-  lucid: number;
+  /** Letters in the longest word typed. */
+  longest: number;
   streak: number;
 }
 
@@ -141,7 +149,7 @@ export function dreamShareText(r: DreamResult): string {
     `Finish the Word · Counting Sheep ${r.date}`,
     `🛏️ The farmer counted ${r.count} sheep${r.count >= 40 ? ' and drifted off 💤' : ' then woke up ⏰'}`,
     sheep,
-    r.lucid > 0 ? `✨ ${r.lucid} lucid jump${r.lucid === 1 ? '' : 's'}` : '',
+    r.longest > 0 ? `📏 Longest word: ${r.longest} letters` : '',
     r.streak > 1 ? `🔥 ${r.streak}-night streak` : '',
   ].filter(Boolean).join('\n');
 }

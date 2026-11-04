@@ -105,7 +105,7 @@ export function PaintedHome() {
   };
   const shareDream = async () => {
     if (dream?.status !== 'done') return;
-    const text = dreamShareText({ date: today, count: dream.count ?? 0, lucid: dream.lucid ?? 0, streak });
+    const text = dreamShareText({ date: today, count: dream.count ?? 0, longest: dream.longest ?? 0, streak });
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopiedDream(true);
     setTimeout(() => setCopiedDream(false), 2000);
@@ -157,7 +157,7 @@ export function PaintedHome() {
       }
       : {
         id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? `${streak}-night streak` : 'daily', disabled: !ready,
-        caption: 'Keep the farmer asleep: fill in the missing letters so each sheep clears the fence. One dream a night.',
+        caption: 'Keep the farmer asleep: type words with each fence\'s letters so the sheep clears it. One dream a night.',
         onSelect: () => useDreamUi.getState().openDream(false),
       },
     hunt

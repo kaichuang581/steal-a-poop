@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDictionary } from '../../engine/dictionary';
 import { dreamStreakDays, getDream, getDreamBest, getDreamStreak, markDreamStarted, recordDream } from '../daily';
-import { dreamSeed, dreamShareText, faceOf, FENCE_WORDS, fenceAt, FIELD, JUMP_MS, jumpHeight, speedAt, takeoffDistance, tryFill } from '../dream';
+import { check, dreamSeed, dreamShareText, FENCE_WORDS, fenceAt, FIELD, JUMP_MS, jumpHeight, lettersAt, matched, signOf, speedAt, takeoffDistance } from '../dream';
 
 const words = readFileSync(new URL('../../../public/words.txt', import.meta.url), 'utf8').split('\n');
 const dict = createDictionary(words);
@@ -17,40 +17,40 @@ describe('fences', () => {
     const a = Array.from({ length: 40 }, (_, i) => fenceAt(SEED, i));
     expect(Array.from({ length: 40 }, (_, i) => fenceAt(SEED, i))).toEqual(a);
     const b = Array.from({ length: 40 }, (_, i) => fenceAt(dreamSeed('2026-11-05'), i));
-    expect(b.map((f) => f.word)).not.toEqual(a.map((f) => f.word));
+    expect(b.map((f) => f.letters.join(''))).not.toEqual(a.map((f) => f.letters.join('')));
   });
 
-  it('starts with one blank in short words and gets harder', () => {
-    for (let i = 0; i < 5; i++) {
-      const f = fenceAt(SEED, i);
-      expect(f.blanks).toHaveLength(1);
-      expect(f.word.length).toBeLessThanOrEqual(4);
-    }
-    const late = Array.from({ length: 30 }, (_, i) => fenceAt(SEED, 40 + i));
-    expect(late.every((f) => f.blanks.length >= 2 && f.word.length >= 5)).toBe(true);
-    expect(late.every((f) => f.blanks.length < f.word.length)).toBe(true);
+  it('asks for one letter at first, then two, three, four and five', () => {
+    expect([0, 2, 3, 7, 8, 14, 15, 24, 25, 60].map(lettersAt)).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
+    for (let i = 0; i < 60; i++) expect(fenceAt(SEED, i).letters).toHaveLength(lettersAt(i));
   });
 
-  it('gives time to type: never less than about two seconds a fence, more for more blanks', () => {
+  it('can always be cleared: the word the letters came from fits', () => {
     for (let i = 0; i < 80; i++) {
       const f = fenceAt(SEED, i);
-      expect(f.gap).toBeGreaterThanOrEqual(2.1 + (f.blanks.length - 1) * 0.55);
+      expect(check(dict, f, f.source, new Set())).toEqual({ ok: true });
     }
   });
 
-  it('shows the blanks and fills them in order', () => {
-    const f = { index: 0, word: 'sheep', blanks: [2, 3], gap: 3 };
-    expect(faceOf(f, '')).toBe('SH__P');
-    expect(faceOf(f, 'e')).toBe('SHE_P');
-    expect(faceOf(f, 'ee')).toBe('SHEEP');
+  it('gives more time when it asks for more', () => {
+    for (let i = 1; i < 80; i++) {
+      const f = fenceAt(SEED, i);
+      expect(f.gap).toBeGreaterThanOrEqual(2.8 + (f.letters.length - 1) * 0.35);
+    }
   });
 
-  it('accepts any real word that fits, not only the one the fence was cut from', () => {
-    const f = { index: 0, word: 'cat', blanks: [1], gap: 3 };
-    expect(tryFill(dict, f, '')).toBe('more');
-    expect(tryFill(dict, f, 'a')).toBe('ok');
-    expect(tryFill(dict, f, 'u')).toBe('ok');
-    expect(tryFill(dict, f, 'x')).toBe('wrong');
+  it('takes any real word with the letters in order, with anything around and between them', () => {
+    const f = { index: 0, letters: ['s', 'p'], source: 'sheep', gap: 3 };
+    expect(signOf(f)).toBe('S·P');
+    const none = new Set<string>();
+    for (const w of ['sheep', 'stop', 'slip', 'sleepy', 'gasps', 'whisper']) expect(check(dict, f, w, none)).toEqual({ ok: true });
+    expect(check(dict, f, 'pass', none)).toEqual({ ok: false, reason: 'letters' }); // wrong order
+    expect(check(dict, f, 'sxp', none)).toEqual({ ok: false, reason: 'word' });
+    expect(check(dict, f, 'sp', none)).toEqual({ ok: false, reason: 'short' });
+    expect(check(dict, f, 'sheep', new Set(['sheep']))).toEqual({ ok: false, reason: 'used' });
+    expect(matched(f, 'sh')).toBe(1);
+    expect(matched(f, 'shee')).toBe(1);
+    expect(matched(f, 'sheep')).toBe(2);
   });
 });
 
@@ -102,10 +102,10 @@ describe('daily dream', () => {
   });
 
   it('shares the count without the words', () => {
-    const text = dreamShareText({ date: '2026-11-04', count: 23, lucid: 2, streak: 3 });
+    const text = dreamShareText({ date: '2026-11-04', count: 23, longest: 9, streak: 3 });
     expect(text).toContain('23 sheep');
     expect(text).toContain('🐑🐑🐑🐑🐑');
-    expect(text).toContain('2 lucid jumps');
+    expect(text).toContain('9 letters');
     expect(text).toContain('3-night streak');
   });
 });

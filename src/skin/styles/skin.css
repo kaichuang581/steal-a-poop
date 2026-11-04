@@ -268,3 +268,17 @@
 @media (prefers-reduced-motion: reduce) {
   .sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip, .sk-menu-item[data-active] .sk-menu-lantern svg { animation: none; }
 }
+
+/* ---------- Cursors: the usual arrow and pointing hand, drawn as pixel art in the skin's palette ----------
+   Cream with a wood outline and a soft shadow (src/skin/assets/cursors). SVG first (sharp at any pixel ratio), a PNG
+   for browsers that refuse SVG cursors, then the system cursor. Text fields keep the text cursor; disabled controls
+   keep not-allowed (their own rules). */
+:root[data-skin="painted"],
+:root[data-skin="painted"] body {
+  cursor: url('../assets/cursors/arrow.svg') 1 1, url('../assets/cursors/arrow.png') 1 1, default;
+}
+:root[data-skin="painted"] :is(a[href], button:not(:disabled), [role="button"]:not([aria-disabled="true"]), summary, select, label.cursor-pointer, .cursor-pointer, input:is([type="checkbox"], [type="radio"], [type="range"]):not(:disabled)) {
+  cursor: url('../assets/cursors/hand.svg') 7 1, url('../assets/cursors/hand.png') 9 1, pointer;
+}
+:root[data-skin="painted"] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"]), textarea, [contenteditable="true"]) { cursor: text; }
+:root[data-skin="painted"] :is(button, input, select):disabled { cursor: not-allowed; }

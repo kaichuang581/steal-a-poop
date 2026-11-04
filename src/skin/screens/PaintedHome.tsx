@@ -162,13 +162,13 @@ export function PaintedHome() {
       },
     hunt
       ? {
-        id: 'hunt', label: hunt.status === 'done' ? (copied ? 'Copied!' : 'Share hunt') : 'Daily Hunt',
+        id: 'hunt', label: hunt.status === 'done' ? (copied ? 'Copied!' : 'Share hunt') : 'Hunt',
         badge: hunt.status === 'done' ? `${hunt.defeated ?? 0} beaten` : 'used',
         disabled: hunt.status !== 'done', onSelect: shareHunt,
         caption: `Today's hunt is over. The next pack arrives at ${timeOfNext}.`,
       }
       : {
-        id: 'hunt', label: 'Daily Hunt', badge: huntStreak > 0 ? `${huntStreak}-day streak` : 'new', disabled: !ready,
+        id: 'hunt', label: 'Hunt', badge: huntStreak > 0 ? `${huntStreak}-day streak` : 'new', disabled: !ready,
         caption: 'Fight off the predators with words. One hunt a day, the same pack for everyone.',
         onSelect: () => useHuntUi.getState().openHunt(false),
       },

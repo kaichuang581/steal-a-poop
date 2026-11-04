@@ -64,7 +64,7 @@ export function huntShareText(r: { date: string; defeated: number; damage: numbe
   const rows: string[] = [];
   for (let i = 0; i < r.marks.length; i += 10) rows.push(r.marks.slice(i, i + 10).map((m) => MARK[m]).join(''));
   return [
-    `Finish the Word · Daily Hunt ${r.date}`,
+    `Finish the Word · Hunt ${r.date}`,
     `🐺 ${r.defeated} predator${r.defeated === 1 ? '' : 's'} beaten · 💥 ${r.damage} damage`,
     ...rows,
     r.streak > 1 ? `🔥 ${r.streak}-day streak` : '',

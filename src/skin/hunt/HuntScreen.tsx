@@ -305,7 +305,7 @@ export function HuntScreen() {
   const chain = rules.rules.some((r) => r.id === 'chain') && run.prev ? run.prev.at(-1)!.toUpperCase() : null;
 
   return (
-    <main ref={rootRef} className="gb-root" tabIndex={-1} onKeyDown={onKey} aria-label="Daily Hunt" data-mode={mode.m}>
+    <main ref={rootRef} className="gb-root" tabIndex={-1} onKeyDown={onKey} aria-label="Hunt" data-mode={mode.m}>
       <div className="gb-frame" style={{ width: W * scale, height: H * scale }}>
         <div className={`gb-screen ${fxKind === 'meHit' && !reduced ? 'gb-quake' : ''}`} style={{ transform: `scale(${scale})` }}>
           <div className="gb-sky" aria-hidden="true" />
@@ -460,7 +460,7 @@ function Results({ run, practice, streak, copied, onShare, onPractice, onClose }
 }) {
   return (
     <div className="gb-results" role="dialog" aria-label="Hunt over">
-      <h2>{practice ? 'PRACTICE HUNT OVER' : 'DAILY HUNT OVER'}</h2>
+      <h2>{practice ? 'PRACTICE HUNT OVER' : 'HUNT OVER'}</h2>
       <dl>
         <div><dt>BEATEN</dt><dd>{run.defeated}</dd></div>
         <div><dt>DAMAGE</dt><dd>{run.damage}</dd></div>

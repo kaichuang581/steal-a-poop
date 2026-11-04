@@ -192,6 +192,6 @@ describe('the bag', () => {
 describe('sharing', () => {
   it('shows the result without spoiling the words', () => {
     const text = huntShareText({ date: '2026-11-04', defeated: 2, damage: 312, marks: ['hit', 'crit', 'broke', 'timeout'], streak: 3 });
-    expect(text).toBe('Finish the Word · Daily Hunt 2026-11-04\n🐺 2 predators beaten · 💥 312 damage\n🟩🟨🟥⬛\n🔥 3-day streak');
+    expect(text).toBe('Finish the Word · Hunt 2026-11-04\n🐺 2 predators beaten · 💥 312 damage\n🟩🟨🟥⬛\n🔥 3-day streak');
   });
 });

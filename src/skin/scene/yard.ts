@@ -99,7 +99,8 @@ function ground(g: Grid, set: Set) {
         continue;
       }
       const path = onPath(x, z);
-      set(xi, -1, zi, path ? pathTone : (gx, gy, gz) => pick(T.snow, hash3(gx >> 1, gy, gz >> 1, 2), [0.5, 0.88]));
+      // Snow in broad patches of the two light tones; the dark tone only where drifts shade it.
+      set(xi, -1, zi, path ? pathTone : (gx, gy, gz) => pick(T.snow, hash3(gx >> 3, gy, gz >> 3, 2), [0.6, 0.97]));
       if (path) continue;
       // 0.2 m drifts against the fence, the barn's walls and around the pond rim.
       const r = hash3(xi, 0, zi, 9);
@@ -348,7 +349,7 @@ function farmhouse(g: Grid, set: Set, boxI: BoxI, cap: Cap): [number, number, nu
   const X0 = ix(YARD.farmhouse.x - 3.6), X1 = ix(YARD.farmhouse.x + 3.6) - 1;
   const Z0 = ix(YARD.farmhouse.z - 3), Z1 = ix(YARD.farmhouse.z + 3) - 1;
   const WH = 16, zc = (Z0 + Z1 + 1) / 2, half = (Z1 - Z0 + 1) / 2, pitch = 0.8;
-  const wall: Paint = (x, y, z) => (y % 3 === 2 ? lin(T.house[2]) : pick(T.house, hash3(x, y, z, 101), [0.55, 1]));
+  const wall: Paint = (x, y, z) => (y % 3 === 2 ? lin(T.house[2]) : pick(T.house, hash3(x >> 2, y >> 2, z >> 2, 101), [0.55, 1]));
   // Walls (one voxel shell) and the gable ends.
   for (let x = X0; x <= X1; x++)
     for (let z = Z0; z <= Z1; z++) {

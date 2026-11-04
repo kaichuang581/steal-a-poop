@@ -34,11 +34,16 @@ export const FROST = '#CFE3F5';
 export const SCARF = '#C24E45';
 
 const cache = new Map<string, [number, number, number]>();
-/** Hex to linear RGB (three converts sRGB hex to linear with colour management on). */
+const hsl = { h: 0, s: 0, l: 0 };
+/** Saturation is taken down 30% from the table (plan V3.1 Part 1.3): shadows go cool and highlights warm from the light, not the paint. */
+const DESATURATE = 0.7;
+/** Hex to linear RGB, desaturated (three converts sRGB hex to linear with colour management on). */
 export function lin(hex: string): [number, number, number] {
   let c = cache.get(hex);
   if (!c) {
     const k = new Color(hex);
+    k.getHSL(hsl);
+    k.setHSL(hsl.h, hsl.s * DESATURATE, hsl.l);
     c = [k.r, k.g, k.b];
     cache.set(hex, c);
   }

@@ -46,7 +46,8 @@ const inSideDoor = (y: number, z: number) => z >= SD.z0 && z <= SD.z1 && y <= SD
 function walls(): Grid {
   const g = new Grid(S);
   const knot = lin(T.beam[2]), nail = lin(T.stone[2]), seam = lin(T.barn[2]);
-  const board = (b: number, seed: number): Paint => (x, y, z) => pick(T.barn, hash3(b, seed, 7, 41) * 0.7 + hash3(x, y, z, seed) * 0.3);
+  // One tone per board: coplanar faces of a plank share a colour, so a wall is a wall, not a grid of tiles.
+  const board = (b: number, seed: number): Paint => () => pick(T.barn, hash3(b, seed, 7, 41));
   const r = rng(101);
   let next = 2;
   const knotAt = (pts: [number, number, number][]) => {
@@ -240,7 +241,7 @@ function props(): Grid {
 
 function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
   const g = new Grid(S);
-  const plankTone = (x: number, z: number) => pick(T.beam, hash3(Math.floor((x + 60) / 3), 0, Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25), 51) * 0.6 + hash3(x, 0, z, 52) * 0.4, [0.5, 0.95]);
+  const plankTone = (x: number, z: number) => pick(T.beam, hash3(Math.floor((x + 60) / 3), 0, Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25), 51), [0.5, 0.95]);
   const rr = (SEAT_RING.rx + SEAT_RING.rz) / 2;
   for (let x = -60; x <= 59; x++)
     for (let z = -40; z <= 69; z++) {
@@ -259,7 +260,7 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
     }
 
   // snow drifts blown in through the back doorway
-  const snow: Paint = (x, y, z) => (z >= 70 || y < 0 || !inBackDoor(x, 0) || blocked(x, y, z) ? null : pick(T.snow, hash3(x, y, z, 55), [0.5, 0.85]));
+  const snow: Paint = (x, y, z) => (z >= 70 || y < 0 || !inBackDoor(x, 0) || blocked(x, y, z) ? null : pick(T.snow, hash3(x >> 2, y >> 2, z >> 2, 55), [0.6, 0.97]));
   for (const [x, rx, ry, rz] of [[-1.3, 0.7, 0.35, 0.7], [-0.4, 0.8, 0.28, 0.55], [0.5, 0.7, 0.4, 0.8], [1.35, 0.6, 0.3, 0.6]]) ellipsoid(g, [x, 0, 7.0], [rx, ry, rz], snow, 0.15, 6);
 
   const topY = (x: number, z: number) => {
@@ -323,7 +324,7 @@ function leaf(side: -1 | 1): BufferGeometry {
   const seam = lin(T.barn[2]), brace = tone(T.beam, 61), iron = lin(T.stone[2]), snowC = tone(T.snow, 63, [0.5, 0.85]);
   for (let i = 0; i < w; i++)
     for (let y = 0; y < h; y++)
-      for (const z of [0, 1]) g.set(X(i), y, z, i % 3 === 2 ? seam : pick(T.barn, hash3(Math.floor(i / 3), side, 0, 65) * 0.7 + hash3(i, y, z, 66) * 0.3));
+      for (const z of [0, 1]) g.set(X(i), y, z, i % 3 === 2 ? seam : pick(T.barn, hash3(Math.floor(i / 3), side, 0, 65)));
   // Z brace on the inner face
   for (const y0 of [3, h - 5]) for (let i = 1; i < w - 1; i++) for (const y of [y0, y0 + 1]) g.set(X(i), y, -1, brace(i, y, -1)!);
   for (let t = 0; t <= 40; t++) {

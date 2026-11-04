@@ -5,8 +5,8 @@
  * so these positions are this file's own; every builder reads them from here.
  */
 export const CAMERA = {
-  desktop: { fov: 44, position: [0, 5.0, -10.2] as const, target: [0, 0.9, 2.0] as const },
-  phone: { fov: 58, position: [0, 5.6, -11.2] as const, target: [0, 1.0, 2.0] as const },
+  desktop: { fov: 44, position: [0, 5.0, -11.7] as const, target: [0, 0.9, 2.0] as const },
+  phone: { fov: 58, position: [0, 5.6, -12.7] as const, target: [0, 1.0, 2.0] as const },
 };
 
 export const BARN = {
@@ -50,7 +50,7 @@ export const YARD = {
   farmhouse: { x: -9, z: 30 },
   pond: { x: 10, z: 24, rx: 4.5, rz: 3 },
   snowman: { x: 4.5, z: 11 },
-  pines: [[-14, 20], [-17, 26], [13, 33], [17, 19], [-6, 40], [7, 42], [-22, 34], [22, 30]] as const,
+  pines: [[-14, 20], [-17, 26], [13, 33], [17, 19], [-6, 40], [7, 42], [-22, 34], [22, 30], [-9.8, 12.7], [-10.9, 16.8]] as const,
 };
 
 export const DISTANCE = {

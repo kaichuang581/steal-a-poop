@@ -41,7 +41,7 @@ function columns(g: Grid, nx: [number, number], nz: [number, number], h: (x: num
 }
 
 export function buildDistance(): {
-  hills: BufferGeometry; mountains: BufferGeometry; windmillBody: BufferGeometry; windmillBlades: BufferGeometry;
+  hills: BufferGeometry; backHills: BufferGeometry; mountains: BufferGeometry; windmillBody: BufferGeometry; windmillBlades: BufferGeometry;
   bladesHub: [number, number, number]; triangles: number;
 } {
   // ---- Hills, 1 m grid. They start at the yard's far edge so no gap shows, rising to the rolling heights by fromZ.
@@ -60,7 +60,7 @@ export function buildDistance(): {
     h = lerp(h, mBase, smooth((10 - Math.hypot(x - M.x, z - M.z)) / 5));
     return lerp(1, h, smooth((z - z0) / (DISTANCE.hills.fromZ + 6 - z0)));
   };
-  columns(hillsG, [-150, 149], [z0, z1], hillH, (x, y, z, top) => pick(T.snow, hash3(x, y, z, 11), y === top - 1 ? [0.55, 0.9] : [0.1, 0.5]));
+  columns(hillsG, [-150, 149], [z0, z1], hillH, (x, y, z, top) => pick(T.snow, hash3(x >> 2, y >> 2, z >> 2, 11), y === top - 1 ? [0.6, 0.95] : [0.1, 0.5]));
   // Tree lines of 1-voxel dots in pine dark, a few two tall.
   const pineDark = lin(T.pine[2]), pineMid = lin(T.pine[1]);
   for (let x = -150; x < 150; x++)
@@ -148,7 +148,7 @@ export function buildDistance(): {
   const MZ0 = Math.ceil(DISTANCE.mountains.fromZ / 3), MZ1 = Math.floor(DISTANCE.mountains.toZ / 3);
   const hAt = (xi: number, zi: number) => mH(xi * 3, zi * 3) / 3;
   columns(mG, [-100, 99], [MZ0, MZ1], hAt, (x, y, z, top, slope) => {
-    const m = y * 3, isTop = y === top - 1, n = hash3(x, y, z, 51);
+    const m = y * 3, isTop = y === top - 1, n = hash3(x >> 1, y >> 1, z >> 1, 51);
     const snowLine = 48 + (vnoise(x / 6, z / 6, 52) - 0.5) * 20;
     if (isTop) {
       const crest = (top > Math.round(hAt(x - 1, z)) && top > Math.round(hAt(x + 1, z))) || (top > Math.round(hAt(x, z - 1)) && top > Math.round(hAt(x, z + 1)));
@@ -161,12 +161,29 @@ export function buildDistance(): {
     return pick(T.stone, n, [0.2, 0.6]);
   });
 
+  // ---- Low hills behind the barn (the open-front side), 1 m grid: the Home diorama and the near-side turn shots need a horizon.
+  const backG = new Grid(1);
+  const bz0 = -110, bz1 = -34;
+  const backH = (x: number, z: number) => {
+    const t = (bz1 - z) / (bz1 - bz0);
+    const h = 2 + 8 * smooth(t) + ((vnoise(x / 30, z / 22, 61) * 2 + vnoise(x / 15, z / 11, 62)) / 3) * 10;
+    return Math.min(20, Math.max(1, h));
+  };
+  columns(backG, [-100, 99], [bz0, bz1], backH, (x, y, z, top) => pick(T.snow, hash3(x >> 2, y >> 2, z >> 2, 63), y === top - 1 ? [0.6, 0.95] : [0.1, 0.5]));
+  for (let x = -100; x < 100; x++)
+    for (const line of [0, 1]) {
+      const z = Math.floor(-52 - line * 26 + Math.sin(x / 19 + line) * 6);
+      if (hash3(x, line, z, 64) < 0.45) continue;
+      backG.set(x, Math.max(1, Math.round(backH(x, z))), z, pineDark);
+    }
+
   // Terrain has no overhangs, so no downward face is ever visible.
   const hills = dropFaces(buildGeometry(hillsG.map, 1), (ny) => ny < 0);
+  const backHills = dropFaces(buildGeometry(backG.map, 1), (ny) => ny < 0);
   const mountains = dropFaces(buildGeometry(mG.map, 3), (ny) => ny < 0);
   const windmillBody = buildGeometry(bodyG.map, 1);
   return {
-    hills, mountains, windmillBody, windmillBlades, bladesHub,
-    triangles: [hills, mountains, windmillBody, windmillBlades].reduce((s, x) => s + triangles(x), 0),
+    hills, backHills, mountains, windmillBody, windmillBlades, bladesHub,
+    triangles: [hills, backHills, mountains, windmillBody, windmillBlades].reduce((s, x) => s + triangles(x), 0),
   };
 }

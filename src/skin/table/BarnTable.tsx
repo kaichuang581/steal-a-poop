@@ -1,8 +1,8 @@
 import { Billboard, Html } from '@react-three/drei';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Color, Fog, Group, Mesh, MeshLambertMaterial, NoToneMapping, PCFShadowMap, PointLight, SRGBColorSpace, Vector3 } from 'three';
+import { ACESFilmicToneMapping, Group, Mesh, MeshLambertMaterial, PCFSoftShadowMap, PointLight, SRGBColorSpace, Vector3 } from 'three';
 import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
 import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
@@ -13,6 +13,7 @@ import { buildYard } from '../scene/yard';
 import { digitGeometry, heapModel, icicleModel, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
 import { voxelMaterial } from '../voxel/material';
 import { DevStats } from './DevStats';
+import { Atmosphere, Effects, LANTERN_LIGHT, Lights } from './Rendering';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
 
@@ -61,14 +62,6 @@ interface Props {
   children?: ReactNode;
 }
 
-const FOG: Record<Hour, string> = { dawn: '#F3C9B5', day: '#BFE1F3', dusk: '#D08AA2', night: '#273B66' };
-const SUN: Record<Hour, { color: string; intensity: number; pos: [number, number, number] }> = {
-  dawn: { color: '#FFD9A0', intensity: 1.2, pos: [-18, 10, 30] },
-  day: { color: '#FFF6E0', intensity: 1.7, pos: [8, 22, 14] },
-  dusk: { color: '#FFB36B', intensity: 1.0, pos: [22, 8, 30] },
-  night: { color: '#9FB7D6', intensity: 0.5, pos: [-6, 20, 20] },
-};
-
 /** World-static voxel content, built once per page and shared by the table and the Home backdrop. */
 export type World = ReturnType<typeof buildWorld>;
 let world: World | null = null;
@@ -96,23 +89,14 @@ export function worldBuildMs(): number | null {
   return world?.ms ?? null;
 }
 
-/** The static farm: barn, yard, distance and the lanterns' glow. Shared by the table and the Home backdrop. */
-export function Farm({ world: w, hour, reduced, stealOpen, lampRef }: { world: World; hour: Hour; reduced: boolean; stealOpen: boolean; lampRef?: (i: number, l: PointLight | null) => void }) {
+/** The static farm: barn, yard, distance and the lanterns' glow boxes. Shared by the table and the Home backdrop. */
+export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: boolean; stealOpen: boolean }) {
   const { barn, yard, distance } = w;
   const voxMat = useMemo(() => voxelMaterial(), []);
-  const glowMat = useMemo(() => voxelMaterial({ emissive: '#FFC24B', emissiveIntensity: 0.8 }), []);
-  const sun = SUN[hour];
+  // Bright enough to pass the bloom threshold, so only the lanterns glow.
+  const glowMat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2 }), []);
   return (
     <>
-      <hemisphereLight args={['#DCE6F2', '#8E3A31', hour === 'night' ? 0.55 : 0.7]} />
-      <directionalLight
-        position={sun.pos} color={sun.color} intensity={sun.intensity} castShadow
-        shadow-mapSize={[4096, 4096]} shadow-bias={-0.0002} shadow-normalBias={0.01}
-        shadow-camera-left={-14} shadow-camera-right={14} shadow-camera-top={14} shadow-camera-bottom={-14} shadow-camera-far={80}
-      />
-      {BARN.lanterns.map((p, i) => (
-        <pointLight key={i} ref={(l) => lampRef?.(i, l)} position={[p[0], p[1] - 0.3, p[2]]} color="#FFC24B" intensity={9} distance={14} decay={1.2} />
-      ))}
       {barn.static.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
       {barn.doorLeaves.map((d, i) => <mesh key={i} geometry={d.geo} material={voxMat} position={d.hinge} rotation={[0, d.openYaw, 0]} castShadow receiveShadow />)}
       <mesh geometry={barn.lanterns} material={glowMat} />
@@ -122,6 +106,7 @@ export function Farm({ world: w, hour, reduced, stealOpen, lampRef }: { world: W
       {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
       <ChimneySmoke from={yard.smokeFrom} />
       <mesh geometry={distance.hills} material={voxMat} receiveShadow />
+      <mesh geometry={distance.backHills} material={voxMat} receiveShadow />
       <mesh geometry={distance.mountains} material={voxMat} />
       <Windmill body={distance.windmillBody} blades={distance.windmillBlades} hub={distance.bladesHub} />
     </>
@@ -134,9 +119,9 @@ export function BarnTable(props: Props) {
   if (!w) return <Building />;
   return (
     <Canvas
-      shadows={{ type: PCFShadowMap }}
-      dpr={[1, 1.5]}
-      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: NoToneMapping, antialias: true }}
+      shadows={{ type: PCFSoftShadowMap }}
+      dpr={props.phone ? [1, 1.5] : [1, 2]}
+      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
@@ -154,15 +139,9 @@ export function Building() {
 }
 
 function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w }: Props & { world: World }) {
-  const scene = useThree((s) => s.scene);
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
   const pos = (i: number) => seatPosition(i, n);
-
-  useEffect(() => {
-    scene.fog = new Fog(FOG[hour], 30, 210);
-    scene.background = new Color(FOG[hour]);
-  }, [scene, hour]);
 
   // The freeze dims the lanterns to 40% for 2.4 s.
   const freezeAt = useRef(-10);
@@ -171,14 +150,16 @@ function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone
   useFrame(({ clock }) => {
     const dim = performance.now() / 1000 - freezeAt.current < 2.4 ? 0.4 : 1;
     const flicker = reduced || stealOpen ? 1 : 1 + Math.sin(clock.elapsedTime * 7.3) * 0.05;
-    for (const l of lamps.current) if (l) l.intensity = 9 * dim * flicker;
+    for (const l of lamps.current) if (l) l.intensity = LANTERN_LIGHT.intensity * dim * flicker;
   });
 
   return (
     <>
       <CameraRig focus={speaker} n={n} phone={phone} reduced={reduced} />
+      <Atmosphere hour={hour} />
+      <Lights hour={hour} phone={phone} viewYaw={0} lampRef={(i, l) => { lamps.current[i] = l; }} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
-      <Farm world={w} hour={hour} reduced={reduced} stealOpen={stealOpen} lampRef={(i, l) => { lamps.current[i] = l; }} />
+      <Farm world={w} reduced={reduced} stealOpen={stealOpen} />
       <Heap pile={pile} />
       {stealOpen && <WolfEyes />}
       {speaker !== null && <Icicle at={pos(speaker)} fraction={fraction} red={stealOpen} reduced={reduced} />}
@@ -194,6 +175,7 @@ function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone
       })}
       <Moments moments={moments} n={n} reduced={reduced} />
       {children}
+      <Effects />
       <DevStats />
     </>
   );

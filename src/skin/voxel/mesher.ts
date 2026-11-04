@@ -9,9 +9,9 @@ const FACES: { axis: 0 | 1 | 2; sign: 1 | -1; t1: 0 | 1 | 2; t2: 0 | 1 | 2 }[] =
   { axis: 1, sign: 1, t1: 0, t2: 2 }, { axis: 1, sign: -1, t1: 0, t2: 2 },
   { axis: 2, sign: 1, t1: 0, t2: 1 }, { axis: 2, sign: -1, t1: 0, t2: 1 },
 ];
-/** Each face direction gets its own brightness, so a cube's six faces read apart even where the light is flat. */
+/** A little per-face shading so a cube's faces read apart where the light is flat; the sun and sky fill do the rest. */
 const FACE_SHADE = (axis: number, sign: number) =>
-  axis === 1 ? (sign > 0 ? 1.0 : 0.68) : axis === 0 ? (sign > 0 ? 0.9 : 0.8) : sign > 0 ? 0.86 : 0.78;
+  axis === 1 ? (sign > 0 ? 1.0 : 0.78) : axis === 0 ? (sign > 0 ? 0.93 : 0.88) : sign > 0 ? 0.91 : 0.86;
 /** How much each occluded corner darkens (0..3 corners). */
 const AO_STEP = 0.2;
 
@@ -25,10 +25,10 @@ function cornersFor(axis: number, sign: number): [number, number][] {
 
 /**
  * Face-culled mesh with per-vertex colour and ambient occlusion baked in (plan V3 Part 8). Positions are in metres:
- * voxel indices times `size`. Every face also gets 0..1 UVs so the edge texture (material.ts) can draw each cube's
- * outline.
+ * voxel indices times `size`.
  */
 export function buildGeometry(vox: VoxelMap, size: number): BufferGeometry {
+  // UVs are kept so a material may map a texture, but the voxel material carries none (plan V3.1 Part 1.1).
   const has = (p: number[]) => vox.has(`${p[0]},${p[1]},${p[2]}`);
   const pos: number[] = [], col: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [];
   for (const v of vox.values()) {

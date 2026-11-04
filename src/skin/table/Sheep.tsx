@@ -11,7 +11,7 @@ import { Grid } from '../voxel/primitives';
 import { iceDressing, sheepModel, windCurl } from '../voxel/sheep';
 import type { Brows, Mouth, Part, WoolLevel } from '../voxel/sheep';
 
-export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping';
+export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing';
 export type { WoolLevel };
 
 /** Banked points to wool level (plan V3 Part 5.2). */
@@ -41,6 +41,8 @@ interface Props {
   gustFrom?: [number, number, number];
   /** Winner's scarf. */
   scarf?: boolean;
+  /** Where the head turns to look (radians about y, clamped to 0.3); Home's hero follows the pointer. */
+  headYaw?: number;
 }
 
 const BLOCK: [number, number, number] = [1.5, 1.4, 1.9];
@@ -53,7 +55,7 @@ const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
  * level is its own fleece built to fit the head and legs, so growing or losing wool swaps the fleece rather than
  * scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false }: Props) {
+export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0 }: Props) {
   const m = sheepModel();
   const mat = useMemo(() => voxelMaterial(), []);
   const breathMat = useMemo(() => new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 }), []);
@@ -98,6 +100,11 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         head.rotation.x = 0.12;
         breathOn = moving;
         break;
+      case 'grazing':
+        // Head down in the hay, a slow chew.
+        head.rotation.x = 0.55 + (moving ? Math.sin(t * 3.1) * 0.03 : 0);
+        lids = blink;
+        break;
       case 'proud':
         head.rotation.x = -0.25;
         mouth = 'smile';
@@ -138,6 +145,10 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         mouth = 'smile';
         break;
     }
+
+    // The head turns toward headYaw a little behind the target, so it reads as looking rather than snapping.
+    const wantYaw = Math.max(-0.3, Math.min(0.3, headYaw));
+    head.rotation.y += (wantYaw - head.rotation.y) * (reduced ? 1 : 0.08);
 
     // Wool: the fleece for this level, settling into place over half a second when the level changes.
     const settle = reduced ? 1 : 0.94 + 0.06 * easeOut((t - levelChange.current.at) / 0.5);

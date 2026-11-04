@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { useMemo, useState } from 'react';
-import { NoToneMapping, PCFShadowMap, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace } from 'three';
 import { Chip, PaperPanel } from '../components/Materials';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
@@ -22,7 +22,7 @@ export function SheepPreview() {
   const floorMat = useMemo(() => voxelMaterial(), []);
   return (
     <div className="relative h-full" style={{ background: 'linear-gradient(#273B66, #4A5F8A)' }}>
-      <Canvas shadows={{ type: PCFShadowMap }} dpr={[1, 1.5]} gl={{ outputColorSpace: SRGBColorSpace, toneMapping: NoToneMapping }} camera={{ fov: 32, position: [0.5, 1.0, 2.6] }} onCreated={({ camera }) => camera.lookAt(0, 0.6, 0)}>
+      <Canvas shadows={{ type: PCFSoftShadowMap }} dpr={[1, 2]} gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 32, position: [0.5, 1.0, 2.6] }} onCreated={({ camera }) => camera.lookAt(0, 0.6, 0)}>
         <hemisphereLight args={['#DCE6F2', '#8E3A31', 0.9]} />
         <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
         <mesh geometry={floor} receiveShadow position={[-1.6, -0.1, -1.6]} material={floorMat} />

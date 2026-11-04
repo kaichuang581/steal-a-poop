@@ -8,7 +8,7 @@
 }
 :root[data-skin="painted"] :focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 
-.sk-display { font-family: var(--skin-font-display); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.sk-display { font-family: var(--skin-font-display); font-weight: 700; font-variant-numeric: tabular-nums; }
 .sk-hand { font-family: var(--skin-font-hand); }
 .sk-num { font-variant-numeric: tabular-nums; }
 
@@ -113,3 +113,21 @@
 [data-steal-open="true"] .sk-swing { animation-play-state: paused; }
 :root[data-skin="painted"].reduce-motion .sk-flicker { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-flicker { animation: none; } }
+
+/* Start screen (plan V3.1 Part 2.5): tickets lift on hover and sink on press; the setup step slides in. */
+.sk-ticket { transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out); }
+.sk-ticket:hover:not(:disabled) { transform: translateY(-2px); }
+.sk-ticket:active:not(:disabled) { transform: translateY(1px); }
+@keyframes sk-slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes sk-slide-up { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
+.sk-slide-in { animation: sk-slide-in var(--t-fast) var(--ease-out) both; }
+.sk-slide-up { animation: sk-slide-up var(--t-fast) var(--ease-out) both; }
+@keyframes sk-walk-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.sk-walk-in { animation: sk-walk-in var(--t-fast) var(--ease-out) both; }
+:root[data-skin="painted"].reduce-motion .sk-ticket,
+:root[data-skin="painted"].reduce-motion .sk-slide-in,
+:root[data-skin="painted"].reduce-motion .sk-slide-up,
+:root[data-skin="painted"].reduce-motion .sk-walk-in { animation: none; transition: none; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sk-ticket, .sk-slide-in, .sk-slide-up, .sk-walk-in { animation: none; transition: none; transform: none; }
+}

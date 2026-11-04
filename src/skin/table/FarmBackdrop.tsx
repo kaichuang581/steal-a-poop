@@ -23,10 +23,11 @@ export function FarmBackdrop({ hour, reduced, sleepy }: { hour: Hour; reduced: b
       <FogAndSky hour={hour} />
       <Sky hour={hour} reduced={reduced} blizzard={false} />
       <Farm world={w} hour={hour} reduced={reduced} stealOpen={false} />
-      <group position={[4.2, 0, BARN.maxZ + 3.2]} rotation={[0, Math.PI + 0.5, 0]} scale={1.5}>
+      <group position={[3.6, 0, BARN.maxZ + 3.0]} rotation={[0, Math.PI + 0.5, 0]} scale={1.5}>
         <Sheep level={2} state={sleepy ? 'sleeping' : 'idle'} reduced={reduced} />
       </group>
-      <group position={[-3.8, 0, BARN.maxZ + 2.4]} rotation={[0, Math.PI - 0.7, 0]} scale={1.5}>
+      {/* Side-on to the camera, a few metres off, so it reads as a sheep and not a lump in the foreground. */}
+      <group position={[-2.6, 0, BARN.maxZ + 3.6]} rotation={[0, -Math.PI / 2 + 0.35, 0]} scale={1.5}>
         <Sheep level={3} state={sleepy ? 'sleeping' : 'idle'} reduced={reduced} />
       </group>
     </Canvas>

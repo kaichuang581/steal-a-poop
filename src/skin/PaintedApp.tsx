@@ -6,7 +6,11 @@ import { RoomScreen } from '../ui/RoomScreen';
 import { useHour } from './hooks/useAmbient';
 import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
+import { SheepPreview } from './table/SheepPreview';
 import './styles/skin.css';
+
+/** ?preview=sheep opens the model preview (plan V3 Milestone 1). */
+const PREVIEW = new URLSearchParams(location.search).get('preview');
 
 /**
  * The painted skin's screen switch, mirroring App's: game, room, lobby, home. The Rooms lobby and waiting room keep
@@ -26,6 +30,7 @@ export function PaintedApp() {
   }, []);
   useEffect(() => { document.documentElement.dataset.hour = hour; }, [hour]);
 
+  if (PREVIEW === 'sheep') return <SheepPreview />;
   if (inGame) return <PaintedGame />;
   if (inRoom) return <RoomScreen />;
   if (lobbyOpen) return <Lobby />;

@@ -1,8 +1,8 @@
-import { Html } from '@react-three/drei';
+import { Billboard, Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Color, Fog, Group, Mesh, MeshLambertMaterial, NoToneMapping, PCFSoftShadowMap, PointLight, SRGBColorSpace } from 'three';
+import { Color, Fog, Group, Mesh, MeshLambertMaterial, NoToneMapping, PCFShadowMap, PointLight, SRGBColorSpace, Vector3 } from 'three';
 import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
 import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
@@ -11,6 +11,7 @@ import { BARN, CAMERA, HEAP, SHEEP_SCALE, seatPosition } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
 import { digitGeometry, heapModel, icicleModel, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
+import { voxelMaterial } from '../voxel/material';
 import { DevStats } from './DevStats';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
@@ -46,7 +47,7 @@ export interface BarnMoments {
 interface Props {
   seats: BarnSeat[];
   pile: number;
-  /** Seat index (as in BarnSeat.index) whose turn it is; the icicle hangs over it. */
+  /** Seat index (as in BarnSeat.index) whose turn it is; the camera frames them and the icicle hangs over them. */
   speaker: number | null;
   /** 0..1 of the turn left (the icicle's length). */
   fraction: number;
@@ -62,14 +63,15 @@ interface Props {
 
 const FOG: Record<Hour, string> = { dawn: '#F3C9B5', day: '#BFE1F3', dusk: '#D08AA2', night: '#273B66' };
 const SUN: Record<Hour, { color: string; intensity: number; pos: [number, number, number] }> = {
-  dawn: { color: '#FFD9A0', intensity: 1.1, pos: [-18, 10, 30] },
-  day: { color: '#FFF6E0', intensity: 1.6, pos: [8, 22, 14] },
-  dusk: { color: '#FFB36B', intensity: 0.9, pos: [22, 8, 30] },
-  night: { color: '#9FB7D6', intensity: 0.45, pos: [-6, 20, 20] },
+  dawn: { color: '#FFD9A0', intensity: 1.2, pos: [-18, 10, 30] },
+  day: { color: '#FFF6E0', intensity: 1.7, pos: [8, 22, 14] },
+  dusk: { color: '#FFB36B', intensity: 1.0, pos: [22, 8, 30] },
+  night: { color: '#9FB7D6', intensity: 0.5, pos: [-6, 20, 20] },
 };
 
-/** World-static voxel content, built once per page. */
-let world: ReturnType<typeof buildWorld> | null = null;
+/** World-static voxel content, built once per page and shared by the table and the Home backdrop. */
+export type World = ReturnType<typeof buildWorld>;
+let world: World | null = null;
 function buildWorld() {
   const t0 = performance.now();
   const barn = buildBarn();
@@ -79,27 +81,80 @@ function buildWorld() {
   return { barn, yard, distance, ms };
 }
 
+/** The world, built on the first call after paint so the page is not blank-blocked while it builds. */
+export function useWorld(): World | null {
+  const [w, setW] = useState(world);
+  useEffect(() => {
+    if (world) return;
+    const id = setTimeout(() => { world ??= buildWorld(); setW(world); }, 0);
+    return () => clearTimeout(id);
+  }, []);
+  return w;
+}
+
+export function worldBuildMs(): number | null {
+  return world?.ms ?? null;
+}
+
+/** The static farm: barn, yard, distance and the lanterns' glow. Shared by the table and the Home backdrop. */
+export function Farm({ world: w, hour, reduced, stealOpen, lampRef }: { world: World; hour: Hour; reduced: boolean; stealOpen: boolean; lampRef?: (i: number, l: PointLight | null) => void }) {
+  const { barn, yard, distance } = w;
+  const voxMat = useMemo(() => voxelMaterial(), []);
+  const glowMat = useMemo(() => voxelMaterial({ emissive: '#FFC24B', emissiveIntensity: 0.8 }), []);
+  const sun = SUN[hour];
+  return (
+    <>
+      <hemisphereLight args={['#DCE6F2', '#8E3A31', hour === 'night' ? 0.55 : 0.7]} />
+      <directionalLight
+        position={sun.pos} color={sun.color} intensity={sun.intensity} castShadow
+        shadow-mapSize={[4096, 4096]} shadow-bias={-0.0002} shadow-normalBias={0.01}
+        shadow-camera-left={-14} shadow-camera-right={14} shadow-camera-top={14} shadow-camera-bottom={-14} shadow-camera-far={80}
+      />
+      {BARN.lanterns.map((p, i) => (
+        <pointLight key={i} ref={(l) => lampRef?.(i, l)} position={[p[0], p[1] - 0.3, p[2]]} color="#FFC24B" intensity={9} distance={14} decay={1.2} />
+      ))}
+      {barn.static.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
+      {barn.doorLeaves.map((d, i) => <mesh key={i} geometry={d.geo} material={voxMat} position={d.hinge} rotation={[0, d.openYaw, 0]} castShadow receiveShadow />)}
+      <mesh geometry={barn.lanterns} material={glowMat} />
+      <mesh geometry={barn.tarp} material={voxMat} />
+      <Cat geo={barn.cat} reduced={reduced} frozen={stealOpen} mat={voxMat} />
+      <Robin geo={barn.robin} reduced={reduced || stealOpen} mat={voxMat} />
+      {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
+      <ChimneySmoke from={yard.smokeFrom} />
+      <mesh geometry={distance.hills} material={voxMat} receiveShadow />
+      <mesh geometry={distance.mountains} material={voxMat} />
+      <Windmill body={distance.windmillBody} blades={distance.windmillBlades} hub={distance.bladesHub} />
+    </>
+  );
+}
+
 export function BarnTable(props: Props) {
   const cam = props.phone ? CAMERA.phone : CAMERA.desktop;
+  const w = useWorld();
+  if (!w) return <Building />;
   return (
     <Canvas
-      shadows={{ type: PCFSoftShadowMap }}
+      shadows={{ type: PCFShadowMap }}
       dpr={[1, 1.5]}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: NoToneMapping, antialias: true }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
-      <Scene {...props} />
+      <Scene {...props} world={w} />
     </Canvas>
   );
 }
 
-function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone, blizzard, moments, children }: Props) {
-  world ??= buildWorld();
-  const { barn, yard, distance } = world;
+export function Building() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="sk-paper sk-display px-4 py-2 text-lg">Raising the barn…</div>
+    </div>
+  );
+}
+
+function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w }: Props & { world: World }) {
   const scene = useThree((s) => s.scene);
-  const voxMat = useMemo(() => new MeshLambertMaterial({ vertexColors: true }), []);
-  const glowMat = useMemo(() => new MeshLambertMaterial({ vertexColors: true, emissive: new Color('#FFC24B'), emissiveIntensity: 0.8 }), []);
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
   const pos = (i: number) => seatPosition(i, n);
@@ -119,75 +174,89 @@ function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone
     for (const l of lamps.current) if (l) l.intensity = 9 * dim * flicker;
   });
 
-  const sun = SUN[hour];
   return (
     <>
-      <hemisphereLight args={['#DCE6F2', '#8E3A31', hour === 'night' ? 0.7 : 0.9]} />
-      <directionalLight
-        position={sun.pos} color={sun.color} intensity={sun.intensity} castShadow
-        shadow-mapSize={phone ? [2048, 2048] : [4096, 4096]} shadow-bias={-0.0004} shadow-normalBias={0.02}
-        shadow-camera-left={-14} shadow-camera-right={14} shadow-camera-top={14} shadow-camera-bottom={-14} shadow-camera-far={80}
-      />
-      {BARN.lanterns.map((p, i) => (
-        <pointLight key={i} ref={(l) => { lamps.current[i] = l; }} position={[p[0], p[1] - 0.3, p[2]]} color="#FFC24B" distance={14} decay={1.2} />
-      ))}
+      <CameraRig focus={speaker} n={n} phone={phone} reduced={reduced} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
-
-      {barn.static.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
-      {barn.doorLeaves.map((d, i) => <mesh key={i} geometry={d.geo} material={voxMat} position={d.hinge} rotation={[0, d.openYaw, 0]} castShadow receiveShadow />)}
-      <mesh geometry={barn.lanterns} material={glowMat} />
-      <mesh geometry={barn.tarp} material={voxMat} />
-      <Cat geo={barn.cat} reduced={reduced} frozen={stealOpen} mat={voxMat} />
-      <Robin geo={barn.robin} reduced={reduced || stealOpen} mat={voxMat} />
-      {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
-      <ChimneySmoke from={yard.smokeFrom} />
-      <mesh geometry={distance.hills} material={voxMat} receiveShadow />
-      <mesh geometry={distance.mountains} material={voxMat} />
-      <Windmill body={distance.windmillBody} blades={distance.windmillBlades} hub={distance.bladesHub} />
-
-      <Heap pile={pile} mat={voxMat} />
+      <Farm world={w} hour={hour} reduced={reduced} stealOpen={stealOpen} lampRef={(i, l) => { lamps.current[i] = l; }} />
+      <Heap pile={pile} />
       {stealOpen && <WolfEyes />}
       {speaker !== null && <Icicle at={pos(speaker)} fraction={fraction} red={stealOpen} reduced={reduced} />}
       {seats.map((s) => {
         const p = pos(s.index);
         return (
           <group key={s.seat} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={SHEEP_SCALE}>
-            <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} scarf={s.scarf}
+            <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} still={stealOpen} scarf={s.scarf}
               gustFrom={[0, 0.8, -6]} />
-            <Html position={[0, 1.55, 0]} center zIndexRange={[20, 0]}>{s.label}</Html>
+            <Html position={[0, 1.3, 0]} center zIndexRange={[20, 0]}>{s.label}</Html>
           </group>
         );
       })}
-      <Moments moments={moments} n={n} reduced={reduced} mat={voxMat} />
+      <Moments moments={moments} n={n} reduced={reduced} />
       {children}
       <DevStats />
     </>
   );
 }
 
-function Heap({ pile, mat }: { pile: number; mat: MeshLambertMaterial }) {
+/**
+ * The camera looks at whoever's turn it is: it stands across the heap from their seat, a little above, so you see
+ * their face with the heap in front. Between turns it pulls back to the wide shot from outside the open front.
+ * Reduced motion cuts instead of gliding.
+ */
+function CameraRig({ focus, n, phone, reduced }: { focus: number | null; n: number; phone: boolean; reduced: boolean }) {
+  const look = useRef<Vector3 | null>(null);
+  const wide = phone ? CAMERA.phone : CAMERA.desktop;
+  useFrame(({ camera }, dt) => {
+    const pos = new Vector3();
+    const target = new Vector3();
+    if (focus === null) {
+      pos.set(wide.position[0], wide.position[1], wide.position[2]);
+      target.set(wide.target[0], wide.target[1], wide.target[2]);
+    } else {
+      const p = seatPosition(focus, n);
+      const dir = new Vector3(p.x - HEAP[0], 0, p.z - HEAP[2]).normalize();
+      const back = phone ? 3.8 : 3.2;
+      pos.set(HEAP[0] - dir.x * back, phone ? 3.0 : 2.6, HEAP[2] - dir.z * back);
+      target.set(p.x, 1.0, p.z);
+    }
+    look.current ??= target.clone();
+    const k = reduced ? 1 : 1 - Math.exp(-dt * 2.6);
+    camera.position.lerp(pos, k);
+    look.current.lerp(target, k);
+    camera.lookAt(look.current);
+  });
+  return null;
+}
+
+function Heap({ pile }: { pile: number }) {
   const heapGeometry = useMemo(() => heapModel(), []);
   const level = Math.min(8, Math.ceil(pile / 8));
-  const digits = useMemo(() => digitGeometry(String(pile)), [pile]);
-  const glow = useMemo(() => new MeshLambertMaterial({ vertexColors: true, emissive: new Color('#FFC24B'), emissiveIntensity: 0.35 }), []);
+  const digits = useMemo(() => digitGeometry(String(pile), 0.05), [pile]);
+  const mat = useMemo(() => voxelMaterial(), []);
+  const glow = useMemo(() => voxelMaterial({ emissive: '#FFC24B', emissiveIntensity: 0.35 }), []);
   return (
     <group position={[HEAP[0], 0.02, HEAP[2]]}>
       <mesh geometry={heapGeometry(level)} material={mat} castShadow receiveShadow />
-      {/* The camera is fixed and looks toward +z, so the count faces it (-z) and stands above the heap. */}
-      <mesh geometry={digits} material={glow} position={[0, 1.3 + level * 0.06, 0]} rotation={[0, Math.PI, 0]} />
+      <Billboard position={[0, 1.15 + level * 0.06, 0]}>
+        <mesh geometry={digits} material={glow} />
+      </Billboard>
+      <Html position={[0, 0.05, 0]} center zIndexRange={[10, 0]}>
+        <div className="sk-chip pointer-events-none text-xs" data-pile data-tour="pile" aria-label={`Pile ${pile} points`}>the heap</div>
+      </Html>
     </group>
   );
 }
 
 function WolfEyes() {
   const geo = useMemo(() => wolfEyes(), []);
-  const mat = useMemo(() => new MeshLambertMaterial({ vertexColors: true, emissive: new Color('#FFE066'), emissiveIntensity: 1 }), []);
+  const mat = useMemo(() => voxelMaterial({ emissive: '#FFE066', emissiveIntensity: 1 }), []);
   return <mesh geometry={geo} material={mat} position={[BARN.minX + 0.15, 1.2, BARN.sideDoor.z]} rotation={[0, Math.PI / 2, 0]} />;
 }
 
 function Icicle({ at, fraction, red, reduced }: { at: { x: number; z: number }; fraction: number; red: boolean; reduced: boolean }) {
   const m = useMemo(() => icicleModel(), []);
-  const mat = useMemo(() => new MeshLambertMaterial({ vertexColors: true }), []);
+  const mat = useMemo(() => voxelMaterial(), []);
   const drip = useRef<Mesh>(null);
   const g = useRef<Group>(null);
   useFrame(({ clock }) => {
@@ -203,7 +272,7 @@ function Icicle({ at, fraction, red, reduced }: { at: { x: number; z: number }; 
     }
   });
   return (
-    <group ref={g} position={[at.x, 2.95, at.z]}>
+    <group ref={g} position={[at.x, 3.25, at.z]}>
       <mesh geometry={m.ice.geo} material={mat} scale={[1, 0.25 + 0.75 * fraction, 1]} />
       <mesh ref={drip} geometry={m.drip} material={mat} />
     </group>
@@ -216,7 +285,7 @@ function Cat({ geo, reduced, frozen, mat }: { geo: { body: BufferGeometry; tail:
   useFrame(({ clock }) => {
     if (reduced || frozen) return;
     const t = clock.elapsedTime;
-    if (body.current) body.current.scale.y = 1 + Math.sin(t * 1.4) * 0.03;
+    if (body.current) body.current.scale.y = 1 + Math.sin(t * 1.4) * 0.02;
     if (tail.current) tail.current.rotation.z = Math.sin(t * 0.8) * 0.15;
   });
   return (
@@ -239,7 +308,8 @@ function Robin({ geo, reduced, mat }: { geo: BufferGeometry; reduced: boolean; m
 }
 
 /** Tufts, the wolf run, the shears and the gust, each a short one-shot from its key. */
-function Moments({ moments, n, reduced, mat }: { moments: BarnMoments; n: number; reduced: boolean; mat: MeshLambertMaterial }) {
+function Moments({ moments, n, reduced }: { moments: BarnMoments; n: number; reduced: boolean }) {
+  const mat = useMemo(() => voxelMaterial(), []);
   const tuft = useMemo(() => tuftGeometry(3), []);
   const wolf = useMemo(() => wolfModel(), []);
   const shears = useMemo(() => shearsModel(), []);
@@ -292,18 +362,14 @@ function Moments({ moments, n, reduced, mat }: { moments: BarnMoments; n: number
         {[0, 1, 2].map((i) => <mesh key={i} geometry={tuft} material={mat} position={[i * 0.12 - 0.12, i * 0.05, 0]} />)}
       </group>
       <group ref={set('gust')} visible={false}><mesh geometry={tuft} material={mat} /></group>
-      <group ref={set('wolf')} visible={false}>
+      <group ref={set('wolf')} visible={false} scale={1.4}>
         {[wolf.body, wolf.head, wolf.tail, wolf.eyes, ...wolf.legs].map((p, i) => <mesh key={i} geometry={p.geo} position={p.pivot} material={mat} castShadow />)}
         <mesh geometry={tuft} material={mat} position={[0, 0.75, 0.45]} scale={2.2} />
       </group>
-      <group ref={set('shears')} visible={false}>
+      <group ref={set('shears')} visible={false} scale={1.4}>
         <mesh geometry={shears.bladeA.geo} position={shears.bladeA.pivot} material={mat} />
         <mesh geometry={shears.bladeB.geo} position={shears.bladeB.pivot} material={mat} />
       </group>
     </>
   );
-}
-
-export function worldBuildMs(): number | null {
-  return world?.ms ?? null;
 }

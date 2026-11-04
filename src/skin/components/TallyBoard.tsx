@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
-import { Creature } from './Creature';
 import { IceOverlay } from './Lives';
+import { SheepIcon } from './SheepIcon';
 
 /** Wool-ball counter: one ball per 20 banked points (up to five), the last one partly wound. */
 function WoolBalls({ points }: { points: number }) {
@@ -61,7 +61,7 @@ export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, 
             }}
           >
             <span className="sk-display w-5 text-center">{i + 1}</span>
-            {p.creature && <Creature id={p.creature} size={26} />}
+            <SheepIcon size={24} bare={p.banked <= 0} />
             <span className="min-w-0 flex-1 truncate font-extrabold">{p.name}{p.isYou ? ' (you)' : ''}</span>
             <WoolBalls points={p.banked} />
             <span className="sk-display text-xl">{p.banked}</span>

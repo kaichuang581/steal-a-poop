@@ -8,7 +8,7 @@
 }
 :root[data-skin="painted"] :focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 
-.sk-display { font-family: var(--skin-font-display); font-weight: 800; font-variant-numeric: tabular-nums; }
+.sk-display { font-family: var(--skin-font-display); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .sk-hand { font-family: var(--skin-font-hand); }
 .sk-num { font-variant-numeric: tabular-nums; }
 

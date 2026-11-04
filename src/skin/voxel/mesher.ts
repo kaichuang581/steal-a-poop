@@ -9,7 +9,11 @@ const FACES: { axis: 0 | 1 | 2; sign: 1 | -1; t1: 0 | 1 | 2; t2: 0 | 1 | 2 }[] =
   { axis: 1, sign: 1, t1: 0, t2: 2 }, { axis: 1, sign: -1, t1: 0, t2: 2 },
   { axis: 2, sign: 1, t1: 0, t2: 1 }, { axis: 2, sign: -1, t1: 0, t2: 1 },
 ];
-const FACE_SHADE = (axis: number, sign: number) => (axis === 1 ? (sign > 0 ? 1.0 : 0.72) : axis === 0 ? 0.88 : 0.82);
+/** Each face direction gets its own brightness, so a cube's six faces read apart even where the light is flat. */
+const FACE_SHADE = (axis: number, sign: number) =>
+  axis === 1 ? (sign > 0 ? 1.0 : 0.68) : axis === 0 ? (sign > 0 ? 0.9 : 0.8) : sign > 0 ? 0.86 : 0.78;
+/** How much each occluded corner darkens (0..3 corners). */
+const AO_STEP = 0.2;
 
 /** Counter-clockwise (outward-facing) corner order for each face, as offsets on (t1, t2). */
 function cornersFor(axis: number, sign: number): [number, number][] {
@@ -21,11 +25,12 @@ function cornersFor(axis: number, sign: number): [number, number][] {
 
 /**
  * Face-culled mesh with per-vertex colour and ambient occlusion baked in (plan V3 Part 8). Positions are in metres:
- * voxel indices times `size`.
+ * voxel indices times `size`. Every face also gets 0..1 UVs so the edge texture (material.ts) can draw each cube's
+ * outline.
  */
 export function buildGeometry(vox: VoxelMap, size: number): BufferGeometry {
   const has = (p: number[]) => vox.has(`${p[0]},${p[1]},${p[2]}`);
-  const pos: number[] = [], col: number[] = [], nor: number[] = [], idx: number[] = [];
+  const pos: number[] = [], col: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [];
   for (const v of vox.values()) {
     const P = [v.x, v.y, v.z];
     for (const f of FACES) {
@@ -43,6 +48,7 @@ export function buildGeometry(vox: VoxelMap, size: number): BufferGeometry {
         c[f.t2] = w;
         pos.push((P[0] + c[0]) * size, (P[1] + c[1]) * size, (P[2] + c[2]) * size);
         nor.push(N[0], N[1], N[2]);
+        uv.push(u, w);
         // ambient occlusion: the two edge neighbours and the diagonal neighbour around this corner, one layer out
         const d1 = u ? 1 : -1, d2 = w ? 1 : -1;
         const s1 = [...outside]; s1[f.t1] += d1;
@@ -51,7 +57,7 @@ export function buildGeometry(vox: VoxelMap, size: number): BufferGeometry {
         const a = has(s1) ? 1 : 0, b = has(s2) ? 1 : 0, cc = has(cn) ? 1 : 0;
         const ao = a && b ? 3 : a + b + cc; // 0 open .. 3 fully occluded
         aos.push(ao);
-        const k = (1 - 0.18 * ao) * FACE_SHADE(f.axis, f.sign);
+        const k = (1 - AO_STEP * ao) * FACE_SHADE(f.axis, f.sign);
         col.push(v.c[0] * k, v.c[1] * k, v.c[2] * k);
       }
       // flip the quad diagonal when needed so AO gradients have no seam
@@ -63,6 +69,7 @@ export function buildGeometry(vox: VoxelMap, size: number): BufferGeometry {
   g.setAttribute('position', new Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new Float32BufferAttribute(nor, 3));
   g.setAttribute('color', new Float32BufferAttribute(col, 3));
+  g.setAttribute('uv', new Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
   g.computeBoundingSphere();
   return g;

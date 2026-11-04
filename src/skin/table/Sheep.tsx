@@ -4,20 +4,20 @@ import {
   AdditiveBlending, BoxGeometry, BufferGeometry, Color, EdgesGeometry, Float32BufferAttribute, Group,
   InstancedMesh, LineBasicMaterial, LineSegments, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial,
 } from 'three';
+import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
 import { FROST, lin, SCARF, T } from '../voxel/palette';
 import { Grid } from '../voxel/primitives';
 import { iceDressing, sheepModel, windCurl } from '../voxel/sheep';
-import type { Brows, Mouth, Part } from '../voxel/sheep';
+import type { Brows, Mouth, Part, WoolLevel } from '../voxel/sheep';
 
 export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping';
-export type WoolLevel = 0 | 1 | 2 | 3 | 4;
+export type { WoolLevel };
 
 /** Banked points to wool level (plan V3 Part 5.2). */
 export function woolLevel(points: number): WoolLevel {
   return points <= 0 ? 0 : points < 15 ? 1 : points < 40 ? 2 : points < 80 ? 3 : 4;
 }
-const WOOL_SCALE = [0, 0.8, 1, 1.15, 1.3];
 
 /** Seconds each timed state lasts before the sheep goes back to idle. */
 const DURATION: Partial<Record<SheepState, number>> = { proud: 1.2, happy: 1.6, startled: 0.6, cold: 2, freezing: 2.4, thawing: 1.2 };
@@ -35,6 +35,8 @@ interface Props {
   coldFor?: number;
   dimmed?: boolean;
   reduced?: boolean;
+  /** Steal window: no idle motion at all (plan V3 Milestone 3). */
+  still?: boolean;
   /** Direction the freeze gust comes from, in the sheep's local space (the barn's back doors). */
   gustFrom?: [number, number, number];
   /** Winner's scarf. */
@@ -47,17 +49,20 @@ const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 
 /**
  * The default sheep with every state of plan V3 Part 5.3, including the freeze sequence (Part 6) and the thaw,
- * all driven from one useFrame. Every player uses this same model; only level, state and seat differ.
+ * all driven from one useFrame. Every player uses this same model; only level, state and seat differ. Each wool
+ * level is its own fleece built to fit the head and legs, so growing or losing wool swaps the fleece rather than
+ * scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, gustFrom = [0, 0.8, -4], scarf = false }: Props) {
+export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false }: Props) {
   const m = sheepModel();
-  const mat = useMemo(() => new MeshLambertMaterial({ vertexColors: true }), []);
+  const mat = useMemo(() => voxelMaterial(), []);
   const breathMat = useMemo(() => new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 }), []);
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
   const fx = useMemo(() => freezeFx(), []);
   const r = useRef<Record<string, Object3D | null>>({});
   const started = useRef({ key: -1, state: '' as SheepState, at: 0 });
+  const levelChange = useRef({ level, at: -10 });
   const set = (k: string) => (o: Object3D | null) => { r.current[k] = o; };
 
   useFrame(({ clock }) => {
@@ -67,28 +72,31 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     const e = t - started.current.at;
     const dur = state === 'cold' ? coldFor : DURATION[state];
     const live: SheepState = dur !== undefined && e > dur ? (state === 'freezing' ? 'frozen' : 'idle') : state;
+    if (levelChange.current.level !== level) levelChange.current = { level, at: t };
 
     const body = o.body as Group, head = o.head as Group, wool = o.wool as Mesh;
     if (!body || !head || !wool) return;
+    const moving = !still && !reduced && live !== 'frozen';
     // Defaults for this frame; each state overrides what it needs.
-    let brows: Brows = 'neutral', mouth: Mouth = 'flat', eyeScale = 1, woolBoost = 1, lids = false, breathOn = false;
+    let brows: Brows = 'neutral', mouth: Mouth = 'flat', eyeScale = 1, puff = 1, lids = false, breathOn = false;
     body.position.set(0, 0, 0);
     body.rotation.set(0, 0, 0);
     head.rotation.set(0, 0, 0);
     let legLift = 0, tint = 0;
-    const breathe = live === 'frozen' ? 0 : Math.sin(t * (live === 'sleeping' ? 1.2 : 2.2)) * 0.02;
-    const blink = (t % 4.2) < 0.12;
-    const flick = (t % 9) < 0.25 ? Math.sin(((t % 9) / 0.25) * Math.PI) * 0.26 : 0;
+    // Breathing: a slow, barely visible rise of the back; the fleece never swells.
+    const breathe = moving ? Math.sin(t * (live === 'sleeping' ? 1.2 : 1.9)) * 0.006 : 0;
+    const blink = moving && (t % 4.2) < 0.12;
+    const flick = moving && (t % 9) < 0.25 ? Math.sin(((t % 9) / 0.25) * Math.PI) * 0.26 : 0;
 
     switch (live) {
       case 'idle':
-        head.rotation.x = Math.sin(t * 0.9) * 0.04;
+        head.rotation.x = moving ? Math.sin(t * 0.9) * 0.04 : 0;
         lids = blink;
         break;
       case 'sleeping':
         lids = true;
         head.rotation.x = 0.12;
-        breathOn = true;
+        breathOn = moving;
         break;
       case 'proud':
         head.rotation.x = -0.25;
@@ -101,22 +109,22 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         break;
       case 'startled':
         body.position.y = Math.sin(clamp01(e / 0.6) * Math.PI) * 0.25;
-        woolBoost = 1.18;
+        puff = 1.06; // the fleece lifts a little, it does not balloon
         eyeScale = 1.4;
         brows = 'scared';
         mouth = 'grimace';
         break;
       case 'cold':
         body.position.y = -0.05;
-        body.position.x = Math.sin(t * 60) * 0.015;
+        body.position.x = reduced ? 0 : Math.sin(t * 60) * 0.015;
         brows = 'worried';
-        breathOn = true;
+        breathOn = !reduced;
         break;
       case 'freezing':
       case 'frozen': {
         // 0.5 s: startled, then caught mid-run with a front leg up and the body leaning back. Still from here on.
         const posed = live === 'frozen' || e >= 0.5;
-        if (!posed) { woolBoost = 1 + 0.18 * (e / 0.5); eyeScale = 1.2; }
+        if (!posed) { puff = 1 + 0.06 * (e / 0.5); eyeScale = 1.2; }
         if (posed) { legLift = 0.12; body.rotation.x = -0.14; }
         eyeScale = posed ? 1.4 : eyeScale;
         brows = 'scared';
@@ -126,25 +134,26 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
       }
       case 'thawing':
         tint = 1 - clamp01(e / 1.2);
-        body.rotation.z = Math.sin(e * 20) * 0.1 * (1 - clamp01(e / 1.2));
+        body.rotation.z = reduced ? 0 : Math.sin(e * 20) * 0.1 * (1 - clamp01(e / 1.2));
         mouth = 'smile';
         break;
     }
 
-    // Wool level: bare at 0 (sheared body, collar off); at 4 the head lifts.
-    const ws = WOOL_SCALE[level] * woolBoost * (1 + (live === 'frozen' ? 0 : breathe));
+    // Wool: the fleece for this level, settling into place over half a second when the level changes.
+    const settle = reduced ? 1 : 0.94 + 0.06 * easeOut((t - levelChange.current.at) / 0.5);
     wool.visible = level > 0;
-    wool.scale.setScalar(Math.max(0.001, ws));
-    (o.tail as Mesh).visible = level > 0;
+    if (level > 0) {
+      const lvl = level as 1 | 2 | 3 | 4;
+      if (wool.geometry !== m.wools[lvl].geo) wool.geometry = m.wools[lvl].geo;
+      (o.frost as Mesh).geometry = m.frosts[lvl].geo;
+    }
+    wool.scale.set(settle, settle * puff * (1 + breathe), settle);
     (o.sheared as Mesh).visible = level === 0;
-    (o.collar as Group).visible = level > 0;
-    const lift = level === 4 ? (WOOL_SCALE[4] - 1) * 0.28 : 0;
-    head.position.set(m.head.pivot[0], m.head.pivot[1] + lift, m.head.pivot[2]);
-    (o.earL as Mesh).rotation.z = -0.44 + (live === 'frozen' ? 0 : flick);
-    (o.earR as Mesh).rotation.z = 0.44 - (live === 'frozen' ? 0 : flick);
+    (o.earL as Mesh).rotation.z = 0.44 - flick; // the ears hang down 25 degrees and flick up
+    (o.earR as Mesh).rotation.z = -0.44 + flick;
     (o.legFL as Mesh).rotation.x = legLift ? -0.6 : 0;
     (o.legFL as Mesh).position.y = m.legs[0].pivot[1] + legLift;
-    (o.bell as Mesh).rotation.x = live === 'proud' ? Math.sin(e * 14) * 0.5 * (1 - e / 1.2) : 0;
+    (o.bell as Mesh).rotation.x = live === 'proud' && moving ? Math.sin(e * 14) * 0.5 * (1 - e / 1.2) : 0;
     (o.eyeL as Mesh).scale.setScalar(eyeScale);
     (o.eyeR as Mesh).scale.setScalar(eyeScale);
     (o.lids as Mesh).visible = lids && live !== 'frozen' && live !== 'freezing';
@@ -164,9 +173,8 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     if (dimmed) mat.color.multiplyScalar(0.62);
 
     runFreezeFx(fx, live, e, reduced, gustFrom, state === 'thawing');
-    (o.frost as Mesh).visible = (live === 'freezing' && e >= 0.8 && !reduced) || live === 'frozen';
+    (o.frost as Mesh).visible = level > 0 && ((live === 'freezing' && e >= 0.8 && !reduced) || live === 'frozen');
     (o.frost as Mesh).scale.setScalar(live === 'freezing' ? clamp01((e - 0.8) / 0.8) : 1);
-    (o.scarf as Mesh | null)?.position.setY(m.head.pivot[1] - 0.12 + lift);
   });
 
   const mesh = (key: string, p: Part, material = mat) => (
@@ -177,10 +185,9 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
   return (
     <group>
       <group ref={set('body')}>
-        <mesh ref={set('wool')} geometry={m.wool.geo} position={m.wool.pivot} material={mat} castShadow receiveShadow />
-        {mesh('tail', m.tail)}
+        <mesh ref={set('wool')} geometry={m.wools[2].geo} material={mat} castShadow receiveShadow />
+        <mesh ref={set('frost')} geometry={m.frosts[2].geo} material={mat} />
         {mesh('sheared', m.sheared)}
-        {mesh('frost', m.frost)}
         <mesh ref={set('legFL')} geometry={m.legs[0].geo} position={m.legs[0].pivot} material={mat} castShadow />
         {mesh('legFR', m.legs[1])}
         {mesh('legBL', m.legs[2])}
@@ -194,13 +201,11 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
           {(['flat', 'smile', 'grimace'] as Mouth[]).map((k) => <mesh key={k} ref={set(`mouth-${k}`)} geometry={m.mouths[k].geo} material={mat} />)}
           <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow />
           <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow />
-          <group ref={set('collar')}>
-            <mesh geometry={m.collar.geo} material={mat} />
-            <mesh ref={set('bell')} geometry={m.bell.geo} position={rel(m.bell)} material={mat} />
-          </group>
+          <mesh geometry={m.collar.geo} material={mat} />
+          <mesh ref={set('bell')} geometry={m.bell.geo} position={rel(m.bell)} material={mat} />
         </group>
         <mesh ref={set('breath')} geometry={m.breath.geo} position={m.breath.pivot} material={breathMat} />
-        {scarf && <Scarf onRef={set('scarf')} />}
+        {scarf && <Scarf />}
       </group>
       <primitive object={fx.root} />
     </group>
@@ -208,9 +213,10 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
 }
 
 /** The winner's knitted scarf: a red voxel ring around the neck with a hanging end. */
-function Scarf({ onRef }: { onRef: (o: Object3D | null) => void }) {
+function Scarf() {
   const geo = useMemo(() => scarfGeometry(), []);
-  return <mesh ref={onRef} geometry={geo} position={[0, 0.54, 0.4]} material={useMemo(() => new MeshLambertMaterial({ vertexColors: true }), [])} castShadow />;
+  const mat = useMemo(() => voxelMaterial(), []);
+  return <mesh geometry={geo} position={[0, 0.6, 0.46]} material={mat} castShadow />;
 }
 
 let scarfGeo: BufferGeometry | null = null;
@@ -251,7 +257,7 @@ function freezeFx() {
   const ice = new Mesh(blockGeo, new MeshPhongMaterial({ color: T.ice[1], transparent: true, opacity: 0.45, shininess: 80, depthWrite: false }));
   const edges = new LineSegments(new EdgesGeometry(blockGeo), new LineBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.9 }));
   const dressing = iceDressing(BLOCK);
-  const dressMat = new MeshLambertMaterial({ vertexColors: true });
+  const dressMat = voxelMaterial();
   const icicles = new Mesh(dressing.icicles, dressMat);
   const cap = new Mesh(dressing.cap, dressMat);
   const cracks = crackLines();
@@ -268,7 +274,6 @@ function freezeFx() {
   return { root, streaks, curls, snow, block, cracks, shards };
 }
 
-
 function crackLines() {
   const g = new BufferGeometry();
   const z = BLOCK[2] / 2 + 0.005;
@@ -279,7 +284,6 @@ function crackLines() {
   g.setAttribute('position', new Float32BufferAttribute(pos, 3));
   return new LineSegments(g, new LineBasicMaterial({ color: '#2F5D8A' }));
 }
-
 
 const dummy = new Object3D();
 function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: number, reduced: boolean, gustFrom: [number, number, number], thawing: boolean) {

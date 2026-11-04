@@ -39,6 +39,21 @@ describe('lives', () => {
     expect(s.turn!.seat).toBe(2);
   });
 
+  it('wool keeps the cold out: no freeze while the banked score is above 0', () => {
+    let s = humanTurn('c');
+    s.players[0].banked = 20;
+    for (let i = 0; i < LIVES_PER_GAME; i++) s = timeOut(backToHuman(s));
+    expect(s.players[0].lives).toBe(0);
+    expect(s.players[0].banked).toBe(5);
+    expect(s.players[0].frozen).toBe(false);
+    expect(s.events.some((e) => e.kind === 'frozen')).toBe(false);
+    // The time-out that leaves the sheep bare is the one that freezes it.
+    s = timeOut(backToHuman(s));
+    expect(s.players[0].banked).toBe(0);
+    expect(s.players[0].frozen).toBe(true);
+    expect(s.events.filter((e) => e.kind === 'frozen' && e.seat === 0)).toHaveLength(1);
+  });
+
   it('a frozen player is skipped for the rest of the round', () => {
     let s = humanTurn('c');
     s.players[0].frozen = true;

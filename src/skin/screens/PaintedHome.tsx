@@ -16,20 +16,20 @@ import { Guide } from '../../ui/Guide';
 import { LEGAL_TITLES, legalHref } from '../../ui/legal/legalLinks';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { Keeper } from '../components/Keeper';
-import { Lantern, StreakString } from '../components/Lantern';
+import { StreakString } from '../components/Lantern';
 import { Chip, PaperPanel, WoodButton } from '../components/Materials';
-import { Scene } from '../components/Scene';
+import { SheepIcon } from '../components/SheepIcon';
 import { Ticket } from '../components/Ticket';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { streakDays } from '../model/useTableView';
+import { FarmBackdrop } from '../table/FarmBackdrop';
 import { PaintedSettings } from './PaintedSettings';
 
 export const PAINTED_TITLE = 'Finish the Word';
 const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 
-/** Home and Quick Game setup on one screen in the meadow: mode tickets, nickname, bots and difficulty. */
+/** Home and Quick Game setup on one screen in the farmyard: mode tickets, nickname, bots and difficulty. */
 export function PaintedHome() {
   const { settings, setSettings, start, startTour, dictStatus, retryDictionary } = useStore();
   const [help, setHelp] = useState(false);
@@ -82,31 +82,34 @@ export function PaintedHome() {
 
   return (
     <main className="relative h-full overflow-y-auto">
-      <div className="fixed inset-0 -z-0"><Scene place="meadow" hour={hour} season="winter" wind={0.7} frozen={false} still={reduced} /></div>
-      <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col justify-center gap-3 px-4 py-6">
-        <div className="flex flex-col items-center">
-          <div className="flex items-end gap-1">
-            <Keeper mood={daily ? 'sleepy' : 'idle'} size={70} />
-            <Lantern points={20} state="lit" sizeCap={56} />
+      <div className="fixed inset-0 -z-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!daily} /></div>
+      {/* On wide screens the column sits to the right, so the barn's glowing doorway stays in view. */}
+      <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col justify-center gap-3 px-4 py-6 lg:mr-[8%] lg:ml-auto">
+        {/* The title on a snow-capped wooden sign, like the barn's beams. */}
+        <div className="relative mx-auto mt-2 w-full">
+          <svg viewBox="0 0 100 8" preserveAspectRatio="none" className="absolute inset-x-1 -top-1.5 h-3 w-[calc(100%-0.5rem)]" aria-hidden="true">
+            <path d="M0 8 L0 4 L10 2 L18 5 L30 1 L42 4 L52 2 L64 5 L76 1 L88 4 L100 2 L100 8 Z" fill="var(--paper)" />
+          </svg>
+          <div className="rounded-xl px-4 py-3 text-center" style={{ background: 'var(--wood-dark)', boxShadow: 'inset 0 4px 0 var(--wood), inset 0 -4px 0 var(--wood-ink), var(--shadow-warm)' }}>
+            <h1 className="sk-display whitespace-nowrap text-4xl leading-none" style={{ color: 'var(--button-text)', textShadow: '2px 2px 0 var(--wood-ink)' }}>{PAINTED_TITLE}</h1>
+            <p className="mt-1 text-base" style={{ color: 'var(--glow)' }}>Chain words. Grow your wool. Don’t get stolen from.</p>
           </div>
-          <h1 className="sk-display mt-1 text-center text-4xl sm:text-5xl" style={{ color: 'var(--wood-ink)', textShadow: '0 2px 0 var(--paper)' }}>{PAINTED_TITLE}</h1>
-          <p className="sk-hand text-lg" style={{ color: 'var(--ink)' }}>Chain words. Grow the lantern. Don’t get stolen from.</p>
         </div>
 
         <PaperPanel className="space-y-3 p-4">
           <label className="block">
-            <span className="sk-hand text-base" style={{ color: 'var(--ink-soft)' }}>Your name</span>
+            <span className="text-base" style={{ color: 'var(--ink-soft)' }}>Your name</span>
             <input
               value={settings.name}
               onChange={(e) => { setSettings({ name: e.target.value.slice(0, MAX_NICKNAME) }); setError(''); }}
               maxLength={MAX_NICKNAME} placeholder="You" autoComplete="off" spellCheck={false}
-              className="mt-1 min-h-12 w-full rounded-xl px-4 text-lg font-extrabold outline-none"
+              className="mt-1 min-h-12 w-full rounded-xl px-4 text-lg font-bold outline-none"
               style={{ background: 'var(--paper)', boxShadow: 'inset 0 0 0 2px var(--paper-edge)', color: 'var(--ink)' }}
             />
             {error && <span role="alert" className="mt-1 block text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</span>}
           </label>
           <fieldset>
-            <legend className="sk-hand text-base" style={{ color: 'var(--ink-soft)' }}>Players at the table</legend>
+            <legend className="text-base" style={{ color: 'var(--ink-soft)' }}>Sheep at the table</legend>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {COUNTS.map((c) => (
                 <Chip key={c} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</Chip>
@@ -114,7 +117,7 @@ export function PaintedHome() {
             </div>
           </fieldset>
           <fieldset>
-            <legend className="sk-hand text-base" style={{ color: 'var(--ink-soft)' }}>Bot difficulty</legend>
+            <legend className="text-base" style={{ color: 'var(--ink-soft)' }}>Bot difficulty</legend>
             <div className="mt-1 flex gap-1.5">
               {DIFFS.map((d) => (
                 <Chip key={d} onClick={() => setSettings({ difficulty: d })} aria-pressed={settings.difficulty === d} className="capitalize">
@@ -126,8 +129,8 @@ export function PaintedHome() {
         </PaperPanel>
 
         <Ticket
-          icon="🏮" tone="cloth" title={ready ? 'Quick Game' : 'Loading words…'} disabled={!ready}
-          line={`You and ${settings.playerCount - 1} bots in the meadow`} onSelect={() => go('quick')}
+          icon={<SheepIcon size={34} />} tone="cloth" title={ready ? 'Quick Game' : 'Loading words…'} disabled={!ready}
+          line={`You and ${settings.playerCount - 1} bots in the barn`} onSelect={() => go('quick')}
         />
         {dictStatus === 'error' && (
           <PaperPanel role="alert" className="p-3 text-center">
@@ -137,13 +140,13 @@ export function PaintedHome() {
         )}
         {daily ? (
           <Ticket
-            icon={<Keeper mood="asleep" size={34} />} disabled={daily.status !== 'done'} onSelect={shareDaily}
+            icon="🏮" disabled={daily.status !== 'done'} onSelect={shareDaily}
             title={daily.status === 'done' ? (copied ? 'Copied!' : `Daily done · #${daily.rank} · share`) : 'Daily attempt used'}
             line={`The next table opens at ${nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
           />
         ) : (
           <Ticket
-            icon="⛵" title="Daily Table" line="One attempt today, the same table for everyone" disabled={!ready}
+            icon="🏮" title="Daily Table" line="One attempt today, the same table for everyone" disabled={!ready}
             onSelect={() => {
               // Signed in: the server runs the Daily Table (so it can be on the leaderboard). Otherwise it is played on this device only.
               if (signedIn && rooms) return useRoomStore.getState().startDaily();
@@ -154,13 +157,13 @@ export function PaintedHome() {
         {(streak > 0 || daily) && (
           <div className="text-center">
             <StreakString days={streakDays()} />
-            {streak > 0 && <p className="sk-hand" style={{ color: 'var(--ink)' }}>{streak}-day streak</p>}
+            {streak > 0 && <p style={{ color: 'var(--paper)' }}>{streak}-day streak</p>}
           </div>
         )}
-        <Ticket icon="☔" title="Practice" line="Easy bots, 25-second turns, no penalties, hints" disabled={!ready} onSelect={() => go('practice')} />
-        <Ticket icon="🍵" title="Tutorial" line="A guided first game in the kitchen" disabled={!ready} onSelect={() => startTour('menu')} />
+        <Ticket icon="🌾" title="Practice" line="Easy bots, 25-second turns, no penalties, hints" disabled={!ready} onSelect={() => go('practice')} />
+        <Ticket icon="🐕" title="Tutorial" line="A guided first game with the sheepdog" disabled={!ready} onSelect={() => startTour('menu')} />
         <Ticket
-          icon="🏯" title="Play with others" line={rooms ? '4 to 10 people in a room' : 'Rooms open when the game server is live'}
+          icon="🏚️" title="Play with others" line={rooms ? '4 to 10 people in the big barn' : 'Rooms open when the game server is live'}
           disabled={!rooms} onSelect={openRooms}
         />
         {signedIn && rooms && (
@@ -171,7 +174,7 @@ export function PaintedHome() {
             {coins !== null && <span aria-label="Coins" className="sk-chip">{coins} 🪙</span>}
           </div>
         )}
-        {roomNotice && !useRoomStore.getState().open && <p role="status" className="sk-hand text-center">{roomNotice}</p>}
+        {roomNotice && !useRoomStore.getState().open && <p role="status" className="sk-paper px-3 py-1 text-center">{roomNotice}</p>}
         <div className="flex gap-2">
           <WoodButton onClick={() => setHelp(true)} className="flex-1">How to Play</WoodButton>
           <WoodButton onClick={() => setGear(true)} aria-label="Settings">⚙️</WoodButton>

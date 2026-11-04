@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
-import { Creature } from './Creature';
 import { IceOverlay, Lives } from './Lives';
+import { SheepIcon } from './SheepIcon';
 
 const BADGE = { easy: '🌱', medium: '🍃', hard: '🌰' } as const;
 
@@ -34,7 +34,7 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
       data-seat={player.id}
       data-tour={player.isYou ? 'me' : undefined}
     >
-      {player.creature && <Creature id={player.creature} size={compact ? 26 : 36} />}
+      <SheepIcon size={compact ? 22 : 30} bare={player.banked <= 0} />
       <div className="min-w-0 flex-1 leading-tight">
         <div className="truncate text-sm font-extrabold" data-seat-name={player.id} title={title}>
           {badge && <span aria-hidden="true">{badge} </span>}

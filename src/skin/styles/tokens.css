@@ -40,15 +40,20 @@
   --ice-light: #D9EEF8;
   --ice-mid: #BFE3F5;
   --ice-dark: #9ED2EE;
+  --sheep-wool: #F0E9D8;
+  --sheep-wool-dark: #DDD3BE;
+  --sheep-face: #3F3A3A;
+  --sheep-nose: #F2B6B0;
+  --sheep-skin: #EBCDB9;
 
   --shadow-warm: 0 6px 18px rgba(80, 50, 20, 0.18);
   --radius-paper: 14px 18px 12px 20px / 18px 12px 20px 14px; /* uneven corners */
   --radius-button: 12px;
   --radius-tile: 16px;
 
-  --skin-font-display: 'Fraunces', Georgia, serif;
-  --skin-font-body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
-  --skin-font-hand: 'Patrick Hand', 'Comic Sans MS', cursive;
+  --skin-font-display: 'Pixelify Sans', 'Nunito', system-ui, sans-serif;
+  --skin-font-body: 'Pixelify Sans', 'Nunito', system-ui, sans-serif;
+  --skin-font-hand: 'Pixelify Sans', 'Nunito', system-ui, sans-serif;
 
   --ease-out: cubic-bezier(0.2, 0.9, 0.3, 1);
   --ease-spring: cubic-bezier(0.2, 0.9, 0.3, 1.2); /* lantern growth only */

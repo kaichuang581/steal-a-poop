@@ -155,10 +155,13 @@ function failTurn(s: GameState, seat: number, t: number) {
   emit(s, t, 'timeout', seat, `Timeout ${p.name}${penalty ? ` -${penalty}` : ' (no penalty)'}`, penalty ? -penalty : 0);
   resolveTrap(s, seat, true, t);
   // Only a turn that runs out costs a life, and only in normal games.
-  if (s.mode === 'normal' && p.lives > 0) {
-    p.lives -= 1;
-    emit(s, t, 'lifeLost', seat, `${p.name} lost a life`, p.lives);
-    if (p.lives === 0) {
+  if (s.mode === 'normal') {
+    if (p.lives > 0) {
+      p.lives -= 1;
+      emit(s, t, 'lifeLost', seat, `${p.name} lost a life`, p.lives);
+    }
+    // The cold only gets in once the flames are out and there is no wool (banked score) left to keep it out.
+    if (p.lives === 0 && p.banked <= 0 && !p.frozen) {
       p.frozen = true;
       emit(s, t, 'frozen', seat, `${p.name} is frozen`);
     }

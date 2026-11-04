@@ -32,7 +32,7 @@ export interface Player {
   banked: number;
   /** Lives left: a turn that runs out costs one (normal games only). */
   lives: number;
-  /** Out of lives: skipped for the rest of the game, cannot steal, ranks below every unfrozen player. */
+  /** Timed out with no lives and no wool (banked <= 0): skipped for the rest of the game, cannot steal, ranks below every unfrozen player. */
   frozen: boolean;
   /** Turns used this round. A round ends when every unfrozen player has used 5. */
   turnsTaken: number;

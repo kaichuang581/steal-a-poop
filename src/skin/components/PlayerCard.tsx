@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
 import { Creature } from './Creature';
+import { IceOverlay, Lives } from './Lives';
 
 const BADGE = { easy: '🌱', medium: '🍃', hard: '🌰' } as const;
 
@@ -15,10 +16,12 @@ interface Props {
   /** Badge and title a room player wears. */
   badge?: string;
   title?: string;
+  /** Practice has no lives, so no flames. */
+  showLives?: boolean;
 }
 
 /** Paper card: creature, name, banked score. Amber ring on the player whose turn it is. */
-export function PlayerCard({ player, isTurn, compact, lastWord, children, badge, title }: Props) {
+export function PlayerCard({ player, isTurn, compact, lastWord, children, badge, title, showLives = true }: Props) {
   return (
     <div
       className="sk-paper relative flex items-center gap-2 px-2 py-1"
@@ -44,7 +47,11 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
           </div>
         )}
       </div>
-      <div className="sk-display text-lg">{player.banked}</div>
+      <div className="flex flex-col items-end leading-none">
+        <span className="sk-display text-lg">{player.banked}</span>
+        {showLives && <Lives lives={player.lives} size={compact ? 10 : 13} />}
+      </div>
+      {player.frozen && <IceOverlay />}
       {children}
     </div>
   );

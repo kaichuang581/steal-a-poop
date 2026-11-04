@@ -33,6 +33,14 @@
   --creature-quill: #C98BA6;
   --creature-juniper: #7C86B8;
 
+  /* Winter barn (plan V3 Part 4.3): lives flames and ice. */
+  --flame-light: #FFD56E;
+  --flame-mid: #FFC24B;
+  --flame-dark: #E8A92F;
+  --ice-light: #D9EEF8;
+  --ice-mid: #BFE3F5;
+  --ice-dark: #9ED2EE;
+
   --shadow-warm: 0 6px 18px rgba(80, 50, 20, 0.18);
   --radius-paper: 14px 18px 12px 20px / 18px 12px 20px 14px; /* uneven corners */
   --radius-button: 12px;

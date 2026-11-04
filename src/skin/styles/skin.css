@@ -78,6 +78,14 @@
 @keyframes sk-fall { from { opacity: 0; transform: translate(0, -40px) rotate(-30deg); } 30% { opacity: 1; } to { opacity: 0; transform: translate(20px, 30px) rotate(40deg); } }
 @keyframes sk-pop { from { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } to { transform: scale(1); } }
 
+@keyframes sk-flicker { 50% { transform: scale(0.92, 1.06); } }
+@keyframes sk-puff { to { transform: scale(1.8); opacity: 0; } }
+@keyframes sk-smoke { from { transform: translateY(0); opacity: 0.8; } to { transform: translateY(-6px); opacity: 0; } }
+.sk-flicker { animation: sk-flicker 0.9s ease-in-out infinite; }
+.sk-puff { animation: sk-puff 300ms var(--ease-out) forwards; }
+.sk-smoke { animation: sk-smoke 300ms var(--ease-out) forwards; }
+[data-steal-open="true"] .sk-flicker { animation-play-state: paused; }
+
 .sk-bob { animation: sk-bob 3.2s ease-in-out infinite; }
 .sk-mood-happy { animation: sk-happy 0.8s var(--ease-out) 2; }
 .sk-mood-startled { animation: sk-startle 0.6s var(--ease-out); }
@@ -103,3 +111,5 @@
 /* While the steal window is open, only the ring and the Steal button move. */
 [data-steal-open="true"] .sk-bob,
 [data-steal-open="true"] .sk-swing { animation-play-state: paused; }
+:root[data-skin="painted"].reduce-motion .sk-flicker { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-flicker { animation: none; } }

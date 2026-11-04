@@ -21,7 +21,7 @@ import { Lantern, StreakString } from '../components/Lantern';
 import { Chip, PaperPanel, WoodButton } from '../components/Materials';
 import { Scene } from '../components/Scene';
 import { Ticket } from '../components/Ticket';
-import { useHour, useMotionLevel, useSeason } from '../hooks/useAmbient';
+import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { streakDays } from '../model/useTableView';
 import { PaintedSettings } from './PaintedSettings';
 
@@ -42,7 +42,6 @@ export function PaintedHome() {
   const roomNotice = useRoomStore((st) => st.notice);
   const authStatus = useAuth((st) => st.status);
   const hour = useHour();
-  const season = useSeason();
   const reduced = useMotionLevel() === 'reduced';
   const today = utcDateKey(new Date());
   const daily = getDaily(today);
@@ -83,7 +82,7 @@ export function PaintedHome() {
 
   return (
     <main className="relative h-full overflow-y-auto">
-      <div className="fixed inset-0 -z-0"><Scene place="meadow" hour={hour} season={season} wind={0.7} frozen={false} still={reduced} /></div>
+      <div className="fixed inset-0 -z-0"><Scene place="meadow" hour={hour} season="winter" wind={0.7} frozen={false} still={reduced} /></div>
       <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col justify-center gap-3 px-4 py-6">
         <div className="flex flex-col items-center">
           <div className="flex items-end gap-1">

@@ -18,9 +18,13 @@ export function TwistSign({ twist, state, compact }: { twist: TwistId | null; st
         <span className="block h-4 w-0.5" style={{ background: 'var(--wood-ink)' }} />
       </div>
       <div
-        className={`sk-hand ${state === 'hung' ? 'sk-swing' : ''} rounded-xl px-4 py-1.5 text-center leading-tight`}
+        className={`sk-hand ${state === 'hung' ? 'sk-swing' : ''} relative rounded-xl px-4 py-1.5 text-center leading-tight`}
         style={{ background: 'var(--wood-dark)', color: 'var(--button-text)', boxShadow: 'inset 0 3px 0 var(--wood), var(--shadow-warm)', fontSize: compact ? 15 : 19 }}
       >
+        {/* Snow cap along the top edge, uneven like the drifts on the barn's beams. */}
+        <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="absolute inset-x-0 -top-1.5 h-3 w-full" aria-hidden="true">
+          <path d="M0 10 L0 5 Q8 0 16 4 Q26 1 34 5 Q44 0 55 4 Q64 1 72 5 Q84 0 92 4 L100 3 L100 10 Z" fill="var(--paper)" />
+        </svg>
         <span aria-hidden="true">{ICON[twist]} </span>{TWIST_TEXT[twist]}
       </div>
     </div>

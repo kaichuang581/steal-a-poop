@@ -16,6 +16,8 @@ export interface PlayerView {
   creature?: CreatureId;      // assigned by the skin, stable per player id
   banked: number;
   dimmed: boolean;            // lost turn or failed steal, until the next turn starts
+  lives: number;              // flames left (3 at game start)
+  frozen: boolean;            // out of lives: skipped for the rest of the game
 }
 
 export interface MessageView {

@@ -46,6 +46,8 @@ export function toTableView(
     creature: creatureFor(p.id),
     banked: p.banked,
     dimmed: extra.dimmed?.has(p.id) ?? false,
+    lives: p.lives,
+    frozen: p.frozen,
   }));
   const longest = game.players.reduce<{ word: string; playerId: string } | undefined>(
     (best, p) => (p.longestWord.length > (best?.word.length ?? 0) ? { word: p.longestWord, playerId: String(p.id) } : best),

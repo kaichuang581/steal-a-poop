@@ -18,7 +18,18 @@ export interface EngineContext {
 }
 
 const MAX_EVENTS = 40;
-const nextSeat = (s: GameState, seat: number) => (seat + 1) % s.players.length;
+/**
+ * The next seat after `seat` that can still take a turn this round: not frozen and under the round's turn count.
+ * Null when nobody can.
+ */
+function nextSeat(s: GameState, seat: number): number | null {
+  const n = s.players.length;
+  for (let i = 1; i <= n; i++) {
+    const p = s.players[(seat + i) % n];
+    if (!p.frozen && p.turnsTaken < TURNS_PER_PLAYER_PER_ROUND) return p.id;
+  }
+  return null;
+}
 
 function emit(s: GameState, at: number, kind: EventKind, seat: number | null, text: string, amount = 0, word?: string) {
   s.eventSeq += 1;
@@ -46,7 +57,7 @@ function startTurn(s: GameState, seat: number, t: number) {
   }
   const stealPlans: { seat: number; at: number }[] = [];
   for (const p of s.players) {
-    if (tour || p.id === seat || p.isHuman) continue;
+    if (tour || p.id === seat || p.isHuman || p.frozen) continue;
     if (drawRandom(s) < BOT_PROFILES[p.difficulty!].stealChance) {
       stealPlans.push({ seat: p.id, at: endsAt - STEAL_WINDOW_MS + drawRandom(s) * (STEAL_WINDOW_MS - 500) });
     }
@@ -58,8 +69,10 @@ function concludeTurn(s: GameState, t: number) {
   const turn = s.turn!;
   s.players[turn.seat].turnsTaken += 1;
   s.turn = null;
-  if (s.players.every((p) => p.turnsTaken >= TURNS_PER_PLAYER_PER_ROUND)) return endRound(s, t);
-  startTurn(s, nextSeat(s, turn.seat), t);
+  // Frozen players are skipped, so the round ends once every unfrozen player has used their turns.
+  const next = nextSeat(s, turn.seat);
+  if (next === null) return endRound(s, t);
+  startTurn(s, next, t);
 }
 
 function endRound(s: GameState, t: number) {
@@ -97,7 +110,8 @@ function resolveTrap(s: GameState, seat: number, failed: boolean, t: number) {
 /** A word ending in X/Z/Q/J traps whoever owns the next turn. */
 function setTrap(s: GameState, word: string, trapperSeat: number, turnSeat: number) {
   const letter = word[word.length - 1];
-  s.trap = TRAP_LETTERS.has(letter) ? { trapperSeat, victimSeat: nextSeat(s, turnSeat), letter } : null;
+  const victimSeat = nextSeat(s, turnSeat);
+  s.trap = TRAP_LETTERS.has(letter) && victimSeat !== null ? { trapperSeat, victimSeat, letter } : null;
 }
 
 function recordWord(s: GameState, seat: number, word: string, points: number) {
@@ -140,6 +154,15 @@ function failTurn(s: GameState, seat: number, t: number) {
   s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: penalty ? -penalty : 0 });
   emit(s, t, 'timeout', seat, `Timeout ${p.name}${penalty ? ` -${penalty}` : ' (no penalty)'}`, penalty ? -penalty : 0);
   resolveTrap(s, seat, true, t);
+  // Only a turn that runs out costs a life, and only in normal games.
+  if (s.mode === 'normal' && p.lives > 0) {
+    p.lives -= 1;
+    emit(s, t, 'lifeLost', seat, `${p.name} lost a life`, p.lives);
+    if (p.lives === 0) {
+      p.frozen = true;
+      emit(s, t, 'frozen', seat, `${p.name} is frozen`);
+    }
+  }
   concludeTurn(s, t);
 }
 
@@ -250,7 +273,11 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
       s.introEndsAt = null;
       s.phase = 'playing';
       ensurePlayable(s, ctx, at);
-      startTurn(s, (s.round - 1) % s.players.length, at);
+      // The first player rotates each round; a frozen seat passes to the next unfrozen one.
+      const n = s.players.length;
+      const first = nextSeat(s, (((s.round - 1) % n) + n - 1) % n);
+      if (first === null) endRound(s, at);
+      else startTurn(s, first, at);
       continue;
     }
     if (s.phase !== 'playing' || !s.turn) break;
@@ -329,6 +356,7 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
       return { state: s, accepted: true };
     case 'steal': {
       if (action.seat === turn.seat) return reject('own_turn');
+      if (player.frozen) return reject('frozen');
       if (!inStealWindow(s, now)) return reject('outside_steal_window');
       const v = check(action.word);
       if (!v.ok) {

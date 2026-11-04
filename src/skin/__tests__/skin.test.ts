@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { apply } from '../../engine';
 import { ctx, humanTurn, T0 } from '../../engine/__tests__/helpers';
 import { hourFor, seasonFor } from '../model/clock';
-import { mapEngineEvent } from '../model/events';
+import { mapEngineEvent, thawedFor } from '../model/events';
 import { creatureFor, toTableView } from '../model/useTableView';
 import { isPaintedSkin } from '../flag';
 
@@ -82,5 +82,17 @@ describe('view model and events', () => {
     const before = { ...humanTurn('c'), turn: { ...humanTurn('c').turn!, seat: 2 } };
     const e = { id: 9, at: 0, kind: 'steal' as const, seat: 0, text: '', amount: 12, word: 'cat' };
     expect(mapEngineEvent(e, before, before)).toEqual([{ type: 'stole', byId: '0', fromId: '2', amount: 12, word: 'cat' }]);
+  });
+});
+
+describe('lives in the skin', () => {
+  it('maps life events and thaws last game’s frozen seats', () => {
+    const g = humanTurn('c');
+    const lost = { id: 50, at: 0, kind: 'lifeLost' as const, seat: 2, text: '', amount: 1 };
+    const froze = { id: 51, at: 0, kind: 'frozen' as const, seat: 2, text: '', amount: 0 };
+    expect(mapEngineEvent(lost, g, g)).toEqual([{ type: 'lifeLost', playerId: '2', livesLeft: 1 }]);
+    expect(mapEngineEvent(froze, g, g)).toEqual([{ type: 'frozen', playerId: '2' }]);
+    expect(thawedFor([1, 3], g)).toEqual([{ type: 'thawed', playerId: '1' }, { type: 'thawed', playerId: '3' }]);
+    expect(toTableView(g, 'quick', 0, T0)!.players[0]).toMatchObject({ lives: 3, frozen: false });
   });
 });

@@ -15,7 +15,10 @@ export type VisualEvent =
   | { type: 'stealWindowOpened'; playerId: string }
   | { type: 'roundStart'; round: number; twist: TwistId | null }
   | { type: 'roundEnd'; round: number }
-  | { type: 'gameEnd'; winnerIds: string[] };
+  | { type: 'gameEnd'; winnerIds: string[] }
+  | { type: 'lifeLost'; playerId: string; livesLeft: number }
+  | { type: 'frozen'; playerId: string }
+  | { type: 'thawed'; playerId: string };
 
 /**
  * Turns one engine event into visual events. `prev` is the game state before the event's batch, used for what the
@@ -37,8 +40,18 @@ export function mapEngineEvent(e: GameEvent, prev: GameState | null, next: GameS
         ? [{ type: 'roundEnd', round: next.round - 1 }, { type: 'roundStart', round: next.round, twist: TWIST_OF[next.modifier] }]
         : [{ type: 'roundStart', round: next.round, twist: TWIST_OF[next.modifier] }];
     case 'gameOver': return [{ type: 'gameEnd', winnerIds: (next.winners ?? []).map(String) }];
+    case 'lifeLost': return [{ type: 'lifeLost', playerId: seat, livesLeft: e.amount }];
+    case 'frozen': return [{ type: 'frozen', playerId: seat }];
     default: return [];
   }
+}
+
+/**
+ * Seats frozen at the end of the last game thaw when the next game starts. The engine starts every game fresh and
+ * does not know the previous one, so the skin derives this (plan v1 Part 4.2 allows derivation).
+ */
+export function thawedFor(lastFrozen: readonly number[], next: GameState): VisualEvent[] {
+  return lastFrozen.filter((seat) => seat < next.players.length && !next.players[seat].frozen).map((seat) => ({ type: 'thawed', playerId: String(seat) }));
 }
 
 /**
@@ -58,6 +71,8 @@ export function useVisualEvents(handler: (e: VisualEvent) => void) {
     // The engine clones state on every step, so the trap is compared by value, not by reference.
     const trapKey = (g: GameState | null) => (g?.trap ? `${g.trap.trapperSeat}:${g.trap.victimSeat}:${g.trap.letter}` : '');
     let trapWas = trapKey(prev);
+    let lastFrozen: number[] = [];
+    let seed = prev?.seed ?? '';
     return useStore.subscribe((s) => {
       const g = s.game;
       if (!g) {
@@ -66,7 +81,13 @@ export function useVisualEvents(handler: (e: VisualEvent) => void) {
         trapWas = '';
         return;
       }
-      if (prev && g.seed !== prev.seed) last = 0; // a rematch replaces the game without passing through null
+      if (g.seed !== seed) {
+        // A new game (a rematch replaces the game without passing through null): restart the event count and thaw.
+        if (seed) last = 0;
+        seed = g.seed;
+        thawedFor(lastFrozen, g).forEach((v) => ref.current(v));
+      }
+      lastFrozen = g.players.filter((p) => p.frozen).map((p) => p.id);
       if (g.eventSeq > last) {
         for (const e of g.events) if (e.id > last) mapEngineEvent(e, prev, g).forEach((v) => ref.current(v));
         last = g.eventSeq;

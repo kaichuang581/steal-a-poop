@@ -1,6 +1,6 @@
 import { PERSONALITIES, bankThresholdFor } from './bots';
 import { hasPlayableWord } from './validation';
-import { INTRO_MS, MAX_PLAYERS, MIN_PLAYERS } from './constants';
+import { INTRO_MS, LIVES_PER_GAME, MAX_PLAYERS, MIN_PLAYERS } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawPick, drawRandom, hashSeed, shuffle } from './rng';
 import type { Difficulty, GameMode, GameState, Player, RoundModifier } from './types';
@@ -45,7 +45,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const looks = shuffle(state, room ? [...pool, EXTRA_LOOK] : pool);
 
   const blank = {
-    banked: 0, turnsTaken: 0, lastWord: null,
+    banked: 0, lives: LIVES_PER_GAME, frozen: false, turnsTaken: 0, lastWord: null,
     steals: 0, wordsPlayed: 0, longestWord: '', bestWord: null,
   };
   const players: Player[] = room

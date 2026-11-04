@@ -140,6 +140,7 @@ describe('10-player tables', () => {
     s.players[0].isHuman = false; s.players[0].difficulty = 'hard'; s.players[0].personality = 'random'; s.players[0].bankThreshold = 30;
     s = advance(s, ctx, 3_000_000);
     expect(s.phase).toBe('gameOver');
-    expect(s.players.every((p) => p.turnsTaken >= 5)).toBe(true);
+    // Frozen players (out of lives) are skipped, so only unfrozen ones must have used every turn.
+    expect(s.players.every((p) => p.frozen || p.turnsTaken >= 5)).toBe(true);
   });
 });

@@ -30,7 +30,11 @@ export interface Player {
   bankThreshold: number;
   /** Game-wide banked score. May go negative from penalties. */
   banked: number;
-  /** Turns used this round. A round ends when every player has used 5. */
+  /** Lives left: a turn that runs out costs one (normal games only). */
+  lives: number;
+  /** Out of lives: skipped for the rest of the game, cannot steal, ranks below every unfrozen player. */
+  frozen: boolean;
+  /** Turns used this round. A round ends when every unfrozen player has used 5. */
   turnsTaken: number;
   lastWord: string | null;
   steals: number;
@@ -76,6 +80,8 @@ export type EventKind =
   | 'burn'
   | 'chainReset'
   | 'seatBot'
+  | 'lifeLost'
+  | 'frozen'
   | 'gameOver';
 
 export interface GameEvent {

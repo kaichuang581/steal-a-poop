@@ -33,6 +33,12 @@ const PATH_END = 24.6;
 const pathX = (z: number) => YARD.farmhouse.x * smooth((z - YARD.fence.z) / 8);
 const onPath = (x: number, z: number) => z >= YARD.path.fromZ && z <= PATH_END + 0.2 && Math.abs(x - pathX(z)) <= YARD.path.halfWidth;
 const inBarn = (x: number, z: number) => x >= BARN.minX && x <= BARN.maxX && z >= BARN.minZ && z <= BARN.maxZ;
+/**
+ * The barn's walls stand on the 0.2 m just outside the floor (side walls at |x| 6.0 to 6.2, back wall at z 7.0 to 7.2).
+ * Nothing in the yard may share those cells: a drift voxel inside a wall board puts two faces in one plane, and they
+ * flicker against each other (z-fighting) as a crawling line along the foot of every wall.
+ */
+const underWalls = (x: number, z: number) => x >= BARN.minX - 0.2 && x <= BARN.maxX + 0.2 && z >= BARN.minZ && z <= BARN.maxZ + 0.2;
 const pondD = (x: number, z: number) => ((x - YARD.pond.x) / YARD.pond.rx) ** 2 + ((z - YARD.pond.z) / YARD.pond.rz) ** 2;
 
 export function buildYard(): { chunks: BufferGeometry[]; smokeFrom: [number, number, number]; triangles: number } {
@@ -109,7 +115,7 @@ function ground(g: Grid, set: Set) {
       const byBarnBack = near(z, BARN.maxZ + 0.3, 0.3 + r * 0.4) && x >= BARN.minX - 0.6 && x <= BARN.maxX + 0.6;
       const byBarnSide = (near(x, BARN.minX - 0.3, 0.3 + r * 0.4) || near(x, BARN.maxX + 0.3, 0.3 + r * 0.4)) && z >= BARN.minZ && z <= BARN.maxZ + 0.6;
       const byPond = pd < 1.3 && r > 0.35;
-      if (byFence || byBarnBack || byBarnSide || byPond) set(xi, 0, zi, snow);
+      if ((byFence || byBarnBack || byBarnSide || byPond) && !underWalls(x, z)) set(xi, 0, zi, snow);
     }
   // Footprints (alternating hoof dents) and two sled tracks pressed into the path.
   const dent = (xi: number, zi: number) => {

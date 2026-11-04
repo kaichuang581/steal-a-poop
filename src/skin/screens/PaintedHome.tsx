@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
@@ -18,11 +18,13 @@ import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES, legalHref } from '../../ui/legal/legalLinks';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, BookIcon, GearIcon, HelpIcon, LanternIcon, LanternStringIcon, LeafIcon, SeedlingIcon, SpeakerIcon } from '../components/Icons';
+import { AcornIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon } from '../components/Icons';
+import { GameMenu } from '../components/GameMenu';
+import type { MenuItem } from '../components/GameMenu';
+import { TitleBoard } from '../components/TitleBoard';
 import { StreakString } from '../components/Lantern';
 import { Chip, PaperPanel, WoodButton } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
-import { Ticket } from '../components/Ticket';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { streakDays } from '../model/useTableView';
 import { DevLine } from '../table/DevStats';
@@ -35,6 +37,17 @@ const DIFFS: { id: Difficulty; icon: ReactNode }[] = [
 ];
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
+/** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
+const TIPS = [
+  'Every word must start with the last letter of the one before it.',
+  'Bank the pile before someone steals it: banked wool is safe.',
+  'Words ending in X, Z, Q or J set a trap for the next sheep.',
+  'In the last seconds of a turn anyone can steal the pile with a word.',
+  'Turns get faster every round, from 16 seconds down to 5.',
+  'Run out of time with no lives left and you freeze in a block of ice.',
+  'Long and rare words are worth more wool.',
+];
+
 const RULES: { key: keyof GameSettings; label: string; values: (number | string | boolean)[]; show?: (v: number | string | boolean) => string }[] = [
   { key: 'rounds', label: 'Rounds', values: [1, 2, 3, 5] },
   { key: 'turnsPerRound', label: 'Turns per round', values: [3, 5, 7] },
@@ -58,6 +71,7 @@ export function PaintedHome() {
   const [hub, setHub] = useState<HubTab | null>(null);
   const [heroYaw, setHeroYaw] = useState(0);
   const [hopKey, setHopKey] = useState(0);
+  const [tip, setTip] = useState(() => Math.floor(Math.random() * TIPS.length));
   const coins = useSocial((st) => st.balance);
   const roomNotice = useRoomStore((st) => st.notice);
   const authStatus = useAuth((st) => st.status);
@@ -105,6 +119,16 @@ export function PaintedHome() {
   const minutes = estimateMinutes({ ...rules, botCount: settings.playerCount - 1, botDifficulty: settings.difficulty });
   const nextTable = new Date(`${today}T00:00:00Z`);
   nextTable.setUTCDate(nextTable.getUTCDate() + 1);
+  // A new tip every 7 seconds (not under reduced motion, where the first one stays).
+  useEffect(() => {
+    if (reduced) return;
+    const id = setInterval(() => setTip((t) => (t + 1) % TIPS.length), 7000);
+    return () => clearInterval(id);
+  }, [reduced]);
+  // Esc backs out of the table setup, like any game menu.
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && step === 'setup') { e.preventDefault(); setStep('tables'); }
+  };
   // The hero looks toward the pointer: up to 0.3 rad either way across the width of the screen.
   const onPointerMove = (e: PointerEvent) => {
     if (mobile || reduced) return;
@@ -112,26 +136,34 @@ export function PaintedHome() {
   };
 
   const link = 'min-h-11 content-center text-left text-sm font-bold underline decoration-2 underline-offset-2 disabled:no-underline disabled:opacity-60';
+  const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const items: MenuItem[] = [
+    { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
+    daily
+      ? {
+        id: 'daily', label: daily.status === 'done' ? (copied ? 'Copied!' : 'Share daily') : 'Daily Table',
+        badge: daily.status === 'done' ? `#${daily.rank}` : 'used', disabled: daily.status !== 'done', onSelect: shareDaily,
+        caption: `Today's table is played. The next one opens at ${timeOfNext}.`,
+      }
+      : {
+        id: 'daily', label: 'Daily Table', badge: streak > 0 ? `${streak}-day streak` : 'new', disabled: !ready,
+        caption: 'One attempt today, and the same table for everyone.',
+        onSelect: () => {
+          // Signed in: the server runs the Daily Table (so it can be on the leaderboard). Otherwise it is played on this device only.
+          if (signedIn && rooms) return useRoomStore.getState().startDaily();
+          go('daily');
+        },
+      },
+    { id: 'practice', label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
+    { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
+    {
+      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : 'soon', disabled: !rooms, onSelect: openRooms,
+      caption: rooms ? '4 to 10 people in the big barn.' : 'Rooms open when the game server is live.',
+    },
+  ];
   const tables = (
-    <div className={`flex flex-col gap-3 ${mobile ? '' : 'sk-slide-in'}`} key="tables">
-      <Ticket icon={<LanternIcon />} tone="cloth" title={ready ? 'Quick Game' : 'Loading words…'} disabled={!ready} line="You and the bots in the barn" onSelect={() => setStep('setup')} />
-      {daily ? (
-        <Ticket
-          icon={<LanternStringIcon />} disabled={daily.status !== 'done'} onSelect={shareDaily}
-          title={daily.status === 'done' ? (copied ? 'Copied!' : `Daily done · #${daily.rank} · share`) : 'Daily attempt used'}
-          line={`The next table opens at ${nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-        />
-      ) : (
-        <Ticket
-          icon={<LanternStringIcon />} title="Daily Table" line="One attempt today; the same table for everyone" disabled={!ready}
-          onSelect={() => {
-            // Signed in: the server runs the Daily Table (so it can be on the leaderboard). Otherwise it is played on this device only.
-            if (signedIn && rooms) return useRoomStore.getState().startDaily();
-            go('daily');
-          }}
-        />
-      )}
-      <Ticket icon={<BookIcon />} title="Practice" line="Easy bots, 25-second turns, no penalties, hints" disabled={!ready} onSelect={() => go('practice')} />
+    <div className="flex flex-col gap-3" key="tables">
+      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} />
       {dictStatus === 'error' && (
         <PaperPanel role="alert" className="p-3 text-center">
           <p className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>The word list did not load. Check your connection, then try again.</p>
@@ -139,32 +171,14 @@ export function PaintedHome() {
         </PaperPanel>
       )}
       {error && <p role="alert" className="sk-paper px-3 py-1 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
-      <div className="sk-paper flex flex-col px-4 py-1">
-        <button className={link} disabled={!ready} onClick={() => startTour('menu')}>Tutorial <span className="font-semibold" style={{ color: 'var(--ink-soft)' }}>· A guided first game with the sheepdog</span></button>
-        <button className={link} disabled={!rooms} onClick={openRooms}>Play with others <span className="font-semibold" style={{ color: 'var(--ink-soft)' }}>· {rooms ? '4 to 10 people in the big barn' : 'Rooms open when the game server is live'}</span></button>
-      </div>
-      {(streak > 0 || daily) && (
-        <div className="text-center">
-          <StreakString days={streakDays()} />
-          {streak > 0 && <p className="text-sm font-bold" style={{ color: 'var(--paper)', textShadow: '0 1px 2px var(--ink)' }}>{streak}-day streak</p>}
-        </div>
-      )}
       {signedIn && rooms && (
         <div className="flex gap-2" role="group" aria-label="Community">
           {([['friends', '👥 Friends'], ['boards', '🏆 Boards'], ['shop', '🛍️ Shop']] as const).map(([t, label]) => (
             <WoodButton key={t} onClick={() => setHub(t)} className="flex-1 text-sm">{label}</WoodButton>
           ))}
-          {coins !== null && <span aria-label="Coins" className="sk-chip">{coins} 🪙</span>}
         </div>
       )}
       {roomNotice && !useRoomStore.getState().open && <p role="status" className="sk-paper px-3 py-1 text-center text-sm">{roomNotice}</p>}
-      <footer className="flex flex-wrap items-center justify-center gap-x-3 text-xs font-semibold" style={{ color: 'var(--paper)', textShadow: '0 1px 2px var(--ink)' }}>
-        <span>v{pkg.version}</span>
-        <a className="min-h-11 content-center underline" href="https://github.com/kaichuang581/steal-a-poop/issues/new/choose" target="_blank" rel="noreferrer">Send feedback</a>
-        {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
-          <a key={slug} className="min-h-11 content-center underline" href={legalHref(slug)} target="_blank" rel="noopener">{LEGAL_TITLES[slug]}</a>
-        ))}
-      </footer>
     </div>
   );
 
@@ -234,32 +248,77 @@ export function PaintedHome() {
     </PaperPanel>
   );
 
+  const name = settings.name.trim() && checkNickname(settings.name).ok ? settings.name.trim() : 'New shepherd';
+  const footer = (
+    <footer className="flex flex-wrap items-center gap-x-3 text-[11px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>
+      <span>v{pkg.version}</span>
+      <a className="min-h-8 content-center underline" href="https://github.com/kaichuang581/steal-a-poop/issues/new/choose" target="_blank" rel="noreferrer">Feedback</a>
+      {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
+        <a key={slug} className="min-h-8 content-center underline" href={legalHref(slug)} target="_blank" rel="noopener">{LEGAL_TITLES[slug]}</a>
+      ))}
+    </footer>
+  );
+
   return (
-    <main className="relative h-full overflow-hidden" onPointerMove={onPointerMove}>
+    <main className="relative h-full overflow-hidden" onPointerMove={onPointerMove} onKeyDown={onKey}>
       <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!daily} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} /></div>
+      <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
-      {/* The title on a snow-capped wooden sign, upper left over the sky. */}
-      <div className={`absolute ${mobile ? 'inset-x-4 top-4' : 'left-10 top-8 w-[30rem]'}`}>
-        <svg viewBox="0 0 100 8" preserveAspectRatio="none" className="absolute inset-x-1 -top-1.5 h-3 w-[calc(100%-0.5rem)]" aria-hidden="true">
-          <path d="M0 8 L0 4 L10 2 L18 5 L30 1 L42 4 L52 2 L64 5 L76 1 L88 4 L100 2 L100 8 Z" fill="var(--paper)" />
-        </svg>
-        <div className="rounded-xl px-5 py-3" style={{ background: 'var(--wood-dark)', boxShadow: 'inset 0 4px 0 var(--wood), inset 0 -4px 0 var(--wood-ink), var(--shadow-warm)' }}>
-          <h1 className="sk-display leading-none" style={{ color: 'var(--button-text)', fontSize: mobile ? 36 : 52, textShadow: '0 2px 0 var(--wood-ink)' }}>{PAINTED_TITLE}</h1>
-          <p className="mt-1 text-base font-semibold" style={{ color: 'var(--glow)' }}>Chain words. Grow your wool. Don’t get stolen from.</p>
-        </div>
+      {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
+      <div className="absolute inset-x-0 top-0 flex items-start justify-end gap-2 p-3 sm:p-4">
+        {!mobile && (
+          <div className="sk-plate mr-auto" aria-label="Player">
+            <SheepIcon size={26} />
+            <span className="max-w-[12rem] truncate">{name}</span>
+            {streak > 0 && <span className="text-sm" style={{ color: 'var(--glow)' }}>🔥 {streak}</span>}
+            {signedIn && coins !== null && <span aria-label="Coins" className="text-sm">{coins} 🪙</span>}
+          </div>
+        )}
+        <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings"><GearIcon /></button>
+        <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>
+        <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play"><HelpIcon /></button>
       </div>
 
-      {/* The panel: a right column on desktop, stacked at the bottom on phones (step 2 as a bottom sheet). */}
-      <div className={mobile ? 'absolute inset-x-3 bottom-3 max-h-[62%] overflow-y-auto' : 'absolute right-12 top-1/2 max-h-[92%] w-[380px] -translate-y-1/2 overflow-y-auto'}>
-        {step === 'tables' ? tables : setup}
-      </div>
-
-      {/* Settings, sound and the rules, over the snow. */}
-      <div className={`absolute flex gap-2 ${mobile ? 'right-3 top-3' : 'bottom-4 left-4'}`}>
-        <Chip onClick={() => setGear(true)} aria-label="Settings"><GearIcon /></Chip>
-        <Chip onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}><SpeakerIcon muted={muted} /></Chip>
-        <Chip onClick={() => setHelp(true)} aria-label="How to Play"><HelpIcon /></Chip>
-      </div>
+      {mobile ? (
+        <>
+          <div className="absolute inset-x-0 top-16 flex justify-center">
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Grow your wool." compact />
+          </div>
+          <div className="absolute inset-x-3 bottom-2 max-h-[64%] overflow-y-auto">
+            {step === 'tables' ? (
+              <>
+                {tables}
+                {(streak > 0 || daily) && <div className="mt-1 flex justify-center"><StreakString days={streakDays()} /></div>}
+                <div className="mt-1 flex justify-center">{footer}</div>
+              </>
+            ) : setup}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Left column: the title board, then the menu, like a console title screen. */}
+          <div className="absolute bottom-20 left-10 top-20 flex w-[27rem] flex-col justify-center gap-8">
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Grow your wool. Don’t get stolen from." />
+            {step === 'tables' ? tables : <div className="pointer-events-none opacity-40" inert>{tables}</div>}
+          </div>
+          {step === 'setup' && (
+            <div className="absolute right-12 top-1/2 max-h-[86%] w-[380px] -translate-y-1/2 overflow-y-auto">{setup}</div>
+          )}
+          {/* Bottom bar: button prompts, a rotating tip, the streak and the small print. */}
+          <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3 text-sm font-bold" style={{ color: 'var(--button-text)', textShadow: '0 1px 2px rgba(30, 18, 8, 0.8)' }}>
+            <div className="flex shrink-0 items-center gap-4">
+              <span className="sk-prompt"><span className="sk-key">↑</span><span className="sk-key">↓</span> Choose</span>
+              <span className="sk-prompt"><span className="sk-key">Enter</span> Select</span>
+              {step === 'setup' && <span className="sk-prompt"><span className="sk-key">Esc</span> Back</span>}
+            </div>
+            <p key={tip} className="sk-tip sk-hand min-w-0 flex-1 truncate text-center text-lg" style={{ color: 'var(--glow)' }} aria-live="off">Tip: {TIPS[tip]}</p>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              {(streak > 0 || daily) && <StreakString days={streakDays()} />}
+              {footer}
+            </div>
+          </div>
+        </>
+      )}
 
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}

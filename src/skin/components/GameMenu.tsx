@@ -1,0 +1,90 @@
+import { useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
+import { playTick } from '../../audio/sound';
+import { LanternIcon } from './Icons';
+
+export interface MenuItem {
+  id: string;
+  label: ReactNode;
+  /** One line for the caption under the menu while this item is focused. */
+  caption: ReactNode;
+  onSelect: () => void;
+  disabled?: boolean;
+  /** A small tag beside the label: a streak, "done", "soon". */
+  badge?: ReactNode;
+}
+
+/**
+ * A console-style title menu: big carved labels, the first one (Play) largest, and a lantern that moves to whichever
+ * item is focused or hovered. Arrow keys (and W/S) move, Enter or Space picks, Home/End jump. The focused item's
+ * caption shows below, so the labels can stay short.
+ */
+export function GameMenu({ items, label, compact = false, autoFocus = false }: { items: MenuItem[]; label: string; compact?: boolean; autoFocus?: boolean }) {
+  const [active, setActive] = useState(() => Math.max(0, items.findIndex((i) => !i.disabled)));
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const enabled = items.map((it, i) => (it.disabled ? -1 : i)).filter((i) => i >= 0);
+
+  const move = (to: number) => {
+    if (to === active) return;
+    setActive(to);
+    refs.current[to]?.focus();
+    playTick(0.15);
+  };
+  const step = (dir: 1 | -1) => {
+    const at = enabled.indexOf(active);
+    move(enabled[(at + dir + enabled.length) % enabled.length]);
+  };
+  const onKey = (e: KeyboardEvent) => {
+    const k = e.key;
+    if (k === 'ArrowDown' || k === 's' || k === 'S') step(1);
+    else if (k === 'ArrowUp' || k === 'w' || k === 'W') step(-1);
+    else if (k === 'Home') move(enabled[0]);
+    else if (k === 'End') move(enabled[enabled.length - 1]);
+    else return;
+    e.preventDefault();
+  };
+
+  // The item under the cursor can become disabled (the word list still loading): keep the lantern on a live one.
+  useEffect(() => {
+    if (items[active]?.disabled && enabled.length) setActive(enabled[0]);
+  }, [items, active, enabled]);
+
+  // On desktop the menu takes focus as the screen opens, so the arrow keys and Enter work straight away.
+  // Waits for the items to come alive (Play is disabled while the word list loads), and never takes focus from a
+  // control the player is already using.
+  const live = enabled.length;
+  useEffect(() => {
+    if (!autoFocus || !live) return;
+    const el = document.activeElement;
+    if (el && el !== document.body) return;
+    refs.current[items[active]?.disabled ? enabled[0] : active]?.focus({ preventScroll: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocus, live]);
+
+  const caption = items[active]?.caption;
+  return (
+    <nav aria-label={label} className={`sk-menu ${compact ? 'sk-menu-compact' : ''}`} onKeyDown={onKey}>
+      <ul className="flex flex-col">
+        {items.map((it, i) => (
+          <li key={it.id} className="sk-menu-row" style={{ animationDelay: `${300 + i * 70}ms` }}>
+            <button
+              ref={(el) => { refs.current[i] = el; }}
+              className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : ''}`}
+              data-active={i === active || undefined}
+              disabled={it.disabled}
+              onClick={it.onSelect}
+              onFocus={() => setActive(i)}
+              onPointerEnter={() => { if (!it.disabled && i !== active) { setActive(i); playTick(0.15); } }}
+              aria-describedby={i === active ? 'sk-menu-caption' : undefined}
+            >
+              <span className="sk-menu-lantern" aria-hidden="true"><LanternIcon size={i === 0 ? 30 : 24} /></span>
+              <span className="sk-menu-label">{it.label}</span>
+              {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p id="sk-menu-caption" className="sk-menu-caption">{caption}</p>
+    </nav>
+  );
+}

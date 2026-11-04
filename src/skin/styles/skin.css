@@ -143,3 +143,128 @@
 
 /* The caret after a bot's half-typed word on its tag. */
 .sk-caret { display: inline-block; width: 0; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; border-left: 2px solid var(--ink); animation: sk-caret 1s steps(1) infinite; }
+
+/* ---------- Title screen (the start screen as a game screen) ---------- */
+
+/* Title: a carved plank with snow on top, and the last word hanging below as letter tiles on ropes. */
+.sk-title { --tile: 72px; display: inline-flex; flex-direction: column; align-items: flex-start; }
+.sk-title-compact { --tile: 52px; align-items: center; }
+.sk-title-plank {
+  position: relative; padding: 10px 26px 8px; border-radius: 10px 12px 9px 11px;
+  background: linear-gradient(180deg, var(--wood) 0 12%, var(--wood-dark) 12% 88%, var(--wood-ink) 88%);
+  box-shadow: 0 6px 0 rgba(40, 24, 10, 0.35), var(--shadow-warm);
+  animation: sk-title-drop 600ms var(--ease-spring) both;
+}
+.sk-title-lead {
+  display: block; font-family: var(--skin-font-display); font-weight: 800; letter-spacing: 0.12em;
+  font-size: calc(var(--tile) * 0.42); line-height: 1; color: var(--button-text);
+  text-shadow: 0 -1px 0 var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.5);
+}
+.sk-title-snow {
+  position: absolute; inset: -7px 6px auto; height: 12px; border-radius: 8px 10px 6px 9px / 8px 8px 4px 4px;
+  background: #fff; box-shadow: 0 2px 0 var(--ice-mid);
+}
+.sk-title-tiles { display: flex; gap: calc(var(--tile) * 0.12); padding: calc(var(--tile) * 0.32) calc(var(--tile) * 0.25) 0; }
+.sk-title-compact .sk-title-tiles { padding-left: 0; padding-right: 0; }
+.sk-title-tile {
+  position: relative; display: grid; place-items: center; width: var(--tile); height: calc(var(--tile) * 1.08);
+  border-radius: 10px; font-family: var(--skin-font-display); font-weight: 800; font-size: calc(var(--tile) * 0.7); line-height: 1;
+  color: var(--wood-ink);
+  /* Carved: the letter is cut into the board, lit from above. */
+  text-shadow: 0 2px 0 rgba(255, 236, 200, 0.55), 0 -1px 0 rgba(40, 24, 10, 0.6);
+  background: linear-gradient(180deg, #EBC48E, var(--tile-face, #DDAE72));
+  box-shadow: inset 0 -6px 0 var(--wood), inset 0 3px 0 rgba(255, 240, 210, 0.6), 0 8px 14px rgba(40, 24, 10, 0.35);
+  transform-origin: 50% calc(var(--tile) * -0.32);
+  animation: sk-title-hang 700ms var(--ease-spring) both, sk-title-sway 4.6s ease-in-out infinite;
+}
+.sk-title-rope {
+  position: absolute; left: 50%; top: calc(var(--tile) * -0.32); width: 2px; height: calc(var(--tile) * 0.32);
+  transform: translateX(-50%); background: var(--wood-ink); opacity: 0.8;
+}
+.sk-title-cap {
+  position: absolute; inset: -5px 4px auto; height: 9px; border-radius: 6px 8px 4px 6px / 6px 6px 3px 3px;
+  background: #fff; box-shadow: 0 2px 0 var(--ice-mid);
+}
+/* The chain letter: the one the next word must start with. */
+.sk-title-tile-next {
+  --tile-face: var(--glow); color: #7A3E12;
+  box-shadow: inset 0 -6px 0 var(--amber), inset 0 3px 0 rgba(255, 250, 230, 0.8), 0 0 0 3px var(--amber), 0 0 26px 6px rgba(255, 196, 90, 0.75), 0 8px 14px rgba(40, 24, 10, 0.35);
+  animation: sk-title-hang 700ms var(--ease-spring) both, sk-title-sway 4.6s ease-in-out infinite, sk-title-glow 2.2s ease-in-out infinite;
+}
+.sk-title-tagline {
+  margin-top: 14px; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: 15px;
+  color: var(--button-text); background: rgba(59, 48, 40, 0.55); backdrop-filter: blur(3px);
+  animation: sk-title-fade 500ms 600ms var(--ease-out) both;
+}
+@keyframes sk-title-drop { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sk-title-hang { from { transform: translateY(-60px) rotate(-12deg); opacity: 0; } to { opacity: 1; } }
+@keyframes sk-title-sway { 0%, 100% { rotate: -2.2deg; } 50% { rotate: 2.2deg; } }
+@keyframes sk-title-glow { 50% { filter: brightness(1.12); } }
+@keyframes sk-title-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Menu: carved labels on a dark wash, a lantern beside the one in focus. */
+.sk-menu-row { animation: sk-menu-in 420ms var(--ease-out) both; }
+.sk-menu-item {
+  position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px;
+  padding: 6px 16px 6px 10px; border-radius: 14px; text-align: left;
+  font-family: var(--skin-font-display); font-weight: 800; font-size: 26px; letter-spacing: 0.01em;
+  color: var(--button-text); text-shadow: 0 2px 0 rgba(30, 18, 8, 0.55);
+  transition: background var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out), color var(--t-fast);
+}
+.sk-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
+.sk-menu-item[data-active] { background: linear-gradient(90deg, rgba(255, 217, 138, 0.28), rgba(255, 217, 138, 0)); transform: translateX(10px); color: #fff; }
+/* The lantern and the lit row are the focus indicator; a left amber bar keeps it visible without colour cues. */
+:root[data-skin="painted"] .sk-menu-item:focus-visible { outline: none; box-shadow: inset 4px 0 0 var(--amber); }
+:root[data-skin="painted"] .sk-menu-primary:focus-visible { box-shadow: inset 4px 0 0 var(--amber), 0 6px 0 rgba(20, 30, 20, 0.45), var(--shadow-warm); }
+.sk-menu-lantern { display: grid; place-items: center; width: 32px; opacity: 0; transform: translateX(-6px) scale(0.8); transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-spring); }
+.sk-menu-item[data-active] .sk-menu-lantern { opacity: 1; transform: none; filter: drop-shadow(0 0 8px rgba(255, 196, 90, 0.9)); }
+.sk-menu-item[data-active] .sk-menu-lantern svg { animation: sk-flicker 0.9s ease-in-out infinite; }
+.sk-menu-primary {
+  min-height: 74px; font-size: 44px; letter-spacing: 0.04em; margin-bottom: 6px;
+  background: linear-gradient(180deg, var(--cloth) 0 10%, var(--cloth-dark) 10% 90%, #2C4C34 90%);
+  box-shadow: 0 6px 0 rgba(20, 30, 20, 0.45), var(--shadow-warm);
+}
+.sk-menu-primary[data-active] { background: linear-gradient(180deg, #86C08C 0 10%, var(--cloth-dark) 10% 90%, #2C4C34 90%); transform: translateX(10px) scale(1.02); }
+.sk-menu-primary:active:not(:disabled) { transform: translateX(10px) translateY(3px); box-shadow: 0 3px 0 rgba(20, 30, 20, 0.45); }
+.sk-menu-badge {
+  margin-left: auto; padding: 2px 10px; border-radius: 999px; font-family: var(--skin-font-body); font-size: 13px; font-weight: 900;
+  letter-spacing: 0.02em; text-shadow: none; color: var(--wood-ink); background: var(--glow);
+}
+.sk-menu-caption {
+  min-height: 2.6em; margin-top: 10px; padding-left: 54px; font-family: var(--skin-font-hand); font-size: 20px; line-height: 1.3;
+  color: var(--glow); text-shadow: 0 1px 2px rgba(30, 18, 8, 0.8);
+}
+.sk-menu-compact .sk-menu-item { font-size: 22px; min-height: 48px; }
+.sk-menu-compact .sk-menu-item[data-active] { transform: none; }
+.sk-menu-compact .sk-menu-primary { font-size: 34px; min-height: 64px; justify-content: center; }
+.sk-menu-compact .sk-menu-primary[data-active] { transform: none; }
+.sk-menu-compact .sk-menu-caption { padding-left: 12px; text-align: center; font-size: 17px; min-height: 2.4em; }
+@keyframes sk-menu-in { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+
+/* The washes that keep text readable over the farm, and the bottom bar of button prompts and tips. */
+.sk-wash-left { background: linear-gradient(90deg, rgba(28, 20, 14, 0.62) 0%, rgba(28, 20, 14, 0.38) 34%, rgba(28, 20, 14, 0) 58%); }
+.sk-wash-bottom { background: linear-gradient(0deg, rgba(28, 20, 14, 0.78) 0%, rgba(28, 20, 14, 0.5) 45%, rgba(28, 20, 14, 0) 72%); }
+.sk-prompt { display: inline-flex; align-items: center; gap: 6px; }
+.sk-key {
+  display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 7px;
+  font-weight: 900; font-size: 13px; color: var(--ink); background: var(--paper); box-shadow: inset 0 -3px 0 var(--paper-edge);
+}
+.sk-tip { animation: sk-title-fade 500ms var(--ease-out) both; }
+.sk-plate {
+  display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px 6px 8px; border-radius: 999px;
+  background: rgba(59, 48, 40, 0.6); backdrop-filter: blur(4px); color: var(--button-text); font-weight: 800;
+  box-shadow: inset 0 0 0 2px rgba(255, 217, 138, 0.35);
+}
+.sk-icon-btn {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px;
+  background: rgba(59, 48, 40, 0.6); backdrop-filter: blur(4px); color: var(--button-text);
+  box-shadow: inset 0 0 0 2px rgba(255, 217, 138, 0.35); transition: transform var(--t-fast) var(--ease-out), background var(--t-fast);
+}
+.sk-icon-btn:hover { background: rgba(59, 48, 40, 0.8); transform: translateY(-1px); }
+.sk-icon-btn[aria-pressed="true"] { background: var(--wood-dark); }
+
+:root[data-skin="painted"].reduce-motion :is(.sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip),
+:root[data-skin="painted"].reduce-motion .sk-menu-item[data-active] .sk-menu-lantern svg { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip, .sk-menu-item[data-active] .sk-menu-lantern svg { animation: none; }
+}

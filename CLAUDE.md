@@ -23,3 +23,18 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
 - Any change outside src/skin/ seems necessary beyond the switch points.
 - A design item would require a feature change (for example a new keyboard shortcut or a new setting).
 - Two instructions in this plan conflict.
+
+## Winter barn v3: lives, freezing, high-detail voxels
+- The visual and rules target is docs/REDESIGN_PLAN_V3.md. The v1 hard rules still apply, with ONE exception:
+  the lives rule in V3 Part 2 is an approved engine change. Implement it in its own commit, in the engine
+  files DISCOVERY.md names, with the tests V3 Part 2.5 lists, and change nothing else in the engine.
+- Every 3D object is built from axis-aligned voxels on one of the grid sizes in V3 Part 4. Characters use
+  0.04 m voxels. No spheres, capsules, cylinders, extruded or imported smooth meshes except the sky dome,
+  the aurora plane, snow and particle points, and line edges on ice.
+- Voxel objects are rendered as face-culled merged meshes with per-vertex colour and ambient occlusion
+  (V3 Part 8), not as one InstancedMesh per voxel. Instancing is for particles only.
+- Materials: MeshLambertMaterial with vertexColors for all voxels. No MeshStandard/Physical, no env maps,
+  no bloom, no depth of field. Ice may use a transparent Phong.
+- One default sheep model for every player; customisation slots are reserved, not built.
+- Approved dependencies: three, @react-three/fiber (@react-three/drei only if already installed). Ask before adding anything else.
+- No studio, film or director names anywhere.

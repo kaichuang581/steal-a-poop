@@ -5,8 +5,11 @@ import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRESETS, presetOf, utcDateKey } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
-import { getHunt, getHuntStreak, huntShareText, huntStreakDays } from '../../hunt/daily';
+import { getHunt, getHuntStreak, huntShareText } from '../../hunt/daily';
 import { useHuntUi } from '../hunt/huntStore';
+import { dreamShareText } from '../../dream/dream';
+import { dreamStreakDays, getDream, getDreamStreak } from '../../dream/daily';
+import { useDreamUi } from '../dream/dreamStore';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
 import { getServerUrl } from '../../net/config';
 import { useRoomStore } from '../../state/roomStore';
@@ -66,6 +69,7 @@ export function PaintedHome() {
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
   const [hub, setHub] = useState<HubTab | null>(null);
   const [heroYaw, setHeroYaw] = useState(0);
@@ -80,7 +84,8 @@ export function PaintedHome() {
   const today = utcDateKey(new Date());
   const hunt = getHunt(today);
   const huntStreak = getHuntStreak(today);
-  const streak = huntStreak;
+  const dream = getDream(today);
+  const streak = getDreamStreak(today);
   const ready = dictStatus === 'ready';
   const rooms = !!getServerUrl();
   const signedIn = authEnabled() && authStatus === 'ready';
@@ -97,6 +102,13 @@ export function PaintedHome() {
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+  const shareDream = async () => {
+    if (dream?.status !== 'done') return;
+    const text = dreamShareText({ date: today, count: dream.count ?? 0, lucid: dream.lucid ?? 0, streak });
+    try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
+    setCopiedDream(true);
+    setTimeout(() => setCopiedDream(false), 2000);
   };
   const openRooms = () => {
     // With real sign-in the nickname comes from the account, and a login is required first.
@@ -136,6 +148,18 @@ export function PaintedHome() {
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const items: MenuItem[] = [
     { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
+    dream
+      ? {
+        id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
+        badge: dream.status === 'done' ? `${dream.count ?? 0} sheep` : 'used',
+        disabled: dream.status !== 'done', onSelect: shareDream,
+        caption: `The farmer is up for the day. Tonight's dream starts at ${timeOfNext}.`,
+      }
+      : {
+        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? `${streak}-night streak` : 'daily', disabled: !ready,
+        caption: 'Keep the farmer asleep: fill in the missing letters so each sheep clears the fence. One dream a night.',
+        onSelect: () => useDreamUi.getState().openDream(false),
+      },
     hunt
       ? {
         id: 'hunt', label: hunt.status === 'done' ? (copied ? 'Copied!' : 'Share hunt') : 'Daily Hunt',
@@ -255,7 +279,7 @@ export function PaintedHome() {
 
   return (
     <main className="relative h-full overflow-hidden" onPointerMove={onPointerMove} onKeyDown={onKey}>
-      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!hunt} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} /></div>
+      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
@@ -282,7 +306,7 @@ export function PaintedHome() {
             {step === 'tables' ? (
               <>
                 {tables}
-                {(streak > 0 || hunt) && <div className="mt-1 flex justify-center"><StreakString days={huntStreakDays(today)} /></div>}
+                {(streak > 0 || dream) && <div className="mt-1 flex justify-center"><StreakString days={dreamStreakDays(today)} /></div>}
                 <div className="mt-1 flex justify-center">{footer}</div>
               </>
             ) : setup}
@@ -307,7 +331,7 @@ export function PaintedHome() {
             </div>
             <p key={tip} className="sk-tip sk-hand min-w-0 flex-1 truncate text-center text-lg" style={{ color: 'var(--glow)' }} aria-live="off">Tip: {TIPS[tip]}</p>
             <div className="flex shrink-0 flex-col items-end gap-1">
-              {(streak > 0 || hunt) && <StreakString days={huntStreakDays(today)} />}
+              {(streak > 0 || dream) && <StreakString days={dreamStreakDays(today)} />}
               {footer}
             </div>
           </div>

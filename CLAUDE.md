@@ -48,3 +48,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
 - Daily Hunt (approved by Brian, 2026-11-04): in the painted skin the Daily Table menu item is replaced by the Daily Hunt,
   a 2D turn-based word battle against sheep predators (src/hunt for the pure, seeded logic; src/skin/hunt for the screen).
   One run a day, the same predators and rules for everyone. The classic look and the server's Daily Table are unchanged.
+- Counting Sheep (approved by Brian, 2026-11-04): in the painted skin the daily game is now Counting Sheep, an endless
+  runner in the farmer's dream bubble: each fence has letters missing, any real word that fits clears it (src/dream for
+  the pure, seeded logic; src/skin/dream for the canvas screen). One dream a night, the same fences for everyone. The
+  Daily Hunt stays on the menu below it; its full work is also saved on the `daily-hunt` branch.

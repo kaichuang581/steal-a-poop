@@ -1,0 +1,54 @@
+/* Counting Sheep: a night bedroom with the dream bubble, drawn on a pixel canvas. The page around it is the same
+   deep night, with a faint starfield so the canvas edge melts into it. */
+.dr-root {
+  position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: 16px; background: radial-gradient(120% 90% at 50% 30%, #2a2656 0%, #17152f 60%, #0f0e20 100%);
+  color: #ece6ff; font-family: 'DotGothic16', monospace; outline: none; user-select: none; overflow: hidden;
+}
+.dr-root::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background-image: radial-gradient(1px 1px at 20px 30px, #fff6d6 99%, transparent), radial-gradient(1px 1px at 140px 90px, #fff6d6 99%, transparent),
+    radial-gradient(1px 1px at 230px 20px, #d9d0ff 99%, transparent), radial-gradient(1px 1px at 300px 150px, #fff6d6 99%, transparent);
+  background-size: 320px 180px;
+}
+.dr-loading { color: #ece6ff; }
+.dr-title { position: relative; margin: 0; font-size: 22px; font-weight: 400; letter-spacing: 0.04em; color: #fff1b8; text-shadow: 2px 2px 0 #241a33; }
+.dr-title small { font-size: 14px; color: #b9aef0; }
+.dr-frame {
+  position: relative; flex: none; border-radius: 10px; overflow: hidden; cursor: text;
+  box-shadow: 0 0 0 3px #241a33, 0 0 0 6px #3a3270, 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+.dr-canvas { display: block; image-rendering: pixelated; }
+.dr-ghost { position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; }
+.dr-help { position: relative; margin: 0; max-width: 640px; text-align: center; color: #9d93cf; font: 13px var(--skin-font-body), sans-serif; }
+.dr-quit { position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 10px; color: #ece6ff; background: #2a2656; border: 2px solid #4a4290; font-size: 16px; }
+
+/* The wake-up card. */
+.dr-results {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(360px, 92%); padding: 16px 18px 14px;
+  text-align: center; background: #f6f1ff; color: #3a2a3a; border: 3px solid #241a33; border-radius: 12px;
+  box-shadow: inset 0 0 0 2px #c9bdf0, 4px 4px 0 rgba(0, 0, 0, 0.35); animation: dr-pop 260ms steps(6) both;
+}
+.dr-results h2 { margin: 0; font-size: 20px; font-weight: 400; color: #4a3f8e; }
+.dr-big { margin: 4px 0 8px; font-size: 14px; }
+.dr-big b { display: block; font-size: 40px; line-height: 1.1; font-weight: 400; color: #3a2a3a; }
+.dr-results dl { display: flex; justify-content: center; gap: 18px; margin: 0 0 12px; }
+.dr-results dl div { display: flex; flex-direction: column; }
+.dr-results dt { font-size: 11px; color: #7c6fb8; }
+.dr-results dd { margin: 0; font-size: 15px; }
+.dr-actions { display: flex; gap: 8px; }
+.dr-actions button {
+  flex: 1; min-height: 40px; font: inherit; font-size: 14px; color: #fff6d6; background: #4a3f8e; border: 2px solid #241a33; border-radius: 8px;
+  box-shadow: inset 0 -3px 0 #322a6a; cursor: pointer;
+}
+.dr-actions button:hover { background: #5a4fa6; }
+.dr-actions button:focus-visible { outline: 2px solid #e7b14d; outline-offset: 2px; }
+.dr-note { margin: 10px 0 0; font: 12px var(--skin-font-body), sans-serif; color: #7c6fb8; }
+@keyframes dr-pop { from { transform: translate(-50%, -40%) scale(0.9); opacity: 0; } }
+
+@media (max-width: 640px) {
+  .dr-root { justify-content: flex-start; padding-top: 64px; }
+  .dr-help { font-size: 12px; }
+}
+:root.reduce-motion .dr-results { animation: none; }
+@media (prefers-reduced-motion: reduce) { .dr-results { animation: none; } }

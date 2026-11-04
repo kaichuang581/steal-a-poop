@@ -6,6 +6,8 @@ import { RoomScreen } from '../ui/RoomScreen';
 import { useHour } from './hooks/useAmbient';
 import { HuntScreen } from './hunt/HuntScreen';
 import { useHuntUi } from './hunt/huntStore';
+import { DreamScreen } from './dream/DreamScreen';
+import { useDreamUi } from './dream/dreamStore';
 import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
 import { SheepPreview } from './table/SheepPreview';
@@ -38,6 +40,7 @@ export function PaintedApp() {
   const lobbyOpen = useRoomStore((s) => s.open);
   const hour = useHour();
   const hunting = useHuntUi((s) => s.open);
+  const dreaming = useDreamUi((s) => s.open);
   useSkinFonts();
 
   useEffect(() => {
@@ -49,6 +52,7 @@ export function PaintedApp() {
   useEffect(() => { document.documentElement.dataset.hour = hour; }, [hour]);
 
   if (PREVIEW === 'sheep') return <SheepPreview />;
+  if (dreaming) return <DreamScreen />;
   if (hunting) return <HuntScreen />;
   if (inGame) return <PaintedGame />;
   if (inRoom) return <RoomScreen />;

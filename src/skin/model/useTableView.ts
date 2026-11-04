@@ -1,6 +1,7 @@
 import { inStealWindow, TRAP_LETTERS, utcDateKey } from '../../engine';
 import type { GameState, RoundModifier } from '../../engine';
-import { getDaily } from '../../lib/daily';
+import { getDaily, getStreak } from '../../lib/daily';
+import { useMemo } from 'react';
 import { useStore } from '../../state/store';
 import type { Mode as StoreMode } from '../../state/store';
 import type { CreatureId, Mode, PlayerView, TableView, TwistId } from './types';
@@ -19,13 +20,34 @@ export const TWIST_OF: Record<RoundModifier, TwistId | null> = {
 
 const MODE_OF: Record<StoreMode, Mode> = { quick: 'quick', daily: 'daily', practice: 'practice', tour: 'tutorial', room: 'rooms' };
 
-/** The last seven UTC days, oldest first; true when a Daily Table was played that day. */
+/**
+ * The last seven UTC days, oldest first; true when a Daily Table was played that day. Only today's daily record is
+ * stored, so earlier days come from the streak: a run of `count` finished days ending today (when today is done) or
+ * yesterday.
+ */
 export function streakDays(today = new Date()): boolean[] {
+  const key = utcDateKey(today);
+  const rec = getDaily(key);
+  const count = getStreak(key);
+  const runEnd = rec?.status === 'done' ? 0 : 1; // days back from today where the streak's last day is
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() - (6 - i));
-    return getDaily(utcDateKey(d)) !== null;
+    const back = 6 - i;
+    if (back === 0) return rec !== null;
+    return back >= runEnd && back < runEnd + count;
   });
+}
+
+/** What the daily view needs from storage; read once per game (see useTableView), not every frame. */
+export interface DailyView {
+  streakDays?: boolean[];
+  dailyPlayedToday: boolean;
+}
+
+export function readDailyView(mode: Mode): DailyView {
+  return {
+    streakDays: mode === 'daily' ? streakDays() : undefined,
+    dailyPlayedToday: getDaily(utcDateKey(new Date())) !== null,
+  };
 }
 
 /**
@@ -34,7 +56,7 @@ export function streakDays(today = new Date()): boolean[] {
  */
 export function toTableView(
   game: GameState | null, storeMode: StoreMode, mySeat: number, now: number,
-  extra: { typed?: string; message?: TableView['message']; dimmed?: ReadonlySet<number> } = {},
+  extra: { typed?: string; message?: TableView['message']; dimmed?: ReadonlySet<number>; daily?: DailyView } = {},
 ): TableView | null {
   if (!game) return null;
   const turn = game.turn;
@@ -71,13 +93,12 @@ export function toTableView(
     youId: String(mySeat),
     secondsLeft: turn ? Math.max(0, turn.endsAt - now) / 1000 : 0,
     turnSeconds: turn ? turn.durationMs / 1000 : 0,
-    stealOpen: inStealWindow(game, now) && turn?.seat !== mySeat,
+    stealOpen: inStealWindow(game, now) && turn?.seat !== mySeat && !game.players[mySeat]?.frozen,
     typed: extra.typed ?? '',
     message: extra.message ?? null,
     longestWord: longest,
     winnerIds: game.winners?.map(String),
-    streakDays: mode === 'daily' ? streakDays() : undefined,
-    dailyPlayedToday: getDaily(utcDateKey(new Date())) !== null,
+    ...(extra.daily ?? readDailyView(mode)),
   };
 }
 
@@ -87,5 +108,10 @@ export function useTableView(extra?: Parameters<typeof toTableView>[4]): TableVi
   const mode = useStore((s) => s.mode);
   const mySeat = useStore((s) => s.mySeat);
   const now = useStore((s) => s.now);
-  return toTableView(game, mode, mySeat, now, extra);
+  // The view re-renders every frame; the daily record only changes when a game starts or ends.
+  const viewMode = MODE_OF[mode];
+  const over = game?.phase === 'gameOver';
+  const seed = game?.seed;
+  const daily = useMemo(() => readDailyView(viewMode), [viewMode, over, seed]); // eslint-disable-line react-hooks/exhaustive-deps
+  return toTableView(game, mode, mySeat, now, { ...extra, daily });
 }

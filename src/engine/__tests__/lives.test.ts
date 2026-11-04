@@ -114,3 +114,13 @@ describe('lives', () => {
     expect(s.players.every((p) => p.lives === LIVES_PER_GAME && !p.frozen)).toBe(true);
   });
 });
+
+describe('traps with frozen players', () => {
+  it('the last unfrozen player cannot trap themselves', () => {
+    const s = humanTurn('t');
+    for (const p of s.players.slice(1)) p.frozen = true;
+    const r = apply(s, ctx, { type: 'play', seat: 0, word: 'tax' }, s.turn!.startedAt + 100);
+    expect(r.accepted).toBe(true);
+    expect(r.state.trap).toBeNull();
+  });
+});

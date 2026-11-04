@@ -63,8 +63,8 @@ export function PaintedGame() {
   const rel = (seat: number) => (seat - mySeat + n) % n;
   const name = (id: string) => game.players[Number(id)]?.name ?? '';
   const practice = storeMode === 'practice';
-  // Flames: none in Practice or with unlimited lives; otherwise as many as the game started with.
-  const livesOn = !practice && game.settings.lives !== 'unlimited';
+  // Flames: only where lives can be lost (normal games, not Practice or the tutorial) and lives are not unlimited.
+  const livesOn = game.mode === 'normal' && game.settings.lives !== 'unlimited';
   const maxLives = game.settings.lives === 'unlimited' ? 0 : game.settings.lives;
   const k = () => Math.random();
 
@@ -184,7 +184,7 @@ export function PaintedGame() {
             };
           })}
         >
-          <PlaceExtras mode={view.mode} reduced={reduced} streak={view.mode === 'daily' ? streakDays() : undefined} />
+          <PlaceExtras mode={view.mode} reduced={reduced} streak={view.streakDays} />
         </BarnTable>
       </div>
 
@@ -287,6 +287,8 @@ function Results({ players }: { players: PlayerView[] }) {
   const rematch = useStore((s) => s.rematch);
   const quit = useStore((s) => s.quit);
   const [copied, setCopied] = useState(false);
+  // Read once: the table re-renders every frame and this reads storage.
+  const days = useMemo(() => (mode === 'daily' ? streakDays(new Date(`${dailyDate ?? utcDateKey(new Date())}T12:00:00Z`)) : []), [mode, dailyDate]);
   const stats = summarize(game.players);
   const me = game.players[mySeat];
   const longest = stats.longestWord ? { word: stats.longestWord.word, playerId: String(stats.longestWord.seat) } : undefined;
@@ -331,7 +333,7 @@ function Results({ players }: { players: PlayerView[] }) {
         {mode === 'practice' && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>Practice game: no penalties were applied.</p>}
         {mode === 'daily' && (
           <div className="mt-2 text-center">
-            <StreakString days={streakDays(new Date(`${dailyDate ?? utcDateKey(new Date())}T12:00:00Z`))} />
+            <StreakString days={days} />
             <p className="sk-hand" style={{ color: 'var(--glow)' }}>Daily streak: {streak}</p>
           </div>
         )}

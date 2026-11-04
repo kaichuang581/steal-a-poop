@@ -14,7 +14,8 @@ export function TopBar({ onScore, onChain, onCheat, onChat }: Props) {
   const [leaving, setLeaving] = useState(false);
   const mod = MODIFIER_INFO[game.modifier];
   const ROUNDS = game.settings.rounds;
-  const left = game.players.reduce((sum, p) => sum + game.settings.turnsPerRound - p.turnsTaken, 0);
+  // Frozen players' turns are skipped, so they never count as turns left.
+  const left = game.players.reduce((sum, p) => sum + (p.frozen ? 0 : game.settings.turnsPerRound - p.turnsTaken), 0);
   const btn = 'min-h-11 min-w-11 rounded-lg bg-white/10 px-2 text-lg hover:bg-white/15';
   return (
     <header className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-4">

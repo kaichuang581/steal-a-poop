@@ -108,11 +108,14 @@ function resolveTrap(s: GameState, seat: number, failed: boolean, t: number) {
   emit(s, t, 'trapSprung', seat, `TRAP! ${s.players[seat].name} failed`, TRAP_PAYOUT);
 }
 
-/** A word ending in X/Z/Q/J traps whoever owns the next turn. */
+/**
+ * A word ending in X/Z/Q/J traps whoever owns the next turn. Nobody can trap themselves: when the next turn is the
+ * trapper's own (they are the last unfrozen player, or they stole from the player just before them) no trap is set.
+ */
 function setTrap(s: GameState, word: string, trapperSeat: number, turnSeat: number) {
   const letter = word[word.length - 1];
   const victimSeat = nextSeat(s, turnSeat);
-  s.trap = TRAP_LETTERS.has(letter) && victimSeat !== null ? { trapperSeat, victimSeat, letter } : null;
+  s.trap = TRAP_LETTERS.has(letter) && victimSeat !== null && victimSeat !== trapperSeat ? { trapperSeat, victimSeat, letter } : null;
 }
 
 function recordWord(s: GameState, seat: number, word: string, points: number) {

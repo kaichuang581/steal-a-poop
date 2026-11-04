@@ -76,7 +76,7 @@ export function PaintedHome() {
     const nick = checkNickname(settings.name);
     if (!nick.ok) return setError(nick.message);
     setError('');
-    start(mode);
+    start(mode, mode === 'quick' ? settings.game : undefined);
   };
   const shareDaily = async () => {
     if (daily?.status !== 'done') return;

@@ -1,11 +1,12 @@
 import { Billboard, Html, Text3D } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Suspense, useRef } from 'react';
+import { Component, Suspense, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Vector3 } from 'three';
-// three's npm package does not ship its example fonts, so the pile count's typeface comes from the three.js repo.
-const FONT = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r187/examples/fonts/helvetiker_bold.typeface.json';
+// three's npm package does not ship its example fonts, so the pile count's typeface (from the three.js repo, licence
+// alongside it) is served from public/fonts: the page's content security policy only lets it fetch from itself.
+const FONT = `${import.meta.env.BASE_URL}fonts/helvetiker_bold.typeface.json`;
 import type { Player } from '../engine';
 import { inStealWindow } from '../engine';
 import { useRoomStore } from '../state/roomStore';
@@ -122,6 +123,17 @@ function TableModel() {
   );
 }
 
+/** Decoration that may fail to load (the 3D pile count's font): if it does, it is left out instead of taking the table down. */
+class Optional extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 /** Chips in stacks of ten, one chip per four points, with the count standing above in 3D. */
 function PileStack({ pile }: { pile: number }) {
   const chips = Math.min(60, Math.ceil(pile / 4));
@@ -141,14 +153,16 @@ function PileStack({ pile }: { pile: number }) {
           </mesh>
         );
       })}
-      <Suspense fallback={null}>
-        <Billboard position={[0, 0.85, 0]}>
-          <Text3D font={FONT} size={0.35} height={0.1} bevelEnabled bevelSize={0.015} bevelThickness={0.02} position={[-0.13 * String(pile).length, 0, 0]}>
-            {String(pile)}
-            <meshStandardMaterial color={color} />
-          </Text3D>
-        </Billboard>
-      </Suspense>
+      <Optional>
+        <Suspense fallback={null}>
+          <Billboard position={[0, 0.85, 0]}>
+            <Text3D font={FONT} size={0.35} height={0.1} bevelEnabled bevelSize={0.015} bevelThickness={0.02} position={[-0.13 * String(pile).length, 0, 0]}>
+              {String(pile)}
+              <meshStandardMaterial color={color} />
+            </Text3D>
+          </Billboard>
+        </Suspense>
+      </Optional>
       <Html position={[0, 0.65, 0]} center>
         <div className="pointer-events-none text-[10px] font-bold uppercase tracking-widest text-white/70" data-pile data-tour="pile" aria-label={`Pile ${pile} points`}>pile</div>
       </Html>

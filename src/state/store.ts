@@ -47,7 +47,11 @@ interface Store {
   afterTour: 'menu' | 'quick';
   loadDictionary(): Promise<void>;
   setSettings(patch: Partial<Settings>): void;
-  start(mode: Mode): boolean;
+  /**
+   * Starts a solo game. `rules` (game length settings) only applies to Quick Games and is passed by the painted home
+   * screen, which is the only place they can be chosen; without it a game uses today's rules, so the classic look is unchanged.
+   */
+  start(mode: Mode, rules?: GameSettings): boolean;
   rematch(): void;
   quit(): void;
   /** Solo games answer at once; room games answer after the server replies. */
@@ -117,7 +121,7 @@ export const useStore = create<Store>((set, get) => ({
     set({ settings });
   },
 
-  start(mode) {
+  start(mode, rules) {
     const { client, settings } = get();
     if (!client) return false;
     const nick = checkNickname(settings.name);
@@ -139,7 +143,7 @@ export const useStore = create<Store>((set, get) => ({
       setup = {
         seed: `quick:${Date.now()}:${Math.random()}`,
         now, humanName: nick.name, playerCount: settings.playerCount, difficulty: settings.difficulty,
-        settings: { ...settings.game, botCount: settings.playerCount - 1, botDifficulty: settings.difficulty },
+        ...(rules ? { settings: { ...rules, botCount: settings.playerCount - 1, botDifficulty: settings.difficulty } } : {}),
       };
     }
     set({ game: client.create(setup), mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0 });
@@ -147,8 +151,10 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   rematch() {
-    const { mode } = get();
-    if (mode === 'quick' || mode === 'practice') get().start(mode);
+    const { mode, game } = get();
+    // A Quick Game rematch keeps the rules the last game was played with.
+    if (mode === 'quick') get().start(mode, game?.settings);
+    else if (mode === 'practice') get().start(mode);
   },
 
   quit() {

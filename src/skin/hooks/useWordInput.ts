@@ -22,7 +22,8 @@ export function useWordInput() {
 
   const playing = game.phase === 'playing' && !!game.turn;
   const myTurn = playing && game.turn!.seat === mySeat;
-  const canSteal = stealOpen && !myTurn;
+  // A frozen player (out of lives) can no longer steal, so they never get the steal prompt.
+  const canSteal = stealOpen && !myTurn && !game.players[mySeat]?.frozen;
   const learning = mode === 'practice' || mode === 'tour';
 
   useEffect(() => setIdeas([]), [game.turn?.seat]);
@@ -52,7 +53,7 @@ export function useWordInput() {
   };
   const submit = () => {
     if (myTurn) void send('play');
-    else if (stealOpen) steal();
+    else if (canSteal) steal();
   };
   const onChange = (next: string) => {
     setTyped(next);

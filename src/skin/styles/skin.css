@@ -131,3 +131,12 @@
 @media (prefers-reduced-motion: reduce) {
   .sk-ticket, .sk-slide-in, .sk-slide-up, .sk-walk-in { animation: none; transition: none; transform: none; }
 }
+
+/* A bot's thought (plan V3.3 Part 3.3): a wool-ball bubble with an ellipsis, faded in and out by the sheep. */
+.sk-think {
+  display: grid; place-items: center; width: 46px; height: 36px; border-radius: 50%;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--paper-edge);
+  font-family: var(--skin-font-display); font-weight: 800; font-size: 22px; line-height: 1; letter-spacing: 1px;
+  box-shadow: 0 2px 0 var(--paper-edge), -16px 14px 0 -8px var(--paper), -24px 24px 0 -13px var(--paper);
+  opacity: 0; transition: opacity 200ms var(--ease-out);
+}

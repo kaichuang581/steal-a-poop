@@ -28,6 +28,8 @@ export interface BarnSeat {
   coldFor?: number;
   dimmed: boolean;
   scarf: boolean;
+  /** A bot on its turn: the sheep thinks whenever it has nothing else to do. */
+  thinking: boolean;
   label: ReactNode;
 }
 
@@ -218,6 +220,14 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
     for (const l of lamps.current) if (l) l.intensity = LANTERN_LIGHT.intensity * dim * flicker;
   });
 
+  // Attention (plan V3.3 Part 3.3): every sheep looks at the speaker's head; the speaker looks at the camera.
+  const speakerHead = useMemo((): [number, number, number] | undefined => {
+    if (speaker === null) return undefined;
+    const p = seatPosition(speaker, n);
+    const dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;
+    return [p.x + (dx / len) * 0.35, 0.85 * SHEEP_SCALE, p.z + (dz / len) * 0.35];
+  }, [speaker, n]);
+
   return (
     <>
       {POV ? <CameraRig focus={speaker} n={n} phone={phone} reduced={reduced} /> : <FixedCamera phone={phone} />}
@@ -235,7 +245,7 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
         return (
           <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === speaker} reduced={reduced}>
             <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} still={stealOpen} scarf={s.scarf}
-              gustFrom={[0, 0.8, -6]} />
+              gustFrom={[0, 0.8, -6]} lookAt={s.index === speaker ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking} />
             <Html position={[p.x >= 0 ? 0.95 : -0.95, 0.75, 0]} center zIndexRange={[20, 0]} rotation={[0, -p.yaw, 0]}>{s.label}</Html>
           </SeatGroup>
         );

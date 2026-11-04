@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
 import { buildGeometry } from '../mesher';
 import { Grid, ellipsoid, solid } from '../primitives';
-import { CHAR, sheepModel } from '../sheep';
+import { CHAR, FACE, MUZZLE, sheepModel } from '../sheep';
+import type { Part } from '../sheep';
 
 describe('mesher', () => {
   it('emits only outside faces, wound outward, with colours and AO', () => {
@@ -20,12 +21,38 @@ describe('mesher', () => {
   });
 });
 
-describe('the default sheep', () => {
+/** A part's extent in model metres (its geometry is built around its pivot). */
+function bounds(p: Part) {
+  p.geo.computeBoundingBox();
+  const b = p.geo.boundingBox!;
+  return { width: b.max.x - b.min.x, bottom: b.min.y + p.pivot[1], top: b.max.y + p.pivot[1] };
+}
+const lum = (hex: string) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16) + parseInt(hex.slice(5, 7), 16);
+
+describe('the default sheep (plan V3.3 Part 3)', () => {
   const m = sheepModel();
-  it('has 7k to 14k voxels before face culling at the normal wool level', () => {
-    // The plan's 9k floor assumed curls; locks are fewer voxels but read crisper. Level 4 is near 20k on its own.
-    expect(m.voxels).toBeGreaterThanOrEqual(7000);
+  it('is wool lobes, 7 + 5 + 3 + 2, in two creams plus a crease tone and no per-voxel noise', () => {
+    expect(m.lobes).toEqual({ body: 7, hood: 5, tuft: 3, tail: 2 });
+    expect(m.woolTones).toBeLessThanOrEqual(3);
+  });
+  it('has chibi proportions: a 0.52 m head, 1.05 m to the top of the head, stubby legs', () => {
+    const head = bounds(m.head);
+    expect(head.width).toBeCloseTo(0.52, 1);
+    expect(head.top).toBeCloseTo(1.05, 1);
+    const leg = bounds(m.legs[0]);
+    expect(leg.top - leg.bottom).toBeLessThanOrEqual(0.22);
+    expect(leg.width).toBeLessThanOrEqual(0.17);
+  });
+  it('has a light face, a darker muzzle, and eyes as the largest feature', () => {
+    expect(lum(FACE[0])).toBeGreaterThan(lum(MUZZLE));
+    for (const mouth of Object.values(m.mouths)) expect(m.eyes[0].voxels).toBeGreaterThanOrEqual(mouth.voxels);
+    expect(m.eyes[0].voxels).toBe(m.eyes[1].voxels);
+  });
+  it('keeps the voxel budget at the normal coat, and each coat level is bigger than the last', () => {
+    expect(m.voxels).toBeGreaterThanOrEqual(3000);
     expect(m.voxels).toBeLessThanOrEqual(14000);
+    for (const level of [2, 3, 4] as const) expect(m.wools[level].voxels).toBeGreaterThan(m.wools[(level - 1) as 1 | 2 | 3].voxels);
+    expect(bounds(m.wools[4]).bottom).toBeLessThanOrEqual(0.02); // the thickest coat reaches the ground
   });
   it('has a round silhouette: the wool top crosses at least 8 voxel steps', () => {
     const g = new Grid(CHAR);

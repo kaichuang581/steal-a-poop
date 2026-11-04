@@ -158,7 +158,7 @@ export function PaintedGame() {
             const st = stateOf(p);
             return {
               seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.banked, shears[Number(p.id)] ?? 0), state: st.state, stateKey: st.key, coldFor: st.coldFor,
-              dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1,
+              dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou,
               label: (
                 <span className="sk-chip whitespace-nowrap text-xs" style={{ boxShadow: p.id === view.currentPlayerId ? '0 0 0 2px var(--amber)' : undefined }}>
                   {p.name}{p.isYou ? ' (you)' : ''}{livesOn && <Lives lives={p.lives} max={maxLives} size={10} />}

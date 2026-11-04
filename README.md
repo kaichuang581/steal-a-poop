@@ -94,7 +94,7 @@ interface. Note `apply` already rejects actions from non-human seats.
 
 ## Learning modes
 
-- **Tutorial (`mode: 'tour'`).** First Quick Game launches it once (skippable); replay it from
+- **Tutorial (`mode: 'tour'`).** Opened from the Tutorial button on the homepage (skippable); also reachable from
   Settings. It is a real game with scripted bots: they answer quickly, never bank or fumble, and
   after you bank the last bot runs into its steal window so you can try one. The game clock is
   paused on explanation steps (the store tracks an offset against `performance.now()`), and also

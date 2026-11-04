@@ -249,13 +249,14 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
       if (blocked(x, 0, z)) continue;
       const mx = (x + 0.5) * S, mz = (z + 0.5) * S;
       const h = hash3(x, 0, z, 53), h2 = hash3(x >> 1, 0, z >> 1, 54);
-      if (Math.hypot(mx - HEAP[0], mz - HEAP[2]) < 1.2 + (h2 - 0.5) * 0.3) continue; // swept bare patch
+      if (Math.hypot(mx - HEAP[0], mz - HEAP[2]) < 1.45 + (h2 - 0.5) * 0.2) continue; // bare boards under the platform
       const e = Math.hypot((mx - SEAT_RING.cx) / SEAT_RING.rx, (mz - SEAT_RING.cz) / SEAT_RING.rz);
       if (Math.abs(e - 1) * rr < 0.4) {
-        if (h < 0.55) g.set(x, 0, z, h < 0.12 ? lin(T.beam[0]) : pick(T.hay, 0.55 + h2 * 0.45)); // trampled, darker
+        if (h < 0.7) g.set(x, 0, z, h < 0.08 ? lin(T.beam[0]) : pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // trampled, darker
         continue;
       }
-      if (h < 0.92) g.set(x, 0, z, pick(T.hay, h2 * 0.6 + h * 0.4));
+      // Broad hay is one tone with the occasional lighter patch: the texture comes from the straws, not from noise.
+      if (h < 0.92) g.set(x, 0, z, pick(T.hay, hash3(x >> 3, 0, z >> 3, 56) < 0.12 ? 0.1 : 0.7));
       if (h2 < 0.09 && h < 0.5 && !blocked(x, 1, z)) g.set(x, 1, z, pick(T.hay, h * 1.6)); // tufts
     }
 

@@ -1,8 +1,8 @@
-import { Billboard, Html } from '@react-three/drei';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ACESFilmicToneMapping, Group, Mesh, MeshLambertMaterial, PCFSoftShadowMap, PointLight, SRGBColorSpace, Vector3 } from 'three';
+import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFSoftShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
 import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
@@ -10,8 +10,10 @@ import { buildDistance } from '../scene/distance';
 import { BARN, CAMERA, HEAP, SHEEP_SCALE, seatPosition } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
-import { digitGeometry, heapModel, icicleModel, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
+import { icicleModel, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
 import { voxelMaterial } from '../voxel/material';
+import { T } from '../voxel/palette';
+import { BOARD, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
 import { DevStats } from './DevStats';
 import { Atmosphere, Effects, LANTERN_LIGHT, Lights } from './Rendering';
 import { Sheep } from './Sheep';
@@ -31,11 +33,11 @@ export interface BarnSeat {
 
 /** One-shot moments the table animates, each restarted by a new key. */
 export interface BarnMoments {
-  /** Valid word: a tuft flies from the speaker to the heap. */
+  /** Valid word: a tuft flies from the speaker to the pile; the pile spot and tag pulse. */
   tuftIn?: { key: number; from: number };
-  /** Bank: the heap's wool flies onto the banker's back. */
+  /** Bank: the pile's wool flies onto the banker's back. */
   tuftOut?: { key: number; to: number };
-  /** Successful steal: the wolf runs door, heap, stealer, door. */
+  /** Successful steal: the wolf runs door, pile, stealer, door. */
   wolf?: { key: number; to: number };
   /** Failed steal: shears come down on the stealer and tufts fly off. */
   shears?: { key: number; at: number };
@@ -48,10 +50,14 @@ export interface BarnMoments {
 interface Props {
   seats: BarnSeat[];
   pile: number;
-  /** Seat index (as in BarnSeat.index) whose turn it is; the camera frames them and the icicle hangs over them. */
+  /** Seat index (as in BarnSeat.index) whose turn it is: that sheep steps toward the pile. */
   speaker: number | null;
   /** 0..1 of the turn left (the icicle's length). */
   fraction: number;
+  /** Seconds left on the clock, shown under the letter board. */
+  secondsLeft: number | null;
+  letter: string;
+  isTrap: boolean;
   stealOpen: boolean;
   hour: Hour;
   reduced: boolean;
@@ -113,21 +119,81 @@ export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: 
   );
 }
 
+/** ?pov=1 keeps the older camera that glides to whoever's turn it is; the plan's fixed shot is the default. */
+const POV = new URLSearchParams(location.search).has('pov');
+
 export function BarnTable(props: Props) {
   const cam = props.phone ? CAMERA.phone : CAMERA.desktop;
   const w = useWorld();
+  const tagEl = useRef<HTMLDivElement>(null);
+  const clockEl = useRef<HTMLDivElement>(null);
+  const [pop, setPop] = useState(false);
+  const pulseKey = props.moments.tuftIn?.key;
+  useEffect(() => {
+    if (pulseKey === undefined) return;
+    setPop(true);
+    const id = setTimeout(() => setPop(false), 400);
+    return () => clearTimeout(id);
+  }, [pulseKey]);
   if (!w) return <Building />;
+  const { pile, letter, isTrap, stealOpen, secondsLeft } = props;
   return (
-    <Canvas
-      shadows={{ type: PCFSoftShadowMap }}
-      dpr={props.phone ? [1, 1.5] : [1, 2]}
-      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
-      camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
-      onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
-    >
-      <Scene {...props} world={w} />
-    </Canvas>
+    <div className="relative size-full">
+      <Canvas
+        shadows={{ type: PCFSoftShadowMap }}
+        dpr={props.phone ? [1, 1.5] : [1, 2]}
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
+        camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
+        onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
+      >
+        <Scene {...props} world={w} anchors={{ tag: tagEl, clock: clockEl }} />
+      </Canvas>
+      {/* The pile's paper tag, anchored to the scene point above the mound and never behind the input bar (plan V3.2 Part 3). */}
+      <div ref={tagEl} className="pointer-events-none absolute left-0 top-0 z-[25] flex flex-col items-center" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
+        <div
+          className="flex flex-col items-center"
+          style={{ transform: pop ? 'scale(1.15)' : 'scale(1)', transition: 'transform 200ms var(--ease-out)' }}
+          data-pile data-tour="pile" aria-label={`Pile ${pile} points`}
+        >
+          <span className="block size-2.5 rounded-full" style={{ background: 'var(--wood-ink)', boxShadow: '0 1px 0 var(--wood)' }} aria-hidden="true" />
+          <div className="sk-paper px-4 py-1 text-center leading-none">
+            <div className="sk-display" style={{ fontSize: 44, fontWeight: 800 }}>{pile}</div>
+            <div className="sk-hand text-base" style={{ color: 'var(--ink-soft)' }}>wool in the pile</div>
+          </div>
+        </div>
+      </div>
+      {/* The clock, just under the letter board (plan V3.2 Part 4). */}
+      <div ref={clockEl} className="pointer-events-none absolute left-0 top-0 z-[25]" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
+        <div
+          className="sk-chip sk-num whitespace-nowrap"
+          style={{ fontSize: 22, fontWeight: 800, color: stealOpen ? 'var(--coral-dark)' : 'var(--ink)' }}
+          data-chain-tile data-tour="chain" aria-label={`Required starting letter ${letter.toUpperCase()}${isTrap ? ', a trap letter' : ''}`}
+        >
+          {secondsLeft === null ? letter.toUpperCase() : `${secondsLeft.toFixed(1)}s`}
+        </div>
+      </div>
+    </div>
   );
+}
+
+type Anchors = { tag: React.RefObject<HTMLDivElement | null>; clock: React.RefObject<HTMLDivElement | null> };
+
+/** Projects the two anchor points every frame and moves their DOM elements; the tag stays `margin` px above the bottom edge. */
+function Projection({ anchors, pileHeight, margin }: { anchors: Anchors; pileHeight: number; margin: number }) {
+  const v = useMemo(() => new Vector3(), []);
+  useFrame(({ camera, size }) => {
+    const place = (el: HTMLDivElement | null, x: number, y: number, z: number, clamp: boolean) => {
+      if (!el) return;
+      v.set(x, y, z).project(camera);
+      const px = ((v.x + 1) / 2) * size.width;
+      let py = ((1 - v.y) / 2) * size.height;
+      if (clamp) py = Math.min(py, size.height - margin);
+      el.style.transform = `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0) translate(-50%, -50%)`;
+    };
+    place(anchors.tag.current, HEAP[0], PLATFORM_HEIGHT + pileHeight + 0.35, HEAP[2], true);
+    place(anchors.clock.current, HEAP[0], BOARD.bottom - 0.22, 1.0, false);
+  });
+  return null;
 }
 
 export function Building() {
@@ -138,10 +204,9 @@ export function Building() {
   );
 }
 
-function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w }: Props & { world: World }) {
+function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
-  const pos = (i: number) => seatPosition(i, n);
 
   // The freeze dims the lanterns to 40% for 2.4 s.
   const freezeAt = useRef(-10);
@@ -155,22 +220,24 @@ function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone
 
   return (
     <>
-      <CameraRig focus={speaker} n={n} phone={phone} reduced={reduced} />
+      {POV ? <CameraRig focus={speaker} n={n} phone={phone} reduced={reduced} /> : <FixedCamera phone={phone} />}
       <Atmosphere hour={hour} />
       <Lights hour={hour} phone={phone} viewYaw={0} lampRef={(i, l) => { lamps.current[i] = l; }} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
       <Farm world={w} reduced={reduced} stealOpen={stealOpen} />
-      <Heap pile={pile} />
+      <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
+      <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} />
+      <Projection anchors={anchors} pileHeight={pileHeightFor(pile)} margin={phone ? 140 : 120} />
+      <Icicle fraction={fraction} red={stealOpen} reduced={reduced} />
       {stealOpen && <WolfEyes />}
-      {speaker !== null && <Icicle at={pos(speaker)} fraction={fraction} red={stealOpen} reduced={reduced} />}
       {seats.map((s) => {
-        const p = pos(s.index);
+        const p = seatPosition(s.index, n);
         return (
-          <group key={s.seat} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={SHEEP_SCALE}>
+          <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === speaker} reduced={reduced}>
             <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} still={stealOpen} scarf={s.scarf}
               gustFrom={[0, 0.8, -6]} />
-            <Html position={[0, 1.3, 0]} center zIndexRange={[20, 0]}>{s.label}</Html>
-          </group>
+            <Html position={[p.x >= 0 ? 0.95 : -0.95, 0.75, 0]} center zIndexRange={[20, 0]} rotation={[0, -p.yaw, 0]}>{s.label}</Html>
+          </SeatGroup>
         );
       })}
       <Moments moments={moments} n={n} reduced={reduced} />
@@ -181,10 +248,40 @@ function Scene({ seats, pile, speaker, fraction, stealOpen, hour, reduced, phone
   );
 }
 
+/** The plan's shot, re-applied when the viewport changes between phone and desktop. */
+function FixedCamera({ phone }: { phone: boolean }) {
+  const camera = useThree((s) => s.camera);
+  const cam = phone ? CAMERA.phone : CAMERA.desktop;
+  useEffect(() => {
+    camera.position.set(cam.position[0], cam.position[1], cam.position[2]);
+    camera.lookAt(cam.target[0], cam.target[1], cam.target[2]);
+    if ('fov' in camera) {
+      (camera as { fov: number }).fov = cam.fov;
+      (camera as unknown as { updateProjectionMatrix(): void }).updateProjectionMatrix();
+    }
+  }, [camera, cam]);
+  return null;
+}
+
+/** A seat: the sheep faces the pile and, on its turn, steps 0.35 m toward it. */
+function SeatGroup({ index, n, active, reduced, children }: { index: number; n: number; active: boolean; reduced: boolean; children: ReactNode }) {
+  const g = useRef<Group>(null);
+  const p = seatPosition(index, n);
+  const want = useMemo(() => new Vector3(), []);
+  useFrame((_, dt) => {
+    if (!g.current) return;
+    const dx = HEAP[0] - p.x, dz = HEAP[2] - p.z;
+    const len = Math.hypot(dx, dz) || 1;
+    const step = active ? 0.35 : 0;
+    want.set(p.x + (dx / len) * step, 0, p.z + (dz / len) * step);
+    g.current.position.lerp(want, reduced ? 1 : 1 - Math.exp(-dt * 4));
+  });
+  return <group ref={g} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={SHEEP_SCALE}>{children}</group>;
+}
+
 /**
- * The camera looks at whoever's turn it is: it stands across the heap from their seat, a little above, so you see
- * their face with the heap in front. Between turns it pulls back to the wide shot from outside the open front.
- * Reduced motion cuts instead of gliding.
+ * The older turn camera: it stands across the pile from the speaker's seat and pulls back between turns. Kept behind
+ * ?pov=1; reduced motion cuts instead of gliding.
  */
 function CameraRig({ focus, n, phone, reduced }: { focus: number | null; n: number; phone: boolean; reduced: boolean }) {
   const look = useRef<Vector3 | null>(null);
@@ -211,21 +308,79 @@ function CameraRig({ focus, n, phone, reduced }: { focus: number | null; n: numb
   return null;
 }
 
-function Heap({ pile }: { pile: number }) {
-  const heapGeometry = useMemo(() => heapModel(), []);
-  const level = Math.min(8, Math.ceil(pile / 8));
-  const digits = useMemo(() => digitGeometry(String(pile), 0.05), [pile]);
+/** The mound's height for a pile of `points`: 0.3 m at the smallest, 0.8 m at the largest. */
+function pileHeightFor(points: number): number {
+  return 0.3 + ((pileWidth(points) - 0.9) / 1.3) * 0.5;
+}
+
+/**
+ * The hero: the mound of wool on its wooden platform under its own spotlight, with the count on a paper tag anchored
+ * above it (plan V3.2 Part 3). The spot brightens and the tag pops on an accepted word.
+ */
+function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; reduced: boolean }) {
   const mat = useMemo(() => voxelMaterial(), []);
-  const glow = useMemo(() => voxelMaterial({ emissive: '#FFC24B', emissiveIntensity: 0.35 }), []);
+  const platform = useMemo(() => platformGeometry(), []);
+  const width = pileWidth(pile);
+  const mound = useMemo(() => pileGeometry(width), [width]);
+  const spot = useRef<SpotLight>(null);
+  const target = useMemo(() => new Object3D(), []);
+  const pulseAt = useRef(-10);
+  useEffect(() => { if (pulseKey !== undefined) pulseAt.current = performance.now() / 1000; }, [pulseKey]);
+  useFrame(() => {
+    if (!spot.current) return;
+    const e = performance.now() / 1000 - pulseAt.current;
+    spot.current.intensity = 90 * (e < 0.4 && !reduced ? 1.25 : 1);
+  });
   return (
-    <group position={[HEAP[0], 0.02, HEAP[2]]}>
-      <mesh geometry={heapGeometry(level)} material={mat} castShadow receiveShadow />
-      <Billboard position={[0, 1.15 + level * 0.06, 0]}>
-        <mesh geometry={digits} material={glow} />
-      </Billboard>
-      <Html position={[0, 0.05, 0]} center zIndexRange={[10, 0]}>
-        <div className="sk-chip pointer-events-none text-xs" data-pile data-tour="pile" aria-label={`Pile ${pile} points`}>the heap</div>
-      </Html>
+    <group position={[HEAP[0], 0, HEAP[2]]}>
+      <mesh geometry={platform} material={mat} castShadow receiveShadow />
+      <mesh geometry={mound} material={mat} position={[0, PLATFORM_HEIGHT, 0]} castShadow receiveShadow />
+      <primitive object={target} position={[0, 0, 0]} />
+      <spotLight ref={spot} position={[0, 6.0, 0]} target={target} color="#FFD9A0" intensity={90} angle={0.42} penumbra={0.7} distance={9} decay={2} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} />
+    </group>
+  );
+}
+
+/**
+ * The starting letter carved on a board hanging from the beam above the pile (an ice block for trap letters),
+ * swinging a little with the wind, with the seconds on a chip just under it (plan V3.2 Part 4).
+ */
+function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; isTrap: boolean; stealOpen: boolean; reduced: boolean }) {
+  const mat = useMemo(() => voxelMaterial(), []);
+  const geo = useMemo(() => letterBoardGeometry(letter, isTrap, BARN.beamY), [letter, isTrap]);
+  const iceGeo = useMemo(() => new BoxGeometry(BOARD.width, BOARD.height, 0.24), []);
+  const iceMat = useMemo(() => new MeshPhongMaterial({ color: T.ice[1], transparent: true, opacity: 0.5, shininess: 80, depthWrite: false }), []);
+  const g = useRef<Group>(null);
+  useFrame(({ clock }) => {
+    if (g.current) g.current.rotation.z = reduced || stealOpen ? 0 : (Math.sin(clock.elapsedTime * 0.7) * 1.5 * Math.PI) / 180;
+  });
+  const pivotY = BARN.beamY - 0.15;
+  const boardMid = BOARD.bottom + BOARD.height / 2 - pivotY;
+  return (
+    <group ref={g} position={[HEAP[0], pivotY, 1.0]}>
+      <mesh geometry={geo} material={mat} castShadow />
+      {isTrap && <mesh geometry={iceGeo} material={iceMat} position={[0, boardMid, 0]} />}
+    </group>
+  );
+}
+
+/** The timer: an icicle hanging from the beam beside the letter board, shrinking with the clock, red in the steal window. */
+function Icicle({ fraction, red, reduced }: { fraction: number; red: boolean; reduced: boolean }) {
+  const m = useMemo(() => icicleModel(), []);
+  const mat = useMemo(() => voxelMaterial(), []);
+  const drip = useRef<Mesh>(null);
+  useFrame(({ clock }) => {
+    mat.color.set(red ? '#E7705E' : '#8FC4E6');
+    if (drip.current) {
+      const p = reduced ? 0 : (clock.elapsedTime % 2) / 2;
+      drip.current.position.y = -0.8 * fraction - p * 1.2;
+      drip.current.visible = !reduced && p < 0.9;
+    }
+  });
+  return (
+    <group position={[HEAP[0] + BOARD.width / 2 + 0.7, BARN.beamY - 0.15, 1.0]} scale={1.8}>
+      <mesh geometry={m.ice.geo} material={mat} scale={[1, 0.25 + 0.75 * fraction, 1]} />
+      <mesh ref={drip} geometry={m.drip} material={mat} />
     </group>
   );
 }
@@ -234,31 +389,6 @@ function WolfEyes() {
   const geo = useMemo(() => wolfEyes(), []);
   const mat = useMemo(() => voxelMaterial({ emissive: '#FFE066', emissiveIntensity: 1 }), []);
   return <mesh geometry={geo} material={mat} position={[BARN.minX + 0.15, 1.2, BARN.sideDoor.z]} rotation={[0, Math.PI / 2, 0]} />;
-}
-
-function Icicle({ at, fraction, red, reduced }: { at: { x: number; z: number }; fraction: number; red: boolean; reduced: boolean }) {
-  const m = useMemo(() => icicleModel(), []);
-  const mat = useMemo(() => voxelMaterial(), []);
-  const drip = useRef<Mesh>(null);
-  const g = useRef<Group>(null);
-  useFrame(({ clock }) => {
-    mat.color.set(red ? '#E7705E' : '#FFFFFF');
-    if (g.current) {
-      g.current.position.x += (at.x - g.current.position.x) * 0.15;
-      g.current.position.z += (at.z - g.current.position.z) * 0.15;
-    }
-    if (drip.current) {
-      const p = reduced ? 0 : (clock.elapsedTime % 2) / 2;
-      drip.current.position.y = -0.8 * fraction - p * 1.2;
-      drip.current.visible = !reduced && p < 0.9;
-    }
-  });
-  return (
-    <group ref={g} position={[at.x, 3.25, at.z]}>
-      <mesh geometry={m.ice.geo} material={mat} scale={[1, 0.25 + 0.75 * fraction, 1]} />
-      <mesh ref={drip} geometry={m.drip} material={mat} />
-    </group>
-  );
 }
 
 function Cat({ geo, reduced, frozen, mat }: { geo: { body: BufferGeometry; tail: BufferGeometry; tailPivot: [number, number, number] }; reduced: boolean; frozen: boolean; mat: MeshLambertMaterial }) {
@@ -299,6 +429,7 @@ function Moments({ moments, n, reduced }: { moments: BarnMoments; n: number; red
   const refs = useRef<Record<string, Group | null>>({});
   const set = (k: string) => (g: Group | null) => { refs.current[k] = g; };
   const seat = (i: number) => { const p = seatPosition(i, n); return [p.x, 0, p.z] as const; };
+  const pileTop = [HEAP[0], PLATFORM_HEIGHT + 0.3, HEAP[2]] as const;
 
   useFrame(() => {
     const now = performance.now() / 1000;
@@ -314,8 +445,8 @@ function Moments({ moments, n, reduced }: { moments: BarnMoments; n: number; red
     };
     const arc = (g: Group, a: readonly number[], b: readonly number[], p: number, h: number) =>
       g.position.set(a[0] + (b[0] - a[0]) * p, 0.9 + Math.sin(p * Math.PI) * h + (a[1] + (b[1] - a[1]) * p), a[2] + (b[2] - a[2]) * p);
-    run('tuftIn', 0.8, (e, g) => arc(g, seat(moments.tuftIn!.from), HEAP, Math.min(1, e / 0.8), 1.2));
-    run('tuftOut', 1.1, (e, g) => arc(g, HEAP, seat(moments.tuftOut!.to), Math.min(1, e / 1.1), 1.6));
+    run('tuftIn', 0.8, (e, g) => arc(g, seat(moments.tuftIn!.from), pileTop, Math.min(1, e / 0.8), 1.2));
+    run('tuftOut', 1.1, (e, g) => arc(g, pileTop, seat(moments.tuftOut!.to), Math.min(1, e / 1.1), 1.6));
     run('gust', 0.9, (e, g) => arc(g, seat(moments.gust!.at), [0, 1.2, BARN.maxZ + 2], Math.min(1, e / 0.9), 0.6));
     run('wolf', 1.3, (e, g) => {
       const door = [BARN.minX - 0.5, 0, BARN.sideDoor.z] as const;

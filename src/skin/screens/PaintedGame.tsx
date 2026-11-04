@@ -13,7 +13,6 @@ import { Tour } from '../../ui/Tour';
 import { useGameSounds } from '../../ui/useGameSounds';
 import { InputStrip } from '../components/InputStrip';
 import { StreakString } from '../components/Lantern';
-import { LetterTile } from '../components/LetterTile';
 import { Lives } from '../components/Lives';
 import { Chip, ClothButton, CoralButton, PaperPanel, WoodButton } from '../components/Materials';
 import { PlayerCard } from '../components/PlayerCard';
@@ -29,7 +28,7 @@ import { BarnTable } from '../table/BarnTable';
 import type { BarnMoments } from '../table/BarnTable';
 import { DevLine } from '../table/DevStats';
 import { PlaceExtras } from '../table/places';
-import { woolLevel } from '../table/Sheep';
+import { coatLevel } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
 
 interface Fx { id: number; node: ReactNode }
@@ -51,6 +50,8 @@ export function PaintedGame() {
   const reduced = useMotionLevel() === 'reduced';
   const deviceHour = useHour();
   const [moods, setMoods] = useState<Record<number, Mood>>({});
+  // Failed steals this game, per seat: each one shears a coat level (plan V3.2 Part 6).
+  const [shears, setShears] = useState<Record<number, number>>({});
   const [moments, setMoments] = useState<BarnMoments>({});
   const [fx, setFx] = useState<Fx[]>([]);
   const [sheet, setSheet] = useState<'cheat' | 'chain' | 'chat' | 'leave' | null>(null);
@@ -95,6 +96,7 @@ export function PaintedGame() {
         break;
       case 'stealFailed':
         mood(e.playerId, 'cold', 3);
+        setShears((m) => ({ ...m, [Number(e.playerId)]: (m[Number(e.playerId)] ?? 0) + 1 }));
         setMoments((m) => ({ ...m, shears: { key: k(), at: rel(Number(e.playerId)) } }));
         setDimmed((d) => new Set(d).add(Number(e.playerId)));
         flash(<span className="sk-chip sk-rise" style={{ color: 'var(--coral-dark)' }}>{name(e.playerId)}’s steal failed{e.lost ? ` −${e.lost}` : ''}</span>, 800);
@@ -124,8 +126,11 @@ export function PaintedGame() {
     }
   });
 
-  // A new game starts with no leftover moods except the thaw the events just set.
-  useEffect(() => setMoods((m) => Object.fromEntries(Object.entries(m).filter(([, v]) => v.state === 'thawing'))), [game.seed]);
+  // A new game starts with no leftover moods except the thaw the events just set, and a fresh coat.
+  useEffect(() => {
+    setMoods((m) => Object.fromEntries(Object.entries(m).filter(([, v]) => v.state === 'thawing')));
+    setShears({});
+  }, [game.seed]);
 
   const speaker = view.currentPlayerId === '' ? null : rel(Number(view.currentPlayerId));
   const signState = game.phase === 'gameOver' ? 'raised' : game.phase === 'intro' ? 'lowering' : 'hung';
@@ -144,11 +149,12 @@ export function PaintedGame() {
       <div className="absolute inset-0" data-table>
         <BarnTable
           pile={view.pile} speaker={speaker} fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
+          secondsLeft={game.turn ? view.secondsLeft : null} letter={view.letter ?? ''} isTrap={view.isTrapLetter}
           stealOpen={view.stealOpen} hour={hour} reduced={reduced} phone={mobile} blizzard={view.twist === 'doublePointsShort'} moments={moments}
           seats={view.players.map((p) => {
             const st = stateOf(p);
             return {
-              seat: Number(p.id), index: rel(Number(p.id)), level: woolLevel(p.banked), state: st.state, stateKey: st.key, coldFor: st.coldFor,
+              seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.banked, shears[Number(p.id)] ?? 0), state: st.state, stateKey: st.key, coldFor: st.coldFor,
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1,
               label: (
                 <span className="sk-chip whitespace-nowrap text-xs" style={{ boxShadow: p.id === view.currentPlayerId ? '0 0 0 2px var(--amber)' : undefined }}>
@@ -162,19 +168,14 @@ export function PaintedGame() {
         </BarnTable>
       </div>
 
-      {/* Top row: round and twist (left), starting letter (centre), controls (right). */}
+      {/* A soft vignette holds the eye on the pile (plan V3.2 Part 2). */}
+      <div className="pointer-events-none absolute inset-0 z-[5]" style={{ background: 'radial-gradient(ellipse at center, transparent 58%, rgba(59, 48, 40, 0.28) 100%)' }} aria-hidden="true" />
+
+      {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. */}
       <header className="pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
         <div className="flex flex-col items-start gap-1">
           <span className="sk-chip sk-display">Round {view.round}/3 · turn {Math.min(5, view.turn)}/5</span>
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
-        </div>
-        <div className="absolute left-1/2 top-1 -translate-x-1/2">
-          <LetterTile
-            letter={view.letter ?? ''} isTrap={view.isTrapLetter} isVowel={/[aeiou]/.test(view.letter ?? '')}
-            fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : undefined}
-            secondsLeft={game.turn ? view.secondsLeft : undefined}
-            stealOpen={view.stealOpen} size={mobile ? 56 : 72}
-          />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1">
           <Chip onClick={() => setSheet('cheat')} aria-label="Scoring cheat sheet">📖</Chip>

@@ -31,7 +31,7 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, onChange, onPlay,
   useEffect(() => ref.current?.focus(), [turnKey]);
   const L = letter.toUpperCase();
   return (
-    <div className="px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 sm:px-4 sm:pb-4">
+    <div className="px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4">
       <div className="mx-auto max-w-2xl">
         <MessageSlip message={message} />
         {hints && hints.ideas.length > 0 && (
@@ -43,7 +43,7 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, onChange, onPlay,
           </div>
         )}
         <div className="flex flex-wrap gap-2 sm:flex-nowrap" data-tour="input">
-          <label className="sk-paper flex min-h-12 min-w-0 flex-1 basis-full items-center gap-2 px-3 sm:basis-auto">
+          <label className="sk-paper flex min-h-11 min-w-0 flex-1 basis-full items-center gap-2 px-3 sm:basis-auto">
             <span className="sk-display text-2xl" style={{ color: 'var(--wood-ink)' }} aria-hidden="true">{L}</span>
             <input
               ref={ref}
@@ -61,7 +61,7 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, onChange, onPlay,
               autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false}
               enterKeyHint="send" maxLength={30}
               aria-label={`Type a word starting with ${L}`}
-              placeholder={myTurn ? `Word starting with ${L}…` : 'Type ahead…'}
+              placeholder={myTurn ? `Type a word starting with ${L}` : 'Type ahead…'}
               className="min-w-0 flex-1 bg-transparent text-lg font-extrabold lowercase outline-none placeholder:normal-case"
               style={{ color: 'var(--ink)', caretColor: 'var(--amber)' }}
             />

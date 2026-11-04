@@ -19,7 +19,8 @@ export interface SheepModel {
   wools: Record<1 | 2 | 3 | 4, Part>;
   /** Frost that settles on each fleece's upper surface while freezing. */
   frosts: Record<1 | 2 | 3 | 4, Part>;
-  head: Part;            // head block, nose, cheeks, forehead tuft
+  head: Part;            // head block, nose, cheeks
+  tuft: Part;            // forehead tuft, hidden on a sheared sheep
   eyes: [Part, Part];    // whites, iris, pupil and catchlight; each scales about its own centre
   lids: Part;            // closed eyelids, shown for blinks and sleep
   ears: [Part, Part];
@@ -197,9 +198,10 @@ export function sheepModel(): SheepModel {
   head.set(-1, 17, F, lin(T.pink[2]));
   head.set(1, 17, F, lin(T.pink[2]));
   for (const sx of [-1, 1]) for (const dx of [2, 3]) for (let y = 17; y <= 18; y++) head.set(sx * dx, y, F, lin(T.pink[0]));
-  // Forehead tuft on top of the head.
-  ellipsoid(head, [0, 1.0, 0.48], [0.2, 0.11, 0.17], woolPatches(37), 0.08, 11);
   const headPivot: V3 = [0, 0.66, 0.5];
+  // Forehead tuft on top of the head, its own part.
+  const tuft = new Grid(s);
+  ellipsoid(tuft, [0, 1.0, 0.48], [0.2, 0.11, 0.17], woolPatches(37), 0.08, 11);
 
   // Eyes: a 3 x 3 white with a 2 x 2 iris toward the nose, pupils below, a catchlight upper left.
   const eyes = ([-1, 1] as const).map((sx) => {
@@ -298,11 +300,11 @@ export function sheepModel(): SheepModel {
   for (const [x, y, z] of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, 0, 1], [1, 1, 1]]) breath.set(x, i(0.72) + y, i(0.86) + z, lin(WHITE));
 
   const parts = {
-    wools, frosts, head: part(head, headPivot), eyes, lids: part(lids, headPivot), ears, legs,
+    wools, frosts, head: part(head, headPivot), tuft: part(tuft, headPivot), eyes, lids: part(lids, headPivot), ears, legs,
     collar: part(collar, headPivot), bell: part(bell, [0, 0.36, 0.5]), sheared: part(sheared, [0, 0.58, -0.02]),
     breath: part(breath, [0, 0.72, 0.86]), brows, mouths,
   };
-  const voxels = wools[2].voxels + parts.head.voxels + eyes[0].voxels + eyes[1].voxels + ears[0].voxels + ears[1].voxels
+  const voxels = wools[2].voxels + parts.head.voxels + parts.tuft.voxels + eyes[0].voxels + eyes[1].voxels + ears[0].voxels + ears[1].voxels
     + legs.reduce((n, l) => n + l.voxels, 0) + parts.collar.voxels + parts.bell.voxels;
   cached = { ...parts, voxels };
   return cached;

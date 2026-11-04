@@ -19,7 +19,7 @@ const SUN: Record<Hour, { color: string; intensity: number }> = {
   night: { color: '#AFC3DE', intensity: 0.65 }, // moonlight; the lanterns carry the barn
 };
 // Physical falloff (decay 2) needs candela-scale intensity; 40 here lands where the plan's nominal 2.0 reads on screen.
-export const LANTERN_LIGHT = { color: '#FFB45A', intensity: 40, distance: 12, decay: 2 };
+export const LANTERN_LIGHT = { color: '#FFB45A', intensity: 32, distance: 12, decay: 2 };
 
 /** Exponential fog in the hour's colour; the sky dome, stars and aurora ignore it (their materials have fog off). */
 export function Atmosphere({ hour }: { hour: Hour }) {

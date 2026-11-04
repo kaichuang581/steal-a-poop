@@ -20,7 +20,7 @@
   box-shadow: var(--shadow-warm), inset 0 0 0 2px var(--paper-edge);
 }
 .sk-btn {
-  min-height: 48px;
+  min-height: 44px;
   border-radius: var(--radius-button);
   padding: 0 18px;
   font-weight: 900;

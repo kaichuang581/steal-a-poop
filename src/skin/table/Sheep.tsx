@@ -14,9 +14,13 @@ import type { Brows, Mouth, Part, WoolLevel } from '../voxel/sheep';
 export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing';
 export type { WoolLevel };
 
-/** Banked points to wool level (plan V3 Part 5.2). */
-export function woolLevel(points: number): WoolLevel {
-  return points <= 0 ? 0 : points < 15 ? 1 : points < 40 ? 2 : points < 80 ? 3 : 4;
+/**
+ * Coat level (plan V3.2 Part 6): everyone starts with a normal coat; banked wool thickens it at 40 and 80 points,
+ * each failed steal shears one level (up to three). Time-outs blow a tuft but never change the level.
+ */
+export function coatLevel(banked: number, shears: number): WoolLevel {
+  const tier = banked < 40 ? 0 : banked < 80 ? 1 : 2;
+  return Math.max(0, Math.min(4, 2 + tier - Math.min(3, shears))) as WoolLevel;
 }
 
 /** Seconds each timed state lasts before the sheep goes back to idle. */
@@ -160,6 +164,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     }
     wool.scale.set(settle, settle * puff * (1 + breathe), settle);
     (o.sheared as Mesh).visible = level === 0;
+    (o.tuft as Mesh).visible = level > 0;
     (o.earL as Mesh).rotation.z = 0.44 - flick; // the ears hang down 25 degrees and flick up
     (o.earR as Mesh).rotation.z = -0.44 + flick;
     (o.legFL as Mesh).rotation.x = legLift ? -0.6 : 0;
@@ -205,6 +210,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         {mesh('legBR', m.legs[3])}
         <group ref={set('head')} position={m.head.pivot}>
           <mesh geometry={m.head.geo} material={mat} castShadow />
+          <mesh ref={set('tuft')} geometry={m.tuft.geo} material={mat} castShadow />
           <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={mat} />
           <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={mat} />
           <mesh ref={set('lids')} geometry={m.lids.geo} material={mat} />

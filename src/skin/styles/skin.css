@@ -1,0 +1,105 @@
+@import './tokens.css';
+
+/* Base: the painted skin replaces the classic body colours and font. */
+:root[data-skin="painted"] body {
+  font-family: var(--skin-font-body);
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--sky-lo, #BFE1F3), var(--near, #5C9B58));
+}
+:root[data-skin="painted"] :focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+.sk-display { font-family: var(--skin-font-display); font-weight: 800; font-variant-numeric: tabular-nums; }
+.sk-hand { font-family: var(--skin-font-hand); }
+.sk-num { font-variant-numeric: tabular-nums; }
+
+/* Materials */
+.sk-paper {
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: var(--radius-paper);
+  box-shadow: var(--shadow-warm), inset 0 0 0 2px var(--paper-edge);
+}
+.sk-btn {
+  min-height: 48px;
+  border-radius: var(--radius-button);
+  padding: 0 18px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--button-text);
+  transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out), opacity var(--t-fast);
+}
+.sk-btn:active:not(:disabled) { transform: translateY(1px); }
+.sk-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.sk-wood  { background: var(--wood-dark);  box-shadow: inset 0 3px 0 var(--wood),  0 3px 0 var(--wood-ink); }
+.sk-cloth { background: var(--cloth-dark); box-shadow: inset 0 3px 0 var(--cloth), 0 3px 0 var(--ink); }
+.sk-coral { background: var(--coral-dark); box-shadow: inset 0 3px 0 var(--coral), 0 3px 0 var(--ink); }
+.sk-wood:active:not(:disabled), .sk-cloth:active:not(:disabled), .sk-coral:active:not(:disabled) { box-shadow: inset 0 2px 0 var(--wood); }
+.sk-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 32px; padding: 0 12px;
+  border-radius: 999px;
+  background: var(--paper); color: var(--ink);
+  box-shadow: var(--shadow-warm);
+  font-weight: 800;
+}
+.sk-chip[aria-pressed="true"] { background: var(--wood-dark); color: var(--button-text); }
+
+/* Letter tile */
+.sk-tile {
+  background: var(--tile);
+  color: var(--wood-ink);
+  border-radius: var(--radius-tile);
+  box-shadow: inset 0 -5px 0 var(--wood), var(--shadow-warm);
+  font-family: var(--skin-font-body);
+  font-weight: 900;
+}
+.sk-tile[data-trap="true"] { box-shadow: inset 0 0 0 5px var(--bramble), inset 0 -5px 0 var(--wood), var(--shadow-warm); }
+
+/* Ambient and feedback motion */
+@keyframes sk-bob { 50% { transform: translateY(-3px); } }
+@keyframes sk-happy { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes sk-startle { 40% { transform: translateY(-14px) scale(1.06); } }
+@keyframes sk-swing { 50% { transform: rotate(1.6deg); } }
+@keyframes sk-halo { 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--coral) 35%, transparent), inset 0 3px 0 var(--coral); } }
+@keyframes sk-caret { 50% { border-color: transparent; } }
+@keyframes sk-dash {
+  0% { transform: translateX(-16vw); }
+  45% { transform: translateX(44vw) translateY(-14px); }
+  50% { transform: translateX(50vw); }
+  100% { transform: translateX(104vw); }
+}
+@keyframes sk-dash-left {
+  0% { transform: translateX(104vw) scaleX(-1); }
+  45% { transform: translateX(56vw) translateY(-14px) scaleX(-1); }
+  50% { transform: translateX(50vw) scaleX(-1); }
+  100% { transform: translateX(-16vw) scaleX(-1); }
+}
+@keyframes sk-rise { from { opacity: 0; transform: translateY(8px); } 20% { opacity: 1; } to { opacity: 0; transform: translateY(-46px); } }
+@keyframes sk-fall { from { opacity: 0; transform: translate(0, -40px) rotate(-30deg); } 30% { opacity: 1; } to { opacity: 0; transform: translate(20px, 30px) rotate(40deg); } }
+@keyframes sk-pop { from { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } to { transform: scale(1); } }
+
+.sk-bob { animation: sk-bob 3.2s ease-in-out infinite; }
+.sk-mood-happy { animation: sk-happy 0.8s var(--ease-out) 2; }
+.sk-mood-startled { animation: sk-startle 0.6s var(--ease-out); }
+.sk-swing { transform-origin: 50% 0; animation: sk-swing 5s ease-in-out infinite; }
+.sk-halo { animation: sk-halo 0.9s ease-in-out infinite; }
+.sk-rise { animation: sk-rise 0.9s var(--ease-out) forwards; }
+.sk-fall { animation: sk-fall 0.7s var(--ease-out) forwards; }
+.sk-pop { animation: sk-pop var(--t-feedback) var(--ease-out) both; }
+
+:root[data-skin="painted"].reduce-motion .sk-bob,
+:root[data-skin="painted"].reduce-motion .sk-swing,
+:root[data-skin="painted"].reduce-motion .sk-halo,
+:root[data-skin="painted"].reduce-motion .sk-mood-happy,
+:root[data-skin="painted"].reduce-motion .sk-mood-startled { animation: none; }
+:root[data-skin="painted"].reduce-motion .sk-rise,
+:root[data-skin="painted"].reduce-motion .sk-fall,
+:root[data-skin="painted"].reduce-motion .sk-pop { animation-duration: 0.01ms; }
+@media (prefers-reduced-motion: reduce) {
+  .sk-bob, .sk-swing, .sk-halo, .sk-mood-happy, .sk-mood-startled { animation: none; }
+  .sk-rise, .sk-fall, .sk-pop { animation-duration: 0.01ms; }
+}
+
+/* While the steal window is open, only the ring and the Steal button move. */
+[data-steal-open="true"] .sk-bob,
+[data-steal-open="true"] .sk-swing { animation-play-state: paused; }

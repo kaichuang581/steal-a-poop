@@ -1,0 +1,61 @@
+/* Painted skin tokens. Interface colours are constant at every hour. */
+:root[data-skin="painted"] {
+  --paper: #FBF4E4;
+  --paper-edge: #E7D9B8;
+  --ink: #3B3028;        /* 11.7:1 on paper */
+  --ink-soft: #7A6A58;   /* 4.7:1 on paper */
+  --tile: #E3B780;
+  --wood: #B57F4A;       /* table; lit top edge of wooden buttons */
+  --wood-dark: #8C5A2E;  /* button bodies, sign backs; #FFF4DC text = 5.3:1 */
+  --wood-ink: #5B3A1E;   /* letters on tiles, numbers on the lantern */
+  --amber: #F2A444;      /* lantern, timer ring, focus rings, streak */
+  --glow: #FFD98A;
+  --cloth: #6BA372;      /* lit edge of Bank */
+  --cloth-dark: #3F6A49; /* Bank body; #FFF4DC text = 5.7:1 */
+  --coral: #E7705E;      /* lit edge of Steal; steal-window ring */
+  --coral-dark: #B8432F; /* Steal body; penalty text; #FFF4DC text = 4.9:1 */
+  --bramble: #4E3C2F;    /* trap tiles */
+  --mist: #9FB7D6;       /* rain, mist, disabled */
+  --button-text: #FFF4DC;
+
+  /* Characters: the Keeper, the seven table creatures, the fox. */
+  --keeper: #F7E8C8;
+  --keeper-belly: #FBF2DF;
+  --blush: #F2B6A0;
+  --sprout: #5F8A49;
+  --fox: #D97C2B;
+  --fox-dark: #B8651F;
+  --creature-moss: #7FA85C;
+  --creature-pip: #E3A35B;
+  --creature-willow: #9FB7D6;
+  --creature-bramble: #A0715A;
+  --creature-fern: #5C9B78;
+  --creature-quill: #C98BA6;
+  --creature-juniper: #7C86B8;
+
+  --shadow-warm: 0 6px 18px rgba(80, 50, 20, 0.18);
+  --radius-paper: 14px 18px 12px 20px / 18px 12px 20px 14px; /* uneven corners */
+  --radius-button: 12px;
+  --radius-tile: 16px;
+
+  --skin-font-display: 'Fraunces', Georgia, serif;
+  --skin-font-body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  --skin-font-hand: 'Patrick Hand', 'Comic Sans MS', cursive;
+
+  --ease-out: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --ease-spring: cubic-bezier(0.2, 0.9, 0.3, 1.2); /* lantern growth only */
+  --t-fast: 300ms;
+  --t-feedback: 500ms;
+  --t-carry: 1100ms;
+}
+
+/* Sky palettes by hour; the Scene reads the same values from palette.ts. */
+:root[data-skin="painted"][data-hour="dawn"]  { --sky-hi:#9FB7D6; --sky-lo:#F3C9B5; --horizon:#FBE3C2; --far:#B9C4D2; --mid:#8DA98A; --near:#6E9765; --grass:#9BBC6A; --sun:#FFD9A0; }
+:root[data-skin="painted"][data-hour="day"]   { --sky-hi:#78B4E6; --sky-lo:#BFE1F3; --horizon:#F1EBD3; --far:#A9C6C0; --mid:#79AE78; --near:#5C9B58; --grass:#A3D074; --sun:#FFF1C2; }
+:root[data-skin="painted"][data-hour="dusk"]  { --sky-hi:#5E5A94; --sky-lo:#D08AA2; --horizon:#F7C08F; --far:#8E7FA3; --mid:#6E7F7A; --near:#4E6B55; --grass:#7A9A5E; --sun:#FFB36B; }
+:root[data-skin="painted"][data-hour="night"] { --sky-hi:#101B3A; --sky-lo:#273B66; --horizon:#4A5F8A; --far:#3B4A6B; --mid:#2F4A4A; --near:#263F38; --grass:#3A6148; --sun:#F4ECCF; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin="painted"] { --t-fast: 0ms; --t-feedback: 0ms; --t-carry: 0ms; }
+}
+:root[data-skin="painted"].reduce-motion { --t-fast: 0ms; --t-feedback: 0ms; --t-carry: 0ms; }

@@ -198,3 +198,15 @@ The nickname is also a setting: `setSettings({ name })`, checked by `checkNickna
 3. Title: should the painted skin say "Finish the Word" while the classic skin keeps "Steal a Poop" (C5)?
 4. Round transitions: accept a tally that shows only during the 2.5 s intro with no Continue button, or approve an engine change (G4)?
 5. The uncommitted 3D table and tutorial changes: commit them first, or discard them (C7)?
+
+## Decisions taken (Brian: "do everything, don't stop for review")
+
+1. Fonts: Google Fonts `<link>` in `index.html` (Fraunces, Nunito, Patrick Hand).
+2. Flag: `VITE_SKIN=painted` or `?skin=painted`; `?skin=classic` forces the old look. Default stays classic.
+3. Title: the painted skin says "Finish the Word"; the classic skin keeps "Steal a Poop".
+4. Round transitions: the tally shows during the engine's 2.5 s intro; no Continue button (no engine change).
+5. The 3D table is the core of the design and stays: the painted skin draws its own 3D table (painted colours,
+   round creatures, a lantern for the pile, the same turn-following camera) over the procedural painted Scene.
+6. Rooms lobby and waiting room keep the classic screens until the server is live (plan Milestone 7).
+7. Guide (How to Play), the tutorial cards, community Hub and sign-in dialogs are reused unchanged; the cheat sheet,
+   chain history and chat open in a painted frame around the existing content.

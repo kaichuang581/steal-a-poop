@@ -16,9 +16,9 @@ function humanTurn(mode: GameMode, letter = 'c'): GameState {
 const start = T0 + 2500;
 
 describe('practice mode', () => {
-  it('gives the human a roomy 25s turn; normal stays 10s', () => {
+  it('gives the human a roomy 25s turn; normal follows the round (16s in round 1)', () => {
     expect(humanTurn('practice').turn!.durationMs).toBe(25_000);
-    expect(humanTurn('normal').turn!.durationMs).toBe(10_000);
+    expect(humanTurn('normal').turn!.durationMs).toBe(16_000);
   });
   it('timeout costs nothing and the turn still passes', () => {
     const s = humanTurn('practice');

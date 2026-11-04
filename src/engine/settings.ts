@@ -1,3 +1,4 @@
+import { roundTurnMs } from './timer';
 import type { Difficulty } from './types';
 
 /**
@@ -7,8 +8,6 @@ import type { Difficulty } from './types';
 export interface GameSettings {
   rounds: 1 | 2 | 3 | 5;
   turnsPerRound: 3 | 5 | 7;
-  /** Base seconds per turn; the pile still shrinks it by 1 s per 10 points, never below 5 s. */
-  turnSeconds: 5 | 8 | 10 | 12 | 15;
   /** 'unlimited' never freezes anyone. */
   lives: 1 | 2 | 3 | 5 | 'unlimited';
   /** False: no round twist, plain rules every round. */
@@ -20,7 +19,7 @@ export interface GameSettings {
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
-  rounds: 3, turnsPerRound: 5, turnSeconds: 10, lives: 3, twists: true, stealWindowSeconds: 3, botCount: 5, botDifficulty: 'medium',
+  rounds: 3, turnsPerRound: 5, lives: 3, twists: true, stealWindowSeconds: 3, botCount: 5, botDifficulty: 'medium',
 };
 
 /** The lives counter a player with unlimited lives carries; it is never decremented. */
@@ -29,13 +28,13 @@ export const UNLIMITED_LIVES = 99;
 export type PresetId = 'quick' | 'standard' | 'long' | 'custom';
 
 /** The three presets (plan V3.3 Part 2.3); Custom is whatever the chips say. */
-export const PRESETS: Record<Exclude<PresetId, 'custom'>, Pick<GameSettings, 'rounds' | 'turnsPerRound' | 'turnSeconds' | 'lives' | 'twists' | 'stealWindowSeconds'>> = {
-  quick: { rounds: 1, turnsPerRound: 5, turnSeconds: 8, lives: 2, twists: true, stealWindowSeconds: 3 },
-  standard: { rounds: 3, turnsPerRound: 5, turnSeconds: 10, lives: 3, twists: true, stealWindowSeconds: 3 },
-  long: { rounds: 5, turnsPerRound: 7, turnSeconds: 12, lives: 5, twists: true, stealWindowSeconds: 5 },
+export const PRESETS: Record<Exclude<PresetId, 'custom'>, Pick<GameSettings, 'rounds' | 'turnsPerRound' | 'lives' | 'twists' | 'stealWindowSeconds'>> = {
+  quick: { rounds: 1, turnsPerRound: 5, lives: 2, twists: true, stealWindowSeconds: 3 },
+  standard: { rounds: 3, turnsPerRound: 5, lives: 3, twists: true, stealWindowSeconds: 3 },
+  long: { rounds: 5, turnsPerRound: 7, lives: 5, twists: true, stealWindowSeconds: 5 },
 };
 
-const RULE_KEYS = ['rounds', 'turnsPerRound', 'turnSeconds', 'lives', 'twists', 'stealWindowSeconds'] as const;
+const RULE_KEYS = ['rounds', 'turnsPerRound', 'lives', 'twists', 'stealWindowSeconds'] as const;
 
 /** Which preset the rule settings match, or 'custom'. */
 export function presetOf(s: GameSettings): PresetId {
@@ -46,11 +45,14 @@ export function presetOf(s: GameSettings): PresetId {
 }
 
 export function resolveSettings(partial?: Partial<GameSettings>): GameSettings {
-  return { ...DEFAULT_SETTINGS, ...(partial ?? {}) };
+  // Saves from before the per-round speed-up may still carry a turnSeconds rule; it no longer exists.
+  const { turnSeconds: _old, ...rest } = (partial ?? {}) as Partial<GameSettings> & { turnSeconds?: unknown };
+  return { ...DEFAULT_SETTINGS, ...rest };
 }
 
-/** Rough length in minutes: rounds × turns × players × (0.7 × turn seconds + 2 s), rounded (plan V3.3 Part 2.3). */
+/** Rough length in minutes: per round, turns × players × (0.7 × that round's turn seconds + 2 s), rounded (plan V3.3 Part 2.3). */
 export function estimateMinutes(s: GameSettings): number {
-  const seconds = s.rounds * s.turnsPerRound * (s.botCount + 1) * (s.turnSeconds * 0.7 + 2);
+  let seconds = 0;
+  for (let r = 1; r <= s.rounds; r++) seconds += s.turnsPerRound * (s.botCount + 1) * ((roundTurnMs(r, s.rounds) / 1000) * 0.7 + 2);
   return Math.max(1, Math.round(seconds / 60));
 }

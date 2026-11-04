@@ -50,7 +50,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'pile', target: 'pile', kind: 'info', pause: true,
     title: 'The pile',
-    body: () => 'Your word’s points flew into the shared pile. Every play grows it. A bigger pile glows hotter and shortens the timer (10s minus 1s per 10 points, never under 5s).',
+    body: () => 'Your word’s points flew into the shared pile. Every play grows it. A bigger pile glows hotter and shortens the timer (1s off per 10 points, never under 5s). Turns also get faster every round, from 16s down to 5s.',
   },
   {
     id: 'bank', target: 'bank', kind: 'wait', pause: false,

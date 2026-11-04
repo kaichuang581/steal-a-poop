@@ -4,7 +4,11 @@ export const MIN_WORD_LENGTH = 3;
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 10;
 
+/** The reference turn length bot response times are tuned for; turns themselves follow the round (below). */
 export const BASE_TURN_MS = 10_000;
+/** Turns speed up every round: the first round's base turn, sliding evenly down to the last round's. */
+export const FIRST_ROUND_TURN_MS = 16_000;
+export const LAST_ROUND_TURN_MS = 5_000;
 export const MIN_TURN_MS = 5_000;
 export const STEAL_WINDOW_MS = 3_000;
 export const INTRO_MS = 2_500;

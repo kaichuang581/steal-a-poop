@@ -3,7 +3,7 @@ import { FAIL_PENALTY, STEAL_BONUS, STEAL_WINDOW_MS, TRAP_PAYOUT, TURNS_PER_PLAY
 export const BASICS = [
   { art: '🅲 → 🅰 → 🆃', title: 'Chain words', text: 'Each word must start with the last letter of the previous one. 3+ letters, real words, no repeats in a round.' },
   { art: '💩 ➕  or  💰', title: 'Play or bank', text: 'PLAY adds your word’s points to the shared pile. BANK takes the whole pile for yourself, and the chain letter stays.' },
-  { art: '⏱️ 10s → 5s', title: 'Beat the clock', text: `You get 10s, minus 1s per 10 pile points (never under 5s). Run out of time without submitting a word and you lose ${FAIL_PENALTY} points.` },
+  { art: '⏱️ 16s → 5s', title: 'Beat the clock', text: `Turns get faster every round: 16s in the first round, down to 5s in the last. A bigger pile takes off 1s per 10 points (never under 5s). Run out of time without submitting a word and you lose ${FAIL_PENALTY} points.` },
   { art: `🫳 ⚡ +${STEAL_BONUS}`, title: 'Steal', text: `In the last ${STEAL_WINDOW_MS / 1000}s of someone else’s turn, type a word and press STEAL. You take the turn, bank the whole pile, and get +${STEAL_BONUS}. Steals are unlimited.` },
   { art: '❌ 🔥  3 rounds', title: 'Traps & burns', text: `End on X, Z, Q or J and, if the next player fails, you get +${TRAP_PAYOUT}. Unbanked pile burns at round end. Highest banked score after 3 rounds wins.` },
 ];

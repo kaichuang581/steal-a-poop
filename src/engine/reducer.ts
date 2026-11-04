@@ -1,5 +1,6 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
+  BASE_TURN_MS,
   FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, STEAL_BONUS,
   TRAP_LETTERS, TRAP_PAYOUT,
 } from './constants';
@@ -7,7 +8,7 @@ import type { Dictionary } from './dictionary';
 import { drawInt, drawPick, drawRandom } from './rng';
 import { scoreWord } from './scoring';
 import { computeWinners } from './standings';
-import { turnDurationMs } from './timer';
+import { roundTurnMs, turnDurationMs } from './timer';
 import type { Action, ActionResult, Difficulty, EventKind, GameState, Round } from './types';
 import { halveScore } from './penalties';
 import { suggestCorrection } from './typos';
@@ -37,11 +38,21 @@ function emit(s: GameState, at: number, kind: EventKind, seat: number | null, te
   if (s.events.length > MAX_EVENTS) s.events.splice(0, s.events.length - MAX_EVENTS);
 }
 
+/**
+ * How long a bot takes to answer. Response times are tuned for a 10 s turn, so they scale with the round's turn
+ * length: a bot answers at the same point of a 16 s first-round turn as of a 5 s last-round one.
+ */
+function botResponseMs(s: GameState, difficulty: Difficulty): number {
+  const scale = roundTurnMs(s.round, s.settings.rounds) / BASE_TURN_MS;
+  const [lo, hi] = BOT_PROFILES[difficulty].responseMs;
+  return drawInt(s, Math.round(lo * scale), Math.round(hi * scale));
+}
+
 function startTurn(s: GameState, seat: number, t: number) {
   const active = s.players[seat];
   const learning = s.mode !== 'normal';
   const tour = s.mode === 'tour';
-  const baseMs = turnDurationMs(s.pile, s.modifier, s.settings.turnSeconds * 1000);
+  const baseMs = turnDurationMs(s.pile, s.modifier, roundTurnMs(s.round, s.settings.rounds));
   const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : baseMs;
   const endsAt = t + durationMs;
   let botActAt: number | null = null;
@@ -52,7 +63,7 @@ function startTurn(s: GameState, seat: number, t: number) {
       const slow = seat === s.players.length - 1 && s.history.some((h) => h.kind === 'bank' && h.seat === 0);
       botActAt = slow ? t + Math.max(1000, durationMs - 1500) : t + drawInt(s, 1200, 2200);
     } else {
-      botActAt = t + drawInt(s, ...BOT_PROFILES[active.difficulty!].responseMs);
+      botActAt = t + botResponseMs(s, active.difficulty!);
     }
   }
   const stealPlans: { seat: number; at: number }[] = [];
@@ -341,7 +352,7 @@ export function replaceWithBot(state: GameState, seat: number, difficulty: Diffi
   p.bankThreshold = bankThresholdFor(personality, drawRandom(s));
   emit(s, now, 'seatBot', seat, `${p.name} left. A bot took their seat`);
   if (s.turn && s.turn.seat === seat) {
-    s.turn.botActAt = now + drawInt(s, ...BOT_PROFILES[difficulty].responseMs);
+    s.turn.botActAt = now + botResponseMs(s, difficulty);
   }
   return s;
 }

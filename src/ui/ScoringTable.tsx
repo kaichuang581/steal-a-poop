@@ -1,5 +1,5 @@
 import {
-  BASE_TURN_MS, FAIL_PENALTY, LETTER_BONUS, MIN_TURN_MS, RARITY_MULTIPLIER, STEAL_BONUS,
+  FAIL_PENALTY, FIRST_ROUND_TURN_MS, LAST_ROUND_TURN_MS, LETTER_BONUS, MIN_TURN_MS, RARITY_MULTIPLIER, STEAL_BONUS,
   STEAL_WINDOW_MS, TRAP_PAYOUT, basePoints, letterBonus, rarityOf,
 } from '../engine';
 import type { Rarity } from '../engine';
@@ -84,7 +84,8 @@ export function ScoringTable() {
 
       <Section title="Timer">
         <p>
-          {BASE_TURN_MS / 1000}s per turn, minus 1s for every 10 points in the pile, never below {MIN_TURN_MS / 1000}s.
+          Turns get faster every round: {FIRST_ROUND_TURN_MS / 1000}s in the first round, down to {LAST_ROUND_TURN_MS / 1000}s in the last
+          (16s, 11s, 5s in a three-round game). The pile takes off 1s for every 10 points, never below {MIN_TURN_MS / 1000}s.
           Under “Double points, −2s” turns are 2s shorter still. Longer piles mean less thinking time.
         </p>
       </Section>

@@ -38,7 +38,6 @@ const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 const RULES: { key: keyof GameSettings; label: string; values: (number | string | boolean)[]; show?: (v: number | string | boolean) => string }[] = [
   { key: 'rounds', label: 'Rounds', values: [1, 2, 3, 5] },
   { key: 'turnsPerRound', label: 'Turns per round', values: [3, 5, 7] },
-  { key: 'turnSeconds', label: 'Seconds per turn', values: [5, 8, 10, 12, 15] },
   { key: 'lives', label: 'Lives', values: [1, 2, 3, 5, 'unlimited'], show: (v) => (v === 'unlimited' ? '∞' : String(v)) },
   { key: 'twists', label: 'Round twists', values: [true, false], show: (v) => (v ? 'On' : 'Off') },
   { key: 'stealWindowSeconds', label: 'Steal window', values: [0, 3, 5], show: (v) => (v === 0 ? 'Off' : `${v} s`) },

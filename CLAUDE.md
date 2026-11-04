@@ -42,3 +42,6 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   constants file and a new test file. Default settings must reproduce today's behaviour exactly.
 - Bot typing preview (approved by Brian, 2026-11-04): `previewBotTurn` in reducer.ts runs the bot's own decision on a
   copy of the state for display; it must never change the game or its random stream.
+- Faster turns each round (approved by Brian, 2026-11-04): the base turn is 16 s in the first round, sliding evenly to
+  5 s in the last (`roundTurnMs` in timer.ts); the pile and the short-turn twist still cut it, floor 5 s. This replaces
+  the `turnSeconds` setting. Bot response times scale with the round's turn length.

@@ -39,7 +39,7 @@ export interface TableView {
   currentPlayerId: string;
   youId: string;
   secondsLeft: number;        // fractional allowed
-  turnSeconds: number;        // 5..10, or 25 in Practice
+  turnSeconds: number;        // 5..16 (faster each round), or 25 in Practice
   stealOpen: boolean;         // last 3 seconds of another player's turn
   typed: string;              // the current input text
   message: MessageView | null;

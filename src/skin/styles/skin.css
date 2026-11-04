@@ -140,3 +140,6 @@
   box-shadow: 0 2px 0 var(--paper-edge), -16px 14px 0 -8px var(--paper), -24px 24px 0 -13px var(--paper);
   opacity: 0; transition: opacity 200ms var(--ease-out);
 }
+
+/* The caret after a bot's half-typed word on its tag. */
+.sk-caret { display: inline-block; width: 0; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; border-left: 2px solid var(--ink); animation: sk-caret 1s steps(1) infinite; }

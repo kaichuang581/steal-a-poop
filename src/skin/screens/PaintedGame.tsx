@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { rankPlayers, summarize, utcDateKey } from '../../engine';
+import { previewBotTurn, rankPlayers, summarize, utcDateKey } from '../../engine';
 import { buildShareText } from '../../lib/share';
 import { useStore } from '../../state/store';
 import { ChatPanel } from '../../ui/ChatPanel';
@@ -46,6 +46,8 @@ export function PaintedGame() {
   const muted = useStore((s) => s.muted);
   const toggleMute = useStore((s) => s.toggleMute);
   const quit = useStore((s) => s.quit);
+  const dict = useStore((s) => s.dict);
+  const now = useStore((s) => s.now);
   const mobile = useIsMobile();
   const reduced = useMotionLevel() === 'reduced';
   const deviceHour = useHour();
@@ -136,6 +138,17 @@ export function PaintedGame() {
   }, [game.seed]);
 
   const speaker = view.currentPlayerId === '' ? null : rel(Number(view.currentPlayerId));
+  // A bot on turn types its word into its tag: the word it is about to play, a letter at a time until it answers.
+  const turn = game.turn;
+  const botPlan = useMemo(
+    () => (turn && dict ? { plan: previewBotTurn(game, { dict }), from: turn.startedAt + 300, to: turn.botActAt ?? turn.startedAt } : null),
+    // One preview per turn: the plan is taken when the turn starts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [turn?.startedAt, turn?.seat, dict],
+  );
+  const botTyped = botPlan?.plan?.kind === 'play' && turn?.botActAt != null
+    ? botPlan.plan.word.slice(0, Math.ceil(botPlan.plan.word.length * Math.min(1, Math.max(0, (now - botPlan.from) / Math.max(1, botPlan.to - botPlan.from)))))
+    : '';
   const signState = game.phase === 'gameOver' ? 'raised' : game.phase === 'intro' ? 'lowering' : 'hung';
   const ranked = rankPlayers(game.players).map((p) => view.players[p.id]);
   const showTally = game.phase === 'intro' && game.round > 1 && storeMode !== 'tour';
@@ -161,8 +174,9 @@ export function PaintedGame() {
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou,
               // Only the speaker's tag is large, with flames; the others shrink to the name (plan V3.3 Part 4.1).
               label: p.id === view.currentPlayerId ? (
-                <span className="sk-chip sk-display whitespace-nowrap text-base" style={{ boxShadow: '0 0 0 2px var(--amber)' }}>
-                  {p.name}{livesOn && <Lives lives={p.lives} max={maxLives} size={14} />}
+                <span className="sk-chip sk-display flex flex-col items-center whitespace-nowrap text-base leading-tight" style={{ boxShadow: '0 0 0 2px var(--amber)' }}>
+                  <span>{p.name}{livesOn && <Lives lives={p.lives} max={maxLives} size={14} />}</span>
+                  {!p.isYou && botTyped && <span className="sk-num text-sm tracking-wide" style={{ color: 'var(--ink-soft)' }} aria-label={`${p.name} is typing`}>{botTyped.toUpperCase()}<span className="sk-caret" aria-hidden="true" /></span>}
                 </span>
               ) : (
                 <span className="sk-chip whitespace-nowrap text-xs" style={{ opacity: 0.85 }}>{p.name}</span>

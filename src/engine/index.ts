@@ -1,5 +1,6 @@
 export * from './types';
 export * from './constants';
+export * from './settings';
 export * from './dictionary';
 export * from './rarity';
 export * from './scoring';
@@ -11,5 +12,5 @@ export * from './standings';
 export * from './bots';
 export * from './hints';
 export * from './game';
-export { advance, apply, inStealWindow, needsAdvance, replaceWithBot } from './reducer';
-export type { EngineContext } from './reducer';
+export { advance, apply, inStealWindow, needsAdvance, previewBotTurn, replaceWithBot } from './reducer';
+export type { BotPlan, EngineContext } from './reducer';

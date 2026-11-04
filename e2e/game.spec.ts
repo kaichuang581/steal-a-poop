@@ -9,15 +9,15 @@ const ready = (page: Page, label: string) =>
 
 const skipTourFlag = (page: Page) => page.addInitScript(() => localStorage.setItem('sap:tourDone', 'true'));
 
-test('first visit opens the tutorial by itself, and it does not come back', async ({ page }) => {
+test('first visit lands on the homepage; the Tutorial button opens the tour', async ({ page }) => {
   await page.goto('./');
+  await ready(page, 'Tutorial');
   const tour = page.locator('[aria-label="Tutorial"]');
+  await expect(tour).toHaveCount(0);
+  await page.getByRole('button', { name: 'Tutorial', exact: true }).click();
   await expect(tour.locator('h2')).toHaveText('Welcome');
   await tour.getByRole('button', { name: 'Exit tour' }).click();
   await expect(page.getByRole('button', { name: 'How to Play' })).toBeVisible();
-  await page.reload();
-  await ready(page, 'Quick Game');
-  await expect(tour).toHaveCount(0);
 });
 
 test('practice: a clear typo is suggested, confirmed by submitting again, and costs nothing', async ({ page }) => {

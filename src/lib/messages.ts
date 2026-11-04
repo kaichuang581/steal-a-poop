@@ -9,6 +9,7 @@ export function rejectMessage(reason: string | undefined, chainLetter: string): 
     case 'modifier_six_plus': return '6+ letters only this round.';
     case 'modifier_double_letter': return 'Needs a double letter this round.';
     case 'outside_steal_window': return 'Steal window is the last 3 seconds.';
+    case 'frozen': return 'You are frozen: no more turns or steals this game.';
     default: return 'Not allowed right now.';
   }
 }

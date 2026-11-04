@@ -23,7 +23,7 @@ const DIFFS: Difficulty[] = ['easy', 'medium', 'hard'];
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 
 export function StartScreen() {
-  const { settings, setSettings, start, dictStatus, retryDictionary } = useStore();
+  const { settings, setSettings, start, startTour, dictStatus, retryDictionary } = useStore();
   const [help, setHelp] = useState(false);
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
@@ -170,6 +170,7 @@ export function StartScreen() {
               Practice <span className="text-sm font-bold">· no penalties, hints</span>
             </button>
             <div className="flex gap-2">
+              <button onClick={() => startTour('menu')} disabled={!ready} className="min-h-12 flex-1 rounded-xl bg-white/10 font-bold hover:bg-white/15 disabled:opacity-40">Tutorial</button>
               <button onClick={() => setHelp(true)} className="min-h-12 flex-1 rounded-xl bg-white/10 font-bold hover:bg-white/15">How to Play</button>
               <button onClick={() => setGear(true)} className="min-h-12 min-w-12 rounded-xl bg-white/10 text-lg hover:bg-white/15" aria-label="Settings">⚙️</button>
             </div>

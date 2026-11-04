@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createDictionary, dailySetup, rankPlayers, suggestWords, utcDateKey } from '../engine';
-import type { Action, ActionResult, Dictionary, Difficulty, GameState } from '../engine';
+import { DEFAULT_SETTINGS } from '../engine';
+import type { Action, ActionResult, Dictionary, Difficulty, GameSettings, GameState } from '../engine';
 import { getDaily, getStreak, markStarted, recordResult } from '../lib/daily';
 import { checkNickname } from '../lib/nickname';
 import { load, save } from '../lib/storage';
@@ -13,6 +14,8 @@ export interface Settings {
   name: string;
   playerCount: number;
   difficulty: Difficulty;
+  /** Game length rules for Quick Games (plan V3.3 Part 2); the last choice is remembered. */
+  game: GameSettings;
 }
 export type Mode = 'quick' | 'daily' | 'practice' | 'tour' | 'room';
 
@@ -44,7 +47,11 @@ interface Store {
   afterTour: 'menu' | 'quick';
   loadDictionary(): Promise<void>;
   setSettings(patch: Partial<Settings>): void;
-  start(mode: Mode): boolean;
+  /**
+   * Starts a solo game. `rules` (game length settings) only applies to Quick Games and is passed by the painted home
+   * screen, which is the only place they can be chosen; without it a game uses today's rules, so the classic look is unchanged.
+   */
+  start(mode: Mode, rules?: GameSettings): boolean;
   rematch(): void;
   quit(): void;
   /** Solo games answer at once; room games answer after the server replies. */
@@ -64,6 +71,12 @@ interface Store {
 }
 
 const SETTINGS_KEY = 'sap:settings';
+
+/** Saved settings, with the game rules filled in over the defaults (saves from before v3.3 have none). */
+function loadSettings(): Settings {
+  const saved = load<Partial<Settings>>(SETTINGS_KEY, {});
+  return { name: '', playerCount: 6, difficulty: 'medium', ...saved, game: { ...DEFAULT_SETTINGS, ...(saved.game ?? {}) } };
+}
 const MUTE_KEY = 'sap:muted';
 const VOLUME_KEY = 'sap:volume';
 const REDUCE_KEY = 'sap:reduceMotion';
@@ -78,7 +91,7 @@ export const useStore = create<Store>((set, get) => ({
   mySeat: 0,
   dailyDate: null,
   streak: 0,
-  settings: load<Settings>(SETTINGS_KEY, { name: '', playerCount: 6, difficulty: 'medium' }),
+  settings: loadSettings(),
   now: performance.now(),
   muted: load<boolean>(MUTE_KEY, false),
   volume: Math.min(1, Math.max(0, load<number>(VOLUME_KEY, 0.8))),
@@ -108,7 +121,7 @@ export const useStore = create<Store>((set, get) => ({
     set({ settings });
   },
 
-  start(mode) {
+  start(mode, rules) {
     const { client, settings } = get();
     if (!client) return false;
     const nick = checkNickname(settings.name);
@@ -130,6 +143,7 @@ export const useStore = create<Store>((set, get) => ({
       setup = {
         seed: `quick:${Date.now()}:${Math.random()}`,
         now, humanName: nick.name, playerCount: settings.playerCount, difficulty: settings.difficulty,
+        ...(rules ? { settings: { ...rules, botCount: settings.playerCount - 1, botDifficulty: settings.difficulty } } : {}),
       };
     }
     set({ game: client.create(setup), mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0 });
@@ -137,8 +151,10 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   rematch() {
-    const { mode } = get();
-    if (mode === 'quick' || mode === 'practice') get().start(mode);
+    const { mode, game } = get();
+    // A Quick Game rematch keeps the rules the last game was played with.
+    if (mode === 'quick') get().start(mode, game?.settings);
+    else if (mode === 'practice') get().start(mode);
   },
 
   quit() {

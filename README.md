@@ -94,7 +94,7 @@ interface. Note `apply` already rejects actions from non-human seats.
 
 ## Learning modes
 
-- **Tutorial (`mode: 'tour'`).** First Quick Game launches it once (skippable); replay it from
+- **Tutorial (`mode: 'tour'`).** Opened from the Tutorial button on the homepage (skippable); also reachable from
   Settings. It is a real game with scripted bots: they answer quickly, never bank or fumble, and
   after you bank the last bot runs into its steal window so you can try one. The game clock is
   paused on explanation steps (the store tracks an offset against `performance.now()`), and also
@@ -143,6 +143,10 @@ interface. Note `apply` already rejects actions from non-human seats.
     since the chain letter carries over). The first round never starts on one, and when a later
     round opens on one the chain letter is re-drawn (seeded) and announced.
 19. **Practice rules.** No −5 for timeouts, no halving for failed steals, and the human timer is 25s.
+20. **Lives and freezing.** Every player starts with 3 lives. A turn that runs out costs one (on top of the −5).
+    Once the lives are gone, a time-out with a banked score of 0 or less freezes the player for the rest of the
+    game: their turns are skipped, their steals are rejected, and they finish behind every unfrozen player. A banked
+    score above 0 keeps the cold out. Practice and the tutorial never cost lives.
 17. **Dictionary.** Words are used as-is from ENABLE; the 3-letter minimum filters its
     2-letter words at validation time.
 

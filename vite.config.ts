@@ -30,7 +30,9 @@ export function contentSecurityPolicy(env: Record<string, string | undefined>): 
     "default-src 'self'",
     `script-src 'self' ${turnstile.join(' ')}`.trim(),
     `connect-src ${connect.join(' ')}`,
-    "style-src 'self' 'unsafe-inline'", // the interface sets many inline style attributes
+    // The interface sets many inline style attributes. The painted skin's fonts come from Google Fonts (only when that skin is on).
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob:",
     "media-src 'self'",
     `frame-src ${turnstile.join(' ') || "'none'"}`,

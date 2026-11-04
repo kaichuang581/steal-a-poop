@@ -1,8 +1,12 @@
+import type { GameSettings } from './settings';
+
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Personality = 'cautious' | 'greedy' | 'random';
-export type Round = 1 | 2 | 3;
+/** 1 up to the game's `settings.rounds`. */
+export type Round = number;
 
 export type RoundModifier =
+  | 'none'
   | 'no_e'
   | 'six_plus'
   | 'double_letter'
@@ -30,7 +34,11 @@ export interface Player {
   bankThreshold: number;
   /** Game-wide banked score. May go negative from penalties. */
   banked: number;
-  /** Turns used this round. A round ends when every player has used 5. */
+  /** Lives left: a turn that runs out costs one (normal games only). */
+  lives: number;
+  /** Timed out with no lives and no wool (banked <= 0): skipped for the rest of the game, cannot steal, ranks below every unfrozen player. */
+  frozen: boolean;
+  /** Turns used this round. A round ends when every unfrozen player has used 5. */
   turnsTaken: number;
   lastWord: string | null;
   steals: number;
@@ -76,6 +84,8 @@ export type EventKind =
   | 'burn'
   | 'chainReset'
   | 'seatBot'
+  | 'lifeLost'
+  | 'frozen'
   | 'gameOver';
 
 export interface GameEvent {
@@ -91,6 +101,8 @@ export interface GameEvent {
 
 export interface GameState {
   seed: string;
+  /** The game length settings this game was created with (plan V3.3 Part 2). */
+  settings: GameSettings;
   /** Mulberry32 state. Every random draw advances it, so replays are exact. */
   rng: number;
   mode: GameMode;

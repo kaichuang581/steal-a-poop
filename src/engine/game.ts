@@ -1,6 +1,8 @@
 import { PERSONALITIES, bankThresholdFor } from './bots';
 import { hasPlayableWord } from './validation';
 import { INTRO_MS, MAX_PLAYERS, MIN_PLAYERS } from './constants';
+import { resolveSettings, UNLIMITED_LIVES } from './settings';
+import type { GameSettings } from './settings';
 import type { Dictionary } from './dictionary';
 import { drawPick, drawRandom, hashSeed, shuffle } from './rng';
 import type { Difficulty, GameMode, GameState, Player, RoundModifier } from './types';
@@ -16,6 +18,8 @@ export interface GameSetup {
   difficulty: Difficulty;
   /** Defaults to 'normal'. */
   mode?: GameMode;
+  /** Game length settings; anything left out takes today's rules (DEFAULT_SETTINGS). */
+  settings?: Partial<GameSettings>;
 }
 
 const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter', 'vowel_double', 'double_points_fast'];
@@ -34,7 +38,11 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const wanted = room ? Math.max(setup.playerCount, humans.length) : setup.playerCount;
   const n = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.round(wanted)));
 
-  const modifierDeck = shuffle(state, ALL_MODIFIERS).slice(0, 3);
+  const settings = resolveSettings(setup.settings);
+  // One twist per round, drawn without repeats; no twists means plain rules every round.
+  const modifierDeck: RoundModifier[] = settings.twists
+    ? shuffle(state, ALL_MODIFIERS).slice(0, settings.rounds)
+    : Array.from({ length: settings.rounds }, () => 'none' as const);
   const playable = ALPHABET.filter((l) => hasPlayableWord(dict, l, [], modifierDeck[0]));
   const base = playable.length ? playable : ALPHABET;
   const common = base.filter((l) => dict.startingWith(l).length >= MIN_START_WORDS);
@@ -45,7 +53,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const looks = shuffle(state, room ? [...pool, EXTRA_LOOK] : pool);
 
   const blank = {
-    banked: 0, turnsTaken: 0, lastWord: null,
+    banked: 0, lives: settings.lives === 'unlimited' ? UNLIMITED_LIVES : settings.lives, frozen: false, turnsTaken: 0, lastWord: null,
     steals: 0, wordsPlayed: 0, longestWord: '', bestWord: null,
   };
   const players: Player[] = room
@@ -71,7 +79,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   }
 
   return {
-    seed: setup.seed,
+    seed: setup.seed, settings,
     rng: state.rng,
     mode: setup.mode ?? 'normal',
     phase: 'intro',

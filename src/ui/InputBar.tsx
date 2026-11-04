@@ -19,7 +19,8 @@ export function InputBar() {
 
   const playing = game.phase === 'playing' && !!game.turn;
   const myTurn = playing && game.turn!.seat === mySeat;
-  const canSteal = stealOpen && !myTurn;
+  // A frozen player (out of lives) can no longer steal, so they never get the steal prompt.
+  const canSteal = stealOpen && !myTurn && !game.players[mySeat]?.frozen;
   const learning = mode === 'practice' || mode === 'tour';
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function InputBar() {
 
   const submit = () => {
     if (myTurn) void send('play');
-    else if (stealOpen) steal();
+    else if (canSteal) steal();
   };
 
   // A steal needs the word typed first, so an empty click does nothing.
@@ -87,7 +88,7 @@ export function InputBar() {
           </div>
         )}
         <div className="h-5 text-center text-xs font-bold text-amber-300" role="status">
-          {hint || (stealOpen && !myTurn ? 'Steal window: type your word, then press STEAL.' : '')}
+          {hint || (canSteal ? 'Steal window: type your word, then press STEAL.' : '')}
         </div>
         {learning && ideas.length > 0 && (
           <div className="mb-1 flex flex-wrap items-center justify-center gap-1.5" aria-label="Word ideas">

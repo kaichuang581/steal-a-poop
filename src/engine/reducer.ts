@@ -1,7 +1,7 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS,
-  TRAP_LETTERS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND,
+  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, STEAL_BONUS,
+  TRAP_LETTERS, TRAP_PAYOUT,
 } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawInt, drawPick, drawRandom } from './rng';
@@ -18,7 +18,18 @@ export interface EngineContext {
 }
 
 const MAX_EVENTS = 40;
-const nextSeat = (s: GameState, seat: number) => (seat + 1) % s.players.length;
+/**
+ * The next seat after `seat` that can still take a turn this round: not frozen and under the round's turn count.
+ * Null when nobody can.
+ */
+function nextSeat(s: GameState, seat: number): number | null {
+  const n = s.players.length;
+  for (let i = 1; i <= n; i++) {
+    const p = s.players[(seat + i) % n];
+    if (!p.frozen && p.turnsTaken < s.settings.turnsPerRound) return p.id;
+  }
+  return null;
+}
 
 function emit(s: GameState, at: number, kind: EventKind, seat: number | null, text: string, amount = 0, word?: string) {
   s.eventSeq += 1;
@@ -30,7 +41,7 @@ function startTurn(s: GameState, seat: number, t: number) {
   const active = s.players[seat];
   const learning = s.mode !== 'normal';
   const tour = s.mode === 'tour';
-  const baseMs = turnDurationMs(s.pile, s.modifier);
+  const baseMs = turnDurationMs(s.pile, s.modifier, s.settings.turnSeconds * 1000);
   const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : baseMs;
   const endsAt = t + durationMs;
   let botActAt: number | null = null;
@@ -45,10 +56,11 @@ function startTurn(s: GameState, seat: number, t: number) {
     }
   }
   const stealPlans: { seat: number; at: number }[] = [];
+  const windowMs = s.settings.stealWindowSeconds * 1000;
   for (const p of s.players) {
-    if (tour || p.id === seat || p.isHuman) continue;
+    if (tour || p.id === seat || p.isHuman || p.frozen || windowMs <= 0) continue;
     if (drawRandom(s) < BOT_PROFILES[p.difficulty!].stealChance) {
-      stealPlans.push({ seat: p.id, at: endsAt - STEAL_WINDOW_MS + drawRandom(s) * (STEAL_WINDOW_MS - 500) });
+      stealPlans.push({ seat: p.id, at: endsAt - windowMs + drawRandom(s) * (windowMs - 500) });
     }
   }
   s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt, stealPlans };
@@ -58,15 +70,17 @@ function concludeTurn(s: GameState, t: number) {
   const turn = s.turn!;
   s.players[turn.seat].turnsTaken += 1;
   s.turn = null;
-  if (s.players.every((p) => p.turnsTaken >= TURNS_PER_PLAYER_PER_ROUND)) return endRound(s, t);
-  startTurn(s, nextSeat(s, turn.seat), t);
+  // Frozen players are skipped, so the round ends once every unfrozen player has used their turns.
+  const next = nextSeat(s, turn.seat);
+  if (next === null) return endRound(s, t);
+  startTurn(s, next, t);
 }
 
 function endRound(s: GameState, t: number) {
   if (s.pile > 0) emit(s, t, 'burn', null, 'Pile burned', s.pile);
   s.pile = 0;
   s.trap = null;
-  if (s.round === ROUNDS) {
+  if (s.round === s.settings.rounds) {
     s.phase = 'gameOver';
     s.winners = computeWinners(s.players);
     emit(s, t, 'gameOver', null, 'Game over');
@@ -94,10 +108,14 @@ function resolveTrap(s: GameState, seat: number, failed: boolean, t: number) {
   emit(s, t, 'trapSprung', seat, `TRAP! ${s.players[seat].name} failed`, TRAP_PAYOUT);
 }
 
-/** A word ending in X/Z/Q/J traps whoever owns the next turn. */
+/**
+ * A word ending in X/Z/Q/J traps whoever owns the next turn. Nobody can trap themselves: when the next turn is the
+ * trapper's own (they are the last unfrozen player, or they stole from the player just before them) no trap is set.
+ */
 function setTrap(s: GameState, word: string, trapperSeat: number, turnSeat: number) {
   const letter = word[word.length - 1];
-  s.trap = TRAP_LETTERS.has(letter) ? { trapperSeat, victimSeat: nextSeat(s, turnSeat), letter } : null;
+  const victimSeat = nextSeat(s, turnSeat);
+  s.trap = TRAP_LETTERS.has(letter) && victimSeat !== null && victimSeat !== trapperSeat ? { trapperSeat, victimSeat, letter } : null;
 }
 
 function recordWord(s: GameState, seat: number, word: string, points: number) {
@@ -140,6 +158,18 @@ function failTurn(s: GameState, seat: number, t: number) {
   s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: penalty ? -penalty : 0 });
   emit(s, t, 'timeout', seat, `Timeout ${p.name}${penalty ? ` -${penalty}` : ' (no penalty)'}`, penalty ? -penalty : 0);
   resolveTrap(s, seat, true, t);
+  // Only a turn that runs out costs a life, and only in normal games; unlimited lives never run out.
+  if (s.mode === 'normal' && s.settings.lives !== 'unlimited') {
+    if (p.lives > 0) {
+      p.lives -= 1;
+      emit(s, t, 'lifeLost', seat, `${p.name} lost a life`, p.lives);
+    }
+    // The cold only gets in once the flames are out and there is no wool (banked score) left to keep it out.
+    if (p.lives === 0 && p.banked <= 0 && !p.frozen) {
+      p.frozen = true;
+      emit(s, t, 'frozen', seat, `${p.name} is frozen`);
+    }
+  }
   concludeTurn(s, t);
 }
 
@@ -199,20 +229,40 @@ function nextDue(s: GameState, now: number): Due | null {
   return best;
 }
 
-function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
-  const turn = s.turn!;
-  const bot = s.players[turn.seat];
+/** What the bot on turn does: bank, fumble, or play a word. Draws from the game's random stream like any bot action. */
+export type BotPlan = { kind: 'bank' } | { kind: 'fail' } | { kind: 'play'; word: string };
+
+function decideBotTurn(s: GameState, ctx: EngineContext): BotPlan {
+  const bot = s.players[s.turn!.seat];
   const profile = BOT_PROFILES[bot.difficulty!];
-  turn.botActAt = null;
   const scripted = s.mode === 'tour'; // tutorial bots never bank or fumble
-  if (!scripted && s.pile > 0 && s.pile >= bot.bankThreshold) return bankTurn(s, t);
-  if (!scripted && drawRandom(s) < profile.failRate) return failTurn(s, turn.seat, t);
+  if (!scripted && s.pile > 0 && s.pile >= bot.bankThreshold) return { kind: 'bank' };
+  if (!scripted && drawRandom(s) < profile.failRate) return { kind: 'fail' };
   const word = pickBotWord({
     dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
     prefer: profile.prefer, random: () => drawRandom(s),
   });
-  if (!word) return failTurn(s, turn.seat, t);
-  playTurn(s, turn.seat, word, t);
+  return word ? { kind: 'play', word } : { kind: 'fail' };
+}
+
+function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
+  const turn = s.turn!;
+  turn.botActAt = null;
+  const plan = decideBotTurn(s, ctx);
+  if (plan.kind === 'bank') return bankTurn(s, t);
+  if (plan.kind === 'fail') return failTurn(s, turn.seat, t);
+  playTurn(s, turn.seat, plan.word, t);
+}
+
+/**
+ * What the bot on turn is going to do, for display only (the table types its word out): the same decision the bot
+ * makes when it acts, taken on a copy, so the game and its random stream are untouched. Null on a human's turn.
+ * If something draws from the stream before the bot acts (a bot steal landing first), the real move can differ.
+ */
+export function previewBotTurn(state: GameState, ctx: EngineContext): BotPlan | null {
+  const t = state.turn;
+  if (state.phase !== 'playing' || !t || t.botActAt === null || state.players[t.seat].isHuman) return null;
+  return decideBotTurn(structuredClone(state), ctx);
 }
 
 function runBotSteal(s: GameState, ctx: EngineContext, seat: number, t: number) {
@@ -250,7 +300,11 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
       s.introEndsAt = null;
       s.phase = 'playing';
       ensurePlayable(s, ctx, at);
-      startTurn(s, (s.round - 1) % s.players.length, at);
+      // The first player rotates each round; a frozen seat passes to the next unfrozen one.
+      const n = s.players.length;
+      const first = nextSeat(s, (((s.round - 1) % n) + n - 1) % n);
+      if (first === null) endRound(s, at);
+      else startTurn(s, first, at);
       continue;
     }
     if (s.phase !== 'playing' || !s.turn) break;
@@ -294,7 +348,8 @@ export function replaceWithBot(state: GameState, seat: number, difficulty: Diffi
 
 export function inStealWindow(s: GameState, now: number): boolean {
   const t = s.turn;
-  return s.phase === 'playing' && !!t && now >= t.endsAt - STEAL_WINDOW_MS && now < t.endsAt;
+  const windowMs = s.settings.stealWindowSeconds * 1000;
+  return s.phase === 'playing' && !!t && windowMs > 0 && now >= t.endsAt - windowMs && now < t.endsAt;
 }
 
 /** Applies a human action at time `now`. Never mutates the input state. */
@@ -329,6 +384,7 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
       return { state: s, accepted: true };
     case 'steal': {
       if (action.seat === turn.seat) return reject('own_turn');
+      if (player.frozen) return reject('frozen');
       if (!inStealWindow(s, now)) return reject('outside_steal_window');
       const v = check(action.word);
       if (!v.ok) {

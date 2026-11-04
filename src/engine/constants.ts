@@ -12,6 +12,8 @@ export const INTRO_MS = 2_500;
 export const PRACTICE_TURN_MS = 25_000;
 
 export const FAIL_PENALTY = 5;
+/** Turns that may run out before a player freezes for the rest of the game (normal games only). */
+export const LIVES_PER_GAME = 3;
 export const TRAP_PAYOUT = 5;
 export const STEAL_BONUS = 5;
 

@@ -27,8 +27,6 @@ button { font-family: inherit; touch-action: manipulation; }
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
-.ring-pulse { animation: ringPulse 0.5s ease-in-out infinite alternate; }
-@keyframes ringPulse { from { opacity: 1; transform: scale(1); } to { opacity: 0.55; transform: scale(1.08); } }
 
 .shake { animation: shake 0.45s cubic-bezier(.36,.07,.19,.97) both; }
 @keyframes shake {

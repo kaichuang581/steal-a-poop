@@ -31,6 +31,8 @@ export const IRIS = '#3B2E2A';
 export const PUPIL = '#1E1B1B';
 export const WOLF_EYE = '#FFE066';
 export const FROST = '#CFE3F5';
+/** The comic cracks on a frozen sheep's ice block. */
+export const ICE_CRACK = '#6A98C2';
 export const SCARF = '#C24E45';
 
 const cache = new Map<string, [number, number, number]>();

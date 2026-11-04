@@ -1,6 +1,6 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
-import { lin, pick, T } from './palette';
+import { ICE_CRACK, lin, pick, T } from './palette';
 import { cone, ellipsoid, Grid, hash3, line, rng, solid } from './primitives';
 import type { RGB, V3 } from './primitives';
 
@@ -351,23 +351,98 @@ export function sheepModel(): SheepModel {
   return cached;
 }
 
-/** Ice block parts for the freeze sequence: nine icicles hanging from the top edge and snow in scattered patches on top. */
-export function iceDressing(size: V3): { icicles: BufferGeometry; cap: BufferGeometry } {
+/** The ice block for the freeze sequence, built once per size and shared by every sheep. */
+export interface IceBlock {
+  /** The slab itself (transparent ice): chamfered, with white rims on its edges and deeper blue toward the floor. */
+  slab: BufferGeometry;
+  /** Frosted ice in the bottom 0.12 m, which anchors the block to the floor. */
+  base: BufferGeometry;
+  /** Two diagonal glints on the front face, upper left. */
+  glints: BufferGeometry;
+  /** Two comic cracks on the front face (1-voxel lines, dark blue). */
+  cracks: BufferGeometry;
+  /** Nine icicles hanging from the front top edge, and snow in scattered patches on top. */
+  icicles: BufferGeometry;
+  cap: BufferGeometry;
+  /** Small ice chunks the block breaks into on the thaw. */
+  shards: BufferGeometry[];
+}
+
+/** Drops the downward-facing quads of a mesher geometry (each quad is 4 vertices with one normal). */
+function withoutDownFaces(g: BufferGeometry): BufferGeometry {
+  const idx = g.index!.array;
+  const ny = g.getAttribute('normal');
+  const keep: number[] = [];
+  for (let i = 0; i < idx.length; i += 3) if (ny.getY(idx[i]) >= 0) keep.push(idx[i], idx[i + 1], idx[i + 2]);
+  g.setIndex(keep);
+  return g;
+}
+
+const iceBlocks = new Map<string, IceBlock>();
+/** Plan V3 Part 6: the slab, its icicles, snow cap and cracks, all voxels on the character grid, centred on the origin. */
+export function iceBlock(size: V3): IceBlock {
+  const key = size.join(',');
+  const hit = iceBlocks.get(key);
+  if (hit) return hit;
   const s = CHAR;
-  const [w, h, d] = size;
+  const [w, h] = size;
+  const lo = size.map((v) => Math.round(-v / 2 / s));
+  const hi = size.map((v) => Math.round(v / 2 / s) - 1);
+  const CH = 2; // chamfer, in voxels
+
+  // The slab: a solid chamfered box. Only its outer faces are meshed, so the voxel count costs nothing at runtime.
+  const slab = new Grid(s);
+  for (let x = lo[0]; x <= hi[0]; x++)
+    for (let y = lo[1]; y <= hi[1]; y++)
+      for (let z = lo[2]; z <= hi[2]; z++) {
+        const e = [Math.min(x - lo[0], hi[0] - x), Math.min(y - lo[1], hi[1] - y), Math.min(z - lo[2], hi[2] - z)];
+        const near = e.filter((v) => v < CH);
+        if (near.length >= 2 && near.reduce((n, v) => n + (CH - v), 0) > CH) continue;
+        const rim = e.filter((v) => v <= CH).length >= 2;
+        const up = (y - lo[1]) / (hi[1] - lo[1]); // 0 at the floor, 1 at the top
+        const n = hash3(x >> 1, y >> 1, z >> 1, 83);
+        const tone = rim ? lin(T.snow[n < 0.5 ? 0 : 1]) : up < 0.35 ? pick(T.ice, n, [0.15, 0.45]) : up < 0.75 ? pick(T.ice, n, [0.35, 0.8]) : pick(T.ice, n, [0.7, 0.95]);
+        slab.set(x, y, z, tone);
+      }
+
+  // Frosted base: a slightly inset layer of snow-white ice in the bottom three voxels, ragged on top.
+  const base = new Grid(s);
+  for (let x = lo[0] + 1; x <= hi[0] - 1; x++)
+    for (let z = lo[2] + 1; z <= hi[2] - 1; z++) {
+      const top = 2 + (hash3(x >> 1, 0, z >> 1, 85) < 0.35 ? 1 : 0);
+      for (let y = 0; y <= top; y++) base.set(x, lo[1] + y, z, pick(T.snow, hash3(x, y, z, 87), [0.4, 0.95]));
+    }
+
+  // The front face is at z = (hi + 1) voxels; glints and cracks sit one voxel proud of it.
+  const front = (hi[2] + 1) * s + s / 2;
+  const glints = new Grid(s);
+  const glint = (x0: number, y0: number, len: number) => line(glints, [x0, y0, front], [x0 + len * 0.55, y0 + len, front], solid(lin(T.snow[0])));
+  glint(-w / 2 + 0.1, h / 2 - 0.52, 0.36);
+  glint(-w / 2 + 0.18, h / 2 - 0.5, 0.36);
+  glint(-w / 2 + 0.3, h / 2 - 0.4, 0.18);
+
+  // Two zigzag cracks (the classic comic crack), one each side of the face.
+  const cracks = new Grid(s);
+  const crack = (pts: number[]) => {
+    for (let i = 0; i + 3 < pts.length; i += 2) line(cracks, [pts[i], pts[i + 1], front], [pts[i + 2], pts[i + 3], front], solid(lin(ICE_CRACK)));
+  };
+  // Short and near the corners, so they never cross the sheep.
+  crack([-0.5, -0.2, -0.42, -0.3, -0.47, -0.38, -0.4, -0.5]);
+  crack([0.5, 0.46, 0.43, 0.38, 0.47, 0.3, 0.42, 0.22]);
+
+  // Icicles hang from just under the chamfered front top edge; snow lies on top in drifts with bare ice between.
   const ic = new Grid(s);
   const r = rng(61);
+  const edgeY = (hi[1] + 1 - CH) * s, edgeZ = (hi[2] + 1) * s - s;
   for (let k = 0; k < 9; k++) {
-    const x = -w / 2 + 0.08 + (k / 8) * (w - 0.16);
+    const x = -w / 2 + 0.1 + (k / 8) * (w - 0.2);
     const len = 0.08 + r() * 0.14;
-    cone(ic, [x, h / 2, d / 2], 0.035, len, -1, (xx, yy, zz) => pick(T.ice, hash3(xx, yy, zz, 63), [0.5, 0.85]));
+    cone(ic, [x, edgeY, edgeZ], 0.035, len, -1, (xx, yy, zz) => pick(T.ice, hash3(xx, yy, zz, 63), [0.5, 0.85]));
   }
-  // Snow lies in a few drifts, one voxel deep, with bare ice between them: patches of 4 x 4 voxels chosen by a
-  // coarse hash, thinned at their edges, and a little deeper only where two drifts meet.
   const cap = new Grid(s);
-  const top = Math.round(h / 2 / s);
-  for (let x = Math.round(-w / 2 / s); x < Math.round(w / 2 / s); x++)
-    for (let z = Math.round(-d / 2 / s); z < Math.round(d / 2 / s); z++) {
+  const top = hi[1] + 1;
+  for (let x = lo[0]; x <= hi[0]; x++)
+    for (let z = lo[2]; z <= hi[2]; z++) {
       const patch = hash3(x >> 2, 0, z >> 2, 65) < 0.42;
       if (!patch) continue;
       const inner = hash3((x >> 2) + 1, 0, z >> 2, 65) < 0.42 || hash3(x >> 2, 0, (z >> 2) + 1, 65) < 0.42;
@@ -375,7 +450,21 @@ export function iceDressing(size: V3): { icicles: BufferGeometry; cap: BufferGeo
       cap.set(x, top, z, pick(T.snow, hash3(x, 2, z, 69), [0.7, 0.95]));
       if (inner && hash3(x, 3, z, 71) < 0.08) cap.set(x, top + 1, z, lin(T.snow[0]));
     }
-  return { icicles: buildGeometry(ic.map, s), cap: buildGeometry(cap.map, s) };
+
+  // Shards: three rough chunks, reused at different sizes and turns.
+  const shards = [0.13, 0.1, 0.16].map((rad, i) => {
+    const g = new Grid(s);
+    ellipsoid(g, [0, 0, 0], [rad, rad * 0.8, rad * 0.6], (xx, yy, zz) => pick(T.ice, hash3(xx, yy, zz, 89 + i), [0.3, 0.9]), 0.35, 91 + i);
+    return buildGeometry(g.map, s).translate(-s / 2, -s / 2, -s / 2);
+  });
+
+  const block: IceBlock = {
+    slab: buildGeometry(slab.map, s), base: buildGeometry(base.map, s), glints: buildGeometry(glints.map, s),
+    // The cap's underside would show through the clear ice (lit by the floor colour), so it is not drawn.
+    cracks: buildGeometry(cracks.map, s), icicles: buildGeometry(ic.map, s), cap: withoutDownFaces(buildGeometry(cap.map, s)), shards,
+  };
+  iceBlocks.set(key, block);
+  return block;
 }
 
 /** A wind curl: a flat voxel spiral of radius 0.25 m, 1 voxel thick. */

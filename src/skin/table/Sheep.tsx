@@ -2,15 +2,15 @@ import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import {
-  AdditiveBlending, BoxGeometry, BufferGeometry, Color, EdgesGeometry, Float32BufferAttribute, Group,
-  InstancedMesh, LineBasicMaterial, LineSegments, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial, Vector3,
+  AdditiveBlending, DoubleSide, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group,
+  InstancedMesh, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial, Vector3,
 } from 'three';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
 import { FROST, lin, SCARF } from '../voxel/palette';
 import { Grid } from '../voxel/primitives';
 import type { V3 } from '../voxel/primitives';
-import { CREAM, HEAD_PIVOT, iceDressing, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
+import { CREAM, HEAD_PIVOT, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
 import type { Brows, Lids, Mouth, Part, WoolLevel } from '../voxel/sheep';
 
 export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking';
@@ -60,6 +60,8 @@ interface Props {
 /** The ears hang 20 degrees below level. */
 const DROOP = (20 * Math.PI) / 180;
 const BLOCK: [number, number, number] = [1.1, 1.2, 1.3];
+/** The block leans 4 degrees about z, as if the sheep was caught mid-run. */
+const TILT = (4 * Math.PI) / 180;
 const easeOut = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -182,6 +184,8 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
 export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false }: Props) {
   const m = sheepModel();
   const mat = useMemo(() => voxelMaterial(), []);
+  // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice.
+  const faceMat = useMemo(() => voxelMaterial(), []);
   const breathMat = useMemo(() => new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 }), []);
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
@@ -301,7 +305,8 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     // Frost tint multiplies every part; dimming darkens it.
     const tint = live === 'frozen' ? 1 : live === 'freezing' ? (reduced ? (e >= 1.2 ? 1 : 0) : clamp01((e - 0.8) / 0.8)) : live === 'thawing' ? 1 - clamp01(e / 1.2) : 0;
     mat.color.copy(white).lerp(frost, tint);
-    if (dimmed) mat.color.multiplyScalar(0.62);
+    faceMat.color.copy(white).lerp(frost, tint * 0.3);
+    if (dimmed) { mat.color.multiplyScalar(0.62); faceMat.color.multiplyScalar(0.62); }
 
     runFreezeFx(fx, live, e, reduced, gustFrom, state === 'thawing');
     (o.frost as Mesh).visible = level > 0 && ((live === 'freezing' && e >= 0.8 && !reduced) || live === 'frozen');
@@ -329,11 +334,11 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         <group ref={set('head')} position={m.head.pivot}>
           <mesh geometry={m.head.geo} material={mat} castShadow />
           <mesh geometry={m.hood.geo} material={mat} castShadow />
-          <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={mat} />
-          <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={mat} />
-          {(['closed', 'arc'] as Lids[]).map((k) => <mesh key={k} ref={set(`lid-${k}`)} geometry={m.lids[k].geo} material={mat} />)}
-          {BROWS.map((b) => <mesh key={b} ref={set(`brow-${b}`)} geometry={m.brows[b].geo} material={mat} />)}
-          {MOUTHS.map((k) => <mesh key={k} ref={set(`mouth-${k}`)} geometry={m.mouths[k].geo} material={mat} />)}
+          <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={faceMat} />
+          <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={faceMat} />
+          {(['closed', 'arc'] as Lids[]).map((k) => <mesh key={k} ref={set(`lid-${k}`)} geometry={m.lids[k].geo} material={faceMat} />)}
+          {BROWS.map((b) => <mesh key={b} ref={set(`brow-${b}`)} geometry={m.brows[b].geo} material={faceMat} />)}
+          {MOUTHS.map((k) => <mesh key={k} ref={set(`mouth-${k}`)} geometry={m.mouths[k].geo} material={faceMat} />)}
           <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow />
           <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow />
         </group>
@@ -380,7 +385,11 @@ function freezeFx() {
   const streaks = new InstancedMesh(new BoxGeometry(0.04, 0.04, 0.24), streakMat, 40);
   const curlGeo = windCurl();
   const curlMat = new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
-  const curls = Array.from({ length: 6 }, () => new Mesh(curlGeo, curlMat));
+  const curls = Array.from({ length: 6 }, () => {
+    const c = new Mesh(curlGeo, curlMat);
+    c.rotation.order = 'YXZ'; // stand up (x), then face out (y)
+    return c;
+  });
   const snowGeo = new BufferGeometry();
   const snowPos = new Float32Array(120 * 3);
   for (let i = 0; i < 120; i++) {
@@ -390,37 +399,38 @@ function freezeFx() {
   }
   snowGeo.setAttribute('position', new Float32BufferAttribute(snowPos, 3));
   const snow = new Points(snowGeo, new PointsMaterial({ color: '#FFFFFF', size: 0.05, transparent: true, opacity: 0.9 }));
-  const blockGeo = new BoxGeometry(...BLOCK);
+  // The block (plan V3 Part 6): voxel ice, rendered double-sided so its far faces show through and it reads as a
+  // solid slab rather than a pane of glass.
+  const parts = iceBlock(BLOCK);
+  // A little cool self-light keeps the slab's inner faces (lit from below by the floor colour) reading as ice.
+  const iceMat = new MeshPhongMaterial({ vertexColors: true, transparent: true, opacity: 0.42, shininess: 90, specular: '#FFFFFF', emissive: '#9ED2EE', emissiveIntensity: 0.3, depthWrite: false, side: DoubleSide });
+  const opaque = voxelMaterial();
   const block = new Group();
-  const ice = new Mesh(blockGeo, new MeshPhongMaterial({ color: '#BFE3F5', transparent: true, opacity: 0.45, shininess: 80, depthWrite: false }));
-  const edges = new LineSegments(new EdgesGeometry(blockGeo), new LineBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.9 }));
-  const dressing = iceDressing(BLOCK);
-  const dressMat = voxelMaterial();
-  const icicles = new Mesh(dressing.icicles, dressMat);
-  const cap = new Mesh(dressing.cap, dressMat);
-  const cracks = crackLines();
-  block.add(ice, edges, icicles, cap, cracks);
-  block.position.set(0, 0.56, 0);
-  // Six shards for the thaw.
-  const shards = Array.from({ length: 6 }, (_, i) => {
-    const s = new Mesh(new BoxGeometry(BLOCK[0] / 2, BLOCK[1] / 2, BLOCK[2] / 3), ice.material);
-    s.userData.dir = [((i % 2) - 0.5) * 2, 0.6 + (i % 3) * 0.3, (Math.floor(i / 2) - 1) * 1.2];
-    return s;
+  const slab = new Mesh(parts.slab, iceMat);
+  const base = new Mesh(parts.base, voxelMaterial({ transparent: true, opacity: 0.85 }));
+  const glints = new Mesh(parts.glints, voxelMaterial({ emissive: '#FFFFFF', emissiveIntensity: 0.4 }));
+  const icicles = new Mesh(parts.icicles, opaque);
+  const cap = new Mesh(parts.cap, opaque);
+  const cracks = new Mesh(parts.cracks, opaque);
+  // Opaque parts draw before the transparent slab, so the slab is last.
+  slab.renderOrder = 1;
+  block.add(base, icicles, cap, glints, cracks, slab);
+  block.rotation.z = TILT;
+  // Rest the lowest corner of the tilted block on the floor.
+  block.position.set(0, (BLOCK[1] / 2) * Math.cos(TILT) + (BLOCK[0] / 2) * Math.sin(TILT), 0);
+  // Ten chunks for the thaw.
+  const shardMat = new MeshPhongMaterial({ vertexColors: true, transparent: true, opacity: 0.75, shininess: 90, specular: '#FFFFFF', emissive: '#9ED2EE', emissiveIntensity: 0.3, depthWrite: false });
+  const shards = Array.from({ length: 10 }, (_, i) => {
+    const sh = new Mesh(parts.shards[i % 3], shardMat);
+    const a = (i / 10) * Math.PI * 2;
+    sh.userData.dir = [Math.cos(a) * (0.8 + (i % 3) * 0.3), 0.8 + (i % 4) * 0.35, Math.sin(a) * (0.8 + (i % 2) * 0.4)];
+    sh.userData.y0 = 0.25 + (i % 5) * 0.18;
+    sh.scale.setScalar(0.8 + (i % 4) * 0.2);
+    return sh;
   });
   root.add(streaks, ...curls, snow, block, ...shards);
   root.visible = false;
   return { root, streaks, curls, snow, block, cracks, shards };
-}
-
-function crackLines() {
-  const g = new BufferGeometry();
-  const z = BLOCK[2] / 2 + 0.005;
-  // Two zigzag cracks on the front face.
-  const pts = [-0.4, 0.4, -0.25, 0.15, -0.25, 0.15, -0.35, -0.1, -0.35, -0.1, -0.2, -0.35, 0.3, 0.5, 0.42, 0.25, 0.42, 0.25, 0.28, 0.05];
-  const pos: number[] = [];
-  for (let i = 0; i < pts.length; i += 2) pos.push(pts[i], pts[i + 1], z);
-  g.setAttribute('position', new Float32BufferAttribute(pos, 3));
-  return new LineSegments(g, new LineBasicMaterial({ color: '#2F5D8A' }));
 }
 
 const dummy = new Object3D();
@@ -449,6 +459,8 @@ function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: numbe
     c.visible = curlsOn;
     const a = e * 2 + (i / 6) * Math.PI * 2;
     c.position.set(Math.cos(a) * 0.9, 0.3 + (i % 3) * 0.35, Math.sin(a) * 0.9);
+    // Stand the flat spiral up and turn it to face out from the sheep, so it reads as a curl and not a bar.
+    c.rotation.set(Math.PI / 2, Math.atan2(-Math.cos(a), -Math.sin(a)), e * 3);
     c.scale.setScalar(e > 2 ? 1 - (e - 2) / 0.4 : 1);
   });
   fx.snow.visible = freezing && !reduced;
@@ -460,7 +472,6 @@ function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: numbe
     const grow = frozen ? 1 : reduced ? 1 : 0.2 + 0.8 * easeOut((e - 1.2) / 0.8);
     const bounce = freezing && e > 2 ? 1 + Math.sin(((e - 2) / 0.4) * Math.PI) * 0.02 : 1;
     fx.block.scale.setScalar(grow * bounce);
-    fx.block.rotation.z = (6 * Math.PI) / 180;
     fx.cracks.visible = frozen || e >= 1.8;
     fx.cracks.scale.setScalar(freezing && e >= 1.8 && e < 1.95 ? 1.15 : 1);
   }
@@ -468,7 +479,7 @@ function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: numbe
     s.visible = thawing && e < 1.2;
     if (!s.visible) return;
     const [dx, dy, dz] = s.userData.dir as number[];
-    s.position.set(dx * e * 0.8, 0.56 + dy * e - 2.2 * e * e, dz * e * 0.6);
-    s.rotation.set(e * dx * 2, 0, e * dz);
+    s.position.set(dx * e * 0.8, Math.max(0.05, (s.userData.y0 as number) + dy * e - 2.6 * e * e), dz * e * 0.8);
+    s.rotation.set(e * dx * 3, e * 2, e * dz * 3);
   });
 }

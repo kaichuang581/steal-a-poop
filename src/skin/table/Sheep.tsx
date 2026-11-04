@@ -59,7 +59,7 @@ interface Props {
 
 /** The ears hang 20 degrees below level. */
 const DROOP = (20 * Math.PI) / 180;
-const BLOCK: [number, number, number] = [1.2, 1.3, 1.4];
+const BLOCK: [number, number, number] = [1.1, 1.2, 1.3];
 const easeOut = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -79,6 +79,7 @@ const CHEW: Mouth[] = ['flat', 'chewL', 'chewDown', 'chewR'];
  * passed in; the speaker's chest-up and tail wag are added on top of idle and thinking.
  */
 function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: number, moving: boolean, speaking: boolean, blink: boolean, twitch: number, chew: Mouth | null) {
+  // `t` is already offset by this sheep's own phase, so no two sheep move in step.
   p.fill(0);
   p[CH.eye] = 1;
   p[CH.puff] = 1;
@@ -197,7 +198,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     key: -1, state: '' as SheepState, at: 0, live: '' as SheepState, blendAt: -10, level, levelAt: -10,
     cur: new Float32Array(N), from: new Float32Array(N), target: new Float32Array(N),
     face: face0(), faceFrom: face0(), faceTarget: face0(),
-    nextBlink: 2 + Math.random() * 3, blinkAt: -10, phase: Math.random() * 20, att: { yaw: 0, pitch: 0 },
+    nextBlink: 2 + Math.random() * 3, blinkAt: -10, phase: Math.random() * 20, rate: 0.82 + Math.random() * 0.36, att: { yaw: 0, pitch: 0 },
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
   const v = useMemo(() => new Vector3(), []);
 
@@ -218,12 +219,13 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     // The idle layer: a blink every 3.5 to 5 s, an ear twitch every 7 s, a chew every 12 s, each on this sheep's own clock.
     if (moving && t >= a.nextBlink) a.blinkAt = t, a.nextBlink = t + 3.5 + Math.random() * 1.5;
     const blink = t - a.blinkAt < 0.12;
-    const tp = t + a.phase;
+    // Each sheep runs its own clock: a random phase and a rate within ±18%, so sway, breath, twitches and chews drift apart.
+    const tp = (t + a.phase) * a.rate;
     const twitch = moving && tp % 7 < 0.25 ? Math.sin(((tp % 7) / 0.25) * Math.PI) * 0.35 : 0;
     const chew = moving && tp % 12 < 0.8 ? CHEW[Math.floor((tp % 12) / 0.2) % 4] : null;
 
     // This frame's pose, blended over 200 ms from the pose the sheep was in when its state last changed.
-    poseFor(a.target, a.faceTarget, live, e, t, moving, speaking, blink, twitch, chew);
+    poseFor(a.target, a.faceTarget, live, e, tp, moving, speaking, blink, twitch, chew);
     if (live !== a.live) { a.from.set(a.cur); Object.assign(a.faceFrom, a.face); a.live = live; a.blendAt = t; }
     const w = reduced ? 1 : easeOut((t - a.blendAt) / 0.2);
     const c = a.cur;
@@ -238,7 +240,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
       if (lookAt) {
         if (lookAt === 'camera') v.copy(camera.position); else v.set(lookAt[0], lookAt[1], lookAt[2]);
         root.current.worldToLocal(v);
-        const dx = v.x - HEAD_PIVOT[0], dy = v.y - (HEAD_PIVOT[1] + 0.2), dz = v.z - HEAD_PIVOT[2];
+        const dx = v.x - HEAD_PIVOT[0], dy = v.y - (HEAD_PIVOT[1] + 0.14), dz = v.z - HEAD_PIVOT[2];
         wantYaw = Math.atan2(dx, dz);
         wantPitch = -Math.atan2(dy, Math.hypot(dx, dz));
       } else wantYaw = headYaw;
@@ -250,14 +252,14 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     a.att.pitch += (wantPitch - a.att.pitch) * ka;
 
     // Apply the pose.
-    const shiver = live === 'cold' && moving ? Math.sin(t * 60) * 0.012 : 0;
+    const shiver = live === 'cold' && moving ? Math.sin(tp * 60) * 0.012 : 0;
     body.position.set(shiver, c[CH.bodyY], 0);
     body.rotation.set(c[CH.bodyRotX], 0, c[CH.bodyRotZ]);
     head.rotation.set(c[CH.headX] + a.att.pitch, c[CH.headY] + a.att.yaw, c[CH.headZ]);
     (o.earL as Mesh).rotation.set(0, -c[CH.earBack], c[CH.earL]);
     (o.earR as Mesh).rotation.set(0, c[CH.earBack], -c[CH.earR]);
     // Breathing: the body lobes swell 2.5% either way; the fleece settles into place over half a second when the level changes.
-    const breathe = moving && live !== 'freezing' && live !== 'startled' ? Math.sin(t * (live === 'sleeping' ? 1.0 : 1.9)) * 0.025 : 0;
+    const breathe = moving && live !== 'freezing' && live !== 'startled' ? Math.sin(tp * (live === 'sleeping' ? 1.0 : 1.9)) * 0.025 : 0;
     const settle = reduced ? 1 : 0.94 + 0.06 * easeOut((t - a.levelAt) / 0.5);
     const lvl = Math.max(1, level) as 1 | 2 | 3 | 4;
     if (wool.geometry !== m.wools[lvl].geo) {
@@ -271,7 +273,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     const tail = o.tail as Mesh;
     tail.visible = level > 0;
     tail.rotation.y = c[CH.tail];
-    tail.position.z = m.tail.pivot[2] - 0.36 * (LEVEL_K[lvl] - 1);
+    tail.position.z = m.tail.pivot[2] - 0.4 * (LEVEL_K[lvl] - 1);
     const fl = o.legFL as Mesh;
     fl.rotation.x = -c[CH.legSwing] - c[CH.legLift] * 5;
     fl.position.y = m.legs[0].pivot[1] + c[CH.legLift];
@@ -289,7 +291,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     const breath = o.breath as Mesh;
     breath.visible = f.breath;
     if (f.breath) {
-      const p = (t % 1.6) / 1.6;
+      const p = (tp % 1.6) / 1.6;
       breath.position.set(m.breath.pivot[0], m.breath.pivot[1] + p * 0.1, m.breath.pivot[2] + p * 0.25);
       breath.scale.setScalar(0.6 + p);
       breathMat.opacity = 0.8 * (1 - p);
@@ -338,7 +340,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         <mesh ref={set('breath')} geometry={m.breath.geo} position={m.breath.pivot} material={breathMat} />
         {scarf && <Scarf />}
         {everThought.current && (
-          <Html position={[0.5, 1.32, 0.3]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+          <Html position={[0.45, 1.15, 0.45]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
             <div ref={bubble} className="sk-think" aria-hidden="true">…</div>
           </Html>
         )}
@@ -352,7 +354,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
 function Scarf() {
   const geo = useMemo(() => scarfGeometry(), []);
   const mat = useMemo(() => voxelMaterial(), []);
-  return <mesh geometry={geo} position={[0.02, 0.56, 0.4]} material={mat} castShadow />;
+  return <mesh geometry={geo} position={[0.02, 0.46, 0.5]} material={mat} castShadow />;
 }
 
 let scarfGeo: BufferGeometry | null = null;
@@ -398,7 +400,7 @@ function freezeFx() {
   const cap = new Mesh(dressing.cap, dressMat);
   const cracks = crackLines();
   block.add(ice, edges, icicles, cap, cracks);
-  block.position.set(0, 0.62, 0);
+  block.position.set(0, 0.56, 0);
   // Six shards for the thaw.
   const shards = Array.from({ length: 6 }, (_, i) => {
     const s = new Mesh(new BoxGeometry(BLOCK[0] / 2, BLOCK[1] / 2, BLOCK[2] / 3), ice.material);
@@ -466,7 +468,7 @@ function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: numbe
     s.visible = thawing && e < 1.2;
     if (!s.visible) return;
     const [dx, dy, dz] = s.userData.dir as number[];
-    s.position.set(dx * e * 0.8, 0.62 + dy * e - 2.2 * e * e, dz * e * 0.6);
+    s.position.set(dx * e * 0.8, 0.56 + dy * e - 2.2 * e * e, dz * e * 0.6);
     s.rotation.set(e * dx * 2, 0, e * dz);
   });
 }

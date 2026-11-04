@@ -20,9 +20,9 @@ export interface SheepModel {
   wools: Record<1 | 2 | 3 | 4, Part>;
   /** Frost that settles on each fleece's upper surface while freezing. */
   frosts: Record<1 | 2 | 3 | 4, Part>;
-  /** The head sphere with the muzzle, nose, cheeks and nostrils painted on. Pivot at the neck. */
+  /** The dark wedge head with the nose, lid lines and lighter bridge painted on. Pivot at the neck. */
   head: Part;
-  /** The wool hood around the face and the top tuft; part of the head group. Shearing takes the body fleece only. */
+  /** The wool hood: a cap over the skull down to the brow and two cheek lobes beside the jaw. Part of the head group. */
   hood: Part;
   /** Two lobes on the rump, wagged about their pivot. */
   tail: Part;
@@ -41,34 +41,34 @@ export interface SheepModel {
   /** The bare body at level 0, with stubble. */
   sheared: Part;
   breath: Part;
-  /** Lobe counts, for the plan's acceptance check. */
-  lobes: { body: number; hood: number; tuft: number; tail: number };
+  /** Lobe counts, for the acceptance check. */
+  lobes: { body: number; hood: number; tail: number };
   /** Distinct colours in the normal fleece: two creams and the crease tone, nothing per voxel. */
   woolTones: number;
   /** Voxels before face culling at coat level 2. */
   voxels: number;
 }
 
-/** The cute palette (plan V3.3 Part 3.2): a warm light grey face so the features read, two creams for the wool. */
-export const FACE = ['#B9B0AC', '#A79E9A', '#8E8582'] as const;
-export const MUZZLE = '#6F6764';
+/**
+ * The palette: a dark face and legs so the white fleece reads as a sheep (Brian's notes on V3.3 Part 3), the
+ * bridge and cheeks a step lighter, two creams for the wool with a third tone only in the creases.
+ */
+export const FACE = ['#3F3A3A', '#5A5454'] as const;
+export const NOSE = '#2B2626';
+export const NOSTRIL = '#1E1B1B';
+export const LID = '#2B2626';
 export const IRIS = '#2B2522';
-export const NOSE = '#E79C94';
-export const NOSTRIL = '#C97C74';
-export const CHEEK = '#F2B6B0';
+export const EYE_WHITE = '#FBFBF8';
+export const EAR_PINK = '#C9908A';
 export const CREAM = ['#FAF6EC', '#EFE8D7'] as const;
 export const CREASE = '#DDD3BE';
-export const LEG = '#6F6764';
-export const HOOF = '#8E8582';
-export const EYE_WHITE = '#FBFBF8';
-export const MOUTH = '#332C2A';
+export const HOOF = '#6F6764';
+export const BROW = '#6F6764';
 
 /** The model is centred on voxel column 0, whose centre is 0.02 m, so the face has a middle column. */
 export const CX = 0.02;
-export const HEAD_CENTRE: V3 = [CX, 0.79, 0.26];
-export const HEAD_R = 0.26;
-/** The neck: the head group turns about this point. */
-export const HEAD_PIVOT: V3 = [CX, 0.62, 0.18];
+/** The neck: the head group turns about this point, at the back of the jaw where it leaves the fleece. */
+export const HEAD_PIVOT: V3 = [CX, 0.58, 0.34];
 /** How much bigger each coat level's fleece is than the normal coat (level 2). */
 export const LEVEL_K = [0, 0.88, 1, 1.12, 1.26] as const;
 
@@ -85,7 +85,7 @@ const NEIGHBOURS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0,
 
 /**
  * Paints wool as a few smooth lobes: every voxel takes its lobe's cream, and the crease tone only where a lobe meets
- * a later one, so the fleece reads as lobes with folds between them rather than noise (plan V3.3 Part 3.2).
+ * a later one, so the fleece reads as lobes with folds between them rather than noise.
  */
 function paintLobes(g: Grid, lobes: Lobe[], keep: Keep, noise = 0.04) {
   const owner = new Map<string, number>();
@@ -110,47 +110,59 @@ function paintLobes(g: Grid, lobes: Lobe[], keep: Keep, noise = 0.04) {
   }
 }
 
-/** The face window: no wool in front of the head between the chin and the brow. */
+/** The face window: no wool in front of the head below the brow line. */
 function inFace(xm: number, ym: number, zm: number): boolean {
-  return zm > HEAD_CENTRE[2] + 0.06 && Math.abs(xm - CX) < 0.22 && ym > 0.5 && ym < 0.99;
+  return zm > 0.5 && Math.abs(xm - CX) < 0.16 && ym > 0.44 && ym < 0.82;
 }
 
 /**
- * The body's seven lobes (0.34 to 0.44 m across) filling 0.62 by 0.52 by 0.74 m at the normal coat, scaled about the
- * body's centre for the other levels. Thick coats hang more lobes down the flanks; the thickest reaches the ground.
+ * The body's nine lobes making a 0.56 by 0.5 by 0.74 m cloud at the normal coat, scaled about the body's centre
+ * for the other levels. Thick coats hang more lobes down the flanks; the thickest reaches the ground.
  */
 function bodyLobes(level: 1 | 2 | 3 | 4): Lobe[] {
   const k = LEVEL_K[level];
-  const at = (x: number, y: number, z: number): V3 => [CX + x * k, 0.4 + (y - 0.4) * k, z * k];
+  const at = (x: number, y: number, z: number): V3 => [CX + x * k, 0.5 + (y - 0.5) * k, z * k];
   const rr = (x: number, y: number, z: number): V3 => [x * k, y * k, z * k];
   const lobes: Lobe[] = [
-    { c: at(0, 0.5, 0.17), r: rr(0.19, 0.17, 0.19), tone: 0 },
-    { c: at(0, 0.5, -0.17), r: rr(0.19, 0.17, 0.19), tone: 1 },
-    { c: at(-0.15, 0.37, 0.18), r: rr(0.17, 0.18, 0.19), tone: 1 },
-    { c: at(0.15, 0.37, 0.18), r: rr(0.17, 0.18, 0.19), tone: 0 },
-    { c: at(-0.15, 0.37, -0.18), r: rr(0.17, 0.18, 0.19), tone: 0 },
-    { c: at(0.15, 0.37, -0.18), r: rr(0.17, 0.18, 0.19), tone: 1 },
-    { c: at(0, 0.4, 0), r: rr(0.2, 0.2, 0.22), tone: 0 },
+    { c: at(0, 0.5, 0), r: rr(0.26, 0.23, 0.33), tone: 0 },
+    { c: at(0, 0.6, 0.16), r: rr(0.2, 0.16, 0.2), tone: 1 },
+    { c: at(0, 0.6, -0.16), r: rr(0.2, 0.16, 0.2), tone: 0 },
+    { c: at(-0.13, 0.48, 0.17), r: rr(0.16, 0.17, 0.18), tone: 0 },
+    { c: at(0.13, 0.48, 0.17), r: rr(0.16, 0.17, 0.18), tone: 1 },
+    { c: at(-0.13, 0.48, -0.17), r: rr(0.16, 0.17, 0.18), tone: 1 },
+    { c: at(0.13, 0.48, -0.17), r: rr(0.16, 0.17, 0.18), tone: 0 },
+    { c: at(0, 0.52, -0.3), r: rr(0.17, 0.16, 0.1), tone: 1 },
+    { c: at(0, 0.5, 0.3), r: rr(0.17, 0.16, 0.1), tone: 0 },
   ];
   if (level >= 3) {
-    for (const [x, z] of [[-0.28, 0.16], [0.28, 0.16], [-0.28, -0.16], [0.28, -0.16]] as const) {
-      lobes.push({ c: [CX + x * k, level === 4 ? 0.18 : 0.22, z * k], r: rr(0.15, 0.13, 0.17), tone: 1 });
+    for (const [x, z] of [[-0.26, 0.16], [0.26, 0.16], [-0.26, -0.16], [0.26, -0.16]] as const) {
+      lobes.push({ c: [CX + x * k, level === 4 ? 0.2 : 0.28, z * k], r: rr(0.15, 0.15, 0.17), tone: 1 });
     }
   }
   if (level === 4) {
-    for (const [x, z, tone] of [[0, 0.44, 0], [0, -0.44, 1], [-0.24, 0.4, 1], [0.24, 0.4, 0], [-0.24, -0.4, 0], [0.24, -0.4, 1]] as const) {
-      lobes.push({ c: [CX + x, 0.16, z], r: [0.16, 0.15, 0.14], tone });
+    for (const [x, z, tone] of [[0, 0.44, 0], [0, -0.44, 1], [-0.22, 0.4, 1], [0.22, 0.4, 0], [-0.22, -0.4, 0], [0.22, -0.4, 1]] as const) {
+      lobes.push({ c: [CX + x, 0.17, z], r: [0.16, 0.16, 0.14], tone });
     }
   }
   return lobes;
 }
 
+/** The head wedge, row by row from the top: half-width in columns, and the back and front z cells. */
+const HEAD_ROWS: [number, number, number, number][] = [
+  [22, 3, 8, 13], [21, 3, 7, 14], [20, 3, 7, 14], [19, 3, 7, 15], [18, 3, 8, 15],
+  [17, 3, 9, 15], [16, 2, 10, 15], [15, 2, 11, 15], [14, 2, 12, 15], [13, 2, 12, 15],
+];
+
+/** The left column of each eye. */
+const EYE_BASES = [-3, 1] as const;
+
 let cached: SheepModel | null = null;
 
 /**
- * The default sheep (plan V3.3 Part 3): chibi proportions (a 0.52 m head on a 0.62 by 0.52 by 0.74 m body, 0.14 m
- * legs, 1.05 m to the top of the head), a light grey face with big low eyes, pink nose and cheeks, drooping ears,
- * and wool as smooth lobes. One model for every player, built once and shared.
+ * The default sheep: a 0.56 by 0.5 by 0.74 m cloud of nine smooth wool lobes on thin dark legs, a dark wedge head
+ * (0.28 wide, 0.40 tall, 0.36 deep) coming out of the front of the cloud at two thirds of its height, small
+ * white-and-brown eyes near the sides, leaf ears, a wool cap down to the brow and cheek lobes beside the jaw, a
+ * red collar with a bell, and a tail puff. One model for every player, built once and shared.
  *
  * Parts never share a cell: the wool, the hood and the sheared body are built around the head, collar, bell and
  * legs, so no two parts can put a face on the same plane and flicker against each other.
@@ -159,117 +171,123 @@ export function sheepModel(): SheepModel {
   if (cached) return cached;
   const s = CHAR;
   const i = (m: number) => Math.round(m / s);
-  const lobes = { body: 7, hood: 5, tuft: 3, tail: 2 };
+  const lobes = { body: 9, hood: 6, tail: 2 };
 
-  // ---- Head: a sphere in warm light grey (a few mid-grey patches, nothing per voxel).
+  // ---- Head: the wedge, narrower toward the muzzle, the vertical edges knocked off; the bridge and cheeks lighter.
   const head = new Grid(s);
-  ellipsoid(head, HEAD_CENTRE, [HEAD_R, HEAD_R, HEAD_R], (x, y, z) => lin(hash3(x >> 2, y >> 2, z >> 2, 31) < 0.3 ? FACE[1] : FACE[0]));
-  // The front-most head voxel in each column, so features follow the curve of the face.
+  for (const [y, hw, zb, zf] of HEAD_ROWS) {
+    for (let x = -hw; x <= hw; x++) for (let z = zb; z <= zf; z++) {
+      // Knock off the vertical edges, except at the front of the eye rows so the eyes sit on the face plane.
+      if (Math.abs(x) === hw && (z === zb || (z === zf && (y < 17 || y > 18)))) continue;
+      const bridge = z === zf && Math.abs(x) <= 1 && y >= 15 && y <= 20;
+      const cheek = Math.abs(x) === hw && y >= 14 && y <= 17;
+      head.set(x, y, z, lin(bridge || cheek ? FACE[1] : FACE[0]));
+    }
+  }
   const front = new Map<string, number>();
   for (const v of head.map.values()) front.set(`${v.x},${v.y}`, Math.max(front.get(`${v.x},${v.y}`) ?? -99, v.z));
+  /** Paints the front-most head cell at (x, y), or a cell `extra` voxels proud of it. */
   const proud = (g: Grid, x: number, y: number, c: RGB, extra = 1) => {
     const z = front.get(`${x},${y}`);
     if (z !== undefined) g.set(x, y, z + extra, c);
   };
-  // Muzzle: a darker rounded patch 0.20 m wide on the lower face.
-  for (let x = -2; x <= 2; x++) for (let y = 15; y <= 18; y++) if (Math.abs(x) < 2 || (y > 15 && y < 18)) proud(head, x, y, lin(MUZZLE), 0);
-  // Nose: a small pink bump with a nostril marked either side of it.
-  proud(head, 0, 18, lin(NOSE));
-  proud(head, 0, 17, lin(NOSE));
-  proud(head, -1, 17, lin(NOSTRIL), 0);
-  proud(head, 1, 17, lin(NOSTRIL), 0);
-  // Cheeks: round pink patches beside the muzzle, under the eyes.
-  for (const sx of [-1, 1]) for (const dx of [3, 4]) for (const y of [17, 18]) proud(head, sx * dx, y, lin(CHEEK));
+  // Nose: a small dark patch at the bottom of the face, the nostrils a darker inverted Y.
+  for (const x of [-1, 0]) for (const y of [14, 15]) proud(head, x, y, lin(NOSE), 0);
+  proud(head, -1, 14, lin(NOSTRIL), 0);
+  proud(head, 0, 14, lin(NOSTRIL), 0);
+  // Thin dark upper lids over each eye.
+  for (const base of EYE_BASES) for (let c = 0; c < 3; c++) proud(head, base + c, 19, lin(LID), 0);
 
-  // Eyes: 0.12 by 0.16 m ovals, low and wide (rows 19..22, a column either side of the nose): a big dark iris with
-  // a two-voxel catchlight at the upper left as the viewer sees it (the model's -x).
-  const EYE: [number, number, string][] = [
-    [1, 22, 'W'], [2, 22, 'D'],
-    [0, 21, 'W'], [1, 21, 'D'], [2, 21, 'D'],
-    [0, 20, 'D'], [1, 20, 'D'], [2, 20, 'D'],
-    [1, 19, 'D'],
-  ];
-  const eyes = ([-3, 1] as const).map((base) => {
+  // Eyes: 0.12 by 0.08 m, set into the face near its sides at mid-height, 0.16 m apart: white sclera at the outer
+  // end, a dark brown horizontal iris over the inner two thirds with one catchlight. The eye cells are cut out of
+  // the head so the eye can scale without two faces sharing a plane.
+  const eyes = EYE_BASES.map((base) => {
     const eye = new Grid(s);
-    for (const [c, y, kind] of EYE) proud(eye, base + c, y, lin(kind === 'D' ? IRIS : EYE_WHITE));
-    return part(eye, [(base + 1.5) * s, 21 * s, 13 * s]);
+    const outer = base < 0 ? 0 : 2;
+    let zc = 0;
+    for (let c = 0; c < 3; c++) for (const y of [17, 18]) {
+      const z = front.get(`${base + c},${y}`)!;
+      head.del(base + c, y, z);
+      zc = Math.max(zc, z);
+      const catchlight = c === 1 && y === 18;
+      eye.set(base + c, y, z, lin(c === outer || catchlight ? EYE_WHITE : IRIS));
+    }
+    return part(eye, [(base + 1.5) * s, 18 * s, (zc + 0.5) * s]);
   }) as [Part, Part];
   const lids = {} as Record<Lids, Part>;
   for (const kind of ['closed', 'arc'] as Lids[]) {
     const g = new Grid(s);
-    for (const base of [-3, 1]) {
-      for (const [c, y] of EYE) proud(g, base + c, y, lin(FACE[1]), 2);
-      const dark = kind === 'closed' ? [[0, 20], [1, 20], [2, 20]] : [[0, 20], [1, 21], [2, 20]];
-      for (const [c, y] of dark) proud(g, base + c, y, lin(MOUTH), 2);
+    for (const base of EYE_BASES) {
+      for (let c = 0; c < 3; c++) for (const y of [17, 18]) proud(g, base + c, y, lin(FACE[0]), 1);
+      const light = kind === 'closed' ? [[0, 18], [1, 18], [2, 18]] : [[0, 17], [1, 18], [2, 17]];
+      for (const [c, y] of light) proud(g, base + c, y, lin(FACE[1]), 1);
     }
     lids[kind] = part(g, HEAD_PIVOT);
   }
-  // Brows: short bars that tilt. Rows run outer to inner; the sphere recedes above the eyes, so the bars sit a voxel
-  // or two behind the eye plane and read best from the table's high camera. At rest they are a faint two-voxel
-  // mark in the muzzle grey; the emotions draw them dark and full.
+  // Brows: nothing at rest; raised or tilted lighter bars above the lids for the emotions.
   const brows = {} as Record<Brows, Part>;
-  const BROW_ROWS: Record<Brows, [number, number, number]> = { neutral: [24, 24, 24], up: [24, 25, 25], worried: [23, 24, 25] };
+  const BROW_ROWS: Record<Brows, [number, number, number] | null> = { neutral: null, up: [21, 21, 21], worried: [20, 21, 21] };
   for (const kind of ['neutral', 'up', 'worried'] as Brows[]) {
     const g = new Grid(s);
-    const cols = kind === 'neutral' ? [3, 2] : [3, 2, 1];
-    [-1, 1].forEach((sx) => cols.forEach((dx, n) => proud(g, sx * dx, BROW_ROWS[kind][n], lin(kind === 'neutral' ? MUZZLE : MOUTH))));
+    const rows = BROW_ROWS[kind];
+    if (rows) [-1, 1].forEach((sx) => [4, 3, 2].forEach((dx, n) => proud(g, sx * dx, rows[n], lin(BROW))));
     brows[kind] = part(g, HEAD_PIVOT);
   }
-  // Mouths: five voxels along the bottom of the muzzle; a small "o"; three chewing frames between flats.
+  // Mouths: a short dark line under the nose, a small "o", and chewing frames that shift and open it.
   const MOUTHS: Record<Mouth, [number, number][]> = {
-    flat: [[-2, 15], [-1, 15], [0, 15], [1, 15], [2, 15]],
-    smile: [[-2, 16], [-1, 15], [0, 15], [1, 15], [2, 16]],
-    o: [[-1, 16], [0, 16], [1, 16], [-1, 15], [1, 15], [-1, 14], [0, 14], [1, 14]],
-    chewL: [[-3, 15], [-2, 15], [-1, 15], [0, 15], [1, 15]],
-    chewDown: [[-2, 14], [-1, 14], [0, 14], [1, 14], [2, 14]],
-    chewR: [[-1, 15], [0, 15], [1, 15], [2, 15], [3, 15]],
+    flat: [[-1, 13], [0, 13], [1, 13]],
+    smile: [[-2, 14], [-1, 13], [0, 13], [1, 13], [2, 14]],
+    o: [[-1, 13], [0, 13], [-1, 12], [0, 12]],
+    chewL: [[-2, 13], [-1, 13], [0, 13]],
+    chewDown: [[-1, 12], [0, 12], [1, 12]],
+    chewR: [[0, 13], [1, 13], [2, 13]],
   };
   const mouths = {} as Record<Mouth, Part>;
   for (const kind of Object.keys(MOUTHS) as Mouth[]) {
     const g = new Grid(s);
-    for (const [x, y] of MOUTHS[kind]) proud(g, x, y, lin(MOUTH));
-    if (kind === 'o') proud(g, 0, 15, lin(T.hoof[1])); // the open mouth
+    for (const [x, y] of MOUTHS[kind]) g.set(x, y, (front.get(`${x},${Math.max(13, y)}`) ?? 15) + 1, lin(kind === 'o' || kind === 'chewDown' ? NOSTRIL : NOSE));
     mouths[kind] = part(g, HEAD_PIVOT);
   }
 
-  // Ears: 0.20 m paddles out from the sides of the head at eye height, three voxels tall and two thick, the front
-  // (inner) face pink, the tip narrowed to one row. Pivot at the head's edge.
+  // Ears: 0.16 m leaves out from the sides of the head at eye height, two voxels tall and one thick, face colour
+  // with a pink strip along the inside, the tip one voxel. Pivot at the head's edge.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(s);
-    const px = sx < 0 ? -7 : 7;
-    for (let k = 0; k < 5; k++) {
-      for (const y of k < 4 ? [20, 21, 22] : [21]) {
-        g.set(px + sx * k, y, 6, lin(FACE[k === 4 ? 2 : 1]));
-        g.set(px + sx * k, y, 7, lin(CHEEK));
-      }
+    const px = sx < 0 ? -4 : 4;
+    for (let k = 0; k < 4; k++) {
+      g.set(px + sx * k, 19, 11, lin(FACE[0]));
+      if (k < 3) g.set(px + sx * k, 18, 11, lin(EAR_PINK));
     }
-    return part(g, [(px + 0.5) * s, 21.5 * s, 7 * s]);
+    return part(g, [(px + 0.5) * s, 19 * s, 11.5 * s]);
   }) as [Part, Part];
 
-  // Legs: 0.12 m square stubs, the hoof a lighter voxel row splayed one voxel outward. The top 0.06 m sits in the wool.
+  // Legs: 0.08 m square and 0.32 m tall in the face colour, a lighter hoof splayed one voxel outward.
   const legGrids: Grid[] = [];
   const legs = ([[-1, 1], [1, 1], [-1, -1], [1, -1]] as const).map(([sx, sz]) => {
     const g = new Grid(s);
-    const xs = sx < 0 ? [-5, -4, -3] : [3, 4, 5];
-    const zs = sz < 0 ? [-7, -6, -5] : [4, 5, 6];
+    const xs = sx < 0 ? [-5, -4] : [4, 5];
+    const zs = sz < 0 ? [-6, -5] : [4, 5];
     for (const x of xs) for (const z of zs) {
-      for (let y = 1; y <= 4; y++) g.set(x, y, z, lin(LEG));
+      for (let y = 1; y <= 7; y++) g.set(x, y, z, lin(FACE[0]));
       g.set(x + sx, 0, z, lin(HOOF));
     }
     legGrids.push(g);
-    return part(g, [(xs[1] + 0.5) * s, 0.2, (zs[1] + 0.5) * s]);
+    return part(g, [(xs[0] + 1) * s, 0.32, (zs[0] + 1) * s]);
   }) as [Part, Part, Part, Part];
 
-  // Collar: a thin red band at the neck, under the chin, with a brass bell hanging from its front.
+  // Collar: a thin red band under the chin, its back half in the fleece, with a brass bell hanging from the front.
   const collar = new Grid(s);
   for (let k = 0; k < 120; k++) {
     const a = (k / 120) * Math.PI * 2;
-    const x = Math.floor((CX + 0.22 * Math.cos(a)) / s), z = Math.floor((0.2 + 0.2 * Math.sin(a)) / s);
-    for (const y of [13, 14]) collar.set(x, y, z, pick(T.collar, hash3(k >> 3, y, 0, 47), [0.6, 1]));
+    const x = Math.floor((CX + 0.15 * Math.cos(a)) / s), z = Math.floor((0.42 + 0.15 * Math.sin(a)) / s);
+    for (const y of [11, 12]) collar.set(x, y, z, pick(T.collar, hash3(k >> 3, y, 0, 47), [0.6, 1]));
   }
+  // Bell: a small brass cup, wider at the mouth, with a dark slot and the clapper showing below.
   const bell = new Grid(s);
-  ellipsoid(bell, [CX, 0.46, 0.42], [0.05, 0.05, 0.05], (x, y, z) => pick(T.brass, hash3(x >> 1, y >> 1, z >> 1, 51), [0.6, 1]));
-  bell.set(0, 9, 10, lin(T.brass[2])); // clapper
+  for (const [y, hw] of [[10, 0], [9, 1], [8, 1]] as const)
+    for (let x = -hw; x <= hw; x++) for (const z of [13, 14]) bell.set(x, y, z, lin(T.brass[y === 10 ? 0 : 1]));
+  bell.set(0, 8, 15, lin(T.hoof[1])); // slot
+  bell.set(0, 7, 14, lin(T.brass[2])); // clapper
 
   // Cells the wool and the bare body must leave alone.
   const taken = (x: number, y: number, z: number) => head.has(x, y, z) || collar.has(x, y, z) || bell.has(x, y, z) || legGrids.some((g) => g.has(x, y, z));
@@ -288,45 +306,43 @@ export function sheepModel(): SheepModel {
     const k = LEVEL_K[level];
     for (let n = 0; n < 30; n++) {
       const a = rf() * Math.PI * 2, b = rf() * 0.9;
-      const x = Math.round((CX + Math.cos(a) * b * 0.3 * k) / s), z = Math.round((Math.sin(a) * b * 0.36 * k) / s);
-      let y = i(0.9);
+      const x = Math.round((CX + Math.cos(a) * b * 0.26 * k) / s), z = Math.round((Math.sin(a) * b * 0.34 * k) / s);
+      let y = i(1.0);
       while (y > 0 && !g.has(x, y, z)) y--;
       if (y > 0) frost.set(x, y + 1, z, lin(T.ice[0]));
     }
     frosts[level] = part(frost, [0, 0, 0]);
   }
 
-  // Wool hood: five lobes around the face (top, both sides, back, a fringe over the brow) and a three-lobe top
-  // tuft, keeping the face clear and never sharing a cell with the head.
+  // Wool hood: a cap of four lobes over the skull reaching the brow line, and two cheek lobes beside the jaw, so
+  // the dark face sits inside white fleece. Never shares a cell with the head.
   const hood = new Grid(s);
   paintLobes(hood, [
-    { c: [CX, 0.97, 0.18], r: [0.21, 0.13, 0.2], tone: 0 },
-    { c: [CX - 0.22, 0.84, 0.06], r: [0.14, 0.17, 0.17], tone: 1 },
-    { c: [CX + 0.22, 0.84, 0.06], r: [0.14, 0.17, 0.17], tone: 1 },
-    { c: [CX, 0.8, -0.04], r: [0.2, 0.2, 0.18], tone: 0 },
-    { c: [CX, 1.04, 0.3], r: [0.16, 0.08, 0.12], tone: 1 },
-    { c: [CX, 1.08, 0.2], r: [0.09, 0.07, 0.09], tone: 0 },
-    { c: [CX - 0.09, 1.06, 0.14], r: [0.065, 0.06, 0.065], tone: 1 },
-    { c: [CX + 0.1, 1.05, 0.18], r: [0.065, 0.06, 0.065], tone: 1 },
+    { c: [CX, 0.9, 0.5], r: [0.18, 0.1, 0.14], tone: 0 },
+    { c: [CX, 0.88, 0.3], r: [0.2, 0.13, 0.17], tone: 1 },
+    { c: [CX - 0.15, 0.82, 0.42], r: [0.09, 0.13, 0.16], tone: 1 },
+    { c: [CX + 0.15, 0.82, 0.42], r: [0.09, 0.13, 0.16], tone: 0 },
+    { c: [CX - 0.18, 0.64, 0.46], r: [0.08, 0.12, 0.12], tone: 0 },
+    { c: [CX + 0.18, 0.64, 0.46], r: [0.08, 0.12, 0.12], tone: 1 },
   ], (xm, ym, zm, x, y, z) => !inFace(xm, ym, zm) && !taken(x, y, z), 0.03);
 
   // Tail: two lobes on the rump.
   const tail = new Grid(s);
-  paintLobes(tail, [{ c: [CX, 0.5, -0.42], r: [0.09, 0.08, 0.1], tone: 0 }, { c: [CX, 0.56, -0.46], r: [0.06, 0.06, 0.07], tone: 1 }], () => true, 0.03);
+  paintLobes(tail, [{ c: [CX, 0.62, -0.42], r: [0.09, 0.08, 0.09], tone: 0 }, { c: [CX, 0.68, -0.46], r: [0.06, 0.06, 0.06], tone: 1 }], () => true, 0.03);
 
   // The sheared body for coat level 0, with a little stubble.
   const sheared = new Grid(s);
-  ellipsoid(sheared, [CX, 0.42, 0.02], [0.3, 0.25, 0.37], (x, y, z) => (taken(x, y, z) ? null : pick(T.skin, hash3(x >> 2, y >> 2, z >> 2, 53))));
+  ellipsoid(sheared, [CX, 0.5, 0.0], [0.26, 0.2, 0.34], (x, y, z) => (taken(x, y, z) ? null : pick(T.skin, hash3(x >> 2, y >> 2, z >> 2, 53))));
   for (const v of [...sheared.map.values()]) {
     if (hash3(v.x, v.y, v.z, 55) < 0.08 && !sheared.has(v.x, v.y + 1, v.z) && !taken(v.x, v.y + 1, v.z)) sheared.set(v.x, v.y + 1, v.z, lin(CREAM[0]));
   }
 
   const breath = new Grid(s);
-  for (const [x, y, z] of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, 0, 1], [1, 1, 1]]) breath.set(x, 18 + y, 14 + z, lin(EYE_WHITE));
+  for (const [x, y, z] of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, 0, 1], [1, 1, 1]]) breath.set(x, 14 + y, 17 + z, lin(EYE_WHITE));
 
   const parts = {
-    wools, frosts, head: part(head, HEAD_PIVOT), hood: part(hood, HEAD_PIVOT), tail: part(tail, [CX, 0.5, -0.36]), eyes, lids, brows, mouths, ears, legs,
-    collar: part(collar, [0, 0, 0]), bell: part(bell, [CX, 0.5, 0.42]), sheared: part(sheared, [CX, 0.42, 0.02]), breath: part(breath, [CX, 0.72, 0.56]),
+    wools, frosts, head: part(head, HEAD_PIVOT), hood: part(hood, HEAD_PIVOT), tail: part(tail, [CX, 0.6, -0.38]), eyes, lids, brows, mouths, ears, legs,
+    collar: part(collar, [0, 0, 0]), bell: part(bell, [CX, 0.44, 0.56]), sheared: part(sheared, [CX, 0.5, 0]), breath: part(breath, [CX, 0.56, 0.68]),
     lobes, woolTones,
   };
   const voxels = wools[2].voxels + parts.head.voxels + parts.hood.voxels + parts.tail.voxels + eyes[0].voxels + eyes[1].voxels

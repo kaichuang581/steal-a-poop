@@ -44,5 +44,5 @@ describe('no z-fighting', () => {
       ...yard.chunks.map((g, i) => [`yard chunk ${i}`, g] as [string, BufferGeometry]),
     ];
     expect(coplanarOverlaps(named)).toEqual([]);
-  });
+  }, 30_000); // builds the whole barn and yard: about a second alone, slower when the suite runs in parallel
 });

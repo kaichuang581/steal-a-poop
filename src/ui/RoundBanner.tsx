@@ -18,7 +18,7 @@ export function RoundBanner() {
             initial={{ scale: 0.7, rotate: -3 }} animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 18 }}
           >
-            <div className="text-sm font-bold uppercase tracking-widest text-white/60">Round {game.round} of 3</div>
+            <div className="text-sm font-bold uppercase tracking-widest text-white/60">Round {game.round} of {game.settings.rounds}</div>
             <div className="my-2 text-5xl" aria-hidden="true">{mod.emoji}</div>
             <div className="text-2xl font-black text-amber-300 sm:text-4xl">{mod.label}</div>
             <div className="mt-1 text-sm text-white/80 sm:text-base">{mod.detail}</div>

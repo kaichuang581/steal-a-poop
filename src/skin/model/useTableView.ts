@@ -12,7 +12,8 @@ export function creatureFor(seat: number): CreatureId {
   return CREATURES[seat % CREATURES.length];
 }
 
-export const TWIST_OF: Record<RoundModifier, TwistId> = {
+export const TWIST_OF: Record<RoundModifier, TwistId | null> = {
+  none: null,
   no_e: 'noE', six_plus: 'sixPlus', double_letter: 'doubleLetter', vowel_double: 'vowelDouble', double_points_fast: 'doublePointsShort',
 };
 

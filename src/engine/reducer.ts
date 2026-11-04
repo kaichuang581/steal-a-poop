@@ -1,7 +1,7 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, ROUNDS, STEAL_BONUS, STEAL_WINDOW_MS,
-  TRAP_LETTERS, TRAP_PAYOUT, TURNS_PER_PLAYER_PER_ROUND,
+  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, STEAL_BONUS,
+  TRAP_LETTERS, TRAP_PAYOUT,
 } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawInt, drawPick, drawRandom } from './rng';
@@ -26,7 +26,7 @@ function nextSeat(s: GameState, seat: number): number | null {
   const n = s.players.length;
   for (let i = 1; i <= n; i++) {
     const p = s.players[(seat + i) % n];
-    if (!p.frozen && p.turnsTaken < TURNS_PER_PLAYER_PER_ROUND) return p.id;
+    if (!p.frozen && p.turnsTaken < s.settings.turnsPerRound) return p.id;
   }
   return null;
 }
@@ -41,7 +41,7 @@ function startTurn(s: GameState, seat: number, t: number) {
   const active = s.players[seat];
   const learning = s.mode !== 'normal';
   const tour = s.mode === 'tour';
-  const baseMs = turnDurationMs(s.pile, s.modifier);
+  const baseMs = turnDurationMs(s.pile, s.modifier, s.settings.turnSeconds * 1000);
   const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : baseMs;
   const endsAt = t + durationMs;
   let botActAt: number | null = null;
@@ -56,10 +56,11 @@ function startTurn(s: GameState, seat: number, t: number) {
     }
   }
   const stealPlans: { seat: number; at: number }[] = [];
+  const windowMs = s.settings.stealWindowSeconds * 1000;
   for (const p of s.players) {
-    if (tour || p.id === seat || p.isHuman || p.frozen) continue;
+    if (tour || p.id === seat || p.isHuman || p.frozen || windowMs <= 0) continue;
     if (drawRandom(s) < BOT_PROFILES[p.difficulty!].stealChance) {
-      stealPlans.push({ seat: p.id, at: endsAt - STEAL_WINDOW_MS + drawRandom(s) * (STEAL_WINDOW_MS - 500) });
+      stealPlans.push({ seat: p.id, at: endsAt - windowMs + drawRandom(s) * (windowMs - 500) });
     }
   }
   s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt, stealPlans };
@@ -79,7 +80,7 @@ function endRound(s: GameState, t: number) {
   if (s.pile > 0) emit(s, t, 'burn', null, 'Pile burned', s.pile);
   s.pile = 0;
   s.trap = null;
-  if (s.round === ROUNDS) {
+  if (s.round === s.settings.rounds) {
     s.phase = 'gameOver';
     s.winners = computeWinners(s.players);
     emit(s, t, 'gameOver', null, 'Game over');
@@ -154,8 +155,8 @@ function failTurn(s: GameState, seat: number, t: number) {
   s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: penalty ? -penalty : 0 });
   emit(s, t, 'timeout', seat, `Timeout ${p.name}${penalty ? ` -${penalty}` : ' (no penalty)'}`, penalty ? -penalty : 0);
   resolveTrap(s, seat, true, t);
-  // Only a turn that runs out costs a life, and only in normal games.
-  if (s.mode === 'normal') {
+  // Only a turn that runs out costs a life, and only in normal games; unlimited lives never run out.
+  if (s.mode === 'normal' && s.settings.lives !== 'unlimited') {
     if (p.lives > 0) {
       p.lives -= 1;
       emit(s, t, 'lifeLost', seat, `${p.name} lost a life`, p.lives);
@@ -324,7 +325,8 @@ export function replaceWithBot(state: GameState, seat: number, difficulty: Diffi
 
 export function inStealWindow(s: GameState, now: number): boolean {
   const t = s.turn;
-  return s.phase === 'playing' && !!t && now >= t.endsAt - STEAL_WINDOW_MS && now < t.endsAt;
+  const windowMs = s.settings.stealWindowSeconds * 1000;
+  return s.phase === 'playing' && !!t && windowMs > 0 && now >= t.endsAt - windowMs && now < t.endsAt;
 }
 
 /** Applies a human action at time `now`. Never mutates the input state. */

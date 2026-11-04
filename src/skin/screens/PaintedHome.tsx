@@ -3,8 +3,8 @@ import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
-import { MAX_PLAYERS, MIN_PLAYERS, utcDateKey } from '../../engine';
-import type { Difficulty } from '../../engine';
+import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRESETS, presetOf, utcDateKey } from '../../engine';
+import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getDaily, getStreak } from '../../lib/daily';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
 import { buildShareText } from '../../lib/share';
@@ -34,6 +34,15 @@ const DIFFS: { id: Difficulty; icon: ReactNode }[] = [
   { id: 'easy', icon: <SeedlingIcon /> }, { id: 'medium', icon: <LeafIcon /> }, { id: 'hard', icon: <AcornIcon /> },
 ];
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
+const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
+const RULES: { key: keyof GameSettings; label: string; values: (number | string | boolean)[]; show?: (v: number | string | boolean) => string }[] = [
+  { key: 'rounds', label: 'Rounds', values: [1, 2, 3, 5] },
+  { key: 'turnsPerRound', label: 'Turns per round', values: [3, 5, 7] },
+  { key: 'turnSeconds', label: 'Seconds per turn', values: [5, 8, 10, 12, 15] },
+  { key: 'lives', label: 'Lives', values: [1, 2, 3, 5, 'unlimited'], show: (v) => (v === 'unlimited' ? '∞' : String(v)) },
+  { key: 'twists', label: 'Round twists', values: [true, false], show: (v) => (v ? 'On' : 'Off') },
+  { key: 'stealWindowSeconds', label: 'Steal window', values: [0, 3, 5], show: (v) => (v === 0 ? 'Off' : `${v} s`) },
+];
 
 /**
  * The start screen (plan V3.1 Part 2): the farm diorama behind a title sign, and a two-step panel: choose a table,
@@ -90,6 +99,11 @@ export function PaintedHome() {
     setError('');
     useRoomStore.getState().openLobby(nick.name);
   };
+  // Game length (plan V3.3 Part 2.6): a preset sets every rule; touching a rule makes it Custom. Saved with the other settings.
+  const rules = settings.game;
+  const preset = presetOf(rules);
+  const setRule = (patch: Partial<GameSettings>) => setSettings({ game: { ...rules, ...patch } });
+  const minutes = estimateMinutes({ ...rules, botCount: settings.playerCount - 1, botDifficulty: settings.difficulty });
   const nextTable = new Date(`${today}T00:00:00Z`);
   nextTable.setUTCDate(nextTable.getUTCDate() + 1);
   // The hero looks toward the pointer: up to 0.3 rad either way across the width of the screen.
@@ -174,6 +188,15 @@ export function PaintedHome() {
         {error && <span role="alert" className="mt-1 block text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</span>}
       </label>
       <fieldset>
+        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Game length</legend>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {PRESET_IDS.map((id) => (
+            <Chip key={id} aria-pressed={preset === id} className="capitalize" onClick={() => { if (id !== 'custom') setRule(PRESETS[id]); }}>{id}</Chip>
+          ))}
+        </div>
+        <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">about {minutes} min</p>
+      </fieldset>
+      <fieldset>
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Sheep at the table</legend>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {COUNTS.map((c) => <Chip key={c} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</Chip>)}
@@ -193,6 +216,21 @@ export function PaintedHome() {
           ))}
         </div>
       </fieldset>
+      <details className="rounded-xl px-3 py-1" style={{ background: 'var(--paper-edge)' }} open={preset === 'custom'}>
+        <summary className="cursor-pointer text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Custom rules</summary>
+        <div className="space-y-2 py-2">
+          {RULES.map((r) => (
+            <fieldset key={r.key}>
+              <legend className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--ink-soft)' }}>{r.label}</legend>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {r.values.map((v) => (
+                  <Chip key={String(v)} aria-pressed={rules[r.key] === v} onClick={() => setRule({ [r.key]: v } as Partial<GameSettings>)}>{r.show ? r.show(v) : String(v)}</Chip>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+        </div>
+      </details>
       <WoodButton onClick={() => go('quick')} disabled={!ready} className="w-full text-lg">Sit down</WoodButton>
     </PaperPanel>
   );

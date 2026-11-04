@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createDictionary, dailySetup, rankPlayers, suggestWords, utcDateKey } from '../engine';
-import type { Action, ActionResult, Dictionary, Difficulty, GameState } from '../engine';
+import { DEFAULT_SETTINGS } from '../engine';
+import type { Action, ActionResult, Dictionary, Difficulty, GameSettings, GameState } from '../engine';
 import { getDaily, getStreak, markStarted, recordResult } from '../lib/daily';
 import { checkNickname } from '../lib/nickname';
 import { load, save } from '../lib/storage';
@@ -13,6 +14,8 @@ export interface Settings {
   name: string;
   playerCount: number;
   difficulty: Difficulty;
+  /** Game length rules for Quick Games (plan V3.3 Part 2); the last choice is remembered. */
+  game: GameSettings;
 }
 export type Mode = 'quick' | 'daily' | 'practice' | 'tour' | 'room';
 
@@ -64,6 +67,12 @@ interface Store {
 }
 
 const SETTINGS_KEY = 'sap:settings';
+
+/** Saved settings, with the game rules filled in over the defaults (saves from before v3.3 have none). */
+function loadSettings(): Settings {
+  const saved = load<Partial<Settings>>(SETTINGS_KEY, {});
+  return { name: '', playerCount: 6, difficulty: 'medium', ...saved, game: { ...DEFAULT_SETTINGS, ...(saved.game ?? {}) } };
+}
 const MUTE_KEY = 'sap:muted';
 const VOLUME_KEY = 'sap:volume';
 const REDUCE_KEY = 'sap:reduceMotion';
@@ -78,7 +87,7 @@ export const useStore = create<Store>((set, get) => ({
   mySeat: 0,
   dailyDate: null,
   streak: 0,
-  settings: load<Settings>(SETTINGS_KEY, { name: '', playerCount: 6, difficulty: 'medium' }),
+  settings: loadSettings(),
   now: performance.now(),
   muted: load<boolean>(MUTE_KEY, false),
   volume: Math.min(1, Math.max(0, load<number>(VOLUME_KEY, 0.8))),
@@ -130,6 +139,7 @@ export const useStore = create<Store>((set, get) => ({
       setup = {
         seed: `quick:${Date.now()}:${Math.random()}`,
         now, humanName: nick.name, playerCount: settings.playerCount, difficulty: settings.difficulty,
+        settings: { ...settings.game, botCount: settings.playerCount - 1, botDifficulty: settings.difficulty },
       };
     }
     set({ game: client.create(setup), mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0 });

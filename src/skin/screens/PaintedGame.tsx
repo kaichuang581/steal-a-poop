@@ -61,6 +61,9 @@ export function PaintedGame() {
   const rel = (seat: number) => (seat - mySeat + n) % n;
   const name = (id: string) => game.players[Number(id)]?.name ?? '';
   const practice = storeMode === 'practice';
+  // Flames: none in Practice or with unlimited lives; otherwise as many as the game started with.
+  const livesOn = !practice && game.settings.lives !== 'unlimited';
+  const maxLives = game.settings.lives === 'unlimited' ? 0 : game.settings.lives;
   const k = () => Math.random();
 
   const flash = (node: ReactNode, ms = 900) => {
@@ -158,7 +161,7 @@ export function PaintedGame() {
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1,
               label: (
                 <span className="sk-chip whitespace-nowrap text-xs" style={{ boxShadow: p.id === view.currentPlayerId ? '0 0 0 2px var(--amber)' : undefined }}>
-                  {p.name}{p.isYou ? ' (you)' : ''}{!practice && <Lives lives={p.lives} size={10} />}
+                  {p.name}{p.isYou ? ' (you)' : ''}{livesOn && <Lives lives={p.lives} max={maxLives} size={10} />}
                 </span>
               ),
             };
@@ -174,7 +177,7 @@ export function PaintedGame() {
       {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. */}
       <header className="pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
         <div className="flex flex-col items-start gap-1">
-          <span className="sk-chip sk-display">Round {view.round}/3 · turn {Math.min(5, view.turn)}/5</span>
+          <span className="sk-chip sk-display">Round {view.round}/{game.settings.rounds} · turn {Math.min(game.settings.turnsPerRound, view.turn)}/{game.settings.turnsPerRound}</span>
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1">
@@ -188,7 +191,7 @@ export function PaintedGame() {
 
       <aside className={mobile ? 'relative z-30 mt-14 flex gap-1 overflow-x-auto px-2' : 'relative z-30 ml-auto mr-2 mt-14 flex flex-col gap-1.5'} aria-label="Scoreboard">
         {ranked.map((p) => (
-          <PlayerCard key={p.id} player={p} isTurn={p.id === view.currentPlayerId} compact={mobile} lastWord={game.players[Number(p.id)].lastWord} showLives={!practice} />
+          <PlayerCard key={p.id} player={p} isTurn={p.id === view.currentPlayerId} compact={mobile} lastWord={game.players[Number(p.id)].lastWord} showLives={livesOn} maxLives={maxLives} />
         ))}
       </aside>
 

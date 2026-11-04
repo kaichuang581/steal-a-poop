@@ -1,8 +1,12 @@
+import type { GameSettings } from './settings';
+
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Personality = 'cautious' | 'greedy' | 'random';
-export type Round = 1 | 2 | 3;
+/** 1 up to the game's `settings.rounds`. */
+export type Round = number;
 
 export type RoundModifier =
+  | 'none'
   | 'no_e'
   | 'six_plus'
   | 'double_letter'
@@ -97,6 +101,8 @@ export interface GameEvent {
 
 export interface GameState {
   seed: string;
+  /** The game length settings this game was created with (plan V3.3 Part 2). */
+  settings: GameSettings;
   /** Mulberry32 state. Every random draw advances it, so replays are exact. */
   rng: number;
   mode: GameMode;

@@ -29,7 +29,7 @@ export interface MessageView {
 export interface TableView {
   mode: Mode;
   phase: 'setup' | 'turn' | 'roundEnd' | 'gameEnd';
-  round: 1 | 2 | 3;
+  round: number;
   turn: number;               // 1..5 within the round for the current player
   twist: TwistId | null;
   pile: number;

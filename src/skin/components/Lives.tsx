@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
-const MAX = 3;
-
 /**
- * Three small flames for a player's lives (plan V3 Part 9). A flame that goes out plays a 300 ms puff (it grows, fades
- * and leaves a grey smoke voxel) and then shows only a dark wick. Lives come from engine state only.
+ * Small flames for a player's lives (plan V3 Part 9), one per life the game started with. A flame that goes out plays
+ * a 300 ms puff (it grows, fades and leaves a grey smoke voxel) and then shows only a dark wick. Lives come from
+ * engine state only; a game with unlimited lives shows no flames.
  */
-export function Lives({ lives, size = 14 }: { lives: number; size?: number }) {
+export function Lives({ lives, max = 3, size = 14 }: { lives: number; max?: number; size?: number }) {
+  const MAX = max;
   const prev = useRef(lives);
   const [puff, setPuff] = useState<number | null>(null);
   useEffect(() => {

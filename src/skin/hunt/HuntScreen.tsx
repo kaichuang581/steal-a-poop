@@ -14,12 +14,12 @@ import { PredatorSprite, SheepBackSprite } from './sprites';
 import './hunt.css';
 
 /**
- * The Daily Hunt, played like a handheld monster battle: a fixed 240 x 160 screen scaled up with crisp pixels, the
+ * The Daily Hunt, played like a handheld monster battle: a fixed 256 x 192 screen scaled up with crisp pixels, the
  * wild predator top right with its name box, the sheep from behind bottom left with its HP and EXP, and a text box
  * along the bottom with FIGHT / BAG / RULES / RUN. Every action plays out as a queue of typed messages and effects.
  * The run itself lives in src/hunt (pure and seeded); this screen only plays it out.
  */
-const W = 240, H = 160;
+const W = 256, H = 192;
 const BEAT = 480;
 const ARROWS = ['←', '↓', '↑', '→'];
 const ITEM_IDS: ItemId[] = ['milk', 'bell', 'pepper'];
@@ -65,9 +65,10 @@ export function HuntScreen() {
   const rootRef = useRef<HTMLElement>(null);
   const speed = reduced ? 0.5 : 1;
 
-  // Scale the 240 x 160 screen to fit, in half steps so the pixels stay as even as possible.
+  // Scale the 256 x 192 screen to fit, in half steps so the pixels stay as even as possible, and never past 3x:
+  // bigger only makes the boxes and text clumsy.
   useLayoutEffect(() => {
-    const fit = () => setScale(Math.max(1, Math.floor(Math.min(window.innerWidth / W, (window.innerHeight * 0.86) / H) * 2) / 2));
+    const fit = () => setScale(Math.max(1, Math.min(3, Math.floor(Math.min(window.innerWidth / W, (window.innerHeight * 0.86) / H) * 2) / 2)));
     fit();
     window.addEventListener('resize', fit);
     return () => window.removeEventListener('resize', fit);
@@ -317,7 +318,7 @@ export function HuntScreen() {
             className={`gb-foe ${fxKind === 'appear' ? 'gb-slide-in' : ''} ${fxKind === 'foeHit' ? 'gb-blink' : ''} ${fxKind === 'foeAttack' ? 'gb-lunge' : ''} ${fainted ? 'gb-faint' : ''} ${mode.m === 'announce' && beat % 2 === 0 ? 'gb-bop' : ''}`}
             aria-hidden="true"
           >
-            <PredatorSprite kind={p.kind} size={64} />
+            <PredatorSprite kind={p.kind} />
           </div>
           <section className="gb-box gb-box-foe" aria-label={`${p.name}, level ${p.level + START_LEVEL - 1}`}>
             <div className="gb-row"><span>{foe}</span><span>Lv{p.level + START_LEVEL - 1}</span></div>
@@ -330,7 +331,7 @@ export function HuntScreen() {
           {/* The sheep from behind, and its box with HP and EXP. */}
           <div className="gb-pad gb-pad-me" aria-hidden="true" />
           <div className={`gb-me ${fxKind === 'go' ? 'gb-pop-in' : ''} ${fxKind === 'meHit' ? 'gb-blink' : ''} ${fxKind === 'meAttack' ? 'gb-nudge' : ''}`} aria-hidden="true">
-            <SheepBackSprite size={64} frozen={frozen} />
+            <SheepBackSprite frozen={frozen} />
             {frozen && <div className="gb-ice" />}
           </div>
           <section className="gb-box gb-box-me" aria-label="You">

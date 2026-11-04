@@ -2,212 +2,316 @@ import { useEffect, useState } from 'react';
 import type { PredatorKind } from '../../hunt/hunt';
 
 /**
- * Pixel-art sprites for the Daily Hunt, cute chibi battlers like a handheld's 64 x 64 sprites: a big head, big shiny eyes,
- * a small round body. Each is drawn as simple vector shapes on a 64 x 64 grid (one unit is one pixel), then turned into real pixel art in the browser: rendered at 64 px, every pixel snapped to that animal's
- * palette (no blurry in-between colours), and a one-pixel dark outline drawn round the silhouette, like a handheld
- * battle sprite. The result is cached as a PNG and scaled up with crisp pixels.
+ * Battle sprites for the Daily Hunt, in the style of handheld monster battlers: 96 x 96, a 3/4 view, each creature in
+ * its own idle pose. Each is drawn as flat vector shapes on a 96-unit grid and then finished as pixel art in the
+ * browser (pixelate, below): every pixel snapped to the creature's palette, each colour region shaded with a light rim
+ * toward the upper left and shadow toward the lower right, and the silhouette outlined in a darker shade of whatever it
+ * touches (selective outlining) rather than flat black. The designs are our own; only the poses take after the genre.
  */
-const SIZE = 64;
-const OUTLINE = '#2A2026';
-const INK = '#2A2026';
+export const SPRITE = 96;
+const INK = '#2A2026'; // the selective outline darkens toward this
+const WHITE = '#FFFFFF';
+/** The lineart colour: every shape is outlined in it, which pixelates to the crisp 1 px lines of a battle sprite. */
+const LINE = '#1C1824';
 
-export interface SpriteDef { palette: string[]; svg: string }
+export interface SpriteDef {
+  palette: string[];
+  svg: string;
+  /** Colours left unshaded: lineart, eye glints, irises. */
+  flat?: string[];
+}
 
-const svg = (body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">${body}</svg>`;
+const svg = (body: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" stroke="${LINE}" stroke-width="1.15" stroke-linejoin="round" shape-rendering="crispEdges">${body}</svg>`;
+/** A filled, outlined shape: `d` is a path, or "x,y x,y ..." for a polygon. */
+const S = (fill: string, d: string) => (/^[\d.,\s-]+$/.test(d) ? `<polygon points="${d}" fill="${fill}"/>` : `<path d="${d}" fill="${fill}"/>`);
+/** A line drawn in the lineart colour (fur partings, feather shafts, mouths). */
+const L = (d: string, w = 1) => `<path d="${d}" fill="none" stroke-width="${w}"/>`;
+/** A narrow, fierce almond eye with a coloured iris, a slit of pupil and a glint. */
+const EYE = (pts: string, iris: string, px: number, py: number) =>
+  `${S(iris, pts)}<rect x="${px}" y="${py}" width="1.4" height="2.6" fill="${LINE}" stroke="none"/><rect x="${px - 1.2}" y="${py - 0.4}" width="1" height="1" fill="${WHITE}" stroke="none"/>`;
 
-const BLUSH = '#EFA3A3';
-/** Big shiny cartoon eyes: a dark oval, a white highlight, and a mischievous brow above. */
-const eyes = (iris: string, y = 27, dx = 7, angry = true) => `
-  <ellipse cx="${32 - dx}" cy="${y}" rx="2.7" ry="3.3" fill="${iris}"/><ellipse cx="${32 + dx}" cy="${y}" rx="2.7" ry="3.3" fill="${iris}"/>
-  <rect x="${31 - dx - 1}" y="${y - 2}" width="1.6" height="1.6" fill="#FFFFFF"/><rect x="${31 + dx - 1}" y="${y - 2}" width="1.6" height="1.6" fill="#FFFFFF"/>
-  ${angry ? `<polygon points="${32 - dx - 4},${y - 6} ${32 - dx + 3},${y - 4} ${32 - dx + 3},${y - 3} ${32 - dx - 4},${y - 5}" fill="${INK}"/>
-  <polygon points="${32 + dx + 4},${y - 6} ${32 + dx - 3},${y - 4} ${32 + dx - 3},${y - 3} ${32 + dx + 4},${y - 5}" fill="${INK}"/>` : ''}`;
-const blush = (y = 33) => `<ellipse cx="19" cy="${y}" rx="2.6" ry="1.3" fill="${BLUSH}"/><ellipse cx="45" cy="${y}" rx="2.6" ry="1.3" fill="${BLUSH}"/>`;
-
-// ---------- Grey Wolf (and, darker with a crown and a scar, the Shadow Wolf boss) ----------
-function wolf(c: { fur: string; dark: string; light: string; eye: string; inner: string }, boss = false): SpriteDef {
+// ---------- Golden Eagle: diving at the sheep, wings flung wide, talons thrust forward, crest swept back ----------
+const EAGLE: SpriteDef = (() => {
+  const dk = '#3E2412', br = '#6A3E1E', md = '#8A5428', edge = '#B98446', gold = '#DDAE62', cream = '#F3E7C9', beak = '#F0C040', foot = '#F2C64A';
   return {
-    palette: [c.fur, c.dark, c.light, c.eye, c.inner, INK, '#FFFFFF', BLUSH, ...(boss ? ['#BFE3F5', '#E9F6FF', '#C9C3D6'] : [])],
+    palette: [dk, br, md, edge, gold, cream, beak, '#C99A2E', foot, '#B03030', '#F8B830', '#3A3020', LINE, WHITE],
+    flat: [LINE, WHITE, '#F8B830'],
     svg: svg(`
-      <path d="M43 52 Q60 50 58 33 Q57 27 53 29 Q55 42 43 45 Z" fill="${c.fur}"/><path d="M53 29 Q57 27 58 33 Q56 32 54 33 Z" fill="${c.light}"/>
-      <ellipse cx="32" cy="50" rx="12" ry="9" fill="${c.fur}"/>
-      <ellipse cx="32" cy="47" rx="6" ry="6" fill="${c.light}"/><polygon points="26,42 32,50 38,42" fill="${c.light}"/>
-      <ellipse cx="26" cy="58" rx="4.5" ry="3" fill="${c.light}"/><ellipse cx="38" cy="58" rx="4.5" ry="3" fill="${c.light}"/>
-      <polygon points="16,22 17,3 29,14" fill="${c.fur}"/><polygon points="48,22 47,3 35,14" fill="${c.fur}"/>
-      <polygon points="19,18 19,8 26,14" fill="${c.inner}"/><polygon points="45,18 45,8 38,14" fill="${c.inner}"/>
-      <ellipse cx="32" cy="28" rx="17" ry="14" fill="${c.fur}"/>
-      <polygon points="16,28 9,36 18,37" fill="${c.fur}"/><polygon points="48,28 55,36 46,37" fill="${c.fur}"/>
-      <path d="M27 15 L37 15 L35 22 L29 22 Z" fill="${c.dark}"/>
-      <ellipse cx="32" cy="35" rx="8.5" ry="6" fill="${c.light}"/>
-      ${eyes(c.eye)}
-      ${blush(33)}
-      <ellipse cx="32" cy="31.5" rx="2.8" ry="2" fill="${INK}"/>
-      <path d="M28.5 36 Q32 39 35.5 36" stroke="${INK}" stroke-width="1.2" fill="none"/>
-      <polygon points="33,37 35.5,36.5 34.5,40" fill="#FFFFFF"/>
-      ${boss ? `<polygon points="22,15 23,8 26,13 29,5 32,12 35,5 38,13 41,8 42,15" fill="#BFE3F5"/><rect x="22" y="14" width="20" height="2.5" fill="#E9F6FF"/>
-        <polygon points="40,20 46,30 44.5,31 38.5,21" fill="#C9C3D6"/>` : ''}
+      ${S(dk, '20,24 3,3 9,3 27,21')}${S(br, '24,26 11,1 17,2 30,23')}${S(dk, '28,29 20,2 26,4 34,27')}${S(br, '32,33 29,6 34,8 38,32')}
+      ${S(md, 'M42 48 L30 36 L18 20 L26 18 L38 30 L48 40 Z')}
+      ${S(br, '64,64 91,59 93,65 66,70')}${S(dk, '64,68 91,70 89,76 64,73')}${S(br, '62,70 85,80 81,84 60,75')}
+      ${S(cream, '87,59 91,59 93,65 89,65')}${S(cream, '87,70 91,70 89,76 86,75')}${S(cream, '82,78 85,80 81,84 79,82')}
+      ${S(br, 'M36 52 Q44 42 58 46 Q72 52 70 66 Q64 78 50 80 Q38 78 34 68 Z')}
+      ${S(md, 'M36 58 Q42 50 50 54 Q49 66 43 74 Q36 70 36 58 Z')}
+      ${L('M39 59 L42 62 L45 58 M40 65 L43 68 L46 64 M44 56 L46 59')}
+      ${S(md, 'M58 72 L62 84 L68 82 L64 70 Z')}${S(md, 'M44 72 Q39 79 37 84 L46 86 L51 77 Z')}
+      ${S(foot, '58,82 70,82 72,86 60,86')}${S(foot, '62,85 66,92 63,93 60,86')}${S(foot, '66,85 73,90 71,92 64,86')}
+      ${S(foot, '38,84 27,86 29,89 38,87')}${S(foot, '40,86 31,92 34,94 42,88')}${S(foot, '44,86 44,94 47,94 47,86')}${S(foot, '46,84 53,82 53,85')}
+      ${S(LINE, '27,86 24,86 26,89')}${S(LINE, '31,92 29,95 33,94')}${S(LINE, '44,94 45,97 47,94')}${S(LINE, '66,92 66,95 63,93')}${S(LINE, '73,90 75,92 71,92')}
+      ${S(md, 'M46 50 Q54 36 66 24 L72 20 Q66 34 60 44 Q56 50 52 55 Z')}
+      ${S(dk, '58,40 92,2 95,6 62,44')}${S(br, '60,44 94,10 95,15 64,47')}${S(dk, '62,47 94,20 93,25 66,50')}${S(br, '64,50 92,30 90,35 67,53')}${S(dk, '66,53 88,40 85,44 68,56')}
+      ${L('M64 43 L90 8 M66 47 L92 19 M68 51 L90 29 M69 54 L86 39')}
+      ${S(edge, 'M50 47 Q60 31 74 19 Q84 11 94 4 L95 8 Q84 16 77 23 Q65 35 57 51 Z')}
+      ${S(cream, '28,42 36,25 40,27 34,44')}${S(cream, '32,42 44,27 46,31 38,45')}${S(gold, '36,44 51,33 52,38 42,47')}${S(cream, '38,48 53,43 53,48 42,52')}
+      ${S(gold, 'M22 50 Q24 40 34 40 Q44 42 46 51 Q46 60 38 64 Q28 66 24 60 Z')}
+      ${S(cream, '38,55 50,57 46,64 38,62')}${L('M41 57 L45 61')}
+      ${S(beak, 'M27 50 L16 52 Q10 54 10 61 Q12 58 15 58 L25 57 Z')}${S('#3A3020', 'M10 61 Q10 54 14 53 L15 58 Q12 58 10 61 Z')}
+      ${S('#B03030', '24,57 16,59 23,60')}${S('#C99A2E', 'M24 58 L16 60 L18 64 L26 61 Z')}
+      ${EYE('28,48 32,45.5 37,46.5 33,50', '#F8B830', 31.6, 46.6)}
+      ${S(LINE, '25,46 38,42.5 38.5,44.5 27,47.5')}
+    `),
+  };
+})();
+
+// ---------- Grey Wolf: snarling, crouched to spring, hackles up (recoloured with frost and a crown: the Shadow Wolf) ----------
+function wolf(c: { fur: string; light: string; dark: string; far: string; eye: string; mark?: string; frost?: string }, boss = false): SpriteDef {
+  const mouth = '#8A2030';
+  return {
+    palette: [c.fur, c.light, c.dark, c.far, c.eye, mouth, LINE, WHITE, ...(c.mark ? [c.mark] : []), ...(c.frost ? [c.frost, '#E9F6FF'] : [])],
+    flat: [LINE, WHITE, c.eye],
+    svg: svg(`
+      ${S(c.fur, 'M70 52 L84 34 L81 41 L92 30 L87 42 L95 40 L84 52 L76 57 Z')}
+      ${S(c.far, 'M66 64 L70 80 L66 90 L74 90 L77 80 L74 62 Z')}${S(c.far, 'M30 66 L28 88 L36 89 L37 70 Z')}
+      ${S(c.fur, 'M27 56 Q38 46 56 48 Q72 48 77 58 Q79 70 68 72 Q54 74 40 72 Q29 70 27 56 Z')}
+      ${S(c.light, 'M36 68 Q50 74 66 70 Q58 77 46 77 Q38 75 36 68 Z')}
+      ${S(c.dark, 'M30 53 L33 38 L38 46 L42 33 L46 44 L52 35 L54 46 L61 41 L59 50 Q46 54 30 53 Z')}
+      ${S(c.fur, 'M62 56 Q74 54 77 64 L73 74 L75 86 L81 90 L70 90 L66 76 Q60 68 62 56 Z')}
+      ${S(c.fur, 'M36 62 L40 88 L47 90 L48 86 L44 84 L43 64 Z')}
+      ${L('M70 88 L71 90 M74 88 L75 90 M42 88 L42 90 M45 88 L45 90')}
+      ${L('M45 60 Q50 62 54 60 M66 62 Q70 64 72 68')}
+      ${c.frost ? `${S(c.frost, '40,48 42,36 46,46')}${S(c.frost, '48,47 52,34 55,46')}${S(c.frost, '57,48 62,38 63,49')}` : ''}
+      ${S(c.far, '31,42 41,31 42,44')}
+      ${S(c.fur, 'M13 54 Q17 42 30 42 Q40 44 41 54 Q39 62 30 64 Q20 64 13 54 Z')}
+      ${S(c.fur, '25,45 35,29 38,44')}${S(c.light, '29,42 34,33 35,42')}
+      ${S(c.light, 'M3 56 Q8 51 18 51 Q23 56 20 60 Q14 64 5 62 Z')}
+      ${S(mouth, '5,62 18,59.5 16,66 8,66')}${S(WHITE, '9,62 11,62 10,64.5')}${S(WHITE, '14,61 16,61 15,63.5')}${S(WHITE, '10,66 12,66 11,63.5')}
+      ${S(LINE, 'M1.5 55.5 Q3 53 6 54 Q6 57 3.5 57.5 Z')}
+      ${L('M10 54 Q12 52 14 54 M12 57 Q14 55 16 57')}
+      ${S(c.light, 'M23 58 L19 67 L25 63 L27 69 L31 61 Z')}
+      ${c.mark ? `${S(c.mark, '30,46 36,44 34,48')}${S(c.mark, '38,72 44,70 42,76')}` : ''}
+      ${EYE('19,50 24,47.5 28,49.5 23,52', c.eye, 22.6, 48.6)}
+      ${S(LINE, '17,47.5 29,45.5 29,47 18,49')}
+      ${boss ? `${S(c.frost!, '24,42 22,30 28,38')}${S(c.frost!, '30,40 32,26 35,38')}${S('#E9F6FF', '36,40 40,28 41,41')}` : ''}
     `),
   };
 }
 
-// ---------- Red Fox: huge black-tipped ears, a white-tipped brush of a tail, dark stockings ----------
-const FOX: SpriteDef = {
-  palette: ['#E07B2E', '#A9561B', '#FBEEDC', '#6B3410', INK, '#FFFFFF', BLUSH],
-  svg: svg(`
-    <path d="M41 54 Q63 52 59 30 Q57 21 50 25 Q55 41 41 46 Z" fill="#E07B2E"/><ellipse cx="56" cy="27" rx="4.5" ry="4" fill="#FBEEDC"/>
-    <ellipse cx="32" cy="50" rx="11" ry="9" fill="#E07B2E"/><ellipse cx="32" cy="48" rx="6" ry="6.5" fill="#FBEEDC"/>
-    <rect x="24" y="53" width="5" height="8" rx="2" fill="#6B3410"/><rect x="35" y="53" width="5" height="8" rx="2" fill="#6B3410"/>
-    <polygon points="15,24 12,1 29,13" fill="#E07B2E"/><polygon points="49,24 52,1 35,13" fill="#E07B2E"/>
-    <polygon points="18,19 16,7 25,13" fill="#FBEEDC"/><polygon points="46,19 48,7 39,13" fill="#FBEEDC"/>
-    <polygon points="12,1 13.5,8 16,5" fill="#6B3410"/><polygon points="52,1 50.5,8 48,5" fill="#6B3410"/>
-    <ellipse cx="32" cy="27" rx="16" ry="13" fill="#E07B2E"/>
-    <path d="M27 14 L37 14 L35 21 L29 21 Z" fill="#A9561B"/>
-    <path d="M16 28 Q24 33 32 42 Q40 33 48 28 Q48 38 32 43 Q16 38 16 28 Z" fill="#FBEEDC"/>
-    ${eyes(INK, 26)}
-    ${blush(32)}
-    <ellipse cx="32" cy="34" rx="2.4" ry="1.8" fill="${INK}"/>
-    <path d="M29 37 Q32 39.5 35 37" stroke="${INK}" stroke-width="1.2" fill="none"/>
-  `),
-};
-
-// ---------- Lynx: black ear tufts, a spotted coat, a big striped ruff, a stubby tail ----------
-const LYNX: SpriteDef = {
-  palette: ['#C9A57A', '#8E6E4A', '#F6EBD9', '#8CC63F', INK, '#E7A0A0', '#FFFFFF'],
-  svg: svg(`
-    <ellipse cx="45" cy="47" rx="4" ry="2.5" fill="#C9A57A"/><ellipse cx="48" cy="46" rx="1.8" ry="1.8" fill="${INK}"/>
-    <ellipse cx="32" cy="50" rx="12" ry="9" fill="#C9A57A"/><ellipse cx="32" cy="49" rx="6" ry="6" fill="#F6EBD9"/>
-    <circle cx="24" cy="50" r="1.3" fill="#8E6E4A"/><circle cx="40" cy="51" r="1.3" fill="#8E6E4A"/><circle cx="27" cy="55" r="1.2" fill="#8E6E4A"/>
-    <ellipse cx="26" cy="58" rx="5" ry="3" fill="#F6EBD9"/><ellipse cx="38" cy="58" rx="5" ry="3" fill="#F6EBD9"/>
-    <polygon points="18.5,10 18,1 19.5,1 20.5,10" fill="${INK}"/><polygon points="45.5,10 46,1 44.5,1 43.5,10" fill="${INK}"/>
-    <polygon points="16,21 19,7 28,14" fill="#C9A57A"/><polygon points="48,21 45,7 36,14" fill="#C9A57A"/>
-    <polygon points="18.5,17 19.5,10 25,14" fill="#F6EBD9"/><polygon points="45.5,17 44.5,10 39,14" fill="#F6EBD9"/>
-    <polygon points="15,27 7,40 14,38 11,45 20,42 24,46 32,43 40,46 44,42 53,45 50,38 57,40 49,27" fill="#F6EBD9"/>
-    <path d="M10 41 L15 36 M13 45 L18 39 M54 41 L49 36 M51 45 L46 39" stroke="${INK}" stroke-width="1.5"/>
-    <ellipse cx="32" cy="27" rx="16" ry="13" fill="#C9A57A"/>
-    <path d="M29 15 L29.5 20 M32 14 L32 20 M35 15 L34.5 20" stroke="#8E6E4A" stroke-width="1.5"/>
-    <ellipse cx="25" cy="27" rx="3.3" ry="3.3" fill="#8CC63F"/><ellipse cx="39" cy="27" rx="3.3" ry="3.3" fill="#8CC63F"/>
-    <rect x="24.2" y="24.5" width="1.6" height="5" fill="${INK}"/><rect x="38.2" y="24.5" width="1.6" height="5" fill="${INK}"/>
-    <rect x="23" y="25" width="1.2" height="1.2" fill="#FFFFFF"/><rect x="37" y="25" width="1.2" height="1.2" fill="#FFFFFF"/>
-    <polygon points="20,21 27,23 27,24 20,22" fill="${INK}"/><polygon points="44,21 37,23 37,24 44,22" fill="${INK}"/>
-    <ellipse cx="29" cy="35" rx="3.5" ry="2.8" fill="#F6EBD9"/><ellipse cx="35" cy="35" rx="3.5" ry="2.8" fill="#F6EBD9"/>
-    <polygon points="30,31 34,31 32,33.5" fill="#E7A0A0"/>
-    <path d="M32 33.5 L32 35.5 M29.5 37 Q32 38.5 34.5 37" stroke="${INK}" stroke-width="1.1" fill="none"/>
-  `),
-};
-
-// ---------- Polar Bear: round and chunky, small eyes, a big black nose ----------
-const BEAR: SpriteDef = {
-  palette: ['#F4F1E8', '#D6CFBE', '#B8AF9C', INK, '#FFFFFF', BLUSH],
-  svg: svg(`
-    <ellipse cx="32" cy="49" rx="16" ry="11.5" fill="#F4F1E8"/><ellipse cx="32" cy="51" rx="9" ry="7" fill="#D6CFBE"/>
-    <ellipse cx="22" cy="59" rx="6" ry="3.2" fill="#F4F1E8"/><ellipse cx="42" cy="59" rx="6" ry="3.2" fill="#F4F1E8"/>
-    <ellipse cx="22" cy="60" rx="2.5" ry="1.4" fill="#B8AF9C"/><ellipse cx="42" cy="60" rx="2.5" ry="1.4" fill="#B8AF9C"/>
-    <circle cx="19" cy="15" r="5.5" fill="#F4F1E8"/><circle cx="45" cy="15" r="5.5" fill="#F4F1E8"/>
-    <circle cx="19" cy="15" r="2.6" fill="#B8AF9C"/><circle cx="45" cy="15" r="2.6" fill="#B8AF9C"/>
-    <ellipse cx="32" cy="27" rx="16" ry="13.5" fill="#F4F1E8"/>
-    <ellipse cx="32" cy="34" rx="7.5" ry="5.5" fill="#D6CFBE"/>
-    <ellipse cx="24.5" cy="26" rx="2.2" ry="2.6" fill="${INK}"/><ellipse cx="39.5" cy="26" rx="2.2" ry="2.6" fill="${INK}"/>
-    <rect x="23.5" y="24.5" width="1.2" height="1.2" fill="#FFFFFF"/><rect x="38.5" y="24.5" width="1.2" height="1.2" fill="#FFFFFF"/>
-    <polygon points="20,20 27,22 27,23 20,21.5" fill="${INK}"/><polygon points="44,20 37,22 37,23 44,21.5" fill="${INK}"/>
-    ${blush(31)}
-    <ellipse cx="32" cy="31.5" rx="3.4" ry="2.3" fill="${INK}"/><rect x="30.5" y="30.3" width="1.4" height="0.9" fill="#FFFFFF"/>
-    <path d="M32 33.5 L32 35.5 M29 36.5 Q32 38.5 35 36.5" stroke="${INK}" stroke-width="1.1" fill="none"/>
-  `),
-};
-
-// ---------- Golden Eagle: a round little bird, golden head, hooked beak, wings ready ----------
-const EAGLE: SpriteDef = {
-  palette: ['#6B4426', '#8E5B30', '#D9A85A', '#F2C14E', '#C8902A', INK, '#FFFFFF', BLUSH],
-  svg: svg(`
-    <ellipse cx="15" cy="42" rx="7" ry="12" fill="#6B4426" transform="rotate(25 15 42)"/><ellipse cx="49" cy="42" rx="7" ry="12" fill="#6B4426" transform="rotate(-25 49 42)"/>
-    <path d="M11 40 L9 50 M14 42 L13 52 M53 40 L55 50 M50 42 L51 52" stroke="#8E5B30" stroke-width="1.5"/>
-    <ellipse cx="32" cy="46" rx="12" ry="13" fill="#6B4426"/>
-    <path d="M27 44 L29 47 L31 44 M33 48 L35 51 L37 48 M27 51 L29 54 L31 51" stroke="#8E5B30" stroke-width="1.4" fill="none"/>
-    <path d="M25 57 L23 62 M27 57 L27 62 M29 57 L31 62 M35 57 L33 62 M37 57 L37 62 M39 57 L41 62" stroke="#F2C14E" stroke-width="1.6"/>
-    <polygon points="26,14 29,6 31,12 34,5 36,12 39,7 38,15" fill="#D9A85A"/>
-    <ellipse cx="32" cy="24" rx="14" ry="12" fill="#D9A85A"/>
-    <ellipse cx="25" cy="23" rx="2.5" ry="3" fill="${INK}"/><ellipse cx="39" cy="23" rx="2.5" ry="3" fill="${INK}"/>
-    <rect x="24" y="21.5" width="1.2" height="1.2" fill="#FFFFFF"/><rect x="38" y="21.5" width="1.2" height="1.2" fill="#FFFFFF"/>
-    <polygon points="19,16 28,19 28,20.5 19,18" fill="#6B4426"/><polygon points="45,16 36,19 36,20.5 45,18" fill="#6B4426"/>
-    ${blush(29)}
-    <path d="M27 27 Q32 24.5 37 27 Q37 33 32 36 Q31 33 29 33 Q27 31 27 27 Z" fill="#F2C14E"/>
-    <path d="M31 33 Q32 36 32 36 Q34 34 33 32 Z" fill="#C8902A"/>
-  `),
-};
-
-function sheepBack(frozen: boolean): SpriteDef {
-  const wool = frozen ? '#D9EEF8' : '#FAF6EC', shade = frozen ? '#9ED2EE' : '#DDD3BE', face = frozen ? '#6E9DBF' : '#3F3A3A', hoof = frozen ? '#4E7FA3' : '#2A2626';
+// ---------- Red Fox: stepping forward, head turned to the sheep, an S of a tail held high ----------
+const FOX: SpriteDef = (() => {
+  const or = '#E07A2C', wh = '#FBEEDC', bk = '#2E1A10', inner = '#F0B898';
   return {
-    palette: [wool, shade, face, hoof, INK],
+    palette: [or, wh, bk, inner, '#F8B030', LINE, WHITE],
+    flat: [LINE, WHITE, '#F8B030'],
     svg: svg(`
-      <rect x="15" y="46" width="6" height="14" fill="${face}"/><rect x="25" y="48" width="6" height="13" fill="${face}"/>
-      <rect x="33" y="48" width="6" height="13" fill="${face}"/><rect x="43" y="46" width="6" height="14" fill="${face}"/>
-      <rect x="15" y="57" width="6" height="4" fill="${hoof}"/><rect x="25" y="58" width="6" height="4" fill="${hoof}"/>
-      <rect x="33" y="58" width="6" height="4" fill="${hoof}"/><rect x="43" y="57" width="6" height="4" fill="${hoof}"/>
-      <ellipse cx="32" cy="38" rx="27" ry="16" fill="${shade}"/>
-      <circle cx="14" cy="34" r="9" fill="${wool}"/><circle cx="50" cy="34" r="9" fill="${wool}"/><circle cx="24" cy="28" r="10" fill="${wool}"/>
-      <circle cx="40" cy="28" r="10" fill="${wool}"/><circle cx="32" cy="36" r="13" fill="${wool}"/><circle cx="20" cy="42" r="8" fill="${wool}"/><circle cx="44" cy="42" r="8" fill="${wool}"/>
-      <ellipse cx="32" cy="16" rx="9" ry="8" fill="${face}"/>
-      <ellipse cx="18" cy="17" rx="7" ry="3" fill="${face}" transform="rotate(-15 18 17)"/><ellipse cx="46" cy="17" rx="7" ry="3" fill="${face}" transform="rotate(15 46 17)"/>
-      <circle cx="27" cy="12" r="4" fill="${wool}"/><circle cx="33" cy="10" r="4.5" fill="${wool}"/><circle cx="38" cy="13" r="3.5" fill="${wool}"/>
-      <path d="M12 44 Q32 56 52 44" stroke="${shade}" stroke-width="3" fill="none"/>
+      ${S(or, 'M64 62 Q84 64 88 48 Q90 36 80 30 Q90 26 94 36 Q96 54 84 66 Q74 72 62 70 Z')}
+      ${S(wh, 'M80 30 Q86 24 94 30 Q93 36 89 36 Q85 32 80 30 Z')}${L('M70 64 Q80 60 84 50 M76 66 Q86 60 88 50')}
+      ${S(bk, 'M66 66 L70 90 L76 90 L72 66 Z')}${S(bk, 'M36 70 L34 90 L40 90 L41 72 Z')}
+      ${S(or, 'M30 58 Q40 50 56 52 Q70 54 72 64 Q70 72 58 72 L40 72 Q30 70 30 58 Z')}
+      ${S(wh, 'M40 70 Q50 74 60 71 Q54 76 46 75 Z')}
+      ${S(or, 'M60 56 Q72 56 72 66 L68 74 L66 76 L62 76 Q56 68 60 56 Z')}${S(bk, 'M62 76 L64 90 L71 90 L68 74 Z')}
+      ${S(or, 'M38 64 L34 76 L44 76 L44 68 Z')}${S(bk, 'M34 76 L28 88 L25 90 L34 90 L40 80 L44 76 Z')}
+      ${S(wh, 'M27 50 Q36 52 40 60 L36 64 L38 70 L32 66 L30 72 L26 64 Q24 56 27 50 Z')}
+      ${S(or, '22,32 18,6 34,26')}${S(inner, '24,28 21,12 31,25')}${S(bk, '18,6 20,15 25,11')}
+      ${S(or, '36,28 45,7 47,31')}${S(inner, '39,27 44,13 45,29')}${S(bk, '45,7 43,15 46,14')}
+      ${S(or, 'M17 40 Q21 28 34 28 Q45 30 46 40 Q44 50 34 52 Q24 52 17 40 Z')}
+      ${S(or, 'M5 45 Q10 39 21 39 Q26 44 22 48 Q14 50 7 48 Z')}
+      ${S(wh, 'M13 47 Q22 44 30 48 L34 54 L27 52 L23 57 L19 50 Z')}
+      ${S(LINE, 'M3 44 Q4 42 7 43 Q7 46 4 46.5 Z')}${L('M8 48.5 Q12 50 16 49')}
+      ${EYE('22,39 27,36.5 32,38.5 27,41', '#F8B030', 26.2, 37.4)}
+      ${S(LINE, '20,36.5 32,35 32.5,36.6 21,38.2')}${L('M23 42 Q27 43 31 41')}
+      ${L('M50 58 Q56 60 60 58 M34 33 L38 35')}
+    `),
+  };
+})();
+
+// ---------- Lynx: stalking low, shoulders up, huge paws forward, tufted ears and a striped ruff ----------
+const LYNX: SpriteDef = (() => {
+  const tan = '#C9A270', cr = '#F4E8D2', sp = '#7A5A36', far = '#A9844F';
+  return {
+    palette: [tan, cr, sp, far, '#E7A0A0', '#9BD050', LINE, WHITE],
+    flat: [LINE, WHITE, '#9BD050'],
+    svg: svg(`
+      ${S(tan, '77,50 88,45 91,51 82,56')}${S(LINE, '87,45 91,44 92,50 90,51')}
+      ${S(far, 'M64 64 L68 88 L76 88 L72 64 Z')}${S(far, 'M44 66 L44 88 L52 88 L50 68 Z')}
+      ${S(tan, 'M28 60 Q34 48 48 50 Q62 52 74 50 Q82 52 80 62 Q76 70 64 70 L40 72 Q30 70 28 60 Z')}
+      ${S(cr, 'M38 70 Q52 74 64 70 Q58 76 48 76 Q40 75 38 70 Z')}
+      ${S(tan, 'M33 53 Q39 39 51 46 Q46 52 33 53 Z')}
+      ${S(sp, 'M46 58 Q49 56 51 59 Q48 61 46 58 Z')}${S(sp, 'M56 55 Q59 53 61 56 Q58 58 56 55 Z')}${S(sp, 'M66 56 Q69 54 71 57 Q68 59 66 56 Z')}
+      ${S(sp, 'M52 64 Q55 62 57 65 Q54 67 52 64 Z')}${S(sp, 'M62 62 Q65 60 67 63 Q64 65 62 62 Z')}${S(sp, 'M40 60 Q43 58 45 61 Q42 63 40 60 Z')}
+      ${S(tan, 'M65 58 Q78 58 79 68 L75 76 L81 88 L70 88 L68 78 Q62 70 65 58 Z')}${L('M72 86 L72 88 M76 86 L76 88')}
+      ${S(tan, 'M36 64 L28 82 L19 87 L19 90 L35 90 L40 80 L44 68 Z')}${S(cr, 'M19 87 L19 90 L35 90 L33 86 Z')}${L('M24 87 L24 90 M28 87 L28 90')}
+      ${S(cr, 'M19 60 L12 73 L19 69 L21 77 L27 69 L31 75 L36 64 Z')}${L('M15 70 L20 64 M22 74 L25 66 M30 72 L31 66')}
+      ${S(tan, '20,47 20,30 30,42')}${S(cr, '22,43 22,35 27,41')}${S(LINE, '19.5,31 19,19 21,19 21,31')}
+      ${S(far, '30,45 37,31 39,47')}${S(LINE, '36.5,32 37,21 38.8,21 38,32')}
+      ${S(tan, 'M11 56 Q13 44 26 44 Q37 46 38 56 Q36 64 28 66 Q17 66 11 56 Z')}
+      ${L('M24 45 L25 50 M28 45 L28 50 M32 46 L31 50')}
+      ${S(cr, 'M9 58 Q12 54 18 55 Q20 59 16 62 Q11 62 9 58 Z')}${S(cr, 'M16 58 Q20 55 25 57 Q25 62 20 63 Q16 62 16 58 Z')}
+      ${S('#E7A0A0', '12,55 17,55 14.5,58')}${L('M14.5 58 L14.5 60 M11 62 Q15 64 19 62')}
+      ${EYE('17,51 21,48.5 25,50 21,52.5', '#9BD050', 20.4, 49.2)}${EYE('28,50 31,48 34,49.5 31,51.5', '#9BD050', 30.6, 48.6)}
+      ${S(LINE, '15,48 25,46.5 25,48 16,49.5')}${L('M11 53 L16 54')}
+    `),
+  };
+})();
+
+// ---------- Polar Bear: reared up on its hind legs, forepaws raised, roaring ----------
+const BEAR: SpriteDef = (() => {
+  const fur = '#EFEADC', sh = '#D6CDB6', mouth = '#7A2028';
+  return {
+    palette: [fur, sh, mouth, '#E89A9A', '#3A2E2A', LINE, WHITE],
+    flat: [LINE, WHITE, '#3A2E2A'],
+    svg: svg(`
+      ${S(sh, 'M33 46 L22 30 L15 17 L24 14 L30 25 L41 39 Z')}${S(sh, 'M13 18 Q16 9 25 12 Q27 18 23 21 Q16 22 13 18 Z')}
+      ${S(LINE, '13,12 12,7 15,11')}${S(LINE, '17,10 17,5 19,10')}${S(LINE, '21,10 23,6 23,11')}
+      ${S(fur, 'M29 72 L24 90 L41 90 L43 76 Z')}${S(fur, 'M55 76 L57 90 L74 90 L68 72 Z')}
+      ${L('M29 88 L29 90 M34 88 L34 90 M61 88 L61 90 M66 88 L66 90')}
+      ${S(fur, 'M28 48 Q48 36 68 48 Q77 64 68 80 Q48 88 30 80 Q21 64 28 48 Z')}
+      ${S(sh, 'M36 52 L40 58 L44 54 L48 60 L52 54 L56 58 L60 52 Q64 66 58 78 Q48 84 38 78 Q32 66 36 52 Z')}
+      ${S(fur, '24,62 19,68 26,68')}${S(fur, '71,64 77,70 70,70')}${L('M42 68 L45 71 M50 70 L53 73 M46 76 L48 78')}
+      ${S(fur, 'M63 46 L76 30 L82 16 L90 19 L85 34 L72 52 Z')}${S(fur, 'M80 18 Q82 8 91 10 Q94 16 90 21 Q84 23 80 18 Z')}
+      ${S(LINE, '82,10 82,5 85,9')}${S(LINE, '86,8 88,4 89,9')}${S(LINE, '91,10 94,7 93,12')}${L('M76 34 Q80 36 82 34')}
+      ${S(fur, 'M31 26 Q36 13 48 13 Q60 13 65 26 Q65 38 56 42 Q48 46 40 42 Q31 38 31 26 Z')}
+      ${S(fur, 'M33 15 Q34 9 40 10 Q41 15 37 17 Z')}${S(fur, 'M63 15 Q62 9 56 10 Q55 15 59 17 Z')}
+      ${S(sh, 'M39 29 Q48 23 57 29 Q59 40 48 45 Q37 40 39 29 Z')}
+      ${S(mouth, '41,35 55,35 52,44 44,44')}${S('#E89A9A', '45,41 51,41 50,44 46,44')}
+      ${S(WHITE, '42,35 44,35 43,38')}${S(WHITE, '52,35 54,35 53,38')}${S(WHITE, '44,44 45.5,44 44.8,41.5')}${S(WHITE, '50.5,44 52,44 51.2,41.5')}
+      ${S(LINE, 'M44 29 Q48 26 52 29 Q50 32 48 32 Q46 32 44 29 Z')}
+      ${EYE('36,24 39,22.5 42,23.5 39,25.5', '#3A2E2A', 38.4, 22.6)}${EYE('54,23.5 57,22.5 60,24 57,25.5', '#3A2E2A', 56.4, 22.6)}
+      ${S(LINE, '34,21.5 43,22 43,23.5 35,23')}${S(LINE, '62,21.5 53,22 53,23.5 61,23')}
+    `),
+  };
+})();
+
+// ---------- The sheep, a little ram seen from behind at 3/4: curled horns, a cloud of wool, a tuft of a tail ----------
+function sheepBack(frozen: boolean): SpriteDef {
+  const wool = frozen ? '#DDF0FA' : '#F7F1E4', woolSh = frozen ? '#A9D8F0' : '#E2D6BE', face = frozen ? '#6E9DBF' : '#3E3838',
+    hoof = frozen ? '#4E7FA3' : '#262222', horn = frozen ? '#C6E4F4' : '#CDB48C', hornSh = frozen ? '#8FC0DE' : '#9C8460';
+  return {
+    palette: [wool, woolSh, face, hoof, horn, hornSh, LINE],
+    flat: [LINE],
+    svg: svg(`
+      ${S(face, 'M24 72 L22 90 L30 90 L32 74 Z')}${S(face, 'M60 76 L60 90 L68 90 L68 74 Z')}${S(face, 'M40 76 L38 92 L46 92 L48 78 Z')}${S(face, 'M72 70 L74 88 L82 88 L80 68 Z')}
+      ${S(hoof, '22,88 30,88 30,91 22,91')}${S(hoof, '38,90 46,90 46,93 38,93')}${S(hoof, '60,88 68,88 68,91 60,91')}${S(hoof, '74,86 82,86 82,89 74,89')}
+      ${S(woolSh, 'M14 62 Q14 40 48 38 Q84 38 86 60 Q84 80 50 84 Q16 82 14 62 Z')}
+      ${[[24, 56, 13], [38, 44, 14], [56, 42, 14], [72, 52, 13], [50, 60, 17], [30, 68, 12], [66, 68, 12], [18, 66, 8], [44, 74, 11], [80, 62, 8]]
+        .map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${wool}"/>`).join('')}
+      ${L('M30 48 Q34 44 38 48 M50 36 Q54 32 58 36 M60 56 Q64 52 68 56 M24 62 Q28 58 32 62 M44 66 Q48 62 52 66 M70 44 Q74 40 78 44')}
+      ${S(wool, 'M12 66 Q9 60 14 58 Q19 59 18 64 Q16 68 12 66 Z')}${L('M13 62 Q15 60 16 63')}
+      ${S(face, 'M56 24 Q66 15 77 20 Q83 27 78 34 Q68 39 60 34 Q54 30 56 24 Z')}
+      ${S(face, 'M82 30 Q91 29 93 33 Q88 36 81 34 Z')}
+      ${S(horn, 'M56 32 Q46 30 46 22 Q48 14 56 16 Q62 19 58 25 Q55 27 54 24')}${S(hornSh, 'M50 22 Q51 18 55 19 Q57 22 54 24 Q51 24 50 22 Z')}
+      ${S(horn, 'M76 22 Q84 12 90 18 Q93 26 86 28 Q82 27 83 23')}${S(hornSh, 'M85 18 Q89 18 89 22 Q87 25 85 23 Q84 20 85 18 Z')}
+      ${[[62, 20, 5.5], [69, 16, 6], [74, 21, 5], [60, 26, 4]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${wool}"/>`).join('')}
     `),
   };
 }
 
 export const PREDATOR_SPRITES: Record<PredatorKind, SpriteDef> = {
-  wolf: wolf({ fur: '#9A97A6', dark: '#6E6B78', light: '#E6E3EC', eye: INK, inner: '#E2B4B4' }),
+  wolf: wolf({ fur: '#8F8C9E', light: '#D6D3DE', dark: '#5E5B70', far: '#6E6B80', eye: '#F8D040' }),
   fox: FOX,
   lynx: LYNX,
   bear: BEAR,
   eagle: EAGLE,
-  shadow: wolf({ fur: '#4A4458', dark: '#2E2A38', light: '#8E88A0', eye: '#E2403A', inner: '#7A4A5A' }, true),
+  shadow: wolf({ fur: '#3E3850', light: '#7E7698', dark: '#24202F', far: '#2C283A', eye: '#FF4A3A', mark: '#C83838', frost: '#9ED2EE' }, true),
 };
 
-// ---------- SVG -> crisp pixel art ----------
-const hex = (h: string) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+// ---------- vector -> finished pixel art ----------
+type RGB = [number, number, number];
+const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const COOL: RGB = [58, 48, 110]; // shadows lean cool and violet, as hand-shaded sprites do
+const WARM: RGB = [255, 248, 230];
+const shade = (c: RGB, k: number): RGB => mix(c.map((v) => v * (1 - k)) as RGB, COOL, k * 0.5);
+const light = (c: RGB, k: number): RGB => mix(c, WARM, k);
 const cache = new Map<string, Promise<string>>();
 
-/** Renders a sprite at SIZE x SIZE, snaps every pixel to its palette and outlines the silhouette; a PNG data URL. */
+/**
+ * Renders a sprite at 96 x 96 and finishes it as pixel art: palette snap, per-region rim light and shadow, and a
+ * selective outline. Returns a PNG data URL (cached per sprite).
+ */
 export function pixelate(def: SpriteDef): Promise<string> {
   const hit = cache.get(def.svg);
   if (hit) return hit;
   const job = (async () => {
+    const N = SPRITE;
     const img = new Image();
     img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(def.svg)}`;
     await img.decode();
     const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = SIZE;
+    canvas.width = canvas.height = N;
     const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-    ctx.drawImage(img, 0, 0, SIZE, SIZE);
-    const data = ctx.getImageData(0, 0, SIZE, SIZE);
+    ctx.drawImage(img, 0, 0, N, N);
+    const data = ctx.getImageData(0, 0, N, N);
     const px = data.data;
     const pal = def.palette.map(hex);
-    const solid = new Uint8Array(SIZE * SIZE);
-    for (let i = 0; i < SIZE * SIZE; i++) {
+    const flat = new Set((def.flat ?? []).map((h) => def.palette.indexOf(h)));
+    // 1. Snap to the palette: idx[i] is the palette index, or -1 for empty.
+    const idx = new Int16Array(N * N).fill(-1);
+    for (let i = 0; i < N * N; i++) {
       const o = i * 4;
-      if (px[o + 3] < 110) { px[o + 3] = 0; continue; }
-      // Undo the edge blend against transparency, then take the nearest palette colour.
+      if (px[o + 3] < 110) continue;
       const a = px[o + 3] / 255;
       const r = px[o] / a, g = px[o + 1] / a, b = px[o + 2] / a;
-      let best = pal[0], d = Infinity;
-      for (const c of pal) {
+      let best = 0, d = Infinity;
+      pal.forEach((c, k) => {
         const dd = (c[0] - r) ** 2 + (c[1] - g) ** 2 + (c[2] - b) ** 2;
-        if (dd < d) { d = dd; best = c; }
-      }
-      px[o] = best[0]; px[o + 1] = best[1]; px[o + 2] = best[2]; px[o + 3] = 255;
-      solid[i] = 1;
+        if (dd < d) { d = dd; best = k; }
+      });
+      idx[i] = best;
     }
-    const [or, og, ob] = hex(OUTLINE);
-    for (let y = 0; y < SIZE; y++)
-      for (let x = 0; x < SIZE; x++) {
-        const i = y * SIZE + x;
-        if (solid[i]) continue;
-        const edge = (x > 0 && solid[i - 1]) || (x < SIZE - 1 && solid[i + 1]) || (y > 0 && solid[i - SIZE]) || (y < SIZE - 1 && solid[i + SIZE]);
-        if (!edge) continue;
-        const o = i * 4;
-        px[o] = or; px[o + 1] = og; px[o + 2] = ob; px[o + 3] = 255;
+    // 2. Regions (4-connected runs of one colour) and their sizes; tiny ones stay flat.
+    const region = new Int32Array(N * N).fill(-1);
+    const sizes: number[] = [];
+    for (let i = 0; i < N * N; i++) {
+      if (idx[i] < 0 || region[i] >= 0) continue;
+      const id = sizes.length;
+      let n = 0;
+      const stack = [i];
+      region[i] = id;
+      while (stack.length) {
+        const j = stack.pop()!;
+        n++;
+        const x = j % N, y = (j / N) | 0;
+        for (const k of [x > 0 ? j - 1 : -1, x < N - 1 ? j + 1 : -1, y > 0 ? j - N : -1, y < N - 1 ? j + N : -1]) {
+          if (k >= 0 && region[k] < 0 && idx[k] === idx[j]) { region[k] = id; stack.push(k); }
+        }
       }
+      sizes.push(n);
+    }
+    const same = (x: number, y: number, r: number) => x >= 0 && y >= 0 && x < N && y < N && region[y * N + x] === r;
+    // 3. Shade: light from the upper left. A rim of light where the region meets something above-left, and two steps
+    //    of shadow along its lower-right edge.
+    const out = new Uint8ClampedArray(px.length);
+    for (let y = 0; y < N; y++)
+      for (let x = 0; x < N; x++) {
+        const i = y * N + x, k = idx[i];
+        if (k < 0) continue;
+        let c: RGB = pal[k];
+        const r = region[i];
+        if (!flat.has(k) && sizes[r] >= 36) {
+          if (!same(x + 1, y + 1, r) || !same(x + 2, y + 1, r)) c = shade(c, 0.32);
+          else if (!same(x + 2, y + 2, r) || !same(x + 3, y + 3, r)) c = shade(c, 0.16);
+          else if (!same(x - 1, y - 1, r) || !same(x, y - 1, r)) c = light(c, 0.32);
+        }
+        out.set([c[0], c[1], c[2], 255], i * 4);
+      }
+    // 4. Selective outline (only for sprites without their own lineart): each empty pixel touching the sprite takes a
+    //    dark shade of the colour it touches.
+    const lined = def.palette.includes(LINE);
+    for (let y = 0; y < N && !lined; y++)
+      for (let x = 0; x < N; x++) {
+        const i = y * N + x;
+        if (idx[i] >= 0) continue;
+        let touch = -1;
+        for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
+          const xx = x + dx, yy = y + dy;
+          if (xx >= 0 && yy >= 0 && xx < N && yy < N && idx[yy * N + xx] >= 0) { touch = idx[yy * N + xx]; break; }
+        }
+        if (touch < 0) continue;
+        const c = mix(shade(pal[touch], 0.6), hex(INK), 0.45);
+        out.set([c[0], c[1], c[2], 255], i * 4);
+      }
+    data.data.set(out);
     ctx.putImageData(data, 0, 0);
     return canvas.toDataURL('image/png');
   })();
@@ -227,13 +331,13 @@ function PixelSprite({ def, size }: { def: SpriteDef; size: number }) {
     : <span style={{ display: 'block', width: size, height: size }} aria-hidden="true" />;
 }
 
-/** A predator's portrait. `size` is the rendered width in CSS pixels; multiples of 64 keep every pixel square. */
-export function PredatorSprite({ kind, size = 192 }: { kind: PredatorKind; size?: number }) {
+/** A predator in its battle pose. `size` is in CSS pixels (96 inside the battle screen). */
+export function PredatorSprite({ kind, size = SPRITE }: { kind: PredatorKind; size?: number }) {
   return <PixelSprite def={PREDATOR_SPRITES[kind]} size={size} />;
 }
 
-const SHEEP_DEFS = { warm: sheepBack(false), ice: sheepBack(true) };
-/** The sheep, from behind, the way a battle shows the player's own creature; ice blue once frozen. */
-export function SheepBackSprite({ size = 192, frozen = false }: { size?: number; frozen?: boolean }) {
+export const SHEEP_DEFS = { warm: sheepBack(false), ice: sheepBack(true) };
+/** The sheep from behind, the way a battle shows the player's own creature; ice blue once frozen. */
+export function SheepBackSprite({ size = SPRITE, frozen = false }: { size?: number; frozen?: boolean }) {
   return <PixelSprite def={frozen ? SHEEP_DEFS.ice : SHEEP_DEFS.warm} size={size} />;
 }

@@ -4,6 +4,8 @@ import { useStore } from '../state/store';
 import { Lobby } from '../ui/Lobby';
 import { RoomScreen } from '../ui/RoomScreen';
 import { useHour } from './hooks/useAmbient';
+import { HuntScreen } from './hunt/HuntScreen';
+import { useHuntUi } from './hunt/huntStore';
 import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
 import { SheepPreview } from './table/SheepPreview';
@@ -11,7 +13,7 @@ import './styles/skin.css';
 
 /** The painted skin's fonts; loaded only when the skin is on, so the classic look never contacts Google Fonts. */
 const FONTS_HREF =
-  'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Nunito:wght@400;600;700;800;900&family=Patrick+Hand&display=swap';
+  'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Nunito:wght@400;600;700;800;900&family=Patrick+Hand&family=Press+Start+2P&display=swap';
 
 function useSkinFonts() {
   useEffect(() => {
@@ -35,6 +37,7 @@ export function PaintedApp() {
   const inRoom = useRoomStore((s) => s.room !== null);
   const lobbyOpen = useRoomStore((s) => s.open);
   const hour = useHour();
+  const hunting = useHuntUi((s) => s.open);
   useSkinFonts();
 
   useEffect(() => {
@@ -46,6 +49,7 @@ export function PaintedApp() {
   useEffect(() => { document.documentElement.dataset.hour = hour; }, [hour]);
 
   if (PREVIEW === 'sheep') return <SheepPreview />;
+  if (hunting) return <HuntScreen />;
   if (inGame) return <PaintedGame />;
   if (inRoom) return <RoomScreen />;
   if (lobbyOpen) return <Lobby />;

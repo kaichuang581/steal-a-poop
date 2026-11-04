@@ -1,0 +1,174 @@
+/* Daily Hunt: a retro 2D battle in the snow. Pixel font, chunky boxes, hard shadows; the painted skin's palette. */
+.hunt-root {
+  position: relative; height: 100%; overflow: hidden; user-select: none;
+  font-family: 'Press Start 2P', var(--skin-font-body), monospace; color: #2A2026;
+  background: linear-gradient(180deg, #5E7FB8 0%, #9FB7D6 38%, #DCE6F2 62%, #F7F9FC 100%);
+}
+.hunt-root input { user-select: text; }
+
+/* Snow falling in two layers of soft dots, and pixel hills of snow with a pine line behind. */
+.hunt-snow {
+  position: absolute; inset: -100% 0 0; pointer-events: none; opacity: 0.85;
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, #fff 60%, transparent 61%),
+    radial-gradient(3px 3px at 80px 120px, #fff 60%, transparent 61%),
+    radial-gradient(2px 2px at 140px 60px, #fff 60%, transparent 61%),
+    radial-gradient(3px 3px at 200px 170px, #fff 60%, transparent 61%);
+  background-size: 240px 220px;
+  animation: hunt-snow 9s linear infinite;
+}
+@keyframes hunt-snow { to { transform: translate3d(-40px, 50%, 0); } }
+.hunt-hills {
+  position: absolute; left: 0; right: 0; top: 27%; height: 15%; pointer-events: none;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='40' shape-rendering='crispEdges'><g fill='%232F5E3E'><rect x='14' y='4' width='4' height='4'/><rect x='12' y='8' width='8' height='6'/><rect x='10' y='14' width='12' height='6'/><rect x='8' y='20' width='16' height='8'/><rect x='6' y='28' width='20' height='6'/></g><g fill='%233A6E4A'><rect x='58' y='12' width='4' height='4'/><rect x='56' y='16' width='8' height='6'/><rect x='54' y='22' width='12' height='6'/><rect x='52' y='28' width='16' height='6'/></g><g fill='%23FFFFFF'><rect x='14' y='4' width='4' height='2'/><rect x='10' y='14' width='4' height='2'/><rect x='20' y='20' width='4' height='2'/><rect x='58' y='12' width='4' height='2'/><rect x='54' y='22' width='4' height='2'/></g><g fill='%234A311E'><rect x='14' y='34' width='4' height='6'/><rect x='58' y='34' width='4' height='6'/></g></svg>") repeat-x left bottom / auto 70%, linear-gradient(180deg, transparent 88%, #EEF3F9 88%);
+}
+.hunt-hills::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 100vh; background: linear-gradient(180deg, #EEF3F9, #F7F9FC); }
+
+/* Boxes: off-white with a double dark border, like an old handheld. */
+.hunt-box {
+  background: #FBF8F0; border: 4px solid #2A2026; border-radius: 10px;
+  box-shadow: inset 0 0 0 3px #C9D6E6, 0 6px 0 rgba(42, 32, 38, 0.35);
+}
+.hunt-status { position: absolute; width: min(330px, 46vw); padding: 10px 14px 12px; z-index: 3; }
+.hunt-status-foe { left: 4%; top: 5%; }
+.hunt-status-sheep { right: 4%; top: 49%; }
+.hunt-name { font-size: 16px; }
+.hunt-level { font-size: 11px; }
+.hunt-boss { margin-left: 8px; padding: 3px 5px 2px; border-radius: 4px; font-size: 9px; vertical-align: 3px; color: #fff; background: #B8432F; }
+.hunt-hp { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.hunt-hp-tag { padding: 3px 4px 2px; border-radius: 4px; font-size: 9px; color: #FFD56E; background: #2A2026; }
+.hunt-hp-track { flex: 1; height: 12px; border: 3px solid #2A2026; border-radius: 6px; background: #4A4444; overflow: hidden; }
+.hunt-hp-fill { height: 100%; transition: width 600ms steps(12); }
+.hunt-hp-fill[data-level="ok"] { background: linear-gradient(180deg, #8EE07C 0 40%, #4FB04A 40%); }
+.hunt-hp-fill[data-level="warn"] { background: linear-gradient(180deg, #FFE066 0 40%, #E8A92F 40%); }
+.hunt-hp-fill[data-level="low"] { background: linear-gradient(180deg, #FF8A7A 0 40%, #D9453A 40%); }
+.hunt-hpnum { margin-top: 6px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+.hunt-rules { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.hunt-rules li { padding: 4px 6px 3px; border-radius: 4px; font-size: 9px; line-height: 1.2; color: #FBF8F0; background: #5B3A1E; }
+.hunt-rules li.hunt-rule-relaxed { background: #9FB7D6; color: #2A2026; text-decoration: line-through; }
+
+/* The two snowy rises, and the fighters on them. */
+.hunt-rise { position: absolute; border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #FFFFFF 0 45%, #CFE3F5 70%, #AFC1D3 100%); box-shadow: 0 6px 0 rgba(42, 32, 38, 0.18); }
+.hunt-rise-foe { right: 9%; top: 34%; width: min(300px, 44vw); height: 56px; }
+.hunt-rise-sheep { left: 6%; top: 76%; width: min(320px, 50vw); height: 60px; }
+.hunt-foe { position: absolute; right: calc(9% + min(300px, 44vw) / 2 - 100px); top: calc(34% - 152px); z-index: 2; transform-origin: 50% 100%; }
+.hunt-sheep { position: absolute; left: calc(6% + min(320px, 50vw) / 2 - 95px); top: calc(76% - 128px); z-index: 2; }
+.hunt-foe svg, .hunt-sheep svg { display: block; filter: drop-shadow(0 4px 0 rgba(42, 32, 38, 0.25)); }
+
+.hunt-bop { animation: hunt-bop 240ms ease-out; }
+@keyframes hunt-bop { 40% { transform: scale(1.06, 0.92); } }
+.hunt-enter { animation: hunt-enter 900ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes hunt-enter { from { transform: translateX(60vw); } }
+.hunt-hurt { animation: hunt-hurt 700ms steps(2) both; }
+@keyframes hunt-hurt { 0%, 50% { opacity: 0.2; } 25%, 75%, 100% { opacity: 1; } 10% { transform: translateX(-8px); } 30% { transform: translateX(8px); } }
+.hunt-lunge { animation: hunt-lunge 600ms cubic-bezier(0.3, 0, 0.3, 1) both; }
+@keyframes hunt-lunge { 35% { transform: translate(-22vw, 26vh) scale(1.15); } }
+.hunt-attack { animation: hunt-attack 500ms ease-out both; }
+@keyframes hunt-attack { 30% { transform: translate(24px, -14px); } }
+.hunt-faint { animation: hunt-faint 900ms ease-in both; }
+@keyframes hunt-faint { to { transform: translateY(80px); opacity: 0; clip-path: inset(0 0 100% 0); } }
+
+/* Strikes: the word flies at the predator, the numbers pop, claws slash the sheep, the screen shakes. */
+.hunt-flyword {
+  position: absolute; left: 22%; top: 62%; z-index: 4; font-size: 24px; letter-spacing: 0.04em; color: #fff;
+  text-shadow: 3px 3px 0 #2A2026, -2px -2px 0 #5B3A1E; animation: hunt-fly 650ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+@keyframes hunt-fly { to { transform: translate(44vw, -36vh) scale(0.6); opacity: 0; } }
+.hunt-pop { position: absolute; z-index: 5; font-size: 30px; color: #fff; text-shadow: 3px 3px 0 #2A2026; animation: hunt-pop 1000ms ease-out both; }
+.hunt-pop small { display: block; margin-top: 6px; font-size: 13px; color: #FFE066; }
+.hunt-pop-foe { right: 18%; top: 14%; animation-delay: 450ms; }
+.hunt-pop-crit { color: #FFE066; font-size: 38px; }
+.hunt-pop-sheep { left: 16%; top: 52%; color: #FF8A7A; animation-delay: 250ms; }
+.hunt-pop-heal { left: 16%; top: 52%; color: #8EE07C; }
+@keyframes hunt-pop { from { transform: translateY(10px) scale(0.6); opacity: 0; } 25% { transform: scale(1.15); opacity: 1; } 80% { opacity: 1; } to { transform: translateY(-30px); opacity: 0; } }
+.hunt-slash {
+  position: absolute; left: calc(6% + min(320px, 50vw) / 2 - 80px); top: calc(76% - 120px); width: 160px; height: 120px; z-index: 4; pointer-events: none;
+  background: repeating-linear-gradient(120deg, transparent 0 26px, #fff 26px 32px, #D9453A 32px 36px, transparent 36px 52px);
+  clip-path: inset(0 100% 0 0); animation: hunt-slash 380ms 250ms ease-out forwards;
+}
+@keyframes hunt-slash { 60% { clip-path: inset(0 0 0 0); opacity: 1; } to { clip-path: inset(0 0 0 0); opacity: 0; } }
+.hunt-quake { animation: hunt-quake 400ms 280ms steps(6); }
+@keyframes hunt-quake { 20% { transform: translate(6px, -4px); } 40% { transform: translate(-6px, 3px); } 60% { transform: translate(4px, 4px); } 80% { transform: translate(-3px, -2px); } }
+
+/* Frozen: the sheep turns to ice in a block. */
+.hunt-iceblock {
+  position: absolute; inset: -10px -12px -4px; border: 3px solid #fff; border-radius: 6px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0 12%, rgba(191, 227, 245, 0.45) 12% 20%, rgba(191, 227, 245, 0.35) 20%);
+  box-shadow: inset 0 0 0 3px rgba(158, 210, 238, 0.8); animation: hunt-freeze 900ms ease-out both;
+}
+@keyframes hunt-freeze { from { transform: scale(0.2); opacity: 0; } 70% { transform: scale(1.06); } to { opacity: 1; } }
+
+/* The announcement: the stage darkens behind the predator, arrows light up on the beat, rule cards slam in. */
+.hunt-announce { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: radial-gradient(circle at 72% 26%, transparent 0 140px, rgba(16, 12, 24, 0.62) 260px); animation: hunt-dim 300ms ease-out both; pointer-events: none; }
+@keyframes hunt-dim { from { opacity: 0; } }
+.hunt-arrows { display: flex; gap: 10px; }
+.hunt-arrows span {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 10px; font-size: 20px;
+  color: #6E6B75; background: #2A2026; border: 3px solid #4E4B55; transition: transform 120ms, color 120ms, background 120ms;
+}
+.hunt-arrows span:nth-child(1).hunt-arrow-lit { color: #fff; background: #C24E8A; border-color: #fff; transform: scale(1.18); }
+.hunt-arrows span:nth-child(2).hunt-arrow-lit { color: #fff; background: #3FA6C9; border-color: #fff; transform: scale(1.18); }
+.hunt-arrows span:nth-child(3).hunt-arrow-lit { color: #fff; background: #4FB04A; border-color: #fff; transform: scale(1.18); }
+.hunt-arrows span:nth-child(4).hunt-arrow-lit { color: #fff; background: #D9453A; border-color: #fff; transform: scale(1.18); }
+.hunt-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 90vw; }
+.hunt-card {
+  position: relative; padding: 18px 22px 12px; min-width: 200px; text-align: center; font-size: 18px; line-height: 1.4;
+  color: #2A2026; background: #FFE9B8; border: 4px solid #2A2026; border-radius: 10px; box-shadow: 0 8px 0 #5B3A1E;
+  animation: hunt-slam 380ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.hunt-card-tag { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); padding: 4px 8px 3px; border-radius: 6px; font-size: 10px; color: #fff; background: #B8432F; border: 3px solid #2A2026; white-space: nowrap; }
+@keyframes hunt-slam { from { transform: scale(2.4) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* The dialog box along the bottom. */
+.hunt-dialog { position: absolute; left: 3%; right: 3%; bottom: 3%; z-index: 7; min-height: 112px; padding: 14px 18px; }
+.hunt-line { font-size: 15px; line-height: 1.8; cursor: pointer; }
+.hunt-line-rest { visibility: hidden; }
+.hunt-caret { margin-left: 8px; font-size: 14px; animation: hunt-blink 0.8s steps(1) infinite; }
+@keyframes hunt-blink { 50% { opacity: 0; } }
+.hunt-timer { height: 10px; border: 3px solid #2A2026; border-radius: 6px; background: #E7E2D6; overflow: hidden; }
+.hunt-timer div { height: 100%; background: #4FB04A; }
+.hunt-timer div[data-low] { background: #D9453A; }
+.hunt-input {
+  flex: 1; min-width: 0; height: 52px; padding: 0 14px; border: 4px solid #2A2026; border-radius: 8px; background: #fff;
+  font-family: inherit; font-size: 18px; letter-spacing: 0.06em; text-transform: uppercase; color: #2A2026; outline: none;
+}
+.hunt-input:focus { box-shadow: 0 0 0 3px #F2A444; }
+.hunt-shake { animation: hunt-shake 300ms; }
+@keyframes hunt-shake { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+.hunt-attack-btn, .hunt-btn {
+  height: 52px; padding: 0 18px; border: 4px solid #2A2026; border-radius: 8px; font-family: inherit; font-size: 14px;
+  color: #fff; background: #B8432F; box-shadow: 0 5px 0 #2A2026; transition: transform 80ms, box-shadow 80ms;
+}
+.hunt-btn { background: #5B3A1E; }
+.hunt-attack-btn:active:not(:disabled), .hunt-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #2A2026; }
+.hunt-attack-btn:disabled { opacity: 0.5; }
+.hunt-note { min-height: 1.5em; font-size: 10px; line-height: 1.6; color: #5B3A1E; }
+.hunt-title { font-size: 18px; }
+.hunt-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 4px 16px; }
+.hunt-stats dt { font-size: 9px; line-height: 1.6; color: #7A6A58; }
+.hunt-stats dd { font-size: 15px; }
+.hunt-quit { position: absolute; right: 12px; top: 10px; z-index: 8; width: 40px; height: 40px; border: 3px solid #2A2026; border-radius: 8px; background: #FBF8F0; font-weight: 700; }
+
+/* Phones: everything a little smaller, the predator's box narrower, the sheep's box above the dialog. */
+@media (max-width: 640px) {
+  .hunt-status { padding: 8px 10px; }
+  .hunt-name { font-size: 12px; }
+  .hunt-status-foe { left: 3%; top: 3%; width: 52vw; }
+  .hunt-status-sheep { right: 3%; top: auto; bottom: calc(3% + 150px); width: 50vw; }
+  .hunt-rise-foe { right: 4%; top: 26%; }
+  .hunt-foe { right: calc(4% + 22vw - 70px); top: calc(26% - 106px); }
+  .hunt-foe svg { width: 140px; height: auto; }
+  .hunt-rise-sheep { left: 3%; top: auto; bottom: calc(3% + 150px); }
+  .hunt-sheep { left: calc(3% + 25vw - 66px); top: auto; bottom: calc(3% + 168px); }
+  .hunt-sheep svg { width: 132px; height: auto; }
+  .hunt-dialog { min-height: 136px; padding: 10px 12px; }
+  .hunt-line { font-size: 12px; }
+  .hunt-input { font-size: 14px; height: 46px; }
+  .hunt-attack-btn, .hunt-btn { height: 46px; font-size: 11px; padding: 0 10px; }
+  .hunt-card { font-size: 13px; min-width: 150px; }
+  .hunt-arrows span { width: 38px; height: 38px; font-size: 16px; }
+}
+
+/* Reduced motion: no snow drift, bops, lunges or shakes; cards and pops simply appear. */
+:root.reduce-motion .hunt-root *, :root.reduce-motion .hunt-root { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+@media (prefers-reduced-motion: reduce) { .hunt-root, .hunt-root * { animation-duration: 1ms !important; animation-iteration-count: 1 !important; } }

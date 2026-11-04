@@ -5,9 +5,9 @@ import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRESETS, presetOf, utcDateKey } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
-import { getDaily, getStreak } from '../../lib/daily';
+import { getHunt, getHuntStreak, huntShareText, huntStreakDays } from '../../hunt/daily';
+import { useHuntUi } from '../hunt/huntStore';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
-import { buildShareText } from '../../lib/share';
 import { getServerUrl } from '../../net/config';
 import { useRoomStore } from '../../state/roomStore';
 import { useSocial } from '../../state/socialStore';
@@ -26,7 +26,6 @@ import { StreakString } from '../components/Lantern';
 import { Chip, PaperPanel, WoodButton } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
-import { streakDays } from '../model/useTableView';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
 import { PaintedSettings } from './PaintedSettings';
@@ -79,24 +78,22 @@ export function PaintedHome() {
   const reduced = useMotionLevel() === 'reduced';
   const mobile = useIsMobile();
   const today = utcDateKey(new Date());
-  const daily = getDaily(today);
-  const streak = getStreak(today);
+  const hunt = getHunt(today);
+  const huntStreak = getHuntStreak(today);
+  const streak = huntStreak;
   const ready = dictStatus === 'ready';
   const rooms = !!getServerUrl();
   const signedIn = authEnabled() && authStatus === 'ready';
 
-  const go = (mode: 'quick' | 'daily' | 'practice') => {
+  const go = (mode: 'quick' | 'practice') => {
     const nick = checkNickname(settings.name);
     if (!nick.ok) return setError(nick.message);
     setError('');
     start(mode, mode === 'quick' ? settings.game : undefined);
   };
-  const shareDaily = async () => {
-    if (daily?.status !== 'done') return;
-    const text = buildShareText({
-      daily: today, rank: daily.rank ?? 1, players: daily.players ?? 0, banked: daily.banked ?? 0,
-      steals: daily.steals ?? 0, longest: daily.longest ?? 0, streak,
-    });
+  const shareHunt = async () => {
+    if (hunt?.status !== 'done') return;
+    const text = huntShareText({ date: today, defeated: hunt.defeated ?? 0, damage: hunt.damage ?? 0, marks: hunt.marks ?? [], streak: huntStreak });
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -139,20 +136,17 @@ export function PaintedHome() {
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const items: MenuItem[] = [
     { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
-    daily
+    hunt
       ? {
-        id: 'daily', label: daily.status === 'done' ? (copied ? 'Copied!' : 'Share daily') : 'Daily Table',
-        badge: daily.status === 'done' ? `#${daily.rank}` : 'used', disabled: daily.status !== 'done', onSelect: shareDaily,
-        caption: `Today's table is played. The next one opens at ${timeOfNext}.`,
+        id: 'hunt', label: hunt.status === 'done' ? (copied ? 'Copied!' : 'Share hunt') : 'Daily Hunt',
+        badge: hunt.status === 'done' ? `${hunt.defeated ?? 0} beaten` : 'used',
+        disabled: hunt.status !== 'done', onSelect: shareHunt,
+        caption: `Today's hunt is over. The next pack arrives at ${timeOfNext}.`,
       }
       : {
-        id: 'daily', label: 'Daily Table', badge: streak > 0 ? `${streak}-day streak` : 'new', disabled: !ready,
-        caption: 'One attempt today, and the same table for everyone.',
-        onSelect: () => {
-          // Signed in: the server runs the Daily Table (so it can be on the leaderboard). Otherwise it is played on this device only.
-          if (signedIn && rooms) return useRoomStore.getState().startDaily();
-          go('daily');
-        },
+        id: 'hunt', label: 'Daily Hunt', badge: huntStreak > 0 ? `${huntStreak}-day streak` : 'new', disabled: !ready,
+        caption: 'Fight off the predators with words. One hunt a day, the same pack for everyone.',
+        onSelect: () => useHuntUi.getState().openHunt(false),
       },
     { id: 'practice', label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
@@ -261,7 +255,7 @@ export function PaintedHome() {
 
   return (
     <main className="relative h-full overflow-hidden" onPointerMove={onPointerMove} onKeyDown={onKey}>
-      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!daily} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} /></div>
+      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!hunt} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
@@ -288,7 +282,7 @@ export function PaintedHome() {
             {step === 'tables' ? (
               <>
                 {tables}
-                {(streak > 0 || daily) && <div className="mt-1 flex justify-center"><StreakString days={streakDays()} /></div>}
+                {(streak > 0 || hunt) && <div className="mt-1 flex justify-center"><StreakString days={huntStreakDays(today)} /></div>}
                 <div className="mt-1 flex justify-center">{footer}</div>
               </>
             ) : setup}
@@ -313,7 +307,7 @@ export function PaintedHome() {
             </div>
             <p key={tip} className="sk-tip sk-hand min-w-0 flex-1 truncate text-center text-lg" style={{ color: 'var(--glow)' }} aria-live="off">Tip: {TIPS[tip]}</p>
             <div className="flex shrink-0 flex-col items-end gap-1">
-              {(streak > 0 || daily) && <StreakString days={streakDays()} />}
+              {(streak > 0 || hunt) && <StreakString days={huntStreakDays(today)} />}
               {footer}
             </div>
           </div>

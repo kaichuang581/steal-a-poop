@@ -226,20 +226,40 @@ function nextDue(s: GameState, now: number): Due | null {
   return best;
 }
 
-function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
-  const turn = s.turn!;
-  const bot = s.players[turn.seat];
+/** What the bot on turn does: bank, fumble, or play a word. Draws from the game's random stream like any bot action. */
+export type BotPlan = { kind: 'bank' } | { kind: 'fail' } | { kind: 'play'; word: string };
+
+function decideBotTurn(s: GameState, ctx: EngineContext): BotPlan {
+  const bot = s.players[s.turn!.seat];
   const profile = BOT_PROFILES[bot.difficulty!];
-  turn.botActAt = null;
   const scripted = s.mode === 'tour'; // tutorial bots never bank or fumble
-  if (!scripted && s.pile > 0 && s.pile >= bot.bankThreshold) return bankTurn(s, t);
-  if (!scripted && drawRandom(s) < profile.failRate) return failTurn(s, turn.seat, t);
+  if (!scripted && s.pile > 0 && s.pile >= bot.bankThreshold) return { kind: 'bank' };
+  if (!scripted && drawRandom(s) < profile.failRate) return { kind: 'fail' };
   const word = pickBotWord({
     dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
     prefer: profile.prefer, random: () => drawRandom(s),
   });
-  if (!word) return failTurn(s, turn.seat, t);
-  playTurn(s, turn.seat, word, t);
+  return word ? { kind: 'play', word } : { kind: 'fail' };
+}
+
+function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
+  const turn = s.turn!;
+  turn.botActAt = null;
+  const plan = decideBotTurn(s, ctx);
+  if (plan.kind === 'bank') return bankTurn(s, t);
+  if (plan.kind === 'fail') return failTurn(s, turn.seat, t);
+  playTurn(s, turn.seat, plan.word, t);
+}
+
+/**
+ * What the bot on turn is going to do, for display only (the table types its word out): the same decision the bot
+ * makes when it acts, taken on a copy, so the game and its random stream are untouched. Null on a human's turn.
+ * If something draws from the stream before the bot acts (a bot steal landing first), the real move can differ.
+ */
+export function previewBotTurn(state: GameState, ctx: EngineContext): BotPlan | null {
+  const t = state.turn;
+  if (state.phase !== 'playing' || !t || t.botActAt === null || state.players[t.seat].isHuman) return null;
+  return decideBotTurn(structuredClone(state), ctx);
 }
 
 function runBotSteal(s: GameState, ctx: EngineContext, seat: number, t: number) {

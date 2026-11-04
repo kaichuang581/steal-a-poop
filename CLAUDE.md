@@ -40,3 +40,5 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
 - No studio, film or director names anywhere.
 - v3.3 Part 2 (game settings) is an approved engine change: one commit, the files DISCOVERY.md names plus the
   constants file and a new test file. Default settings must reproduce today's behaviour exactly.
+- Bot typing preview (approved by Brian, 2026-11-04): `previewBotTurn` in reducer.ts runs the bot's own decision on a
+  copy of the state for display; it must never change the game or its random stream.

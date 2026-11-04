@@ -193,13 +193,13 @@ export function HuntScreen() {
         className={`hunt-foe ${stage.s === 'intro' ? 'hunt-enter' : ''} ${stage.s === 'hit' ? 'hunt-hurt' : ''} ${stage.s === 'counter' ? 'hunt-lunge' : ''} ${fainted ? 'hunt-faint' : ''} ${!reduced && beat % 2 === 0 && !fainted ? 'hunt-bop' : ''}`}
         aria-hidden="true"
       >
-        <PredatorSprite kind={p.kind} boss={p.boss} size={200} />
+        <PredatorSprite kind={p.kind} size={192} />
       </div>
 
       {/* Sheep: sprite bottom left, status box beside it. */}
       <div className="hunt-rise hunt-rise-sheep" aria-hidden="true" />
       <div className={`hunt-sheep ${stage.s === 'counter' ? 'hunt-hurt' : ''} ${stage.s === 'hit' && !reduced ? 'hunt-attack' : ''}`} aria-hidden="true">
-        <SheepBackSprite size={190} frozen={frozen} />
+        <SheepBackSprite size={192} frozen={frozen} />
         {frozen && <div className="hunt-iceblock" />}
       </div>
       <section className="hunt-status hunt-status-sheep hunt-box" aria-label="You">

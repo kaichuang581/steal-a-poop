@@ -56,9 +56,9 @@ describe('predators', () => {
     expect(p.slice(1).every((x) => x.reserve !== null)).toBe(true);
     expect(p[4].boss && p[4].kind === 'shadow').toBe(true);
     expect(p[6].boss).toBe(true);
-    const regular = p.filter((x) => !x.boss);
-    for (let i = 1; i < regular.length; i++) expect(regular[i].maxHp).toBeGreaterThan(regular[i - 1].maxHp);
-    expect(p[4].maxHp).toBeGreaterThan(p[5].maxHp); // the boss is tougher than the predator after it
+    // Each animal has its own build (the eagle is frail, the bear tough), but the trend climbs steeply.
+    expect(p[5].maxHp).toBeGreaterThan(p[0].maxHp * 2);
+    expect(p[6].maxHp).toBeGreaterThan(p[4].maxHp); // each boss tougher than the last
     expect(p[6].attack).toBeGreaterThan(p[0].attack);
   });
 

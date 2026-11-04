@@ -51,9 +51,9 @@
 .hunt-rise { position: absolute; border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #FFFFFF 0 45%, #CFE3F5 70%, #AFC1D3 100%); box-shadow: 0 6px 0 rgba(42, 32, 38, 0.18); }
 .hunt-rise-foe { right: 9%; top: 34%; width: min(300px, 44vw); height: 56px; }
 .hunt-rise-sheep { left: 6%; top: 76%; width: min(320px, 50vw); height: 60px; }
-.hunt-foe { position: absolute; right: calc(9% + min(300px, 44vw) / 2 - 100px); top: calc(34% - 152px); z-index: 2; transform-origin: 50% 100%; }
-.hunt-sheep { position: absolute; left: calc(6% + min(320px, 50vw) / 2 - 95px); top: calc(76% - 128px); z-index: 2; }
-.hunt-foe svg, .hunt-sheep svg { display: block; filter: drop-shadow(0 4px 0 rgba(42, 32, 38, 0.25)); }
+.hunt-foe { position: absolute; right: calc(9% + min(300px, 44vw) / 2 - 96px); top: calc(34% - 168px); z-index: 2; transform-origin: 50% 100%; }
+.hunt-sheep { position: absolute; left: calc(6% + min(320px, 50vw) / 2 - 96px); top: calc(76% - 160px); z-index: 2; }
+.hunt-foe img, .hunt-sheep img { display: block; filter: drop-shadow(0 4px 0 rgba(42, 32, 38, 0.25)); }
 
 .hunt-bop { animation: hunt-bop 240ms ease-out; }
 @keyframes hunt-bop { 40% { transform: scale(1.06, 0.92); } }
@@ -156,11 +156,11 @@
   .hunt-status-foe { left: 3%; top: 3%; width: 52vw; }
   .hunt-status-sheep { right: 3%; top: auto; bottom: calc(3% + 150px); width: 50vw; }
   .hunt-rise-foe { right: 4%; top: 26%; }
-  .hunt-foe { right: calc(4% + 22vw - 70px); top: calc(26% - 106px); }
-  .hunt-foe svg { width: 140px; height: auto; }
+  .hunt-foe { right: calc(4% + 22vw - 64px); top: calc(26% - 112px); }
+  .hunt-foe img { width: 128px; height: 128px; }
   .hunt-rise-sheep { left: 3%; top: auto; bottom: calc(3% + 150px); }
-  .hunt-sheep { left: calc(3% + 25vw - 66px); top: auto; bottom: calc(3% + 168px); }
-  .hunt-sheep svg { width: 132px; height: auto; }
+  .hunt-sheep { left: calc(3% + 25vw - 64px); top: auto; bottom: calc(3% + 156px); }
+  .hunt-sheep img { width: 128px; height: 128px; }
   .hunt-dialog { min-height: 136px; padding: 10px 12px; }
   .hunt-line { font-size: 12px; }
   .hunt-input { font-size: 14px; height: 46px; }

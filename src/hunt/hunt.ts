@@ -11,7 +11,7 @@ import type { Rule, RuleContext } from './rules';
  * same predators and the same rules.
  */
 
-export type PredatorKind = 'wolf' | 'fox' | 'arctic' | 'coyote' | 'shadow';
+export type PredatorKind = 'wolf' | 'fox' | 'lynx' | 'bear' | 'eagle' | 'shadow';
 
 export interface Predator {
   kind: PredatorKind;
@@ -68,9 +68,14 @@ const VIABLE = 3;
 const FEASIBLE = 250;
 
 const NAMES: Record<PredatorKind, string> = {
-  wolf: 'Grey Wolf', fox: 'Red Fox', arctic: 'Snow Fox', coyote: 'Coyote', shadow: 'Shadow Wolf',
+  wolf: 'Grey Wolf', fox: 'Red Fox', lynx: 'Lynx', bear: 'Polar Bear', eagle: 'Golden Eagle', shadow: 'Shadow Wolf',
 };
-const ORDER: PredatorKind[] = ['wolf', 'fox', 'arctic', 'coyote'];
+const ORDER: PredatorKind[] = ['fox', 'wolf', 'lynx', 'eagle', 'bear'];
+/** Each animal fights a little differently: the bear is tough but slow to strike, the eagle frail but sharp. */
+const BUILD: Record<PredatorKind, { hp: number; attack: number }> = {
+  wolf: { hp: 1, attack: 1 }, fox: { hp: 0.9, attack: 1 }, lynx: { hp: 1, attack: 1.1 },
+  bear: { hp: 1.25, attack: 0.85 }, eagle: { hp: 0.85, attack: 1.2 }, shadow: { hp: 1.4, attack: 1 },
+};
 
 /** Seconds the sheep has to answer: 20 against the first predator, a second less for each one after, never under 10. */
 export function turnSeconds(index: number): number {
@@ -161,10 +166,11 @@ export function predatorAt(dict: Dictionary, seed: string, index: number): Preda
     }
   }
   // Should never happen with a real word list; a predator with no rules is still a fair fight.
-  const maxHp = Math.round((36 + 16 * index) * (boss ? 1.4 : 1));
+  const build = BUILD[kind];
+  const maxHp = Math.round((36 + 16 * index) * build.hp);
   return {
     kind, name: NAMES[kind], level: index + 1, boss, maxHp, hp: maxHp,
-    attack: 7 + 2 * index + (boss ? 3 : 0) + Math.floor(r() * 2), rules, reserve, enraged: false,
+    attack: Math.round((7 + 2 * index + (boss ? 3 : 0) + Math.floor(r() * 2)) * build.attack), rules, reserve, enraged: false,
   };
 }
 

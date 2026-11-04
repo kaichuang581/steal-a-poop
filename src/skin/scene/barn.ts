@@ -97,6 +97,26 @@ function walls(): Grid {
   return g;
 }
 
+/**
+ * The front wall, seen only from inside: the same boards as the side walls, but only the faces that point into the
+ * barn are kept. The fixed table camera stands outside the cut-away front and sees straight through it (its faces
+ * point away and are culled); the speaker camera, inside and looking toward the front, sees a wall instead of the
+ * open yard. It casts no shadow, so the sun still reaches the floor.
+ */
+function frontInside(): BufferGeometry {
+  const g = new Grid(S);
+  for (let b = 0, xa = -62; xa <= 61; b++, xa += 3) {
+    const c = pick(T.barn, hash3(b, 4, 7, 41));
+    for (let x = xa; x <= Math.min(61, xa + 2); x++) for (let y = 0; y < 42; y++) for (const z of [-42, -41]) g.set(x, y, z, x === xa + 2 ? lin(T.barn[2]) : c);
+  }
+  const geo = buildGeometry(g.map, S);
+  const idx = geo.index!, nor = geo.getAttribute('normal');
+  const keep: number[] = [];
+  for (let t = 0; t < idx.count; t += 3) if (nor.getZ(idx.getX(t)) > 0.5) keep.push(idx.getX(t), idx.getX(t + 1), idx.getX(t + 2));
+  geo.setIndex(keep);
+  return geo;
+}
+
 function beams(): Grid {
   const g = new Grid(S);
   const wood = tone(T.beam, 21, [0.45, 0.9]);
@@ -451,6 +471,8 @@ export interface Barn {
   robin: BufferGeometry;
   robinSpot: [number, number, number];
   tarp: BufferGeometry;
+  /** The front wall's inside faces (see frontInside). */
+  front: BufferGeometry;
   triangles: number;
 }
 
@@ -474,7 +496,8 @@ export function buildBarn(): Barn {
   const c = cat();
   const rb = robin();
   const tp = buildGeometry(tarp().map, S);
-  const all = [...statics, ...leaves.map((l) => l.geo), lant, c.body, c.tail, rb, tp];
+  const front = frontInside();
+  const all = [...statics, ...leaves.map((l) => l.geo), lant, c.body, c.tail, rb, tp, front];
   return {
     static: statics,
     doorLeaves: leaves,
@@ -483,6 +506,7 @@ export function buildBarn(): Barn {
     robin: rb,
     robinSpot: ROBIN_SPOT,
     tarp: tp,
+    front,
     triangles: all.reduce((s, g) => s + tris(g), 0),
   };
 }

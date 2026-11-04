@@ -119,7 +119,7 @@ export function PaintedGame() {
         break;
       case 'frozen':
         mood(e.playerId, 'freezing');
-        setMoments((m) => ({ ...m, freeze: { key: k() } }));
+        setMoments((m) => ({ ...m, freeze: { key: k(), at: rel(Number(e.playerId)) } }));
         break;
       case 'thawed':
         mood(e.playerId, 'thawing');
@@ -159,10 +159,13 @@ export function PaintedGame() {
             return {
               seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.banked, shears[Number(p.id)] ?? 0), state: st.state, stateKey: st.key, coldFor: st.coldFor,
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou,
-              label: (
-                <span className="sk-chip whitespace-nowrap text-xs" style={{ boxShadow: p.id === view.currentPlayerId ? '0 0 0 2px var(--amber)' : undefined }}>
-                  {p.name}{p.isYou ? ' (you)' : ''}{livesOn && <Lives lives={p.lives} max={maxLives} size={10} />}
+              // Only the speaker's tag is large, with flames; the others shrink to the name (plan V3.3 Part 4.1).
+              label: p.id === view.currentPlayerId ? (
+                <span className="sk-chip sk-display whitespace-nowrap text-base" style={{ boxShadow: '0 0 0 2px var(--amber)' }}>
+                  {p.name}{livesOn && <Lives lives={p.lives} max={maxLives} size={14} />}
                 </span>
+              ) : (
+                <span className="sk-chip whitespace-nowrap text-xs" style={{ opacity: 0.85 }}>{p.name}</span>
               ),
             };
           })}

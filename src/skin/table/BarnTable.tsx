@@ -3,11 +3,13 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFSoftShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
+import type { PerspectiveCamera } from 'three';
 import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
 import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
 import { buildDistance } from '../scene/distance';
-import { BARN, CAMERA, HEAP, SHEEP_SCALE, seatPosition } from '../scene/layout';
+import { BARN, CAMERA, HEAP, SEAT_RING, SHEEP_SCALE, seatPosition, speakerShot } from '../scene/layout';
+import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
 import { icicleModel, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
@@ -45,8 +47,8 @@ export interface BarnMoments {
   shears?: { key: number; at: number };
   /** Time out: a cold gust blows a tuft off the sheep and out of the back door. */
   gust?: { key: number; at: number };
-  /** Last life lost: lantern flames dim to 40% for the freeze. */
-  freeze?: { key: number };
+  /** Last life lost: lantern flames dim to 40% for the freeze, and the camera stays on the frozen sheep. */
+  freeze?: { key: number; at: number };
 }
 
 interface Props {
@@ -109,6 +111,7 @@ export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: 
       {barn.doorLeaves.map((d, i) => <mesh key={i} geometry={d.geo} material={voxMat} position={d.hinge} rotation={[0, d.openYaw, 0]} castShadow receiveShadow />)}
       <mesh geometry={barn.lanterns} material={glowMat} />
       <mesh geometry={barn.tarp} material={voxMat} />
+      <mesh geometry={barn.front} material={voxMat} receiveShadow />
       <Cat geo={barn.cat} reduced={reduced} frozen={stealOpen} mat={voxMat} />
       <Robin geo={barn.robin} reduced={reduced || stealOpen} mat={voxMat} />
       {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
@@ -121,14 +124,12 @@ export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: 
   );
 }
 
-/** ?pov=1 keeps the older camera that glides to whoever's turn it is; the plan's fixed shot is the default. */
-const POV = new URLSearchParams(location.search).has('pov');
-
 export function BarnTable(props: Props) {
   const cam = props.phone ? CAMERA.phone : CAMERA.desktop;
   const w = useWorld();
   const tagEl = useRef<HTMLDivElement>(null);
   const clockEl = useRef<HTMLDivElement>(null);
+  const fadeEl = useRef<HTMLDivElement>(null);
   const [pop, setPop] = useState(false);
   const pulseKey = props.moments.tuftIn?.key;
   useEffect(() => {
@@ -148,8 +149,10 @@ export function BarnTable(props: Props) {
         camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >
-        <Scene {...props} world={w} anchors={{ tag: tagEl, clock: clockEl }} />
+        <Scene {...props} world={w} anchors={{ tag: tagEl, clock: clockEl, fade: fadeEl }} />
       </Canvas>
+      {/* Reduced motion: the camera cuts between speakers behind a 150 ms fade. */}
+      <div ref={fadeEl} className="pointer-events-none absolute inset-0 z-[4]" style={{ background: 'var(--ink)', opacity: 0 }} aria-hidden="true" />
       {/* The pile's paper tag, anchored to the scene point above the mound and never behind the input bar (plan V3.2 Part 3). */}
       <div ref={tagEl} className="pointer-events-none absolute left-0 top-0 z-[25] flex flex-col items-center" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
         <div
@@ -178,7 +181,7 @@ export function BarnTable(props: Props) {
   );
 }
 
-type Anchors = { tag: React.RefObject<HTMLDivElement | null>; clock: React.RefObject<HTMLDivElement | null> };
+type Anchors = { tag: React.RefObject<HTMLDivElement | null>; clock: React.RefObject<HTMLDivElement | null>; fade: React.RefObject<HTMLDivElement | null> };
 
 /** Projects the two anchor points every frame and moves their DOM elements; the tag stays `margin` px above the bottom edge. */
 function Projection({ anchors, pileHeight, margin }: { anchors: Anchors; pileHeight: number; margin: number }) {
@@ -230,7 +233,7 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
 
   return (
     <>
-      {POV ? <CameraRig focus={speaker} n={n} phone={phone} reduced={reduced} /> : <FixedCamera phone={phone} />}
+      <SpeakerCamera speaker={speaker} n={n} phone={phone} reduced={reduced} stealOpen={stealOpen} moments={moments} fade={anchors.fade} />
       <Atmosphere hour={hour} />
       <Lights hour={hour} phone={phone} viewYaw={0} lampRef={(i, l) => { lamps.current[i] = l; }} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
@@ -258,18 +261,60 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
   );
 }
 
-/** The plan's shot, re-applied when the viewport changes between phone and desktop. */
-function FixedCamera({ phone }: { phone: boolean }) {
-  const camera = useThree((s) => s.camera);
-  const cam = phone ? CAMERA.phone : CAMERA.desktop;
-  useEffect(() => {
-    camera.position.set(cam.position[0], cam.position[1], cam.position[2]);
-    camera.lookAt(cam.target[0], cam.target[1], cam.target[2]);
-    if ('fov' in camera) {
-      (camera as { fov: number }).fov = cam.fov;
-      (camera as unknown as { updateProjectionMatrix(): void }).updateProjectionMatrix();
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+/** A point's angle, radius and height about the pile, so a move swings round the ring instead of cutting through it. */
+const polar = (p: readonly number[]) => ({ a: Math.atan2(p[0] - SEAT_RING.cx, -(p[2] - SEAT_RING.cz)), r: Math.hypot(p[0] - SEAT_RING.cx, p[2] - SEAT_RING.cz), y: p[1] });
+
+/**
+ * The speaker camera (plan V3.3 Part 4): at every turn it moves to frame the speaker (the home shot on your turn) in
+ * one 650 ms ease-in-out swing round the pile, then holds with a 0.05 m drift. No move starts in a steal window; the
+ * wolf run is always seen from home and a freeze is watched to the end. Reduced motion cuts behind a 150 ms fade.
+ */
+function SpeakerCamera({ speaker, n, phone, reduced, stealOpen, moments, fade }: { speaker: number | null; n: number; phone: boolean; reduced: boolean; stealOpen: boolean; moments: BarnMoments; fade: Anchors['fade'] }) {
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const st = useMemo(() => ({
+    key: '', at: -10, from: null as Shot | null, to: null as Shot | null, cur: null as Shot | null,
+    wolfKey: undefined as number | undefined, wolfAt: -10, freezeKey: undefined as number | undefined, freezeAt: -10, freezeSeat: 0,
+  }), []);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (moments.wolf && moments.wolf.key !== st.wolfKey) { st.wolfKey = moments.wolf.key; st.wolfAt = t; }
+    if (moments.freeze && moments.freeze.key !== st.freezeKey) { st.freezeKey = moments.freeze.key; st.freezeAt = t; st.freezeSeat = moments.freeze.at; }
+    const wolf = t - st.wolfAt < 1.3;
+    let seat = speaker ?? 0;
+    if (t - st.freezeAt < 2.4) seat = st.freezeSeat;
+    if (wolf) seat = 0;
+    const key = `${seat}/${n}/${phone}`;
+    // A new shot starts only outside the steal window (the wolf's run is the window's own ending).
+    if (key !== st.key && (!stealOpen || wolf)) {
+      const to = speakerShot(seat, n, phone);
+      const cut = reduced || !st.cur;
+      st.from = cut ? to : st.cur;
+      st.to = to;
+      st.at = t;
+      st.key = key;
+      if (reduced && st.cur) fade.current?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: 'ease-out' });
     }
-  }, [camera, cam]);
+    const { from, to } = st;
+    if (!from || !to) return;
+    const u = easeInOut(Math.min(1, (t - st.at) / 0.65));
+    const p0 = polar(from.position), p1 = polar(to.position);
+    let da = p1.a - p0.a;
+    da = Math.atan2(Math.sin(da), Math.cos(da)); // the short way round
+    const ang = p0.a + da * u, r = p0.r + (p1.r - p0.r) * u, y = p0.y + (p1.y - p0.y) * u;
+    const lerp = (i: number, k: 'target') => from[k][i] + (to[k][i] - from[k][i]) * u;
+    st.cur = {
+      position: [SEAT_RING.cx + Math.sin(ang) * r, y, SEAT_RING.cz - Math.cos(ang) * r],
+      target: [lerp(0, 'target'), lerp(1, 'target'), lerp(2, 'target')],
+      fov: from.fov + (to.fov - from.fov) * u,
+    };
+    // While a sheep has the floor the camera breathes on a slow 0.05 m ellipse.
+    const drift = !reduced && seat !== 0 && u >= 1 ? 0.05 : 0;
+    const w = (t / 9) * Math.PI * 2;
+    camera.position.set(st.cur.position[0] + Math.cos(w) * drift, st.cur.position[1] + Math.sin(w) * drift * 0.5, st.cur.position[2]);
+    camera.lookAt(st.cur.target[0], st.cur.target[1], st.cur.target[2]);
+    if (Math.abs(camera.fov - st.cur.fov) > 0.01) { camera.fov = st.cur.fov; camera.updateProjectionMatrix(); }
+  });
   return null;
 }
 
@@ -287,35 +332,6 @@ function SeatGroup({ index, n, active, reduced, children }: { index: number; n: 
     g.current.position.lerp(want, reduced ? 1 : 1 - Math.exp(-dt * 4));
   });
   return <group ref={g} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={SHEEP_SCALE}>{children}</group>;
-}
-
-/**
- * The older turn camera: it stands across the pile from the speaker's seat and pulls back between turns. Kept behind
- * ?pov=1; reduced motion cuts instead of gliding.
- */
-function CameraRig({ focus, n, phone, reduced }: { focus: number | null; n: number; phone: boolean; reduced: boolean }) {
-  const look = useRef<Vector3 | null>(null);
-  const wide = phone ? CAMERA.phone : CAMERA.desktop;
-  useFrame(({ camera }, dt) => {
-    const pos = new Vector3();
-    const target = new Vector3();
-    if (focus === null) {
-      pos.set(wide.position[0], wide.position[1], wide.position[2]);
-      target.set(wide.target[0], wide.target[1], wide.target[2]);
-    } else {
-      const p = seatPosition(focus, n);
-      const dir = new Vector3(p.x - HEAP[0], 0, p.z - HEAP[2]).normalize();
-      const back = phone ? 3.8 : 3.2;
-      pos.set(HEAP[0] - dir.x * back, phone ? 3.0 : 2.6, HEAP[2] - dir.z * back);
-      target.set(p.x, 1.0, p.z);
-    }
-    look.current ??= target.clone();
-    const k = reduced ? 1 : 1 - Math.exp(-dt * 2.6);
-    camera.position.lerp(pos, k);
-    look.current.lerp(target, k);
-    camera.lookAt(look.current);
-  });
-  return null;
 }
 
 /** The mound's height for a pile of `points`: 0.3 m at the smallest, 0.8 m at the largest. */
@@ -356,19 +372,25 @@ function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; re
  * swinging a little with the wind, with the seconds on a chip just under it (plan V3.2 Part 4).
  */
 function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; isTrap: boolean; stealOpen: boolean; reduced: boolean }) {
-  const mat = useMemo(() => voxelMaterial(), []);
   const geo = useMemo(() => letterBoardGeometry(letter, isTrap, BARN.beamY), [letter, isTrap]);
+  // A little warmth of its own, so the board still reads when the speaker camera sees its unlit side of the room.
+  const boardMat = useMemo(() => voxelMaterial({ emissive: '#3A2A1C', emissiveIntensity: 1 }), []);
   const iceGeo = useMemo(() => new BoxGeometry(BOARD.width, BOARD.height, 0.24), []);
   const iceMat = useMemo(() => new MeshPhongMaterial({ color: T.ice[1], transparent: true, opacity: 0.5, shininess: 80, depthWrite: false }), []);
   const g = useRef<Group>(null);
-  useFrame(({ clock }) => {
-    if (g.current) g.current.rotation.z = reduced || stealOpen ? 0 : (Math.sin(clock.elapsedTime * 0.7) * 1.5 * Math.PI) / 180;
+  // The board hangs from one hook, so it turns to face the camera wherever the speaker camera stands.
+  useFrame(({ clock, camera }, dt) => {
+    if (!g.current) return;
+    g.current.rotation.z = reduced || stealOpen ? 0 : (Math.sin(clock.elapsedTime * 0.7) * 1.5 * Math.PI) / 180;
+    const want = Math.atan2(-(camera.position.x - HEAP[0]), -(camera.position.z - 1.0));
+    const d = Math.atan2(Math.sin(want - g.current.rotation.y), Math.cos(want - g.current.rotation.y));
+    g.current.rotation.y += d * (reduced ? 1 : 1 - Math.exp(-dt * 6));
   });
   const pivotY = BARN.beamY - 0.15;
   const boardMid = BOARD.bottom + BOARD.height / 2 - pivotY;
   return (
     <group ref={g} position={[HEAP[0], pivotY, 1.0]}>
-      <mesh geometry={geo} material={mat} castShadow />
+      <mesh geometry={geo} material={boardMat} castShadow />
       {isTrap && <mesh geometry={iceGeo} material={iceMat} position={[0, boardMid, 0]} />}
     </group>
   );

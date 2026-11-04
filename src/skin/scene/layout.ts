@@ -75,3 +75,36 @@ export const DISTANCE = {
   mountains: { fromZ: 160, toZ: 260 },
   skyRadius: 420,
 };
+
+/**
+ * The speaker camera (plan V3.3 Part 4): for a speaker at ring angle θ the camera stands on a circle around the pile
+ * at θ + 180° − 35°, so the sheep is seen three-quarter front with the pile beside it, and looks at a point 35% of
+ * the way from the speaker's head toward the top of the pile. The plan's 7.6 m radius would put the camera outside
+ * the barn walls (12 m wide), so the circle is 5.4 m; the height and the 35% are the plan's; the aim is lifted 0.3 m so the
+ * letter board stays in frame when the camera is pulled in. A tall phone screen is narrow, so phones stand a little
+ * further back with a wider lens and aim halfway to the pile.
+ */
+export const SPEAKER_CAMERA = { radius: 5.4, phoneRadius: 5.8, height: 3.4, fov: 36, phoneFov: 66, offsetDeg: -35, toward: 0.35, phoneToward: 0.5, headY: 0.95, pileTopY: 0.6, step: 0.35, lift: 0.3 };
+
+export interface Shot { position: [number, number, number]; target: [number, number, number]; fov: number }
+
+/** The shot for the sheep at seat `index` of `n` (index 0, you, gets the fixed home shot). */
+export function speakerShot(index: number, n: number, phone: boolean): Shot {
+  const home = phone ? CAMERA.phone : CAMERA.desktop;
+  if (index === 0) return { position: [...home.position], target: [...home.target], fov: home.fov };
+  const c = SPEAKER_CAMERA;
+  const p = seatPosition(index, n);
+  const dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;
+  // The speaker stands `step` m toward the pile on its turn.
+  const k = phone ? c.phoneToward : c.toward;
+  const hx = p.x + (dx / len) * c.step, hz = p.z + (dz / len) * c.step, hy = c.headY * SHEEP_SCALE;
+  const phi = ((seatAngles(n)[index] + 180 + c.offsetDeg) * Math.PI) / 180;
+  // Keep 1.5 m clear of the side and back walls (and their posts and lanterns): pull in along the same bearing.
+  const sx = Math.abs(Math.sin(phi)), back = -Math.cos(phi);
+  const r = Math.min(phone ? c.phoneRadius : c.radius, (BARN.maxX - 1.5) / Math.max(sx, 1e-3), back > 0 ? (BARN.maxZ - 1.5 - SEAT_RING.cz) / back : Infinity);
+  return {
+    position: [SEAT_RING.cx + Math.sin(phi) * r, c.height, SEAT_RING.cz - Math.cos(phi) * r],
+    target: [hx + (HEAP[0] - hx) * k, hy + (c.pileTopY - hy) * k + c.lift, hz + (HEAP[2] - hz) * k],
+    fov: phone ? c.phoneFov : c.fov,
+  };
+}

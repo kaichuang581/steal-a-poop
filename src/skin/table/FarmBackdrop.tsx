@@ -12,7 +12,9 @@ import { Sheep } from './Sheep';
 /** The diorama shot (plan V3.1 Part 2.2 and 2.4): a long lens from the yard, the open doorway on the right third. */
 export const HOME_CAMERA = {
   desktop: { fov: 26, position: [-12.5, 7.0, 23.0] as const, target: [0.6, 1.6, 4.5] as const },
-  phone: { fov: 34, position: [-9, 6.5, 21] as const, target: [0.4, 1.6, 4.5] as const },
+  // Phones: the hero has to sit between the title and the tickets, so the lens aims lower, at the sheep's feet.
+  // A tall viewport makes the horizontal view narrow, so the phone lens is wider and aims below the hero's feet.
+  phone: { fov: 46, position: [-6.5, 4.6, 21] as const, target: [0, -0.9, 8.2] as const },
 };
 
 interface Props {
@@ -81,6 +83,8 @@ function DoorSpill() {
     <>
       <primitive object={target} position={[0, 0, BARN.maxZ + 7]} />
       <spotLight position={[0, 3.2, BARN.maxZ - 0.4]} target={target} color="#FFC278" intensity={120} angle={0.55} penumbra={0.6} distance={16} decay={2} />
+      {/* A little of that light bounced back off the snow, so the hero's face is not a silhouette. */}
+      <pointLight position={[-1.5, 1.6, BARN.maxZ + 3.6]} color="#FFC278" intensity={14} distance={7} decay={2} />
     </>
   );
 }

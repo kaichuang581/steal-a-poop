@@ -57,7 +57,7 @@ export function huntStreakDays(today: string): boolean[] {
   });
 }
 
-const MARK: Record<Mark, string> = { hit: '🟩', crit: '🟨', broke: '🟥', timeout: '⬛' };
+const MARK: Record<Mark, string> = { hit: '🟩', crit: '🟨', broke: '🟥', timeout: '⬛', item: '🎒' };
 
 /** The spoiler-free result to share: predators beaten, damage, and one square per turn. */
 export function huntShareText(r: { date: string; defeated: number; damage: number; marks: Mark[]; streak: number }): string {

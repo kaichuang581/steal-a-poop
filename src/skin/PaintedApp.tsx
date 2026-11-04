@@ -13,7 +13,7 @@ import './styles/skin.css';
 
 /** The painted skin's fonts; loaded only when the skin is on, so the classic look never contacts Google Fonts. */
 const FONTS_HREF =
-  'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Nunito:wght@400;600;700;800;900&family=Patrick+Hand&family=Press+Start+2P&display=swap';
+  'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Nunito:wght@400;600;700;800;900&family=Patrick+Hand&family=DotGothic16&display=swap';
 
 function useSkinFonts() {
   useEffect(() => {

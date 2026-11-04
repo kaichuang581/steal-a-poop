@@ -1,153 +1,279 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { utcDateKey } from '../../engine';
+import { checkNickname } from '../../lib/nickname';
 import { getHuntStreak, huntShareText, markHuntStarted, recordHunt } from '../../hunt/daily';
-import { activeRules, attack, dailySeed, HEAL_ON_WIN, nextPredator, startRun, timeOut, turnSeconds } from '../../hunt/hunt';
-import type { Outcome, Run } from '../../hunt/hunt';
+import { activeRules, applyItem, attack, dailySeed, HEAL_ON_WIN, HP_PER_LEVEL, ITEMS, MOVES, nextPredator, START_LEVEL, startRun, timeOut, turnSeconds } from '../../hunt/hunt';
+import type { ItemId, Outcome, Run } from '../../hunt/hunt';
 import type { Rule } from '../../hunt/rules';
 import { useStore } from '../../state/store';
 import { useMotionLevel } from '../hooks/useAmbient';
-import { PredatorSprite, SheepBackSprite } from './sprites';
 import { useHuntUi } from './huntStore';
+import { PredatorSprite, SheepBackSprite } from './sprites';
 import './hunt.css';
 
 /**
- * The Daily Hunt battle screen: a retro, turn-based fight in the snow. The predator stands top right, the sheep bottom
- * left, each with a status box, and a dialog box runs along the bottom. Each stage below is timed; the run itself
- * lives in src/hunt (pure), and this screen only plays it out.
+ * The Daily Hunt, played like a handheld monster battle: a fixed 240 x 160 screen scaled up with crisp pixels, the
+ * wild predator top right with its name box, the sheep from behind bottom left with its HP and EXP, and a text box
+ * along the bottom with FIGHT / BAG / RULES / RUN. Every action plays out as a queue of typed messages and effects.
+ * The run itself lives in src/hunt (pure and seeded); this screen only plays it out.
  */
-type Stage =
-  | { s: 'intro' }
-  | { s: 'announce'; rules: Rule[]; enraged: boolean }
-  | { s: 'player' }
-  | { s: 'hit'; out: Extract<Outcome, { kind: 'hit' }> }
-  | { s: 'miss'; out: Extract<Outcome, { kind: 'broke' | 'timeout' }> }
-  | { s: 'counter'; amount: number; then: 'announce' | 'player' | 'dead'; enraged: Rule | null }
-  | { s: 'faint' }
-  | { s: 'win' }
-  | { s: 'dead' }
-  | { s: 'results' };
-
-const BEAT = 480; // ms: the predators' song is about 125 bpm
+const W = 240, H = 160;
+const BEAT = 480;
 const ARROWS = ['←', '↓', '↑', '→'];
+const ITEM_IDS: ItemId[] = ['milk', 'bell', 'pepper'];
+type Fx = 'meAttack' | 'foeHit' | 'foeAttack' | 'meHit' | 'foeFaint' | 'freeze' | 'heal' | 'appear' | 'go';
+interface Step { text?: string; fx?: Fx; foeHp?: number; meHp?: number; meMax?: number; level?: number; exp?: number; ms?: number }
+type After = 'menu' | 'announce' | 'next' | 'results';
+type Mode =
+  /** `resume`: back to the menu without a new turn (reading the rules, trying to run). */
+  | { m: 'steps'; steps: Step[]; at: number; after: After; enraged?: Rule; resume?: boolean }
+  | { m: 'announce'; rules: Rule[]; enraged: boolean }
+  | { m: 'menu' }
+  | { m: 'fight' }
+  | { m: 'bag' }
+  | { m: 'results' };
 
 export function HuntScreen() {
   const dict = useStore((s) => s.dict);
+  const nickname = useStore((s) => s.settings.name);
   const practice = useHuntUi((s) => s.practice);
   const close = useHuntUi((s) => s.close);
   const openHunt = useHuntUi((s) => s.openHunt);
   const reduced = useMotionLevel() === 'reduced';
   const today = utcDateKey(new Date());
+  const me = (checkNickname(nickname).ok && nickname.trim() ? nickname.trim() : 'Lamb').toUpperCase().slice(0, 10);
+
   const [run, setRun] = useState<Run | null>(null);
-  const [stage, setStage] = useState<Stage>({ s: 'intro' });
+  const [mode, setMode] = useState<Mode>({ m: 'menu' });
+  // What the boxes show; steps move these, so a bar drains when the strike lands rather than when it is decided.
+  const [view, setView] = useState({ foeHp: 0, meHp: 0, meMax: 0, level: START_LEVEL, exp: 0 });
+  const [fx, setFx] = useState<{ kind: Fx; key: number } | null>(null);
+  const [cursor, setCursor] = useState(0);
+  const [bagCursor, setBagCursor] = useState(0);
   const [typed, setTyped] = useState('');
-  const [shake, setShake] = useState(0);
   const [note, setNote] = useState('');
-  const [endsAt, setEndsAt] = useState(0);
+  const [hint, setHint] = useState<string | null>(null);
+  const [turnEnds, setTurnEnds] = useState(0);
   const [now, setNow] = useState(() => performance.now());
   const [beat, setBeat] = useState(0);
   const [streak, setStreak] = useState(0);
   const [copied, setCopied] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const speed = reduced ? 0.4 : 1;
+  const [scale, setScale] = useState(2);
+  const ghost = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLElement>(null);
+  const speed = reduced ? 0.5 : 1;
 
-  // Start the run once the word list is ready. The daily run counts as the day's attempt as soon as it starts.
+  // Scale the 240 x 160 screen to fit, in half steps so the pixels stay as even as possible.
+  useLayoutEffect(() => {
+    const fit = () => setScale(Math.max(1, Math.floor(Math.min(window.innerWidth / W, (window.innerHeight * 0.86) / H) * 2) / 2));
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, []);
+
+  const sync = useCallback((r: Run) => setView({ foeHp: r.predator.hp, meHp: r.hp, meMax: r.maxHp, level: r.level, exp: 1 - r.predator.hp / r.predator.maxHp }), []);
+
+  function appearSteps(r: Run, first: boolean): Mode {
+    const name = r.predator.name.toUpperCase();
+    const steps: Step[] = [{ text: r.predator.boss ? `The ${name} steps out of the blizzard!` : `Wild ${name} appeared!`, fx: 'appear', ms: 1600 }];
+    if (first) steps.push({ text: `Go! ${me}!`, fx: 'go', ms: 1100 });
+    return { m: 'steps', steps, at: 0, after: 'announce' };
+  }
+
+  // Start the run once the word list is ready. The daily hunt counts as the day's attempt as soon as it starts.
   useEffect(() => {
     if (!dict || run) return;
     const seed = practice ? `practice:${Date.now()}` : dailySeed(today);
     if (!practice) markHuntStarted(today);
-    setRun(startRun(dict, seed));
-    setStage({ s: 'intro' });
-  }, [dict, run, practice, today]);
+    const r = startRun(dict, seed);
+    setRun(r);
+    sync(r);
+    setMode(appearSteps(r, true));
+  }, [dict, run, practice, today, sync]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Timed stages advance on their own.
+  // The turn clock runs while the sheep chooses (menu, fight, bag). Running out lets the predator strike.
+  function startTurn() {
+    setTurnEnds(performance.now() + (run ? turnSeconds(run.index) : 20) * 1000);
+    setTyped('');
+    setNote('');
+    setCursor(0);
+  }
+
+  // Play the step queue: apply each step's effect and bar values, wait, move on.
   useEffect(() => {
-    if (!run || !dict) return;
-    const after = (ms: number, f: () => void) => { const id = setTimeout(f, ms * speed); return () => clearTimeout(id); };
-    switch (stage.s) {
-      case 'intro':
-        return after(1900, () => setStage({ s: 'announce', rules: run.predator.rules, enraged: false }));
-      case 'announce':
-        return after(BEAT * (2 + stage.rules.length * 3), () => setStage({ s: 'player' }));
-      case 'hit': {
-        const o = stage.out;
-        return after(1100, () => {
-          if (o.defeated) setStage({ s: 'faint' });
-          else setStage({ s: 'counter', amount: o.counter, then: o.dead ? 'dead' : o.enraged ? 'announce' : 'player', enraged: o.enraged });
-        });
+    if (mode.m !== 'steps' || !run || !dict) return;
+    const step = mode.steps[mode.at];
+    if (!step) {
+      if (mode.after === 'menu') { if (!mode.resume) startTurn(); setMode({ m: 'menu' }); }
+      else if (mode.after === 'announce') setMode({ m: 'announce', rules: mode.enraged ? [mode.enraged] : run.predator.rules, enraged: !!mode.enraged });
+      else if (mode.after === 'results') setMode({ m: 'results' });
+      else {
+        const next = nextPredator(run, dict);
+        setRun(next);
+        sync(next);
+        setMode(appearSteps(next, false));
       }
-      case 'miss':
-        return after(1300, () => setStage({ s: 'counter', amount: stage.out.counter, then: stage.out.dead ? 'dead' : 'player', enraged: null }));
-      case 'counter':
-        return after(1000, () => {
-          if (stage.then === 'dead') setStage({ s: 'dead' });
-          else if (stage.then === 'announce' && stage.enraged) setStage({ s: 'announce', rules: [stage.enraged], enraged: true });
-          else setStage({ s: 'player' });
-        });
-      case 'faint':
-        return after(1300, () => { playSound('bank'); setStage({ s: 'win' }); });
-      case 'win':
-        return after(1700, () => { setRun((r) => (r ? nextPredator(r, dict) : r)); setStage({ s: 'intro' }); });
-      case 'dead':
-        return after(2600, () => setStage({ s: 'results' }));
+      return;
     }
-  }, [stage, run, dict, speed]);
+    setView((v) => ({
+      foeHp: step.foeHp ?? v.foeHp, meHp: step.meHp ?? v.meHp, meMax: step.meMax ?? v.meMax, level: step.level ?? v.level, exp: step.exp ?? v.exp,
+    }));
+    if (step.fx) {
+      setFx({ kind: step.fx, key: Date.now() });
+      if (step.fx === 'foeHit') playSound('play');
+      else if (step.fx === 'meHit') playSound('fail');
+      else if (step.fx === 'foeFaint') playSound('bank');
+      else if (step.fx === 'freeze') playSound('roundEnd');
+      else if (step.fx === 'heal') playSound('steal');
+    }
+    const ms = (step.ms ?? (step.text ? 1250 + step.text.length * 18 : 750)) * speed;
+    const id = setTimeout(() => setMode({ ...mode, at: mode.at + 1 }), ms);
+    return () => clearTimeout(id);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The beat: the predator bops and the arrows light while it announces its rules (and, softly, all the time).
+  // The announcement: the predator bops to the beat and names its rules, one sign per rule, then the turn begins.
+  useEffect(() => {
+    if (mode.m !== 'announce') return;
+    const id = setTimeout(() => { startTurn(); setMode({ m: 'menu' }); }, BEAT * (2 + mode.rules.length * 3) * speed);
+    return () => clearTimeout(id);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (reduced) return;
     const id = setInterval(() => setBeat((b) => b + 1), BEAT);
     return () => clearInterval(id);
   }, [reduced]);
-  useEffect(() => { if (stage.s === 'announce' && beat % 3 === 2) playTick(0.2 + (beat % 4) * 0.1); }, [beat, stage.s]);
+  useEffect(() => { if (mode.m === 'announce' && beat % 3 === 2) playTick(0.2 + (beat % 4) * 0.1); }, [beat, mode.m]);
 
-  // The sheep's turn: a clock, and focus on the input.
+  const choosing = mode.m === 'menu' || mode.m === 'fight' || mode.m === 'bag';
   useEffect(() => {
-    if (stage.s !== 'player' || !run) return;
-    setEndsAt(performance.now() + turnSeconds(run.index) * 1000);
-    setTyped('');
-    setNote('');
-    inputRef.current?.focus();
-  }, [stage.s, run?.index]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (stage.s !== 'player') return;
+    if (!choosing) return;
     let raf = 0;
     const tick = () => { setNow(performance.now()); raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [stage.s]);
+  }, [choosing]);
   useEffect(() => {
-    if (stage.s !== 'player' || !run || !endsAt || now < endsAt) return;
+    if (!choosing || !run || !turnEnds || now < turnEnds) return;
     const { run: next, outcome } = timeOut(run);
-    if (outcome.kind !== 'timeout') return;
-    setRun(next);
-    playSound('fail');
-    setStage({ s: 'miss', out: outcome });
-  }, [now, endsAt, stage.s, run]);
+    resolve(next, outcome, '');
+  }, [now]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The run is over: save it (once) and work out the streak.
+  // The run is over: save it once.
   useEffect(() => {
-    if (stage.s !== 'dead' || !run) return;
-    playSound('roundEnd');
-    if (practice) return;
+    if (mode.m !== 'results' || !run || practice) return;
     setStreak(recordHunt({ date: today, status: 'done', defeated: run.defeated, damage: run.damage, marks: run.marks, best: run.best }));
-  }, [stage.s]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode.m]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Focus: the hidden input while typing a word, otherwise the screen itself for the arrow keys.
+  useEffect(() => {
+    if (mode.m === 'fight') ghost.current?.focus();
+    else if (mode.m !== 'results') rootRef.current?.focus({ preventScroll: true });
+  }, [mode.m]);
 
   const rules = useMemo(() => (run && dict ? activeRules(run, dict) : { rules: [], relaxed: [] }), [run, dict]);
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!run || !dict || stage.s !== 'player' || !typed.trim()) return;
+  /** Turns an outcome into the message queue that plays it out. */
+  function resolve(next: Run, outcome: Outcome, word: string) {
+    if (!run) return;
+    const foe = run.predator.name.toUpperCase();
+    const move = MOVES[run.predator.kind];
+    const steps: Step[] = [];
+    const strike = (counter: number, hp: number, dead: boolean) => {
+      steps.push({ text: `Wild ${foe} used ${move}!`, fx: 'foeAttack', ms: 1300 }, { fx: 'meHit', meHp: hp, ms: 800 });
+      if (counter > 14) steps.push({ text: "It's super effective!" });
+      if (dead) steps.push({ text: `${me} is frozen solid!`, fx: 'freeze', ms: 2200 }, { text: `${me} can't go on...` });
+    };
+    let after: After = 'menu';
+    let enraged: Rule | undefined;
+    if (outcome.kind === 'hit') {
+      steps.push({ text: `${me} used ${word.toUpperCase()}!`, fx: 'meAttack', ms: 1100 });
+      steps.push({ fx: 'foeHit', foeHp: outcome.predatorHp, exp: 1 - outcome.predatorHp / run.predator.maxHp, ms: 900 });
+      if (run.peppered) steps.push({ text: 'The pepper burns! Double damage!' });
+      if (outcome.crit) steps.push({ text: 'A critical hit! What a rare word!' });
+      if (outcome.defeated) {
+        const max = run.maxHp + HP_PER_LEVEL;
+        steps.push({ text: `Wild ${foe} fainted!`, fx: 'foeFaint', ms: 1600 });
+        steps.push({ text: `${me} gained ${run.predator.maxHp} EXP. Points!`, exp: 1 });
+        steps.push({ text: `${me} grew to Lv${run.level + 1}!`, fx: 'heal', level: run.level + 1, exp: 0, meMax: max, meHp: Math.min(max, run.hp + HP_PER_LEVEL + HEAL_ON_WIN) });
+        after = 'next';
+      } else {
+        strike(outcome.counter, outcome.hp, outcome.dead);
+        if (outcome.enraged && !outcome.dead) { steps.push({ text: `${foe} is getting angry!` }); after = 'announce'; enraged = outcome.enraged; }
+      }
+    } else if (outcome.kind === 'broke') {
+      steps.push({ text: `${me} used ${word.toUpperCase()}!`, fx: 'meAttack', ms: 1100 }, { text: `But it broke a rule: ${outcome.rule.label}!` });
+      strike(outcome.counter, outcome.hp, outcome.dead);
+    } else if (outcome.kind === 'timeout') {
+      steps.push({ text: `${me} hesitated...` });
+      strike(outcome.counter, outcome.hp, outcome.dead);
+    } else if (outcome.kind === 'item') {
+      steps.push({ text: `${me} used the ${ITEMS[outcome.item].name.toUpperCase()}!` });
+      if (outcome.item === 'milk') steps.push({ text: `${me} recovered ${outcome.heal} HP!`, fx: 'heal', meHp: run.hp + outcome.heal });
+      if (outcome.item === 'bell') { steps.push({ text: outcome.hint ? `The bell rings out: "${outcome.hint.toUpperCase()}"!` : 'The bell rings... but no word comes.' }); setHint(outcome.hint); }
+      if (outcome.item === 'pepper') steps.push({ text: `${me}'s next word will hit twice as hard!` });
+      strike(outcome.counter, outcome.hp, outcome.dead);
+    }
+    if (next.over) after = 'results';
+    if (outcome.kind === 'hit' || outcome.kind === 'broke') setHint(null);
+    setRun(next);
+    setMode({ m: 'steps', steps, at: 0, after, enraged });
+  }
+
+  const submitWord = () => {
+    if (!run || !dict || !typed.trim()) return;
     const { run: next, outcome } = attack(run, dict, typed);
     if (outcome.kind === 'invalid') {
-      setShake((k) => k + 1);
-      setNote(outcome.reason === 'notWord' ? 'Not in the word list.' : outcome.reason === 'used' ? 'Already used this hunt.' : outcome.reason === 'short' ? 'At least 3 letters.' : 'Letters only.');
+      setNote(outcome.reason === 'notWord' ? "That's not a word!" : outcome.reason === 'used' ? 'Already used this hunt!' : outcome.reason === 'short' ? 'At least 3 letters!' : 'Letters only!');
       return;
     }
-    setRun(next);
-    if (outcome.kind === 'hit') { playSound(outcome.crit ? 'steal' : 'play'); setStage({ s: 'hit', out: outcome }); }
-    else if (outcome.kind === 'broke') { playSound('trap'); setStage({ s: 'miss', out: outcome }); }
+    resolve(next, outcome, typed);
+  };
+
+  const choose = (i: number) => {
+    if (!run) return;
+    if (i === 0) { setMode({ m: 'fight' }); return; }
+    if (i === 1) { setBagCursor(0); setMode({ m: 'bag' }); return; }
+    if (i === 2) {
+      const foe = run.predator.name.toUpperCase();
+      const list = rules.rules.map((r) => r.label).join(', ') || 'none';
+      const steps: Step[] = [{ text: `${foe}'s rules: ${list}.` }];
+      if (rules.relaxed.length) steps.push({ text: `It lets "${rules.relaxed.map((r) => r.label).join('", "')}" slide this turn.` });
+      setMode({ m: 'steps', steps, at: 0, after: 'menu', resume: true });
+      return;
+    }
+    setMode({ m: 'steps', steps: [{ text: "There's no running from a predator!" }], at: 0, after: 'menu', resume: true });
+  };
+
+  const pickItem = (id: ItemId) => {
+    if (!run || !dict) return;
+    const out = applyItem(run, dict, id);
+    if (out) resolve(out.run, out.outcome, '');
+  };
+
+  const onKey = (e: ReactKeyboardEvent) => {
+    const k = e.key;
+    const ok = k === 'Enter' || k === ' ' || k === 'z' || k === 'Z';
+    const back = k === 'Escape' || k === 'x' || k === 'X' || k === 'Backspace';
+    if (mode.m === 'menu') {
+      if (k === 'ArrowRight' || k === 'ArrowLeft') setCursor((c) => c ^ 1);
+      else if (k === 'ArrowDown' || k === 'ArrowUp') setCursor((c) => c ^ 2);
+      else if (ok) choose(cursor);
+      else return;
+      playTick(0.1);
+    } else if (mode.m === 'bag') {
+      if (k === 'ArrowDown') setBagCursor((c) => Math.min(ITEM_IDS.length, c + 1));
+      else if (k === 'ArrowUp') setBagCursor((c) => Math.max(0, c - 1));
+      else if (ok) { if (bagCursor === ITEM_IDS.length) setMode({ m: 'menu' }); else pickItem(ITEM_IDS[bagCursor]); }
+      else if (back) setMode({ m: 'menu' });
+      else return;
+      playTick(0.1);
+    } else if (mode.m === 'steps' && ok) {
+      // Skip ahead, like pressing A on a message.
+      setMode({ ...mode, at: mode.at + 1 });
+    } else return;
+    e.preventDefault();
   };
 
   const share = async () => {
@@ -159,157 +285,171 @@ export function HuntScreen() {
   };
 
   if (!run || !dict) {
-    return <div className="hunt-root grid place-items-center"><p className="hunt-box px-6 py-4">Loading the word list…</p></div>;
+    return <main className="gb-root"><p className="gb-loading">Loading the word list…</p></main>;
   }
 
   const p = run.predator;
-  const left = Math.max(0, endsAt - now);
+  const foe = p.name.toUpperCase();
+  const left = Math.max(0, turnEnds - now);
   const total = turnSeconds(run.index) * 1000;
-  const predatorName = p.name.toUpperCase();
-  const fainted = stage.s === 'faint' || stage.s === 'win';
-  const frozen = stage.s === 'dead' || stage.s === 'results';
-  const message = dialogText(stage, run, predatorName);
-  // The run already holds the counter-attack's damage; the bar only drops when the predator actually strikes.
-  const shownHp = stage.s === 'hit' || stage.s === 'miss' ? run.hp + stage.out.counter : run.hp;
+  const step = mode.m === 'steps' ? mode.steps[mode.at] : null;
+  const fxKind = mode.m === 'steps' ? fx?.kind : undefined;
+  const frozen = mode.m === 'results' || fxKind === 'freeze' || (mode.m === 'steps' && mode.after === 'results' && mode.steps.slice(0, mode.at + 1).some((s) => s.fx === 'freeze'));
+  const fainted = mode.m === 'steps' && mode.after === 'next' && mode.steps.slice(0, mode.at + 1).some((s) => s.fx === 'foeFaint');
+  const message =
+    mode.m === 'menu' ? `What will\n${me} do?` :
+    mode.m === 'announce' ? `${foe}: "${mode.rules.map((r) => r.line).join(' ')}"` :
+    mode.m === 'bag' ? (bagCursor < ITEM_IDS.length ? ITEMS[ITEM_IDS[bagCursor]].about : 'Close the bag.') :
+    step?.text ?? lastText(mode);
+  const chain = rules.rules.some((r) => r.id === 'chain') && run.prev ? run.prev.at(-1)!.toUpperCase() : null;
 
   return (
-    <main className={`hunt-root ${stage.s === 'counter' && !reduced ? 'hunt-quake' : ''}`} data-stage={stage.s} aria-label="Daily Hunt">
-      <div className="hunt-snow" aria-hidden="true" />
-      <div className="hunt-hills" aria-hidden="true" />
+    <main ref={rootRef} className="gb-root" tabIndex={-1} onKeyDown={onKey} aria-label="Daily Hunt" data-mode={mode.m}>
+      <div className="gb-frame" style={{ width: W * scale, height: H * scale }}>
+        <div className={`gb-screen ${fxKind === 'meHit' && !reduced ? 'gb-quake' : ''}`} style={{ transform: `scale(${scale})` }}>
+          <div className="gb-sky" aria-hidden="true" />
+          <div className="gb-flakes" aria-hidden="true" />
 
-      {/* Predator: status box top left, sprite on its snowy rise top right. */}
-      <section className="hunt-status hunt-status-foe hunt-box" aria-label={`${p.name}, level ${p.level}`}>
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="hunt-name">{predatorName}{p.boss && <span className="hunt-boss">BOSS</span>}</span>
-          <span className="hunt-level">Lv{p.level}</span>
-        </div>
-        <HpBar hp={p.hp} max={p.maxHp} label="Predator health" />
-        <ul className="hunt-rules" aria-label="Its rules">
-          {p.rules.map((r) => <li key={r.id} className={rules.relaxed.includes(r) ? 'hunt-rule-relaxed' : ''}>{r.label}</li>)}
-        </ul>
-      </section>
-      <div className="hunt-rise hunt-rise-foe" aria-hidden="true" />
-      <div
-        className={`hunt-foe ${stage.s === 'intro' ? 'hunt-enter' : ''} ${stage.s === 'hit' ? 'hunt-hurt' : ''} ${stage.s === 'counter' ? 'hunt-lunge' : ''} ${fainted ? 'hunt-faint' : ''} ${!reduced && beat % 2 === 0 && !fainted ? 'hunt-bop' : ''}`}
-        aria-hidden="true"
-      >
-        <PredatorSprite kind={p.kind} size={192} />
-      </div>
-
-      {/* Sheep: sprite bottom left, status box beside it. */}
-      <div className="hunt-rise hunt-rise-sheep" aria-hidden="true" />
-      <div className={`hunt-sheep ${stage.s === 'counter' ? 'hunt-hurt' : ''} ${stage.s === 'hit' && !reduced ? 'hunt-attack' : ''}`} aria-hidden="true">
-        <SheepBackSprite size={192} frozen={frozen} />
-        {frozen && <div className="hunt-iceblock" />}
-      </div>
-      <section className="hunt-status hunt-status-sheep hunt-box" aria-label="You">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="hunt-name">YOU</span>
-          <span className="hunt-level">{run.defeated} beaten</span>
-        </div>
-        <HpBar hp={shownHp} max={run.maxHp} label="Your health" />
-        <div className="hunt-hpnum">{shownHp} / {run.maxHp}</div>
-      </section>
-
-      {/* Damage and strike effects. */}
-      {stage.s === 'hit' && (
-        <>
-          <div className="hunt-flyword" aria-hidden="true">{stage.out.word.toUpperCase()}</div>
-          <div className={`hunt-pop hunt-pop-foe ${stage.out.crit ? 'hunt-pop-crit' : ''}`} aria-hidden="true">-{stage.out.damage}{stage.out.crit && <small>CRIT!</small>}</div>
-        </>
-      )}
-      {stage.s === 'counter' && (
-        <>
-          <div className="hunt-slash" aria-hidden="true" />
-          <div className="hunt-pop hunt-pop-sheep" aria-hidden="true">-{stage.amount}</div>
-        </>
-      )}
-      {stage.s === 'win' && <div className="hunt-pop hunt-pop-heal" aria-hidden="true">+{HEAL_ON_WIN} HP</div>}
-
-      {/* The predator's announcement: the stage darkens, it bops to the beat, and each rule card slams in on the down beat. */}
-      {stage.s === 'announce' && (
-        <div className="hunt-announce" aria-live="polite">
-          <div className="hunt-arrows" aria-hidden="true">
-            {ARROWS.map((a, i) => <span key={a} className={beat % 4 === i ? 'hunt-arrow-lit' : ''}>{a}</span>)}
+          {/* The wild predator and its name box. */}
+          <div className="gb-pad gb-pad-foe" aria-hidden="true" />
+          <div
+            key={`foe-${run.index}`}
+            className={`gb-foe ${fxKind === 'appear' ? 'gb-slide-in' : ''} ${fxKind === 'foeHit' ? 'gb-blink' : ''} ${fxKind === 'foeAttack' ? 'gb-lunge' : ''} ${fainted ? 'gb-faint' : ''} ${mode.m === 'announce' && beat % 2 === 0 ? 'gb-bop' : ''}`}
+            aria-hidden="true"
+          >
+            <PredatorSprite kind={p.kind} size={64} />
           </div>
-          <div className="hunt-cards">
-            {stage.rules.map((r, i) => (
-              <div key={r.id} className="hunt-card" style={{ animationDelay: `${(BEAT * (2 + i * 3) * speed) | 0}ms` }}>
-                <span className="hunt-card-tag">{stage.enraged ? 'NEW RULE' : 'RULE'}</span>
-                {r.label}
+          <section className="gb-box gb-box-foe" aria-label={`${p.name}, level ${p.level + START_LEVEL - 1}`}>
+            <div className="gb-row"><span>{foe}</span><span>Lv{p.level + START_LEVEL - 1}</span></div>
+            <Hp hp={view.foeHp} max={p.maxHp} label={`${p.name} health`} />
+          </section>
+          <ul className="gb-tags" aria-label="Its rules">
+            {p.rules.map((r) => <li key={r.id} data-relaxed={rules.relaxed.includes(r) || undefined}>{r.label}</li>)}
+          </ul>
+
+          {/* The sheep from behind, and its box with HP and EXP. */}
+          <div className="gb-pad gb-pad-me" aria-hidden="true" />
+          <div className={`gb-me ${fxKind === 'go' ? 'gb-pop-in' : ''} ${fxKind === 'meHit' ? 'gb-blink' : ''} ${fxKind === 'meAttack' ? 'gb-nudge' : ''}`} aria-hidden="true">
+            <SheepBackSprite size={64} frozen={frozen} />
+            {frozen && <div className="gb-ice" />}
+          </div>
+          <section className="gb-box gb-box-me" aria-label="You">
+            <div className="gb-row"><span>{me}</span><span>Lv{view.level}</span></div>
+            <Hp hp={view.meHp} max={view.meMax} label="Your health" />
+            <div className="gb-hpnum">{view.meHp}/ {view.meMax}</div>
+            <div className="gb-exp"><span>EXP</span><div><i style={{ width: `${view.exp * 100}%` }} /></div></div>
+          </section>
+
+          {/* Strike effects. */}
+          {fxKind === 'meAttack' && step?.text && <div key={fx!.key} className="gb-word" aria-hidden="true">{typedWord(step.text)}</div>}
+          {fxKind === 'foeAttack' && <div key={fx!.key} className="gb-claw" aria-hidden="true" />}
+          {fxKind === 'heal' && <div key={fx!.key} className="gb-sparkle" aria-hidden="true" />}
+          {run.peppered && choosing && <div className="gb-pepper" aria-hidden="true">🌶</div>}
+
+          {/* The predator's song: the stage darkens, arrows light on the beat, each rule pops up as a sign. */}
+          {mode.m === 'announce' && (
+            <div className="gb-announce" aria-hidden="true">
+              <div className="gb-arrows">{ARROWS.map((a, i) => <span key={a} data-lit={beat % 4 === i || undefined}>{a}</span>)}</div>
+              <div className="gb-signs">
+                {mode.rules.map((r, i) => (
+                  <div key={r.id} className="gb-sign" style={{ animationDelay: `${(BEAT * (2 + i * 3) * speed) | 0}ms` }}>
+                    <b>{mode.enraged ? 'NEW RULE!' : 'RULE'}</b>{r.label}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* The dialog box: the story line, or the sheep's input during its turn. */}
-      <section className="hunt-dialog hunt-box">
-        {stage.s === 'player' ? (
-          <form onSubmit={submit} className="flex flex-col gap-2">
-            <div className="hunt-timer" aria-hidden="true"><div style={{ width: `${(left / total) * 100}%` }} data-low={left < 4000 || undefined} /></div>
-            <div className="flex items-center gap-2">
-              <label className="sr-only" htmlFor="hunt-word">Your word</label>
-              <input
-                id="hunt-word" key={shake} ref={inputRef} value={typed} onChange={(e) => { setTyped(e.target.value.replace(/[^a-zA-Z]/g, '')); setNote(''); }}
-                className={`hunt-input ${shake ? 'hunt-shake' : ''}`} autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={24}
-                placeholder={rules.rules.find((r) => r.id === 'chain') && run.prev ? `Starts with ${run.prev.at(-1)!.toUpperCase()}…` : 'Type a word to attack'}
-              />
-              <button type="submit" className="hunt-attack-btn" disabled={!typed.trim()}>Attack!</button>
             </div>
-            <p className="hunt-note" role="status">
-              {note || (rules.relaxed.length ? `${p.name} lets "${rules.relaxed.map((r) => r.label).join('", "')}" slide this turn.` : `${Math.ceil(left / 1000)}s · obey: ${rules.rules.map((r) => r.label).join(' · ') || 'anything goes'}`)}
-            </p>
-          </form>
-        ) : stage.s === 'results' ? (
-          <Results run={run} practice={practice} streak={streak} copied={copied} onShare={share} onPractice={() => { setRun(null); openHunt(true); }} onClose={close} />
-        ) : (
-          <Typewriter key={message} text={message} />
-        )}
-      </section>
+          )}
 
-      {stage.s !== 'results' && <button className="hunt-quit" onClick={close} aria-label="Leave the hunt">✕</button>}
+          {/* The text box, and the menu, move or bag panel beside it. */}
+          <div className="gb-bottom">
+            {mode.m === 'fight' ? (
+              <>
+                <div className="gb-panel gb-moves" onClick={() => ghost.current?.focus()}>
+                  <div className="gb-typed">
+                    <span className="gb-arrow">▶</span>{typed ? typed.toUpperCase() : <span className="gb-placeholder">{hint ? hint.toUpperCase() : chain ? `${chain}...` : 'TYPE A WORD'}</span>}<span className="gb-caret" />
+                  </div>
+                  <div className="gb-note">{note || (rules.relaxed.length ? `${rules.relaxed[0].label}: let slide` : rules.rules.map((r) => r.label).join(' · ') || 'Anything goes!')}</div>
+                  <input
+                    ref={ghost} className="gb-ghost" value={typed} aria-label="Your word" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={20}
+                    onChange={(e) => { setTyped(e.target.value.replace(/[^a-zA-Z]/g, '')); setNote(''); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitWord(); } else if (e.key === 'Escape') { e.preventDefault(); setMode({ m: 'menu' }); } e.stopPropagation(); }}
+                  />
+                </div>
+                <div className="gb-panel gb-info">
+                  <div className="gb-row"><span>TIME</span><span>{Math.ceil(left / 1000)}</span></div>
+                  <div className="gb-row"><span>START</span><span>{chain ?? 'ANY'}</span></div>
+                  <button className="gb-mini" onClick={() => setMode({ m: 'menu' })}>BACK</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={`gb-text ${mode.m === 'menu' || mode.m === 'bag' ? 'gb-text-half' : ''}`} onClick={() => { if (mode.m === 'steps') setMode({ ...mode, at: mode.at + 1 }); }}>
+                  <Typewriter key={message} text={message} />
+                </div>
+                {mode.m === 'menu' && (
+                  <div className="gb-panel gb-menu" role="menu" aria-label="What will you do?">
+                    {['FIGHT', 'BAG', 'RULES', 'RUN'].map((label, i) => (
+                      <button key={label} role="menuitem" data-on={cursor === i || undefined} onClick={() => choose(i)} onPointerEnter={() => setCursor(i)}>{label}</button>
+                    ))}
+                  </div>
+                )}
+                {mode.m === 'bag' && (
+                  <div className="gb-panel gb-bag" role="menu" aria-label="Bag">
+                    {ITEM_IDS.map((id, i) => (
+                      <button key={id} role="menuitem" data-on={bagCursor === i || undefined} disabled={run.items[id] <= 0} onClick={() => pickItem(id)} onPointerEnter={() => setBagCursor(i)}>
+                        <span>{ITEMS[id].name.toUpperCase()}</span><span>×{run.items[id]}</span>
+                      </button>
+                    ))}
+                    <button role="menuitem" data-on={bagCursor === ITEM_IDS.length || undefined} onClick={() => setMode({ m: 'menu' })} onPointerEnter={() => setBagCursor(ITEM_IDS.length)}>CANCEL</button>
+                  </div>
+                )}
+              </>
+            )}
+            {choosing && <div className="gb-clock" aria-hidden="true"><i style={{ width: `${(left / total) * 100}%` }} data-low={left < 4000 || undefined} /></div>}
+          </div>
+
+          {mode.m === 'results' && (
+            <Results run={run} practice={practice} streak={streak} copied={copied} onShare={share} onPractice={() => { setRun(null); openHunt(true); }} onClose={close} />
+          )}
+        </div>
+      </div>
+      <button className="gb-quit" onClick={close} aria-label="Leave the hunt">✕</button>
+      <p className="gb-help" aria-hidden="true">Arrow keys move · Enter picks · Esc goes back · type your word in FIGHT</p>
     </main>
   );
 }
 
-function dialogText(stage: Stage, run: Run, name: string): string {
-  const p = run.predator;
-  switch (stage.s) {
-    case 'intro': return p.boss ? `The ${name} steps out of the storm! It wants your wool.` : `A wild ${name} blocks the path!`;
-    case 'announce': return `${name}: "${stage.rules.map((r) => r.line).join(' ')}"`;
-    case 'hit': return stage.out.crit ? `A rare word! "${stage.out.word.toUpperCase()}" lands a critical hit!` : `"${stage.out.word.toUpperCase()}" hits for ${stage.out.damage}!`;
-    case 'miss': return stage.out.kind === 'timeout' ? `Too slow! ${name} pounces!` : `${name}: "That breaks my rule: ${stage.out.rule.label}!"`;
-    case 'counter': return `${name} strikes back for ${stage.amount}!`;
-    case 'faint': return `${name} is beaten!`;
-    case 'win': return `${name} runs off into the snow. You catch your breath: +${HEAL_ON_WIN} HP.`;
-    case 'dead': return `The cold gets in... You froze after beating ${run.defeated} predator${run.defeated === 1 ? '' : 's'}.`;
-    default: return '';
-  }
+function lastText(mode: Mode): string {
+  if (mode.m !== 'steps') return '';
+  for (let i = Math.min(mode.at, mode.steps.length - 1); i >= 0; i--) if (mode.steps[i].text) return mode.steps[i].text!;
+  return '';
+}
+function typedWord(text: string): string {
+  const m = /used (.+)!$/.exec(text);
+  return m ? m[1] : '';
 }
 
-function HpBar({ hp, max, label }: { hp: number; max: number; label: string }) {
-  const f = Math.max(0, hp / max);
+function Hp({ hp, max, label }: { hp: number; max: number; label: string }) {
+  const f = Math.max(0, Math.min(1, hp / Math.max(1, max)));
   return (
-    <div className="hunt-hp" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={hp}>
-      <span className="hunt-hp-tag">HP</span>
-      <div className="hunt-hp-track"><div className="hunt-hp-fill" data-level={f > 0.5 ? 'ok' : f > 0.2 ? 'warn' : 'low'} style={{ width: `${f * 100}%` }} /></div>
+    <div className="gb-hp" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={hp}>
+      <span>HP</span>
+      <div><i data-level={f > 0.5 ? 'ok' : f > 0.2 ? 'warn' : 'low'} style={{ width: `${f * 100}%` }} /></div>
     </div>
   );
 }
 
-/** Retro dialog text that types itself out; a click shows it all at once. */
+/** Text that types itself out, like a handheld text box. */
 function Typewriter({ text }: { text: string }) {
   const [n, setN] = useState(0);
   useEffect(() => {
     if (n >= text.length) return;
-    const id = setTimeout(() => setN((k) => k + 1), 18);
+    const id = setTimeout(() => setN((k) => k + 1), 16);
     return () => clearTimeout(id);
   }, [n, text]);
   return (
-    <p className="hunt-line" onClick={() => setN(text.length)} aria-live="polite">
-      <span>{text.slice(0, n)}</span><span className="hunt-line-rest" aria-hidden="true">{text.slice(n)}</span>
-      {n >= text.length && <span className="hunt-caret" aria-hidden="true">▼</span>}
+    <p className="gb-line" aria-live="polite">
+      <span>{text.slice(0, n)}</span><span className="gb-rest" aria-hidden="true">{text.slice(n)}</span>
     </p>
   );
 }
@@ -318,21 +458,21 @@ function Results({ run, practice, streak, copied, onShare, onPractice, onClose }
   run: Run; practice: boolean; streak: number; copied: boolean; onShare: () => void; onPractice: () => void; onClose: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-2" role="dialog" aria-label="Hunt over">
-      <h2 className="hunt-title">{practice ? 'Practice hunt over' : 'Daily Hunt over'}</h2>
-      <dl className="hunt-stats">
-        <div><dt>Predators beaten</dt><dd>{run.defeated}</dd></div>
-        <div><dt>Damage</dt><dd>{run.damage}</dd></div>
-        <div><dt>Words</dt><dd>{run.used.length}</dd></div>
-        {run.best && <div><dt>Best word</dt><dd>{run.best.word.toUpperCase()} ({run.best.damage})</dd></div>}
-        {!practice && streak > 0 && <div><dt>Streak</dt><dd>{streak} day{streak === 1 ? '' : 's'}</dd></div>}
+    <div className="gb-results" role="dialog" aria-label="Hunt over">
+      <h2>{practice ? 'PRACTICE HUNT OVER' : 'DAILY HUNT OVER'}</h2>
+      <dl>
+        <div><dt>BEATEN</dt><dd>{run.defeated}</dd></div>
+        <div><dt>DAMAGE</dt><dd>{run.damage}</dd></div>
+        <div><dt>LEVEL</dt><dd>{run.level}</dd></div>
+        <div><dt>WORDS</dt><dd>{run.used.length}</dd></div>
+        {run.best && <div className="gb-wide"><dt>BEST WORD</dt><dd>{run.best.word.toUpperCase()} ({run.best.damage})</dd></div>}
+        {!practice && streak > 0 && <div className="gb-wide"><dt>STREAK</dt><dd>{streak} DAY{streak === 1 ? '' : 'S'}</dd></div>}
       </dl>
-      <div className="flex flex-wrap gap-2">
-        {!practice && <button className="hunt-attack-btn" onClick={onShare}>{copied ? 'Copied!' : 'Share'}</button>}
-        <button className="hunt-btn" onClick={onPractice}>Practice hunt</button>
-        <button className="hunt-btn" onClick={onClose}>Back to the farm</button>
+      <div className="gb-actions">
+        {!practice && <button onClick={onShare} autoFocus>{copied ? 'COPIED!' : 'SHARE'}</button>}
+        <button onClick={onPractice} autoFocus={practice}>PRACTICE</button>
+        <button onClick={onClose}>FARM</button>
       </div>
-      {!practice && <p className="hunt-note">A new hunt opens tomorrow. Practice hunts don't count.</p>}
     </div>
   );
 }

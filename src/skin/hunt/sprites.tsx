@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import type { PredatorKind } from '../../hunt/hunt';
 
 /**
- * Pixel-art sprites for the Daily Hunt. Each animal is drawn as simple vector shapes on a 64 x 64 grid (one unit is one
- * pixel), then turned into real pixel art in the browser: rendered at 64 px, every pixel snapped to that animal's
+ * Pixel-art sprites for the Daily Hunt, cute chibi battlers like a handheld's 64 x 64 sprites: a big head, big shiny eyes,
+ * a small round body. Each is drawn as simple vector shapes on a 64 x 64 grid (one unit is one pixel), then turned into real pixel art in the browser: rendered at 64 px, every pixel snapped to that animal's
  * palette (no blurry in-between colours), and a one-pixel dark outline drawn round the silhouette, like a handheld
  * battle sprite. The result is cached as a PNG and scaled up with crisp pixels.
  */
@@ -15,100 +15,123 @@ export interface SpriteDef { palette: string[]; svg: string }
 
 const svg = (body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">${body}</svg>`;
 
-// ---------- Grey Wolf (and, in other colours with a crown and a scar, the Shadow Wolf boss) ----------
+const BLUSH = '#EFA3A3';
+/** Big shiny cartoon eyes: a dark oval, a white highlight, and a mischievous brow above. */
+const eyes = (iris: string, y = 27, dx = 7, angry = true) => `
+  <ellipse cx="${32 - dx}" cy="${y}" rx="2.7" ry="3.3" fill="${iris}"/><ellipse cx="${32 + dx}" cy="${y}" rx="2.7" ry="3.3" fill="${iris}"/>
+  <rect x="${31 - dx - 1}" y="${y - 2}" width="1.6" height="1.6" fill="#FFFFFF"/><rect x="${31 + dx - 1}" y="${y - 2}" width="1.6" height="1.6" fill="#FFFFFF"/>
+  ${angry ? `<polygon points="${32 - dx - 4},${y - 6} ${32 - dx + 3},${y - 4} ${32 - dx + 3},${y - 3} ${32 - dx - 4},${y - 5}" fill="${INK}"/>
+  <polygon points="${32 + dx + 4},${y - 6} ${32 + dx - 3},${y - 4} ${32 + dx - 3},${y - 3} ${32 + dx + 4},${y - 5}" fill="${INK}"/>` : ''}`;
+const blush = (y = 33) => `<ellipse cx="19" cy="${y}" rx="2.6" ry="1.3" fill="${BLUSH}"/><ellipse cx="45" cy="${y}" rx="2.6" ry="1.3" fill="${BLUSH}"/>`;
+
+// ---------- Grey Wolf (and, darker with a crown and a scar, the Shadow Wolf boss) ----------
 function wolf(c: { fur: string; dark: string; light: string; eye: string; inner: string }, boss = false): SpriteDef {
   return {
-    palette: [c.fur, c.dark, c.light, c.eye, c.inner, INK, '#FFFFFF', '#9C2F3A', ...(boss ? ['#BFE3F5', '#E9F6FF', '#C9C3D6'] : [])],
+    palette: [c.fur, c.dark, c.light, c.eye, c.inner, INK, '#FFFFFF', BLUSH, ...(boss ? ['#BFE3F5', '#E9F6FF', '#C9C3D6'] : [])],
     svg: svg(`
-      <polygon points="9,30 15,3 30,19" fill="${c.fur}"/><polygon points="55,30 49,3 34,19" fill="${c.fur}"/>
-      <polygon points="14,24 16,10 25,20" fill="${c.inner}"/><polygon points="50,24 48,10 39,20" fill="${c.inner}"/>
-      <path d="M8 30 Q8 17 22 15 L42 15 Q56 17 56 30 L54 40 Q50 52 40 58 L24 58 Q14 52 10 40 Z" fill="${c.fur}"/>
-      <polygon points="8,34 2,46 12,44 9,52 18,48" fill="${c.fur}"/><polygon points="56,34 62,46 52,44 55,52 46,48" fill="${c.fur}"/>
-      <path d="M27 15 L37 15 L35 31 L29 31 Z" fill="${c.dark}"/>
-      <path d="M11 40 Q18 38 24 44 L26 54 Q16 52 11 40 Z" fill="${c.light}"/><path d="M53 40 Q46 38 40 44 L38 54 Q48 52 53 40 Z" fill="${c.light}"/>
-      <path d="M23 35 Q32 30 41 35 L42 47 Q32 57 22 47 Z" fill="${c.light}"/>
-      <polygon points="16,29 28,32 26,36 18,35" fill="${c.eye}"/><polygon points="48,29 36,32 38,36 46,35" fill="${c.eye}"/>
-      <rect x="22" y="32" width="3" height="3" fill="${INK}"/><rect x="39" y="32" width="3" height="3" fill="${INK}"/>
-      <polygon points="14,26 29,30 28,32 15,29" fill="${c.dark}"/><polygon points="50,26 35,30 36,32 49,29" fill="${c.dark}"/>
-      <ellipse cx="32" cy="40" rx="5" ry="3.5" fill="${INK}"/><rect x="30" y="38" width="2" height="1" fill="#FFFFFF"/>
-      <path d="M24 47 Q32 51 40 47 L38 52 Q32 56 26 52 Z" fill="#9C2F3A"/>
-      <polygon points="26,47 29,47 27.5,52" fill="#FFFFFF"/><polygon points="35,47 38,47 36.5,52" fill="#FFFFFF"/>
-      ${boss ? `<polygon points="20,15 22,7 25,14 28,4 31,14 33,4 36,14 39,4 42,14 44,7 46,15" fill="#BFE3F5"/><rect x="20" y="14" width="26" height="3" fill="#E9F6FF"/>
-        <polygon points="40,24 47,38 45,39 38,25" fill="#C9C3D6"/>` : ''}
+      <path d="M43 52 Q60 50 58 33 Q57 27 53 29 Q55 42 43 45 Z" fill="${c.fur}"/><path d="M53 29 Q57 27 58 33 Q56 32 54 33 Z" fill="${c.light}"/>
+      <ellipse cx="32" cy="50" rx="12" ry="9" fill="${c.fur}"/>
+      <ellipse cx="32" cy="47" rx="6" ry="6" fill="${c.light}"/><polygon points="26,42 32,50 38,42" fill="${c.light}"/>
+      <ellipse cx="26" cy="58" rx="4.5" ry="3" fill="${c.light}"/><ellipse cx="38" cy="58" rx="4.5" ry="3" fill="${c.light}"/>
+      <polygon points="16,22 17,3 29,14" fill="${c.fur}"/><polygon points="48,22 47,3 35,14" fill="${c.fur}"/>
+      <polygon points="19,18 19,8 26,14" fill="${c.inner}"/><polygon points="45,18 45,8 38,14" fill="${c.inner}"/>
+      <ellipse cx="32" cy="28" rx="17" ry="14" fill="${c.fur}"/>
+      <polygon points="16,28 9,36 18,37" fill="${c.fur}"/><polygon points="48,28 55,36 46,37" fill="${c.fur}"/>
+      <path d="M27 15 L37 15 L35 22 L29 22 Z" fill="${c.dark}"/>
+      <ellipse cx="32" cy="35" rx="8.5" ry="6" fill="${c.light}"/>
+      ${eyes(c.eye)}
+      ${blush(33)}
+      <ellipse cx="32" cy="31.5" rx="2.8" ry="2" fill="${INK}"/>
+      <path d="M28.5 36 Q32 39 35.5 36" stroke="${INK}" stroke-width="1.2" fill="none"/>
+      <polygon points="33,37 35.5,36.5 34.5,40" fill="#FFFFFF"/>
+      ${boss ? `<polygon points="22,15 23,8 26,13 29,5 32,12 35,5 38,13 41,8 42,15" fill="#BFE3F5"/><rect x="22" y="14" width="20" height="2.5" fill="#E9F6FF"/>
+        <polygon points="40,20 46,30 44.5,31 38.5,21" fill="#C9C3D6"/>` : ''}
     `),
   };
 }
 
-// ---------- Red Fox: huge black-tipped ears, a narrow face, a white V of cheeks ----------
+// ---------- Red Fox: huge black-tipped ears, a white-tipped brush of a tail, dark stockings ----------
 const FOX: SpriteDef = {
-  palette: ['#D9772B', '#A9561B', '#FBEEDC', '#F2B13E', INK, '#FFFFFF', '#6B3410'],
+  palette: ['#E07B2E', '#A9561B', '#FBEEDC', '#6B3410', INK, '#FFFFFF', BLUSH],
   svg: svg(`
-    <polygon points="6,30 11,1 28,18" fill="#D9772B"/><polygon points="58,30 53,1 36,18" fill="#D9772B"/>
-    <polygon points="11,25 12,8 23,19" fill="#FBEEDC"/><polygon points="53,25 52,8 41,19" fill="#FBEEDC"/>
-    <polygon points="9,12 11,1 15,10" fill="#6B3410"/><polygon points="55,12 53,1 49,10" fill="#6B3410"/>
-    <path d="M6 30 Q8 16 22 15 L42 15 Q56 16 58 30 L52 42 L37 61 L27 61 L12 42 Z" fill="#D9772B"/>
-    <path d="M26 15 L38 15 L36 28 L28 28 Z" fill="#A9561B"/>
-    <path d="M6 31 L20 37 L30 58 L27 61 L12 42 Z" fill="#FBEEDC"/><path d="M58 31 L44 37 L34 58 L37 61 L52 42 Z" fill="#FBEEDC"/>
-    <path d="M26 40 Q32 37 38 40 L35 58 L29 58 Z" fill="#FBEEDC"/>
-    <polygon points="16,29 28,31 26,35 19,35" fill="#F2B13E"/><polygon points="48,29 36,31 38,35 45,35" fill="#F2B13E"/>
-    <rect x="22" y="30" width="2" height="5" fill="${INK}"/><rect x="40" y="30" width="2" height="5" fill="${INK}"/>
-    <polygon points="15,27 29,29 28,31 16,29" fill="#6B3410"/><polygon points="49,27 35,29 36,31 48,29" fill="#6B3410"/>
-    <ellipse cx="32" cy="57" rx="4" ry="2.6" fill="${INK}"/><rect x="30" y="55" width="2" height="1" fill="#FFFFFF"/>
+    <path d="M41 54 Q63 52 59 30 Q57 21 50 25 Q55 41 41 46 Z" fill="#E07B2E"/><ellipse cx="56" cy="27" rx="4.5" ry="4" fill="#FBEEDC"/>
+    <ellipse cx="32" cy="50" rx="11" ry="9" fill="#E07B2E"/><ellipse cx="32" cy="48" rx="6" ry="6.5" fill="#FBEEDC"/>
+    <rect x="24" y="53" width="5" height="8" rx="2" fill="#6B3410"/><rect x="35" y="53" width="5" height="8" rx="2" fill="#6B3410"/>
+    <polygon points="15,24 12,1 29,13" fill="#E07B2E"/><polygon points="49,24 52,1 35,13" fill="#E07B2E"/>
+    <polygon points="18,19 16,7 25,13" fill="#FBEEDC"/><polygon points="46,19 48,7 39,13" fill="#FBEEDC"/>
+    <polygon points="12,1 13.5,8 16,5" fill="#6B3410"/><polygon points="52,1 50.5,8 48,5" fill="#6B3410"/>
+    <ellipse cx="32" cy="27" rx="16" ry="13" fill="#E07B2E"/>
+    <path d="M27 14 L37 14 L35 21 L29 21 Z" fill="#A9561B"/>
+    <path d="M16 28 Q24 33 32 42 Q40 33 48 28 Q48 38 32 43 Q16 38 16 28 Z" fill="#FBEEDC"/>
+    ${eyes(INK, 26)}
+    ${blush(32)}
+    <ellipse cx="32" cy="34" rx="2.4" ry="1.8" fill="${INK}"/>
+    <path d="M29 37 Q32 39.5 35 37" stroke="${INK}" stroke-width="1.2" fill="none"/>
   `),
 };
 
-// ---------- Lynx: black ear tufts, a round spotted face, a big striped ruff ----------
+// ---------- Lynx: black ear tufts, a spotted coat, a big striped ruff, a stubby tail ----------
 const LYNX: SpriteDef = {
-  palette: ['#C9A57A', '#8E6E4A', '#F6EBD9', '#B9D65A', INK, '#E7A0A0', '#FFFFFF'],
+  palette: ['#C9A57A', '#8E6E4A', '#F6EBD9', '#8CC63F', INK, '#E7A0A0', '#FFFFFF'],
   svg: svg(`
-    <polygon points="15,10 15,1 17,1 18,10" fill="${INK}"/><polygon points="49,10 49,1 47,1 46,10" fill="${INK}"/>
-    <polygon points="10,26 16,8 28,18" fill="#C9A57A"/><polygon points="54,26 48,8 36,18" fill="#C9A57A"/>
-    <polygon points="14,22 16,13 23,19" fill="#F6EBD9"/><polygon points="50,22 48,13 41,19" fill="#F6EBD9"/>
-    <polygon points="12,32 1,54 10,51 7,60 18,55 22,62 32,57 42,62 46,55 57,60 54,51 63,54 52,32" fill="#F6EBD9"/>
-    <ellipse cx="32" cy="32" rx="21" ry="17" fill="#C9A57A"/>
-    <path d="M5 50 L13 44 M9 57 L16 49 M59 50 L51 44 M55 57 L48 49" stroke="${INK}" stroke-width="2"/>
-    <path d="M28 16 L29 24 M32 15 L32 24 M36 16 L35 24" stroke="#8E6E4A" stroke-width="2"/>
-    <circle cx="16" cy="36" r="1.6" fill="#8E6E4A"/><circle cx="19" cy="41" r="1.6" fill="#8E6E4A"/><circle cx="48" cy="36" r="1.6" fill="#8E6E4A"/><circle cx="45" cy="41" r="1.6" fill="#8E6E4A"/>
-    <ellipse cx="23" cy="31" rx="5" ry="4" fill="#B9D65A"/><ellipse cx="41" cy="31" rx="5" ry="4" fill="#B9D65A"/>
-    <rect x="22" y="28" width="2" height="7" fill="${INK}"/><rect x="40" y="28" width="2" height="7" fill="${INK}"/>
-    <path d="M17 27 L28 29 M47 27 L36 29" stroke="${INK}" stroke-width="1.6"/>
-    <ellipse cx="27.5" cy="43" rx="5" ry="4" fill="#F6EBD9"/><ellipse cx="36.5" cy="43" rx="5" ry="4" fill="#F6EBD9"/>
-    <polygon points="28,37 36,37 32,42" fill="#E7A0A0"/>
-    <path d="M32 42 L32 45 M27 47 Q32 50 37 47" stroke="${INK}" stroke-width="1.4" fill="none"/>
+    <ellipse cx="45" cy="47" rx="4" ry="2.5" fill="#C9A57A"/><ellipse cx="48" cy="46" rx="1.8" ry="1.8" fill="${INK}"/>
+    <ellipse cx="32" cy="50" rx="12" ry="9" fill="#C9A57A"/><ellipse cx="32" cy="49" rx="6" ry="6" fill="#F6EBD9"/>
+    <circle cx="24" cy="50" r="1.3" fill="#8E6E4A"/><circle cx="40" cy="51" r="1.3" fill="#8E6E4A"/><circle cx="27" cy="55" r="1.2" fill="#8E6E4A"/>
+    <ellipse cx="26" cy="58" rx="5" ry="3" fill="#F6EBD9"/><ellipse cx="38" cy="58" rx="5" ry="3" fill="#F6EBD9"/>
+    <polygon points="18.5,10 18,1 19.5,1 20.5,10" fill="${INK}"/><polygon points="45.5,10 46,1 44.5,1 43.5,10" fill="${INK}"/>
+    <polygon points="16,21 19,7 28,14" fill="#C9A57A"/><polygon points="48,21 45,7 36,14" fill="#C9A57A"/>
+    <polygon points="18.5,17 19.5,10 25,14" fill="#F6EBD9"/><polygon points="45.5,17 44.5,10 39,14" fill="#F6EBD9"/>
+    <polygon points="15,27 7,40 14,38 11,45 20,42 24,46 32,43 40,46 44,42 53,45 50,38 57,40 49,27" fill="#F6EBD9"/>
+    <path d="M10 41 L15 36 M13 45 L18 39 M54 41 L49 36 M51 45 L46 39" stroke="${INK}" stroke-width="1.5"/>
+    <ellipse cx="32" cy="27" rx="16" ry="13" fill="#C9A57A"/>
+    <path d="M29 15 L29.5 20 M32 14 L32 20 M35 15 L34.5 20" stroke="#8E6E4A" stroke-width="1.5"/>
+    <ellipse cx="25" cy="27" rx="3.3" ry="3.3" fill="#8CC63F"/><ellipse cx="39" cy="27" rx="3.3" ry="3.3" fill="#8CC63F"/>
+    <rect x="24.2" y="24.5" width="1.6" height="5" fill="${INK}"/><rect x="38.2" y="24.5" width="1.6" height="5" fill="${INK}"/>
+    <rect x="23" y="25" width="1.2" height="1.2" fill="#FFFFFF"/><rect x="37" y="25" width="1.2" height="1.2" fill="#FFFFFF"/>
+    <polygon points="20,21 27,23 27,24 20,22" fill="${INK}"/><polygon points="44,21 37,23 37,24 44,22" fill="${INK}"/>
+    <ellipse cx="29" cy="35" rx="3.5" ry="2.8" fill="#F6EBD9"/><ellipse cx="35" cy="35" rx="3.5" ry="2.8" fill="#F6EBD9"/>
+    <polygon points="30,31 34,31 32,33.5" fill="#E7A0A0"/>
+    <path d="M32 33.5 L32 35.5 M29.5 37 Q32 38.5 34.5 37" stroke="${INK}" stroke-width="1.1" fill="none"/>
   `),
 };
 
-// ---------- Polar Bear: round ears, a broad head, a long muzzle and a big black nose ----------
+// ---------- Polar Bear: round and chunky, small eyes, a big black nose ----------
 const BEAR: SpriteDef = {
-  palette: ['#F4F1E8', '#D6CFBE', '#B8AF9C', INK, '#FFFFFF', '#9C2F3A'],
+  palette: ['#F4F1E8', '#D6CFBE', '#B8AF9C', INK, '#FFFFFF', BLUSH],
   svg: svg(`
-    <circle cx="15" cy="15" r="7" fill="#F4F1E8"/><circle cx="49" cy="15" r="7" fill="#F4F1E8"/>
-    <circle cx="15" cy="15" r="3.5" fill="#B8AF9C"/><circle cx="49" cy="15" r="3.5" fill="#B8AF9C"/>
-    <ellipse cx="32" cy="33" rx="26" ry="22" fill="#F4F1E8"/>
-    <path d="M8 40 Q32 62 56 40 Q52 54 32 57 Q12 54 8 40 Z" fill="#D6CFBE"/>
-    <ellipse cx="32" cy="44" rx="12" ry="10" fill="#D6CFBE"/>
-    <ellipse cx="32" cy="38.5" rx="6" ry="4" fill="${INK}"/><rect x="29" y="36" width="3" height="1.5" fill="#FFFFFF"/>
-    <circle cx="21" cy="29" r="2.6" fill="${INK}"/><circle cx="43" cy="29" r="2.6" fill="${INK}"/>
-    <rect x="20" y="28" width="1" height="1" fill="#FFFFFF"/><rect x="42" y="28" width="1" height="1" fill="#FFFFFF"/>
-    <polygon points="15,22 26,26 25,28 15,25" fill="${INK}"/><polygon points="49,22 38,26 39,28 49,25" fill="${INK}"/>
-    <path d="M32 42 L32 47 M25 48 Q32 54 39 48" stroke="${INK}" stroke-width="1.6" fill="none"/>
-    <path d="M27 49 Q32 52 37 49 L35 52 Q32 53 29 52 Z" fill="#9C2F3A"/>
+    <ellipse cx="32" cy="49" rx="16" ry="11.5" fill="#F4F1E8"/><ellipse cx="32" cy="51" rx="9" ry="7" fill="#D6CFBE"/>
+    <ellipse cx="22" cy="59" rx="6" ry="3.2" fill="#F4F1E8"/><ellipse cx="42" cy="59" rx="6" ry="3.2" fill="#F4F1E8"/>
+    <ellipse cx="22" cy="60" rx="2.5" ry="1.4" fill="#B8AF9C"/><ellipse cx="42" cy="60" rx="2.5" ry="1.4" fill="#B8AF9C"/>
+    <circle cx="19" cy="15" r="5.5" fill="#F4F1E8"/><circle cx="45" cy="15" r="5.5" fill="#F4F1E8"/>
+    <circle cx="19" cy="15" r="2.6" fill="#B8AF9C"/><circle cx="45" cy="15" r="2.6" fill="#B8AF9C"/>
+    <ellipse cx="32" cy="27" rx="16" ry="13.5" fill="#F4F1E8"/>
+    <ellipse cx="32" cy="34" rx="7.5" ry="5.5" fill="#D6CFBE"/>
+    <ellipse cx="24.5" cy="26" rx="2.2" ry="2.6" fill="${INK}"/><ellipse cx="39.5" cy="26" rx="2.2" ry="2.6" fill="${INK}"/>
+    <rect x="23.5" y="24.5" width="1.2" height="1.2" fill="#FFFFFF"/><rect x="38.5" y="24.5" width="1.2" height="1.2" fill="#FFFFFF"/>
+    <polygon points="20,20 27,22 27,23 20,21.5" fill="${INK}"/><polygon points="44,20 37,22 37,23 44,21.5" fill="${INK}"/>
+    ${blush(31)}
+    <ellipse cx="32" cy="31.5" rx="3.4" ry="2.3" fill="${INK}"/><rect x="30.5" y="30.3" width="1.4" height="0.9" fill="#FFFFFF"/>
+    <path d="M32 33.5 L32 35.5 M29 36.5 Q32 38.5 35 36.5" stroke="${INK}" stroke-width="1.1" fill="none"/>
   `),
 };
 
-// ---------- Golden Eagle: in profile, golden nape, hooked beak, a fierce brow ----------
+// ---------- Golden Eagle: a round little bird, golden head, hooked beak, wings ready ----------
 const EAGLE: SpriteDef = {
-  palette: ['#6B4426', '#8E5B30', '#D9A85A', '#F2C14E', '#3B3A40', '#F5A623', INK, '#FFFFFF'],
+  palette: ['#6B4426', '#8E5B30', '#D9A85A', '#F2C14E', '#C8902A', INK, '#FFFFFF', BLUSH],
   svg: svg(`
-    <path d="M22 12 Q38 2 54 12 Q62 24 60 40 Q60 54 52 63 L22 63 Q28 50 26 40 Z" fill="#6B4426"/>
-    <path d="M30 8 Q46 2 56 14 Q60 22 58 30 Q46 22 36 20 Z" fill="#D9A85A"/>
-    <path d="M26 22 Q36 18 46 24 L44 34 Q34 36 26 32 Z" fill="#8E5B30"/>
-    <path d="M40 38 L44 52 M48 36 L52 50 M34 44 L36 58" stroke="#8E5B30" stroke-width="2"/>
-    <path d="M30 24 L19 22 Q8 22 5 31 Q4 37 9 41 Q11 35 17 33 L30 32 Z" fill="#F2C14E"/>
-    <path d="M5 31 Q4 37 9 41 Q10 37 13 35 L9 30 Z" fill="#3B3A40"/>
-    <path d="M17 33 L30 32 L28 36 L18 36 Z" fill="#D9A85A"/>
-    <circle cx="35" cy="26" r="4" fill="#F5A623"/><circle cx="34" cy="26" r="2" fill="${INK}"/><rect x="33" y="24" width="1" height="1" fill="#FFFFFF"/>
-    <polygon points="28,20 44,20 42,24 30,24" fill="${INK}"/>
+    <ellipse cx="15" cy="42" rx="7" ry="12" fill="#6B4426" transform="rotate(25 15 42)"/><ellipse cx="49" cy="42" rx="7" ry="12" fill="#6B4426" transform="rotate(-25 49 42)"/>
+    <path d="M11 40 L9 50 M14 42 L13 52 M53 40 L55 50 M50 42 L51 52" stroke="#8E5B30" stroke-width="1.5"/>
+    <ellipse cx="32" cy="46" rx="12" ry="13" fill="#6B4426"/>
+    <path d="M27 44 L29 47 L31 44 M33 48 L35 51 L37 48 M27 51 L29 54 L31 51" stroke="#8E5B30" stroke-width="1.4" fill="none"/>
+    <path d="M25 57 L23 62 M27 57 L27 62 M29 57 L31 62 M35 57 L33 62 M37 57 L37 62 M39 57 L41 62" stroke="#F2C14E" stroke-width="1.6"/>
+    <polygon points="26,14 29,6 31,12 34,5 36,12 39,7 38,15" fill="#D9A85A"/>
+    <ellipse cx="32" cy="24" rx="14" ry="12" fill="#D9A85A"/>
+    <ellipse cx="25" cy="23" rx="2.5" ry="3" fill="${INK}"/><ellipse cx="39" cy="23" rx="2.5" ry="3" fill="${INK}"/>
+    <rect x="24" y="21.5" width="1.2" height="1.2" fill="#FFFFFF"/><rect x="38" y="21.5" width="1.2" height="1.2" fill="#FFFFFF"/>
+    <polygon points="19,16 28,19 28,20.5 19,18" fill="#6B4426"/><polygon points="45,16 36,19 36,20.5 45,18" fill="#6B4426"/>
+    ${blush(29)}
+    <path d="M27 27 Q32 24.5 37 27 Q37 33 32 36 Q31 33 29 33 Q27 31 27 27 Z" fill="#F2C14E"/>
+    <path d="M31 33 Q32 36 32 36 Q34 34 33 32 Z" fill="#C8902A"/>
   `),
 };
 
@@ -133,12 +156,12 @@ function sheepBack(frozen: boolean): SpriteDef {
 }
 
 export const PREDATOR_SPRITES: Record<PredatorKind, SpriteDef> = {
-  wolf: wolf({ fur: '#8A8794', dark: '#5E5B68', light: '#DCD9E3', eye: '#FFE066', inner: '#C9A6A6' }),
+  wolf: wolf({ fur: '#9A97A6', dark: '#6E6B78', light: '#E6E3EC', eye: INK, inner: '#E2B4B4' }),
   fox: FOX,
   lynx: LYNX,
   bear: BEAR,
   eagle: EAGLE,
-  shadow: wolf({ fur: '#3E3A4A', dark: '#25222E', light: '#7E7890', eye: '#FF5A4E', inner: '#5E3A48' }, true),
+  shadow: wolf({ fur: '#4A4458', dark: '#2E2A38', light: '#8E88A0', eye: '#E2403A', inner: '#7A4A5A' }, true),
 };
 
 // ---------- SVG -> crisp pixel art ----------

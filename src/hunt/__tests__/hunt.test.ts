@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDictionary } from '../../engine/dictionary';
 import { huntShareText } from '../daily';
-import { activeRules, attack, countWords, dailySeed, damageFor, nextPredator, predatorAt, startRun, timeOut, turnSeconds } from '../hunt';
+import { activeRules, applyItem, attack, countWords, dailySeed, damageFor, hintWord, ITEMS, MILK_HEAL, nextPredator, predatorAt, startRun, timeOut, turnSeconds } from '../hunt';
 import type { Run } from '../hunt';
 import { banLetter, CHAIN, DOUBLE, ENDS_VOWEL, LONGER, maxLength, minConsonants, minLength, minVowels, mustContain, NO_FIRST_AGAIN, NO_REPEAT, STARTS_VOWEL } from '../rules';
 
@@ -128,7 +128,9 @@ describe('a run', () => {
     expect(out.run.defeated).toBe(1);
     const next = nextPredator(out.run, dict);
     expect(next.index).toBe(1);
-    expect(next.hp).toBe(75);
+    expect(next.level).toBe(6); // grew a level
+    expect(next.maxHp).toBe(106);
+    expect(next.hp).toBe(50 + 6 + 25);
     expect(next.prev).toBeNull();
   });
 
@@ -144,6 +146,46 @@ describe('a run', () => {
     const { rules, relaxed } = activeRules(r, tiny);
     expect(relaxed.map((x) => x.id)).toEqual(['chain']);
     expect(rules.map((x) => x.id)).toEqual(['min3']);
+  });
+});
+
+describe('the bag', () => {
+  let run: Run;
+  beforeEach(() => {
+    run = startRun(dict, SEED);
+    run = { ...run, predator: { ...run.predator, rules: [minLength(6), ENDS_VOWEL], reserve: null } };
+  });
+
+  it('starts with two milks, a bell and a pepper; each use takes the turn', () => {
+    expect(run.items).toEqual({ milk: ITEMS.milk.count, bell: 1, pepper: 1 });
+    const out = applyItem({ ...run, hp: 50 }, dict, 'milk')!;
+    expect(out.outcome).toMatchObject({ kind: 'item', heal: MILK_HEAL, counter: run.predator.attack });
+    expect(out.run.hp).toBe(50 + MILK_HEAL - run.predator.attack);
+    expect(out.run.items.milk).toBe(1);
+    expect(out.run.marks).toEqual(['item']);
+  });
+
+  it('milk never heals past full, and an empty slot cannot be used', () => {
+    expect(applyItem(run, dict, 'milk')!.outcome).toMatchObject({ heal: 0 });
+    expect(applyItem({ ...run, items: { ...run.items, bell: 0 } }, dict, 'bell')).toBeNull();
+  });
+
+  it('the hint bell rings an unused word that obeys every rule', () => {
+    const w = hintWord(run, dict)!;
+    expect(w.length).toBeGreaterThanOrEqual(6);
+    expect('aeiou').toContain(w.at(-1));
+    expect(dict.has(w)).toBe(true);
+    expect(applyItem(run, dict, 'bell')!.outcome).toMatchObject({ kind: 'item', hint: w });
+  });
+
+  it('the pepper doubles the next word only', () => {
+    const peppered = applyItem(run, dict, 'pepper')!.run;
+    const first = attack(peppered, dict, 'banana');
+    if (first.outcome.kind !== 'hit') throw new Error(first.outcome.kind);
+    expect(first.outcome.damage).toBe(damageFor('banana', 2).damage * 2);
+    const second = attack(first.run, dict, 'avocado');
+    if (second.outcome.kind !== 'hit') throw new Error(second.outcome.kind);
+    expect(second.outcome.damage).toBe(damageFor('avocado', 2).damage);
   });
 });
 

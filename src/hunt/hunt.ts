@@ -30,7 +30,21 @@ export interface Predator {
 }
 
 /** One mark per turn, for the share grid. */
-export type Mark = 'hit' | 'crit' | 'broke' | 'timeout';
+export type Mark = 'hit' | 'crit' | 'broke' | 'timeout' | 'item';
+
+/** The bag: the same few items for everyone, once per hunt. Using one takes the sheep's turn. */
+export type ItemId = 'milk' | 'bell' | 'pepper';
+export const ITEMS: Record<ItemId, { name: string; about: string; count: number }> = {
+  milk: { name: 'Warm Milk', about: 'Restores 30 HP.', count: 2 },
+  bell: { name: 'Hint Bell', about: 'Rings out a word that obeys every rule.', count: 1 },
+  pepper: { name: 'Spicy Pepper', about: 'Your next word hits twice as hard.', count: 1 },
+};
+export const MILK_HEAL = 30;
+
+/** Each predator's signature strike, for the battle text. */
+export const MOVES: Record<PredatorKind, string> = {
+  wolf: 'FROST FANG', fox: 'SLY SNAP', lynx: 'POUNCE', bear: 'BIG MAUL', eagle: 'TALON DIVE', shadow: 'NIGHT HOWL',
+};
 
 export interface Run {
   seed: string;
@@ -46,6 +60,11 @@ export interface Run {
   marks: Mark[];
   best: { word: string; damage: number } | null;
   over: boolean;
+  /** The sheep grows a level for each predator it beats (from Lv5), with more health each time. */
+  level: number;
+  items: Record<ItemId, number>;
+  /** A Spicy Pepper is waiting for the next word. */
+  peppered: boolean;
 }
 
 export type Outcome =
@@ -57,9 +76,13 @@ export type Outcome =
     /** A new rule the predator brings now that it is hurt. */
     enraged: Rule | null;
     counter: number; hp: number; dead: boolean;
-  };
+  }
+  | { kind: 'item'; item: ItemId; heal: number; hint: string | null; counter: number; hp: number; dead: boolean };
 
 export const PLAYER_HP = 100;
+export const START_LEVEL = 5;
+/** Max HP gained each level. */
+export const HP_PER_LEVEL = 6;
 export const HEAL_ON_WIN = 25;
 const MIN_LETTERS = 3;
 /** Fewer words than this left under a predator's rules and its chain rules give way for the turn. */
@@ -178,6 +201,7 @@ export function startRun(dict: Dictionary, seed: string): Run {
   return {
     seed, index: 0, predator: predatorAt(dict, seed, 0), hp: PLAYER_HP, maxHp: PLAYER_HP,
     used: [], prev: null, damage: 0, defeated: 0, marks: [], best: null, over: false,
+    level: START_LEVEL, items: { milk: ITEMS.milk.count, bell: ITEMS.bell.count, pepper: ITEMS.pepper.count }, peppered: false,
   };
 }
 
@@ -217,7 +241,9 @@ export function attack(run: Run, dict: Dictionary, raw: string): { run: Run; out
     };
   }
 
-  const { damage, crit } = damageFor(word, rules.length);
+  const base = damageFor(word, rules.length);
+  const damage = run.peppered ? base.damage * 2 : base.damage;
+  const crit = base.crit;
   const p = run.predator;
   const predatorHp = Math.max(0, p.hp - damage);
   const defeated = predatorHp === 0;
@@ -235,7 +261,7 @@ export function attack(run: Run, dict: Dictionary, raw: string): { run: Run; out
   return {
     run: {
       ...run, predator, hp: s.hp, over: s.dead, used: [...run.used, word], prev: word, best,
-      damage: run.damage + damage, defeated: run.defeated + (defeated ? 1 : 0), marks: [...run.marks, crit ? 'crit' : 'hit'],
+      damage: run.damage + damage, defeated: run.defeated + (defeated ? 1 : 0), marks: [...run.marks, crit ? 'crit' : 'hit'], peppered: false,
     },
     outcome: { kind: 'hit', word, damage, crit, predatorHp, defeated, enraged, counter, hp: s.hp, dead: s.dead },
   };
@@ -254,5 +280,49 @@ export function timeOut(run: Run): { run: Run; outcome: Outcome } {
 /** After a win: the next predator steps up and the sheep recovers a little. The chain starts fresh. */
 export function nextPredator(run: Run, dict: Dictionary): Run {
   const index = run.index + 1;
-  return { ...run, index, predator: predatorAt(dict, run.seed, index), hp: Math.min(run.maxHp, run.hp + HEAL_ON_WIN), prev: null };
+  const maxHp = run.maxHp + HP_PER_LEVEL;
+  return {
+    ...run, index, predator: predatorAt(dict, run.seed, index), level: run.level + 1, maxHp,
+    hp: Math.min(maxHp, run.hp + HP_PER_LEVEL + HEAL_ON_WIN), prev: null,
+  };
+}
+
+/** A word that obeys every rule in force and has not been used: what the Hint Bell rings. Deterministic per turn. */
+export function hintWord(run: Run, dict: Dictionary): string | null {
+  const { rules } = activeRules(run, dict);
+  const used = new Set(run.used);
+  const ctx: RuleContext = { prev: run.prev };
+  const r = rng(`${run.seed}:hint:${run.used.length}`);
+  const start = run.prev && rules.some((x) => x.id === 'chain') ? run.prev[run.prev.length - 1] : LETTERS[Math.floor(r() * 26)];
+  // Prefer an everyday word of five to eight letters, so the hint is one the player knows.
+  const friendly = (w: string) => w.length >= 5 && w.length <= 8 && rarityOf(w) !== 'rare';
+  let fallback: string | null = null;
+  for (let k = 0; k < 26; k++) {
+    const letter = rules.some((x) => x.id === 'chain') && run.prev ? start : LETTERS[(LETTERS.indexOf(start) + k) % 26];
+    const pool = dict.startingWith(letter);
+    const offset = Math.floor(r() * Math.max(1, pool.length));
+    for (let i = 0; i < pool.length; i++) {
+      const w = pool[(offset + i) % pool.length];
+      if (w.length < MIN_LETTERS || used.has(w) || brokenRule(w, rules, ctx)) continue;
+      if (friendly(w)) return w;
+      fallback ??= w;
+    }
+    if (rules.some((x) => x.id === 'chain') && run.prev) break;
+  }
+  return fallback;
+}
+
+/** The sheep uses an item from the bag; it takes the turn, so the predator strikes after. */
+export function applyItem(run: Run, dict: Dictionary, item: ItemId): { run: Run; outcome: Outcome } | null {
+  if (run.items[item] <= 0 || run.over) return null;
+  const items = { ...run.items, [item]: run.items[item] - 1 };
+  const heal = item === 'milk' ? Math.min(MILK_HEAL, run.maxHp - run.hp) : 0;
+  const hint = item === 'bell' ? hintWord(run, dict) : null;
+  const counter = run.predator.attack;
+  const healed = run.hp + heal;
+  const hp = Math.max(0, healed - counter);
+  return {
+    run: { ...run, items, hp, over: hp === 0, peppered: run.peppered || item === 'pepper', marks: [...run.marks, 'item'] },
+    outcome: { kind: 'item', item, heal, hint, counter, hp, dead: hp === 0 },
+  };
 }

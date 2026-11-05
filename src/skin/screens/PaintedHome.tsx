@@ -35,6 +35,7 @@ import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
+import { BarnDoors } from '../components/BarnDoors';
 import { PaintedSettings } from './PaintedSettings';
 
 export const PAINTED_TITLE = 'Finish the Word';
@@ -99,10 +100,10 @@ export function PaintedHome() {
     if (!nick.ok) return setError(nick.message);
     setError('');
     const begin = () => start(mode, mode === 'quick' ? settings.game : undefined);
-    // Swoop into the barn: the farm zooms toward the door and warms to light, then the game opens from the same glow.
+    // Through the doors: barn doors swing open on warm light and the view pushes through, then the game opens from the glow.
     if (reduced || swooping) return begin();
     setSwooping(true);
-    setTimeout(begin, 650);
+    setTimeout(begin, 950);
   };
   const shareDream = async () => {
     if (dream?.status !== 'done') return;
@@ -272,7 +273,7 @@ export function PaintedHome() {
   );
 
   return (
-    <main className={`sk-home relative h-full overflow-hidden ${swooping ? 'sk-swoop-out' : ''}`} onPointerMove={onPointerMove} onKeyDown={onKey}>
+    <main className={`sk-home relative h-full overflow-hidden`} onPointerMove={onPointerMove} onKeyDown={onKey}>
       <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
@@ -331,6 +332,7 @@ export function PaintedHome() {
         </>
       )}
 
+      {swooping && <BarnDoors />}
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
       {help && <PaintedGuide onClose={() => setHelp(false)} />}

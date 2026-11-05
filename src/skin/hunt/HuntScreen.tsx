@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
-import { utcDateKey } from '../../engine';
 import { checkNickname } from '../../lib/nickname';
-import { getHuntStreak, huntShareText, markHuntStarted, recordHunt } from '../../hunt/daily';
-import { activeRules, applyItem, attack, dailySeed, HEAL_ON_WIN, HP_PER_LEVEL, ITEMS, MOVES, nextPredator, START_LEVEL, startRun, timeOut, turnSeconds } from '../../hunt/hunt';
+import { huntShareText, recordHuntBest } from '../../hunt/record';
+import { activeRules, applyItem, attack, HEAL_ON_WIN, HP_PER_LEVEL, ITEMS, MOVES, nextPredator, START_LEVEL, startRun, timeOut, turnSeconds } from '../../hunt/hunt';
 import type { ItemId, Outcome, Run } from '../../hunt/hunt';
 import type { Rule } from '../../hunt/rules';
 import { useStore } from '../../state/store';
@@ -38,11 +37,8 @@ type Mode =
 export function HuntScreen() {
   const dict = useStore((s) => s.dict);
   const nickname = useStore((s) => s.settings.name);
-  const practice = useHuntUi((s) => s.practice);
   const close = useHuntUi((s) => s.close);
-  const openHunt = useHuntUi((s) => s.openHunt);
   const reduced = useMotionLevel() === 'reduced';
-  const today = utcDateKey(new Date());
   const me = (checkNickname(nickname).ok && nickname.trim() ? nickname.trim() : 'Lamb').toUpperCase().slice(0, 10);
 
   const [run, setRun] = useState<Run | null>(null);
@@ -58,7 +54,7 @@ export function HuntScreen() {
   const [turnEnds, setTurnEnds] = useState(0);
   const [now, setNow] = useState(() => performance.now());
   const [beat, setBeat] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const [record, setRecord] = useState<{ defeated: number; damage: number; isNew: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
   const [scale, setScale] = useState(2);
   const ghost = useRef<HTMLInputElement>(null);
@@ -86,13 +82,13 @@ export function HuntScreen() {
   // Start the run once the word list is ready. The daily hunt counts as the day's attempt as soon as it starts.
   useEffect(() => {
     if (!dict || run) return;
-    const seed = practice ? `practice:${Date.now()}` : dailySeed(today);
-    if (!practice) markHuntStarted(today);
+    // Unlimited: every hunt is a fresh pack.
+    const seed = `hunt:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
     const r = startRun(dict, seed);
     setRun(r);
     sync(r);
     setMode(appearSteps(r, true));
-  }, [dict, run, practice, today, sync]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dict, run, sync]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The turn clock runs while the sheep chooses (menu, fight, bag). Running out lets the predator strike.
   function startTurn() {
@@ -163,8 +159,9 @@ export function HuntScreen() {
 
   // The run is over: save it once.
   useEffect(() => {
-    if (mode.m !== 'results' || !run || practice) return;
-    setStreak(recordHunt({ date: today, status: 'done', defeated: run.defeated, damage: run.damage, marks: run.marks, best: run.best }));
+    if (mode.m !== 'results' || !run) return;
+    const { best, isNew } = recordHuntBest({ defeated: run.defeated, damage: run.damage });
+    setRecord(best ? { ...best, isNew } : null);
   }, [mode.m]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Focus: the hidden input while typing a word, otherwise the screen itself for the arrow keys.
@@ -279,7 +276,7 @@ export function HuntScreen() {
 
   const share = async () => {
     if (!run) return;
-    const text = huntShareText({ date: today, defeated: run.defeated, damage: run.damage, marks: run.marks, streak: streak || getHuntStreak(today) });
+    const text = huntShareText({ defeated: run.defeated, damage: run.damage, marks: run.marks, record: record?.isNew });
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -410,7 +407,7 @@ export function HuntScreen() {
           </div>
 
           {mode.m === 'results' && (
-            <Results run={run} practice={practice} streak={streak} copied={copied} onShare={share} onPractice={() => { setRun(null); openHunt(true); }} onClose={close} />
+            <Results run={run} record={record} copied={copied} onShare={share} onAgain={() => { setRecord(null); setRun(null); }} onClose={close} />
           )}
         </div>
       </div>
@@ -455,23 +452,23 @@ function Typewriter({ text }: { text: string }) {
   );
 }
 
-function Results({ run, practice, streak, copied, onShare, onPractice, onClose }: {
-  run: Run; practice: boolean; streak: number; copied: boolean; onShare: () => void; onPractice: () => void; onClose: () => void;
+function Results({ run, record, copied, onShare, onAgain, onClose }: {
+  run: Run; record: { defeated: number; damage: number; isNew: boolean } | null; copied: boolean; onShare: () => void; onAgain: () => void; onClose: () => void;
 }) {
   return (
     <div className="gb-results" role="dialog" aria-label="Hunt over">
-      <h2>{practice ? 'PRACTICE HUNT OVER' : 'HUNT OVER'}</h2>
+      <h2>{record?.isNew ? 'HUNT OVER · NEW BEST!' : 'HUNT OVER'}</h2>
       <dl>
         <div><dt>BEATEN</dt><dd>{run.defeated}</dd></div>
         <div><dt>DAMAGE</dt><dd>{run.damage}</dd></div>
         <div><dt>LEVEL</dt><dd>{run.level}</dd></div>
         <div><dt>WORDS</dt><dd>{run.used.length}</dd></div>
         {run.best && <div className="gb-wide"><dt>BEST WORD</dt><dd>{run.best.word.toUpperCase()} ({run.best.damage})</dd></div>}
-        {!practice && streak > 0 && <div className="gb-wide"><dt>STREAK</dt><dd>{streak} DAY{streak === 1 ? '' : 'S'}</dd></div>}
+        {record && !record.isNew && <div className="gb-wide"><dt>RECORD</dt><dd>{record.defeated} BEATEN · {record.damage}</dd></div>}
       </dl>
       <div className="gb-actions">
-        {!practice && <button onClick={onShare} autoFocus>{copied ? 'COPIED!' : 'SHARE'}</button>}
-        <button onClick={onPractice} autoFocus={practice}>PRACTICE</button>
+        <button onClick={onAgain} autoFocus>HUNT AGAIN</button>
+        <button onClick={onShare}>{copied ? 'COPIED!' : 'SHARE'}</button>
         <button onClick={onClose}>FARM</button>
       </div>
     </div>

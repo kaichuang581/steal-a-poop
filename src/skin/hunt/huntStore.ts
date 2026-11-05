@@ -1,16 +1,14 @@
 import { create } from 'zustand';
 
-/** Whether the Daily Hunt screen is open, and whether this run counts (the day's one attempt) or is practice. */
+/** Whether the Hunt screen is open. Hunts are unlimited: every one is a fresh pack. */
 interface HuntUi {
   open: boolean;
-  practice: boolean;
-  openHunt(practice?: boolean): void;
+  openHunt(): void;
   close(): void;
 }
 
 export const useHuntUi = create<HuntUi>((set) => ({
   open: false,
-  practice: false,
-  openHunt: (practice = false) => set({ open: true, practice }),
-  close: () => set({ open: false, practice: false }),
+  openHunt: () => set({ open: true }),
+  close: () => set({ open: false }),
 }));

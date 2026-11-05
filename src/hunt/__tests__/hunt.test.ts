@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDictionary } from '../../engine/dictionary';
-import { huntShareText } from '../daily';
+import { getHuntBest, huntShareText, recordHuntBest } from '../record';
 import { activeRules, applyItem, attack, countWords, dailySeed, damageFor, hintWord, ITEMS, MILK_HEAL, nextPredator, predatorAt, startRun, timeOut, turnSeconds } from '../hunt';
 import type { Run } from '../hunt';
 import { banLetter, CHAIN, DOUBLE, ENDS_VOWEL, LONGER, maxLength, minConsonants, minLength, minVowels, mustContain, NO_FIRST_AGAIN, NO_REPEAT, STARTS_VOWEL } from '../rules';
@@ -189,9 +189,24 @@ describe('the bag', () => {
   });
 });
 
-describe('sharing', () => {
+describe('sharing and records', () => {
   it('shows the result without spoiling the words', () => {
-    const text = huntShareText({ date: '2026-11-04', defeated: 2, damage: 312, marks: ['hit', 'crit', 'broke', 'timeout'], streak: 3 });
-    expect(text).toBe('Finish the Word · Hunt 2026-11-04\n🐺 2 predators beaten · 💥 312 damage\n🟩🟨🟥⬛\n🔥 3-day streak');
+    const text = huntShareText({ defeated: 2, damage: 312, marks: ['hit', 'crit', 'broke', 'timeout'], record: true });
+    expect(text).toBe('Finish the Word · Hunt\n🐺 2 predators beaten · 💥 312 damage\n🟩🟨🟥⬛\n🏆 New personal best');
+  });
+
+  it('keeps the best run: more predators first, then more damage', () => {
+    const data = new Map<string, string>();
+    (globalThis as { localStorage?: Storage }).localStorage = {
+      getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v),
+      removeItem: (k: string) => void data.delete(k), clear: () => data.clear(), key: () => null, get length() { return data.size; },
+    } as Storage;
+    expect(getHuntBest()).toBeNull();
+    expect(recordHuntBest({ defeated: 0, damage: 0 }).isNew).toBe(false);
+    expect(recordHuntBest({ defeated: 2, damage: 100 }).isNew).toBe(true);
+    expect(recordHuntBest({ defeated: 1, damage: 500 }).isNew).toBe(false);
+    expect(recordHuntBest({ defeated: 2, damage: 150 }).isNew).toBe(true);
+    expect(getHuntBest()).toEqual({ defeated: 2, damage: 150 });
+    delete (globalThis as { localStorage?: Storage }).localStorage;
   });
 });

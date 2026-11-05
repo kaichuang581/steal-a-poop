@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRESETS, presetOf, utcDateKey } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
-import { getHunt, getHuntStreak, huntShareText } from '../../hunt/daily';
+import { getHuntBest } from '../../hunt/record';
 import { useHuntUi } from '../hunt/huntStore';
 import { dreamShareText } from '../../dream/dream';
 import { dreamStreakDays, getDream, getDreamStreak } from '../../dream/daily';
@@ -68,7 +68,6 @@ export function PaintedHome() {
   const [help, setHelp] = useState(false);
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
   const [hub, setHub] = useState<HubTab | null>(null);
@@ -82,8 +81,7 @@ export function PaintedHome() {
   const reduced = useMotionLevel() === 'reduced';
   const mobile = useIsMobile();
   const today = utcDateKey(new Date());
-  const hunt = getHunt(today);
-  const huntStreak = getHuntStreak(today);
+  const huntBest = getHuntBest();
   const dream = getDream(today);
   const streak = getDreamStreak(today);
   const ready = dictStatus === 'ready';
@@ -95,13 +93,6 @@ export function PaintedHome() {
     if (!nick.ok) return setError(nick.message);
     setError('');
     start(mode, mode === 'quick' ? settings.game : undefined);
-  };
-  const shareHunt = async () => {
-    if (hunt?.status !== 'done') return;
-    const text = huntShareText({ date: today, defeated: hunt.defeated ?? 0, damage: hunt.damage ?? 0, marks: hunt.marks ?? [], streak: huntStreak });
-    try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
   const shareDream = async () => {
     if (dream?.status !== 'done') return;
@@ -160,18 +151,11 @@ export function PaintedHome() {
         caption: 'Keep the farmer asleep: type words with each fence\'s letters so the sheep clears it. One dream a night.',
         onSelect: () => useDreamUi.getState().openDream(false),
       },
-    hunt
-      ? {
-        id: 'hunt', label: hunt.status === 'done' ? (copied ? 'Copied!' : 'Share hunt') : 'Hunt',
-        badge: hunt.status === 'done' ? `${hunt.defeated ?? 0} beaten` : 'used',
-        disabled: hunt.status !== 'done', onSelect: shareHunt,
-        caption: `Today's hunt is over. The next pack arrives at ${timeOfNext}.`,
-      }
-      : {
-        id: 'hunt', label: 'Hunt', badge: huntStreak > 0 ? `${huntStreak}-day streak` : 'new', disabled: !ready,
-        caption: 'Fight off the predators with words. One hunt a day, the same pack for everyone.',
-        onSelect: () => useHuntUi.getState().openHunt(false),
-      },
+    {
+      id: 'hunt', label: 'Hunt', badge: huntBest ? `best ${huntBest.defeated}` : 'new', disabled: !ready,
+      caption: 'Fight off predator after predator with words. Hunt as often as you like.',
+      onSelect: () => useHuntUi.getState().openHunt(),
+    },
     { id: 'practice', label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {

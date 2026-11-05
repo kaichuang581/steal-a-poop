@@ -2,7 +2,19 @@
 
 All user-visible changes, newest first.
 
-## Unreleased (not live until the server is deployed and sign-in is configured)
+## Unreleased
+
+### Painted barn (shipped)
+
+- The painted barn is now the default look; `?skin=classic` keeps the old screens
+- Avatar picker with 15 characters; your choice appears on your own player card only, and other players cannot see it yet
+- Pixel icons replace emoji and text on buttons and menu controls
+- "Start now" goes straight into an easy game with hints
+- A steal jolts the table, flashes the screen edge red and names who stole from whom; results show the best steal
+- Share a finished game or Counting Sheep run as a picture card
+- A swoop moves from the home screen into the barn when a game starts
+
+### Accounts and community (not live until the server is deployed and sign-in is configured)
 
 - Accounts: email, Google and Meta sign-in, date of birth and country at sign-up, parental permission for young children, log out everywhere, delete account
 - Friends by private code, invitations to rooms, leaderboards (Daily Table, today, week, all time), personal stats

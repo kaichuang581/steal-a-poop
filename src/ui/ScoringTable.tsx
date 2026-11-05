@@ -1,11 +1,11 @@
 import {
-  EXTRA_WOOL_CAP, FIRST_ROUND_TURN_MS, LAST_ROUND_TURN_MS, LIVES_PER_GAME, STEAL_COOLDOWN_MS, STEAL_WINDOW_MS, TURN_MS_STEP,
+  EXTRA_WOOL_CAP, LAST_ROUND_TURN_MS, LIVES_PER_GAME, STEAL_COOLDOWN_MS, STEAL_WINDOW_MS, TURN_MS_BY_ROUND,
 } from '../engine';
 import type { RoundModifier } from '../engine';
 import { MODIFIER_INFO } from '../lib/modifiers';
 
-/** The twists the engine can still deal (the points-only one is retired). */
-const TWISTS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter', 'double_points_fast'];
+/** The twists the engine still deals (the points-only one and the faster-round one are retired). */
+const TWISTS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter'];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -43,7 +43,7 @@ export function ScoringTable() {
 
       <Section title="Steal">
         <ul className="space-y-1">
-          <Rule icon="•">When someone else’s timer <b>turns red</b> (their last {red} s), type a word and press <b>STEAL</b>.</Rule>
+          <Rule icon="•">Some turns are <b>steal turns</b> (an alarm says so). When that sheep’s timer <b>turns red</b> (their last {red} s), type a word and press <b>STEAL</b>.</Rule>
           <Rule icon="•">First good word <b>takes one of their wool balls</b>, and the turn moves on.</Rule>
           <Rule icon="•">A bad steal word costs nothing: wait {STEAL_COOLDOWN_MS / 1000} s and try again.</Rule>
         </ul>
@@ -58,9 +58,8 @@ export function ScoringTable() {
       <Section title="Rounds">
         <ul className="space-y-1">
           <Rule icon="•">
-            Each round every sheep takes 2 turns. Turns get {TURN_MS_STEP / 1000} s shorter each round:{' '}
-            {FIRST_ROUND_TURN_MS / 1000} s, {(FIRST_ROUND_TURN_MS - TURN_MS_STEP) / 1000} s,{' '}
-            {(FIRST_ROUND_TURN_MS - 2 * TURN_MS_STEP) / 1000} s … down to {LAST_ROUND_TURN_MS / 1000} s.
+            Each round every sheep takes 2 turns. Turns get faster every round:{' '}
+            {TURN_MS_BY_ROUND.map((ms) => `${ms / 1000} s`).join(', ')}, then {LAST_ROUND_TURN_MS / 1000} s for good.
           </Rule>
           <Rule icon="•">
             Rounds after the first add a twist:{' '}

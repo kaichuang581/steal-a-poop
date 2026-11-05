@@ -14,7 +14,7 @@ function timeOut(s: GameState): GameState {
 /** Puts the human back on turn with inert bots, keeping lives. */
 function backToHuman(s: GameState): GameState {
   const c = structuredClone(s);
-  c.turn = { ...c.turn!, seat: 0, botActAt: null, stealPlans: [], endsAt: c.turn!.startedAt + 10_000 };
+  c.turn = { ...c.turn!, seat: 0, botActAt: null, stealPlans: [], stealable: true, endsAt: c.turn!.startedAt + 10_000 };
   return c;
 }
 

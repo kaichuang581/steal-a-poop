@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import {
-  EXTRA_WOOL_CAP, FIRST_ROUND_TURN_MS, LAST_ROUND_TURN_MS, LIVES_PER_GAME, STEAL_COOLDOWN_MS, STEAL_WINDOW_MS, TURN_MS_STEP,
+  EXTRA_WOOL_CAP, LAST_ROUND_TURN_MS, LIVES_PER_GAME, STEAL_COOLDOWN_MS, STEAL_WINDOW_MS, TURN_MS_BY_ROUND,
 } from '../../engine';
 import type { GameState } from '../../engine';
 import { ClockIcon, DoubleIcon, NoEIcon, RulerIcon, SnowflakeIcon, TrophyIcon, WolfIcon } from './Icons';
@@ -39,7 +39,7 @@ export function RulesCard() {
         <h3>Stealing</h3>
         <ul>
           <Row icon={<WolfIcon size={22} />}>
-            When another sheep’s timer <b>turns red</b> (their last {red} seconds), type a word first and press Enter. You <b>take one of their wool balls</b>.
+            Some turns are <b>steal turns</b>: an alarm says so. When that sheep’s timer <b>turns red</b> (their last {red} seconds), type a word first and press Enter. You <b>take one of their wool balls</b>.
           </Row>
           <Row icon={<ClockIcon size={20} />}>A wrong steal costs nothing. Wait {STEAL_COOLDOWN_MS / 1000} second and try again.</Row>
         </ul>
@@ -56,10 +56,10 @@ export function RulesCard() {
         <h3>Rounds</h3>
         <ul>
           <Row icon={<ClockIcon size={20} />}>
-            Turns start at {FIRST_ROUND_TURN_MS / 1000} seconds and get {TURN_MS_STEP / 1000} seconds shorter every round, down to {LAST_ROUND_TURN_MS / 1000}.
+            Turns get faster every round, and the alarm calls it: {TURN_MS_BY_ROUND.map((ms) => ms / 1000).join(', ')} seconds, then {LAST_ROUND_TURN_MS / 1000} for good.
           </Row>
           <Row icon={<span className="flex gap-1"><NoEIcon size={16} /><RulerIcon size={16} /><DoubleIcon size={16} /></span>}>
-            After the first round each round has a twist: no letter E, 6 letters or more, a double letter, or a faster clock.
+            After the first round each round has a twist, called out by the alarm: no letter E, 6 letters or more, or a double letter.
           </Row>
         </ul>
       </section>

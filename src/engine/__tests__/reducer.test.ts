@@ -138,7 +138,7 @@ describe('steal resolution', () => {
     const s = botTurnWithPile();
     const first = apply(s, ctx, { type: 'steal', seat: 0, word: 'tiger' }, s.turn!.endsAt - 1000).state;
     const again = structuredClone(first);
-    again.turn!.seat = 1; again.turn!.botActAt = null; again.turn!.stealPlans = [];
+    again.turn!.seat = 1; again.turn!.botActAt = null; again.turn!.stealPlans = []; again.turn!.stealable = true;
     const second = apply(again, ctx, { type: 'steal', seat: 0, word: 'rat' }, again.turn!.endsAt - 1000);
     expect(second.accepted).toBe(true);
     expect(second.state.players[0].steals).toBe(2);
@@ -193,7 +193,7 @@ describe('rounds', () => {
     expect(out.used).toEqual([]);
     const next = advance(out, ctx, out.introEndsAt!);
     expect(next.phase).toBe('playing');
-    expect(next.turn!.durationMs).toBe(turnDurationMs(0, next.modifier, 14_000));
+    expect(next.turn!.durationMs).toBe(turnDurationMs(0, next.modifier, 12_000));
   });
   it('rounds never end the game: round 3 is followed by round 4', () => {
     const s = humanTurn('c');

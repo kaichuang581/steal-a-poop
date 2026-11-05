@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { previewBotTurn, rankPlayers, startingWool, summarize, utcDateKey } from '../../engine';
+import { previewBotTurn, rankPlayers, roundTurnMs, startingWool, summarize, utcDateKey } from '../../engine';
 import { useStore } from '../../state/store';
 import { ChatPanel } from '../../ui/ChatPanel';
 import { BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, SnowflakeIcon, SpeakerIcon, WolfIcon } from '../components/Icons';
@@ -18,11 +18,13 @@ import { Chip, ClothButton, CoralButton, PaperPanel, WoodButton } from '../compo
 import { PlayerCard } from '../components/PlayerCard';
 import { TallyBoard } from '../components/TallyBoard';
 import { TwistSign } from '../components/TwistSign';
+import { Alarm, useAlarms } from '../components/Alarm';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { useWordInput } from '../hooks/useWordInput';
-import { seedOf, typedAt, typingScript } from '../model/botTyping';
+import { keystrokeAt, lastRejectAt, seedOf, typingScript } from '../model/botTyping';
 import { useVisualEvents } from '../model/events';
 import type { VisualEvent } from '../model/events';
+import { TWIST_TEXT } from '../model/types';
 import type { PlayerView } from '../model/types';
 import { streakDays, useTableView } from '../model/useTableView';
 import { BarnTable } from '../table/BarnTable';
@@ -56,6 +58,16 @@ export function PaintedGame() {
   const [moments, setMoments] = useState<BarnMoments>({});
   const [fx, setFx] = useState<Fx[]>([]);
   const [sheet, setSheet] = useState<'cheat' | 'chain' | 'chat' | 'leave' | null>(null);
+  const [alarm, pushAlarm, clearAlarms] = useAlarms(mobile ? 2600 : 3000);
+  // Each alarm jolts the barn once: the class comes off for a frame and back on, so the jolt restarts per alarm.
+  const [shake, setShake] = useState(false);
+  useEffect(() => {
+    if (!alarm || reduced) return;
+    setShake(false);
+    const raf = requestAnimationFrame(() => setShake(true));
+    const id = setTimeout(() => setShake(false), 560);
+    return () => { cancelAnimationFrame(raf); clearTimeout(id); };
+  }, [alarm?.id, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
   // Rooms play in the big barn at night.
   const hour = storeMode === 'room' ? 'night' : deviceHour;
   const n = game.players.length;
@@ -131,6 +143,26 @@ export function PaintedGame() {
       case 'thawed':
         mood(e.playerId, 'thawing');
         break;
+      case 'roundStart':
+        // The round's alarms, one after the other: faster turns (every round until the floor), then the twist.
+        if (e.round > 1 && storeMode !== 'tour') {
+          if (e.faster && !practice) pushAlarm({ tone: 'speed', label: `Round ${e.round} · faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on' });
+          if (e.twist && e.twist !== 'vowelDouble') pushAlarm({ tone: 'twist', label: `Round ${e.round} · new rule`, title: TWIST_TEXT[e.twist], sub: 'for this round only' });
+        }
+        break;
+      case 'stealTurn': {
+        if (game.players[mySeat]?.frozen) break;
+        const me = Number(e.playerId) === mySeat;
+        pushAlarm({
+          tone: 'steal', label: 'Steal turn', ms: 2600,
+          title: me ? 'They can rob you!' : `Rob ${name(e.playerId)}!`,
+          sub: me ? 'answer before your timer turns red' : `when their timer turns red, type a ${(view.letter ?? '').toUpperCase()}-word first`,
+        });
+        break;
+      }
+      case 'gameEnd':
+        clearAlarms();
+        break;
       default:
         break;
     }
@@ -150,11 +182,15 @@ export function PaintedGame() {
     const plan = previewBotTurn(game, { dict });
     const word = plan?.kind === 'play' ? plan.word : null;
     const end = word && turn.botActAt != null ? turn.botActAt : turn.endsAt;
-    return { from: turn.startedAt, script: typingScript(word, Math.max(400, end - turn.startedAt), seedOf(`${game.seed}:${turn.startedAt}:${turn.seat}`), game.chainLetter) };
+    return { from: turn.startedAt, script: typingScript(word, Math.max(400, end - turn.startedAt), seedOf(`${game.seed}:${turn.startedAt}:${turn.seat}`), game.chainLetter, turn.durationMs) };
     // One script per turn: the plan is taken when the turn starts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turn?.startedAt, turn?.seat, dict]);
-  const botTyped = botScript && turn && !game.players[turn.seat].isHuman ? typedAt(botScript.script, now - botScript.from) : '';
+  const botElapsed = botScript && turn && !game.players[turn.seat].isHuman ? now - botScript.from : -1;
+  const botTyped = botElapsed >= 0 ? keystrokeAt(botScript!.script, botElapsed)?.text ?? '' : '';
+  // A bounced try shakes the tag red for a beat, outliving the wipe that follows it.
+  const botRejectKey = botElapsed >= 0 ? lastRejectAt(botScript!.script, botElapsed) : null;
+  const botReject = !!botRejectKey && botElapsed - botRejectKey.at < 380;
   const signState = game.phase === 'gameOver' ? 'raised' : game.phase === 'intro' ? 'lowering' : 'hung';
   const ranked = rankPlayers(game.players).map((p) => view.players[p.id]);
   const showTally = game.phase === 'intro' && game.round > 1 && storeMode !== 'tour';
@@ -168,7 +204,7 @@ export function PaintedGame() {
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden" data-steal-open={view.stealOpen}>
-      <div className="absolute inset-0" data-table>
+      <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
         <BarnTable
           pile={view.pile} speaker={speaker} fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
           secondsLeft={game.turn ? view.secondsLeft : null} letter={view.letter ?? ''} isTrap={view.isTrapLetter}
@@ -182,7 +218,7 @@ export function PaintedGame() {
               label: p.id === view.currentPlayerId ? (
                 <span className="sk-chip sk-display flex flex-col items-center whitespace-nowrap text-lg leading-tight" style={{ boxShadow: view.stealOpen ? '0 0 0 3px var(--coral), 0 0 18px rgba(231,112,94,0.7)' : '0 0 0 3px var(--amber)' }}>
                   <span className="flex items-center gap-1.5">{p.name}<Lives lives={p.lives} max={maxLives} size={17} /></span>
-                  {!p.isYou && <span className="sk-num tracking-wider" style={{ fontSize: 20, minHeight: 24, color: 'var(--ink)' }} aria-label={`${p.name} is typing`}>{botTyped.toUpperCase()}<span className="sk-caret" aria-hidden="true" /></span>}
+                  {!p.isYou && <span className={`sk-num tracking-wider ${botReject ? 'sk-tag-reject' : ''}`} style={{ fontSize: 20, minHeight: 24, color: 'var(--ink)' }} aria-label={`${p.name} is typing`}>{botTyped.toUpperCase()}<span className="sk-caret" aria-hidden="true" /></span>}
                 </span>
               ) : (
                 <span className="sk-chip flex items-center gap-1 whitespace-nowrap text-xs" style={{ opacity: p.frozen ? 0.6 : 0.9 }}>{p.name}<Lives lives={p.lives} max={maxLives} size={11} /></span>
@@ -200,7 +236,11 @@ export function PaintedGame() {
       {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. */}
       <header className="pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
         <div className="flex flex-col items-start gap-1">
-          <span className="sk-chip sk-display">Round {view.round} · {game.players.filter((p) => !p.frozen).length} sheep left{view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}</span>
+          <span className="sk-chip sk-display">
+            {game.phase === 'gameOver'
+              ? `Game over · ${view.round} round${view.round === 1 ? '' : 's'}`
+              : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
+          </span>
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1">
@@ -223,6 +263,17 @@ export function PaintedGame() {
         {fx.map((f) => <div key={f.id}>{f.node}</div>)}
       </div>
 
+      {/* The alarm: faster turns, a twist, a steal turn. One at a time, right across the screen, over everything but
+          the end board, with the screen's edges flashing its colour. */}
+      {alarm && game.phase !== 'gameOver' && (
+        <>
+          <div key={`flash-${alarm.id}`} className={`sk-alarm-flash sk-alarm-flash-${alarm.tone} z-[33]`} aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-x-0 top-[15%] z-[34]">
+            <Alarm key={alarm.id} tone={alarm.tone} label={alarm.label} title={alarm.title} sub={alarm.sub} compact={mobile} />
+          </div>
+        </>
+      )}
+
       {/* The steal call: when another sheep's timer is red, say plainly what you can do and what you win. */}
       {input.canSteal && (
         <div className="pointer-events-none absolute inset-x-0 top-[13%] z-20 flex justify-center px-3" role="status">
@@ -233,21 +284,25 @@ export function PaintedGame() {
 
       {showTally && (
         <div className="absolute inset-0 z-30 flex items-center justify-center p-4">
-          <TallyBoard players={ranked} round={game.round - 1} isGameEnd={false} maxLives={maxLives} />
+          <TallyBoard players={ranked} round={game.round - 1} isGameEnd={false} maxLives={maxLives} nextTurnSeconds={practice ? undefined : roundTurnMs(game.round) / 1000} />
         </div>
       )}
 
-      <div className="relative z-20 mt-auto">
-        <InputStrip
-          letter={view.letter ?? ''} typed={input.typed} myTurn={input.myTurn} stealOpen={input.canSteal}
-          turnName={view.currentPlayerId === '' ? 'Next sheep' : name(view.currentPlayerId)}
-          onChange={input.onChange} onSubmit={input.submit} acceptKey={input.acceptKey} out={!!game.players[mySeat]?.frozen}
-          message={input.message} turnKey={game.turn?.seat}
-          hints={input.learning ? { ideas: input.ideas, onHint: input.hintIdeas, onPick: input.useIdea } : undefined}
-        />
-      </div>
+      {/* The input strip leaves with the game: the end board is the only thing to act on. */}
+      {game.phase !== 'gameOver' && (
+        <div className="relative z-20 mt-auto">
+          <InputStrip
+            letter={view.letter ?? ''} typed={input.typed} myTurn={input.myTurn} stealOpen={input.canSteal}
+            turnName={view.currentPlayerId === '' ? 'Next sheep' : name(view.currentPlayerId)}
+            onChange={input.onChange} onSubmit={input.submit} acceptKey={input.acceptKey} out={!!game.players[mySeat]?.frozen}
+            message={input.message} turnKey={game.turn?.seat}
+            hints={input.learning ? { ideas: input.ideas, onHint: input.hintIdeas, onPick: input.useIdea } : undefined}
+          />
+        </div>
+      )}
 
-      {storeMode === 'tour' ? <Tour /> : <CoachTips />}
+      {/* Coach tips only while a turn is running: never over the round tally or the end board. */}
+      {storeMode === 'tour' ? <Tour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><CoachTips /></div>}
       {game.phase === 'gameOver' && <Results players={ranked} />}
       {sheet && sheet !== 'leave' && (
         <Sheet title={{ cheat: 'How to play', chain: 'Chain history', chat: 'Room chat' }[sheet]} onClose={() => setSheet(null)}>
@@ -301,7 +356,6 @@ function Results({ players }: { players: PlayerView[] }) {
   const days = useMemo(() => (mode === 'daily' ? streakDays(new Date(`${dailyDate ?? utcDateKey(new Date())}T12:00:00Z`)) : []), [mode, dailyDate]);
   const stats = summarize(game.players);
   const me = game.players[mySeat];
-  const longest = stats.longestWord ? { word: stats.longestWord.word, playerId: String(stats.longestWord.seat) } : undefined;
 
   const place = players.findIndex((p) => p.isYou) + 1;
   const share = async () => {
@@ -317,42 +371,48 @@ function Results({ players }: { players: PlayerView[] }) {
   };
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center overflow-y-auto p-4 sm:items-center sm:inset-y-0 sm:justify-end">
-      <TallyBoard
-        players={players} round={game.round} isGameEnd winnerIds={game.winners?.map(String)} longestWord={longest} maxLives={startingWool(game.settings)}
-        actions={
-          <>
-            {(mode === 'quick' || mode === 'practice') && <ClothButton onClick={rematch} className="flex-1">Play again</ClothButton>}
-            <WoodButton onClick={share} className="flex-1">{copied ? 'Copied!' : 'Share'}</WoodButton>
-            <WoodButton onClick={quit} className="flex-1">{mode === 'room' ? 'Leave room' : 'Back to the farm'}</WoodButton>
-          </>
-        }
-      >
-        <p className="sk-hand mt-1 text-center" style={{ color: 'var(--glow)' }}>
-          {place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place}. The last sheep standing gets the knitted scarf.`}
-        </p>
-        <dl className="mt-2 grid grid-cols-2 gap-1.5 text-sm">
-          {[
-            ['Rounds', game.round],
-            ['Words played', stats.wordsPlayed],
-            ['Steals', stats.steals],
-            ['Longest word', stats.longestWord ? `${stats.longestWord.word.toUpperCase()} (${game.players[stats.longestWord.seat].name})` : '—'],
-          ].map(([key, v]) => (
-            <div key={key as string} className="sk-paper px-2 py-1">
-              <dt className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{key}</dt>
-              <dd className="truncate font-extrabold">{v}</dd>
+    <>
+      {/* The barn dims and the board takes the middle: the game is over, this is the finale. */}
+      <div className="sk-results-backdrop" aria-hidden="true" />
+      <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-6">
+        <TallyBoard
+          players={players} round={game.round} isGameEnd winnerIds={game.winners?.map(String)} maxLives={startingWool(game.settings)}
+          actions={
+            <>
+              {(mode === 'quick' || mode === 'practice') && <ClothButton onClick={rematch} className="basis-full">Play again</ClothButton>}
+              <WoodButton onClick={share} className="flex-1">{copied ? 'Copied!' : 'Share'}</WoodButton>
+              <WoodButton onClick={quit} className="flex-1">{mode === 'room' ? 'Leave room' : 'Back to the farm'}</WoodButton>
+            </>
+          }
+        >
+          <p className="sk-hand mt-2 text-center text-lg" style={{ color: 'var(--glow)' }}>
+            {place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place} of ${game.players.length}. The last sheep standing gets the knitted scarf.`}
+          </p>
+          <dl className="mt-2 grid grid-cols-3 gap-1.5 text-sm">
+            {[['Rounds', game.round], ['Words', stats.wordsPlayed], ['Steals', stats.steals]].map(([key, v]) => (
+              <div key={key as string} className="sk-paper px-2 py-1 text-center">
+                <dt className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{key}</dt>
+                <dd className="sk-display text-xl font-extrabold">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          {stats.longestWord && (
+            <div className="sk-paper mt-1.5 flex items-baseline justify-center gap-2 px-2 py-1 text-sm">
+              <span className="sk-hand" style={{ color: 'var(--ink-soft)' }}>Longest word</span>
+              <span className="truncate font-extrabold tracking-wide">{stats.longestWord.word.toUpperCase()}</span>
+              <span className="sk-hand" style={{ color: 'var(--ink-soft)' }}>· {game.players[stats.longestWord.seat].name}</span>
             </div>
-          ))}
-        </dl>
-        {mode === 'room' && <RewardBanner />}
-        {mode === 'practice' && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>Practice game: you never lose wool here.</p>}
-        {mode === 'daily' && (
-          <div className="mt-2 text-center">
-            <StreakString days={days} />
-            <p className="sk-hand" style={{ color: 'var(--glow)' }}>Daily streak: {streak}</p>
-          </div>
-        )}
-      </TallyBoard>
-    </div>
+          )}
+          {mode === 'room' && <RewardBanner />}
+          {mode === 'practice' && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>Practice game: you never lose wool here.</p>}
+          {mode === 'daily' && (
+            <div className="mt-2 text-center">
+              <StreakString days={days} />
+              <p className="sk-hand" style={{ color: 'var(--glow)' }}>Daily streak: {streak}</p>
+            </div>
+          )}
+        </TallyBoard>
+      </div>
+    </>
   );
 }

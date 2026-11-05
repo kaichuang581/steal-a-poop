@@ -819,3 +819,60 @@
 
 /* The title's plank sits centred over its hanging tiles. */
 .sk-title-sign { display: inline-flex; flex-direction: column; align-items: center; }
+
+/* ---------- Alarm: the barn's emergency board, full width, for faster turns, a twist, a steal turn ----------
+   A hazard-striped plank right across the screen, lamps blinking, the board throbbing with its colour, the edges of
+   the whole screen flashing and the barn jolting under it. Nothing on the table looks like this: it is a warning. */
+.sk-alarm, .sk-alarm-flash { --alarm: var(--amber); --alarm-glow: rgba(242, 164, 68, 0.6); --alarm-deep: rgba(242, 164, 68, 0.24); }
+.sk-alarm-steal, .sk-alarm-flash-steal { --alarm: var(--coral); --alarm-glow: rgba(231, 112, 94, 0.7); --alarm-deep: rgba(231, 112, 94, 0.3); }
+.sk-alarm-twist, .sk-alarm-flash-twist { --alarm: var(--ice-mid); --alarm-glow: rgba(191, 227, 245, 0.6); --alarm-deep: rgba(191, 227, 245, 0.24); }
+.sk-alarm {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 26px; width: 100%; padding: 14px 24px 16px;
+  color: var(--button-text); text-align: center;
+  border-top: 12px solid transparent; border-bottom: 12px solid transparent;
+  border-image: repeating-linear-gradient(135deg, var(--alarm) 0 16px, #140C07 16px 32px) 12;
+  background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.05) 0 1px, transparent 1px 6px, rgba(0, 0, 0, 0.1) 6px 7px, transparent 7px 11px),
+    linear-gradient(180deg, #3A2619 0 6%, #241710 6% 94%, #140C07 94%);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.55), 0 18px 48px rgba(0, 0, 0, 0.6), inset 0 0 80px rgba(0, 0, 0, 0.45);
+  animation: sk-alarm-in 480ms var(--ease-spring) both, sk-alarm-throb 0.5s 480ms steps(1) infinite;
+}
+.sk-alarm-stripe { display: none; }
+.sk-alarm-lamp { display: grid; place-items: center; flex: none; color: var(--alarm); filter: drop-shadow(0 0 14px var(--alarm-glow)) drop-shadow(0 0 4px var(--alarm)); animation: sk-alarm-blink 0.36s steps(1) infinite; }
+.sk-alarm-lamp svg { width: 44px; height: 44px; }
+.sk-alarm-lamp-r { animation-delay: 0.18s; }
+.sk-alarm-body { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.sk-alarm-label { font-family: var(--skin-font-body); font-size: 14px; font-weight: 900; letter-spacing: 0.32em; text-transform: uppercase; color: var(--alarm); text-shadow: 0 0 10px var(--alarm-glow); }
+.sk-alarm-title {
+  font-family: var(--skin-font-display); font-weight: 800; font-size: 58px; line-height: 1; text-transform: uppercase; letter-spacing: 0.02em;
+  text-shadow: 0 -3px 0 rgba(0, 0, 0, 0.7), 0 3px 0 rgba(0, 0, 0, 0.5), 0 0 24px var(--alarm-glow);
+}
+.sk-alarm-sub { font-family: var(--skin-font-hand); font-size: 21px; line-height: 1.15; color: var(--glow); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
+.sk-alarm-compact { gap: 10px; padding: 8px 10px 10px; border-top-width: 8px; border-bottom-width: 8px; }
+.sk-alarm-compact .sk-alarm-lamp svg { width: 26px; height: 26px; }
+.sk-alarm-compact .sk-alarm-title { font-size: 30px; } .sk-alarm-compact .sk-alarm-sub { font-size: 15px; } .sk-alarm-compact .sk-alarm-label { font-size: 11px; letter-spacing: 0.2em; }
+/* The whole screen flashes at its edges in the alarm's colour, and the barn jolts. */
+.sk-alarm-flash {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 50%, var(--alarm-deep) 82%, var(--alarm-glow) 100%);
+  box-shadow: inset 0 0 0 6px var(--alarm);
+  animation: sk-alarm-flash 0.5s ease-in-out 5 both;
+}
+.sk-alarm-shake { animation: sk-alarm-shake 480ms var(--ease-out) both; }
+@keyframes sk-alarm-in { 0% { transform: translateY(-60px) scaleY(0.6); opacity: 0; } 55% { transform: translateY(8px) scaleY(1.04); opacity: 1; } 100% { transform: none; } }
+@keyframes sk-alarm-throb { 50% { box-shadow: 0 0 0 3px var(--alarm), 0 0 60px var(--alarm-glow), 0 18px 48px rgba(0, 0, 0, 0.6), inset 0 0 80px var(--alarm-deep); } }
+@keyframes sk-alarm-flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes sk-alarm-blink { 50% { opacity: 0.25; } }
+@keyframes sk-alarm-shake {
+  10% { transform: translate(-7px, 3px); } 25% { transform: translate(6px, -3px); } 40% { transform: translate(-5px, 2px); }
+  55% { transform: translate(4px, -2px); } 70% { transform: translate(-2px, 1px); } 85% { transform: translate(1px, 0); } 100% { transform: none; }
+}
+:root.reduce-motion .sk-alarm, :root.reduce-motion .sk-alarm-lamp, :root.reduce-motion .sk-alarm-shake { animation: none; }
+:root.reduce-motion .sk-alarm-flash { animation: none; opacity: 0.6; }
+
+/* A bot's bounced try: the tag shakes and goes red for a beat. */
+.sk-tag-reject { color: var(--coral-dark) !important; animation: sk-tag-reject 360ms var(--ease-out) both; }
+@keyframes sk-tag-reject { 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } 100% { transform: none; } }
+
+/* The end of the game: the barn dims and the board takes the middle. */
+.sk-results-backdrop { position: fixed; inset: 0; z-index: 38; background: radial-gradient(ellipse at center, rgba(30, 18, 8, 0.4) 0%, rgba(30, 18, 8, 0.82) 100%); animation: sk-results-dim 700ms ease-out both; }
+@keyframes sk-results-dim { from { opacity: 0; } }

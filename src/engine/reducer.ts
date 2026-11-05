@@ -1,7 +1,7 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  BASE_TURN_MS, BOT_LATE_CHANCE, BOT_PRESSURE_FAIL, EXTRA_WOOL_CAP, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_TURN_MS,
-  STEAL_COOLDOWN_MS, TRAP_LETTERS,
+  BASE_TURN_MS, BOT_PRESSURE_FAIL, EXTRA_WOOL_CAP, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_TURN_MS,
+  STEAL_COOLDOWN_MS, STEAL_LATE_SHARE, STEAL_TURN_BOT_BOOST, STEAL_TURN_CHANCE, TRAP_LETTERS, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawInt, drawPick, drawRandom } from './rng';
@@ -53,6 +53,11 @@ function startTurn(s: GameState, seat: number, t: number) {
   const baseMs = turnDurationMs(0, s.modifier, roundTurnMs(s.round));
   const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : baseMs;
   const endsAt = t + durationMs;
+  const windowMs = s.settings.stealWindowSeconds * 1000;
+  // Steals are an event: some turns are steal turns, drawn here. The tour's turns all are, so it can show one, and
+  // practice (where stealing is learnt, at no cost) makes the game's first bot turn one, so it comes up early.
+  const firstPracticeBotTurn = s.mode === 'practice' && s.round === 1 && !active.isHuman && s.players.every((p) => p.isHuman || p.turnsTaken === 0);
+  const stealable = windowMs > 0 && (tour || firstPracticeBotTurn || drawRandom(s) < STEAL_TURN_CHANCE);
   let botActAt: number | null = null;
   if (!active.isHuman) {
     if (tour) {
@@ -62,22 +67,23 @@ function startTurn(s: GameState, seat: number, t: number) {
       botActAt = slow ? t + Math.max(1000, durationMs - 1500) : t + drawInt(s, 1200, 2200);
     } else {
       botActAt = t + botResponseMs(s, active.difficulty!);
-      // Sometimes a bot hesitates into the red seconds, which is when the others can steal from it.
-      const windowMs = s.settings.stealWindowSeconds * 1000;
-      // Late enough that a person has a real chance to type a steal (1.5 to 2.85 s of a 3 s window).
-      if (windowMs > 0 && drawRandom(s) < BOT_LATE_CHANCE) botActAt = Math.max(botActAt, endsAt - windowMs * (0.05 + drawRandom(s) * 0.45));
+      // On a steal turn the bot always hesitates into the red seconds, so the window the alarm announced really
+      // opens, and answers only in the window's last share: a person who reads the letter and types has the first go.
+      if (stealable) botActAt = Math.max(botActAt, endsAt - windowMs * (0.05 + drawRandom(s) * (STEAL_LATE_SHARE - 0.05)));
       botActAt = Math.min(botActAt, endsAt - 50);
     }
   }
+  // The other bots only plan steals on a steal turn, and then more eagerly than their usual urge.
   const stealPlans: { seat: number; at: number }[] = [];
-  const windowMs = s.settings.stealWindowSeconds * 1000;
   for (const p of s.players) {
-    if (tour || p.id === seat || p.isHuman || p.frozen || windowMs <= 0) continue;
-    if (drawRandom(s) < BOT_PROFILES[p.difficulty!].stealChance) {
-      stealPlans.push({ seat: p.id, at: endsAt - windowMs + drawRandom(s) * (windowMs - 500) });
+    if (tour || !stealable || p.id === seat || p.isHuman || p.frozen) continue;
+    if (drawRandom(s) < Math.min(0.9, BOT_PROFILES[p.difficulty!].stealChance * STEAL_TURN_BOT_BOOST)) {
+      // Only in the window's last share, once a person has had their go.
+      stealPlans.push({ seat: p.id, at: endsAt - windowMs * (0.05 + drawRandom(s) * (STEAL_LATE_SHARE - 0.05)) });
     }
   }
-  s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt, stealPlans };
+  s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt, stealPlans, stealable };
+  if (stealable && !tour) emit(s, t, 'stealTurn', seat, `Steal turn: ${active.name} can be robbed in the red seconds`);
 }
 
 function concludeTurn(s: GameState, t: number) {
@@ -263,7 +269,7 @@ export type BotPlan = { kind: 'bank' } | { kind: 'fail' } | { kind: 'play'; word
 export function botFailRate(s: GameState, difficulty: Difficulty): number {
   const ms = roundTurnMs(s.round);
   const squeeze = (FIRST_ROUND_TURN_MS - ms) / (FIRST_ROUND_TURN_MS - LAST_ROUND_TURN_MS);
-  const floorRounds = Math.max(0, s.round - Math.ceil((FIRST_ROUND_TURN_MS - LAST_ROUND_TURN_MS) / 2000) - 1);
+  const floorRounds = Math.max(0, s.round - TURN_MS_BY_ROUND.length);
   return Math.min(0.85, BOT_PROFILES[difficulty].failRate + BOT_PRESSURE_FAIL * squeeze + floorRounds * 0.05);
 }
 
@@ -381,10 +387,11 @@ export function replaceWithBot(state: GameState, seat: number, difficulty: Diffi
   return s;
 }
 
+/** The red seconds of a steal turn (and only a steal turn): when the other sheep can steal. */
 export function inStealWindow(s: GameState, now: number): boolean {
   const t = s.turn;
   const windowMs = s.settings.stealWindowSeconds * 1000;
-  return s.phase === 'playing' && !!t && windowMs > 0 && now >= t.endsAt - windowMs && now < t.endsAt;
+  return s.phase === 'playing' && !!t && t.stealable && windowMs > 0 && now >= t.endsAt - windowMs && now < t.endsAt;
 }
 
 /** Applies a human action at time `now`. Never mutates the input state. */

@@ -68,6 +68,7 @@ describe('two steals 50 ms apart from players with different latencies', () => {
     room.game = structuredClone(room.game!);
     room.game.turn!.botActAt = null;
     room.game.turn!.stealPlans = [];
+    room.game.turn!.stealable = true; // a steal turn: steal turns are drawn at random in play
     room.game.chainLetter = 'c';
     room.game.modifier = 'double_points_fast'; // no restriction on which words are legal
     const owner = room.game.turn!.seat;

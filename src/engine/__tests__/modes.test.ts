@@ -11,6 +11,7 @@ function humanTurn(mode: GameMode, letter = 'c'): GameState {
   s = structuredClone(advance(s, ctx, T0 + 2500));
   s.chainLetter = letter;
   s.turn!.stealPlans = [];
+  s.turn!.stealable = true;
   return s;
 }
 const start = T0 + 2500;
@@ -46,6 +47,7 @@ describe('practice mode', () => {
     const c = structuredClone(p);
     c.turn!.botActAt = null;
     c.turn!.stealPlans = [];
+    c.turn!.stealable = true;
     const end = c.turn!.endsAt;
     const bad = apply(c, ctx, { type: 'steal', seat: 0, word: 'nope' }, end - 2500);
     expect(bad.accepted).toBe(true);
@@ -80,8 +82,9 @@ describe('tour mode', () => {
   it('once the human has played a word, the last bot runs into its steal window', () => {
     let s = humanTurn('tour');
     s = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
-    const t0 = s.turn!.startedAt;
-    s = advance(s, ctx, t0 + 5000); // bots 1 and 2 are quick
+    // Bots 1 and 2 are quick (or, on a dead-end letter in this tiny word list, run their clock out): either way the
+    // turn reaches seat 3.
+    for (let guard = 0; guard < 4 && s.turn!.seat !== 3; guard++) s = advance(s, ctx, s.turn!.botActAt ?? s.turn!.endsAt);
     expect(s.turn!.seat).toBe(3);
     const t = s.turn!;
     expect(t.botActAt! - t.startedAt).toBeGreaterThanOrEqual(3500);

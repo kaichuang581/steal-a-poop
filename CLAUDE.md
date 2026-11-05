@@ -65,3 +65,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
 - Counting Sheep resets at local midnight (approved by Brian, 2026-11-05): the dream's day key is the device's own date
   (`localDateKey` / `useToday` in src/skin/hooks/useToday.ts), not UTC, so a new dream arrives at 12am wherever the
   player is, and the home screen re-checks the date once a minute. The classic Daily Table and the server keep the UTC day.
+- Faster turns, steal turns and alarms (approved by Brian, 2026-11-05), an engine change: turns follow `TURN_MS_BY_ROUND`
+  (16, 12, 9, 7, then 5 s) and the faster-round twist is no longer dealt: speed is the game's own pace, not a twist.
+  Steals are an event: each turn is a steal turn with `STEAL_TURN_CHANCE` (`turn.stealable`, announced by a `stealTurn`
+  event); the red window and the bots' steal plans exist only on those turns, the bot on turn always runs into the red
+  there, and bots act only in the window's last `STEAL_LATE_SHARE`, so a person has the first go at every announced
+  window (the tour's turns are all steal turns, silently; in practice the game's first bot turn is one, so stealing is
+  met early). The painted skin announces faster turns, twists and steal turns on a
+  centre-screen alarm board (`src/skin/components/Alarm.tsx`), and bots type like people under pressure
+  (`src/skin/model/botTyping.ts`: the word is sent the moment it is typed, a late bot panics and spams words that are not
+  words, which the table bounces).

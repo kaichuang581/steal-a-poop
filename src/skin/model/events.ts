@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { inStealWindow } from '../../engine';
+import { inStealWindow, roundTurnMs } from '../../engine';
 import type { GameEvent, GameState } from '../../engine';
 import { useStore } from '../../state/store';
 import { TWIST_OF } from './useTableView';
@@ -13,7 +13,10 @@ export type VisualEvent =
   | { type: 'timedOut'; playerId: string; trapperId?: string }
   | { type: 'trapSet'; letter: string }
   | { type: 'stealWindowOpened'; playerId: string }
-  | { type: 'roundStart'; round: number; twist: TwistId | null }
+  /** A steal turn has started: the sheep on turn can be robbed in its red seconds. */
+  | { type: 'stealTurn'; playerId: string }
+  /** `turnSeconds` is this round's turn; `faster` when it is shorter than the round before. */
+  | { type: 'roundStart'; round: number; twist: TwistId | null; turnSeconds: number; faster: boolean }
   | { type: 'roundEnd'; round: number }
   | { type: 'gameEnd'; winnerIds: string[] }
   | { type: 'lifeLost'; playerId: string; livesLeft: number }
@@ -35,10 +38,14 @@ export function mapEngineEvent(e: GameEvent, prev: GameState | null, next: GameS
       const sprung = next.events.some((x) => x.kind === 'trapSprung' && x.seat === e.seat && Math.abs(x.id - e.id) <= 1);
       return [{ type: 'timedOut', playerId: seat, trapperId: sprung && prev?.trap ? String(prev.trap.trapperSeat) : undefined }];
     }
-    case 'roundStart':
-      return next.round > 1
-        ? [{ type: 'roundEnd', round: next.round - 1 }, { type: 'roundStart', round: next.round, twist: TWIST_OF[next.modifier] }]
-        : [{ type: 'roundStart', round: next.round, twist: TWIST_OF[next.modifier] }];
+    case 'roundStart': {
+      const start: VisualEvent = {
+        type: 'roundStart', round: next.round, twist: TWIST_OF[next.modifier],
+        turnSeconds: roundTurnMs(next.round) / 1000, faster: next.round > 1 && roundTurnMs(next.round) < roundTurnMs(next.round - 1),
+      };
+      return next.round > 1 ? [{ type: 'roundEnd', round: next.round - 1 }, start] : [start];
+    }
+    case 'stealTurn': return [{ type: 'stealTurn', playerId: seat }];
     case 'gameOver': return [{ type: 'gameEnd', winnerIds: (next.winners ?? []).map(String) }];
     case 'lifeLost': return [{ type: 'lifeLost', playerId: seat, livesLeft: e.amount }];
     case 'frozen': return [{ type: 'frozen', playerId: seat }];

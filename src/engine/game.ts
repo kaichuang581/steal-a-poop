@@ -22,8 +22,11 @@ export interface GameSetup {
   settings?: Partial<GameSettings>;
 }
 
-/** Round twists. There are no points any more, so the points-only twist (vowel_double) is retired. */
-const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter', 'double_points_fast'];
+/**
+ * Round twists: the word rules. The points-only twist (vowel_double) is retired with points, and the faster-round twist
+ * (double_points_fast) with it: turns get faster every round on their own (TURN_MS_BY_ROUND), that is not a twist.
+ */
+const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter'];
 const BOT_NAMES = ['Maya', 'Leo', 'Pip', 'Otis', 'Juno', 'Rex', 'Nadia', 'Bram', 'Sol'];
 const BOT_EMOJIS = ['🦊', '🐸', '🐙', '🦉', '🐼', '🦄', '🐨', '🐯', '🦝'];
 const BOT_COLORS = ['#f97316', '#22c55e', '#06b6d4', '#a78bfa', '#ec4899', '#eab308', '#38bdf8', '#f43f5e', '#84cc16'];

@@ -32,9 +32,9 @@ describe('game settings', () => {
     expect(presetOf(DEFAULT_SETTINGS)).toBe('standard');
     const s = createGame({ seed: 'd', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'medium' }, dict);
     expect(s.settings).toEqual(DEFAULT_SETTINGS);
-    // Round 1 plays plain, then every twist except the retired vowel_double, once each, cycling.
+    // Round 1 plays plain, then every word twist once each, cycling (vowel_double and the faster-round twist are retired).
     expect(s.modifierDeck[0]).toBe('none');
-    expect([...s.modifierDeck.slice(1)].sort()).toEqual(['double_letter', 'double_points_fast', 'no_e', 'six_plus']);
+    expect([...s.modifierDeck.slice(1)].sort()).toEqual(['double_letter', 'no_e', 'six_plus']);
     expect(s.players.every((p) => p.lives === 3)).toBe(true);
   });
 
@@ -53,8 +53,8 @@ describe('game settings', () => {
     expect(perSeat).toEqual([3, 3, 3, 3]);
   });
 
-  it('turns speed up each round: 16 s first, 2 s less each round, never under 5 s', () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 8, 20].map((r) => roundTurnMs(r))).toEqual([16_000, 14_000, 12_000, 10_000, 8_000, 6_000, 5_000, 5_000, 5_000]);
+  it('turns speed up each round: 16, 12, 9, 7, then 5 s for good', () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 20].map((r) => roundTurnMs(r))).toEqual([16_000, 12_000, 9_000, 7_000, 5_000, 5_000, 5_000, 5_000, 5_000]);
     expect(roundTurnMs(0)).toBe(16_000);
     const s = game({ twists: false });
     expect(s.turn!.durationMs).toBe(16_000);
@@ -76,7 +76,7 @@ describe('game settings', () => {
       if (s.turn && !seen.has(s.round)) seen.set(s.round, s.turn.durationMs);
     }
     // Two turns a round and five wool each: nobody can freeze before round 3, so the first three rounds all play.
-    expect([1, 2, 3].map((r) => seen.get(r))).toEqual([16_000, 14_000, 12_000]);
+    expect([1, 2, 3].map((r) => seen.get(r))).toEqual([16_000, 12_000, 9_000]);
     for (const [round, ms] of seen) expect(ms).toBe(roundTurnMs(round));
   });
 

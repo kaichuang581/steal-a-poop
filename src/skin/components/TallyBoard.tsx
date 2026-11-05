@@ -16,10 +16,12 @@ interface Props {
   actions?: ReactNode;
   /** Wool balls each sheep started with. */
   maxLives?: number;
+  /** The turn length from this round on, for the round tally's line. */
+  nextTurnSeconds?: number;
 }
 
 /** Wooden board with every sheep's wool balls, in standings order; frozen sheep under ice; the last one standing glows. */
-export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, children, actions, maxLives = 3 }: Props) {
+export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, children, actions, maxLives = 3, nextTurnSeconds }: Props) {
   const rows = players; // already in standings order (rankPlayers): still standing first, then by how long they lasted
   const winners = new Set(winnerIds);
   const left = rows.filter((p) => !p.frozen).length;
@@ -37,7 +39,7 @@ export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, 
       </h2>
       {!isGameEnd && (
         <p className="sk-hand mt-1 text-center" style={{ color: 'var(--glow)' }}>
-          {left} sheep still standing. Turns get faster now.
+          {left} sheep still standing.{nextTurnSeconds ? ` ${nextTurnSeconds}-second turns from here.` : ''}
         </p>
       )}
       {isGameEnd && longestWord && (

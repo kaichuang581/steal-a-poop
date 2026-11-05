@@ -23,6 +23,7 @@ export function humanTurn(letter = 'c', modifier?: GameState['modifier']): GameS
   s.chainLetter = letter;
   if (modifier) s.modifier = modifier;
   s.turn!.stealPlans = [];
+  s.turn!.stealable = true; // tests steal when they like; steal turns are drawn at random in play
   return s;
 }
 
@@ -31,5 +32,6 @@ export function freezeBots(s: GameState): GameState {
   const c = structuredClone(s);
   c.turn!.botActAt = null;
   c.turn!.stealPlans = [];
+  c.turn!.stealable = true;
   return c;
 }

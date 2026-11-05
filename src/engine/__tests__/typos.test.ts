@@ -53,7 +53,7 @@ describe('typo flow in apply', () => {
     const s = humanTurn('c');
     const p = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
     const c = structuredClone(p);
-    c.turn!.botActAt = null; c.turn!.stealPlans = [];
+    c.turn!.botActAt = null; c.turn!.stealPlans = []; c.turn!.stealable = true;
     c.players[0].banked = 40;
     const end = c.turn!.endsAt;
     const typo = apply(c, ctx, { type: 'steal', seat: 0, word: 'tigr' }, end - 1500);

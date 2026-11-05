@@ -51,6 +51,7 @@ describe('room games (several humans)', () => {
     s.chainLetter = 'c';
     s.modifier = 'vowel_double'; // a modifier that does not restrict which words are legal
     s = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, T0 + 2600).state; // seat 1 is up
+    s.turn!.stealable = true; // a steal turn (drawn at random in play)
     const end = s.turn!.endsAt;
     const r = apply(s, ctx, { type: 'steal', seat: 3, word: 'tiger' }, end - 1000);
     expect(r.accepted).toBe(true);
@@ -62,6 +63,7 @@ describe('room games (several humans)', () => {
     s.chainLetter = 'c';
     s.modifier = 'vowel_double'; // a modifier that does not restrict which words are legal
     s = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, T0 + 2600).state;
+    s.turn!.stealable = true; // a steal turn (drawn at random in play)
     const end = s.turn!.endsAt;
     s.players[4].banked = 20;
     const first = apply(s, ctx, { type: 'steal', seat: 3, word: 'tiger' }, end - 1000);

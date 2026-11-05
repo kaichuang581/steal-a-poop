@@ -60,6 +60,8 @@ export interface TurnState {
   botActAt: number | null;
   /** Scheduled steal attempts by bots on this turn. */
   stealPlans: { seat: number; at: number }[];
+  /** A steal turn: the last (red) seconds are open for the other sheep to rob this one. Drawn when the turn starts. */
+  stealable: boolean;
 }
 
 export interface Trap {
@@ -88,6 +90,7 @@ export type EventKind =
   | 'burn'
   | 'chainReset'
   | 'seatBot'
+  | 'stealTurn'
   | 'lifeLost'
   | 'frozen'
   | 'gameOver';

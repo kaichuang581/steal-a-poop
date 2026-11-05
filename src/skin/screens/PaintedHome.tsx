@@ -51,7 +51,7 @@ const TIPS = [
   'Run out of time and you lose a wool ball. Lose them all and you freeze solid.',
   'End a word on X, Z, Q or J: if the next sheep runs out of time, you get a wool ball.',
   'A bad word just bounces, so try another before your timer runs out.',
-  'Turns get 2 seconds shorter every round, from 16 seconds down to 5.',
+  'Turns get faster every round: 16, 12, 9, 7, then 5 seconds. The alarm calls each change.',
   'Last sheep standing wins.',
 ];
 

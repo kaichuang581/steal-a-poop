@@ -1,6 +1,6 @@
 import { useStore } from '../state/store';
 
-export type SoundKind = 'play' | 'bank' | 'steal' | 'fail' | 'trap' | 'roundEnd';
+export type SoundKind = 'play' | 'bank' | 'steal' | 'fail' | 'trap' | 'roundEnd' | 'alarm';
 
 let ctx: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
@@ -118,6 +118,11 @@ export function playSound(kind: SoundKind): void {
       break;
     case 'roundEnd':
       [523, 659, 784, 1047].forEach((f, i) => tone(c, { freq: f, at: i * 0.11, dur: 0.3, type: 'triangle', vol: 0.1 }));
+      break;
+    case 'alarm': // the barn klaxon: two notes blared three times over a rising and falling siren
+      for (let i = 0; i < 6; i++) tone(c, { freq: i % 2 ? 415 : 554, at: i * 0.22, dur: 0.2, type: 'square', vol: 0.085 });
+      tone(c, { freq: 220, dur: 0.68, type: 'sawtooth', vol: 0.06, to: 440 });
+      tone(c, { freq: 440, at: 0.68, dur: 0.68, type: 'sawtooth', vol: 0.06, to: 220 });
       break;
   }
 }

@@ -15,7 +15,11 @@ export function useGameSounds() {
       case 'stealFail': return playSound('fail');
       case 'trapSprung': return playSound('trap');
       case 'gameOver': return playSound('roundEnd');
-      case 'roundStart': return e.id > 1 ? playSound('roundEnd') : undefined;
+      case 'stealTurn': return playSound('alarm');
+      case 'roundStart':
+        // The round chime, then the alarm for the faster turns (and the twist) the new round brings.
+        if (e.id > 1) { playSound('roundEnd'); setTimeout(() => playSound('alarm'), 480); }
+        return undefined;
       default: return undefined;
     }
   });

@@ -240,7 +240,9 @@ describe('playing', () => {
     const { m, tick, clock, room } = running();
     tick(100);
     m.act('u0', { type: 'play', word: 'cat' }); // chain letter is now T, seat 1 is up
-    const turn = room.game!.turn!;
+    room.game = structuredClone(room.game!);
+    room.game.turn!.stealable = true; // a steal turn (drawn at random in play)
+    const turn = room.game.turn!;
     expect(turn.seat).toBe(1);
     tick(turn.endsAt - 5000 - clock()); // five seconds left: too early
     const early = m.act('u2', { type: 'steal', word: 'tiger' });

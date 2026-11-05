@@ -22,14 +22,12 @@ export const RulesIcon = grid([
 ], 'rules');
 
 export const ChainIcon = grid([
-  ' ####      ',
-  '#    #     ',
-  '#  ##### ##',
-  '#  #   ##  ',
-  ' ####  #  #',
-  '    #  ####',
-  '    #     #',
-  '     ######',
+  ' ####  #### ',
+  '#    ##    #',
+  '#    ##    #',
+  '#    ##    #',
+  '#    ##    #',
+  ' ####  #### ',
 ], 'chain');
 
 export const ChatIcon = grid([
@@ -53,28 +51,29 @@ export const ScoresIcon = grid([
 ], 'scores');
 
 export const HintIcon = grid([
+  '   ####   ',
   '  ######  ',
-  ' #      # ',
-  '#  #  #  #',
-  '#   ##   #',
-  '#   ##   #',
-  ' #  ##  # ',
+  ' ##    ## ',
+  ' ##    ## ',
+  ' ##    ## ',
   '  ######  ',
   '   ####   ',
   '   ####   ',
-  '    ##    ',
+  '  ######  ',
+  '          ',
 ], 'hint');
 
 export const AvatarButtonIcon = grid([
-  '  #      #  ',
-  ' ###    ### ',
-  ' ########## ',
-  ' #        # ',
-  ' # #    # # ',
-  ' #        # ',
-  ' #  #  #  # ',
-  ' #  ####  # ',
-  '  ########  ',
+  '   ####   ',
+  '  ######  ',
+  '  ######  ',
+  '   ####   ',
+  '    ##    ',
+  '  ######  ',
+  ' ######## ',
+  ' ######## ',
+  ' ######## ',
+  '          ',
 ], 'avatar');
 
 export const FireIcon = grid([
@@ -99,21 +98,76 @@ export const SoundIcon = ({ size = 20, muted = false }: { size?: number; muted?:
 };
 
 const CoinIcon = grid(['  ####  ', ' #oooo# ', '#oo##oo#', '#o#oo#o#', '#o#oo#o#', '#oo##oo#', ' #oooo# ', '  ####  '], 'coin');
-const FriendsIcon = grid([' ##   ## ', '#### #### ', ' ##   ##  ', '####  #### '.slice(0, 10), '#### #### ', '#### #### '].map((r) => r.padEnd(10)), 'friends');
+const FriendsIcon = grid([
+  ' ##    ## ',
+  '#  #  #  #',
+  '#  #  #  #',
+  ' ##    ## ',
+  '          ',
+  '  #    #  ',
+  ' ###  ### ',
+  '#  #  #  #',
+  '##########',
+  '          ',
+], 'friends');
 const ShopIcon = grid(['  ####  ', ' #    # ', '########', '#oooooo#', '#oooooo#', '#oooooo#', '########'], 'shop');
 const WarnIcon = grid(['    #    ', '   ###   ', '   # #   ', '  ## ##  ', '  ## ##  ', ' ###### # '.slice(0, 9), ' ###  ### '.slice(0, 9), '#########'].map((r) => r.padEnd(9)), 'warn');
 const BanIcon = grid(['  ####  ', ' #   ## ', '#   # ##', '#  #  ##', '# #   ##'.replace('##', '# '), ' ##   # ', '  ####  '], 'ban');
 const CloseIcon = grid(['##    ##', ' ##  ## ', '  ####  ', '   ##   ', '  ####  ', ' ##  ## ', '##    ##'], 'close');
 const BoltIcon = grid(['    ##', '   ## ', '  ##  ', ' #### ', '  ##  ', ' ##   ', '##    '], 'bolt');
 const PoopIcon = grid(['    ##    ', '   ###    ', '  ######  ', ' ######## ', '  ######  ', ' ######## ', '##########'], 'poop');
-const Medal = (n: string) => grid(['#      #', ' #    # ', '  ####  ', ' ###### ', ' ##oo## ', ' ###### ', '  ####  '], n);
+const Medal = (n: string) => grid([
+  ' #      # ',
+  '  #    #  ',
+  '   #  #   ',
+  '    ##    ',
+  '  ######  ',
+  ' #      # ',
+  '#  oooo  #',
+  '#  oooo  #',
+  ' #      # ',
+  '  ######  ',
+], n);
 const WindIcon = grid(['  ####   ', '      #  ', '########', '        #', ' #######', '       # ', '  ####   '].map((r) => r.padEnd(9)), 'wind');
 const SproutIcon = grid(['## ##', ' ###', '  # ', '  # ', '  # '], 'sprout');
-const LeafSmall = grid(['   ##', '  ###', ' ####', '###  ', '#    '], 'leaf');
+const LeafSmall = grid([
+  '     #    ',
+  '    ###   ',
+  '   ##o##  ',
+  '  ## o ## ',
+  ' ### o ###',
+  ' ### o ###',
+  '  ## o ## ',
+  '   ##o##  ',
+  '    ###   ',
+  '   #      ',
+], 'leaf');
 const AcornSmall = grid([' #### ', '######', ' #### ', ' #### ', '  ##  '], 'acorn');
 const RulerIcon = grid(['#########', '# # # # #', '#########'], 'ruler');
-const TwinsIcon = grid([' ##  ## ', '####  ####'.slice(0, 8), ' ##  ## ', '####  ####'.slice(0, 8)], 'twins');
-const SparkIcon = grid(['  #  ', '  #  ', '#####', '  #  ', '  #  '], 'spark');
+const TwinsIcon = grid([
+  '# #    # #',
+  '###    ###',
+  ' #      # ',
+  '          ',
+  '  #    #  ',
+  ' ###  ### ',
+  '#  #  #  #',
+  '##########',
+  '          ',
+  '          ',
+], 'twins');
+const SparkIcon = grid([
+  '    #    ',
+  '   # #   ',
+  '  #   #  ',
+  ' ### ### ',
+  '#########',
+  ' ### ### ',
+  '  #   #  ',
+  '   # #   ',
+  '    #    ',
+  '         ',
+], 'spark');
 const PepperIcon = grid(['   ##', '  #  ', ' ### ', '#### ', '###  '], 'pepper');
 const GearPx = grid(['  # #  ', ' ##### ', '### ###', ' ##### ', '### ###', ' ##### ', '  # #  '], 'gear');
 const CheckIcon = grid(['      #', '     ##', '#   ## ', '## ##  ', ' ###   ', '  #    '], 'check');

@@ -1,3 +1,4 @@
+import { Px } from '../skin/components/PixelIcons';
 import { useState } from 'react';
 import { useRoomStore } from '../state/roomStore';
 
@@ -35,7 +36,7 @@ export function Lobby() {
         {notice && (
           <div role="status" className="flex items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-500/15 px-3 py-2 text-sm font-bold">
             <span>{notice}</span>
-            <button onClick={clearNotice} aria-label="Dismiss" className="min-h-11 min-w-11">✕</button>
+            <button onClick={clearNotice} aria-label="Dismiss" title="Dismiss" className="min-h-11 min-w-11"><Px e="✕" /></button>
           </div>
         )}
       </div>

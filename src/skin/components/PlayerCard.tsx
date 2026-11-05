@@ -1,3 +1,4 @@
+import { Px } from './PixelIcons';
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
 import { IceOverlay, Lives } from './Lives';
@@ -45,7 +46,7 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
         <div className="truncate text-sm font-extrabold" data-seat-name={player.id} title={title}>
           {badge && <span aria-hidden="true">{badge} </span>}
           {player.name}{player.isYou ? ' (you)' : ''}
-          {player.difficulty && !compact && <span className="ml-1" title={`${player.difficulty} bot`} aria-label={`${player.difficulty} bot`}>{BADGE[player.difficulty]}</span>}
+          {player.difficulty && !compact && <span className="ml-1" title={`${player.difficulty} bot`} aria-label={`${player.difficulty} bot`}><Px e={BADGE[player.difficulty]} /></span>}
         </div>
         {!compact && (
           <div className="truncate text-xs font-bold uppercase" style={{ color: 'var(--ink-soft)' }} data-seat-word={player.id}>

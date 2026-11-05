@@ -1,3 +1,4 @@
+import { Px } from '../skin/components/PixelIcons';
 import { FireIcon } from '../skin/components/PixelIcons';
 import { LEGAL_TITLES, legalHref } from './legal/legalLinks';
 import { authEnabled } from '../auth/config';
@@ -64,7 +65,7 @@ export function StartScreen() {
     <main className="flex h-full flex-col items-center justify-center overflow-y-auto px-4 py-6">
       <div className="w-full max-w-md">
         <div className="text-center">
-          <div className="text-6xl" aria-hidden="true">💩</div>
+          <div className="text-6xl" aria-hidden="true"><Px e="💩" size={64} /></div>
           <h1 className="mt-1 text-4xl font-black tracking-tight text-amber-300 sm:text-5xl">{GAME_TITLE}</h1>
           <p className="mt-1 text-sm text-white/70">{GAME_TAGLINE}</p>
         </div>
@@ -157,10 +158,10 @@ export function StartScreen() {
             )}
             {authEnabled() && authStatus === 'ready' && getServerUrl() && (
               <div className="flex gap-2" role="group" aria-label="Community">
-                {([['friends', '👥 Friends'], ['boards', '🏆 Boards'], ['shop', '🛍️ Shop']] as const).map(([t, label]) => (
-                  <button key={t} onClick={() => setHub(t)} className="min-h-12 flex-1 rounded-xl bg-white/10 text-sm font-bold hover:bg-white/15">{label}</button>
+                {([['friends', '👥', 'Friends'], ['boards', '🏆', 'Boards'], ['shop', '🛍️', 'Shop']] as const).map(([t, ico, label]) => (
+                  <button key={t} onClick={() => setHub(t)} className="min-h-12 flex-1 rounded-xl bg-white/10 text-sm font-bold hover:bg-white/15" aria-label={label} title={label}><Px e={ico} size={20} /></button>
                 ))}
-                {coins !== null && <span aria-label="Coins" className="flex min-h-12 items-center rounded-xl bg-black/30 px-3 font-black">{coins} 🪙</span>}
+                {coins !== null && <span aria-label="Coins" className="flex min-h-12 items-center rounded-xl bg-black/30 px-3 font-black">{coins} <Px e="🪙" /></span>}
               </div>
             )}
             {roomNotice && !useRoomStore.getState().open && <p role="status" className="text-center text-sm text-amber-200">{roomNotice}</p>}
@@ -173,7 +174,7 @@ export function StartScreen() {
             <div className="flex gap-2">
               <button onClick={() => startTour('menu')} disabled={!ready} className="min-h-12 flex-1 rounded-xl bg-white/10 font-bold hover:bg-white/15 disabled:opacity-40">Tutorial</button>
               <button onClick={() => setHelp(true)} className="min-h-12 flex-1 rounded-xl bg-white/10 font-bold hover:bg-white/15">How to Play</button>
-              <button onClick={() => setGear(true)} className="min-h-12 min-w-12 rounded-xl bg-white/10 text-lg hover:bg-white/15" aria-label="Settings">⚙️</button>
+              <button onClick={() => setGear(true)} className="min-h-12 min-w-12 rounded-xl bg-white/10 text-lg hover:bg-white/15" aria-label="Settings" title="Settings"><Px e="⚙" size={20} /></button>
             </div>
           </div>
         </div>

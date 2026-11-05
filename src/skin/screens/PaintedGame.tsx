@@ -1,3 +1,4 @@
+import { Px } from '../components/PixelIcons';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { previewBotTurn, rankPlayers, summarize, utcDateKey } from '../../engine';
@@ -114,7 +115,7 @@ export function PaintedGame() {
         setMoments((m) => ({ ...m, gust: { key: k(), at: rel(Number(e.playerId)) } }));
         flash(
           <div className="flex flex-col items-center gap-1">
-            <span className="sk-chip sk-fall" style={{ color: 'var(--coral-dark)' }}>🌬️ {name(e.playerId)} −5</span>
+            <span className="sk-chip sk-fall" style={{ color: 'var(--coral-dark)' }}><Px e="🌬" size={14} /> {name(e.playerId)} −5</span>
             {e.trapperId && <span className="sk-chip sk-rise">{name(e.trapperId)} +5 (trap)</span>}
           </div>,
           900,
@@ -199,11 +200,11 @@ export function PaintedGame() {
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1">
-          <Chip onClick={() => setSheet('cheat')} aria-label="Rules, scoring cheat sheet"><RulesIcon /></Chip>
-          <Chip onClick={() => setSheet('chain')} aria-label="Chain history"><ChainIcon /></Chip>
-          {storeMode === 'room' && <Chip onClick={() => setSheet('chat')} aria-label="Room chat"><ChatIcon /></Chip>}
-          <Chip onClick={toggleMute} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}><SoundIcon muted={muted} /></Chip>
-          <Chip onClick={() => setSheet('leave')} aria-label="Leave game">✕</Chip>
+          <Chip onClick={() => setSheet('cheat')} aria-label="Rules, scoring cheat sheet" title="Rules"><RulesIcon /></Chip>
+          <Chip onClick={() => setSheet('chain')} aria-label="Chain history" title="Chain"><ChainIcon /></Chip>
+          {storeMode === 'room' && <Chip onClick={() => setSheet('chat')} aria-label="Room chat" title="Chat"><ChatIcon /></Chip>}
+          <Chip onClick={toggleMute} title={muted ? 'Unmute' : 'Sound'} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}><SoundIcon muted={muted} /></Chip>
+          <Chip onClick={() => setSheet('leave')} aria-label="Leave game" title="Leave game"><Px e="✕" /></Chip>
         </div>
       </header>
 
@@ -271,7 +272,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
       >
         <div className="mb-2 flex items-center justify-between">
           <h2 className="sk-display text-xl">{title}</h2>
-          <Chip onClick={onClose} aria-label="Close">✕</Chip>
+          <Chip onClick={onClose} aria-label="Close" title="Close"><Px e="✕" /></Chip>
         </div>
         {children}
       </div>

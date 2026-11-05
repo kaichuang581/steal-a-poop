@@ -1,3 +1,4 @@
+import { Px } from '../../skin/components/PixelIcons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, describeAuthError, useAuth } from '../../auth/authStore';
 import { countryOptions, guessCountry } from '../../auth/countries';
@@ -128,7 +129,7 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
       <div role="dialog" aria-modal="true" aria-label="Account" className="w-full max-w-sm rounded-3xl border-2 border-wood-light bg-[#1a1145] p-4 text-white">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xl font-black text-amber-300">Your account</h2>
-          <button onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close">✕</button>
+          <button onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close" title="Close"><Px e="✕" /></button>
         </div>
         {notice && <p role="status" className="mb-3 rounded-lg border border-sky-300/50 bg-sky-900/40 p-2 text-sm">{notice}</p>}
         {error && <p role="alert" className="mb-3 rounded-lg border border-red-400 bg-red-900/40 p-2 text-sm">{error}</p>}

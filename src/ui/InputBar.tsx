@@ -137,7 +137,7 @@ export function InputBar() {
               onMouseDown={keep} onClick={() => setIdeas(suggest(3))}
               disabled={!myTurn && !canSteal}
               className={`${btn} min-w-12 bg-sky-500 text-sky-950`}
-              aria-label="Hint"
+              aria-label="Hint" title="Hint"
             >
               <HintIcon size={18} />
             </button>

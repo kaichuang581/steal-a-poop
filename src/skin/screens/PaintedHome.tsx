@@ -31,7 +31,7 @@ import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
-import { AvatarButtonIcon, FireIcon } from '../components/PixelIcons';
+import { AvatarButtonIcon, FireIcon, Px } from '../components/PixelIcons';
 import { PaintedSettings } from './PaintedSettings';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 
@@ -178,8 +178,8 @@ export function PaintedHome() {
       {error && <p role="alert" className="sk-paper px-3 py-1 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
       {signedIn && rooms && (
         <div className="flex gap-2" role="group" aria-label="Community">
-          {([['friends', '👥 Friends'], ['boards', '🏆 Boards'], ['shop', '🛍️ Shop']] as const).map(([t, label]) => (
-            <WoodButton key={t} onClick={() => setHub(t)} className="flex-1 text-sm">{label}</WoodButton>
+          {([['friends', '👥', 'Friends'], ['boards', '🏆', 'Boards'], ['shop', '🛍️', 'Shop']] as const).map(([t, ico, label]) => (
+            <WoodButton key={t} onClick={() => setHub(t)} className="flex-1 text-sm" aria-label={label} title={label}><Px e={ico} size={20} /></WoodButton>
           ))}
         </div>
       )}
@@ -276,12 +276,12 @@ export function PaintedHome() {
             <SheepIcon size={26} />
             <span className="max-w-[12rem] truncate">{name}</span>
             {streak > 0 && <span className="text-sm" style={{ color: 'var(--glow)' }}><FireIcon size={14} /> {streak}</span>}
-            {signedIn && coins !== null && <span aria-label="Coins" className="text-sm">{coins} 🪙</span>}
+            {signedIn && coins !== null && <span aria-label="Coins" className="text-sm">{coins} <Px e="🪙" /></span>}
           </div>
         )}
-        <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar"><AvatarButtonIcon /></button>
+        <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
-        <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings"><GearIcon /></button>
+        <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
         <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>
         <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play"><HelpIcon /></button>
       </div>

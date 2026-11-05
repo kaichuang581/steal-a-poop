@@ -1,3 +1,4 @@
+import { Px } from '../components/PixelIcons';
 import { useEffect, useRef, useState } from 'react';
 import { resetTips } from '../../lib/tips';
 import { useStore } from '../../state/store';
@@ -29,7 +30,7 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
       <PaperPanel role="dialog" aria-modal="true" aria-label="Settings" className="w-full max-w-sm p-4" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="sk-display text-2xl">Settings</h2>
-          <Chip ref={closeRef} onClick={onClose} aria-label="Close">✕</Chip>
+          <Chip ref={closeRef} onClick={onClose} aria-label="Close" title="Close"><Px e="✕" /></Chip>
         </div>
         <div className="space-y-2">
           {/* The account panel is written light-on-dark; it sits on an ink card. */}
@@ -57,7 +58,7 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
             <span>Replay tutorial</span><span aria-hidden="true">▶</span>
           </button>
           <button className={row} style={rowStyle} onClick={() => { resetTips(); setTipsCleared(true); }}>
-            <span>Show gameplay tips again</span><span>{tipsCleared ? '✓ Reset' : '↺'}</span>
+            <span>Show gameplay tips again</span><span>{tipsCleared ? <><Px e="✓" /> Reset</> : <Px e="↺" />}</span>
           </button>
           <button className={row} style={rowStyle} onClick={() => setCredits(true)}>
             <span>Credits and licenses</span><span aria-hidden="true">›</span>

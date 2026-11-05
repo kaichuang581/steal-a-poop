@@ -1,3 +1,4 @@
+import { Px } from '../skin/components/PixelIcons';
 import { FireIcon } from '../skin/components/PixelIcons';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
@@ -46,7 +47,7 @@ export function EndScreen() {
         initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
       >
         <h2 className="text-center text-3xl font-black text-amber-300">
-          {iWon ? 'You win! 🏆' : `${ranked[0].name} wins!`}
+          {iWon ? <>You win! <Px e="🏆" size={24} /></> : `${ranked[0].name} wins!`}
         </h2>
         <div className="mt-4 flex items-end justify-center gap-2">
           {podium.map((p) => {
@@ -57,7 +58,7 @@ export function EndScreen() {
                 <div className="max-w-full truncate text-sm font-bold" style={{ color: p.color }}>{p.name}</div>
                 <div className="text-xs tabular-nums text-white/70">{p.banked} pts</div>
                 <div className={`mt-1 flex w-full items-start justify-center rounded-t-lg bg-wood pt-1 text-xl ${heights[place]}`}>
-                  {['🥇', '🥈', '🥉'][place]}
+                  <Px e={['🥇', '🥈', '🥉'][place]} size={24} />
                 </div>
               </div>
             );

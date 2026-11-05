@@ -1,3 +1,4 @@
+import { Px } from '../components/PixelIcons';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
@@ -606,7 +607,7 @@ export function DreamScreen() {
         )}
       </div>
       <p className="dr-help">Each fence names letters: type any real word with them in that order and press Enter. Esc wakes up.</p>
-      <button className="dr-quit" onClick={close} aria-label="Leave the dream">✕</button>
+      <button className="dr-quit" onClick={close} aria-label="Leave the dream" title="Leave the dream"><Px e="✕" /></button>
     </main>
   );
 }

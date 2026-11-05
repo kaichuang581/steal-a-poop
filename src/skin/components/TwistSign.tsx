@@ -1,3 +1,4 @@
+import { Px } from './PixelIcons';
 import { TWIST_TEXT } from '../model/types';
 import type { TwistId } from '../model/types';
 
@@ -25,7 +26,7 @@ export function TwistSign({ twist, state, compact }: { twist: TwistId | null; st
         <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="absolute inset-x-0 -top-1.5 h-3 w-full" aria-hidden="true">
           <path d="M0 10 L0 5 Q8 0 16 4 Q26 1 34 5 Q44 0 55 4 Q64 1 72 5 Q84 0 92 4 L100 3 L100 10 Z" fill="var(--paper)" />
         </svg>
-        <span aria-hidden="true">{ICON[twist]} </span>{TWIST_TEXT[twist]}
+        <span aria-hidden="true"><Px e={ICON[twist]} size={14} /> </span>{TWIST_TEXT[twist]}
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { Px } from '../skin/components/PixelIcons';
 import { useEffect, useRef, useState } from 'react';
 import { resetTips } from '../lib/tips';
 import { Credits } from './Credits';
@@ -38,7 +39,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xl font-black text-amber-300">Settings</h2>
-          <button ref={closeRef} onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close">✕</button>
+          <button ref={closeRef} onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close" title="Close"><Px e="✕" /></button>
         </div>
         <div className="space-y-2">
           <AccountPanel onSignIn={() => setSignIn(true)} />
@@ -66,7 +67,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
             className={row}
             onClick={() => { resetTips(); setTipsCleared(true); }}
           >
-            <span>Show gameplay tips again</span><span>{tipsCleared ? '✓ Reset' : '↺'}</span>
+            <span>Show gameplay tips again</span><span>{tipsCleared ? <><Px e="✓" /> Reset</> : <Px e="↺" />}</span>
           </button>
           <button className={row} onClick={() => setCredits(true)}>
             <span>Credits and licenses</span><span aria-hidden="true">›</span>

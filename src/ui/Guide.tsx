@@ -1,3 +1,4 @@
+import { Px } from '../skin/components/PixelIcons';
 import { useEffect, useRef, useState } from 'react';
 import { GAME_TITLE } from '../config';
 import { useStore } from '../state/store';
@@ -31,7 +32,7 @@ export function Guide({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-center justify-between gap-2 p-4 pb-2">
           <h2 className="text-xl font-black text-amber-300 sm:text-2xl">How to play {GAME_TITLE}</h2>
-          <button ref={closeRef} onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close">✕</button>
+          <button ref={closeRef} onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close" title="Close"><Px e="✕" /></button>
         </div>
         <div className="flex flex-wrap gap-2 px-4 pb-2">
           <button

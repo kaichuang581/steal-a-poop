@@ -1,3 +1,4 @@
+import { Px } from '../skin/components/PixelIcons';
 import { useEffect, useRef } from 'react';
 import pkg from '../../package.json';
 import { GAME_TITLE } from '../config';
@@ -35,7 +36,7 @@ export function Credits({ onClose }: { onClose: () => void }) {
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xl font-black text-amber-300">Credits</h2>
-          <button ref={closeRef} onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close">✕</button>
+          <button ref={closeRef} onClick={onClose} className="min-h-11 min-w-11 rounded-lg bg-white/10 text-lg" aria-label="Close" title="Close"><Px e="✕" /></button>
         </div>
         <p className="mb-3 text-sm text-white/80">{GAME_TITLE} v{pkg.version}</p>
 

@@ -97,3 +97,37 @@ export const SoundIcon = ({ size = 20, muted = false }: { size?: number; muted?:
   const I = grid(rows, muted ? 'muted' : 'sound');
   return <I size={size} />;
 };
+
+const CoinIcon = grid(['  ####  ', ' #oooo# ', '#oo##oo#', '#o#oo#o#', '#o#oo#o#', '#oo##oo#', ' #oooo# ', '  ####  '], 'coin');
+const FriendsIcon = grid([' ##   ## ', '#### #### ', ' ##   ##  ', '####  #### '.slice(0, 10), '#### #### ', '#### #### '].map((r) => r.padEnd(10)), 'friends');
+const ShopIcon = grid(['  ####  ', ' #    # ', '########', '#oooooo#', '#oooooo#', '#oooooo#', '########'], 'shop');
+const WarnIcon = grid(['    #    ', '   ###   ', '   # #   ', '  ## ##  ', '  ## ##  ', ' ###### # '.slice(0, 9), ' ###  ### '.slice(0, 9), '#########'].map((r) => r.padEnd(9)), 'warn');
+const BanIcon = grid(['  ####  ', ' #   ## ', '#   # ##', '#  #  ##', '# #   ##'.replace('##', '# '), ' ##   # ', '  ####  '], 'ban');
+const CloseIcon = grid(['##    ##', ' ##  ## ', '  ####  ', '   ##   ', '  ####  ', ' ##  ## ', '##    ##'], 'close');
+const BoltIcon = grid(['    ##', '   ## ', '  ##  ', ' #### ', '  ##  ', ' ##   ', '##    '], 'bolt');
+const PoopIcon = grid(['    ##    ', '   ###    ', '  ######  ', ' ######## ', '  ######  ', ' ######## ', '##########'], 'poop');
+const Medal = (n: string) => grid(['#      #', ' #    # ', '  ####  ', ' ###### ', ' ##oo## ', ' ###### ', '  ####  '], n);
+const WindIcon = grid(['  ####   ', '      #  ', '########', '        #', ' #######', '       # ', '  ####   '].map((r) => r.padEnd(9)), 'wind');
+const SproutIcon = grid(['## ##', ' ###', '  # ', '  # ', '  # '], 'sprout');
+const LeafSmall = grid(['   ##', '  ###', ' ####', '###  ', '#    '], 'leaf');
+const AcornSmall = grid([' #### ', '######', ' #### ', ' #### ', '  ##  '], 'acorn');
+const RulerIcon = grid(['#########', '# # # # #', '#########'], 'ruler');
+const TwinsIcon = grid([' ##  ## ', '####  ####'.slice(0, 8), ' ##  ## ', '####  ####'.slice(0, 8)], 'twins');
+const SparkIcon = grid(['  #  ', '  #  ', '#####', '  #  ', '  #  '], 'spark');
+const PepperIcon = grid(['   ##', '  #  ', ' ### ', '#### ', '###  '], 'pepper');
+const GearPx = grid(['  # #  ', ' ##### ', '### ###', ' ##### ', '### ###', ' ##### ', '  # #  '], 'gear');
+const CheckIcon = grid(['      #', '     ##', '#   ## ', '## ##  ', ' ###   ', '  #    '], 'check');
+const ResetIcon = grid([' #### ', '#    #', '#   ##', '    # ', '#    #', ' #### '], 'reset');
+
+const MAP: Record<string, (p: { size?: number }) => React.ReactElement> = {
+  '🪙': CoinIcon, '👥': FriendsIcon, '🏆': ScoresIcon, '🛍': ShopIcon, '⚠': WarnIcon, '🚫': BanIcon, '✕': CloseIcon, '⚡': BoltIcon,
+  '💩': PoopIcon, '🥇': Medal('gold'), '🥈': Medal('silver'), '🥉': Medal('bronze'), '🌬': WindIcon, '🌱': SproutIcon, '🍃': LeafSmall,
+  '🌰': AcornSmall, '📏': RulerIcon, '👯': TwinsIcon, '✨': SparkIcon, '🌶': PepperIcon, '⚙': GearPx, '✓': CheckIcon, '↺': ResetIcon, '💡': HintIcon, '🔥': FireIcon,
+};
+
+/** Any former emoji, as a pixel icon. Pass `title` to show its name on hover. */
+export function Px({ e, size = 16, title }: { e: string; size?: number; title?: string }) {
+  const I = MAP[e.replace(/️/g, '')];
+  if (!I) return null;
+  return <span title={title} style={{ display: 'inline-flex' }}><I size={size} /></span>;
+}

@@ -1,3 +1,4 @@
+import { Px } from '../skin/components/PixelIcons';
 import { useState } from 'react';
 import { MODIFIER_INFO } from '../lib/modifiers';
 import { useRoomStore } from '../state/roomStore';
@@ -38,13 +39,13 @@ export function TopBar({ onScore, onChain, onCheat, onChat }: Props) {
           <ChatIcon />{unread > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-xs font-black">{Math.min(unread, 99)}</span>}
         </button>
       )}
-      <button className={btn} onClick={onCheat} aria-label="Rules, scoring cheat sheet" title="Scoring cheat sheet"><RulesIcon /></button>
-      {onScore && <button className={btn} onClick={onScore} aria-label="Scores, scoreboard"><ScoresIcon /></button>}
-      {onChain && <button className={btn} onClick={onChain} aria-label="Chain history"><ChainIcon /></button>}
-      <button className={btn} onClick={toggleMute} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}>
+      <button className={btn} onClick={onCheat} aria-label="Rules, scoring cheat sheet" title="Rules"><RulesIcon /></button>
+      {onScore && <button className={btn} onClick={onScore} aria-label="Scores, scoreboard" title="Scores"><ScoresIcon /></button>}
+      {onChain && <button className={btn} onClick={onChain} aria-label="Chain history" title="Chain"><ChainIcon /></button>}
+      <button className={btn} onClick={toggleMute} title={muted ? 'Unmute' : 'Sound'} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}>
         <SoundIcon muted={muted} />
       </button>
-      <button className={btn} onClick={() => setLeaving(true)} aria-label="Leave game">✕</button>
+      <button className={btn} onClick={() => setLeaving(true)} aria-label="Leave game" title="Leave game"><Px e="✕" /></button>
       {leaving && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/70 p-4" onClick={() => setLeaving(false)}>
           <div

@@ -1,3 +1,4 @@
+import { Px } from '../skin/components/PixelIcons';
 import { Billboard, Html, Text3D } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -64,7 +65,7 @@ export function Table() {
             className="absolute left-1/2 top-[30%] z-10 -translate-x-1/2 rounded-full border-2 border-fuchsia-300 bg-fuchsia-600/90 px-3 py-1 text-xs font-black uppercase tracking-wider shadow-lg sm:text-sm"
             role="status"
           >
-            {game.turn?.seat === mySeat ? '⚠ Others can steal!' : '⚡ Steal window'}
+            {game.turn?.seat === mySeat ? <><Px e="⚠" size={14} /> Others can steal!</> : <><Px e="⚡" size={14} /> Steal window</>}
           </motion.div>
         )}
       </AnimatePresence>

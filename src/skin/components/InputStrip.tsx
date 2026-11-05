@@ -75,7 +75,7 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, onChange, onPlay,
             <WoodButton onMouseDown={keep} onClick={onPlay} disabled={!myTurn} className="flex-1 sm:flex-none">Play</WoodButton>
           )}
           {hints && (
-            <WoodButton onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn && !stealOpen} aria-label="Hint" className="px-3"><HintIcon size={16} /></WoodButton>
+            <WoodButton onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn && !stealOpen} aria-label="Hint" title="Hint" className="px-3"><HintIcon size={16} /></WoodButton>
           )}
           <ClothButton onMouseDown={keep} onClick={onBank} disabled={!myTurn} data-tour="bank" className="flex-1 sm:flex-none">
             Bank <span className="sk-num">{pile}</span>

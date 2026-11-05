@@ -142,6 +142,7 @@ export function PaintedHome() {
 
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const items: MenuItem[] = [
+    { id: 'start', label: ready ? 'Start now' : 'Loading…', caption: 'Straight into a game with easy bots and hints. No setup.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     dream
       ? {

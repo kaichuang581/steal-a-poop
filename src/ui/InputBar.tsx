@@ -1,3 +1,4 @@
+import { HintIcon } from '../skin/components/PixelIcons';
 import { useEffect, useRef, useState } from 'react';
 import { inStealWindow } from '../engine';
 import { rejectMessage } from '../lib/messages';
@@ -138,8 +139,7 @@ export function InputBar() {
               className={`${btn} min-w-12 bg-sky-500 text-sky-950`}
               aria-label="Hint"
             >
-              <span className="sm:hidden" aria-hidden="true">💡</span>
-              <span className="hidden sm:inline">Hint</span>
+              <HintIcon size={18} />
             </button>
           )}
           <button

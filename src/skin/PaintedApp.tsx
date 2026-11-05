@@ -1,3 +1,4 @@
+import { useAvatar } from './avatars/store';
 import { useEffect } from 'react';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
@@ -42,6 +43,9 @@ export function PaintedApp() {
   const hunting = useHuntUi((s) => s.open);
   const dreaming = useDreamUi((s) => s.open);
   useSkinFonts();
+  // Keep the server told which avatar you picked, so the others in a room see it.
+  const avatar = useAvatar();
+  useEffect(() => { useRoomStore.getState().sendAvatar(avatar); }, [avatar]);
 
   useEffect(() => {
     const root = document.documentElement;

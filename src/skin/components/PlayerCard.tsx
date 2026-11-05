@@ -1,3 +1,4 @@
+import { useRoomStore } from '../../state/roomStore';
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
 import { AvatarIcon } from '../avatars/AvatarIcon';
@@ -27,7 +28,13 @@ interface Props {
 export function PlayerCard({ player, isTurn, compact, lastWord, children, badge, title, maxLives = 3 }: Props) {
   // Your own card wears the avatar you picked (only for show); everyone else is a sheep.
   const chosen = useAvatar();
-  const mine = player.isYou ? chosen : null;
+  const theirs = useRoomStore((s) => {
+    if (player.isYou || !s.room) return null;
+    const uid = Object.keys(s.room.seatOf).find((u) => s.room!.seatOf[u] === Number(player.id));
+    const a = s.room.members.find((m) => m.userId === uid)?.avatar;
+    return a ?? null;
+  });
+  const mine = player.isYou ? chosen : theirs;
   return (
     <div
       className="sk-paper relative flex items-center gap-2 px-2 py-1"

@@ -15,6 +15,7 @@ import type { PendingAction, StealOptions } from './steals';
 import type { AuditLog } from './moderation/audit';
 import type { RevocationBus } from './auth/revocations';
 import type { Cosmetics } from '../src/net/protocol';
+import { isAvatarId } from '../src/avatars/ids';
 
 export type { AuthUser, VerifyToken } from './contracts';
 
@@ -114,7 +115,8 @@ type ClientMsg =
   | { t: 'mute'; on: boolean; userId?: string }
   | { t: 'kick'; userId: string }
   | { t: 'auth'; token: string }
-  | { t: 'invite'; userId: string };
+  | { t: 'invite'; userId: string }
+  | { t: 'avatar'; id: string | null };
 
 const MAX_PAYLOAD = 4096;
 
@@ -178,9 +180,11 @@ export async function startServer(opts: ServerOptions) {
     const view = rooms.view(code);
     if (!view) return;
     const serverNow = now(); // timers in the game state are in server time; clients correct for the difference
-    const dressed = { ...view, members: view.members.map((m) => ({ ...m, cosmetics: opts.cosmetics?.cachedCosmetics(m.userId) })) };
+    const dressed = { ...view, members: view.members.map((m) => ({ ...m, cosmetics: opts.cosmetics?.cachedCosmetics(m.userId), avatar: avatars.get(m.userId) })) };
     for (const m of view.members) sendTo(m.userId, { t: 'room', view: dressed, serverNow, you: { userId: m.userId, seat: view.seatOf[m.userId] ?? null } });
   };
+  /** The avatar each connected player picked: a validated id from a fixed list, never text. */
+  const avatars = new Map<string, string>();
   const blocks = opts.blocks ?? new BlockList();
   const recentInvites = new Map<string, number>();
   const sendBlocks = (userId: string) => sendTo(userId, { t: 'blocks', list: blocks.list(userId) });
@@ -216,6 +220,13 @@ export async function startServer(opts: ServerOptions) {
     const { userId, name } = user;
 
     switch (msg.t) {
+      case 'avatar': {
+        if (msg.id !== null && !isAvatarId(msg.id)) return fail(ws, 'bad_message');
+        if (msg.id === null) avatars.delete(userId); else avatars.set(userId, msg.id);
+        const here = rooms.roomFor(userId);
+        if (here) broadcastRoom(here.code);
+        return;
+      }
       case 'invite': {
         const target = String(msg.userId ?? '');
         const reply = (ok: boolean, reason: string | null = null) => send(ws, { t: 'inviteResult', ok, reason });

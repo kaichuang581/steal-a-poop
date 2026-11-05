@@ -1,3 +1,4 @@
+import { WoolBall } from './Lives';
 import { SnowCap } from './SnowCap';
 
 /**
@@ -32,7 +33,15 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
           </span>
         ))}
       </div>
-      <p className="sk-title-tagline">{tagline}</p>
+      {/* The tagline, hand-lettered under the tiles, its phrases strung on a line of yarn. */}
+      <p className="sk-title-tagline" aria-label={tagline}>
+        {tagline.split(/(?<=\.)\s+/).map((part, i, all) => (
+          <span key={i} className="sk-title-tag-part" aria-hidden="true">
+            {part.replace(/\.$/, '')}
+            {i < all.length - 1 && <WoolBall full size={13} />}
+          </span>
+        ))}
+      </p>
     </div>
   );
 }

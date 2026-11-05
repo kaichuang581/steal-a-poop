@@ -13,6 +13,8 @@ export interface MenuItem {
   disabled?: boolean;
   /** A small tag beside the label: a streak, "done", "soon". */
   badge?: ReactNode;
+  /** A small pixel icon before the label (the items under Play). */
+  icon?: ReactNode;
 }
 
 /**
@@ -63,30 +65,35 @@ export function GameMenu({ items, label, compact = false, autoFocus = false }: {
   }, [autoFocus, live]);
 
   const caption = items[active]?.caption;
+  const item = (it: MenuItem, i: number) => (
+    <li key={it.id} className="sk-menu-row" style={{ animationDelay: `${300 + i * 70}ms` }}>
+      <button
+        ref={(el) => { refs.current[i] = el; }}
+        className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : ''}`}
+        data-active={i === active || undefined}
+        disabled={it.disabled}
+        onClick={it.onSelect}
+        onFocus={() => setActive(i)}
+        onPointerEnter={() => { if (!it.disabled && i !== active) { setActive(i); playTick(0.15); } }}
+        aria-describedby={i === active ? 'sk-menu-caption' : undefined}
+      >
+        {i === 0 && <><SnowCap className="sk-menu-snow" /><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" /><span className="sk-nail sk-nail-bl" /><span className="sk-nail sk-nail-br" /></>}
+        <span className="sk-menu-lantern" aria-hidden="true"><LanternIcon size={i === 0 ? 30 : 22} /></span>
+        {i > 0 && it.icon && <span className="sk-menu-icon" aria-hidden="true">{it.icon}</span>}
+        <span className="sk-menu-label">{it.label}</span>
+        {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
+      </button>
+    </li>
+  );
+  // Play is the big sign on its own; everything else sits on a dark wooden board under it, with the caption for the
+  // item in focus along the board's foot.
   return (
     <nav aria-label={label} className={`sk-menu ${compact ? 'sk-menu-compact' : ''}`} onKeyDown={onKey}>
-      <ul className="flex flex-col">
-        {items.map((it, i) => (
-          <li key={it.id} className="sk-menu-row" style={{ animationDelay: `${300 + i * 70}ms` }}>
-            <button
-              ref={(el) => { refs.current[i] = el; }}
-              className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : ''}`}
-              data-active={i === active || undefined}
-              disabled={it.disabled}
-              onClick={it.onSelect}
-              onFocus={() => setActive(i)}
-              onPointerEnter={() => { if (!it.disabled && i !== active) { setActive(i); playTick(0.15); } }}
-              aria-describedby={i === active ? 'sk-menu-caption' : undefined}
-            >
-              {i === 0 && <><SnowCap className="sk-menu-snow" /><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" /><span className="sk-nail sk-nail-bl" /><span className="sk-nail sk-nail-br" /></>}
-              <span className="sk-menu-lantern" aria-hidden="true"><LanternIcon size={i === 0 ? 30 : 24} /></span>
-              <span className="sk-menu-label">{it.label}</span>
-              {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <p id="sk-menu-caption" className="sk-menu-caption">{caption}</p>
+      <ul className="flex flex-col">{items.slice(0, 1).map((it) => item(it, 0))}</ul>
+      <div className="sk-menu-board">
+        <ul className="flex flex-col">{items.slice(1).map((it, k) => item(it, k + 1))}</ul>
+        <p id="sk-menu-caption" className="sk-menu-caption">{caption}</p>
+      </div>
     </nav>
   );
 }

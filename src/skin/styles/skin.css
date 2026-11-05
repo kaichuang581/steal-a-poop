@@ -147,7 +147,7 @@
 /* ---------- Title screen (the start screen as a game screen) ---------- */
 
 /* Title: a carved plank with snow on top, and the last word hanging below as letter tiles on ropes. */
-.sk-title { --tile: 72px; display: inline-flex; flex-direction: column; align-items: flex-start; }
+.sk-title { --tile: 64px; display: inline-flex; flex-direction: column; align-items: flex-start; }
 .sk-title-compact { --tile: 52px; align-items: center; }
 .sk-title-plank {
   position: relative; margin-top: 10px; padding: 12px 34px 9px; border-radius: 10px 12px 9px 11px;
@@ -201,13 +201,16 @@
   animation: sk-title-hang 700ms var(--ease-spring) both, sk-title-sway 4.6s ease-in-out infinite, sk-title-glow 2.2s ease-in-out infinite;
 }
 .sk-title-tagline {
-  /* A paper ribbon with notched ends. */
-  margin-top: 16px; padding: 5px 22px; font-weight: 800; font-size: 15px; color: var(--ink);
-  background: linear-gradient(180deg, var(--paper) 0 70%, var(--paper-edge));
-  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%, 9px 50%);
-  filter: drop-shadow(0 3px 0 rgba(40, 24, 10, 0.35));
+  /* Hand-lettered under the tiles, each phrase strung on with a little ball of yarn; a soft dark glow keeps it
+     readable over the snow without a banner behind it. */
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin-top: 12px; padding-left: 6px;
+  font-family: var(--skin-font-hand); font-size: 20px; line-height: 1.2; color: var(--button-text);
+  text-shadow: 0 1px 0 rgba(30, 18, 8, 0.9), 0 0 10px rgba(30, 18, 8, 0.75), 0 0 22px rgba(30, 18, 8, 0.5);
   animation: sk-title-fade 500ms 600ms var(--ease-out) both;
 }
+.sk-title-compact .sk-title-tagline { justify-content: center; padding-left: 0; font-size: 18px; }
+.sk-title-tag-part { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.sk-title-tag-part svg { filter: drop-shadow(0 1px 2px rgba(30, 18, 8, 0.7)); }
 @keyframes sk-title-drop { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes sk-title-hang { from { transform: translateY(-60px) rotate(-12deg); opacity: 0; } to { opacity: 1; } }
 @keyframes sk-title-sway { 0%, 100% { rotate: -2.2deg; } 50% { rotate: 2.2deg; } }
@@ -292,17 +295,23 @@
 }
 .sk-tip { animation: sk-title-fade 500ms var(--ease-out) both; }
 .sk-plate {
-  display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px 6px 8px; border-radius: 999px;
-  background: rgba(59, 48, 40, 0.6); backdrop-filter: blur(4px); color: var(--button-text); font-weight: 800;
-  box-shadow: inset 0 0 0 2px rgba(255, 217, 138, 0.35);
+  /* A small nailed name board. */
+  position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 10px; border-radius: 9px 11px 8px 10px;
+  color: var(--button-text); font-weight: 800; text-shadow: 0 -1px 0 rgba(40, 24, 10, 0.7);
+  background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 12%, var(--wood-dark) 12% 88%, var(--wood-ink) 88%);
+  box-shadow: inset 0 0 0 2px rgba(40, 24, 10, 0.35), 0 4px 0 rgba(40, 24, 10, 0.4), 0 6px 14px rgba(40, 24, 10, 0.3);
 }
 .sk-icon-btn {
-  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px;
-  background: rgba(59, 48, 40, 0.6); backdrop-filter: blur(4px); color: var(--button-text);
-  box-shadow: inset 0 0 0 2px rgba(255, 217, 138, 0.35); transition: transform var(--t-fast) var(--ease-out), background var(--t-fast);
+  /* Round wooden buttons, like the end of a log. */
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 999px; color: var(--button-text);
+  background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(40, 24, 10, 0.18) 35% 37%, transparent 38% 54%, rgba(40, 24, 10, 0.16) 55% 57%, transparent 58%),
+    radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%);
+  box-shadow: inset 0 0 0 3px var(--wood-ink), inset 0 2px 0 4px rgba(255, 220, 170, 0.18), 0 4px 0 rgba(40, 24, 10, 0.45), 0 6px 14px rgba(40, 24, 10, 0.3);
+  transition: transform var(--t-fast) var(--ease-out), filter var(--t-fast);
 }
-.sk-icon-btn:hover { background: rgba(59, 48, 40, 0.8); transform: translateY(-1px); }
-.sk-icon-btn[aria-pressed="true"] { background: var(--wood-dark); }
+.sk-icon-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.sk-icon-btn:active { transform: translateY(2px); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
+.sk-icon-btn[aria-pressed="true"] { filter: brightness(0.85); }
 
 :root[data-skin="painted"].reduce-motion :is(.sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip),
 :root[data-skin="painted"].reduce-motion .sk-menu-item[data-active] .sk-menu-lantern svg { animation: none; }
@@ -627,3 +636,44 @@
 :root[data-skin="painted"] .tour-secondary { background: var(--paper-edge) !important; color: var(--wood-ink) !important; }
 :root[data-skin="painted"] .tour-link { color: var(--ink-soft) !important; }
 :root[data-skin="painted"] .tour-ring { border-color: var(--amber) !important; border-width: 3px !important; }
+
+/* ---------- The menu board: everything under Play ---------- */
+.sk-menu-board {
+  position: relative; margin: 4px 6px 0; padding: 8px 8px 0; border-radius: 12px;
+  background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.035) 0 1px, transparent 1px 7px, rgba(0, 0, 0, 0.07) 7px 8px, transparent 8px 13px),
+    linear-gradient(180deg, rgba(76, 50, 28, 0.86), rgba(52, 34, 20, 0.9));
+  box-shadow: inset 0 0 0 2px rgba(20, 12, 6, 0.45), inset 0 2px 0 rgba(255, 220, 170, 0.12), 0 6px 18px rgba(20, 12, 6, 0.35);
+  backdrop-filter: blur(2px);
+}
+.sk-menu-board .sk-menu-row + .sk-menu-row { border-top: 1px solid rgba(20, 12, 6, 0.45); box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.07); }
+.sk-menu-board .sk-menu-item { min-height: 46px; font-size: 23px; }
+.sk-menu-board .sk-menu-item[data-active] { transform: translateX(6px); }
+.sk-menu-icon { display: grid; place-items: center; width: 26px; flex: none; color: var(--glow); filter: drop-shadow(0 1px 0 rgba(20, 12, 6, 0.8)); }
+.sk-menu-board .sk-menu-lantern { width: 22px; margin-right: -4px; }
+.sk-menu-board .sk-menu-caption {
+  /* Still a fixed height (three lines), so a longer caption never shifts the menu under the pointer. */
+  margin: 6px -8px 0; padding: 8px 16px 10px; height: calc(3.9em + 18px); border-radius: 0 0 12px 12px;
+  border-top: 1px solid rgba(20, 12, 6, 0.5); background: rgba(20, 12, 6, 0.22); font-size: 17px;
+}
+.sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 21px; min-height: 46px; }
+.sk-menu-compact .sk-menu-board .sk-menu-caption { height: calc(3.9em + 18px); font-size: 16px; }
+
+/* ---------- Table setup: a paper card under a snowy wooden header ---------- */
+.sk-setup { overflow: visible; }
+.sk-setup-head {
+  position: relative; display: flex; align-items: center; justify-content: space-between; margin: 0 -16px 4px; padding: 14px 16px 12px 18px; border-radius: 14px 14px 0 0;
+  background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 10%, var(--wood-dark) 10% 90%, var(--wood-ink) 90%);
+}
+.sk-setup-head h2 { font-family: var(--skin-font-display); font-weight: 800; font-size: 24px; color: var(--button-text); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.7); }
+.sk-setup-snow { position: absolute; left: -6px; right: -4px; top: -12px; width: calc(100% + 10px); height: 24px; overflow: visible; pointer-events: none; }
+.sk-setup-back { min-height: 36px; padding: 0 14px; border-radius: 999px; font-weight: 800; color: var(--wood-ink); background: var(--paper); box-shadow: inset 0 -3px 0 var(--paper-edge); }
+.sk-sit { min-height: 56px; font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 24px !important; }
+
+/* ---------- Classic panels shown in the painted skin (community, account): a dark wooden frame ---------- */
+:root[data-skin="painted"] .classic-panel {
+  background: linear-gradient(180deg, #4A3222, #33231A) !important; border: 3px solid var(--wood) !important; border-radius: 18px !important;
+  box-shadow: inset 0 0 0 2px rgba(20, 12, 6, 0.5), 0 0 0 3px var(--wood-ink), 0 18px 40px rgba(20, 12, 6, 0.55) !important;
+  font-family: var(--skin-font-body);
+}
+:root[data-skin="painted"] .classic-panel-title { font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 24px !important; color: var(--glow) !important; text-shadow: 0 -2px 0 rgba(20, 12, 6, 0.7); }
+:root[data-skin="painted"] .classic-panel [role="tab"][aria-selected="true"] { background: var(--glow) !important; color: var(--wood-ink) !important; }

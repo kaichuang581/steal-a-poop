@@ -20,13 +20,14 @@ import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES, legalHref } from '../../ui/legal/legalLinks';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LanternIcon, LeafIcon, MoonIcon, PlayIcon, SeedlingIcon, SpeakerIcon, TrophyIcon, WolfIcon } from '../components/Icons';
 import { PaintedGuide } from '../components/PaintedGuide';
+import { SnowCap } from '../components/SnowCap';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { TitleBoard } from '../components/TitleBoard';
 import { StreakString } from '../components/Lantern';
-import { Chip, PaperPanel, WoodButton } from '../components/Materials';
+import { Chip, ClothButton, PaperPanel, WoodButton } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
@@ -134,31 +135,30 @@ export function PaintedHome() {
     setHeroYaw(((e.clientX / window.innerWidth) * 2 - 1) * 0.3);
   };
 
-  const link = 'min-h-11 content-center text-left text-sm font-bold underline decoration-2 underline-offset-2 disabled:no-underline disabled:opacity-60';
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const items: MenuItem[] = [
     { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     dream
       ? {
-        id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
+        id: 'dream', icon: <MoonIcon size={20} />, label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
         badge: dream.status === 'done' ? `${dream.count ?? 0} sheep` : 'used',
         disabled: dream.status !== 'done', onSelect: shareDream,
         caption: `The farmer is up for the day. Tonight's dream starts at ${timeOfNext}.`,
       }
       : {
-        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? `${streak}-night streak` : 'daily', disabled: !ready,
+        id: 'dream', icon: <MoonIcon size={20} />, label: 'Counting Sheep', badge: streak > 0 ? `${streak}-night streak` : 'daily', disabled: !ready,
         caption: 'Keep the farmer asleep: type words with each fence\'s letters so the sheep clears it. One dream a night.',
         onSelect: () => useDreamUi.getState().openDream(false),
       },
     {
-      id: 'hunt', label: 'Hunt', badge: huntBest ? `best ${huntBest.defeated}` : 'new', disabled: !ready,
+      id: 'hunt', icon: <WolfIcon size={20} />, label: 'Hunt', badge: huntBest ? `best ${huntBest.defeated}` : 'new', disabled: !ready,
       caption: 'Fight off predator after predator with words. Hunt as often as you like.',
       onSelect: () => useHuntUi.getState().openHunt(),
     },
-    { id: 'practice', label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
-    { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
+    { id: 'practice', icon: <LeafIcon size={18} />, label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
+    { id: 'tutorial', icon: <PlayIcon size={16} />, label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {
-      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : 'soon', disabled: !rooms, onSelect: openRooms,
+      id: 'rooms', icon: <FriendsIcon size={18} />, label: 'Play with friends', badge: rooms ? undefined : 'soon', disabled: !rooms, onSelect: openRooms,
       caption: rooms ? '4 to 10 people in the big barn.' : 'Rooms open when the game server is live.',
     },
   ];
@@ -184,10 +184,11 @@ export function PaintedHome() {
   );
 
   const setup = (
-    <PaperPanel className={`space-y-3 p-4 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
-      <div className="flex items-center justify-between">
-        <h2 className="sk-display text-2xl">Set the table</h2>
-        <button className={link} onClick={() => setStep('tables')}>Back</button>
+    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
+      <div className="sk-setup-head">
+        <SnowCap className="sk-setup-snow" />
+        <h2>Set the table</h2>
+        <button className="sk-setup-back" onClick={() => setStep('tables')}>Back</button>
       </div>
       <label className="block">
         <span className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Your name</span>
@@ -245,7 +246,7 @@ export function PaintedHome() {
           ))}
         </div>
       </details>
-      <WoodButton onClick={() => go('quick')} disabled={!ready} className="w-full text-lg">Sit down</WoodButton>
+      <ClothButton onClick={() => go('quick')} disabled={!ready} className="sk-sit w-full">Sit down</ClothButton>
     </PaperPanel>
   );
 
@@ -283,7 +284,7 @@ export function PaintedHome() {
       {mobile ? (
         <>
           <div className="absolute inset-x-0 top-16 flex justify-center">
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Grow your wool." compact />
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Keep your wool." compact />
           </div>
           <div className="absolute inset-x-3 bottom-2 max-h-[64%] overflow-y-auto">
             {step === 'tables' ? (
@@ -298,8 +299,8 @@ export function PaintedHome() {
       ) : (
         <>
           {/* Left column: the title board, then the menu, like a console title screen. */}
-          <div className="absolute bottom-20 left-10 top-20 flex w-[27rem] flex-col justify-center gap-8">
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Grow your wool. Don’t get stolen from." />
+          <div className="absolute bottom-16 left-10 top-16 flex w-[27rem] flex-col justify-center gap-4">
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Keep your wool. Outlast the flock." />
             {step === 'tables' ? tables : <div className="pointer-events-none opacity-40" inert>{tables}</div>}
           </div>
           {step === 'setup' && (
@@ -312,7 +313,7 @@ export function PaintedHome() {
               <span className="sk-prompt"><span className="sk-key">Enter</span> Select</span>
               {step === 'setup' && <span className="sk-prompt"><span className="sk-key">Esc</span> Back</span>}
             </div>
-            <p key={tip} className="sk-tip sk-hand min-w-0 flex-1 truncate text-center text-lg" style={{ color: 'var(--glow)' }} aria-live="off">Tip: {TIPS[tip]}</p>
+            <p key={tip} className="sk-tip sk-hand flex min-w-0 flex-1 items-center justify-center gap-2 text-lg" style={{ color: 'var(--glow)' }} aria-live="off"><span className="shrink-0" aria-hidden="true"><LanternIcon size={18} /></span><span className="truncate"><span className="sr-only">Tip: </span>{TIPS[tip]}</span></p>
             <div className="flex shrink-0 flex-col items-end gap-1">
               {(streak > 0 || dream) && <StreakString days={dreamStreakDays(today)} />}
               {footer}

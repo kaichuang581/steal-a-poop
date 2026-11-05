@@ -320,7 +320,7 @@ function Results({ players }: { players: PlayerView[] }) {
   const place = players.findIndex((p) => p.isYou) + 1;
   const steals = game.history.filter((h) => h.kind === 'steal' && h.word);
   const best = [...steals].sort((a, b) => (b.word?.length ?? 0) - (a.word?.length ?? 0))[0];
-  const bestLine = best ? `Best steal: ${game.players[best.seat].name} took a wool ball with ${best.word!.toUpperCase()} (round ${best.round})` : '';
+  const bestLine = best ? `Best steal: ${game.players[best.seat].name} took a wool ball${best.fromSeat !== undefined ? ` from ${game.players[best.fromSeat].name}` : ''} with ${best.word!.toUpperCase()} (round ${best.round})` : '';
   const share = async () => {
     const text = [
       `Finish the Word${mode === 'daily' && dailyDate ? ` · Daily ${dailyDate}` : ''}`,

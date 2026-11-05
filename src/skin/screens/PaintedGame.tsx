@@ -198,10 +198,10 @@ export function PaintedGame() {
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1">
-          <Chip onClick={() => setSheet('cheat')} aria-label="Scoring cheat sheet">📖</Chip>
-          <Chip onClick={() => setSheet('chain')} aria-label="Chain history">🔗</Chip>
-          {storeMode === 'room' && <Chip onClick={() => setSheet('chat')} aria-label="Room chat">💬</Chip>}
-          <Chip onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}>{muted ? '🔇' : '🔊'}</Chip>
+          <Chip onClick={() => setSheet('cheat')} aria-label="Rules, scoring cheat sheet">Rules</Chip>
+          <Chip onClick={() => setSheet('chain')} aria-label="Chain history">Chain</Chip>
+          {storeMode === 'room' && <Chip onClick={() => setSheet('chat')} aria-label="Room chat">Chat</Chip>}
+          <Chip onClick={toggleMute} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}>{muted ? 'Muted' : 'Sound'}</Chip>
           <Chip onClick={() => setSheet('leave')} aria-label="Leave game">✕</Chip>
         </div>
       </header>

@@ -16,7 +16,7 @@ export function TopBar({ onScore, onChain, onCheat, onChat }: Props) {
   const ROUNDS = game.settings.rounds;
   // Frozen players' turns are skipped, so they never count as turns left.
   const left = game.players.reduce((sum, p) => sum + (p.frozen ? 0 : game.settings.turnsPerRound - p.turnsTaken), 0);
-  const btn = 'min-h-11 min-w-11 rounded-lg bg-white/10 px-2 text-lg hover:bg-white/15';
+  const btn = 'min-h-11 min-w-11 rounded-lg bg-white/10 px-3 text-sm font-bold hover:bg-white/15';
   return (
     <header className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-4">
       <div className="mr-auto rounded-lg bg-white/10 px-3 py-1.5 text-sm font-black sm:mr-0">
@@ -28,20 +28,20 @@ export function TopBar({ onScore, onChain, onCheat, onChat }: Props) {
         title={mod.detail}
         data-tour="modifier"
       >
-        <span aria-hidden="true">{mod.emoji} </span>{mod.label}
+        {mod.label}
         <span className="font-normal text-white/70 sm:hidden"> · {left} turns left</span>
       </div>
       <div className="ml-auto hidden text-xs text-white/70 sm:ml-0 sm:block">{left} turns left</div>
       {onChat && (
         <button className={`${btn} relative`} onClick={onChat} aria-label={unread ? `Room chat, ${unread} new` : 'Room chat'}>
-          💬{unread > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-xs font-black">{Math.min(unread, 99)}</span>}
+          Chat{unread > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-xs font-black">{Math.min(unread, 99)}</span>}
         </button>
       )}
-      <button className={btn} onClick={onCheat} aria-label="Scoring cheat sheet" title="Scoring cheat sheet">📖</button>
-      {onScore && <button className={btn} onClick={onScore} aria-label="Scoreboard">📊</button>}
-      {onChain && <button className={btn} onClick={onChain} aria-label="Chain history">🔗</button>}
-      <button className={btn} onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}>
-        {muted ? '🔇' : '🔊'}
+      <button className={btn} onClick={onCheat} aria-label="Rules, scoring cheat sheet" title="Scoring cheat sheet">Rules</button>
+      {onScore && <button className={btn} onClick={onScore} aria-label="Scores, scoreboard">Scores</button>}
+      {onChain && <button className={btn} onClick={onChain} aria-label="Chain history">Chain</button>}
+      <button className={btn} onClick={toggleMute} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}>
+        {muted ? 'Muted' : 'Sound'}
       </button>
       <button className={btn} onClick={() => setLeaving(true)} aria-label="Leave game">✕</button>
       {leaving && (

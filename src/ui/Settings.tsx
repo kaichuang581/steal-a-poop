@@ -43,7 +43,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
         <div className="space-y-2">
           <AccountPanel onSignIn={() => setSignIn(true)} />
           <button className={row} onClick={toggleMute} aria-pressed={muted}>
-            <span>Sound</span><span>{muted ? '🔇 Off' : '🔊 On'}</span>
+            <span>Sound</span><span>{muted ? 'Off' : 'On'}</span>
           </button>
           <label className={`${row} cursor-pointer`}>
             <span>Volume</span>

@@ -37,7 +37,7 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
             <AccountPanel onSignIn={() => setSignIn(true)} />
           </div>
           <button className={row} style={rowStyle} onClick={s.toggleMute} aria-pressed={s.muted}>
-            <span>Sound</span><span>{s.muted ? '🔇 Off' : '🔊 On'}</span>
+            <span>Sound</span><span>{s.muted ? 'Off' : 'On'}</span>
           </button>
           <label className={`${row} cursor-pointer`} style={rowStyle}>
             <span>Volume</span>

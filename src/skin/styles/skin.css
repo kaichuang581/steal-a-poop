@@ -811,3 +811,5 @@
   color: #F6E4BE; text-shadow: 0 1px 0 rgba(30, 18, 8, 0.8), 0 0 10px rgba(30, 18, 8, 0.6);
 }
 .sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { padding-left: 0; }
+/* No amber marker on the felt patch: the patch alone shows the row in focus. */
+.sk-home .sk-menu-board .sk-menu-item::before { display: none; }

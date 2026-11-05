@@ -68,15 +68,25 @@ describe('timer shrink', () => {
 });
 
 describe('tie-breaks', () => {
-  const p = (id: number, banked: number, steals: number, longestWord: string) =>
-    ({ id, banked, steals, longestWord }) as Player;
-  it('score, then steals, then longest word', () => {
-    expect(compareStandings(p(0, 10, 0, ''), p(1, 5, 9, 'zzzzzz'))).toBeLessThan(0);
-    expect(compareStandings(p(0, 10, 2, ''), p(1, 10, 1, 'zzzzzz'))).toBeLessThan(0);
-    expect(compareStandings(p(0, 10, 1, 'abcd'), p(1, 10, 1, 'abc'))).toBeLessThan(0);
+  const p = (id: number, lives: number, steals: number, longestWord: string, frozenAt: number | null = null) =>
+    ({ id, banked: 0, lives, frozen: frozenAt !== null, frozenAt, steals, longestWord }) as Player;
+  it('unfrozen before frozen, whatever the steals', () => {
+    expect(compareStandings(p(0, 1, 0, ''), p(1, 0, 9, 'zzzzzz', 500))).toBeLessThan(0);
+  });
+  it('among the unfrozen: more wool, then steals, then longest word', () => {
+    expect(compareStandings(p(0, 3, 0, ''), p(1, 2, 9, 'zzzzzz'))).toBeLessThan(0);
+    expect(compareStandings(p(0, 3, 2, ''), p(1, 3, 1, 'zzzzzz'))).toBeLessThan(0);
+    expect(compareStandings(p(0, 3, 1, 'abcd'), p(1, 3, 1, 'abc'))).toBeLessThan(0);
+  });
+  it('among the frozen: the later freeze ranks higher, then steals, then longest word', () => {
+    expect(compareStandings(p(0, 0, 0, '', 900), p(1, 0, 9, 'zzzzzz', 500))).toBeLessThan(0);
+    expect(compareStandings(p(0, 0, 2, '', 500), p(1, 0, 1, 'zzzzzz', 500))).toBeLessThan(0);
+    expect(compareStandings(p(0, 0, 1, 'abcd', 500), p(1, 0, 1, 'abc', 500))).toBeLessThan(0);
   });
   it('winners', () => {
-    expect(computeWinners([p(0, 10, 1, 'ab'), p(1, 10, 2, 'a'), p(2, 3, 9, 'abcdef')])).toEqual([1]);
-    expect(computeWinners([p(0, 10, 1, 'ab'), p(1, 10, 1, 'cd')])).toEqual([0, 1]);
+    expect(computeWinners([p(0, 3, 1, 'ab'), p(1, 3, 2, 'a'), p(2, 1, 9, 'abcdef')])).toEqual([1]);
+    expect(computeWinners([p(0, 3, 1, 'ab'), p(1, 3, 1, 'cd')])).toEqual([0, 1]);
+    expect(computeWinners([p(0, 1, 0, ''), p(1, 0, 9, 'abcdef', 800), p(2, 0, 9, 'abcdef', 900)])).toEqual([0]);
+    expect(computeWinners([p(0, 0, 0, '', 800), p(1, 0, 0, '', 900)])).toEqual([1]);
   });
 });

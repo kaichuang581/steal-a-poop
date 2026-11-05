@@ -22,7 +22,8 @@ export function recordHuntBest(run: HuntBest): { best: HuntBest | null; isNew: b
   return { best: better ? run : best, isNew: better };
 }
 
-const MARK: Record<Mark, string> = { hit: '🟩', crit: '🟨', broke: '🟥', timeout: '⬛', item: '🎒' };
+/** One character per turn: a hit, a critical, a broken rule, a time-out, an item. */
+const MARK: Record<Mark, string> = { hit: 'o', crit: '*', broke: 'x', timeout: '-', item: '+' };
 
 /** The spoiler-free result to share: predators beaten, damage, and one square per turn. */
 export function huntShareText(r: { defeated: number; damage: number; marks: Mark[]; record?: boolean }): string {
@@ -30,8 +31,8 @@ export function huntShareText(r: { defeated: number; damage: number; marks: Mark
   for (let i = 0; i < r.marks.length; i += 10) rows.push(r.marks.slice(i, i + 10).map((m) => MARK[m]).join(''));
   return [
     'Finish the Word · Hunt',
-    `🐺 ${r.defeated} predator${r.defeated === 1 ? '' : 's'} beaten · 💥 ${r.damage} damage`,
+    `${r.defeated} predator${r.defeated === 1 ? '' : 's'} beaten · ${r.damage} damage`,
     ...rows,
-    r.record ? '🏆 New personal best' : '',
+    r.record ? 'New personal best' : '',
   ].filter(Boolean).join('\n');
 }

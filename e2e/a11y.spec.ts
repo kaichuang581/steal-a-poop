@@ -120,7 +120,7 @@ test.describe('build with accounts', () => {
       await dlg.getByRole('button', { name: 'Continue', exact: true }).click();
       await audit(page, 'start screen signed in');
       if (label === 'phone') await noSideways(page, 'start screen signed in');
-      for (const [button, ready] of [['👥 Friends', 'Friends'], ['🏆 Boards', 'Leaderboard'], ['🛍️ Shop', 'Badges']] as const) {
+      for (const [button, ready] of [['Friends', 'Friends'], ['Boards', 'Leaderboard'], ['Shop', 'Badges']] as const) {
         await page.getByRole('button', { name: button }).click();
         const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
         await expect(hub.getByRole(ready === 'Leaderboard' ? 'list' : 'region', { name: ready })).toBeVisible();

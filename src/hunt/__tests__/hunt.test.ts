@@ -192,7 +192,7 @@ describe('the bag', () => {
 describe('sharing and records', () => {
   it('shows the result without spoiling the words', () => {
     const text = huntShareText({ defeated: 2, damage: 312, marks: ['hit', 'crit', 'broke', 'timeout'], record: true });
-    expect(text).toBe('Finish the Word · Hunt\n🐺 2 predators beaten · 💥 312 damage\n🟩🟨🟥⬛\n🏆 New personal best');
+    expect(text).toBe('Finish the Word · Hunt\n2 predators beaten · 312 damage\no*x-\nNew personal best');
   });
 
   it('keeps the best run: more predators first, then more damage', () => {

@@ -35,7 +35,7 @@ test('friends: your code, accepting a request, adding by code, removing', async 
   const st = state();
   const { seen } = await signedIn(page, st);
   await expect(page.getByRole('group', { name: 'Community' })).toContainText('120'); // the coin balance
-  await page.getByRole('button', { name: '👥 Friends' }).click();
+  await page.getByRole('button', { name: 'Friends' }).click();
   const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
 
   await expect(hub.locator('[data-friend-code]')).toHaveText('ABCD2345');
@@ -65,7 +65,7 @@ test('friends: your code, accepting a request, adding by code, removing', async 
 test('boards and stats, and hiding yourself', async ({ page }) => {
   const st = state();
   const { seen } = await signedIn(page, st);
-  await page.getByRole('button', { name: '🏆 Boards' }).click();
+  await page.getByRole('button', { name: 'Boards' }).click();
   const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
 
   const list = hub.getByRole('list', { name: 'Leaderboard' });
@@ -89,7 +89,7 @@ test('boards and stats, and hiding yourself', async ({ page }) => {
 test('the shop: buying with coins, being unable to afford more, wearing and taking off', async ({ page }) => {
   const st = state();
   const { seen } = await signedIn(page, st);
-  await page.getByRole('button', { name: '🛍️ Shop' }).click();
+  await page.getByRole('button', { name: 'Shop' }).click();
   const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
   await expect(hub.locator('[data-balance]')).toHaveText('120');
   await expect(hub.getByText('cannot be bought with money')).toBeVisible();

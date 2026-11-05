@@ -1,7 +1,7 @@
 import { PERSONALITIES, bankThresholdFor } from './bots';
 import { hasPlayableWord } from './validation';
 import { INTRO_MS, MAX_PLAYERS, MIN_PLAYERS } from './constants';
-import { resolveSettings, UNLIMITED_LIVES } from './settings';
+import { resolveSettings, startingWool } from './settings';
 import type { GameSettings } from './settings';
 import type { Dictionary } from './dictionary';
 import { drawPick, drawRandom, hashSeed, shuffle } from './rng';
@@ -22,7 +22,8 @@ export interface GameSetup {
   settings?: Partial<GameSettings>;
 }
 
-const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter', 'vowel_double', 'double_points_fast'];
+/** Round twists. There are no points any more, so the points-only twist (vowel_double) is retired. */
+const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter', 'double_points_fast'];
 const BOT_NAMES = ['Maya', 'Leo', 'Pip', 'Otis', 'Juno', 'Rex', 'Nadia', 'Bram', 'Sol'];
 const BOT_EMOJIS = ['🦊', '🐸', '🐙', '🦉', '🐼', '🦄', '🐨', '🐯', '🦝'];
 const BOT_COLORS = ['#f97316', '#22c55e', '#06b6d4', '#a78bfa', '#ec4899', '#eab308', '#38bdf8', '#f43f5e', '#84cc16'];
@@ -39,10 +40,8 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const n = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.round(wanted)));
 
   const settings = resolveSettings(setup.settings);
-  // One twist per round, drawn without repeats; no twists means plain rules every round.
-  const modifierDeck: RoundModifier[] = settings.twists
-    ? shuffle(state, ALL_MODIFIERS).slice(0, settings.rounds)
-    : Array.from({ length: settings.rounds }, () => 'none' as const);
+  // Round twists, drawn without repeats: round 1 plays plain, then the deck cycles for as long as the game runs.
+  const modifierDeck: RoundModifier[] = settings.twists ? ['none', ...shuffle(state, ALL_MODIFIERS)] : ['none'];
   const playable = ALPHABET.filter((l) => hasPlayableWord(dict, l, [], modifierDeck[0]));
   const base = playable.length ? playable : ALPHABET;
   const common = base.filter((l) => dict.startingWith(l).length >= MIN_START_WORDS);
@@ -53,7 +52,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const looks = shuffle(state, room ? [...pool, EXTRA_LOOK] : pool);
 
   const blank = {
-    banked: 0, lives: settings.lives === 'unlimited' ? UNLIMITED_LIVES : settings.lives, frozen: false, turnsTaken: 0, lastWord: null,
+    banked: 0, lives: startingWool(settings), frozen: false, frozenAt: null, stealCooldownUntil: 0, turnsTaken: 0, lastWord: null,
     steals: 0, wordsPlayed: 0, longestWord: '', bestWord: null,
   };
   const players: Player[] = room

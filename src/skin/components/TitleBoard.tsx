@@ -13,6 +13,8 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
   return (
     <div className={`sk-title ${compact ? 'sk-title-compact' : ''}`}>
       <h1 className="sr-only">{title}</h1>
+      {/* The plank and the hanging tiles form one sign, the plank centred over the tiles. */}
+      <div className="sk-title-sign">
       <div className="sk-title-plank" aria-hidden="true">
         <SnowCap className="sk-title-snow" />
         <span className="sk-nail sk-nail-l" />
@@ -32,7 +34,16 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
           </span>
         ))}
       </div>
-      <p className="sk-title-tagline">{tagline}</p>
+      </div>
+      {/* The tagline, hand-lettered under the tiles, its phrases strung on a line of yarn. */}
+      <p className="sk-title-tagline" aria-label={tagline}>
+        {tagline.split(/(?<=\.)\s+/).map((part, i, all) => (
+          <span key={i} className="sk-title-tag-part" aria-hidden="true">
+            {part.replace(/\.$/, '')}
+            {i < all.length - 1 && <span className="sk-title-tag-dot" />}
+          </span>
+        ))}
+      </p>
     </div>
   );
 }

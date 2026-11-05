@@ -5,10 +5,10 @@ import { useStore } from '../state/store';
 import { BASICS, FAQ, GLOSSARY } from './guideContent';
 import { ScoringTable } from './ScoringTable';
 
-const TABS = ['Basics', 'Scoring', 'Glossary', 'FAQ'] as const;
+const TABS = ['Basics', 'Rules', 'Glossary', 'FAQ'] as const;
 type Tab = (typeof TABS)[number];
 
-/** Rules hub: quick basics, scoring, glossary, FAQ, plus entry points to the tour and practice. */
+/** Rules hub: quick basics, rules card, glossary, FAQ, plus entry points to the tour and practice. */
 export function Guide({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('Basics');
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -74,7 +74,7 @@ export function Guide({ onClose }: { onClose: () => void }) {
               ))}
             </ol>
           )}
-          {tab === 'Scoring' && <ScoringTable />}
+          {tab === 'Rules' && <ScoringTable />}
           {tab === 'Glossary' && (
             <dl className="space-y-2">
               {GLOSSARY.map((g) => (

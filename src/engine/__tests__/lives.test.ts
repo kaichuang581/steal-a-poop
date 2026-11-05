@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FAIL_PENALTY, LIVES_PER_GAME } from '../constants';
+import { EXTRA_WOOL_CAP, LIVES_PER_GAME } from '../constants';
 import { createGame } from '../game';
 import { advance, apply } from '../reducer';
 import { computeWinners, rankPlayers } from '../standings';
@@ -11,7 +11,7 @@ function timeOut(s: GameState): GameState {
   return advance(s, ctx, s.turn!.endsAt);
 }
 
-/** Puts the human back on turn with inert bots, keeping lives and score. */
+/** Puts the human back on turn with inert bots, keeping lives. */
 function backToHuman(s: GameState): GameState {
   const c = structuredClone(s);
   c.turn = { ...c.turn!, seat: 0, botActAt: null, stealPlans: [], endsAt: c.turn!.startedAt + 10_000 };
@@ -19,39 +19,32 @@ function backToHuman(s: GameState): GameState {
 }
 
 describe('lives', () => {
-  it('a time-out costs one life and the existing penalty', () => {
+  it('a time-out costs one wool ball and no points', () => {
     const s = humanTurn('c');
     const after = timeOut(s);
     expect(after.players[0].lives).toBe(LIVES_PER_GAME - 1);
-    expect(after.players[0].banked).toBe(-FAIL_PENALTY);
+    expect(after.players[0].banked).toBe(0);
+    expect(after.players[0].frozen).toBe(false);
+    expect(after.events.some((e) => e.kind === 'timeout' && e.seat === 0)).toBe(true);
     expect(after.events.some((e) => e.kind === 'lifeLost' && e.seat === 0 && e.amount === LIVES_PER_GAME - 1)).toBe(true);
+    expect(after.turn!.seat).toBe(1);
   });
 
   it('three time-outs freeze the player and the next turn goes to the following unfrozen player', () => {
     let s = humanTurn('c');
     s.players[1].frozen = true; // seat 1 is already out, so the turn after seat 0 is seat 2
+    let lastEnd = 0;
     for (let i = 0; i < LIVES_PER_GAME; i++) {
-      s = timeOut(backToHuman(s));
+      const c = backToHuman(s);
+      lastEnd = c.turn!.endsAt;
+      s = timeOut(c);
     }
     expect(s.players[0].lives).toBe(0);
     expect(s.players[0].frozen).toBe(true);
-    expect(s.events.some((e) => e.kind === 'frozen' && e.seat === 0)).toBe(true);
-    expect(s.turn!.seat).toBe(2);
-  });
-
-  it('wool keeps the cold out: no freeze while the banked score is above 0', () => {
-    let s = humanTurn('c');
-    s.players[0].banked = 20;
-    for (let i = 0; i < LIVES_PER_GAME; i++) s = timeOut(backToHuman(s));
-    expect(s.players[0].lives).toBe(0);
-    expect(s.players[0].banked).toBe(5);
-    expect(s.players[0].frozen).toBe(false);
-    expect(s.events.some((e) => e.kind === 'frozen')).toBe(false);
-    // The time-out that leaves the sheep bare is the one that freezes it.
-    s = timeOut(backToHuman(s));
-    expect(s.players[0].banked).toBe(0);
-    expect(s.players[0].frozen).toBe(true);
+    expect(s.players[0].frozenAt).toBe(lastEnd);
     expect(s.events.filter((e) => e.kind === 'frozen' && e.seat === 0)).toHaveLength(1);
+    expect(s.phase).toBe('playing'); // seats 2 and 3 are still in
+    expect(s.turn!.seat).toBe(2);
   });
 
   it('a frozen player is skipped for the rest of the round', () => {
@@ -67,51 +60,82 @@ describe('lives', () => {
     expect(seats.has(0)).toBe(false);
   });
 
-  it('a steal victim keeps their lives, and so does a failed stealer', () => {
+  it('a steal moves one wool ball from the sheep on turn to the stealer; a failed stealer keeps theirs', () => {
     const s = freezeBots(humanTurn('c'));
     s.turn = { ...s.turn!, seat: 1 };
     const inWindow = s.turn.endsAt - 1000;
     const stolen = apply(s, ctx, { type: 'steal', seat: 0, word: 'cat' }, inWindow);
     expect(stolen.accepted).toBe(true);
-    expect(stolen.state.players[1].lives).toBe(LIVES_PER_GAME);
+    expect(stolen.state.players[0].lives).toBe(LIVES_PER_GAME + 1);
+    expect(stolen.state.players[1].lives).toBe(LIVES_PER_GAME - 1);
     const failed = apply(s, ctx, { type: 'steal', seat: 0, word: 'qqqqqq' }, inWindow);
     expect(failed.state.players[0].lives).toBe(LIVES_PER_GAME);
+    expect(failed.state.players[1].lives).toBe(LIVES_PER_GAME);
+  });
+
+  it('wool is capped at the starting count plus the extra allowance', () => {
+    const s = freezeBots(humanTurn('c'));
+    s.turn = { ...s.turn!, seat: 1 };
+    s.players[0].lives = LIVES_PER_GAME + EXTRA_WOOL_CAP;
+    const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'cat' }, s.turn.endsAt - 1000);
+    expect(r.accepted).toBe(true);
+    expect(r.state.players[0].lives).toBe(LIVES_PER_GAME + EXTRA_WOOL_CAP);
+    expect(r.state.players[1].lives).toBe(LIVES_PER_GAME - 1); // the victim still loses one
   });
 
   it('a frozen player cannot steal, and nothing changes', () => {
     const s = freezeBots(humanTurn('c'));
     s.turn = { ...s.turn!, seat: 1 };
     s.players[0].frozen = true;
-    s.players[0].banked = 40;
+    s.players[0].lives = 0;
     const res = apply(s, ctx, { type: 'steal', seat: 0, word: 'cat' }, s.turn.endsAt - 1000);
     expect(res.accepted).toBe(false);
     expect(res.reason).toBe('frozen');
-    expect(res.state.players[0].banked).toBe(40);
-    expect(res.state.pile).toBe(s.pile);
+    expect(res.state.players[0].lives).toBe(0);
+    expect(res.state.players[1].lives).toBe(LIVES_PER_GAME);
+    expect(res.state.turn!.seat).toBe(1);
   });
 
-  it('practice time-outs do not cost lives', () => {
+  it('practice time-outs never cost the human wool', () => {
     let s = createGame({ seed: 'p', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy', mode: 'practice' }, dict);
     s = freezeBots(advance(s, ctx, T0 + 2500));
-    s = timeOut(s);
+    for (let i = 0; i < LIVES_PER_GAME + 2; i++) s = timeOut(backToHuman(s));
     expect(s.players[0].lives).toBe(LIVES_PER_GAME);
     expect(s.players[0].frozen).toBe(false);
+    expect(s.events.some((e) => e.kind === 'lifeLost' && e.seat === 0)).toBe(false);
   });
 
-  it('ranks frozen players below every unfrozen one, and frozen ones by points', () => {
+  it('practice bots do lose wool when their turn runs out', () => {
+    let s = createGame({ seed: 'p', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy', mode: 'practice' }, dict);
+    s = freezeBots(advance(s, ctx, T0 + 2500));
+    s.turn = { ...s.turn!, seat: 1 };
+    s = advance(s, ctx, s.turn!.endsAt);
+    expect(s.players[1].lives).toBe(LIVES_PER_GAME - 1);
+    expect(s.events.some((e) => e.kind === 'lifeLost' && e.seat === 1)).toBe(true);
+  });
+
+  it('tour time-outs cost nobody wool', () => {
+    let s = createGame({ seed: 't', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy', mode: 'tour' }, dict);
+    s = freezeBots(advance(s, ctx, T0 + 2500));
+    s = timeOut(s);
+    s = advance(freezeBots(s), ctx, s.turn!.endsAt); // seat 1 (a bot) runs out too
+    expect(s.players.every((p) => p.lives === LIVES_PER_GAME)).toBe(true);
+  });
+
+  it('ranks unfrozen players above frozen ones: more wool first, then the later freeze', () => {
     const s = humanTurn('c');
     const [a, b, c, d] = s.players;
-    Object.assign(a, { frozen: true, banked: 90 });
-    Object.assign(b, { frozen: false, banked: 10 });
-    Object.assign(c, { frozen: true, banked: 30 });
-    Object.assign(d, { frozen: false, banked: 5 });
-    expect(rankPlayers(s.players).map((p) => p.id)).toEqual([b.id, d.id, a.id, c.id]);
-    expect(computeWinners(s.players)).toEqual([b.id]);
+    Object.assign(a, { frozen: true, lives: 0, frozenAt: 500, steals: 9 });
+    Object.assign(b, { frozen: false, lives: 1 });
+    Object.assign(c, { frozen: true, lives: 0, frozenAt: 900 });
+    Object.assign(d, { frozen: false, lives: 4 });
+    expect(rankPlayers(s.players).map((p) => p.id)).toEqual([d.id, b.id, c.id, a.id]);
+    expect(computeWinners(s.players)).toEqual([d.id]);
   });
 
   it('a new game starts everyone with full lives and unfrozen', () => {
     const s = createGame({ seed: 'new', now: T0, humanName: 'Me', playerCount: 6, difficulty: 'hard' }, dict);
-    expect(s.players.every((p) => p.lives === LIVES_PER_GAME && !p.frozen)).toBe(true);
+    expect(s.players.every((p) => p.lives === LIVES_PER_GAME && !p.frozen && p.frozenAt === null && p.stealCooldownUntil === 0)).toBe(true);
   });
 });
 

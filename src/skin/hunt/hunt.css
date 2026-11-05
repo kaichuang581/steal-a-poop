@@ -160,7 +160,7 @@
 .gb-actions button:focus-visible { outline: 1px solid #404850; outline-offset: 1px; }
 
 /* Outside the screen. */
-.gb-quit { position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 10px; color: #E8ECF2; background: #2A2F37; border: 2px solid #3E4550; font-size: 16px; }
+.gb-quit { display: grid; place-items: center; position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 10px; color: #E8ECF2; background: #2A2F37; border: 2px solid #3E4550; font-size: 16px; }
 .gb-help { margin: 0; color: #6E7684; font: 12px var(--skin-font-body), sans-serif; }
 @media (max-width: 640px) { .gb-help { display: none; } }
 

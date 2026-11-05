@@ -1,12 +1,12 @@
-import { Px } from './PixelIcons';
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
-import { IceOverlay, Lives } from './Lives';
-import { SheepIcon } from './SheepIcon';
 import { AvatarIcon } from '../avatars/AvatarIcon';
 import { useAvatar } from '../avatars/store';
+import { AcornIcon, LeafIcon, SeedlingIcon } from './Icons';
+import { IceOverlay, Lives } from './Lives';
+import { SheepIcon } from './SheepIcon';
 
-const BADGE = { easy: '🌱', medium: '🍃', hard: '🌰' } as const;
+const BADGE = { easy: <SeedlingIcon size={13} />, medium: <LeafIcon size={13} />, hard: <AcornIcon size={13} /> } as const;
 
 interface Props {
   player: PlayerView;
@@ -19,14 +19,13 @@ interface Props {
   /** Badge and title a room player wears. */
   badge?: string;
   title?: string;
-  /** Practice has no lives, so no flames. */
-  showLives?: boolean;
-  /** Flames the game started with. */
+  /** Wool balls each sheep started with (empty rings show the ones lost). */
   maxLives?: number;
 }
 
-/** Paper card: creature, name, banked score. Amber ring on the player whose turn it is. */
-export function PlayerCard({ player, isTurn, compact, lastWord, children, badge, title, showLives = true, maxLives = 3 }: Props) {
+/** Paper card: creature, name, and its wool balls (lives). Amber ring on the player whose turn it is. */
+export function PlayerCard({ player, isTurn, compact, lastWord, children, badge, title, maxLives = 3 }: Props) {
+  // Your own card wears the avatar you picked (only for show); everyone else is a sheep.
   const chosen = useAvatar();
   const mine = player.isYou ? chosen : null;
   return (
@@ -41,12 +40,12 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
       data-seat={player.id}
       data-tour={player.isYou ? 'me' : undefined}
     >
-      {mine ? <AvatarIcon id={mine} size={compact ? 22 : 30} /> : <SheepIcon size={compact ? 22 : 30} bare={player.banked <= 0} />}
+      {mine ? <AvatarIcon id={mine} size={compact ? 22 : 30} /> : <SheepIcon size={compact ? 22 : 30} bare={player.lives <= 1} />}
       <div className="min-w-0 flex-1 leading-tight">
         <div className="truncate text-sm font-extrabold" data-seat-name={player.id} title={title}>
           {badge && <span aria-hidden="true">{badge} </span>}
           {player.name}{player.isYou ? ' (you)' : ''}
-          {player.difficulty && !compact && <span className="ml-1" title={`${player.difficulty} bot`} aria-label={`${player.difficulty} bot`}><Px e={BADGE[player.difficulty]} /></span>}
+          {player.difficulty && !compact && <span className="ml-1 inline-block align-[-1px]" title={`${player.difficulty} bot`} role="img" aria-label={`${player.difficulty} bot`}>{BADGE[player.difficulty]}</span>}
         </div>
         {!compact && (
           <div className="truncate text-xs font-bold uppercase" style={{ color: 'var(--ink-soft)' }} data-seat-word={player.id}>
@@ -55,8 +54,7 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
         )}
       </div>
       <div className="flex flex-col items-end leading-none">
-        <span className="sk-display text-lg">{player.banked}</span>
-        {showLives && <Lives lives={player.lives} max={maxLives} size={compact ? 10 : 13} />}
+        <Lives lives={player.lives} max={maxLives} size={compact ? 13 : 17} />
       </div>
       {player.frozen && <IceOverlay />}
       {children}

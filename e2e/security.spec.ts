@@ -74,7 +74,7 @@ test.describe('build with accounts', () => {
     await dlg.getByRole('button', { name: 'Sign in', exact: true }).click();
     await dlg.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect.poll(() => game.received.some((m) => m.t === 'hello')).toBe(true);
-    await page.getByRole('button', { name: '🛍️ Shop' }).click();
+    await page.getByRole('button', { name: 'Shop' }).click();
     await expect(page.getByRole('dialog', { name: 'Friends, boards and shop' })).toBeVisible();
     expect(await violations(page)).toEqual([]);
   });

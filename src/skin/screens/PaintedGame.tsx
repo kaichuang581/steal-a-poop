@@ -1,15 +1,13 @@
-import { Px } from '../components/PixelIcons';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { previewBotTurn, rankPlayers, summarize, utcDateKey } from '../../engine';
-import { buildShareText } from '../../lib/share';
+import { previewBotTurn, rankPlayers, startingWool, summarize, utcDateKey } from '../../engine';
 import { useStore } from '../../state/store';
-import { ChainIcon, ChatIcon, RulesIcon, SoundIcon } from '../components/PixelIcons';
 import { ChatPanel } from '../../ui/ChatPanel';
+import { BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, SnowflakeIcon, SpeakerIcon, WolfIcon } from '../components/Icons';
+import { Notice } from '../components/Notice';
+import { ChainList, RulesCard } from '../components/RulesCard';
 import { CoachTips } from '../../ui/CoachTips';
 import { useGameLoop, useIsMobile } from '../../ui/hooks';
-import { ChainHistory } from '../../ui/Panels';
-import { ScoringTable } from '../../ui/ScoringTable';
 import { RewardBanner } from '../../ui/social/RewardBanner';
 import { Tour } from '../../ui/Tour';
 import { useGameSounds } from '../../ui/useGameSounds';
@@ -22,6 +20,7 @@ import { TallyBoard } from '../components/TallyBoard';
 import { TwistSign } from '../components/TwistSign';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { useWordInput } from '../hooks/useWordInput';
+import { seedOf, typedAt, typingScript } from '../model/botTyping';
 import { useVisualEvents } from '../model/events';
 import type { VisualEvent } from '../model/events';
 import type { PlayerView } from '../model/types';
@@ -54,8 +53,6 @@ export function PaintedGame() {
   const reduced = useMotionLevel() === 'reduced';
   const deviceHour = useHour();
   const [moods, setMoods] = useState<Record<number, Mood>>({});
-  // Failed steals this game, per seat: each one shears a coat level (plan V3.2 Part 6).
-  const [shears, setShears] = useState<Record<number, number>>({});
   const [moments, setMoments] = useState<BarnMoments>({});
   const [fx, setFx] = useState<Fx[]>([]);
   const [sheet, setSheet] = useState<'cheat' | 'chain' | 'chat' | 'leave' | null>(null);
@@ -65,9 +62,8 @@ export function PaintedGame() {
   const rel = (seat: number) => (seat - mySeat + n) % n;
   const name = (id: string) => game.players[Number(id)]?.name ?? '';
   const practice = storeMode === 'practice';
-  // Flames: only where lives can be lost (normal games, not Practice or the tutorial) and lives are not unlimited.
-  const livesOn = game.mode === 'normal' && game.settings.lives !== 'unlimited';
-  const maxLives = game.settings.lives === 'unlimited' ? 0 : game.settings.lives;
+  // Wool balls are lives: every sheep shows them, with an empty ring for each one lost.
+  const maxLives = startingWool(game.settings);
   const k = () => Math.random();
 
   const flash = (node: ReactNode, ms = 900) => {
@@ -81,49 +77,56 @@ export function PaintedGame() {
   // A lost turn or failed steal dims a card until the next turn starts.
   useEffect(() => setDimmed(new Set()), [game.turn?.seat]);
 
+  // A played word lands with a stamp: big gold letters, a burst of light and a puff of wool tufts.
+  const burst = (word: string, by: string, mine: boolean) => {
+    const tufts = Array.from({ length: 8 }, (_, i) => {
+      const a = (i / 8) * Math.PI * 2 + Math.random() * 0.5, d = 70 + Math.random() * 50;
+      return <span key={i} className="sk-word-burst-tuft" style={{ '--dx': `${Math.cos(a) * d}px`, '--dy': `${Math.sin(a) * d * 0.6}px` } as React.CSSProperties} />;
+    });
+    const size = Math.min(64, Math.max(34, 520 / Math.max(6, word.length)));
+    flash(
+      <div className={`sk-word-burst ${mine ? 'sk-word-burst-mine' : ''}`}>
+        <span className="sk-word-burst-ring" />
+        {!reduced && tufts}
+        <span className="sk-word-burst-word" style={{ fontSize: mine ? size * 1.15 : size }}>{word.toUpperCase()}</span>
+        <span className="sk-word-burst-by">{mine ? 'Nice one!' : by}</span>
+      </div>,
+      1300,
+    );
+  };
+
   useVisualEvents((e: VisualEvent) => {
     switch (e.type) {
       case 'accepted':
         setMoments((m) => ({ ...m, tuftIn: { key: k(), from: rel(Number(e.playerId)) } }));
         if (e.word.length >= 8) mood(e.playerId, 'proud');
-        flash(<span className="sk-chip sk-rise sk-display">{e.word.toUpperCase()} +{e.points}</span>, 1000);
-        break;
-      case 'banked':
-        mood(e.playerId, 'happy');
-        if (e.amount > 0) {
-          setMoments((m) => ({ ...m, tuftOut: { key: k(), to: rel(Number(e.playerId)) } }));
-          flash(<span className="sk-chip sk-rise sk-display text-lg">{name(e.playerId)} banked {e.amount}</span>, 1100);
-        }
+        burst(e.word, name(e.playerId), Number(e.playerId) === mySeat);
         break;
       case 'stole':
         mood(e.fromId, 'startled');
+        mood(e.byId, 'happy');
         setMoments((m) => ({ ...m, wolf: { key: k(), to: rel(Number(e.byId)) } }));
         setDimmed((d) => new Set(d).add(Number(e.fromId)));
-        flash(<span className="sk-chip sk-rise sk-display text-lg" style={{ color: 'var(--coral-dark)' }}>{name(e.byId)} stole {e.amount} with {e.word.toUpperCase()}!</span>, 1300);
+        flash(<Notice tone="steal" size="lg" icon={<WolfIcon size={30} />} title={`Stolen with ${e.word.toUpperCase()}!`} sub={`${name(e.byId)} took a wool ball from ${name(e.fromId)}`} />, 1800);
         break;
       case 'stealFailed':
-        mood(e.playerId, 'cold', 3);
-        setShears((m) => ({ ...m, [Number(e.playerId)]: (m[Number(e.playerId)] ?? 0) + 1 }));
-        setMoments((m) => ({ ...m, shears: { key: k(), at: rel(Number(e.playerId)) } }));
-        setDimmed((d) => new Set(d).add(Number(e.playerId)));
-        flash(<span className="sk-chip sk-rise" style={{ color: 'var(--coral-dark)' }}>{name(e.playerId)}’s steal failed{e.lost ? ` −${e.lost}` : ''}</span>, 800);
+        if (Number(e.playerId) === mySeat) flash(<Notice tone="wood" size="sm" snow={false} title="Missed!" sub="try again in a second" />, 1000);
         break;
       case 'timedOut':
         setDimmed((d) => new Set(d).add(Number(e.playerId)));
-        if (practice || storeMode === 'tour') break; // no penalty, no penalty visual
+        if (game.players[Number(e.playerId)]?.isHuman && (practice || storeMode === 'tour')) break; // learning: no loss
         mood(e.playerId, 'cold', 2);
         setMoments((m) => ({ ...m, gust: { key: k(), at: rel(Number(e.playerId)) } }));
         flash(
-          <div className="flex flex-col items-center gap-1">
-            <span className="sk-chip sk-fall" style={{ color: 'var(--coral-dark)' }}><Px e="🌬" size={14} /> {name(e.playerId)} −5</span>
-            {e.trapperId && <span className="sk-chip sk-rise">{name(e.trapperId)} +5 (trap)</span>}
-          </div>,
-          900,
+          <Notice tone="cold" icon={<GustIcon size={22} />} title="Time’s up!"
+            sub={`${name(e.playerId)} lost a wool ball${e.trapperId ? ` · ${name(e.trapperId)}’s trap wins one` : ''}`} />,
+          1500,
         );
         break;
       case 'frozen':
         mood(e.playerId, 'freezing');
         setMoments((m) => ({ ...m, freeze: { key: k(), at: rel(Number(e.playerId)) } }));
+        flash(<Notice tone="ice" size="lg" icon={<SnowflakeIcon size={26} />} title={`${name(e.playerId)} is frozen solid!`} sub="out of wool, out of the game" />, 2000);
         break;
       case 'thawed':
         mood(e.playerId, 'thawing');
@@ -136,21 +139,22 @@ export function PaintedGame() {
   // A new game starts with no leftover moods except the thaw the events just set, and a fresh coat.
   useEffect(() => {
     setMoods((m) => Object.fromEntries(Object.entries(m).filter(([, v]) => v.state === 'thawing')));
-    setShears({});
   }, [game.seed]);
 
   const speaker = view.currentPlayerId === '' ? null : rel(Number(view.currentPlayerId));
-  // A bot on turn types its word into its tag: the word it is about to play, a letter at a time until it answers.
+  // A bot on turn types into its tag like a person: thinks, types in bursts, slips and backspaces, then sends. A bot
+  // that is going to run out of time starts words and gives up on them.
   const turn = game.turn;
-  const botPlan = useMemo(
-    () => (turn && dict ? { plan: previewBotTurn(game, { dict }), from: turn.startedAt + 300, to: turn.botActAt ?? turn.startedAt } : null),
-    // One preview per turn: the plan is taken when the turn starts.
+  const botScript = useMemo(() => {
+    if (!turn || !dict || game.players[turn.seat].isHuman) return null;
+    const plan = previewBotTurn(game, { dict });
+    const word = plan?.kind === 'play' ? plan.word : null;
+    const end = word && turn.botActAt != null ? turn.botActAt : turn.endsAt;
+    return { from: turn.startedAt, script: typingScript(word, Math.max(400, end - turn.startedAt), seedOf(`${game.seed}:${turn.startedAt}:${turn.seat}`), game.chainLetter) };
+    // One script per turn: the plan is taken when the turn starts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [turn?.startedAt, turn?.seat, dict],
-  );
-  const botTyped = botPlan?.plan?.kind === 'play' && turn?.botActAt != null
-    ? botPlan.plan.word.slice(0, Math.ceil(botPlan.plan.word.length * Math.min(1, Math.max(0, (now - botPlan.from) / Math.max(1, botPlan.to - botPlan.from)))))
-    : '';
+  }, [turn?.startedAt, turn?.seat, dict]);
+  const botTyped = botScript && turn && !game.players[turn.seat].isHuman ? typedAt(botScript.script, now - botScript.from) : '';
   const signState = game.phase === 'gameOver' ? 'raised' : game.phase === 'intro' ? 'lowering' : 'hung';
   const ranked = rankPlayers(game.players).map((p) => view.players[p.id]);
   const showTally = game.phase === 'intro' && game.round > 1 && storeMode !== 'tour';
@@ -172,16 +176,16 @@ export function PaintedGame() {
           seats={view.players.map((p) => {
             const st = stateOf(p);
             return {
-              seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.banked, shears[Number(p.id)] ?? 0), state: st.state, stateKey: st.key, coldFor: st.coldFor,
+              seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.lives, maxLives), state: st.state, stateKey: st.key, coldFor: st.coldFor,
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou,
               // Only the speaker's tag is large, with flames; the others shrink to the name (plan V3.3 Part 4.1).
               label: p.id === view.currentPlayerId ? (
-                <span className="sk-chip sk-display flex flex-col items-center whitespace-nowrap text-base leading-tight" style={{ boxShadow: '0 0 0 2px var(--amber)' }}>
-                  <span>{p.name}{livesOn && <Lives lives={p.lives} max={maxLives} size={14} />}</span>
-                  {!p.isYou && botTyped && <span className="sk-num text-sm tracking-wide" style={{ color: 'var(--ink-soft)' }} aria-label={`${p.name} is typing`}>{botTyped.toUpperCase()}<span className="sk-caret" aria-hidden="true" /></span>}
+                <span className="sk-chip sk-display flex flex-col items-center whitespace-nowrap text-lg leading-tight" style={{ boxShadow: view.stealOpen ? '0 0 0 3px var(--coral), 0 0 18px rgba(231,112,94,0.7)' : '0 0 0 3px var(--amber)' }}>
+                  <span className="flex items-center gap-1.5">{p.name}<Lives lives={p.lives} max={maxLives} size={17} /></span>
+                  {!p.isYou && <span className="sk-num tracking-wider" style={{ fontSize: 20, minHeight: 24, color: 'var(--ink)' }} aria-label={`${p.name} is typing`}>{botTyped.toUpperCase()}<span className="sk-caret" aria-hidden="true" /></span>}
                 </span>
               ) : (
-                <span className="sk-chip whitespace-nowrap text-xs" style={{ opacity: 0.85 }}>{p.name}</span>
+                <span className="sk-chip flex items-center gap-1 whitespace-nowrap text-xs" style={{ opacity: p.frozen ? 0.6 : 0.9 }}>{p.name}<Lives lives={p.lives} max={maxLives} size={11} /></span>
               ),
             };
           })}
@@ -196,40 +200,49 @@ export function PaintedGame() {
       {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. */}
       <header className="pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
         <div className="flex flex-col items-start gap-1">
-          <span className="sk-chip sk-display">Round {view.round}/{game.settings.rounds} · turn {Math.min(game.settings.turnsPerRound, view.turn)}/{game.settings.turnsPerRound}</span>
+          <span className="sk-chip sk-display">Round {view.round} · {game.players.filter((p) => !p.frozen).length} sheep left{view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}</span>
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1">
-          <Chip onClick={() => setSheet('cheat')} aria-label="Rules, scoring cheat sheet" title="Rules"><RulesIcon /></Chip>
-          <Chip onClick={() => setSheet('chain')} aria-label="Chain history" title="Chain"><ChainIcon /></Chip>
-          {storeMode === 'room' && <Chip onClick={() => setSheet('chat')} aria-label="Room chat" title="Chat"><ChatIcon /></Chip>}
-          <Chip onClick={toggleMute} title={muted ? 'Unmute' : 'Sound'} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}><SoundIcon muted={muted} /></Chip>
-          <Chip onClick={() => setSheet('leave')} aria-label="Leave game" title="Leave game"><Px e="✕" /></Chip>
+          <Chip className="sk-icon-chip" onClick={() => setSheet('cheat')} aria-label="How to play" title="How to play"><BookIcon size={22} /></Chip>
+          <Chip className="sk-icon-chip" onClick={() => setSheet('chain')} aria-label="Chain history" title="Chain history"><ChainIcon size={18} /></Chip>
+          {storeMode === 'room' && <Chip className="sk-icon-chip" onClick={() => setSheet('chat')} aria-label="Room chat" title="Room chat"><ChatIcon size={18} /></Chip>}
+          <Chip className="sk-icon-chip" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted} title={muted ? 'Unmute' : 'Mute'}><SpeakerIcon size={18} muted={muted} /></Chip>
+          <Chip className="sk-icon-chip" onClick={() => setSheet('leave')} aria-label="Leave game" title="Leave game"><CloseIcon size={16} /></Chip>
         </div>
       </header>
 
       <aside className={mobile ? 'relative z-30 mt-14 flex gap-1 overflow-x-auto px-2' : 'relative z-30 ml-auto mr-2 mt-14 flex flex-col gap-1.5'} aria-label="Scoreboard">
         {ranked.map((p) => (
-          <PlayerCard key={p.id} player={p} isTurn={p.id === view.currentPlayerId} compact={mobile} lastWord={game.players[Number(p.id)].lastWord} showLives={livesOn} maxLives={maxLives} />
+          <PlayerCard key={p.id} player={p} isTurn={p.id === view.currentPlayerId} compact={mobile} lastWord={game.players[Number(p.id)].lastWord} maxLives={maxLives} />
         ))}
       </aside>
 
       {/* Feedback words float over the middle of the table. */}
-      <div className="pointer-events-none absolute inset-x-0 top-[34%] z-20 flex flex-col items-center gap-2" aria-hidden="true">
+      <div className="pointer-events-none absolute inset-x-0 top-[30%] z-20 flex flex-col items-center gap-2" aria-hidden="true">
         {fx.map((f) => <div key={f.id}>{f.node}</div>)}
       </div>
 
+      {/* The steal call: when another sheep's timer is red, say plainly what you can do and what you win. */}
+      {input.canSteal && (
+        <div className="pointer-events-none absolute inset-x-0 top-[13%] z-20 flex justify-center px-3" role="status">
+          <Notice tone="steal" size="lg" className="sk-steal-throb" icon={<WolfIcon size={30} />} title="Steal!"
+            sub={`Type a ${(view.letter ?? '').toUpperCase()}-word first and take a wool ball from ${name(view.currentPlayerId)}`} />
+        </div>
+      )}
+
       {showTally && (
         <div className="absolute inset-0 z-30 flex items-center justify-center p-4">
-          <TallyBoard players={ranked} round={game.round - 1} isGameEnd={false} />
+          <TallyBoard players={ranked} round={game.round - 1} isGameEnd={false} maxLives={maxLives} />
         </div>
       )}
 
       <div className="relative z-20 mt-auto">
         <InputStrip
           letter={view.letter ?? ''} typed={input.typed} myTurn={input.myTurn} stealOpen={input.canSteal}
-          onChange={input.onChange} onPlay={input.submit} onBank={input.bank} onSteal={input.steal}
-          pile={view.pile} message={input.message} turnKey={game.turn?.seat}
+          turnName={view.currentPlayerId === '' ? 'Next sheep' : name(view.currentPlayerId)}
+          onChange={input.onChange} onSubmit={input.submit} acceptKey={input.acceptKey} out={!!game.players[mySeat]?.frozen}
+          message={input.message} turnKey={game.turn?.seat}
           hints={input.learning ? { ideas: input.ideas, onHint: input.hintIdeas, onPick: input.useIdea } : undefined}
         />
       </div>
@@ -237,10 +250,10 @@ export function PaintedGame() {
       {storeMode === 'tour' ? <Tour /> : <CoachTips />}
       {game.phase === 'gameOver' && <Results players={ranked} />}
       {sheet && sheet !== 'leave' && (
-        <Sheet title={{ cheat: 'Scoring cheat sheet', chain: 'Chain history', chat: 'Room chat' }[sheet]} onClose={() => setSheet(null)}>
-          {sheet === 'cheat' && <ScoringTable />}
-          {sheet === 'chain' && <ChainHistory game={game} />}
-          {sheet === 'chat' && <ChatPanel height="h-56" compact />}
+        <Sheet title={{ cheat: 'How to play', chain: 'Chain history', chat: 'Room chat' }[sheet]} onClose={() => setSheet(null)}>
+          {sheet === 'cheat' && <RulesCard />}
+          {sheet === 'chain' && <ChainList game={game} />}
+          {sheet === 'chat' && <div className="rounded-xl p-2" style={{ background: 'var(--ink)', color: 'var(--button-text)' }}><ChatPanel height="h-56" compact /></div>}
         </Sheet>
       )}
       {sheet === 'leave' && (
@@ -260,21 +273,16 @@ export function PaintedGame() {
   );
 }
 
-/** Classic panel content on the ink colour (it is written light-on-dark), in a painted frame. */
+/** A paper sheet with a wooden header, for the rules, the chain and the chat. */
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" style={{ background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
-      <div
-        role="dialog" aria-modal="true" aria-label={title}
-        className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-2xl p-4 sm:rounded-2xl"
-        style={{ background: 'var(--ink)', color: 'var(--button-text)', boxShadow: 'inset 0 4px 0 var(--wood-dark), var(--shadow-warm)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="sk-display text-xl">{title}</h2>
-          <Chip onClick={onClose} aria-label="Close" title="Close"><Px e="✕" /></Chip>
+      <div role="dialog" aria-modal="true" aria-label={title} className="sk-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sk-sheet-head">
+          <h2>{title}</h2>
+          <Chip className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
         </div>
-        {children}
+        <div className="sk-sheet-body">{children}</div>
       </div>
     </div>
   );
@@ -295,11 +303,14 @@ function Results({ players }: { players: PlayerView[] }) {
   const me = game.players[mySeat];
   const longest = stats.longestWord ? { word: stats.longestWord.word, playerId: String(stats.longestWord.seat) } : undefined;
 
+  const place = players.findIndex((p) => p.isYou) + 1;
   const share = async () => {
-    const text = buildShareText({
-      daily: mode === 'daily' ? dailyDate : null, rank: players.findIndex((p) => p.isYou) + 1, players: game.players.length,
-      banked: me.banked, steals: me.steals, longest: me.longestWord.length, streak,
-    });
+    const text = [
+      `Finish the Word${mode === 'daily' && dailyDate ? ` · Daily ${dailyDate}` : ''}`,
+      place === 1 ? `Last sheep standing out of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
+      `${me.steals} steal${me.steals === 1 ? '' : 's'} · longest word ${me.longestWord.length} letters`,
+      mode === 'daily' && streak > 1 ? `${streak}-day streak` : '',
+    ].filter(Boolean).join('\n');
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -308,7 +319,7 @@ function Results({ players }: { players: PlayerView[] }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center overflow-y-auto p-4 sm:items-center sm:inset-y-0 sm:justify-end">
       <TallyBoard
-        players={players} round={3} isGameEnd winnerIds={game.winners?.map(String)} longestWord={longest}
+        players={players} round={game.round} isGameEnd winnerIds={game.winners?.map(String)} longestWord={longest} maxLives={startingWool(game.settings)}
         actions={
           <>
             {(mode === 'quick' || mode === 'practice') && <ClothButton onClick={rematch} className="flex-1">Play again</ClothButton>}
@@ -317,13 +328,15 @@ function Results({ players }: { players: PlayerView[] }) {
           </>
         }
       >
-        <p className="sk-hand mt-1 text-center" style={{ color: 'var(--glow)' }}>The winner gets the knitted scarf and the spot by the lantern.</p>
+        <p className="sk-hand mt-1 text-center" style={{ color: 'var(--glow)' }}>
+          {place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place}. The last sheep standing gets the knitted scarf.`}
+        </p>
         <dl className="mt-2 grid grid-cols-2 gap-1.5 text-sm">
           {[
+            ['Rounds', game.round],
             ['Words played', stats.wordsPlayed],
             ['Steals', stats.steals],
             ['Longest word', stats.longestWord ? `${stats.longestWord.word.toUpperCase()} (${game.players[stats.longestWord.seat].name})` : '—'],
-            ['Best word', stats.bestWord ? `${stats.bestWord.word.toUpperCase()} · ${stats.bestWord.points}` : '—'],
           ].map(([key, v]) => (
             <div key={key as string} className="sk-paper px-2 py-1">
               <dt className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{key}</dt>
@@ -332,7 +345,7 @@ function Results({ players }: { players: PlayerView[] }) {
           ))}
         </dl>
         {mode === 'room' && <RewardBanner />}
-        {mode === 'practice' && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>Practice game: no penalties were applied.</p>}
+        {mode === 'practice' && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>Practice game: you never lose wool here.</p>}
         {mode === 'daily' && (
           <div className="mt-2 text-center">
             <StreakString days={days} />

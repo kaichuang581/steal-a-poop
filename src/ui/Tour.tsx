@@ -92,7 +92,7 @@ export function Tour() {
       {blocking && <div className="pointer-events-auto absolute inset-0" />}
       {rect ? (
         <div
-          className="absolute rounded-2xl border-2 border-amber-300 transition-all duration-150"
+          className="tour-ring absolute rounded-2xl border-2 border-amber-300 transition-all duration-150"
           style={{
             left: rect.x - PAD, top: rect.y - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2,
             boxShadow: '0 0 0 9999px rgba(5,5,20,0.72)',
@@ -103,19 +103,19 @@ export function Tour() {
       )}
       <div
         ref={cardRef}
-        className="pointer-events-auto absolute rounded-2xl border-2 border-amber-300 bg-[#1d1346] p-4 shadow-2xl"
+        className="tour-card pointer-events-auto absolute rounded-2xl border-2 border-amber-300 bg-[#1d1346] p-4 shadow-2xl"
         style={{ left, top, width }}
       >
-        <div className="mb-1 text-xs font-bold uppercase tracking-widest text-white/50">
+        <div className="tour-step mb-1 text-xs font-bold uppercase tracking-widest text-white/50">
           Step {i + 1} of {TOUR_STEPS.length}
         </div>
-        <h2 className="text-lg font-black text-amber-300">{step.title}</h2>
-        <p className="mt-1 text-sm text-white/85">{step.body(ctx)}</p>
+        <h2 className="tour-title text-lg font-black text-amber-300">{step.title}</h2>
+        <p className="tour-body mt-1 text-sm text-white/85">{step.body(ctx)}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {step.kind === 'info' && !last && (
             <button
               onClick={() => setI((n) => n + 1)}
-              className="min-h-11 flex-1 rounded-xl bg-amber-400 px-4 font-black text-amber-950"
+              className="tour-next min-h-11 flex-1 rounded-xl bg-amber-400 px-4 font-black text-amber-950"
               autoFocus
             >
               Next
@@ -125,11 +125,11 @@ export function Tour() {
             <>
               <button
                 onClick={() => leave('quick')}
-                className="min-h-11 flex-1 rounded-xl bg-emerald-500 px-4 font-black text-emerald-950"
+                className="tour-primary min-h-11 flex-1 rounded-xl bg-emerald-500 px-4 font-black text-emerald-950"
               >
                 Play a real game
               </button>
-              <button onClick={() => leave('menu')} className="min-h-11 rounded-xl bg-white/10 px-4 font-bold">
+              <button onClick={() => leave('menu')} className="tour-secondary min-h-11 rounded-xl bg-white/10 px-4 font-bold">
                 Menu
               </button>
             </>
@@ -137,7 +137,7 @@ export function Tour() {
           {step.kind === 'wait' && (
             <button
               onClick={() => setI((n) => n + 1)}
-              className="min-h-11 rounded-xl bg-white/10 px-3 text-sm font-bold"
+              className="tour-secondary min-h-11 rounded-xl bg-white/10 px-3 text-sm font-bold"
             >
               Skip this step
             </button>
@@ -145,7 +145,7 @@ export function Tour() {
           {!last && (
             <button
               onClick={() => leave(afterTour)}
-              className="min-h-11 rounded-xl px-3 text-sm font-bold text-white/60 underline"
+              className="tour-link min-h-11 rounded-xl px-3 text-sm font-bold text-white/60 underline"
             >
               {afterTour === 'quick' ? 'Skip tour, start game' : 'Exit tour'}
             </button>

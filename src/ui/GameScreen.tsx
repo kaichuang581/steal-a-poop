@@ -68,7 +68,7 @@ export function GameScreen() {
       <EventFeed />
       {mode === 'tour' ? <Tour /> : <CoachTips />}
       <BottomSheet title="Scoreboard" open={sheet === 'score'} onClose={() => setSheet(null)}><Scoreboard game={game} /></BottomSheet>
-      <BottomSheet title="Scoring cheat sheet" open={sheet === 'cheat'} onClose={() => setSheet(null)}><ScoringTable /></BottomSheet>
+      <BottomSheet title="How to play" open={sheet === 'cheat'} onClose={() => setSheet(null)}><ScoringTable /></BottomSheet>
       <BottomSheet title="Room chat" open={sheet === 'chat'} onClose={() => setSheet(null)}><ChatPanel height="h-40" compact /></BottomSheet>
       <BottomSheet title="Chain history" open={sheet === 'chain'} onClose={() => setSheet(null)}><ChainHistory game={game} /></BottomSheet>
       {game.phase === 'gameOver' && <EndScreen />}

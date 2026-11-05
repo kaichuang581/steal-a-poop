@@ -8,7 +8,7 @@ import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
 import { useHuntUi } from '../hunt/huntStore';
 import { dreamShareText } from '../../dream/dream';
-import { dreamStreakDays, getDream, getDreamStreak } from '../../dream/daily';
+import { getDream, getDreamStreak } from '../../dream/daily';
 import { useDreamUi } from '../dream/dreamStore';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
 import { getServerUrl } from '../../net/config';
@@ -16,24 +16,26 @@ import { useRoomStore } from '../../state/roomStore';
 import { useSocial } from '../../state/socialStore';
 import { useStore } from '../../state/store';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
-import { Guide } from '../../ui/Guide';
 import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES, legalHref } from '../../ui/legal/legalLinks';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
+import { AvatarIcon } from '../avatars/AvatarIcon';
+import { AvatarPicker } from '../avatars/AvatarPicker';
+import { useAvatar } from '../avatars/store';
+import { AvatarButtonIcon } from '../components/PixelIcons';
+import { PaintedGuide } from '../components/PaintedGuide';
+import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { TitleBoard } from '../components/TitleBoard';
-import { StreakString } from '../components/Lantern';
-import { Chip, PaperPanel, WoodButton } from '../components/Materials';
+import { Chip, ClothButton, PaperPanel, WoodButton } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
-import { AvatarButtonIcon, FireIcon, Px } from '../components/PixelIcons';
 import { PaintedSettings } from './PaintedSettings';
-import { AvatarPicker } from '../avatars/AvatarPicker';
 
 export const PAINTED_TITLE = 'Finish the Word';
 const DIFFS: { id: Difficulty; icon: ReactNode }[] = [
@@ -44,18 +46,17 @@ const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
 const TIPS = [
   'Every word must start with the last letter of the one before it.',
-  'Bank the pile before someone steals it: banked wool is safe.',
-  'Words ending in X, Z, Q or J set a trap for the next sheep.',
-  'In the last seconds of a turn anyone can steal the pile with a word.',
-  'Turns get faster every round, from 16 seconds down to 5.',
-  'Run out of time with no lives left and you freeze in a block of ice.',
-  'Long and rare words are worth more wool.',
+  'When a timer turns red, type a word first to steal one of their wool balls.',
+  'Run out of time and you lose a wool ball. Lose them all and you freeze solid.',
+  'End a word on X, Z, Q or J: if the next sheep runs out of time, you get a wool ball.',
+  'A bad word just bounces, so try another before your timer runs out.',
+  'Turns get 2 seconds shorter every round, from 16 seconds down to 5.',
+  'Last sheep standing wins.',
 ];
 
 const RULES: { key: keyof GameSettings; label: string; values: (number | string | boolean)[]; show?: (v: number | string | boolean) => string }[] = [
-  { key: 'rounds', label: 'Rounds', values: [1, 2, 3, 5] },
-  { key: 'turnsPerRound', label: 'Turns per round', values: [3, 5, 7] },
-  { key: 'lives', label: 'Lives', values: [1, 2, 3, 5, 'unlimited'], show: (v) => (v === 'unlimited' ? '∞' : String(v)) },
+  { key: 'turnsPerRound', label: 'Turns per round', values: [2, 3, 5] },
+  { key: 'lives', label: 'Wool balls', values: [1, 2, 3, 5] },
   { key: 'twists', label: 'Round twists', values: [true, false], show: (v) => (v ? 'On' : 'Off') },
   { key: 'stealWindowSeconds', label: 'Steal window', values: [0, 3, 5], show: (v) => (v === 0 ? 'Off' : `${v} s`) },
 ];
@@ -68,8 +69,9 @@ export function PaintedHome() {
   const { settings, setSettings, start, startTour, dictStatus, retryDictionary, muted, toggleMute } = useStore();
   const [step, setStep] = useState<'tables' | 'setup'>('tables');
   const [help, setHelp] = useState(false);
-  const [gear, setGear] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
+  const avatar = useAvatar();
+  const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
@@ -138,37 +140,36 @@ export function PaintedHome() {
     setHeroYaw(((e.clientX / window.innerWidth) * 2 - 1) * 0.3);
   };
 
-  const link = 'min-h-11 content-center text-left text-sm font-bold underline decoration-2 underline-offset-2 disabled:no-underline disabled:opacity-60';
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const items: MenuItem[] = [
     { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     dream
       ? {
         id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
-        badge: dream.status === 'done' ? `${dream.count ?? 0} sheep` : 'used',
+        badge: dream.status === 'done' ? <MenuTag tone="gold">{dream.count ?? 0} sheep</MenuTag> : <MenuTag tone="gray">used</MenuTag>,
         disabled: dream.status !== 'done', onSelect: shareDream,
         caption: `The farmer is up for the day. Tonight's dream starts at ${timeOfNext}.`,
       }
       : {
-        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? `${streak}-night streak` : 'daily', disabled: !ready,
+        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</MenuTag> : <MenuTag tone="gold">daily</MenuTag>, disabled: !ready,
         caption: 'Keep the farmer asleep: type words with each fence\'s letters so the sheep clears it. One dream a night.',
         onSelect: () => useDreamUi.getState().openDream(false),
       },
     {
-      id: 'hunt', label: 'Hunt', badge: huntBest ? `best ${huntBest.defeated}` : 'new', disabled: !ready,
+      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
       caption: 'Fight off predator after predator with words. Hunt as often as you like.',
       onSelect: () => useHuntUi.getState().openHunt(),
     },
     { id: 'practice', label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {
-      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : 'soon', disabled: !rooms, onSelect: openRooms,
+      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : <MenuTag tone="gray">soon</MenuTag>, disabled: !rooms, onSelect: openRooms,
       caption: rooms ? '4 to 10 people in the big barn.' : 'Rooms open when the game server is live.',
     },
   ];
   const tables = (
     <div className="flex flex-col gap-3" key="tables">
-      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} />
+      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
       {dictStatus === 'error' && (
         <PaperPanel role="alert" className="p-3 text-center">
           <p className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>The word list did not load. Check your connection, then try again.</p>
@@ -178,8 +179,8 @@ export function PaintedHome() {
       {error && <p role="alert" className="sk-paper px-3 py-1 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
       {signedIn && rooms && (
         <div className="flex gap-2" role="group" aria-label="Community">
-          {([['friends', '👥', 'Friends'], ['boards', '🏆', 'Boards'], ['shop', '🛍️', 'Shop']] as const).map(([t, ico, label]) => (
-            <WoodButton key={t} onClick={() => setHub(t)} className="flex-1 text-sm" aria-label={label} title={label}><Px e={ico} size={20} /></WoodButton>
+          {([['friends', <><FriendsIcon size={16} /> Friends</>], ['boards', <><TrophyIcon size={16} /> Boards</>], ['shop', <><BagIcon size={16} /> Shop</>]] as const).map(([t, label]) => (
+            <WoodButton key={t} onClick={() => setHub(t)} className="inline-flex flex-1 items-center justify-center gap-1.5 text-sm">{label}</WoodButton>
           ))}
         </div>
       )}
@@ -188,10 +189,10 @@ export function PaintedHome() {
   );
 
   const setup = (
-    <PaperPanel className={`space-y-3 p-4 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
-      <div className="flex items-center justify-between">
-        <h2 className="sk-display text-2xl">Set the table</h2>
-        <button className={link} onClick={() => setStep('tables')}>Back</button>
+    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
+      <div className="sk-setup-head">
+        <h2>Set the table</h2>
+        <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
       </div>
       <label className="block">
         <span className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Your name</span>
@@ -230,7 +231,7 @@ export function PaintedHome() {
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot difficulty</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
-            <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id })} aria-pressed={settings.difficulty === d.id} className="capitalize">{d.icon} {d.id}</Chip>
+            <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id })} aria-pressed={settings.difficulty === d.id} className="capitalize">{d.id}</Chip>
           ))}
         </div>
       </fieldset>
@@ -249,7 +250,7 @@ export function PaintedHome() {
           ))}
         </div>
       </details>
-      <WoodButton onClick={() => go('quick')} disabled={!ready} className="w-full text-lg">Sit down</WoodButton>
+      <ClothButton onClick={() => go('quick')} disabled={!ready} className="sk-sit w-full">Sit down</ClothButton>
     </PaperPanel>
   );
 
@@ -265,7 +266,7 @@ export function PaintedHome() {
   );
 
   return (
-    <main className="relative h-full overflow-hidden" onPointerMove={onPointerMove} onKeyDown={onKey}>
+    <main className="sk-home relative h-full overflow-hidden" onPointerMove={onPointerMove} onKeyDown={onKey}>
       <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
@@ -273,29 +274,27 @@ export function PaintedHome() {
       <div className="absolute inset-x-0 top-0 flex items-start justify-end gap-2 p-3 sm:p-4">
         {!mobile && (
           <div className="sk-plate mr-auto" aria-label="Player">
-            <SheepIcon size={26} />
+            <span className="sk-plate-avatar" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={24} /> : <SheepIcon size={24} />}</span>
             <span className="max-w-[12rem] truncate">{name}</span>
-            {streak > 0 && <span className="text-sm" style={{ color: 'var(--glow)' }}><FireIcon size={14} /> {streak}</span>}
-            {signedIn && coins !== null && <span aria-label="Coins" className="text-sm">{coins} <Px e="🪙" /></span>}
+            {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
+            {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
         )}
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
-        {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
-        <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>
-        <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play"><HelpIcon /></button>
+        <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} title={muted ? 'Unmute' : 'Sound'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>
+        <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>
       </div>
 
       {mobile ? (
         <>
           <div className="absolute inset-x-0 top-16 flex justify-center">
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Grow your wool." compact />
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
           </div>
           <div className="absolute inset-x-3 bottom-2 max-h-[64%] overflow-y-auto">
             {step === 'tables' ? (
               <>
                 {tables}
-                {(streak > 0 || dream) && <div className="mt-1 flex justify-center"><StreakString days={dreamStreakDays(today)} /></div>}
                 <div className="mt-1 flex justify-center">{footer}</div>
               </>
             ) : setup}
@@ -304,8 +303,8 @@ export function PaintedHome() {
       ) : (
         <>
           {/* Left column: the title board, then the menu, like a console title screen. */}
-          <div className="absolute bottom-20 left-10 top-20 flex w-[27rem] flex-col justify-center gap-8">
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Grow your wool. Don’t get stolen from." />
+          <div className="absolute bottom-16 left-10 top-16 flex w-[27rem] flex-col justify-center gap-4">
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
             {step === 'tables' ? tables : <div className="pointer-events-none opacity-40" inert>{tables}</div>}
           </div>
           {step === 'setup' && (
@@ -314,13 +313,12 @@ export function PaintedHome() {
           {/* Bottom bar: button prompts, a rotating tip, the streak and the small print. */}
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3 text-sm font-bold" style={{ color: 'var(--button-text)', textShadow: '0 1px 2px rgba(30, 18, 8, 0.8)' }}>
             <div className="flex shrink-0 items-center gap-4">
-              <span className="sk-prompt"><span className="sk-key">↑</span><span className="sk-key">↓</span> Choose</span>
+              <span className="sk-prompt"><span className="sk-key"><ArrowUpIcon size={12} /></span><span className="sk-key"><ArrowDownIcon size={12} /></span> Choose</span>
               <span className="sk-prompt"><span className="sk-key">Enter</span> Select</span>
               {step === 'setup' && <span className="sk-prompt"><span className="sk-key">Esc</span> Back</span>}
             </div>
-            <p key={tip} className="sk-tip sk-hand min-w-0 flex-1 truncate text-center text-lg" style={{ color: 'var(--glow)' }} aria-live="off">Tip: {TIPS[tip]}</p>
+            <p key={tip} className="sk-tip sk-hand flex min-w-0 flex-1 items-center justify-center gap-2 text-lg" style={{ color: 'var(--glow)' }} aria-live="off"><span className="truncate">{TIPS[tip]}</span></p>
             <div className="flex shrink-0 flex-col items-end gap-1">
-              {(streak > 0 || dream) && <StreakString days={dreamStreakDays(today)} />}
               {footer}
             </div>
           </div>
@@ -329,8 +327,9 @@ export function PaintedHome() {
 
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
-      {help && <Guide onClose={() => setHelp(false)} />}
+      {help && <PaintedGuide onClose={() => setHelp(false)} />}
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
+      {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
       <DevLine />
     </main>
   );

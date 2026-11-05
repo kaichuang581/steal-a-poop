@@ -14,9 +14,9 @@ export interface PlayerView {
   isBot: boolean;
   difficulty?: Difficulty;
   creature?: CreatureId;      // assigned by the skin, stable per player id
-  banked: number;
+  banked: number;             // unused since there are no points (always 0)
   dimmed: boolean;            // lost turn or failed steal, until the next turn starts
-  lives: number;              // flames left (3 at game start)
+  lives: number;              // wool balls left (3 at game start)
   frozen: boolean;            // out of lives: skipped for the rest of the game
 }
 
@@ -53,8 +53,8 @@ export const TWIST_TEXT: Record<TwistId, string> = {
   noE: 'No letter E',
   sixPlus: 'Words of 6 letters or more',
   doubleLetter: 'Words need a double letter',
-  vowelDouble: 'Vowel starts score double',
-  doublePointsShort: 'Double points, 2 seconds shorter',
+  vowelDouble: 'Plain rules',
+  doublePointsShort: 'Faster round: 2 seconds shorter',
 };
 
 export const PLACE_FOR_MODE: Record<Mode, Place> = {

@@ -619,13 +619,13 @@ describe('steal ordering over the wire', () => {
     expect([steals(t, t.x.id), steals(t, t.y.id)]).toEqual([1, 0]);
   });
 
-  it('compensated mode leaves play and bank alone when no steal is pending', async () => {
+  it('compensated mode leaves play alone when no steal is pending', async () => {
     const t = await stealTable({ ordering: 'compensated', bufferMs: 150 }, {});
     const ownerSeat = t.room.game!.turn!.seat;
     const ownerId = ['dev:Ana', 'dev:Ben', 'dev:Cy', 'dev:Di'].find((id) => t.room.seatOf[id] === ownerSeat)!;
     const owner = t.cs[['dev:Ana', 'dev:Ben', 'dev:Cy', 'dev:Di'].indexOf(ownerId)];
     const r = owner.next('result');
-    owner.send({ t: 'act', action: { type: 'bank' } });
+    owner.send({ t: 'act', action: { type: 'play', word: t.words[0] } });
     expect((await r).accepted).toBe(true); // answered at once, not after the buffer
     expect(t.server.rooms.isHeld(t.room.code)).toBe(false);
   });

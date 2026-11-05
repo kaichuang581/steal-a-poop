@@ -1,44 +1,65 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Small flames for a player's lives (plan V3 Part 9), one per life the game started with. A flame that goes out plays
- * a 300 ms puff (it grows, fades and leaves a grey smoke voxel) and then shows only a dark wick. Lives come from
- * engine state only; a game with unlimited lives shows no flames.
+ * A sheep's lives, as small balls of wool: one per wool ball it has, wound tight, with an empty dashed ring for each
+ * one it has lost (up to the most it started with). A ball that is lost unravels: it shrinks and spins off with a
+ * loose strand. A ball that is gained (a steal, a trap) pops in. Lives come from engine state only.
  */
 export function Lives({ lives, max = 3, size = 14 }: { lives: number; max?: number; size?: number }) {
-  const MAX = max;
   const prev = useRef(lives);
-  const [puff, setPuff] = useState<number | null>(null);
+  const [change, setChange] = useState<{ kind: 'lost' | 'gained'; at: number } | null>(null);
   useEffect(() => {
-    if (lives < prev.current) {
-      setPuff(lives); // the flame at index `lives` just went out
-      const id = setTimeout(() => setPuff(null), 300);
-      prev.current = lives;
-      return () => clearTimeout(id);
-    }
+    if (lives === prev.current) return;
+    setChange({ kind: lives < prev.current ? 'lost' : 'gained', at: lives < prev.current ? lives : lives - 1 });
     prev.current = lives;
+    const id = setTimeout(() => setChange(null), 600);
+    return () => clearTimeout(id);
   }, [lives]);
+  const slots = Math.max(max, lives);
   return (
-    <span className="inline-flex items-end gap-0.5" role="img" aria-label={`${lives} of ${MAX} lives`} data-lives={lives}>
-      {Array.from({ length: MAX }, (_, i) => (
-        <Flame key={i} lit={i < lives} puffing={puff === i} size={size} />
+    <span className="inline-flex items-center gap-0.5 align-middle" role="img" aria-label={`${lives} wool ball${lives === 1 ? '' : 's'} left`} data-lives={lives}>
+      {Array.from({ length: slots }, (_, i) => (
+        <WoolBall key={i} full={i < lives} size={size} anim={change?.at === i ? change.kind : null} />
       ))}
     </span>
   );
 }
 
-function Flame({ lit, puffing, size }: { lit: boolean; puffing: boolean; size: number }) {
+/** One ball of yarn: a cream ball with wound strands and a loose end, or an empty ring once it is gone. */
+export function WoolBall({ full, size = 14, anim = null }: { full: boolean; size?: number; anim?: 'lost' | 'gained' | null }) {
+  if (!full && anim !== 'lost') {
+    return (
+      <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true">
+        <circle cx="8" cy="8" r="5.6" fill="rgba(59,48,40,0.08)" stroke="rgba(122,106,88,0.6)" strokeWidth="1" strokeDasharray="1.6 1.6" />
+      </svg>
+    );
+  }
   return (
-    <svg viewBox="0 0 10 14" width={size * (10 / 14)} height={size} aria-hidden="true" style={{ overflow: 'visible' }}>
-      <rect x="4.5" y="9" width="1" height="5" fill="var(--wood-ink)" />
-      {(lit || puffing) && (
-        <g className={puffing ? 'sk-puff' : 'sk-flicker'} style={{ transformOrigin: '5px 10px' }}>
-          <path d="M5 1 C8 5 9 8 5 11 C1 8 2 5 5 1 Z" fill="var(--flame-dark)" />
-          <path d="M5 4 C7 6.5 7.5 8.5 5 10.4 C2.5 8.5 3 6.5 5 4 Z" fill="var(--flame-mid)" />
-          <path d="M5 6.5 C6 7.8 6.2 9 5 10 C3.8 9 4 7.8 5 6.5 Z" fill="var(--flame-light)" />
+    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true" style={{ overflow: 'visible' }}
+      className={anim === 'lost' ? 'sk-wool-lost' : anim === 'gained' ? 'sk-wool-gained' : undefined}>
+      <defs>
+        <radialGradient id="sk-wool-shade" cx="0.36" cy="0.3" r="0.85">
+          <stop offset="0" stopColor="#FFFDF7" />
+          <stop offset="0.5" stopColor="#F6E6C8" />
+          <stop offset="1" stopColor="#D8B486" />
+        </radialGradient>
+        <clipPath id="sk-wool-clip"><circle cx="8" cy="8" r="6.4" /></clipPath>
+      </defs>
+      <ellipse cx="8.3" cy="14.6" rx="5.6" ry="1.3" fill="rgba(59,40,20,0.28)" />
+      <circle cx="8" cy="8" r="6.6" fill="url(#sk-wool-shade)" />
+      {/* Two crossing bands of wound yarn, clipped to the ball, then the outline over them. */}
+      <g clipPath="url(#sk-wool-clip)" fill="none" strokeLinecap="round">
+        <g stroke="#C08A55" strokeWidth="0.95">
+          <path d="M-1 5.6 Q8 1.8 17 6.2" /><path d="M-1 8.2 Q8 4.4 17 8.8" /><path d="M-1 10.8 Q8 7 17 11.4" />
         </g>
-      )}
-      {puffing && <rect className="sk-smoke" x="3.5" y="2" width="3" height="3" fill="var(--ink-soft)" />}
+        <g stroke="#A8743F" strokeWidth="0.9" opacity="0.85">
+          <path d="M5.2 -1 Q2.4 8 6.2 17" /><path d="M8 -1 Q5.4 8 9 17" />
+        </g>
+        <path d="M3.6 4.6 Q6.4 2.8 9.4 3.4" stroke="#FFFFFF" strokeWidth="1.3" opacity="0.9" />
+      </g>
+      <circle cx="8" cy="8" r="6.6" fill="none" stroke="#6B4423" strokeWidth="1.2" />
+      {/* The loose end, with a little curl. */}
+      <path d="M13.4 11 Q15.8 12.2 15 14.2 Q14.4 15.4 13.2 14.8" stroke="#6B4423" strokeWidth="1" fill="none" strokeLinecap="round" />
     </svg>
   );
 }

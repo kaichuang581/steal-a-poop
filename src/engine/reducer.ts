@@ -1,16 +1,14 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  BASE_TURN_MS,
-  FAIL_PENALTY, INTRO_MS, PRACTICE_TURN_MS, STEAL_BONUS,
-  TRAP_LETTERS, TRAP_PAYOUT,
+  BASE_TURN_MS, BOT_LATE_CHANCE, BOT_PRESSURE_FAIL, EXTRA_WOOL_CAP, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_TURN_MS,
+  STEAL_COOLDOWN_MS, TRAP_LETTERS,
 } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawInt, drawPick, drawRandom } from './rng';
-import { scoreWord } from './scoring';
 import { computeWinners } from './standings';
 import { roundTurnMs, turnDurationMs } from './timer';
+import { startingWool } from './settings';
 import type { Action, ActionResult, Difficulty, EventKind, GameState, Round } from './types';
-import { halveScore } from './penalties';
 import { suggestCorrection } from './typos';
 import { hasPlayableWord, validateWord } from './validation';
 
@@ -43,7 +41,7 @@ function emit(s: GameState, at: number, kind: EventKind, seat: number | null, te
  * length: a bot answers at the same point of a 16 s first-round turn as of a 5 s last-round one.
  */
 function botResponseMs(s: GameState, difficulty: Difficulty): number {
-  const scale = roundTurnMs(s.round, s.settings.rounds) / BASE_TURN_MS;
+  const scale = roundTurnMs(s.round) / BASE_TURN_MS;
   const [lo, hi] = BOT_PROFILES[difficulty].responseMs;
   return drawInt(s, Math.round(lo * scale), Math.round(hi * scale));
 }
@@ -52,18 +50,23 @@ function startTurn(s: GameState, seat: number, t: number) {
   const active = s.players[seat];
   const learning = s.mode !== 'normal';
   const tour = s.mode === 'tour';
-  const baseMs = turnDurationMs(s.pile, s.modifier, roundTurnMs(s.round, s.settings.rounds));
+  const baseMs = turnDurationMs(0, s.modifier, roundTurnMs(s.round));
   const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : baseMs;
   const endsAt = t + durationMs;
   let botActAt: number | null = null;
   if (!active.isHuman) {
     if (tour) {
-      // Bots answer quickly, except the last seat once the human has banked: that slow turn
+      // Bots answer quickly, except the last seat once the human has played a word: that slow turn
       // runs into its steal window so the tutorial can show a steal.
-      const slow = seat === s.players.length - 1 && s.history.some((h) => h.kind === 'bank' && h.seat === 0);
+      const slow = seat === s.players.length - 1 && s.history.some((h) => h.kind === 'play' && h.seat === 0);
       botActAt = slow ? t + Math.max(1000, durationMs - 1500) : t + drawInt(s, 1200, 2200);
     } else {
       botActAt = t + botResponseMs(s, active.difficulty!);
+      // Sometimes a bot hesitates into the red seconds, which is when the others can steal from it.
+      const windowMs = s.settings.stealWindowSeconds * 1000;
+      // Late enough that a person has a real chance to type a steal (1.5 to 2.85 s of a 3 s window).
+      if (windowMs > 0 && drawRandom(s) < BOT_LATE_CHANCE) botActAt = Math.max(botActAt, endsAt - windowMs * (0.05 + drawRandom(s) * 0.45));
+      botActAt = Math.min(botActAt, endsAt - 50);
     }
   }
   const stealPlans: { seat: number; at: number }[] = [];
@@ -79,6 +82,7 @@ function startTurn(s: GameState, seat: number, t: number) {
 
 function concludeTurn(s: GameState, t: number) {
   const turn = s.turn!;
+  if (s.phase === 'gameOver') { s.turn = null; return; }
   s.players[turn.seat].turnsTaken += 1;
   s.turn = null;
   // Frozen players are skipped, so the round ends once every unfrozen player has used their turns.
@@ -87,18 +91,47 @@ function concludeTurn(s: GameState, t: number) {
   startTurn(s, next, t);
 }
 
+/** Most wool a sheep can hold: what it started with plus a little from steals and traps. */
+function woolCap(s: GameState): number {
+  return startingWool(s.settings) + EXTRA_WOOL_CAP;
+}
+
+/** Wool can't go below zero or above the cap; at zero the sheep freezes. Returns true if it froze. */
+function loseWool(s: GameState, seat: number, t: number, why: string): boolean {
+  const p = s.players[seat];
+  if (p.frozen || p.lives <= 0) return false;
+  p.lives -= 1;
+  emit(s, t, 'lifeLost', seat, `${p.name} lost a wool ball${why ? ` (${why})` : ''}`, p.lives);
+  if (p.lives > 0) return false;
+  p.frozen = true;
+  p.frozenAt = t;
+  emit(s, t, 'frozen', seat, `${p.name} is frozen solid`);
+  checkLastSheep(s, t);
+  return true;
+}
+
+function gainWool(s: GameState, seat: number): void {
+  const p = s.players[seat];
+  p.lives = Math.min(woolCap(s), p.lives + 1);
+}
+
+/** The game ends the moment one sheep (or none) is left unfrozen: last sheep standing wins. */
+function checkLastSheep(s: GameState, t: number) {
+  if (s.phase === 'gameOver') return;
+  const alive = s.players.filter((p) => !p.frozen);
+  if (alive.length > 1) return;
+  s.phase = 'gameOver';
+  s.introEndsAt = null;
+  s.winners = computeWinners(s.players);
+  emit(s, t, 'gameOver', null, alive.length ? `${alive[0].name} is the last sheep standing` : 'Game over');
+}
+
 function endRound(s: GameState, t: number) {
-  if (s.pile > 0) emit(s, t, 'burn', null, 'Pile burned', s.pile);
   s.pile = 0;
   s.trap = null;
-  if (s.round === s.settings.rounds) {
-    s.phase = 'gameOver';
-    s.winners = computeWinners(s.players);
-    emit(s, t, 'gameOver', null, 'Game over');
-    return;
-  }
+  if (s.phase === 'gameOver') return;
   s.round = (s.round + 1) as Round;
-  s.modifier = s.modifierDeck[s.round - 1];
+  s.modifier = s.modifierDeck[(s.round - 1) % s.modifierDeck.length];
   s.used = [];
   s.history = [];
   for (const p of s.players) {
@@ -109,14 +142,14 @@ function endRound(s: GameState, t: number) {
   emit(s, t, 'roundStart', null, `Round ${s.round}`);
 }
 
-/** Clears a trap aimed at `seat`. Pays the trapper only if that seat failed. */
+/** Clears a trap aimed at `seat`. If that seat failed, the trapper gets a wool ball. */
 function resolveTrap(s: GameState, seat: number, failed: boolean, t: number) {
   const trap = s.trap;
   if (!trap || trap.victimSeat !== seat) return;
   s.trap = null;
-  if (!failed) return;
-  s.players[trap.trapperSeat].banked += TRAP_PAYOUT;
-  emit(s, t, 'trapSprung', seat, `TRAP! ${s.players[seat].name} failed`, TRAP_PAYOUT);
+  if (!failed || s.players[trap.trapperSeat].frozen) return;
+  gainWool(s, trap.trapperSeat);
+  emit(s, t, 'trapSprung', seat, `TRAP! ${s.players[seat].name} failed`, 1);
 }
 
 /**
@@ -140,73 +173,53 @@ function recordWord(s: GameState, seat: number, word: string, points: number) {
 }
 
 function playTurn(s: GameState, seat: number, word: string, t: number) {
-  const points = scoreWord(word, s.modifier);
-  s.pile += points;
-  recordWord(s, seat, word, points);
-  s.history.push({ round: s.round, seat, kind: 'play', word, points });
-  emit(s, t, 'play', seat, `${s.players[seat].name}: ${word.toUpperCase()} +${points}`, points, word);
+  recordWord(s, seat, word, word.length);
+  s.history.push({ round: s.round, seat, kind: 'play', word, points: 0 });
+  emit(s, t, 'play', seat, `${s.players[seat].name}: ${word.toUpperCase()}`, 0, word);
   resolveTrap(s, seat, false, t);
   setTrap(s, word, seat, seat);
   concludeTurn(s, t);
 }
 
-function bankTurn(s: GameState, t: number) {
-  const seat = s.turn!.seat;
-  const amount = s.pile;
-  s.players[seat].banked += amount;
-  s.pile = 0;
-  s.history.push({ round: s.round, seat, kind: 'bank', word: null, points: amount });
-  emit(s, t, 'bank', seat, `${s.players[seat].name} banked ${amount}`, amount);
-  resolveTrap(s, seat, false, t);
-  concludeTurn(s, t);
+/** Who loses wool when a turn runs out: everyone in a normal game; in practice only the bots (the human is learning). */
+function woolAtStake(s: GameState, seat: number): boolean {
+  if (s.mode === 'tour') return false;
+  if (s.mode === 'practice') return !s.players[seat].isHuman;
+  return true;
 }
 
-/** Only a turn with no word submitted ends this way. A bad word never costs a turn. */
+/** Only a turn with no word submitted ends this way. A bad word never costs a turn. Running out costs a wool ball. */
 function failTurn(s: GameState, seat: number, t: number) {
   const p = s.players[seat];
-  const penalty = s.mode === 'normal' ? FAIL_PENALTY : 0;
-  p.banked -= penalty;
-  s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: penalty ? -penalty : 0 });
-  emit(s, t, 'timeout', seat, `Timeout ${p.name}${penalty ? ` -${penalty}` : ' (no penalty)'}`, penalty ? -penalty : 0);
+  s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: 0 });
+  emit(s, t, 'timeout', seat, `Time's up for ${p.name}`, 0);
   resolveTrap(s, seat, true, t);
-  // Only a turn that runs out costs a life, and only in normal games; unlimited lives never run out.
-  if (s.mode === 'normal' && s.settings.lives !== 'unlimited') {
-    if (p.lives > 0) {
-      p.lives -= 1;
-      emit(s, t, 'lifeLost', seat, `${p.name} lost a life`, p.lives);
-    }
-    // The cold only gets in once the flames are out and there is no wool (banked score) left to keep it out.
-    if (p.lives === 0 && p.banked <= 0 && !p.frozen) {
-      p.frozen = true;
-      emit(s, t, 'frozen', seat, `${p.name} is frozen`);
-    }
-  }
+  if (woolAtStake(s, seat)) loseWool(s, seat, t, '');
   concludeTurn(s, t);
 }
 
-/** A failed steal halves the stealer's whole banked score (normal games only). */
+/** A bad steal word: nothing lost, just a short wait before that sheep can try again. */
 function stealFailed(s: GameState, seat: number, t: number) {
   const p = s.players[seat];
-  const before = p.banked;
-  const after = s.mode === 'normal' ? halveScore(before) : before;
-  p.banked = after;
-  const delta = after - before;
-  s.history.push({ round: s.round, seat, kind: 'stealFail', word: null, points: delta });
-  emit(s, t, 'stealFail', seat, delta ? `${p.name}'s steal failed: ${before} → ${after}` : `${p.name}'s steal failed`, delta);
+  p.stealCooldownUntil = t + STEAL_COOLDOWN_MS;
+  s.history.push({ round: s.round, seat, kind: 'stealFail', word: null, points: 0 });
+  emit(s, t, 'stealFail', seat, `${p.name}'s steal missed`, 0);
 }
 
+/** A steal: the stealer answered first in the red seconds, so they take one of the wool balls of the sheep on turn. */
 function stealSucceeded(s: GameState, stealerSeat: number, word: string, t: number) {
   const turn = s.turn!;
   const stealer = s.players[stealerSeat];
-  const points = scoreWord(word, s.modifier);
-  const gain = s.pile + points + STEAL_BONUS;
-  stealer.banked += gain;
+  const victim = s.players[turn.seat];
   stealer.steals += 1;
-  s.pile = 0;
-  recordWord(s, stealerSeat, word, points);
-  s.history.push({ round: s.round, seat: stealerSeat, kind: 'steal', word, points: gain });
-  emit(s, t, 'steal', stealerSeat, `STOLEN by ${stealer.name}! +${gain}`, gain, word);
+  recordWord(s, stealerSeat, word, word.length);
+  s.history.push({ round: s.round, seat: stealerSeat, kind: 'steal', word, points: 1 });
+  emit(s, t, 'steal', stealerSeat, `${stealer.name} stole a wool ball from ${victim.name}!`, 1, word);
   resolveTrap(s, turn.seat, false, t);
+  if (woolAtStake(s, turn.seat)) {
+    gainWool(s, stealerSeat);
+    loseWool(s, turn.seat, t, 'stolen');
+  }
   setTrap(s, word, stealerSeat, turn.seat);
   concludeTurn(s, t);
 }
@@ -240,15 +253,25 @@ function nextDue(s: GameState, now: number): Due | null {
   return best;
 }
 
-/** What the bot on turn does: bank, fumble, or play a word. Draws from the game's random stream like any bot action. */
+/** What the bot on turn does: fumble, or play a word. Draws from the game's random stream like any bot action. */
 export type BotPlan = { kind: 'bank' } | { kind: 'fail' } | { kind: 'play'; word: string };
+
+/**
+ * A bot's chance of fumbling: its base, plus more as turns get shorter (none at 16 s, BOT_PRESSURE_FAIL at 5 s), plus a
+ * little more every round spent at 5 s, so the game always closes in on its last sheep.
+ */
+export function botFailRate(s: GameState, difficulty: Difficulty): number {
+  const ms = roundTurnMs(s.round);
+  const squeeze = (FIRST_ROUND_TURN_MS - ms) / (FIRST_ROUND_TURN_MS - LAST_ROUND_TURN_MS);
+  const floorRounds = Math.max(0, s.round - Math.ceil((FIRST_ROUND_TURN_MS - LAST_ROUND_TURN_MS) / 2000) - 1);
+  return Math.min(0.85, BOT_PROFILES[difficulty].failRate + BOT_PRESSURE_FAIL * squeeze + floorRounds * 0.05);
+}
 
 function decideBotTurn(s: GameState, ctx: EngineContext): BotPlan {
   const bot = s.players[s.turn!.seat];
+  const scripted = s.mode === 'tour'; // tutorial bots never fumble
   const profile = BOT_PROFILES[bot.difficulty!];
-  const scripted = s.mode === 'tour'; // tutorial bots never bank or fumble
-  if (!scripted && s.pile > 0 && s.pile >= bot.bankThreshold) return { kind: 'bank' };
-  if (!scripted && drawRandom(s) < profile.failRate) return { kind: 'fail' };
+  if (!scripted && drawRandom(s) < botFailRate(s, bot.difficulty!)) return { kind: 'fail' };
   const word = pickBotWord({
     dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
     prefer: profile.prefer, random: () => drawRandom(s),
@@ -260,8 +283,9 @@ function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
   const turn = s.turn!;
   turn.botActAt = null;
   const plan = decideBotTurn(s, ctx);
-  if (plan.kind === 'bank') return bankTurn(s, t);
-  if (plan.kind === 'fail') return failTurn(s, turn.seat, t);
+  // A bot that can't find a word doesn't give up at once: like a person, it stares at the clock until it runs out,
+  // so the whole red window is open for the others to steal.
+  if (plan.kind !== 'play') return;
   playTurn(s, turn.seat, plan.word, t);
 }
 
@@ -314,7 +338,7 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
       // The first player rotates each round; a frozen seat passes to the next unfrozen one.
       const n = s.players.length;
       const first = nextSeat(s, (((s.round - 1) % n) + n - 1) % n);
-      if (first === null) endRound(s, at);
+      if (first === null) checkLastSheep(s, at);
       else startTurn(s, first, at);
       continue;
     }
@@ -390,19 +414,18 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
       return { state: s, accepted: true };
     }
     case 'bank':
-      if (action.seat !== turn.seat) return reject('not_your_turn');
-      bankTurn(s, now);
-      return { state: s, accepted: true };
+      // There is no pile to bank any more: words just pass the turn on.
+      return reject('no_bank');
     case 'steal': {
       if (action.seat === turn.seat) return reject('own_turn');
       if (player.frozen) return reject('frozen');
       if (!inStealWindow(s, now)) return reject('outside_steal_window');
+      if (now < player.stealCooldownUntil) return reject('steal_cooldown');
       const v = check(action.word);
       if (!v.ok) {
-        // A clear typo gets a suggestion and no penalty. Anything else is a failed steal.
+        // A clear typo gets a suggestion. Anything else misses: nothing lost, but a short wait before the next try.
         const suggestion = typoFix(v.reason, action.word);
         if (suggestion) return { ...reject(v.reason), suggestion };
-        if (s.mode !== 'normal') return reject(v.reason); // practice: try again
         stealFailed(s, action.seat, now);
         return { state: s, accepted: true, reason: v.reason };
       }

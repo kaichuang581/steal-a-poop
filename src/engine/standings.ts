@@ -1,9 +1,16 @@
 import { ROUNDS } from './constants';
 import type { Player } from './types';
 
-/** Negative when `a` ranks above `b`. Unfrozen before frozen, then banked score, then steals, then longest word. */
+/**
+ * Negative when `a` ranks above `b`. Last sheep standing: unfrozen before frozen; among the unfrozen, more wool balls;
+ * among the frozen, whoever lasted longer. Then steals, then longest word.
+ */
 export function compareStandings(a: Player, b: Player): number {
-  return (Number(a.frozen) - Number(b.frozen)) || (b.banked - a.banked) || (b.steals - a.steals) || (b.longestWord.length - a.longestWord.length);
+  return (
+    (Number(a.frozen) - Number(b.frozen)) ||
+    (a.frozen ? (b.frozenAt ?? 0) - (a.frozenAt ?? 0) === 0 ? 0 : (b.frozenAt ?? 0) > (a.frozenAt ?? 0) ? 1 : -1 : b.lives - a.lives) ||
+    (b.steals - a.steals) || (b.longestWord.length - a.longestWord.length)
+  );
 }
 
 export function rankPlayers(players: readonly Player[]): Player[] {

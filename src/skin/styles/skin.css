@@ -682,66 +682,8 @@
    Start screen, second pass: fewer materials. The title sign is the one carved, snowy object; everything else is quiet
    type over the scene, one clear green button, and frosted corner controls. (Scoped to .sk-home so it wins cleanly.)
    ===================================================================================================================== */
-.sk-home .sk-title-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--glow); opacity: 0.8; box-shadow: 0 0 6px rgba(30, 18, 8, 0.8); }
-.sk-home .sk-title-tagline { gap: 2px 12px; font-size: 20px; color: #FFF1D6; }
-
-/* Play: one solid, softly lit button. */
-.sk-home .sk-menu-primary {
-  min-height: 72px; margin: 6px 0 14px; padding: 0 22px; gap: 14px; border: 0; border-radius: 16px;
-  font-size: 40px; letter-spacing: 0.02em; color: #FFF8EA; text-shadow: 0 2px 0 rgba(20, 40, 24, 0.45);
-  background: linear-gradient(180deg, #82BC89 0%, #5B9464 48%, #467654 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 5px 0 #2E5238, 0 14px 28px rgba(20, 30, 20, 0.35);
-  transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), filter 160ms;
-}
-.sk-home .sk-menu-primary[data-active] {
-  transform: translateY(-1px); filter: brightness(1.05);
-  background: linear-gradient(180deg, #8AC591 0%, #61996A 48%, #4A7B57 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 6px 0 #2E5238, 0 16px 32px rgba(20, 30, 20, 0.4);
-}
-.sk-home .sk-menu-primary:active:not(:disabled) { transform: translateY(4px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 0 #2E5238, 0 6px 14px rgba(20, 30, 20, 0.3); }
-:root[data-skin="painted"] .sk-home .sk-menu-primary:focus-visible { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 5px 0 #2E5238, 0 0 0 2px rgba(255, 244, 220, 0.7), 0 14px 28px rgba(20, 30, 20, 0.35); }
-.sk-home .sk-menu-play-icon { flex: none; color: #FFF8EA; filter: drop-shadow(0 2px 0 rgba(20, 40, 24, 0.45)); }
-
-/* The other items: plain carved type, a small amber bar marking the one in focus. */
-.sk-home .sk-menu-board { margin: 0; padding: 0; background: none; box-shadow: none; backdrop-filter: none; border-radius: 0; }
-.sk-home .sk-menu-board .sk-menu-row + .sk-menu-row { border: 0; box-shadow: none; }
-.sk-home .sk-menu-board .sk-menu-item {
-  min-height: 44px; padding: 2px 10px 2px 0; gap: 10px; border-radius: 10px; font-size: 25px; background: none; box-shadow: none;
-  color: rgba(255, 244, 220, 0.78); text-shadow: 0 2px 0 rgba(30, 18, 8, 0.55), 0 0 14px rgba(30, 18, 8, 0.5);
-  transition: color var(--t-fast), transform var(--t-fast) var(--ease-out);
-}
-.sk-home .sk-menu-board .sk-menu-item[data-active] { color: #FFFFFF; transform: translateX(8px); background: none; box-shadow: none; }
-.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(255, 244, 220, 0.42); opacity: 1; }
-:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { box-shadow: none; outline: 2px solid rgba(255, 217, 138, 0.6); outline-offset: 2px; }
-.sk-home .sk-menu-marker { flex: none; width: 4px; height: 0; border-radius: 3px; background: var(--amber); box-shadow: 0 0 10px rgba(242, 164, 68, 0.9); transition: height 200ms var(--ease-out); }
-.sk-home .sk-menu-item[data-active] .sk-menu-marker { height: 22px; }
-
-/* Badges: a thin outlined tag, not a paper label. */
-.sk-home .sk-menu-badge {
-  padding: 1px 9px; border-radius: 999px; clip-path: none; filter: none; background: none;
-  font-family: var(--skin-font-body); font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--glow); box-shadow: inset 0 0 0 1.5px rgba(255, 217, 138, 0.55); text-shadow: none;
-}
-
-/* The caption: a quiet hand-lettered line under the list. */
-.sk-home .sk-menu-board .sk-menu-caption {
-  margin: 10px 0 0; padding: 10px 0 0 14px; height: calc(3.9em + 10px); background: none; border-radius: 0;
-  border-top: 1px solid rgba(255, 217, 138, 0.22); font-size: 18px; color: #F6E4BE;
-}
-.sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { padding-left: 0; text-align: center; }
-.sk-home .sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 22px; justify-content: flex-start; }
-
-/* Corner controls: frosted, round, quiet. */
-.sk-home .sk-plate {
-  border-radius: 999px; padding: 5px 16px 5px 8px; text-shadow: none;
-  background: rgba(28, 20, 14, 0.42); backdrop-filter: blur(6px); box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.18);
-}
-.sk-home .sk-icon-btn {
-  width: 42px; height: 42px; background: rgba(28, 20, 14, 0.42); backdrop-filter: blur(6px);
-  box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.2); filter: none;
-}
-.sk-home .sk-icon-btn:hover { background: rgba(28, 20, 14, 0.6); filter: none; }
-.sk-home .sk-icon-btn:active { box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.2); }
+.sk-home .sk-title-tagline { font-size: 20px; color: #FFF1D6; max-width: 27rem; }
+.sk-home .sk-title-tag-part { white-space: normal; }
 
 /* A deeper, softer shade behind the left column so the type reads without boxes. */
 .sk-home .sk-wash-left { background: linear-gradient(90deg, rgba(24, 16, 10, 0.72) 0%, rgba(24, 16, 10, 0.5) 28%, rgba(24, 16, 10, 0.18) 46%, rgba(24, 16, 10, 0) 60%); }
@@ -760,3 +702,62 @@
 .sk-home .sk-sit:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 0 #2E5238 !important; }
 /* Badges follow their label instead of floating at the far edge. */
 .sk-home .sk-menu-board .sk-menu-badge { margin-left: 4px; }
+
+/* ---------- Pixel pieces: the menu panel and small tags, drawn as 9-slice pixel art ---------- */
+.sk-pixel-panel {
+  border-style: solid; border-width: 12px; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Crect x='2' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='3' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='4' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='5' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='6' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='7' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='8' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='9' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%231E140D'/%3E%3Crect x='2' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='4' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='5' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='6' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='7' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='8' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='9' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='10' y='1' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='2' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='2' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='4' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='6' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='7' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='8' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='9' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='10' y='2' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='2' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='3' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='3' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='3' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='5' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='7' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='8' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='3' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='3' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='3' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='4' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='4' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='4' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='4' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='4' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='5' y='4' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='6' y='4' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='7' y='4' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='8' y='4' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='4' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='4' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='5' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='5' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='5' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='5' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='5' y='5' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='6' y='5' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='8' y='5' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='5' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='5' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='6' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='6' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='6' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='5' y='6' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='6' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='6' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='6' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='7' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='7' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='7' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='7' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='7' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='8' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='8' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='8' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='8' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='9' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='9' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='3' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='4' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='9' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='10' width='1' height='1' fill='%231E140D'/%3E%3Crect x='2' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='3' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='4' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='5' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='6' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='10' y='10' width='1' height='1' fill='%231E140D'/%3E%3Crect x='2' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='3' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='4' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='5' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='6' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='7' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='8' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='9' y='11' width='1' height='1' fill='%231E140D'/%3E%3C/svg%3E") 4 fill / 12px / 0 stretch; image-rendering: pixelated;
+}
+.sk-pixel-tag {
+  display: inline-flex; align-items: center; gap: 4px; padding: 0 3px; border-style: solid; border-width: 6px; image-rendering: pixelated;
+  font-family: 'DotGothic16', monospace; font-size: 12px; line-height: 12px; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+}
+.sk-pixel-tag[data-tone="gold"] { color: #5B3A1E; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%235B3A1E'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%235B3A1E'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%23FFD98A'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23FFF0C4'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%23E2A94F'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
+.sk-pixel-tag[data-tone="green"] { color: #1E3A24; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%23234430'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%23234430'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%238CC58F'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23C4E8C0'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%235E9A66'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
+.sk-pixel-tag[data-tone="gray"] { color: #3B3028; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%234E4438'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%234E4438'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%23C9BEAA'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23E6DDCC'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%23A3977F'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
+.sk-pixel-tag[data-tone="flame"] { color: #5A220A; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%236E2E10'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%236E2E10'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%23FFB067'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23FFDDB0'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%23E07A35'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
+.sk-pixel-tag[data-tone="ice"] { color: #1F4A66; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%2324506E'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%2324506E'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%23BFE3F5'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23E8F6FF'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%238CC3E3'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
+
+/* ---------- Start screen, third pass ---------- */
+/* Play keeps its painted, framed, snow-capped sign; its triangle sits in a small cream disc. */
+.sk-home .sk-menu-primary { padding-left: 18px; gap: 14px; }
+.sk-home .sk-menu-play-icon { flex: none; width: 34px; height: 34px; padding: 6px 4px 6px 8px; border-radius: 50%; color: var(--cloth-dark);
+  background: radial-gradient(circle at 40% 35%, #FFFDF4, #F1DDB6); box-shadow: inset 0 -2px 0 rgba(140, 90, 46, 0.35), 0 2px 0 rgba(20, 40, 24, 0.5); }
+
+/* The rest of the menu sits in a warm pixel-framed panel, like a cartridge game's menu box. */
+.sk-home .sk-menu-board { margin: 6px 4px 0; padding: 4px 6px 0; border-radius: 0; background: none; box-shadow: 0 10px 24px rgba(20, 12, 6, 0.35); backdrop-filter: none; }
+.sk-home .sk-menu-board .sk-menu-row + .sk-menu-row { border-top: 0; box-shadow: none; background-image: linear-gradient(90deg, rgba(255, 217, 138, 0.22) 50%, transparent 50%); background-size: 6px 2px; background-repeat: repeat-x; background-position: 0 0; }
+.sk-home .sk-menu-board .sk-menu-item {
+  min-height: 44px; padding: 2px 6px 2px 2px; gap: 10px; border-radius: 6px; font-size: 24px; background: none; box-shadow: none;
+  color: #F3E2C0; text-shadow: 0 2px 0 rgba(20, 12, 6, 0.6); transition: color var(--t-fast), background var(--t-fast);
+}
+.sk-home .sk-menu-board .sk-menu-item[data-active] { color: #FFFFFF; transform: none; background: rgba(255, 217, 138, 0.1); box-shadow: none; }
+.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(243, 226, 192, 0.45); opacity: 1; }
+:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { box-shadow: none; outline: 2px dashed rgba(255, 217, 138, 0.7); outline-offset: 1px; }
+.sk-home .sk-menu-cursor { flex: none; display: grid; place-items: center; width: 12px; opacity: 0; transition: opacity 120ms; }
+.sk-home .sk-menu-item[data-active] .sk-menu-cursor { opacity: 1; animation: sk-cursor-nudge 0.9s steps(2) infinite; }
+@keyframes sk-cursor-nudge { 50% { transform: translateX(3px); } }
+.sk-home .sk-menu-badge { margin-left: auto; padding: 0; background: none; box-shadow: none; clip-path: none; filter: none; text-shadow: none; }
+.sk-home .sk-menu-item:disabled .sk-menu-badge { opacity: 0.85; }
+.sk-home .sk-menu-board .sk-menu-caption {
+  margin: 6px -6px 0; padding: 9px 12px 6px; height: calc(3.9em + 15px); background: none; border-radius: 0;
+  border-top: 2px solid rgba(255, 217, 138, 0.28); font-size: 17px; color: #F6E4BE; text-shadow: 0 1px 0 rgba(20, 12, 6, 0.7);
+}
+.sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { text-align: center; padding-left: 12px; }
+.sk-home .sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 21px; }
+
+/* Corner controls: filled, warm cream discs with the pixel icons in dark wood; the name plate the same. */
+.sk-home .sk-icon-btn {
+  width: 44px; height: 44px; color: var(--wood-ink); backdrop-filter: none; filter: none;
+  background: radial-gradient(circle at 38% 30%, #FFFBEF 0%, #F6E7C8 55%, #E7CFA3 100%);
+  box-shadow: inset 0 0 0 2px #C99A62, inset 0 -3px 0 rgba(140, 90, 46, 0.3), 0 3px 0 #8C5A2E, 0 6px 14px rgba(40, 24, 10, 0.35);
+}
+.sk-home .sk-icon-btn:hover { background: radial-gradient(circle at 38% 30%, #FFFFFF 0%, #FBEDD2 55%, #EED8AE 100%); transform: translateY(-1px); }
+.sk-home .sk-icon-btn:active { transform: translateY(2px); box-shadow: inset 0 0 0 2px #C99A62, 0 1px 0 #8C5A2E; }
+.sk-home .sk-icon-btn[aria-pressed="true"] { background: radial-gradient(circle at 38% 30%, #F1DDB6 0%, #E3C691 100%); }
+.sk-home .sk-plate {
+  gap: 10px; padding: 4px 14px 4px 4px; border-radius: 999px; color: var(--wood-ink); text-shadow: none; backdrop-filter: none;
+  background: linear-gradient(180deg, #FFFBEF, #F1DDB6);
+  box-shadow: inset 0 0 0 2px #C99A62, inset 0 -3px 0 rgba(140, 90, 46, 0.25), 0 3px 0 #8C5A2E, 0 6px 14px rgba(40, 24, 10, 0.35);
+}
+.sk-home .sk-plate-avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #F6E7C8, #E2C597); box-shadow: inset 0 0 0 2px #C99A62, inset 0 -2px 0 rgba(140, 90, 46, 0.3); }
+.sk-home .sk-pixel-tag { font-size: 13px; }

@@ -22,6 +22,7 @@ import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
 import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
 import { PaintedGuide } from '../components/PaintedGuide';
+import { PixelTag } from '../components/PixelTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { TitleBoard } from '../components/TitleBoard';
@@ -139,24 +140,24 @@ export function PaintedHome() {
     dream
       ? {
         id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
-        badge: dream.status === 'done' ? `${dream.count ?? 0} sheep` : 'used',
+        badge: dream.status === 'done' ? <PixelTag tone="gold">{dream.count ?? 0} sheep</PixelTag> : <PixelTag tone="gray">used</PixelTag>,
         disabled: dream.status !== 'done', onSelect: shareDream,
         caption: `The farmer is up for the day. Tonight's dream starts at ${timeOfNext}.`,
       }
       : {
-        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? `${streak}-night streak` : 'daily', disabled: !ready,
+        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? <PixelTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</PixelTag> : <PixelTag tone="gold">daily</PixelTag>, disabled: !ready,
         caption: 'Keep the farmer asleep: type words with each fence\'s letters so the sheep clears it. One dream a night.',
         onSelect: () => useDreamUi.getState().openDream(false),
       },
     {
-      id: 'hunt', label: 'Hunt', badge: huntBest ? `best ${huntBest.defeated}` : 'new', disabled: !ready,
+      id: 'hunt', label: 'Hunt', badge: huntBest ? <PixelTag tone="green">best {huntBest.defeated}</PixelTag> : <PixelTag tone="green">new</PixelTag>, disabled: !ready,
       caption: 'Fight off predator after predator with words. Hunt as often as you like.',
       onSelect: () => useHuntUi.getState().openHunt(),
     },
     { id: 'practice', label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {
-      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : 'soon', disabled: !rooms, onSelect: openRooms,
+      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : <PixelTag tone="gray">soon</PixelTag>, disabled: !rooms, onSelect: openRooms,
       caption: rooms ? '4 to 10 people in the big barn.' : 'Rooms open when the game server is live.',
     },
   ];
@@ -267,9 +268,9 @@ export function PaintedHome() {
       <div className="absolute inset-x-0 top-0 flex items-start justify-end gap-2 p-3 sm:p-4">
         {!mobile && (
           <div className="sk-plate mr-auto" aria-label="Player">
-            <SheepIcon size={26} />
+            <span className="sk-plate-avatar" aria-hidden="true"><SheepIcon size={24} /></span>
             <span className="max-w-[12rem] truncate">{name}</span>
-            {streak > 0 && <span className="flex items-center gap-1 text-sm" style={{ color: 'var(--glow)' }} aria-label={`${streak}-night streak`}><FlameIcon size={14} />{streak}</span>}
+            {streak > 0 && <PixelTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</PixelTag>}
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
         )}
@@ -281,7 +282,7 @@ export function PaintedHome() {
       {mobile ? (
         <>
           <div className="absolute inset-x-0 top-16 flex justify-center">
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Keep your wool." compact />
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
           </div>
           <div className="absolute inset-x-3 bottom-2 max-h-[64%] overflow-y-auto">
             {step === 'tables' ? (
@@ -296,7 +297,7 @@ export function PaintedHome() {
         <>
           {/* Left column: the title board, then the menu, like a console title screen. */}
           <div className="absolute bottom-16 left-10 top-16 flex w-[27rem] flex-col justify-center gap-4">
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words. Keep your wool. Outlast the flock." />
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
             {step === 'tables' ? tables : <div className="pointer-events-none opacity-40" inert>{tables}</div>}
           </div>
           {step === 'setup' && (

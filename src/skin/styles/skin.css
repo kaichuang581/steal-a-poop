@@ -677,3 +677,86 @@
 }
 :root[data-skin="painted"] .classic-panel-title { font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 24px !important; color: var(--glow) !important; text-shadow: 0 -2px 0 rgba(20, 12, 6, 0.7); }
 :root[data-skin="painted"] .classic-panel [role="tab"][aria-selected="true"] { background: var(--glow) !important; color: var(--wood-ink) !important; }
+
+/* =====================================================================================================================
+   Start screen, second pass: fewer materials. The title sign is the one carved, snowy object; everything else is quiet
+   type over the scene, one clear green button, and frosted corner controls. (Scoped to .sk-home so it wins cleanly.)
+   ===================================================================================================================== */
+.sk-home .sk-title-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--glow); opacity: 0.8; box-shadow: 0 0 6px rgba(30, 18, 8, 0.8); }
+.sk-home .sk-title-tagline { gap: 2px 12px; font-size: 20px; color: #FFF1D6; }
+
+/* Play: one solid, softly lit button. */
+.sk-home .sk-menu-primary {
+  min-height: 72px; margin: 6px 0 14px; padding: 0 22px; gap: 14px; border: 0; border-radius: 16px;
+  font-size: 40px; letter-spacing: 0.02em; color: #FFF8EA; text-shadow: 0 2px 0 rgba(20, 40, 24, 0.45);
+  background: linear-gradient(180deg, #82BC89 0%, #5B9464 48%, #467654 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 5px 0 #2E5238, 0 14px 28px rgba(20, 30, 20, 0.35);
+  transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), filter 160ms;
+}
+.sk-home .sk-menu-primary[data-active] {
+  transform: translateY(-1px); filter: brightness(1.05);
+  background: linear-gradient(180deg, #8AC591 0%, #61996A 48%, #4A7B57 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 6px 0 #2E5238, 0 16px 32px rgba(20, 30, 20, 0.4);
+}
+.sk-home .sk-menu-primary:active:not(:disabled) { transform: translateY(4px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 0 #2E5238, 0 6px 14px rgba(20, 30, 20, 0.3); }
+:root[data-skin="painted"] .sk-home .sk-menu-primary:focus-visible { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 5px 0 #2E5238, 0 0 0 2px rgba(255, 244, 220, 0.7), 0 14px 28px rgba(20, 30, 20, 0.35); }
+.sk-home .sk-menu-play-icon { flex: none; color: #FFF8EA; filter: drop-shadow(0 2px 0 rgba(20, 40, 24, 0.45)); }
+
+/* The other items: plain carved type, a small amber bar marking the one in focus. */
+.sk-home .sk-menu-board { margin: 0; padding: 0; background: none; box-shadow: none; backdrop-filter: none; border-radius: 0; }
+.sk-home .sk-menu-board .sk-menu-row + .sk-menu-row { border: 0; box-shadow: none; }
+.sk-home .sk-menu-board .sk-menu-item {
+  min-height: 44px; padding: 2px 10px 2px 0; gap: 10px; border-radius: 10px; font-size: 25px; background: none; box-shadow: none;
+  color: rgba(255, 244, 220, 0.78); text-shadow: 0 2px 0 rgba(30, 18, 8, 0.55), 0 0 14px rgba(30, 18, 8, 0.5);
+  transition: color var(--t-fast), transform var(--t-fast) var(--ease-out);
+}
+.sk-home .sk-menu-board .sk-menu-item[data-active] { color: #FFFFFF; transform: translateX(8px); background: none; box-shadow: none; }
+.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(255, 244, 220, 0.42); opacity: 1; }
+:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { box-shadow: none; outline: 2px solid rgba(255, 217, 138, 0.6); outline-offset: 2px; }
+.sk-home .sk-menu-marker { flex: none; width: 4px; height: 0; border-radius: 3px; background: var(--amber); box-shadow: 0 0 10px rgba(242, 164, 68, 0.9); transition: height 200ms var(--ease-out); }
+.sk-home .sk-menu-item[data-active] .sk-menu-marker { height: 22px; }
+
+/* Badges: a thin outlined tag, not a paper label. */
+.sk-home .sk-menu-badge {
+  padding: 1px 9px; border-radius: 999px; clip-path: none; filter: none; background: none;
+  font-family: var(--skin-font-body); font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--glow); box-shadow: inset 0 0 0 1.5px rgba(255, 217, 138, 0.55); text-shadow: none;
+}
+
+/* The caption: a quiet hand-lettered line under the list. */
+.sk-home .sk-menu-board .sk-menu-caption {
+  margin: 10px 0 0; padding: 10px 0 0 14px; height: calc(3.9em + 10px); background: none; border-radius: 0;
+  border-top: 1px solid rgba(255, 217, 138, 0.22); font-size: 18px; color: #F6E4BE;
+}
+.sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { padding-left: 0; text-align: center; }
+.sk-home .sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 22px; justify-content: flex-start; }
+
+/* Corner controls: frosted, round, quiet. */
+.sk-home .sk-plate {
+  border-radius: 999px; padding: 5px 16px 5px 8px; text-shadow: none;
+  background: rgba(28, 20, 14, 0.42); backdrop-filter: blur(6px); box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.18);
+}
+.sk-home .sk-icon-btn {
+  width: 42px; height: 42px; background: rgba(28, 20, 14, 0.42); backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.2); filter: none;
+}
+.sk-home .sk-icon-btn:hover { background: rgba(28, 20, 14, 0.6); filter: none; }
+.sk-home .sk-icon-btn:active { box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.2); }
+
+/* A deeper, softer shade behind the left column so the type reads without boxes. */
+.sk-home .sk-wash-left { background: linear-gradient(90deg, rgba(24, 16, 10, 0.72) 0%, rgba(24, 16, 10, 0.5) 28%, rgba(24, 16, 10, 0.18) 46%, rgba(24, 16, 10, 0) 60%); }
+
+/* Setup: a clean paper card; the title and Back in plain type, Sit down matching Play. */
+.sk-home .sk-setup { padding-top: 6px !important; border-radius: 18px; box-shadow: 0 18px 40px rgba(20, 12, 6, 0.35), inset 0 0 0 1px rgba(140, 90, 46, 0.18); }
+.sk-home .sk-setup-head { margin: 0; padding: 10px 0 2px; background: none; border-radius: 0; }
+.sk-home .sk-setup-head h2 { color: var(--wood-ink); text-shadow: none; font-size: 26px; }
+.sk-home .sk-setup-back { background: none; box-shadow: none; padding: 0 4px; color: var(--ink-soft); font-weight: 700; }
+.sk-home .sk-setup-back:hover { color: var(--ink); }
+.sk-home .sk-sit {
+  min-height: 58px; border: 0; border-radius: 14px; color: #FFF8EA !important; text-shadow: 0 2px 0 rgba(20, 40, 24, 0.45);
+  background: linear-gradient(180deg, #82BC89 0%, #5B9464 48%, #467654 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 0 #2E5238, 0 10px 20px rgba(20, 30, 20, 0.25) !important;
+}
+.sk-home .sk-sit:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 0 #2E5238 !important; }
+/* Badges follow their label instead of floating at the far edge. */
+.sk-home .sk-menu-board .sk-menu-badge { margin-left: 4px; }

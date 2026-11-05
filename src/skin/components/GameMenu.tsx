@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { playTick } from '../../audio/sound';
-import { LanternIcon } from './Icons';
-import { SnowCap } from './SnowCap';
 
 export interface MenuItem {
   id: string;
@@ -77,9 +75,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false }: {
         onPointerEnter={() => { if (!it.disabled && i !== active) { setActive(i); playTick(0.15); } }}
         aria-describedby={i === active ? 'sk-menu-caption' : undefined}
       >
-        {i === 0 && <><SnowCap className="sk-menu-snow" /><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" /><span className="sk-nail sk-nail-bl" /><span className="sk-nail sk-nail-br" /></>}
-        <span className="sk-menu-lantern" aria-hidden="true"><LanternIcon size={i === 0 ? 30 : 22} /></span>
-        {i > 0 && it.icon && <span className="sk-menu-icon" aria-hidden="true">{it.icon}</span>}
+        {i === 0 ? <svg className="sk-menu-play-icon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 4.8 C7 3.6 8.3 2.9 9.3 3.6 L20 10.8 C20.9 11.4 20.9 12.6 20 13.2 L9.3 20.4 C8.3 21.1 7 20.4 7 19.2 Z" fill="currentColor" /></svg> : <span className="sk-menu-marker" aria-hidden="true" />}
         <span className="sk-menu-label">{it.label}</span>
         {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
       </button>

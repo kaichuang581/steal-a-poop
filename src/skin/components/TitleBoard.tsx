@@ -1,4 +1,3 @@
-import { WoolBall } from './Lives';
 import { SnowCap } from './SnowCap';
 
 /**
@@ -38,7 +37,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
         {tagline.split(/(?<=\.)\s+/).map((part, i, all) => (
           <span key={i} className="sk-title-tag-part" aria-hidden="true">
             {part.replace(/\.$/, '')}
-            {i < all.length - 1 && <WoolBall full size={13} />}
+            {i < all.length - 1 && <span className="sk-title-tag-dot" />}
           </span>
         ))}
       </p>

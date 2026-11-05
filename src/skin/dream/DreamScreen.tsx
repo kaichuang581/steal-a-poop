@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { CloseIcon } from '../components/Icons';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
-import { utcDateKey } from '../../engine';
+import { localDateKey } from '../hooks/useToday';
 import { getDreamBest, getDreamStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
 import { check, dreamSeed, dreamShareText, fenceAt, FIELD, JUMP_MS, jumpHeight, matched, signOf, speedAt, takeoffDistance } from '../../dream/dream';
 import type { Fence } from '../../dream/dream';
@@ -65,7 +65,8 @@ export function DreamScreen() {
   const close = useDreamUi((s) => s.close);
   const openDream = useDreamUi((s) => s.openDream);
   const reduced = useMotionLevel() === 'reduced';
-  const today = utcDateKey(new Date());
+  // The night this dream belongs to, fixed when the screen opens: a dream begun before midnight is still that night's.
+  const [today] = useState(() => localDateKey(new Date()));
   const [seed, setSeed] = useState(() => (practice ? `practice:${Date.now()}` : dreamSeed(today)));
   const [phase, setPhase] = useState<Phase>('ready');
   const [count, setCount] = useState(0);

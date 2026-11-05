@@ -3,13 +3,14 @@ import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
-import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRESETS, presetOf, utcDateKey } from '../../engine';
+import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
 import { useHuntUi } from '../hunt/huntStore';
 import { dreamShareText } from '../../dream/dream';
 import { getDream, getDreamStreak } from '../../dream/daily';
 import { useDreamUi } from '../dream/dreamStore';
+import { useToday } from '../hooks/useToday';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
 import { getServerUrl } from '../../net/config';
 import { useRoomStore } from '../../state/roomStore';
@@ -85,7 +86,7 @@ export function PaintedHome() {
   const hour = useHour();
   const reduced = useMotionLevel() === 'reduced';
   const mobile = useIsMobile();
-  const today = utcDateKey(new Date());
+  const today = useToday();
   const huntBest = getHuntBest();
   const dream = getDream(today);
   const streak = getDreamStreak(today);
@@ -122,8 +123,9 @@ export function PaintedHome() {
   const preset = presetOf(rules);
   const setRule = (patch: Partial<GameSettings>) => setSettings({ game: { ...rules, ...patch } });
   const minutes = estimateMinutes({ ...rules, botCount: settings.playerCount - 1, botDifficulty: settings.difficulty });
-  const nextTable = new Date(`${today}T00:00:00Z`);
-  nextTable.setUTCDate(nextTable.getUTCDate() + 1);
+  // The next dream arrives at local midnight (a date-time with no zone parses as local time).
+  const nextTable = new Date(`${today}T00:00:00`);
+  nextTable.setDate(nextTable.getDate() + 1);
   // A new tip every 7 seconds (not under reduced motion, where the first one stays).
   useEffect(() => {
     if (reduced) return;

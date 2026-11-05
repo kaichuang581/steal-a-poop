@@ -62,3 +62,6 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Bots fumble more as turns shorten, sometimes hesitate into the red seconds, and run the clock out when they have no word.
 - Painted skin is the default (approved by Brian, 2026-11-04): `isPaintedSkin` returns true unless ?skin=classic or a
   VITE_SKIN=classic build. The classic look still works and the end-to-end tests build with VITE_SKIN=classic.
+- Counting Sheep resets at local midnight (approved by Brian, 2026-11-05): the dream's day key is the device's own date
+  (`localDateKey` / `useToday` in src/skin/hooks/useToday.ts), not UTC, so a new dream arrives at 12am wherever the
+  player is, and the home screen re-checks the date once a minute. The classic Daily Table and the server keep the UTC day.

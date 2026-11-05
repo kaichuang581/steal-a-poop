@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
 import { IceOverlay, Lives } from './Lives';
 import { SheepIcon } from './SheepIcon';
+import { AvatarIcon } from '../avatars/AvatarIcon';
+import { useAvatar } from '../avatars/store';
 
 const BADGE = { easy: '🌱', medium: '🍃', hard: '🌰' } as const;
 
@@ -24,6 +26,8 @@ interface Props {
 
 /** Paper card: creature, name, banked score. Amber ring on the player whose turn it is. */
 export function PlayerCard({ player, isTurn, compact, lastWord, children, badge, title, showLives = true, maxLives = 3 }: Props) {
+  const chosen = useAvatar();
+  const mine = player.isYou ? chosen : null;
   return (
     <div
       className="sk-paper relative flex items-center gap-2 px-2 py-1"
@@ -36,7 +40,7 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
       data-seat={player.id}
       data-tour={player.isYou ? 'me' : undefined}
     >
-      <SheepIcon size={compact ? 22 : 30} bare={player.banked <= 0} />
+      {mine ? <AvatarIcon id={mine} size={compact ? 22 : 30} /> : <SheepIcon size={compact ? 22 : 30} bare={player.banked <= 0} />}
       <div className="min-w-0 flex-1 leading-tight">
         <div className="truncate text-sm font-extrabold" data-seat-name={player.id} title={title}>
           {badge && <span aria-hidden="true">{badge} </span>}

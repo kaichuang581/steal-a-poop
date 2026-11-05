@@ -32,6 +32,7 @@ import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
 import { PaintedSettings } from './PaintedSettings';
+import { AvatarPicker } from '../avatars/AvatarPicker';
 
 export const PAINTED_TITLE = 'Finish the Word';
 const DIFFS: { id: Difficulty; icon: ReactNode }[] = [
@@ -67,6 +68,7 @@ export function PaintedHome() {
   const [step, setStep] = useState<'tables' | 'setup'>('tables');
   const [help, setHelp] = useState(false);
   const [gear, setGear] = useState(false);
+  const [pickAvatar, setPickAvatar] = useState(false);
   const [error, setError] = useState('');
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
@@ -276,6 +278,8 @@ export function PaintedHome() {
             {signedIn && coins !== null && <span aria-label="Coins" className="text-sm">{coins} 🪙</span>}
           </div>
         )}
+        <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar">Avatar</button>
+        {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings"><GearIcon /></button>
         <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>
         <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play"><HelpIcon /></button>

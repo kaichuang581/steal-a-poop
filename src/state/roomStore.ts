@@ -1,3 +1,4 @@
+import { getAvatar } from '../skin/avatars/store';
 import { create } from 'zustand';
 import type { Action, ActionResult } from '../engine';
 import { load, save } from '../lib/storage';
@@ -45,6 +46,8 @@ interface RoomStore {
   connect(): void;
   disconnect(): void;
   invite(userId: string): void;
+  /** Tells the server which avatar you picked (null: the default sheep). Quiet if offline. */
+  sendAvatar(id: string | null): void;
   acceptInvite(code: string): void;
   dismissInvite(code: string): void;
   /** Starts today's server-run Daily Table. */
@@ -115,6 +118,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
           }, 2000);
         }
         welcomedAt = Date.now();
+        net?.send({ t: 'avatar', id: getAvatar() });
         send({ t: 'rooms' });
         if (dailyWhenOnline) {
           dailyWhenOnline = false;
@@ -277,6 +281,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       set({ open: false, status: 'off', user: null, publicRooms: [], notice: null });
     },
     invite: (userId) => send({ t: 'invite', userId }),
+    sendAvatar: (id) => { net?.send({ t: 'avatar', id }); },
     acceptInvite(code) {
       set((st) => ({ invites: st.invites.filter((i) => i.code !== code), open: true }));
       send({ t: 'join', code });

@@ -219,7 +219,7 @@ function stealSucceeded(s: GameState, stealerSeat: number, word: string, t: numb
   const victim = s.players[turn.seat];
   stealer.steals += 1;
   recordWord(s, stealerSeat, word, word.length);
-  s.history.push({ round: s.round, seat: stealerSeat, kind: 'steal', word, points: 1 });
+  s.history.push({ round: s.round, seat: stealerSeat, kind: 'steal', word, points: 1, fromSeat: turn.seat });
   emit(s, t, 'steal', stealerSeat, `${stealer.name} stole a wool ball from ${victim.name}!`, 1, word);
   resolveTrap(s, turn.seat, false, t);
   if (woolAtStake(s, turn.seat)) {

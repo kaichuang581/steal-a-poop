@@ -36,6 +36,7 @@ import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
+import { BarnDoors } from '../components/BarnDoors';
 import { PaintedSettings } from './PaintedSettings';
 
 export const PAINTED_TITLE = 'Finish the Word';
@@ -71,6 +72,7 @@ export function PaintedHome() {
   const [step, setStep] = useState<'tables' | 'setup'>('tables');
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
+  const [swooping, setSwooping] = useState(false);
   const avatar = useAvatar();
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
@@ -98,7 +100,11 @@ export function PaintedHome() {
     const nick = checkNickname(settings.name);
     if (!nick.ok) return setError(nick.message);
     setError('');
-    start(mode, mode === 'quick' ? settings.game : undefined);
+    const begin = () => start(mode, mode === 'quick' ? settings.game : undefined);
+    // Through the doors: barn doors swing open on warm light and the view pushes through, then the game opens from the glow.
+    if (reduced || swooping) return begin();
+    setSwooping(true);
+    setTimeout(begin, 950);
   };
   const shareDream = async () => {
     if (dream?.status !== 'done') return;
@@ -144,6 +150,7 @@ export function PaintedHome() {
 
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const items: MenuItem[] = [
+    { id: 'start', label: ready ? 'Start now' : 'Loading…', caption: 'Straight into a game with easy bots and hints. No setup.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     dream
       ? {
@@ -268,7 +275,7 @@ export function PaintedHome() {
   );
 
   return (
-    <main className="sk-home relative h-full overflow-hidden" onPointerMove={onPointerMove} onKeyDown={onKey}>
+    <main className={`sk-home relative h-full overflow-hidden`} onPointerMove={onPointerMove} onKeyDown={onKey}>
       <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
@@ -327,6 +334,7 @@ export function PaintedHome() {
         </>
       )}
 
+      {swooping && <BarnDoors />}
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
       {help && <PaintedGuide onClose={() => setHelp(false)} />}

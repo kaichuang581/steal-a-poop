@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { shareCard } from '../share/card';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { previewBotTurn, rankPlayers, roundTurnMs, startingWool, summarize, utcDateKey } from '../../engine';
 import { useStore } from '../../state/store';
@@ -77,6 +78,17 @@ export function PaintedGame() {
   // Wool balls are lives: every sheep shows them, with an empty ring for each one lost.
   const maxLives = startingWool(game.settings);
   const k = () => Math.random();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [hit, setHit] = useState(0);
+  /** A steal lands: the whole table jolts and a red edge flashes (neither under reduced motion). */
+  const jolt = () => {
+    if (reduced) return;
+    setHit(Math.random() + 1);
+    rootRef.current?.animate?.(
+      [{ transform: 'translate(0,0)' }, { transform: 'translate(-9px,4px)' }, { transform: 'translate(8px,-5px)' }, { transform: 'translate(-5px,3px)' }, { transform: 'translate(3px,-2px)' }, { transform: 'translate(0,0)' }],
+      { duration: 380, easing: 'ease-out' },
+    );
+  };
 
   const flash = (node: ReactNode, ms = 900) => {
     const id = Math.random();
@@ -115,11 +127,12 @@ export function PaintedGame() {
         burst(e.word, name(e.playerId), Number(e.playerId) === mySeat);
         break;
       case 'stole':
+        jolt();
         mood(e.fromId, 'startled');
         mood(e.byId, 'happy');
         setMoments((m) => ({ ...m, wolf: { key: k(), to: rel(Number(e.byId)) } }));
         setDimmed((d) => new Set(d).add(Number(e.fromId)));
-        flash(<Notice tone="steal" size="lg" icon={<WolfIcon size={30} />} title={`Stolen with ${e.word.toUpperCase()}!`} sub={`${name(e.byId)} took a wool ball from ${name(e.fromId)}`} />, 1800);
+        flash(<Notice tone="steal" size="lg" icon={<WolfIcon size={30} />} title={Number(e.byId) === mySeat ? `You stole it with ${e.word.toUpperCase()}!` : Number(e.fromId) === mySeat ? `${name(e.byId)} stole from you!` : `Stolen with ${e.word.toUpperCase()}!`} sub={`${name(e.byId)} took a wool ball from ${name(e.fromId)}`} />, 1800);
         break;
       case 'stealFailed':
         if (Number(e.playerId) === mySeat) flash(<Notice tone="wood" size="sm" snow={false} title="Missed!" sub="try again in a second" />, 1000);
@@ -203,7 +216,8 @@ export function PaintedGame() {
   };
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden" data-steal-open={view.stealOpen}>
+    <div ref={rootRef} className="sk-swoop-in relative flex h-full flex-col overflow-hidden" data-steal-open={view.stealOpen}>
+      {hit > 0 && <div key={hit} className="sk-steal-flash" aria-hidden="true" />}
       <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
         <BarnTable
           pile={view.pile} speaker={speaker} fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
@@ -358,14 +372,22 @@ function Results({ players }: { players: PlayerView[] }) {
   const me = game.players[mySeat];
 
   const place = players.findIndex((p) => p.isYou) + 1;
+  const steals = game.history.filter((h) => h.kind === 'steal' && h.word);
+  const best = [...steals].sort((a, b) => (b.word?.length ?? 0) - (a.word?.length ?? 0))[0];
+  const bestLine = best ? `Best steal: ${game.players[best.seat].name} took a wool ball${best.fromSeat !== undefined ? ` from ${game.players[best.fromSeat].name}` : ''} with ${best.word!.toUpperCase()} (round ${best.round})` : '';
   const share = async () => {
     const text = [
       `Finish the Word${mode === 'daily' && dailyDate ? ` · Daily ${dailyDate}` : ''}`,
       place === 1 ? `Last sheep standing out of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
       `${me.steals} steal${me.steals === 1 ? '' : 's'} · longest word ${me.longestWord.length} letters`,
+      bestLine,
       mode === 'daily' && streak > 1 ? `${streak}-day streak` : '',
     ].filter(Boolean).join('\n');
-    try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
+    await shareCard({
+      title: 'Finish the Word',
+      headline: place === 1 ? `Last sheep standing of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
+      lines: [`${me.steals} steal${me.steals === 1 ? '' : 's'} · longest word ${me.longestWord.length} letters`, bestLine].filter(Boolean),
+    }, text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -403,6 +425,7 @@ function Results({ players }: { players: PlayerView[] }) {
               <span className="sk-hand" style={{ color: 'var(--ink-soft)' }}>· {game.players[stats.longestWord.seat].name}</span>
             </div>
           )}
+          {best && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>{bestLine}</p>}
           {mode === 'room' && <RewardBanner />}
           {mode === 'practice' && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>Practice game: you never lose wool here.</p>}
           {mode === 'daily' && (

@@ -1,3 +1,5 @@
+import { JoinLink } from './share/JoinLink';
+import { useAvatar } from './avatars/store';
 import { useEffect } from 'react';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
@@ -42,6 +44,9 @@ export function PaintedApp() {
   const hunting = useHuntUi((s) => s.open);
   const dreaming = useDreamUi((s) => s.open);
   useSkinFonts();
+  // Keep the server told which avatar you picked, so the others in a room see it.
+  const avatar = useAvatar();
+  useEffect(() => { useRoomStore.getState().sendAvatar(avatar); }, [avatar]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -52,10 +57,12 @@ export function PaintedApp() {
   useEffect(() => { document.documentElement.dataset.hour = hour; }, [hour]);
 
   if (PREVIEW === 'sheep') return <SheepPreview />;
-  if (dreaming) return <DreamScreen />;
-  if (hunting) return <HuntScreen />;
-  if (inGame) return <PaintedGame />;
-  if (inRoom) return <RoomScreen />;
-  if (lobbyOpen) return <Lobby />;
-  return <PaintedHome />;
+  // A ?join=CODE address joins that room once the player is signed in and online.
+  const screen = dreaming ? <DreamScreen />
+    : hunting ? <HuntScreen />
+    : inGame ? <PaintedGame />
+    : inRoom ? <RoomScreen />
+    : lobbyOpen ? <Lobby />
+    : <PaintedHome />;
+  return <><JoinLink />{screen}</>;
 }

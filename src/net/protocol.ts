@@ -22,7 +22,7 @@ export interface RoomViewDTO {
   name: string;
   visibility: 'public' | 'private';
   hostId: string;
-  members: { userId: string; name: string; cosmetics?: Cosmetics }[];
+  members: { userId: string; name: string; cosmetics?: Cosmetics; /** The avatar they picked (an id from src/avatars/ids.ts). */ avatar?: string }[];
   phase: 'lobby' | 'playing' | 'finished';
   min: number;
   max: number;
@@ -104,7 +104,9 @@ export type ClientMsg =
   /** A fresh login token for the same account, sent when the server asks with 'reauth'. */
   | { t: 'auth'; token: string }
   /** Invite a friend to the room you are in (before the game starts). */
-  | { t: 'invite'; userId: string };
+  | { t: 'invite'; userId: string }
+  /** The avatar you picked, or null for the default sheep. Cosmetic only. */
+  | { t: 'avatar'; id: string | null };
 
 /** Human-readable text for a server error code. */
 export function describeError(code: string): string {

@@ -4,6 +4,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { localDateKey } from '../hooks/useToday';
 import { getDreamBest, getDreamStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
+import { shareCard } from '../share/card';
 import { check, dreamSeed, dreamShareText, fenceAt, FIELD, JUMP_MS, jumpHeight, matched, signOf, speedAt, takeoffDistance } from '../../dream/dream';
 import type { Fence } from '../../dream/dream';
 import { useStore } from '../../state/store';
@@ -562,7 +563,11 @@ export function DreamScreen() {
 
   const share = async () => {
     const text = dreamShareText({ date: today, count, longest: live.current.longest, streak: streak || getDreamStreak(today) });
-    try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
+    await shareCard({
+      title: `Counting Sheep · ${today}`,
+      headline: `The farmer counted ${count} sheep`,
+      lines: [live.current.longest > 0 ? `Longest word: ${live.current.longest} letters` : '', (streak || getDreamStreak(today)) > 1 ? `${streak || getDreamStreak(today)}-night streak` : ''].filter(Boolean),
+    }, text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

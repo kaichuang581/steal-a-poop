@@ -19,6 +19,16 @@ export function RoomScreen() {
   const isHost = room.hostId === me;
   const enough = room.members.length >= room.min;
 
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyLink = async () => {
+    const u = new URL(location.href);
+    u.search = '';
+    u.hash = '';
+    u.searchParams.set('join', room.code);
+    try { await navigator.clipboard.writeText(u.toString()); } catch { window.prompt('Copy the invite link:', u.toString()); }
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 1800);
+  };
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(room.code);
@@ -51,6 +61,7 @@ export function RoomScreen() {
         <div className="text-xs font-bold uppercase tracking-widest text-white/60">Room code</div>
         <div className="my-1 text-5xl font-black tracking-[0.3em] text-amber-300" data-room-code>{room.code}</div>
         <button onClick={copy} className="min-h-11 rounded-lg bg-white/15 px-4 font-bold">{copied ? 'Copied!' : 'Copy code'}</button>
+        <button onClick={copyLink} className="ml-2 min-h-11 rounded-lg bg-white/15 px-4 font-bold">{linkCopied ? 'Copied!' : 'Copy invite link'}</button>
         <p className="mt-1 text-xs text-white/60">Anyone with this code can join before the game starts.</p>
         {authEnabled() && <button onClick={() => setInvite(true)} className="mt-2 min-h-11 rounded-lg bg-sky-500 px-4 font-bold text-sky-950">Invite friends</button>}
       </section>

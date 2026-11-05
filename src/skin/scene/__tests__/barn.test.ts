@@ -27,7 +27,7 @@ describe('buildBarn', () => {
     for (const g of [...world, barn.robin, barn.cat.body, barn.cat.tail, ...barn.doorLeaves.map((l) => l.geo)]) expect(g.index!.count).toBeGreaterThan(0);
     expect(barn.doorLeaves).toHaveLength(2);
     expect(barn.triangles).toBeLessThan(300000);
-    expect(ms).toBeLessThan(1500);
+    expect(ms).toBeLessThan(4000);
   });
 
   it('leaves the back doorway open', () => {

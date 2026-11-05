@@ -5,6 +5,6 @@ export const MODIFIER_INFO: Record<RoundModifier, { emoji: string; label: string
   no_e: { emoji: '🚫', label: 'No E allowed', detail: 'Words may not contain the letter E.' },
   six_plus: { emoji: '📏', label: '6+ letters only', detail: 'Every word needs at least 6 letters.' },
   double_letter: { emoji: '👯', label: 'Double letter', detail: 'Words must contain a double letter, like “ball”.' },
-  vowel_double: { emoji: '✨', label: 'Vowel-start 2x', detail: 'Words starting with a vowel score double.' },
-  double_points_fast: { emoji: '⚡', label: 'Double points, -2s', detail: 'All words score double, but turns are 2s shorter.' },
+  vowel_double: { emoji: '✨', label: 'Plain rules', detail: 'No twist this round.' },
+  double_points_fast: { emoji: '⚡', label: 'Faster round', detail: 'Turns are 2 seconds shorter this round.' },
 };

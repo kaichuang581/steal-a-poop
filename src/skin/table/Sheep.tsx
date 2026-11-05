@@ -17,12 +17,11 @@ export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'fre
 export type { WoolLevel };
 
 /**
- * Coat level (plan V3.2 Part 6): everyone starts with a normal coat; banked wool thickens it at 40 and 80 points,
- * each failed steal shears one level (up to three). Time-outs blow a tuft but never change the level.
+ * Coat level: the coat is the sheep's wool balls. A full start is a normal coat, each one lost shears it thinner, and
+ * extra ones won from steals and traps fluff it up.
  */
-export function coatLevel(banked: number, shears: number): WoolLevel {
-  const tier = banked < 40 ? 0 : banked < 80 ? 1 : 2;
-  return Math.max(0, Math.min(4, 2 + tier - Math.min(3, shears))) as WoolLevel;
+export function coatLevel(lives: number, startLives: number): WoolLevel {
+  return Math.max(0, Math.min(4, 2 + (lives - startLives))) as WoolLevel;
 }
 
 /** Seconds each timed state lasts before the sheep goes back to idle. */

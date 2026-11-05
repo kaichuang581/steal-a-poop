@@ -84,14 +84,18 @@ export const DISTANCE = {
  * letter board stays in frame when the camera is pulled in. A tall phone screen is narrow, so phones stand a little
  * further back with a wider lens and aim halfway to the pile.
  */
-export const SPEAKER_CAMERA = { radius: 5.4, phoneRadius: 5.8, height: 3.4, fov: 36, phoneFov: 66, offsetDeg: -35, toward: 0.35, phoneToward: 0.5, headY: 0.95, pileTopY: 0.6, step: 0.35, lift: 0.3 };
+export const SPEAKER_CAMERA = { radius: 5.4, phoneRadius: 5.8, height: 3.0, fov: 25, phoneFov: 50, offsetDeg: -35, toward: 0.2, phoneToward: 0.3, headY: 0.95, pileTopY: 0.6, step: 0.35, lift: 0.25 };
 
 export interface Shot { position: [number, number, number]; target: [number, number, number]; fov: number }
 
-/** The shot for the sheep at seat `index` of `n` (index 0, you, gets the fixed home shot). */
-export function speakerShot(index: number, n: number, phone: boolean): Shot {
+/** The wide shot of the whole ring (between turns, and for the wolf's run). */
+export function homeShot(phone: boolean): Shot {
   const home = phone ? CAMERA.phone : CAMERA.desktop;
-  if (index === 0) return { position: [...home.position], target: [...home.target], fov: home.fov };
+  return { position: [...home.position], target: [...home.target], fov: home.fov };
+}
+
+/** The close shot for the sheep at seat `index` of `n`: every sheep on its turn, you included, gets the zoom. */
+export function speakerShot(index: number, n: number, phone: boolean): Shot {
   const c = SPEAKER_CAMERA;
   const p = seatPosition(index, n);
   const dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;

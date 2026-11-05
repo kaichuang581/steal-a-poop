@@ -9,27 +9,27 @@ interface Tip { id: string; title: string; text: (g: GameState) => string; when:
 /** First-time explanations, shown once each, in priority order. */
 const TIPS: Tip[] = [
   {
-    id: 'modifier', title: 'Round modifier',
-    text: () => 'The banner up top is this round’s special rule. Words that break it are rejected.',
-    when: (g) => g.phase === 'playing' && g.round === 1,
+    id: 'modifier', title: 'Round twist',
+    text: () => 'The banner up top is this round’s twist. Words that break it bounce.',
+    when: (g) => g.phase === 'playing' && g.modifier !== 'none',
   },
   {
-    id: 'pile', title: 'The pile',
-    text: () => 'The pile is shared. Plays grow it; BANK on your turn takes all of it. Unbanked pile burns at round end, and a big pile shortens everyone’s timer.',
-    when: (g) => g.pile > 0,
-  },
-  {
-    id: 'steal', title: 'Steal window',
-    text: () => 'You are in the steal window. Type a valid word and press STEAL to take their turn and the whole pile. Steals are unlimited.',
-    when: (g, open) => open && g.turn?.seat !== 0,
+    id: 'steal', title: 'Steal!',
+    text: () => 'Their timer is red. Type a word starting with the chain letter and press STEAL: the first good word takes one of their wool balls. A bad word costs nothing.',
+    when: (g, open) => open && g.turn?.seat !== 0 && !g.players[0]?.frozen,
   },
   {
     id: 'trap', title: 'Trap letter',
     text: (g) => {
       const t = g.trap!;
-      return `${g.players[t.trapperSeat].name} ended on “${t.letter.toUpperCase()}”. If ${g.players[t.victimSeat].name} times out or plays an invalid word, ${g.players[t.trapperSeat].name} gets +5.`;
+      return `${g.players[t.trapperSeat].name} ended on “${t.letter.toUpperCase()}”. If ${g.players[t.victimSeat].name} runs out of time, ${g.players[t.trapperSeat].name} gets a wool ball.`;
     },
     when: (g) => g.trap !== null,
+  },
+  {
+    id: 'wool', title: 'Wool balls',
+    text: () => 'Running out of time costs a wool ball. Lose them all and that sheep freezes solid. Last sheep standing wins.',
+    when: (g) => g.events.some((e) => e.kind === 'lifeLost'),
   },
 ];
 

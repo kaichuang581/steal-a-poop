@@ -6,9 +6,11 @@ import type { Difficulty } from './types';
  * exactly the constants, so a game with DEFAULT_SETTINGS plays as it always did.
  */
 export interface GameSettings {
+  /** Unused since games run until one sheep is left. Kept so saved settings still load. */
   rounds: 1 | 2 | 3 | 5;
-  turnsPerRound: 3 | 5 | 7;
-  /** 'unlimited' never freezes anyone. */
+  /** Turns each sheep takes per round; the turn timer shrinks every round. */
+  turnsPerRound: 2 | 3 | 5 | 7;
+  /** Wool balls (lives) each sheep starts with. 'unlimited' is read as 5: a game must be able to end. */
   lives: 1 | 2 | 3 | 5 | 'unlimited';
   /** False: no round twist, plain rules every round. */
   twists: boolean;
@@ -19,7 +21,7 @@ export interface GameSettings {
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
-  rounds: 3, turnsPerRound: 5, lives: 3, twists: true, stealWindowSeconds: 3, botCount: 5, botDifficulty: 'medium',
+  rounds: 3, turnsPerRound: 2, lives: 3, twists: true, stealWindowSeconds: 3, botCount: 5, botDifficulty: 'medium',
 };
 
 /** The lives counter a player with unlimited lives carries; it is never decremented. */
@@ -28,13 +30,13 @@ export const UNLIMITED_LIVES = 99;
 export type PresetId = 'quick' | 'standard' | 'long' | 'custom';
 
 /** The three presets (plan V3.3 Part 2.3); Custom is whatever the chips say. */
-export const PRESETS: Record<Exclude<PresetId, 'custom'>, Pick<GameSettings, 'rounds' | 'turnsPerRound' | 'lives' | 'twists' | 'stealWindowSeconds'>> = {
-  quick: { rounds: 1, turnsPerRound: 5, lives: 2, twists: true, stealWindowSeconds: 3 },
-  standard: { rounds: 3, turnsPerRound: 5, lives: 3, twists: true, stealWindowSeconds: 3 },
-  long: { rounds: 5, turnsPerRound: 7, lives: 5, twists: true, stealWindowSeconds: 5 },
+export const PRESETS: Record<Exclude<PresetId, 'custom'>, Pick<GameSettings, 'turnsPerRound' | 'lives' | 'twists' | 'stealWindowSeconds'>> = {
+  quick: { turnsPerRound: 2, lives: 2, twists: true, stealWindowSeconds: 3 },
+  standard: { turnsPerRound: 2, lives: 3, twists: true, stealWindowSeconds: 3 },
+  long: { turnsPerRound: 3, lives: 5, twists: true, stealWindowSeconds: 5 },
 };
 
-const RULE_KEYS = ['rounds', 'turnsPerRound', 'lives', 'twists', 'stealWindowSeconds'] as const;
+const RULE_KEYS = ['turnsPerRound', 'lives', 'twists', 'stealWindowSeconds'] as const;
 
 /** Which preset the rule settings match, or 'custom'. */
 export function presetOf(s: GameSettings): PresetId {
@@ -47,12 +49,24 @@ export function presetOf(s: GameSettings): PresetId {
 export function resolveSettings(partial?: Partial<GameSettings>): GameSettings {
   // Saves from before the per-round speed-up may still carry a turnSeconds rule; it no longer exists.
   const { turnSeconds: _old, ...rest } = (partial ?? {}) as Partial<GameSettings> & { turnSeconds?: unknown };
-  return { ...DEFAULT_SETTINGS, ...rest };
+  const s = { ...DEFAULT_SETTINGS, ...rest };
+  // A game has to be able to end, so unlimited wool is read as the most there is.
+  if (s.lives === 'unlimited') s.lives = 5;
+  return s;
 }
 
-/** Rough length in minutes: per round, turns × players × (0.7 × that round's turn seconds + 2 s), rounded (plan V3.3 Part 2.3). */
+/** Wool balls a sheep starts with under these settings. */
+export function startingWool(s: GameSettings): number {
+  return s.lives === 'unlimited' ? 5 : s.lives;
+}
+
+/**
+ * Rough length in minutes. Games run until one sheep is left; with more wool they last more rounds (about two rounds
+ * per starting wool ball, a rough fit), each round turns x players x (0.7 x that round's turn seconds + 2 s).
+ */
 export function estimateMinutes(s: GameSettings): number {
+  const rounds = 2 + startingWool(s) * 2;
   let seconds = 0;
-  for (let r = 1; r <= s.rounds; r++) seconds += s.turnsPerRound * (s.botCount + 1) * ((roundTurnMs(r, s.rounds) / 1000) * 0.7 + 2);
+  for (let r = 1; r <= rounds; r++) seconds += s.turnsPerRound * (s.botCount + 1) * 0.75 * ((roundTurnMs(r) / 1000) * 0.7 + 2);
   return Math.max(1, Math.round(seconds / 60));
 }

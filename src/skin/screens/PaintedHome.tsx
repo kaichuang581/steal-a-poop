@@ -42,18 +42,17 @@ const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
 const TIPS = [
   'Every word must start with the last letter of the one before it.',
-  'Bank the pile before someone steals it: banked wool is safe.',
-  'Words ending in X, Z, Q or J set a trap for the next sheep.',
-  'In the last seconds of a turn anyone can steal the pile with a word.',
-  'Turns get faster every round, from 16 seconds down to 5.',
-  'Run out of time with no lives left and you freeze in a block of ice.',
-  'Long and rare words are worth more wool.',
+  'When a timer turns red, type a word first to steal one of their wool balls.',
+  'Run out of time and you lose a wool ball. Lose them all and you freeze solid.',
+  'End a word on X, Z, Q or J: if the next sheep runs out of time, you get a wool ball.',
+  'A bad word just bounces, so try another before your timer runs out.',
+  'Turns get 2 seconds shorter every round, from 16 seconds down to 5.',
+  'Last sheep standing wins.',
 ];
 
 const RULES: { key: keyof GameSettings; label: string; values: (number | string | boolean)[]; show?: (v: number | string | boolean) => string }[] = [
-  { key: 'rounds', label: 'Rounds', values: [1, 2, 3, 5] },
-  { key: 'turnsPerRound', label: 'Turns per round', values: [3, 5, 7] },
-  { key: 'lives', label: 'Lives', values: [1, 2, 3, 5, 'unlimited'], show: (v) => (v === 'unlimited' ? '∞' : String(v)) },
+  { key: 'turnsPerRound', label: 'Turns per round', values: [2, 3, 5] },
+  { key: 'lives', label: 'Wool balls', values: [1, 2, 3, 5] },
   { key: 'twists', label: 'Round twists', values: [true, false], show: (v) => (v ? 'On' : 'Off') },
   { key: 'stealWindowSeconds', label: 'Steal window', values: [0, 3, 5], show: (v) => (v === 0 ? 'Off' : `${v} s`) },
 ];

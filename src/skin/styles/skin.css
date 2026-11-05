@@ -270,14 +270,16 @@
   filter: drop-shadow(0 2px 0 rgba(40, 24, 10, 0.4));
 }
 .sk-menu-caption {
-  min-height: 2.6em; margin-top: 10px; padding-left: 54px; font-family: var(--skin-font-hand); font-size: 20px; line-height: 1.3;
+  /* A fixed height: captions run one to three lines, and a growing caption would shift the (vertically centred) menu
+     under the pointer, which then hovers the next item and flickers between the two. */
+  height: 3.9em; overflow: hidden; margin-top: 10px; padding-left: 54px; font-family: var(--skin-font-hand); font-size: 20px; line-height: 1.3;
   color: var(--glow); text-shadow: 0 1px 2px rgba(30, 18, 8, 0.8);
 }
 .sk-menu-compact .sk-menu-item { font-size: 22px; min-height: 48px; }
 .sk-menu-compact .sk-menu-item[data-active] { transform: none; }
 .sk-menu-compact .sk-menu-primary { font-size: 34px; min-height: 64px; justify-content: center; }
 .sk-menu-compact .sk-menu-primary[data-active] { transform: none; }
-.sk-menu-compact .sk-menu-caption { padding-left: 12px; text-align: center; font-size: 17px; min-height: 2.4em; }
+.sk-menu-compact .sk-menu-caption { padding-left: 12px; text-align: center; font-size: 17px; height: 3.9em; }
 @keyframes sk-menu-in { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
 
 /* The washes that keep text readable over the farm, and the bottom bar of button prompts and tips. */
@@ -321,3 +323,132 @@
 }
 :root[data-skin="painted"] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"]), textarea, [contenteditable="true"]) { cursor: text; }
 :root[data-skin="painted"] :is(button, input, select):disabled { cursor: not-allowed; }
+
+/* Wool balls (lives): a lost one unravels and spins away, a won one pops in. */
+.sk-wool-lost { animation: sk-wool-lost 600ms var(--ease-out) forwards; transform-origin: 50% 50%; }
+.sk-wool-gained { animation: sk-wool-gained 500ms var(--ease-spring) both; transform-origin: 50% 50%; }
+@keyframes sk-wool-lost { 0% { transform: scale(1); opacity: 1; } 40% { transform: scale(1.25) rotate(40deg); } 100% { transform: scale(0.2) rotate(220deg) translateY(6px); opacity: 0; } }
+@keyframes sk-wool-gained { 0% { transform: scale(0); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
+:root.reduce-motion .sk-wool-lost, :root.reduce-motion .sk-wool-gained { animation-duration: 1ms; }
+
+/* ---------- The word bar (in a game) ---------- */
+.sk-input-prompt {
+  min-height: 1.5em; margin: 0 0 6px; text-align: center; font-family: var(--skin-font-hand); font-size: 19px; line-height: 1.25;
+  color: var(--button-text); text-shadow: 0 1px 2px rgba(30, 18, 8, 0.85), 0 0 8px rgba(30, 18, 8, 0.6);
+}
+.sk-input-prompt b { color: var(--glow); font-weight: 800; }
+.sk-input-prompt-steal { font-size: 21px; color: #FFE3DC; animation: sk-steal-throb 0.8s ease-in-out infinite; }
+.sk-input-prompt-steal b { color: #FFD0C4; }
+.sk-input-bar {
+  display: flex; align-items: center; gap: 10px; min-height: 76px; padding: 8px 10px 8px 8px;
+  border-radius: 18px; background: linear-gradient(180deg, var(--paper), #F3E7CC);
+  border: 3px solid var(--wood-dark);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.7), 0 5px 0 rgba(40, 24, 10, 0.4), 0 10px 26px rgba(40, 24, 10, 0.35);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
+}
+.sk-input-bar[data-mode="mine"] { border-color: var(--amber); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.7), 0 0 0 3px rgba(242, 164, 68, 0.35), 0 5px 0 rgba(40, 24, 10, 0.4), 0 10px 26px rgba(40, 24, 10, 0.35); }
+.sk-input-bar[data-mode="steal"] {
+  border-color: var(--coral); background: linear-gradient(180deg, #FFF1EC, #FBD9CE);
+  animation: sk-steal-glow 0.8s ease-in-out infinite;
+}
+.sk-input-bar[data-mode="wait"] { opacity: 0.94; }
+.sk-input-bar[data-mode="out"] { opacity: 0.6; filter: saturate(0.5); }
+.sk-input-letter {
+  flex: none; display: grid; place-items: center; width: 58px; height: 58px; border-radius: 12px;
+  font-family: var(--skin-font-display); font-weight: 800; font-size: 40px; line-height: 1; color: var(--wood-ink);
+  background: repeating-linear-gradient(92deg, rgba(140, 90, 46, 0.07) 0 2px, transparent 2px 9px), linear-gradient(180deg, #F2CF98, #DDAE72);
+  box-shadow: inset 0 -5px 0 var(--wood), inset 0 3px 0 rgba(255, 240, 210, 0.7), 0 3px 6px rgba(40, 24, 10, 0.3);
+  text-shadow: 0 2px 0 rgba(255, 236, 200, 0.6);
+}
+.sk-input-bar[data-mode="steal"] .sk-input-letter { background: linear-gradient(180deg, #FFB9A8, var(--coral)); color: #fff; box-shadow: inset 0 -5px 0 var(--coral-dark), 0 0 16px rgba(231, 112, 94, 0.7); text-shadow: 0 2px 0 var(--coral-dark); }
+.sk-input-field {
+  min-width: 0; flex: 1; background: transparent; outline: none; border: 0;
+  font-family: var(--skin-font-display); font-weight: 800; font-size: 32px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink); caret-color: var(--amber);
+}
+.sk-input-field::placeholder { text-transform: none; letter-spacing: 0; font-size: 22px; color: var(--ink-soft); opacity: 0.6; }
+.sk-input-go { min-height: 58px; padding-left: 24px !important; padding-right: 24px !important; font-size: 20px !important; }
+@media (max-width: 640px) {
+  .sk-input-bar { min-height: 64px; gap: 8px; }
+  .sk-input-letter { width: 48px; height: 48px; font-size: 32px; }
+  .sk-input-field { font-size: 24px; }
+  .sk-input-go { min-height: 48px; padding-left: 16px !important; padding-right: 16px !important; }
+  .sk-input-prompt { font-size: 16px; }
+}
+/* An accepted word: the bar flares gold and gives a little bounce. */
+.sk-accept-flash { animation: sk-accept 650ms var(--ease-out); }
+@keyframes sk-accept {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.025); box-shadow: 0 0 0 4px var(--glow), 0 0 40px 10px rgba(255, 217, 138, 0.85), 0 5px 0 rgba(40, 24, 10, 0.4); border-color: var(--glow); }
+  100% { transform: scale(1); }
+}
+@keyframes sk-steal-glow { 50% { box-shadow: 0 0 0 4px rgba(231, 112, 94, 0.55), 0 0 34px 8px rgba(231, 112, 94, 0.6), 0 5px 0 rgba(40, 24, 10, 0.4); } }
+@keyframes sk-steal-throb { 50% { transform: scale(1.03); } }
+
+/* ---------- Word moments over the table ---------- */
+/* A played word: stamped big in gold, a burst of light and wool tufts behind it, then it floats off. */
+.sk-word-burst { position: relative; display: grid; place-items: center; animation: sk-burst-life 1300ms var(--ease-out) forwards; }
+.sk-word-burst-word {
+  position: relative; z-index: 1; font-family: var(--skin-font-display); font-weight: 800; letter-spacing: 0.06em; line-height: 1;
+  color: #FFF4DC; -webkit-text-stroke: 2px var(--wood-ink); paint-order: stroke fill;
+  text-shadow: 0 4px 0 var(--wood-ink), 0 0 18px rgba(255, 217, 138, 0.95), 0 0 42px rgba(255, 196, 90, 0.8);
+  animation: sk-burst-stamp 420ms var(--ease-spring) both;
+}
+.sk-word-burst-mine .sk-word-burst-word { color: var(--glow); }
+.sk-word-burst-ring {
+  position: absolute; width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 233, 170, 0.95) 0%, rgba(255, 196, 90, 0.5) 35%, transparent 70%);
+  animation: sk-burst-ring 700ms var(--ease-out) forwards;
+}
+.sk-word-burst-tuft {
+  position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--sheep-wool);
+  box-shadow: inset -2px -2px 0 var(--sheep-wool-dark), 0 0 6px rgba(255, 255, 255, 0.8);
+  animation: sk-burst-tuft 800ms var(--ease-out) forwards;
+}
+.sk-word-burst-by { margin-top: 4px; font-family: var(--skin-font-hand); font-size: 18px; color: var(--button-text); text-shadow: 0 1px 3px rgba(30, 18, 8, 0.9); }
+@keyframes sk-burst-stamp { 0% { transform: scale(2.2); opacity: 0; filter: blur(4px); } 60% { transform: scale(0.94); opacity: 1; filter: none; } 100% { transform: scale(1); } }
+@keyframes sk-burst-ring { 0% { transform: scale(0.2); opacity: 1; } 100% { transform: scale(3.2); opacity: 0; } }
+@keyframes sk-burst-tuft { 0% { transform: translate(0, 0) scale(0.4); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; } }
+@keyframes sk-burst-life { 0%, 70% { transform: none; opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
+/* A steal: a red banner slams in. A lost wool ball: a grey one tumbles down. */
+.sk-steal-banner {
+  padding: 8px 18px; border-radius: 14px; font-family: var(--skin-font-display); font-weight: 800; font-size: 24px; color: #fff;
+  background: linear-gradient(180deg, var(--coral), var(--coral-dark)); border: 3px solid #7A2A1C;
+  box-shadow: 0 6px 0 rgba(60, 20, 10, 0.5), 0 0 30px rgba(231, 112, 94, 0.7); text-shadow: 0 2px 0 #7A2A1C;
+  animation: sk-burst-stamp 380ms var(--ease-spring) both;
+}
+.sk-steal-call {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 22px; border-radius: 16px;
+  font-family: var(--skin-font-display); font-weight: 800; color: #fff; text-align: center;
+  background: linear-gradient(180deg, rgba(231, 112, 94, 0.96), rgba(184, 67, 47, 0.96)); border: 3px solid #7A2A1C;
+  box-shadow: 0 6px 0 rgba(60, 20, 10, 0.45), 0 0 36px rgba(231, 112, 94, 0.75); text-shadow: 0 2px 0 #7A2A1C;
+  animation: sk-steal-throb 0.8s ease-in-out infinite;
+}
+.sk-steal-call small { font-family: var(--skin-font-body); font-size: 15px; font-weight: 800; text-shadow: none; opacity: 0.95; }
+:root.reduce-motion .sk-word-burst, :root.reduce-motion .sk-word-burst *, :root.reduce-motion .sk-steal-call, :root.reduce-motion .sk-input-bar, :root.reduce-motion .sk-input-prompt-steal { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+
+/* ---------- The starting letter, hung under the carved board ---------- */
+.sk-letter-card {
+  display: flex; flex-direction: column; align-items: center; min-width: 96px; padding: 4px 12px 8px;
+  border-radius: 14px; background: linear-gradient(180deg, var(--paper), #F1E2C2); border: 3px solid var(--wood-dark);
+  box-shadow: inset 0 2px 0 #fff, 0 5px 0 rgba(40, 24, 10, 0.45), 0 0 0 6px rgba(255, 217, 138, 0.25), 0 10px 26px rgba(40, 24, 10, 0.45);
+  transition: transform 200ms var(--ease-out), border-color var(--t-fast);
+}
+.sk-letter-card-label { font-family: var(--skin-font-hand); font-size: 15px; line-height: 1; color: var(--ink-soft); }
+.sk-letter-card-letter {
+  font-family: var(--skin-font-display); font-weight: 800; font-size: 64px; line-height: 0.95; color: var(--wood-ink);
+  text-shadow: 0 3px 0 rgba(181, 127, 74, 0.45);
+}
+.sk-letter-card[data-trap] { border-color: var(--ice-dark); background: linear-gradient(180deg, #F2FAFF, var(--ice-light)); }
+.sk-letter-card[data-trap] .sk-letter-card-letter { color: #2E5A7E; }
+.sk-letter-card[data-steal] { border-color: var(--coral); animation: sk-steal-glow 0.8s ease-in-out infinite; }
+.sk-letter-card-clock { position: relative; display: block; width: 84px; height: 16px; margin-top: 4px; border-radius: 8px; overflow: hidden; background: rgba(59, 48, 40, 0.18); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25); }
+.sk-letter-card-clock i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 8px; transition: width 120ms linear, background var(--t-fast); }
+.sk-letter-card-clock i[data-level="ok"] { background: linear-gradient(180deg, #8FD18A, var(--cloth)); }
+.sk-letter-card-clock i[data-level="warn"] { background: linear-gradient(180deg, var(--flame-light), var(--amber)); }
+.sk-letter-card-clock i[data-level="red"] { background: linear-gradient(180deg, #FF9E8A, var(--coral-dark)); }
+.sk-letter-card-clock b { position: relative; display: block; text-align: center; font-family: var(--skin-font-body); font-size: 12px; font-weight: 900; line-height: 16px; color: var(--ink); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
+.sk-letter-pop { transform: scale(1.12); }
+@media (max-width: 640px) { .sk-letter-card { min-width: 76px; } .sk-letter-card-letter { font-size: 48px; } .sk-letter-card-clock { width: 66px; } }
+/* The bar itself shows focus (its border); the field inside needs no ring of its own. */
+:root[data-skin="painted"] .sk-input-field:focus, :root[data-skin="painted"] .sk-input-field:focus-visible { outline: none !important; box-shadow: none !important; }

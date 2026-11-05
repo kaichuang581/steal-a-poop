@@ -54,3 +54,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Hunt stays on the menu below it; its daily version is saved on the `daily-hunt` branch.
 - Hunt (approved by Brian, 2026-11-04): renamed from Daily Hunt and made unlimited: every run is a fresh random pack, and
   only the best run (most predators, then damage) is kept, in src/hunt/record.ts.
+- Last sheep standing (approved by Brian, 2026-11-04): an engine rules change. No points: no pile, no bank (rejected as
+  'no_bank'). Wool balls are lives (`player.lives`): running out of time costs one, none left freezes the sheep. A steal
+  (a valid word in the red last seconds of another sheep's turn) takes one wool ball from the sheep on turn; a bad steal
+  word costs nothing but starts a 1 s cooldown. Traps pay a wool ball. Rounds never end the game (each sheep takes
+  `turnsPerRound` turns, 16 s turns shrinking 2 s a round to 5 s); it ends the moment one sheep is left unfrozen.
+  Bots fumble more as turns shorten, sometimes hesitate into the red seconds, and run the clock out when they have no word.

@@ -19,6 +19,8 @@ export function useWordInput() {
   const [hint, setHint] = useState('');
   const [ideas, setIdeas] = useState<string[]>([]);
   const [fix, setFix] = useState<{ from: string; to: string } | null>(null);
+  // Bumps on every accepted word of yours, for the bar's flash.
+  const [acceptKey, setAcceptKey] = useState(0);
 
   const playing = game.phase === 'playing' && !!game.turn;
   const myTurn = playing && game.turn!.seat === mySeat;
@@ -45,10 +47,13 @@ export function useWordInput() {
     }
     setFix(null);
     if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
-    if (res?.accepted) setTyped('');
+    if (res?.accepted) {
+      setTyped('');
+      if (!res.reason) setAcceptKey((k) => k + 1);
+    }
   };
   const steal = () => {
-    if (!typed.trim()) return setHint('Type your word first, then press STEAL.');
+    if (!typed.trim()) return setHint(`Type a word starting with ${game.chainLetter.toUpperCase()} first.`);
     void send('steal');
   };
   const submit = () => {
@@ -64,13 +69,10 @@ export function useWordInput() {
     ? { kind: 'typo', text: fix.from, fix: fix.to }
     : hint
       ? { kind: 'invalid', text: hint }
-      : canSteal
-        ? { kind: 'info', text: 'Steal window: type your word, then press STEAL.' }
-        : null;
+      : null;
 
   return {
-    game, typed, onChange, submit, steal, message, ideas, learning, myTurn, canSteal,
-    bank: () => void act({ type: 'bank', seat: mySeat }),
+    game, typed, onChange, submit, steal, message, ideas, learning, myTurn, canSteal, acceptKey,
     hintIdeas: () => setIdeas(suggest(3)),
     useIdea: (w: string) => setTyped(w),
   };

@@ -8,7 +8,7 @@ import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
 import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
 import { buildDistance } from '../scene/distance';
-import { BARN, CAMERA, HEAP, SEAT_RING, SHEEP_SCALE, seatPosition, speakerShot } from '../scene/layout';
+import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, seatPosition, speakerShot } from '../scene/layout';
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
@@ -139,7 +139,7 @@ export function BarnTable(props: Props) {
     return () => clearTimeout(id);
   }, [pulseKey]);
   if (!w) return <Building />;
-  const { pile, letter, isTrap, stealOpen, secondsLeft } = props;
+  const { letter, isTrap, stealOpen, secondsLeft } = props;
   return (
     <div className="relative size-full">
       <Canvas
@@ -153,28 +153,23 @@ export function BarnTable(props: Props) {
       </Canvas>
       {/* Reduced motion: the camera cuts between speakers behind a 150 ms fade. */}
       <div ref={fadeEl} className="pointer-events-none absolute inset-0 z-[4]" style={{ background: 'var(--ink)', opacity: 0 }} aria-hidden="true" />
-      {/* The pile's paper tag, anchored to the scene point above the mound and never behind the input bar (plan V3.2 Part 3). */}
-      <div ref={tagEl} className="pointer-events-none absolute left-0 top-0 z-[25] flex flex-col items-center" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
-        <div
-          className="flex flex-col items-center"
-          style={{ transform: pop ? 'scale(1.15)' : 'scale(1)', transition: 'transform 200ms var(--ease-out)' }}
-          data-pile data-tour="pile" aria-label={`Pile ${pile} points`}
-        >
-          <span className="block size-2.5 rounded-full" style={{ background: 'var(--wood-ink)', boxShadow: '0 1px 0 var(--wood)' }} aria-hidden="true" />
-          <div className="sk-paper px-4 py-1 text-center leading-none">
-            <div className="sk-display" style={{ fontSize: 44, fontWeight: 800 }}>{pile}</div>
-            <div className="sk-hand text-base" style={{ color: 'var(--ink-soft)' }}>wool in the pile</div>
-          </div>
-        </div>
-      </div>
-      {/* The clock, just under the letter board (plan V3.2 Part 4). */}
+      {/* No points pile any more: the tag anchor stays (unused) so the projection code is unchanged. */}
+      <div ref={tagEl} className="hidden" aria-hidden="true" />
+      {/* The letter to start with, big and plain, hung just under the carved board, with the clock under it as a bar
+          that drains green, amber, then red (the steal window). Readable from across the room at any camera angle. */}
       <div ref={clockEl} className="pointer-events-none absolute left-0 top-0 z-[25]" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
         <div
-          className="sk-chip sk-num whitespace-nowrap"
-          style={{ fontSize: 22, fontWeight: 800, color: stealOpen ? 'var(--coral-dark)' : 'var(--ink)' }}
+          className={`sk-letter-card ${pop ? 'sk-letter-pop' : ''}`} data-steal={stealOpen || undefined} data-trap={isTrap || undefined}
           data-chain-tile data-tour="chain" aria-label={`Required starting letter ${letter.toUpperCase()}${isTrap ? ', a trap letter' : ''}`}
         >
-          {secondsLeft === null ? letter.toUpperCase() : `${secondsLeft.toFixed(1)}s`}
+          <span className="sk-letter-card-label">starts with</span>
+          <span className="sk-letter-card-letter">{letter.toUpperCase()}</span>
+          {secondsLeft !== null && (
+            <span className="sk-letter-card-clock">
+              <i style={{ width: `${Math.max(0, Math.min(1, props.fraction)) * 100}%` }} data-level={stealOpen ? 'red' : props.fraction > 0.45 ? 'ok' : 'warn'} />
+              <b>{secondsLeft.toFixed(1)}s</b>
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -190,9 +185,15 @@ function Projection({ anchors, pileHeight, margin }: { anchors: Anchors; pileHei
     const place = (el: HTMLDivElement | null, x: number, y: number, z: number, clamp: boolean) => {
       if (!el) return;
       v.set(x, y, z).project(camera);
-      const px = ((v.x + 1) / 2) * size.width;
+      let px = ((v.x + 1) / 2) * size.width;
       let py = ((1 - v.y) / 2) * size.height;
       if (clamp) py = Math.min(py, size.height - margin);
+      // In a close-up the board can leave the frame: the letter card then waits at the nearest edge, always readable.
+      if (!clamp) {
+        if (v.z > 1) { px = size.width / 2; py = 90; }
+        px = Math.min(Math.max(px, 70), size.width - 70);
+        py = Math.min(Math.max(py, 96), size.height - margin - 40);
+      }
       el.style.transform = `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0) translate(-50%, -50%)`;
     };
     place(anchors.tag.current, HEAP[0], PLATFORM_HEIGHT + pileHeight + 0.35, HEAP[2], true);
@@ -281,13 +282,14 @@ function SpeakerCamera({ speaker, n, phone, reduced, stealOpen, moments, fade }:
     if (moments.wolf && moments.wolf.key !== st.wolfKey) { st.wolfKey = moments.wolf.key; st.wolfAt = t; }
     if (moments.freeze && moments.freeze.key !== st.freezeKey) { st.freezeKey = moments.freeze.key; st.freezeAt = t; st.freezeSeat = moments.freeze.at; }
     const wolf = t - st.wolfAt < 1.3;
-    let seat = speaker ?? 0;
+    let seat: number | null = speaker;
     if (t - st.freezeAt < 2.4) seat = st.freezeSeat;
-    if (wolf) seat = 0;
-    const key = `${seat}/${n}/${phone}`;
+    // The wolf's run and the gaps between turns are seen from the wide home shot; every turn zooms on its speaker.
+    const home = wolf || seat === null;
+    const key = home ? `home/${phone}` : `${seat}/${n}/${phone}`;
     // A new shot starts only outside the steal window (the wolf's run is the window's own ending).
     if (key !== st.key && (!stealOpen || wolf)) {
-      const to = speakerShot(seat, n, phone);
+      const to = home ? homeShot(phone) : speakerShot(seat!, n, phone);
       const cut = reduced || !st.cur;
       st.from = cut ? to : st.cur;
       st.to = to;
@@ -309,7 +311,7 @@ function SpeakerCamera({ speaker, n, phone, reduced, stealOpen, moments, fade }:
       fov: from.fov + (to.fov - from.fov) * u,
     };
     // While a sheep has the floor the camera breathes on a slow 0.05 m ellipse.
-    const drift = !reduced && seat !== 0 && u >= 1 ? 0.05 : 0;
+    const drift = !reduced && !home && u >= 1 ? 0.05 : 0;
     const w = (t / 9) * Math.PI * 2;
     camera.position.set(st.cur.position[0] + Math.cos(w) * drift, st.cur.position[1] + Math.sin(w) * drift * 0.5, st.cur.position[2]);
     camera.lookAt(st.cur.target[0], st.cur.target[1], st.cur.target[2]);

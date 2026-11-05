@@ -32,13 +32,17 @@ export interface Player {
   personality: Personality | null;
   /** Bots bank once the pile reaches this value. 0 for the human. */
   bankThreshold: number;
-  /** Game-wide banked score. May go negative from penalties. */
+  /** Unused since the game became last-sheep-standing (no points); always 0. Kept so saved games and rooms still load. */
   banked: number;
-  /** Lives left: a turn that runs out costs one (normal games only). */
+  /** Wool balls: the sheep's lives. A turn that runs out costs one, a steal takes one; none left and the sheep freezes. */
   lives: number;
-  /** Timed out with no lives and no wool (banked <= 0): skipped for the rest of the game, cannot steal, ranks below every unfrozen player. */
+  /** Out of wool: skipped for the rest of the game, cannot steal. The last unfrozen sheep wins. */
   frozen: boolean;
-  /** Turns used this round. A round ends when every unfrozen player has used 5. */
+  /** When the sheep froze (game time), so later freezes rank above earlier ones. Null while it is still in. */
+  frozenAt: number | null;
+  /** A bad steal word blocks this sheep's next steal until this time. */
+  stealCooldownUntil: number;
+  /** Turns used this round. A round ends when every unfrozen player has used the round's turns. */
   turnsTaken: number;
   lastWord: string | null;
   steals: number;

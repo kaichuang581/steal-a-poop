@@ -8,8 +8,10 @@ export function rejectMessage(reason: string | undefined, chainLetter: string): 
     case 'modifier_no_e': return 'No E allowed this round.';
     case 'modifier_six_plus': return '6+ letters only this round.';
     case 'modifier_double_letter': return 'Needs a double letter this round.';
-    case 'outside_steal_window': return 'Steal window is the last 3 seconds.';
-    case 'frozen': return 'You are frozen: no more turns or steals this game.';
+    case 'outside_steal_window': return 'You can only steal when their timer turns red.';
+    case 'steal_cooldown': return 'Missed — wait a second before stealing again.';
+    case 'no_bank': return 'There’s no banking any more: just play a word.';
+    case 'frozen': return 'You’re frozen: out of wool, no more turns or steals.';
     default: return 'Not allowed right now.';
   }
 }

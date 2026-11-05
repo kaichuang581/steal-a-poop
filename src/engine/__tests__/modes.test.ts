@@ -20,11 +20,14 @@ describe('practice mode', () => {
     expect(humanTurn('practice').turn!.durationMs).toBe(25_000);
     expect(humanTurn('normal').turn!.durationMs).toBe(16_000);
   });
-  it('timeout costs nothing and the turn still passes', () => {
+  it('timeout costs the human nothing and the turn still passes', () => {
     const s = humanTurn('practice');
     const out = advance(s, ctx, s.turn!.endsAt);
-    expect(out.players[0].banked).toBe(0);
-    expect(out.events.at(-1)!.text).toContain('no penalty');
+    expect(out.players[0].lives).toBe(3);
+    expect(out.players[0].frozen).toBe(false);
+    expect(out.events.some((e) => e.kind === 'timeout' && e.seat === 0)).toBe(true);
+    expect(out.events.some((e) => e.kind === 'lifeLost')).toBe(false);
+    expect(out.turn!.seat).toBe(1);
   });
   it('an invalid word is rejected so the player can retry; nothing changes', () => {
     const s = humanTurn('practice');
@@ -37,30 +40,36 @@ describe('practice mode', () => {
     expect(ok.accepted).toBe(true);
     expect(ok.state.turn!.seat).toBe(1);
   });
-  it('a bad steal word is rejected so the player can retry', () => {
+  it('a bad steal word costs nothing; the player can retry after the 1 s cooldown', () => {
     const s = humanTurn('practice');
     const p = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
     const c = structuredClone(p);
     c.turn!.botActAt = null;
     c.turn!.stealPlans = [];
     const end = c.turn!.endsAt;
-    const bad = apply(c, ctx, { type: 'steal', seat: 0, word: 'nope' }, end - 1500);
-    expect(bad.accepted).toBe(false);
+    const bad = apply(c, ctx, { type: 'steal', seat: 0, word: 'nope' }, end - 2500);
+    expect(bad.accepted).toBe(true);
+    expect(bad.reason).toBeDefined();
+    expect(bad.state.players[0].lives).toBe(3);
+    expect(bad.state.turn!.seat).toBe(1);
+    const tooSoon = apply(bad.state, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 2000);
+    expect(tooSoon.accepted).toBe(false);
+    expect(tooSoon.reason).toBe('steal_cooldown');
     const good = apply(bad.state, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 1000);
     expect(good.state.players[0].steals).toBe(1);
   });
 });
 
 describe('tour mode', () => {
-  it('bots never bank, even above their threshold', () => {
+  it('bots never bank and the pile never grows', () => {
     const s = humanTurn('tour');
     const p = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
     const c = structuredClone(p);
-    c.pile = 500;
     c.players.forEach((q) => (q.bankThreshold = 1));
     const out = advance(c, ctx, c.turn!.startedAt + 3000);
+    expect(out.history.some((h) => h.kind === 'play' && h.seat === 1)).toBe(true);
     expect(out.history.some((h) => h.kind === 'bank')).toBe(false);
-    expect(out.pile).toBeGreaterThan(400);
+    expect(out.pile).toBe(0);
   });
   it('bots answer fast and nobody plans a steal', () => {
     const s = humanTurn('tour');
@@ -68,18 +77,22 @@ describe('tour mode', () => {
     expect(p.turn!.botActAt! - p.turn!.startedAt).toBeLessThanOrEqual(2200);
     expect(p.turn!.stealPlans).toEqual([]);
   });
-  it('after the human banks, the last bot runs into its steal window', () => {
+  it('once the human has played a word, the last bot runs into its steal window', () => {
     let s = humanTurn('tour');
     s = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
-    for (let t = start + 100; s.turn!.seat !== 0 && t < start + 20_000; t += 100) s = advance(s, ctx, t);
-    expect(s.turn!.seat).toBe(0); // bots 1-3 answered quickly; human still has their 25s
-    s = apply(s, ctx, { type: 'bank', seat: 0 }, s.turn!.startedAt + 100).state;
     const t0 = s.turn!.startedAt;
     s = advance(s, ctx, t0 + 5000); // bots 1 and 2 are quick
     expect(s.turn!.seat).toBe(3);
     const t = s.turn!;
     expect(t.botActAt! - t.startedAt).toBeGreaterThanOrEqual(3500);
     expect(t.botActAt!).toBeGreaterThan(t.endsAt - 3000); // lands inside the window
+  });
+  it('before the human has played a word, the last bot answers quickly', () => {
+    const s = humanTurn('tour');
+    s.turn = { ...s.turn!, seat: 2 };
+    const out = advance(s, ctx, s.turn.endsAt); // seat 2 times out (no wool in a tour); seat 3 starts
+    expect(out.turn!.seat).toBe(3);
+    expect(out.turn!.botActAt! - out.turn!.startedAt).toBeLessThanOrEqual(2200);
   });
 });
 
@@ -135,12 +148,15 @@ describe('10-player tables', () => {
     expect(new Set(g.players.map((p) => p.emoji)).size).toBe(10);
     expect(createGame({ seed: 'x', now: 0, humanName: 'Me', playerCount: 14, difficulty: 'easy' }, dict).players).toHaveLength(10);
   });
-  it('a 10-seat game runs to the end', () => {
+  it('a 10-seat game runs until one sheep is left', () => {
     let s = createGame({ seed: 'ten-sim', now: 0, humanName: 'h', playerCount: 10, difficulty: 'hard' }, dict);
     s.players[0].isHuman = false; s.players[0].difficulty = 'hard'; s.players[0].personality = 'random'; s.players[0].bankThreshold = 30;
     s = advance(s, ctx, 3_000_000);
     expect(s.phase).toBe('gameOver');
-    // Frozen players (out of lives) are skipped, so only unfrozen ones must have used every turn.
-    expect(s.players.every((p) => p.frozen || p.turnsTaken >= 5)).toBe(true);
+    const alive = s.players.filter((p) => !p.frozen);
+    expect(alive.length).toBeLessThanOrEqual(1);
+    expect(s.round).toBeGreaterThan(1);
+    if (alive.length === 1) expect(s.winners).toEqual([alive[0].id]);
+    expect(s.players.every((p) => p.frozen === (p.frozenAt !== null))).toBe(true);
   });
 });

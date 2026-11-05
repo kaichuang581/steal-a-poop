@@ -1,102 +1,79 @@
 import {
-  FAIL_PENALTY, FIRST_ROUND_TURN_MS, LAST_ROUND_TURN_MS, LETTER_BONUS, MIN_TURN_MS, RARITY_MULTIPLIER, STEAL_BONUS,
-  STEAL_WINDOW_MS, TRAP_PAYOUT, basePoints, letterBonus, rarityOf,
+  EXTRA_WOOL_CAP, FIRST_ROUND_TURN_MS, LAST_ROUND_TURN_MS, LIVES_PER_GAME, STEAL_COOLDOWN_MS, STEAL_WINDOW_MS, TURN_MS_STEP,
 } from '../engine';
-import type { Rarity } from '../engine';
+import type { RoundModifier } from '../engine';
 import { MODIFIER_INFO } from '../lib/modifiers';
 
-const SAMPLE = [
-  'cat', 'house', 'table', 'mother', 'jazz', 'quiz', 'xylophone', 'rhythm', 'myth', 'zephyr',
-  'kayak', 'buzzword', 'whizzing', 'vodka', 'jukebox', 'glossy', 'pizza', 'banjo', 'yacht', 'fjord',
-];
-const TIERS: Rarity[] = ['common', 'uncommon', 'rare'];
-const EXAMPLE = 'jazz';
-
-const examples = (tier: Rarity) => SAMPLE.filter((w) => rarityOf(w) === tier).slice(0, 4);
+/** The twists the engine can still deal (the points-only one is retired). */
+const TWISTS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter', 'double_points_fast'];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-5">
+    <section className="mb-4">
       <h3 className="mb-2 text-sm font-black uppercase tracking-wider text-amber-300">{title}</h3>
       {children}
     </section>
   );
 }
 
-/** Every number here comes from the engine constants and functions, so it cannot drift. */
+function Rule({ icon, children }: { icon: string; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-2 rounded-lg bg-white/5 p-2">
+      <span aria-hidden="true" className="shrink-0">{icon}</span>
+      <span>{children}</span>
+    </li>
+  );
+}
+
+/**
+ * The "How to play" rules card (kept under its old name so existing imports work). Numbers come from the engine
+ * constants, so it cannot drift.
+ */
 export function ScoringTable() {
-  const rarity = rarityOf(EXAMPLE);
-  const bonus = letterBonus(EXAMPLE);
-  const lengthPoints = Math.round(EXAMPLE.length * RARITY_MULTIPLIER[rarity]);
-  const bonusLetters = (value: number) =>
-    Object.entries(LETTER_BONUS).filter(([, v]) => v === value).map(([k]) => k.toUpperCase()).join(' ');
+  const red = STEAL_WINDOW_MS / 1000;
   return (
     <div className="text-sm text-white/85">
-      <Section title="Word points">
-        <p className="mb-2">
-          <b>length × rarity multiplier</b> (rounded), <b>plus letter bonuses</b>.
-        </p>
-        <p className="rounded-lg bg-white/5 p-2">
-          <b className="uppercase">{EXAMPLE}</b>: {EXAMPLE.length} letters × {RARITY_MULTIPLIER[rarity].toFixed(1)} ({rarity}) = {lengthPoints},
-          + {bonus} bonus = <b>{basePoints(EXAMPLE)} points</b>
-        </p>
-      </Section>
-
-      <Section title="Rarity tiers">
-        <table className="w-full text-left">
-          <thead className="text-xs uppercase text-white/50">
-            <tr><th className="py-1 pr-3">Tier</th><th className="pr-3">×</th><th>Examples</th></tr>
-          </thead>
-          <tbody>
-            {TIERS.map((t) => (
-              <tr key={t} className="border-t border-white/10">
-                <td className="py-1 pr-3 font-bold capitalize">{t}</td>
-                <td className="pr-3">{RARITY_MULTIPLIER[t].toFixed(1)}</td>
-                <td className="uppercase tracking-wide text-white/70">{examples(t).join(', ')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-2 text-xs text-white/55">
-          Rarity is an estimate from how common a word’s letters are, not from real word usage. Words made of
-          unusual letters, and very long words, rank higher.
-        </p>
-      </Section>
-
-      <Section title="Letter bonuses">
-        <ul className="grid grid-cols-2 gap-2">
-          <li className="rounded-lg bg-white/5 p-2"><b className="text-amber-300">+{LETTER_BONUS.x}</b> each: {bonusLetters(LETTER_BONUS.x)}</li>
-          <li className="rounded-lg bg-white/5 p-2"><b className="text-amber-300">+{LETTER_BONUS.y}</b> each: {bonusLetters(LETTER_BONUS.y)}</li>
-        </ul>
-        <p className="mt-2 text-xs text-white/55">Bonuses count every occurrence. X, Z, Q and J are also the trap letters.</p>
-      </Section>
-
-      <Section title="Round modifiers (one per round)">
+      <Section title="Your turn">
         <ul className="space-y-1">
-          {Object.values(MODIFIER_INFO).map((m) => (
-            <li key={m.label} className="flex gap-2 rounded-lg bg-white/5 p-2">
-              <span aria-hidden="true">{m.emoji}</span>
-              <span><b>{m.label}.</b> {m.detail}</span>
-            </li>
-          ))}
+          <Rule icon="🔤">Type a real word (3+ letters) that starts with the <b>chain letter</b>: the last letter of the word before.</Rule>
+          <Rule icon="↩️">A bad word just bounces. Try again while your timer runs. Clear typos get a suggested fix.</Rule>
+          <Rule icon="🧶">Run out of time and you <b>lose a wool ball</b>. No wool left and you <b>freeze solid</b>: you’re out.</Rule>
         </ul>
       </Section>
 
-      <Section title="Timer">
-        <p>
-          Turns get faster every round: {FIRST_ROUND_TURN_MS / 1000}s in the first round, down to {LAST_ROUND_TURN_MS / 1000}s in the last
-          (16s, 11s, 5s in a three-round game). The pile takes off 1s for every 10 points, never below {MIN_TURN_MS / 1000}s.
-          Under “Double points, −2s” turns are 2s shorter still. Longer piles mean less thinking time.
-        </p>
+      <Section title="Steal">
+        <ul className="space-y-1">
+          <Rule icon="🔴">When someone else’s timer <b>turns red</b> (their last {red} s), type a word and press <b>STEAL</b>.</Rule>
+          <Rule icon="🫳">First good word <b>takes one of their wool balls</b>, and the turn moves on.</Rule>
+          <Rule icon="⏳">A bad steal word costs nothing: wait {STEAL_COOLDOWN_MS / 1000} s and try again.</Rule>
+        </ul>
       </Section>
 
-      <Section title="Other numbers">
+      <Section title="Traps">
         <ul className="space-y-1">
-          <li className="rounded-lg bg-white/5 p-2"><b>Steal:</b> take the whole pile (including your word) and +{STEAL_BONUS}, during the last {STEAL_WINDOW_MS / 1000}s of someone else’s turn. Unlimited.</li>
-          <li className="rounded-lg bg-white/5 p-2"><b>Trap:</b> end on X, Z, Q or J. If the next player fails, you get +{TRAP_PAYOUT}.</li>
-          <li className="rounded-lg bg-white/5 p-2"><b>Timeout</b> (no word submitted): −{FAIL_PENALTY}. An invalid word costs nothing. You just retype it.</li>
-          <li className="rounded-lg bg-white/5 p-2"><b>Failed steal:</b> your whole banked score is halved, rounded down (33 → 16; −22 → −33). A clear typo gets a suggested fix instead.</li>
-          <li className="rounded-lg bg-white/5 p-2"><b>Burn:</b> any pile still unbanked at the end of a round is lost.</li>
+          <Rule icon="🪤">End a word on <b>X, Z, Q or J</b>. If the next sheep runs out of time, you get a wool ball.</Rule>
+        </ul>
+      </Section>
+
+      <Section title="Rounds">
+        <ul className="space-y-1">
+          <Rule icon="⏱️">
+            Each round every sheep takes 2 turns. Turns get {TURN_MS_STEP / 1000} s shorter each round:{' '}
+            {FIRST_ROUND_TURN_MS / 1000} s, {(FIRST_ROUND_TURN_MS - TURN_MS_STEP) / 1000} s,{' '}
+            {(FIRST_ROUND_TURN_MS - 2 * TURN_MS_STEP) / 1000} s … down to {LAST_ROUND_TURN_MS / 1000} s.
+          </Rule>
+          <Rule icon="🎲">
+            Rounds after the first add a twist:{' '}
+            {TWISTS.map((m) => MODIFIER_INFO[m].label).join(', ')}.
+          </Rule>
+        </ul>
+      </Section>
+
+      <Section title="Winning">
+        <ul className="space-y-1">
+          <Rule icon="🏆"><b>Last sheep standing wins.</b> The game ends when only one sheep isn’t frozen.</Rule>
+          <Rule icon="🐑">Everyone starts with {LIVES_PER_GAME} wool balls (unless the table says otherwise) and can hold up to {EXTRA_WOOL_CAP} extra.</Rule>
+          <Rule icon="🌱">Practice: easy bots, a longer timer and hints. You never lose wool there.</Rule>
         </ul>
       </Section>
     </div>

@@ -41,7 +41,8 @@ describe('previewBotTurn', () => {
         const late = s.turn!.botActAt! >= s.turn!.endsAt; // the clock runs out before this bot answers
         const seat = s.turn!.seat;
         const lastId = s.events.at(-1)?.id ?? -1;
-        s = advance(s, ctx, s.turn!.botActAt!);
+        // A bot that finds no word runs its clock out, so its move shows at the end of the turn.
+        s = advance(s, ctx, plan.kind === 'play' ? s.turn!.botActAt! : s.turn!.endsAt);
         const e = s.events.find((ev) => ev.id > lastId && ev.seat === seat)!;
         if (late) { expect(e.kind).toBe('timeout'); continue; }
         if (plan.kind === 'play') { expect(e.kind, JSON.stringify({ seed, step, plan, e })).toBe('play'); expect(e.word).toBe(plan.word); }

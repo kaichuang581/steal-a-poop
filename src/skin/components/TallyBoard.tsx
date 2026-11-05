@@ -1,23 +1,7 @@
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
-import { IceOverlay } from './Lives';
+import { IceOverlay, Lives } from './Lives';
 import { SheepIcon } from './SheepIcon';
-
-/** Wool-ball counter: one ball per 20 banked points (up to five), the last one partly wound. */
-function WoolBalls({ points }: { points: number }) {
-  const full = Math.max(0, Math.min(5, Math.floor(points / 20)));
-  const part = points > 0 && full < 5 ? (points % 20) / 20 : 0;
-  return (
-    <span className="flex items-center gap-0.5" aria-hidden="true">
-      {Array.from({ length: full + (part ? 1 : 0) }, (_, i) => (
-        <svg key={i} viewBox="0 0 12 12" width="12" height="12">
-          <circle cx="6" cy="6" r={i < full ? 5.5 : 2.5 + part * 3} fill="var(--paper-edge)" stroke="var(--wood)" strokeWidth="0.8" />
-          <path d="M2.5 4 Q6 6 9.5 3.5 M2.5 7.5 Q6 9.5 9.5 7" stroke="var(--wood)" strokeWidth="0.7" fill="none" />
-        </svg>
-      ))}
-    </span>
-  );
-}
 
 interface Props {
   players: PlayerView[];
@@ -29,13 +13,15 @@ interface Props {
   children?: ReactNode;
   /** Buttons row. */
   actions?: ReactNode;
+  /** Wool balls each sheep started with. */
+  maxLives?: number;
 }
 
-/** Wooden board with every player's banked total; rows light one by one; the winner glows. */
-export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, children, actions }: Props) {
-  const rows = players; // already in standings order (rankPlayers), so ties follow the engine's tie-break
-  const tie = isGameEnd && rows.length > 1 && rows[0].banked === rows[1].banked;
+/** Wooden board with every sheep's wool balls, in standings order; frozen sheep under ice; the last one standing glows. */
+export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, children, actions, maxLives = 3 }: Props) {
+  const rows = players; // already in standings order (rankPlayers): still standing first, then by how long they lasted
   const winners = new Set(winnerIds);
+  const left = rows.filter((p) => !p.frozen).length;
   return (
     <div
       className="sk-pop w-full max-w-md rounded-2xl p-3"
@@ -43,11 +29,18 @@ export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, 
       role={isGameEnd ? 'dialog' : 'status'} aria-modal={isGameEnd || undefined} aria-label={isGameEnd ? 'Game over' : `Round ${round} tally`}
     >
       <h2 className="sk-display text-center text-2xl" style={{ color: 'var(--button-text)' }}>
-        {isGameEnd ? (winners.size > 1 ? 'A shared win!' : `${rows.find((p) => winners.has(p.id))?.name ?? rows[0].name} wins!`) : `After round ${round}`}
+        {isGameEnd
+          ? `${rows.find((p) => winners.has(p.id))?.name ?? rows[0].name} is the last sheep standing!`
+          : `After round ${round}`}
       </h2>
-      {tie && longestWord && (
+      {!isGameEnd && (
         <p className="sk-hand mt-1 text-center" style={{ color: 'var(--glow)' }}>
-          Tie broken by the longest word: {longestWord.word.toUpperCase()}
+          {left} sheep still standing. Turns get faster now.
+        </p>
+      )}
+      {isGameEnd && longestWord && (
+        <p className="sk-hand mt-1 text-center" style={{ color: 'var(--glow)' }}>
+          Longest word: {longestWord.word.toUpperCase()}
         </p>
       )}
       <ol className="mt-2 space-y-1.5">
@@ -61,10 +54,9 @@ export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, 
             }}
           >
             <span className="sk-display w-5 text-center">{i + 1}</span>
-            <SheepIcon size={24} bare={p.banked <= 0} />
+            <SheepIcon size={24} bare={p.lives <= 1} />
             <span className="min-w-0 flex-1 truncate font-extrabold">{p.name}{p.isYou ? ' (you)' : ''}</span>
-            <WoolBalls points={p.banked} />
-            <span className="sk-display text-xl">{p.banked}</span>
+            {p.frozen ? <span className="sk-hand text-sm" style={{ color: 'var(--ink-soft)' }}>out</span> : <Lives lives={p.lives} max={maxLives} size={18} />}
             {p.frozen && <IceOverlay />}
           </li>
         ))}

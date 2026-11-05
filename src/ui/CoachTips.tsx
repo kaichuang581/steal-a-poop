@@ -55,12 +55,12 @@ export function CoachTips() {
   if (!current) return null;
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-24 z-20 flex justify-center px-3 sm:bottom-28 sm:justify-start sm:px-4">
-      <div className="pointer-events-auto flex max-w-md items-start gap-3 rounded-2xl border-2 border-sky-300 bg-[#12214a] p-3 shadow-xl" role="status">
+      <div className="coach-tip pointer-events-auto flex max-w-md items-start gap-3 rounded-2xl border-2 border-sky-300 bg-[#12214a] p-3 shadow-xl" role="status">
         <div className="min-w-0">
-          <div className="text-xs font-bold uppercase tracking-widest text-sky-300">Tip · {current.title}</div>
-          <p className="text-sm text-white/90">{current.text}</p>
+          <div className="coach-tip-label text-xs font-bold uppercase tracking-widest text-sky-300">Tip · {current.title}</div>
+          <p className="coach-tip-text text-sm text-white/90">{current.text}</p>
         </div>
-        <button onClick={() => setCurrent(null)} className="min-h-11 shrink-0 rounded-lg bg-white/10 px-3 text-sm font-bold">Got it</button>
+        <button onClick={() => setCurrent(null)} className="coach-tip-btn min-h-11 shrink-0 rounded-lg bg-white/10 px-3 text-sm font-bold">Got it</button>
       </div>
     </div>
   );

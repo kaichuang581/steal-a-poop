@@ -16,12 +16,12 @@ import { useRoomStore } from '../../state/roomStore';
 import { useSocial } from '../../state/socialStore';
 import { useStore } from '../../state/store';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
-import { Guide } from '../../ui/Guide';
 import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES, legalHref } from '../../ui/legal/legalLinks';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
+import { PaintedGuide } from '../components/PaintedGuide';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { TitleBoard } from '../components/TitleBoard';
@@ -174,8 +174,8 @@ export function PaintedHome() {
       {error && <p role="alert" className="sk-paper px-3 py-1 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
       {signedIn && rooms && (
         <div className="flex gap-2" role="group" aria-label="Community">
-          {([['friends', '👥 Friends'], ['boards', '🏆 Boards'], ['shop', '🛍️ Shop']] as const).map(([t, label]) => (
-            <WoodButton key={t} onClick={() => setHub(t)} className="flex-1 text-sm">{label}</WoodButton>
+          {([['friends', <><FriendsIcon size={16} /> Friends</>], ['boards', <><TrophyIcon size={16} /> Boards</>], ['shop', <><BagIcon size={16} /> Shop</>]] as const).map(([t, label]) => (
+            <WoodButton key={t} onClick={() => setHub(t)} className="inline-flex flex-1 items-center justify-center gap-1.5 text-sm">{label}</WoodButton>
           ))}
         </div>
       )}
@@ -271,8 +271,8 @@ export function PaintedHome() {
           <div className="sk-plate mr-auto" aria-label="Player">
             <SheepIcon size={26} />
             <span className="max-w-[12rem] truncate">{name}</span>
-            {streak > 0 && <span className="text-sm" style={{ color: 'var(--glow)' }}>🔥 {streak}</span>}
-            {signedIn && coins !== null && <span aria-label="Coins" className="text-sm">{coins} 🪙</span>}
+            {streak > 0 && <span className="flex items-center gap-1 text-sm" style={{ color: 'var(--glow)' }} aria-label={`${streak}-night streak`}><FlameIcon size={14} />{streak}</span>}
+            {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
         )}
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings"><GearIcon /></button>
@@ -308,7 +308,7 @@ export function PaintedHome() {
           {/* Bottom bar: button prompts, a rotating tip, the streak and the small print. */}
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3 text-sm font-bold" style={{ color: 'var(--button-text)', textShadow: '0 1px 2px rgba(30, 18, 8, 0.8)' }}>
             <div className="flex shrink-0 items-center gap-4">
-              <span className="sk-prompt"><span className="sk-key">↑</span><span className="sk-key">↓</span> Choose</span>
+              <span className="sk-prompt"><span className="sk-key"><ArrowUpIcon size={12} /></span><span className="sk-key"><ArrowDownIcon size={12} /></span> Choose</span>
               <span className="sk-prompt"><span className="sk-key">Enter</span> Select</span>
               {step === 'setup' && <span className="sk-prompt"><span className="sk-key">Esc</span> Back</span>}
             </div>
@@ -323,7 +323,7 @@ export function PaintedHome() {
 
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
-      {help && <Guide onClose={() => setHelp(false)} />}
+      {help && <PaintedGuide onClose={() => setHelp(false)} />}
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
       <DevLine />
     </main>

@@ -21,7 +21,7 @@
 .dr-canvas { display: block; image-rendering: pixelated; }
 .dr-ghost { position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; }
 .dr-help { position: relative; margin: 0; max-width: 640px; text-align: center; color: #9d93cf; font: 13px var(--skin-font-body), sans-serif; }
-.dr-quit { position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 10px; color: #ece6ff; background: #2a2656; border: 2px solid #4a4290; font-size: 16px; }
+.dr-quit { display: grid; place-items: center; position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 10px; color: #ece6ff; background: #2a2656; border: 2px solid #4a4290; font-size: 16px; }
 
 /* The wake-up card. */
 .dr-results {

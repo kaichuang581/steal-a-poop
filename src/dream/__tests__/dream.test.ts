@@ -104,7 +104,6 @@ describe('daily dream', () => {
   it('shares the count without the words', () => {
     const text = dreamShareText({ date: '2026-11-04', count: 23, longest: 9, streak: 3 });
     expect(text).toContain('23 sheep');
-    expect(text).toContain('🐑🐑🐑🐑🐑');
     expect(text).toContain('9 letters');
     expect(text).toContain('3-night streak');
   });

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
 import { IceOverlay, Lives } from './Lives';
+import { SnowCap } from './SnowCap';
 import { SheepIcon } from './SheepIcon';
 
 interface Props {
@@ -24,11 +25,12 @@ export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, 
   const left = rows.filter((p) => !p.frozen).length;
   return (
     <div
-      className="sk-pop w-full max-w-md rounded-2xl p-3"
-      style={{ background: 'var(--wood-dark)', boxShadow: 'inset 0 4px 0 var(--wood), var(--shadow-warm)' }}
+      className="sk-pop sk-tally relative w-full max-w-md p-4 pt-5"
       role={isGameEnd ? 'dialog' : 'status'} aria-modal={isGameEnd || undefined} aria-label={isGameEnd ? 'Game over' : `Round ${round} tally`}
     >
-      <h2 className="sk-display text-center text-2xl" style={{ color: 'var(--button-text)' }}>
+      <SnowCap className="sk-tally-snow" />
+      <span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" /><span className="sk-nail sk-nail-bl" /><span className="sk-nail sk-nail-br" />
+      <h2 className="sk-tally-title">
         {isGameEnd
           ? `${rows.find((p) => winners.has(p.id))?.name ?? rows[0].name} is the last sheep standing!`
           : `After round ${round}`}

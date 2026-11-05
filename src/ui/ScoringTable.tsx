@@ -35,34 +35,34 @@ export function ScoringTable() {
     <div className="text-sm text-white/85">
       <Section title="Your turn">
         <ul className="space-y-1">
-          <Rule icon="🔤">Type a real word (3+ letters) that starts with the <b>chain letter</b>: the last letter of the word before.</Rule>
-          <Rule icon="↩️">A bad word just bounces. Try again while your timer runs. Clear typos get a suggested fix.</Rule>
-          <Rule icon="🧶">Run out of time and you <b>lose a wool ball</b>. No wool left and you <b>freeze solid</b>: you’re out.</Rule>
+          <Rule icon="•">Type a real word (3+ letters) that starts with the <b>chain letter</b>: the last letter of the word before.</Rule>
+          <Rule icon="•">A bad word just bounces. Try again while your timer runs. Clear typos get a suggested fix.</Rule>
+          <Rule icon="•">Run out of time and you <b>lose a wool ball</b>. No wool left and you <b>freeze solid</b>: you’re out.</Rule>
         </ul>
       </Section>
 
       <Section title="Steal">
         <ul className="space-y-1">
-          <Rule icon="🔴">When someone else’s timer <b>turns red</b> (their last {red} s), type a word and press <b>STEAL</b>.</Rule>
-          <Rule icon="🫳">First good word <b>takes one of their wool balls</b>, and the turn moves on.</Rule>
-          <Rule icon="⏳">A bad steal word costs nothing: wait {STEAL_COOLDOWN_MS / 1000} s and try again.</Rule>
+          <Rule icon="•">When someone else’s timer <b>turns red</b> (their last {red} s), type a word and press <b>STEAL</b>.</Rule>
+          <Rule icon="•">First good word <b>takes one of their wool balls</b>, and the turn moves on.</Rule>
+          <Rule icon="•">A bad steal word costs nothing: wait {STEAL_COOLDOWN_MS / 1000} s and try again.</Rule>
         </ul>
       </Section>
 
       <Section title="Traps">
         <ul className="space-y-1">
-          <Rule icon="🪤">End a word on <b>X, Z, Q or J</b>. If the next sheep runs out of time, you get a wool ball.</Rule>
+          <Rule icon="•">End a word on <b>X, Z, Q or J</b>. If the next sheep runs out of time, you get a wool ball.</Rule>
         </ul>
       </Section>
 
       <Section title="Rounds">
         <ul className="space-y-1">
-          <Rule icon="⏱️">
+          <Rule icon="•">
             Each round every sheep takes 2 turns. Turns get {TURN_MS_STEP / 1000} s shorter each round:{' '}
             {FIRST_ROUND_TURN_MS / 1000} s, {(FIRST_ROUND_TURN_MS - TURN_MS_STEP) / 1000} s,{' '}
             {(FIRST_ROUND_TURN_MS - 2 * TURN_MS_STEP) / 1000} s … down to {LAST_ROUND_TURN_MS / 1000} s.
           </Rule>
-          <Rule icon="🎲">
+          <Rule icon="•">
             Rounds after the first add a twist:{' '}
             {TWISTS.map((m) => MODIFIER_INFO[m].label).join(', ')}.
           </Rule>
@@ -71,9 +71,9 @@ export function ScoringTable() {
 
       <Section title="Winning">
         <ul className="space-y-1">
-          <Rule icon="🏆"><b>Last sheep standing wins.</b> The game ends when only one sheep isn’t frozen.</Rule>
-          <Rule icon="🐑">Everyone starts with {LIVES_PER_GAME} wool balls (unless the table says otherwise) and can hold up to {EXTRA_WOOL_CAP} extra.</Rule>
-          <Rule icon="🌱">Practice: easy bots, a longer timer and hints. You never lose wool there.</Rule>
+          <Rule icon="•"><b>Last sheep standing wins.</b> The game ends when only one sheep isn’t frozen.</Rule>
+          <Rule icon="•">Everyone starts with {LIVES_PER_GAME} wool balls (unless the table says otherwise) and can hold up to {EXTRA_WOOL_CAP} extra.</Rule>
+          <Rule icon="•">Practice: easy bots, a longer timer and hints. You never lose wool there.</Rule>
         </ul>
       </Section>
     </div>

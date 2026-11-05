@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
+import { AcornIcon, LeafIcon, SeedlingIcon } from './Icons';
 import { IceOverlay, Lives } from './Lives';
 import { SheepIcon } from './SheepIcon';
 
-const BADGE = { easy: '🌱', medium: '🍃', hard: '🌰' } as const;
+const BADGE = { easy: <SeedlingIcon size={13} />, medium: <LeafIcon size={13} />, hard: <AcornIcon size={13} /> } as const;
 
 interface Props {
   player: PlayerView;
@@ -39,7 +40,7 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
         <div className="truncate text-sm font-extrabold" data-seat-name={player.id} title={title}>
           {badge && <span aria-hidden="true">{badge} </span>}
           {player.name}{player.isYou ? ' (you)' : ''}
-          {player.difficulty && !compact && <span className="ml-1" title={`${player.difficulty} bot`} aria-label={`${player.difficulty} bot`}>{BADGE[player.difficulty]}</span>}
+          {player.difficulty && !compact && <span className="ml-1 inline-block align-[-1px]" title={`${player.difficulty} bot`} role="img" aria-label={`${player.difficulty} bot`}>{BADGE[player.difficulty]}</span>}
         </div>
         {!compact && (
           <div className="truncate text-xs font-bold uppercase" style={{ color: 'var(--ink-soft)' }} data-seat-word={player.id}>

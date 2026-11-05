@@ -144,12 +144,10 @@ export interface DreamResult {
 
 /** The spoiler-free result to share. */
 export function dreamShareText(r: DreamResult): string {
-  const sheep = '🐑'.repeat(Math.min(10, Math.ceil(r.count / 5)));
   return [
     `Finish the Word · Counting Sheep ${r.date}`,
-    `🛏️ The farmer counted ${r.count} sheep${r.count >= 40 ? ' and drifted off 💤' : ' then woke up ⏰'}`,
-    sheep,
-    r.longest > 0 ? `📏 Longest word: ${r.longest} letters` : '',
-    r.streak > 1 ? `🔥 ${r.streak}-night streak` : '',
+    `The farmer counted ${r.count} sheep${r.count >= 40 ? ' and drifted off' : ' then woke up'}`,
+    r.longest > 0 ? `Longest word: ${r.longest} letters` : '',
+    r.streak > 1 ? `${r.streak}-night streak` : '',
   ].filter(Boolean).join('\n');
 }

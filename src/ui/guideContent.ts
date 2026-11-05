@@ -4,12 +4,12 @@ const red = STEAL_WINDOW_MS / 1000;
 const cooldown = STEAL_COOLDOWN_MS / 1000;
 
 export const BASICS = [
-  { art: '🅲 → 🅰 → 🆃', title: 'Chain words', text: 'On your turn, type a real word (3+ letters) that starts with the last letter of the previous word. A word that doesn’t work just bounces, so try again while your timer runs.' },
-  { art: `🧶 × ${LIVES_PER_GAME}`, title: 'Wool balls are lives', text: `Every sheep starts with ${LIVES_PER_GAME} wool balls. Run out of time and you lose one. No wool left and you freeze solid: you’re out.` },
-  { art: '🔴 🫳 🧶', title: 'Steal', text: `When someone else’s timer turns red (their last ${red} seconds), type a word and press STEAL. First good word takes one of their wool balls. A bad steal word costs nothing.` },
-  { art: '❌ 🪤 🧶', title: 'Traps', text: 'End a word on X, Z, Q or J. If the next sheep runs out of time, you get a wool ball.' },
-  { art: '⏱️ 16s → 5s', title: 'Faster every round', text: 'Each round every sheep takes 2 turns, and turns get 2 seconds shorter each round, down to 5. Later rounds add a twist.' },
-  { art: '🏆 🐑', title: 'Last sheep standing', text: 'The game ends the moment only one sheep is not frozen. That sheep wins.' },
+  { art: 'C → A → T', title: 'Chain words', text: 'On your turn, type a real word (3+ letters) that starts with the last letter of the previous word. A word that doesn’t work just bounces, so try again while your timer runs.' },
+  { art: `wool × ${LIVES_PER_GAME}`, title: 'Wool balls are lives', text: `Every sheep starts with ${LIVES_PER_GAME} wool balls. Run out of time and you lose one. No wool left and you freeze solid: you’re out.` },
+  { art: 'red = steal', title: 'Steal', text: `When someone else’s timer turns red (their last ${red} seconds), type a word and press STEAL. First good word takes one of their wool balls. A bad steal word costs nothing.` },
+  { art: 'X Z Q J', title: 'Traps', text: 'End a word on X, Z, Q or J. If the next sheep runs out of time, you get a wool ball.' },
+  { art: '16s → 5s', title: 'Faster every round', text: 'Each round every sheep takes 2 turns, and turns get 2 seconds shorter each round, down to 5. Later rounds add a twist.' },
+  { art: '1 left', title: 'Last sheep standing', text: 'The game ends the moment only one sheep is not frozen. That sheep wins.' },
 ];
 
 export const GLOSSARY: { term: string; def: string }[] = [

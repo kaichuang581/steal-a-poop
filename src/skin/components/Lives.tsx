@@ -38,19 +38,28 @@ export function WoolBall({ full, size = 14, anim = null }: { full: boolean; size
     <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true" style={{ overflow: 'visible' }}
       className={anim === 'lost' ? 'sk-wool-lost' : anim === 'gained' ? 'sk-wool-gained' : undefined}>
       <defs>
-        <radialGradient id="sk-wool-shade" cx="0.35" cy="0.3" r="0.8">
-          <stop offset="0" stopColor="#FFFDF6" />
-          <stop offset="0.55" stopColor="#F4E2C2" />
-          <stop offset="1" stopColor="#D9B98E" />
+        <radialGradient id="sk-wool-shade" cx="0.36" cy="0.3" r="0.85">
+          <stop offset="0" stopColor="#FFFDF7" />
+          <stop offset="0.5" stopColor="#F6E6C8" />
+          <stop offset="1" stopColor="#D8B486" />
         </radialGradient>
+        <clipPath id="sk-wool-clip"><circle cx="8" cy="8" r="6.4" /></clipPath>
       </defs>
-      <circle cx="8.4" cy="8.8" r="6.8" fill="rgba(59,40,20,0.35)" />
-      <circle cx="8" cy="8" r="6.6" fill="url(#sk-wool-shade)" stroke="#6B4423" strokeWidth="1.3" />
-      {/* Wound strands round the ball, and a loose end trailing off. */}
-      <path d="M2.6 6.4 Q8 3.4 13.4 6.8 M2 9.4 Q8 6 14 9.8 M3.4 12.4 Q8.6 9.4 12.8 12.6" stroke="#B57F4A" strokeWidth="1.25" fill="none" strokeLinecap="round" />
-      <path d="M6.2 1.8 Q3.8 8 6.6 14.2" stroke="#C9935C" strokeWidth="1.1" fill="none" strokeLinecap="round" />
-      <path d="M5 4 Q6.6 3 8.4 3.4" stroke="#fff" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-      <path d="M13.6 10.8 Q16 12.4 14.8 15.2" stroke="#6B4423" strokeWidth="1.1" fill="none" strokeLinecap="round" />
+      <ellipse cx="8.3" cy="14.6" rx="5.6" ry="1.3" fill="rgba(59,40,20,0.28)" />
+      <circle cx="8" cy="8" r="6.6" fill="url(#sk-wool-shade)" />
+      {/* Two crossing bands of wound yarn, clipped to the ball, then the outline over them. */}
+      <g clipPath="url(#sk-wool-clip)" fill="none" strokeLinecap="round">
+        <g stroke="#C08A55" strokeWidth="0.95">
+          <path d="M-1 5.6 Q8 1.8 17 6.2" /><path d="M-1 8.2 Q8 4.4 17 8.8" /><path d="M-1 10.8 Q8 7 17 11.4" />
+        </g>
+        <g stroke="#A8743F" strokeWidth="0.9" opacity="0.85">
+          <path d="M5.2 -1 Q2.4 8 6.2 17" /><path d="M8 -1 Q5.4 8 9 17" />
+        </g>
+        <path d="M3.6 4.6 Q6.4 2.8 9.4 3.4" stroke="#FFFFFF" strokeWidth="1.3" opacity="0.9" />
+      </g>
+      <circle cx="8" cy="8" r="6.6" fill="none" stroke="#6B4423" strokeWidth="1.2" />
+      {/* The loose end, with a little curl. */}
+      <path d="M13.4 11 Q15.8 12.2 15 14.2 Q14.4 15.4 13.2 14.8" stroke="#6B4423" strokeWidth="1" fill="none" strokeLinecap="round" />
     </svg>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { CloseIcon, FlameIcon } from '../components/Icons';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { checkNickname } from '../../lib/nickname';
@@ -342,7 +343,7 @@ export function HuntScreen() {
           {fxKind === 'meAttack' && step?.text && <div key={fx!.key} className="gb-word" aria-hidden="true">{typedWord(step.text)}</div>}
           {fxKind === 'foeAttack' && <div key={fx!.key} className="gb-claw" aria-hidden="true" />}
           {fxKind === 'heal' && <div key={fx!.key} className="gb-sparkle" aria-hidden="true" />}
-          {run.peppered && choosing && <div className="gb-pepper" aria-hidden="true">🌶</div>}
+          {run.peppered && choosing && <div className="gb-pepper" aria-hidden="true"><FlameIcon size={10} /></div>}
 
           {/* The predator's song: the stage darkens, arrows light on the beat, each rule pops up as a sign. */}
           {mode.m === 'announce' && (
@@ -411,7 +412,7 @@ export function HuntScreen() {
           )}
         </div>
       </div>
-      <button className="gb-quit" onClick={close} aria-label="Leave the hunt">✕</button>
+      <button className="gb-quit" onClick={close} aria-label="Leave the hunt"><CloseIcon size={16} /></button>
       <p className="gb-help" aria-hidden="true">Arrow keys move · Enter picks · Esc goes back · type your word in FIGHT</p>
     </main>
   );

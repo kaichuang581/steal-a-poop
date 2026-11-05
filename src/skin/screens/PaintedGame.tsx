@@ -1,3 +1,4 @@
+import { shareCard } from '../share/card';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { previewBotTurn, rankPlayers, startingWool, summarize, utcDateKey } from '../../engine';
@@ -317,14 +318,22 @@ function Results({ players }: { players: PlayerView[] }) {
   const longest = stats.longestWord ? { word: stats.longestWord.word, playerId: String(stats.longestWord.seat) } : undefined;
 
   const place = players.findIndex((p) => p.isYou) + 1;
+  const steals = game.history.filter((h) => h.kind === 'steal' && h.word);
+  const best = [...steals].sort((a, b) => (b.word?.length ?? 0) - (a.word?.length ?? 0))[0];
+  const bestLine = best ? `Best steal: ${game.players[best.seat].name} took a wool ball with ${best.word!.toUpperCase()} (round ${best.round})` : '';
   const share = async () => {
     const text = [
       `Finish the Word${mode === 'daily' && dailyDate ? ` · Daily ${dailyDate}` : ''}`,
       place === 1 ? `Last sheep standing out of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
       `${me.steals} steal${me.steals === 1 ? '' : 's'} · longest word ${me.longestWord.length} letters`,
+      bestLine,
       mode === 'daily' && streak > 1 ? `${streak}-day streak` : '',
     ].filter(Boolean).join('\n');
-    try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
+    await shareCard({
+      title: 'Finish the Word',
+      headline: place === 1 ? `Last sheep standing of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
+      lines: [`${me.steals} steal${me.steals === 1 ? '' : 's'} · longest word ${me.longestWord.length} letters`, bestLine].filter(Boolean),
+    }, text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -357,6 +366,7 @@ function Results({ players }: { players: PlayerView[] }) {
             </div>
           ))}
         </dl>
+        {best && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>{bestLine}</p>}
         {mode === 'room' && <RewardBanner />}
         {mode === 'practice' && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>Practice game: you never lose wool here.</p>}
         {mode === 'daily' && (

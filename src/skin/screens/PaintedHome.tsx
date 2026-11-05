@@ -163,7 +163,7 @@ export function PaintedHome() {
   ];
   const tables = (
     <div className="flex flex-col gap-3" key="tables">
-      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} />
+      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
       {dictStatus === 'error' && (
         <PaperPanel role="alert" className="p-3 text-center">
           <p className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>The word list did not load. Check your connection, then try again.</p>

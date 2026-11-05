@@ -21,7 +21,11 @@ export interface MenuItem {
  * item is focused or hovered. Arrow keys (and W/S) move, Enter or Space picks, Home/End jump. The focused item's
  * caption shows below, so the labels can stay short.
  */
-export function GameMenu({ items, label, compact = false, autoFocus = false }: { items: MenuItem[]; label: string; compact?: boolean; autoFocus?: boolean }) {
+export function GameMenu({ items, label, compact = false, autoFocus = false, keys = false }: {
+  items: MenuItem[]; label: string; compact?: boolean; autoFocus?: boolean;
+  /** Listen for the arrow keys, W/S, Home/End and Enter anywhere on the page, not only when the menu has focus. */
+  keys?: boolean;
+}) {
   const [active, setActive] = useState(() => Math.max(0, items.findIndex((i) => !i.disabled)));
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const enabled = items.map((it, i) => (it.disabled ? -1 : i)).filter((i) => i >= 0);
@@ -36,15 +40,42 @@ export function GameMenu({ items, label, compact = false, autoFocus = false }: {
     const at = enabled.indexOf(active);
     move(enabled[(at + dir + enabled.length) % enabled.length]);
   };
-  const onKey = (e: KeyboardEvent) => {
+  const onKey = (e: Pick<KeyboardEvent, 'key' | 'preventDefault'>) => {
     const k = e.key;
     if (k === 'ArrowDown' || k === 's' || k === 'S') step(1);
     else if (k === 'ArrowUp' || k === 'w' || k === 'W') step(-1);
     else if (k === 'Home') move(enabled[0]);
     else if (k === 'End') move(enabled[enabled.length - 1]);
-    else return;
+    else return false;
     e.preventDefault();
+    return true;
   };
+
+  // Keys anywhere on the screen drive the menu (clicking still works too): the arrows move, Enter or Space picks
+  // the item in focus. Typing in a field, a key with a modifier, or an open dialog leaves the keys alone.
+  const latest = useRef({ onKey, items, active });
+  latest.current = { onKey, items, active };
+  useEffect(() => {
+    if (!keys) return;
+    const handler = (e: globalThis.KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.closest('input, textarea, select, [contenteditable="true"]'))) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
+      const { onKey: handle, items: list, active: at } = latest.current;
+      if (handle(e)) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        // A focused button clicks itself on Enter; only pick for the player when focus is elsewhere.
+        if (t && t.closest('button, a')) return;
+        const it = list[at];
+        if (!it || it.disabled) return;
+        e.preventDefault();
+        it.onSelect();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [keys]);
 
   // The item under the cursor can become disabled (the word list still loading): keep the lantern on a live one.
   useEffect(() => {
@@ -86,7 +117,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false }: {
   // Play is the big sign on its own; everything else sits on a dark wooden board under it, with the caption for the
   // item in focus along the board's foot.
   return (
-    <nav aria-label={label} className={`sk-menu ${compact ? 'sk-menu-compact' : ''}`} onKeyDown={onKey}>
+    <nav aria-label={label} className={`sk-menu ${compact ? 'sk-menu-compact' : ''}`} onKeyDown={keys ? undefined : (e) => { onKey(e); }}>
       <ul className="flex flex-col">{items.slice(0, 1).map((it) => item(it, 0))}</ul>
       <div className="sk-menu-board">
         <ul className="flex flex-col">{items.slice(1).map((it, k) => item(it, k + 1))}</ul>

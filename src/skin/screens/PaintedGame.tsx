@@ -180,7 +180,7 @@ export function PaintedGame() {
   };
 
   return (
-    <div ref={rootRef} className="relative flex h-full flex-col overflow-hidden" data-steal-open={view.stealOpen}>
+    <div ref={rootRef} className="sk-swoop-in relative flex h-full flex-col overflow-hidden" data-steal-open={view.stealOpen}>
       {hit > 0 && <div key={hit} className="sk-steal-flash" aria-hidden="true" />}
       <div className="absolute inset-0" data-table>
         <BarnTable

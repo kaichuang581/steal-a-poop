@@ -31,6 +31,7 @@ import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
+import { AvatarButtonIcon, FireIcon } from '../components/PixelIcons';
 import { PaintedSettings } from './PaintedSettings';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 
@@ -274,11 +275,11 @@ export function PaintedHome() {
           <div className="sk-plate mr-auto" aria-label="Player">
             <SheepIcon size={26} />
             <span className="max-w-[12rem] truncate">{name}</span>
-            {streak > 0 && <span className="text-sm" style={{ color: 'var(--glow)' }}>🔥 {streak}</span>}
+            {streak > 0 && <span className="text-sm" style={{ color: 'var(--glow)' }}><FireIcon size={14} /> {streak}</span>}
             {signedIn && coins !== null && <span aria-label="Coins" className="text-sm">{coins} 🪙</span>}
           </div>
         )}
-        <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar">Avatar</button>
+        <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar"><AvatarButtonIcon /></button>
         {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings"><GearIcon /></button>
         <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>

@@ -1,3 +1,4 @@
+import { FireIcon } from '../skin/components/PixelIcons';
 import { LEGAL_TITLES, legalHref } from './legal/legalLinks';
 import { authEnabled } from '../auth/config';
 import { useAuth } from '../auth/authStore';
@@ -135,7 +136,7 @@ export function StartScreen() {
                 Daily Table <span className="text-sm font-bold">· one attempt</span>
               </button>
             )}
-            {streak > 0 && <p className="text-center text-sm text-amber-200">🔥 {streak}-day streak</p>}
+            {streak > 0 && <p className="text-center text-sm text-amber-200"><FireIcon size={14} /> {streak}-day streak</p>}
             {getServerUrl() && (
               <button
                 onClick={() => {

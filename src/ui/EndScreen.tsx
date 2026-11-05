@@ -1,3 +1,4 @@
+import { FireIcon } from '../skin/components/PixelIcons';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { rankPlayers, summarize } from '../engine';
@@ -77,7 +78,7 @@ export function EndScreen() {
         </dl>
         {mode === 'room' && <RewardBanner />}
         {mode === 'practice' && <p className="mt-3 text-center text-sm text-emerald-200">Practice game: no penalties were applied.</p>}
-        {mode === 'daily' && <p className="mt-3 text-center text-sm text-amber-200">🔥 Daily streak: {streak}</p>}
+        {mode === 'daily' && <p className="mt-3 text-center text-sm text-amber-200"><FireIcon size={14} /> Daily streak: {streak}</p>}
         <div className="mt-4 flex flex-wrap gap-2">
           {(mode === 'quick' || mode === 'practice') && (
             <button onClick={rematch} className="min-h-12 flex-1 rounded-xl bg-emerald-500 px-4 font-black text-emerald-950">Rematch</button>

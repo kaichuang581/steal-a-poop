@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { previewBotTurn, rankPlayers, summarize, utcDateKey } from '../../engine';
 import { buildShareText } from '../../lib/share';
 import { useStore } from '../../state/store';
+import { ChainIcon, ChatIcon, RulesIcon, SoundIcon } from '../components/PixelIcons';
 import { ChatPanel } from '../../ui/ChatPanel';
 import { CoachTips } from '../../ui/CoachTips';
 import { useGameLoop, useIsMobile } from '../../ui/hooks';
@@ -198,10 +199,10 @@ export function PaintedGame() {
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1">
-          <Chip onClick={() => setSheet('cheat')} aria-label="Rules, scoring cheat sheet">Rules</Chip>
-          <Chip onClick={() => setSheet('chain')} aria-label="Chain history">Chain</Chip>
-          {storeMode === 'room' && <Chip onClick={() => setSheet('chat')} aria-label="Room chat">Chat</Chip>}
-          <Chip onClick={toggleMute} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}>{muted ? 'Muted' : 'Sound'}</Chip>
+          <Chip onClick={() => setSheet('cheat')} aria-label="Rules, scoring cheat sheet"><RulesIcon /></Chip>
+          <Chip onClick={() => setSheet('chain')} aria-label="Chain history"><ChainIcon /></Chip>
+          {storeMode === 'room' && <Chip onClick={() => setSheet('chat')} aria-label="Room chat"><ChatIcon /></Chip>}
+          <Chip onClick={toggleMute} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}><SoundIcon muted={muted} /></Chip>
           <Chip onClick={() => setSheet('leave')} aria-label="Leave game">✕</Chip>
         </div>
       </header>

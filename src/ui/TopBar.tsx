@@ -3,6 +3,7 @@ import { MODIFIER_INFO } from '../lib/modifiers';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
 
+import { ChainIcon, ChatIcon, RulesIcon, ScoresIcon, SoundIcon } from '../skin/components/PixelIcons';
 interface Props { onScore?: () => void; onChain?: () => void; onCheat: () => void; onChat?: () => void }
 
 export function TopBar({ onScore, onChain, onCheat, onChat }: Props) {
@@ -34,14 +35,14 @@ export function TopBar({ onScore, onChain, onCheat, onChat }: Props) {
       <div className="ml-auto hidden text-xs text-white/70 sm:ml-0 sm:block">{left} turns left</div>
       {onChat && (
         <button className={`${btn} relative`} onClick={onChat} aria-label={unread ? `Room chat, ${unread} new` : 'Room chat'}>
-          Chat{unread > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-xs font-black">{Math.min(unread, 99)}</span>}
+          <ChatIcon />{unread > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-xs font-black">{Math.min(unread, 99)}</span>}
         </button>
       )}
-      <button className={btn} onClick={onCheat} aria-label="Rules, scoring cheat sheet" title="Scoring cheat sheet">Rules</button>
-      {onScore && <button className={btn} onClick={onScore} aria-label="Scores, scoreboard">Scores</button>}
-      {onChain && <button className={btn} onClick={onChain} aria-label="Chain history">Chain</button>}
+      <button className={btn} onClick={onCheat} aria-label="Rules, scoring cheat sheet" title="Scoring cheat sheet"><RulesIcon /></button>
+      {onScore && <button className={btn} onClick={onScore} aria-label="Scores, scoreboard"><ScoresIcon /></button>}
+      {onChain && <button className={btn} onClick={onChain} aria-label="Chain history"><ChainIcon /></button>}
       <button className={btn} onClick={toggleMute} aria-label={muted ? 'Muted, press to unmute' : 'Sound, press to mute'} aria-pressed={muted}>
-        {muted ? 'Muted' : 'Sound'}
+        <SoundIcon muted={muted} />
       </button>
       <button className={btn} onClick={() => setLeaving(true)} aria-label="Leave game">✕</button>
       {leaving && (

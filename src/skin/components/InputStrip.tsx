@@ -1,3 +1,4 @@
+import { HintIcon } from './PixelIcons';
 import { useEffect, useRef } from 'react';
 import type { MouseEvent } from 'react';
 import type { MessageView } from '../model/types';
@@ -36,7 +37,7 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, onChange, onPlay,
         <MessageSlip message={message} />
         {hints && hints.ideas.length > 0 && (
           <div className="sk-paper sk-pop mb-1 flex flex-wrap items-center justify-center gap-1.5 px-3 py-2" aria-label="Word ideas">
-            <span className="sk-hand" style={{ color: 'var(--ink-soft)' }}>try:</span>
+            <span className="sk-hand" style={{ color: 'var(--ink-soft)' }}><HintIcon size={16} /></span>
             {hints.ideas.map((w) => (
               <button key={w} onMouseDown={keep} onClick={() => hints.onPick(w)} className="sk-chip uppercase">{w}</button>
             ))}
@@ -74,7 +75,7 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, onChange, onPlay,
             <WoodButton onMouseDown={keep} onClick={onPlay} disabled={!myTurn} className="flex-1 sm:flex-none">Play</WoodButton>
           )}
           {hints && (
-            <WoodButton onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn && !stealOpen} aria-label="Hint" className="px-3">Hint</WoodButton>
+            <WoodButton onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn && !stealOpen} aria-label="Hint" className="px-3"><HintIcon size={16} /></WoodButton>
           )}
           <ClothButton onMouseDown={keep} onClick={onBank} disabled={!myTurn} data-tour="bank" className="flex-1 sm:flex-none">
             Bank <span className="sk-num">{pile}</span>

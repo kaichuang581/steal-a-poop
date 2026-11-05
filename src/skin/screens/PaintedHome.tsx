@@ -179,7 +179,7 @@ export function PaintedHome() {
       {signedIn && rooms && (
         <div className="flex gap-2" role="group" aria-label="Community">
           {([['friends', '👥', 'Friends'], ['boards', '🏆', 'Boards'], ['shop', '🛍️', 'Shop']] as const).map(([t, ico, label]) => (
-            <WoodButton key={t} onClick={() => setHub(t)} className="flex-1 text-sm" aria-label={label} title={label}><Px e={ico} size={20} /></WoodButton>
+            <WoodButton key={t} onClick={() => setHub(t)} className="flex-1 text-sm" aria-label={`${ico} ${label}`} title={label}><Px e={ico} size={20} /></WoodButton>
           ))}
         </div>
       )}

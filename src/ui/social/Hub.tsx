@@ -33,7 +33,7 @@ export function Hub({ initial, onClose }: { initial: HubTab; onClose: () => void
         </div>
         <div className="mb-3 flex gap-1" role="tablist" aria-label="Sections">
           {TABS.map(([t, ico, label]) => (
-            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`min-h-11 flex-1 rounded-lg px-2 text-sm font-bold ${tab === t ? 'bg-amber-400 text-amber-950' : 'bg-white/10'}`} aria-label={label} title={label}><Px e={ico} size={20} /></button>
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`min-h-11 flex-1 rounded-lg px-2 text-sm font-bold ${tab === t ? 'bg-amber-400 text-amber-950' : 'bg-white/10'}`} aria-label={`${ico} ${label}`} title={label}><Px e={ico} size={20} /></button>
           ))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">

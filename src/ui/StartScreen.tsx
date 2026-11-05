@@ -159,7 +159,7 @@ export function StartScreen() {
             {authEnabled() && authStatus === 'ready' && getServerUrl() && (
               <div className="flex gap-2" role="group" aria-label="Community">
                 {([['friends', '👥', 'Friends'], ['boards', '🏆', 'Boards'], ['shop', '🛍️', 'Shop']] as const).map(([t, ico, label]) => (
-                  <button key={t} onClick={() => setHub(t)} className="min-h-12 flex-1 rounded-xl bg-white/10 text-sm font-bold hover:bg-white/15" aria-label={label} title={label}><Px e={ico} size={20} /></button>
+                  <button key={t} onClick={() => setHub(t)} className="min-h-12 flex-1 rounded-xl bg-white/10 text-sm font-bold hover:bg-white/15" aria-label={`${ico} ${label}`} title={label}><Px e={ico} size={20} /></button>
                 ))}
                 {coins !== null && <span aria-label="Coins" className="flex min-h-12 items-center rounded-xl bg-black/30 px-3 font-black">{coins} <Px e="🪙" /></span>}
               </div>

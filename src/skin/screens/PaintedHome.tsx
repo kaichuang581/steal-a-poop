@@ -22,7 +22,7 @@ import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
 import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
 import { PaintedGuide } from '../components/PaintedGuide';
-import { PixelTag } from '../components/PixelTag';
+import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { TitleBoard } from '../components/TitleBoard';
@@ -140,24 +140,24 @@ export function PaintedHome() {
     dream
       ? {
         id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
-        badge: dream.status === 'done' ? <PixelTag tone="gold">{dream.count ?? 0} sheep</PixelTag> : <PixelTag tone="gray">used</PixelTag>,
+        badge: dream.status === 'done' ? <MenuTag tone="gold">{dream.count ?? 0} sheep</MenuTag> : <MenuTag tone="gray">used</MenuTag>,
         disabled: dream.status !== 'done', onSelect: shareDream,
         caption: `The farmer is up for the day. Tonight's dream starts at ${timeOfNext}.`,
       }
       : {
-        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? <PixelTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</PixelTag> : <PixelTag tone="gold">daily</PixelTag>, disabled: !ready,
+        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</MenuTag> : <MenuTag tone="gold">daily</MenuTag>, disabled: !ready,
         caption: 'Keep the farmer asleep: type words with each fence\'s letters so the sheep clears it. One dream a night.',
         onSelect: () => useDreamUi.getState().openDream(false),
       },
     {
-      id: 'hunt', label: 'Hunt', badge: huntBest ? <PixelTag tone="green">best {huntBest.defeated}</PixelTag> : <PixelTag tone="green">new</PixelTag>, disabled: !ready,
+      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
       caption: 'Fight off predator after predator with words. Hunt as often as you like.',
       onSelect: () => useHuntUi.getState().openHunt(),
     },
     { id: 'practice', label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {
-      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : <PixelTag tone="gray">soon</PixelTag>, disabled: !rooms, onSelect: openRooms,
+      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : <MenuTag tone="gray">soon</MenuTag>, disabled: !rooms, onSelect: openRooms,
       caption: rooms ? '4 to 10 people in the big barn.' : 'Rooms open when the game server is live.',
     },
   ];
@@ -270,7 +270,7 @@ export function PaintedHome() {
           <div className="sk-plate mr-auto" aria-label="Player">
             <span className="sk-plate-avatar" aria-hidden="true"><SheepIcon size={24} /></span>
             <span className="max-w-[12rem] truncate">{name}</span>
-            {streak > 0 && <PixelTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</PixelTag>}
+            {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
         )}

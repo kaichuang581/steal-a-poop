@@ -703,47 +703,12 @@
 /* Badges follow their label instead of floating at the far edge. */
 .sk-home .sk-menu-board .sk-menu-badge { margin-left: 4px; }
 
-/* ---------- Pixel pieces: the menu panel and small tags, drawn as 9-slice pixel art ---------- */
-.sk-pixel-panel {
-  border-style: solid; border-width: 12px; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Crect x='2' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='3' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='4' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='5' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='6' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='7' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='8' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='9' y='0' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%231E140D'/%3E%3Crect x='2' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='4' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='5' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='6' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='7' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='8' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='9' y='1' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='10' y='1' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='2' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='2' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='4' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='6' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='7' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='8' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='9' y='2' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='10' y='2' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='2' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='3' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='3' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='3' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='5' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='7' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='8' y='3' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='3' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='3' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='3' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='4' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='4' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='4' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='4' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='4' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='5' y='4' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='6' y='4' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='7' y='4' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='8' y='4' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='4' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='4' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='5' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='5' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='5' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='5' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='5' y='5' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='6' y='5' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='8' y='5' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='5' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='5' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='6' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='6' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='6' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='5' y='6' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='6' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='6' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='6' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='7' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='7' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='7' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='7' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%233E2A1C' fill-opacity='0.93'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='7' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='8' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='8' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='8' width='1' height='1' fill='%23C99A62'/%3E%3Crect x='3' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='4' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%232A1B11'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='8' width='1' height='1' fill='%231E140D'/%3E%3Crect x='0' y='9' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='9' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='2' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='3' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='4' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%236B4423'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='11' y='9' width='1' height='1' fill='%231E140D'/%3E%3Crect x='1' y='10' width='1' height='1' fill='%231E140D'/%3E%3Crect x='2' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='3' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='4' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='5' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='6' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%239A6A3E'/%3E%3Crect x='10' y='10' width='1' height='1' fill='%231E140D'/%3E%3Crect x='2' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='3' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='4' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='5' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='6' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='7' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='8' y='11' width='1' height='1' fill='%231E140D'/%3E%3Crect x='9' y='11' width='1' height='1' fill='%231E140D'/%3E%3C/svg%3E") 4 fill / 12px / 0 stretch; image-rendering: pixelated;
-}
-.sk-pixel-tag {
-  display: inline-flex; align-items: center; gap: 4px; padding: 0 3px; border-style: solid; border-width: 6px; image-rendering: pixelated;
-  font-family: 'DotGothic16', monospace; font-size: 12px; line-height: 12px; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
-}
-.sk-pixel-tag[data-tone="gold"] { color: #5B3A1E; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%235B3A1E'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%235B3A1E'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%23FFD98A'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23FFF0C4'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%23E2A94F'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
-.sk-pixel-tag[data-tone="green"] { color: #1E3A24; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%23234430'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%23234430'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%238CC58F'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23C4E8C0'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%235E9A66'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
-.sk-pixel-tag[data-tone="gray"] { color: #3B3028; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%234E4438'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%234E4438'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%23C9BEAA'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23E6DDCC'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%23A3977F'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
-.sk-pixel-tag[data-tone="flame"] { color: #5A220A; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%236E2E10'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%236E2E10'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%23FFB067'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23FFDDB0'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%23E07A35'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
-.sk-pixel-tag[data-tone="ice"] { color: #1F4A66; border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='5' height='7' fill='%2324506E'/%3E%3Crect x='0' y='1' width='7' height='5' fill='%2324506E'/%3E%3Crect x='1' y='1' width='5' height='5' fill='%23BFE3F5'/%3E%3Crect x='1' y='1' width='5' height='1' fill='%23E8F6FF'/%3E%3Crect x='1' y='5' width='5' height='1' fill='%238CC3E3'/%3E%3C/svg%3E") 2 fill / 6px / 0 stretch; }
 
 /* ---------- Start screen, third pass ---------- */
 /* Play keeps its painted, framed, snow-capped sign; its triangle sits in a small cream disc. */
 .sk-home .sk-menu-primary { padding-left: 18px; gap: 14px; }
 .sk-home .sk-menu-play-icon { flex: none; width: 34px; height: 34px; padding: 6px 4px 6px 8px; border-radius: 50%; color: var(--cloth-dark);
   background: radial-gradient(circle at 40% 35%, #FFFDF4, #F1DDB6); box-shadow: inset 0 -2px 0 rgba(140, 90, 46, 0.35), 0 2px 0 rgba(20, 40, 24, 0.5); }
-
-/* The rest of the menu sits in a warm pixel-framed panel, like a cartridge game's menu box. */
-.sk-home .sk-menu-board { margin: 6px 4px 0; padding: 4px 6px 0; border-radius: 0; background: none; box-shadow: 0 10px 24px rgba(20, 12, 6, 0.35); backdrop-filter: none; }
-.sk-home .sk-menu-board .sk-menu-row + .sk-menu-row { border-top: 0; box-shadow: none; background-image: linear-gradient(90deg, rgba(255, 217, 138, 0.22) 50%, transparent 50%); background-size: 6px 2px; background-repeat: repeat-x; background-position: 0 0; }
-.sk-home .sk-menu-board .sk-menu-item {
-  min-height: 44px; padding: 2px 6px 2px 2px; gap: 10px; border-radius: 6px; font-size: 24px; background: none; box-shadow: none;
-  color: #F3E2C0; text-shadow: 0 2px 0 rgba(20, 12, 6, 0.6); transition: color var(--t-fast), background var(--t-fast);
-}
-.sk-home .sk-menu-board .sk-menu-item[data-active] { color: #FFFFFF; transform: none; background: rgba(255, 217, 138, 0.1); box-shadow: none; }
-.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(243, 226, 192, 0.45); opacity: 1; }
-:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { box-shadow: none; outline: 2px dashed rgba(255, 217, 138, 0.7); outline-offset: 1px; }
-.sk-home .sk-menu-cursor { flex: none; display: grid; place-items: center; width: 12px; opacity: 0; transition: opacity 120ms; }
-.sk-home .sk-menu-item[data-active] .sk-menu-cursor { opacity: 1; animation: sk-cursor-nudge 0.9s steps(2) infinite; }
-@keyframes sk-cursor-nudge { 50% { transform: translateX(3px); } }
-.sk-home .sk-menu-badge { margin-left: auto; padding: 0; background: none; box-shadow: none; clip-path: none; filter: none; text-shadow: none; }
-.sk-home .sk-menu-item:disabled .sk-menu-badge { opacity: 0.85; }
-.sk-home .sk-menu-board .sk-menu-caption {
-  margin: 6px -6px 0; padding: 9px 12px 6px; height: calc(3.9em + 15px); background: none; border-radius: 0;
-  border-top: 2px solid rgba(255, 217, 138, 0.28); font-size: 17px; color: #F6E4BE; text-shadow: 0 1px 0 rgba(20, 12, 6, 0.7);
-}
-.sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { text-align: center; padding-left: 12px; }
-.sk-home .sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 21px; }
 
 /* Corner controls: filled, warm cream discs with the pixel icons in dark wood; the name plate the same. */
 .sk-home .sk-icon-btn {
@@ -760,4 +725,65 @@
   box-shadow: inset 0 0 0 2px #C99A62, inset 0 -3px 0 rgba(140, 90, 46, 0.25), 0 3px 0 #8C5A2E, 0 6px 14px rgba(40, 24, 10, 0.35);
 }
 .sk-home .sk-plate-avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #F6E7C8, #E2C597); box-shadow: inset 0 0 0 2px #C99A62, inset 0 -2px 0 rgba(140, 90, 46, 0.3); }
-.sk-home .sk-pixel-tag { font-size: 13px; }
+
+
+/* ---------- Start screen, fourth pass ---------- */
+/* Play: the green sign with snow and nails, no brown frame, a faint glow around it instead. */
+.sk-home .sk-menu-primary {
+  border: 0; border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.3), 0 5px 0 #2C4C34,
+    0 0 0 1px rgba(200, 240, 200, 0.18), 0 0 26px rgba(150, 215, 160, 0.32), 0 12px 26px rgba(20, 30, 20, 0.35);
+}
+.sk-home .sk-menu-primary[data-active] {
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -4px 0 rgba(20, 30, 20, 0.3), 0 6px 0 #2C4C34,
+    0 0 0 1px rgba(255, 236, 190, 0.35), 0 0 34px rgba(255, 217, 138, 0.42), 0 14px 30px rgba(20, 30, 20, 0.4);
+}
+.sk-home .sk-menu-primary:active:not(:disabled) { transform: translateY(4px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 0 #2C4C34, 0 0 22px rgba(150, 215, 160, 0.3); }
+:root[data-skin="painted"] .sk-home .sk-menu-primary:focus-visible { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 5px 0 #2C4C34, 0 0 0 2px rgba(255, 244, 220, 0.75), 0 0 30px rgba(255, 217, 138, 0.4); }
+
+/* The rest of the menu: one soft, frosted cocoa card; rows light up across their whole width. */
+.sk-home .sk-menu-board {
+  margin: 10px 2px 0; padding: 6px; border-radius: 18px;
+  background: linear-gradient(180deg, rgba(48, 33, 22, 0.74), rgba(34, 24, 16, 0.8));
+  backdrop-filter: blur(10px) saturate(1.1);
+  box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.14), inset 0 0 0 1px rgba(255, 236, 200, 0.08), 0 14px 30px rgba(20, 12, 6, 0.35);
+}
+.sk-home .sk-menu-board .sk-menu-row + .sk-menu-row { border: 0; box-shadow: none; background: none; }
+.sk-home .sk-menu-board .sk-menu-item {
+  position: relative; min-height: 50px; padding: 0 14px 0 18px; gap: 12px; border-radius: 12px; font-size: 23px; transform: none;
+  color: #F3E2C0; background: none; box-shadow: none; text-shadow: 0 2px 0 rgba(20, 12, 6, 0.55);
+  transition: background 180ms var(--ease-out), color 180ms, box-shadow 180ms;
+}
+.sk-home .sk-menu-board .sk-menu-item[data-active] {
+  color: #FFFFFF; transform: none;
+  background: linear-gradient(90deg, rgba(255, 217, 138, 0.26), rgba(255, 217, 138, 0.07));
+  box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.26);
+}
+.sk-home .sk-menu-board .sk-menu-item::before {
+  content: ''; position: absolute; left: 6px; top: 50%; width: 4px; height: 0; border-radius: 4px; transform: translateY(-50%);
+  background: var(--amber); box-shadow: 0 0 10px rgba(242, 164, 68, 0.8); transition: height 180ms var(--ease-out);
+}
+.sk-home .sk-menu-board .sk-menu-item[data-active]::before { height: 22px; }
+.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(243, 226, 192, 0.42); opacity: 1; }
+:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 217, 138, 0.6); outline: none; }
+.sk-home .sk-menu-badge { margin-left: auto; padding: 0; background: none; box-shadow: none; clip-path: none; filter: none; text-shadow: none; }
+.sk-home .sk-menu-board .sk-menu-caption {
+  margin: 6px -6px -6px; padding: 12px 18px; height: calc(3.9em + 24px); border-radius: 0 0 18px 18px;
+  border-top: 1px solid rgba(255, 217, 138, 0.2); background: rgba(0, 0, 0, 0.14);
+  font-size: 17px; color: #F6E4BE; text-shadow: 0 1px 0 rgba(20, 12, 6, 0.7);
+}
+.sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { text-align: center; }
+.sk-home .sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 21px; min-height: 46px; justify-content: flex-start; }
+
+/* Soft tags: small rounded pills, tinted per meaning. */
+.sk-soft-tag {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+  font-family: var(--skin-font-body); font-size: 11px; font-weight: 800; line-height: 1; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.sk-soft-tag[data-tone="gold"] { color: #FFD98A; background: rgba(255, 217, 138, 0.15); box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.34); }
+.sk-soft-tag[data-tone="green"] { color: #AEE0B0; background: rgba(140, 197, 143, 0.16); box-shadow: inset 0 0 0 1px rgba(140, 197, 143, 0.38); }
+.sk-soft-tag[data-tone="gray"] { color: rgba(243, 226, 192, 0.6); background: rgba(243, 226, 192, 0.07); box-shadow: inset 0 0 0 1px rgba(243, 226, 192, 0.18); }
+.sk-soft-tag[data-tone="flame"] { color: #FFC28C; background: rgba(255, 150, 80, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 150, 80, 0.38); }
+/* On the cream name plate the streak needs a darker ink. */
+.sk-plate .sk-soft-tag[data-tone="flame"] { color: #7A3E12; background: #F7CF9C; box-shadow: inset 0 0 0 1px #E3A35B; }

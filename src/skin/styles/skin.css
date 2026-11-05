@@ -727,63 +727,64 @@
 .sk-home .sk-plate-avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #F6E7C8, #E2C597); box-shadow: inset 0 0 0 2px #C99A62, inset 0 -2px 0 rgba(140, 90, 46, 0.3); }
 
 
-/* ---------- Start screen, fourth pass ---------- */
-/* Play: the green sign with snow and nails, no brown frame, a faint glow around it instead. */
+/* ---------- Start screen, fifth pass: cozy ---------- */
+/* Play: the painted green sign in its wooden frame, with snow, nails and a faint warm glow around the frame. */
 .sk-home .sk-menu-primary {
-  border: 0; border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.3), 0 5px 0 #2C4C34,
-    0 0 0 1px rgba(200, 240, 200, 0.18), 0 0 26px rgba(150, 215, 160, 0.32), 0 12px 26px rgba(20, 30, 20, 0.35);
+  box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.22), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink),
+    0 7px 0 rgba(40, 24, 10, 0.45), 0 0 28px rgba(255, 210, 140, 0.28), var(--shadow-warm);
 }
 .sk-home .sk-menu-primary[data-active] {
-  transform: translateY(-1px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -4px 0 rgba(20, 30, 20, 0.3), 0 6px 0 #2C4C34,
-    0 0 0 1px rgba(255, 236, 190, 0.35), 0 0 34px rgba(255, 217, 138, 0.42), 0 14px 30px rgba(20, 30, 20, 0.4);
+  box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink),
+    0 7px 0 rgba(40, 24, 10, 0.45), 0 0 36px rgba(255, 210, 140, 0.48), 0 14px 30px rgba(40, 24, 10, 0.35);
 }
-.sk-home .sk-menu-primary:active:not(:disabled) { transform: translateY(4px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 0 #2C4C34, 0 0 22px rgba(150, 215, 160, 0.3); }
-:root[data-skin="painted"] .sk-home .sk-menu-primary:focus-visible { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 5px 0 #2C4C34, 0 0 0 2px rgba(255, 244, 220, 0.75), 0 0 30px rgba(255, 217, 138, 0.4); }
 
-/* The rest of the menu: one soft, frosted cocoa card; rows light up across their whole width. */
+/* The rest of the menu: a soft cream card of felted wool with a stitched edge, like the quilt in the farmer's bed. */
 .sk-home .sk-menu-board {
-  margin: 10px 2px 0; padding: 6px; border-radius: 18px;
-  background: linear-gradient(180deg, rgba(48, 33, 22, 0.74), rgba(34, 24, 16, 0.8));
-  backdrop-filter: blur(10px) saturate(1.1);
-  box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.14), inset 0 0 0 1px rgba(255, 236, 200, 0.08), 0 14px 30px rgba(20, 12, 6, 0.35);
+  position: relative; margin: 14px 4px 0; padding: 12px 12px 0; border-radius: 18px;
+  background:
+    repeating-linear-gradient(45deg, rgba(181, 127, 74, 0.035) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(181, 127, 74, 0.035) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, #FCF5E6, #F2E4C8);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.8), inset 0 -3px 0 rgba(181, 127, 74, 0.18), 0 0 0 2px rgba(140, 90, 46, 0.35),
+    0 10px 0 -2px rgba(40, 24, 10, 0.25), 0 16px 32px rgba(40, 24, 10, 0.35);
+}
+.sk-home .sk-menu-board::after {
+  content: ''; position: absolute; inset: 6px; border-radius: 13px; pointer-events: none;
+  border: 2px dashed rgba(181, 127, 74, 0.45);
 }
 .sk-home .sk-menu-board .sk-menu-row + .sk-menu-row { border: 0; box-shadow: none; background: none; }
 .sk-home .sk-menu-board .sk-menu-item {
-  position: relative; min-height: 50px; padding: 0 14px 0 18px; gap: 12px; border-radius: 12px; font-size: 23px; transform: none;
-  color: #F3E2C0; background: none; box-shadow: none; text-shadow: 0 2px 0 rgba(20, 12, 6, 0.55);
-  transition: background 180ms var(--ease-out), color 180ms, box-shadow 180ms;
+  position: relative; z-index: 1; min-height: 48px; padding: 0 12px 0 18px; gap: 12px; border-radius: 11px; font-size: 23px; transform: none;
+  color: var(--wood-ink); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); background: none; box-shadow: none;
+  transition: background 180ms var(--ease-out), box-shadow 180ms;
 }
 .sk-home .sk-menu-board .sk-menu-item[data-active] {
-  color: #FFFFFF; transform: none;
-  background: linear-gradient(90deg, rgba(255, 217, 138, 0.26), rgba(255, 217, 138, 0.07));
-  box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.26);
+  color: #4A2E14; transform: none;
+  background: linear-gradient(90deg, rgba(242, 164, 68, 0.3), rgba(255, 217, 138, 0.18));
+  box-shadow: inset 0 0 0 2px rgba(226, 150, 60, 0.35), 0 2px 0 rgba(181, 127, 74, 0.25);
 }
 .sk-home .sk-menu-board .sk-menu-item::before {
-  content: ''; position: absolute; left: 6px; top: 50%; width: 4px; height: 0; border-radius: 4px; transform: translateY(-50%);
-  background: var(--amber); box-shadow: 0 0 10px rgba(242, 164, 68, 0.8); transition: height 180ms var(--ease-out);
+  content: ''; position: absolute; left: 7px; top: 50%; width: 4px; height: 0; border-radius: 4px; transform: translateY(-50%);
+  background: var(--amber); transition: height 180ms var(--ease-out);
 }
 .sk-home .sk-menu-board .sk-menu-item[data-active]::before { height: 22px; }
-.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(243, 226, 192, 0.42); opacity: 1; }
-:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 217, 138, 0.6); outline: none; }
-.sk-home .sk-menu-badge { margin-left: auto; padding: 0; background: none; box-shadow: none; clip-path: none; filter: none; text-shadow: none; }
+.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(122, 106, 88, 0.6); opacity: 1; }
+:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--amber); }
+.sk-home .sk-menu-badge { margin-left: 4px; padding: 0; background: none; box-shadow: none; clip-path: none; filter: none; text-shadow: none; }
 .sk-home .sk-menu-board .sk-menu-caption {
-  margin: 6px -6px -6px; padding: 12px 18px; height: calc(3.9em + 24px); border-radius: 0 0 18px 18px;
-  border-top: 1px solid rgba(255, 217, 138, 0.2); background: rgba(0, 0, 0, 0.14);
-  font-size: 17px; color: #F6E4BE; text-shadow: 0 1px 0 rgba(20, 12, 6, 0.7);
+  position: relative; z-index: 1; margin: 8px -12px 0; padding: 10px 22px 14px 30px; height: calc(3.9em + 24px); background: none; border-radius: 0 0 18px 18px;
+  border-top: 2px dashed rgba(181, 127, 74, 0.4); font-size: 18px; color: var(--ink-soft); text-shadow: none;
 }
 .sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { text-align: center; }
 .sk-home .sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 21px; min-height: 46px; justify-content: flex-start; }
 
-/* Soft tags: small rounded pills, tinted per meaning. */
+/* Tags: little stitched patches in soft colours. */
 .sk-soft-tag {
   display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; white-space: nowrap;
-  font-family: var(--skin-font-body); font-size: 11px; font-weight: 800; line-height: 1; letter-spacing: 0.08em; text-transform: uppercase;
+  font-family: var(--skin-font-body); font-size: 11px; font-weight: 900; line-height: 1; letter-spacing: 0.07em; text-transform: uppercase;
+  outline: 1px dashed currentColor; outline-offset: -4px;
 }
-.sk-soft-tag[data-tone="gold"] { color: #FFD98A; background: rgba(255, 217, 138, 0.15); box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.34); }
-.sk-soft-tag[data-tone="green"] { color: #AEE0B0; background: rgba(140, 197, 143, 0.16); box-shadow: inset 0 0 0 1px rgba(140, 197, 143, 0.38); }
-.sk-soft-tag[data-tone="gray"] { color: rgba(243, 226, 192, 0.6); background: rgba(243, 226, 192, 0.07); box-shadow: inset 0 0 0 1px rgba(243, 226, 192, 0.18); }
-.sk-soft-tag[data-tone="flame"] { color: #FFC28C; background: rgba(255, 150, 80, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 150, 80, 0.38); }
-/* On the cream name plate the streak needs a darker ink. */
-.sk-plate .sk-soft-tag[data-tone="flame"] { color: #7A3E12; background: #F7CF9C; box-shadow: inset 0 0 0 1px #E3A35B; }
+.sk-soft-tag[data-tone="gold"] { color: #7A4A12; background: #FFE3A3; box-shadow: 0 1px 0 #D9A24F; outline-color: rgba(122, 74, 18, 0.35); }
+.sk-soft-tag[data-tone="green"] { color: #2F5A37; background: #D3EBCB; box-shadow: 0 1px 0 #92C28E; outline-color: rgba(47, 90, 55, 0.35); }
+.sk-soft-tag[data-tone="gray"] { color: #85765F; background: #EAE0CC; box-shadow: 0 1px 0 #CDBFA4; outline-color: rgba(133, 118, 95, 0.3); }
+.sk-soft-tag[data-tone="flame"] { color: #7A3E12; background: #F9CF98; box-shadow: 0 1px 0 #DE9A52; outline-color: rgba(122, 62, 18, 0.35); }

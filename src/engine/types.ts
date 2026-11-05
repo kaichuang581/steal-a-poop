@@ -74,6 +74,8 @@ export interface ChainEntry {
   kind: 'play' | 'steal' | 'bank' | 'timeout' | 'invalid' | 'stealFail';
   word: string | null;
   points: number;
+  /** For a steal: the seat the wool ball was taken from. */
+  fromSeat?: number;
 }
 
 export type EventKind =

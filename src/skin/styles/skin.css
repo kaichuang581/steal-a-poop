@@ -707,7 +707,7 @@
 /* ---------- Start screen, third pass ---------- */
 /* Play keeps its painted, framed, snow-capped sign; its triangle sits in a small cream disc. */
 .sk-home .sk-menu-primary { padding-left: 18px; gap: 14px; }
-.sk-home .sk-menu-play-icon { flex: none; width: 34px; height: 34px; padding: 6px 4px 6px 8px; border-radius: 50%; color: var(--cloth-dark);
+.sk-home .sk-menu-play-icon { flex: none; width: 34px; height: 34px; padding: 6px; border-radius: 50%; color: var(--cloth-dark);
   background: radial-gradient(circle at 40% 35%, #FFFDF4, #F1DDB6); box-shadow: inset 0 -2px 0 rgba(140, 90, 46, 0.35), 0 2px 0 rgba(20, 40, 24, 0.5); }
 
 /* Corner controls: filled, warm cream discs with the pixel icons in dark wood; the name plate the same. */
@@ -813,3 +813,6 @@
 .sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { padding-left: 0; }
 /* No amber marker on the felt patch: the patch alone shows the row in focus. */
 .sk-home .sk-menu-board .sk-menu-item::before { display: none; }
+
+/* The title's plank sits centred over its hanging tiles. */
+.sk-title-sign { display: inline-flex; flex-direction: column; align-items: center; }

@@ -233,9 +233,11 @@
   box-shadow: inset 0 0 0 2px rgba(40, 24, 10, 0.4), 0 4px 0 rgba(40, 24, 10, 0.35);
   transform: translateX(10px); color: #fff;
 }
-/* The lantern and the lit row are the focus indicator; a left amber bar keeps it visible without colour cues. */
-:root[data-skin="painted"] .sk-menu-item:focus-visible { outline: none; box-shadow: inset 4px 0 0 var(--amber); }
-:root[data-skin="painted"] .sk-menu-primary:focus-visible { box-shadow: inset 4px 0 0 var(--amber), 0 6px 0 rgba(20, 30, 20, 0.45), var(--shadow-warm); }
+/* The lantern and the lit row are the focus indicator; a left amber bar keeps it visible without colour cues. The
+   decoration goes only with a lit row: a row that merely kept focus after a click shows nothing. */
+:root[data-skin="painted"] .sk-menu-item:focus-visible { outline: none; }
+:root[data-skin="painted"] .sk-menu-item[data-active]:focus-visible { box-shadow: inset 4px 0 0 var(--amber); }
+:root[data-skin="painted"] .sk-menu-primary[data-active]:focus-visible { box-shadow: inset 4px 0 0 var(--amber), 0 6px 0 rgba(20, 30, 20, 0.45), var(--shadow-warm); }
 .sk-menu-lantern { display: grid; place-items: center; width: 32px; opacity: 0; transform: translateX(-6px) scale(0.8); transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-spring); }
 .sk-menu-item[data-active] .sk-menu-lantern { opacity: 1; transform: none; filter: drop-shadow(0 0 8px rgba(255, 196, 90, 0.9)); }
 .sk-menu-item[data-active] .sk-menu-lantern svg { animation: sk-flicker 0.9s ease-in-out infinite; }
@@ -769,7 +771,8 @@
 }
 .sk-home .sk-menu-board .sk-menu-item[data-active]::before { height: 22px; }
 .sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(122, 106, 88, 0.6); opacity: 1; }
-:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--amber); }
+:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { outline: none; }
+:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item[data-active]:focus-visible { box-shadow: inset 0 0 0 2px var(--amber); }
 .sk-home .sk-menu-badge { margin-left: 4px; padding: 0; background: none; box-shadow: none; clip-path: none; filter: none; text-shadow: none; }
 .sk-home .sk-menu-board .sk-menu-caption {
   position: relative; z-index: 1; margin: 8px -12px 0; padding: 10px 22px 14px 30px; height: calc(3.9em + 24px); background: none; border-radius: 0 0 18px 18px;
@@ -805,7 +808,7 @@
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.85), inset 0 -2px 0 rgba(181, 127, 74, 0.2), 0 0 0 2px rgba(140, 90, 46, 0.4), 0 6px 14px rgba(30, 18, 8, 0.35);
   outline: 2px dashed rgba(181, 127, 74, 0.5); outline-offset: -6px;
 }
-:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { outline: 2px dashed rgba(181, 127, 74, 0.7); outline-offset: -6px; }
+:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item[data-active]:focus-visible { outline: 2px dashed rgba(181, 127, 74, 0.7); outline-offset: -6px; }
 .sk-home .sk-menu-board .sk-menu-caption {
   margin: 10px 0 0; padding: 10px 0 0 18px; border-top: 2px dashed rgba(255, 217, 138, 0.35);
   color: #F6E4BE; text-shadow: 0 1px 0 rgba(30, 18, 8, 0.8), 0 0 10px rgba(30, 18, 8, 0.6);

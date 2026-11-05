@@ -16,10 +16,18 @@ export interface MenuItem {
   icon?: ReactNode;
 }
 
+/** Whether the element's focus came from the keyboard (so it should be lit); true where the browser cannot say. */
+function focusVisible(el: Element): boolean {
+  try { return el.matches(':focus-visible'); } catch { return true; }
+}
+
 /**
  * A console-style title menu: big carved labels, the first one (Play) largest, and a lantern that moves to whichever
  * item is focused or hovered. Arrow keys (and W/S) move, Enter or Space picks, Home/End jump. The focused item's
  * caption shows below, so the labels can stay short.
+ *
+ * A row is lit only while the pointer is over it, or while the keyboard is driving the menu: once the pointer leaves,
+ * nothing stays highlighted. The active index (for the keys and the caption) is remembered either way.
  */
 export function GameMenu({ items, label, compact = false, autoFocus = false, keys = false }: {
   items: MenuItem[]; label: string; compact?: boolean; autoFocus?: boolean;
@@ -27,10 +35,20 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
   keys?: boolean;
 }) {
   const [active, setActive] = useState(() => Math.max(0, items.findIndex((i) => !i.disabled)));
+  // The row under the pointer, and whether the keyboard (not the pointer) made the last move: together they decide
+  // which row is lit. The menu starts in keyboard mode so the first live row is lit before anyone touches it.
+  const [hover, setHover] = useState<number | null>(null);
+  const [keyboard, setKeyboard] = useState(true);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  // Whether the player has touched the menu (pointer, keys, Tab); `settling` marks the menu's own focus calls.
+  const touched = useRef(false);
+  const settling = useRef(false);
   const enabled = items.map((it, i) => (it.disabled ? -1 : i)).filter((i) => i >= 0);
+  const lit = (i: number) => hover === i || (keyboard && i === active);
 
   const move = (to: number) => {
+    touched.current = true;
+    setKeyboard(true);
     if (to === active) return;
     setActive(to);
     refs.current[to]?.focus();
@@ -82,15 +100,21 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
     if (items[active]?.disabled && enabled.length) setActive(enabled[0]);
   }, [items, active, enabled]);
 
-  // On desktop the menu takes focus as the screen opens, so the arrow keys and Enter work straight away.
-  // Waits for the items to come alive (Play is disabled while the word list loads), and never takes focus from a
-  // control the player is already using.
+  // On desktop the menu takes focus as the screen opens, so the arrow keys and Enter work straight away. Until the
+  // player touches the menu, the first live item keeps that focus: Play once the word list has loaded (while it loads,
+  // items under it can come alive first and must not keep it). Never takes focus from a control the player is using.
   const live = enabled.length;
   useEffect(() => {
     if (!autoFocus || !live) return;
     const el = document.activeElement;
-    if (el && el !== document.body) return;
-    refs.current[items[active]?.disabled ? enabled[0] : active]?.focus({ preventScroll: true });
+    const ours = el instanceof HTMLButtonElement && refs.current.includes(el);
+    if (el && el !== document.body && !ours) return;
+    if (ours && touched.current) return;
+    const target = touched.current ? (items[active]?.disabled ? enabled[0] : active) : enabled[0];
+    setActive(target);
+    settling.current = true;
+    refs.current[target]?.focus({ preventScroll: true });
+    settling.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoFocus, live]);
 
@@ -100,11 +124,22 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
       <button
         ref={(el) => { refs.current[i] = el; }}
         className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : ''}`}
-        data-active={i === active || undefined}
+        data-active={lit(i) || undefined}
         disabled={it.disabled}
         onClick={it.onSelect}
-        onFocus={() => setActive(i)}
-        onPointerEnter={() => { if (!it.disabled && i !== active) { setActive(i); playTick(0.15); } }}
+        onFocus={(e) => {
+          if (!settling.current) touched.current = true;
+          setActive(i);
+          if (focusVisible(e.currentTarget)) setKeyboard(true);
+        }}
+        onPointerEnter={() => {
+          if (it.disabled) return;
+          touched.current = true;
+          setHover(i);
+          setKeyboard(false);
+          if (i !== active) { setActive(i); playTick(0.15); }
+        }}
+        onPointerLeave={() => setHover((h) => (h === i ? null : h))}
         aria-describedby={i === active ? 'sk-menu-caption' : undefined}
       >
         {i === 0 && <><SnowCap className="sk-menu-snow" /><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" /><span className="sk-nail sk-nail-bl" /><span className="sk-nail sk-nail-br" /></>}

@@ -38,11 +38,11 @@ describe('painted tokens', () => {
 });
 
 describe('skin flag', () => {
-  it('reads the query first, then the build setting', () => {
-    expect(isPaintedSkin(new URLSearchParams('skin=painted'), undefined)).toBe(true);
-    expect(isPaintedSkin(new URLSearchParams('skin=classic'), 'painted')).toBe(false);
-    expect(isPaintedSkin(new URLSearchParams(''), 'painted')).toBe(true);
-    expect(isPaintedSkin(new URLSearchParams(''), undefined)).toBe(false);
+  it('is painted by default; the query wins, then the build setting', () => {
+    expect(isPaintedSkin(new URLSearchParams(''), undefined)).toBe(true);
+    expect(isPaintedSkin(new URLSearchParams('skin=classic'), undefined)).toBe(false);
+    expect(isPaintedSkin(new URLSearchParams(''), 'classic')).toBe(false);
+    expect(isPaintedSkin(new URLSearchParams('skin=painted'), 'classic')).toBe(true);
   });
 });
 

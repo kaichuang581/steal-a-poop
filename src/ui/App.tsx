@@ -11,7 +11,7 @@ import { StartScreen } from './StartScreen';
 import { isPaintedSkin } from '../skin/flag';
 import { PaintedApp } from '../skin/PaintedApp';
 
-// Chosen once per page load: ?skin=painted, ?skin=classic, or the VITE_SKIN build setting.
+// Chosen once per page load: painted by default; ?skin=classic (or a VITE_SKIN=classic build) for the old look.
 const PAINTED = isPaintedSkin(new URLSearchParams(location.search));
 
 export default function App() {

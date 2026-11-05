@@ -60,3 +60,5 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   word costs nothing but starts a 1 s cooldown. Traps pay a wool ball. Rounds never end the game (each sheep takes
   `turnsPerRound` turns, 16 s turns shrinking 2 s a round to 5 s); it ends the moment one sheep is left unfrozen.
   Bots fumble more as turns shorten, sometimes hesitate into the red seconds, and run the clock out when they have no word.
+- Painted skin is the default (approved by Brian, 2026-11-04): `isPaintedSkin` returns true unless ?skin=classic or a
+  VITE_SKIN=classic build. The classic look still works and the end-to-end tests build with VITE_SKIN=classic.

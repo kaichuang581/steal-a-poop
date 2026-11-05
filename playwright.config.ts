@@ -26,7 +26,7 @@ export default defineConfig({
     },
     {
       // The app, built to talk to that server.
-      command: `VITE_SERVER_URL=ws://127.0.0.1:${SERVER_PORT} npm run build && npx vite preview --port 4173 --host 127.0.0.1`,
+      command: `VITE_SKIN=classic VITE_SERVER_URL=ws://127.0.0.1:${SERVER_PORT} npm run build && npx vite preview --port 4173 --host 127.0.0.1`,
       url: 'http://127.0.0.1:4173/steal-a-poop/',
       reuseExistingServer: true,
       timeout: 180_000,
@@ -34,7 +34,7 @@ export default defineConfig({
       {
       // The same app built with real sign-in switched on, pointed at addresses the tests fake in the browser
       // (nothing real is contacted). Tests only.
-      command: `VITE_SERVER_URL=ws://127.0.0.1:${SERVER_PORT} VITE_SUPABASE_URL=http://127.0.0.1:8790 VITE_SUPABASE_ANON_KEY=sb_publishable_test VITE_TURNSTILE_SITE_KEY=test-site-key npx vite build --outDir dist-auth && npx vite preview --outDir dist-auth --port 4174 --host 127.0.0.1`,
+      command: `VITE_SKIN=classic VITE_SERVER_URL=ws://127.0.0.1:${SERVER_PORT} VITE_SUPABASE_URL=http://127.0.0.1:8790 VITE_SUPABASE_ANON_KEY=sb_publishable_test VITE_TURNSTILE_SITE_KEY=test-site-key npx vite build --outDir dist-auth && npx vite preview --outDir dist-auth --port 4174 --host 127.0.0.1`,
       url: 'http://127.0.0.1:4174/steal-a-poop/',
       reuseExistingServer: true,
       timeout: 180_000,

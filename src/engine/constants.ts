@@ -27,6 +27,14 @@ export const STEAL_WINDOW_MS = 3_000;
 export const INTRO_MS = 2_500;
 /** Human turn length in the tour, whose steps need reading time. Practice keeps the game's own clock. */
 export const PRACTICE_TURN_MS = 25_000;
+/** Practice runs: the starting clocks on offer, in seconds. */
+export const PRACTICE_CLOCKS = [15, 10, 5] as const;
+/** Practice runs: the clock drops a second every this many words you play, down to MIN_TURN_MS. */
+export const PRACTICE_WORDS_PER_STEP = 5;
+/** Practice runs: how long the bot takes to answer, so a speed drill is never spent waiting. */
+export const PRACTICE_BOT_MS = [1000, 2500] as const;
+/** Practice runs: the letters a bot aims for to corner you, the ones with the fewest words to start. */
+export const CORNER_LETTERS = new Set(['x', 'z', 'q', 'j', 'y', 'k']);
 
 export const FAIL_PENALTY = 5;
 /** Wool balls each sheep starts with (normal games). */
@@ -50,6 +58,8 @@ export const STEAL_TURN_BOT_BOOST = 1.5;
 export const STEAL_COOLDOWN_MS = 1_000;
 /** A bot's chance of fumbling grows as turns get shorter, up to this much on top of its base. */
 export const BOT_PRESSURE_FAIL = 0.25;
+/** A soft game (see GameSettings.softGame) adds this share of BOT_PRESSURE_FAIL to every bot's chance of fumbling. */
+export const SOFT_GAME_PRESSURE = 0.5;
 export const TRAP_PAYOUT = 5;
 export const STEAL_BONUS = 5;
 

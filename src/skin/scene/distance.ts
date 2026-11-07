@@ -40,6 +40,14 @@ function columns(g: Grid, nx: [number, number], nz: [number, number], h: (x: num
   return at;
 }
 
+/** How high the low hills behind the barn stand at (x, z), in metres. */
+const BACK_HILLS = { fromZ: -110, toZ: -34 };
+export function backHillHeight(x: number, z: number): number {
+  const t = (BACK_HILLS.toZ - z) / (BACK_HILLS.toZ - BACK_HILLS.fromZ);
+  const h = 2 + 8 * smooth(t) + ((vnoise(x / 30, z / 22, 61) * 2 + vnoise(x / 15, z / 11, 62)) / 3) * 10;
+  return Math.min(20, Math.max(1, h));
+}
+
 export function buildDistance(): {
   hills: BufferGeometry; backHills: BufferGeometry; mountains: BufferGeometry; windmillBody: BufferGeometry; windmillBlades: BufferGeometry;
   bladesHub: [number, number, number]; triangles: number;
@@ -163,12 +171,8 @@ export function buildDistance(): {
 
   // ---- Low hills behind the barn (the open-front side), 1 m grid: the Home diorama and the near-side turn shots need a horizon.
   const backG = new Grid(1);
-  const bz0 = -110, bz1 = -34;
-  const backH = (x: number, z: number) => {
-    const t = (bz1 - z) / (bz1 - bz0);
-    const h = 2 + 8 * smooth(t) + ((vnoise(x / 30, z / 22, 61) * 2 + vnoise(x / 15, z / 11, 62)) / 3) * 10;
-    return Math.min(20, Math.max(1, h));
-  };
+  const bz0 = BACK_HILLS.fromZ, bz1 = BACK_HILLS.toZ;
+  const backH = backHillHeight;
   columns(backG, [-100, 99], [bz0, bz1], backH, (x, y, z, top) => pick(T.snow, hash3(x >> 2, y >> 2, z >> 2, 63), y === top - 1 ? [0.6, 0.95] : [0.1, 0.5]));
   for (let x = -100; x < 100; x++)
     for (const line of [0, 1]) {

@@ -19,6 +19,10 @@ export const T = {
   wolf: ['#7E7B85', '#6E6B75', '#4E4B55'],
   lantern: ['#FFD56E', '#FFC24B', '#E8A92F'],
   house: ['#D2C4AE', '#C7B8A1', '#B5A58C'],
+  /** White-painted barn trim, and the shingles and tractor of the start screen's farm. */
+  trim: ['#F4EFE3', '#E8E1D2', '#CFC7B6'],
+  shingle: ['#5E6470', '#525764', '#454A55'],
+  tractor: ['#C8402F', '#B23528', '#8E2A20'],
   roof: ['#7C5D45', '#6B4F3A', '#5C4332'],
   collar: ['#C24E45', '#B5443C', '#9C3A33'],
   brass: ['#F0C45C', '#E7B64A', '#C99A38'],

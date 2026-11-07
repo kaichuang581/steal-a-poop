@@ -151,3 +151,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   triangle budget holds; the goat's catchlight sits one row lower (a 5-voxel iris); test 9 drives the pose function
   directly (no GL test renderer); no worn item is built yet, so every catalogue `worn` id maps to nothing; the
   silhouette acceptance (two people naming the species) was not run. Each species' drawScale is applied at the table.
+- The start screen's farm and tour (approved by Brian, 2026-11-07), skin only: the home backdrop tours the farm, a few
+  seconds a scene with a dip to dark between them, alternating the avatar with the rest of the place (`POV_SHOTS` in
+  src/skin/table/FarmBackdrop.tsx, timing in src/skin/scene/homePov.ts). The diorama opens the tour and is the only scene
+  under reduced motion; `?pov=N` holds a scene for screenshots. The barn is a cut-away stage set for the table camera, so
+  everything that makes it a real farm from outside lives in src/skin/scene/farmstead.ts and src/skin/table/Farmstead.tsx:
+  the whole roof, front wall, trim, silo, coop, paddock, tractor, orchard, field, livestock and the land past the yard.
+  These mount only on the start screen; the table never sees them. Keep it that way: a roof over the table blocks its camera.

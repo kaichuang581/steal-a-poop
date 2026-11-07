@@ -18,7 +18,7 @@ const SKATE = '#EEF8FC';
 const WINDOW_FRAME = '#EDE6D6';
 
 /** A chunk's own voxels, but face culling and AO look at the whole yard so chunk borders stay seamless. */
-class ChunkMap extends Map<string, Voxel> {
+export class ChunkMap extends Map<string, Voxel> {
   constructor(private readonly all: VoxelMap) {
     super();
   }
@@ -191,7 +191,7 @@ function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
   for (let x = mx - 1; x <= mx + 1; x++) for (let z = mz - 2; z <= mz + 1; z++) cap(x, 6, z);
 }
 
-function pine(g: Grid, set: Set, wx: number, wz: number, seed: number) {
+export function pine(g: Grid, set: Set, wx: number, wz: number, seed: number) {
   const r = rng(seed * 97);
   const H = 5 + r() * 4;
   const hv = ix(H), tx = ix(wx) - 1, tz = ix(wz) - 1;

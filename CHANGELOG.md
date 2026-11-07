@@ -11,6 +11,11 @@ All user-visible changes, newest first.
 - Privacy policy, terms and child-safety pages (drafts)
 - Accessibility fixes: higher contrast buttons, keyboard access to scrolling areas
 
+## 0.2.1
+
+- The start screen is a real farm now: a finished barn, silo, chicken coop, tractor, paddock with animals, orchard and field
+- The start screen's camera tours the farm, a few seconds a scene, moving between your avatar and the rest of the place
+
 ## 0.2.0
 
 - Typo suggestions with a confirm step; invalid words are free and only a timeout costs −5

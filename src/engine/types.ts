@@ -29,6 +29,8 @@ export interface Player {
   color: string;
   isHuman: boolean;
   difficulty: Difficulty | null;
+  /** The last round this sheep passed the bomb in (once a round). */
+  passedRound?: number;
   personality: Personality | null;
   /** Bots bank once the pile reaches this value. 0 for the human. */
   bankThreshold: number;
@@ -73,7 +75,7 @@ export interface Trap {
 export interface ChainEntry {
   round: Round;
   seat: number;
-  kind: 'play' | 'steal' | 'bank' | 'timeout' | 'invalid' | 'stealFail';
+  kind: 'play' | 'steal' | 'bank' | 'timeout' | 'invalid' | 'stealFail' | 'pass';
   word: string | null;
   points: number;
   /** For a steal: the seat the wool ball was taken from. */
@@ -83,6 +85,7 @@ export interface ChainEntry {
 export type EventKind =
   | 'roundStart'
   | 'play'
+  | 'pass'
   | 'bank'
   | 'steal'
   | 'stealFail'
@@ -121,6 +124,10 @@ export interface GameState {
   /** One modifier per round, drawn at game start. */
   modifierDeck: RoundModifier[];
   chainLetter: string;
+  /** Time carry: ms the next turn is stretched (+) or squeezed (-) by the last word. Absent or 0 when off. */
+  carryMs?: number;
+  /** A pass: the next turn lasts this long (the fuse that was left), once. */
+  passMs?: number;
   pile: number;
   used: string[];
   players: Player[];
@@ -136,7 +143,9 @@ export interface GameState {
 export type Action =
   | { type: 'play'; seat: number; word: string }
   | { type: 'bank'; seat: number }
-  | { type: 'steal'; seat: number; word: string };
+  | { type: 'steal'; seat: number; word: string }
+  /** Hand the bomb to the next sheep without playing a word: once a round, and they get the fuse that is left. */
+  | { type: 'pass'; seat: number };
 
 export interface ActionResult {
   state: GameState;

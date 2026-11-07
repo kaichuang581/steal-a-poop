@@ -207,6 +207,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     new Promise((resolve) => {
       const body =
         action.type === 'bank' ? ({ type: 'bank' } as const)
+        : action.type === 'pass' ? ({ type: 'pass' } as const)
         : action.type === 'play' || action.type === 'steal' ? ({ type: action.type, word: action.word } as const)
         : null;
       if (!body || !net?.send({ t: 'act', action: body })) return resolve(null);

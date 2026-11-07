@@ -1,3 +1,4 @@
+import { Blast } from './Blast';
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -12,7 +13,8 @@ import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, s
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
-import { icicleModel, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
+import { shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
+import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, bombModel } from '../voxel/bomb';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { BOARD, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
@@ -171,8 +173,7 @@ export function BarnTable(props: Props) {
           <span className="sk-letter-card-label">starts with</span>
           <span className="sk-letter-card-letter">{letter.toUpperCase()}</span>
           {secondsLeft !== null && (
-            <span className="sk-letter-card-clock">
-              <i style={{ width: `${Math.max(0, Math.min(1, props.fraction)) * 100}%` }} data-level={stealOpen ? 'red' : props.fraction > 0.45 ? 'ok' : 'warn'} />
+            <span className="sk-letter-card-bomb" data-level={stealOpen ? 'red' : props.fraction > 0.45 ? 'ok' : 'warn'}>
               <b>{secondsLeft.toFixed(1)}s</b>
             </span>
           )}
@@ -255,7 +256,7 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
       <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} />
       <Projection anchors={anchors} pileHeight={pileHeightFor(pile)} margin={phone ? 140 : 120} />
-      <Icicle fraction={fraction} red={stealOpen} reduced={reduced} />
+      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.gust?.key} />
       {stealOpen && <WolfEyes />}
       {seats.map((s) => {
         const p = seatPosition(s.index, n);
@@ -418,23 +419,84 @@ function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; i
 }
 
 /** The timer: an icicle hanging from the beam beside the letter board, shrinking with the clock, red in the steal window. */
-function Icicle({ fraction, red, reduced }: { fraction: number; red: boolean; reduced: boolean }) {
-  const m = useMemo(() => icicleModel(), []);
-  const mat = useMemo(() => voxelMaterial(), []);
-  const drip = useRef<Mesh>(null);
-  useFrame(({ clock }) => {
-    mat.color.set(red ? '#E7705E' : '#8FC4E6');
-    if (drip.current) {
-      const p = reduced ? 0 : (clock.elapsedTime % 2) / 2;
-      drip.current.position.y = -0.8 * fraction - p * 1.2;
-      drip.current.visible = !reduced && p < 0.9;
+/**
+ * The bomb: a voxel bomb floats over the sheep who holds it, bobbing, with the fuse burning shorter as the turn runs
+ * out (red once others can steal). When the turn changes it arcs across the barn to the next sheep.
+ */
+function Bomb({ speaker, n, fraction, red, reduced, boomKey }: { speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined }) {
+  const m = useMemo(() => bombModel(), []);
+  const body = useMemo(() => voxelMaterial(), []);
+  const fuseMat = useMemo(() => voxelMaterial(), []);
+  const sparkMat = useMemo(() => voxelMaterial({ emissive: '#ffb23a', emissiveIntensity: 1.4 }), []);
+  const group = useRef<Group>(null);
+  const fuse = useRef<Group>(null);
+  const spark = useRef<Mesh>(null);
+  const flight = useRef({ from: new Vector3(), to: new Vector3(), t: 1, started: false });
+  const lastBoom = useRef({ key: boomKey, at: -9999 });
+  if (boomKey !== lastBoom.current.key) lastBoom.current = { key: boomKey, at: performance.now() };
+  // Where the bomb was when it went off: its spot before the turn moved on.
+  const goneFrom = useRef(new Vector3());
+  const goneAt = useRef(-9999);
+  const origin = useRef((): Vector3 | null => {
+    if (performance.now() - goneAt.current < 800) return goneFrom.current;
+    const f = flight.current;
+    return f.t < 1 ? f.from : (group.current?.position ?? null);
+  });
+  const target = useMemo(() => {
+    if (speaker === null) return null;
+    const p = seatPosition(speaker, n);
+    return new Vector3(p.x, 1.1 * SHEEP_SCALE + 0.45, p.z);
+  }, [speaker, n]);
+  useEffect(() => {
+    if (!target || !group.current) return;
+    const f = flight.current;
+    const justExploded = performance.now() - lastBoom.current.at < 600;
+    if (justExploded) { goneFrom.current.copy(group.current.position); goneAt.current = performance.now(); }
+    if (!f.started || reduced || justExploded) {
+      group.current.position.copy(target);
+      f.started = true;
+      f.t = 1;
+    } else {
+      f.from.copy(group.current.position);
+      f.t = 0;
+    }
+    f.to.copy(target);
+  }, [target, reduced]);
+  useFrame(({ clock }, dt) => {
+    const g = group.current;
+    if (!g || !target) return;
+    const f = flight.current;
+    const now = clock.elapsedTime;
+    if (f.t < 1) {
+      f.t = Math.min(1, f.t + dt / 0.5);
+      const e = easeInOut(f.t);
+      g.position.lerpVectors(f.from, f.to, e);
+      g.position.y += Math.sin(Math.PI * e) * 1.1;
+      g.rotation.z = Math.sin(Math.PI * e) * 0.6;
+    } else {
+      g.position.copy(f.to);
+      g.position.y += reduced ? 0 : Math.sin(now * 3) * 0.04;
+      g.rotation.z = red && !reduced ? Math.sin(now * 40) * 0.08 : 0;
+    }
+    body.color.set(red ? '#ff8a78' : '#ffffff');
+    if (fuse.current) fuse.current.scale.y = Math.max(0.02, Math.min(1, fraction));
+    if (spark.current) {
+      spark.current.position.y = BOMB_FUSE_LENGTH * Math.max(0.02, Math.min(1, fraction));
+      spark.current.visible = reduced || Math.sin(now * 30) > -0.5;
     }
   });
+  if (!target) return null;
   return (
-    <group position={[HEAP[0] + BOARD.width / 2 + 0.7, BARN.beamY - 0.15, 1.0]} scale={1.8}>
-      <mesh geometry={m.ice.geo} material={mat} scale={[1, 0.25 + 0.75 * fraction, 1]} />
-      <mesh ref={drip} geometry={m.drip} material={mat} />
+    <>
+    <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} />
+    <group ref={group} scale={1.5} visible>
+      <mesh geometry={m.body} material={body} castShadow />
+      <group ref={fuse} position={[0, BOMB_NECK_Y, 0]}>
+        <mesh geometry={m.fuse} material={fuseMat} />
+        <mesh ref={spark} geometry={m.spark} material={sparkMat} />
+      </group>
     </group>
+    </>
   );
 }
 

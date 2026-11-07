@@ -1,4 +1,6 @@
-import { BASE_TURN_MS, LAST_ROUND_TURN_MS, MIN_TURN_MS, TURN_MS_BY_ROUND } from './constants';
+import {
+  BASE_TURN_MS, CARRY_HARD_LETTERS, CARRY_MAX_SHIFT_MS, CARRY_MAX_TURN_MS, CARRY_MS_PER_POINT, LAST_ROUND_TURN_MS, MIN_TURN_MS, TURN_MS_BY_ROUND,
+} from './constants';
 import type { RoundModifier } from './types';
 
 /**
@@ -14,4 +16,21 @@ export function turnDurationMs(pile: number, modifier: RoundModifier, baseMs: nu
   const shrink = Math.floor(pile / 10) * 1000;
   const fastShrink = modifier === 'double_points_fast' ? 2000 : 0;
   return Math.max(MIN_TURN_MS, baseMs - shrink - fastShrink);
+}
+
+/** How good a word is for time carry: letters past four, plus two for each hard letter (x, z, q, j). */
+export function wordQuality(word: string): number {
+  let hard = 0;
+  for (const ch of word) if (CARRY_HARD_LETTERS.has(ch)) hard += 1;
+  return Math.max(0, word.length - 4) + 2 * hard;
+}
+
+/** The time a word moves the next turn by, always positive; the setting says whether it is added or taken away. */
+export function wordShiftMs(word: string): number {
+  return Math.min(CARRY_MAX_SHIFT_MS, wordQuality(word) * CARRY_MS_PER_POINT);
+}
+
+/** A turn's length after the carried shift: more adds, less takes away; never under the floor or over the cap. */
+export function carriedTurnMs(baseMs: number, carryMs: number): number {
+  return Math.min(CARRY_MAX_TURN_MS, Math.max(MIN_TURN_MS, baseMs + carryMs));
 }

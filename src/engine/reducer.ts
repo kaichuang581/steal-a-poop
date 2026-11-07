@@ -1,12 +1,12 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  BASE_TURN_MS, BOT_PRESSURE_FAIL, EXTRA_WOOL_CAP, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_TURN_MS,
+  BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_TURN_MS,
   STEAL_COOLDOWN_MS, STEAL_LATE_SHARE, STEAL_TURN_BOT_BOOST, STEAL_TURN_CHANCE, TRAP_LETTERS, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawInt, drawPick, drawRandom } from './rng';
 import { computeWinners } from './standings';
-import { roundTurnMs, turnDurationMs } from './timer';
+import { carriedTurnMs, roundTurnMs, turnDurationMs, wordShiftMs } from './timer';
 import { startingWool } from './settings';
 import type { Action, ActionResult, Difficulty, EventKind, GameState, Round } from './types';
 import { suggestCorrection } from './typos';
@@ -40,8 +40,8 @@ function emit(s: GameState, at: number, kind: EventKind, seat: number | null, te
  * How long a bot takes to answer. Response times are tuned for a 10 s turn, so they scale with the round's turn
  * length: a bot answers at the same point of a 15 s first-round turn as of a 5 s last-round one.
  */
-function botResponseMs(s: GameState, difficulty: Difficulty): number {
-  const scale = roundTurnMs(s.round) / BASE_TURN_MS;
+function botResponseMs(s: GameState, difficulty: Difficulty, turnMs: number = roundTurnMs(s.round)): number {
+  const scale = turnMs / BASE_TURN_MS;
   const [lo, hi] = BOT_PROFILES[difficulty].responseMs;
   return drawInt(s, Math.round(lo * scale), Math.round(hi * scale));
 }
@@ -49,10 +49,17 @@ function botResponseMs(s: GameState, difficulty: Difficulty): number {
 function startTurn(s: GameState, seat: number, t: number) {
   const active = s.players[seat];
   const tour = s.mode === 'tour';
-  const baseMs = turnDurationMs(0, s.modifier, roundTurnMs(s.round));
+  const roundBaseMs = turnDurationMs(0, s.modifier, roundTurnMs(s.round));
+  // Time carry (normal games only): the opening turn is 10 s, then the last word's shift is applied to this turn once.
+  const carryOn = s.mode === 'normal' && !!s.settings.timeCarry && s.settings.timeCarry !== 'off';
+  const baseMs = !carryOn ? roundBaseMs : s.history.length === 0 ? CARRY_OPENING_TURN_MS : carriedTurnMs(roundBaseMs, s.carryMs ?? 0);
+  s.carryMs = 0;
+  // A passed bomb: this sheep gets the fuse that was left, once.
+  const turnBaseMs = s.passMs ?? baseMs;
+  delete s.passMs;
   // Only the tour gives the human a long turn (its steps take reading): practice runs on the game's own clock, so the
   // clock under the letter never says one thing on your turn and another on the bots'.
-  const durationMs = tour && active.isHuman ? PRACTICE_TURN_MS : baseMs;
+  const durationMs = tour && active.isHuman ? PRACTICE_TURN_MS : turnBaseMs;
   const endsAt = t + durationMs;
   const windowMs = s.settings.stealWindowSeconds * 1000;
   // Steals are an event: some turns are steal turns, drawn here. The tour's turns all are, so it can show one, and
@@ -67,7 +74,7 @@ function startTurn(s: GameState, seat: number, t: number) {
       const slow = seat === s.players.length - 1 && s.history.some((h) => h.kind === 'play' && h.seat === 0);
       botActAt = slow ? t + Math.max(1000, durationMs - 1500) : t + drawInt(s, 1200, 2200);
     } else {
-      botActAt = t + botResponseMs(s, active.difficulty!);
+      botActAt = t + botResponseMs(s, active.difficulty!, turnBaseMs);
       // On a steal turn the bot always hesitates into the red seconds, so the window the alarm announced really
       // opens, and answers only in the window's last share: a person who reads the letter and types has the first go.
       if (stealable) botActAt = Math.max(botActAt, endsAt - windowMs * (0.05 + drawRandom(s) * (STEAL_LATE_SHARE - 0.05)));
@@ -177,6 +184,8 @@ function recordWord(s: GameState, seat: number, word: string, points: number) {
   if (!p.bestWord || points > p.bestWord.points) p.bestWord = { word, points };
   s.used.push(word);
   s.chainLetter = word[word.length - 1];
+  if (s.settings.timeCarry === 'more') s.carryMs = wordShiftMs(word);
+  else if (s.settings.timeCarry === 'less') s.carryMs = -wordShiftMs(word);
 }
 
 function playTurn(s: GameState, seat: number, word: string, t: number) {
@@ -199,6 +208,7 @@ function woolAtStake(s: GameState, seat: number): boolean {
 function failTurn(s: GameState, seat: number, t: number) {
   const p = s.players[seat];
   s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: 0 });
+  s.carryMs = 0;
   emit(s, t, 'timeout', seat, `Time's up for ${p.name}`, 0);
   resolveTrap(s, seat, true, t);
   if (woolAtStake(s, seat)) loseWool(s, seat, t, '');
@@ -419,6 +429,18 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
         return suggestion ? { ...reject(v.reason), suggestion } : reject(v.reason);
       }
       playTurn(s, turn.seat, v.word, now);
+      return { state: s, accepted: true };
+    }
+    case 'pass': {
+      if (action.seat !== turn.seat) return reject('not_your_turn');
+      if (s.mode === 'tour') return reject('no_pass');
+      if (player.passedRound === s.round) return reject('already_passed');
+      player.passedRound = s.round;
+      s.passMs = Math.max(PASS_MIN_MS, turn.endsAt - now);
+      s.history.push({ round: s.round, seat: turn.seat, kind: 'pass', word: null, points: 0 });
+      emit(s, now, 'pass', turn.seat, `${player.name} passed the bomb`);
+      s.carryMs = 0;
+      concludeTurn(s, now);
       return { state: s, accepted: true };
     }
     case 'bank':

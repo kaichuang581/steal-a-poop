@@ -8,7 +8,7 @@ import { orderPending } from './steals';
 import type { PendingAction } from './steals';
 
 /** What a client may send during a game. The server fills in the seat from who is asking. */
-export type ClientAction = { type: 'play'; word: string } | { type: 'bank' } | { type: 'steal'; word: string };
+export type ClientAction = { type: 'play'; word: string } | { type: 'bank' } | { type: 'steal'; word: string } | { type: 'pass' };
 
 export interface RoomManagerDeps {
   ctx: EngineContext;
@@ -227,7 +227,7 @@ export class RoomManager {
     const now = this.deps.now();
     room.seatOf = Object.fromEntries(seated.map((m, seat) => [m.userId, seat]));
     room.game = createGame(
-      { seed: `room:${room.code}:${now}`, now, humans: seated.map((m) => m.name), playerCount: seated.length, difficulty: 'medium' },
+      { seed: `room:${room.code}:${now}`, now, humans: seated.map((m) => m.name), playerCount: seated.length, difficulty: 'medium', settings: { timeCarry: 'more' } },
       this.deps.ctx.dict,
     );
     room.phase = 'playing';

@@ -15,6 +15,7 @@ export type VisualEvent =
   | { type: 'stealWindowOpened'; playerId: string }
   /** A steal turn has started: the sheep on turn can be robbed in its red seconds. */
   | { type: 'stealTurn'; playerId: string }
+  | { type: 'passed'; playerId: string; toId: string }
   /** `turnSeconds` is this round's turn; `faster` when it is shorter than the round before. */
   | { type: 'roundStart'; round: number; twist: TwistId | null; turnSeconds: number; faster: boolean }
   | { type: 'roundEnd'; round: number }
@@ -46,6 +47,7 @@ export function mapEngineEvent(e: GameEvent, prev: GameState | null, next: GameS
       return next.round > 1 ? [{ type: 'roundEnd', round: next.round - 1 }, start] : [start];
     }
     case 'stealTurn': return [{ type: 'stealTurn', playerId: seat }];
+    case 'pass': return [{ type: 'passed', playerId: seat, toId: next.turn ? String(next.turn.seat) : '' }];
     case 'gameOver': return [{ type: 'gameEnd', winnerIds: (next.winners ?? []).map(String) }];
     case 'lifeLost': return [{ type: 'lifeLost', playerId: seat, livesLeft: e.amount }];
     case 'frozen': return [{ type: 'frozen', playerId: seat }];

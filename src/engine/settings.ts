@@ -18,6 +18,11 @@ export interface GameSettings {
   stealWindowSeconds: 0 | 3 | 5;
   botCount: number;
   botDifficulty: Difficulty;
+  /**
+   * Time carry. 'more': a good word gives the next sheep extra time. 'less': it takes time away (hot potato). 'off' (the
+   * default): turns are the round's length. The game's opening turn is 10 s when it is on.
+   */
+  timeCarry?: 'off' | 'more' | 'less';
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {

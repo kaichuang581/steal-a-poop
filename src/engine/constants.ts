@@ -15,6 +15,14 @@ export const LAST_ROUND_TURN_MS = 5_000;
  */
 export const TURN_MS_BY_ROUND = [FIRST_ROUND_TURN_MS, 10_000, LAST_ROUND_TURN_MS] as const;
 export const MIN_TURN_MS = 5_000;
+/** Time carry: the game's opening turn, the most a turn can be stretched to, and the most one word can shift the next turn. */
+export const CARRY_OPENING_TURN_MS = 10_000;
+export const CARRY_MAX_TURN_MS = 20_000;
+export const CARRY_MAX_SHIFT_MS = 4_000;
+export const CARRY_MS_PER_POINT = 500;
+/** A passed bomb: the next sheep gets the fuse that is left, but never less than this. */
+export const PASS_MIN_MS = 4_000;
+export const CARRY_HARD_LETTERS = new Set(['x', 'z', 'q', 'j']);
 export const STEAL_WINDOW_MS = 3_000;
 export const INTRO_MS = 2_500;
 /** Human turn length in the tour, whose steps need reading time. Practice keeps the game's own clock. */

@@ -143,7 +143,7 @@ export const useStore = create<Store>((set, get) => ({
       setup = {
         seed: `quick:${Date.now()}:${Math.random()}`,
         now, humanName: nick.name, playerCount: settings.playerCount, difficulty: settings.difficulty,
-        ...(rules ? { settings: { ...rules, botCount: settings.playerCount - 1, botDifficulty: settings.difficulty } } : {}),
+        settings: { timeCarry: 'more' as const, ...(rules ?? {}), ...(rules ? { botCount: settings.playerCount - 1, botDifficulty: settings.difficulty } : {}) },
       };
     }
     set({ game: client.create(setup), mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0 });

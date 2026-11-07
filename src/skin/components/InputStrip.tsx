@@ -3,6 +3,7 @@ import type { MouseEvent } from 'react';
 import type { MessageView } from '../model/types';
 import { BookIcon } from './Icons';
 import { CoralButton, WoodButton } from './Materials';
+import { PassIcon } from './PixelIcons';
 import { MessageSlip } from './MessageSlip';
 
 interface Props {
@@ -26,6 +27,8 @@ interface Props {
   acceptKey: number;
   /** You are out (frozen): the strip says so and takes no input. */
   out: boolean;
+  /** Hand the bomb to the next sheep; only given when you can pass this round. */
+  onPass?: () => void;
 }
 
 const keep = (e: MouseEvent) => e.preventDefault(); // buttons never steal focus from the input
@@ -34,7 +37,7 @@ const keep = (e: MouseEvent) => e.preventDefault(); // buttons never steal focus
  * The word bar: the starting letter on a big tile, a roomy field, and one button that is Play on your turn and Steal
  * (red, glowing) when another sheep's timer goes red. A line above says what you can do right now.
  */
-export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out }: Props) {
+export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out, onPass }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => ref.current?.focus(), [turnKey]);
   const [flash, setFlash] = useState(false);
@@ -94,6 +97,9 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChang
               className="sk-input-ghost"
             />
           </div>
+          {onPass && myTurn && (
+            <WoodButton onMouseDown={keep} onClick={onPass} aria-label="Pass the bomb" title="Pass the bomb" className="sk-input-hint"><PassIcon size={24} /></WoodButton>
+          )}
           {hints && (
             <WoodButton onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn && !stealOpen} aria-label="Hint" className="sk-input-hint"><BookIcon size={24} /></WoodButton>
           )}

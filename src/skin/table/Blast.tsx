@@ -27,9 +27,9 @@ export function Blast({ boomKey, origin, reduced }: { boomKey: number | undefine
   const flameMat = useMemo(() => new PointsMaterial({ size: 2.3, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const sparkMat = useMemo(() => new PointsMaterial({ size: 0.34, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const smoke = useMemo(() => makeCloud(SMOKE), []);
-  const smokeMat = useMemo(() => new PointsMaterial({ size: 3.4, vertexColors: true, transparent: true, depthWrite: false }), []);
+  const smokeMat = useMemo(() => new PointsMaterial({ size: 2.4, vertexColors: true, transparent: true, opacity: 0.45, depthWrite: false }), []);
   const flash = useMemo(() => makeCloud(1), []);
-  const flashMat = useMemo(() => new PointsMaterial({ size: 10, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
+  const flashMat = useMemo(() => new PointsMaterial({ size: 6, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const flames3 = useRef<Points>(null);
   const sparks3 = useRef<Points>(null);
   const light = useRef<PointLight>(null);
@@ -63,8 +63,9 @@ export function Blast({ boomKey, origin, reduced }: { boomKey: number | undefine
     (flash.geo.getAttribute('position') as BufferAttribute).needsUpdate = true;
   }, [boomKey, origin, flames, sparks]);
 
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
     if (t0.current < 0) return;
+    const dt = Math.min(rawDt, 1 / 30); // a slow frame never skips the blast
     t0.current += dt;
     const step = (cloud: Cloud, gravity: number, flame: boolean) => {
       const p = cloud.geo.getAttribute('position') as BufferAttribute;
@@ -107,7 +108,7 @@ export function Blast({ boomKey, origin, reduced }: { boomKey: number | undefine
     }
     if (light.current) {
       light.current.position.copy(at.current);
-      light.current.intensity = Math.max(0, 1 - t0.current / 0.5) * 220;
+      light.current.intensity = Math.max(0, 1 - t0.current / 0.5) * 120;
     }
     if (t0.current > LIFE + 0.5) { t0.current = -1; if (light.current) light.current.intensity = 0; }
   });

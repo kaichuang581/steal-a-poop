@@ -53,6 +53,8 @@ export interface BarnMoments {
   wolf?: { key: number; to: number };
   /** Failed steal: shears come down on the stealer and tufts fly off. */
   shears?: { key: number; at: number };
+  /** Any time-out: the bomb goes off over that sheep. */
+  boom?: { key: number; at: number };
   /** Time out: a cold gust blows a tuft off the sheep and out of the back door. */
   gust?: { key: number; at: number };
   /** Last life lost: lantern flames dim to 40% for the freeze, and the camera stays on the frozen sheep. */
@@ -251,7 +253,7 @@ function Scene({ seats, pile, speaker, fraction, secondsLeft, letter, isTrap, st
       <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} />
       <Projection anchors={anchors} pileHeight={pileHeightFor(pile)} margin={phone ? 140 : 120} />
-      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.gust?.key} secondsLeft={secondsLeft} />
+      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} />
       {stealOpen && <WolfEyes />}
       {seats.map((s) => {
         const p = seatPosition(s.index, n);

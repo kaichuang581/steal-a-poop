@@ -171,10 +171,15 @@ export function PaintedGame() {
         break;
       case 'timedOut':
         setDimmed((d) => new Set(d).add(Number(e.playerId)));
-        if (game.players[Number(e.playerId)]?.isHuman && (practice || storeMode === 'tour')) break; // learning: no loss
-        mood(e.playerId, 'cold', 2);
+        // Every time-out blows the bomb up, learning games included.
         jolt(24);
         setBoom(k() + 1);
+        setMoments((m) => ({ ...m, boom: { key: k(), at: rel(Number(e.playerId)) } }));
+        if (game.players[Number(e.playerId)]?.isHuman && (practice || storeMode === 'tour')) {
+          flash(<Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!" sub="no wool lost while you practise" />, 1500);
+          break; // learning: no loss
+        }
+        mood(e.playerId, 'cold', 2);
         setMoments((m) => ({ ...m, gust: { key: k(), at: rel(Number(e.playerId)) } }));
         flash(
           <Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!"

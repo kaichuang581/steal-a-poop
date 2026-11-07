@@ -182,7 +182,7 @@ export function PaintedGame() {
           // Everything said since the bomb last went off comes out and goes up with it; a bigger bomb is a bigger blast.
           const words = wordsSinceBoom(useStore.getState().game?.history ?? [], true);
           const power = bombSize(words);
-          jolt(40 + 22 * power, 1.12 + 0.07 * power);
+          jolt(70 + 34 * power, 1.25 + 0.12 * power);
           setBoom(k() + 1);
           setBlast({ key: k() + 1, words: words.slice(-14), power });
           setMoments((m) => ({ ...m, boom: { key: k(), at: rel(Number(e.playerId)), power } }));

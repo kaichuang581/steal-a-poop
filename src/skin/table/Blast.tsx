@@ -2,10 +2,10 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, Points, PointsMaterial, PointLight, Vector3 } from 'three';
 
-const FLAMES = 240;
-const SPARKS = 150;
-const SMOKE = 50;
-const LIFE = 1.5;
+const FLAMES = 420;
+const SPARKS = 260;
+const SMOKE = 90;
+const LIFE = 1.9;
 const FLAME_COLORS = ['#fff2b0', '#ffd04a', '#ff9a2a', '#ff5a1e', '#c8321a'].map((c) => new Color(c));
 
 interface Cloud { geo: BufferGeometry; vel: Float32Array; age: Float32Array; n: number }
@@ -57,7 +57,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
       }
       p.needsUpdate = true;
     };
-    const m = 1 + 0.6 * (power - 1);
+    const m = 1.7 * (1 + 0.6 * (power - 1));
     flameMat.size = 2.3 * m;
     sparkMat.size = 0.34 * m;
     smokeMat.size = 2.4 * m;
@@ -115,7 +115,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
     }
     if (light.current) {
       light.current.position.copy(at.current);
-      light.current.intensity = Math.max(0, 1 - t0.current / 0.5) * 120 * boost.current;
+      light.current.intensity = Math.max(0, 1 - t0.current / 0.5) * 260 * boost.current;
     }
     if (t0.current > LIFE + 0.5) { t0.current = -1; if (light.current) light.current.intensity = 0; }
   });
@@ -127,7 +127,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
       <points geometry={smoke.geo} material={smokeMat} frustumCulled={false} />
       <points geometry={flash.geo} material={flashMat} frustumCulled={false} />
       <points ref={sparks3} geometry={sparks.geo} material={sparkMat} frustumCulled={false} />
-      <pointLight ref={light} color="#ffb04a" intensity={0} distance={34} />
+      <pointLight ref={light} color="#ffb04a" intensity={0} distance={70} />
     </>
   );
 }

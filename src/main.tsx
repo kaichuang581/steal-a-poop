@@ -8,6 +8,7 @@ import { useRoomStore } from './state/roomStore';
 import { useSocial } from './state/socialStore';
 import { InviteToast } from './ui/social/InviteToast';
 import App from './ui/App';
+import { LegalPopupHost } from './skin/components/LegalPopupHost';
 
 installAudioUnlock();
 useAuth.getState().init(); // restores a saved login, if real sign-in is on
@@ -45,7 +46,7 @@ function Root() {
     const manage = rest.startsWith('manage/');
     return <Suspense fallback={null}><ConsentPage key={hash} token={manage ? rest.slice('manage/'.length) : rest} manage={manage} /></Suspense>;
   }
-  return <><App /><InviteToast /></>;
+  return <><App /><InviteToast /><LegalPopupHost /></>;
 }
 
 createRoot(document.getElementById('root')!).render(

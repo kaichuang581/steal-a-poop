@@ -7,6 +7,8 @@ export function Jumpscare({ power }: { power: number }) {
       <i className="sk-jump-white" />
       <i className="sk-jump-fire" />
       <i className="sk-jump-fire sk-jump-fire2" />
+      <i className="sk-jump-fire sk-jump-fire3" />
+      <i className="sk-jump-ring" />
       <i className="sk-jump-red" />
     </div>
   );

@@ -433,53 +433,117 @@ const OBSTACLES: Partial<Record<ObstacleLook, BufferGeometry>> = {};
 export function obstacle(look: ObstacleLook): BufferGeometry {
   return (OBSTACLES[look] ??= look === 'rail' ? railFence() : look === 'picket' ? picketFence() : look === 'wall' ? stoneWall() : look === 'log' ? fallenLog() : roundBales());
 }
-/** The sign post on the far side of the lane: a post and a board with a snow cap, about the post's base. */
-export function signPost(letters: number): BufferGeometry {
-  const g = new Grid(F);
-  for (let y = 0; y < 9; y++) g.set(0, y, 0, wood(0, y, 0)!);
-  const w = signWidth(letters);
-  const hw = Math.round(w / 2 / F);
-  for (let x = -hw; x <= hw; x++) for (let y = 7; y <= 9; y++) { g.set(x, y, 0, lin(T.beam[0])); g.set(x, y, -1, lin(T.beam[2])); }
-  for (let x = -hw; x <= hw; x++) if (hash3(x, 1, 0, 8) > 0.25) g.set(x, 10, 0, lin(T.snow[0]));
-  return buildGeometry(g.map, F);
-}
-/** The cream rim marking the active fence's sign. */
-export function signRim(letters: number): BufferGeometry {
-  const g = new Grid(F);
-  const hw = Math.round(signWidth(letters) / 2 / F);
-  for (let x = -hw - 1; x <= hw + 1; x++) for (const y of [6, 10]) g.set(x, y, 1, lin(T.snow[0]));
-  for (const x of [-hw - 1, hw + 1]) for (let y = 7; y <= 9; y++) g.set(x, y, 1, lin(T.snow[0]));
-  return buildGeometry(g.map, F);
-}
-/** The letter cell (m) for a sign of `n` letters, and the board's width. */
+// ---------- the fence sign (V6 Part 5.1): letters carved into a plank hung on ropes from a post and crossbar ----------
+/** The letter cell (m) for a sign of `n` letters: the whole board scales with it. */
 export const signCell = (n: number) => (n >= 5 ? 0.035 : 0.04);
+/** Between two letters: a space, three dots, a space (`R…N`, because anything may go there). */
+const SIGN_GAP = 7;
+/** The board in cells: the glyphs, the gaps, and a rim plus two cells of margin each side; 11 cells tall. */
+export const signCells = (n: number) => ({ w: n * GLYPH.w + (n - 1) * SIGN_GAP + 6, h: GLYPH.h + 4 });
 export function signWidth(n: number): number {
-  const cell = signCell(n);
-  return Math.max(0.5, n * GLYPH.w * cell + (n - 1) * 6 * cell + 4 * cell);
+  return signCells(n).w * signCell(n);
 }
-const carved = new Map<string, BufferGeometry>();
-/** The letters carved on a sign, `S…P`, one voxel proud of the board's front, centred on the board at y = 0.8 m. */
-export function signLetters(letters: readonly string[]): BufferGeometry {
-  const key = letters.join('');
-  const hit = carved.get(key);
-  if (hit) return hit;
-  const cell = signCell(letters.length);
-  const g = new Grid(cell);
-  const ink = lin('#2A1E14');
-  const total = letters.length * GLYPH.w + (letters.length - 1) * 6;
-  let x = -Math.floor(total / 2);
-  letters.forEach((ch, i) => {
-    paintGlyph(g, ch, x, 0, 0, ink);
-    x += GLYPH.w;
-    // Three dots between letters: anything may go in the gap.
-    if (i < letters.length - 1) { for (const dx of [1, 3, 5]) g.set(x + dx - 1 + 1, 0, 0, ink); x += 6; }
-  });
-  const geo = buildGeometry(g.map, cell);
-  geo.translate(0, 0.8 - (GLYPH.h / 2) * cell, F / 2 + cell / 2);
-  carved.set(key, geo);
-  return geo;
+/**
+ * Where the parts sit, in the sign's frame (the post's base at the origin, the camera at +z). The board's centre is at
+ * the height the dream camera was tuned for (the old letters' 0.80 m), so the crossbar's underside is a rope's length
+ * above the board: the post is 1.1 m with the crossbar on top, a little over the plan's 1.0 m.
+ */
+export const SIGN = { centre: 0.8, post: 11, pivot: 1.1, boardZ: 0.1, x: 0.05 } as const;
+/** The letters' cap height in metres, for the readability gate (V6 Part 7.5). */
+export const signCap = (n: number) => GLYPH.h * signCell(n);
+
+export interface FenceSignGeo {
+  /** Post, crossbar, snow, icicle and the lantern's iron, about the post's base. */
+  post: BufferGeometry;
+  /** The plank, its rim, nails, snow and ropes, about the crossbar's underside (the swing's pivot). */
+  board: BufferGeometry;
+  /** The ink in the bottom of each carved letter, about the same pivot. */
+  letters: BufferGeometry;
+  /** The lantern's glass, lit on the active sign. */
+  lantern: BufferGeometry;
+  /** Where the lantern's light goes, about the post's base. */
+  lanternAt: V3;
 }
 
+/** The glyph cells of a sign's letters, in board cells (x from the board's left edge, y from its bottom). */
+export function signGlyphCells(letters: readonly string[]): { x: number; y: number }[] {
+  const g = new Grid(1), ink: RGB = [0, 0, 0];
+  let x = 3;
+  letters.forEach((ch, i) => {
+    paintGlyph(g, ch, x, 2, 0, ink);
+    x += GLYPH.w;
+    if (i < letters.length - 1) { for (const dx of [1, 3, 5]) g.set(x + dx, 2, 0, ink); x += SIGN_GAP; }
+  });
+  return [...g.map.values()].map((v) => ({ x: v.x, y: v.y }));
+}
+
+/** The board's cells: `wood` front and back layers with the letters cut through the front, `ink` the floor of each cut. */
+export function signBoardCells(letters: readonly string[]): { wood: Grid; ink: Grid; w: number; h: number } {
+  const n = Math.max(1, letters.length), c = signCell(n), { w: W, h: H } = signCells(n);
+  const beam = T.beam.map(lin), snow = lin(T.snow[0]);
+  const glyph = new Set(signGlyphCells(letters).map((v) => `${v.x},${v.y}`));
+  const b = new Grid(c), ink = new Grid(c);
+  for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
+    const rim = x === 0 || y === 0 || x === W - 1 || y === H - 1;
+    // The top corners are bevelled: the rim's corner cells are left off.
+    if (y === H - 1 && (x === 0 || x === W - 1)) continue;
+    // Grain in horizontal runs: a tone holds along a two-row strip for a few cells.
+    const face = rim ? beam[2] : beam[hash3(x >> 2, y >> 1, 0, 23) > 0.55 ? 0 : 1];
+    b.set(x, y, 0, face);
+    // A letter is a hole one cell deep: the front layer is left empty and its floor is the ink in the back layer.
+    if (glyph.has(`${x},${y}`)) { b.del(x, y, 0); ink.set(x, y, 0, lin('#2A1E14')); } else b.set(x, y, 1, face);
+  }
+  // Two brass nails one cell in from the rim at the top corners, standing proud.
+  for (const x of [1, W - 2]) b.set(x, H - 2, 2, lin(T.brass[1]));
+  // Snow along the top with gaps, and the two ropes up to the crossbar from the top corners.
+  for (let x = 1; x < W - 1; x++) if (hash3(x, H, 0, 41) > 0.3) { b.set(x, H, 0, snow); b.set(x, H, 1, snow); }
+  for (const x of [1, W - 2]) for (let y = H; y < H + 2; y++) b.set(x, y, 0, lin(T.hay[2]));
+  return { wood: b, ink, w: W, h: H };
+}
+
+const signs = new Map<string, FenceSignGeo>();
+export function fenceSign(letters: readonly string[]): FenceSignGeo {
+  const key = letters.join('');
+  const hit = signs.get(key);
+  if (hit) return hit;
+  const n = Math.max(1, letters.length), c = signCell(n);
+  const { wood: b, ink, w: W, h: H } = signBoardCells(letters);
+  const beam = T.beam.map(lin), snow = lin(T.snow[0]);
+  // About the pivot: the board's centre at SIGN.centre, its back against the post's front.
+  const shift = (g: BufferGeometry) => g.translate(SIGN.x - (W / 2) * c, SIGN.centre - (H / 2) * c - SIGN.pivot, SIGN.boardZ);
+  const board = shift(buildGeometry(b.map, c));
+  const letters3d = shift(buildGeometry(ink.map, c));
+
+  // ---- the post and crossbar on the 0.10 m grid; the crossbar reaches past the board, so the ropes hang straight and the lantern hangs clear
+  const p = new Grid(F);
+  const k = Math.ceil((W * c) / 2 / F);
+  for (let y = 0; y < SIGN.post; y++) p.set(0, y, 0, wood(0, y, 0)!);
+  for (let x = -k - 1; x <= k + 2; x++) for (const z of [0, 1]) {
+    p.set(x, SIGN.post, z, beam[(x & 1) || z ? 1 : 0]);
+    if (hash3(x, SIGN.post, z, 9) > 0.25) p.set(x, SIGN.post + 1, z, snow);
+  }
+  const post = buildGeometry(p.map, F);
+
+  // ---- the lantern off the crossbar's other end, on the 0.05 m grid: a hook, an iron cap and base, glass between
+  const iron = new Grid(D), glass = new Grid(D), dark = lin(T.face[1]);
+  const lx = Math.round(((k + 3) * F) / D) - 2, top = Math.round((SIGN.post * F) / D), lz = 2;
+  iron.set(lx, top - 1, lz, dark);
+  // An icicle off the crossbar's camera side, at the end away from the lantern.
+  const ix = Math.round((-k - 1) * F / D) + 1;
+  for (let y = 1; y <= 3; y++) iron.set(ix, top - y, 3, lin(T.ice[y - 1]));
+  for (let dx = 0; dx < 2; dx++) for (let dz = 0; dz < 2; dz++) {
+    iron.set(lx + dx, top - 2, lz + dz, dark);
+    iron.set(lx + dx, top - 6, lz + dz, dark);
+    for (let y = top - 5; y <= top - 3; y++) glass.set(lx + dx, y, lz + dz, lin(T.lantern[(dx + dz + y) % 2]));
+  }
+  const out: FenceSignGeo = {
+    post: mergeGeometries([post, buildGeometry(iron.map, D)], false)!,
+    board, letters: letters3d, lantern: buildGeometry(glass.map, D),
+    lanternAt: [(lx + 1) * D, (top - 4) * D, (lz + 1) * D + 0.15],
+  };
+  signs.set(key, out);
+  return out;
+}
 /** A flat shadow disc 0.5 x 0.3 m on the 0.04 m grid, about its centre, for the sheep and the fences. */
 export function shadowDisc(w = 0.5, d = 0.3): BufferGeometry {
   const g = new Grid(0.04);

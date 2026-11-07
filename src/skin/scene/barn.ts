@@ -363,7 +363,15 @@ function leaf(side: -1 | 1): BufferGeometry {
     const top = 2 + Math.floor(hash3(i, 0, 0, 67) * 4);
     for (let y = 0; y < top; y++) if (!g.has(X(i), y, 2)) g.set(X(i), y, 2, snowC(i, y, 2)!);
     for (const z of [0, 1]) g.set(X(i), h, z, snowC(i, h, z)!);
-    for (let y = top; y < h; y++) if (hash3(i, y, 0, 68) < 0.04 && !g.has(X(i), y, 2)) g.set(X(i), y, 2, snowC(i, y, 2)!);
+  }
+  // The outer face's white frame and cross, the way a farm barn's doors are painted.
+  const white = lin(T.trim[0]);
+  const paint = (i: number, y: number) => { if (!g.has(X(i), y, 2)) g.set(X(i), y, 2, white); };
+  for (let i = 0; i < w; i++) for (const y of [8, 9, h - 2, h - 1]) paint(i, y);
+  for (let y = 8; y < h; y++) for (const i of [0, 1, w - 2, w - 1]) paint(i, y);
+  for (let t = 0; t <= 60; t++) {
+    const i = Math.round(1 + (w - 3) * (t / 60)), y = Math.round(9 + (h - 11) * (t / 60));
+    for (const [a, b] of [[i, y], [i, y + 1], [w - 1 - i, y], [w - 1 - i, y + 1]]) paint(a, b);
   }
   if (side < 0) {
     const y = Math.floor(h / 2) - 1;

@@ -1,11 +1,16 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import type { RefObject } from 'react';
 import { ACESFilmicToneMapping, Object3D, PCFSoftShadowMap, SRGBColorSpace } from 'three';
+import type { PerspectiveCamera, PointLight, SpotLight } from 'three';
 import type { Hour } from '../model/types';
+import { pinnedPov, povAt } from '../scene/homePov';
+import type { PovShot } from '../scene/homePov';
 import { BARN } from '../scene/layout';
 import { Sky } from '../scene/Sky';
 import { Farm, useWorld } from './BarnTable';
 import { DevStats } from './DevStats';
+import { Farmstead } from './Farmstead';
 import { Atmosphere, Effects, FOG, Lights, yawToward } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -14,12 +19,49 @@ import { animalModel } from '../voxel/animals';
 import { useAvatar } from '../avatars/store';
 import { Sheep } from './Sheep';
 
+/** With the roof on, lanterns at their full height shine out through the shingles, so here they hang lower. */
+const lowerLamp = (_: number, lamp: PointLight | null) => { if (lamp) lamp.position.y = 2.5; };
+
 /** The diorama shot (plan V3.1 Part 2.2 and 2.4): a long lens from the yard, the open doorway on the right third. */
 export const HOME_CAMERA = {
   desktop: { fov: 26, position: [-12.5, 7.0, 23.0] as const, target: [0.6, 1.6, 4.5] as const },
   // Phones: the hero has to sit between the title and the tickets, so the lens aims lower, at the sheep's feet.
   // A tall viewport makes the horizontal view narrow, so the phone lens is wider and aims below the hero's feet.
   phone: { fov: 46, position: [-6.5, 4.6, 21] as const, target: [0, -0.9, 8.2] as const },
+};
+
+/**
+ * The start screen's tour of the farm, turn and turn about between the avatar and the rest of the place. Every scene
+ * travels. On desktop the menu covers the left of the frame, so each one keeps its subject right of centre.
+ */
+const POV_SHOTS: { desktop: PovShot[]; phone: PovShot[] } = {
+  desktop: [
+    // The diorama: the avatar in the doorway.
+    { ...HOME_CAMERA.desktop, push: [1.8, -0.4, -1.4], spill: 0.55 },
+    // The whole farm from over the orchard.
+    { position: [-40, 21, 40], target: [-8, 1, 1], fov: 38, push: [6, -1, -2], spill: 0.4 },
+    // Along the paddock fence, the animals with the silo behind them.
+    { position: [21.2, 2.3, 6.2], target: [12.5, 0.9, -2.5], fov: 38, push: [-1.8, -0.2, 0.5], spill: 0.4 },
+    // Over the avatar's shoulder from inside the barn, out at the yard.
+    { position: [0.2, 1.1, 2.6], target: [1.5, 1.7, 8.2], fov: 44, push: [0, 0.1, 1], spill: 0.5 },
+    // The hens' run.
+    { position: [-6.2, 2.9, 12.2], target: [-15.4, 0.7, 3.2], fov: 30, push: [-1.6, -0.2, -0.4], spill: 0.4 },
+    // The tractor, parked up by the barn.
+    { position: [6, 1.2, 14.4], target: [7.4, 1.7, 7.4], fov: 36, push: [1.3, 0.1, -0.3], spill: 0.4 },
+    // Down the path to the avatar, a little off its nose.
+    { position: [-1.6, 0.95, 15], target: [-1.5, 1.25, 8.2], fov: 26, push: [0.3, 0.05, -1.1], spill: 0.45 },
+    // Across the frozen pond, back toward the barn and the silo.
+    { position: [14.8, 3.4, 31], target: [3.6, 2.2, 10], fov: 36, push: [-1.8, -0.2, -0.4], spill: 0.4 },
+  ],
+  // On a phone the only clear strip is under the title, so these stand back and aim low to land the subject in it.
+  phone: [
+    { ...HOME_CAMERA.phone, push: [0.8, -0.2, -0.8], spill: 0.55 },
+    { position: [-38, 26, 42], target: [-4, -9, 9], fov: 46, push: [3, -0.6, -1], spill: 0.4 },
+    { position: [21.2, 3.4, 7.8], target: [15, -3, -1.5], fov: 52, push: [-1, -0.1, 0.3], spill: 0.4 },
+    { position: [0.2, 1.6, -3.2], target: [0, -1.1, 8.2], fov: 50, push: [0, 0, 0.6], spill: 0.5, bounce: [0.4, 1.9, 5.8] },
+    { position: [-6.5, 4.2, 13], target: [-12.2, -2.6, 3.8], fov: 50, push: [-0.8, -0.1, -0.2], spill: 0.4 },
+    { position: [0.3, 1.1, 22], target: [0, -1, 8.2], fov: 40, push: [0, 0, -0.8], spill: 0.45 },
+  ],
 };
 
 interface Props {
@@ -39,23 +81,28 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
   const w = useWorld();
   const avatar = useAvatar();
   const cam = phone ? HOME_CAMERA.phone : HOME_CAMERA.desktop;
+  const veil = useRef<HTMLDivElement>(null);
+  const spot = useRef<SpotLight>(null);
+  const bounce = useRef<PointLight>(null);
   if (!w) return <div className="absolute inset-0" style={{ background: `linear-gradient(${FOG[hour]}, #DCE6F2)` }} />;
   // The hero stands 1.2 m in front of the doors and faces the camera.
   const hero: [number, number, number] = [0, 0, BARN.maxZ + 1.2];
   const heroFacing = Math.atan2(cam.position[0] - hero[0], cam.position[2] - hero[2]);
   return (
+    <>
     <Canvas
       shadows={{ type: PCFSoftShadowMap }} dpr={phone ? [1, 1.5] : [1, 2]}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
-      <Drift base={cam.position} target={cam.target} reduced={reduced} />
+      <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} />
       <Atmosphere hour={hour} />
-      <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} />
-      <DoorSpill />
+      <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} lampRef={lowerLamp} />
+      <DoorSpill spot={spot} bounce={bounce} />
       <Sky hour={hour} reduced={reduced} blizzard={false} />
       <Farm world={w} reduced={reduced} stealOpen={false} />
+      <Farmstead world={w} reduced={reduced} phone={phone} />
       <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5}>
         {avatar === ADMIN_AVATAR_ID
           ? <AvatarDisc state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} />
@@ -69,31 +116,59 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Effects tiltShift={0.15} />
       <DevStats />
     </Canvas>
+    <div ref={veil} className="pointer-events-none absolute inset-0 bg-[#0b0806] opacity-0" />
+    </>
   );
 }
 
-/** The camera drifts on a 0.25 m by 0.12 m ellipse over 40 s with the target fixed; still under reduced motion. */
-function Drift({ base, target, reduced }: { base: readonly number[]; target: readonly number[]; reduced: boolean }) {
-  const camera = useThree((s) => s.camera);
+/**
+ * The camera travels along each scene's `push` for a few seconds, with a slight 0.25 m by 0.12 m drift over 40 s, then
+ * dips to dark to cut to the next. Under reduced motion it stays still on the first scene.
+ */
+function Drift({ shots, veil, spot, bounce, reduced }: {
+  shots: PovShot[]; veil: RefObject<HTMLDivElement | null>;
+  spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null>; reduced: boolean;
+}) {
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const pinned = useMemo(() => pinnedPov(location.search, shots.length), [shots]);
+  const shown = useRef(-1);
   useFrame(({ clock }) => {
+    const still = reduced || pinned !== null;
+    const pov = still ? { index: pinned ?? 0, progress: 0, veil: 0 } : povAt(clock.elapsedTime, shots.length);
+    const shot = shots[pov.index];
+    if (pov.index !== shown.current) {
+      shown.current = pov.index;
+      camera.fov = shot.fov;
+      camera.updateProjectionMatrix();
+      const spill = shot.spill ?? 1;
+      if (spot.current) spot.current.intensity = DOOR_LIGHT.spot * spill;
+      if (bounce.current) {
+        bounce.current.intensity = DOOR_LIGHT.bounce * spill;
+        bounce.current.position.set(...(shot.bounce ?? DOOR_LIGHT.bounceAt));
+      }
+    }
+    if (veil.current) veil.current.style.opacity = String(pov.veil);
     const t = (clock.elapsedTime / 40) * Math.PI * 2;
     const dx = reduced ? 0 : Math.cos(t) * 0.25;
     const dy = reduced ? 0 : Math.sin(t) * 0.12;
-    camera.position.set(base[0] + dx, base[1] + dy, base[2]);
-    camera.lookAt(target[0], target[1], target[2]);
+    const k = pov.progress;
+    camera.position.set(shot.position[0] + dx + shot.push[0] * k, shot.position[1] + dy + shot.push[1] * k, shot.position[2] + shot.push[2] * k);
+    camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
   });
   return null;
 }
 
+const DOOR_LIGHT = { spot: 120, bounce: 14, bounceAt: [-1.5, 1.6, BARN.maxZ + 3.6] as const };
+
 /** Warm light from inside the doorway, pointed down the path, so it lies on the snow in front of the doors. */
-function DoorSpill() {
+function DoorSpill({ spot, bounce }: { spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null> }) {
   const target = useMemo(() => new Object3D(), []);
   return (
     <>
       <primitive object={target} position={[0, 0, BARN.maxZ + 7]} />
-      <spotLight position={[0, 3.2, BARN.maxZ - 0.4]} target={target} color="#FFC278" intensity={120} angle={0.55} penumbra={0.6} distance={16} decay={2} />
+      <spotLight ref={spot} position={[0, 3.2, BARN.maxZ - 0.4]} target={target} color="#FFC278" intensity={DOOR_LIGHT.spot} angle={0.55} penumbra={0.6} distance={16} decay={2} />
       {/* A little of that light bounced back off the snow, so the hero's face is not a silhouette. */}
-      <pointLight position={[-1.5, 1.6, BARN.maxZ + 3.6]} color="#FFC278" intensity={14} distance={7} decay={2} />
+      <pointLight ref={bounce} position={[...DOOR_LIGHT.bounceAt]} color="#FFC278" intensity={DOOR_LIGHT.bounce} distance={7} decay={2} />
     </>
   );
 }

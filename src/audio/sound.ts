@@ -150,3 +150,60 @@ export function playTick(progress: number): void {
   if (!c) return;
   tone(c, { freq: 600 + progress * 1000, dur: 0.05, type: 'square', vol: 0.06 });
 }
+
+// The bomb's clock: one beep on each whole second left, all scheduled on the audio clock so they land exactly on the
+// beat whatever the screen is doing. The beeps climb in pitch and loudness as the fuse burns down; the last three
+// seconds are at full volume with a harder edge.
+let clockNodes: { osc: OscillatorNode; gain: GainNode }[] = [];
+
+export function stopBombClock(): void {
+  for (const n of clockNodes) {
+    try { n.osc.stop(); } catch { /* already finished */ }
+    try { n.osc.disconnect(); n.gain.disconnect(); } catch { /* ignore */ }
+  }
+  clockNodes = [];
+}
+
+/** Schedules the beeps for a turn that has `remainingMs` left out of `totalMs`. Replaces any beeps already scheduled. */
+export function startBombClock(remainingMs: number, totalMs: number): void {
+  stopBombClock();
+  const c = out();
+  if (!c || remainingMs <= 0 || totalMs <= 0) return;
+  const t0 = c.currentTime;
+  const dest = destination(c);
+  const secs = Math.floor(remainingMs / 1000);
+  for (let r = secs; r >= 1; r--) {
+    // Beep when `r` whole seconds are left. Time from now to that moment, on the audio clock.
+    const at = t0 + (remainingMs - r * 1000) / 1000;
+    const u = 1 - r / Math.max(1, totalMs / 1000); // 0 at the start of the turn, toward 1 at the end
+    const finale = r <= 3;
+    const freq = finale ? 1100 + (3 - r) * 180 : 520 + u * 480;
+    const vol = finale ? 0.9 : 0.08 + u * 0.22;
+    const dur = finale ? 0.22 : 0.12;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = finale ? 'square' : 'triangle';
+    osc.frequency.setValueAtTime(freq, at);
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol * gainScale), at + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    osc.connect(gain).connect(dest);
+    osc.start(at);
+    osc.stop(at + dur + 0.03);
+    clockNodes.push({ osc, gain });
+    if (finale) {
+      // A harder second voice for the last three seconds, a fifth above, so they are as loud as the sound can get.
+      const o2 = c.createOscillator();
+      const g2 = c.createGain();
+      o2.type = 'sawtooth';
+      o2.frequency.setValueAtTime(freq * 1.5, at);
+      g2.gain.setValueAtTime(0.0001, at);
+      g2.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.5 * gainScale), at + 0.004);
+      g2.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      o2.connect(g2).connect(dest);
+      o2.start(at);
+      o2.stop(at + dur + 0.03);
+      clockNodes.push({ osc: o2, gain: g2 });
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { playSound, playTick } from '../audio/sound';
+import { playSound, startBombClock, stopBombClock } from '../audio/sound';
 import { useStore } from '../state/store';
 import { useNewEvents } from './useNewEvents';
 
@@ -24,26 +24,21 @@ export function useGameSounds() {
     }
   });
 
+  // The bomb's clock: a beep on every whole second of each turn, scheduled on the audio clock (see startBombClock).
   useEffect(() => {
-    let bucket = Infinity;
     let turnKey = '';
     return useStore.subscribe((s) => {
       const t = s.game?.phase === 'playing' ? s.game.turn : null;
       if (!t) {
-        bucket = Infinity;
+        if (turnKey) stopBombClock();
+        turnKey = '';
         return;
       }
       const key = `${t.seat}:${t.startedAt}`;
       if (key !== turnKey) {
         turnKey = key;
-        bucket = Infinity;
-      }
-      const remaining = t.endsAt - s.now;
-      if (remaining > 3000 || remaining <= 0) return;
-      const b = Math.ceil(remaining / 500);
-      if (b < bucket) {
-        bucket = b;
-        playTick(1 - remaining / 3000);
+        const remaining = t.endsAt - s.now;
+        startBombClock(remaining, t.durationMs);
       }
     });
   }, []);

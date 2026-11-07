@@ -1,4 +1,5 @@
 @import './tokens.css';
+@import './kit.css';
 
 /* Base: the painted skin replaces the classic body colours and font. */
 :root[data-skin="painted"] body {
@@ -13,15 +14,8 @@
 .sk-num { font-variant-numeric: tabular-nums; }
 
 /* Materials */
-.sk-paper {
-  background: var(--paper);
-  color: var(--ink);
-  border-radius: var(--radius-paper);
-  box-shadow: var(--shadow-warm), inset 0 0 0 2px var(--paper-edge);
-}
 .sk-btn {
   min-height: 44px;
-  border-radius: var(--radius-button);
   padding: 0 18px;
   font-weight: 900;
   letter-spacing: 0.02em;
@@ -30,19 +24,6 @@
 }
 .sk-btn:active:not(:disabled) { transform: translateY(1px); }
 .sk-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.sk-wood  { background: var(--wood-dark);  box-shadow: inset 0 3px 0 var(--wood),  0 3px 0 var(--wood-ink); }
-.sk-cloth { background: var(--cloth-dark); box-shadow: inset 0 3px 0 var(--cloth), 0 3px 0 var(--ink); }
-.sk-coral { background: var(--coral-dark); box-shadow: inset 0 3px 0 var(--coral), 0 3px 0 var(--ink); }
-.sk-wood:active:not(:disabled), .sk-cloth:active:not(:disabled), .sk-coral:active:not(:disabled) { box-shadow: inset 0 2px 0 var(--wood); }
-.sk-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  min-height: 32px; padding: 0 12px;
-  border-radius: 999px;
-  background: var(--paper); color: var(--ink);
-  box-shadow: var(--shadow-warm);
-  font-weight: 800;
-}
-.sk-chip[aria-pressed="true"] { background: var(--wood-dark); color: var(--button-text); }
 
 /* Letter tile */
 .sk-tile {
@@ -317,17 +298,6 @@
   background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 12%, var(--wood-dark) 12% 88%, var(--wood-ink) 88%);
   box-shadow: inset 0 0 0 2px rgba(40, 24, 10, 0.35), 0 4px 0 rgba(40, 24, 10, 0.4), 0 6px 14px rgba(40, 24, 10, 0.3);
 }
-.sk-icon-btn {
-  /* Round wooden buttons, like the end of a log. */
-  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 999px; color: var(--button-text);
-  background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(40, 24, 10, 0.18) 35% 37%, transparent 38% 54%, rgba(40, 24, 10, 0.16) 55% 57%, transparent 58%),
-    radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%);
-  box-shadow: inset 0 0 0 3px var(--wood-ink), inset 0 2px 0 4px rgba(255, 220, 170, 0.18), 0 4px 0 rgba(40, 24, 10, 0.45), 0 6px 14px rgba(40, 24, 10, 0.3);
-  transition: transform var(--t-fast) var(--ease-out), filter var(--t-fast);
-}
-.sk-icon-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
-.sk-icon-btn:active { transform: translateY(2px); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
-.sk-icon-btn[aria-pressed="true"] { filter: brightness(0.85); }
 
 :root[data-skin="painted"].reduce-motion :is(.sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip),
 :root[data-skin="painted"].reduce-motion .sk-menu-item[data-active] .sk-menu-lantern svg { animation: none; }
@@ -767,14 +737,6 @@
   background: radial-gradient(circle at 40% 35%, #FFFDF4, #F1DDB6); box-shadow: inset 0 -2px 0 rgba(140, 90, 46, 0.35), 0 2px 0 rgba(20, 40, 24, 0.5); }
 
 /* Corner controls: filled, warm cream discs with the pixel icons in dark wood; the name plate the same. */
-.sk-home .sk-icon-btn {
-  width: 44px; height: 44px; color: var(--wood-ink); backdrop-filter: none; filter: none;
-  background: radial-gradient(circle at 38% 30%, #FFFBEF 0%, #F6E7C8 55%, #E7CFA3 100%);
-  box-shadow: inset 0 0 0 2px #C99A62, inset 0 -3px 0 rgba(140, 90, 46, 0.3), 0 3px 0 #8C5A2E, 0 6px 14px rgba(40, 24, 10, 0.35);
-}
-.sk-home .sk-icon-btn:hover { background: radial-gradient(circle at 38% 30%, #FFFFFF 0%, #FBEDD2 55%, #EED8AE 100%); transform: translateY(-1px); }
-.sk-home .sk-icon-btn:active { transform: translateY(2px); box-shadow: inset 0 0 0 2px #C99A62, 0 1px 0 #8C5A2E; }
-.sk-home .sk-icon-btn[aria-pressed="true"] { background: radial-gradient(circle at 38% 30%, #F1DDB6 0%, #E3C691 100%); }
 .sk-home .sk-plate {
   gap: 10px; padding: 4px 14px 4px 4px; border-radius: 999px; color: var(--wood-ink); text-shadow: none; backdrop-filter: none;
   background: linear-gradient(180deg, #FFFBEF, #F1DDB6);
@@ -983,7 +945,6 @@
 .sk-field:focus { outline: none; border-color: var(--amber); box-shadow: inset 0 2px 3px rgba(40, 24, 10, 0.12), 0 0 0 3px rgba(242, 164, 68, 0.35); }
 .sk-field[aria-invalid="true"] { border-color: var(--coral); }
 /* The admin padlock glows once it is open. */
-.sk-icon-btn[data-admin] { color: var(--amber); box-shadow: inset 0 0 0 3px var(--amber), 0 3px 0 rgba(40, 24, 10, 0.45), 0 0 14px rgba(242, 164, 68, 0.6); }
 
 /* ---------- avatars: the picker's choices and the admin's photo ---------- */
 .sk-avatar-choice {

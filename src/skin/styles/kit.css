@@ -1,0 +1,298 @@
+/*
+ * The farm kit (docs/REDESIGN_PLAN_V6_UI.md Part 4): every surface in the painted skin is one of these materials.
+ * Gradients appear only here, and only as grain, weave, chalk or brushed metal inside a material. Corners: cut 3 px for
+ * wood, square for slate frames, none for paper and burlap, round only for pegs, pins, knots and ice. Shadows: a hard
+ * drop under a soft one for wood, a hard 2 to 3 px for paper, 1 to 2 px for patches, none for slates.
+ */
+
+/* ---------- Textures (static data URIs; never a filter) ---------- */
+:root[data-skin="painted"] {
+  --kit-grain: repeating-linear-gradient(94deg, rgba(255, 230, 190, 0.10) 0 1px, transparent 1px 7px, rgba(40, 24, 10, 0.12) 7px 8px, transparent 8px 19px);
+  --kit-paper-tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.19 0 0 0 0 0.16 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --kit-chalk-tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.94 0 0 0 0 0.9 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --kit-knot-1: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='24'%3E%3Cg fill='none' stroke='%23281808' stroke-opacity='0.06' stroke-width='2'%3E%3Cellipse cx='30' cy='12' rx='14' ry='6'/%3E%3Cellipse cx='30' cy='12' rx='7' ry='3'/%3E%3C/g%3E%3C/svg%3E");
+  --kit-knot-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='20'%3E%3Cg fill='none' stroke='%23281808' stroke-opacity='0.06' stroke-width='2'%3E%3Cellipse cx='25' cy='10' rx='11' ry='5'/%3E%3Cellipse cx='25' cy='10' rx='5' ry='2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- Plank: a sawn board ---------- */
+.kit-plank {
+  --face: var(--wood-dark); --edge-light: rgba(255, 220, 170, 0.32); --edge-dark: rgba(40, 24, 10, 0.55); --side: rgba(40, 24, 10, 0.25);
+  --knot: var(--kit-knot-1); --knot-at: 70% 40%;
+  position: relative; color: var(--button-text); border-radius: 3px;
+  background: var(--knot) no-repeat var(--knot-at), var(--kit-grain), var(--face);
+  box-shadow: inset 0 3px 0 var(--edge-light), inset 0 -4px 0 var(--edge-dark), inset 3px 0 0 var(--side), inset -3px 0 0 var(--side),
+    0 6px 0 rgba(40, 24, 10, 0.35), 0 10px 18px rgba(40, 24, 10, 0.25);
+  font-family: var(--skin-font-display); font-weight: 800;
+  text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.75), 0 1px 0 rgba(255, 220, 170, 0.35);
+}
+.kit-plank[data-knot="2"] { --knot: var(--kit-knot-2); --knot-at: 22% 60%; }
+.kit-plank[data-knot="3"] { --knot: var(--kit-knot-1); --knot-at: 38% 75%; }
+/* End grain: the board's ends a little darker. */
+.kit-plank::before {
+  content: ''; position: absolute; inset: 0; border-radius: 3px; pointer-events: none;
+  background: linear-gradient(90deg, rgba(40, 24, 10, 0.22) 0 6px, transparent 6px calc(100% - 6px), rgba(40, 24, 10, 0.22) calc(100% - 6px));
+}
+.kit-plank > * { position: relative; }
+.kit-plank--light { --face: var(--tile); --edge-light: rgba(255, 240, 210, 0.6); --edge-dark: var(--wood); color: var(--wood-ink); text-shadow: 0 1px 0 rgba(255, 240, 210, 0.6); }
+.kit-plank--barn { --face: var(--barn-paint); --edge-light: rgba(255, 200, 180, 0.3); }
+.kit-plank--green { --face: var(--cloth-dark); --edge-light: rgba(200, 240, 200, 0.28); --edge-dark: rgba(20, 30, 20, 0.55); }
+.kit-plank--barn, .kit-plank--green { background: var(--knot) no-repeat var(--knot-at), var(--kit-grain), var(--face); }
+.kit-plank--label { min-height: 36px; padding: 4px 16px; font-size: 18px; display: inline-flex; align-items: center; gap: 10px; }
+.kit-plank--heading { min-height: 56px; padding: 8px 22px; font-size: 26px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; }
+.kit-plank--panel { padding: 22px 20px 18px; }
+.kit-plank--post { padding: 10px 8px; writing-mode: horizontal-tb; }
+.kit-plank--hung { transform-origin: 50% 0; animation: kit-swing-in 300ms var(--ease-out) both; }
+.kit-plank--sway { animation: kit-swing-in 300ms var(--ease-out) both, kit-sway 5s 300ms ease-in-out infinite; }
+@keyframes kit-swing-in { from { transform: perspective(600px) rotateX(-12deg) translateY(-14px); opacity: 0; } 70% { transform: perspective(600px) rotateX(1deg); opacity: 1; } to { transform: none; } }
+@keyframes kit-sway { 0%, 100% { rotate: -1.5deg; } 50% { rotate: 1.5deg; } }
+.kit-snow { position: absolute; left: -6px; right: -4px; top: -12px; width: calc(100% + 10px); height: 24px; overflow: visible; pointer-events: none; }
+
+/* Iron nails, rope and string. */
+.kit-nail {
+  position: absolute; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; z-index: 2;
+  background: radial-gradient(circle at 35% 35%, #E9DCC8 0 18%, #8D8173 45%, #4A4038 80%);
+  box-shadow: 0 1px 0 rgba(255, 220, 170, 0.3), inset 0 -1px 1px rgba(0, 0, 0, 0.4);
+}
+.kit-nail--tl { left: 8px; top: 8px; } .kit-nail--tr { right: 8px; top: 8px; }
+.kit-nail--bl { left: 8px; bottom: 8px; } .kit-nail--br { right: 8px; bottom: 8px; }
+.kit-rope { position: absolute; width: 4px; border-radius: 2px; background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px); pointer-events: none; }
+.kit-string { position: absolute; width: 2px; border-radius: 2px; background: repeating-linear-gradient(160deg, #B8986A 0 2px, #6F5236 2px 4px); pointer-events: none; }
+.kit-rope--l, .kit-rope--r { top: calc(-1 * var(--hang, 40px)); height: var(--hang, 40px); }
+.kit-rope--l { left: 18%; } .kit-rope--r { right: 18%; }
+.kit-rope--l::after, .kit-rope--r::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 7px; height: 7px; transform: translateX(-50%); border-radius: 50%; border: 2px solid #4A3A2C; }
+
+/* ---------- Paper ---------- */
+.kit-paper, .sk-paper {
+  position: relative; color: var(--ink); border-radius: 0;
+  background: var(--kit-paper-tex), var(--paper);
+  box-shadow: 2px 3px 0 rgba(59, 48, 40, 0.22), inset 0 0 0 1px rgba(122, 106, 88, 0.18);
+}
+/* A torn edge: a strip of deckle along the bottom, drawn, not clipped, so the hard shadow survives. */
+.kit-paper::after, .sk-paper:not([role="dialog"])::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 5px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='5' preserveAspectRatio='none'%3E%3Cpath d='M0 0 L40 0 L40 2 L36 4 L31 1.5 L27 3.5 L22 1 L17 4 L12 2 L8 4.5 L4 1.5 L0 3 Z' fill='%23FBF4E4'/%3E%3C/svg%3E") repeat-x;
+  background-size: 40px 5px;
+}
+.kit-paper[data-seed="1"]::after { background-position: 13px 0; }
+.kit-paper[data-seed="2"]::after { background-position: 27px 0; transform: scaleX(-1); }
+.kit-paper[data-seed="3"]::after { background-position: 7px 0; }
+.kit-paper--slip { padding: 6px 10px; font-family: var(--skin-font-hand); font-size: 17px; line-height: 1.2; display: inline-flex; align-items: center; gap: 6px; }
+.kit-paper--note { padding: 10px 14px; font-family: var(--skin-font-hand); font-size: 16px; line-height: 1.35; }
+.kit-paper--sheet {
+  padding: 16px 18px; font-family: var(--skin-font-body); font-size: 15px; line-height: 1.5;
+  background: repeating-linear-gradient(0deg, transparent 0 27px, rgba(59, 48, 40, 0.12) 27px 28px), var(--kit-paper-tex), var(--paper);
+}
+.kit-paper--tilt-1 { rotate: -1.2deg; } .kit-paper--tilt-2 { rotate: 0.8deg; } .kit-paper--tilt-3 { rotate: 1.4deg; }
+.kit-paper--lift { transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out); }
+.kit-paper--lift:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 3px 4px 0 rgba(59, 48, 40, 0.24), inset 0 0 0 1px rgba(122, 106, 88, 0.18); }
+.kit-paper--lift:active:not(:disabled) { transform: translateY(1px); }
+.kit-pin {
+  position: absolute; top: -6px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); border-radius: 50%; z-index: 2; pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, #FFF1B8 0 18%, var(--brass) 45%, var(--brass-dark) 100%);
+  box-shadow: inset 0 0 0 1px rgba(60, 40, 10, 0.6), 1px 1px 0 rgba(40, 24, 10, 0.35);
+}
+.kit-pin--corner { left: 8px; transform: none; }
+/* A hang tag: a paper tag with a punched hole, tinted, never a gradient fill of its own. */
+.kit-tag {
+  position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px 3px 16px;
+  font-family: var(--skin-font-body); font-size: 11px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.2;
+  color: var(--wood-ink); text-shadow: none; background: var(--tag-tint, var(--glow));
+  clip-path: polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%);
+  filter: drop-shadow(1px 2px 0 rgba(40, 24, 10, 0.35));
+}
+.kit-tag::before { content: ''; position: absolute; left: 7px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: rgba(40, 24, 10, 0.75); }
+.kit-tag--gold { --tag-tint: var(--glow); } .kit-tag--green { --tag-tint: #CDE3BF; } .kit-tag--gray { --tag-tint: #DCD6CB; } .kit-tag--flame { --tag-tint: #F6C6A0; }
+/* A ticket: perforated on its left edge. */
+.kit-ticket { padding-left: 18px; background: radial-gradient(circle at 4px 6px, rgba(59, 48, 40, 0.35) 0 1.5px, transparent 2px) 0 0 / 8px 12px repeat-y, var(--kit-paper-tex), var(--paper); }
+
+/* ---------- Tile: a carved wooden letter tile ---------- */
+.kit-tile {
+  position: relative; display: inline-grid; place-items: center; width: var(--tile-w, 46px); height: calc(var(--tile-w, 46px) * 1.08);
+  border-radius: 3px; color: var(--wood-ink); font-family: var(--skin-font-display); font-weight: 800; font-size: calc(var(--tile-w, 46px) * 0.64); line-height: 1;
+  text-shadow: 0 2px 0 rgba(255, 236, 200, 0.55), 0 -1px 0 rgba(40, 24, 10, 0.6);
+  background: repeating-linear-gradient(92deg, rgba(140, 90, 46, 0.07) 0 2px, transparent 2px 9px), var(--tile);
+  box-shadow: inset 0 3px 0 rgba(255, 240, 210, 0.6), inset 0 -4px 0 var(--wood), 0 3px 0 rgba(40, 24, 10, 0.35);
+}
+.kit-tile--mini { --tile-w: 20px; font-size: 13px; box-shadow: inset 0 2px 0 rgba(255, 240, 210, 0.6), inset 0 -2px 0 var(--wood), 0 2px 0 rgba(40, 24, 10, 0.35); }
+.kit-tile--sm { --tile-w: 34px; } .kit-tile--md { --tile-w: 46px; } .kit-tile--lg { --tile-w: 64px; }
+.kit-tile--lit { background: repeating-linear-gradient(92deg, rgba(140, 90, 46, 0.07) 0 2px, transparent 2px 9px), var(--glow); color: #7A3E12;
+  box-shadow: inset 0 3px 0 rgba(255, 250, 230, 0.8), inset 0 -4px 0 var(--amber), 0 0 0 3px var(--amber), 0 0 14px var(--glow), 0 3px 0 rgba(40, 24, 10, 0.35); }
+.kit-tile--bad { background: var(--coral); color: #fff; text-shadow: 0 -1px 0 rgba(90, 20, 10, 0.5); box-shadow: inset 0 3px 0 rgba(255, 220, 210, 0.5), inset 0 -4px 0 var(--coral-dark), 0 3px 0 rgba(40, 24, 10, 0.35); }
+.kit-tile--hung { transform-origin: 50% -14px; animation: sk-title-hang 500ms var(--ease-spring) both; }
+.kit-tile-rope { position: absolute; left: 50%; top: -14px; width: 3px; height: 14px; transform: translateX(-50%); border-radius: 2px; background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px); }
+.kit-tile--done::after {
+  content: ''; position: absolute; top: -5px; right: -5px; width: 14px; height: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath d='M6 0h1v2h-1v1h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h2v1h1v-1h1v-1h1z' fill='%233F6A49'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* ---------- Slate: chalk on a framed board ---------- */
+.kit-slate {
+  position: relative; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 0;
+  padding: 6px; background: var(--kit-grain), var(--wood-dark);
+  box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.3), inset 0 -3px 0 rgba(40, 24, 10, 0.55), 0 3px 0 rgba(40, 24, 10, 0.35);
+}
+.kit-slate-face {
+  width: 100%; border-radius: 2px; padding: 4px 10px; color: var(--chalk); text-align: center;
+  background: var(--kit-chalk-tex), var(--slate);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.35);
+  font-family: var(--skin-font-display); font-weight: 800; text-shadow: 0 0 1px rgba(243, 240, 230, 0.55);
+}
+.kit-slate--mini { padding: 3px; } .kit-slate--mini .kit-slate-face { padding: 1px 8px; font-size: 18px; line-height: 1.2; }
+.kit-slate--plaque .kit-slate-face { padding: 6px 12px; font-size: 30px; line-height: 1.05; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.kit-slate--board .kit-slate-face { padding: 10px 12px; text-align: left; }
+.kit-slate--plaque::after, .kit-slate--board::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: -5px; height: 5px; background: var(--kit-grain), var(--wood); box-shadow: 0 2px 0 rgba(40, 24, 10, 0.35); }
+.kit-chalk-hand { font-family: var(--skin-font-hand); font-weight: 400; font-size: 15px; }
+.kit-slate--coral .kit-slate-face { color: #FFB6A8; } .kit-slate--amber .kit-slate-face { color: var(--glow); }
+.kit-slate-row { display: flex; align-items: center; gap: 8px; padding: 3px 2px; border-bottom: 1px dashed rgba(243, 240, 230, 0.18); font-family: var(--skin-font-hand); font-weight: 400; font-size: 17px; }
+.kit-slate-row:last-child { border-bottom: 0; }
+.kit-tally { display: inline-flex; gap: 3px; margin-left: auto; }
+.kit-tally i { display: block; width: 3px; height: 15px; border-radius: 1px; background: var(--chalk); rotate: 8deg; opacity: 0.95; }
+.kit-tally i[data-lost] { opacity: 0.22; }
+.kit-chalk-ring { outline: 2px solid rgba(243, 240, 230, 0.75); outline-offset: 1px; border-radius: 3px; }
+.kit-chalk-strike { text-decoration: line-through 2px rgba(243, 240, 230, 0.8); opacity: 0.6; }
+
+/* ---------- Burlap patch ---------- */
+.kit-patch, .sk-chip {
+  --cloth-face: var(--burlap);
+  position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 14px; border-radius: 0;
+  color: var(--ink); font-family: var(--skin-font-hand); font-size: 16px; font-weight: 400;
+  background: repeating-linear-gradient(45deg, rgba(59, 48, 40, 0.10) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.10) 0 1px, transparent 1px 3px), var(--cloth-face);
+  outline: 2px dashed #7A6A58; outline-offset: -5px;
+  box-shadow: 1px 2px 0 rgba(59, 48, 40, 0.25);
+}
+.kit-patch--cream { --cloth-face: #F3E7CC; } .kit-patch--gold { --cloth-face: #F2D58C; } .kit-patch--green { --cloth-face: #B9D3A6; }
+.kit-patch--gray { --cloth-face: #D6D0C5; } .kit-patch--flame { --cloth-face: #F2B68C; }
+.kit-patch--small { min-height: 22px; padding: 0 9px; font-family: var(--skin-font-body); font-size: 11px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+.kit-patch[aria-pressed="true"], .sk-chip[aria-pressed="true"], .kit-patch--pressed { filter: brightness(0.92); outline-color: var(--amber); }
+.kit-patch:disabled { cursor: not-allowed; outline-color: rgba(122, 106, 88, 0.4); }
+button.kit-patch, button.sk-chip { cursor: pointer; transition: transform var(--t-fast) var(--ease-out); }
+button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { transform: translateY(1px); }
+
+/* ---------- Knit ---------- */
+.kit-knit {
+  --a: var(--amber); --b: #F3E7CC; height: var(--knit-h, 14px); border-radius: 0;
+  background: repeating-linear-gradient(45deg, var(--a) 0 6px, var(--b) 6px 12px), repeating-linear-gradient(-45deg, var(--a) 0 6px, var(--b) 6px 12px);
+  background-blend-mode: multiply;
+  box-shadow: inset 2px 0 0 rgba(59, 48, 40, 0.25), inset -2px 0 0 rgba(59, 48, 40, 0.25), 0 2px 0 rgba(59, 48, 40, 0.2);
+}
+.kit-stitches { display: inline-flex; gap: 2px; align-items: flex-end; }
+.kit-stitch {
+  position: relative; display: inline-grid; place-items: center; width: var(--st-w, 18px); height: calc(var(--st-w, 18px) * 1.15);
+  font-family: var(--skin-font-body); font-size: 9px; font-weight: 900; color: var(--wood-ink);
+  background: linear-gradient(60deg, transparent 0 42%, var(--st, #E3D6BC) 42% 58%, transparent 58%), linear-gradient(-60deg, transparent 0 42%, var(--st, #E3D6BC) 42% 58%, transparent 58%);
+}
+.kit-stitch[data-status="played"], .kit-stitch[data-status="done"] { --st: var(--amber); }
+.kit-stitch[data-status="repair"], .kit-stitch[data-status="repaired"] { --st: #F3E7CC; }
+.kit-stitch[data-status="blanket"] { --st: #C98BA6; }
+.kit-stitch[data-status="missed"] { --st: transparent; outline: 1px dashed rgba(122, 106, 88, 0.6); outline-offset: -3px; }
+.kit-stitch[data-today] { box-shadow: 0 0 0 2px var(--amber); }
+.kit-stitches--mini { --st-w: 10px; }
+
+/* ---------- Brass plate, wooden buttons, peg ---------- */
+.kit-btn { position: relative; min-height: 44px; padding: 0 18px; border-radius: 3px; cursor: pointer; font-family: var(--skin-font-display); font-weight: 800; letter-spacing: 0.02em; transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out), filter var(--t-fast); }
+.kit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.kit-btn:active:not(:disabled) { transform: translateY(2px); }
+.kit-brass {
+  color: var(--wood-ink); text-shadow: 0 1px 0 rgba(255, 240, 200, 0.6);
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 3px), var(--brass);
+  box-shadow: inset 0 2px 0 var(--brass-light), inset 0 -3px 0 var(--brass-dark), 0 3px 0 rgba(40, 24, 10, 0.4);
+}
+.kit-brass:active:not(:disabled) { filter: brightness(0.94); box-shadow: inset 0 2px 0 var(--brass-light), inset 0 -1px 0 var(--brass-dark), 0 1px 0 rgba(40, 24, 10, 0.4); }
+.kit-brass--barn { box-shadow: inset 0 2px 0 var(--brass-light), inset 0 -3px 0 var(--brass-dark), 0 0 0 4px var(--barn-paint), 0 4px 0 4px rgba(40, 24, 10, 0.4); }
+.kit-screw { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: radial-gradient(circle, var(--brass-light) 0 30%, var(--brass-dark) 70%); box-shadow: inset 0 0 0 0.5px rgba(40, 24, 10, 0.6); pointer-events: none; }
+.kit-screw::after { content: ''; position: absolute; left: 1px; right: 1px; top: 2px; height: 1px; background: rgba(40, 24, 10, 0.7); }
+.kit-screw--tl { left: 4px; top: 4px; } .kit-screw--tr { right: 4px; top: 4px; } .kit-screw--bl { left: 4px; bottom: 4px; } .kit-screw--br { right: 4px; bottom: 4px; }
+.kit-btn-wood {
+  color: var(--button-text); text-shadow: 0 -1px 0 rgba(40, 24, 10, 0.6);
+  background: var(--kit-grain), var(--wood-dark);
+  box-shadow: inset 0 3px 0 var(--wood), inset 0 -3px 0 rgba(40, 24, 10, 0.4), 0 3px 0 var(--wood-ink);
+}
+.kit-btn-cloth {
+  color: var(--button-text); text-shadow: 0 -1px 0 rgba(20, 30, 20, 0.5);
+  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 3px), var(--cloth-dark);
+  outline: 2px dashed rgba(255, 244, 220, 0.55); outline-offset: -6px;
+  box-shadow: inset 0 3px 0 var(--cloth), 0 0 0 3px var(--wood-dark), 0 4px 0 3px var(--wood-ink);
+}
+.kit-btn-wood:active:not(:disabled), .kit-btn-cloth:active:not(:disabled) { box-shadow: inset 0 2px 0 var(--wood), 0 1px 0 var(--wood-ink); }
+.kit-btn--sm { min-height: 36px; padding: 0 12px; font-size: 14px; }
+.kit-btn--green {
+  color: var(--button-text); text-shadow: 0 -2px 0 rgba(20, 30, 20, 0.6);
+  background: var(--kit-grain), var(--cloth-dark);
+  box-shadow: inset 0 3px 0 rgba(200, 240, 200, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.45), 0 0 0 3px var(--wood-dark), 0 6px 0 3px rgba(40, 24, 10, 0.4);
+}
+.kit-peg, .sk-icon-btn {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--button-text); cursor: pointer;
+  background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(40, 24, 10, 0.18) 35% 37%, transparent 38% 54%, rgba(40, 24, 10, 0.16) 55% 57%, transparent 58%), radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%);
+  box-shadow: inset 0 0 0 3px var(--wood-ink), inset 0 2px 0 4px rgba(255, 220, 170, 0.18), 0 4px 0 rgba(40, 24, 10, 0.45);
+  transition: transform var(--t-fast) var(--ease-out), filter var(--t-fast);
+}
+.kit-peg:hover, .sk-icon-btn:hover { filter: brightness(1.12); }
+.kit-peg:active, .sk-icon-btn:active { transform: translateY(2px); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
+.kit-peg[aria-pressed="true"], .sk-icon-btn[aria-pressed="true"] { filter: brightness(0.85); }
+.kit-peg--light, .sk-home .sk-icon-btn { color: var(--wood-ink); background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(40, 24, 10, 0.12) 35% 37%, transparent 38%), radial-gradient(circle at 40% 35%, #F0CC96 0%, var(--tile) 75%); }
+.kit-peg--sm { width: 36px; height: 36px; }
+.kit-peg[data-admin], .sk-icon-btn[data-admin] { color: var(--glow); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 0 0 3px var(--amber), 0 4px 0 rgba(40, 24, 10, 0.45); }
+
+/* ---------- Clipboard, panel, lever, rope slider ---------- */
+.kit-clipboard {
+  position: relative; width: min(420px, calc(100vw - 24px)); padding: 34px 14px 16px; border-radius: 3px;
+  background: var(--kit-knot-2) no-repeat 80% 85%, var(--kit-grain), var(--tile);
+  box-shadow: inset 0 3px 0 rgba(255, 240, 210, 0.6), inset 0 -4px 0 var(--wood), 0 6px 0 rgba(40, 24, 10, 0.35), 0 10px 18px rgba(40, 24, 10, 0.25);
+}
+.kit-clip {
+  position: absolute; top: 6px; left: 50%; width: 96px; height: 26px; transform: translateX(-50%); border-radius: 3px; z-index: 3;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 3px), var(--brass);
+  box-shadow: inset 0 2px 0 var(--brass-light), inset 0 -3px 0 var(--brass-dark), 0 3px 0 rgba(40, 24, 10, 0.35);
+}
+.kit-clip::after { content: ''; position: absolute; left: 8px; right: 8px; top: 15px; height: 1px; background: var(--brass-dark); }
+.kit-clipboard-sheet { position: relative; max-height: min(70vh, 640px); overflow-y: auto; }
+.kit-clipboard-title { margin: 0 32px 8px 0; font-family: var(--skin-font-display); font-weight: 800; font-size: 24px; line-height: 1.1; color: var(--ink); }
+.kit-clipboard-close { position: absolute; top: 4px; right: 6px; z-index: 4; }
+.kit-index-tabs { position: absolute; top: 70px; left: calc(100% - 4px); display: flex; flex-direction: column; gap: 4px; z-index: 1; }
+.kit-index-tab {
+  min-height: 34px; padding: 4px 8px 4px 12px; text-align: left; font-family: var(--skin-font-body); font-weight: 800; font-size: 12px; color: var(--ink); cursor: pointer;
+  background: var(--kit-paper-tex), #EFE3C6; box-shadow: 2px 2px 0 rgba(59, 48, 40, 0.22); border-radius: 0 3px 3px 0;
+}
+.kit-index-tab[aria-selected="true"] { background: var(--kit-paper-tex), var(--paper); translate: 6px 0; }
+.kit-panel {
+  position: relative; display: flex; flex-direction: column; gap: 2px; padding: 0; border-radius: 3px;
+  background: var(--kit-grain), var(--wood-ink);
+  box-shadow: 0 6px 0 rgba(40, 24, 10, 0.35), 0 10px 18px rgba(40, 24, 10, 0.25);
+}
+.kit-panel-row {
+  display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; border-radius: 2px;
+  background: var(--kit-grain), var(--wood-dark);
+  box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.22), inset 0 -2px 0 rgba(40, 24, 10, 0.45);
+  color: var(--button-text);
+}
+.kit-lever {
+  position: relative; flex: none; width: 44px; height: 30px; border: 0; background: transparent; cursor: pointer;
+}
+.kit-lever::before { content: ''; position: absolute; left: 6px; right: 6px; bottom: 6px; height: 6px; border-radius: 1px; background: var(--kit-grain), var(--wood-ink); }
+.kit-lever-arm { position: absolute; left: 50%; bottom: 9px; width: 6px; height: 20px; margin-left: -3px; border-radius: 2px; transform-origin: 50% 100%; rotate: 35deg; background: var(--kit-grain), var(--tile); box-shadow: inset -1px 0 0 var(--wood); transition: rotate var(--t-fast) var(--ease-out); }
+.kit-lever-pivot { position: absolute; left: 50%; bottom: 6px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFF1B8 0 18%, var(--brass) 45%, var(--brass-dark) 100%); }
+.kit-lever-lamp { position: absolute; right: 0; top: 2px; width: 8px; height: 8px; border-radius: 50%; background: #3A2A1C; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4); }
+.kit-lever[aria-checked="true"] .kit-lever-arm { rotate: -35deg; }
+.kit-lever[aria-checked="true"] .kit-lever-lamp { background: var(--amber); box-shadow: 0 0 0 2px rgba(242, 164, 68, 0.35); }
+.kit-rope-slider { -webkit-appearance: none; appearance: none; height: 22px; background: transparent; cursor: pointer; }
+.kit-rope-slider::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px); }
+.kit-rope-slider::-moz-range-track { height: 4px; border-radius: 2px; background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px); }
+.kit-rope-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%); box-shadow: inset 0 0 0 2px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
+.kit-rope-slider::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%); box-shadow: inset 0 0 0 2px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
+
+/* ---------- Ice ---------- */
+.kit-ice {
+  position: relative; border-radius: 6px; color: var(--ink);
+  background: linear-gradient(120deg, transparent 0 30%, rgba(255, 255, 255, 0.55) 30% 36%, transparent 36%), rgba(217, 238, 248, 0.78);
+  box-shadow: inset 0 0 0 1px #fff, 1px 2px 0 rgba(59, 48, 40, 0.18);
+}
+
+/* ---------- Focus: the lantern ring, everywhere ---------- */
+:root[data-skin="painted"] :is(.kit-btn, .kit-peg, .sk-icon-btn, .sk-chip, .kit-patch, .kit-lever, .kit-index-tab, .kit-rope-slider, .kit-paper--lift):focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+/* ---------- Reduced motion: every swing, drop and slide is a fade ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .kit-plank--hung, .kit-plank--sway, .kit-tile--hung { animation: sk-title-fade 200ms both; }
+  .kit-paper--lift, .kit-btn, .kit-peg, .kit-lever-arm { transition: none; }
+}
+:root[data-skin="painted"].reduce-motion :is(.kit-plank--hung, .kit-plank--sway, .kit-tile--hung) { animation: sk-title-fade 200ms both; }

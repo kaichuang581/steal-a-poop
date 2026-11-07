@@ -45,7 +45,8 @@ const PICTOGRAPH = /\p{Extended_Pictographic}/u;
 /** Typographic glyphs that stand in for an icon when they are all a string or a CSS `content` holds. */
 const GLYPH_ICONS = /^[✓✔✗✘…•★☆♥♦→←↑↓×]$/u;
 /** Where a rounded corner is the material's own shape (V6 Part 3.1). */
-const ROUND_OK = ['.kit-peg', '.kit-pin', '.kit-ice', '.kit-slate-face', '.kit-rope'];
+// Round things in the kit: pegs, pins and nail or screw heads, knots, the lever's pivot and lamp, a tag's punched hole, ice and the slate's inner edge.
+const ROUND_OK = ['.kit-peg', '.kit-pin', '.kit-nail', '.kit-screw', '.kit-lever-pivot', '.kit-lever-lamp', '.kit-tag', '.kit-ice', '.kit-slate-face', '.kit-rope'];
 
 function files(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

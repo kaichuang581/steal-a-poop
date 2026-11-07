@@ -10,10 +10,10 @@ import { buildGeometry } from '../voxel/mesher';
 import { FROST, lin, SCARF } from '../voxel/palette';
 import { Grid } from '../voxel/primitives';
 import type { V3 } from '../voxel/primitives';
-import { CREAM, HEAD_PIVOT, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
-import type { Brows, Lids, Mouth, Part, WoolLevel } from '../voxel/sheep';
+import { CREAM, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
+import type { Brows, Lids, Mouth, Part, SheepModel, WoolLevel } from '../voxel/sheep';
 
-export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking';
+export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'running' | 'leaping';
 export type { WoolLevel };
 
 /**
@@ -54,6 +54,8 @@ interface Props {
   speaking?: boolean;
   /** A bot on its turn: whenever the sheep has nothing else to do it thinks (head tilt, one ear up, a thought bubble). */
   thinking?: boolean;
+  /** Another animal built to the sheep's rig (src/skin/voxel/animals.ts): the avatar a player wears. Default: the sheep. */
+  model?: SheepModel;
 }
 
 /** The ears hang 20 degrees below level. */
@@ -165,6 +167,27 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       p[CH.bodyRotZ] = moving ? Math.sin(e * 20) * 0.1 * (1 - clamp01(e / 1.2)) : 0;
       f.mouth = 'smile';
       break;
+    // Counting Sheep: a bounding gallop (front legs together, back legs together), the body rising on each stride,
+    // ears streaming back; and the leap over a fence, legs tucked, chest up, eyes happily shut.
+    case 'running': {
+      const stride = moving ? Math.sin(t * 13) : 0;
+      p[CH.legSwing] = stride * 0.55;
+      p[CH.bodyY] = moving ? Math.max(0, Math.cos(t * 13)) * 0.05 : 0;
+      p[CH.bodyRotX] = -0.05 + stride * 0.03;
+      p[CH.earBack] = 0.55;
+      p[CH.tail] = moving ? Math.sin(t * 6.5) * 0.3 : 0;
+      f.mouth = 'smile';
+      break;
+    }
+    case 'leaping':
+      p[CH.legSwing] = 0.6;
+      p[CH.legLift] = 0.1;
+      p[CH.bodyRotX] = -0.28;
+      p[CH.earBack] = 0.85;
+      p[CH.puff] = 1.03;
+      f.lids = 'arc';
+      f.mouth = 'smile';
+      break;
   }
   if (speaking && (live === 'idle' || live === 'thinking')) {
     p[CH.bodyRotX] -= 0.06;
@@ -180,8 +203,8 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
  * model; only level, state and seat differ. Each coat level is its own fleece built to fit the head and legs, so
  * growing or losing wool swaps the fleece rather than scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false }: Props) {
-  const m = sheepModel();
+export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, model }: Props) {
+  const m = model ?? sheepModel();
   const mat = useMemo(() => voxelMaterial(), []);
   // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice.
   const faceMat = useMemo(() => voxelMaterial(), []);
@@ -243,7 +266,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
       if (lookAt) {
         if (lookAt === 'camera') v.copy(camera.position); else v.set(lookAt[0], lookAt[1], lookAt[2]);
         root.current.worldToLocal(v);
-        const dx = v.x - HEAD_PIVOT[0], dy = v.y - (HEAD_PIVOT[1] + 0.14), dz = v.z - HEAD_PIVOT[2];
+        const dx = v.x - m.head.pivot[0], dy = v.y - (m.head.pivot[1] + 0.14), dz = v.z - m.head.pivot[2];
         wantYaw = Math.atan2(dx, dz);
         wantPitch = -Math.atan2(dy, Math.hypot(dx, dz));
       } else wantYaw = headYaw;

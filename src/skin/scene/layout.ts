@@ -78,13 +78,14 @@ export const DISTANCE = {
 
 /**
  * The speaker camera (plan V3.3 Part 4): for a speaker at ring angle θ the camera stands on a circle around the pile
- * at θ + 180° − 35°, so the sheep is seen three-quarter front with the pile beside it, and looks at a point 35% of
- * the way from the speaker's head toward the top of the pile. The plan's 7.6 m radius would put the camera outside
+ * at θ + 180° − 22°, so the sheep is seen nearly face on (the plan's 35° showed too much of its flank) with the pile
+ * beside it, and looks at a point a little way from the speaker's head toward the top of the pile, so the speaker
+ * holds the middle of the frame. The plan's 7.6 m radius would put the camera outside
  * the barn walls (12 m wide), so the circle is 5.4 m; the height and the 35% are the plan's; the aim is lifted 0.3 m so the
  * letter board stays in frame when the camera is pulled in. A tall phone screen is narrow, so phones stand a little
  * further back with a wider lens and aim halfway to the pile.
  */
-export const SPEAKER_CAMERA = { radius: 5.4, phoneRadius: 5.8, height: 3.0, fov: 25, phoneFov: 50, offsetDeg: -35, toward: 0.2, phoneToward: 0.3, headY: 0.95, pileTopY: 0.6, step: 0.35, lift: 0.25 };
+export const SPEAKER_CAMERA = { radius: 5.4, phoneRadius: 5.8, height: 3.0, fov: 27, phoneFov: 50, offsetDeg: -22, toward: 0.3, phoneToward: 0.3, headY: 0.95, pileTopY: 0.6, step: 0.35, lift: 0.25 };
 
 export interface Shot { position: [number, number, number]; target: [number, number, number]; fov: number }
 
@@ -94,8 +95,11 @@ export function homeShot(phone: boolean): Shot {
   return { position: [...home.position], target: [...home.target], fov: home.fov };
 }
 
-/** The close shot for the sheep at seat `index` of `n`: every sheep on its turn, you included, gets the zoom. */
-export function speakerShot(index: number, n: number, phone: boolean): Shot {
+/**
+ * The close shot for the sheep at seat `index` of `n`: every sheep on its turn, you included, gets the zoom. `headY` is
+ * the speaker's head height in model units (the sheep's by default; a hen's is lower, a horse's higher).
+ */
+export function speakerShot(index: number, n: number, phone: boolean, headY = SPEAKER_CAMERA.headY): Shot {
   const c = SPEAKER_CAMERA;
   const p = seatPosition(index, n);
   const dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;
@@ -108,7 +112,8 @@ export function speakerShot(index: number, n: number, phone: boolean): Shot {
   const r = Math.min(phone ? c.phoneRadius : c.radius, (BARN.maxX - 1.5) / Math.max(sx, 1e-3), back > 0 ? (BARN.maxZ - 1.5 - SEAT_RING.cz) / back : Infinity);
   return {
     position: [SEAT_RING.cx + Math.sin(phi) * r, c.height, SEAT_RING.cz - Math.cos(phi) * r],
-    target: [hx + (HEAP[0] - hx) * k, hy + (c.pileTopY - hy) * k + c.lift, hz + (HEAP[2] - hz) * k],
+    // The aim height is the sheep's, scaled by how tall the speaker's animal is, so a hen fills the frame as a sheep does.
+    target: [hx + (HEAP[0] - hx) * k, (hy + (c.pileTopY - hy) * k + c.lift) * (headY / c.headY), hz + (HEAP[2] - hz) * k],
     fov: phone ? c.phoneFov : c.fov,
   };
 }

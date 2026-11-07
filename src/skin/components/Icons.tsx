@@ -229,6 +229,22 @@ export const ClockIcon = (p: P) => <Pixel {...p} rows={`
 .##....##.
 ...####...
 ..........`} />;
+/** A padlock, for the admin lock by the avatar. */
+export const LockIcon = ({ size = 16 }: P) => (
+  <svg viewBox="0 0 10 10" width={size} height={size} aria-hidden="true" shapeRendering="crispEdges">
+    {px(`
+...####...
+..##..##..
+..##..##..
+..##..##..
+.########.
+.########.
+.###..###.
+.###..###.
+.########.
+.########.`)}
+  </svg>
+);
 export const FlameIcon = ({ size = 16 }: P) => (
   <svg viewBox="0 0 10 10" width={size} height={size} aria-hidden="true" shapeRendering="crispEdges">
     {px(`

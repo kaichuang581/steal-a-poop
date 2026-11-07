@@ -2,7 +2,9 @@ import { shareCard } from '../share/card';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { previewBotTurn, rankPlayers, roundTurnMs, startingWool, summarize, utcDateKey } from '../../engine';
+import { useRoomStore } from '../../state/roomStore';
 import { useStore } from '../../state/store';
+import { useAvatar } from '../avatars/store';
 import { ChatPanel } from '../../ui/ChatPanel';
 import { BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, SnowflakeIcon, SpeakerIcon, WolfIcon } from '../components/Icons';
 import { Notice } from '../components/Notice';
@@ -44,6 +46,15 @@ export function PaintedGame() {
   const input = useWordInput();
   const [dimmed, setDimmed] = useState<Set<number>>(new Set());
   const view = useTableView({ typed: input.typed, message: input.message, dimmed })!;
+  // Who wears what: your own pick, and what the room says the others picked (bots and offline players wear nothing).
+  const myAvatar = useAvatar();
+  const room = useRoomStore((s) => s.room);
+  const avatarOf = (p: { id: string; isYou: boolean }): string | null => {
+    if (p.isYou) return myAvatar;
+    if (!room) return null;
+    const uid = Object.keys(room.seatOf).find((u) => room.seatOf[u] === Number(p.id));
+    return room.members.find((m) => m.userId === uid)?.avatar ?? null;
+  };
   const game = useStore((s) => s.game)!;
   const mySeat = useStore((s) => s.mySeat);
   const storeMode = useStore((s) => s.mode);
@@ -100,6 +111,21 @@ export function PaintedGame() {
 
   // A lost turn or failed steal dims a card until the next turn starts.
   useEffect(() => setDimmed(new Set()), [game.turn?.seat]);
+
+  // Every change of the floor is called out: as the camera swings to the new speaker a board over the table names
+  // whose turn it is (gold for yours), so the swing never leaves you guessing who is on. The tour has its own cards.
+  const turnSeat = game.turn?.seat;
+  const turnStartedAt = game.turn?.startedAt;
+  useEffect(() => {
+    if (turnSeat === undefined || game.phase !== 'playing' || storeMode === 'tour') return;
+    const me = turnSeat === mySeat;
+    flash(
+      <Notice tone={me ? 'gold' : 'wood'} size="lg" className="sk-turn-call" title={me ? 'Your turn!' : `${name(String(turnSeat))}’s turn`}
+        sub={me ? `a word starting with ${(game.chainLetter ?? '').toUpperCase()}` : undefined} />,
+      1200,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnSeat, turnStartedAt]);
 
   // A played word lands with a stamp: big gold letters, a burst of light and a puff of wool tufts.
   const burst = (word: string, by: string, mine: boolean) => {
@@ -165,6 +191,10 @@ export function PaintedGame() {
         break;
       case 'stealTurn': {
         if (game.players[mySeat]?.frozen) break;
+        // A backgrounded tab catches up on several turns in one frame: a steal turn that is already over is not
+        // announced, or the board would call a steal on a sheep whose turn has passed.
+        const live = useStore.getState().game;
+        if (!live?.turn || live.phase !== 'playing' || live.turn.seat !== Number(e.playerId)) break;
         const me = Number(e.playerId) === mySeat;
         pushAlarm({
           tone: 'steal', label: 'Steal turn', ms: 2600,
@@ -227,7 +257,7 @@ export function PaintedGame() {
             const st = stateOf(p);
             return {
               seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.lives, maxLives), state: st.state, stateKey: st.key, coldFor: st.coldFor,
-              dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou,
+              dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou, avatar: avatarOf(p),
               // Only the speaker's tag is large, with flames; the others shrink to the name (plan V3.3 Part 4.1).
               label: p.id === view.currentPlayerId ? (
                 <span className="sk-chip sk-display flex flex-col items-center whitespace-nowrap text-lg leading-tight" style={{ boxShadow: view.stealOpen ? '0 0 0 3px var(--coral), 0 0 18px rgba(231,112,94,0.7)' : '0 0 0 3px var(--amber)' }}>

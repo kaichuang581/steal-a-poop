@@ -1,54 +1,42 @@
-/* Counting Sheep: a night bedroom with the dream bubble, drawn on a pixel canvas. The page around it is the same
-   deep night, with a faint starfield so the canvas edge melts into it. */
-.dr-root {
-  position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-  padding: 16px; background: radial-gradient(120% 90% at 50% 30%, #2a2656 0%, #17152f 60%, #0f0e20 100%);
-  color: #ece6ff; font-family: 'DotGothic16', monospace; outline: none; user-select: none; overflow: hidden;
-}
-.dr-root::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
-  background-image: radial-gradient(1px 1px at 20px 30px, #fff6d6 99%, transparent), radial-gradient(1px 1px at 140px 90px, #fff6d6 99%, transparent),
-    radial-gradient(1px 1px at 230px 20px, #d9d0ff 99%, transparent), radial-gradient(1px 1px at 300px 150px, #fff6d6 99%, transparent);
-  background-size: 320px 180px;
-}
-.dr-loading { color: #ece6ff; }
-.dr-title { position: relative; margin: 0; font-size: 22px; font-weight: 400; letter-spacing: 0.04em; color: #fff1b8; text-shadow: 2px 2px 0 #241a33; }
-.dr-title small { font-size: 14px; color: #b9aef0; }
-.dr-frame {
-  position: relative; flex: none; border-radius: 10px; overflow: hidden; cursor: text;
-  box-shadow: 0 0 0 3px #241a33, 0 0 0 6px #3a3270, 0 18px 50px rgba(0, 0, 0, 0.55);
-}
-.dr-canvas { display: block; image-rendering: pixelated; }
-.dr-ghost { position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; }
-.dr-help { position: relative; margin: 0; max-width: 640px; text-align: center; color: #9d93cf; font: 13px var(--skin-font-body), sans-serif; }
-.dr-quit { display: grid; place-items: center; position: absolute; right: 12px; top: 12px; width: 40px; height: 40px; border-radius: 10px; color: #ece6ff; background: #2a2656; border: 2px solid #4a4290; font-size: 16px; }
+/* Counting Sheep: the dream on the winter farm. The scene is the game's own three.js barn adrift in a dream sky; what
+   is here is the little that the painted skin's shared classes (chips, the word bar, boards) do not cover. */
+.dr-root { position: relative; display: flex; height: 100%; flex-direction: column; overflow: hidden; outline: none; user-select: none; background: #8A6DB5; }
 
-/* The wake-up card. */
-.dr-results {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(360px, 92%); padding: 16px 18px 14px;
-  text-align: center; background: #f6f1ff; color: #3a2a3a; border: 3px solid #241a33; border-radius: 12px;
-  box-shadow: inset 0 0 0 2px #c9bdf0, 4px 4px 0 rgba(0, 0, 0, 0.35); animation: dr-pop 260ms steps(6) both;
+/* The dream's edge: the frame softens and deepens to violet toward the corners, the way a dream has no edges. */
+.dr-edge {
+  position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background: radial-gradient(ellipse at 50% 45%, transparent 62%, rgba(38, 20, 78, 0.18) 84%, rgba(26, 12, 58, 0.5) 100%);
 }
-.dr-results h2 { margin: 0; font-size: 20px; font-weight: 400; color: #4a3f8e; }
-.dr-big { margin: 4px 0 8px; font-size: 14px; }
-.dr-big b { display: block; font-size: 40px; line-height: 1.1; font-weight: 400; color: #3a2a3a; }
-.dr-results dl { display: flex; justify-content: center; gap: 18px; margin: 0 0 12px; }
-.dr-results dl div { display: flex; flex-direction: column; }
-.dr-results dt { font-size: 11px; color: #7c6fb8; }
-.dr-results dd { margin: 0; font-size: 15px; }
-.dr-actions { display: flex; gap: 8px; }
-.dr-actions button {
-  flex: 1; min-height: 40px; font: inherit; font-size: 14px; color: #fff6d6; background: #4a3f8e; border: 2px solid #241a33; border-radius: 8px;
-  box-shadow: inset 0 -3px 0 #322a6a; cursor: pointer;
+.dr-edge::before {
+  content: ''; position: absolute; inset: 0;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 45%, transparent 66%, #000 100%); mask-image: radial-gradient(ellipse at 50% 45%, transparent 66%, #000 100%);
 }
-.dr-actions button:hover { background: #5a4fa6; }
-.dr-actions button:focus-visible { outline: 2px solid #e7b14d; outline-offset: 2px; }
-.dr-note { margin: 10px 0 0; font: 12px var(--skin-font-body), sans-serif; color: #7c6fb8; }
-@keyframes dr-pop { from { transform: translate(-50%, -40%) scale(0.9); opacity: 0; } }
+
+/* The fence's letters: small wooden tiles at the left of the word bar; each lights gold once typed in order. */
+.dr-fence-tiles { flex: none; display: flex; align-items: center; gap: 3px; min-width: 58px; padding: 0 6px 0 2px; border-right: 2px dashed rgba(140, 90, 46, 0.35); }
+.dr-fence-tile { --t: 34px; animation: none; }
+.dr-fence-tile[data-lit] { background: linear-gradient(180deg, #FFE7A8, var(--glow)); box-shadow: inset 0 -4px 0 var(--amber), 0 0 0 2px var(--amber), 0 2px 4px rgba(40, 24, 10, 0.3); }
+.dr-fence-tiles[data-wrong] .dr-fence-tile { background: linear-gradient(180deg, #FFB9A8, var(--coral)); color: #fff; text-shadow: 0 2px 0 var(--coral-dark); animation: dr-shake 320ms ease-in-out; }
+.dr-fence-none { font-size: 22px; color: var(--ink-soft); padding: 0 8px; }
+@keyframes dr-shake { 25% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 75% { transform: translateX(-2px); } }
+
+/* Signs over the fences in the scene: a paper chip with the letters, gold-rimmed when it is the next one to clear,
+   cloth green with the word once it is cleared. */
+.dr-sign {
+  display: inline-block; padding: 2px 10px; border-radius: 999px; white-space: nowrap; font-size: 15px; letter-spacing: 0.06em;
+  background: var(--paper); color: var(--ink); box-shadow: var(--shadow-warm); transition: box-shadow var(--t-fast), background var(--t-fast);
+}
+.dr-sign[data-hot] { box-shadow: 0 0 0 3px var(--amber), 0 0 18px rgba(242, 164, 68, 0.6); }
+.dr-sign[data-wrong] { box-shadow: 0 0 0 3px var(--coral), 0 0 18px rgba(231, 112, 94, 0.6); animation: dr-shake 320ms ease-in-out; }
+.dr-sign[data-locked] { background: var(--cloth-dark); color: var(--button-text); box-shadow: inset 0 2px 0 var(--cloth), 0 3px 0 var(--ink); }
+
+/* The count popping over the sheep as it lands. */
+.dr-pop { display: inline-block; font-size: 28px; color: var(--glow); text-shadow: 0 2px 0 rgba(40, 24, 10, 0.7), 0 0 12px rgba(255, 217, 138, 0.6); animation: dr-pop 1100ms var(--ease-out) both; }
+@keyframes dr-pop { 0% { opacity: 0; transform: translateY(8px) scale(0.6); } 20% { opacity: 1; transform: translateY(0) scale(1.15); } 100% { opacity: 0; transform: translateY(-34px) scale(1); } }
 
 @media (max-width: 640px) {
-  .dr-root { justify-content: flex-start; padding-top: 64px; }
-  .dr-help { font-size: 12px; }
+  .dr-fence-tile { --t: 26px; }
+  .dr-fence-tiles { min-width: 40px; }
 }
-:root.reduce-motion .dr-results { animation: none; }
-@media (prefers-reduced-motion: reduce) { .dr-results { animation: none; } }
+:root.reduce-motion .dr-pop, :root.reduce-motion .dr-sign, :root.reduce-motion .dr-fence-tile { animation: none; }

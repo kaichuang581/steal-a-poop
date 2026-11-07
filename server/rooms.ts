@@ -8,7 +8,7 @@ import { orderPending } from './steals';
 import type { PendingAction } from './steals';
 
 /** What a client may send during a game. The server fills in the seat from who is asking. */
-export type ClientAction = { type: 'play'; word: string } | { type: 'bank' } | { type: 'steal'; word: string };
+export type ClientAction = { type: 'play'; word: string } | { type: 'bank' } | { type: 'steal'; word: string } | { type: 'pass' };
 
 export interface RoomManagerDeps {
   ctx: EngineContext;

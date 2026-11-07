@@ -293,7 +293,7 @@ export async function startServer(opts: ServerOptions) {
       }
       case 'act': {
         const a = msg.action;
-        const valid = a && ((a.type === 'bank') || ((a.type === 'play' || a.type === 'steal') && typeof a.word === 'string' && a.word.length <= 40));
+        const valid = a && ((a.type === 'bank') || (a.type === 'pass') || ((a.type === 'play' || a.type === 'steal') && typeof a.word === 'string' && a.word.length <= 40));
         if (!valid) return fail(ws, 'bad_message');
         // Compensated ordering: competing steals wait a moment and are then applied in order of when they
         // were probably sent. While a hold is open, every action from the room joins it so none jumps the queue.

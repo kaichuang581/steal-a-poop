@@ -131,3 +131,16 @@ export function Px({ e, size = 16, title }: { e: string; size?: number; title?: 
   if (!I) return null;
   return <span title={title} style={{ display: 'inline-flex' }}><I size={size} /></span>;
 }
+
+/** A bomb with an arrow: hand the bomb to the next sheep. */
+export const PassIcon = grid([
+  '       #   ',
+  '      #    ',
+  '   ####  # ',
+  '  ###### ##',
+  ' ########  ',
+  ' ######### ',
+  ' ######### ',
+  '  #######  ',
+  '   #####   ',
+], 'pass');

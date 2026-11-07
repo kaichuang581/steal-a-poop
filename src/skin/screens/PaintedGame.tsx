@@ -1,3 +1,4 @@
+import { MiniBomb } from '../components/BombClock';
 import { shareCard } from '../share/card';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -134,6 +135,10 @@ export function PaintedGame() {
         setMoments((m) => ({ ...m, wolf: { key: k(), to: rel(Number(e.byId)) } }));
         setDimmed((d) => new Set(d).add(Number(e.fromId)));
         flash(<Notice tone="steal" size="lg" icon={<WolfIcon size={30} />} title={Number(e.byId) === mySeat ? `You stole it with ${e.word.toUpperCase()}!` : Number(e.fromId) === mySeat ? `${name(e.byId)} stole from you!` : `Stolen with ${e.word.toUpperCase()}!`} sub={`${name(e.byId)} took a wool ball from ${name(e.fromId)}`} />, 1800);
+        break;
+      case 'passed':
+        mood(e.playerId, 'happy');
+        flash(<Notice tone="wood" size="sm" snow={false} icon={<MiniBomb size={22} />} title="Bomb passed!" sub={e.toId ? `${name(e.playerId)} handed it to ${name(e.toId)}` : undefined} />, 1400);
         break;
       case 'stealFailed':
         if (Number(e.playerId) === mySeat) flash(<Notice tone="wood" size="sm" snow={false} title="Missed!" sub="try again in a second" />, 1000);
@@ -314,6 +319,7 @@ export function PaintedGame() {
             turnName={view.currentPlayerId === '' ? 'Next sheep' : name(view.currentPlayerId)}
             onChange={input.onChange} onSubmit={input.submit} acceptKey={input.acceptKey} out={!!game.players[mySeat]?.frozen}
             message={input.message} turnKey={game.turn?.seat}
+            onPass={storeMode !== 'tour' && game.players[mySeat]?.passedRound !== game.round ? () => void useStore.getState().act({ type: 'pass', seat: mySeat }) : undefined}
             hints={input.learning ? { ideas: input.ideas, onHint: input.hintIdeas, onPick: input.useIdea } : undefined}
           />
         </div>

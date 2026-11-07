@@ -80,6 +80,7 @@ export function PaintedGame() {
   const k = () => Math.random();
   const rootRef = useRef<HTMLDivElement>(null);
   const [hit, setHit] = useState(0);
+  const [boom, setBoom] = useState(0);
   /** A steal lands: the whole table jolts and a red edge flashes (neither under reduced motion). */
   const jolt = () => {
     if (reduced) return;
@@ -141,9 +142,11 @@ export function PaintedGame() {
         setDimmed((d) => new Set(d).add(Number(e.playerId)));
         if (game.players[Number(e.playerId)]?.isHuman && (practice || storeMode === 'tour')) break; // learning: no loss
         mood(e.playerId, 'cold', 2);
+        jolt();
+        setBoom(k() + 1);
         setMoments((m) => ({ ...m, gust: { key: k(), at: rel(Number(e.playerId)) } }));
         flash(
-          <Notice tone="cold" icon={<GustIcon size={22} />} title="Time’s up!"
+          <Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!"
             sub={`${name(e.playerId)} lost a wool ball${e.trapperId ? ` · ${name(e.trapperId)}’s trap wins one` : ''}`} />,
           1500,
         );
@@ -217,6 +220,7 @@ export function PaintedGame() {
 
   return (
     <div ref={rootRef} className="sk-swoop-in relative flex h-full flex-col overflow-hidden" data-steal-open={view.stealOpen}>
+      {boom > 0 && <div key={boom} className="sk-boom" aria-hidden="true"><i /><i /><i /></div>}
       {hit > 0 && <div key={hit} className="sk-steal-flash" aria-hidden="true" />}
       <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
         <BarnTable
@@ -253,7 +257,7 @@ export function PaintedGame() {
           <span className="sk-chip sk-display">
             {game.phase === 'gameOver'
               ? `Game over · ${view.round} round${view.round === 1 ? '' : 's'}`
-              : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
+              : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
           </span>
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>

@@ -919,3 +919,23 @@
 @keyframes sk-doors-push { 0%, 50% { transform: scale(1); opacity: 1; } 100% { transform: scale(2.4); opacity: 1; } }
 :root.reduce-motion .sk-doors { display: none; }
 @media (prefers-reduced-motion: reduce) { .sk-doors { display: none; } }
+
+/* Bomb clock: the fuse burns down on the letter card, the sheep on turn holds a lit bomb, and a timeout blows it up. */
+.sk-letter-card-bomb { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 2px; }
+.sk-letter-card-bomb b { font-family: var(--skin-font-body); font-size: 13px; font-weight: 900; color: var(--ink); line-height: 1; }
+.sk-letter-card-bomb[data-level="red"] b { color: var(--coral-dark); }
+.sk-bomb[data-red] { animation: sk-bomb-shake 0.18s linear infinite; }
+.sk-bomb-spark { animation: sk-spark 0.22s steps(2) infinite; }
+@keyframes sk-spark { 50% { opacity: 0.35; } }
+@keyframes sk-bomb-shake { 25% { transform: translate(-1px, 0); } 75% { transform: translate(1px, 0); } }
+.sk-bomb-hand { display: inline-flex; animation: sk-bomb-pass 380ms var(--ease-out) both; }
+@keyframes sk-bomb-pass { from { transform: translateX(-26px) rotate(-120deg) scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.sk-boom { position: absolute; inset: 0; z-index: 41; pointer-events: none; display: grid; place-items: center; }
+.sk-boom i { position: absolute; border-radius: 50%; width: 80px; height: 80px; animation: sk-boom 700ms ease-out forwards; }
+.sk-boom i:nth-child(1) { background: radial-gradient(circle, #fff6c8, #ffb23a 45%, rgba(255, 90, 40, 0) 70%); }
+.sk-boom i:nth-child(2) { border: 8px solid #ff7a3a; animation-delay: 60ms; }
+.sk-boom i:nth-child(3) { border: 4px solid #ffd24a; animation-delay: 140ms; }
+@keyframes sk-boom { from { transform: scale(0.2); opacity: 1; } to { transform: scale(9); opacity: 0; } }
+:root.reduce-motion .sk-boom { display: none; }
+:root.reduce-motion .sk-bomb, :root.reduce-motion .sk-bomb-hand, :root.reduce-motion .sk-bomb-spark { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-boom { display: none; } .sk-bomb, .sk-bomb-hand, .sk-bomb-spark { animation: none; } }

@@ -1,3 +1,4 @@
+import { MiniBomb } from './BombClock';
 import { useRoomStore } from '../../state/roomStore';
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
@@ -47,6 +48,7 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
       data-seat={player.id}
       data-tour={player.isYou ? 'me' : undefined}
     >
+      {isTurn && <span key={player.id} className="sk-bomb-hand" aria-hidden="true"><MiniBomb /></span>}
       {mine ? <AvatarIcon id={mine} size={compact ? 22 : 30} /> : <SheepIcon size={compact ? 22 : 30} bare={player.lives <= 1} />}
       <div className="min-w-0 flex-1 leading-tight">
         <div className="truncate text-sm font-extrabold" data-seat-name={player.id} title={title}>

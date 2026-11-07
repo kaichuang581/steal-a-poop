@@ -1,3 +1,4 @@
+import { BombClock } from '../components/BombClock';
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -165,8 +166,8 @@ export function BarnTable(props: Props) {
           <span className="sk-letter-card-label">starts with</span>
           <span className="sk-letter-card-letter">{letter.toUpperCase()}</span>
           {secondsLeft !== null && (
-            <span className="sk-letter-card-clock">
-              <i style={{ width: `${Math.max(0, Math.min(1, props.fraction)) * 100}%` }} data-level={stealOpen ? 'red' : props.fraction > 0.45 ? 'ok' : 'warn'} />
+            <span className="sk-letter-card-bomb" data-level={stealOpen ? 'red' : props.fraction > 0.45 ? 'ok' : 'warn'}>
+              <BombClock fraction={props.fraction} red={stealOpen} />
               <b>{secondsLeft.toFixed(1)}s</b>
             </span>
           )}

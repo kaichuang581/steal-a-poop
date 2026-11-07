@@ -9,6 +9,7 @@ import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
 import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
 import { buildDistance } from '../scene/distance';
+import { buildFestive } from '../scene/festive';
 import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, speakerShot } from '../scene/layout';
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
@@ -19,6 +20,7 @@ import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { BOARD, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
 import { DevStats } from './DevStats';
+import { Festive } from './Festive';
 import { Atmosphere, Effects, LANTERN_LIGHT, Lights } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -84,6 +86,8 @@ interface Props {
   children?: ReactNode;
 }
 
+export type { Props as BarnTableProps };
+
 /** World-static voxel content, built once per page and shared by the table and the Home backdrop. */
 export type World = ReturnType<typeof buildWorld>;
 let world: World | null = null;
@@ -92,8 +96,9 @@ function buildWorld() {
   const barn = buildBarn();
   const yard = buildYard();
   const distance = buildDistance();
+  const festive = buildFestive();
   const ms = performance.now() - t0;
-  return { barn, yard, distance, ms };
+  return { barn, yard, distance, festive, ms };
 }
 
 /** The world, built on the first call after paint so the page is not blank-blocked while it builds. */
@@ -113,7 +118,7 @@ export function worldBuildMs(): number | null {
 
 /** The static farm: barn, yard, distance and the lanterns' glow boxes. Shared by the table and the Home backdrop. */
 export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: boolean; stealOpen: boolean }) {
-  const { barn, yard, distance } = w;
+  const { barn, yard, distance, festive } = w;
   const voxMat = useMemo(() => voxelMaterial(), []);
   // Bright enough to pass the bloom threshold, so only the lanterns glow.
   const glowMat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2 }), []);
@@ -132,6 +137,7 @@ export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: 
       <mesh geometry={distance.backHills} material={voxMat} receiveShadow />
       <mesh geometry={distance.mountains} material={voxMat} />
       <Windmill body={distance.windmillBody} blades={distance.windmillBlades} hub={distance.bladesHub} />
+      <Festive geo={festive} reduced={reduced} />
     </>
   );
 }
@@ -422,7 +428,7 @@ function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; i
  * The bomb: a voxel bomb floats over the sheep who holds it, bobbing, with the fuse burning shorter as the turn runs
  * out (red once others can steal). When the turn changes it arcs across the barn to the next sheep.
  */
-function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power }: { speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
+export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power, seatAt = seatPosition }: { seatAt?: (index: number, n: number) => { x: number; z: number }; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
   const m = useMemo(() => bombModel(), []);
   const body = useMemo(() => voxelMaterial(), []);
   const fuseMat = useMemo(() => voxelMaterial(), []);
@@ -448,9 +454,9 @@ function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, 
   });
   const target = useMemo(() => {
     if (speaker === null) return null;
-    const p = seatPosition(speaker, n);
+    const p = seatAt(speaker, n);
     return new Vector3(p.x, 1.1 * SHEEP_SCALE + 0.45, p.z);
-  }, [speaker, n]);
+  }, [speaker, n, seatAt]);
   useEffect(() => {
     if (!target || !group.current) return;
     const f = flight.current;

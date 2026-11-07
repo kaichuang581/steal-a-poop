@@ -1,5 +1,6 @@
 import { BufferGeometry, Float32BufferAttribute } from 'three';
 import { buildGeometry, triangles } from '../voxel/mesher';
+import { detailed } from '../voxel/refine';
 import type { Voxel, VoxelMap } from '../voxel/mesher';
 import { lin, pick, SCARF, T } from '../voxel/palette';
 import type { Tone } from '../voxel/palette';
@@ -19,7 +20,7 @@ const WINDOW_FRAME = '#EDE6D6';
 
 /** A chunk's own voxels, but face culling and AO look at the whole yard so chunk borders stay seamless. */
 export class ChunkMap extends Map<string, Voxel> {
-  constructor(private readonly all: VoxelMap) {
+  constructor(readonly all: VoxelMap) {
     super();
   }
   override has(k: string) {
@@ -66,15 +67,25 @@ export function buildYard(): { chunks: BufferGeometry[]; smokeFrom: [number, num
   cattails(set);
   const smokeFrom = farmhouse(g, set, boxI, capAt);
 
-  // Split into 8 m chunks in x/z; each chunk's faces still cull against its neighbours.
-  const chunks = new Map<string, ChunkMap>();
-  for (const [k, v] of g.map) {
-    const ck = `${Math.floor((v.x * S) / CHUNK)},${Math.floor((v.z * S) / CHUNK)}`;
-    let m = chunks.get(ck);
-    if (!m) chunks.set(ck, (m = new ChunkMap(g.map)));
-    Map.prototype.set.call(m, k, v);
-  }
-  const geos = [...chunks.values()].map((m) => dropFaces(buildGeometry(m, S), (ny, y) => ny < 0 && y < 0));
+  // Split into 8 m chunks in x/z; each chunk's faces still cull against its neighbours. The ground stays as it is, and
+  // everything standing on it is refined to the barn's 0.1 m, so the yard and the barn read as one place.
+  const inChunks = (map: VoxelMap, size: number, keep: (v: Voxel) => boolean, drop: (ny: number, y: number) => boolean) => {
+    const chunks = new Map<string, ChunkMap>();
+    for (const [k, v] of map) {
+      if (!keep(v)) continue;
+      const ck = `${Math.floor((v.x * size) / CHUNK)},${Math.floor((v.z * size) / CHUNK)}`;
+      let m = chunks.get(ck);
+      if (!m) chunks.set(ck, (m = new ChunkMap(map)));
+      Map.prototype.set.call(m, k, v);
+    }
+    return [...chunks.values()].map((m) => dropFaces(buildGeometry(m, size), drop));
+  };
+  const standing = (v: Voxel) => v.y >= 0;
+  const fine = detailed(g.map, S, 0.04, standing);
+  const geos = [
+    ...inChunks(g.map, S, (v) => !standing(v), (ny, y) => ny < 0 && y < 0),
+    ...inChunks(fine.map, fine.size, () => true, (ny, y) => ny < 0 && y <= 0),
+  ];
   return { chunks: geos, smokeFrom, triangles: geos.reduce((s, x) => s + triangles(x), 0) };
 }
 
@@ -106,7 +117,7 @@ function ground(g: Grid, set: Set) {
       }
       const path = onPath(x, z);
       // Snow in broad patches of the two light tones; the dark tone only where drifts shade it.
-      set(xi, -1, zi, path ? pathTone : (gx, gy, gz) => pick(T.snow, hash3(gx >> 3, gy, gz >> 3, 2), [0.6, 0.97]));
+      set(xi, -1, zi, path ? pathTone : (gx, gy, gz) => pick(T.snow, hash3(gx >> 3, gy, gz >> 3, 2), [0.6, 1.01]));
       if (path) continue;
       // 0.2 m drifts against the fence, the barn's walls and around the pond rim.
       const r = hash3(xi, 0, zi, 9);
@@ -191,9 +202,10 @@ function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
   for (let x = mx - 1; x <= mx + 1; x++) for (let z = mz - 2; z <= mz + 1; z++) cap(x, 6, z);
 }
 
-export function pine(g: Grid, set: Set, wx: number, wz: number, seed: number) {
+export function pine(g: Grid, set: Set, wx: number, wz: number, seed: number, height?: number) {
   const r = rng(seed * 97);
-  const H = 5 + r() * 4;
+  const drawn = 5 + r() * 4;
+  const H = height ?? drawn;
   const hv = ix(H), tx = ix(wx) - 1, tz = ix(wz) - 1;
   const bark = tone(T.trunk, seed, [0.4, 0.85]);
   const ridge = () => lin(T.trunk[2]);

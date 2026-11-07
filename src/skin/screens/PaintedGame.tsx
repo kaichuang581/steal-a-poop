@@ -4,7 +4,10 @@ import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { previewBotTurn, rankPlayers, roundTurnMs, startingWool, summarize, utcDateKey } from '../../engine';
+import { previewBotTurn, rankPlayers, roundTurnMs, startingWool, utcDateKey } from '../../engine';
+import { getDream } from '../../dream/daily';
+import { getPracticeBest } from '../../lib/practice';
+import { farmSheepLine } from '../../lib/record';
 import { useRoomStore } from '../../state/roomStore';
 import { useStore } from '../../state/store';
 import { useAvatar } from '../avatars/store';
@@ -26,6 +29,7 @@ import { TallyBoard } from '../components/TallyBoard';
 import { TwistSign } from '../components/TwistSign';
 import { Alarm, useAlarms } from '../components/Alarm';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
+import { localDateKey } from '../hooks/useToday';
 import { useWordInput } from '../hooks/useWordInput';
 import { keystrokeAt, lastRejectAt, seedOf, typingScript } from '../model/botTyping';
 import { useVisualEvents } from '../model/events';
@@ -36,6 +40,7 @@ import { streakDays, useTableView } from '../model/useTableView';
 import { BarnTable } from '../table/BarnTable';
 import type { BarnMoments } from '../table/BarnTable';
 import { DevLine } from '../table/DevStats';
+import { DuelTable } from '../table/DuelTable';
 import { PlaceExtras } from '../table/places';
 import { coatLevel } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
@@ -89,6 +94,11 @@ export function PaintedGame() {
   const rel = (seat: number) => (seat - mySeat + n) % n;
   const name = (id: string) => game.players[Number(id)]?.name ?? '';
   const practice = storeMode === 'practice';
+  // A practice run has its own place: the two of you, out on the ice.
+  const Stage = practice ? DuelTable : BarnTable;
+  // Read once a run: the table re-renders every frame and this reads storage.
+  const runBest = useMemo(() => (practice ? getPracticeBest(game.settings.practiceClock ?? 15, game.settings.botDifficulty) : 0), [practice, game.seed]); // eslint-disable-line react-hooks/exhaustive-deps
+  const runWords = game.players[0].wordsPlayed;
   // Wool balls are lives: every sheep shows them, with an empty ring for each one lost.
   const maxLives = startingWool(game.settings);
   const k = () => Math.random();
@@ -125,7 +135,8 @@ export function PaintedGame() {
   const turnSeat = game.turn?.seat;
   const turnStartedAt = game.turn?.startedAt;
   useEffect(() => {
-    if (turnSeat === undefined || game.phase !== 'playing' || storeMode === 'tour') return;
+    // A practice run changes turns too fast for a board, and with two seats the letter and the word bar say it all.
+    if (turnSeat === undefined || game.phase !== 'playing' || storeMode === 'tour' || practice) return;
     const me = turnSeat === mySeat;
     flash(
       <Notice tone={me ? 'gold' : 'wood'} size="lg" className="sk-turn-call" title={me ? 'Your turn!' : `${name(String(turnSeat))}’s turn`}
@@ -147,7 +158,7 @@ export function PaintedGame() {
         <span className="sk-word-burst-ring" />
         {!reduced && tufts}
         <span className="sk-word-burst-word" style={{ fontSize: mine ? size * 1.15 : size }}>{word.toUpperCase()}</span>
-        <span className="sk-word-burst-by">{mine ? 'Nice one!' : by}</span>
+        <span className="sk-word-burst-by">{mine ? CHEERS[Math.floor(Math.random() * CHEERS.length)] : by}</span>
       </div>,
       1300,
     );
@@ -187,7 +198,7 @@ export function PaintedGame() {
           setBlast({ key: k() + 1, words: words.slice(-14), power });
           setMoments((m) => ({ ...m, boom: { key: k(), at: rel(Number(e.playerId)), power } }));
         }
-        if (game.players[Number(e.playerId)]?.isHuman && (practice || storeMode === 'tour')) {
+        if (game.players[Number(e.playerId)]?.isHuman && storeMode === 'tour') {
           flash(<Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!" sub="no wool lost while you practise" />, 1500);
           break; // learning: no loss
         }
@@ -210,7 +221,7 @@ export function PaintedGame() {
       case 'roundStart':
         // The round's alarms, one after the other: faster turns (every round until the floor), then the twist.
         if (e.round > 1 && storeMode !== 'tour') {
-          if (e.faster && !practice) pushAlarm({ tone: 'speed', label: `Round ${e.round} · faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on' });
+          if (e.faster) pushAlarm({ tone: 'speed', label: `Round ${e.round} · faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on' });
           if (e.twist && e.twist !== 'vowelDouble') pushAlarm({ tone: 'twist', label: `Round ${e.round} · new rule`, title: TWIST_TEXT[e.twist], sub: 'for this round only' });
         }
         break;
@@ -277,7 +288,7 @@ export function PaintedGame() {
       {blast && !reduced && <WordBlast key={`w${blast.key}`} words={blast.words} power={blast.power} />}
       {hit > 0 && <div key={hit} className="sk-steal-flash" aria-hidden="true" />}
       <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
-        <BarnTable
+        <Stage
           bombSize={bombSz} pile={view.pile} speaker={speaker} fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
           secondsLeft={game.turn ? view.secondsLeft : null} letter={view.letter ?? ''} isTrap={view.isTrapLetter}
           stealOpen={view.stealOpen} hour={hour} reduced={reduced} phone={mobile} blizzard={view.twist === 'doublePointsShort'} moments={moments}
@@ -299,7 +310,7 @@ export function PaintedGame() {
           })}
         >
           <PlaceExtras mode={view.mode} reduced={reduced} streak={view.streakDays} />
-        </BarnTable>
+        </Stage>
       </div>
 
       {/* A soft vignette holds the eye on the pile (plan V3.2 Part 2). */}
@@ -309,7 +320,9 @@ export function PaintedGame() {
       <header className="pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
         <div className="flex flex-col items-start gap-1">
           <span className="sk-chip sk-display">
-            {game.phase === 'gameOver'
+            {practice
+              ? `${runWords} word${runWords === 1 ? '' : 's'} · best ${Math.max(runBest, runWords)}${game.turn ? ` · ${Math.round(game.turn.durationMs / 1000)}s turn` : ''}`
+              : game.phase === 'gameOver'
               ? `Game over · ${view.round} round${view.round === 1 ? '' : 's'}`
               : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
           </span>
@@ -324,11 +337,19 @@ export function PaintedGame() {
         </div>
       </header>
 
-      <aside className={mobile ? 'relative z-30 mt-14 flex gap-1 overflow-x-auto px-2' : 'relative z-30 ml-auto mr-2 mt-14 flex flex-col gap-1.5'} aria-label="Scoreboard">
-        {ranked.map((p) => (
-          <PlayerCard key={p.id} player={p} isTurn={p.id === view.currentPlayerId} compact={mobile} lastWord={game.players[Number(p.id)].lastWord} maxLives={maxLives} />
-        ))}
-      </aside>
+      {practice ? (
+        <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-14' : 'top-3'}`} aria-label="Who is playing">
+          <span className="sk-chip sk-display text-lg">{game.players[0].name}</span>
+          <span className="sk-display text-3xl font-extrabold" style={{ color: 'var(--glow)', textShadow: '0 2px 6px rgba(0, 0, 0, 0.8)' }}>VS</span>
+          <span className="sk-chip sk-display text-lg capitalize">{game.players[1].name} · farm sheep · {game.settings.botDifficulty}</span>
+        </div>
+      ) : (
+        <aside className={mobile ? 'relative z-30 mt-14 flex gap-1 overflow-x-auto px-2' : 'relative z-30 ml-auto mr-2 mt-14 flex flex-col gap-1.5'} aria-label="Scoreboard">
+          {ranked.map((p) => (
+            <PlayerCard key={p.id} player={p} isTurn={p.id === view.currentPlayerId} compact={mobile} lastWord={game.players[Number(p.id)].lastWord} maxLives={maxLives} />
+          ))}
+        </aside>
+      )}
 
       {/* Feedback words float over the middle of the table. */}
       <div className="pointer-events-none absolute inset-x-0 top-[30%] z-20 flex flex-col items-center gap-2" aria-hidden="true">
@@ -346,6 +367,14 @@ export function PaintedGame() {
         </>
       )}
 
+      {/* Every solo table opens by saying who is at it, so nobody takes the farm's sheep for people. Over the letter card,
+          which can sit anywhere the barn's camera puts it. */}
+      {game.phase === 'intro' && game.round === 1 && (storeMode === 'quick' || storeMode === 'daily') && (
+        <div className="pointer-events-none absolute inset-x-0 top-[15%] z-[34] flex justify-center px-3">
+          <Notice tone="wood" size="lg" title={farmSheepLine(n - 1)} />
+        </div>
+      )}
+
       {/* The steal call: when another sheep's timer is red, say plainly what you can do and what you win. */}
       {input.canSteal && (
         <div className="pointer-events-none absolute inset-x-0 top-[13%] z-20 flex justify-center px-3" role="status">
@@ -356,7 +385,7 @@ export function PaintedGame() {
 
       {showTally && (
         <div className="absolute inset-0 z-30 flex items-center justify-center p-4">
-          <TallyBoard players={ranked} round={game.round - 1} isGameEnd={false} maxLives={maxLives} nextTurnSeconds={practice ? undefined : roundTurnMs(game.round) / 1000} />
+          <TallyBoard players={ranked} round={game.round - 1} isGameEnd={false} maxLives={maxLives} nextTurnSeconds={roundTurnMs(game.round) / 1000} />
         </div>
       )}
 
@@ -368,7 +397,8 @@ export function PaintedGame() {
             turnName={view.currentPlayerId === '' ? 'Next sheep' : name(view.currentPlayerId)}
             onChange={input.onChange} onSubmit={input.submit} acceptKey={input.acceptKey} out={!!game.players[mySeat]?.frozen}
             message={input.message} turnKey={game.turn?.seat}
-            onPass={storeMode !== 'tour' && game.players[mySeat]?.passedRound !== game.round ? () => void useStore.getState().act({ type: 'pass', seat: mySeat }) : undefined}
+            onPass={storeMode !== 'tour' && !practice && game.players[mySeat]?.passedRound !== game.round ? () => void useStore.getState().act({ type: 'pass', seat: mySeat }) : undefined}
+            noSteal={practice}
             hints={input.learning ? { ideas: input.ideas, onHint: input.hintIdeas, onPick: input.useIdea } : undefined}
           />
         </div>
@@ -376,7 +406,7 @@ export function PaintedGame() {
 
       {/* Coach tips only while a turn is running: never over the round tally or the end board. */}
       {storeMode === 'tour' ? <Tour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><CoachTips /></div>}
-      {game.phase === 'gameOver' && <Results players={ranked} />}
+      {game.phase === 'gameOver' && (practice ? <RunOver /> : <Results players={ranked} />)}
       {sheet && sheet !== 'leave' && (
         <Sheet title={{ cheat: 'How to play', chain: 'Chain history', chat: 'Room chat' }[sheet]} onClose={() => setSheet(null)}>
           {sheet === 'cheat' && <RulesCard />}
@@ -416,6 +446,56 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+/** What the table shouts when your word lands. */
+const CHEERS = ['Nice one!', 'Ho ho ho!', 'Jolly good!', 'Fa la la la baa!', 'Merry and bright!'];
+const DREAM_LINE = 'Tonight’s dream is still waiting: Counting Sheep, on the farm.';
+/** Read once: the table re-renders every frame and this reads storage. */
+const useDreamWaiting = () => useMemo(() => !getDream(localDateKey(new Date())), []);
+
+/** The end of a practice run: the score, the best for this clock and bot, and straight back in. */
+function RunOver() {
+  const game = useStore((s) => s.game)!;
+  const run = useStore((s) => s.practiceResult);
+  const rematch = useStore((s) => s.rematch);
+  const quit = useStore((s) => s.quit);
+  const dreamWaiting = useDreamWaiting();
+  const me = game.players[0];
+  const score = run?.score ?? me.wordsPlayed;
+  const stats: [string, string | number][] = [
+    ['Best', run?.best ?? score],
+    ['Clock', `${game.settings.practiceClock ?? 15} s`],
+    ['Bot', game.settings.botDifficulty[0].toUpperCase() + game.settings.botDifficulty.slice(1)],
+  ];
+  return (
+    <>
+      <div className="sk-results-backdrop" aria-hidden="true" />
+      <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-6">
+        <PaperPanel role="dialog" aria-label="Run over" className="w-full max-w-sm p-5 text-center">
+          <p className="sk-display text-2xl">{run?.isNew ? 'New best!' : 'Baa humbug!'}</p>
+          <p className="sk-display mt-1 text-6xl font-extrabold">{score}</p>
+          <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>word{score === 1 ? '' : 's'} before the clock ran out</p>
+          <dl className="mt-3 grid grid-cols-3 gap-1.5 text-sm">
+            {stats.map(([key, v]) => (
+              <div key={key} className="sk-paper px-2 py-1 text-center">
+                <dt className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{key}</dt>
+                <dd className="sk-display text-xl font-extrabold">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          {me.longestWord && (
+            <p className="mt-2 text-sm" style={{ color: 'var(--ink-soft)' }}>Longest word: <b className="tracking-wide">{me.longestWord.toUpperCase()}</b></p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <ClothButton autoFocus onClick={rematch} className="basis-full">Play again</ClothButton>
+            <WoodButton onClick={quit} className="flex-1">Back to the farm</WoodButton>
+          </div>
+          {dreamWaiting && <p className="sk-hand mt-2 text-lg" style={{ color: 'var(--ink-soft)' }}>{DREAM_LINE}</p>}
+        </PaperPanel>
+      </div>
+    </>
+  );
+}
+
 function Results({ players }: { players: PlayerView[] }) {
   const game = useStore((s) => s.game)!;
   const mode = useStore((s) => s.mode);
@@ -427,8 +507,13 @@ function Results({ players }: { players: PlayerView[] }) {
   const [copied, setCopied] = useState(false);
   // Read once: the table re-renders every frame and this reads storage.
   const days = useMemo(() => (mode === 'daily' ? streakDays(new Date(`${dailyDate ?? utcDateKey(new Date())}T12:00:00Z`)) : []), [mode, dailyDate]);
-  const stats = summarize(game.players);
+  const result = useStore((s) => s.gameResult);
+  const dreamWaiting = useDreamWaiting();
   const me = game.players[mySeat];
+  const tiles: [string, number, number | undefined, boolean | undefined][] = [
+    ['Wool kept', me.lives, result?.bests.wool, result?.beat.wool],
+    ['Steals', me.steals, result?.bests.steals, result?.beat.steals],
+  ];
 
   const place = players.findIndex((p) => p.isYou) + 1;
   const steals = game.history.filter((h) => h.kind === 'steal' && h.word);
@@ -460,7 +545,7 @@ function Results({ players }: { players: PlayerView[] }) {
           players={players} round={game.round} isGameEnd winnerIds={game.winners?.map(String)} maxLives={startingWool(game.settings)}
           actions={
             <>
-              {(mode === 'quick' || mode === 'practice') && <ClothButton onClick={rematch} className="basis-full">Play again</ClothButton>}
+              {mode === 'quick' && <ClothButton onClick={rematch} className="basis-full">Same table again</ClothButton>}
               <WoodButton onClick={share} className="flex-1">{copied ? 'Copied!' : 'Share'}</WoodButton>
               <WoodButton onClick={quit} className="flex-1">{mode === 'room' ? 'Leave room' : 'Back to the farm'}</WoodButton>
             </>
@@ -469,24 +554,25 @@ function Results({ players }: { players: PlayerView[] }) {
           <p className="sk-hand mt-2 text-center text-lg" style={{ color: 'var(--glow)' }}>
             {place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place} of ${game.players.length}. The last sheep standing gets the knitted scarf.`}
           </p>
-          <dl className="mt-2 grid grid-cols-3 gap-1.5 text-sm">
-            {[['Rounds', game.round], ['Words', stats.wordsPlayed], ['Steals', stats.steals]].map(([key, v]) => (
-              <div key={key as string} className="sk-paper px-2 py-1 text-center">
+          <dl className="mt-2 grid grid-cols-2 gap-1.5 text-sm">
+            {tiles.map(([key, v, best, beat]) => (
+              <div key={key} className="sk-paper px-2 py-1 text-center">
                 <dt className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{key}</dt>
                 <dd className="sk-display text-xl font-extrabold">{v}</dd>
+                {best !== undefined && <dd className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{beat ? 'new best!' : `best ${best}`}</dd>}
               </div>
             ))}
           </dl>
-          {stats.longestWord && (
-            <div className="sk-paper mt-1.5 flex items-baseline justify-center gap-2 px-2 py-1 text-sm">
+          <div className="sk-paper mt-1.5 px-2 py-1 text-center text-sm">
+            <div className="flex items-baseline justify-center gap-2">
               <span className="sk-hand" style={{ color: 'var(--ink-soft)' }}>Longest word</span>
-              <span className="truncate font-extrabold tracking-wide">{stats.longestWord.word.toUpperCase()}</span>
-              <span className="sk-hand" style={{ color: 'var(--ink-soft)' }}>· {game.players[stats.longestWord.seat].name}</span>
+              <span className="truncate font-extrabold tracking-wide">{me.longestWord ? me.longestWord.toUpperCase() : '—'}</span>
             </div>
-          )}
+            {result?.bests.longest && <div className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}</div>}
+          </div>
           {best && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>{bestLine}</p>}
+          {dreamWaiting && <p className="sk-hand mt-2 text-center text-lg" style={{ color: 'var(--glow)' }}>{DREAM_LINE}</p>}
           {mode === 'room' && <RewardBanner />}
-          {mode === 'practice' && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>Practice game: you never lose wool here.</p>}
           {mode === 'daily' && (
             <div className="mt-2 text-center">
               <StreakString days={days} />

@@ -15,6 +15,23 @@ const FACE_SHADE = (axis: number, sign: number) =>
 /** How much each occluded corner darkens (0..3 corners). */
 const AO_STEP = 0.2;
 
+const cellKey = (x: number, y: number, z: number) => (x + 8192) * 268435456 + (y + 8192) * 16384 + (z + 8192);
+const solids = new WeakMap<object, Set<number>>();
+/**
+ * Every filled cell as a number, for neighbour lookups. A chunk of a bigger model names the whole model as `all`, so its
+ * faces cull against its neighbours; the set is worked out once per model, however many chunks share it.
+ */
+function solidOf(vox: VoxelMap): Set<number> {
+  const all = (vox as VoxelMap & { all?: VoxelMap }).all ?? vox;
+  let set = solids.get(all);
+  if (!set) {
+    set = new Set();
+    for (const v of all.values()) set.add(cellKey(v.x, v.y, v.z));
+    solids.set(all, set);
+  }
+  return set;
+}
+
 /** Counter-clockwise (outward-facing) corner order for each face, as offsets on (t1, t2). */
 function cornersFor(axis: number, sign: number): [number, number][] {
   const ccw: [number, number][] = [[0, 0], [1, 0], [1, 1], [0, 1]];
@@ -28,8 +45,9 @@ function cornersFor(axis: number, sign: number): [number, number][] {
  * voxel indices times `size`.
  */
 export function buildGeometry(vox: VoxelMap, size: number): BufferGeometry {
+  const solid = solidOf(vox);
   // UVs are kept so a material may map a texture, but the voxel material carries none (plan V3.1 Part 1.1).
-  const has = (p: number[]) => vox.has(`${p[0]},${p[1]},${p[2]}`);
+  const has = (p: number[]) => solid.has(cellKey(p[0], p[1], p[2]));
   const pos: number[] = [], col: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [];
   for (const v of vox.values()) {
     const P = [v.x, v.y, v.z];

@@ -11,6 +11,8 @@ import { FIELD, jumpHeight, takeoffDistance } from '../../dream/dream';
 import { Sky, Windmill } from '../scene/Sky';
 import { useWorld } from '../table/BarnTable';
 import { DevStats, devOn } from '../table/DevStats';
+import { buildBedroomFestive } from '../scene/festive';
+import { Festive } from '../table/Festive';
 import { Sheep } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
 import { voxelMaterial } from '../voxel/material';
@@ -474,6 +476,7 @@ function Bedroom({ live, reduced, phone, phase }: { live: MutableRefObject<Stage
     <>
       <group position={[...(phone ? BEDROOM.phonePosition : BEDROOM.position)]} rotation={[0, BEDROOM.yaw, 0]} scale={scale}>
         <mesh geometry={b.floor} material={voxMat} />
+        <Festive geo={buildBedroomFestive()} reduced={reduced} />
         <mesh geometry={b.rug} material={voxMat} />
         <mesh geometry={b.slippers} material={voxMat} />
         <mesh geometry={b.bed} material={voxMat} castShadow />

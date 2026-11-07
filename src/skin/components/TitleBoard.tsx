@@ -1,3 +1,5 @@
+import pkg from '../../../package.json';
+import { UPDATE_NAME } from '../../config';
 import { SnowCap } from './SnowCap';
 
 /**
@@ -17,6 +19,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
       <div className="sk-title-sign">
       <div className="sk-title-plank" aria-hidden="true">
         <SnowCap className="sk-title-snow" />
+        <Holly />
         <span className="sk-nail sk-nail-l" />
         <span className="sk-nail sk-nail-r" />
         <span className="sk-title-lead">{lead.toUpperCase()}</span>
@@ -44,6 +47,18 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
           </span>
         ))}
       </p>
+      <p className="sk-update">The {UPDATE_NAME} update · v{pkg.version.split('.').slice(0, 2).join('.')}</p>
     </div>
+  );
+}
+
+/** A sprig of holly pinned to the plank's corner: two leaves and three berries, drawn in pixels like the game's icons. */
+function Holly() {
+  return (
+    <svg className="sk-title-holly" viewBox="0 0 16 11" aria-hidden="true" shapeRendering="crispEdges">
+      <path d="M0 3h2v-1h2v1h2v1h1v2h-1v1h-2v1h-2v-1h-1v-1h1v-1h-2z" fill="#2F6B43" />
+      <path d="M16 3h-2v-1h-2v1h-2v1h-1v2h1v1h2v1h2v-1h1v-1h-1v-1h2z" fill="#3A7E50" />
+      <path d="M6 5h2v2h-2zM8 5h2v2h-2zM7 7h2v2h-2z" fill="#C8342E" />
+    </svg>
   );
 }

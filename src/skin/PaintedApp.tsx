@@ -6,6 +6,7 @@ import { authEnabled } from '../auth/config';
 import { useGuest } from '../auth/guest';
 import { decideEntry } from './landing/entry';
 import { Landing } from './landing/Landing';
+import { Garland } from './components/Garland';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
 import { Lobby } from '../ui/Lobby';
@@ -76,5 +77,5 @@ export function PaintedApp() {
     : inRoom ? <RoomScreen />
     : lobbyOpen ? <Lobby />
     : home;
-  return <><JoinLink />{screen}</>;
+  return <><JoinLink />{screen}{!dreaming && !hunting && !inGame && (inRoom || lobbyOpen) && <Garland />}</>;
 }

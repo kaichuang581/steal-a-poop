@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Animal } from '../avatars/catalog';
+import { buildCountryside } from '../scene/countryside';
+import type { Countryside } from '../scene/countryside';
+import { buildFarmFestive } from '../scene/festive';
 import { buildFarmstead } from '../scene/farmstead';
 import type { Farmstead as Built } from '../scene/farmstead';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
+import { Festive } from './Festive';
 import { Sheep } from './Sheep';
 import type { SheepState } from './Sheep';
 import type { World } from './BarnTable';
 
 let built: Built | null = null;
+let land: Countryside | null = null;
 
 /** Who lives on the farm: [animal, x, z, facing, state]. Phones keep the first few. */
 const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
@@ -22,6 +27,10 @@ const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
   ['chicken', -14.8, 6.4, 2.2, 'grazing'],
   ['pig', -15.6, -2.4, 1.1, 'grazing'],
   ['sheep', 17.8, -7.4, -0.8, 'idle'],
+  // A few of the flock let out on the open ground.
+  ['sheep', -24, 19, 0.6, 'grazing'],
+  ['sheep', -27.5, 21.5, 2.4, 'idle'],
+  ['sheep', -21.5, 23, -1.2, 'grazing'],
 ];
 
 /**
@@ -30,12 +39,19 @@ const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
  */
 export function Farmstead({ world, reduced, phone }: { world: World; reduced: boolean; phone: boolean }) {
   const [farm, setFarm] = useState(built);
+  const [country, setCountry] = useState(land);
   const mat = useMemo(() => voxelMaterial(), []);
   useEffect(() => {
     if (built) return;
     const id = setTimeout(() => { built ??= buildFarmstead(); setFarm(built); }, 0);
     return () => clearTimeout(id);
   }, []);
+  // After the farm, in its own step, so the page never stalls for both at once.
+  useEffect(() => {
+    if (land || !farm) return;
+    const id = setTimeout(() => { land ??= buildCountryside(); setCountry(land); }, 0);
+    return () => clearTimeout(id);
+  }, [farm]);
   useEffect(() => () => mat.dispose(), [mat]);
   return (
     <>
@@ -47,6 +63,14 @@ export function Farmstead({ world, reduced, phone }: { world: World; reduced: bo
           {farm.props.map((g, i) => <mesh key={`p${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
           {farm.fine.map((g, i) => <mesh key={`f${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
           <mesh geometry={farm.terrain} material={mat} receiveShadow />
+          <Festive geo={buildFarmFestive()} reduced={reduced} />
+          {country && (
+            <>
+              {[...country.woods, ...country.scrub].map((g, i) => <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
+              {country.drifts.map((g, i) => <mesh key={`d${i}`} geometry={g} material={mat} receiveShadow />)}
+              <mesh geometry={country.tracks} material={mat} receiveShadow />
+            </>
+          )}
         </>
       )}
       {(phone ? LIVESTOCK.slice(0, 3) : LIVESTOCK).map(([animal, x, z, facing, state], i) => (

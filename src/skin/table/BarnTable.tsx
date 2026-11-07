@@ -21,7 +21,7 @@ import { Atmosphere, Effects, LANTERN_LIGHT, Lights } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
-import { animalModel, CROWN_ROWS } from '../voxel/animals';
+import { animalModel, heightRatio } from '../voxel/animals';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
 
@@ -234,7 +234,7 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
   const speakerHeadY = useMemo(() => {
     const a = seats.find((s) => s.index === speaker)?.avatar;
     const c = byId(a);
-    return SPEAKER_CAMERA.headY * (c ? CROWN_ROWS[c.animal] / CROWN_ROWS.sheep : 1);
+    return SPEAKER_CAMERA.headY * (c ? heightRatio(c.animal) : 1);
   }, [seats, speaker]);
 
   // Attention (plan V3.3 Part 3.3): every sheep looks at the speaker's head; the speaker looks at the camera.
@@ -260,7 +260,7 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
       {seats.map((s) => {
         const p = seatPosition(s.index, n);
         return (
-          <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === speaker} reduced={reduced}>
+          <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === speaker} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(s.avatar)?.animal ?? 'sheep').drawScale}>
             {s.avatar === ADMIN_AVATAR_ID ? (
               <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} still={stealOpen} speaking={s.index === speaker} />
             ) : (
@@ -339,7 +339,7 @@ function SpeakerCamera({ speaker, n, phone, reduced, stealOpen, moments, fade, h
 }
 
 /** A seat: the sheep faces the pile and, on its turn, steps 0.35 m toward it. */
-function SeatGroup({ index, n, active, reduced, children }: { index: number; n: number; active: boolean; reduced: boolean; children: ReactNode }) {
+function SeatGroup({ index, n, active, reduced, drawScale = 1, children }: { index: number; n: number; active: boolean; reduced: boolean; drawScale?: number; children: ReactNode }) {
   const g = useRef<Group>(null);
   const p = seatPosition(index, n);
   const want = useMemo(() => new Vector3(), []);
@@ -351,7 +351,8 @@ function SeatGroup({ index, n, active, reduced, children }: { index: number; n: 
     want.set(p.x + (dx / len) * step, 0, p.z + (dz / len) * step);
     g.current.position.lerp(want, reduced ? 1 : 1 - Math.exp(-dt * 4));
   });
-  return <group ref={g} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={SHEEP_SCALE}>{children}</group>;
+  // Each species is drawn at its own scale against the sheep (V5 Part 4.6: the hen a little larger, the horse as is).
+  return <group ref={g} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={SHEEP_SCALE * drawScale}>{children}</group>;
 }
 
 /** The mound's height for a pile of `points`: 0.3 m at the smallest, 0.8 m at the largest. */

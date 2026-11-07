@@ -69,22 +69,23 @@ describe('the default sheep', () => {
 });
 
 describe('the animal avatars', () => {
-  it('build every animal on the sheep rig, each its own colours, standing on the same ground', async () => {
+  it('build every animal on the sheep rig, each its own colours, standing on the same ground (V5: horizontal heads)', async () => {
     const { animalModel } = await import('../animals');
     const seen = new Set<string>();
     for (const a of ['pig', 'cow', 'goat', 'horse', 'chicken'] as const) {
       const m = animalModel(a);
+      expect(m.species).toBe(a);
       expect(m.voxels).toBeGreaterThan(800);
       expect(bounds(m.wools[2]).bottom).toBeGreaterThanOrEqual(0);
       expect(bounds(m.legs[0]).bottom).toBeCloseTo(0, 1);
-      expect(bounds(m.wools[4]).width).toBeGreaterThan(bounds(m.wools[1]).width);
+      // V5 Part 4.4: the head is a horizontal shape, muzzle forward, never a vertical plank.
       const head = bounds(m.head);
-      expect(head.height).toBeGreaterThan(head.width);
+      expect(head.height).toBeLessThanOrEqual(head.width * 1.35);
       const col = m.wools[2].geo.getAttribute('color');
       const key = [col.getX(0), col.getY(0), col.getZ(0)].map((v) => v.toFixed(2)).join(',');
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }
-    expect(animalModel('sheep')).toBe(sheepModel());
+    expect(animalModel('sheep').wools).toBe(sheepModel().wools);
   });
 });

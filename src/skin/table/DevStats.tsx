@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 /** Writes triangles on screen and frame time into #sk-dev (plan V3: a dev overlay prints both). Shown with ?dev=1. */
 export function DevStats() {
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  (window as unknown as { __scene?: unknown }).__scene = scene; // dev only: the scene for scripted checks
   const acc = useRef({ last: performance.now(), sum: 0, n: 0, shown: 0 });
   useEffect(() => { console.log('painted: renderer pixel ratio', gl.getPixelRatio(), 'devicePixelRatio', window.devicePixelRatio); }, [gl]);
   useFrame(() => {

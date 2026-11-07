@@ -1,4 +1,5 @@
 import { ANIMAL_AVATAR_IDS } from '../../avatars/ids';
+import type { WornId } from '../voxel/animals/worn';
 
 export type Animal = (typeof ANIMAL_AVATAR_IDS)[number];
 export const ANIMALS: readonly Animal[] = ANIMAL_AVATAR_IDS;
@@ -10,6 +11,9 @@ export interface Character {
   name: string;
   blurb: string;
   colors: { body: string; shade: string; dark: string; soft: string; pop: string };
+  /** A worn item (V5 Part 4.8), drawn in `wornColor`; none today. */
+  worn?: WornId;
+  wornColor?: string;
 }
 
 export const CHARACTERS: readonly Character[] = [

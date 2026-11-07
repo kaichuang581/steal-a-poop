@@ -21,7 +21,7 @@ function makeCloud(n: number): Cloud {
  * A bomb going off: a flash of light, a ball of square flame bits that rise and cool from white through orange to red,
  * and fast sparks that fly out and fall. One burst each time `boomKey` changes, from where the bomb was.
  */
-export function Blast({ boomKey, origin, reduced }: { boomKey: number | undefined; origin: () => Vector3 | null; reduced: boolean }) {
+export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number | undefined; origin: () => Vector3 | null; reduced: boolean; power?: number }) {
   const flames = useMemo(() => makeCloud(FLAMES), []);
   const sparks = useMemo(() => makeCloud(SPARKS), []);
   const flameMat = useMemo(() => new PointsMaterial({ size: 2.3, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
@@ -33,6 +33,7 @@ export function Blast({ boomKey, origin, reduced }: { boomKey: number | undefine
   const flames3 = useRef<Points>(null);
   const sparks3 = useRef<Points>(null);
   const light = useRef<PointLight>(null);
+  const boost = useRef(1);
   const last = useRef<number | undefined>(boomKey);
   const t0 = useRef(-1);
   const at = useRef(new Vector3());
@@ -56,12 +57,18 @@ export function Blast({ boomKey, origin, reduced }: { boomKey: number | undefine
       }
       p.needsUpdate = true;
     };
-    seed(flames, 5.2, 1.3);
-    seed(sparks, 12, 2.4);
-    seed(smoke, 2.4, 1.4);
+    const m = 1 + 0.6 * (power - 1);
+    flameMat.size = 2.3 * m;
+    sparkMat.size = 0.34 * m;
+    smokeMat.size = 2.4 * m;
+    flashMat.size = 6 * m * 1.6;
+    boost.current = power;
+    seed(flames, 5.2 * m, 1.3 * m);
+    seed(sparks, 12 * m, 2.4 * m);
+    seed(smoke, 2.4 * m, 1.4 * m);
     (flash.geo.getAttribute('position') as BufferAttribute).setXYZ(0, o.x, o.y, o.z);
     (flash.geo.getAttribute('position') as BufferAttribute).needsUpdate = true;
-  }, [boomKey, origin, flames, sparks]);
+  }, [boomKey, origin, flames, sparks, smoke, flameMat, sparkMat, smokeMat, flashMat, power]);
 
   useFrame((_, rawDt) => {
     if (t0.current < 0) return;
@@ -108,7 +115,7 @@ export function Blast({ boomKey, origin, reduced }: { boomKey: number | undefine
     }
     if (light.current) {
       light.current.position.copy(at.current);
-      light.current.intensity = Math.max(0, 1 - t0.current / 0.5) * 120;
+      light.current.intensity = Math.max(0, 1 - t0.current / 0.5) * 120 * boost.current;
     }
     if (t0.current > LIFE + 0.5) { t0.current = -1; if (light.current) light.current.intensity = 0; }
   });

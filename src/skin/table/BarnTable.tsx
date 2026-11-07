@@ -54,7 +54,7 @@ export interface BarnMoments {
   /** Failed steal: shears come down on the stealer and tufts fly off. */
   shears?: { key: number; at: number };
   /** Any time-out: the bomb goes off over that sheep. */
-  boom?: { key: number; at: number };
+  boom?: { key: number; at: number; power?: number };
   /** Time out: a cold gust blows a tuft off the sheep and out of the back door. */
   gust?: { key: number; at: number };
   /** Last life lost: lantern flames dim to 40% for the freeze, and the camera stays on the frozen sheep. */
@@ -62,6 +62,8 @@ export interface BarnMoments {
 }
 
 interface Props {
+  /** How swollen the bomb is, 1 and up: it grows with every word and resets when it goes off. */
+  bombSize?: number;
   seats: BarnSeat[];
   pile: number;
   /** Seat index (as in BarnSeat.index) whose turn it is: that sheep steps toward the pile. */
@@ -214,7 +216,7 @@ export function Building() {
   );
 }
 
-function Scene({ seats, pile, speaker, fraction, secondsLeft, letter, isTrap, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
+function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, isTrap, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
 
@@ -253,7 +255,7 @@ function Scene({ seats, pile, speaker, fraction, secondsLeft, letter, isTrap, st
       <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} />
       <Projection anchors={anchors} pileHeight={pileHeightFor(pile)} margin={phone ? 140 : 120} />
-      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} />
+      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {stealOpen && <WolfEyes />}
       {seats.map((s) => {
         const p = seatPosition(s.index, n);
@@ -420,7 +422,7 @@ function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; i
  * The bomb: a voxel bomb floats over the sheep who holds it, bobbing, with the fuse burning shorter as the turn runs
  * out (red once others can steal). When the turn changes it arcs across the barn to the next sheep.
  */
-function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft }: { speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null }) {
+function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power }: { speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
   const m = useMemo(() => bombModel(), []);
   const body = useMemo(() => voxelMaterial(), []);
   const fuseMat = useMemo(() => voxelMaterial(), []);
@@ -433,6 +435,7 @@ function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft }: { sp
   const fuse = useRef<Group>(null);
   const spark = useRef<Mesh>(null);
   const flight = useRef({ from: new Vector3(), to: new Vector3(), t: 1, started: false });
+  const grown = useRef({ cur: size, last: size, pop: 0 });
   const lastBoom = useRef({ key: boomKey, at: -9999 });
   if (boomKey !== lastBoom.current.key) lastBoom.current = { key: boomKey, at: performance.now() };
   // Where the bomb was when it went off: its spot before the turn moved on.
@@ -478,6 +481,14 @@ function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft }: { sp
     }
     const f = flight.current;
     const now = clock.elapsedTime;
+    // Each word swells the bomb with a little pop; it eases up to its new size.
+    const gr = grown.current;
+    if (size > gr.last) gr.pop = 0.35;
+    if (size < gr.last) gr.cur = size; // it went off: a fresh small bomb
+    gr.last = size;
+    gr.cur += (size - gr.cur) * Math.min(1, dt * 7);
+    gr.pop = Math.max(0, gr.pop - dt * 1.6);
+    g.scale.setScalar(1.5 * gr.cur * (1 + gr.pop * 0.5));
     if (f.t < 1) {
       f.t = Math.min(1, f.t + dt / 0.5);
       const e = easeInOut(f.t);
@@ -486,7 +497,7 @@ function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft }: { sp
       g.rotation.z = Math.sin(Math.PI * e) * 0.6;
     } else {
       g.position.copy(f.to);
-      g.position.y += reduced ? 0 : Math.sin(now * 3) * 0.04;
+      g.position.y += (reduced ? 0 : Math.sin(now * 3) * 0.04) + 0.3 * (gr.cur - 1);
       g.rotation.z = red && !reduced ? Math.sin(now * 40) * 0.08 : 0;
     }
     body.color.set(red ? '#ff8a78' : '#ffffff');
@@ -499,7 +510,7 @@ function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft }: { sp
   if (!target) return null;
   return (
     <>
-    <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} />
+    <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} power={power} />
     <group ref={group} scale={1.5} visible>
       <mesh geometry={m.body} material={body} castShadow />
       <group ref={label}><mesh ref={digits} material={digitMat} /></group>

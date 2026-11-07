@@ -1,4 +1,6 @@
 import { MiniBomb } from '../components/BombClock';
+import { Jumpscare, WordBlast } from '../components/Jumpscare';
+import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -93,14 +95,18 @@ export function PaintedGame() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [hit, setHit] = useState(0);
   const [boom, setBoom] = useState(0);
+  const [blast, setBlast] = useState<{ key: number; words: string[]; power: number } | null>(null);
+  // The bomb swells with every word played since it last went off, more for a long word.
+  const bombSz = useMemo(() => bombSize(wordsSinceBoom(game.history)), [game.history.length]); // eslint-disable-line react-hooks/exhaustive-deps
   /** A steal lands: the whole table jolts and a red edge flashes (neither under reduced motion). */
-  const jolt = (px = 9) => {
+  const jolt = (px = 9, punch = 1) => {
     if (reduced) return;
     setHit(Math.random() + 1);
     rootRef.current?.animate?.(
       [{ transform: 'translate(0,0)' }, { transform: `translate(${-px}px,${px * 0.45}px)` }, { transform: `translate(${px * 0.9}px,${-px * 0.55}px)` }, { transform: `translate(${-px * 0.55}px,${px * 0.33}px)` }, { transform: `translate(${px * 0.33}px,${-px * 0.22}px)` }, { transform: 'translate(0,0)' }],
       { duration: px > 9 ? 650 : 380, easing: 'ease-out' },
     );
+    if (punch > 1) rootRef.current?.animate?.([{ scale: String(punch) }, { scale: '1' }], { duration: 900, easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)' });
   };
 
   const flash = (node: ReactNode, ms = 900) => {
@@ -172,9 +178,15 @@ export function PaintedGame() {
       case 'timedOut':
         setDimmed((d) => new Set(d).add(Number(e.playerId)));
         // Every time-out blows the bomb up, learning games included.
-        jolt(24);
-        setBoom(k() + 1);
-        setMoments((m) => ({ ...m, boom: { key: k(), at: rel(Number(e.playerId)) } }));
+        {
+          // Everything said since the bomb last went off comes out and goes up with it; a bigger bomb is a bigger blast.
+          const words = wordsSinceBoom(useStore.getState().game?.history ?? [], true);
+          const power = bombSize(words);
+          jolt(40 + 22 * power, 1.12 + 0.07 * power);
+          setBoom(k() + 1);
+          setBlast({ key: k() + 1, words: words.slice(-14), power });
+          setMoments((m) => ({ ...m, boom: { key: k(), at: rel(Number(e.playerId)), power } }));
+        }
         if (game.players[Number(e.playerId)]?.isHuman && (practice || storeMode === 'tour')) {
           flash(<Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!" sub="no wool lost while you practise" />, 1500);
           break; // learning: no loss
@@ -261,10 +273,12 @@ export function PaintedGame() {
   return (
     <div ref={rootRef} className="sk-swoop-in relative flex h-full flex-col overflow-hidden" data-steal-open={view.stealOpen}>
       {boom > 0 && <div key={boom} className="sk-boom" aria-hidden="true"><i /><i /><i /></div>}
+      {blast && !reduced && <Jumpscare key={`j${blast.key}`} power={blast.power} />}
+      {blast && !reduced && <WordBlast key={`w${blast.key}`} words={blast.words} power={blast.power} />}
       {hit > 0 && <div key={hit} className="sk-steal-flash" aria-hidden="true" />}
       <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
         <BarnTable
-          pile={view.pile} speaker={speaker} fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
+          bombSize={bombSz} pile={view.pile} speaker={speaker} fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
           secondsLeft={game.turn ? view.secondsLeft : null} letter={view.letter ?? ''} isTrap={view.isTrapLetter}
           stealOpen={view.stealOpen} hour={hour} reduced={reduced} phone={mobile} blizzard={view.twist === 'doublePointsShort'} moments={moments}
           seats={view.players.map((p) => {

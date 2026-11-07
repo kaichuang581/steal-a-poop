@@ -48,7 +48,7 @@
 .kit-snow { position: absolute; left: -6px; right: -4px; top: -12px; width: calc(100% + 10px); height: 24px; overflow: visible; pointer-events: none; }
 
 /* Iron nails, rope and string. */
-.kit-nail {
+.kit-nail, .sk-nail {
   position: absolute; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; z-index: 2;
   background: radial-gradient(circle at 35% 35%, #E9DCC8 0 18%, #8D8173 45%, #4A4038 80%);
   box-shadow: 0 1px 0 rgba(255, 220, 170, 0.3), inset 0 -1px 1px rgba(0, 0, 0, 0.4);
@@ -60,6 +60,24 @@
 .kit-rope--l, .kit-rope--r { top: calc(-1 * var(--hang, 40px)); height: var(--hang, 40px); }
 .kit-rope--l { left: 18%; } .kit-rope--r { right: 18%; }
 .kit-rope--l::after, .kit-rope--r::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 7px; height: 7px; transform: translateX(-50%); border-radius: 50%; border: 2px solid #4A3A2C; }
+
+/* A knot where a string meets a tile or board: a small dark ring. */
+.kit-string--knot::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 7px; height: 7px; transform: translateX(-50%); border-radius: 50%; border: 2px solid #4A3A2C; }
+
+/* The painted sign (the Play board and the setup's Sit down): green paint in a wooden frame, nailed, snow on top. */
+.kit-sign, .sk-menu-primary {
+  position: relative; border: 4px solid var(--wood-dark); border-radius: 3px; color: var(--button-text);
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px, rgba(0, 0, 0, 0.06) 7px 8px, transparent 8px 12px), linear-gradient(180deg, #7DB583 0 9%, var(--cloth-dark) 9% 88%, #2C4C34 88%);
+  box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.22), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink), 0 7px 0 rgba(40, 24, 10, 0.45), 0 12px 22px rgba(40, 24, 10, 0.3);
+  text-shadow: 0 -2px 0 rgba(20, 30, 20, 0.6), 0 2px 0 rgba(20, 30, 20, 0.45);
+  font-family: var(--skin-font-display); font-weight: 800;
+}
+.kit-sign[data-active], .sk-menu-primary[data-active], button.kit-sign:hover:not(:disabled) {
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px, rgba(0, 0, 0, 0.06) 7px 8px, transparent 8px 12px), linear-gradient(180deg, #8BC891 0 9%, #467654 9% 88%, #2C4C34 88%);
+  box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink), 0 0 0 5px rgba(255, 196, 90, 0.45), 0 7px 0 rgba(40, 24, 10, 0.45), 0 12px 26px rgba(255, 196, 90, 0.3);
+}
+button.kit-sign:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.22), 0 0 0 2px var(--wood-ink), 0 3px 0 rgba(20, 30, 20, 0.45); }
+button.kit-sign:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ---------- Paper ---------- */
 .kit-paper, .sk-paper {
@@ -114,6 +132,7 @@
   box-shadow: inset 0 3px 0 rgba(255, 240, 210, 0.6), inset 0 -4px 0 var(--wood), 0 3px 0 rgba(40, 24, 10, 0.35);
 }
 .kit-tile--mini { --tile-w: 20px; font-size: 13px; box-shadow: inset 0 2px 0 rgba(255, 240, 210, 0.6), inset 0 -2px 0 var(--wood), 0 2px 0 rgba(40, 24, 10, 0.35); }
+.kit-tile--key { width: auto; min-width: 26px; height: 26px; padding: 0 6px; font-size: 13px; }
 .kit-tile--sm { --tile-w: 34px; } .kit-tile--md { --tile-w: 46px; } .kit-tile--lg { --tile-w: 64px; }
 .kit-tile--lit { background: repeating-linear-gradient(92deg, rgba(140, 90, 46, 0.07) 0 2px, transparent 2px 9px), var(--glow); color: #7A3E12;
   box-shadow: inset 0 3px 0 rgba(255, 250, 230, 0.8), inset 0 -4px 0 var(--amber), 0 0 0 3px var(--amber), 0 0 14px var(--glow), 0 3px 0 rgba(40, 24, 10, 0.35); }
@@ -167,6 +186,13 @@
 .kit-patch:disabled { cursor: not-allowed; outline-color: rgba(122, 106, 88, 0.4); }
 button.kit-patch, button.sk-chip { cursor: pointer; transition: transform var(--t-fast) var(--ease-out); }
 button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { transform: translateY(1px); }
+
+/* A menu row in focus: a cream patch stitched over the scene. */
+.kit-patch-row[data-active] {
+  background: repeating-linear-gradient(45deg, rgba(59, 48, 40, 0.06) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.2) 0 1px, transparent 1px 3px), #F3E7CC;
+  outline: 2px dashed #7A6A58; outline-offset: -6px; border-radius: 0;
+  box-shadow: 1px 2px 0 rgba(59, 48, 40, 0.3), 0 6px 0 -2px rgba(30, 18, 8, 0.25);
+}
 
 /* ---------- Knit ---------- */
 .kit-knit {
@@ -234,6 +260,18 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-peg[data-admin], .sk-icon-btn[data-admin] { color: var(--glow); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 0 0 3px var(--amber), 0 4px 0 rgba(40, 24, 10, 0.45); }
 
 /* ---------- Clipboard, panel, lever, rope slider ---------- */
+/* Every dialog that is not yet a <Clipboard>: paper held in a light board's frame by a brass clip. */
+.kit-frame, .sk-paper[role="dialog"], .sk-setup, .sk-guide, .sk-sheet, .sk-framed {
+  position: relative; border: 10px solid var(--tile); border-top-width: 26px; border-radius: 3px; background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px rgba(122, 106, 88, 0.25), 0 0 0 1px var(--wood), 0 6px 0 rgba(40, 24, 10, 0.35), 0 12px 24px rgba(40, 24, 10, 0.3);
+}
+.kit-frame::before, .sk-paper[role="dialog"]::before, .sk-setup::before, .sk-guide::before, .sk-sheet::before, .sk-framed::before {
+  content: ''; position: absolute; z-index: 3; top: -22px; left: 50%; width: 96px; height: 24px; transform: translateX(-50%); border-radius: 3px; pointer-events: none;
+  background: linear-gradient(180deg, transparent 0 14px, var(--brass-dark) 14px 15px, transparent 15px), repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 3px), var(--brass);
+  box-shadow: inset 0 2px 0 var(--brass-light), inset 0 -3px 0 var(--brass-dark), 0 3px 0 rgba(40, 24, 10, 0.35);
+}
+.sk-paper[role="dialog"]::after { display: none; }
+
 .kit-clipboard {
   position: relative; width: min(420px, calc(100vw - 24px)); padding: 34px 14px 16px; border-radius: 3px;
   background: var(--kit-knot-2) no-repeat 80% 85%, var(--kit-grain), var(--tile);

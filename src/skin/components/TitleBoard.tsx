@@ -17,7 +17,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
       <h1 className="sr-only">{title}</h1>
       {/* The plank and the hanging tiles form one sign, the plank centred over the tiles. */}
       <div className="sk-title-sign">
-      <div className="sk-title-plank" aria-hidden="true">
+      <div className="sk-title-plank kit-plank" data-knot="2" aria-hidden="true">
         <SnowCap className="sk-title-snow" />
         <Holly />
         <span className="sk-nail sk-nail-l" />
@@ -28,10 +28,10 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
         {letters.map((ch, i) => (
           <span
             key={i}
-            className={`sk-title-tile ${i === letters.length - 1 ? 'sk-title-tile-next' : ''}`}
+            className={`sk-title-tile kit-tile ${i === letters.length - 1 ? 'sk-title-tile-next kit-tile--lit' : ''}`}
             style={{ animationDelay: `${120 + i * 90}ms, ${i * -1.3}s` }}
           >
-            <span className="sk-title-rope" />
+            <span className="sk-title-rope kit-string kit-string--knot" />
             <SnowCap className="sk-title-cap" variant="small" />
             {ch}
           </span>
@@ -47,7 +47,12 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
           </span>
         ))}
       </p>
-      <p className="sk-update">The {UPDATE_NAME} update · v{pkg.version.split('.').slice(0, 2).join('.')}</p>
+      {/* The update, on a barn-red board nailed to the title (V6 6.1). */}
+      <p className="sk-update kit-plank kit-plank--barn" data-knot="3">
+        <SnowCap className="kit-snow" variant="small" />
+        <span className="kit-nail kit-nail--tl" /><span className="kit-nail kit-nail--tr" />
+        The {UPDATE_NAME} update · v{pkg.version.split('.').slice(0, 2).join('.')}
+      </p>
     </div>
   );
 }

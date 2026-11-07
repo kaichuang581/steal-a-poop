@@ -123,7 +123,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
     <li key={it.id} className="sk-menu-row" style={{ animationDelay: `${300 + i * 70}ms` }}>
       <button
         ref={(el) => { refs.current[i] = el; }}
-        className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : ''}`}
+        className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : 'kit-patch-row'}`}
         data-active={lit(i) || undefined}
         disabled={it.disabled}
         onClick={it.onSelect}
@@ -143,7 +143,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
         aria-describedby={i === active ? 'sk-menu-caption' : undefined}
       >
         {i === 0 && <><SnowCap className="sk-menu-snow" /><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" /><span className="sk-nail sk-nail-bl" /><span className="sk-nail sk-nail-br" /></>}
-        {i === 0 ? <svg className="sk-menu-play-icon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 4.8 C7 3.6 8.3 2.9 9.3 3.6 L20 10.8 C20.9 11.4 20.9 12.6 20 13.2 L9.3 20.4 C8.3 21.1 7 20.4 7 19.2 Z" fill="currentColor" /></svg> : null}
+        {i === 0 ? <svg className="sk-menu-play-icon kit-peg kit-peg--light" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 4.8 C7 3.6 8.3 2.9 9.3 3.6 L20 10.8 C20.9 11.4 20.9 12.6 20 13.2 L9.3 20.4 C8.3 21.1 7 20.4 7 19.2 Z" fill="currentColor" /></svg> : null}
         <span className="sk-menu-label">{it.label}</span>
         {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
       </button>

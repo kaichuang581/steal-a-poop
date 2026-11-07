@@ -14,5 +14,6 @@
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-menu-lantern", "reason": "Part 4.12: the lantern glow on the focused menu row" },
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ":root[data-skin=\"painted\"] body", "reason": "Part 4.12: the body's sky gradient behind the app" },
   { "file": "src/skin/table/FarmBackdrop.tsx", "selectorOrLine": "FOG[hour]", "reason": "Part 4.12: the sky behind the app, shown for a moment while the farm builds" },
-  { "file": "src/skin/components/PixelIcons.tsx", "selectorOrLine": "*", "reason": "Part 4.11: the emoji here are the lookup keys that turn the classic screens' emoji into pixel icons; none is drawn" }
+  { "file": "src/skin/components/PixelIcons.tsx", "selectorOrLine": "*", "reason": "Part 4.11: the emoji here are the lookup keys that turn the classic screens' emoji into pixel icons; none is drawn" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-photo-face", "reason": "Part 6.1: the portrait sits in a round peg frame; the admin photo is shown whole, never cut to a shape of the kit" }
 ]

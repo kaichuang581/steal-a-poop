@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export type TagTone = 'gold' | 'green' | 'gray' | 'flame';
 
-/** A small soft tag beside a menu item or a name: "daily", "new", "soon", a streak. */
+/** A paper hang tag beside a menu item or a name: "daily", "new", "soon", a streak (V6 4.2, the kit's tag). */
 export function MenuTag({ tone = 'gold', children, label }: { tone?: TagTone; children: ReactNode; label?: string }) {
-  return <span className="sk-soft-tag" data-tone={tone} aria-label={label}>{children}</span>;
+  return <span className={`kit-tag kit-tag--${tone}`} aria-label={label}>{children}</span>;
 }

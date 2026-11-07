@@ -40,7 +40,7 @@ import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { TitleBoard } from '../components/TitleBoard';
-import { Chip, ClothButton, PaperPanel, WoodButton } from '../components/Materials';
+import { Chip, PaperPanel, WoodButton } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
@@ -245,8 +245,8 @@ export function PaintedHome() {
   const tables = (
     <div className="flex flex-col gap-3" key="tables">
       {mobile && (
-        <div className="sk-plate self-center" aria-label="Player">
-          <span className="sk-plate-avatar" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={22} /> : <SheepIcon size={22} />}</span>
+        <div className="sk-plate kit-plank kit-plank--label self-center" aria-label="Player">
+          <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={22} /> : <SheepIcon size={22} />}</span>
           {nameField}
         </div>
       )}
@@ -257,7 +257,7 @@ export function PaintedHome() {
           <WoodButton onClick={() => void retryDictionary()} className="mt-2">Retry</WoodButton>
         </PaperPanel>
       )}
-      {error && <p role="alert" className="sk-paper px-3 py-1 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
+      {error && <p role="alert" className="kit-paper kit-paper--note" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
       {signedIn && rooms && (
         <div className="flex gap-2" role="group" aria-label="Community">
           {([['friends', <><FriendsIcon size={16} /> Friends</>], ['boards', <><TrophyIcon size={16} /> Boards</>], ['shop', <><BagIcon size={16} /> Shop</>]] as const).map(([t, label]) => (
@@ -265,7 +265,7 @@ export function PaintedHome() {
           ))}
         </div>
       )}
-      {roomNotice && !useRoomStore.getState().open && <p role="status" className="sk-paper px-3 py-1 text-center text-sm">{roomNotice}</p>}
+      {roomNotice && !useRoomStore.getState().open && <p role="status" className="kit-paper kit-paper--note text-center">{roomNotice}</p>}
     </div>
   );
 
@@ -284,12 +284,12 @@ export function PaintedHome() {
             <Chip key={id} aria-pressed={preset === id} className="capitalize" onClick={() => { if (id !== 'custom') setRule(PRESETS[id]); }}>{id}</Chip>
           ))}
         </div>
-        <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">about {minutes} min</p>
+        <p className="mt-1.5" aria-live="polite"><span className="kit-slate kit-slate--mini"><span className="kit-slate-face kit-chalk-hand">about {minutes} min</span></span></p>
       </fieldset>
       <fieldset>
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Sheep at the table</legend>
         <div className="mt-1 flex flex-wrap gap-1.5">
-          {COUNTS.map((c) => <Chip key={c} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</Chip>)}
+          {COUNTS.map((c) => <button key={c} type="button" className={`kit-tile kit-tile--sm ${settings.playerCount === c ? 'kit-tile--lit' : ''}`} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</button>)}
         </div>
         {/* One icon per seat; a seat added walks in from the left. */}
         <div className="mt-1.5 flex items-end gap-0.5" aria-hidden="true">
@@ -303,11 +303,11 @@ export function PaintedHome() {
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot difficulty</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
-            <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })} aria-pressed={table.difficulty === d.id} className="capitalize">{d.id}</Chip>
+            <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })} aria-pressed={table.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
           ))}
         </div>
       </fieldset>
-      <details className="rounded-xl px-3 py-1" style={{ background: 'var(--paper-edge)' }} open={preset === 'custom'}>
+      <details className="px-1 py-1" style={{ borderTop: '1px dashed var(--ink-soft)', borderBottom: '1px dashed var(--ink-soft)' }} open={preset === 'custom'}>
         <summary className="cursor-pointer text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Custom rules</summary>
         <div className="space-y-2 py-2">
           {RULES.map((r) => (
@@ -322,7 +322,7 @@ export function PaintedHome() {
           ))}
         </div>
       </details>
-      <ClothButton onClick={() => go('quick')} disabled={!ready} className="sk-sit w-full">Sit down</ClothButton>
+      <button onClick={() => go('quick')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Sit down</button>
     </PaperPanel>
   );
 
@@ -343,14 +343,14 @@ export function PaintedHome() {
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
-            <Chip key={d.id} onClick={() => setDrill({ difficulty: d.id })} aria-pressed={drill.difficulty === d.id} className="capitalize">{d.id}</Chip>
+            <Chip key={d.id} onClick={() => setDrill({ difficulty: d.id })} aria-pressed={drill.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
           ))}
         </div>
         <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">{DRILL_BOTS[drill.difficulty]}</p>
       </fieldset>
-      <p className="sk-display text-lg" aria-live="polite">{drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'}</p>
+      <p className="kit-slate kit-slate--mini kit-slate--amber" aria-live="polite"><span className="kit-slate-face kit-chalk-hand">{drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'}</span></p>
       {error && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
-      <ClothButton autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-sit w-full">Start run</ClothButton>
+      <button autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Start run</button>
     </PaperPanel>
   );
   const panel = step === 'practice' ? drillSetup : setup;
@@ -373,8 +373,8 @@ export function PaintedHome() {
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 p-3 sm:p-4 [&>*]:pointer-events-auto">
         {!mobile && (
-          <div className="sk-plate mr-auto" aria-label="Player">
-            <span className="sk-plate-avatar" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={24} /> : <SheepIcon size={24} />}</span>
+          <div className="sk-plate kit-plank kit-plank--label mr-auto" aria-label="Player">
+            <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={24} /> : <SheepIcon size={24} />}</span>
             {nameField}
             {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
@@ -419,9 +419,9 @@ export function PaintedHome() {
           {/* Bottom bar: button prompts, a rotating tip, the streak and the small print. */}
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3 text-sm font-bold" style={{ color: 'var(--button-text)', textShadow: '0 1px 2px rgba(30, 18, 8, 0.8)' }}>
             <div className="flex shrink-0 items-center gap-4">
-              <span className="sk-prompt"><span className="sk-key"><ArrowUpIcon size={12} /></span><span className="sk-key"><ArrowDownIcon size={12} /></span> Choose</span>
-              <span className="sk-prompt"><span className="sk-key">Enter</span> Select</span>
-              {step !== 'tables' && <span className="sk-prompt"><span className="sk-key">Esc</span> Back</span>}
+              <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key"><ArrowUpIcon size={12} /></span><span className="sk-key kit-tile kit-tile--key"><ArrowDownIcon size={12} /></span> Choose</span>
+              <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Enter</span> Select</span>
+              {step !== 'tables' && <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Esc</span> Back</span>}
             </div>
             <p key={tip} className="sk-tip sk-hand flex min-w-0 flex-1 items-center justify-center gap-2 text-lg" style={{ color: 'var(--glow)' }} aria-live="off"><span className="truncate">{TIPS[tip]}</span></p>
             <div className="flex shrink-0 flex-col items-end gap-1">

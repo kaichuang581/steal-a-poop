@@ -25,7 +25,7 @@ export function StreakString({ days }: { days: boolean[] }) {
     <div className="flex items-end justify-center gap-1.5" aria-label={`Daily streak: ${days.filter(Boolean).length} of the last 7 days played`}>
       {days.map((on, i) => (
         <div
-          key={i} className="rounded-full p-0.5"
+          key={i} className="p-0.5"
           style={{ boxShadow: i === days.length - 1 ? '0 0 0 2px var(--cloth)' : undefined }}
         >
           <Lantern points={0} state={on ? 'lit' : 'unlit'} sizeCap={20} />

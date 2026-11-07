@@ -29,7 +29,7 @@
 .sk-tile {
   background: var(--tile);
   color: var(--wood-ink);
-  border-radius: var(--radius-tile);
+  border-radius: 3px;
   box-shadow: inset 0 -5px 0 var(--wood), var(--shadow-warm);
   font-family: var(--skin-font-body);
   font-weight: 900;

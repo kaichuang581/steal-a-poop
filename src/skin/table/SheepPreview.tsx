@@ -28,7 +28,7 @@ export function SheepPreview() {
   const floor = useFloor();
   const floorMat = useMemo(() => voxelMaterial(), []);
   return (
-    <div className="relative h-full" style={{ background: 'linear-gradient(#273B66, #4A5F8A)' }}>
+    <div className="relative h-full" style={{ background: '#3A4E78' }}>
       <Canvas shadows={{ type: PCFSoftShadowMap }} dpr={[1, 2]} gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 32, position: [0.5, 1.0, 2.6] }} onCreated={({ camera }) => camera.lookAt(0, 0.6, 0)}>
         <hemisphereLight args={['#DCE6F2', '#8E3A31', 0.9]} />
         <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
@@ -103,7 +103,7 @@ export function LineupPreview() {
   const floor = useFloor();
   const floorMat = useMemo(() => voxelMaterial(), []);
   return (
-    <div className="h-full overflow-auto" style={{ background: silhouette ? '#FFFFFF' : 'linear-gradient(#273B66, #4A5F8A)' }}>
+    <div className="h-full overflow-auto" style={{ background: silhouette ? '#FFFFFF' : '#3A4E78' }}>
       <div id="lineup" className="flex" style={{ width: size * ANIMAL_AVATAR_IDS.length, height: size, filter: squint ? 'blur(6px)' : undefined }}>
         {ANIMAL_AVATAR_IDS.map((a) => (
           <div key={a} style={{ width: size, height: size, filter: silhouette ? 'brightness(0)' : undefined }}>

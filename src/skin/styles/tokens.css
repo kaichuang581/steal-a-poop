@@ -56,9 +56,6 @@
   --barn-paint: #A6453A;
 
   --shadow-warm: 0 6px 18px rgba(80, 50, 20, 0.18);
-  --radius-paper: 14px 18px 12px 20px / 18px 12px 20px 14px; /* uneven corners */
-  --radius-button: 3px;
-  --radius-tile: 3px;
 
   --skin-font-display: 'Fraunces', Georgia, serif;
   --skin-font-body: 'Nunito', 'Segoe UI', system-ui, sans-serif;

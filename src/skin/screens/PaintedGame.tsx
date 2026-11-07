@@ -344,7 +344,7 @@ export function PaintedGame() {
             <Patch tone="burlap" className="sk-round-patch">
               {game.phase === 'gameOver'
                 ? `Game over · ${view.round} round${view.round === 1 ? '' : 's'}`
-                : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
+                : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${mobile ? '' : game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
             </Patch>
           )}
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
@@ -371,7 +371,7 @@ export function PaintedGame() {
       )}
 
       {/* Feedback words float over the middle of the table. */}
-      <div className="pointer-events-none absolute inset-x-0 top-[30%] z-20 flex flex-col items-center gap-2" aria-hidden="true">
+      <div className={`pointer-events-none absolute inset-x-0 z-[25] flex flex-col items-center gap-5 ${mobile && input.canSteal ? 'top-[300px]' : 'top-[30%]'}`} aria-hidden="true">
         {fx.map((f) => <div key={f.id}>{f.node}</div>)}
       </div>
 
@@ -582,7 +582,7 @@ function Results({ players }: { players: PlayerView[] }) {
               </Slate>
             ))}
             <Slate size="plaque" tone={result?.beat.longest ? 'amber' : 'chalk'} className="sk-plaque-word">
-              <span>{me.longestWord ? me.longestWord.toUpperCase() : '—'}</span>
+              <span style={{ '--len': Math.max(6, me.longestWord?.length ?? 1) } as React.CSSProperties}>{me.longestWord ? me.longestWord.toUpperCase() : '—'}</span>
               <span className="kit-chalk-hand">Longest word{result?.bests.longest ? ` · ${result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}` : ''}</span>
             </Slate>
           </div>

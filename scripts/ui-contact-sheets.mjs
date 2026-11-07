@@ -56,6 +56,16 @@ async function game(page, how = 'Start now') {
 /** Change the live game and hold the clock, so the frame stays put for the picture. */
 const pin = (page, body) => store(page, `const s = useStore.getState(); const g = structuredClone(s.game); ${body}; useStore.setState({ game: g }); useStore.getState().pause();`);
 
+/**
+ * Fire engine events into the live game, as the reducer would: each gets the next id, and the visual layer turns it
+ * into its board or alarm. `body` may change `g` first (whose turn it is, the round) and calls `ev(kind, seat, extra)`.
+ */
+const emit = (page, body) => store(page, `const s = useStore.getState(); const g = structuredClone(s.game);
+  const ev = (kind, seat, extra = {}) => { g.eventSeq += 1; g.events = [...g.events, { id: g.eventSeq, at: s.now, kind, seat, text: '', amount: 0, ...extra }]; };
+  ${body}; useStore.setState({ game: g });`);
+/** Set the turn first (a steal reads who was on turn from the state before it). */
+const onTurn = (page, seat) => pin(page, `g.turn = { ...g.turn, seat: ${seat}, botActAt: null, stealPlans: [] }`);
+
 const STATES = {
   'home-tables': (p) => home(p),
   'home-setup': async (p) => { await home(p); await click(p, 'button', /^Play$/); await settle(p, 800); },
@@ -85,6 +95,30 @@ const STATES = {
     await game(p);
     await pin(p, "g.phase = 'gameOver'; g.turn = null; g.winners = [1]; g.players.forEach((q, i) => { if (i !== 1) { q.lives = 0; q.frozen = true; q.frozenAt = i; } }); g.players[0].steals = 2; g.players[0].longestWord = 'tabanid'");
     await settle(p, 1500);
+  },
+  // Gameplay events: every board, alarm and burst the table shows.
+  'event-turn-call': async (p) => { await home(p, ''); await click(p, 'button', /^Start now/); await p.getByLabel(/^Type a word/).waitFor({ timeout: 20000 }); await settle(p, 250); },
+  'event-word-burst': async (p) => { await game(p); await emit(p, "ev('play', 1, { word: 'tabanid', amount: 1 })"); await settle(p, 350); },
+  'event-you-stole': async (p) => { await game(p); await onTurn(p, 1); await emit(p, "ev('steal', 0, { word: 'apple' })"); await settle(p, 450); },
+  'event-stolen-from-you': async (p) => { await game(p); await onTurn(p, 0); await emit(p, "ev('steal', 2, { word: 'tiger' })"); await settle(p, 450); },
+  'event-steal-missed': async (p) => { await game(p); await emit(p, "ev('stealFail', 0)"); await settle(p, 300); },
+  'event-boom': async (p) => { await game(p); await emit(p, "ev('timeout', 1)"); await settle(p, 500); },
+  'event-boom-after': async (p) => { await game(p); await emit(p, "ev('timeout', 1)"); await settle(p, 1300); },
+  'event-frozen': async (p) => { await game(p); await emit(p, "g.players[2].lives = 0; g.players[2].frozen = true; ev('frozen', 2)"); await settle(p, 600); },
+  'event-steal-turn': async (p) => { await game(p); await onTurn(p, 1); await emit(p, "ev('stealTurn', 1)"); await settle(p, 700); },
+  'event-steal-turn-mine': async (p) => { await game(p); await onTurn(p, 0); await emit(p, "ev('stealTurn', 0)"); await settle(p, 700); },
+  'event-round-faster': async (p) => { await game(p); await emit(p, "g.round = 2; g.modifier = 'none'; ev('roundStart', null)"); await settle(p, 700); },
+  'event-round-twist': async (p) => { await game(p); await emit(p, "g.round = 3; g.modifier = 'no_e'; ev('roundStart', null)"); await settle(p, 3600); },
+  'table-tip': async (p) => { await game(p); await settle(p, 2500); },
+  'table-end-won': async (p) => {
+    await game(p);
+    await pin(p, "g.phase = 'gameOver'; g.turn = null; g.winners = [0]; g.players.forEach((q, i) => { if (i !== 0) { q.lives = 0; q.frozen = true; q.frozenAt = i; } }); g.players[0].steals = 3; g.players[0].longestWord = 'thunderstorm'");
+    await settle(p, 1500);
+  },
+  'tour-start': async (p) => { await home(p); await click(p, 'button', /^Tutorial$/); await settle(p, 2500); },
+  'tour-later': async (p) => {
+    await home(p); await click(p, 'button', /^Tutorial$/); await settle(p, 2000);
+    for (let i = 0; i < 3; i++) { const next = p.getByRole('button', { name: /^(Next|Got it|OK|Continue)/ }).first(); if (await next.isVisible().catch(() => false)) { await next.click(); await settle(p, 900); } }
   },
   'table-leave': async (p) => { await game(p); await click(p, 'button', /^Leave game$/); await settle(p, 500); },
   'table-sheet-rules': async (p) => { await game(p); await click(p, 'button', /^How to play$/); await settle(p, 500); },

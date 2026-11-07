@@ -58,7 +58,7 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChang
   const prompt = {
     mine: <>Your turn: type a word starting with <b>{L}</b> and press Enter</>,
     steal: <><b>STEAL!</b> {turnName}’s time is running out. Type a word starting with <b>{L}</b> first to take one of their wool balls</>,
-    wait: noSteal ? <>{turnName}’s turn. Get ready</> : <>{turnName}’s turn. When their timer turns <b style={{ color: 'var(--coral-dark)' }}>red</b>, you can steal a wool ball</>,
+    wait: noSteal ? <>{turnName}’s turn. Get ready</> : <>{turnName}’s turn. When their timer turns <b style={{ color: 'var(--coral)' }}>red</b>, you can steal a wool ball</>,
     out: <>You’re frozen solid: out of wool. Watch who’s the last sheep standing</>,
   }[mode];
   const placeholder = { mine: `a word starting with ${L}`, steal: `quick, a ${L}-word!`, wait: 'type ahead…', out: '' }[mode];

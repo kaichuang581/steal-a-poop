@@ -71,7 +71,7 @@ interface. Note `apply` already rejects actions from non-human seats.
 | `src/engine/game.ts` | `createGame`, daily setup |
 | `src/engine/reducer.ts` | `advance` + `apply`: turns, bank, steal, trap, burn, rounds |
 | `src/engine/standings.ts` | Ranking, tie-breaks, winners, stats |
-| `src/engine/hints.ts` | `suggestWords`: practice-mode word ideas |
+| `src/engine/hints.ts` | `suggestWords`: tutorial word ideas |
 | `src/engine/__tests__/` | Vitest suites |
 | `src/state/store.ts` | zustand store, settings, daily attempt bookkeeping |
 | `src/state/gameClient.ts` | The client interface a server replaces |
@@ -99,8 +99,11 @@ interface. Note `apply` already rejects actions from non-human seats.
   after you bank the last bot runs into its steal window so you can try one. The game clock is
   paused on explanation steps (the store tracks an offset against `performance.now()`), and also
   while the steal prompt is up.
-- **Practice (`mode: 'practice'`).** Easy bots, the game's own clock, no penalties, an invalid word is
-  rejected so you can retry, and a Hint button suggests valid words. Not recorded anywhere.
+- **Practice (`mode: 'practice'`).** A 1v1 speed run against one bot on one life. Each word you play scores a
+  point, and the run ends the first time your clock runs out. You choose the starting clock (15, 10 or 5 s, a
+  second less every 5 words, floor 5 s) and the bot (easy, medium, hard: how often it leaves you a hard letter). No
+  rounds, hints, steals, traps, twists or passes. The bot can't end the run: a fumble hands you a fresh letter. Bests
+  are kept per clock and bot, in this browser.
 - **Tips** (round modifier, pile, steal window, trap) show once each; "Show gameplay tips again" in
   Settings resets them. Everything is stored in this browser only.
 
@@ -142,11 +145,11 @@ interface. Note `apply` already rejects actions from non-human seats.
 18. **Dead rounds.** A round could open on a letter with no legal word (letter E under "No E",
     since the chain letter carries over). The first round never starts on one, and when a later
     round opens on one the chain letter is re-drawn (seeded) and announced.
-19. **Practice rules.** No −5 for timeouts, no halving for failed steals; the human keeps the round's clock (only the tour's human turns are 25s).
+19. **Practice rules.** One life, no rounds: see Practice above. Only the tour's human turns are 25s.
 20. **Lives and freezing.** Every player starts with 3 lives. A turn that runs out costs one (on top of the −5).
     Once the lives are gone, a time-out with a banked score of 0 or less freezes the player for the rest of the
     game: their turns are skipped, their steals are rejected, and they finish behind every unfrozen player. A banked
-    score above 0 keeps the cold out. Practice and the tutorial never cost lives.
+    score above 0 keeps the cold out. The tutorial never costs lives.
 17. **Dictionary.** Words are used as-is from ENABLE; the 3-letter minimum filters its
     2-letter words at validation time.
 

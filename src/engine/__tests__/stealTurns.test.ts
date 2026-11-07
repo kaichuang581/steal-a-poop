@@ -95,18 +95,6 @@ describe('steal turns', () => {
     expect(s.events.some((e) => e.kind === 'stealTurn')).toBe(false);
   });
 
-  it('in practice the first bot turn is a steal turn and its bot runs into the red, so stealing comes up early', () => {
-    for (const seed of ['p1', 'p2', 'p3', 'p4']) {
-      let s = advance(createGame({ seed, now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy', mode: 'practice' }, dict), ctx, T0 + 2500);
-      s = advance(s, ctx, s.turn!.endsAt); // the human's turn runs out (free in practice); bot 1 is up
-      const t = s.turn!;
-      expect(s.players[t.seat].isHuman).toBe(false);
-      expect(t.stealable).toBe(true);
-      expect(t.botActAt!).toBeGreaterThanOrEqual(t.endsAt - 3000);
-      expect(s.events.some((e) => e.kind === 'stealTurn' && e.at === t.startedAt)).toBe(true);
-    }
-  });
-
   it('the faster-round twist is no longer dealt: speed is the game\'s own pace', () => {
     for (const seed of ['x', 'y', 'z']) {
       const s = createGame({ seed, now: T0, humanName: 'h', playerCount: 4, difficulty: 'medium' }, dict);

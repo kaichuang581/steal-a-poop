@@ -22,15 +22,6 @@ describe('practice mode', () => {
     expect(humanTurn('normal').turn!.durationMs).toBe(15_000);
     expect(humanTurn('tour').turn!.durationMs).toBe(25_000);
   });
-  it('timeout costs the human nothing and the turn still passes', () => {
-    const s = humanTurn('practice');
-    const out = advance(s, ctx, s.turn!.endsAt);
-    expect(out.players[0].lives).toBe(3);
-    expect(out.players[0].frozen).toBe(false);
-    expect(out.events.some((e) => e.kind === 'timeout' && e.seat === 0)).toBe(true);
-    expect(out.events.some((e) => e.kind === 'lifeLost')).toBe(false);
-    expect(out.turn!.seat).toBe(1);
-  });
   it('an invalid word is rejected so the player can retry; nothing changes', () => {
     const s = humanTurn('practice');
     const r = apply(s, ctx, { type: 'play', seat: 0, word: 'zzz' }, start + 500);
@@ -41,25 +32,6 @@ describe('practice mode', () => {
     const ok = apply(r.state, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 900);
     expect(ok.accepted).toBe(true);
     expect(ok.state.turn!.seat).toBe(1);
-  });
-  it('a bad steal word costs nothing; the player can retry after the 1 s cooldown', () => {
-    const s = humanTurn('practice');
-    const p = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
-    const c = structuredClone(p);
-    c.turn!.botActAt = null;
-    c.turn!.stealPlans = [];
-    c.turn!.stealable = true;
-    const end = c.turn!.endsAt;
-    const bad = apply(c, ctx, { type: 'steal', seat: 0, word: 'nope' }, end - 2500);
-    expect(bad.accepted).toBe(true);
-    expect(bad.reason).toBeDefined();
-    expect(bad.state.players[0].lives).toBe(3);
-    expect(bad.state.turn!.seat).toBe(1);
-    const tooSoon = apply(bad.state, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 2000);
-    expect(tooSoon.accepted).toBe(false);
-    expect(tooSoon.reason).toBe('steal_cooldown');
-    const good = apply(bad.state, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 1000);
-    expect(good.state.players[0].steals).toBe(1);
   });
 });
 

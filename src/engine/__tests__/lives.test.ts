@@ -96,24 +96,6 @@ describe('lives', () => {
     expect(res.state.turn!.seat).toBe(1);
   });
 
-  it('practice time-outs never cost the human wool', () => {
-    let s = createGame({ seed: 'p', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy', mode: 'practice' }, dict);
-    s = freezeBots(advance(s, ctx, T0 + 2500));
-    for (let i = 0; i < LIVES_PER_GAME + 2; i++) s = timeOut(backToHuman(s));
-    expect(s.players[0].lives).toBe(LIVES_PER_GAME);
-    expect(s.players[0].frozen).toBe(false);
-    expect(s.events.some((e) => e.kind === 'lifeLost' && e.seat === 0)).toBe(false);
-  });
-
-  it('practice bots do lose wool when their turn runs out', () => {
-    let s = createGame({ seed: 'p', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy', mode: 'practice' }, dict);
-    s = freezeBots(advance(s, ctx, T0 + 2500));
-    s.turn = { ...s.turn!, seat: 1 };
-    s = advance(s, ctx, s.turn!.endsAt);
-    expect(s.players[1].lives).toBe(LIVES_PER_GAME - 1);
-    expect(s.events.some((e) => e.kind === 'lifeLost' && e.seat === 1)).toBe(true);
-  });
-
   it('tour time-outs cost nobody wool', () => {
     let s = createGame({ seed: 't', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy', mode: 'tour' }, dict);
     s = freezeBots(advance(s, ctx, T0 + 2500));

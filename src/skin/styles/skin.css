@@ -208,6 +208,15 @@
   text-shadow: 0 1px 0 rgba(30, 18, 8, 0.9), 0 0 10px rgba(30, 18, 8, 0.75), 0 0 22px rgba(30, 18, 8, 0.5);
   animation: sk-title-fade 500ms 600ms var(--ease-out) both;
 }
+.sk-title-holly { position: absolute; top: -8px; left: -14px; z-index: 2; width: 58px; height: auto; filter: drop-shadow(0 2px 2px rgba(30, 18, 8, 0.6)); }
+/* The update's name on a red ribbon, under the tagline. */
+.sk-update {
+  position: absolute; top: 8px; left: 342px; width: 150px; padding: 3px 8px; text-align: center; transform: rotate(2deg);
+  font-family: var(--skin-font-hand); font-size: 18px; line-height: 1.3; color: #FFF4DC;
+  background: linear-gradient(180deg, #C8342E, #9C2A25); border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 170, 0.45), 0 2px 4px rgba(30, 18, 8, 0.5);
+}
+.sk-title-compact .sk-update { position: static; display: block; width: fit-content; margin: 4px auto 0; font-size: 15px; transform: none; }
 .sk-title-compact .sk-title-tagline { justify-content: center; padding-left: 0; font-size: 18px; }
 .sk-title-tag-part { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
 .sk-title-tag-part svg { filter: drop-shadow(0 1px 2px rgba(30, 18, 8, 0.7)); }
@@ -296,8 +305,13 @@
   font-weight: 900; font-size: 13px; color: var(--ink); background: var(--paper); box-shadow: inset 0 -3px 0 var(--paper-edge);
 }
 .sk-tip { animation: sk-title-fade 500ms var(--ease-out) both; }
+.sk-plate-name {
+  width: 11rem; min-height: 28px; padding: 0 4px; border: 0; border-radius: 4px; outline: none; background: transparent;
+  font: inherit; color: inherit; text-shadow: inherit;
+}
+.sk-plate-name::placeholder { color: rgba(255, 244, 220, 0.75); }
+.sk-plate-name:focus { background: rgba(255, 244, 220, 0.16); box-shadow: 0 0 0 2px var(--amber); }
 .sk-plate {
-  /* A small nailed name board. */
   position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 10px; border-radius: 9px 11px 8px 10px;
   color: var(--button-text); font-weight: 800; text-shadow: 0 -1px 0 rgba(40, 24, 10, 0.7);
   background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 12%, var(--wood-dark) 12% 88%, var(--wood-ink) 88%);
@@ -552,7 +566,34 @@
   border-radius: 18px 18px 0 0; background: var(--paper); color: var(--ink); box-shadow: 0 0 0 3px var(--wood-dark), var(--shadow-warm);
 }
 @media (min-width: 640px) { .sk-sheet { border-radius: 18px; } }
+/* A candy-cane stripe under every panel's wooden header. */
+.sk-sheet-head::after, .sk-guide-head::after, .sk-setup-head::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  background: repeating-linear-gradient(135deg, #C8342E 0 8px, #FFF4DC 8px 16px);
+}
+/* The season's lights, for screens with no scene behind them. */
+.sk-garland { position: fixed; inset: 0; z-index: 60; overflow: hidden; pointer-events: none; }
+.sk-garland-wire { position: absolute; left: 0; right: 0; top: 6px; display: flex; justify-content: space-between; padding: 0 8px; border-top: 2px solid rgba(40, 32, 26, 0.7); }
+.sk-garland-wire i { width: 10px; height: 14px; margin-top: 2px; border-radius: 3px 3px 5px 5px; animation: sk-garland-blink 1.5s ease-in-out infinite; }
+.sk-garland-wire i[data-c='0'] { background: #E8402E; box-shadow: 0 0 8px #E8402E; }
+.sk-garland-wire i[data-c='1'] { background: #3FBF5F; box-shadow: 0 0 8px #3FBF5F; }
+.sk-garland-wire i[data-c='2'] { background: #FFC24B; box-shadow: 0 0 8px #FFC24B; }
+@keyframes sk-garland-blink { 50% { opacity: 0.55; } }
+.sk-garland-flakes {
+  position: absolute; inset: -367px 0 0;
+  opacity: 0.8;
+  background-image:
+    radial-gradient(2px 2px at 31px 43px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 97px 211px, #fff 99%, transparent),
+    radial-gradient(2.5px 2.5px at 163px 119px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 229px 19px, #fff 99%, transparent),
+    radial-gradient(2px 2px at 281px 257px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 347px 151px, #fff 99%, transparent),
+    radial-gradient(2.5px 2.5px at 409px 293px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 59px 331px, #fff 99%, transparent),
+    radial-gradient(2px 2px at 197px 349px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 373px 67px, #fff 99%, transparent);
+  background-size: 431px 367px; animation: sk-garland-snow 14s linear infinite;
+}
+@keyframes sk-garland-snow { to { transform: translateY(367px); } }
+@media (prefers-reduced-motion: reduce) { .sk-garland-wire i, .sk-garland-flakes { animation: none; } }
 .sk-sheet-head {
+  position: relative;
   display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 10px 18px;
   background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 12%, var(--wood-dark) 12%);
 }
@@ -610,6 +651,7 @@
 /* ---------- How to play (painted guide) ---------- */
 .sk-guide { display: flex; flex-direction: column; width: 100%; max-width: 36rem; max-height: 100%; border-radius: 18px; background: var(--paper); color: var(--ink); box-shadow: 0 0 0 3px var(--wood-dark), 0 18px 40px rgba(40, 24, 10, 0.45); }
 .sk-guide-head {
+  position: relative;
   position: relative; display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 12px 20px; border-radius: 16px 16px 0 0;
   background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 10%, var(--wood-dark) 10% 92%, var(--wood-ink) 92%);
 }
@@ -674,6 +716,7 @@
 /* ---------- Table setup: a paper card under a snowy wooden header ---------- */
 .sk-setup { overflow: visible; }
 .sk-setup-head {
+  position: relative;
   position: relative; display: flex; align-items: center; justify-content: space-between; margin: 0 -16px 4px; padding: 14px 16px 12px 18px; border-radius: 14px 14px 0 0;
   background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 10%, var(--wood-dark) 10% 90%, var(--wood-ink) 90%);
 }
@@ -1059,3 +1102,9 @@
 }
 .sk-tally::before { left: 18%; } .sk-tally::after { right: 18%; }
 :root.reduce-motion .sk-tally::before, :root.reduce-motion .sk-tally::after { animation: none; }
+/* Short windows: a smaller title sign, so the menu fits between the name plate and the bottom bar. */
+@media (max-height: 800px) and (min-width: 641px) {
+  .sk-title { --tile: 46px; }
+  .sk-title-plank { margin-top: 4px; padding-top: 8px; padding-bottom: 6px; }
+  .sk-menu-item:not(.sk-menu-primary) { min-height: 38px; padding-top: 3px; padding-bottom: 3px; }
+}

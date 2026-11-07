@@ -1,12 +1,13 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_TURN_MS,
+  BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_BOT_MS,
+  PRACTICE_TURN_MS, SOFT_GAME_PRESSURE,
   STEAL_COOLDOWN_MS, STEAL_LATE_SHARE, STEAL_TURN_BOT_BOOST, STEAL_TURN_CHANCE, TRAP_LETTERS, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
 import { drawInt, drawPick, drawRandom } from './rng';
 import { computeWinners } from './standings';
-import { carriedTurnMs, roundTurnMs, turnDurationMs, wordShiftMs } from './timer';
+import { carriedTurnMs, practiceTurnMs, roundTurnMs, turnDurationMs, wordShiftMs } from './timer';
 import { startingWool } from './settings';
 import type { Action, ActionResult, Difficulty, EventKind, GameState, Round } from './types';
 import { suggestCorrection } from './typos';
@@ -23,6 +24,8 @@ const MAX_EVENTS = 40;
  */
 function nextSeat(s: GameState, seat: number): number | null {
   const n = s.players.length;
+  // A practice run has no rounds: the two seats just take turns until the human's clock runs out.
+  if (s.mode === 'practice') return (seat + 1) % n;
   for (let i = 1; i <= n; i++) {
     const p = s.players[(seat + i) % n];
     if (!p.frozen && p.turnsTaken < s.settings.turnsPerRound) return p.id;
@@ -52,20 +55,19 @@ function startTurn(s: GameState, seat: number, t: number) {
   const roundBaseMs = turnDurationMs(0, s.modifier, roundTurnMs(s.round));
   // Time carry (normal games only): the opening turn is 10 s, then the last word's shift is applied to this turn once.
   const carryOn = s.mode === 'normal' && !!s.settings.timeCarry && s.settings.timeCarry !== 'off';
-  const baseMs = !carryOn ? roundBaseMs : s.history.length === 0 ? CARRY_OPENING_TURN_MS : carriedTurnMs(roundBaseMs, s.carryMs ?? 0);
+  const carriedMs = !carryOn ? roundBaseMs : s.history.length === 0 ? CARRY_OPENING_TURN_MS : carriedTurnMs(roundBaseMs, s.carryMs ?? 0);
+  const baseMs = s.mode === 'practice' ? practiceTurnMs(s.settings.practiceClock ?? 15, s.players[0].wordsPlayed) : carriedMs;
   s.carryMs = 0;
   // A passed bomb: this sheep gets the fuse that was left, once.
   const turnBaseMs = s.passMs ?? baseMs;
   delete s.passMs;
-  // Only the tour gives the human a long turn (its steps take reading): practice runs on the game's own clock, so the
-  // clock under the letter never says one thing on your turn and another on the bots'.
+  // Only the tour gives the human a long turn (its steps take reading): every other game runs on its own clock, so
+  // the clock under the letter never says one thing on your turn and another on the bots'.
   const durationMs = tour && active.isHuman ? PRACTICE_TURN_MS : turnBaseMs;
   const endsAt = t + durationMs;
   const windowMs = s.settings.stealWindowSeconds * 1000;
-  // Steals are an event: some turns are steal turns, drawn here. The tour's turns all are, so it can show one, and
-  // practice (where stealing is learnt, at no cost) makes the game's first bot turn one, so it comes up early.
-  const firstPracticeBotTurn = s.mode === 'practice' && s.round === 1 && !active.isHuman && s.players.every((p) => p.isHuman || p.turnsTaken === 0);
-  const stealable = windowMs > 0 && (tour || firstPracticeBotTurn || drawRandom(s) < STEAL_TURN_CHANCE);
+  // Steals are an event: some turns are steal turns, drawn here. The tour's turns all are, so it can show one.
+  const stealable = windowMs > 0 && (tour || drawRandom(s) < STEAL_TURN_CHANCE);
   let botActAt: number | null = null;
   if (!active.isHuman) {
     if (tour) {
@@ -73,6 +75,8 @@ function startTurn(s: GameState, seat: number, t: number) {
       // runs into its steal window so the tutorial can show a steal.
       const slow = seat === s.players.length - 1 && s.history.some((h) => h.kind === 'play' && h.seat === 0);
       botActAt = slow ? t + Math.max(1000, durationMs - 1500) : t + drawInt(s, 1200, 2200);
+    } else if (s.mode === 'practice') {
+      botActAt = t + drawInt(s, PRACTICE_BOT_MS[0], PRACTICE_BOT_MS[1]);
     } else {
       botActAt = t + botResponseMs(s, active.difficulty!, turnBaseMs);
       // On a steal turn the bot always hesitates into the red seconds, so the window the alarm announced really
@@ -171,6 +175,7 @@ function resolveTrap(s: GameState, seat: number, failed: boolean, t: number) {
  * trapper's own (they are the last unfrozen player, or they stole from the player just before them) no trap is set.
  */
 function setTrap(s: GameState, word: string, trapperSeat: number, turnSeat: number) {
+  if (s.mode === 'practice') return;
   const letter = word[word.length - 1];
   const victimSeat = nextSeat(s, turnSeat);
   s.trap = TRAP_LETTERS.has(letter) && victimSeat !== null && victimSeat !== trapperSeat ? { trapperSeat, victimSeat, letter } : null;
@@ -197,10 +202,10 @@ function playTurn(s: GameState, seat: number, word: string, t: number) {
   concludeTurn(s, t);
 }
 
-/** Who loses wool when a turn runs out: everyone in a normal game; in practice only the bots (the human is learning). */
+/** Who loses wool when a turn runs out: everyone in a normal game; in a practice run only the human, whose one life ends it. */
 function woolAtStake(s: GameState, seat: number): boolean {
   if (s.mode === 'tour') return false;
-  if (s.mode === 'practice') return !s.players[seat].isHuman;
+  if (s.mode === 'practice') return s.players[seat].isHuman;
   return true;
 }
 
@@ -249,12 +254,17 @@ const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('');
  */
 function ensurePlayable(s: GameState, ctx: EngineContext, at: number) {
   if (hasPlayableWord(ctx.dict, s.chainLetter, s.used, s.modifier)) return;
+  drawChainLetter(s, ctx, at, 'No legal word starts here');
+}
+
+/** Moves the chain to a fresh seeded letter with legal words left, favouring letters with plenty of them. */
+function drawChainLetter(s: GameState, ctx: EngineContext, at: number, why: string) {
   const options = ALPHABET.filter((l) => hasPlayableWord(ctx.dict, l, s.used, s.modifier));
   if (!options.length) return;
   const common = options.filter((l) => ctx.dict.startingWith(l).length >= 300);
   const pool = common.length ? common : options;
   s.chainLetter = pool[Math.floor(drawRandom(s) * pool.length)];
-  emit(s, at, 'chainReset', null, `No legal word starts here, so the chain letter is now ${s.chainLetter.toUpperCase()}`);
+  emit(s, at, 'chainReset', null, `${why}, so the chain letter is now ${s.chainLetter.toUpperCase()}`);
 }
 
 type Due = { at: number; kind: 'botAct' | 'timeout' } | { at: number; kind: 'botSteal'; index: number };
@@ -275,13 +285,14 @@ export type BotPlan = { kind: 'bank' } | { kind: 'fail' } | { kind: 'play'; word
 
 /**
  * A bot's chance of fumbling: its base, plus more as turns get shorter (none at 15 s, BOT_PRESSURE_FAIL at 5 s), plus a
- * little more every round spent at 5 s, so the game always closes in on its last sheep.
+ * little more every round spent at 5 s, so the game always closes in on its last sheep. A soft game adds a little more.
  */
 export function botFailRate(s: GameState, difficulty: Difficulty): number {
   const ms = roundTurnMs(s.round);
   const squeeze = (FIRST_ROUND_TURN_MS - ms) / (FIRST_ROUND_TURN_MS - LAST_ROUND_TURN_MS);
   const floorRounds = Math.max(0, s.round - TURN_MS_BY_ROUND.length);
-  return Math.min(0.85, BOT_PROFILES[difficulty].failRate + BOT_PRESSURE_FAIL * squeeze + floorRounds * 0.05);
+  const soft = s.settings.softGame ? SOFT_GAME_PRESSURE : 0;
+  return Math.min(0.85, BOT_PROFILES[difficulty].failRate + BOT_PRESSURE_FAIL * (squeeze + soft) + floorRounds * 0.05);
 }
 
 function decideBotTurn(s: GameState, ctx: EngineContext): BotPlan {
@@ -291,7 +302,7 @@ function decideBotTurn(s: GameState, ctx: EngineContext): BotPlan {
   if (!scripted && drawRandom(s) < botFailRate(s, bot.difficulty!)) return { kind: 'fail' };
   const word = pickBotWord({
     dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
-    prefer: profile.prefer, random: () => drawRandom(s),
+    prefer: profile.prefer, random: () => drawRandom(s), corner: s.mode === 'practice' ? profile.corner : undefined,
   });
   return word ? { kind: 'play', word } : { kind: 'fail' };
 }
@@ -302,8 +313,17 @@ function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
   const plan = decideBotTurn(s, ctx);
   // A bot that can't find a word doesn't give up at once: like a person, it stares at the clock until it runs out,
   // so the whole red window is open for the others to steal.
-  if (plan.kind !== 'play') return;
+  if (plan.kind !== 'play') {
+    // A practice bot can't end the run and nobody can steal, so its fumble just hands you a fresh letter at once.
+    if (s.mode === 'practice') {
+      drawChainLetter(s, ctx, t, `${s.players[turn.seat].name} fumbled`);
+      concludeTurn(s, t);
+    }
+    return;
+  }
   playTurn(s, turn.seat, plan.word, t);
+  // A run never dead-ends on you: the letter the bot leaves always has a legal word.
+  if (s.mode === 'practice') ensurePlayable(s, ctx, t);
 }
 
 /**
@@ -433,7 +453,7 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
     }
     case 'pass': {
       if (action.seat !== turn.seat) return reject('not_your_turn');
-      if (s.mode === 'tour') return reject('no_pass');
+      if (s.mode !== 'normal') return reject('no_pass');
       if (player.passedRound === s.round) return reject('already_passed');
       player.passedRound = s.round;
       s.passMs = Math.max(PASS_MIN_MS, turn.endsAt - now);

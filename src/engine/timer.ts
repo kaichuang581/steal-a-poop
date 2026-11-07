@@ -1,5 +1,6 @@
 import {
-  BASE_TURN_MS, CARRY_HARD_LETTERS, CARRY_MAX_SHIFT_MS, CARRY_MAX_TURN_MS, CARRY_MS_PER_POINT, LAST_ROUND_TURN_MS, MIN_TURN_MS, TURN_MS_BY_ROUND,
+  BASE_TURN_MS, CARRY_HARD_LETTERS, CARRY_MAX_SHIFT_MS, CARRY_MAX_TURN_MS, CARRY_MS_PER_POINT, LAST_ROUND_TURN_MS, MIN_TURN_MS, PRACTICE_WORDS_PER_STEP,
+  TURN_MS_BY_ROUND,
 } from './constants';
 import type { RoundModifier } from './types';
 
@@ -9,6 +10,11 @@ import type { RoundModifier } from './types';
  */
 export function roundTurnMs(round: number): number {
   return TURN_MS_BY_ROUND[Math.min(TURN_MS_BY_ROUND.length, Math.max(round, 1)) - 1] ?? LAST_ROUND_TURN_MS;
+}
+
+/** A practice run's turn: the starting clock, a second less every PRACTICE_WORDS_PER_STEP words you have played, floor 5 s. */
+export function practiceTurnMs(clockSeconds: number, wordsPlayed: number): number {
+  return Math.max(MIN_TURN_MS, (clockSeconds - Math.floor(wordsPlayed / PRACTICE_WORDS_PER_STEP)) * 1000);
 }
 
 /** The base turn (the round's, see roundTurnMs), minus 1s per 10 pile points, minus 2s under double_points_fast, floor 5s. */

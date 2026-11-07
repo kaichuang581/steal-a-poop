@@ -1,3 +1,4 @@
+import { CORNER_LETTERS } from './constants';
 import type { Dictionary } from './dictionary';
 import { rarityOf } from './rarity';
 import { validateWord } from './validation';
@@ -9,12 +10,14 @@ export interface BotProfile {
   /** Chance, per other player's turn, that this bot plans a steal. */
   stealChance: number;
   prefer: 'short' | 'any' | 'long';
+  /** Practice runs: the chance, per word, that this bot aims for a CORNER_LETTERS ending. */
+  corner: number;
 }
 
 export const BOT_PROFILES: Record<Difficulty, BotProfile> = {
-  easy: { responseMs: [4000, 9000], failRate: 0.2, stealChance: 0.08, prefer: 'short' },
-  medium: { responseMs: [3000, 7000], failRate: 0.12, stealChance: 0.18, prefer: 'any' },
-  hard: { responseMs: [2000, 6000], failRate: 0.05, stealChance: 0.3, prefer: 'long' },
+  easy: { responseMs: [4000, 9000], failRate: 0.2, stealChance: 0.08, prefer: 'short', corner: 0 },
+  medium: { responseMs: [3000, 7000], failRate: 0.12, stealChance: 0.18, prefer: 'any', corner: 0.35 },
+  hard: { responseMs: [2000, 6000], failRate: 0.05, stealChance: 0.3, prefer: 'long', corner: 0.8 },
 };
 
 export const PERSONALITIES: readonly Personality[] = ['cautious', 'greedy', 'random'];
@@ -38,14 +41,26 @@ export interface PickArgs {
   modifier: RoundModifier;
   prefer: BotProfile['prefer'];
   random: () => number;
+  /** Chance of aiming for a CORNER_LETTERS ending. Left out, no random draw is spent on it. */
+  corner?: number;
 }
 
 /** Picks a valid word for the chain letter, biased by difficulty. Null if none exist. */
 export function pickBotWord(args: PickArgs): string | null {
-  const { dict, chainLetter, used, modifier, prefer, random } = args;
+  const { dict, chainLetter, used, modifier, prefer, random, corner } = args;
   const valid = dict
     .startingWith(chainLetter)
     .filter((w) => validateWord(w, { dict, chainLetter, used, modifier }).ok);
+  if (corner && random() < corner) {
+    const nasty = valid.filter((w) => CORNER_LETTERS.has(w[w.length - 1]));
+    // The letter first, then a word ending on it: far more words end on Y than on the rest, and every corner would be a Y.
+    const endings = [...new Set(nasty.map((w) => w[w.length - 1]))];
+    if (endings.length) {
+      const ending = endings[Math.floor(random() * endings.length)];
+      const pool = nasty.filter((w) => w.endsWith(ending));
+      return pool[Math.floor(random() * pool.length)];
+    }
+  }
   const tiers: ((w: string) => boolean)[] =
     prefer === 'short'
       ? [(w) => w.length <= 5 && rarityOf(w) === 'common', () => true]

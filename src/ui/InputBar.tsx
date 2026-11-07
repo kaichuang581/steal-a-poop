@@ -22,7 +22,7 @@ export function InputBar() {
   const myTurn = playing && game.turn!.seat === mySeat;
   // A frozen player (out of lives) can no longer steal, so they never get the steal prompt.
   const canSteal = stealOpen && !myTurn && !game.players[mySeat]?.frozen;
-  const learning = mode === 'practice' || mode === 'tour';
+  const learning = mode === 'tour';
 
   useEffect(() => {
     inputRef.current?.focus();

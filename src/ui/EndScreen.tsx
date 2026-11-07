@@ -78,7 +78,7 @@ export function EndScreen() {
           ))}
         </dl>
         {mode === 'room' && <RewardBanner />}
-        {mode === 'practice' && <p className="mt-3 text-center text-sm text-emerald-200">Practice game: no penalties were applied.</p>}
+        {mode === 'practice' && <p className="mt-3 text-center text-sm text-emerald-200">{useStore.getState().practiceResult?.isNew ? 'New best!' : 'Run over'}: {game.players[0].wordsPlayed} words · best {useStore.getState().practiceResult?.best ?? 0}</p>}
         {mode === 'daily' && <p className="mt-3 text-center text-sm text-amber-200"><FireIcon size={14} /> Daily streak: {streak}</p>}
         <div className="mt-4 flex flex-wrap gap-2">
           {(mode === 'quick' || mode === 'practice') && (

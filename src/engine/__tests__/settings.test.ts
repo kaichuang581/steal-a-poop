@@ -116,12 +116,11 @@ describe('game settings', () => {
   it('the Daily Table and Practice ignore the form', () => {
     const daily = createGame(dailySetup(new Date('2026-11-03T12:00:00Z'), 'Me', T0), dict);
     expect(daily.settings).toEqual(DEFAULT_SETTINGS);
-    const practice = game({ rounds: 5, lives: 1 }, 'practice');
+    const practice = game({ rounds: 5, lives: 5 }, 'practice');
     expect(practice.turn!.durationMs).toBe(roundTurnMs(1));
     expect(practice.turn!.durationMs).not.toBe(PRACTICE_TURN_MS);
     const timedOut = advance(practice, ctx, practice.turn!.endsAt);
-    expect(timedOut.players[0].frozen).toBe(false);
-    expect(timedOut.players[0].banked).toBe(0);
+    expect(timedOut.phase).toBe('gameOver'); // one life, whatever the form says
   });
 
   it('estimates longer games for more wool and more turns: about 5 min for Quick and 7 for Standard with four bots', () => {

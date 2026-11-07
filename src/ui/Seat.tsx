@@ -25,6 +25,7 @@ export function Seat({ player, turn, mine, cosmetics }: Props) {
       <div className="max-w-full truncate text-xs font-bold leading-tight sm:text-sm" style={{ color: player.color }} data-seat-name={player.id} title={cosmetics?.title}>
         {cosmetics?.badge && <span aria-hidden="true">{cosmetics.badge} </span>}{player.name}{mine ? ' (you)' : ''}
       </div>
+      {!player.isHuman && <div className="text-[10px] font-bold leading-none text-white/70">farm sheep</div>}
       <div className="flex items-center gap-2 text-[11px] leading-none sm:text-xs">
         <span className="font-black tabular-nums">{player.banked}</span>
         {active && turn && (

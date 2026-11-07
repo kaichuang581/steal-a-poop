@@ -32,6 +32,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
   const flashMat = useMemo(() => new PointsMaterial({ size: 6, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const flames3 = useRef<Points>(null);
   const sparks3 = useRef<Points>(null);
+  const smoke3 = useRef<Points>(null);
   const light = useRef<PointLight>(null);
   const boost = useRef(1);
   const last = useRef<number | undefined>(boomKey);
@@ -71,6 +72,8 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
   }, [boomKey, origin, flames, sparks, smoke, flameMat, sparkMat, smokeMat, flashMat, power]);
 
   useFrame((_, rawDt) => {
+    // Smoke is the one cloud that isn't additive: its idle black points would show as a dark square where they rest.
+    if (smoke3.current) smoke3.current.visible = t0.current >= 0;
     if (t0.current < 0) return;
     const dt = Math.min(rawDt, 1 / 30); // a slow frame never skips the blast
     t0.current += dt;
@@ -124,7 +127,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
   return (
     <>
       <points ref={flames3} geometry={flames.geo} material={flameMat} frustumCulled={false} />
-      <points geometry={smoke.geo} material={smokeMat} frustumCulled={false} />
+      <points ref={smoke3} geometry={smoke.geo} material={smokeMat} frustumCulled={false} visible={false} />
       <points geometry={flash.geo} material={flashMat} frustumCulled={false} />
       <points ref={sparks3} geometry={sparks.geo} material={sparkMat} frustumCulled={false} />
       <pointLight ref={light} color="#ffb04a" intensity={0} distance={70} />

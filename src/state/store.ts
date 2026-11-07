@@ -1,9 +1,13 @@
 import { create } from 'zustand';
 import { createDictionary, dailySetup, rankPlayers, suggestWords, utcDateKey } from '../engine';
-import { DEFAULT_SETTINGS } from '../engine';
+import { DEFAULT_SETTINGS, PRESETS } from '../engine';
 import type { Action, ActionResult, Dictionary, Difficulty, GameSettings, GameState } from '../engine';
 import { getDaily, getStreak, markStarted, recordResult } from '../lib/daily';
 import { checkNickname } from '../lib/nickname';
+import { recordPracticeRun } from '../lib/practice';
+import { isFirstGames, needsSoftGame, recordBests, recordQuickResult } from '../lib/record';
+import type { GameResult } from '../lib/record';
+import type { PracticeRun } from '../lib/practice';
 import { load, save } from '../lib/storage';
 import { isTourDone, setTourDone } from '../lib/tips';
 import { bridge } from './bridge';
@@ -16,6 +20,10 @@ export interface Settings {
   difficulty: Difficulty;
   /** Game length rules for Quick Games (plan V3.3 Part 2); the last choice is remembered. */
   game: GameSettings;
+  /** The practice run's difficulty: the starting clock and the bot. The last choice is remembered. */
+  practice: { clock: NonNullable<GameSettings['practiceClock']>; difficulty: Difficulty };
+  /** The player has set a table of their own, so the easy first games no longer apply. */
+  tableChosen?: boolean;
 }
 export type Mode = 'quick' | 'daily' | 'practice' | 'tour' | 'room';
 
@@ -28,6 +36,10 @@ interface Store {
   /** Which seat is the local player's. Always 0 in solo games; set by the server in rooms. */
   mySeat: number;
   dailyDate: string | null;
+  /** The practice run that just ended, measured against its best. */
+  practiceResult: PracticeRun | null;
+  /** The Quick Game or Daily Table that just ended, measured against the player's bests. */
+  gameResult: GameResult | null;
   streak: number;
   settings: Settings;
   /** performance.now() of the latest frame. */
@@ -51,7 +63,7 @@ interface Store {
    * Starts a solo game. `rules` (game length settings) only applies to Quick Games and is passed by the painted home
    * screen, which is the only place they can be chosen; without it a game uses today's rules, so the classic look is unchanged.
    */
-  start(mode: Mode, rules?: GameSettings): boolean;
+  start(mode: Mode, rules?: GameSettings, difficulty?: Difficulty): boolean;
   rematch(): void;
   quit(): void;
   /** Solo games answer at once; room games answer after the server replies. */
@@ -66,7 +78,7 @@ interface Store {
   resume(): void;
   startTour(after: 'menu' | 'quick'): boolean;
   endTour(next: 'menu' | 'quick'): void;
-  /** Valid words for the current chain letter (practice hints). */
+  /** Valid words for the current chain letter (tutorial hints). */
   suggest(count: number): string[];
 }
 
@@ -75,7 +87,27 @@ const SETTINGS_KEY = 'sap:settings';
 /** Saved settings, with the game rules filled in over the defaults (saves from before v3.3 have none). */
 function loadSettings(): Settings {
   const saved = load<Partial<Settings>>(SETTINGS_KEY, {});
-  return { name: '', playerCount: 6, difficulty: 'medium', ...saved, game: { ...DEFAULT_SETTINGS, ...(saved.game ?? {}) } };
+  return {
+    name: '', playerCount: 6, difficulty: 'medium', ...saved,
+    game: { ...DEFAULT_SETTINGS, ...(saved.game ?? {}) },
+    practice: { clock: 15, difficulty: 'easy', ...(saved.practice ?? {}) },
+  };
+}
+
+/** The table a Quick Game sits down to: easy and short for the first games, unless the player has set their own. */
+export function tableFor(s: Settings): { first: boolean; difficulty: Difficulty; game: GameSettings } {
+  const first = !s.tableChosen && isFirstGames();
+  return first ? { first, difficulty: 'easy', game: { ...s.game, ...PRESETS.quick } } : { first, difficulty: s.difficulty, game: s.game };
+}
+
+/** What to keep if this step of a solo game ended it: the player's results and bests, or a practice score. */
+function finished(mode: Mode, before: GameState, after: GameState): Partial<Store> | null {
+  if (before.phase === 'gameOver' || after.phase !== 'gameOver') return null;
+  if (mode === 'practice') return { practiceResult: recordPracticeRun(after.settings.practiceClock ?? 15, after.settings.botDifficulty, after.players[0].wordsPlayed) };
+  if (mode !== 'quick' && mode !== 'daily') return null;
+  if (mode === 'quick') recordQuickResult(after.winners?.includes(0) ?? false, !!after.settings.softGame);
+  const me = after.players[0];
+  return { gameResult: recordBests({ wool: me.lives, steals: me.steals, longest: me.longestWord }) };
 }
 const MUTE_KEY = 'sap:muted';
 const VOLUME_KEY = 'sap:volume';
@@ -90,6 +122,8 @@ export const useStore = create<Store>((set, get) => ({
   mode: 'quick',
   mySeat: 0,
   dailyDate: null,
+  practiceResult: null,
+  gameResult: null,
   streak: 0,
   settings: loadSettings(),
   now: performance.now(),
@@ -121,7 +155,7 @@ export const useStore = create<Store>((set, get) => ({
     set({ settings });
   },
 
-  start(mode, rules) {
+  start(mode, chosen, level) {
     const { client, settings } = get();
     if (!client) return false;
     const nick = checkNickname(settings.name);
@@ -134,26 +168,38 @@ export const useStore = create<Store>((set, get) => ({
       if (getDaily(dailyDate)) return false; // one attempt per day
       markStarted(dailyDate);
       setup = dailySetup(new Date(), nick.name, now);
-    } else if (mode === 'practice' || mode === 'tour') {
+    } else if (mode === 'practice') {
       setup = {
-        seed: `${mode}:${Date.now()}:${Math.random()}`,
+        seed: `practice:${Date.now()}:${Math.random()}`,
+        now, humanName: nick.name, playerCount: 2, difficulty: settings.practice.difficulty, mode,
+        settings: { practiceClock: settings.practice.clock },
+      };
+    } else if (mode === 'tour') {
+      setup = {
+        seed: `tour:${Date.now()}:${Math.random()}`,
         now, humanName: nick.name, playerCount: 4, difficulty: 'easy' as Difficulty, mode,
       };
     } else {
+      const table = tableFor(settings);
+      const difficulty = level ?? table.difficulty;
+      const rules = chosen ?? (table.first ? table.game : undefined);
       setup = {
         seed: `quick:${Date.now()}:${Math.random()}`,
-        now, humanName: nick.name, playerCount: settings.playerCount, difficulty: settings.difficulty,
-        settings: { timeCarry: 'more' as const, ...(rules ?? {}), ...(rules ? { botCount: settings.playerCount - 1, botDifficulty: settings.difficulty } : {}) },
+        now, humanName: nick.name, playerCount: settings.playerCount, difficulty,
+        settings: {
+          timeCarry: 'more' as const, ...(rules ?? {}), ...(rules ? { botCount: settings.playerCount - 1, botDifficulty: difficulty } : {}),
+          softGame: needsSoftGame(),
+        },
       };
     }
-    set({ game: client.create(setup), mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0 });
+    set({ game: client.create(setup), mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0, practiceResult: null, gameResult: null });
     return true;
   },
 
   rematch() {
     const { mode, game } = get();
-    // A Quick Game rematch keeps the rules the last game was played with.
-    if (mode === 'quick') get().start(mode, game?.settings);
+    // A Quick Game rematch is the same table: the rules and the bots the last game was played with.
+    if (mode === 'quick') get().start(mode, game?.settings, game?.settings.botDifficulty);
     else if (mode === 'practice') get().start(mode);
   },
 
@@ -171,6 +217,8 @@ export const useStore = create<Store>((set, get) => ({
     const now = paused ? get().now : performance.now() - timeOffset;
     const result = client.act(game, action, now);
     set({ game: result.state, now });
+    const done = finished(mode, game, result.state);
+    if (done) set(done);
     return result;
   },
 
@@ -189,6 +237,8 @@ export const useStore = create<Store>((set, get) => ({
       return;
     }
     set({ game: next, now });
+    const done = finished(mode, game, next);
+    if (done) set(done);
     if (next.phase === 'gameOver' && game.phase !== 'gameOver' && mode === 'daily' && dailyDate) {
       const ranked = rankPlayers(next.players);
       const me = next.players[0];

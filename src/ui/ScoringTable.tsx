@@ -72,7 +72,7 @@ export function ScoringTable() {
         <ul className="space-y-1">
           <Rule icon="•"><b>Last sheep standing wins.</b> The game ends when only one sheep isn’t frozen.</Rule>
           <Rule icon="•">Everyone starts with {LIVES_PER_GAME} wool balls (unless the table says otherwise) and can hold up to {EXTRA_WOOL_CAP} extra.</Rule>
-          <Rule icon="•">Practice: easy bots, a longer timer and hints. You never lose wool there.</Rule>
+          <Rule icon="•">Practice: a 1v1 speed run against one bot on one life. Each word you play scores a point.</Rule>
         </ul>
       </Section>
     </div>

@@ -2,16 +2,7 @@
 
 All user-visible changes, newest first.
 
-## Unreleased (not live until the server is deployed and sign-in is configured)
-
-- Accounts: email, Google and Meta sign-in, date of birth and country at sign-up, parental permission for young children, log out everywhere, delete account
-- Friends by private code, invitations to rooms, leaderboards (Daily Table, today, week, all time), personal stats
-- Coins earned by playing, and a cosmetic shop (name colors, titles, badges, table themes); no real money
-- Room chat is checked before anyone sees it; report, block, mute and kick; appeals and a moderator screen
-- Privacy policy, terms and child-safety pages (drafts)
-- Accessibility fixes: higher contrast buttons, keyboard access to scrolling areas
-
-## 0.2.2
+## 0.3.1
 
 - Counting Sheep's dream is rebuilt: a bright snow lane on a cloud raft, floating islands, hills and mountains, a crescent moon, and the farmer asleep in his own cloud bubble
 - Counting Sheep is easier and fairer: fences ask for three letters at most, every fence has plenty of common words that fit, signs read R…N, and a fence offers a word if you stop to think
@@ -23,6 +14,26 @@ All user-visible changes, newest first.
 - Hay bales turn up later in the run, close behind the fences, for a quick second word
 - The result screen shows your night first, then your streak, Share, when the next dream arrives, and Practice
 - Shared results show each bump where it happened and link to the game
+
+## 0.3.0: Fleece Navidad
+
+- The whole farm is dressed for the season: a tree by the barn doors, presents, and lights and wreaths at every stop from the paddock and coop to the silo, pond and farmhouse, and a hat for every animal, the sheepdog and the snowman
+- Counting Sheep, the Hunt, the lobby and every panel join in, with a few new things for the table to shout
+- The land around the farm is alive: woods in natural clumps, an overgrown orchard, a dry stone wall, drifts, scrub and worn tracks, and sheep out on the open ground
+- The ice in Practice gets its own string of lights and a tree
+
+## Unreleased (not live until the server is deployed and sign-in is configured)
+
+- The first three Quick Games sit down at an easy table unless you set your own, and the home screen says so
+- The bots are the farm's own sheep: sheep names and a "farm sheep" tag on their cards, and every table opens with who is at it
+- The end board is yours: wool kept, longest word and steals against your personal bests, "Same table again", and a nudge when tonight's dream is unplayed
+- Practice is now a 1v1 speed run on its own night-time ice spit: you and one bot face to face on one life, with a high score for each starting clock and bot level. Hints moved to the Tutorial only, and Start now goes to your last table
+- Accounts: email, Google and Meta sign-in, date of birth and country at sign-up, parental permission for young children, log out everywhere, delete account
+- Friends by private code, invitations to rooms, leaderboards (Daily Table, today, week, all time), personal stats
+- Coins earned by playing, and a cosmetic shop (name colors, titles, badges, table themes); no real money
+- Room chat is checked before anyone sees it; report, block, mute and kick; appeals and a moderator screen
+- Privacy policy, terms and child-safety pages (drafts)
+- Accessibility fixes: higher contrast buttons, keyboard access to scrolling areas
 
 ## 0.2.1
 

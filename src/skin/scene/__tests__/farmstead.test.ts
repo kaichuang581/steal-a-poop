@@ -8,7 +8,7 @@ describe('the start screen farm', () => {
     const farm = buildFarmstead();
     console.log(`farmstead: ${farm.triangles} triangles, ${farm.props.length + farm.fine.length} chunks, built in ${Math.round(performance.now() - t0)} ms`);
     for (const g of [farm.shell, farm.terrain, ...farm.props, ...farm.fine]) expect(g.getAttribute('position').count).toBeGreaterThan(0);
-    expect(farm.triangles).toBeLessThan(700_000);
+    expect(farm.triangles).toBeLessThan(1_000_000); // everything the tour gets close to is at 0.1 m
   }, 30_000);
 
   it('keeps the buildings out of the barn and the paddock clear of the silo', () => {

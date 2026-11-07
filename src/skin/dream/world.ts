@@ -252,7 +252,8 @@ function littlePine(g: Grid, x: number, z: number, h: number) {
     const r = Math.max(0, Math.round((1 - (y - 2) / (H - 2)) * (H * 0.28) * (0.75 + 0.25 * ((y % 3) / 2))));
     for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
       if (dx * dx + dz * dz > r * r + 1) continue;
-      g.set(X + dx, y, Z + dz, y % 3 === 0 ? snow : (dx + dz) % 2 ? needles : dark);
+      const bauble = hash3(dx, y, dz, 77); // the festive season's baubles (v0.3.0)
+      g.set(X + dx, y, Z + dz, y % 3 === 0 ? snow : bauble > 0.9 ? lin(bauble > 0.95 ? T.collar[0] : T.lantern[0]) : (dx + dz) % 2 ? needles : dark);
     }
   }
   g.set(X, H, Z, snow);
@@ -365,7 +366,9 @@ function railFence(): BufferGeometry {
   [[3, 4], [6, 7], [9, 10]].forEach(([a, b], k) => {
     for (let z = z0; z < z1; z++) {
       const sag = Math.abs(((z - z0) % 22) - 11) < 4 && k === 1 ? -1 : 0;
-      for (const y of [a, b]) for (const x of [-2, 2]) g.set(x, y + sag, z, tones[(z >> 3) % 2 ? 0 : 1]);
+      // The top rail is a candy cane, for the season (v0.3.0).
+      const cane = k === 2 ? lin((z >> 2) % 2 ? T.collar[0] : T.snow[1]) : null;
+      for (const y of [a, b]) for (const x of [-2, 2]) g.set(x, y + sag, z, cane ?? tones[(z >> 3) % 2 ? 0 : 1]);
     }
   });
   capSnow(g, snow, 0.85);

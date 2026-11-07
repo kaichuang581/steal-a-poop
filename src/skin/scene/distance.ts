@@ -1,5 +1,6 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry, triangles } from '../voxel/mesher';
+import { detailed } from '../voxel/refine';
 import { lin, pick, T } from '../voxel/palette';
 import { Grid, hash3, rng } from '../voxel/primitives';
 import type { RGB } from '../voxel/primitives';
@@ -182,8 +183,10 @@ export function buildDistance(): {
     }
 
   // Terrain has no overhangs, so no downward face is ever visible.
+  // The near hills step in 0.5 m rather than in visible stairs. The range and the far hills are a shape in the haze.
+  const back = detailed(backG.map, 1, 0);
   const hills = dropFaces(buildGeometry(hillsG.map, 1), (ny) => ny < 0);
-  const backHills = dropFaces(buildGeometry(backG.map, 1), (ny) => ny < 0);
+  const backHills = dropFaces(buildGeometry(back.map, back.size), (ny) => ny < 0);
   const mountains = dropFaces(buildGeometry(mG.map, 3), (ny) => ny < 0);
   const windmillBody = buildGeometry(bodyG.map, 1);
   return {

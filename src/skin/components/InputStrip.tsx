@@ -19,7 +19,7 @@ interface Props {
   /** Plays on your turn, steals in the red seconds. */
   onSubmit: () => void;
   message: MessageView | null;
-  /** Practice and tutorial: a Hint book and its word ideas. */
+  /** Tutorial: a Hint book and its word ideas. */
   hints?: { ideas: string[]; onHint: () => void; onPick: (w: string) => void };
   /** Changes when the turn changes, to refocus the input. */
   turnKey: number | undefined;
@@ -29,6 +29,8 @@ interface Props {
   out: boolean;
   /** Hand the bomb to the next sheep; only given when you can pass this round. */
   onPass?: () => void;
+  /** No stealing in this game (a practice run): the waiting line only says whose turn it is. */
+  noSteal?: boolean;
 }
 
 const keep = (e: MouseEvent) => e.preventDefault(); // buttons never steal focus from the input
@@ -37,7 +39,7 @@ const keep = (e: MouseEvent) => e.preventDefault(); // buttons never steal focus
  * The word bar: the starting letter on a big tile, a roomy field, and one button that is Play on your turn and Steal
  * (red, glowing) when another sheep's timer goes red. A line above says what you can do right now.
  */
-export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out, onPass }: Props) {
+export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out, onPass, noSteal }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => ref.current?.focus(), [turnKey]);
   const [flash, setFlash] = useState(false);
@@ -55,7 +57,7 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChang
   const prompt = {
     mine: <>Your turn: type a word starting with <b>{L}</b> and press Enter</>,
     steal: <><b>STEAL!</b> {turnName}’s time is running out. Type a word starting with <b>{L}</b> first to take one of their wool balls</>,
-    wait: <>{turnName}’s turn. When their timer turns <b style={{ color: 'var(--coral-dark)' }}>red</b>, you can steal a wool ball</>,
+    wait: noSteal ? <>{turnName}’s turn. Get ready</> : <>{turnName}’s turn. When their timer turns <b style={{ color: 'var(--coral-dark)' }}>red</b>, you can steal a wool ball</>,
     out: <>You’re frozen solid: out of wool. Watch who’s the last sheep standing</>,
   }[mode];
   const placeholder = { mine: `a word starting with ${L}`, steal: `quick, a ${L}-word!`, wait: 'type ahead…', out: '' }[mode];

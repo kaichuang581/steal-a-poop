@@ -23,6 +23,13 @@ export interface GameSettings {
    * default): turns are the round's length. The game's opening turn is 10 s when it is on.
    */
   timeCarry?: 'off' | 'more' | 'less';
+  /**
+   * One Quick Game after a bad patch: the bots fumble a little more. Never shown to the player, and only the store sets
+   * it, never the Daily Table or a room, where every player has to meet the same bots.
+   */
+  softGame?: boolean;
+  /** Practice runs only: the starting clock in seconds. 15 when absent. */
+  practiceClock?: 5 | 10 | 15;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {

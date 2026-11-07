@@ -6,7 +6,7 @@ import type { MessageView } from '../model/types';
 
 /**
  * The classic InputBar's behaviour, kept as local state the same way: typed text, the typo fix (submit the same text
- * again to confirm, edit to cancel), rejection messages, and practice hints. Calls only the store's existing act().
+ * again to confirm, edit to cancel), rejection messages, and tutorial hints. Calls only the store's existing act().
  */
 export function useWordInput() {
   const game = useStore((s) => s.game)!;
@@ -26,7 +26,7 @@ export function useWordInput() {
   const myTurn = playing && game.turn!.seat === mySeat;
   // A frozen player (out of lives) can no longer steal, so they never get the steal prompt.
   const canSteal = stealOpen && !myTurn && !game.players[mySeat]?.frozen;
-  const learning = mode === 'practice' || mode === 'tour';
+  const learning = mode === 'tour';
 
   useEffect(() => setIdeas([]), [game.turn?.seat]);
   useEffect(() => {

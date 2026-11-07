@@ -27,7 +27,8 @@ export interface GameSetup {
  * (double_points_fast) with it: turns get faster every round on their own (TURN_MS_BY_ROUND), that is not a twist.
  */
 const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter'];
-const BOT_NAMES = ['Maya', 'Leo', 'Pip', 'Otis', 'Juno', 'Rex', 'Nadia', 'Bram', 'Sol'];
+/** The bots are the farm's own sheep, named so nobody takes one for a person. */
+const BOT_NAMES = ['Maple', 'Clover', 'Bram', 'Hazel', 'Barley', 'Thistle', 'Nettle', 'Sorrel', 'Tansy'];
 const BOT_EMOJIS = ['🦊', '🐸', '🐙', '🦉', '🐼', '🦄', '🐨', '🐯', '🦝'];
 const BOT_COLORS = ['#f97316', '#22c55e', '#06b6d4', '#a78bfa', '#ec4899', '#eab308', '#38bdf8', '#f43f5e', '#84cc16'];
 /** A tenth look, so ten humans can each have a distinct avatar. */
@@ -40,9 +41,15 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const humans = setup.humans?.map((h) => h.trim());
   const room = !!humans && humans.length > 1;
   const wanted = room ? Math.max(setup.playerCount, humans.length) : setup.playerCount;
-  const n = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.round(wanted)));
+  const mode = setup.mode ?? 'normal';
+  // Practice is always you and one bot.
+  const n = mode === 'practice' ? 2 : Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.round(wanted)));
 
-  const settings = resolveSettings(setup.settings);
+  const resolved = resolveSettings(setup.settings);
+  // Practice is a one-life speed run: nothing but the chain and the clock.
+  const settings: GameSettings = mode === 'practice'
+    ? { ...resolved, lives: 1, twists: false, stealWindowSeconds: 0, timeCarry: 'off', botCount: 1, botDifficulty: setup.difficulty }
+    : resolved;
   // Round twists, drawn without repeats: round 1 plays plain, then the deck cycles for as long as the game runs.
   const modifierDeck: RoundModifier[] = settings.twists ? ['none', ...shuffle(state, ALL_MODIFIERS)] : ['none'];
   const playable = ALPHABET.filter((l) => hasPlayableWord(dict, l, [], modifierDeck[0]));
@@ -83,7 +90,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   return {
     seed: setup.seed, settings,
     rng: state.rng,
-    mode: setup.mode ?? 'normal',
+    mode,
     phase: 'intro',
     round: 1,
     modifier: modifierDeck[0],

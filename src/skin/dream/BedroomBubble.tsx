@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { ACESFilmicToneMapping, Color, MeshBasicMaterial, SRGBColorSpace } from 'three';
 import type { Group, Mesh } from 'three';
+import { buildBubbleFestive } from '../scene/festive';
+import { Festive } from '../table/Festive';
 import { voxelMaterial } from '../voxel/material';
 import { BED, bedroomGeometry, farmerGeometry, LAMP, WINDOW } from './bedroom';
 import type { Phase, StageLive } from './DreamStage';
@@ -75,6 +77,7 @@ function Room({ live, phase, reduced }: { live: MutableRefObject<StageLive>; pha
       <mesh material={moonMat} position={[WINDOW.x + 0.005, WINDOW.y - 0.24, WINDOW.z + 0.2]} rotation={[0, Math.PI / 2, 0]}><circleGeometry args={[0.125, 20]} /></mesh>
       <mesh geometry={b.windowFrame} material={vox} />
       <mesh geometry={b.floor} material={vox} />
+      <Festive geo={buildBubbleFestive()} reduced={reduced} />
       <mesh geometry={b.rug} material={vox} />
       <mesh geometry={b.slippers} material={vox} />
       <mesh geometry={b.bed} material={vox} />

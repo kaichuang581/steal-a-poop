@@ -155,6 +155,44 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   everything that makes it a real farm from outside lives in src/skin/scene/farmstead.ts and src/skin/table/Farmstead.tsx:
   the whole roof, front wall, trim, silo, coop, paddock, tractor, orchard, field, livestock and the land past the yard.
   These mount only on the start screen; the table never sees them. Keep it that way: a roof over the table blocks its camera.
+- Practice is a 1v1 speed run (approved by Brian, 2026-11-07), an engine change: `mode: 'practice'` is always two seats, one
+  life, no rounds, twists, steals, traps, passes or hints. Score is `players[0].wordsPlayed`; the run ends on the human's first
+  time-out. The bot can't end it: a fumble draws a fresh letter at once. The clock starts at `settings.practiceClock` (15, 10
+  or 5) and loses a second every `PRACTICE_WORDS_PER_STEP` words, floor 5 s. Bot level is how often it aims for
+  `CORNER_LETTERS` (`BOT_PROFILES[].corner`, the tuning knob). Bests live in src/lib/practice.ts, one per clock and bot.
+  Start now goes to a Quick Game, since a one-life run with no hints is no first game. The classic look has no picker: it
+  plays the saved practice settings.
+- Practice's own place (approved by Brian, 2026-11-07), skin only: a practice run leaves the barn for a narrow spit of ice on a
+  black lake at night (src/skin/scene/duel.ts for the layout and voxels, src/skin/table/DuelTable.tsx for the stage). You and the
+  bot stand face to face on one line, seen side on, and stare at each other. Pressure comes from your clock: the camera pushes
+  in, a spotlight on whoever is on turn burns red, the screen's edges close in red and the camera shakes at the very end. A VS
+  bar replaces the scoreboard, and the bomb is the barn's own (`Bomb`, exported, with a `seatAt` prop). The lambing pens are gone.
+- First games, soft games, farm sheep and the end board (requested by Brian, 2026-11-07), a small engine change. src/lib/record.ts
+  keeps finished Quick Games, the last three results and the personal bests. `tableFor` in the store gives the first three Quick
+  Games the easy bots and the Quick preset until the player touches a rule or the bots (`settings.tableChosen`); Start now is that
+  table, not Practice. Two losses in the last three set the hidden `settings.softGame` for one Quick Game: `botFailRate` adds
+  `SOFT_GAME_PRESSURE` of `BOT_PRESSURE_FAIL`. It must stay invisible, and never reach the Daily Table or rooms. Bots carry sheep
+  names and a visible "farm sheep" tag; keep them unmistakably not people. The classic end screen is unchanged.
+- Fleece Navidad, v0.3.0 (approved by Brian, 2026-11-07), skin only: the update's name lives in src/config.ts (`UPDATE_NAME`). All the
+  decorations are laid over the world in src/skin/scene/festive.ts and mounted by src/skin/table/Festive.tsx; the barn and yard
+  builders are untouched. Every animal wears a hat from the `SantaHat` mesh in Sheep.tsx, which sits on the head and leaves the
+  models alone (an exception to "customisation slots are reserved"). To take the season down, remove `<Festive>` and `<SantaHat>`.
+- One level of detail for the scenery (approved by Brian, 2026-11-07), skin only. This supersedes the 0.20 m and 1 m rows of V3 Part 4.1:
+  yard and farmstead objects keep being authored on their 0.2 m grid, then `detailed` (src/skin/voxel/refine.ts) halves the cell size
+  and bevels the shape, so they sit at the barn's 0.1 m; the tractor goes to 0.05 m and the back hills and side land to 0.5 m. The
+  yard's flat ground, the field, the windbreak, the far hills and the range stay coarse, because the camera never gets near them and
+  the budget goes on what it does. Touch screens skip all of it. Scenery must read as something: no scattered blocks standing in for
+  litter (the hen run's straw, trough, water pan and perch are `henYard`, built at 0.1 m).
+- The season reaches every setting (approved by Brian, 2026-11-07), skin only. festive.ts dresses the yard, barn walls, pines, sled, farmhouse
+  and pond (`buildFestive`), every other stop on the start screen's tour (`buildFarmFestive`), the ice and the farmer's bedroom; Counting Sheep's
+  fence rails and island pines are candy striped and baubled in dream/world.ts; Hunt has CSS lights; the lobby and room screens get `<Garland>`.
+  Check each tour shot after moving decorations: a bulb near a shot's camera hangs huge in front of the lens.
+- The land around the farm (approved by Brian, 2026-11-07), skin only: src/skin/scene/countryside.ts, start screen only. Woods stand in uneven
+  clumps, never rows; the orchard has grown out of line; drifts, scrub, rocks, dead grass, a dry stone wall and worn tracks fill the open ground.
+  Everything goes through `isClear`, which keeps it off the farm and out of every tour camera's sight line (POV_SHOTS now live in scene/homePov.ts).
+  Restraint with the season: one Christmas tree on the farm (by the barn doors), one in the barn, one on the ice. Pines stay plain pines.
+- The start screen comes first (approved by Brian, 2026-11-07): no landing page and no forced sample round or username step before it.
+  The name is typed on the start screen's name plate; signing in is the Account button there. src/skin/landing is gone.
 - Counting Sheep, the daily anchor (approved by Brian, 2026-11-07), a rules change in src/dream: `DREAM_LENGTH` is 30 fences
   and 3 bumps, a first guess until the plan's ten-person playtest. A bump short of the last holds the sheep 700 ms and
   knocks the fence flat (it counts as reached, not as a sheep); the last bump wakes the farmer; the last fence puts him to

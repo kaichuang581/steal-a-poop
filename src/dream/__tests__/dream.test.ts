@@ -98,7 +98,7 @@ describe('daily dream', () => {
     expect(getDreamStreak('2026-11-05')).toBe(2);
     expect(getDreamStreak('2026-11-07')).toBe(0);
     expect(getDreamBest()).toBe(12);
-    expect(dreamStreakDays('2026-11-04').slice(-2)).toEqual([true, true]);
+    expect(dreamStreakDays('2026-11-04').slice(-2)).toEqual(['played', 'played']);
   });
 
   it('shares the count without the words', () => {
@@ -106,5 +106,35 @@ describe('daily dream', () => {
     expect(text).toContain('23 sheep');
     expect(text).toContain('9 letters');
     expect(text).toContain('3-night streak');
+  });
+});
+
+describe('hints and the share text (V4 Part 13)', () => {
+  it('gives one to three example words on the first three fences only, never the source, all fitting, the same every time', async () => {
+    const { exampleWords } = await import('../dream');
+    for (let i = 0; i < 6; i++) {
+      const f = fenceAt(SEED, i);
+      const ex = exampleWords(f);
+      if (i < 3) {
+        expect(ex.length).toBeGreaterThanOrEqual(1);
+        expect(ex.length).toBeLessThanOrEqual(3);
+        expect(ex).not.toContain(f.source);
+        for (const w of ex) expect(matched(f, w)).toBe(f.letters.length);
+        expect(exampleWords(f)).toEqual(ex);
+      } else expect(ex).toEqual([]);
+    }
+  });
+  it('writes the glyph row by letters asked, grouped in fives, the bump last, with the painted title', () => {
+    const t = (count: number) => dreamShareText({ date: '2026-11-06', count, longest: 8, streak: 5, blankets: 1, bumped: true, title: 'Finish the Word' });
+    expect(t(0).split('\n')[2]).toBe('⬛');
+    expect(t(3).split('\n')[2]).toBe('🟩🟩🟩⬛');
+    expect(t(12).split('\n')[2]).toBe('🟩🟩🟩🟦🟦 🟦🟦🟦🟪🟪 🟪🟪⬛');
+    const forty = t(41).split('\n');
+    expect(forty[0]).toBe('Finish the Word · Counting Sheep 2026-11-06');
+    expect(forty[1]).toBe('The farmer counted 41 sheep then woke up');
+    expect(forty[2].split(' ')).toHaveLength(8);
+    expect(forty[3].split(' ')).toHaveLength(1);
+    expect(forty[4]).toBe('Longest word: 8 letters');
+    expect(forty[5]).toBe('5-night streak · 🛏 1 Warm Blanket');
   });
 });

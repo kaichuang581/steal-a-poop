@@ -110,6 +110,20 @@ export function signOf(fence: Fence): string {
   return fence.letters.join('·').toUpperCase();
 }
 
+/**
+ * Example words for the first three fences only (V4 Part 13.1): up to three fence words that fit, never the fence's
+ * own source, seeded by the fence so everyone sees the same ones, shortest first. Nothing from the fourth fence on.
+ */
+export function exampleWords(fence: Fence): string[] {
+  if (fence.index >= 3) return [];
+  const fits = FENCE_WORDS.filter((w) => w !== fence.source && matched(fence, w) === fence.letters.length);
+  const r = rng(`${fence.letters.join('')}#${fence.index}#examples`);
+  const picked: string[] = [];
+  const pool = [...fits];
+  while (picked.length < 3 && pool.length) picked.push(pool.splice(Math.floor(r() * pool.length), 1)[0]);
+  return picked.sort((a, b) => a.length - b.length || a.localeCompare(b));
+}
+
 // ---------- the run ----------
 /** The dream's logical size (pixels), and where the sheep stands. */
 export const FIELD = { width: 320, ground: 104, sheepX: 78, sheepW: 20, fenceW: 12, fenceH: 16 } as const;
@@ -140,14 +154,37 @@ export interface DreamResult {
   /** Letters in the longest word typed. */
   longest: number;
   streak: number;
+  /** Warm Blankets held (V4 Part 12). */
+  blankets?: number;
+  /** Whether the dream ended on a bump (false only in the bounded dream's drift-off, V4 Part 15, not approved). */
+  bumped?: boolean;
+  /** The game's title as the home screen shows it. */
+  title?: string;
 }
 
-/** The spoiler-free result to share. */
+/** One glyph per fence cleared, by the letters it asked: 1 🟩, 2 🟦, 3 🟪, 4 🟧, 5 🟥; ⬛ for the bump. */
+const GLYPHS = ['🟩', '🟦', '🟪', '🟧', '🟥'] as const;
+export function dreamGlyphs(count: number, bumped = true): string {
+  const row: string[] = [];
+  for (let i = 0; i < count; i++) row.push(GLYPHS[Math.min(5, lettersAt(i)) - 1]);
+  if (bumped) row.push('⬛');
+  if (row.length === 0) return '⬛';
+  const groups: string[] = [];
+  for (let i = 0; i < row.length; i += 5) groups.push(row.slice(i, i + 5).join(''));
+  const lines: string[] = [];
+  for (let i = 0; i < groups.length; i += 8) lines.push(groups.slice(i, i + 8).join(' '));
+  return lines.join('\n');
+}
+
+/** The spoiler-free result to share (V4 Part 13.2). */
 export function dreamShareText(r: DreamResult): string {
+  const bumped = r.bumped ?? true;
+  const streak = r.streak > 1 ? `${r.streak}-night streak${r.blankets ? ` · 🛏 ${r.blankets} Warm Blanket${r.blankets === 1 ? '' : 's'}` : ''}` : '';
   return [
-    `Finish the Word · Counting Sheep ${r.date}`,
-    `The farmer counted ${r.count} sheep${r.count >= 40 ? ' and drifted off' : ' then woke up'}`,
+    `${r.title ?? 'Counting Sheep'} · Counting Sheep ${r.date}`,
+    `The farmer counted ${r.count} sheep ${bumped ? 'then woke up' : 'and drifted off'}`,
+    dreamGlyphs(r.count, bumped),
     r.longest > 0 ? `Longest word: ${r.longest} letters` : '',
-    r.streak > 1 ? `${r.streak}-night streak` : '',
+    streak,
   ].filter(Boolean).join('\n');
 }

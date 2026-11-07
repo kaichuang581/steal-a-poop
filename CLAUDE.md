@@ -230,3 +230,11 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   night indigo, cloud rims, moon gold, quilt patches. Everywhere else, a dialog is paper in a snowy wooden frame (`.sk-framed`
   and the shared selectors at the end of skin.css), and the tally is planks on ropes. Hunt keeps its handheld look on purpose.
 
+- The farm kit (approved by Brian, 2026-11-07): docs/REDESIGN_PLAN_V6_UI.md. Every surface in the painted skin is one of the
+  kit's materials (V6 Part 4): plank, paper, tile, slate, burlap, knit, rope, brass, peg, lever, ice, clipboard, panel.
+  No surface is a shape: no gradient used as a colour (gradients exist only inside kit materials, as grain, weave or
+  chalk), no rounded corner over 4 px except pegs, pins, ice and the slate's inner edge, no blur-only shadow, no emoji
+  as an icon, no Tailwind colour, radius or shadow utility in src/skin. The audit in src/skin/audit runs with
+  `npm test` against a budget that only goes down; a screen with a non-kit surface is not done. A sign that is read
+  every turn (the letter over the table, the dream's fence signs, the sheep's name stakes) is a voxel object anchored
+  in the scene (V6 Part 5), never an HTML box floating over it. src/skin/hunt keeps its handheld-console look.

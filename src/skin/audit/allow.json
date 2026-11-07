@@ -1,0 +1,18 @@
+[
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-wash-left", "reason": "Part 4.12: the washes behind the menu are light and air, not a surface" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-wash-bottom", "reason": "Part 4.12: the washes behind the menu are light and air, not a surface" },
+  { "file": "src/skin/screens/PaintedGame.tsx", "selectorOrLine": "transparent 58%", "reason": "Part 4.12: the table's vignette" },
+  { "file": "src/skin/table/DuelTable.tsx", "selectorOrLine": "opacity: heat", "reason": "Part 4.12: the table's vignette (the practice duel's pressure vignette is the same device on the ice)" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-results-backdrop", "reason": "Part 4.12: .sk-results-backdrop, the barn dimming" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-garland", "reason": "Part 4.12: .sk-garland*, the season's lights and snow" },
+  { "file": "src/skin/dream/dream.css", "selectorOrLine": ".dr-backdrop", "reason": "Part 4.12: the aurora and the dream's backdrop colour" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-boom", "reason": "Part 4.12: the bomb's blast" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-jump-", "reason": "Part 4.12: the jumpscare" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-wordblast", "reason": "Part 4.12: the word blast" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-door", "reason": "Part 4.12: the barn-door transition" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-word-burst", "reason": "Part 4.12: the word burst's ring and tufts" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-menu-lantern", "reason": "Part 4.12: the lantern glow on the focused menu row" },
+  { "file": "src/skin/styles/skin.css", "selectorOrLine": ":root[data-skin=\"painted\"] body", "reason": "Part 4.12: the body's sky gradient behind the app" },
+  { "file": "src/skin/table/FarmBackdrop.tsx", "selectorOrLine": "FOG[hour]", "reason": "Part 4.12: the sky behind the app, shown for a moment while the farm builds" },
+  { "file": "src/skin/components/PixelIcons.tsx", "selectorOrLine": "*", "reason": "Part 4.11: the emoji here are the lookup keys that turn the classic screens' emoji into pixel icons; none is drawn" }
+]

@@ -24,6 +24,11 @@ export const T = {
   brass: ['#F0C45C', '#E7B64A', '#C99A38'],
   skin: ['#F3DCCB', '#EBCDB9', '#D9B9A3'],
   hoof: ['#3A3434', '#332E2E', '#2A2626'],
+  /** The dream's clouds (V4 Part 5.3): the third tone only in the creases between lobes. */
+  cloud: ['#F4F1FC', '#DCD5F3', '#BBB0E6'],
+  /** The farmer's bedroom (V4 Part 5.1): headboard, bedside table, floorboards. */
+  bedwood: ['#6B4A32', '#5A3C25', '#4A311E'],
+  linen: ['#F3EAD6', '#E6DCC4', '#CFC3A8'],
 } as const satisfies Record<string, Tone>;
 
 export const WHITE = '#FBFBF8';

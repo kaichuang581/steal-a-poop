@@ -472,3 +472,14 @@ export const MoonIcon = ({ size = 20 }: P) => (
 ..........`, '#FFF4DC')}
   </svg>
 );
+
+/** A folded blanket (V4 Part 8): the Warm Blanket that keeps a streak warm. Hollow when not held. */
+export function BlanketIcon({ size = 16, held = true }: P & { held?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" shapeRendering="crispEdges" role="img" aria-label={held ? 'Warm Blanket' : 'No blanket'}>
+      <rect x="2" y="4" width="12" height="9" rx="1" fill={held ? '#D99B95' : 'none'} stroke="#8C5A2E" strokeWidth="1.5" />
+      {held && <rect x="2" y="7" width="12" height="2" fill="#F3E9D2" />}
+      {held && <rect x="2" y="10" width="12" height="1" fill="#8E7CC3" />}
+    </svg>
+  );
+}

@@ -20,21 +20,26 @@ const SKY: Record<Hour, [string, string]> = {
 };
 const AURORA: Record<Hour, number> = { dawn: 0, day: 0, dusk: 0.22, night: 0.85 };
 
-interface SkyProps { hour: Hour; reduced: boolean; blizzard: boolean }
+/** The dream's sky (V4 Part 6.1): an hour-independent palette, fewer and twinkling stars, a tinted moon, no snow. */
+export type SkyPalette = 'hour' | 'dream';
+export const DREAM_PALETTE = { top: '#5B4AA6', middle: '#8A78D2', horizon: '#D2C6F4', moon: '#FFF1B8', aurora: ['#F2A7D8', '#8FE3D9'] as const };
 
-export function Sky({ hour, reduced, blizzard }: SkyProps) {
+interface SkyProps { hour: Hour; reduced: boolean; blizzard: boolean; palette?: SkyPalette }
+
+export function Sky({ hour, reduced, blizzard, palette = 'hour' }: SkyProps) {
+  const dream = palette === 'dream';
   return (
     <group>
-      <Dome hour={hour} />
-      {hour === 'night' && <Stars />}
-      {hour === 'night' && <Moon />}
-      {AURORA[hour] > 0 && <Aurora opacity={AURORA[hour]} reduced={reduced} />}
-      <Snowfall count={reduced ? 400 : 1600} blizzard={blizzard} />
+      <Dome hour={hour} palette={palette} />
+      {(hour === 'night' || dream) && <Stars count={dream ? 180 : 900} twinkle={dream && !reduced} />}
+      {hour === 'night' && !dream && <Moon />}
+      {dream ? <Aurora opacity={0.35} reduced={reduced} dream /> : AURORA[hour] > 0 && <Aurora opacity={AURORA[hour]} reduced={reduced} />}
+      {!dream && <Snowfall count={reduced ? 400 : 1600} blizzard={blizzard} />}
     </group>
   );
 }
 
-function Dome({ hour }: { hour: Hour }) {
+function Dome({ hour, palette = 'hour' }: { hour: Hour; palette?: SkyPalette }) {
   const R = DISTANCE.skyRadius;
   const geo = useMemo(() => {
     const g = new SphereGeometry(R, 48, 24);
@@ -43,22 +48,25 @@ function Dome({ hour }: { hour: Hour }) {
   }, [R]);
   const mat = useMemo(() => new MeshBasicMaterial({ vertexColors: true, side: BackSide, fog: false, depthWrite: false }), []);
   useEffect(() => {
-    const top = new Color(SKY[hour][0]), bottom = new Color(SKY[hour][1]), c = new Color();
+    const dream = palette === 'dream';
+    const top = new Color(dream ? DREAM_PALETTE.top : SKY[hour][0]), bottom = new Color(dream ? DREAM_PALETTE.horizon : SKY[hour][1]), mid = new Color(DREAM_PALETTE.middle), c = new Color();
     const pos = geo.getAttribute('position'), col = geo.getAttribute('color') as BufferAttribute;
     for (let i = 0; i < pos.count; i++) {
       const t = Math.min(1, Math.max(0, pos.getY(i) / (R * 0.55)));
-      c.copy(bottom).lerp(top, Math.sqrt(t));
+      // The dream's gradient has its middle tone at 55% of the way up.
+      if (dream) { if (t < 0.55) c.copy(bottom).lerp(mid, t / 0.55); else c.copy(mid).lerp(top, (t - 0.55) / 0.45); }
+      else c.copy(bottom).lerp(top, Math.sqrt(t));
       col.setXYZ(i, c.r, c.g, c.b);
     }
     col.needsUpdate = true;
-  }, [hour, geo, R]);
+  }, [hour, geo, R, palette]);
   useEffect(() => () => (geo.dispose(), mat.dispose()), [geo, mat]);
   return <mesh geometry={geo} material={mat} renderOrder={-10} />;
 }
 
-function Stars() {
+function Stars({ count = 900, twinkle = false }: { count?: number; twinkle?: boolean }) {
   const { geo, mat } = useMemo(() => {
-    const r = rng(404), n = 900, p = new Float32Array(n * 3), R = DISTANCE.skyRadius * 0.95;
+    const r = rng(404), n = count, p = new Float32Array(n * 3), R = DISTANCE.skyRadius * 0.95;
     for (let i = 0; i < n; i++) {
       const a = r() * Math.PI * 2, y = 0.08 + r() * 0.92, s = Math.sqrt(1 - y * y);
       p.set([Math.cos(a) * s * R, y * R, Math.sin(a) * s * R], i * 3);
@@ -66,7 +74,8 @@ function Stars() {
     const geo = new BufferGeometry();
     geo.setAttribute('position', new Float32BufferAttribute(p, 3));
     return { geo, mat: new PointsMaterial({ color: '#F4F6FF', size: 1.8, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.9, depthWrite: false }) };
-  }, []);
+  }, [count]);
+  useFrame(({ clock }) => { if (twinkle) mat.opacity = 0.65 + 0.3 * Math.sin(clock.elapsedTime * 1.4); });
   useEffect(() => () => (geo.dispose(), mat.dispose()), [geo, mat]);
   return <points geometry={geo} material={mat} />;
 }
@@ -85,11 +94,11 @@ function Moon() {
   return <mesh geometry={geo} material={mat} position={[-80, 130, 300]} />;
 }
 
-function Aurora({ opacity, reduced }: { opacity: number; reduced: boolean }) {
+function Aurora({ opacity, reduced, dream = false }: { opacity: number; reduced: boolean; dream?: boolean }) {
   const { geo, mat, base } = useMemo(() => {
     const geo = new PlaneGeometry(360, 70, 60, 6);
     const pos = geo.getAttribute('position'), n = pos.count, col = new Float32Array(n * 4);
-    const green = new Color('#5BE3A0'), teal = new Color('#3FB8C9'), c = new Color();
+    const green = new Color(dream ? DREAM_PALETTE.aurora[0] : '#5BE3A0'), teal = new Color(dream ? DREAM_PALETTE.aurora[1] : '#3FB8C9'), c = new Color();
     for (let i = 0; i < n; i++) {
       const u = pos.getX(i) / 360 + 0.5, v = pos.getY(i) / 70 + 0.5;
       c.copy(green).lerp(teal, 0.5 + 0.5 * Math.sin(u * 7));
@@ -99,7 +108,7 @@ function Aurora({ opacity, reduced }: { opacity: number; reduced: boolean }) {
     geo.setAttribute('color', new Float32BufferAttribute(col, 4));
     const mat = new MeshBasicMaterial({ vertexColors: true, transparent: true, side: DoubleSide, depthWrite: false, blending: AdditiveBlending, fog: false });
     return { geo, mat, base: Float32Array.from(pos.array as Float32Array) };
-  }, []);
+  }, [dream]);
   mat.opacity = opacity;
   useFrame(({ clock }) => {
     if (reduced) return;
@@ -112,7 +121,8 @@ function Aurora({ opacity, reduced }: { opacity: number; reduced: boolean }) {
     pos.needsUpdate = true;
   });
   useEffect(() => () => (geo.dispose(), mat.dispose()), [geo, mat]);
-  return <mesh geometry={geo} material={mat} position={[0, 110, 330]} renderOrder={-9} />;
+  // The dream's ribbons lie low on the right, behind the islands.
+  return <mesh geometry={geo} material={mat} position={dream ? [120, 40, -330] : [0, 110, 330]} rotation={dream ? [0, Math.PI, 0] : [0, 0, 0]} scale={dream ? 0.6 : 1} renderOrder={-9} />;
 }
 
 /** Snow over the yard: points drifting down and sideways, wrapped in a box x ±30, y 0..18, z 7..60. */

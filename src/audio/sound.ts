@@ -58,7 +58,7 @@ function tone(c: AudioContext, { freq, at = 0, dur, type = 'sine', vol = 0.15, t
   osc.frequency.setValueAtTime(freq, t0);
   if (to) osc.frequency.exponentialRampToValueAtTime(to, t0 + dur);
   gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+  gain.gain.exponentialRampToValueAtTime(vol * gainScale, t0 + 0.01);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   osc.connect(gain).connect(destination(c));
   osc.start(t0);
@@ -82,16 +82,24 @@ function whoosh(c: AudioContext, at: number, dur: number, from: number, to: numb
   filter.frequency.exponentialRampToValueAtTime(to, t0 + dur);
   const gain = c.createGain();
   gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.exponentialRampToValueAtTime(vol, t0 + dur * 0.3);
+  gain.gain.exponentialRampToValueAtTime(vol * gainScale, t0 + dur * 0.3);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   src.connect(filter).connect(gain).connect(destination(c));
   src.start(t0);
   src.stop(t0 + dur + 0.05);
 }
 
-export function playSound(kind: SoundKind): void {
+/** Scales every tone's volume while a sound is being scheduled (the dream's alarm plays at low gain). */
+let gainScale = 1;
+
+export function playSound(kind: SoundKind, gain = 1): void {
   const c = out();
   if (!c) return;
+  gainScale = gain;
+  try { schedule(c, kind); } finally { gainScale = 1; }
+}
+
+function schedule(c: AudioContext, kind: SoundKind): void {
   switch (kind) {
     case 'play':
       tone(c, { freq: 520, dur: 0.09, type: 'triangle', vol: 0.12, to: 700 });

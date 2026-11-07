@@ -2,7 +2,7 @@ import type { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
 import { lin, pick, T } from './palette';
 import { box, ellipsoid, Grid, hash3, helix, line, norm, rng } from './primitives';
-import type { Paint, V3 } from './primitives';
+import type { Paint, RGB, V3 } from './primitives';
 
 /** Pieces of the table itself (plan V3.2 Parts 3 and 4): the platform, the wool pile, the letter board and its ropes. */
 
@@ -102,6 +102,30 @@ const FONT: Record<string, string[]> = {
 };
 
 export const BOARD = { width: 0.9, height: 0.6, thick: 0.08, bottom: 2.6 };
+
+/** The font's glyph size, in cells. */
+export const GLYPH = { w: 5, h: 7 };
+
+/** Paints one glyph of the board font into `g` with its bottom-left cell at (x0, y0, z) (cells of the grid). */
+export function paintGlyph(g: Grid, ch: string, x0: number, y0: number, z: number, c: RGB) {
+  const rows = FONT[ch.toUpperCase()];
+  if (!rows) return;
+  rows.forEach((row, r) => [...row].forEach((px, col) => { if (px === '#') g.set(x0 + col, y0 + (GLYPH.h - 1 - r), z, c); }));
+}
+
+const glyphs = new Map<string, BufferGeometry>();
+/** One letter of the board font as a flat voxel glyph, 1 voxel thick, built about its centre at `cell` m per cell. */
+export function letterGeometry(ch: string, cell: number, hex = '#5B3A1E'): BufferGeometry {
+  const key = `${ch}:${cell}:${hex}`;
+  const hit = glyphs.get(key);
+  if (hit) return hit;
+  const g = new Grid(cell);
+  paintGlyph(g, ch, 0, 0, 0, lin(hex));
+  const geo = buildGeometry(g.map, cell);
+  geo.translate(-(GLYPH.w / 2) * cell, -(GLYPH.h / 2) * cell, -cell / 2);
+  glyphs.set(key, geo);
+  return geo;
+}
 
 const boards = new Map<string, BufferGeometry>();
 /**

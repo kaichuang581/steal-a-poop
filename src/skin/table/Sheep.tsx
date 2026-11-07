@@ -13,7 +13,7 @@ import type { V3 } from '../voxel/primitives';
 import { CREAM, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
 import type { Brows, Lids, Mouth, Part, SheepModel, WoolLevel } from '../voxel/sheep';
 
-export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'running' | 'leaping';
+export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'run' | 'jump' | 'bonk' | 'land';
 export type { WoolLevel };
 
 /**
@@ -26,6 +26,8 @@ export function coatLevel(lives: number, startLives: number): WoolLevel {
 
 /** Seconds each timed state lasts before the sheep goes back to idle. */
 const DURATION: Partial<Record<SheepState, number>> = { proud: 1.2, happy: 1.6, startled: 0.9, cold: 2, freezing: 2.4, thawing: 1.2 };
+/** The dream's trot: ms per half-step at the slowest and the fastest run (V4 Part 7.2); `pace` 0..1 picks between. */
+const TROT_MS = { slow: 110, fast: 70 };
 
 /** Reserved customisation slots (plan V3 Part 5.4): ids only, no UI, no store. */
 export interface SheepLook { woolColour: string; facePattern: string; collar: string; hat: string; scarf: string; bell: string }
@@ -54,6 +56,8 @@ interface Props {
   speaking?: boolean;
   /** A bot on its turn: whenever the sheep has nothing else to do it thinks (head tilt, one ear up, a thought bubble). */
   thinking?: boolean;
+  /** The dream's run: 0 at the slowest trot, 1 at full pace (V4 Part 7.2). */
+  pace?: number;
   /** Another animal built to the sheep's rig (src/skin/voxel/animals.ts): the avatar a player wears. Default: the sheep. */
   model?: SheepModel;
 }
@@ -68,8 +72,8 @@ const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** The pose channels every state writes; they are blended between states so no state is a cut. */
-const CH = { bodyY: 0, bodyRotX: 1, bodyRotZ: 2, headX: 3, headY: 4, headZ: 5, earL: 6, earR: 7, earBack: 8, eye: 9, puff: 10, legLift: 11, tail: 12, legSwing: 13 } as const;
-const N = 14;
+const CH = { bodyY: 0, bodyRotX: 1, bodyRotZ: 2, headX: 3, headY: 4, headZ: 5, earL: 6, earR: 7, earBack: 8, eye: 9, puff: 10, legLift: 11, tail: 12, legSwing: 13, squash: 14, legFront: 15, legBack: 16 } as const;
+const N = 17;
 interface Face { brows: Brows; mouth: Mouth; lids: 'open' | Lids; breath: boolean; bubble: boolean }
 const face0 = (): Face => ({ brows: 'neutral', mouth: 'flat', lids: 'open', breath: false, bubble: false });
 const BROWS: Brows[] = ['neutral', 'up', 'worried'];
@@ -81,11 +85,12 @@ const CHEW: Mouth[] = ['flat', 'chewL', 'chewDown', 'chewR'];
  * The pose for a state at `e` seconds into it (plan V3.3 Part 3.3). The idle layer (blink, ear twitch, chew) is
  * passed in; the speaker's chest-up and tail wag are added on top of idle and thinking.
  */
-function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: number, moving: boolean, speaking: boolean, blink: boolean, twitch: number, chew: Mouth | null) {
+function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: number, moving: boolean, speaking: boolean, blink: boolean, twitch: number, chew: Mouth | null, pace = 0) {
   // `t` is already offset by this sheep's own phase, so no two sheep move in step.
   p.fill(0);
   p[CH.eye] = 1;
   p[CH.puff] = 1;
+  p[CH.squash] = 1;
   p[CH.earL] = DROOP - twitch;
   p[CH.earR] = DROOP;
   f.brows = 'neutral';
@@ -167,27 +172,49 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       p[CH.bodyRotZ] = moving ? Math.sin(e * 20) * 0.1 * (1 - clamp01(e / 1.2)) : 0;
       f.mouth = 'smile';
       break;
-    // Counting Sheep: a bounding gallop (front legs together, back legs together), the body rising on each stride,
-    // ears streaming back; and the leap over a fence, legs tucked, chest up, eyes happily shut.
-    case 'running': {
-      const stride = moving ? Math.sin(t * 13) : 0;
-      p[CH.legSwing] = stride * 0.55;
-      p[CH.bodyY] = moving ? Math.max(0, Math.cos(t * 13)) * 0.05 : 0;
-      p[CH.bodyRotX] = -0.05 + stride * 0.03;
-      p[CH.earBack] = 0.55;
-      p[CH.tail] = moving ? Math.sin(t * 6.5) * 0.3 : 0;
+    // Counting Sheep (V4 Part 7.2): a trot, front-left with back-right, 110 ms a half-step slowing to 70 at full
+    // pace; legs swing ±28°, the head bobs, ears flap 8°, the tail wags, the wool scales ±1.5% at the step rate.
+    case 'run': {
+      const half = (TROT_MS.slow + (TROT_MS.fast - TROT_MS.slow) * pace) / 1000;
+      const w = Math.PI / half;
+      const stride = moving ? Math.sin(t * w) : 0;
+      p[CH.legSwing] = stride * 0.49;
+      p[CH.bodyY] = moving ? Math.abs(Math.sin(t * w)) * 0.02 : 0;
+      p[CH.headX] = moving ? Math.sin(t * w) * 0.04 : 0;
+      p[CH.earL] = DROOP - twitch + stride * 0.14;
+      p[CH.earR] = DROOP - stride * 0.14;
+      p[CH.puff] = 1 + stride * 0.015;
+      p[CH.tail] = moving ? Math.sin(t * w * 0.5) * 0.35 : 0;
       f.mouth = 'smile';
       break;
     }
-    case 'leaping':
-      p[CH.legSwing] = 0.6;
-      p[CH.legLift] = 0.1;
-      p[CH.bodyRotX] = -0.28;
-      p[CH.earBack] = 0.85;
-      p[CH.puff] = 1.03;
-      f.lids = 'arc';
+    case 'jump':
+      // Anticipation squash for the first 80 ms, then the airborne pose: front legs forward 50°, back legs back 40°,
+      // ears up, wool stretched toward the apex, eyes wide, a smile.
+      if (e < 0.08) { p[CH.squash] = 0.92; p[CH.legSwing] = 0; }
+      else { p[CH.legFront] = -0.87; p[CH.legBack] = 0.7; p[CH.earBack] = -0.3; p[CH.earL] = p[CH.earR] = DROOP - 0.5; p[CH.puff] = 1.03; p[CH.squash] = 1.06; p[CH.eye] = 1.2; }
+      p[CH.bodyRotX] = e < 0.08 ? 0.05 : -0.2;
       f.mouth = 'smile';
       break;
+    case 'land':
+      p[CH.squash] = e < 0.1 ? 0.9 : 1;
+      p[CH.legSwing] = 0;
+      f.mouth = 'smile';
+      break;
+    case 'bonk': {
+      // Recoil and sit: back legs fold, the body tilts back 15°, ears back, worried brows, an "o", eyes shut 200 ms.
+      const k = clamp01(e / 0.2);
+      p[CH.bodyRotX] = -0.26 * k;
+      p[CH.bodyY] = -0.06 * k;
+      p[CH.legBack] = 1.2 * k;
+      p[CH.legFront] = -0.3 * k;
+      p[CH.earBack] = 0.9;
+      p[CH.eye] = 1.2;
+      f.brows = 'worried';
+      f.mouth = 'o';
+      f.lids = e < 0.2 ? 'arc' : 'open';
+      break;
+    }
   }
   if (speaking && (live === 'idle' || live === 'thinking')) {
     p[CH.bodyRotX] -= 0.06;
@@ -203,7 +230,7 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
  * model; only level, state and seat differ. Each coat level is its own fleece built to fit the head and legs, so
  * growing or losing wool swaps the fleece rather than scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, model }: Props) {
+export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model }: Props) {
   const m = model ?? sheepModel();
   const mat = useMemo(() => voxelMaterial(), []);
   // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice.
@@ -251,7 +278,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     const chew = moving && tp % 12 < 0.8 ? CHEW[Math.floor((tp % 12) / 0.2) % 4] : null;
 
     // This frame's pose, blended over 200 ms from the pose the sheep was in when its state last changed.
-    poseFor(a.target, a.faceTarget, live, e, tp, moving, speaking, blink, twitch, chew);
+    poseFor(a.target, a.faceTarget, live, e, tp, moving, speaking, blink, twitch, chew, pace);
     if (live !== a.live) { a.from.set(a.cur); Object.assign(a.faceFrom, a.face); a.live = live; a.blendAt = t; }
     const w = reduced ? 1 : easeOut((t - a.blendAt) / 0.2);
     const c = a.cur;
@@ -301,11 +328,15 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     tail.rotation.y = c[CH.tail];
     tail.position.z = m.tail.pivot[2] - 0.4 * (LEVEL_K[lvl] - 1);
     const fl = o.legFL as Mesh;
-    fl.rotation.x = -c[CH.legSwing] - c[CH.legLift] * 5;
+    // The trot pairs front-left with back-right; a jump sets the front and back pairs apart.
+    fl.rotation.x = -c[CH.legSwing] - c[CH.legLift] * 5 + c[CH.legFront];
     fl.position.y = m.legs[0].pivot[1] + c[CH.legLift];
-    (o.legFR as Mesh).rotation.x = -c[CH.legSwing];
-    (o.legBL as Mesh).rotation.x = c[CH.legSwing];
-    (o.legBR as Mesh).rotation.x = c[CH.legSwing];
+    (o.legFR as Mesh).rotation.x = c[CH.legSwing] + c[CH.legFront];
+    (o.legBL as Mesh).rotation.x = c[CH.legSwing] + c[CH.legBack];
+    (o.legBR as Mesh).rotation.x = -c[CH.legSwing] + c[CH.legBack];
+    // Squash and stretch on the whole sheep, volume kept: shorter and wider, or taller and narrower.
+    const sq = c[CH.squash];
+    root.current.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
     (o.bell as Mesh).rotation.x = moving && (live === 'happy' || live === 'proud') ? Math.sin(e * 24) * 0.6 * Math.max(0, 1 - e / 1.2) : 0;
     (o.eyeL as Mesh).scale.setScalar(c[CH.eye]);
     (o.eyeR as Mesh).scale.setScalar(c[CH.eye]);

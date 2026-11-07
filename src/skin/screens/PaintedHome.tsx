@@ -18,7 +18,9 @@ import { useSocial } from '../../state/socialStore';
 import { useStore } from '../../state/store';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { useIsMobile } from '../../ui/hooks';
-import { LEGAL_TITLES, legalHref } from '../../ui/legal/legalLinks';
+import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
+import type { LegalSlug } from '../../ui/legal/legalLinks';
+import { LegalDialog } from '../components/LegalDialog';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
 import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
@@ -76,6 +78,7 @@ export function PaintedHome() {
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
   const [feedback, setFeedback] = useState(false);
+  const [legal, setLegal] = useState<LegalSlug | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
   const admin = useAdmin((s) => s.admin);
   const [swooping, setSwooping] = useState(false);
@@ -297,7 +300,7 @@ export function PaintedHome() {
       <span>v{pkg.version}</span>
       <button className="min-h-8 content-center underline" onClick={() => setFeedback(true)}>Feedback</button>
       {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
-        <a key={slug} className="min-h-8 content-center underline" href={legalHref(slug)} target="_blank" rel="noopener">{LEGAL_TITLES[slug]}</a>
+        <button key={slug} className="min-h-8 content-center underline" onClick={() => setLegal(slug)}>{LEGAL_TITLES[slug]}</button>
       ))}
     </footer>
   );
@@ -368,6 +371,7 @@ export function PaintedHome() {
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
       {help && <PaintedGuide onClose={() => setHelp(false)} />}
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
+      {legal && <LegalDialog initial={legal} onClose={() => setLegal(null)} />}
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
       {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}

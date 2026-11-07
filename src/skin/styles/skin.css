@@ -113,14 +113,13 @@
   .sk-ticket, .sk-slide-in, .sk-slide-up, .sk-walk-in { animation: none; transition: none; transform: none; }
 }
 
-/* A bot's thought (plan V3.3 Part 3.3): a wool-ball bubble with an ellipsis, faded in and out by the sheep. */
-.sk-think {
-  display: grid; place-items: center; width: 46px; height: 36px; border-radius: 50%;
-  background: var(--paper); color: var(--ink); border: 2px solid var(--paper-edge);
-  font-family: var(--skin-font-display); font-weight: 800; font-size: 22px; line-height: 1; letter-spacing: 1px;
-  box-shadow: 0 2px 0 var(--paper-edge), -16px 14px 0 -8px var(--paper), -24px 24px 0 -13px var(--paper);
-  opacity: 0; transition: opacity 200ms var(--ease-out);
-}
+/* A bot's thought (V6 Part 5.3): three small wool tufts rising from behind its stake, faded in and out by the sheep. */
+.sk-think { display: flex; align-items: flex-end; gap: 3px; opacity: 0; transition: opacity 200ms var(--ease-out); }
+.sk-think > :nth-child(1) { translate: 0 6px; } .sk-think > :nth-child(2) { translate: 0 2px; } .sk-think > :nth-child(3) { translate: 0 -3px; }
+.sk-think > * { animation: sk-think-rise 1.6s ease-in-out infinite; }
+.sk-think > :nth-child(2) { animation-delay: 0.2s; } .sk-think > :nth-child(3) { animation-delay: 0.4s; }
+@keyframes sk-think-rise { 50% { transform: translateY(-3px); } }
+:root.reduce-motion .sk-think > * { animation: none; }
 
 /* The caret after a bot's half-typed word on its tag. */
 .sk-caret { display: inline-block; width: 0; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; border-left: 2px solid var(--ink); animation: sk-caret 1s steps(1) infinite; }
@@ -335,49 +334,37 @@
 .sk-input-prompt-steal { font-size: 21px; color: #FFE3DC; animation: sk-steal-throb 0.8s ease-in-out infinite; }
 .sk-input-prompt-steal b { color: #FFD0C4; }
 .sk-input-bar {
-  display: flex; align-items: center; gap: 10px; min-height: 76px; padding: 8px 10px 8px 8px;
-  border-radius: 18px; background: linear-gradient(180deg, var(--paper), #F3E7CC);
-  border: 3px solid var(--wood-dark);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.7), 0 5px 0 rgba(40, 24, 10, 0.4), 0 10px 26px rgba(40, 24, 10, 0.35);
-  transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
+  display: flex; align-items: center; gap: 10px; min-height: 76px; padding: 6px 12px 14px 10px;
+  transition: box-shadow var(--t-fast), opacity var(--t-fast);
 }
-.sk-input-bar[data-mode="mine"] { border-color: var(--amber); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.7), 0 0 0 3px rgba(242, 164, 68, 0.35), 0 5px 0 rgba(40, 24, 10, 0.4), 0 10px 26px rgba(40, 24, 10, 0.35); }
-.sk-input-bar[data-mode="steal"] {
-  border-color: var(--coral); background: linear-gradient(180deg, #FFF1EC, #FBD9CE);
-  animation: sk-steal-glow 0.8s ease-in-out infinite;
+/* The table's word bar is a trough (V6 Part 6.3): a light board ledge with a raised darker lip along its front and
+   end caps (the plank's end grain), the letter tile standing at its left end and the word lying in it. */
+.sk-trough {
+  --lip: var(--wood); --ring: 0 0 0 0 transparent;
+  box-shadow: var(--ring), inset 0 3px 0 rgba(255, 240, 210, 0.6), inset 0 -8px 0 var(--lip), inset 0 -10px 0 rgba(40, 24, 10, 0.3),
+    inset 3px 0 0 rgba(40, 24, 10, 0.2), inset -3px 0 0 rgba(40, 24, 10, 0.2), 0 6px 0 rgba(40, 24, 10, 0.35), 0 10px 18px rgba(40, 24, 10, 0.25);
+  text-shadow: none;
 }
+.sk-trough[data-mode="mine"] { --ring: 0 0 0 3px var(--amber); }
+.sk-trough[data-mode="steal"] { --lip: var(--coral); --ring: 0 0 0 3px var(--coral); animation: sk-steal-throb 0.8s ease-in-out infinite; }
 .sk-input-bar[data-mode="wait"] { opacity: 0.94; }
 .sk-input-bar[data-mode="out"] { opacity: 0.6; filter: saturate(0.5); }
-.sk-input-letter {
-  flex: none; display: grid; place-items: center; width: 58px; height: 58px; border-radius: 12px;
-  font-family: var(--skin-font-display); font-weight: 800; font-size: 40px; line-height: 1; color: var(--wood-ink);
-  background: repeating-linear-gradient(92deg, rgba(140, 90, 46, 0.07) 0 2px, transparent 2px 9px), linear-gradient(180deg, #F2CF98, #DDAE72);
-  box-shadow: inset 0 -5px 0 var(--wood), inset 0 3px 0 rgba(255, 240, 210, 0.7), 0 3px 6px rgba(40, 24, 10, 0.3);
-  text-shadow: 0 2px 0 rgba(255, 236, 200, 0.6);
-}
-.sk-input-bar[data-mode="steal"] .sk-input-letter { background: linear-gradient(180deg, #FFB9A8, var(--coral)); color: #fff; box-shadow: inset 0 -5px 0 var(--coral-dark), 0 0 16px rgba(231, 112, 94, 0.7); text-shadow: 0 2px 0 var(--coral-dark); }
-.sk-input-field {
-  min-width: 0; flex: 1; background: transparent; outline: none; border: 0;
-  font-family: var(--skin-font-display); font-weight: 800; font-size: 32px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink); caret-color: var(--amber);
-}
-.sk-input-field::placeholder { text-transform: none; letter-spacing: 0; font-size: 22px; color: var(--ink-soft); opacity: 0.6; }
+.sk-input-letter { --tile-w: 58px; flex: none; }
 .sk-input-go { min-height: 58px; padding-left: 24px !important; padding-right: 24px !important; font-size: 20px !important; }
 @media (max-width: 640px) {
-  .sk-input-bar { min-height: 64px; gap: 8px; }
-  .sk-input-letter { width: 48px; height: 48px; font-size: 32px; }
-  .sk-input-field { font-size: 24px; }
+  .sk-input-bar { min-height: 64px; gap: 8px; padding: 5px 8px 12px 8px; }
+  .sk-input-letter { --tile-w: 44px; }
   .sk-input-go { min-height: 48px; padding-left: 16px !important; padding-right: 16px !important; }
   .sk-input-prompt { font-size: 16px; }
 }
-/* An accepted word: the bar flares gold and gives a little bounce. */
+/* An accepted word: the trough flares gold and gives a little bounce. */
 .sk-accept-flash { animation: sk-accept 650ms var(--ease-out); }
-@keyframes sk-accept {
-  0% { transform: scale(1); }
-  25% { transform: scale(1.025); box-shadow: 0 0 0 4px var(--glow), 0 0 40px 10px rgba(255, 217, 138, 0.85), 0 5px 0 rgba(40, 24, 10, 0.4); border-color: var(--glow); }
-  100% { transform: scale(1); }
-}
-@keyframes sk-steal-glow { 50% { box-shadow: 0 0 0 4px rgba(231, 112, 94, 0.55), 0 0 34px 8px rgba(231, 112, 94, 0.6), 0 5px 0 rgba(40, 24, 10, 0.4); } }
+@keyframes sk-accept { 0% { transform: scale(1); } 25% { transform: scale(1.025); --ring: 0 0 0 4px var(--glow); } 100% { transform: scale(1); } }
+/* Word ideas in a learning game: a pinned note, each idea spelled in mini tiles. */
+.sk-ideas { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; margin: 0 auto 8px; width: fit-content; }
+.sk-idea { display: inline-flex; gap: 1px; padding: 3px 2px; border-radius: 3px; cursor: pointer; transition: translate var(--t-fast) var(--ease-out); }
+.sk-idea:hover { translate: 0 -2px; }
+.sk-message-slip { padding: 6px 18px 7px; font-size: 17px; }
 @keyframes sk-steal-throb { 50% { transform: scale(1.03); } }
 
 /* ---------- Word moments over the table ---------- */
@@ -405,90 +392,39 @@
 @keyframes sk-burst-ring { 0% { transform: scale(0.2); opacity: 1; } 100% { transform: scale(3.2); opacity: 0; } }
 @keyframes sk-burst-tuft { 0% { transform: translate(0, 0) scale(0.4); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; } }
 @keyframes sk-burst-life { 0%, 70% { transform: none; opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
-/* A steal: a red banner slams in. A lost wool ball: a grey one tumbles down. */
-.sk-steal-banner {
-  padding: 8px 18px; border-radius: 14px; font-family: var(--skin-font-display); font-weight: 800; font-size: 24px; color: #fff;
-  background: linear-gradient(180deg, var(--coral), var(--coral-dark)); border: 3px solid #7A2A1C;
-  box-shadow: 0 6px 0 rgba(60, 20, 10, 0.5), 0 0 30px rgba(231, 112, 94, 0.7); text-shadow: 0 2px 0 #7A2A1C;
-  animation: sk-burst-stamp 380ms var(--ease-spring) both;
-}
-.sk-steal-call {
-  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 22px; border-radius: 16px;
-  font-family: var(--skin-font-display); font-weight: 800; color: #fff; text-align: center;
-  background: linear-gradient(180deg, rgba(231, 112, 94, 0.96), rgba(184, 67, 47, 0.96)); border: 3px solid #7A2A1C;
-  box-shadow: 0 6px 0 rgba(60, 20, 10, 0.45), 0 0 36px rgba(231, 112, 94, 0.75); text-shadow: 0 2px 0 #7A2A1C;
-  animation: sk-steal-throb 0.8s ease-in-out infinite;
-}
-.sk-steal-call small { font-family: var(--skin-font-body); font-size: 15px; font-weight: 800; text-shadow: none; opacity: 0.95; }
-:root.reduce-motion .sk-word-burst, :root.reduce-motion .sk-word-burst *, :root.reduce-motion .sk-steal-call, :root.reduce-motion .sk-input-bar, :root.reduce-motion .sk-input-prompt-steal { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+:root.reduce-motion .sk-word-burst, :root.reduce-motion .sk-word-burst *, :root.reduce-motion .sk-input-bar, :root.reduce-motion .sk-input-prompt-steal { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
 
-/* ---------- The starting letter, hung under the carved board ---------- */
-.sk-letter-card {
-  display: flex; flex-direction: column; align-items: center; min-width: 96px; padding: 4px 12px 8px;
-  border-radius: 14px; background: linear-gradient(180deg, var(--paper), #F1E2C2); border: 3px solid var(--wood-dark);
-  box-shadow: inset 0 2px 0 #fff, 0 5px 0 rgba(40, 24, 10, 0.45), 0 0 0 6px rgba(255, 217, 138, 0.25), 0 10px 26px rgba(40, 24, 10, 0.45);
-  transition: transform 200ms var(--ease-out), border-color var(--t-fast);
-}
-.sk-letter-card-label { font-family: var(--skin-font-hand); font-size: 15px; line-height: 1; color: var(--ink-soft); }
-.sk-letter-card-letter {
-  font-family: var(--skin-font-display); font-weight: 800; font-size: 64px; line-height: 0.95; color: var(--wood-ink);
-  text-shadow: 0 3px 0 rgba(181, 127, 74, 0.45);
-}
-.sk-letter-card[data-trap] { border-color: var(--ice-dark); background: linear-gradient(180deg, #F2FAFF, var(--ice-light)); }
-.sk-letter-card[data-trap] .sk-letter-card-letter { color: #2E5A7E; }
-.sk-letter-card[data-steal] { border-color: var(--coral); animation: sk-steal-glow 0.8s ease-in-out infinite; }
-.sk-letter-card-clock { position: relative; display: block; width: 84px; height: 16px; margin-top: 4px; border-radius: 8px; overflow: hidden; background: rgba(59, 48, 40, 0.18); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25); }
-.sk-letter-card-clock i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 8px; transition: width 120ms linear, background var(--t-fast); }
-.sk-letter-card-clock i[data-level="ok"] { background: linear-gradient(180deg, #8FD18A, var(--cloth)); }
-.sk-letter-card-clock i[data-level="warn"] { background: linear-gradient(180deg, var(--flame-light), var(--amber)); }
-.sk-letter-card-clock i[data-level="red"] { background: linear-gradient(180deg, #FF9E8A, var(--coral-dark)); }
-.sk-letter-card-clock b { position: relative; display: block; text-align: center; font-family: var(--skin-font-body); font-size: 12px; font-weight: 900; line-height: 16px; color: var(--ink); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
-.sk-letter-pop { transform: scale(1.12); }
-@media (max-width: 640px) { .sk-letter-card { min-width: 76px; } .sk-letter-card-letter { font-size: 48px; } .sk-letter-card-clock { width: 66px; } }
-/* The bar itself shows focus (its border); the field inside needs no ring of its own. */
-:root[data-skin="painted"] .sk-input-field:focus, :root[data-skin="painted"] .sk-input-field:focus-visible { outline: none !important; box-shadow: none !important; }
+/* ---------- The seconds under the carved letter board (V6 Part 5.2): a mini slate hung on two strings ---------- */
+.sk-clock { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 12px; transition: scale 200ms var(--ease-out); }
+.sk-clock > .kit-string { top: 0; height: 14px; }
+.sk-clock > .kit-string:first-child { left: 30%; } .sk-clock > .kit-string:nth-child(2) { right: 30%; }
+.sk-clock .kit-slate { min-width: 52px; }
+.sk-clock .kit-slate-face { display: flex; align-items: center; justify-content: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.sk-clock-pop { scale: 1.12; }
+/* Off the frame (a close-up): the board is out of sight, so the slate carries the letter too, as a mini tile. */
+.sk-clock-letter { display: none; }
+[data-off] .sk-clock-letter { display: inline-grid; }
+[data-off] .sk-clock > .kit-string { display: none; }
+@media (max-width: 640px) { .sk-clock .kit-slate--mini .kit-slate-face { font-size: 15px; padding: 0 6px; } .sk-clock .kit-slate { min-width: 44px; } }
 
 /* ---------- Signboards for the moments over the table (Notice) ---------- */
+/* The boards are the kit's Board heading (kit-plank, painted per moment); these rules only size and letter them. */
 .sk-notice {
-  position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 9px 30px 8px;
-  border-radius: 10px 12px 9px 11px; text-align: center; color: var(--button-text);
-  background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px),
-    linear-gradient(180deg, var(--wood) 0 10%, var(--wood-dark) 10% 88%, var(--wood-ink) 88%);
-  box-shadow: inset 0 0 0 2px rgba(40, 24, 10, 0.35), inset 0 3px 0 rgba(255, 220, 170, 0.25), 0 6px 0 rgba(40, 24, 10, 0.4), 0 10px 24px rgba(40, 24, 10, 0.35);
+  display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 9px 30px 8px; text-align: center;
   animation: sk-notice-in 420ms var(--ease-spring) both;
 }
-.sk-notice-snow { position: absolute; left: -6px; right: -4px; top: -12px; width: calc(100% + 10px); height: 24px; overflow: visible; pointer-events: none; }
 .sk-notice-nail-l { left: 10px; top: 50%; transform: translateY(-40%); }
 .sk-notice-nail-r { right: 10px; top: 50%; transform: translateY(-40%); }
-.sk-notice-title {
-  display: inline-flex; align-items: center; gap: 8px; font-family: var(--skin-font-display); font-weight: 800; line-height: 1.05;
-  text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.7), 0 2px 0 rgba(40, 24, 10, 0.45);
-}
-.sk-notice-icon { display: inline-grid; place-items: center; color: var(--glow); filter: drop-shadow(0 1px 0 rgba(40, 24, 10, 0.7)); }
-.sk-notice-sub { font-family: var(--skin-font-hand); font-size: 16px; line-height: 1.15; color: var(--glow); text-shadow: 0 1px 2px rgba(30, 18, 8, 0.8); }
-.sk-notice-sm { padding: 7px 24px 6px; } .sk-notice-sm .sk-notice-title { font-size: 15px; } .sk-notice-sm .sk-notice-sub { font-size: 13px; }
+.sk-notice-title { display: inline-flex; align-items: center; gap: 8px; font-family: var(--skin-font-display); font-weight: 800; line-height: 1.05; }
+.sk-notice-icon { display: inline-grid; place-items: center; color: var(--glow); }
+.sk-notice-sub { font-family: var(--skin-font-hand); font-weight: 400; font-size: 16px; line-height: 1.15; color: var(--glow); text-shadow: 0 1px 0 rgba(30, 18, 8, 0.8); }
+.sk-notice-sm { min-height: 0; padding: 7px 24px 6px; } .sk-notice-sm .sk-notice-title { font-size: 15px; } .sk-notice-sm .sk-notice-sub { font-size: 13px; }
 .sk-notice-md .sk-notice-title { font-size: 20px; }
 .sk-notice-lg { padding: 12px 38px 10px; } .sk-notice-lg .sk-notice-title { font-size: 30px; } .sk-notice-lg .sk-notice-sub { font-size: 18px; }
-/* Painted boards: the steal (barn red), a freeze (ice), time's up (cold slate), a win (gold). */
-.sk-notice-steal {
-  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 6px, rgba(0, 0, 0, 0.07) 6px 7px, transparent 7px 11px),
-    linear-gradient(180deg, #F08A76 0 10%, var(--coral-dark) 10% 88%, #7A2A1C 88%);
-  box-shadow: inset 0 0 0 2px rgba(80, 20, 10, 0.4), inset 0 3px 0 rgba(255, 210, 190, 0.3), 0 6px 0 rgba(60, 20, 10, 0.45), 0 0 34px rgba(231, 112, 94, 0.55);
-}
+/* A dream board paints itself as a cloud: no end grain there. */
+.dr-board.kit-plank::before { display: none; }
 .sk-notice-steal .sk-notice-sub { color: #FFE3DC; }
-.sk-notice-ice {
-  color: #F2FAFF;
-  background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.16) 0 2px, transparent 2px 14px),
-    linear-gradient(180deg, #CDEBFA 0 10%, #6E9FC6 10% 88%, #2E5A7E 88%);
-  box-shadow: inset 0 0 0 2px rgba(20, 50, 80, 0.4), inset 0 3px 0 rgba(255, 255, 255, 0.5), 0 6px 0 rgba(20, 40, 60, 0.45), 0 0 30px rgba(158, 210, 238, 0.7);
-}
-.sk-notice-ice .sk-notice-title { text-shadow: 0 -2px 0 rgba(20, 50, 80, 0.7), 0 2px 0 rgba(20, 50, 80, 0.45); }
 .sk-notice-ice .sk-notice-sub, .sk-notice-ice .sk-notice-icon { color: #E4F5FF; }
-.sk-notice-cold {
-  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 6px, rgba(0, 0, 0, 0.07) 6px 7px, transparent 7px 11px),
-    linear-gradient(180deg, #8A97B0 0 10%, #4F5B73 10% 88%, #2C3446 88%);
-  box-shadow: inset 0 0 0 2px rgba(20, 25, 40, 0.45), inset 0 3px 0 rgba(220, 230, 255, 0.25), 0 6px 0 rgba(20, 25, 40, 0.45), 0 10px 24px rgba(20, 25, 40, 0.4);
-}
 .sk-notice-cold .sk-notice-sub, .sk-notice-cold .sk-notice-icon { color: var(--ice-light); }
 /* The turn call: rides in a touch bigger and leaves early, so it reads as a call, not a sign left hanging. */
 .sk-turn-call { animation: sk-turn-call 1200ms var(--ease-out) forwards; }
@@ -501,11 +437,8 @@
 }
 :root.reduce-motion .sk-turn-call { animation: sk-turn-call-still 1200ms linear forwards; }
 @keyframes sk-turn-call-still { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
-.sk-notice-gold { color: var(--wood-ink); background: linear-gradient(180deg, #FFE7A8 0 10%, var(--glow) 10% 88%, var(--amber) 88%); }
-.sk-notice-gold .sk-notice-title { text-shadow: 0 2px 0 rgba(255, 255, 255, 0.5); }
-.sk-notice-gold .sk-notice-sub, .sk-notice-gold .sk-notice-icon { color: var(--wood-ink); text-shadow: none; filter: none; }
+.sk-notice-gold .sk-notice-sub, .sk-notice-gold .sk-notice-icon { color: var(--wood-ink); text-shadow: none; }
 @keyframes sk-notice-in { 0% { transform: translateY(-26px) rotate(-3deg); opacity: 0; } 60% { transform: translateY(3px) rotate(1deg); opacity: 1; } 100% { transform: none; } }
-.sk-rope-v { display: block; width: 3px; height: 16px; border-radius: 2px; background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px); }
 :root.reduce-motion .sk-notice { animation: none; }
 
 /* ---------- Rules card, chain list, mini tiles ---------- */
@@ -522,9 +455,10 @@
 .sk-rule-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px; background: rgba(231, 217, 184, 0.55); font-size: 15px; line-height: 1.35; }
 .sk-rule-row b { color: var(--wood-ink); }
 .sk-rule-icon { flex: none; display: grid; place-items: center; min-width: 40px; color: var(--wood-dark); }
-.sk-chain-list { display: flex; flex-direction: column; gap: 6px; }
-.sk-chain-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px; border-radius: 10px; background: rgba(231, 217, 184, 0.55); }
-.sk-chain-list li[data-steal] { background: rgba(231, 112, 94, 0.18); box-shadow: inset 3px 0 0 var(--coral); }
+/* The chain on the clipboard's ruled paper: one line a word, a red pencil line down the margin for a steal. */
+.sk-chain-list { display: flex; flex-direction: column; }
+.sk-chain-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; padding: 3px 4px 3px 10px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
+.sk-chain-list li[data-steal] { box-shadow: inset 2px 0 0 var(--coral-dark); }
 .sk-chain-word { display: flex; flex-wrap: wrap; gap: 2px; }
 .sk-chain-who { font-family: var(--skin-font-hand); font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
 
@@ -579,44 +513,109 @@
 .sk-input-ghost {
   position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; border: 0; padding: 0; background: transparent; cursor: text;
 }
+/* Each typed letter is a carved tile (the kit's Tile, sized here); the dream paints its own over the same shape. */
 .sk-type-tile {
-  --t: 46px;
-  flex: none; display: grid; place-items: center; width: var(--t); height: calc(var(--t) * 1.08); border-radius: 8px;
+  --t: 46px; --tile-w: var(--t);
+  flex: none; display: grid; place-items: center; width: var(--t); height: calc(var(--t) * 1.08); border-radius: 3px;
   font-family: var(--skin-font-display); font-weight: 800; font-size: calc(var(--t) * 0.62); line-height: 1; color: var(--wood-ink);
-  background: repeating-linear-gradient(92deg, rgba(140, 90, 46, 0.07) 0 2px, transparent 2px 9px), linear-gradient(180deg, #F2CF98, #DDAE72);
-  box-shadow: inset 0 -4px 0 var(--wood), inset 0 2px 0 rgba(255, 240, 210, 0.7), 0 2px 4px rgba(40, 24, 10, 0.3);
-  text-shadow: 0 2px 0 rgba(255, 236, 200, 0.6);
   animation: sk-tile-drop 180ms var(--ease-spring) both;
 }
 .sk-input-tiles[data-size="md"] .sk-type-tile { --t: 36px; }
-.sk-input-tiles[data-size="sm"] .sk-type-tile { --t: 27px; border-radius: 6px; }
-.sk-type-tile[data-first="ok"] { background: linear-gradient(180deg, #FFE7A8, var(--glow)); box-shadow: inset 0 -4px 0 var(--amber), 0 0 0 2px var(--amber), 0 2px 4px rgba(40, 24, 10, 0.3); }
-.sk-type-tile[data-first="bad"] { background: linear-gradient(180deg, #FFB9A8, var(--coral)); color: #fff; text-shadow: 0 2px 0 var(--coral-dark); box-shadow: inset 0 -4px 0 var(--coral-dark), 0 2px 4px rgba(40, 24, 10, 0.3); }
-.sk-input-bar[data-mode="steal"] .sk-type-tile:not([data-first]) { background: linear-gradient(180deg, #FFE1D8, #F6B7A6); box-shadow: inset 0 -4px 0 var(--coral), 0 2px 4px rgba(40, 24, 10, 0.3); }
-.sk-type-caret { flex: none; width: 3px; height: 34px; border-radius: 2px; background: var(--amber); animation: sk-blink 1s steps(1) infinite; }
+.sk-input-tiles[data-size="sm"] .sk-type-tile { --t: 27px; }
+/* The caret: an amber pencil tick. */
+.sk-type-caret { flex: none; width: 3px; height: 34px; border-radius: 1px; background: var(--amber); animation: sk-blink 1s steps(1) infinite; }
 @keyframes sk-blink { 50% { opacity: 0; } }
 .sk-input-placeholder { flex: none; padding-left: 6px; font-family: var(--skin-font-hand); font-size: 24px; color: var(--ink-soft); opacity: 0.75; white-space: nowrap; }
+/* In the trough the placeholder is a paper slip lying in it; the steal window frosts its edge. */
+.sk-trough .sk-input-placeholder { padding: 4px 12px; font-size: 20px; opacity: 1; }
+.sk-trough[data-mode="steal"] .sk-input-placeholder { box-shadow: 2px 3px 0 rgba(59, 48, 40, 0.22), inset 0 0 0 2px var(--ice-dark); }
 .sk-input-go { font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 22px !important; letter-spacing: 0.03em; }
-.sk-input-hint { min-height: 58px; padding: 0 12px !important; display: grid; place-items: center; }
+.sk-input-hint { flex: none; }
 @keyframes sk-tile-drop { 0% { transform: translateY(-14px) scale(0.6); opacity: 0; } 70% { transform: translateY(2px) scale(1.06); opacity: 1; } 100% { transform: none; } }
 @media (max-width: 640px) {
   .sk-type-tile { --t: 34px; } .sk-input-tiles[data-size="md"] .sk-type-tile { --t: 27px; } .sk-input-tiles[data-size="sm"] .sk-type-tile { --t: 21px; }
-  .sk-input-placeholder { font-size: 19px; } .sk-input-hint { min-height: 48px; }
+  .sk-input-placeholder { font-size: 19px; } .sk-trough .sk-input-placeholder { font-size: 16px; padding: 3px 8px; }
 }
 :root.reduce-motion .sk-type-tile { animation: none; }
 
-/* The tally board between rounds and at the end: a big nailed, snow-capped board. */
-.sk-tally {
-  border-radius: 14px;
-  background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px),
-    linear-gradient(180deg, var(--wood) 0 4%, var(--wood-dark) 4% 97%, var(--wood-ink) 97%);
-  box-shadow: inset 0 0 0 3px rgba(40, 24, 10, 0.35), inset 0 4px 0 rgba(255, 220, 170, 0.25), 0 8px 0 rgba(40, 24, 10, 0.4), var(--shadow-warm);
+/* ---------- The table in the kit (V6 Part 6.3) ---------- */
+/* The tally, the end board and the run's board: a Board panel on ropes with snow, the standings chalked on a slate set
+   into it, the notes on a pinned sheet, the stats on small slates, the buttons along its bottom rail. */
+.sk-tally { margin-top: 40px; }
+.sk-tally-title { text-align: center; font-size: 26px; line-height: 1.1; }
+.sk-tally-line { margin-top: 2px; text-align: center; font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; color: var(--glow); text-shadow: 0 1px 0 rgba(30, 18, 8, 0.8); }
+.sk-tally-slate { display: flex; width: 100%; margin-top: 10px; }
+.sk-tally-winner { box-shadow: 0 0 0 2px var(--amber), 0 0 14px var(--glow); }
+.sk-tally-notes { margin-top: 12px; font-size: 15px; line-height: 1.5; text-shadow: none; }
+.sk-tally-notes p + p { margin-top: 2px; }
+.sk-tally-notes .sk-hand { font-size: 17px; }
+.sk-plaques { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.sk-plaques .kit-slate { width: 100%; }
+.sk-plaques .kit-slate-face { padding: 4px 6px; font-size: 26px; min-height: 58px; }
+.sk-plaques .kit-chalk-hand { font-size: 14px; line-height: 1.1; }
+.sk-plaque-word .kit-slate-face > :first-child { font-size: 17px; letter-spacing: 0.02em; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .sk-plaque-word .kit-slate-face > :first-child { font-size: 13px; } }
+.sk-score-plaque .kit-slate-face { min-width: 180px; font-size: 64px; line-height: 1; padding: 8px 18px; }
+.sk-score-plaque .kit-chalk-hand { font-size: 16px; }
+.sk-tally-streak { margin-top: 12px; text-align: center; color: var(--glow); }
+.sk-tally-streak .sk-hand { font-size: 17px; }
+.sk-tally-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; text-shadow: none; }
+.sk-tally-actions > * { min-height: 46px; }
+
+/* The barn ledger: a chalk slate hung on two ropes at the top right, a row per sheep in standings order. */
+.sk-ledger { position: relative; z-index: 30; width: 236px; margin: 70px 10px 0 auto; }
+.sk-ledger .kit-slate { display: flex; width: 100%; }
+.sk-ledger-row { position: relative; gap: 6px; padding: 4px 2px; line-height: 1.1; color: var(--chalk); transition: opacity var(--t-feedback) var(--ease-out); }
+.sk-ledger-row[data-dim] { opacity: 0.5; }
+.sk-ledger-place { width: 14px; flex: none; text-align: center; font-family: var(--skin-font-display); font-weight: 800; font-size: 15px; opacity: 0.8; }
+.sk-ledger-who { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; }
+.sk-ledger-name { display: inline-flex; max-width: 100%; align-items: center; gap: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 3px; font-size: 18px; }
+.sk-ledger-badge { display: inline-flex; color: var(--chalk); opacity: 0.85; }
+.sk-ledger-sub { display: flex; max-width: 100%; overflow: hidden; white-space: nowrap; padding-left: 3px; font-size: 13px; opacity: 0.7; }
+.sk-ledger-word { text-transform: uppercase; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; }
+.sk-ledger-ice { display: inline-flex; color: var(--ice-mid); }
+.sk-ledger-wool { margin-left: auto; display: inline-flex; }
+.sk-ledger-wool .kit-tally { margin-left: 0; }
+/* A phone: a strip of mini slates across the top. */
+.sk-ledger-strip { position: relative; z-index: 30; display: flex; gap: 6px; margin-top: 58px; padding: 0 8px 6px; overflow-x: auto; }
+.sk-ledger-strip > li { flex: none; transition: opacity var(--t-feedback) var(--ease-out); }
+.sk-ledger-strip > li[data-dim] { opacity: 0.5; }
+.sk-ledger-strip .kit-slate-face { display: flex; align-items: center; gap: 4px; padding: 2px 6px; font-family: var(--skin-font-hand); font-weight: 400; font-size: 15px; white-space: nowrap; }
+.sk-ledger-strip .kit-tally i { height: 11px; }
+.sk-ledger-turn { box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.3), 0 0 0 2px var(--amber), 0 3px 0 rgba(40, 24, 10, 0.35); }
+
+/* The slips on a seat's name stake: the name and the wool on one, what the sheep is typing on a second slip under it. */
+.sk-stake-slips { position: relative; display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0.9; }
+.sk-stake-slips[data-speaker] { opacity: 1; scale: 1.15; }
+.sk-stake-name { flex-direction: column; gap: 0; padding: 3px 9px 4px; white-space: nowrap; }
+.sk-stake-slips[data-speaker] .sk-stake-name { box-shadow: 0 0 0 3px var(--amber), 2px 3px 0 rgba(59, 48, 40, 0.22); }
+.sk-stake-slips[data-steal] .sk-stake-name { box-shadow: 0 0 0 3px var(--coral), 2px 3px 0 rgba(59, 48, 40, 0.22); }
+.sk-stake-line { display: inline-flex; align-items: center; gap: 4px; }
+.sk-stake-who { font-family: var(--skin-font-display); font-weight: 700; font-size: 14px; }
+.sk-stake-slips[data-speaker] .sk-stake-who { font-size: 16px; }
+.sk-stake-you { font-size: 14px; color: var(--ink-soft); }
+.sk-stake-farm { margin-top: -2px; font-size: 12px; line-height: 1.1; color: var(--ink-soft); }
+.sk-stake-ice { position: absolute; inset: -2px; opacity: 0.85; }
+.sk-stake-typed {
+  position: absolute; top: calc(100% + 6px); min-width: 44px; min-height: 30px; padding: 2px 10px; white-space: nowrap;
+  font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink);
+  animation: sk-slip-down 200ms var(--ease-out) both;
 }
-.sk-tally-snow { position: absolute; left: -8px; right: -6px; top: -16px; width: calc(100% + 14px); height: 30px; overflow: visible; pointer-events: none; }
-.sk-tally-title {
-  text-align: center; font-family: var(--skin-font-display); font-weight: 800; font-size: 26px; line-height: 1.1; color: var(--button-text);
-  text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.75), 0 2px 0 rgba(40, 24, 10, 0.45);
-}
+@keyframes sk-slip-down { from { transform: translateY(-10px); opacity: 0; } }
+:root.reduce-motion .sk-stake-typed { animation: none; }
+
+/* The duel's fight card: two pinned slips and a carved VS. */
+.sk-vs-slip { flex-direction: column; gap: 0; padding: 6px 14px; font-family: var(--skin-font-display); font-weight: 700; font-size: 18px; }
+.sk-vs-farm { font-family: var(--skin-font-hand); font-weight: 400; font-size: 13px; color: var(--ink-soft); text-transform: capitalize; }
+.sk-vs { font-family: var(--skin-font-display); font-weight: 800; font-size: 34px; color: var(--glow); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.8), 0 2px 0 rgba(40, 24, 10, 0.6); }
+.sk-run-plaque .kit-slate-face { min-height: 0; padding: 2px 12px; font-size: 24px; }
+.sk-run-plaque .kit-chalk-hand { font-size: 14px; }
+.sk-round-patch { min-height: 34px; }
+.sk-twist-rope { position: relative; display: block; height: 16px; }
+/* The leave dialog and the sheets are clipboards; the chat keeps its ink card, squared. */
+.sk-table-sheet .kit-clipboard-sheet { max-height: min(64vh, 560px); }
+.sk-chat-card { padding: 8px; border-radius: 3px; background: var(--ink); color: var(--button-text); }
+.sk-leave { max-width: 360px; }
 
 /* ---------- How to play (painted guide) ---------- */
 .sk-guide { display: flex; flex-direction: column; width: 100%; max-width: 36rem; max-height: 100%; border-radius: 18px; background: var(--paper); color: var(--ink); box-shadow: 0 0 0 3px var(--wood-dark), 0 18px 40px rgba(40, 24, 10, 0.45); }
@@ -839,34 +838,10 @@
 /* ---------- Alarm: the barn's emergency board, full width, for faster turns, a twist, a steal turn ----------
    A hazard-striped plank right across the screen, lamps blinking, the board throbbing with its colour, the edges of
    the whole screen flashing and the barn jolting under it. Nothing on the table looks like this: it is a warning. */
-.sk-alarm, .sk-alarm-flash { --alarm: var(--amber); --alarm-glow: rgba(242, 164, 68, 0.6); --alarm-deep: rgba(242, 164, 68, 0.24); }
-.sk-alarm-steal, .sk-alarm-flash-steal { --alarm: var(--coral); --alarm-glow: rgba(231, 112, 94, 0.7); --alarm-deep: rgba(231, 112, 94, 0.3); }
-.sk-alarm-twist, .sk-alarm-flash-twist { --alarm: var(--ice-mid); --alarm-glow: rgba(191, 227, 245, 0.6); --alarm-deep: rgba(191, 227, 245, 0.24); }
-.sk-alarm {
-  position: relative; display: flex; align-items: center; justify-content: center; gap: 26px; width: 100%; padding: 14px 24px 16px;
-  color: var(--button-text); text-align: center;
-  border-top: 12px solid transparent; border-bottom: 12px solid transparent;
-  border-image: repeating-linear-gradient(135deg, var(--alarm) 0 16px, #140C07 16px 32px) 12;
-  background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.05) 0 1px, transparent 1px 6px, rgba(0, 0, 0, 0.1) 6px 7px, transparent 7px 11px),
-    linear-gradient(180deg, #3A2619 0 6%, #241710 6% 94%, #140C07 94%);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.55), 0 18px 48px rgba(0, 0, 0, 0.6), inset 0 0 80px rgba(0, 0, 0, 0.45);
-  animation: sk-alarm-in 480ms var(--ease-spring) both, sk-alarm-throb 0.5s 480ms steps(1) infinite;
-}
-.sk-alarm-stripe { display: none; }
-.sk-alarm-lamp { display: grid; place-items: center; flex: none; color: var(--alarm); filter: drop-shadow(0 0 14px var(--alarm-glow)) drop-shadow(0 0 4px var(--alarm)); animation: sk-alarm-blink 0.36s steps(1) infinite; }
-.sk-alarm-lamp svg { width: 44px; height: 44px; }
-.sk-alarm-lamp-r { animation-delay: 0.18s; }
-.sk-alarm-body { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
-.sk-alarm-label { font-family: var(--skin-font-body); font-size: 14px; font-weight: 900; letter-spacing: 0.32em; text-transform: uppercase; color: var(--alarm); text-shadow: 0 0 10px var(--alarm-glow); }
-.sk-alarm-title {
-  font-family: var(--skin-font-display); font-weight: 800; font-size: 58px; line-height: 1; text-transform: uppercase; letter-spacing: 0.02em;
-  text-shadow: 0 -3px 0 rgba(0, 0, 0, 0.7), 0 3px 0 rgba(0, 0, 0, 0.5), 0 0 24px var(--alarm-glow);
-}
-.sk-alarm-sub { font-family: var(--skin-font-hand); font-size: 21px; line-height: 1.15; color: var(--glow); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
-.sk-alarm-compact { gap: 10px; padding: 8px 10px 10px; border-top-width: 8px; border-bottom-width: 8px; }
-.sk-alarm-compact .sk-alarm-lamp svg { width: 26px; height: 26px; }
-.sk-alarm-compact .sk-alarm-title { font-size: 30px; } .sk-alarm-compact .sk-alarm-sub { font-size: 15px; } .sk-alarm-compact .sk-alarm-label { font-size: 11px; letter-spacing: 0.2em; }
-/* The whole screen flashes at its edges in the alarm's colour, and the barn jolts. */
+/* The board itself is the kit's Board alarm (kit.css). The whole screen flashes at its edges in its colour, and the barn jolts. */
+.sk-alarm-flash { --alarm: var(--amber); --alarm-glow: rgba(242, 164, 68, 0.6); --alarm-deep: rgba(242, 164, 68, 0.24); }
+.sk-alarm-flash-steal { --alarm: var(--coral); --alarm-glow: rgba(231, 112, 94, 0.7); --alarm-deep: rgba(231, 112, 94, 0.3); }
+.sk-alarm-flash-twist { --alarm: var(--ice-mid); --alarm-glow: rgba(191, 227, 245, 0.6); --alarm-deep: rgba(191, 227, 245, 0.24); }
 .sk-alarm-flash {
   position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse at center, transparent 50%, var(--alarm-deep) 82%, var(--alarm-glow) 100%);
@@ -874,15 +849,12 @@
   animation: sk-alarm-flash 0.5s ease-in-out 5 both;
 }
 .sk-alarm-shake { animation: sk-alarm-shake 480ms var(--ease-out) both; }
-@keyframes sk-alarm-in { 0% { transform: translateY(-60px) scaleY(0.6); opacity: 0; } 55% { transform: translateY(8px) scaleY(1.04); opacity: 1; } 100% { transform: none; } }
-@keyframes sk-alarm-throb { 50% { box-shadow: 0 0 0 3px var(--alarm), 0 0 60px var(--alarm-glow), 0 18px 48px rgba(0, 0, 0, 0.6), inset 0 0 80px var(--alarm-deep); } }
 @keyframes sk-alarm-flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
-@keyframes sk-alarm-blink { 50% { opacity: 0.25; } }
 @keyframes sk-alarm-shake {
   10% { transform: translate(-7px, 3px); } 25% { transform: translate(6px, -3px); } 40% { transform: translate(-5px, 2px); }
   55% { transform: translate(4px, -2px); } 70% { transform: translate(-2px, 1px); } 85% { transform: translate(1px, 0); } 100% { transform: none; }
 }
-:root.reduce-motion .sk-alarm, :root.reduce-motion .sk-alarm-lamp, :root.reduce-motion .sk-alarm-shake { animation: none; }
+:root.reduce-motion .sk-alarm-shake { animation: none; }
 :root.reduce-motion .sk-alarm-flash { animation: none; opacity: 0.6; }
 
 /* A bot's bounced try: the tag shakes and goes red for a beat. */
@@ -1047,22 +1019,6 @@
 .sk-paper[role="dialog"] { --radius-paper: 11px; }
 .sk-guide::before { display: none; } /* the guide's header has its own snow */
 
-/* The tally: real planks, like the title sign, hung on two ropes. */
-.sk-tally {
-  border: 7px solid var(--wood-ink); border-radius: 11px 13px 10px 12px;
-  background:
-    repeating-linear-gradient(180deg, transparent 0 58px, rgba(30, 16, 6, 0.6) 58px 60px, rgba(255, 224, 176, 0.28) 60px 61px),
-    repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.07) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.1) 6px 7px, transparent 7px 11px),
-    linear-gradient(90deg, rgba(40, 24, 10, 0.16), transparent 12% 88%, rgba(40, 24, 10, 0.16)),
-    linear-gradient(180deg, #A9733F, var(--wood-dark));
-  box-shadow: inset 0 3px 0 rgba(255, 224, 176, 0.35), inset 0 -3px 0 rgba(40, 24, 10, 0.4), 0 0 0 1px rgba(30, 16, 6, 0.6), 0 9px 0 rgba(40, 24, 10, 0.42), 0 18px 36px rgba(30, 18, 8, 0.45);
-}
-.sk-tally::before, .sk-tally::after {
-  content: ''; position: absolute; top: -70px; width: 6px; height: 62px; border-radius: 3px;
-  background: repeating-linear-gradient(135deg, #D9B45C 0 3px, #A9822F 3px 6px); box-shadow: 0 0 0 1px rgba(40, 24, 10, 0.4);
-}
-.sk-tally::before { left: 18%; } .sk-tally::after { right: 18%; }
-:root.reduce-motion .sk-tally::before, :root.reduce-motion .sk-tally::after { animation: none; }
 /* Short windows: a smaller title sign, so the menu fits between the name plate and the bottom bar. */
 @media (max-height: 800px) and (min-width: 641px) {
   .sk-title { --tile: 46px; }

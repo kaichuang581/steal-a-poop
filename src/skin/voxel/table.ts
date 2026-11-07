@@ -143,10 +143,17 @@ export function letterBoardGeometry(letter: string, trap: boolean, beamY: number
   const pivotY = beamY - 0.15;
   const dy = (m: number) => m - pivotY; // local y: the pivot is the origin
   if (!trap) {
-    const plank: Paint = (_x, y) => pick(T.beam, hash3(Math.floor(y / 4), 0, 0, 77), [0.35, 0.9]);
+    // The board's cell extents, so the rim and the nails land on its edge (V6 Part 5.2: brass nails, a one-cell darker
+    // rim round the face, the top corners bevelled off as the fence signs are).
+    const [ax, ay, az] = [-BOARD.width / 2, dy(BOARD.bottom), -BOARD.thick / 2].map((m) => Math.round(m / s));
+    const [bx, by] = [BOARD.width / 2, dy(top)].map((m) => Math.round(m / s) - 1);
+    const plank: Paint = (x, y) => {
+      const edgeX = x === ax || x === bx, edgeY = y === ay || y === by;
+      if (edgeX && y === by) return null;
+      return edgeX || edgeY ? lin(T.beam[2]) : pick(T.beam, hash3(Math.floor(y / 4), 0, 0, 77), [0.35, 0.9]);
+    };
     box(g, [-BOARD.width / 2, dy(BOARD.bottom), -BOARD.thick / 2], [BOARD.width / 2, dy(top), BOARD.thick / 2], plank);
-    // A darker rim, two nail heads where the ropes meet the board.
-    for (const sx of [-1, 1]) line(g, [sx * (BOARD.width / 2 - 0.02), dy(top) - 0.02, -BOARD.thick / 2 - 0.02], [sx * (BOARD.width / 2 - 0.02), dy(top) - 0.02, -BOARD.thick / 2 - 0.02], () => lin(T.stone[2]));
+    for (const x of [ax + 2, bx - 2]) g.set(x, by - 1, az - 1, lin(T.brass[1]));
   }
   // Ropes from the board's top corners up to the beam.
   const rope: Paint = () => lin(T.hay[2]);
@@ -154,7 +161,7 @@ export function letterBoardGeometry(letter: string, trap: boolean, beamY: number
   // The letter, carved one voxel proud of the face toward the camera.
   const rows = FONT[letter.toUpperCase()] ?? FONT.A;
   const cell = 0.07;
-  const ink = trap ? lin(T.ice[2]) : lin('#5B3A1E');
+  const ink = trap ? lin(T.ice[2]) : lin('#2A1E14');
   // One voxel proud of the face toward the camera (the board spans z -0.04..0.04; the letter sits at -0.08..-0.04).
   const zFront = -BOARD.thick / 2 - s;
   const x0 = -(5 * cell) / 2, y0 = dy(BOARD.bottom) + (BOARD.height - 7 * cell) / 2;

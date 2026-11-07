@@ -20,8 +20,8 @@ export function TwistSign({ twist, state, compact }: { twist: TwistId | null; st
       data-tour="modifier"
     >
       <div className="flex w-full justify-between px-7" aria-hidden="true">
-        <span className="sk-rope-v" />
-        <span className="sk-rope-v" />
+        <span className="kit-rope sk-twist-rope" />
+        <span className="kit-rope sk-twist-rope" />
       </div>
       <div className={state === 'hung' ? 'sk-swing' : ''}>
         <Notice tone="wood" size={compact ? 'sm' : 'md'} icon={ICON[twist]} title={TWIST_TEXT[twist]} sub="this round" />

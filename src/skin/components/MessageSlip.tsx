@@ -11,9 +11,10 @@ export function MessageSlip({ message }: { message: MessageView | null }) {
       {message && (
         <div
           key={message.text + (message.fix ?? '')}
-          className="sk-paper sk-pop px-4 py-1.5 text-center text-sm font-bold"
+          className="kit-paper kit-paper--note sk-pop sk-message-slip text-center"
           style={{ color: penalty ? 'var(--coral-dark)' : 'var(--ink)' }}
         >
+          <span className="kit-pin" />
           {message.kind === 'typo' && message.fix ? (
             <>
               “{message.text}” → <span style={{ textDecoration: 'underline', textDecorationColor: 'var(--cloth)', textDecorationThickness: 3 }}>“{message.fix}”</span>

@@ -5,6 +5,7 @@ import {
 import type { GameState } from '../../engine';
 import { ClockIcon, DoubleIcon, NoEIcon, RulerIcon, SnowflakeIcon, TrophyIcon, WolfIcon } from './Icons';
 import { WoolBall } from './Lives';
+import { Tile } from '../kit';
 
 function Row({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
@@ -81,7 +82,7 @@ export function ChainList({ game }: { game: GameState }) {
     <ol className="sk-chain-list">
       {rows.map((h, i) => (
         <li key={`${i}-${h.word}`} data-steal={h.kind === 'steal' || undefined}>
-          <span className="sk-chain-word">{h.word!.split('').map((ch, k) => <MiniTile key={k} ch={ch} hot={k === h.word!.length - 1 && i === 0} />)}</span>
+          <span className="sk-chain-word">{h.word!.split('').map((ch, k) => <Tile key={k} size="mini" lit={k === h.word!.length - 1 && i === 0}>{ch.toUpperCase()}</Tile>)}</span>
           <span className="sk-chain-who">{game.players[h.seat]?.name}{h.kind === 'steal' ? ' · stole' : ''}</span>
         </li>
       ))}

@@ -37,6 +37,10 @@
 .kit-plank--barn { --face: var(--barn-paint); --edge-light: rgba(255, 200, 180, 0.3); }
 .kit-plank--green { --face: var(--cloth-dark); --edge-light: rgba(200, 240, 200, 0.28); --edge-dark: rgba(20, 30, 20, 0.55); }
 .kit-plank--barn, .kit-plank--green { background: var(--knot) no-repeat var(--knot-at), var(--kit-grain), var(--face); }
+/* Painted for a moment over the table (Notice): your turn in lantern gold, a freeze in ice blue, time's up in cold slate blue. */
+.kit-plank--gold { --face: var(--glow); --edge-light: rgba(255, 250, 230, 0.8); --edge-dark: var(--amber); color: var(--wood-ink); text-shadow: 0 1px 0 rgba(255, 250, 230, 0.6); }
+.kit-plank--ice { --face: #6E9FC6; --edge-light: rgba(230, 245, 255, 0.55); --edge-dark: #2E5A7E; color: #F2FAFF; text-shadow: 0 -2px 0 rgba(20, 50, 80, 0.7); }
+.kit-plank--cold { --face: #4F5B73; --edge-light: rgba(220, 230, 255, 0.28); --edge-dark: #2C3446; }
 .kit-plank--label { min-height: 36px; padding: 4px 16px; font-size: 18px; display: inline-flex; align-items: center; gap: 10px; }
 .kit-plank--heading { min-height: 56px; padding: 8px 22px; font-size: 26px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; }
 .kit-plank--panel { padding: 22px 20px 18px; }
@@ -279,6 +283,38 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-rope-slider::-moz-range-track { height: 4px; border-radius: 2px; background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px); }
 .kit-rope-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%); box-shadow: inset 0 0 0 2px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
 .kit-rope-slider::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%); box-shadow: inset 0 0 0 2px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
+
+/* ---------- Board alarm: the hazard-striped plank (V6 Part 4.1), right across the screen for faster turns, a twist, a
+   steal turn. Dark wood, lamps blinking, the board throbbing with its colour. Nothing else looks like this: a warning. */
+.kit-alarm { --alarm: var(--amber); --alarm-glow: rgba(242, 164, 68, 0.6); --alarm-deep: rgba(242, 164, 68, 0.24); }
+.kit-alarm-steal { --alarm: var(--coral); --alarm-glow: rgba(231, 112, 94, 0.7); --alarm-deep: rgba(231, 112, 94, 0.3); }
+.kit-alarm-twist { --alarm: var(--ice-mid); --alarm-glow: rgba(191, 227, 245, 0.6); --alarm-deep: rgba(191, 227, 245, 0.24); }
+.kit-alarm {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 26px; width: 100%; padding: 14px 24px 16px;
+  color: var(--button-text); text-align: center;
+  border-top: 12px solid transparent; border-bottom: 12px solid transparent;
+  border-image: repeating-linear-gradient(135deg, var(--alarm) 0 16px, #140C07 16px 32px) 12;
+  background: var(--kit-grain), #241710;
+  box-shadow: inset 0 3px 0 rgba(255, 220, 170, 0.12), inset 0 -4px 0 #140C07, 0 0 0 3px rgba(0, 0, 0, 0.55), 0 8px 0 rgba(0, 0, 0, 0.45), 0 18px 48px rgba(0, 0, 0, 0.6);
+  animation: kit-alarm-in 480ms var(--ease-spring) both, kit-alarm-throb 0.5s 480ms steps(1) infinite;
+}
+.kit-alarm-lamp { display: grid; place-items: center; flex: none; color: var(--alarm); filter: drop-shadow(0 0 14px var(--alarm-glow)) drop-shadow(0 0 4px var(--alarm)); animation: kit-alarm-blink 0.36s steps(1) infinite; }
+.kit-alarm-lamp svg { width: 44px; height: 44px; }
+.kit-alarm-lamp-r { animation-delay: 0.18s; }
+.kit-alarm-body { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.kit-alarm-label { font-family: var(--skin-font-body); font-size: 14px; font-weight: 900; letter-spacing: 0.32em; text-transform: uppercase; color: var(--alarm); text-shadow: 0 0 10px var(--alarm-glow); }
+.kit-alarm-title {
+  font-family: var(--skin-font-display); font-weight: 800; font-size: 58px; line-height: 1; text-transform: uppercase; letter-spacing: 0.02em;
+  text-shadow: 0 -3px 0 rgba(0, 0, 0, 0.7), 0 3px 0 rgba(0, 0, 0, 0.5), 0 0 24px var(--alarm-glow);
+}
+.kit-alarm-sub { font-family: var(--skin-font-hand); font-size: 21px; line-height: 1.15; color: var(--glow); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8); }
+.kit-alarm-compact { gap: 10px; padding: 8px 10px 10px; border-top-width: 8px; border-bottom-width: 8px; }
+.kit-alarm-compact .kit-alarm-lamp svg { width: 26px; height: 26px; }
+.kit-alarm-compact .kit-alarm-title { font-size: 30px; } .kit-alarm-compact .kit-alarm-sub { font-size: 15px; } .kit-alarm-compact .kit-alarm-label { font-size: 11px; letter-spacing: 0.2em; }
+@keyframes kit-alarm-in { 0% { transform: translateY(-60px) scaleY(0.6); opacity: 0; } 55% { transform: translateY(8px) scaleY(1.04); opacity: 1; } 100% { transform: none; } }
+@keyframes kit-alarm-throb { 50% { box-shadow: inset 0 3px 0 rgba(255, 220, 170, 0.12), inset 0 -4px 0 #140C07, 0 0 0 3px var(--alarm), 0 0 60px var(--alarm-glow), 0 8px 0 rgba(0, 0, 0, 0.45), 0 18px 48px rgba(0, 0, 0, 0.6); } }
+@keyframes kit-alarm-blink { 50% { opacity: 0.25; } }
+:root.reduce-motion :is(.kit-alarm, .kit-alarm-lamp) { animation: none; }
 
 /* ---------- Ice ---------- */
 .kit-ice {

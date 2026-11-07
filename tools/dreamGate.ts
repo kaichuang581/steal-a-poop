@@ -174,7 +174,7 @@ async function capture(page: Page): Promise<Shot> {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, PHONE ? 'phone.png' : 'desktop.png'), await page.screenshot({ type: 'png' }));
   // The scene is measured with the HUD hidden: the plan's own samples (50,9) and (50,15) fall under its board.
-  await page.addStyleTag({ content: '.sk-notice, .sk-input-bar, .sk-input-prompt, .sk-chip, #sk-dev, .dr-help { visibility: hidden !important; }' });
+  await page.addStyleTag({ content: '.sk-notice, .sk-input-bar, .sk-input-prompt, .sk-chip, .dr-hud, #sk-dev, .dr-help { visibility: hidden !important; }' });
   await page.waitForTimeout(500);
   const png = await page.screenshot({ type: 'png' });
   writeFileSync(join(OUT, PHONE ? 'phone-scene.png' : 'desktop-scene.png'), png);
@@ -203,7 +203,8 @@ async function capture(page: Page): Promise<Shot> {
   return { px: Uint8Array.from(Buffer.from(raw, 'base64')), moon, ...info };
 }
 
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
+// PW_CHROMIUM picks an installed Chrome when Playwright's own browser is not downloaded.
+const browser = await chromium.launch({ ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}), args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 const shot = await capture(page);
 await browser.close();

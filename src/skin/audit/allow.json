@@ -5,7 +5,6 @@
   { "file": "src/skin/table/DuelTable.tsx", "selectorOrLine": "opacity: heat", "reason": "Part 4.12: the table's vignette (the practice duel's pressure vignette is the same device on the ice)" },
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-results-backdrop", "reason": "Part 4.12: .sk-results-backdrop, the barn dimming" },
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-garland", "reason": "Part 4.12: .sk-garland*, the season's lights and snow" },
-  { "file": "src/skin/dream/dream.css", "selectorOrLine": ".dr-backdrop", "reason": "Part 4.12: the aurora and the dream's backdrop colour" },
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-boom", "reason": "Part 4.12: the bomb's blast" },
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-jump-", "reason": "Part 4.12: the jumpscare" },
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-wordblast", "reason": "Part 4.12: the word blast" },

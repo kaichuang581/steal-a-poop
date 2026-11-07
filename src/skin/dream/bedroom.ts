@@ -2,7 +2,7 @@ import type { BufferGeometry } from 'three';
 import { buildGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, taperedBox } from '../voxel/primitives';
-import type { Paint, RGB } from '../voxel/primitives';
+import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { CHAR } from '../voxel/sheep';
 
 /**
@@ -157,6 +157,142 @@ export function farmerGeometry(): FarmerGeo {
   box(body, [0.14, -0.22, 0.06], [0.26, -0.18, 0.16], skin);
   farmerCache = { asleep: head(false), awake: head(true), cap: buildGeometry(cap.map, s), body: buildGeometry(body.map, s) };
   return farmerCache;
+}
+
+// ---------- the results scene (V6 Part 6.4): the whole room, the farmer sitting up, the Warm Blankets folded ----------
+
+/** The room's walls and beam are only ever there once the dream is over: in the bubble they would fill the cloud. */
+export const roomOn = (phase: string) => phase === 'results';
+
+/** The beam across the room and the hook the results board hangs from, in the room's frame. */
+export const BEAM = { y: 2.2, z: 0.4, hookX: 1.35 } as const;
+/** The window in the back wall, toward the foot of the bed, and the moon far behind it. */
+export const ROOM_WINDOW = { x0: 1.9, x1: 2.8, y0: 1.3, y1: 2.3, moonZ: -6 } as const;
+/** The back wall's plane and the side wall's, behind the headboard. */
+const BACK_Z = -13, SIDE_X = -5;
+
+export interface RoomGeo { room: BufferGeometry; fine: BufferGeometry; moon: BufferGeometry }
+let roomCache: RoomGeo | null = null;
+/**
+ * The bedroom around the bed (Part 6.4.1): a back wall of horizontal boards with a window cut in it toward the foot of
+ * the bed, a cream curtain tied back, a sill; a side wall behind the headboard; a beam across the room toward the
+ * camera with a brass hook; floorboards out to the walls. A framed sheep hangs on the back wall over the headboard (the
+ * plan's side wall is edge-on to this camera, and its hat on a peg read as clutter). 0.10 m boards; the picture 0.04 m.
+ */
+export function bedroomRoom(): RoomGeo {
+  if (roomCache) return roomCache;
+  const g = new Grid(B);
+  // Boards in horizontal runs: each 0.2 m board holds one tone with a darker joint under it.
+  const board: Paint = (x, y, z) => (y % 3 === 0 ? lin(T.bedwood[2]) : lin(T.bedwood[hash3(x >> 3, Math.floor(y / 3), z, 33) > 0.6 ? 1 : 0]));
+  const [wx0, wx1, wy0, wy1] = [ROOM_WINDOW.x0, ROOM_WINDOW.x1, ROOM_WINDOW.y0, ROOM_WINDOW.y1].map((v) => Math.round(v / B));
+  for (let x = SIDE_X; x < 40; x++) for (let y = 0; y < 27; y++) {
+    if (x >= wx0 && x < wx1 && y >= wy0 && y < wy1) continue;
+    g.set(x, y, BACK_Z, board(x, y, BACK_Z)!);
+  }
+  for (let z = BACK_Z + 1; z < 22; z++) for (let y = 0; y < 27; y++) g.set(SIDE_X, y, z, board(z, y, SIDE_X)!);
+  // The window's frame, a cross bar and a sill.
+  const frame = lin(T.bedwood[2]), sill = lin(T.bedwood[0]);
+  for (let x = wx0 - 1; x <= wx1; x++) for (let y = wy0 - 1; y <= wy1; y++) {
+    const edge = x === wx0 - 1 || x === wx1 || y === wy0 - 1 || y === wy1, bar = x === Math.floor((wx0 + wx1) / 2) || y === Math.floor((wy0 + wy1) / 2);
+    if (edge || (bar && x >= wx0 && x < wx1 && y >= wy0 && y < wy1)) g.set(x, y, BACK_Z + 1, frame);
+  }
+  for (let x = wx0 - 2; x <= wx1 + 1; x++) for (const z of [BACK_Z + 1, BACK_Z + 2]) g.set(x, wy0 - 2, z, sill);
+  // The curtain, tied back at the window's left: full at the top, gathered at the tie, falling again below.
+  const linen = T.linen.map(lin);
+  for (let y = wy0 - 1; y <= wy1 + 1; y++) {
+    g.set(wx0 - 2, y, BACK_Z + 2, y === wy0 + 4 ? lin(BED.cap[0]) : linen[y % 2 ? 2 : 1]);
+  }
+  // Floorboards out to the walls, along the bed like the bubble's, and a boarded ceiling over it all.
+  for (let x = SIDE_X; x < 40; x++) for (let z = BACK_Z; z < 22; z++) {
+    g.set(x, -1, z, lin(T.bedwood[Math.floor((z + 13) / 1.2) % 3 === 0 ? 1 : 0]));
+    g.set(x, 27, z, lin(T.bedwood[z % 3 === 0 ? 2 : 1]));
+  }
+  // The beam across the room, 0.2 m square, and its hook.
+  const by = Math.round(BEAM.y / B), bz = Math.round(BEAM.z / B), hx = Math.round(BEAM.hookX / B);
+  for (let x = SIDE_X; x < 40; x++) for (let y = by; y < by + 2; y++) for (let z = bz; z < bz + 2; z++) g.set(x, y, z, pick(T.bedwood, hash3(x >> 2, y, z, 8), [0.2, 0.8]));
+  g.set(hx, by - 1, bz, lin(T.brass[1]));
+
+  // ---- the 0.04 m things on the back wall: a framed sheep over the headboard, a peg with the farmer's hat
+  const f = new Grid(CHAR), wz = Math.round(((BACK_Z + 1) * B) / CHAR);
+  const px = Math.round(0.35 / CHAR), py = Math.round(1.55 / CHAR);
+  // A sheep under a night sky, in a frame: the body, the head at the right, two legs.
+  const SHEEP = ['........', '..####..', '.######h', '.######h', '..#..#..', '........'];
+  for (let x = -1; x <= 8; x++) for (let y = -1; y <= 6; y++) {
+    const edge = x === -1 || x === 8 || y === -1 || y === 6;
+    const c = edge ? 'F' : SHEEP[5 - y][x];
+    f.set(px + x, py + y, wz, lin(c === 'F' ? T.bedwood[0] : c === '#' ? T.linen[0] : c === 'h' ? '#3A2E2A' : BED.night[0]));
+  }
+
+  // ---- the moon and four stars far behind the window, lit by nothing but themselves
+  const m = new Grid(B), mz = Math.round(ROOM_WINDOW.moonZ / B);
+  // Placed so the desktop results camera sees it whole in the window's top right pane.
+  const mx = 40, my = 24;
+  for (let x = -3; x <= 3; x++) for (let y = -3; y <= 3; y++) if (x * x + y * y <= 10 && (x - 2) ** 2 + (y - 1) ** 2 > 7) m.set(mx + x, my + y, mz, lin(BED.moon)); // a crescent
+  for (const [x, y] of [[-9, 1], [-14, -4], [-5, -6], [-12, 5]]) m.set(mx + x, my + y, mz, lin('#FFF1B8'));
+  roomCache = { room: buildGeometry(g.map, B), fine: buildGeometry(f.map, CHAR), moon: buildGeometry(m.map, B) };
+  return roomCache;
+}
+
+/** Where the farmer sits up: the base of his neck, his torso turned this far toward the camera. */
+export const SITTING = { x: 0.42, y: 1.08, z: 0.02, turn: 0.55 } as const;
+let sitCache: BufferGeometry | null = null;
+/**
+ * The farmer sitting up against the headboard (Part 6.4.4), about the base of his neck like the heads: a nightshirt,
+ * one arm down on the quilt, the other raised with the hand at his eye, in four segments of 0.04 m voxels.
+ */
+export function farmerSitting(): BufferGeometry {
+  if (sitCache) return sitCache;
+  const g = new Grid(CHAR);
+  const shirt: Paint = (x, y, z) => lin(Math.floor(y / 2) % 3 === 0 ? '#B9C6E2' : hash3(x, y, z, 6) < 0.2 ? T.linen[1] : T.linen[0]);
+  const skin: Paint = (x, y, z) => pick(T.skin, hash3(x, y, z, 5), [0.6, 0.95]);
+  box(g, [-0.2, -0.52, -0.12], [0.2, -0.02, 0.12], shirt, 1);
+  box(g, [-0.08, -0.04, -0.06], [0.08, 0.02, 0.06], skin);
+  const limb = (pts: V3[], r: number, paint: Paint) => {
+    for (let i = 0; i < pts.length - 1; i++) for (let k = 0; k <= 6; k++) {
+      const t = k / 6, p = [0, 1, 2].map((j) => pts[i][j] + (pts[i + 1][j] - pts[i][j]) * t) as V3;
+      ellipsoid(g, p, [r, r, r], paint);
+    }
+  };
+  // The arm down by his side, the hand on the quilt.
+  limb([[-0.22, -0.08, 0], [-0.25, -0.24, 0.04], [-0.24, -0.4, 0.1]], 0.05, shirt);
+  ellipsoid(g, [-0.24, -0.46, 0.13], [0.04, 0.035, 0.05], skin);
+  // The arm raised: shoulder, elbow out and forward, forearm up, the knuckles at his eye.
+  limb([[0.22, -0.08, 0], [0.28, -0.2, 0.1], [0.2, -0.04, 0.16]], 0.05, shirt);
+  limb([[0.2, -0.04, 0.16], [0.11, 0.1, 0.18]], 0.035, skin);
+  ellipsoid(g, [0.08, 0.15, 0.17], [0.045, 0.04, 0.035], skin);
+  return (sitCache = buildGeometry(g.map, CHAR));
+}
+
+let quiltSatCache: BufferGeometry | null = null;
+/** The quilt pushed down to his waist: a fold along the bed at the waist and his legs under the rest. */
+export function quiltSat(): BufferGeometry {
+  if (quiltSatCache) return quiltSatCache;
+  const m = BED.mattress, g = new Grid(B);
+  const quiltPaint: Paint = (x, _y, z) => lin(BED.quilt[(Math.floor((x * B) / 0.3) * 3 + Math.floor(((z + 6) * B) / 0.3) * 5 + 1) % 4]);
+  box(g, [0.5, m.top, -m.w / 2 - 0.05], [0.95, m.top + 0.1, m.w / 2 + 0.05], quiltPaint);
+  box(g, [0.55, m.top + 0.1, -m.w / 2 - 0.05], [0.8, m.top + 0.2, m.w / 2 + 0.05], (x, y, z) => (y % 2 ? lin(T.linen[0]) : quiltPaint(x, y, z)), 1);
+  ellipsoid(g, [1.4, m.top + 0.1, 0], [0.55, 0.09, 0.22], (x, y, z) => (y * B < m.top + 0.1 ? null : quiltPaint(x, y, z)));
+  return (quiltSatCache = buildGeometry(g.map, B));
+}
+
+const folded = new Map<number, BufferGeometry>();
+/**
+ * A Warm Blanket folded (Part 6.4.6): 0.48 x 0.12 x 0.4 m, three layers of the quilt's patches with a cream stitch line
+ * along the folded edge and the middle layer hanging a cell over one side. On 0.04 m voxels: the plan's 0.10 m cannot
+ * make a 0.12 m fold. About the middle of its base.
+ */
+export function foldedQuilt(seed: number): BufferGeometry {
+  const hit = folded.get(seed);
+  if (hit) return hit;
+  const g = new Grid(CHAR);
+  for (let y = 0; y < 3; y++) for (let x = -6; x < 6 + (y === 1 ? 1 : 0); x++) for (let z = -5; z < 5; z++) {
+    const stitch = y === 2 && z === 4 && x % 2 === 0;
+    const tone = BED.quilt[(Math.floor((x + 6) / 4) + Math.floor((z + 5) / 5) * 2 + y + seed) % 4];
+    g.set(x, y, z, lin(stitch ? T.linen[0] : tone));
+  }
+  const geo = buildGeometry(g.map, CHAR);
+  folded.set(seed, geo);
+  return geo;
 }
 
 export type { RGB };

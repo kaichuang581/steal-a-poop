@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import {
   ACESFilmicToneMapping, BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, FogExp2, Group, Mesh, MeshLambertMaterial,
-  Object3D, PCFSoftShadowMap, Points, PointsMaterial, SRGBColorSpace,
+  Object3D, PCFSoftShadowMap, PointLight, Points, PointsMaterial, SRGBColorSpace, Vector3,
 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import { FIELD, JUMP_MS, jumpHeight, takeoffDistance } from '../../dream/dream';
@@ -19,7 +19,10 @@ import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { DreamSky } from './DreamSky';
 import { atFrame, CHUNK, chunkPlacements, DESKTOP_SHOT, DREAM_FOG, dreamFrame, dreamShot, islandPlace, ISLANDS, islandX, LAYER, PHONE_SHOT, PX, scrollOf, WAKE, WISPS, worldX } from './stage';
-import { bonkStar, cloudSea, hills as hillsGeometry, HILLS, island as islandGeometry, lookOf, mountains as mountainsGeometry, MOUNTAINS, obstacle, raftChunk, SEA, shadowDisc, signLetters, signPost, signRim, wisp as wispGeometry } from './world';
+import { bonkStar, cloudSea, fenceSign, hills as hillsGeometry, HILLS, island as islandGeometry, lookOf, mountains as mountainsGeometry, MOUNTAINS, obstacle, raftChunk, SEA, shadowDisc, SIGN, signCap, signCell, wisp as wispGeometry } from './world';
+import { TYPE_X } from './run';
+import { Paper } from '../kit';
+import { CheckIcon } from '../components/Icons';
 
 const SLOTS = 4;
 const LAND_MS = 200;
@@ -109,6 +112,12 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
   const stars = useRef<(Mesh | null)[]>([]);
   const slots = useRef<(Group | null)[]>([]);
   const fenceMeshes = useRef<(Group | null)[]>([]);
+  const boards = useRef<(Group | null)[]>([]);
+  const lamp = useRef<PointLight>(null);
+  const hotSlot = useRef(-1);
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  const probe = useMemo(() => ({ a: new Vector3(), b: new Vector3(), shown: 0 }), []);
   const [sheepState, setSheepState] = useState<SheepState>('grazing');
   const [stateKey, setStateKey] = useState(0);
   const [pace, setPace] = useState(0);
@@ -203,13 +212,42 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
         f.rotation.z = -(ang * Math.PI) / 180;
         if (hit && anim.fenceSnowFor !== fe.index) { anim.fenceSnowFor = fe.index; anim.fenceSnowAt = t; anim.fenceSnowX = g.position.x; }
       }
+      // The sign's board swings on its ropes: a little in the wind, hard for 1.2 s when its fence is bumped.
+      const board = boards.current[slot];
+      if (board) {
+        const e = hitAt !== null ? (L.t - hitAt) / 1000 : 9;
+        const knock = reduced || e > 1.2 ? 0 : 15 * Math.sin(e * Math.PI * 2 * 1.4) * (1 - e / 1.2);
+        board.rotation.z = ((reduced ? 0 : 1.5 * Math.sin(t * 0.4 * Math.PI * 2 + slot)) + knock) * (Math.PI / 180);
+      }
     }
     slots.current.forEach((g, i) => { if (g && !used.has(i)) g.visible = false; });
     if (L.dist < 1) anim.fenceSnowFor = -1;
+    // One lantern light, on the active sign's post.
+    const hot = hotSlot.current, hg = hot >= 0 ? slots.current[hot] : null;
+    if (lamp.current) {
+      lamp.current.intensity = hg?.visible ? 0.8 : 0;
+      if (hg) { const at = fenceSign(slotViews[hot]?.letters ?? ['']).lanternAt; const k = signScale(phone); lamp.current.position.set(hg.position.x + SIGN_AT[0] + at[0] * k, at[1] * k, SIGN_AT[2] + at[2] * k); }
+    }
+    // The readability gate (V6 Part 7.5): the letters' cap height, projected, for a sign at TYPE_X and for the active one.
+    if (devOn() && t - probe.shown > 0.5) {
+      probe.shown = t;
+      const capPx = (x: number, n: number) => {
+        const k = signScale(phone), cap = signCap(n) * k, z = SIGN_AT[2] + (SIGN.boardZ + signCell(n)) * k;
+        probe.a.set(x, SIGN.centre * k + cap / 2, z).project(camera);
+        probe.b.set(x, SIGN.centre * k - cap / 2, z).project(camera);
+        return Math.abs(probe.a.y - probe.b.y) / 2 * size.height;
+      };
+      const n = slotViews[hot]?.letters.length ?? 3;
+      const typeX = capPx(worldX(TYPE_X) + (FW * PX) / 2 + SIGN_AT[0], n);
+      const active = hg?.visible ? capPx(hg.position.x + SIGN_AT[0], n) : 0;
+      Object.assign(window, { __signCap: { typeX, active, letters: n } });
+      document.getElementById('sk-dev')?.setAttribute('data-sign-cap', `${typeX.toFixed(1)} px at TYPE_X, ${active.toFixed(1)} px active`);
+    }
 
   });
 
   const slotViews = useMemo(() => Array.from({ length: SLOTS }, (_, slot) => fences.find((v) => v.index % SLOTS === slot) ?? null), [fences]);
+  hotSlot.current = slotViews.findIndex((v) => v?.hot);
 
   return (
     <>
@@ -250,6 +288,7 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
           </group>
         ))}
         <Dust reduced={reduced} live={live} />
+        <pointLight ref={lamp} color="#FFC24B" intensity={0} distance={2.5} decay={2} />
 
         {/* The obstacles cross the lane; each one's sign stands just beyond it, on the far side. */}
         {slotViews.map((f, slot) => (
@@ -259,7 +298,7 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
                 {f && <mesh geometry={obstacle(lookOf(f.kind, f.index))} material={woodMat} position={[-0.215, 0, 0]} castShadow receiveShadow />}
               </group>
             </group>
-            <Sign view={f} />
+            <Sign view={f} scale={signScale(phone)} boardRef={(el) => { boards.current[slot] = el; }} />
           </group>
         ))}
 
@@ -297,22 +336,40 @@ const easeOut = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 
 const shadowMat = new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.3, depthWrite: false });
 
-/** The sign on its post: carved letters, a cream rim when it is the next to clear, red letters on a bounce, green and a paper tag once cleared. */
-function Sign({ view }: { view: FenceView | null }) {
-  const n = view?.letters.length ?? 1;
-  const post = useMemo(() => signPost(n), [n]);
-  const rim = useMemo(() => signRim(n), [n]);
-  const letters = useMemo(() => (view ? signLetters(view.letters) : null), [view?.letters.join('')]); // eslint-disable-line react-hooks/exhaustive-deps
-  const mat = useMemo(() => new MeshLambertMaterial({ color: '#2A1E14' }), []);
-  const voxMat = useMemo(() => voxelMaterial({ color: WOOD_TINT }), []);
-  useEffect(() => { mat.color.set(view?.locked ? T.pine[0] : view?.wrong ? T.collar[0] : '#2A1E14'); }, [view?.locked, view?.wrong, mat]);
+/** Where each sign stands against its obstacle: just past it, on the far side of the lane. */
+const SIGN_AT = [0.1, 0, -1.34] as const;
+/**
+ * A phone looks down the lane from far off to one side, so a sign at TYPE_X is a long way away: there the whole sign is
+ * drawn half as big again, which brings its letters to the readability gate's 16 px (V6 Part 7.5).
+ */
+const signScale = (phone: boolean) => (phone ? 1.6 : 1);
+const INK = '#1E140C';
+
+/**
+ * The fence sign (V6 Part 5.1): letters carved into a plank hung from a crossbar. The active one has its lantern lit
+ * and its letters warm; a bounce reddens the cuts for a moment, a clear turns them green and pins the word on a slip.
+ */
+function Sign({ view, scale, boardRef }: { view: FenceView | null; scale: number; boardRef: (g: Group | null) => void }) {
+  const key = view?.letters.join('') ?? '';
+  const geo = useMemo(() => fenceSign(view?.letters ?? ['']), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ink = useMemo(() => new MeshLambertMaterial({ color: INK }), []);
+  const wood = useMemo(() => voxelMaterial({ color: WOOD_TINT }), []);
+  const glass = useMemo(() => [voxelMaterial({ color: '#9A8A70' }), voxelMaterial({ emissive: '#FFC24B', emissiveIntensity: 0.9 })], []);
+  useEffect(() => {
+    ink.color.set(view?.locked ? T.pine[0] : view?.wrong ? T.collar[0] : INK);
+    ink.emissive.set(view?.hot && !view.wrong ? '#2E1C08' : '#000000');
+  }, [view?.locked, view?.wrong, view?.hot, ink]);
+  const word = view?.locked ? view.word : '';
   return (
-    <group position={[0.1, 0, -1.34]}>
-      <mesh geometry={post} material={voxMat} castShadow />
-      {letters && <mesh geometry={letters} material={mat} />}
-      <mesh geometry={rim} material={voxMat} visible={!!view?.hot} />
-      <Html position={[0, 1.2, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-        {view?.locked && view.word ? <span className="dr-tag sk-hand">✓ {view.word.toUpperCase()}</span> : null}
+    <group position={[...SIGN_AT]} scale={scale}>
+      <mesh geometry={geo.post} material={wood} castShadow />
+      <mesh geometry={geo.lantern} material={glass[view?.hot ? 1 : 0]} />
+      <group ref={boardRef} position={[SIGN.x, SIGN.pivot, 0]}>
+        <mesh geometry={geo.board} material={wood} castShadow />
+        <mesh geometry={geo.letters} material={ink} />
+      </group>
+      <Html position={[SIGN.x, SIGN.pivot + 0.32, 0.1]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+        {word ? <Paper kind="slip" pin="top" seed={word} className="dr-slip" style={{ fontSize: word.length > 10 ? 12 : 16 }}><CheckIcon size={14} />{word.toUpperCase()}</Paper> : null}
       </Html>
     </group>
   );

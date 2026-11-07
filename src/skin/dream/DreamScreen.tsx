@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { dreamStreakDays, getDreamBest, getDreamStreak, loadStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
-import { check, DREAM_LENGTH, dreamSeed, dreamShareText, dreamSummary, exampleWords, fenceAt, hintWord, matched } from '../../dream/dream';
+import { check, DREAM_LENGTH, dreamGlyphs, dreamSeed, dreamShareText, dreamSummary, exampleWords, fenceAt, hintWord, matched } from '../../dream/dream';
 import { useStore } from '../../state/store';
 import { useIsMobile } from '../../ui/hooks';
-import { BlanketIcon, CloseIcon, FlameIcon, GustIcon } from '../components/Icons';
-import { Chip, WoodButton } from '../components/Materials';
+import { CloseIcon, GustIcon, MoonIcon } from '../components/Icons';
 import { Notice } from '../components/Notice';
+import { Board, Brass, Knit, Nails, Paper, Patch, Peg, Slate, Tally, Tile, WoodButton } from '../kit';
 import { SheepIcon } from '../components/SheepIcon';
 import { localDateKey } from '../hooks/useToday';
 import { useMotionLevel } from '../hooks/useAmbient';
@@ -15,6 +15,7 @@ import { PAINTED_TITLE } from '../screens/PaintedHome';
 import { shareCard } from '../share/card';
 import { DevLine } from '../table/DevStats';
 import { BedroomBubble } from './BedroomBubble';
+import type { RoomAnchors } from './BedroomBubble';
 import { DreamStage } from './DreamStage';
 import type { FenceView, Phase } from './DreamStage';
 import { dreamLink, useDreamUi } from './dreamStore';
@@ -96,6 +97,10 @@ export function DreamScreen() {
   // The wake-up (V4.1 Part 7.4): none, the dream popping, then gone.
   const [pop, setPopStage] = useState<'none' | 'pop' | 'gone'>('none');
   const ghost = useRef<HTMLInputElement>(null);
+  // The results hang in the bedroom: the stage projects the beam's hook and the headboard onto these every frame.
+  const boardAnchor = useRef<HTMLDivElement>(null);
+  const slipAnchor = useRef<HTMLDivElement>(null);
+  const anchors = useRef<RoomAnchors>({ board: boardAnchor, slip: slipAnchor }).current;
   const live = useRef<Live>(freshLive(seed));
   const phaseRef = useRef<Phase>('ready');
   phaseRef.current = phase;
@@ -256,6 +261,9 @@ export function DreamScreen() {
       title: `Counting Sheep · ${night}`,
       headline: asleep ? 'The farmer drifted off' : `The farmer counted ${count} sheep`,
       lines: [asleep ? dreamSummary({ fences: L.reached, bumps: L.bumps, longest: L.longest }) : L.longest > 0 ? `Longest word: ${L.longest} letters` : '', streakNow > 1 ? `${streakNow}-night streak` : ''].filter(Boolean),
+      count, unit: 'sheep',
+      stitches: practice ? undefined : dreamStreakDays(today),
+      glyphs: dreamGlyphs(count, !asleep, { seed, bumps: L.bumps }),
     }, text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -272,12 +280,12 @@ export function DreamScreen() {
     ghost.current?.focus();
   };
 
-  if (!dict) return <main className="dr-root"><p className="sk-paper sk-display px-4 py-2 text-lg">Loading the word list…</p></main>;
+  if (!dict) return <main className="dr-root"><Paper kind="slip" pin="top" className="dr-loading">Loading the word list...</Paper></main>;
 
   const mode = phase === 'results' ? 'out' : hud.active ? 'mine' : 'wait';
   const typedLetters = [...hud.typed];
-  const size = typedLetters.length <= 9 ? 'lg' : typedLetters.length <= 13 ? 'md' : 'sm';
-  const sign = hud.letters.join('…').toUpperCase();
+  const tileW = typedLetters.length <= 9 ? 46 : typedLetters.length <= 13 ? 36 : 27;
+  const sign = hud.letters.join('...').toUpperCase();
   const joined = hud.letters.map((l) => l.toUpperCase()).join(', then ');
   const examples = hud.active && hud.index >= 0 && hud.index < 3 ? exampleWords(fenceAt(seed, hud.index)) : [];
   const caption = phase !== 'running' ? null
@@ -291,8 +299,9 @@ export function DreamScreen() {
   const longest = live.current.longest;
   const asleep = phase === 'results' && live.current.asleepAt !== null;
   const bumpsLeft = length ? length.bumps - bumps : 0;
-  const days = phase === 'results' && !practice ? dreamStreakDays(today) : [];
-  const dayInitials = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d.toLocaleDateString(undefined, { weekday: 'narrow' }); });
+  // The week as knitted stitches; tonight's is ringed once it is played.
+  const days = phase === 'results' && !practice ? dreamStreakDays(today).map((st, i) => (i === 6 && st === 'played' ? 'today' as const : st)) : [];
+  const fenceNow = length ? Math.min(reached + 1, length.fences) : 0;
 
   return (
     <main className="dr-root" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} onPointerDown={focus} style={mobile && vh ? { height: vh } : undefined}>
@@ -309,50 +318,55 @@ export function DreamScreen() {
           {Array.from({ length: 20 }, (_, i) => <i key={i} style={{ '--dx': `${Math.cos(i * 0.31 * 2) * (60 + (i % 5) * 28)}px`, '--dy': `${Math.sin(i * 0.31 * 2) * (50 + (i % 4) * 24)}px`, animationDelay: `${(i % 4) * 30}ms` } as React.CSSProperties} />)}
         </div>
       )}
-      <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} />
+      <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} />
       <DevLine />
 
-      <header className={`sk-swoop-in pointer-events-none relative z-30 flex items-start gap-2 p-2 ${mobile ? 'flex-row justify-between' : 'justify-between'}`}>
-        <span className="sk-chip sk-display">{practice ? 'Practice dream' : repair ? `Last night's dream · ${shortDate(night)}` : `Tonight's dream · ${shortDate(night)}`}</span>
-        <div className="pointer-events-auto flex flex-col items-end gap-1">
-          <span className="sk-chip sk-num flex items-center gap-1.5" aria-live="polite" aria-label={`${count} sheep counted`}>
-            <SheepIcon size={18} /><b className="sk-display text-lg">{count}</b>{best > 0 ? <span className="text-xs" style={{ color: 'var(--ink-soft)' }}>best {best}</span> : null}
-          </span>
-          {length && (
-            <span className="sk-chip sk-num flex items-center gap-1.5 text-sm" aria-label={`Fence ${Math.min(reached + 1, length.fences)} of ${length.fences}, ${bumpsLeft} bumps left`}>
-              {Math.min(reached + 1, length.fences)}/{length.fences}
-              <span className="dr-bumps" aria-hidden="true">{Array.from({ length: length.bumps }, (_, i) => <span key={i} className="dr-bump" data-gone={i < bumps || undefined} />)}</span>
-            </span>
-          )}
-          <Chip className="sk-icon-chip" onClick={close} aria-label="Leave the dream" title="Leave the dream (Esc)"><CloseIcon size={16} /></Chip>
-        </div>
-      </header>
+      {phase !== 'results' && (
+        <header className="dr-hud sk-swoop-in pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
+          <Patch icon={<MoonIcon size={18} />} className="dr-night-patch">{practice ? 'Practice dream' : repair ? `Last night's dream · ${shortDate(night)}` : `Tonight's dream · ${shortDate(night)}`}</Patch>
+          <div className="pointer-events-auto flex items-start gap-2">
+            {/* The count in chalk on a slate: sheep counted, the best, and how far into the night with the bumps left. */}
+            <Slate size="plaque" className="dr-count" aria-live="polite" aria-label={`${count} sheep counted`}>
+              <span className="dr-count-main"><SheepIcon size={20} /><b>{count}</b></span>
+              {best > 0 ? <span className="kit-chalk-hand dr-count-sub">best {best}</span> : null}
+              {length && (
+                <span className="kit-chalk-hand dr-count-sub" aria-label={`Fence ${fenceNow} of ${length.fences}, ${bumpsLeft} bumps left`}>
+                  {fenceNow}/{length.fences} <Tally have={bumpsLeft} of={length.bumps} />
+                </span>
+              )}
+            </Slate>
+            <Peg onClick={close} aria-label="Leave the dream" title="Leave the dream (Esc)"><CloseIcon size={18} /></Peg>
+          </div>
+        </header>
+      )}
 
       {/* The board at the top centre: how to play before the run, the bump when it ends. */}
-      <div className={`dr-boards pointer-events-none absolute inset-x-0 z-20 flex flex-col items-center gap-3 px-3 ${mobile ? 'top-[5%]' : 'top-[6%]'}`} aria-live="polite">
+      <div className={`dr-boards pointer-events-none absolute inset-x-0 z-20 flex flex-col items-center gap-3 px-3 ${mobile ? 'top-[9%]' : 'top-[6%]'}`} aria-live="polite">
         {phase === 'ready' && (
-          <Notice tone="wood" snow={false} className="dr-board" size={mobile ? 'sm' : 'lg'} title={length ? 'Count sheep to keep the farmer asleep' : 'How far can you run?'} sub={<span className="dr-blink">Type a word with the fence’s letters, in order · press any key</span>} />
+          <Notice tone="wood" snow={false} size={mobile ? 'sm' : 'lg'} title={length ? 'Count sheep to keep the farmer asleep' : 'How far can you run?'} sub={<span className="dr-blink">Type a word with the fence’s letters, in order · press any key</span>} />
         )}
-        {stirred > 0 && phase === 'running' && <Notice key={stirred} tone="wood" snow={false} className="dr-board dr-board-bump" size="lg" icon={<GustIcon size={26} />} title="Bump!" sub={`mmf… ${bumpsLeft === 1 ? 'one more wakes him' : `${bumpsLeft} bumps left`}`} />}
-        {phase === 'drifting' && <Notice tone="wood" snow={false} className="dr-board" size="lg" title="Zzz…" sub="he’s out cold" />}
-        {bump > 0 && phase === 'crashed' && <Notice key={bump} tone="wood" snow={false} className="dr-board dr-board-bump" size="lg" icon={<GustIcon size={26} />} title="Bump!" sub="the farmer stirs…" />}
+        {stirred > 0 && phase === 'running' && <Notice key={stirred} tone="wood" snow={false} size="lg" icon={<GustIcon size={26} />} title="Bump!" sub={`mmf… ${bumpsLeft === 1 ? 'one more wakes him' : `${bumpsLeft} bumps left`}`} />}
+        {phase === 'drifting' && <Notice tone="wood" snow={false} size="lg" title="Zzz…" sub="he’s out cold" />}
+        {bump > 0 && phase === 'crashed' && <Notice key={bump} tone="wood" snow={false} size="lg" icon={<GustIcon size={26} />} title="Bump!" sub="the farmer stirs…" />}
       </div>
 
       {phase !== 'results' && (
-        <div className={`relative z-20 mt-auto px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4 ${mobile ? 'dr-bar-phone' : ''}`}>
+        <div className={`dr-hud relative z-20 mt-auto px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4 ${mobile ? 'dr-bar-phone' : ''}`}>
           <div className={mobile ? 'mx-auto' : 'ml-[30%] mr-[6%]'}>
             {caption && <p className="sk-input-prompt" data-mode={mode}>{caption}</p>}
-            <div className="sk-input-bar" data-mode={mode} onPointerDown={(e) => { e.preventDefault(); focus(); }}>
-              {/* The fence's letters as wooden tiles, each lighting up with a check once it is typed in order. */}
-              <div className="dr-fence-tiles" data-wrong={hud.wrong || undefined} aria-label={hud.active ? `Needs ${hud.letters.join(', ')} in order` : 'No fence yet'}>
-                {hud.letters.length
-                  ? hud.letters.map((ch, i) => <span key={i} className="sk-type-tile dr-fence-tile" data-lit={i < hud.lit || undefined}>{ch.toUpperCase()}</span>)
-                  : <span className="sk-hand dr-fence-none">· · ·</span>}
+            {/* The word bar is a wooden trough (V6 Part 6.3): the fence's letters hang on a rope at its left end, the typed word lies in it. */}
+            <div className="dr-trough kit-plank kit-plank--light" data-knot="2" data-mode={mode} onPointerDown={(e) => { e.preventDefault(); focus(); }}>
+              <div className="dr-fence-rope" data-wrong={hud.wrong || undefined} aria-label={hud.active ? `Needs ${hud.letters.join(', ')} in order` : 'No fence yet'}>
+                <Nails />
+                <span className="kit-rope dr-rope-line" />
+                {hud.letters.map((ch, i) => (
+                  <Tile key={`${hud.index}:${i}`} size="sm" hung lit={i < hud.lit} done={i < hud.lit} bad={hud.wrong} className="dr-fence-tile">{ch.toUpperCase()}</Tile>
+                ))}
               </div>
-              <div className="sk-input-tiles" data-size={size}>
+              <div className="sk-input-tiles dr-typed-row">
                 {typedLetters.length
-                  ? typedLetters.map((ch, i) => <span key={i} className="sk-type-tile">{ch.toUpperCase()}</span>)
-                  : <span className="sk-input-placeholder">{hud.active ? `a word with ${joined}` : phase === 'ready' ? `a word with ${fenceAt(seed, 0).letters.map((l) => l.toUpperCase()).join(', then ')}` : 'type ahead…'}</span>}
+                  ? typedLetters.map((ch, i) => <Tile key={i} className="dr-typed" style={{ '--tile-w': `${tileW}px` } as React.CSSProperties}>{ch.toUpperCase()}</Tile>)
+                  : <Paper as="span" kind="slip" seed={hud.index} className="dr-placeholder">{hud.active ? `a word with ${joined}` : phase === 'ready' ? `a word with ${fenceAt(seed, 0).letters.map((l) => l.toUpperCase()).join(', then ')}` : 'type ahead...'}</Paper>}
                 <span className="sk-type-caret" aria-hidden="true" />
                 <input
                   ref={ghost} className="sk-input-ghost" autoFocus aria-label="Your word" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false}
@@ -360,7 +374,7 @@ export function DreamScreen() {
                   onBlur={() => { if (phaseRef.current === 'running' || phaseRef.current === 'ready') setTimeout(() => ghost.current?.focus(), 0); }}
                 />
               </div>
-              <WoodButton onMouseDown={(e) => e.preventDefault()} onClick={submit} disabled={phase === 'crashed' || phase === 'drifting'} className="sk-input-go">Jump</WoodButton>
+              <Brass onMouseDown={(e) => e.preventDefault()} onClick={submit} disabled={phase === 'crashed' || phase === 'drifting'} className="dr-jump">Jump</Brass>
               {!mobile && <p className="dr-help sk-hand">Each fence names letters: type any real word with them in that order and press Enter. Esc wakes up.</p>}
             </div>
           </div>
@@ -369,43 +383,43 @@ export function DreamScreen() {
       <p className="sr-only" aria-live="polite">{phase === 'running' ? `${sign}. ${count} sheep.` : ''}</p>
 
       {phase === 'results' && (
-        <>
-          <div className="dr-backdrop" aria-hidden="true" />
-          <div className={`fixed inset-0 z-40 flex items-end overflow-y-auto p-3 sm:items-center sm:p-6 ${asleep || mobile ? 'justify-center' : 'justify-end sm:pr-[12%]'}`}>
-            <div className="sk-pop dr-card" role="dialog" aria-modal="true" aria-label={asleep ? 'The farmer drifted off' : 'The farmer woke up'}>
-              <span className="dr-card-scallop" aria-hidden="true" />
-              <span className="dr-card-stars" aria-hidden="true" />
-              <svg className="dr-card-moon" viewBox="0 0 40 40" aria-hidden="true"><path d="M27 4a17 17 0 1 0 9 26A14 14 0 0 1 27 4z" fill="#FFF1B8" /></svg>
-              <h2 className="dr-card-title">{asleep ? 'The farmer drifted off' : 'The farmer woke up!'}</h2>
-              <p className="dr-card-count"><b>{count}</b> sheep</p>
-              <p className="dr-card-line">
-                {asleep ? dreamSummary({ fences: live.current.reached, bumps: live.current.bumps, longest }) : <>Longest word: {longest > 0 ? `${longest} letters` : '–'}{length ? ` · reached fence ${reached + 1} of ${length.fences}` : ''}</>}
-              </p>
-              {practice ? (
-                <p className="dr-card-line">Practice dreams don’t count toward your streak.</p>
-              ) : (
-                <div className="dr-card-quilt">
-                  <p className="dr-card-streak"><FlameIcon size={16} /> {streakNow}-night streak <span>best {loadStreak().best}</span></p>
-                  <div className="dr-nights" aria-label="The last seven nights">
-                    {days.map((st, i) => (
-                      <span key={i} className="dr-night" data-status={st} data-today={i === 6 || undefined} title={st}>{st === 'blanket' ? <BlanketIcon size={14} /> : dayInitials[i]}</span>
-                    ))}
-                  </div>
-                  <p className="dr-card-small">
-                    <span className="dr-blankets"><BlanketIcon size={16} held={blankets >= 1} /><BlanketIcon size={16} held={blankets >= 2} /></span>
-                    Warm Blankets cover a missed night. You earn one every 7 nights.
-                  </p>
+        // The results hang in his bedroom (V6 Part 6.4): a plank on ropes from the beam, the room itself is the backdrop.
+        <div className="dr-results" role="dialog" aria-modal="true" aria-label={asleep ? 'The farmer drifted off' : 'The farmer woke up'}>
+          <div ref={boardAnchor} className="dr-results-anchor">
+            <Board size="panel" hang="ropes" id="dr-results" className="dr-results-board" style={{ animationDelay: reduced ? '0ms' : '500ms' }}>
+              <h2 className="dr-results-title">{practice ? 'Practice dream' : asleep ? 'The farmer drifted off' : 'The farmer woke up!'}</h2>
+              <div className="dr-results-mid">
+                <Slate size="plaque" className="dr-results-count"><b>{count}</b><span className="kit-chalk-hand">sheep</span></Slate>
+                <Paper kind="sheet" pin="top" seed={night} className="dr-results-sheet">
+                  {asleep
+                    ? <p>{dreamSummary({ fences: live.current.reached, bumps: live.current.bumps, longest })}</p>
+                    : <>
+                        <p>Longest word: {longest > 0 ? `${longest} letters` : 'none yet'}</p>
+                        {length ? <p>fence {fenceNow} of {length.fences}</p> : null}
+                      </>}
+                  {practice ? <p>Practice dreams don’t count toward your streak.</p> : null}
+                </Paper>
+              </div>
+              {!practice && (
+                <div className="dr-results-streak">
+                  <Knit stitches={days} />
+                  <span>{streakNow}-night streak · best {loadStreak().best}</span>
+                  <Paper kind="note" seed="blankets" className="dr-results-blankets">Warm Blankets keep your streak warm when you miss a night. You earn one every 7 nights.</Paper>
                 </div>
               )}
-              <button type="button" className="dr-btn dr-btn-moon" onClick={share} autoFocus>{copied ? 'Copied!' : 'Share'}</button>
-              {!practice && <p className="dr-card-small">Tonight's dream returns at {midnightLabel()}.</p>}
-              <div className="dr-card-row">
-                <button type="button" className="dr-btn" onClick={practiceAgain}>Practice</button>
-                <button type="button" className="dr-btn" onClick={close}>Back to the farm</button>
+              <div className="dr-results-rail">
+                <Brass onClick={share} autoFocus>{copied ? 'Copied!' : 'Share'}</Brass>
+                <WoodButton onClick={practiceAgain}>Practice</WoodButton>
+                <WoodButton onClick={close}>Back to the farm</WoodButton>
               </div>
-            </div>
+            </Board>
           </div>
-        </>
+          {!practice && (
+            <div ref={slipAnchor} className="dr-results-slip">
+              <Paper kind="slip" pin="top" seed="midnight" tilt>Tonight's dream returns at {midnightLabel()}.</Paper>
+            </div>
+          )}
+        </div>
       )}
     </main>
   );

@@ -135,3 +135,19 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   the puffs use 0.05 m voxels; the sheep is drawn at 0.72 m (the model is 1.3 m at scale 1). The canvas must never sit
   inside a transformed element (the swoop-in inflated its measured size). Known: draw calls run near 90 against the
   plan's 60. D5 (the bounded dream) stays unbuilt.
+- Farm animals v5 (approved by Brian, 2026-11-07): the plan is docs/REDESIGN_PLAN_V5_ANIMALS.md. Every species is its own
+  model built from its own shapes on the 0.04 m grid (V5 Part 4.1 rig), never a recoloured sheep. The shared rules in
+  V5 Part 4 are binding: the eye standard (4.3), horizontal heads (4.4), smooth bodies with shaped markings (4.5),
+  three signature features at most (4.7), every part attached (the connectivity test in 4.13), thin collars (4.8),
+  warmth layers as lives for the non-sheep species (4.9), three tones per material and no pure black (4.10).
+  The sheep model (src/skin/voxel/sheep.ts) does not change except under Milestone A5, if approved.
+  The catalogue (src/skin/avatars/catalog.ts, src/avatars/ids.ts) keeps its ids, names and colours; the models read the
+  character's colours and worn item from it. The engine, the lives rule and Lives.tsx do not change.
+  Built (A0 to A4, 2026-11-07): src/skin/voxel/animals/ (rig.ts, garments.ts, worn.ts, one file per species, index.ts);
+  tests in src/skin/voxel/__tests__/animals.test.ts (the plan's 4.13 list); viewer ?preview=sheep with ?cam=front and
+  ?cam=speaker (the table's speaker camera); ?preview=lineup with ?silhouette=1, ?squint=1 and ?size=N for Part 11.2;
+  screenshots in docs/skin/animals-v5. Deviations from the plan's letter: bodies and legs are hollowed to one shell
+  to meet the voxel budget; garments are meshed with the body per level (coatCells keep the garment alone) so the
+  triangle budget holds; the goat's catchlight sits one row lower (a 5-voxel iris); test 9 drives the pose function
+  directly (no GL test renderer); no worn item is built yet, so every catalogue `worn` id maps to nothing; the
+  silhouette acceptance (two people naming the species) was not run. Each species' drawScale is applied at the table.

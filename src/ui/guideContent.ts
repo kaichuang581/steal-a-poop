@@ -22,7 +22,7 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: 'Trap letter', def: 'X, Z, Q or J. End a word on one and, if the next sheep runs out of time, you get a wool ball.' },
   { term: 'Round', def: 'Every sheep takes 2 turns, then a new round starts with a shorter timer: 15 s, 10 s, then 5 s.' },
   { term: 'Twist', def: 'A special rule for one round, called out by an alarm: no E, 6+ letters, or a double letter. The first round has none.' },
-  { term: 'Practice', def: 'A game against easy bots with a longer timer and hints. You never lose wool; the bots do.' },
+  { term: 'Practice', def: 'A 1v1 speed run against one bot on one life. Each word you play scores a point; choose your starting clock and bot, and beat your best.' },
   { term: 'Daily Table', def: 'One game per UTC day with the same starting letter, twists and bots for everyone.' },
 ];
 
@@ -36,7 +36,7 @@ export const FAQ: { q: string; a: string }[] = [
   { q: 'When do traps pay?', a: 'Only when the sheep after you runs out of time. If they play a good word or someone steals, the trap does nothing.' },
   { q: 'Is there a limit on wool?', a: `Yes: you can hold up to ${EXTRA_WOOL_CAP} more wool balls than you started with.` },
   { q: 'Are there points?', a: 'No. There are no points, no pile and no banking. Wool balls are all that count.' },
-  { q: 'Can I lose wool in practice?', a: 'No. In practice you never lose wool, but the bots do, so you can learn stealing and traps safely.' },
+  { q: 'How does practice work?', a: 'It is you against one bot, on one life. The first time your clock runs out the run ends, and your score is the words you played. No hints, steals or twists. The Tutorial is the safe place to learn.' },
   { q: 'Is my progress saved?', a: 'Only in this browser: your nickname, settings, whether you have seen the tutorial, tips, and your daily results. There are no accounts, so clearing site data erases it, and it does not follow you to another device.' },
   { q: 'Can I replay this tutorial?', a: 'Yes: Settings on the start screen, then Replay tutorial.' },
 ];

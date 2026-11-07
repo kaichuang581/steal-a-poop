@@ -10,6 +10,7 @@ import type { HubTab } from './social/Hub';
 import { useSocial } from '../state/socialStore';
 import { useState } from 'react';
 import pkg from '../../package.json';
+import { UPDATE_NAME } from '../config';
 import { GAME_TAGLINE, GAME_TITLE } from '../config';
 import { MAX_PLAYERS, MIN_PLAYERS, utcDateKey } from '../engine';
 import type { Difficulty } from '../engine';
@@ -171,7 +172,7 @@ export function StartScreen() {
               onClick={() => go('practice')} disabled={!ready}
               className="min-h-12 rounded-xl bg-sky-500/70 font-black disabled:opacity-40"
             >
-              Practice <span className="text-sm font-bold">· no penalties, hints</span>
+              Practice <span className="text-sm font-bold">· 1v1, one life, high score</span>
             </button>
             <div className="flex gap-2">
               <button onClick={() => startTour('menu')} disabled={!ready} className="min-h-12 flex-1 rounded-xl bg-white/10 font-bold hover:bg-white/15 disabled:opacity-40">Tutorial</button>
@@ -182,7 +183,7 @@ export function StartScreen() {
         </div>
       </div>
       <footer className="mt-4 flex items-center justify-center gap-4 text-xs text-white/55">
-        <span>v{pkg.version}</span>
+        <span>v{pkg.version} · {UPDATE_NAME}</span>
         <button className="min-h-11 content-center underline" onClick={() => setFeedback(true)}>Send feedback</button>
         {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
         {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (

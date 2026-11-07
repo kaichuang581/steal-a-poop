@@ -4,7 +4,7 @@ import { detailed } from '../voxel/refine';
 import type { Voxel, VoxelMap } from '../voxel/mesher';
 import { lin, pick, SCARF, T } from '../voxel/palette';
 import type { Tone } from '../voxel/palette';
-import { ellipsoid, Grid, hash3, line, ring, rng } from '../voxel/primitives';
+import { box, ellipsoid, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, V3 } from '../voxel/primitives';
 import { BARN, YARD } from './layout';
 
@@ -42,7 +42,7 @@ const inBarn = (x: number, z: number) => x >= BARN.minX && x <= BARN.maxX && z >
 const underWalls = (x: number, z: number) => x >= BARN.minX - 0.2 && x <= BARN.maxX + 0.2 && z >= BARN.minZ && z <= BARN.maxZ + 0.2;
 const pondD = (x: number, z: number) => ((x - YARD.pond.x) / YARD.pond.rx) ** 2 + ((z - YARD.pond.z) / YARD.pond.rz) ** 2;
 
-export function buildYard(): { chunks: BufferGeometry[]; smokeFrom: [number, number, number]; triangles: number } {
+export function buildYard(): { chunks: BufferGeometry[]; snowman: BufferGeometry; smokeFrom: [number, number, number]; triangles: number } {
   const g = new Grid(S);
   const set = (x: number, y: number, z: number, p: Paint) => {
     const c = p(x, y, z);
@@ -59,7 +59,6 @@ export function buildYard(): { chunks: BufferGeometry[]; smokeFrom: [number, num
   ground(g, set);
   fence(g, set, boxI, capAt);
   YARD.pines.forEach(([x, z], i) => pine(g, set, x, z, i + 1));
-  snowman(g, set);
   sled(set, boxI, capAt);
   woodpile(set, boxI, capAt);
   feeder(set, boxI, capAt);
@@ -82,11 +81,16 @@ export function buildYard(): { chunks: BufferGeometry[]; smokeFrom: [number, num
   };
   const standing = (v: Voxel) => v.y >= 0;
   const fine = detailed(g.map, S, 0.04, standing);
+  const man = new Grid(S / 2);
+  snowman(man);
   const geos = [
     ...inChunks(g.map, S, (v) => !standing(v), (ny, y) => ny < 0 && y < 0),
     ...inChunks(fine.map, fine.size, () => true, (ny, y) => ny < 0 && y <= 0),
   ];
-  return { chunks: geos, smokeFrom, triangles: geos.reduce((s, x) => s + triangles(x), 0) };
+  // The snowman is its own mesh with no corner shading: on a white ball the corner shading of every little step stacks
+  // into dark stripes. It takes light and shadow like the snow around it, so it never looks glazed or out of place.
+  const man2 = buildGeometry(man.map, S / 2, { ao: false });
+  return { chunks: geos, snowman: man2, smokeFrom, triangles: [...geos, man2].reduce((s, x) => s + triangles(x), 0) };
 }
 
 type Set = (x: number, y: number, z: number, p: Paint) => void;
@@ -251,36 +255,45 @@ export function pine(g: Grid, set: Set, wx: number, wz: number, seed: number, he
   set(tx, hv + 1, tz, snow);
 }
 
-/** First filled voxel scanning from the camera side (-z) at column (x, y). */
-function front(g: Grid, x: number, y: number, from: number) {
-  for (let z = from; z < from + 20; z++) if (g.has(x, y, z)) return z;
-  return from + 10;
-}
 
-function snowman(g: Grid, set: Set) {
+/**
+ * The snowman, on its own 0.1 m grid: three round balls, a face turned toward the start screen's camera, a scarf knotted
+ * at the neck with its tail hanging over the chest, stick arms and coal buttons. Everything is placed in metres off the
+ * ball it sits on, so it stays on the surface.
+ */
+function snowman(g: Grid) {
   const { x, z } = YARD.snowman;
-  ellipsoid(g, [x, 0.7, z], [0.8, 0.75, 0.8], snow);
-  ellipsoid(g, [x, 1.72, z], [0.6, 0.55, 0.6], snow);
-  ellipsoid(g, [x, 2.58, z], [0.44, 0.42, 0.44], snow);
-  const coal = () => lin(T.face[2]);
-  const cx = ix(x) - 1, z0 = ix(z) - 10; // grid columns cx and cx+1 straddle the centre
-  const eyeY = ix(2.66);
-  for (const ex of [cx - 1, cx + 2]) set(ex, eyeY, front(g, ex, eyeY, z0) - 1, coal);
-  const noseY = ix(2.5);
-  const nz = front(g, cx, noseY, z0);
-  set(cx, noseY, nz - 1, () => lin(CARROT));
-  set(cx + 1, noseY, nz - 1, () => lin(CARROT));
-  set(cx, noseY, nz - 2, () => lin(CARROT));
-  set(cx, noseY - 1, nz - 3, () => lin('#D9762E'));
-  for (const by of [1.45, 1.75, 2.02].map(ix)) set(cx, by, front(g, cx, by, z0) - 1, coal);
-  // Red scarf round the neck with a tail hanging down the front.
+  const balls = [{ y: 0.72, r: 0.78 }, { y: 1.74, r: 0.56 }, { y: 2.56, r: 0.42 }];
+  const white: Paint = (a, b, c) => pick(T.snow, hash3(a >> 1, b >> 1, c >> 1, 44), [0.55, 1.01]);
+  for (const b of balls) ellipsoid(g, [x, b.y, z], [b.r, b.r * 0.96, b.r], white);
+  // Facing: toward the home camera, which looks at the yard from the -x, +z side.
+  const fx = -0.82, fz = 0.58, sx = -fz, sz = fx;
+  const radiusAt = (b: { y: number; r: number }, y: number) => b.r * Math.sqrt(Math.max(0, 1 - ((y - b.y) / (b.r * 0.96)) ** 2));
+  const dot = (y: number, b: { y: number; r: number }, side: number, colour: string, out = 0.05) => {
+    const r = radiusAt(b, y) + out;
+    const px = x + fx * r + sx * side, pz = z + fz * r + sz * side;
+    box(g, [px - 0.05, y - 0.05, pz - 0.05], [px + 0.05, y + 0.05, pz + 0.05], () => lin(colour));
+  };
+  const head = balls[2], body = balls[1];
+  for (const side of [-0.13, 0.13]) dot(2.64, head, side * 0.85, T.face[2], 0.0);
+  line(g, [x + fx * 0.4, 2.54, z + fz * 0.4], [x + fx * 0.68, 2.5, z + fz * 0.68], () => lin(CARROT));
+  for (const y of [1.48, 1.74, 2.0]) dot(y, body, 0, T.face[2], 0.0);
+  // The scarf: a snug band where head meets body, and a tail hanging down over the chest.
   const red: Paint = (a, b, c) => lin(hash3(a, b, c, 41) > 0.7 ? T.collar[2] : SCARF);
-  ring(g, [x, 2.2, z], 0.5, 0.5, 0.2, red);
-  line(g, [x + 0.25, 2.1, z - 0.5], [x + 0.35, 1.55, z - 0.62], red);
-  // One stick arm with a twig.
+  const neck = 2.2;
+  for (const [y, r] of [[neck - 0.05, 0.36], [neck + 0.05, 0.33]] as const) ring(g, [x, y, z], r, r, 0.1, red);
+  for (const [y, r] of [[neck - 0.05, 0.3], [neck + 0.05, 0.28]] as const) ring(g, [x, y, z], r, r, 0.1, red);
+  const tail = (t: number): V3 => [x + fx * (0.36 + t * 0.2) + sx * 0.14, neck - 0.05 - t * 0.5, z + fz * (0.36 + t * 0.2) + sz * 0.14];
+  line(g, tail(0), tail(1), red);
+  line(g, [tail(0)[0] + sx * 0.1, tail(0)[1], tail(0)[2] + sz * 0.1], [tail(1)[0] + sx * 0.1, tail(1)[1], tail(1)[2] + sz * 0.1], red);
+  // Stick arms out of the sides of the body, one raised, with a twig each.
   const stick = tone(T.trunk, 43);
-  line(g, [x + 0.55, 1.85, z], [x + 1.4, 2.35, z - 0.1], stick);
-  line(g, [x + 1.15, 2.2, z - 0.05], [x + 1.3, 2.6, z - 0.1], stick);
+  for (const [side, rise] of [[1, 0.45], [-1, 0.15]] as const) {
+    const from: V3 = [x + sx * side * 0.5, 1.86, z + sz * side * 0.5];
+    const to: V3 = [x + sx * side * 1.25, 1.86 + rise, z + sz * side * 1.25];
+    line(g, from, to, stick);
+    line(g, [(from[0] + to[0] * 2) / 3, (from[1] + to[1] * 2) / 3, (from[2] + to[2] * 2) / 3], [to[0] + sx * side * 0.05, to[1] + 0.3, to[2] + sz * side * 0.05], stick);
+  }
 }
 
 function sled(set: Set, boxI: BoxI, cap: Cap) {

@@ -1,11 +1,6 @@
 import { JoinLink } from './share/JoinLink';
 import { useAvatar } from './avatars/store';
 import { useEffect } from 'react';
-import { useAuth } from '../auth/authStore';
-import { authEnabled } from '../auth/config';
-import { useGuest } from '../auth/guest';
-import { decideEntry } from './landing/entry';
-import { Landing } from './landing/Landing';
 import { Garland } from './components/Garland';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
@@ -65,12 +60,9 @@ export function PaintedApp() {
   if (PREVIEW === 'sheep') return <SheepPreview />;
   if (PREVIEW === 'lineup') return <LineupPreview />;
   // A ?join=CODE address joins that room once the player is signed in and online.
-  // Landing: nobody signed in and no guest yet (first visit, or after logging out). Only shown on the home screen.
-  const status = useAuth((s) => s.status);
-  const guest = useGuest();
-  const entry = decideEntry({ accounts: authEnabled(), status, hasGuest: !!guest });
-  const home = entry === 'wait' ? <div className="h-full" style={{ background: 'var(--ink, #1b1209)' }} aria-hidden="true" />
-    : entry === 'landing' ? <Landing /> : <PaintedHome />;
+  // The start screen is always the first thing: nothing to get through before it. The name is picked there, and signing
+  // in is one button on it, for whoever wants an account.
+  const home = <PaintedHome />;
   const screen = dreaming ? <DreamScreen />
     : hunting ? <HuntScreen />
     : inGame ? <PaintedGame />

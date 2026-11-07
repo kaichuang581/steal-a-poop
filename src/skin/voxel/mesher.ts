@@ -44,7 +44,7 @@ function cornersFor(axis: number, sign: number): [number, number][] {
  * Face-culled mesh with per-vertex colour and ambient occlusion baked in (plan V3 Part 8). Positions are in metres:
  * voxel indices times `size`.
  */
-export function buildGeometry(vox: VoxelMap, size: number): BufferGeometry {
+export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true }: { ao?: boolean } = {}): BufferGeometry {
   const solid = solidOf(vox);
   // UVs are kept so a material may map a texture, but the voxel material carries none (plan V3.1 Part 1.1).
   const has = (p: number[]) => solid.has(cellKey(p[0], p[1], p[2]));
@@ -75,7 +75,7 @@ export function buildGeometry(vox: VoxelMap, size: number): BufferGeometry {
         const a = has(s1) ? 1 : 0, b = has(s2) ? 1 : 0, cc = has(cn) ? 1 : 0;
         const ao = a && b ? 3 : a + b + cc; // 0 open .. 3 fully occluded
         aos.push(ao);
-        const k = (1 - AO_STEP * ao) * FACE_SHADE(f.axis, f.sign);
+        const k = (1 - AO_STEP * (occlude ? ao : 0)) * FACE_SHADE(f.axis, f.sign);
         col.push(v.c[0] * k, v.c[1] * k, v.c[2] * k);
       }
       // flip the quad diagonal when needed so AO gradients have no seam

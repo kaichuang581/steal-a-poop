@@ -194,3 +194,5 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   clumps, never rows; the orchard has grown out of line; drifts, scrub, rocks, dead grass, a dry stone wall and worn tracks fill the open ground.
   Everything goes through `isClear`, which keeps it off the farm and out of every tour camera's sight line (POV_SHOTS now live in scene/homePov.ts).
   Restraint with the season: one Christmas tree on the farm (by the barn doors), one in the barn, one on the ice. Pines stay plain pines.
+- The start screen comes first (approved by Brian, 2026-11-07): no landing page and no forced sample round or username step before it.
+  The name is typed on the start screen's name plate; signing in is the Account button there. src/skin/landing is gone.

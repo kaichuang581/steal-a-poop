@@ -305,8 +305,13 @@
   font-weight: 900; font-size: 13px; color: var(--ink); background: var(--paper); box-shadow: inset 0 -3px 0 var(--paper-edge);
 }
 .sk-tip { animation: sk-title-fade 500ms var(--ease-out) both; }
+.sk-plate-name {
+  width: 11rem; min-height: 28px; padding: 0 4px; border: 0; border-radius: 4px; outline: none; background: transparent;
+  font: inherit; color: inherit; text-shadow: inherit;
+}
+.sk-plate-name::placeholder { color: rgba(255, 244, 220, 0.75); }
+.sk-plate-name:focus { background: rgba(255, 244, 220, 0.16); box-shadow: 0 0 0 2px var(--amber); }
 .sk-plate {
-  /* A small nailed name board. */
   position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 10px; border-radius: 9px 11px 8px 10px;
   color: var(--button-text); font-weight: 800; text-shadow: 0 -1px 0 rgba(40, 24, 10, 0.7);
   background: repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.06) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.08) 6px 7px, transparent 7px 11px), linear-gradient(180deg, var(--wood) 0 12%, var(--wood-dark) 12% 88%, var(--wood-ink) 88%);
@@ -1058,3 +1063,9 @@
 .sk-jump-fire3 { background: radial-gradient(circle, #fff 0%, #ffe27a 35%, #ff8a2a 62%, rgba(255, 60, 20, 0) 100%); animation-delay: 40ms; animation-duration: 1500ms; }
 .sk-jump-ring { left: 50%; top: 46%; width: 40vmin; height: 40vmin; margin: -20vmin 0 0 -20vmin; border-radius: 50%; border: 3vmin solid rgba(255, 190, 90, 0.9); animation: sk-jump-ring 1400ms 80ms cubic-bezier(0.1, 0.6, 0.3, 1) forwards; opacity: 0; }
 @keyframes sk-jump-ring { 0% { transform: scale(0.1); opacity: 1; } 100% { transform: scale(calc(14 + var(--p, 1) * 3)); opacity: 0; } }
+/* Short windows: a smaller title sign, so the menu fits between the name plate and the bottom bar. */
+@media (max-height: 800px) and (min-width: 641px) {
+  .sk-title { --tile: 46px; }
+  .sk-title-plank { margin-top: 4px; padding-top: 8px; padding-bottom: 6px; }
+  .sk-menu-item:not(.sk-menu-primary) { min-height: 38px; padding-top: 3px; padding-bottom: 3px; }
+}

@@ -132,6 +132,7 @@ export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: 
       <Cat geo={barn.cat} reduced={reduced} frozen={stealOpen} mat={voxMat} />
       <Robin geo={barn.robin} reduced={reduced || stealOpen} mat={voxMat} />
       {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
+      <mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />
       <ChimneySmoke from={yard.smokeFrom} />
       <mesh geometry={distance.hills} material={voxMat} receiveShadow />
       <mesh geometry={distance.backHills} material={voxMat} receiveShadow />

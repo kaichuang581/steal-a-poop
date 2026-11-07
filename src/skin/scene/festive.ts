@@ -15,6 +15,8 @@ import { BARN, YARD } from './layout';
 
 const GLOW = ['#E8402E', '#3FBF5F', '#FFC24B'] as const;
 export const BULB_COLORS = GLOW;
+/** Twinkle groups per colour. Each bulb joins one at random, and each group keeps its own time (Festive.tsx). */
+export const BULB_GROUPS = 5;
 const RED = '#C8342E';
 const GOLD = T.brass[0];
 const STAR = ['...#...', '...#...', '..###..', '#######', '.#####.', '..###..', '.##.##.', '.#...#.'];
@@ -22,18 +24,23 @@ const STAR = ['...#...', '...#...', '..###..', '#######', '.#####.', '..###..', 
 export interface FestiveGeometry {
   decor: BufferGeometry;
   /** One geometry per BULB_COLORS, so each colour can twinkle on its own. */
+  /** BULB_GROUPS geometries per colour, colour by colour, so the lights can twinkle out of step. */
   bulbs: BufferGeometry[];
+  /** Gold stars, which hold steady. */
+  star: BufferGeometry;
 }
 
 class Dressing {
   readonly decor = new Grid(0.1);
-  readonly glow = GLOW.map(() => new Grid(0.1));
+  readonly glow = Array.from({ length: GLOW.length * BULB_GROUPS }, () => new Grid(0.1));
+  readonly stars = new Grid(0.1);
   private n = 0;
 
   /** A bulb in the next colour, 0.2 m across unless it is for something the camera gets close to. */
   bulb(x: number, y: number, z: number, size = 0.2) {
     const i = this.n++ % GLOW.length, r = size / 2;
-    box(this.glow[i], [x - r, y - r, z - r], [x + r, y + r, z + r], () => lin(GLOW[i]));
+    const group = Math.floor(hash3(Math.round(x * 10), Math.round(y * 10), Math.round(z * 10), 97) * BULB_GROUPS);
+    box(this.glow[i * BULB_GROUPS + group], [x - r, y - r, z - r], [x + r, y + r, z + r], () => lin(GLOW[i]));
   }
 
   /** A wire hung from `a` to `b`, sagging `droop` metres in the middle, with a bulb every `every` metres. */
@@ -82,9 +89,9 @@ class Dressing {
     if (topped) this.star(x, height - 0.2, z);
   }
 
-  /** A gold star, which always glows gold whatever colour is next, standing on `y`. */
+  /** A gold star, steady while the bulbs twinkle, standing on `y`. */
   star(x: number, y: number, z: number) {
-    const star = this.glow[2];
+    const star = this.stars;
     STAR.forEach((row, r) => [...row].forEach((cell, c) => {
       if (cell !== '#') return;
       const across = (c - 3) * 0.1, up = y + (STAR.length - r) * 0.1;
@@ -160,7 +167,7 @@ class Dressing {
   }
 
   build(): FestiveGeometry {
-    return { decor: buildGeometry(this.decor.map, 0.1), bulbs: this.glow.map((g) => buildGeometry(g.map, 0.1)) };
+    return { decor: buildGeometry(this.decor.map, 0.1), bulbs: this.glow.map((g) => buildGeometry(g.map, 0.1)), star: buildGeometry(this.stars.map, 0.1) };
   }
 }
 
@@ -195,7 +202,7 @@ export function buildFestive(): FestiveGeometry {
     d.cane(-YARD.path.halfWidth - 1.4, z, 1); // set back: the tour's path shot looks straight down this side
     d.cane(YARD.path.halfWidth + 0.3, z, -1);
   }
-  d.hat(YARD.snowman.x, 2.92, YARD.snowman.z);
+  d.hat(YARD.snowman.x, 2.92, YARD.snowman.z); // on the head's crown (the ball tops out at 2.96)
   // Round the barn walls, for the table's camera: swags down both sides and stockings either side of the doors.
   for (const side of [-1, 1]) {
     d.swags([side * (BARN.maxX - 0.25), 3.6, -3.4], [side * (BARN.maxX - 0.25), 3.6, BARN.maxZ - 0.6], 3.2, 0.4);

@@ -230,8 +230,23 @@ export function PaintedHome() {
       caption: rooms ? '4 to 10 people in the big barn.' : 'Rooms open when the game server is live.',
     },
   ];
+  // The name is typed straight onto the plate on the start screen: no screen of its own, no step before the menu.
+  const nameField = (
+    <input
+      className="sk-plate-name" value={settings.name} aria-label="Your name" placeholder="Your name"
+      onChange={(e) => { setSettings({ name: e.target.value.slice(0, MAX_NICKNAME) }); setError(''); }}
+      onFocus={() => setHopKey((k) => k + 1)}
+      maxLength={MAX_NICKNAME} autoComplete="off" spellCheck={false}
+    />
+  );
   const tables = (
     <div className="flex flex-col gap-3" key="tables">
+      {mobile && (
+        <div className="sk-plate self-center" aria-label="Player">
+          <span className="sk-plate-avatar" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={22} /> : <SheepIcon size={22} />}</span>
+          {nameField}
+        </div>
+      )}
       <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
       {dictStatus === 'error' && (
         <PaperPanel role="alert" className="p-3 text-center">
@@ -258,18 +273,7 @@ export function PaintedHome() {
         <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
       </div>
       {table.first && <p className="sk-display text-base">Easy table for your first games</p>}
-      <label className="block">
-        <span className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Your name</span>
-        <input
-          value={settings.name}
-          onChange={(e) => { setSettings({ name: e.target.value.slice(0, MAX_NICKNAME) }); setError(''); }}
-          onFocus={() => setHopKey((k) => k + 1)}
-          maxLength={MAX_NICKNAME} placeholder="You" autoComplete="off" spellCheck={false} autoFocus
-          className="mt-1 min-h-12 w-full rounded-xl px-4 text-lg font-bold outline-none"
-          style={{ background: 'var(--paper)', boxShadow: 'inset 0 0 0 2px var(--paper-edge)', color: 'var(--ink)' }}
-        />
-        {error && <span role="alert" className="mt-1 block text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</span>}
-      </label>
+      {error && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
       <fieldset>
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Game length</legend>
         <div className="mt-1 flex flex-wrap gap-1.5">
@@ -348,7 +352,6 @@ export function PaintedHome() {
   );
   const panel = step === 'practice' ? drillSetup : setup;
 
-  const name = settings.name.trim() && checkNickname(settings.name).ok ? settings.name.trim() : 'New shepherd';
   const footer = (
     <footer className="flex flex-wrap items-center gap-x-3 text-[11px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>
       <span>v{pkg.version}{mobile ? '' : ` · ${UPDATE_NAME}`}</span>
@@ -365,11 +368,11 @@ export function PaintedHome() {
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
-      <div className="absolute inset-x-0 top-0 flex items-start justify-end gap-2 p-3 sm:p-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 p-3 sm:p-4 [&>*]:pointer-events-auto">
         {!mobile && (
           <div className="sk-plate mr-auto" aria-label="Player">
             <span className="sk-plate-avatar" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={24} /> : <SheepIcon size={24} />}</span>
-            <span className="max-w-[12rem] truncate">{name}</span>
+            {nameField}
             {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
@@ -402,7 +405,8 @@ export function PaintedHome() {
       ) : (
         <>
           {/* Left column: the title board, then the menu, like a console title screen. */}
-          <div className="absolute bottom-16 left-10 top-16 flex w-[27rem] flex-col justify-center gap-4">
+          {/* "safe": on a short window the column starts under the name plate instead of riding up over it. */}
+          <div className="absolute bottom-14 left-10 top-20 flex w-[27rem] flex-col gap-3" style={{ justifyContent: 'safe center' }}>
             <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
             {step === 'tables' ? tables : <div className="pointer-events-none opacity-40" inert>{tables}</div>}
           </div>

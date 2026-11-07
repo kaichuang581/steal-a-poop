@@ -261,6 +261,17 @@ export function buildFarmFestive(): FestiveGeometry {
   return (farmstead = d.build());
 }
 
+let bubble: FestiveGeometry | null = null;
+/** The farmer's bubble (dream v4.1): lights along the headboard, presents by the foot of the bed where its camera sees them. */
+export function buildBubbleFestive(): FestiveGeometry {
+  if (bubble) return bubble;
+  const d = new Dressing();
+  d.strand([-0.1, 1.2, -0.75], [-0.1, 1.2, 0.75], 0.12, 0.2, 0.1);
+  d.present(1.55, 0.95, 0.24, 0.2, T.collar[1], GOLD);
+  d.present(1.25, 1.1, 0.2, 0.26, T.pine[1], T.snow[1]);
+  return (bubble = d.build());
+}
+
 let duel: FestiveGeometry | null = null;
 /** The ice gets a little of it too: lights between the lanterns and a tree at the far end. */
 export function buildDuelFestive(): FestiveGeometry {

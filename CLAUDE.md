@@ -122,11 +122,8 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   pixel). Approved changes outside src/skin: (a) src/dream/daily.ts gains Warm Blankets, the longest streak and the
   one-night repair (V4 Part 12), with the tests V4 Part 12.5 lists; (b) src/dream/dream.ts gains `exampleWords` (hints on
   the first three fences only), the glyph row and the game's name in `dreamShareText` (V4 Part 13), with tests; nothing
-  else in src/dream changes. The bedroom and the farmer are part of the dream screen (V4 Part 8). The v3 voxel rules
-  apply: 0.04 m for the sheep, the farmer and small props, 0.10 m for the bed, fences and signs, 0.20 m for the lane and
-  the islands, 1 m for hills and 3 m for mountains; merged face-culled meshes with baked AO; MeshLambertMaterial with
-  vertex colours; no bloom, no depth of field; transparency only for the moon halo, the aurora, snow and dream dust.
-- The bounded dream (V4 Part 15, Milestone D5) is NOT approved: `DREAM_LENGTH` stays null until Brian says otherwise.
+  else in src/dream changes.
+- The bounded dream (V4 Part 15, Milestone D5) was approved by Brian on 2026-11-07; see the note on the daily anchor below.
 - Counting Sheep v4, D1 to D4 built (approved by Brian, 2026-11-07: "do plan for every decision"): the dream is the
   farmer's (src/skin/dream: stage.ts for the pure layout, world.ts and bedroom.ts for the voxels, DreamStage.tsx for the
   scene, run.ts for the run loop, DreamScreen.tsx for the HUD and results). Where the plan's metres did not fit its own
@@ -134,7 +131,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   the trail puffs and the islands are placed by the targets; the hills are low; the bedroom's wall plane is dropped;
   the puffs use 0.05 m voxels; the sheep is drawn at 0.72 m (the model is 1.3 m at scale 1). The canvas must never sit
   inside a transformed element (the swoop-in inflated its measured size). Known: draw calls run near 90 against the
-  plan's 60. D5 (the bounded dream) stays unbuilt.
+  plan's 60.
 - Farm animals v5 (approved by Brian, 2026-11-07): the plan is docs/REDESIGN_PLAN_V5_ANIMALS.md. Every species is its own
   model built from its own shapes on the 0.04 m grid (V5 Part 4.1 rig), never a recoloured sheep. The shared rules in
   V5 Part 4 are binding: the eye standard (4.3), horizontal heads (4.4), smooth bodies with shaped markings (4.5),
@@ -196,3 +193,40 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Restraint with the season: one Christmas tree on the farm (by the barn doors), one in the barn, one on the ice. Pines stay plain pines.
 - The start screen comes first (approved by Brian, 2026-11-07): no landing page and no forced sample round or username step before it.
   The name is typed on the start screen's name plate; signing in is the Account button there. src/skin/landing is gone.
+- Counting Sheep, the daily anchor (approved by Brian, 2026-11-07), a rules change in src/dream: `DREAM_LENGTH` is 30 fences
+  and 3 bumps, a first guess until the plan's ten-person playtest. A bump short of the last holds the sheep 700 ms and
+  knocks the fence flat (it counts as reached, not as a sheep); the last bump wakes the farmer; the last fence puts him to
+  sleep. Practice stays endless and ends on the first bump. Pace is the offline dinosaur's: `Fence.gap` is now a distance
+  in logical pixels, about 400 to 480 whatever the speed, and `speedAt` rises to 110, so the time per fence falls from about
+  7 s to 5 s across a night. `TYPE_X` is a whole gap ahead so the speed, not the window, sets the time to type. Hay bales
+  (`obstacleAt`, `lettersFor`) start at fence 8, stand 170 to 200 px behind the fence before them, ask one or two letters,
+  and may come two at a time from fence 18, never three. Existing tests for the old gap, the letter counts and `TYPE_X`
+  were changed for this. The share text gains the link and each bump in place.
+- Counting Sheep v4.1 (approved by Brian, 2026-11-07): docs/REDESIGN_PLAN_V4_1.md supersedes v4 Parts 4 to 6; v4 Parts 7 to 15
+  still apply. The dream scene is built in the order E0 to E5 and each milestone ends at the gate in V4.1 Part 10, measured by
+  tools/dreamGate.ts; a milestone is not done until every gate number passes. The bedroom is a separate small canvas
+  (V4.1 Part 7), never an object inside the dream scene. Grid sizes in the dream: 0.04 m the sheep and the farmer; 0.10 m
+  fences, signs, lane details and the bedroom; 0.20 m the raft, its cloud ridge, the cloud sea and the islands; 0.5 m the
+  hills; 1 m the mountains (the dream looks straight at its distance, so it uses finer far grids than the barn). The
+  on-screen size limits in V4.1 Part 5.3 apply. Pure logic in src/dream is unchanged; PX = 0.036 m.
+- V4.1 as built, E0 to E5 (2026-11-07): `npm run dream:gate -- --base <dev url> [--phone]` passes 32 of 32 at 1920 x 1080 and at
+  390 x 844. Where the plan disagreed with itself the frame targets and gates won: every z is mirrored (camera at +z, as v4);
+  L is Rec. 709 on the stored sRGB values and saturation is HSV, or the plan's own colours fail its table; the scene is
+  sampled with the HUD hidden, because (50,9) and (50,15) lie under the board; lights are 4.5 and 1.7 and the hemisphere's
+  ground colour is pale (the plan's are in old light units, and its dark ground turned shaded sides navy); the aurora is
+  0.07, not 0.30; the sky's stops are set by elevation and the stars sit in the sky the camera sees; islands are sized from
+  their on-screen boxes; the third puff moved off the sheep's hooves (`PUFFS`); the wood has a warm tint; the phone camera is
+  solved from the plan's targets, with its own island boxes, fog, light side and a coarser sea. Grids finer than the plan,
+  for how they look at this camera: the near ridge and the islands are 0.10 m, and the farmer's head is 0.02 m (its features
+  need a head 15 voxels wide). Known: 65 draws on desktop and 67 on a phone against the plan's 60; frame time is unmeasured
+  (software rendering only); the two-person read test (Part 11) has not been run.
+- Counting Sheep, easier and in theme (approved by Brian, 2026-11-07), a rules change in src/dream plus skin work: `lettersAt` tops out at
+  3 (4 and 5 left fences with no ordinary word) and a bale asks 1; `fenceAt` rerolls until `MIN_FITS` of `FENCE_WORDS` fit and never
+  uses j, q, v, x or z; signs read `R…N`, because the letters may have anything between them, and `hintWord` offers a word after
+  3.2 s. `JUMP_MS` is 720, and a fence the sheep took off for cannot bump it (at a low frame rate a right word was being punished).
+  Obstacles cross the lane (`obstacle`, `lookOf` in src/skin/dream/world.ts: rail, picket, wall, log, round bales, on a 0.05 m grid;
+  the look is cosmetic, the rules only know fence and bale). Scenery on the far strip is real things on 0.05 m, not specks,
+  overriding V4.1 Part 5.2's size limits. The dream has its own UI kit at the end of dream.css (`.dr-card`, `.dr-btn`, `.dr-board`):
+  night indigo, cloud rims, moon gold, quilt patches. Everywhere else, a dialog is paper in a snowy wooden frame (`.sk-framed`
+  and the shared selectors at the end of skin.css), and the tally is planks on ropes. Hunt keeps its handheld look on purpose.
+

@@ -44,7 +44,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
   const chip = (on: boolean) => `min-h-11 rounded-lg border-2 px-3 text-sm font-bold ${on ? 'border-[#c0792b] bg-white' : 'border-transparent bg-white/60'}`;
   return (
     <div role="dialog" aria-modal="true" aria-label="Send feedback" className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-3" onClick={onClose}>
-      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-xl bg-[var(--paper,#f6efe0)] p-4 text-[#2b221d]" onClick={(e) => e.stopPropagation()}>
+      <div className="sk-framed max-h-[92vh] w-full max-w-md overflow-y-auto bg-[var(--paper,#f6efe0)] p-4 text-[#2b221d]" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-lg font-bold">Send feedback</h2>
           <button className="min-h-11 min-w-11 rounded-lg px-3 font-bold" onClick={onClose} aria-label="Close" title="Close">Close</button>

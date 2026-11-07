@@ -1,12 +1,13 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry, triangles } from '../voxel/mesher';
+import { detailed } from '../voxel/refine';
 import { lin, pick, T } from '../voxel/palette';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, V3 } from '../voxel/primitives';
 import { backHillHeight } from './distance';
 import { BARN, YARD } from './layout';
-import { ChunkMap, dropFaces, pine } from './yard';
+import { ChunkMap, dropFaces } from './yard';
 
 /**
  * The working farm around the barn, seen only from the start screen. The barn itself is a stage set for the game's
@@ -27,7 +28,6 @@ export const FARM = {
   run: { minX: -19, maxX: -8.6, minZ: -5, maxZ: 8 },
   orchard: { minX: -36, minZ: -13, cols: 3, rows: 5, gap: 5.5 },
   field: { minX: -26, maxX: 30, minZ: -27, maxZ: -16 },
-  windbreak: { z: -31, minX: -34, maxX: 36 },
 };
 
 const tone = (t: Tone, seed: number, w?: [number, number]): Paint => (x, y, z) => pick(t, hash3(x, y, z, seed), w);
@@ -321,10 +321,43 @@ function coop(b: Builder) {
   fenceRun(b, [R.minX, R.minZ], [R.minX, R.maxZ]);
   fenceRun(b, [R.minX, R.maxZ], [R.maxX, R.maxZ], (px) => px > -13 && px < -11);
   fenceRun(b, [R.maxX, R.minZ], [R.maxX, R.maxZ]);
-  // Scratched-up straw on the snow around the coop.
-  for (let px = b.ix(R.minX) + 1; px < b.ix(R.maxX); px++)
-    for (let pz = b.ix(R.minZ) + 1; pz < b.ix(R.maxZ); pz++)
-      if (hash3(px >> 1, 0, pz >> 1, 45) > 0.86 && !b.g.has(px, 0, pz)) b.set(px, 0, pz, tone(T.hay, 46, [0.3, 0.8]));
+}
+
+/**
+ * What the hens actually use, on the 0.1 m grid: a bed of straw spread out from the pop door and thinning into wisps at
+ * its edge, a feed trough full of grain, a water pan with a skin of ice, and a perch.
+ */
+function henYard(b: Builder) {
+  // One flat layer: stacked bits shade each other dark, and this is meant to read as a clean, pale bed.
+  const straw: Paint = (x, y, z) => pick(T.hay, hash3(x >> 1, y, z, 46), [0.55, 1.01]);
+  const cx = FARM.coop.x, cz = FARM.coop.z + 3.1;
+  for (let px = b.ix(cx - 5.4); px <= b.ix(cx + 3.2); px++)
+    for (let pz = b.ix(cz - 1.7); pz <= b.ix(cz + 2.6); pz++) {
+      const d = Math.hypot((px * F - cx + 1) / 4.2, (pz * F - cz - 0.4) / 2.1);
+      const wisps = hash3(px, 0, pz >> 1, 47);
+      if (d > 1.15 || wisps < (d - 0.72) * 2.4) continue;
+      b.set(px, 0, pz, straw);
+    }
+  // The feed trough: a long open box on two trestles, heaped with grain.
+  const tx = b.ix(cx - 3.8), tz = b.ix(cz + 0.5), wood = tone(T.beam, 49);
+  for (const leg of [tx, tx + 15]) b.box(leg, leg + 1, 0, 2, tz - 2, tz + 3, wood);
+  b.box(tx - 1, tx + 16, 3, 3, tz - 1, tz + 2, wood);
+  for (const side of [tz - 2, tz + 3]) b.box(tx - 1, tx + 16, 3, 4, side, side, wood);
+  for (const end of [tx - 2, tx + 17]) b.box(end, end, 3, 4, tz - 2, tz + 3, wood);
+  b.box(tx - 1, tx + 16, 4, 4, tz - 1, tz + 2, (x, y, z) => lin(hash3(x, y, z, 50) > 0.5 ? T.lantern[1] : T.hay[2]));
+  // The water pan: a low dark rim round a frozen middle.
+  const wx = b.ix(cx + 2.2), wz = b.ix(cz + 0.6);
+  for (let dx = -4; dx <= 4; dx++)
+    for (let dz = -4; dz <= 4; dz++) {
+      const r = Math.hypot(dx, dz);
+      if (r > 4.3) continue;
+      b.set(wx + dx, 0, wz + dz, () => lin(T.stone[2]));
+      b.set(wx + dx, 1, wz + dz, r > 3.2 ? () => lin(T.stone[1]) : tone(T.ice, 52));
+    }
+  // A perch: two posts and a rail, at hen height.
+  const hx = b.ix(cx - 5.4), hz = b.ix(cz + 2.0);
+  for (const leg of [hx, hx + 18]) b.box(leg, leg, 0, 5, hz, hz, wood);
+  b.box(hx, hx + 18, 6, 6, hz, hz, tone(T.trunk, 53));
 }
 
 /** A round bale lying with its axis along z. */
@@ -339,22 +372,28 @@ function roundBale(b: Builder, x: number, z: number, seed: number) {
 }
 
 /** A bare apple tree: forked branches, snow along the tops of the limbs. */
-function bareTree(b: Builder, x: number, z: number, seed: number) {
+/** Where the orchard's branches end, for the baubles to hang from. Filled in as the trees are built. */
+export const ORCHARD_TIPS: V3[] = [];
+
+function bareTree(b: Builder, x: number, z: number, seed: number, size = 1) {
   const r = rng(seed * 31 + 7);
   const bark = tone(T.trunk, seed + 50, [0.4, 0.85]);
-  const trunkH = 1.4 + r() * 0.5;
+  const trunkH = (1.4 + r() * 0.5) * size;
   line(b.g, [x, 0, z], [x, trunkH, z], bark);
   line(b.g, [x + S, 0, z], [x + S, trunkH * 0.8, z], bark);
   line(b.g, [x, 0, z + S], [x, trunkH * 0.7, z + S], bark);
   const limb = (from: V3, a: number, up: number, len: number, depth: number) => {
     const to: V3 = [from[0] + Math.cos(a) * len, from[1] + up * len, from[2] + Math.sin(a) * len];
     line(b.g, from, to, bark);
-    if (depth === 0) return;
+    if (depth === 0) {
+      ORCHARD_TIPS.push(to);
+      return;
+    }
     const n = depth > 1 ? 3 : 2;
     for (let i = 0; i < n; i++) limb(to, a + (r() - 0.5) * 2, 0.35 + r() * 0.5, len * (0.6 + r() * 0.2), depth - 1);
   };
   const top: V3 = [x, trunkH, z];
-  for (let i = 0; i < 4; i++) limb(top, i * 1.57 + r(), 0.5 + r() * 0.4, 1.1, 2);
+  for (let i = 0; i < 4; i++) limb(top, i * 1.57 + r(), 0.5 + r() * 0.4, 1.1 * size, 2);
   const cx = b.ix(x), cz = b.ix(z);
   b.capAll(cx - 18, cx + 18, 28, cz - 18, cz + 18, 0.75);
 }
@@ -373,15 +412,18 @@ function fieldAndTrees(b: Builder) {
   fenceRun(b, [P.minX - 1, P.maxZ + 1], [P.maxX + 1, P.maxZ + 1], (x) => x > -2 && x < 2);
   [[-14, -21], [-8, -24], [-3, -19.5], [6, -23], [13, -20], [21, -24.5]].forEach(([x, z], i) => roundBale(b, x, z, 60 + i));
   roundBale(b, 24.6, 3, 70), roundBale(b, 24.8, 5.6, 71);
+}
+
+/** The orchard's bare trees, right under the tour's wide shot. */
+function orchard(b: Builder) {
   const O = FARM.orchard;
   for (let i = 0; i < O.cols; i++)
-    for (let k = 0; k < O.rows; k++) bareTree(b, O.minX + i * O.gap + (k % 2) * 1.2, O.minZ + k * O.gap, i * 7 + k + 1);
-  // A windbreak of pines behind the field, and a few more to close off the sides.
-  const set = (x: number, y: number, z: number, p: Paint) => b.set(x, y, z, p);
-  const W = FARM.windbreak;
-  let n = 0;
-  for (let x = W.minX; x <= W.maxX; x += 5.6 + hash3(n, 0, 0, 53) * 2) pine(b.g, set, x, W.z + hash3(n, 1, 0, 54) * 3, 40 + n++);
-  ([[30, -6], [33, 6], [29, 14], [-41, -8], [-43, 6]] as const).forEach(([x, z], i) => pine(b.g, set, x, z, 70 + i));
+    for (let k = 0; k < O.rows; k++) {
+      // Old trees: planted in rows once, some long gone, the rest grown out of line and to their own size.
+      if (hash3(i, k, 0, 55) > 0.84) continue;
+      const x = O.minX + i * O.gap + (hash3(i, k, 1, 56) - 0.5) * 3, z = O.minZ + k * O.gap + (hash3(i, k, 2, 57) - 0.5) * 3;
+      bareTree(b, x, z, i * 7 + k + 1, 0.7 + hash3(i, k, 3, 58) * 0.55);
+    }
 }
 
 /** The tractor on the 0.10 m grid, parked by the barn, its nose toward -x. */
@@ -422,6 +464,15 @@ function tractor(b: Builder) {
 }
 
 /** The land past the yard, on the 1 m grid: flat near the buildings, rising into the hills on every side. */
+const smooth = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+/** How high the land stands at a point: flat around the farm, rising to the back hills and at the far sides. */
+export function landHeight(x: number, z: number): number {
+  const back = backHillHeight(x, Math.min(z, -34)) * smooth((-29 - z) / 12);
+  const side = Math.max(0, Math.abs(x) - 50);
+  const rise = Math.min(13, side * 0.16) * (0.65 + 0.35 * Math.sin(x / 13 + z / 17));
+  return Math.max(back, rise);
+}
+
 function terrain(): BufferGeometry {
   const g = new Grid(1);
   const yardCovers = (x: number, z: number) => {
@@ -430,28 +481,22 @@ function terrain(): BufferGeometry {
     if (z < BARN.minZ && Math.abs(x) >= 13) return false;
     return true;
   };
-  const smooth = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
-  const height = (x: number, z: number) => {
-    const back = backHillHeight(x, Math.min(z, -34)) * smooth((-29 - z) / 12);
-    const side = Math.max(0, Math.abs(x) - 50);
-    const rise = Math.min(13, side * 0.16) * (0.65 + 0.35 * Math.sin(x / 13 + z / 17));
-    return Math.max(back, rise);
-  };
-  const paint = (x: number, y: number, z: number) => pick(T.snow, hash3(x >> 2, y >> 1, z >> 2, 71), [0.6, 0.97]);
+  const paint = (x: number, y: number, z: number) => pick(T.snow, hash3(x >> 2, y >> 1, z >> 2, 71), [0.6, 1.01]); // the two light tones: the dark one drew squares on the land
   for (let x = -150; x < 150; x++)
     for (let z = -60; z < YARD.maxZ; z++) {
       if (yardCovers(x, z)) continue;
       if (z < -34 && Math.abs(x) < 100) continue; // the back hills stand there already
-      const top = Math.round(height(x, z));
+      const top = Math.round(landHeight(x, z));
       for (let y = Math.max(-1, top - 3); y < top; y++) g.set(x, y, z, paint(x, y, z));
       if (top <= 0) g.set(x, -1, z, paint(x, -1, z));
     }
-  const geo = dropFaces(buildGeometry(g.map, 1), (ny) => ny < 0);
+  const land = detailed(g.map, 1, 0);
+  const geo = dropFaces(buildGeometry(land.map, land.size), (ny) => ny < 0);
   geo.translate(0, -0.05, 0); // just under the yard's snow, so the two never share a plane
   return geo;
 }
 
-function chunks(map: Grid['map'], size: number): BufferGeometry[] {
+export function chunks(map: Grid['map'], size: number): BufferGeometry[] {
   const byChunk = new Map<string, ChunkMap>();
   for (const [k, v] of map) {
     const ck = `${Math.floor((v.x * size) / CHUNK)},${Math.floor((v.z * size) / CHUNK)}`;
@@ -471,11 +516,19 @@ export function buildFarmstead(): Farmstead {
   silo(big);
   paddock(big);
   coop(big);
-  fieldAndTrees(big);
-  const props = chunks(big.g.map, S);
+  orchard(big);
+  // What the tour gets close to is refined to the barn's 0.1 m, and the tractor, seen closest of all, to 0.05 m. The field
+  // and the trees past it stay on their 0.2 m grid: the camera never comes near them and the fog takes the rest.
+  const near = detailed(big.g.map, S);
+  const far = new Builder(new Grid(S));
+  fieldAndTrees(far);
+  const props = [...chunks(near.map, near.size), ...chunks(far.g.map, S)];
   const small = new Builder(new Grid(F));
   tractor(small);
-  const fine = chunks(small.g.map, F);
+  const close = detailed(small.g.map, F, 0.03);
+  const litter = new Builder(new Grid(F));
+  henYard(litter);
+  const fine = [...chunks(close.map, close.size), ...chunks(litter.g.map, F)];
   const land = terrain();
   return { fine, props, shell, terrain: land, triangles: [shell, land, ...props, ...fine].reduce((n, g) => n + triangles(g), 0) };
 }

@@ -149,7 +149,8 @@ function pine(g: Grid, wx: number, wy: number, wz: number, seed: number) {
     const R = Math.max(1, Math.round((1 - y / hv) * 2.2));
     for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) {
       if (Math.abs(dx) + Math.abs(dz) > R + (R > 1 ? 1 : 0) || (dx === 0 && dz === 0)) continue;
-      g.set(tx + dx, ty + y, tz + dz, pick(T.pine, hash3(dx, y, dz, seed + 50), [0.45, 0.85]));
+      const bauble = hash3(dx, y, dz, seed + 77);
+      g.set(tx + dx, ty + y, tz + dz, bauble > 0.9 ? lin(bauble > 0.95 ? T.collar[0] : T.lantern[0]) : pick(T.pine, hash3(dx, y, dz, seed + 50), [0.45, 0.85]));
       if (y >= hv / 2 && !g.has(tx + dx, ty + y + 1, tz + dz)) g.set(tx + dx, ty + y + 1, tz + dz, snowTone(dx, y, dz)!);
     }
   }
@@ -238,7 +239,8 @@ export function fence(): BufferGeometry {
     g.set(px, 6, 0, lin(T.snow[0])); g.set(px, 7, 0, lin(T.snow[1]));
   }
   for (const y of [2, 5]) for (let x = -2; x <= 2; x++) { g.set(x, y, 0, wood(x, y, 0)!); if (y === 5 && x !== -2 && x !== 2) g.set(x, y + 1, 0, lin(T.snow[0])); }
-  for (let x = -2; x <= 2; x++) g.set(x, 5, 0, lin(T.beam[0]));
+  // The top rail is a candy cane.
+  for (let x = -2; x <= 2; x++) g.set(x, 5, 0, lin(x % 2 ? T.collar[0] : T.snow[1]));
   return buildGeometry(g.map, F);
 }
 /** The sign post 0.3 m to the +x side of a fence: a post and a board with a snow cap, about the post's base. */

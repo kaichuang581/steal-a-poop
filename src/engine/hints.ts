@@ -13,7 +13,7 @@ export interface HintArgs {
 }
 
 /**
- * Up to `count` distinct valid words for the chain letter, for practice-mode hints.
+ * Up to `count` distinct valid words for the chain letter, for tutorial hints.
  * Favours short common-letter words. The dictionary has no familiarity data, so an
  * obscure Scrabble word can still appear.
  */

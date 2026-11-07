@@ -5,6 +5,9 @@ import {
   AdditiveBlending, DoubleSide, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group,
   InstancedMesh, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial, Vector3,
 } from 'three';
+import { Box3 } from 'three';
+import type { Material } from 'three';
+import { santaHat } from '../scene/festive';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
 import { FROST, lin, SCARF } from '../voxel/palette';
@@ -439,6 +442,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         <group ref={set('head')} position={m.head.pivot}>
           <mesh geometry={m.head.geo} material={mat} castShadow />
           <mesh geometry={m.hood.geo} material={mat} castShadow />
+          <SantaHat parts={[m.head.geo, m.hood.geo]} material={mat} />
           <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={faceMat} />
           <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={faceMat} />
           {(['closed', 'arc'] as Lids[]).map((k) => <mesh key={k} ref={set(`lid-${k}`)} geometry={m.lids[k].geo} material={faceMat} />)}
@@ -460,6 +464,20 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
       <primitive object={fx.root} />
     </group>
   );
+}
+
+/** Everyone's dressed for the season: a hat on the top of the head, sized to whichever animal is wearing it. */
+export function SantaHat({ parts, material }: { parts: BufferGeometry[]; material: Material }) {
+  const fit = useMemo(() => {
+    const top = new Box3();
+    for (const g of parts) {
+      g.computeBoundingBox();
+      top.union(g.boundingBox!);
+    }
+    const c = top.getCenter(new Vector3());
+    return { at: [c.x, top.max.y - 0.06, c.z - 0.02] as [number, number, number], scale: Math.min(1, Math.max(0.55, (top.max.x - top.min.x) / 0.6)) };
+  }, [parts]);
+  return <mesh geometry={santaHat()} material={material} position={fit.at} scale={fit.scale} castShadow />;
 }
 
 /** The winner's knitted scarf: a red voxel ring around the neck with a hanging end. */

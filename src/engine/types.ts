@@ -16,8 +16,8 @@ export type RoundModifier =
 export type Phase = 'intro' | 'playing' | 'gameOver';
 
 /**
- * normal: full rules. practice: no penalties, invalid words can be retried, roomy human timer.
- * tour: practice plus scripted bots, used by the interactive tutorial.
+ * normal: full rules. practice: a 1v1 speed run against one bot: one life, no rounds, the score is the words you play.
+ * tour: no penalties, hints and scripted bots, used by the interactive tutorial.
  */
 export type GameMode = 'normal' | 'practice' | 'tour';
 

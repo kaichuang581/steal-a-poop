@@ -56,6 +56,7 @@ export function PlayerCard({ player, isTurn, compact, lastWord, children, badge,
           {player.name}{player.isYou ? ' (you)' : ''}
           {player.difficulty && !compact && <span className="ml-1 inline-block align-[-1px]" title={`${player.difficulty} bot`} role="img" aria-label={`${player.difficulty} bot`}>{BADGE[player.difficulty]}</span>}
         </div>
+        {player.isBot && <div className="truncate text-[11px] font-bold" style={{ color: 'var(--ink-soft)' }}>farm sheep</div>}
         {!compact && (
           <div className="truncate text-xs font-bold uppercase" style={{ color: 'var(--ink-soft)' }} data-seat-word={player.id}>
             {lastWord ?? '—'}

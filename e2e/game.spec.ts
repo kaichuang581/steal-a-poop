@@ -9,6 +9,16 @@ const ready = (page: Page, label: string) =>
 
 const skipTourFlag = (page: Page) => page.addInitScript(() => localStorage.setItem('sap:tourDone', 'true'));
 
+/** One everyday word per letter, for games with no Hint button. */
+const WORD_FOR: Record<string, string> = {
+  a: 'apple', b: 'bread', c: 'chair', d: 'dance', e: 'eagle', f: 'flame', g: 'grape', h: 'house', i: 'image', j: 'judge', k: 'knife', l: 'lemon', m: 'mouse',
+  n: 'night', o: 'ocean', p: 'plant', q: 'queen', r: 'river', s: 'stone', t: 'train', u: 'uncle', v: 'voice', w: 'water', x: 'xenon', y: 'youth', z: 'zebra',
+};
+const chainWord = async (page: Page) => {
+  const label = await page.getByLabel(/^Type a word/).getAttribute('aria-label');
+  return WORD_FOR[label!.slice(-1).toLowerCase()];
+};
+
 test('first visit lands on the homepage; the Tutorial button opens the tour', async ({ page }) => {
   await page.goto('./');
   await ready(page, 'Tutorial');
@@ -25,43 +35,48 @@ test('practice: a clear typo is suggested, confirmed by submitting again, and co
   await page.goto('./');
   await ready(page, 'Practice');
   await page.getByRole('button', { name: /^Practice/ }).click();
-  const hint = page.getByRole('button', { name: 'Hint' });
-  await expect(hint).toBeEnabled({ timeout: 20_000 });
   const input = page.getByLabel(/^Type a word/);
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled({ timeout: 20_000 });
 
   await input.fill('qqqq');
   await input.press('Enter');
   await expect(page.locator('[data-typo-fix]')).toHaveCount(0); // not a typo: just bounces, free
   await expect(input).toHaveValue('qqqq');
 
-  await hint.click();
-  const words = (await page.locator('[aria-label="Word ideas"] button').allInnerTexts()).map((w) => w.trim().toLowerCase());
+  const word = await chainWord(page);
   let typed = '';
-  let word = '';
-  search: for (const w of words) {
-    for (const filler of ['q', 'j', 'z', 'x', 'v', 'k']) {
-      await input.fill(w + filler);
-      await input.press('Enter');
-      if (await page.locator('[data-typo-fix]').count()) {
-        typed = w + filler;
-        word = w;
-        break search;
-      }
-    }
+  // Two neighbouring letters swapped: an added letter is rarely clear, since swapping it for an S makes a plural.
+  for (let i = 1; i < word.length - 1 && !typed; i++) {
+    if (word[i] === word[i + 1]) continue;
+    const slip = word.slice(0, i) + word[i + 1] + word[i] + word.slice(i + 2);
+    await input.fill(slip);
+    await input.press('Enter');
+    if (await page.locator('[data-typo-fix]').count()) typed = slip;
   }
-  expect(typed, 'one hint word should give an unambiguous typo').not.toBe('');
+  expect(typed, 'the word should give an unambiguous typo').not.toBe('');
   await expect(page.locator('[data-typo-fix]')).toContainText('submit again to confirm');
   await input.press('Enter'); // confirm
   await expect(page.locator('aside').last()).toContainText(word.toUpperCase());
   await expect(page.locator('[aria-label="Scoreboard"] li').filter({ hasText: 'You' })).toContainText('0');
 });
 
-test('practice: a steal needs a typed word, then takes the turn', async ({ page }) => {
-  test.setTimeout(240_000); // how soon a bot opens a usable steal window is random
+test('practice: the run ends when your clock runs out, and shows your score', async ({ page }) => {
   await skipTourFlag(page);
+  await page.addInitScript(() => localStorage.setItem('sap:settings', JSON.stringify({ practice: { clock: 5, difficulty: 'easy' } })));
   await page.goto('./');
   await ready(page, 'Practice');
   await page.getByRole('button', { name: /^Practice/ }).click();
+  await expect(page.getByText('Run over: 0 words')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Rematch' }).click();
+  await expect(page.getByText('Run over: 0 words')).toHaveCount(0);
+});
+
+test('a quick game: a steal needs a typed word, then takes the turn', async ({ page }) => {
+  test.setTimeout(240_000); // how soon a bot opens a usable steal window is random
+  await skipTourFlag(page);
+  await page.goto('./');
+  await ready(page, 'Quick Game');
+  await page.getByRole('button', { name: /^Quick Game/ }).click();
   const stealBtn = page.locator('[data-tour="steal"]');
   const input = page.getByLabel(/^Type a word/);
 
@@ -77,8 +92,7 @@ test('practice: a steal needs a typed word, then takes the turn', async ({ page 
         await expect(input).toHaveValue('', { timeout: 1000 });
         checkedEmpty = true;
       }
-      await page.getByRole('button', { name: 'Hint' }).click({ timeout: 2000 });
-      await page.locator('[aria-label="Word ideas"] button').first().click({ timeout: 2000 });
+      await input.fill(await chainWord(page));
       await stealBtn.click({ timeout: 2000 });
       await expect(page.locator('aside').last()).toContainText('STEAL', { timeout: 2000 });
       stole = true;

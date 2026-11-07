@@ -10,7 +10,7 @@ export function useGameSounds() {
       case 'play': return playSound('play');
       case 'bank': return playSound('bank');
       case 'steal': return playSound('steal');
-      case 'timeout':
+      case 'timeout': return playSound('boom');
       case 'invalid':
       case 'stealFail': return playSound('fail');
       case 'trapSprung': return playSound('trap');

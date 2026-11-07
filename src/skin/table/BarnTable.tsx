@@ -1,4 +1,4 @@
-import { BombClock } from '../components/BombClock';
+import { Blast } from './Blast';
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -168,7 +168,6 @@ export function BarnTable(props: Props) {
           <span className="sk-letter-card-letter">{letter.toUpperCase()}</span>
           {secondsLeft !== null && (
             <span className="sk-letter-card-bomb" data-level={stealOpen ? 'red' : props.fraction > 0.45 ? 'ok' : 'warn'}>
-              <BombClock fraction={props.fraction} red={stealOpen} />
               <b>{secondsLeft.toFixed(1)}s</b>
             </span>
           )}
@@ -244,7 +243,7 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
       <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} />
       <Projection anchors={anchors} pileHeight={pileHeightFor(pile)} margin={phone ? 140 : 120} />
-      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} />
+      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.gust?.key} />
       {stealOpen && <WolfEyes />}
       {seats.map((s) => {
         const p = seatPosition(s.index, n);
@@ -405,7 +404,7 @@ function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; i
  * The bomb: a voxel bomb floats over the sheep who holds it, bobbing, with the fuse burning shorter as the turn runs
  * out (red once others can steal). When the turn changes it arcs across the barn to the next sheep.
  */
-function Bomb({ speaker, n, fraction, red, reduced }: { speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean }) {
+function Bomb({ speaker, n, fraction, red, reduced, boomKey }: { speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined }) {
   const m = useMemo(() => bombModel(), []);
   const body = useMemo(() => voxelMaterial(), []);
   const fuseMat = useMemo(() => voxelMaterial(), []);
@@ -414,6 +413,16 @@ function Bomb({ speaker, n, fraction, red, reduced }: { speaker: number | null; 
   const fuse = useRef<Group>(null);
   const spark = useRef<Mesh>(null);
   const flight = useRef({ from: new Vector3(), to: new Vector3(), t: 1, started: false });
+  const lastBoom = useRef({ key: boomKey, at: -9999 });
+  if (boomKey !== lastBoom.current.key) lastBoom.current = { key: boomKey, at: performance.now() };
+  // Where the bomb was when it went off: its spot before the turn moved on.
+  const goneFrom = useRef(new Vector3());
+  const goneAt = useRef(-9999);
+  const origin = useRef((): Vector3 | null => {
+    if (performance.now() - goneAt.current < 800) return goneFrom.current;
+    const f = flight.current;
+    return f.t < 1 ? f.from : (group.current?.position ?? null);
+  });
   const target = useMemo(() => {
     if (speaker === null) return null;
     const p = seatPosition(speaker, n);
@@ -422,7 +431,9 @@ function Bomb({ speaker, n, fraction, red, reduced }: { speaker: number | null; 
   useEffect(() => {
     if (!target || !group.current) return;
     const f = flight.current;
-    if (!f.started || reduced) {
+    const justExploded = performance.now() - lastBoom.current.at < 600;
+    if (justExploded) { goneFrom.current.copy(group.current.position); goneAt.current = performance.now(); }
+    if (!f.started || reduced || justExploded) {
       group.current.position.copy(target);
       f.started = true;
       f.t = 1;
@@ -457,6 +468,8 @@ function Bomb({ speaker, n, fraction, red, reduced }: { speaker: number | null; 
   });
   if (!target) return null;
   return (
+    <>
+    <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} />
     <group ref={group} scale={1.5} visible>
       <mesh geometry={m.body} material={body} castShadow />
       <group ref={fuse} position={[0, BOMB_NECK_Y, 0]}>
@@ -464,6 +477,7 @@ function Bomb({ speaker, n, fraction, red, reduced }: { speaker: number | null; 
         <mesh ref={spark} geometry={m.spark} material={sparkMat} />
       </group>
     </group>
+    </>
   );
 }
 

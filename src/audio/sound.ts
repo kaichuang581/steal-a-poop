@@ -1,6 +1,6 @@
 import { useStore } from '../state/store';
 
-export type SoundKind = 'play' | 'bank' | 'steal' | 'fail' | 'trap' | 'roundEnd' | 'alarm';
+export type SoundKind = 'play' | 'bank' | 'steal' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom';
 
 let ctx: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
@@ -118,6 +118,13 @@ export function playSound(kind: SoundKind): void {
       break;
     case 'roundEnd':
       [523, 659, 784, 1047].forEach((f, i) => tone(c, { freq: f, at: i * 0.11, dur: 0.3, type: 'triangle', vol: 0.1 }));
+      break;
+    case 'boom': // a bomb: a hard crack, a deep thump, a rolling rumble and a scatter of crackles
+      whoosh(c, 0, 0.16, 7000, 1500, 0.5);
+      whoosh(c, 0, 1.0, 1600, 90, 0.7);
+      tone(c, { freq: 95, dur: 0.75, type: 'sine', vol: 0.6, to: 28 });
+      tone(c, { freq: 60, at: 0.02, dur: 0.95, type: 'sawtooth', vol: 0.2, to: 26 });
+      for (let i = 0; i < 14; i++) tone(c, { freq: 1800 + Math.random() * 3200, at: 0.12 + Math.random() * 0.7, dur: 0.04, type: 'square', vol: 0.05 });
       break;
     case 'alarm': // the barn klaxon: two notes blared three times over a rising and falling siren
       for (let i = 0; i < 6; i++) tone(c, { freq: i % 2 ? 415 : 554, at: i * 0.22, dur: 0.2, type: 'square', vol: 0.085 });

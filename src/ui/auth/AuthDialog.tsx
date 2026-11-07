@@ -16,14 +16,14 @@ const primary = 'min-h-12 w-full rounded-xl bg-amber-400 text-lg font-black text
 const secondary = 'min-h-12 w-full rounded-xl bg-white/10 font-bold hover:bg-white/15 disabled:opacity-40';
 
 /** Sign in, sign up, reset a password, and finish the profile. Closes itself once the person is fully signed up. */
-export function AuthDialog({ onClose }: { onClose: () => void }) {
+export function AuthDialog({ onClose, start = 'main' }: { onClose: () => void; start?: Step }) {
   const status = useAuth((s) => s.status);
   const recovery = useAuth((s) => s.recovery);
   const notice = useAuth((s) => s.notice);
   const profile = useAuth((s) => s.profile);
   const a = useAuth.getState();
   const guest = useGuest();
-  const [step, setStep] = useState<Step>('main');
+  const [step, setStep] = useState<Step>(start);
   const [mode, setMode] = useState<Mode>('in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

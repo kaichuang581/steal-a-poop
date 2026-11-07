@@ -3,6 +3,7 @@ import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
+import { useGuest } from '../../auth/guest';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
@@ -87,6 +88,7 @@ export function PaintedHome() {
   const [error, setError] = useState('');
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
+  const guestName = useGuest()?.nickname ?? null;
   const [hub, setHub] = useState<HubTab | null>(null);
   const [heroYaw, setHeroYaw] = useState(0);
   const [hopKey, setHopKey] = useState(0);
@@ -319,6 +321,9 @@ export function PaintedHome() {
             {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
+        )}
+        {guestName && authEnabled() && authStatus !== 'ready' && (
+          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
         )}
         <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account"><PersonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>

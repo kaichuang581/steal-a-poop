@@ -127,3 +127,11 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   the islands, 1 m for hills and 3 m for mountains; merged face-culled meshes with baked AO; MeshLambertMaterial with
   vertex colours; no bloom, no depth of field; transparency only for the moon halo, the aurora, snow and dream dust.
 - The bounded dream (V4 Part 15, Milestone D5) is NOT approved: `DREAM_LENGTH` stays null until Brian says otherwise.
+- Counting Sheep v4, D1 to D4 built (approved by Brian, 2026-11-07: "do plan for every decision"): the dream is the
+  farmer's (src/skin/dream: stage.ts for the pure layout, world.ts and bedroom.ts for the voxels, DreamStage.tsx for the
+  scene, run.ts for the run loop, DreamScreen.tsx for the HUD and results). Where the plan's metres did not fit its own
+  camera, the frame targets (V4 Part 4.3) won: +x is screen-right with the camera at +z (the plan's z mirrored); the bed,
+  the trail puffs and the islands are placed by the targets; the hills are low; the bedroom's wall plane is dropped;
+  the puffs use 0.05 m voxels; the sheep is drawn at 0.72 m (the model is 1.3 m at scale 1). The canvas must never sit
+  inside a transformed element (the swoop-in inflated its measured size). Known: draw calls run near 90 against the
+  plan's 60. D5 (the bounded dream) stays unbuilt.

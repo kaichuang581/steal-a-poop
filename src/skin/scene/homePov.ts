@@ -8,7 +8,7 @@ type V3 = readonly [number, number, number];
 export interface PovShot { position: V3; target: V3; fov: number; push: V3; spill?: number; bounce?: V3 }
 
 /** Seconds on each angle, and how long the dip to dark takes on either side of a cut. */
-export const POV_HOLD = 7;
+export const POV_HOLD = 5;
 export const POV_DIP = 0.4;
 
 /** Which angle is showing at `elapsed` seconds, how far through its hold (0..1), and how dark the dip is (0..1). */

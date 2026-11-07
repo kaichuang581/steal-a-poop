@@ -193,7 +193,7 @@ describe('rounds', () => {
     expect(out.used).toEqual([]);
     const next = advance(out, ctx, out.introEndsAt!);
     expect(next.phase).toBe('playing');
-    expect(next.turn!.durationMs).toBe(turnDurationMs(0, next.modifier, 12_000));
+    expect(next.turn!.durationMs).toBe(turnDurationMs(0, next.modifier, 10_000));
   });
   it('rounds never end the game: round 3 is followed by round 4', () => {
     const s = humanTurn('c');

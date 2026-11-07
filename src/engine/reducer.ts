@@ -38,7 +38,7 @@ function emit(s: GameState, at: number, kind: EventKind, seat: number | null, te
 
 /**
  * How long a bot takes to answer. Response times are tuned for a 10 s turn, so they scale with the round's turn
- * length: a bot answers at the same point of a 16 s first-round turn as of a 5 s last-round one.
+ * length: a bot answers at the same point of a 15 s first-round turn as of a 5 s last-round one.
  */
 function botResponseMs(s: GameState, difficulty: Difficulty): number {
   const scale = roundTurnMs(s.round) / BASE_TURN_MS;
@@ -48,10 +48,11 @@ function botResponseMs(s: GameState, difficulty: Difficulty): number {
 
 function startTurn(s: GameState, seat: number, t: number) {
   const active = s.players[seat];
-  const learning = s.mode !== 'normal';
   const tour = s.mode === 'tour';
   const baseMs = turnDurationMs(0, s.modifier, roundTurnMs(s.round));
-  const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : baseMs;
+  // Only the tour gives the human a long turn (its steps take reading): practice runs on the game's own clock, so the
+  // clock under the letter never says one thing on your turn and another on the bots'.
+  const durationMs = tour && active.isHuman ? PRACTICE_TURN_MS : baseMs;
   const endsAt = t + durationMs;
   const windowMs = s.settings.stealWindowSeconds * 1000;
   // Steals are an event: some turns are steal turns, drawn here. The tour's turns all are, so it can show one, and
@@ -263,7 +264,7 @@ function nextDue(s: GameState, now: number): Due | null {
 export type BotPlan = { kind: 'bank' } | { kind: 'fail' } | { kind: 'play'; word: string };
 
 /**
- * A bot's chance of fumbling: its base, plus more as turns get shorter (none at 16 s, BOT_PRESSURE_FAIL at 5 s), plus a
+ * A bot's chance of fumbling: its base, plus more as turns get shorter (none at 15 s, BOT_PRESSURE_FAIL at 5 s), plus a
  * little more every round spent at 5 s, so the game always closes in on its last sheep.
  */
 export function botFailRate(s: GameState, difficulty: Difficulty): number {

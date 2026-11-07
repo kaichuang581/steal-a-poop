@@ -65,7 +65,7 @@ describe('steal turns', () => {
         const turn = s.turn!;
         if (!turn.stealable) {
           expect(turn.stealPlans).toEqual([]);
-          // In the 16 s first round a bot answers 4.8 to 11.2 s in: never in the last 3 s unless pushed there.
+          // In the 15 s first round a bot answers 4.5 to 10.5 s in: never in the last 3 s unless pushed there.
           if (s.round === 1) expect(turn.botActAt!).toBeLessThan(turn.endsAt - 3000);
         } else {
           // The bot on turn answers, and the other bots steal, only in the window's last share: a person who reads

@@ -6,18 +6,18 @@ export const MAX_PLAYERS = 10;
 
 /** The reference turn length bot response times are tuned for; turns themselves follow the round (below). */
 export const BASE_TURN_MS = 10_000;
-export const FIRST_ROUND_TURN_MS = 16_000;
+export const FIRST_ROUND_TURN_MS = 15_000;
 export const LAST_ROUND_TURN_MS = 5_000;
 /**
  * Turns speed up every round (a round is every sheep taking its turns: two circles of the table by default). The base
- * turn by round, then the last value for as long as the game runs. Each step is a bigger share of the turn than the
- * one before, so the squeeze is felt: 16, 12, 9, 7, 5. This is the game's own pace, not a twist.
+ * turn by round, then the last value for as long as the game runs. A quick ramp, 5 s off each round, so the squeeze is
+ * felt at once: 15, 10, then 5. This is the game's own pace, not a twist.
  */
-export const TURN_MS_BY_ROUND = [FIRST_ROUND_TURN_MS, 12_000, 9_000, 7_000, LAST_ROUND_TURN_MS] as const;
+export const TURN_MS_BY_ROUND = [FIRST_ROUND_TURN_MS, 10_000, LAST_ROUND_TURN_MS] as const;
 export const MIN_TURN_MS = 5_000;
 export const STEAL_WINDOW_MS = 3_000;
 export const INTRO_MS = 2_500;
-/** Human turn length in practice and tour games. */
+/** Human turn length in the tour, whose steps need reading time. Practice keeps the game's own clock. */
 export const PRACTICE_TURN_MS = 25_000;
 
 export const FAIL_PENALTY = 5;

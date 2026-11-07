@@ -8,7 +8,7 @@ export const BASICS = [
   { art: `wool × ${LIVES_PER_GAME}`, title: 'Wool balls are lives', text: `Every sheep starts with ${LIVES_PER_GAME} wool balls. Run out of time and you lose one. No wool left and you freeze solid: you’re out.` },
   { art: 'red = steal', title: 'Steal', text: `Some turns are steal turns: an alarm says so. When that sheep’s timer turns red (their last ${red} seconds), type a word and press STEAL. First good word takes one of their wool balls. A bad steal word costs nothing.` },
   { art: 'X Z Q J', title: 'Traps', text: 'End a word on X, Z, Q or J. If the next sheep runs out of time, you get a wool ball.' },
-  { art: '16s → 5s', title: 'Faster every round', text: 'Each round every sheep takes 2 turns, and turns get faster each round: 16, 12, 9, 7, then 5 seconds. An alarm calls each change. Later rounds add a twist.' },
+  { art: '15s → 5s', title: 'Faster every round', text: 'Each round every sheep takes 2 turns, and turns get faster each round: 15, 10, then 5 seconds. An alarm calls each change. Later rounds add a twist.' },
   { art: '1 left', title: 'Last sheep standing', text: 'The game ends the moment only one sheep is not frozen. That sheep wins.' },
 ];
 
@@ -20,7 +20,7 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: 'Steal', def: `When another sheep’s timer turns red, type a word that starts with the chain letter and press STEAL. The first good word takes one of their wool balls (+1 for you, −1 for them) and the turn moves on.` },
   { term: 'Red timer', def: `The last ${red} seconds of a steal turn. That is when everyone else can steal.` },
   { term: 'Trap letter', def: 'X, Z, Q or J. End a word on one and, if the next sheep runs out of time, you get a wool ball.' },
-  { term: 'Round', def: 'Every sheep takes 2 turns, then a new round starts with a shorter timer: 16 s, 12 s, 9 s, 7 s, then 5 s.' },
+  { term: 'Round', def: 'Every sheep takes 2 turns, then a new round starts with a shorter timer: 15 s, 10 s, then 5 s.' },
   { term: 'Twist', def: 'A special rule for one round, called out by an alarm: no E, 6+ letters, or a double letter. The first round has none.' },
   { term: 'Practice', def: 'A game against easy bots with a longer timer and hints. You never lose wool; the bots do.' },
   { term: 'Daily Table', def: 'One game per UTC day with the same starting letter, twists and bots for everyone.' },

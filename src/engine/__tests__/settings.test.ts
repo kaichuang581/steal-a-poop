@@ -53,16 +53,16 @@ describe('game settings', () => {
     expect(perSeat).toEqual([3, 3, 3, 3]);
   });
 
-  it('turns speed up each round: 16, 12, 9, 7, then 5 s for good', () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 8, 20].map((r) => roundTurnMs(r))).toEqual([16_000, 12_000, 9_000, 7_000, 5_000, 5_000, 5_000, 5_000, 5_000]);
-    expect(roundTurnMs(0)).toBe(16_000);
+  it('turns speed up each round: 15, 10, then 5 s for good', () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 20].map((r) => roundTurnMs(r))).toEqual([15_000, 10_000, 5_000, 5_000, 5_000, 5_000, 5_000, 5_000, 5_000]);
+    expect(roundTurnMs(0)).toBe(15_000);
     const s = game({ twists: false });
-    expect(s.turn!.durationMs).toBe(16_000);
+    expect(s.turn!.durationMs).toBe(15_000);
   });
 
   it('the pile and the short-turn twist still cut the round\'s turn, never under 5 s', () => {
-    expect(turnDurationMs(0, 'none', 16_000)).toBe(16_000);
-    expect(turnDurationMs(60, 'none', 16_000)).toBe(10_000);
+    expect(turnDurationMs(0, 'none', 15_000)).toBe(15_000);
+    expect(turnDurationMs(60, 'none', 15_000)).toBe(9_000);
     expect(turnDurationMs(0, 'double_points_fast', 11_000)).toBe(9_000);
     expect(turnDurationMs(30, 'double_points_fast', 5_000)).toBe(5_000);
   });
@@ -76,7 +76,7 @@ describe('game settings', () => {
       if (s.turn && !seen.has(s.round)) seen.set(s.round, s.turn.durationMs);
     }
     // Two turns a round and five wool each: nobody can freeze before round 3, so the first three rounds all play.
-    expect([1, 2, 3].map((r) => seen.get(r))).toEqual([16_000, 12_000, 9_000]);
+    expect([1, 2, 3].map((r) => seen.get(r))).toEqual([15_000, 10_000, 5_000]);
     for (const [round, ms] of seen) expect(ms).toBe(roundTurnMs(round));
   });
 
@@ -117,20 +117,21 @@ describe('game settings', () => {
     const daily = createGame(dailySetup(new Date('2026-11-03T12:00:00Z'), 'Me', T0), dict);
     expect(daily.settings).toEqual(DEFAULT_SETTINGS);
     const practice = game({ rounds: 5, lives: 1 }, 'practice');
-    expect(practice.turn!.durationMs).toBe(PRACTICE_TURN_MS);
+    expect(practice.turn!.durationMs).toBe(roundTurnMs(1));
+    expect(practice.turn!.durationMs).not.toBe(PRACTICE_TURN_MS);
     const timedOut = advance(practice, ctx, practice.turn!.endsAt);
     expect(timedOut.players[0].frozen).toBe(false);
     expect(timedOut.players[0].banked).toBe(0);
   });
 
-  it('estimates longer games for more wool and more turns: about 7 min for Quick and 9 for Standard with four bots', () => {
+  it('estimates longer games for more wool and more turns: about 5 min for Quick and 7 for Standard with four bots', () => {
     const quick = estimateMinutes({ ...DEFAULT_SETTINGS, ...PRESETS.quick, botCount: 4 });
     const standard = estimateMinutes({ ...DEFAULT_SETTINGS, ...PRESETS.standard, botCount: 4 });
     const long = estimateMinutes({ ...DEFAULT_SETTINGS, ...PRESETS.long, botCount: 4 });
-    expect(quick).toBeGreaterThanOrEqual(6);
-    expect(quick).toBeLessThanOrEqual(8);
-    expect(standard).toBeGreaterThanOrEqual(8);
-    expect(standard).toBeLessThanOrEqual(10);
+    expect(quick).toBeGreaterThanOrEqual(4);
+    expect(quick).toBeLessThanOrEqual(6);
+    expect(standard).toBeGreaterThanOrEqual(6);
+    expect(standard).toBeLessThanOrEqual(8);
     expect(quick).toBeLessThan(standard);
     expect(standard).toBeLessThan(long);
     expect(estimateMinutes({ ...DEFAULT_SETTINGS, rounds: 1 })).toBe(estimateMinutes(DEFAULT_SETTINGS)); // rounds no longer counts

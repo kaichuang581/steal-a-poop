@@ -7,8 +7,9 @@
 export type Entry = 'menu' | 'landing' | 'wait';
 
 export function decideEntry(input: { accounts: boolean; status: string; hasGuest: boolean }): Entry {
-  if (!input.accounts) return 'menu';
-  if (input.status === 'off') return 'menu';
+  // A build with no sign-in (the live site today) still shows the landing page: guest play and the sample round work.
+  if (!input.accounts) return input.hasGuest ? 'menu' : 'landing';
+  if (input.status === 'off') return input.hasGuest ? 'menu' : 'landing';
   if (input.status === 'loading') return input.hasGuest ? 'menu' : 'wait';
   if (input.status === 'ready') return 'menu';
   if (input.hasGuest) return 'menu';

@@ -13,6 +13,11 @@ interface DreamUi {
   close(): void;
 }
 
+/** Where a friend can play, for the share text. */
+export function dreamLink(): string {
+  return `${location.origin}${import.meta.env.BASE_URL}`;
+}
+
 export const useDreamUi = create<DreamUi>((set) => ({
   open: false,
   practice: false,

@@ -1,7 +1,7 @@
 {
   "name": "steal-a-poop",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +11,7 @@
     "simulate": "vite-node scripts/simulate.ts",
     "e2e": "playwright test",
     "server": "vite-node server/main.ts",
+    "dream:gate": "vite-node tools/dreamGate.ts --",
     "mod:stats": "vite-node scripts/mod-stats.ts",
     "mod:export": "vite-node scripts/mod-export.ts --",
     "loadtest": "vite-node server/loadtest/run.ts --",

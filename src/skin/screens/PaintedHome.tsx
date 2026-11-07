@@ -8,9 +8,9 @@ import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRESETS, presetOf } from '..
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
 import { useHuntUi } from '../hunt/huntStore';
-import { dreamShareText } from '../../dream/dream';
+import { dreamSeed, dreamShareText } from '../../dream/dream';
 import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
-import { useDreamUi } from '../dream/dreamStore';
+import { dreamLink, useDreamUi } from '../dream/dreamStore';
 import { useToday } from '../hooks/useToday';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
 import { getServerUrl } from '../../net/config';
@@ -129,7 +129,10 @@ export function PaintedHome() {
   };
   const shareDream = async () => {
     if (dream?.status !== 'done') return;
-    const text = dreamShareText({ date: today, count: dream.count ?? 0, longest: dream.longest ?? 0, streak });
+    const text = dreamShareText({
+      date: today, count: dream.count ?? 0, longest: dream.longest ?? 0, streak, title: PAINTED_TITLE, url: dreamLink(), seed: dreamSeed(today),
+      bumped: !dream.asleep, fences: dream.reached, bumps: dream.bumps,
+    });
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopiedDream(true);
     setTimeout(() => setCopiedDream(false), 2000);

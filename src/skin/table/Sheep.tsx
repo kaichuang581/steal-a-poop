@@ -191,17 +191,27 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       f.mouth = 'smile';
       break;
     }
-    case 'jump':
-      // Anticipation squash for the first 80 ms, then the airborne pose: front legs forward 50°, back legs back 40°,
-      // ears up, wool stretched toward the apex, eyes wide, a smile.
-      if (e < 0.08) { p[CH.squash] = 0.92; p[CH.legSwing] = 0; }
-      else { p[CH.legFront] = -0.87; p[CH.legBack] = 0.7; p[CH.earBack] = -0.3; p[CH.earL] = p[CH.earR] = DROOP - 0.5; p[CH.puff] = 1.03; p[CH.squash] = 1.06; p[CH.eye] = 1.2; }
-      p[CH.bodyRotX] = e < 0.08 ? 0.05 : -0.2;
+    case 'jump': {
+      // A leap in three beats over the 0.72 s arc: the back legs drive while the front legs lift, both tuck at the top, and
+      // the front legs reach down for the snow as the back legs trail. The stage tilts and stretches the whole body.
+      const u = clamp01(e / 0.72);
+      const rise = clamp01(u / 0.3), fall = clamp01((u - 0.55) / 0.45);
+      p[CH.legFront] = -0.25 - 1.0 * rise + 0.85 * fall;
+      p[CH.legBack] = 1.0 - 0.75 * clamp01(u / 0.5) + 0.65 * fall;
+      p[CH.earBack] = -0.2 - 0.5 * fall;
+      p[CH.earL] = p[CH.earR] = DROOP - 0.35 - 0.5 * fall;
+      p[CH.tail] = 0.5 - 0.8 * fall;
+      p[CH.headX] = 0.1 - 0.22 * rise + 0.3 * fall;
+      p[CH.puff] = 1 + 0.03 * Math.sin(Math.PI * u);
       f.mouth = 'smile';
       break;
+    }
     case 'land':
-      p[CH.squash] = e < 0.1 ? 0.9 : 1;
-      p[CH.legSwing] = 0;
+      // The legs take the weight, the head dips, the wool settles.
+      p[CH.legFront] = -0.12;
+      p[CH.legBack] = 0.14;
+      p[CH.headX] = 0.14;
+      p[CH.earL] = p[CH.earR] = DROOP + 0.12;
       f.mouth = 'smile';
       break;
     case 'bonk': {

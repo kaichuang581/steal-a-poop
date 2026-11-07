@@ -1020,3 +1020,42 @@
 .sk-jump-fire3 { background: radial-gradient(circle, #fff 0%, #ffe27a 35%, #ff8a2a 62%, rgba(255, 60, 20, 0) 100%); animation-delay: 40ms; animation-duration: 1500ms; }
 .sk-jump-ring { left: 50%; top: 46%; width: 40vmin; height: 40vmin; margin: -20vmin 0 0 -20vmin; border-radius: 50%; border: 3vmin solid rgba(255, 190, 90, 0.9); animation: sk-jump-ring 1400ms 80ms cubic-bezier(0.1, 0.6, 0.3, 1) forwards; opacity: 0; }
 @keyframes sk-jump-ring { 0% { transform: scale(0.1); opacity: 1; } 100% { transform: scale(calc(14 + var(--p, 1) * 3)); opacity: 0; } }
+
+/* ---------- One material for every panel. The farm's signs are wood with snow on them, so a dialog is paper pinned in a
+   wooden frame with snow along its top, not a card from somewhere else. The frame is a border, so a scrolling parent
+   cannot clip it. */
+.sk-paper[role="dialog"], .sk-setup, .sk-guide, .sk-sheet, .sk-framed {
+  position: relative; border: 8px solid var(--wood-dark); border-radius: 11px 13px 10px 12px; background-clip: padding-box;
+  box-shadow: 0 0 0 1px rgba(40, 24, 10, 0.55), inset 0 0 0 1px rgba(40, 24, 10, 0.4), inset 0 3px 0 rgba(255, 255, 255, 0.5), 0 7px 0 rgba(40, 24, 10, 0.38), 0 14px 30px rgba(30, 18, 8, 0.4);
+}
+/* Snow along the frame's top edge, drifting into lumps. */
+.sk-paper[role="dialog"]::before, .sk-setup::before, .sk-guide::before, .sk-sheet::before, .sk-framed::before {
+  content: ''; position: absolute; z-index: 2; left: -8px; right: -8px; top: -8px; height: 15px; pointer-events: none; border-radius: 10px 12px 0 0;
+  background: radial-gradient(ellipse 50% 100% at 50% 0, #FFFFFF 0 72%, transparent 74%) 0 5px / 46px 10px round no-repeat, linear-gradient(180deg, #FFFFFF 0 6px, transparent 6px);
+  filter: drop-shadow(0 1px 0 rgba(150, 180, 210, 0.75));
+}
+/* Four nails, one in each corner of the frame. */
+.sk-paper[role="dialog"]::after, .sk-setup::after, .sk-guide::after, .sk-sheet::after, .sk-framed::after {
+  --nail: radial-gradient(circle, #E9DCC4 0 1.4px, #6B4A32 1.8px 2.6px, transparent 3px);
+  content: ''; position: absolute; z-index: 2; inset: 4px -6px -6px; pointer-events: none;
+  background: var(--nail) 0 100% / 8px 8px no-repeat, var(--nail) 100% 100% / 8px 8px no-repeat, var(--nail) 0 0 / 8px 8px no-repeat, var(--nail) 100% 0 / 8px 8px no-repeat;
+}
+.sk-paper[role="dialog"] { --radius-paper: 11px; }
+.sk-guide::before { display: none; } /* the guide's header has its own snow */
+
+/* The tally: real planks, like the title sign, hung on two ropes. */
+.sk-tally {
+  border: 7px solid var(--wood-ink); border-radius: 11px 13px 10px 12px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 58px, rgba(30, 16, 6, 0.6) 58px 60px, rgba(255, 224, 176, 0.28) 60px 61px),
+    repeating-linear-gradient(0deg, rgba(255, 236, 200, 0.07) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.1) 6px 7px, transparent 7px 11px),
+    linear-gradient(90deg, rgba(40, 24, 10, 0.16), transparent 12% 88%, rgba(40, 24, 10, 0.16)),
+    linear-gradient(180deg, #A9733F, var(--wood-dark));
+  box-shadow: inset 0 3px 0 rgba(255, 224, 176, 0.35), inset 0 -3px 0 rgba(40, 24, 10, 0.4), 0 0 0 1px rgba(30, 16, 6, 0.6), 0 9px 0 rgba(40, 24, 10, 0.42), 0 18px 36px rgba(30, 18, 8, 0.45);
+}
+.sk-tally::before, .sk-tally::after {
+  content: ''; position: absolute; top: -70px; width: 6px; height: 62px; border-radius: 3px;
+  background: repeating-linear-gradient(135deg, #D9B45C 0 3px, #A9822F 3px 6px); box-shadow: 0 0 0 1px rgba(40, 24, 10, 0.4);
+}
+.sk-tally::before { left: 18%; } .sk-tally::after { right: 18%; }
+:root.reduce-motion .sk-tally::before, :root.reduce-motion .sk-tally::after { animation: none; }

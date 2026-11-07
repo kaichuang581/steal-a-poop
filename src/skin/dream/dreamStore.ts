@@ -1,16 +1,22 @@
 import { create } from 'zustand';
 
-/** Whether Counting Sheep is open, and whether this dream counts (the night's one attempt) or is practice. */
+/**
+ * Whether Counting Sheep is open, and which dream it is: the night's one attempt, practice (never counts), or a
+ * repair of last night's missed dream (V4 Part 12.2 rule 4), played with that night's seed and recorded under it.
+ */
 interface DreamUi {
   open: boolean;
   practice: boolean;
-  openDream(practice?: boolean): void;
+  /** The missed night being repaired (its date key), or null. */
+  repair: string | null;
+  openDream(practice?: boolean, repair?: string | null): void;
   close(): void;
 }
 
 export const useDreamUi = create<DreamUi>((set) => ({
   open: false,
   practice: false,
-  openDream: (practice = false) => set({ open: true, practice }),
-  close: () => set({ open: false, practice: false }),
+  repair: null,
+  openDream: (practice = false, repair = null) => set({ open: true, practice, repair }),
+  close: () => set({ open: false, practice: false, repair: null }),
 }));

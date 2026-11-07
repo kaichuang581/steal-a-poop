@@ -10,7 +10,6 @@ import type { HubTab } from './social/Hub';
 import { useSocial } from '../state/socialStore';
 import { useState } from 'react';
 import pkg from '../../package.json';
-import { UPDATE_NAME } from '../config';
 import { GAME_TAGLINE, GAME_TITLE } from '../config';
 import { MAX_PLAYERS, MIN_PLAYERS, utcDateKey } from '../engine';
 import type { Difficulty } from '../engine';
@@ -183,7 +182,7 @@ export function StartScreen() {
         </div>
       </div>
       <footer className="mt-4 flex items-center justify-center gap-4 text-xs text-white/55">
-        <span>v{pkg.version} · {UPDATE_NAME}</span>
+        <span>v{pkg.version}</span>
         <button className="min-h-11 content-center underline" onClick={() => setFeedback(true)}>Send feedback</button>
         {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
         {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (

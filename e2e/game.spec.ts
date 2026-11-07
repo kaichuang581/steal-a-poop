@@ -9,10 +9,14 @@ const ready = (page: Page, label: string) =>
 
 const skipTourFlag = (page: Page) => page.addInitScript(() => localStorage.setItem('sap:tourDone', 'true'));
 
-/** One everyday word per letter, for games with no Hint button. */
+/**
+ * One word per letter, for games with no Hint button. Long, so that swapping two letters leaves exactly one word a single
+ * edit away and the game offers a clear typo fix: a short word like PLANT is one edit from PAINT and PLEAT as well.
+ */
 const WORD_FOR: Record<string, string> = {
-  a: 'apple', b: 'bread', c: 'chair', d: 'dance', e: 'eagle', f: 'flame', g: 'grape', h: 'house', i: 'image', j: 'judge', k: 'knife', l: 'lemon', m: 'mouse',
-  n: 'night', o: 'ocean', p: 'plant', q: 'queen', r: 'river', s: 'stone', t: 'train', u: 'uncle', v: 'voice', w: 'water', x: 'xenon', y: 'youth', z: 'zebra',
+  a: 'airplane', b: 'blanket', c: 'chimney', d: 'dolphin', e: 'elephant', f: 'fountain', g: 'goldfish', h: 'hospital', i: 'iceberg', j: 'jungle',
+  k: 'kitchen', l: 'lantern', m: 'mountain', n: 'necklace', o: 'octopus', p: 'pumpkin', q: 'question', r: 'rainbow', s: 'sandwich', t: 'triangle',
+  u: 'umbrella', v: 'volcano', w: 'whistle', x: 'xylophone', y: 'yesterday', z: 'zeppelin',
 };
 const chainWord = async (page: Page) => {
   const label = await page.getByLabel(/^Type a word/).getAttribute('aria-label');

@@ -1,36 +1,38 @@
-# Fly.io settings for the game server. Create the app once with:  fly launch --no-deploy --copy-config
-# The app name and region below are placeholders: choose your own, and keep players near it.
-app = "steal-a-poop-server"
-primary_region = "yyz" # Toronto; change to the region closest to most players
+# fly.toml app configuration file generated for steal-a-poop-server on 2026-11-07T22:11:40Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'steal-a-poop-server'
+primary_region = 'yyz'
 
 [build]
-
 [env]
-  PORT = "8080"
-  NODE_ENV = "production"
-  TRUST_PROXY = "1" # Fly puts the real address in Fly-Client-IP; safe because only Fly's proxy can reach the app
+  NODE_ENV = 'production'
+  PORT = '8080'
+  TRUST_PROXY = '1'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  # The server keeps rooms and games in memory, so exactly ONE machine, always on. Never scale this above 1 until state is shared.
-  auto_stop_machines = "off"
+  auto_stop_machines = 'off'
   auto_start_machines = false
   min_machines_running = 1
 
   [http_service.concurrency]
-    type = "connections"
-    soft_limit = 800
+    type = 'connections'
     hard_limit = 1500
+    soft_limit = 800
 
   [[http_service.checks]]
-    grace_period = "20s"
-    interval = "15s"
-    method = "GET"
-    path = "/healthz"
-    timeout = "5s"
+    interval = '15s'
+    timeout = '5s'
+    grace_period = '20s'
+    method = 'GET'
+    path = '/healthz'
 
 [[vm]]
-  memory = "512mb"
-  cpu_kind = "shared"
+  memory = '512mb'
+  cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 512

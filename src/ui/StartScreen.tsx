@@ -1,3 +1,4 @@
+import { FeedbackDialog } from '../skin/components/FeedbackDialog';
 import { Px } from '../skin/components/PixelIcons';
 import { FireIcon } from '../skin/components/PixelIcons';
 import { LEGAL_TITLES, legalHref } from './legal/legalLinks';
@@ -28,6 +29,7 @@ export function StartScreen() {
   const { settings, setSettings, start, startTour, dictStatus, retryDictionary } = useStore();
   const [help, setHelp] = useState(false);
   const [gear, setGear] = useState(false);
+  const [feedback, setFeedback] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [signIn, setSignIn] = useState(false);
@@ -181,13 +183,8 @@ export function StartScreen() {
       </div>
       <footer className="mt-4 flex items-center justify-center gap-4 text-xs text-white/55">
         <span>v{pkg.version}</span>
-        <a
-          className="min-h-11 content-center underline"
-          href="https://github.com/kaichuang581/steal-a-poop/issues/new/choose"
-          target="_blank" rel="noreferrer"
-        >
-          Send feedback
-        </a>
+        <button className="min-h-11 content-center underline" onClick={() => setFeedback(true)}>Send feedback</button>
+        {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
         {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
           <a key={slug} className="min-h-11 content-center underline" href={legalHref(slug)} target="_blank" rel="noopener">
             {LEGAL_TITLES[slug]}

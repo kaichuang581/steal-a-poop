@@ -25,6 +25,7 @@ import { createFriendRoutes } from './routes/friends';
 import { createLeaderboardRoutes } from './routes/leaderboard';
 import { createShopRoutes } from './routes/shop';
 import { createOpsRoutes } from './routes/ops';
+import { createFeedbackRoutes } from './routes/feedback';
 import { AlertMonitor, WebhookSender } from './ops/alerts';
 import type { Snapshot } from './ops/alerts';
 import { EconomyService } from './economy/service';
@@ -55,6 +56,7 @@ import { ClaudeReviewer } from './review';
  *   REVIEW_MODEL          model id for the reviewer (required with the key)
  * Sign-in: set SUPABASE_URL (and SUPABASE_JWT_SECRET only for a legacy project) to verify real Supabase logins.
  *   SUPABASE_URL, SUPABASE_JWKS_URL (optional), SUPABASE_JWT_SECRET (legacy), SUPABASE_SERVICE_ROLE_KEY (account deletion)
+ *   GITHUB_FEEDBACK_TOKEN Optional. A fine-grained GitHub token with Issues: read and write on the feedback repo; with it the in-game form creates issues. GITHUB_FEEDBACK_REPO overrides owner/name
  *   ALERT_WEBHOOK_URL     Slack or Discord webhook for alerts (stuck moderation queue, database down, reviewer limit). ALERT_QUEUE_MINUTES, ALERT_CHILD_SAFETY_MINUTES, ALERT_MEMORY_MB tune it
  *   SMTP_URL, MAIL_FROM   sends the parent's consent email (any SMTP service). Without them, children who need a parent's consent cannot sign up
  *   TURNSTILE_SECRET      CAPTCHA for our own sign-up endpoint. APP_URL: the site address used in emails
@@ -259,6 +261,7 @@ const httpServer = createHttpServer({
     ...createLeaderboardRoutes({ data: gameData, accounts }),
     ...createShopRoutes({ economy, store: economyStore }),
     ...createOpsRoutes({ snapshot: takeSnapshot }),
+    ...createFeedbackRoutes({ token: process.env.GITHUB_FEEDBACK_TOKEN, repo: process.env.GITHUB_FEEDBACK_REPO || 'kaichuang581/steal-a-poop' }),
     ...createAccountRoutes({ service: accounts, captcha: turnstileSecret ? new TurnstileVerifier({ secret: turnstileSecret }) : new DevCaptcha() }),
   ],
   verifyToken,

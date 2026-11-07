@@ -25,6 +25,7 @@ import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, CoinIcon, 
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
+import { FeedbackDialog } from '../components/FeedbackDialog';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
 import { AvatarButtonIcon } from '../components/PixelIcons';
@@ -74,6 +75,7 @@ export function PaintedHome() {
   const [step, setStep] = useState<'tables' | 'setup'>('tables');
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
+  const [feedback, setFeedback] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const admin = useAdmin((s) => s.admin);
   const [swooping, setSwooping] = useState(false);
@@ -293,7 +295,7 @@ export function PaintedHome() {
   const footer = (
     <footer className="flex flex-wrap items-center gap-x-3 text-[11px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>
       <span>v{pkg.version}</span>
-      <a className="min-h-8 content-center underline" href="https://github.com/kaichuang581/steal-a-poop/issues/new/choose" target="_blank" rel="noreferrer">Feedback</a>
+      <button className="min-h-8 content-center underline" onClick={() => setFeedback(true)}>Feedback</button>
       {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
         <a key={slug} className="min-h-8 content-center underline" href={legalHref(slug)} target="_blank" rel="noopener">{LEGAL_TITLES[slug]}</a>
       ))}
@@ -366,6 +368,7 @@ export function PaintedHome() {
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
       {help && <PaintedGuide onClose={() => setHelp(false)} />}
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
+      {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
       {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       <DevLine />

@@ -79,3 +79,17 @@ Database changes are not rolled back (forward-only); undo them with a new migrat
 ## Costs and limits
 
 I have not priced this; check Fly.io's current pricing for one shared machine with 512 MB. The load test (`docs/LOADTEST.md`) ran 600 mostly idle players on one process without trouble, but on a different machine and with no database, so treat it as a floor.
+
+
+## In-game feedback form (optional)
+
+The Feedback link opens a form inside the game. The game server sends it to GitHub as an issue (`POST /api/feedback`).
+
+Set these on the game server:
+
+- `GITHUB_FEEDBACK_TOKEN`: a fine-grained GitHub token for the feedback repository only, with **Issues: Read and write** and nothing else. Never commit it or paste it in chat.
+- `GITHUB_FEEDBACK_REPO`: optional, `owner/name`. Defaults to `kaichuang581/steal-a-poop`.
+
+Without the token the form still works: it opens GitHub's new-issue page with the text filled in, as before.
+
+Things to know: issues in a public repository are public, so the form warns players not to write personal details. One address can send 4 an hour and the whole game 40 an hour. Mentions and links are made harmless before posting. Issues get the labels `from-game` and `bug`, `enhancement` or `feedback`.

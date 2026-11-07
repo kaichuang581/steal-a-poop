@@ -20,6 +20,14 @@ export const DUEL = {
   maxBomb: 1.7,
   /** The two lanterns at the spit's ends, behind the sheep. */
   lamps: [[4.9, 2.4, 1.2], [-4.9, 2.4, 1.2]] as const,
+  /**
+   * The letter's signpost (V6 Part 5.2 on the ice): a post frozen into the crack behind the two of them, an arm over the
+   * crack, and the carved letter board hanging from the arm's end at `hook`, low enough to stay in the closest shot.
+   */
+  post: { z: 0.9, armY: 2.9 },
+  hook: [0, 2.9, 0] as const,
+  /** Each name stake stands just behind its sheep's rump, tall enough for its plank to clear the sheep's back. */
+  stake: { x: 2.35, z: 0.5, height: 26 },
 };
 
 /** Seat 0 is you, seat 1 the bot: on the same line, each looking straight at the other. */
@@ -137,5 +145,13 @@ function lamps() {
     box(post, [x - 0.3, y + 0.3, z - 0.3], [x + 0.3, y + 0.4, z + 0.3], () => lin(T.beam[2]));
     box(glow, [x - 0.1, y - 0.2, z - 0.1], [x + 0.1, y + 0.3, z + 0.1], (a, b, c) => pick(T.lantern, hash3(a, b, c, 63)));
   }
+  // The letter's signpost: up out of the crack, then an arm forward over it, a little snow on the arm.
+  const { z: pz, armY } = DUEL.post;
+  box(post, [-0.05, -0.1, pz - 0.05], [0.05, armY + 0.1, pz + 0.05], (a, b, c) => pick(T.beam, hash3(a, b >> 1, c, 65)));
+  box(post, [-0.05, armY, DUEL.hook[2] - 0.15], [0.05, armY + 0.1, pz - 0.05], (a, b, c) => pick(T.beam, hash3(a, b, c >> 1, 67)));
+  // A crossbar at the arm's end for the board's two ropes.
+  box(post, [-0.45, armY, -0.05], [0.45, armY + 0.1, 0.05], (a, b, c) => pick(T.beam, hash3(a >> 1, b, c, 73)));
+  box(post, [-0.45, armY + 0.1, -0.05], [0.45, armY + 0.2, 0.05], (a, b, c) => (hash3(a, b, c, 69) > 0.35 ? pick(T.snow, hash3(a, 0, 0, 71)) : null));
+  box(post, [-0.05, armY + 0.1, DUEL.hook[2] + 0.05], [0.05, armY + 0.2, pz + 0.05], (a, b, c) => (hash3(a, b, c, 69) > 0.35 ? pick(T.snow, hash3(c, 0, 0, 71)) : null));
   return { posts: buildGeometry(post.map, post.size), glow: buildGeometry(glow.map, glow.size) };
 }

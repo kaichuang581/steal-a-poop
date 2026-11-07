@@ -12,7 +12,7 @@ import { useRoomStore } from '../../state/roomStore';
 import { useStore } from '../../state/store';
 import { useAvatar } from '../avatars/store';
 import { ChatPanel } from '../../ui/ChatPanel';
-import { BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, SnowflakeIcon, SpeakerIcon, WolfIcon } from '../components/Icons';
+import { AcornIcon, BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, LeafIcon, SeedlingIcon, SnowflakeIcon, SpeakerIcon, WolfIcon } from '../components/Icons';
 import { Notice } from '../components/Notice';
 import { ChainList, RulesCard } from '../components/RulesCard';
 import { CoachTips } from '../../ui/CoachTips';
@@ -21,11 +21,10 @@ import { RewardBanner } from '../../ui/social/RewardBanner';
 import { Tour } from '../../ui/Tour';
 import { useGameSounds } from '../../ui/useGameSounds';
 import { InputStrip } from '../components/InputStrip';
-import { StreakString } from '../components/Lantern';
+import { Ledger } from '../components/Ledger';
 import { Lives } from '../components/Lives';
-import { Chip, ClothButton, CoralButton, PaperPanel, WoodButton } from '../components/Materials';
-import { PlayerCard } from '../components/PlayerCard';
 import { TallyBoard } from '../components/TallyBoard';
+import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Panel, Paper, Patch, Peg, Slate, WoodButton } from '../kit';
 import { TwistSign } from '../components/TwistSign';
 import { Alarm, useAlarms } from '../components/Alarm';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
@@ -46,6 +45,7 @@ import { coatLevel } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
 
 interface Fx { id: number; node: ReactNode }
+const BADGE = { easy: <SeedlingIcon size={12} />, medium: <LeafIcon size={12} />, hard: <AcornIcon size={12} /> } as const;
 interface Mood { state: SheepState; key: number; coldFor?: number }
 
 export function PaintedGame() {
@@ -297,15 +297,31 @@ export function PaintedGame() {
             return {
               seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.lives, maxLives), state: st.state, stateKey: st.key, coldFor: st.coldFor,
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou, avatar: avatarOf(p),
-              // Only the speaker's tag is large, with flames; the others shrink to the name (plan V3.3 Part 4.1).
-              label: p.id === view.currentPlayerId ? (
-                <span className="sk-chip sk-display flex flex-col items-center whitespace-nowrap text-lg leading-tight" style={{ boxShadow: view.stealOpen ? '0 0 0 3px var(--coral), 0 0 18px rgba(231,112,94,0.7)' : '0 0 0 3px var(--amber)' }}>
-                  <span className="flex items-center gap-1.5">{p.name}<Lives lives={p.lives} max={maxLives} size={17} /></span>
-                  {!p.isYou && <span className={`sk-num tracking-wider ${botReject ? 'sk-tag-reject' : ''}`} style={{ fontSize: 20, minHeight: 24, color: 'var(--ink)' }} aria-label={`${p.name} is typing`}>{botTyped.toUpperCase()}<span className="sk-caret" aria-hidden="true" /></span>}
-                </span>
-              ) : (
-                <span className="sk-chip flex items-center gap-1 whitespace-nowrap text-xs" style={{ opacity: p.frozen ? 0.6 : 0.9 }}>{p.name}<Lives lives={p.lives} max={maxLives} size={11} /></span>
-              ),
+              // The slips pinned to the seat's name stake (V6 Part 5.3): the speaker's is pinned, larger and ringed; the
+              // others hang from the plank's nail. What the sheep is typing comes down on a second slip under the first.
+              label: (() => {
+                const speaking = p.id === view.currentPlayerId;
+                const typed = p.isYou ? ((speaking || input.canSteal) && input.typed ? input.typed : null) : speaking ? botTyped : null;
+                return (
+                  <div className="sk-stake-slips" data-speaker={speaking || undefined} data-steal={(speaking && view.stealOpen) || undefined} data-frozen={p.frozen || undefined}>
+                    <Paper kind="slip" pin={speaking ? 'top' : 'none'} seed={p.id} className="sk-stake-name">
+                      <span className="sk-stake-line">
+                        <span className="sk-stake-who">{p.name}</span>
+                        {p.difficulty && <span role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
+                        <Lives lives={p.lives} max={maxLives} size={speaking ? 16 : 12} />
+                        {p.isYou && <span className="sk-stake-you">(you)</span>}
+                      </span>
+                      {p.isBot && <span className="sk-stake-farm">farm sheep</span>}
+                      {p.frozen && <Ice className="sk-stake-ice" />}
+                    </Paper>
+                    {typed !== null && (speaking || typed) && (
+                      <Paper kind="slip" seed={`${p.id}t`} className={`sk-stake-typed ${!p.isYou && botReject ? 'sk-tag-reject' : ''}`} aria-label={`${p.name} is typing`}>
+                        {typed.toUpperCase()}<span className="sk-caret" aria-hidden="true" />
+                      </Paper>
+                    )}
+                  </div>
+                );
+              })(),
             };
           })}
         >
@@ -319,36 +335,39 @@ export function PaintedGame() {
       {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. */}
       <header className="pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
         <div className="flex flex-col items-start gap-1">
-          <span className="sk-chip sk-display">
-            {practice
-              ? `${runWords} word${runWords === 1 ? '' : 's'} · best ${Math.max(runBest, runWords)}${game.turn ? ` · ${Math.round(game.turn.durationMs / 1000)}s turn` : ''}`
-              : game.phase === 'gameOver'
-              ? `Game over · ${view.round} round${view.round === 1 ? '' : 's'}`
-              : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
-          </span>
+          {practice ? (
+            <Slate size="plaque" tone={runWords > runBest && runBest > 0 ? 'amber' : 'chalk'} className="sk-run-plaque">
+              <span>{runWords}<span className="kit-chalk-hand"> word{runWords === 1 ? '' : 's'}</span></span>
+              <span className="kit-chalk-hand">best {Math.max(runBest, runWords)}{game.turn ? ` · ${Math.round(game.turn.durationMs / 1000)}s turn` : ''}</span>
+            </Slate>
+          ) : (
+            <Patch tone="burlap" className="sk-round-patch">
+              {game.phase === 'gameOver'
+                ? `Game over · ${view.round} round${view.round === 1 ? '' : 's'}`
+                : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
+            </Patch>
+          )}
           <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>
-        <div className="pointer-events-auto flex flex-wrap justify-end gap-1">
-          <Chip className="sk-icon-chip" onClick={() => setSheet('cheat')} aria-label="How to play" title="How to play"><BookIcon size={22} /></Chip>
-          <Chip className="sk-icon-chip" onClick={() => setSheet('chain')} aria-label="Chain history" title="Chain history"><ChainIcon size={18} /></Chip>
-          {storeMode === 'room' && <Chip className="sk-icon-chip" onClick={() => setSheet('chat')} aria-label="Room chat" title="Room chat"><ChatIcon size={18} /></Chip>}
-          <Chip className="sk-icon-chip" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted} title={muted ? 'Unmute' : 'Mute'}><SpeakerIcon size={18} muted={muted} /></Chip>
-          <Chip className="sk-icon-chip" onClick={() => setSheet('leave')} aria-label="Leave game" title="Leave game"><CloseIcon size={16} /></Chip>
+        <div className="pointer-events-auto flex flex-wrap justify-end gap-1.5">
+          <Peg onClick={() => setSheet('cheat')} aria-label="How to play" title="How to play"><BookIcon size={22} /></Peg>
+          <Peg onClick={() => setSheet('chain')} aria-label="Chain history" title="Chain history"><ChainIcon size={18} /></Peg>
+          {storeMode === 'room' && <Peg onClick={() => setSheet('chat')} aria-label="Room chat" title="Room chat"><ChatIcon size={18} /></Peg>}
+          <Peg onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted} title={muted ? 'Unmute' : 'Mute'}><SpeakerIcon size={18} muted={muted} /></Peg>
+          <Peg onClick={() => setSheet('leave')} aria-label="Leave game" title="Leave game"><CloseIcon size={16} /></Peg>
         </div>
       </header>
 
       {practice ? (
-        <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-14' : 'top-3'}`} aria-label="Who is playing">
-          <span className="sk-chip sk-display text-lg">{game.players[0].name}</span>
-          <span className="sk-display text-3xl font-extrabold" style={{ color: 'var(--glow)', textShadow: '0 2px 6px rgba(0, 0, 0, 0.8)' }}>VS</span>
-          <span className="sk-chip sk-display text-lg capitalize">{game.players[1].name} · farm sheep · {game.settings.botDifficulty}</span>
+        // The fight card: two paper slips pinned up either side of a carved VS.
+        <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-16' : 'top-3'}`} aria-label="Who is playing">
+          <Paper kind="slip" pin="top" seed={0} tilt className="sk-vs-slip">{game.players[0].name}</Paper>
+          <span className="sk-vs">VS</span>
+          <Paper kind="slip" pin="top" seed={1} tilt className="sk-vs-slip">{game.players[1].name}<span className="sk-vs-farm">farm sheep · {game.settings.botDifficulty}</span></Paper>
         </div>
       ) : (
-        <aside className={mobile ? 'relative z-30 mt-14 flex gap-1 overflow-x-auto px-2' : 'relative z-30 ml-auto mr-2 mt-14 flex flex-col gap-1.5'} aria-label="Scoreboard">
-          {ranked.map((p) => (
-            <PlayerCard key={p.id} player={p} isTurn={p.id === view.currentPlayerId} compact={mobile} lastWord={game.players[Number(p.id)].lastWord} maxLives={maxLives} />
-          ))}
-        </aside>
+        <Ledger players={ranked} turnId={view.currentPlayerId} maxLives={maxLives} compact={mobile}
+          lastWords={Object.fromEntries(ranked.map((p) => [p.id, game.players[Number(p.id)].lastWord]))} />
       )}
 
       {/* Feedback words float over the middle of the table. */}
@@ -377,8 +396,8 @@ export function PaintedGame() {
 
       {/* The steal call: when another sheep's timer is red, say plainly what you can do and what you win. */}
       {input.canSteal && (
-        <div className="pointer-events-none absolute inset-x-0 top-[13%] z-20 flex justify-center px-3" role="status">
-          <Notice tone="steal" size="lg" className="sk-steal-throb" icon={<WolfIcon size={30} />} title="Steal!"
+        <div className={`pointer-events-none absolute inset-x-0 z-20 ${mobile ? 'top-[212px]' : 'top-[13%]'} flex justify-center px-3`} role="status">
+          <Notice tone="steal" size={mobile ? 'md' : 'lg'} className="sk-steal-throb" icon={<WolfIcon size={30} />} title="Steal!"
             sub={`Type a ${(view.letter ?? '').toUpperCase()}-word first and take a wool ball from ${name(view.currentPlayerId)}`} />
         </div>
       )}
@@ -411,19 +430,18 @@ export function PaintedGame() {
         <Sheet title={{ cheat: 'How to play', chain: 'Chain history', chat: 'Room chat' }[sheet]} onClose={() => setSheet(null)}>
           {sheet === 'cheat' && <RulesCard />}
           {sheet === 'chain' && <ChainList game={game} />}
-          {sheet === 'chat' && <div className="rounded-xl p-2" style={{ background: 'var(--ink)', color: 'var(--button-text)' }}><ChatPanel height="h-56" compact /></div>}
+          {sheet === 'chat' && <Panel className="p-2"><div className="sk-chat-card"><ChatPanel height="h-56" compact /></div></Panel>}
         </Sheet>
       )}
       {sheet === 'leave' && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center p-4" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={() => setSheet(null)}>
-          <PaperPanel role="dialog" aria-modal="true" aria-label="Leave game" className="w-full max-w-xs p-4 text-center" onClick={(e) => e.stopPropagation()}>
-            <p className="sk-display text-xl">Leave this table?</p>
-            <p className="mt-1 text-sm" style={{ color: 'var(--ink-soft)' }}>{storeMode === 'daily' ? 'Your daily attempt is used.' : 'This game will end.'}</p>
-            <div className="mt-3 flex gap-2">
+          <Clipboard aria-label="Leave game" title="Leave this table?" className="sk-leave" onClick={(e) => e.stopPropagation()}>
+            <p>{storeMode === 'daily' ? 'Your daily attempt is used.' : 'This game will end.'}</p>
+            <div className="mt-3 flex gap-3">
               <WoodButton autoFocus onClick={() => setSheet(null)} className="flex-1">Stay</WoodButton>
-              <CoralButton onClick={quit} className="flex-1">Leave</CoralButton>
+              <Brass barn onClick={quit} className="flex-1">Leave</Brass>
             </div>
-          </PaperPanel>
+          </Clipboard>
         </div>
       )}
       <DevLine />
@@ -431,17 +449,13 @@ export function PaintedGame() {
   );
 }
 
-/** A paper sheet with a wooden header, for the rules, the chain and the chat. */
+/** A clipboard for the rules, the chain and the chat (V6 Part 6.2): paper under a brass clip on a light board. */
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" style={{ background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className="sk-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sk-sheet-head">
-          <h2>{title}</h2>
-          <Chip className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
-        </div>
-        <div className="sk-sheet-body">{children}</div>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center" style={{ background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
+      <Clipboard aria-label={title} title={title} onClose={onClose} className="sk-table-sheet" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </Clipboard>
     </div>
   );
 }
@@ -469,28 +483,31 @@ function RunOver() {
   return (
     <>
       <div className="sk-results-backdrop" aria-hidden="true" />
-      <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-6">
-        <PaperPanel role="dialog" aria-label="Run over" className="w-full max-w-sm p-5 text-center">
-          <p className="sk-display text-2xl">{run?.isNew ? 'New best!' : 'Baa humbug!'}</p>
-          <p className="sk-display mt-1 text-6xl font-extrabold">{score}</p>
-          <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>word{score === 1 ? '' : 's'} before the clock ran out</p>
-          <dl className="mt-3 grid grid-cols-3 gap-1.5 text-sm">
+      <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto p-3 pt-16 sm:items-center sm:p-6">
+        {/* The run's board (V6 Part 6.3): the score chalked big on a slate, the clock, the bot and the best on three small ones. */}
+        <Board size="panel" hang="ropes" snow id="run-over" role="dialog" aria-label="Run over" className="sk-tally w-full max-w-sm">
+          <h2 className="sk-tally-title">{run?.isNew ? 'New best!' : 'Baa humbug!'}</h2>
+          <div className="mt-2 flex justify-center">
+            <Slate size="plaque" tone={run?.isNew ? 'amber' : 'chalk'} className="sk-score-plaque">
+              {score}<span className="kit-chalk-hand">word{score === 1 ? '' : 's'} before the clock ran out</span>
+            </Slate>
+          </div>
+          <div className="sk-plaques">
             {stats.map(([key, v]) => (
-              <div key={key} className="sk-paper px-2 py-1 text-center">
-                <dt className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{key}</dt>
-                <dd className="sk-display text-xl font-extrabold">{v}</dd>
-              </div>
+              <Slate key={key} size="plaque"><span>{v}</span><span className="kit-chalk-hand">{key}</span></Slate>
             ))}
-          </dl>
-          {me.longestWord && (
-            <p className="mt-2 text-sm" style={{ color: 'var(--ink-soft)' }}>Longest word: <b className="tracking-wide">{me.longestWord.toUpperCase()}</b></p>
+          </div>
+          {(me.longestWord || dreamWaiting) && (
+            <Paper kind="sheet" pin="top" seed="run" className="sk-tally-notes">
+              {me.longestWord && <p>Longest word: <b className="tracking-wide">{me.longestWord.toUpperCase()}</b></p>}
+              {dreamWaiting && <p className="sk-hand">{DREAM_LINE}</p>}
+            </Paper>
           )}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="sk-tally-actions">
             <ClothButton autoFocus onClick={rematch} className="basis-full">Play again</ClothButton>
             <WoodButton onClick={quit} className="flex-1">Back to the farm</WoodButton>
           </div>
-          {dreamWaiting && <p className="sk-hand mt-2 text-lg" style={{ color: 'var(--ink-soft)' }}>{DREAM_LINE}</p>}
-        </PaperPanel>
+        </Board>
       </div>
     </>
   );
@@ -546,37 +563,34 @@ function Results({ players }: { players: PlayerView[] }) {
           actions={
             <>
               {mode === 'quick' && <ClothButton onClick={rematch} className="basis-full">Same table again</ClothButton>}
-              <WoodButton onClick={share} className="flex-1">{copied ? 'Copied!' : 'Share'}</WoodButton>
+              <Brass onClick={share} className="flex-1">{copied ? 'Copied!' : 'Share'}</Brass>
               <WoodButton onClick={quit} className="flex-1">{mode === 'room' ? 'Leave room' : 'Back to the farm'}</WoodButton>
             </>
           }
         >
-          <p className="sk-hand mt-2 text-center text-lg" style={{ color: 'var(--glow)' }}>
-            {place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place} of ${game.players.length}. The last sheep standing gets the knitted scarf.`}
-          </p>
-          <dl className="mt-2 grid grid-cols-2 gap-1.5 text-sm">
+          {/* The notes on one sheet pinned under the slate, then the stats chalked on three small slates. */}
+          <Paper kind="sheet" pin="top" seed="end" className="sk-tally-notes">
+            <p>{place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place} of ${game.players.length}. The last sheep standing gets the knitted scarf.`}</p>
+            {best && <p>{bestLine}</p>}
+            {dreamWaiting && <p className="sk-hand">{DREAM_LINE}</p>}
+          </Paper>
+          <div className="sk-plaques">
             {tiles.map(([key, v, best, beat]) => (
-              <div key={key} className="sk-paper px-2 py-1 text-center">
-                <dt className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{key}</dt>
-                <dd className="sk-display text-xl font-extrabold">{v}</dd>
-                {best !== undefined && <dd className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{beat ? 'new best!' : `best ${best}`}</dd>}
-              </div>
+              <Slate key={key} size="plaque" tone={beat ? 'amber' : 'chalk'}>
+                <span>{v}</span>
+                <span className="kit-chalk-hand">{key}{best !== undefined ? ` · ${beat ? 'new best!' : `best ${best}`}` : ''}</span>
+              </Slate>
             ))}
-          </dl>
-          <div className="sk-paper mt-1.5 px-2 py-1 text-center text-sm">
-            <div className="flex items-baseline justify-center gap-2">
-              <span className="sk-hand" style={{ color: 'var(--ink-soft)' }}>Longest word</span>
-              <span className="truncate font-extrabold tracking-wide">{me.longestWord ? me.longestWord.toUpperCase() : '—'}</span>
-            </div>
-            {result?.bests.longest && <div className="sk-hand" style={{ color: 'var(--ink-soft)' }}>{result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}</div>}
+            <Slate size="plaque" tone={result?.beat.longest ? 'amber' : 'chalk'} className="sk-plaque-word">
+              <span>{me.longestWord ? me.longestWord.toUpperCase() : '—'}</span>
+              <span className="kit-chalk-hand">Longest word{result?.bests.longest ? ` · ${result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}` : ''}</span>
+            </Slate>
           </div>
-          {best && <p className="sk-hand mt-2 text-center" style={{ color: 'var(--glow)' }}>{bestLine}</p>}
-          {dreamWaiting && <p className="sk-hand mt-2 text-center text-lg" style={{ color: 'var(--glow)' }}>{DREAM_LINE}</p>}
           {mode === 'room' && <RewardBanner />}
           {mode === 'daily' && (
-            <div className="mt-2 text-center">
-              <StreakString days={days} />
-              <p className="sk-hand" style={{ color: 'var(--glow)' }}>Daily streak: {streak}</p>
+            <div className="sk-tally-streak" aria-label={`Daily streak: ${days.filter(Boolean).length} of the last 7 days played`}>
+              <Knit stitches={days.map((on, i) => (i === days.length - 1 && on ? 'today' : on ? 'played' : 'missed'))} />
+              <p className="sk-hand">Daily streak: {streak}</p>
             </div>
           )}
         </TallyBoard>

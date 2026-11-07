@@ -1,5 +1,4 @@
 import { Blast } from './Blast';
-import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -20,6 +19,8 @@ import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { BOARD, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
 import { DevStats } from './DevStats';
+import { LetterClock, ProjectAnchor, ScreenAnchor, SlipLayer, useSlipRefs } from './LetterClock';
+import { plankY, stakeGeometry } from '../voxel/props';
 import { Festive } from './Festive';
 import { Atmosphere, Effects, LANTERN_LIGHT, Lights } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
@@ -72,7 +73,7 @@ interface Props {
   speaker: number | null;
   /** 0..1 of the turn left (the icicle's length). */
   fraction: number;
-  /** Seconds left on the clock, shown under the letter board. */
+  /** Seconds left on the clock, chalked on the slate under the letter board. */
   secondsLeft: number | null;
   letter: string;
   isTrap: boolean;
@@ -146,8 +147,8 @@ export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: 
 export function BarnTable(props: Props) {
   const cam = props.phone ? CAMERA.phone : CAMERA.desktop;
   const w = useWorld();
-  const tagEl = useRef<HTMLDivElement>(null);
   const clockEl = useRef<HTMLDivElement>(null);
+  const slipRef = useSlipRefs();
   const fadeEl = useRef<HTMLDivElement>(null);
   const [pop, setPop] = useState(false);
   const pulseKey = props.moments.tuftIn?.key;
@@ -158,7 +159,7 @@ export function BarnTable(props: Props) {
     return () => clearTimeout(id);
   }, [pulseKey]);
   if (!w) return <Building />;
-  const { letter, isTrap, stealOpen } = props;
+  const { letter, isTrap, stealOpen, secondsLeft } = props;
   return (
     <div className="relative size-full">
       <Canvas
@@ -168,52 +169,20 @@ export function BarnTable(props: Props) {
         camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >
-        <Scene {...props} world={w} anchors={{ tag: tagEl, clock: clockEl, fade: fadeEl }} />
+        <Scene {...props} world={w} anchors={{ clock: clockEl, fade: fadeEl, slip: slipRef }} />
       </Canvas>
       {/* Reduced motion: the camera cuts between speakers behind a 150 ms fade. */}
       <div ref={fadeEl} className="pointer-events-none absolute inset-0 z-[4]" style={{ background: 'var(--ink)', opacity: 0 }} aria-hidden="true" />
-      {/* No points pile any more: the tag anchor stays (unused) so the projection code is unchanged. */}
-      <div ref={tagEl} className="hidden" aria-hidden="true" />
-      {/* The letter to start with, big and plain, hung just under the carved board, with the clock under it as a bar
-          that drains green, amber, then red (the steal window). Readable from across the room at any camera angle. */}
+      <SlipLayer seats={props.seats} refFor={slipRef} />
+      {/* The seconds on a mini slate hung under the carved board (V6 Part 5.2), anchored to it every frame. */}
       <div ref={clockEl} className="pointer-events-none absolute left-0 top-0 z-[25]" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
-        <div
-          className={`sk-letter-card ${pop ? 'sk-letter-pop' : ''}`} data-steal={stealOpen || undefined} data-trap={isTrap || undefined}
-          data-chain-tile data-tour="chain" aria-label={`Required starting letter ${letter.toUpperCase()}${isTrap ? ', a trap letter' : ''}`}
-        >
-          <span className="sk-letter-card-label">starts with</span>
-          <span className="sk-letter-card-letter">{letter.toUpperCase()}</span>
-        </div>
+        <LetterClock letter={letter} isTrap={isTrap} secondsLeft={secondsLeft} stealOpen={stealOpen} pop={pop} />
       </div>
     </div>
   );
 }
 
-type Anchors = { tag: React.RefObject<HTMLDivElement | null>; clock: React.RefObject<HTMLDivElement | null>; fade: React.RefObject<HTMLDivElement | null> };
-
-/** Projects the two anchor points every frame and moves their DOM elements; the tag stays `margin` px above the bottom edge. */
-function Projection({ anchors, pileHeight, margin }: { anchors: Anchors; pileHeight: number; margin: number }) {
-  const v = useMemo(() => new Vector3(), []);
-  useFrame(({ camera, size }) => {
-    const place = (el: HTMLDivElement | null, x: number, y: number, z: number, clamp: boolean) => {
-      if (!el) return;
-      v.set(x, y, z).project(camera);
-      let px = ((v.x + 1) / 2) * size.width;
-      let py = ((1 - v.y) / 2) * size.height;
-      if (clamp) py = Math.min(py, size.height - margin);
-      // In a close-up the board can leave the frame: the letter card then waits at the nearest edge, always readable.
-      if (!clamp) {
-        if (v.z > 1) { px = size.width / 2; py = 90; }
-        px = Math.min(Math.max(px, 70), size.width - 70);
-        py = Math.min(Math.max(py, 96), size.height - margin - 40);
-      }
-      el.style.transform = `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0) translate(-50%, -50%)`;
-    };
-    place(anchors.tag.current, HEAP[0], PLATFORM_HEIGHT + pileHeight + 0.35, HEAP[2], true);
-    place(anchors.clock.current, HEAP[0], BOARD.bottom - 0.22, 1.0, false);
-  });
-  return null;
-}
+type Anchors = { clock: React.RefObject<HTMLDivElement | null>; fade: React.RefObject<HTMLDivElement | null>; slip: (seat: number) => React.RefObject<HTMLDivElement | null> };
 
 export function Building() {
   return (
@@ -226,6 +195,8 @@ export function Building() {
 function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, isTrap, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
+  const stake = useMemo(() => stakeGeometry(), []);
+  const stakeMat = useMemo(() => voxelMaterial(), []);
 
   // The freeze dims the lanterns to 40% for 2.4 s.
   const freezeAt = useRef(-10);
@@ -261,11 +232,10 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
       <Farm world={w} reduced={reduced} stealOpen={stealOpen} />
       <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} />
-      <Projection anchors={anchors} pileHeight={pileHeightFor(pile)} margin={phone ? 140 : 120} />
+      <ProjectAnchor el={anchors.clock} at={[HEAP[0], BOARD.bottom - 0.02, 1.0]} board={[HEAP[0], BOARD.bottom + BOARD.height / 2, 1.0]} margin={phone ? 140 : 120} />
       <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {stealOpen && <WolfEyes />}
       {seats.map((s) => {
-        const p = seatPosition(s.index, n);
         return (
           <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === speaker} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(s.avatar)?.animal ?? 'sheep').drawScale}>
             {s.avatar === ADMIN_AVATAR_ID ? (
@@ -275,8 +245,19 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
                 gustFrom={[0, 0.8, -6]} lookAt={s.index === speaker ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking}
                 model={byId(s.avatar) ? animalModel(byId(s.avatar)!.animal) : undefined} />
             )}
-            <Html position={[p.x >= 0 ? 0.95 : -0.95, 0.75, 0]} center zIndexRange={[20, 0]} rotation={[0, -p.yaw, 0]}>{s.label}</Html>
           </SeatGroup>
+        );
+      })}
+      {/* A name stake planted in the hay beside each seat (V6 Part 5.3), its plank turned to the room, the slips pinned to it. */}
+      {seats.map((s) => {
+        const p = seatPosition(s.index, n);
+        return (
+          <group key={`stake-${s.seat}`} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]}>
+            <group position={[(p.x >= 0 ? 0.95 : -0.95) * SHEEP_SCALE, 0, 0]} rotation={[0, -p.yaw, 0]}>
+              <mesh geometry={stake} material={stakeMat} castShadow receiveShadow />
+              <ScreenAnchor el={anchors.slip(s.seat)} position={[0, plankY(), -0.12]} />
+            </group>
+          </group>
         );
       })}
       <Moments moments={moments} n={n} reduced={reduced} />
@@ -362,11 +343,6 @@ function SeatGroup({ index, n, active, reduced, drawScale = 1, children }: { ind
   return <group ref={g} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={SHEEP_SCALE * drawScale}>{children}</group>;
 }
 
-/** The mound's height for a pile of `points`: 0.3 m at the smallest, 0.8 m at the largest. */
-function pileHeightFor(points: number): number {
-  return 0.3 + ((pileWidth(points) - 0.9) / 1.3) * 0.5;
-}
-
 /**
  * The hero: the mound of wool on its wooden platform under its own spotlight, with the count on a paper tag anchored
  * above it (plan V3.2 Part 3). The spot brightens and the tag pops on an accepted word.
@@ -397,10 +373,13 @@ function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; re
 
 /**
  * The starting letter carved on a board hanging from the beam above the pile (an ice block for trap letters),
- * swinging a little with the wind, with the seconds on a chip just under it (plan V3.2 Part 4).
+ * swinging a little with the wind, with the seconds on a slate just under it (V6 Part 5.2). `beamY` sets how long its
+ * ropes are and `hook` where they hang from (the practice duel hangs it from a signpost on the ice).
  */
-function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; isTrap: boolean; stealOpen: boolean; reduced: boolean }) {
-  const geo = useMemo(() => letterBoardGeometry(letter, isTrap, BARN.beamY), [letter, isTrap]);
+export function LetterBoard({ letter, isTrap, stealOpen, reduced, beamY = BARN.beamY, hook = [HEAP[0], BARN.beamY - 0.15, 1.0] }: {
+  letter: string; isTrap: boolean; stealOpen: boolean; reduced: boolean; beamY?: number; hook?: readonly [number, number, number];
+}) {
+  const geo = useMemo(() => letterBoardGeometry(letter, isTrap, beamY), [letter, isTrap, beamY]);
   // A little warmth of its own, so the board still reads when the speaker camera sees its unlit side of the room.
   const boardMat = useMemo(() => voxelMaterial({ emissive: '#3A2A1C', emissiveIntensity: 1 }), []);
   const iceGeo = useMemo(() => new BoxGeometry(BOARD.width, BOARD.height, 0.24), []);
@@ -410,14 +389,13 @@ function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; i
   useFrame(({ clock, camera }, dt) => {
     if (!g.current) return;
     g.current.rotation.z = reduced || stealOpen ? 0 : (Math.sin(clock.elapsedTime * 0.7) * 1.5 * Math.PI) / 180;
-    const want = Math.atan2(-(camera.position.x - HEAP[0]), -(camera.position.z - 1.0));
+    const want = Math.atan2(-(camera.position.x - hook[0]), -(camera.position.z - hook[2]));
     const d = Math.atan2(Math.sin(want - g.current.rotation.y), Math.cos(want - g.current.rotation.y));
     g.current.rotation.y += d * (reduced ? 1 : 1 - Math.exp(-dt * 6));
   });
-  const pivotY = BARN.beamY - 0.15;
-  const boardMid = BOARD.bottom + BOARD.height / 2 - pivotY;
+  const boardMid = BOARD.bottom + BOARD.height / 2 - (beamY - 0.15);
   return (
-    <group ref={g} position={[HEAP[0], pivotY, 1.0]}>
+    <group ref={g} position={[hook[0], hook[1], hook[2]]}>
       <mesh geometry={geo} material={boardMat} castShadow />
       {isTrap && <mesh geometry={iceGeo} material={iceMat} position={[0, boardMid, 0]} />}
     </group>

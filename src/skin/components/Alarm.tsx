@@ -32,16 +32,14 @@ function LampIcon({ size = 26 }: { size?: number }) {
  */
 export function Alarm({ tone, label, title, sub, compact = false }: Omit<AlarmSpec, 'id' | 'ms'> & { compact?: boolean }) {
   return (
-    <div className={`sk-alarm sk-alarm-${tone} ${compact ? 'sk-alarm-compact' : ''}`} role="alert">
-      <span className="sk-alarm-stripe sk-alarm-stripe-l" aria-hidden="true" />
-      <span className="sk-alarm-lamp" aria-hidden="true"><LampIcon size={compact ? 20 : 26} /></span>
-      <span className="sk-alarm-body">
-        <span className="sk-alarm-label">{label}</span>
-        <span className="sk-alarm-title">{title}</span>
-        {sub && <span className="sk-alarm-sub">{sub}</span>}
+    <div className={`kit-alarm kit-alarm-${tone} ${compact ? 'kit-alarm-compact' : ''}`} role="alert">
+      <span className="kit-alarm-lamp" aria-hidden="true"><LampIcon size={compact ? 20 : 26} /></span>
+      <span className="kit-alarm-body">
+        <span className="kit-alarm-label">{label}</span>
+        <span className="kit-alarm-title">{title}</span>
+        {sub && <span className="kit-alarm-sub">{sub}</span>}
       </span>
-      <span className="sk-alarm-lamp sk-alarm-lamp-r" aria-hidden="true"><LampIcon size={compact ? 20 : 26} /></span>
-      <span className="sk-alarm-stripe sk-alarm-stripe-r" aria-hidden="true" />
+      <span className="kit-alarm-lamp kit-alarm-lamp-r" aria-hidden="true"><LampIcon size={compact ? 20 : 26} /></span>
     </div>
   );
 }

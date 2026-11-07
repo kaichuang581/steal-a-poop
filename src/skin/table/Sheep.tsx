@@ -7,6 +7,7 @@ import {
 } from 'three';
 import { Box3 } from 'three';
 import type { Material } from 'three';
+import { WoolBall } from '../components/Lives';
 import { santaHat } from '../scene/festive';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
@@ -467,7 +468,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         {scarf && <Scarf />}
         {everThought.current && (
           <Html position={[0.45, 1.15, 0.45]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-            <div ref={bubble} className="sk-think" aria-hidden="true">…</div>
+            <div ref={bubble} className="sk-think" aria-hidden="true"><WoolBall full size={8} /><WoolBall full size={10} /><WoolBall full size={12} /></div>
           </Html>
         )}
       </group>

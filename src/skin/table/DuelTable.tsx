@@ -1,4 +1,3 @@
-import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -13,14 +12,20 @@ import { SHEEP_SCALE } from '../scene/layout';
 import { Sky } from '../scene/Sky';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
-import { Bomb } from './BarnTable';
+import { BOARD } from '../voxel/table';
+import { plankY, stakeGeometry } from '../voxel/props';
+import { Bomb, LetterBoard } from './BarnTable';
 import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
 import { Effects, LANTERN_LIGHT } from './Rendering';
+import { LetterClock, ProjectAnchor, ScreenAnchor, SlipLayer, useSlipRefs } from './LetterClock';
 import { Sheep } from './Sheep';
 
 const DARK = '#14233C';
+/** The letter board hangs on short ropes from its signpost's arm: `letterBoardGeometry` measures them from this beam height. */
+const DUEL_BEAM = DUEL.hook[1] + 0.65;
+const BOARD_BOTTOM = DUEL.hook[1] + BOARD.bottom - (DUEL_BEAM - 0.15);
 const CALM = new Color('#FFD9A0');
 const DANGER = new Color('#FF5A3C');
 
@@ -42,6 +47,8 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
     return () => clearTimeout(id);
   }, [pulseKey]);
   const heat = Math.max(0, pressureOf(speaker, fraction) - 0.5) * 2;
+  const clockEl = useRef<HTMLDivElement>(null);
+  const slipRef = useSlipRefs();
   return (
     <div className="relative size-full" style={{ background: DARK }}>
       <Canvas
@@ -53,24 +60,29 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         camera={{ fov: open.fov, position: open.position, near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(open.target[0], open.target[1], open.target[2])}
       >
-        <Duel bombSize={bombSize} seats={seats} speaker={speaker} fraction={fraction} secondsLeft={secondsLeft} stealOpen={stealOpen} reduced={reduced} phone={phone} boomKey={moments.boom?.key} power={moments.boom?.power} />
+        <Duel bombSize={bombSize} seats={seats} speaker={speaker} fraction={fraction} secondsLeft={secondsLeft} stealOpen={stealOpen} reduced={reduced} phone={phone} boomKey={moments.boom?.key} power={moments.boom?.power} slipRef={slipRef} />
+        <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} beamY={DUEL_BEAM} hook={DUEL.hook} />
+        {/* The moon is behind the board's back: a warm lamp in front of it keeps the carved letter readable at night. */}
+        <pointLight position={[0, BOARD_BOTTOM + 0.3, -1.1]} color={LANTERN_LIGHT.color} intensity={7} distance={3} decay={2} />
+        <ProjectAnchor el={clockEl} at={[DUEL.hook[0], BOARD_BOTTOM - 0.02, DUEL.hook[2]]} board={[DUEL.hook[0], BOARD_BOTTOM + BOARD.height / 2, DUEL.hook[2]]} margin={phone ? 140 : 120} />
       </Canvas>
       {/* The edges of the screen close in red over the last half of your clock. */}
       <div className="pointer-events-none absolute inset-0 z-[4]" style={{ opacity: heat, background: 'radial-gradient(ellipse at center, transparent 42%, rgba(170, 24, 14, 0.8) 100%)' }} aria-hidden="true" />
-      <div className={`pointer-events-none absolute left-1/2 z-[25] -translate-x-1/2 ${phone ? 'top-28' : 'top-20'}`}>
-        <div className={`sk-letter-card ${pop ? 'sk-letter-pop' : ''}`} data-trap={isTrap || undefined} data-chain-tile aria-label={`Required starting letter ${letter.toUpperCase()}`}>
-          <span className="sk-letter-card-label">starts with</span>
-          <span className="sk-letter-card-letter">{letter.toUpperCase()}</span>
-        </div>
+      <SlipLayer seats={seats} refFor={slipRef} />
+      {/* The seconds on a mini slate under the carved board on its signpost (V6 Part 5.2). */}
+      <div ref={clockEl} className="pointer-events-none absolute left-0 top-0 z-[25]" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
+        <LetterClock letter={letter} isTrap={isTrap} secondsLeft={secondsLeft} stealOpen={stealOpen} pop={pop} />
       </div>
     </div>
   );
 }
 
-type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fraction' | 'secondsLeft' | 'stealOpen' | 'reduced' | 'phone'> & { boomKey: number | undefined; power: number | undefined };
+type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fraction' | 'secondsLeft' | 'stealOpen' | 'reduced' | 'phone'> & { boomKey: number | undefined; power: number | undefined; slipRef: (seat: number) => React.RefObject<HTMLDivElement | null> };
 
-function Duel({ bombSize, seats, speaker, fraction, secondsLeft, stealOpen, reduced, phone, boomKey, power }: DuelProps) {
+function Duel({ bombSize, seats, speaker, fraction, secondsLeft, stealOpen, reduced, phone, boomKey, power, slipRef }: DuelProps) {
   const pressure = pressureOf(speaker, fraction);
+  const stake = useMemo(() => stakeGeometry({ height: DUEL.stake.height, ice: true }), []);
+  const stakeMat = useMemo(() => voxelMaterial(), []);
   return (
     <>
       <DuelCamera speaker={speaker} pressure={pressure} phone={phone} reduced={reduced} />
@@ -92,9 +104,17 @@ function Duel({ bombSize, seats, speaker, fraction, secondsLeft, stealOpen, redu
                 gustFrom={[0, 0.8, -6]} lookAt={[other.x, 0.85 * SHEEP_SCALE, other.z]} speaking={s.index === speaker} thinking={s.thinking}
                 model={model ? animalModel(model.animal) : undefined} />
             )}
-            {/* Behind the shoulders, clear of the bomb overhead and of the gap between the two faces. */}
-            <Html position={[0, 1.45, -0.75]} center zIndexRange={[20, 0]}>{s.label}</Html>
           </Stand>
+        );
+      })}
+      {/* Each name stake is frozen into the ice just behind its sheep, tall enough for the slips to clear its back. */}
+      {seats.map((s) => {
+        const side = s.seat === 0 ? 1 : -1;
+        return (
+          <group key={`stake-${s.seat}`} position={[side * DUEL.stake.x, 0, DUEL.stake.z]}>
+            <mesh geometry={stake} material={stakeMat} castShadow receiveShadow />
+            <ScreenAnchor el={slipRef(s.seat)} position={[0, plankY(DUEL.stake.height), -0.12]} />
+          </group>
         );
       })}
       <Effects />

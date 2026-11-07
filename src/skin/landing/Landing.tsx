@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../auth/authStore';
+import { authEnabled } from '../../auth/config';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { useStore } from '../../state/store';
 import { legalHref } from '../../ui/legal/legalLinks';
@@ -17,6 +18,7 @@ export function Landing() {
   const phone = useIsMobile();
   const [dialog, setDialog] = useState<null | 'account' | 'guest'>(null);
   const [error, setError] = useState('');
+  const accounts = authEnabled();
   const startTour = useStore((s) => s.startTour);
 
   const google = async () => {
@@ -37,8 +39,8 @@ export function Landing() {
       <section aria-label="Get started" className="absolute inset-x-3 bottom-3 mx-auto flex max-w-md flex-col gap-2 sm:bottom-10 sm:left-10 sm:right-auto sm:mx-0">
         <WoodButton onClick={() => startTour('menu')} className="w-full">Watch a sample round</WoodButton>
         <p className="sk-hand text-center text-lg" style={{ color: 'var(--glow)' }}>Then choose how to play:</p>
-        <ClothButton onClick={() => void google()} className="w-full">Continue with Google</ClothButton>
-        <ClothButton onClick={() => setDialog('account')} className="w-full">Sign in or sign up with email</ClothButton>
+        {accounts && <ClothButton onClick={() => void google()} className="w-full">Continue with Google</ClothButton>}
+        {accounts && <ClothButton onClick={() => setDialog('account')} className="w-full">Sign in or sign up with email</ClothButton>}
         <WoodButton onClick={() => setDialog('guest')} className="w-full">Play as a guest</WoodButton>
         {error && <p role="alert" className="sk-paper px-3 py-1 text-center text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
         <p className="text-center text-xs" style={{ color: 'var(--button-text)' }}>

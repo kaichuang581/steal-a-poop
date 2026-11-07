@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { decideEntry } from '../entry';
 
 describe('first screen', () => {
-  it('a build with no accounts goes straight to the menu', () => {
-    expect(decideEntry({ accounts: false, status: 'off', hasGuest: false })).toBe('menu');
+  it('a build with no accounts shows the landing page too (guest play), unless a guest is known', () => {
+    expect(decideEntry({ accounts: false, status: 'off', hasGuest: false })).toBe('landing');
+    expect(decideEntry({ accounts: false, status: 'off', hasGuest: true })).toBe('menu');
   });
   it('a first visit, or a logged-out player, sees the landing page', () => {
     expect(decideEntry({ accounts: true, status: 'signedOut', hasGuest: false })).toBe('landing');

@@ -128,11 +128,13 @@ function schedule(c: AudioContext, kind: SoundKind): void {
       [523, 659, 784, 1047].forEach((f, i) => tone(c, { freq: f, at: i * 0.11, dur: 0.3, type: 'triangle', vol: 0.1 }));
       break;
     case 'boom': // a bomb: a hard crack, a deep thump, a rolling rumble and a scatter of crackles
-      whoosh(c, 0, 0.16, 7000, 1500, 0.5);
-      whoosh(c, 0, 1.0, 1600, 90, 0.7);
-      tone(c, { freq: 95, dur: 0.75, type: 'sine', vol: 0.6, to: 28 });
-      tone(c, { freq: 60, at: 0.02, dur: 0.95, type: 'sawtooth', vol: 0.2, to: 26 });
-      for (let i = 0; i < 14; i++) tone(c, { freq: 1800 + Math.random() * 3200, at: 0.12 + Math.random() * 0.7, dur: 0.04, type: 'square', vol: 0.05 });
+      whoosh(c, 0, 0.2, 8000, 1500, 0.9);
+      whoosh(c, 0, 1.4, 2000, 70, 1.0);
+      whoosh(c, 0.05, 0.6, 600, 60, 0.9);
+      tone(c, { freq: 100, dur: 1.0, type: 'sine', vol: 0.95, to: 24 });
+      tone(c, { freq: 45, at: 0.03, dur: 1.2, type: 'sine', vol: 0.8, to: 20 });
+      tone(c, { freq: 62, at: 0.02, dur: 1.2, type: 'sawtooth', vol: 0.3, to: 24 });
+      for (let i = 0; i < 22; i++) tone(c, { freq: 1800 + Math.random() * 3200, at: 0.12 + Math.random() * 1.0, dur: 0.05, type: 'square', vol: 0.09 });
       break;
     case 'alarm': // the barn klaxon: two notes blared three times over a rising and falling siren
       for (let i = 0; i < 6; i++) tone(c, { freq: i % 2 ? 415 : 554, at: i * 0.22, dur: 0.2, type: 'square', vol: 0.085 });

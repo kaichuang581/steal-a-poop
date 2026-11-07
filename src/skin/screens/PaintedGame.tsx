@@ -94,12 +94,12 @@ export function PaintedGame() {
   const [hit, setHit] = useState(0);
   const [boom, setBoom] = useState(0);
   /** A steal lands: the whole table jolts and a red edge flashes (neither under reduced motion). */
-  const jolt = () => {
+  const jolt = (px = 9) => {
     if (reduced) return;
     setHit(Math.random() + 1);
     rootRef.current?.animate?.(
-      [{ transform: 'translate(0,0)' }, { transform: 'translate(-9px,4px)' }, { transform: 'translate(8px,-5px)' }, { transform: 'translate(-5px,3px)' }, { transform: 'translate(3px,-2px)' }, { transform: 'translate(0,0)' }],
-      { duration: 380, easing: 'ease-out' },
+      [{ transform: 'translate(0,0)' }, { transform: `translate(${-px}px,${px * 0.45}px)` }, { transform: `translate(${px * 0.9}px,${-px * 0.55}px)` }, { transform: `translate(${-px * 0.55}px,${px * 0.33}px)` }, { transform: `translate(${px * 0.33}px,${-px * 0.22}px)` }, { transform: 'translate(0,0)' }],
+      { duration: px > 9 ? 650 : 380, easing: 'ease-out' },
     );
   };
 
@@ -173,7 +173,7 @@ export function PaintedGame() {
         setDimmed((d) => new Set(d).add(Number(e.playerId)));
         if (game.players[Number(e.playerId)]?.isHuman && (practice || storeMode === 'tour')) break; // learning: no loss
         mood(e.playerId, 'cold', 2);
-        jolt();
+        jolt(24);
         setBoom(k() + 1);
         setMoments((m) => ({ ...m, gust: { key: k(), at: rel(Number(e.playerId)) } }));
         flash(

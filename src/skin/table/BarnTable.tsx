@@ -13,7 +13,7 @@ import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, s
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
-import { shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
+import { digitGeometry, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
 import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, bombModel } from '../voxel/bomb';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
@@ -147,7 +147,7 @@ export function BarnTable(props: Props) {
     return () => clearTimeout(id);
   }, [pulseKey]);
   if (!w) return <Building />;
-  const { letter, isTrap, stealOpen, secondsLeft } = props;
+  const { letter, isTrap, stealOpen } = props;
   return (
     <div className="relative size-full">
       <Canvas
@@ -172,11 +172,6 @@ export function BarnTable(props: Props) {
         >
           <span className="sk-letter-card-label">starts with</span>
           <span className="sk-letter-card-letter">{letter.toUpperCase()}</span>
-          {secondsLeft !== null && (
-            <span className="sk-letter-card-bomb" data-level={stealOpen ? 'red' : props.fraction > 0.45 ? 'ok' : 'warn'}>
-              <b>{secondsLeft.toFixed(1)}s</b>
-            </span>
-          )}
         </div>
       </div>
     </div>
@@ -217,7 +212,7 @@ export function Building() {
   );
 }
 
-function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
+function Scene({ seats, pile, speaker, fraction, secondsLeft, letter, isTrap, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
 
@@ -256,7 +251,7 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
       <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} />
       <Projection anchors={anchors} pileHeight={pileHeightFor(pile)} margin={phone ? 140 : 120} />
-      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.gust?.key} />
+      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.gust?.key} secondsLeft={secondsLeft} />
       {stealOpen && <WolfEyes />}
       {seats.map((s) => {
         const p = seatPosition(s.index, n);
@@ -423,12 +418,16 @@ function LetterBoard({ letter, isTrap, stealOpen, reduced }: { letter: string; i
  * The bomb: a voxel bomb floats over the sheep who holds it, bobbing, with the fuse burning shorter as the turn runs
  * out (red once others can steal). When the turn changes it arcs across the barn to the next sheep.
  */
-function Bomb({ speaker, n, fraction, red, reduced, boomKey }: { speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined }) {
+function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft }: { speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null }) {
   const m = useMemo(() => bombModel(), []);
   const body = useMemo(() => voxelMaterial(), []);
   const fuseMat = useMemo(() => voxelMaterial(), []);
   const sparkMat = useMemo(() => voxelMaterial({ emissive: '#ffb23a', emissiveIntensity: 1.4 }), []);
   const group = useRef<Group>(null);
+  const label = useRef<Group>(null);
+  const digits = useRef<Mesh>(null);
+  const shown = useRef('');
+  const digitMat = useMemo(() => voxelMaterial({ emissive: '#ffcf5a', emissiveIntensity: 0.9 }), []);
   const fuse = useRef<Group>(null);
   const spark = useRef<Mesh>(null);
   const flight = useRef({ from: new Vector3(), to: new Vector3(), t: 1, started: false });
@@ -462,9 +461,19 @@ function Bomb({ speaker, n, fraction, red, reduced, boomKey }: { speaker: number
     }
     f.to.copy(target);
   }, [target, reduced]);
-  useFrame(({ clock }, dt) => {
+  useFrame(({ clock, camera }, dt) => {
     const g = group.current;
     if (!g || !target) return;
+    // The seconds left, in glowing voxel digits on the bomb's face, turned to the camera so they read from any seat.
+    if (label.current) {
+      const text = secondsLeft === null ? '' : String(Math.max(0, Math.ceil(secondsLeft)));
+      if (text !== shown.current && digits.current) { shown.current = text; digits.current.geometry = digitGeometry(text, 0.03); }
+      label.current.visible = text !== '';
+      label.current.quaternion.copy(camera.quaternion);
+      const d = camera.position.clone().sub(g.position).normalize().multiplyScalar(0.21);
+      label.current.position.copy(d);
+      digitMat.color.set(red ? '#ff6f55' : '#ffffff');
+    }
     const f = flight.current;
     const now = clock.elapsedTime;
     if (f.t < 1) {
@@ -491,6 +500,7 @@ function Bomb({ speaker, n, fraction, red, reduced, boomKey }: { speaker: number
     <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} />
     <group ref={group} scale={1.5} visible>
       <mesh geometry={m.body} material={body} castShadow />
+      <group ref={label}><mesh ref={digits} material={digitMat} /></group>
       <group ref={fuse} position={[0, BOMB_NECK_Y, 0]}>
         <mesh geometry={m.fuse} material={fuseMat} />
         <mesh ref={spark} geometry={m.spark} material={sparkMat} />

@@ -28,7 +28,7 @@ export function Ropes({ hang = 40 }: { hang?: number }) {
 
 /** 4.1 A sawn plank. */
 export function Board({ size = 'label', tone = 'wood', hang = 'none', snow = false, lit = false, swing = false, id, className, children, ...rest }: Div & {
-  size?: 'heading' | 'label' | 'post' | 'panel'; tone?: 'wood' | 'light' | 'barn' | 'green'; hang?: 'nails' | 'ropes' | 'none';
+  size?: 'heading' | 'label' | 'post' | 'panel'; tone?: 'wood' | 'light' | 'barn' | 'green' | 'knit'; hang?: 'nails' | 'ropes' | 'none';
   snow?: boolean; lit?: boolean; swing?: boolean;
 }) {
   return (

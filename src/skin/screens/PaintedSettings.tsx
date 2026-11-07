@@ -30,12 +30,12 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{ background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Settings" className="relative w-full max-w-sm pt-2" onClick={(e) => e.stopPropagation()}>
         <div className="relative z-10 mx-auto flex justify-center">
-          <Board size="heading" hang="nails" snow id="settings-head">Settings</Board>
+          <Board size="heading" tone="knit" snow id="settings-head">Settings</Board>
         </div>
         <Peg ref={closeRef} small light className="absolute right-1 top-3 z-20" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Peg>
         <Panel className="-mt-3 pt-5">
-          {/* The account panel is written light-on-dark; it sits straight on the wood. */}
-          <div className="kit-panel-row empty:hidden"><AccountPanel onSignIn={() => setSignIn(true)} /></div>
+          {/* The account panel is written light-on-dark; it sits on a cranberry patch. */}
+          <div className="kit-panel-row sk-account-row empty:hidden"><AccountPanel onSignIn={() => setSignIn(true)} /></div>
           <PanelRow label="Sound"><Lever checked={!s.muted} onChange={s.toggleMute} label="Sound" /></PanelRow>
           <PanelRow label="Volume">
             <RopeSlider min={0} max={100} value={Math.round(s.volume * 100)} onChange={(e) => s.setVolume(Number(e.target.value) / 100)} aria-label="Volume" className="w-32" />

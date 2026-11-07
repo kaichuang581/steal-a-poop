@@ -54,6 +54,11 @@
   --brass-light: #F0D48C;
   --brass-dark: #8F6D22;
   --barn-paint: #A6453A;
+  /* Wool (the knitted panels): cream wool, its ribbed edge, cranberry and its shadow. Ink on wool 10:1, cream on cranberry 6:1. */
+  --wool: #F4ECDD;
+  --wool-edge: #E2D3B9;
+  --berry: #A8322C;
+  --berry-dark: #7E2420;
 
   --shadow-warm: 0 6px 18px rgba(80, 50, 20, 0.18);
 

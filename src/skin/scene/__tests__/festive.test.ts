@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { triangles } from '../../voxel/mesher';
 import { buildFarmstead } from '../farmstead';
-import { BULB_COLORS, BULB_GROUPS, buildBedroomFestive, buildDuelFestive, buildFarmFestive, buildFestive, santaHat } from '../festive';
+import { BULB_COLORS, BULB_GROUPS, buildDuelFestive, buildFarmFestive, buildFestive, santaHat } from '../festive';
 import { seatPosition } from '../layout';
 
 describe('the Fleece Navidad decorations', () => {
   it('builds each place\'s once, with every colour of bulb, inside a sensible budget', () => {
     buildFarmstead(); // the orchard's baubles hang from its branches
-    for (const build of [buildFestive, buildFarmFestive, buildDuelFestive, buildBedroomFestive]) {
+    for (const build of [buildFestive, buildFarmFestive, buildDuelFestive]) {
       const f = build();
       expect(build()).toBe(f);
       expect(f.bulbs).toHaveLength(BULB_COLORS.length * BULB_GROUPS);

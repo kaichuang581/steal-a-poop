@@ -261,17 +261,6 @@ export function buildFarmFestive(): FestiveGeometry {
   return (farmstead = d.build());
 }
 
-let bedroom: FestiveGeometry | null = null;
-/** The farmer's bedroom, in the room's own coordinates: a small string of lights on the headboard and presents beside it. */
-export function buildBedroomFestive(): FestiveGeometry {
-  if (bedroom) return bedroom;
-  const d = new Dressing();
-  d.strand([-0.1, 1.2, -0.75], [-0.1, 1.2, 0.75], 0.12, 0.2, 0.1);
-  d.present(-0.5, -0.3, 0.3, 0.2, T.collar[1], GOLD);
-  d.present(-0.55, 0.15, 0.3, 0.3, T.pine[1], T.snow[1]);
-  return (bedroom = d.build());
-}
-
 let duel: FestiveGeometry | null = null;
 /** The ice gets a little of it too: lights between the lanterns and a tree at the far end. */
 export function buildDuelFestive(): FestiveGeometry {

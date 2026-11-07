@@ -156,6 +156,34 @@ export class AccountService {
     return { ok: true, profile: publicOf(profile), mailed };
   }
 
+  /**
+   * The simple sign-up: a username and nothing else. No date of birth, country or parent email is asked, so the
+   * profile is `unconfirmed`: progress is kept, but chat, friends and the public boards stay off.
+   */
+  async createUsernameProfile(claims: SessionClaims, rawNickname: string): Promise<{ ok: true; profile: PublicProfile } | { ok: false; reason: CreateProfileFailure }> {
+    const now = this.d.now();
+    const fail = (reason: CreateProfileFailure) => ({ ok: false as const, reason });
+    if (await this.d.store.getProfile(claims.userId)) return fail('profile_exists');
+    if (!claims.email) return fail('email_required');
+    const nickname = cleanNickname(String(rawNickname ?? ''));
+    if (!nickname || !this.d.nicknameAllowed(nickname)) return fail('bad_nickname');
+    if (await this.d.store.nicknameTaken(nickname)) return fail('nickname_taken');
+    const emailHash = identityHash(claims.email);
+    if (await this.d.store.isBannedIdentity(emailHash)) return fail('identity_banned');
+    if (await this.d.store.restrictedUntil(emailHash, now)) return fail('identity_restricted');
+    const profile: Profile = {
+      userId: claims.userId, nickname, emailHash, dateOfBirth: null, country: null,
+      consentStatus: 'unconfirmed', leaderboardVisible: false, isModerator: false, sessionsValidAfter: 0, createdAt: now, updatedAt: now, deletedAt: null,
+    };
+    try {
+      if (!(await this.d.store.createProfile(profile))) return fail('profile_exists');
+    } catch {
+      return fail('nickname_taken');
+    }
+    this.log('profile created (username only)');
+    return { ok: true, profile: publicOf(profile) };
+  }
+
   // ---------------------------------------------------------------- parental consent
 
   private async requestConsent(child: Profile, parentEmail: string): Promise<boolean> {

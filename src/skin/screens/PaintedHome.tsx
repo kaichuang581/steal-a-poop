@@ -30,7 +30,7 @@ import { AvatarIcon } from '../avatars/AvatarIcon';
 import { FeedbackDialog } from '../components/FeedbackDialog';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
-import { AvatarButtonIcon } from '../components/PixelIcons';
+import { AvatarButtonIcon, PersonIcon } from '../components/PixelIcons';
 import { PaintedGuide } from '../components/PaintedGuide';
 import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
@@ -320,6 +320,7 @@ export function PaintedHome() {
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
         )}
+        <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account"><PersonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>

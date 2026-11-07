@@ -14,7 +14,6 @@ export function AccountPanel({ onSignIn }: { onSignIn: () => void }) {
   const [busy, setBusy] = useState(false);
   const row = 'flex min-h-12 w-full items-center justify-between gap-3 rounded-xl bg-white/10 px-4 text-left font-bold hover:bg-white/15 disabled:opacity-40';
 
-  if (status === 'off') return null;
   if (status !== 'ready' && status !== 'needsProfile') {
     return <button className={row} onClick={onSignIn}><span>Sign in or sign up</span><span aria-hidden="true">›</span></button>;
   }

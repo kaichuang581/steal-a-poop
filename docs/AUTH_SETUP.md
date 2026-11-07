@@ -113,3 +113,17 @@ the service key are set. Development sign-in (`dev:name`) cannot be switched on 
 None of the Supabase, Google, Meta or Turnstile steps above have been run against the real services from here. The server code was
 tested with locally signed tokens and the screens with the Supabase and server calls faked in the browser. First real test:
 sign up with a new email on a staging build and watch the whole path.
+
+## Simple sign-up (November 2026)
+
+Accounts exist only to save progress. There are three ways in:
+
+1. **Email and password**, then a username.
+2. **Google**, then a username.
+3. **Guest**: no account at all. A username is kept in this browser (`localStorage`, key `sap:guest`) and everything saves on that one device.
+
+**You must turn off email confirmation in Supabase, or people will still be sent a confirmation email:** Supabase dashboard, Authentication, Sign In / Providers, Email, switch **Confirm email** off, then save. This cannot be changed from the game's code. The game's own server sends no email for these sign-ups. (Password-reset emails are still sent, but only when a player asks for one.)
+
+Usernames are 2 to 12 characters. Rude, sexual and hateful names are refused in the browser and again on the server (`isInappropriateName` in `src/lib/nickname.ts`); the same list is used in both places.
+
+**What a username-only account can and cannot do.** No date of birth, country or parent email is asked, so the account is stored with consent status `unconfirmed`. It keeps its progress (results, coins, stats) but cannot chat, use friends or appear on public boards, because those depend on knowing the player's age. The older sign-up with a date of birth and a parent's permission (`POST /api/account/profile`) is still in the server for accounts that used it. **Ask the lawyer** whether collecting an email address from players without asking their age is acceptable in the countries you launch in.

@@ -69,6 +69,18 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
       },
     },
     {
+      // The simple sign-up step: a username and nothing else (see AccountService.createUsernameProfile).
+      method: 'POST', path: '/api/account/username', auth: 'session',
+      handler: async (req) => {
+        const b = body(req);
+        if (limited(signupByIp, req.ip) || limited(signupByUser, req.session!.userId)) return tooMany();
+        if (!(await captcha.verify(typeof b.captchaToken === 'string' ? b.captchaToken : undefined, req.ip))) return bad('captcha_failed', 403);
+        const out = await service.createUsernameProfile(req.session!, String(b.nickname ?? ''));
+        if (!out.ok) return bad(STATUS[out.reason][1], STATUS[out.reason][0]);
+        return { status: 201, json: { profile: out.profile } };
+      },
+    },
+    {
       // Works before a profile exists, so the app can tell "finish sign-up" from "signed in".
       method: 'GET', path: '/api/account/me', auth: 'session',
       handler: async (req) => ({ status: 200, json: { profile: await service.getProfile(req.session!.userId) } }),

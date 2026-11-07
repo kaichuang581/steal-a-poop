@@ -7,7 +7,7 @@
 import { createRemoteJWKSet, errors, jwtVerify } from 'jose';
 import type { CryptoKey, JWTPayload, KeyObject } from 'jose';
 import type { AuthUser, SessionClaims } from '../contracts';
-import { mayChat } from './policy';
+import { mayChat, mayKeepResults } from './policy';
 import type { AccountStore } from './store';
 
 export interface TokenVerifierOptions {
@@ -90,7 +90,7 @@ export class TokenVerifier {
       userId: c.userId,
       name: profile.nickname,
       chatAllowed: mayChat(profile.consentStatus),
-      resultsAllowed: mayChat(profile.consentStatus),
+      resultsAllowed: mayKeepResults(profile.consentStatus),
       isModerator: profile.isModerator,
       country: profile.country ?? undefined,
       session: { id: c.sessionId, expiresAt: c.expiresAt },

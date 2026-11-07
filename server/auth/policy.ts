@@ -42,13 +42,17 @@ export function checkCountry(raw: string, policy: AgePolicy = DEFAULT_AGE_POLICY
   return { ok: true, country, consentAge: policy.byCountry[country] ?? policy.defaultAge };
 }
 
-export type ConsentStatus = 'not_required' | 'pending' | 'granted' | 'refused' | 'withdrawn';
+/** unconfirmed: a username-only account. Age was never asked, so it may play and keep its progress but not chat or take part in friends or public boards. */
+export type ConsentStatus = 'not_required' | 'pending' | 'granted' | 'refused' | 'withdrawn' | 'unconfirmed';
 
 /** Whether a person of this age needs a parent's consent where they live. */
 export const needsParentalConsent = (age: number, consentAge: number) => age < consentAge;
 
 /** A child without granted consent may play but not chat, and their results are not stored. */
 export const mayChat = (status: ConsentStatus) => status === 'not_required' || status === 'granted';
+
+/** Whether a player's game results and progress may be stored: everyone who can chat, and username-only accounts. */
+export const mayKeepResults = (status: ConsentStatus) => mayChat(status) || status === 'unconfirmed';
 
 const NICK_MIN = 2;
 const NICK_MAX = 12;

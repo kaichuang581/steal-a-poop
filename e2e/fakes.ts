@@ -43,6 +43,10 @@ export async function fakeBackends(page: Page, opts: { profile?: object | null; 
       profile = { nickname: body.nickname, country: body.country, consentStatus: body.parentEmail ? 'pending' : 'not_required', createdAt: 1 };
       return json(route, { profile, parentMailed: opts.parentMailed ?? true }, 201);
     }
+    if (path === '/api/account/username') {
+      profile = { nickname: body.nickname, country: null, consentStatus: 'unconfirmed', createdAt: 1 };
+      return json(route, { profile }, 201);
+    }
     if (path.startsWith('/api/consent/manage/')) return json(route, { state: 'withdrawn' });
     if (path.startsWith('/api/consent/')) {
       if (req.method() === 'GET') return opts.consent ? json(route, opts.consent) : json(route, { error: 'not_found' }, 404);

@@ -25,6 +25,7 @@ import { createFriendRoutes } from './routes/friends';
 import { createLeaderboardRoutes } from './routes/leaderboard';
 import { createShopRoutes } from './routes/shop';
 import { createOpsRoutes } from './routes/ops';
+import { isInappropriateName } from '../src/lib/nickname';
 import { createFeedbackRoutes } from './routes/feedback';
 import { AlertMonitor, WebhookSender } from './ops/alerts';
 import type { Snapshot } from './ops/alerts';
@@ -214,7 +215,7 @@ const accounts = new AccountService({
   now: Date.now,
   mailer,
   agePolicy,
-  nicknameAllowed: (n) => !filter.check(n),
+  nicknameAllowed: (n) => !filter.check(n) && !isInappropriateName(n),
   blocks,
   bus,
   authAdmin: supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY ? new SupabaseAuthAdmin({ url: supabaseUrl, serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY }) : undefined,

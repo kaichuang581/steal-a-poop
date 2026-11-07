@@ -6,7 +6,8 @@ import { getSupabase } from './supabase';
 export interface Profile {
   nickname: string;
   country: string | null;
-  consentStatus: 'not_required' | 'pending' | 'granted' | 'refused' | 'withdrawn';
+  /** unconfirmed: a username-only account (age never asked): progress is saved, chat and friends are off. */
+  consentStatus: 'not_required' | 'pending' | 'granted' | 'refused' | 'withdrawn' | 'unconfirmed';
   /** Shown on public leaderboards. */
   leaderboardVisible?: boolean;
   createdAt: number;
@@ -44,6 +45,8 @@ interface AuthState {
   requestReset(email: string, captchaToken?: string): Promise<void>;
   setNewPassword(password: string): Promise<void>;
   finishProfile(input: { nickname: string; dateOfBirth: string; country: string; parentEmail?: string; captchaToken?: string }): Promise<{ parentMailed: boolean }>;
+  /** The simple sign-up step: a username and nothing else. */
+  finishUsername(nickname: string, captchaToken?: string): Promise<void>;
   refreshProfile(): Promise<void>;
   resendConsent(): Promise<void>;
   signOut(): Promise<void>;
@@ -181,6 +184,11 @@ export const useAuth = create<AuthState>((set, get) => {
       const out = await api<{ profile: Profile; parentMailed: boolean }>('POST', '/api/account/profile', token(), input);
       set({ profile: out.profile, status: 'ready' });
       return { parentMailed: out.parentMailed };
+    },
+
+    async finishUsername(nickname, captchaToken) {
+      const out = await api<{ profile: Profile }>('POST', '/api/account/username', token(), { nickname, captchaToken });
+      set({ profile: out.profile, status: 'ready' });
     },
 
     async refreshProfile() {

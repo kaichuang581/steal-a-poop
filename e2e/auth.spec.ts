@@ -14,58 +14,65 @@ async function openAccountDialog(page: Page) {
   return page.getByRole('dialog', { name: 'Account' });
 }
 
-test('a child signs up: email check, profile with a parent\'s email, then waits for permission', async ({ page }) => {
+test('a new player signs up with an email and password, then only picks a username', async ({ page }) => {
   const seen = await fakeBackends(page);
   const dlg = await openAccountDialog(page);
 
-  // Sign up: needs the bot check, asks Supabase with that token, and tells the person to check their email
+  // Sign up: needs the bot check and asks Supabase with that token. (Supabase is set not to send a confirmation email;
+  // this fake answers without a session, which is what a project that still confirms would do.)
   await dlg.getByRole('tab', { name: 'Sign up' }).click();
   await dlg.getByLabel('Email').fill('kid@example.org');
   await dlg.getByLabel('Password').fill('correct-horse-9');
   await expect(dlg.getByRole('button', { name: 'Create account' })).toBeEnabled(); // the bot check finished
   await dlg.getByRole('button', { name: 'Create account' }).click();
-  await expect(dlg.getByRole('status')).toContainText('Check your email');
   const signup = seen.find((s) => s.url.includes('/auth/v1/signup'))!;
   expect(signup.body).toMatchObject({ email: 'kid@example.org', gotrue_meta_security: { captcha_token: 'cf-test-token' } });
 
-  // Sign in (after the email link, in real life)
   await dlg.getByRole('tab', { name: 'Sign in' }).click();
   await dlg.getByLabel('Email').fill('kid@example.org');
   await dlg.getByLabel('Password').fill('correct-horse-9');
   await dlg.getByRole('button', { name: 'Sign in', exact: true }).click();
 
-  // The server says there is no profile yet: the "one more step" form
+  // No profile yet: one field, a username. No date of birth, country or parent's email.
   await expect(dlg.getByRole('heading', { name: 'One more step' })).toBeVisible();
-  await dlg.getByLabel('Nickname').fill('Kiddo');
-  await dlg.getByLabel('Date of birth').fill('2018-01-01');
-  await dlg.getByLabel('Country').selectOption('CA');
-  await expect(dlg.getByLabel(/parent or guardian/i)).toBeVisible(); // asked because of the age
-  await dlg.getByLabel(/parent or guardian/i).fill('mum@example.org');
-  await dlg.getByRole('button', { name: 'Finish' }).click();
+  await expect(dlg.getByLabel('Date of birth')).toHaveCount(0);
+  await expect(dlg.getByLabel(/parent or guardian/i)).toHaveCount(0);
+  await dlg.getByLabel('Choose a username').fill('fuck');
+  await expect(dlg.getByText('Please pick a friendlier username.')).toBeVisible(); // a rude name is caught before anything is sent
+  await expect(dlg.getByRole('button', { name: 'Start playing' })).toBeDisabled();
+  await dlg.getByLabel('Choose a username').fill('Kiddo');
+  await dlg.getByRole('button', { name: 'Start playing' }).click();
 
-  await expect(dlg.getByRole('heading', { name: 'Waiting for your parent' })).toBeVisible();
-  await expect(dlg.getByRole('status')).toContainText('We emailed your parent');
-  const made = seen.find((s) => s.url === '/api/account/profile')!;
+  await expect(dlg.getByText('You are signed in as')).toContainText('Kiddo');
+  const made = seen.find((s) => s.url === '/api/account/username')!;
   expect(made.auth).toMatch(/^Bearer .+\..+\..+$/); // the server is sent the login token
-  expect(made.body).toEqual({ nickname: 'Kiddo', dateOfBirth: '2018-01-01', country: 'CA', parentEmail: 'mum@example.org', captchaToken: 'cf-test-token' });
-
-  await dlg.getByRole('button', { name: 'Send the email again' }).click();
-  await expect.poll(() => seen.some((s) => s.url === '/api/account/consent/resend')).toBe(true);
-  await dlg.getByRole('button', { name: 'Play' }).click();
+  expect(made.body).toEqual({ nickname: 'Kiddo', captchaToken: 'cf-test-token' });
+  expect(seen.some((s) => s.url === '/api/account/profile')).toBe(false); // the old age-and-parent form is not used
+  await dlg.getByRole('button', { name: 'Continue' }).click();
   await expect(dlg).toHaveCount(0);
 });
 
-test('an adult is not asked for a parent, and can log out, log out everywhere, and delete the account', async ({ page }) => {
+test('a guest needs no account: a username, saved in the browser, and nothing sent anywhere', async ({ page }) => {
+  const seen = await fakeBackends(page);
+  const dlg = await openAccountDialog(page);
+  await dlg.getByRole('button', { name: 'Play as a guest' }).click();
+  await dlg.getByLabel('Choose a username').fill('Hitler');
+  await expect(dlg.getByRole('button', { name: 'Start playing' })).toBeDisabled();
+  await dlg.getByLabel('Choose a username').fill('Sheepy');
+  await dlg.getByRole('button', { name: 'Start playing' }).click();
+  await expect(dlg).toHaveCount(0);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('sap:guest') ?? 'null')?.nickname)).toBe('Sheepy');
+  expect(seen.filter((s) => s.url.includes('/auth/') || s.url.startsWith('/api/account'))).toHaveLength(0);
+});
+
+test('an existing player signs in, and can log out, log out everywhere, and delete the account', async ({ page }) => {
   const seen = await fakeBackends(page);
   const dlg = await openAccountDialog(page);
   await dlg.getByLabel('Email').fill('ana@example.org');
   await dlg.getByLabel('Password').fill('correct-horse-9');
   await dlg.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await dlg.getByLabel('Nickname').fill('Ana');
-  await dlg.getByLabel('Date of birth').fill('1990-05-05');
-  await dlg.getByLabel('Country').selectOption('CA');
-  await expect(dlg.getByLabel(/parent or guardian/i)).toHaveCount(0);
-  await dlg.getByRole('button', { name: 'Finish' }).click();
+  await dlg.getByLabel('Choose a username').fill('Ana');
+  await dlg.getByRole('button', { name: 'Start playing' }).click();
   await expect(dlg.getByText('You are signed in as')).toContainText('Ana');
   await dlg.getByRole('button', { name: 'Continue' }).click();
 
@@ -124,15 +131,13 @@ test('the parent\'s page says so plainly for an unknown or used link', async ({ 
 
 test('a refused request is explained in plain words (nickname taken)', async ({ page }) => {
   await fakeBackends(page);
-  await page.route(`${API}/api/account/profile`, (r) => (r.request().method() === 'OPTIONS' ? r.fulfill({ status: 204, headers: CORS }) : json(r, { error: 'nickname_taken' }, 409)));
+  await page.route(`${API}/api/account/username`, (r) => (r.request().method() === 'OPTIONS' ? r.fulfill({ status: 204, headers: CORS }) : json(r, { error: 'nickname_taken' }, 409)));
   const dlg = await openAccountDialog(page);
   await dlg.getByLabel('Email').fill('ana@example.org');
   await dlg.getByLabel('Password').fill('correct-horse-9');
   await dlg.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await dlg.getByLabel('Nickname').fill('Taken');
-  await dlg.getByLabel('Date of birth').fill('1990-05-05');
-  await dlg.getByLabel('Country').selectOption('CA');
-  await dlg.getByRole('button', { name: 'Finish' }).click();
+  await dlg.getByLabel('Choose a username').fill('Taken');
+  await dlg.getByRole('button', { name: 'Start playing' }).click();
   await expect(dlg.getByRole('alert')).toContainText('That nickname is taken');
-  await expect(dlg.getByLabel('Nickname')).toHaveValue('Taken'); // what was typed is still there
+  await expect(dlg.getByLabel('Choose a username')).toHaveValue('Taken'); // what was typed is still there
 });

@@ -1,25 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, describeAuthError, useAuth } from '../../auth/authStore';
-import { countryOptions, guessCountry } from '../../auth/countries';
+import { authEnabled } from '../../auth/config';
+import { forgetGuest, saveGuest, useGuest } from '../../auth/guest';
+import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
+import { useStore } from '../../state/store';
 import { legalHref } from '../legal/legalLinks';
 import { Captcha, captchaAvailable } from './Captcha';
 
 type Mode = 'in' | 'up' | 'reset';
+type Step = 'main' | 'guest';
 type Run = (fn: () => Promise<unknown>) => Promise<void>;
 
 const input = 'min-h-11 w-full rounded-lg border border-white/30 bg-black/40 px-3';
 const primary = 'min-h-12 w-full rounded-xl bg-amber-400 text-lg font-black text-amber-950 disabled:opacity-40';
 const secondary = 'min-h-12 w-full rounded-xl bg-white/10 font-bold hover:bg-white/15 disabled:opacity-40';
-
-/** Whole years since a YYYY-MM-DD date, for deciding whether to ask for a parent. The server makes the real decision. */
-function ageNow(dob: string): number | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
-  if (!m) return null;
-  const now = new Date();
-  let age = now.getFullYear() - Number(m[1]);
-  if (now.getMonth() + 1 < Number(m[2]) || (now.getMonth() + 1 === Number(m[2]) && now.getDate() < Number(m[3]))) age -= 1;
-  return age >= 0 && age < 120 ? age : null;
-}
 
 /** Sign in, sign up, reset a password, and finish the profile. Closes itself once the person is fully signed up. */
 export function AuthDialog({ onClose }: { onClose: () => void }) {
@@ -28,6 +22,8 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
   const notice = useAuth((s) => s.notice);
   const profile = useAuth((s) => s.profile);
   const a = useAuth.getState();
+  const guest = useGuest();
+  const [step, setStep] = useState<Step>('main');
   const [mode, setMode] = useState<Mode>('in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,7 +39,7 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
   // Done: a profile exists and, for a child, the parent has been asked.
-  const done = status === 'ready' && profile && (profile.consentStatus === 'not_required' || profile.consentStatus === 'granted');
+  const done = status === 'ready' && profile && (profile.consentStatus === 'not_required' || profile.consentStatus === 'granted' || profile.consentStatus === 'unconfirmed');
   const onToken = useCallback((t: string | null) => setCaptcha(t), []);
 
   const run = async (fn: () => Promise<unknown>) => {
@@ -71,15 +67,17 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
       </form>
     );
   } else if (status === 'needsProfile') {
-    body = <ProfileForm run={run} busy={busy} first={first} />;
+    body = <UsernameForm run={run} busy={busy} first={first} />;
   } else if (status === 'ready' && profile && !done) {
     body = <WaitingForParent run={run} busy={busy} onClose={onClose} />;
   } else if (status === 'loading') {
     body = <p>Checking your sign-in…</p>;
   } else if (status === 'error') {
     body = <p role="alert">{describeAuthError('network')}</p>;
+  } else if (step === 'guest' || !authEnabled()) {
+    body = <GuestForm first={first} onBack={authEnabled() ? () => setStep('main') : onClose} onDone={onClose} existing={guest?.nickname} />;
   } else {
-    const needsCaptcha = mode !== 'in' || false; // Supabase checks sign-in too when its CAPTCHA setting is on; we always ask for sign-up and reset
+    const needsCaptcha = mode !== 'in';
     body = (
       <form
         onSubmit={(e) => {
@@ -88,6 +86,7 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
         }}
         className="space-y-3"
       >
+        <p className="text-sm text-white/80">An account only saves your progress, so you can pick up where you left off.</p>
         <div className="flex gap-2" role="tablist" aria-label="Sign in or sign up">
           {([['in', 'Sign in'], ['up', 'Sign up']] as const).map(([m, label]) => (
             <button type="button" role="tab" key={m} aria-selected={mode === m} onClick={() => { setMode(m); setError(''); a.clearNotice(); }}
@@ -103,6 +102,7 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
             <input type="password" autoComplete={mode === 'up' ? 'new-password' : 'current-password'} minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} className={input} />
           </label>
         )}
+        {mode === 'up' && <p className="text-xs text-white/70">You will choose a username next. We do not send a confirmation email.</p>}
         {(needsCaptcha || mode === 'in') && <Captcha onToken={onToken} />}
         <button className={primary} disabled={busy || (needsCaptcha && captchaAvailable() && !captcha)}>
           {mode === 'in' ? 'Sign in' : mode === 'up' ? 'Create account' : 'Send reset link'}
@@ -111,14 +111,15 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
         {mode === 'reset' && <button type="button" className="min-h-11 text-sm underline" onClick={() => setMode('in')}>Back to sign in</button>}
         {mode === 'up' && (
           <p className="text-xs text-white/70">
-            By creating an account you agree to the{' '}
-            <a className="underline" href={legalHref('terms')} target="_blank" rel="noopener">terms</a>, and confirm you have read the{' '}
-            <a className="underline" href={legalHref('privacy')} target="_blank" rel="noopener">privacy policy</a>. Players under 13 need a parent's permission.
+            By signing up you agree to the{' '}
+            <a className="underline" href={legalHref('terms')} target="_blank" rel="noopener">terms</a> and the{' '}
+            <a className="underline" href={legalHref('privacy')} target="_blank" rel="noopener">privacy policy</a>.
           </p>
         )}
         <div className="flex items-center gap-2 text-xs text-white/60" aria-hidden="true"><hr className="flex-1 border-white/20" />or<hr className="flex-1 border-white/20" /></div>
         <button type="button" className={secondary} disabled={busy} onClick={() => void run(() => a.signInWith('google'))}>Continue with Google</button>
-        <button type="button" className={secondary} disabled={busy} onClick={() => void run(() => a.signInWith('facebook'))}>Continue with Meta</button>
+        <button type="button" className={secondary} disabled={busy} onClick={() => { setStep('guest'); setError(''); a.clearNotice(); }}>Play as a guest</button>
+        <p className="text-xs text-white/60">A guest has no account. Everything is saved in this browser, on this one device.</p>
       </form>
     );
   }
@@ -140,50 +141,65 @@ export function AuthDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ProfileForm({ run, busy, first }: { run: Run; busy: boolean; first: React.RefObject<HTMLInputElement | null> }) {
+/** One field with a live check, so a rude or too-short name is caught before anything is sent. */
+function usernameProblem(raw: string): string | null {
+  const name = raw.trim();
+  if (name.length < 2) return 'Use at least 2 characters.';
+  if (name.length > MAX_NICKNAME) return `Use ${MAX_NICKNAME} characters or fewer.`;
+  if (!/^[\p{L}\p{N} _.-]+$/u.test(name)) return 'Use letters, numbers, spaces, dots, dashes or underscores.';
+  const ok = checkNickname(name);
+  return ok.ok ? null : 'Please pick a friendlier username.';
+}
+
+function UsernameField({ value, onChange, first }: { value: string; onChange: (v: string) => void; first: React.RefObject<HTMLInputElement | null> }) {
+  const problem = value ? usernameProblem(value) : null;
+  return (
+    <label className="block text-sm font-bold">Choose a username
+      <input ref={first} required maxLength={MAX_NICKNAME} value={value} onChange={(e) => onChange(e.target.value)} className={input} autoComplete="nickname" aria-invalid={!!problem} aria-describedby="username-help" />
+      <span id="username-help" className={`mt-1 block text-xs font-normal ${problem ? 'text-red-300' : 'text-white/70'}`}>
+        {problem ?? 'Other players will see this. Keep it kind: no rude, hateful or grown-up words.'}
+      </span>
+    </label>
+  );
+}
+
+function UsernameForm({ run, busy, first }: { run: Run; busy: boolean; first: React.RefObject<HTMLInputElement | null> }) {
   const a = useAuth.getState();
   const [nickname, setNickname] = useState('');
-  const [dob, setDob] = useState('');
-  const [country, setCountry] = useState(guessCountry());
-  const [parent, setParent] = useState('');
   const [cap, setCap] = useState<string | null>(null);
-  const age = ageNow(dob);
-  const askParent = age !== null && age < 13;
-  const countries = countryOptions(navigator.language || 'en');
   const onCap = useCallback((t: string | null) => setCap(t), []);
+  const ok = usernameProblem(nickname) === null;
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); if (ok) void run(() => a.finishUsername(nickname.trim(), cap ?? undefined)); }} className="space-y-3">
+      <h3 className="text-lg font-black">One more step</h3>
+      <UsernameField value={nickname} onChange={setNickname} first={first} />
+      <Captcha onToken={onCap} />
+      <button className={primary} disabled={busy || !ok || (captchaAvailable() && !cap)}>Start playing</button>
+      <button type="button" className="min-h-11 text-sm underline" onClick={() => void a.signOut()}>Sign out</button>
+    </form>
+  );
+}
+
+function GuestForm({ first, onBack, onDone, existing }: { first: React.RefObject<HTMLInputElement | null>; onBack: () => void; onDone: () => void; existing?: string }) {
+  const [nickname, setNickname] = useState('');
+  const ok = usernameProblem(nickname) === null;
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        void run(async () => {
-          const out = await a.finishProfile({ nickname, dateOfBirth: dob, country, parentEmail: askParent ? parent : undefined, captchaToken: cap ?? undefined });
-          if (askParent) useAuth.setState({ notice: out.parentMailed ? 'We emailed your parent. Until they agree you can play, but not chat.' : 'We could not email your parent. Try "Send again" below.' });
-        });
+        if (!ok) return;
+        const g = saveGuest(nickname.trim());
+        useStore.getState().setSettings({ name: g.nickname });
+        onDone();
       }}
       className="space-y-3"
     >
-      <h3 className="text-lg font-black">One more step</h3>
-      <label className="block text-sm font-bold">Nickname
-        <input ref={first} required maxLength={12} value={nickname} onChange={(e) => setNickname(e.target.value)} className={input} autoComplete="nickname" />
-      </label>
-      <label className="block text-sm font-bold">Date of birth
-        <input type="date" required value={dob} onChange={(e) => setDob(e.target.value)} className={input} max={new Date().toISOString().slice(0, 10)} />
-      </label>
-      <label className="block text-sm font-bold">Country
-        <select required value={country} onChange={(e) => setCountry(e.target.value)} className={input}>
-          <option value="" disabled>Choose…</option>
-          {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-        </select>
-      </label>
-      {askParent && (
-        <label className="block text-sm font-bold">A parent or guardian's email
-          <input type="email" required value={parent} onChange={(e) => setParent(e.target.value)} className={input} autoComplete="off" />
-          <span className="mt-1 block text-xs font-normal text-white/70">We email them to ask permission. Until they agree you can play, but you cannot chat and your results are not saved.</span>
-        </label>
-      )}
-      <Captcha onToken={onCap} />
-      <button className={primary} disabled={busy || (captchaAvailable() && !cap)}>Finish</button>
-      <button type="button" className="min-h-11 text-sm underline" onClick={() => void a.signOut()}>Sign out</button>
+      <h3 className="text-lg font-black">Play as a guest</h3>
+      <p className="text-sm text-white/80">No email, no password. Everything you do is saved in this browser, on this one device.</p>
+      <UsernameField value={nickname} onChange={setNickname} first={first} />
+      <button className={primary} disabled={!ok}>Start playing</button>
+      {existing && <p className="text-xs text-white/70">You are playing as <b>{existing}</b> on this device. <button type="button" className="underline" onClick={() => forgetGuest()}>Forget this guest</button></p>}
+      <button type="button" className="min-h-11 text-sm underline" onClick={onBack}>{existing ? 'Close' : 'Back'}</button>
     </form>
   );
 }

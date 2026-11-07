@@ -144,3 +144,15 @@ export const PassIcon = grid([
   '  #######  ',
   '   #####   ',
 ], 'pass');
+
+/** A head and shoulders: the account button. */
+export const PersonIcon = grid([
+  '   ####   ',
+  '  ######  ',
+  '  ######  ',
+  '   ####   ',
+  '  ######  ',
+  ' ######## ',
+  '##########',
+  '##########',
+], 'person');

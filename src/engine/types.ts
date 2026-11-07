@@ -121,6 +121,8 @@ export interface GameState {
   /** One modifier per round, drawn at game start. */
   modifierDeck: RoundModifier[];
   chainLetter: string;
+  /** Time carry: ms the next turn is stretched (+) or squeezed (-) by the last word. Absent or 0 when off. */
+  carryMs?: number;
   pile: number;
   used: string[];
   players: Player[];

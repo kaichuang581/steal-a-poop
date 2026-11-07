@@ -64,7 +64,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
             <label className="mb-1 block text-sm font-bold">What happened?
               <textarea value={message} maxLength={1500} rows={5} onChange={(e) => setMessage(e.target.value)} className="mt-1 w-full rounded-lg border-2 border-[#c9b896] bg-white p-3 font-normal" />
             </label>
-            <p className="mb-3 text-xs">{message.length}/1500. This is posted publicly on GitHub, so please do not write your name, email, school or where you live.</p>
+            <p className="mb-3 text-xs">{message.length}/1500</p>
             {state === 'error' && <p role="alert" className="mb-2 text-sm font-bold text-[#a02a1a]">That did not send. Please try again in a moment.</p>}
             <button type="submit" disabled={!valid || state === 'sending'} className="min-h-11 w-full rounded-lg bg-[#c0792b] px-3 font-bold text-white disabled:opacity-50">{state === 'sending' ? 'Sending…' : 'Send'}</button>
           </form>

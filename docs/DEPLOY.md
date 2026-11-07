@@ -92,4 +92,4 @@ Set these on the game server:
 
 Without the token the form still works: it opens GitHub's new-issue page with the text filled in, as before.
 
-Things to know: issues in a public repository are public, so the form warns players not to write personal details. One address can send 4 an hour and the whole game 40 an hour. Mentions and links are made harmless before posting. Issues get the labels `from-game` and `bug`, `enhancement` or `feedback`.
+Things to know: issues in a public repository are public, and the form has no warning about personal details, so anything a player types, names included, is public. One address can send 4 an hour and the whole game 40 an hour. Mentions and links are made harmless before posting. Issues get the labels `from-game` and `bug`, `enhancement` or `feedback`.

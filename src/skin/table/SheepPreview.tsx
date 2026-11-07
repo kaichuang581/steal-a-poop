@@ -6,15 +6,19 @@ import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
 import { pick, T } from '../voxel/palette';
 import { Grid, hash3 } from '../voxel/primitives';
-import { sheepModel } from '../voxel/sheep';
+import { ANIMAL_AVATAR_IDS } from '../../avatars/ids';
+import { animalModel } from '../voxel/animals';
+import type { Animal } from '../voxel/animals';
 import { DevLine, DevStats } from './DevStats';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
 
 const STATES: SheepState[] = ['idle', 'thinking', 'proud', 'happy', 'startled', 'cold', 'freezing', 'frozen', 'thawing', 'sleeping', 'grazing'];
 
-/** ?skin=painted&preview=sheep: one sheep with buttons for every wool level and state (plan V3 Milestone 1). */
+/** ?skin=painted&preview=sheep: one sheep (or any animal avatar) with buttons for every wool level and state (plan V3 Milestone 1). */
 export function SheepPreview() {
+  const [animal, setAnimal] = useState<Animal>('sheep');
+  const model = animalModel(animal);
   const [level, setLevel] = useState<WoolLevel>(2);
   const [state, setState] = useState<SheepState>('idle');
   const [key, setKey] = useState(0);
@@ -28,12 +32,15 @@ export function SheepPreview() {
         <hemisphereLight args={['#DCE6F2', '#8E3A31', 0.9]} />
         <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
         <mesh geometry={floor} receiveShadow position={[-1.6, -0.1, -1.6]} material={floorMat} />
-        <Sheep level={level} state={state} stateKey={key} lookAt="camera" speaking={speaking} />
+        <Sheep level={level} state={state} stateKey={key} lookAt="camera" speaking={speaking} model={model} />
         <Shot close={close} />
         <DevStats />
       </Canvas>
       <PaperPanel className="absolute left-2 top-2 max-w-[22rem] space-y-2 p-3">
-        <div className="sk-display text-lg">Sheep preview · {sheepModel().voxels.toLocaleString()} voxels</div>
+        <div className="sk-display text-lg">{animal} preview · {model.voxels.toLocaleString()} voxels</div>
+        <div className="flex flex-wrap gap-1">
+          {ANIMAL_AVATAR_IDS.map((a) => <Chip key={a} aria-pressed={animal === a} onClick={() => setAnimal(a)}>{a}</Chip>)}
+        </div>
         <div className="flex flex-wrap gap-1">
           {([0, 1, 2, 3, 4] as WoolLevel[]).map((l) => <Chip key={l} aria-pressed={level === l} onClick={() => setLevel(l)}>wool {l}</Chip>)}
         </div>

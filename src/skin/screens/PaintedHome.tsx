@@ -21,7 +21,9 @@ import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES, legalHref } from '../../ui/legal/legalLinks';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
+import { AdminPanel } from '../components/AdminPanel';
+import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
@@ -72,6 +74,8 @@ export function PaintedHome() {
   const [step, setStep] = useState<'tables' | 'setup'>('tables');
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const admin = useAdmin((s) => s.admin);
   const [swooping, setSwooping] = useState(false);
   const avatar = useAvatar();
   const [gear, setGear] = useState(false);
@@ -152,7 +156,14 @@ export function PaintedHome() {
   const items: MenuItem[] = [
     { id: 'start', label: ready ? 'Start now' : 'Loading…', caption: 'Straight into a game with easy bots and hints. No setup.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
-    dream
+    // Admin plays tonight's dream as often as it likes; everyone else gets the one attempt, then the share.
+    admin
+      ? {
+        id: 'dream', label: 'Counting Sheep', badge: <MenuTag tone="gold">admin</MenuTag>, disabled: !ready,
+        caption: `Tonight's dream, as often as you like${dream?.status === 'done' ? ` (last run: ${dream.count ?? 0} sheep)` : ''}.`,
+        onSelect: () => useDreamUi.getState().openDream(false),
+      }
+      : dream
       ? {
         id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
         badge: dream.status === 'done' ? <MenuTag tone="gold">{dream.count ?? 0} sheep</MenuTag> : <MenuTag tone="gray">used</MenuTag>,
@@ -169,7 +180,7 @@ export function PaintedHome() {
       caption: 'Fight off predator after predator with words. Hunt as often as you like.',
       onSelect: () => useHuntUi.getState().openHunt(),
     },
-    { id: 'practice', label: 'Practice', caption: 'Easy bots, 25-second turns, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
+    { id: 'practice', label: 'Practice', caption: 'Easy bots, hints, and no penalties.', disabled: !ready, onSelect: () => go('practice') },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {
       id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : <MenuTag tone="gray">soon</MenuTag>, disabled: !rooms, onSelect: openRooms,
@@ -290,6 +301,7 @@ export function PaintedHome() {
           </div>
         )}
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
+        <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
         <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} title={muted ? 'Unmute' : 'Sound'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>
         <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>
@@ -340,6 +352,7 @@ export function PaintedHome() {
       {help && <PaintedGuide onClose={() => setHelp(false)} />}
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
       {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
+      {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       <DevLine />
     </main>
   );

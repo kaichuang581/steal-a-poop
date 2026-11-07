@@ -75,3 +75,44 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   centre-screen alarm board (`src/skin/components/Alarm.tsx`), and bots type like people under pressure
   (`src/skin/model/botTyping.ts`: the word is sent the moment it is typed, a late bot panics and spams words that are not
   words, which the table bounces).
+- Quicker ramp and one clock for everyone (approved by Brian, 2026-11-06), an engine change: `TURN_MS_BY_ROUND` is
+  15, 10, then 5 s (5 s off each round, then 5 s for good). Practice no longer gives the human a 25 s turn
+  (`PRACTICE_TURN_MS` is the tour's alone): the clock under the letter was reading 25 on your turn and 16 on the bots',
+  which looked like a glitch. The painted skin also calls every turn change on a board over the table ("Your turn!" /
+  "Maya's turn") and the speaker camera stands 22° off the speaker's front instead of 35°, so the swing lands on a
+  face, not a flank.
+- Counting Sheep on the farm (approved by Brian, 2026-11-06), skin only: the dream is no longer a 320 x 180 pixel canvas
+  in a frame but a full-screen three.js scene built from the game's own barn (src/skin/dream/DreamStage.tsx,
+  src/skin/dream/stage.ts): the voxel sheep gallops on the spot along a lane in front of the barn's open side while the
+  whole farm (barn, yard, farmhouse) rolls past on a 144 m ring and comes round again; fences are voxel hurdles with
+  paper signs, and the HUD is the painted skin's chips, word bar and boards. The rules in src/dream/dream.ts are
+  untouched (PX = 0.05 m per logical pixel). The sheep gained 'running' and 'leaping' states for it.
+- Admin lock (approved by Brian, 2026-11-06): a padlock button beside the avatar on the painted Home opens a password
+  dialog (`src/skin/components/AdminPanel.tsx`); one password, no username, checked against its SHA-256 in
+  `src/lib/admin.ts` and remembered in local storage until locked again. Admin can play tonight's Counting Sheep as
+  often as it likes (the menu item never turns into "Share dream"). A convenience lock for Brian, not a security
+  boundary: the client can always be read.
+- The dream looks like a dream (approved by Brian, 2026-11-06), skin only: Counting Sheep's sky and scenery are the
+  sleeper's, not the yard's (src/skin/dream/DreamSky.tsx, builders in src/skin/dream/stage.ts): a violet dome with no
+  horizon line, a moon three times too big with a rose halo, twinkling stars, the farm and the lane adrift with cloud
+  lipping their edges, a sea of cloud and islands of snow and pines hanging at every height beyond, sheep-shaped
+  clouds crossing the sky, paper lanterns drifting up from the yard, sleepy Zs from the farmhouse chimney, glowing
+  motes instead of snowfall, the whole world breathing, and a soft blurred violet edge on the screen. Rules untouched.
+- Six animal avatars and the admin avatar (approved by Brian, 2026-11-06), cosmetic only: the fifteen named characters
+  with their packs are gone; the picker offers one avatar per animal (sheep, pig, cow, goat, horse, chicken, ids in
+  src/avatars/ids.ts, portraits in src/skin/avatars/AvatarIcon.tsx). The admin avatar is Brian's own photo
+  (src/skin/assets/kaiyan.png, id `kaiyan`): never in the picker, equipped and unequipped only from the admin panel,
+  taken off again by Lock, and worn only while admin is unlocked. It is a flat disc with the photo on both faces
+  (src/skin/avatars/PhotoAvatar.tsx): it wiggles, hops now and then and turns right round, and the picture itself is
+  never altered. The server accepts the id so the others in a room see it.
+- Avatars at the table (approved by Brian, 2026-11-06), skin only: the avatar you wear replaces your sheep in the
+  word-chain game and on Home's farm. The animals are voxel models built to the sheep's rig
+  (src/skin/voxel/animals.ts, designed from reports/Cute voxel farm animal design.md: the sheep's wedge head, eyes
+  and expressions shared by all, with a height-and-neck ladder (hen 15, pig 20, goat 23, cow 27, horse 30 rows), one
+  head signature each, a tail pointing a different way each, blush, split temperatures for the three pale coats and
+  one knit accessory beside the signature; the body fills out a little with wool balls), so the Sheep component
+  animates them with the sheep's own poses (`model` prop). The admin avatar is the photo and nothing else: a flat picture with no
+  thickness (src/skin/avatars/AvatarDisc.tsx, poses in src/skin/avatars/discPose.ts) that wiggles, hops, leans and
+  turns right round, never altered, no frame. The one approved exception to the voxels-only rule. Players with no
+  avatar, and bots, stay sheep; other people's avatars come from the room's member list. The preview page
+  (?preview=sheep) switches between the animals.

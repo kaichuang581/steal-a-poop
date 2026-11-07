@@ -51,14 +51,14 @@ describe('avatars over the wire', () => {
     await ben.until((m) => m.some((x) => x.t === 'room'));
     const avatarOf = (c: { msgs: Msg[] }, name: string) => [...c.msgs].reverse().find((x) => x.t === 'room')?.view.members.find((mm: Msg) => mm.name === name)?.avatar;
 
-    ana.send({ t: 'avatar', id: 'goat-rocket' });
-    await ben.until(() => avatarOf(ben, 'Ana') === 'goat-rocket');
+    ana.send({ t: 'avatar', id: 'goat' });
+    await ben.until(() => avatarOf(ben, 'Ana') === 'goat');
 
     const before = ben.msgs.length;
     ana.send({ t: 'avatar', id: 'not-a-real-avatar' });
     await ana.until((m) => m.some((x) => x.t === 'error' && x.error === 'bad_message'));
     expect(ben.msgs.length).toBe(before); // nothing was shown to anyone
-    expect(avatarOf(ben, 'Ana')).toBe('goat-rocket');
+    expect(avatarOf(ben, 'Ana')).toBe('goat');
 
     ana.send({ t: 'avatar', id: null });
     await ben.until(() => avatarOf(ben, 'Ana') === undefined);

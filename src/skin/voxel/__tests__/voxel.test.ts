@@ -67,3 +67,24 @@ describe('the default sheep', () => {
     expect(steps).toBeGreaterThanOrEqual(8);
   });
 });
+
+describe('the animal avatars', () => {
+  it('build every animal on the sheep rig, each its own colours, standing on the same ground', async () => {
+    const { animalModel } = await import('../animals');
+    const seen = new Set<string>();
+    for (const a of ['pig', 'cow', 'goat', 'horse', 'chicken'] as const) {
+      const m = animalModel(a);
+      expect(m.voxels).toBeGreaterThan(800);
+      expect(bounds(m.wools[2]).bottom).toBeGreaterThanOrEqual(0);
+      expect(bounds(m.legs[0]).bottom).toBeCloseTo(0, 1);
+      expect(bounds(m.wools[4]).width).toBeGreaterThan(bounds(m.wools[1]).width);
+      const head = bounds(m.head);
+      expect(head.height).toBeGreaterThan(head.width);
+      const col = m.wools[2].geo.getAttribute('color');
+      const key = [col.getX(0), col.getY(0), col.getZ(0)].map((v) => v.toFixed(2)).join(',');
+      expect(seen.has(key)).toBe(false);
+      seen.add(key);
+    }
+    expect(animalModel('sheep')).toBe(sheepModel());
+  });
+});

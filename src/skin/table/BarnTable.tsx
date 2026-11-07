@@ -8,7 +8,7 @@ import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
 import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
 import { buildDistance } from '../scene/distance';
-import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, seatPosition, speakerShot } from '../scene/layout';
+import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, speakerShot } from '../scene/layout';
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
@@ -18,6 +18,10 @@ import { T } from '../voxel/palette';
 import { BOARD, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
 import { DevStats } from './DevStats';
 import { Atmosphere, Effects, LANTERN_LIGHT, Lights } from './Rendering';
+import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { AvatarDisc } from '../avatars/AvatarDisc';
+import { byId } from '../avatars/catalog';
+import { animalModel, CROWN_ROWS } from '../voxel/animals';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
 
@@ -32,6 +36,8 @@ export interface BarnSeat {
   scarf: boolean;
   /** A bot on its turn: the sheep thinks whenever it has nothing else to do. */
   thinking: boolean;
+  /** The avatar this player wears (src/avatars/ids.ts): its coin stands in the sheep's place. Null: the sheep. */
+  avatar?: string | null;
   label: ReactNode;
 }
 
@@ -224,6 +230,13 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
     for (const l of lamps.current) if (l) l.intensity = LANTERN_LIGHT.intensity * dim * flicker;
   });
 
+  // The camera aims at the speaker's head, wherever the animal it wears carries it (a hen low, a horse high).
+  const speakerHeadY = useMemo(() => {
+    const a = seats.find((s) => s.index === speaker)?.avatar;
+    const c = byId(a);
+    return SPEAKER_CAMERA.headY * (c ? CROWN_ROWS[c.animal] / CROWN_ROWS.sheep : 1);
+  }, [seats, speaker]);
+
   // Attention (plan V3.3 Part 3.3): every sheep looks at the speaker's head; the speaker looks at the camera.
   const speakerHead = useMemo((): [number, number, number] | undefined => {
     if (speaker === null) return undefined;
@@ -234,7 +247,7 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
 
   return (
     <>
-      <SpeakerCamera speaker={speaker} n={n} phone={phone} reduced={reduced} stealOpen={stealOpen} moments={moments} fade={anchors.fade} />
+      <SpeakerCamera speaker={speaker} n={n} phone={phone} reduced={reduced} stealOpen={stealOpen} moments={moments} fade={anchors.fade} headY={speakerHeadY} />
       <Atmosphere hour={hour} />
       <Lights hour={hour} phone={phone} viewYaw={0} lampRef={(i, l) => { lamps.current[i] = l; }} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
@@ -248,8 +261,13 @@ function Scene({ seats, pile, speaker, fraction, letter, isTrap, stealOpen, hour
         const p = seatPosition(s.index, n);
         return (
           <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === speaker} reduced={reduced}>
-            <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} still={stealOpen} scarf={s.scarf}
-              gustFrom={[0, 0.8, -6]} lookAt={s.index === speaker ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking} />
+            {s.avatar === ADMIN_AVATAR_ID ? (
+              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} still={stealOpen} speaking={s.index === speaker} />
+            ) : (
+              <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} still={stealOpen} scarf={s.scarf}
+                gustFrom={[0, 0.8, -6]} lookAt={s.index === speaker ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking}
+                model={byId(s.avatar) ? animalModel(byId(s.avatar)!.animal) : undefined} />
+            )}
             <Html position={[p.x >= 0 ? 0.95 : -0.95, 0.75, 0]} center zIndexRange={[20, 0]} rotation={[0, -p.yaw, 0]}>{s.label}</Html>
           </SeatGroup>
         );
@@ -271,7 +289,7 @@ const polar = (p: readonly number[]) => ({ a: Math.atan2(p[0] - SEAT_RING.cx, -(
  * one 650 ms ease-in-out swing round the pile, then holds with a 0.05 m drift. No move starts in a steal window; the
  * wolf run is always seen from home and a freeze is watched to the end. Reduced motion cuts behind a 150 ms fade.
  */
-function SpeakerCamera({ speaker, n, phone, reduced, stealOpen, moments, fade }: { speaker: number | null; n: number; phone: boolean; reduced: boolean; stealOpen: boolean; moments: BarnMoments; fade: Anchors['fade'] }) {
+function SpeakerCamera({ speaker, n, phone, reduced, stealOpen, moments, fade, headY }: { speaker: number | null; n: number; phone: boolean; reduced: boolean; stealOpen: boolean; moments: BarnMoments; fade: Anchors['fade']; headY: number }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const st = useMemo(() => ({
     key: '', at: -10, from: null as Shot | null, to: null as Shot | null, cur: null as Shot | null,
@@ -286,10 +304,10 @@ function SpeakerCamera({ speaker, n, phone, reduced, stealOpen, moments, fade }:
     if (t - st.freezeAt < 2.4) seat = st.freezeSeat;
     // The wolf's run and the gaps between turns are seen from the wide home shot; every turn zooms on its speaker.
     const home = wolf || seat === null;
-    const key = home ? `home/${phone}` : `${seat}/${n}/${phone}`;
+    const key = home ? `home/${phone}` : `${seat}/${n}/${phone}/${headY.toFixed(2)}`;
     // A new shot starts only outside the steal window (the wolf's run is the window's own ending).
     if (key !== st.key && (!stealOpen || wolf)) {
-      const to = home ? homeShot(phone) : speakerShot(seat!, n, phone);
+      const to = home ? homeShot(phone) : speakerShot(seat!, n, phone, headY);
       const cut = reduced || !st.cur;
       st.from = cut ? to : st.cur;
       st.to = to;

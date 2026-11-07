@@ -72,22 +72,22 @@ export const HEAD_PIVOT: V3 = [CX, 0.58, 0.34];
 /** How much bigger each coat level's fleece is than the normal coat (level 2). */
 export const LEVEL_K = [0, 0.88, 1, 1.12, 1.26] as const;
 
-function part(g: Grid, pivot: V3): Part {
+export function part(g: Grid, pivot: V3): Part {
   const geo = buildGeometry(g.map, g.size);
   geo.translate(-pivot[0], -pivot[1], -pivot[2]);
   return { geo, pivot, voxels: g.count };
 }
 
-interface Lobe { c: V3; r: V3; tone: 0 | 1 }
+export interface Lobe { c: V3; r: V3; tone: 0 | 1 }
 /** Whether a wool cell may exist, given its centre in metres and its grid position. */
-type Keep = (xm: number, ym: number, zm: number, x: number, y: number, z: number) => boolean;
+export type Keep = (xm: number, ym: number, zm: number, x: number, y: number, z: number) => boolean;
 const NEIGHBOURS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const;
 
 /**
  * Paints wool as a few smooth lobes: every voxel takes its lobe's cream, and the crease tone only where a lobe meets
  * a later one, so the fleece reads as lobes with folds between them rather than noise.
  */
-function paintLobes(g: Grid, lobes: Lobe[], keep: Keep, noise = 0.04) {
+export function paintLobes(g: Grid, lobes: Lobe[], keep: Keep, noise = 0.04) {
   const owner = new Map<string, number>();
   const cells = new Map<string, [number, number, number]>();
   lobes.forEach((l, i) => {
@@ -148,13 +148,13 @@ function bodyLobes(level: 1 | 2 | 3 | 4): Lobe[] {
 }
 
 /** The head wedge, row by row from the top: half-width in columns, and the back and front z cells. */
-const HEAD_ROWS: [number, number, number, number][] = [
+export const HEAD_ROWS: [number, number, number, number][] = [
   [22, 3, 8, 13], [21, 3, 7, 14], [20, 3, 7, 14], [19, 3, 7, 15], [18, 3, 8, 15],
   [17, 3, 9, 15], [16, 2, 10, 15], [15, 2, 11, 15], [14, 2, 12, 15], [13, 2, 12, 15],
 ];
 
 /** The left column of each eye. */
-const EYE_BASES = [-3, 1] as const;
+export const EYE_BASES = [-3, 1] as const;
 
 let cached: SheepModel | null = null;
 

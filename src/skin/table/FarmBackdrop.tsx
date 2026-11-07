@@ -7,6 +7,11 @@ import { Sky } from '../scene/Sky';
 import { Farm, useWorld } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Atmosphere, Effects, FOG, Lights, yawToward } from './Rendering';
+import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { AvatarDisc } from '../avatars/AvatarDisc';
+import { byId } from '../avatars/catalog';
+import { animalModel } from '../voxel/animals';
+import { useAvatar } from '../avatars/store';
 import { Sheep } from './Sheep';
 
 /** The diorama shot (plan V3.1 Part 2.2 and 2.4): a long lens from the yard, the open doorway on the right third. */
@@ -32,6 +37,7 @@ interface Props {
 /** Home's backdrop: the farm seen from the yard, the barn's open back doors glowing, the player's sheep in the doorway light. */
 export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey = 0 }: Props) {
   const w = useWorld();
+  const avatar = useAvatar();
   const cam = phone ? HOME_CAMERA.phone : HOME_CAMERA.desktop;
   if (!w) return <div className="absolute inset-0" style={{ background: `linear-gradient(${FOG[hour]}, #DCE6F2)` }} />;
   // The hero stands 1.2 m in front of the doors and faces the camera.
@@ -51,7 +57,10 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Sky hour={hour} reduced={reduced} blizzard={false} />
       <Farm world={w} reduced={reduced} stealOpen={false} />
       <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5}>
-        <Sheep level={2} state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} headYaw={sleepy ? 0 : heroYaw} />
+        {avatar === ADMIN_AVATAR_ID
+          ? <AvatarDisc state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} />
+          : <Sheep level={2} state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} headYaw={sleepy ? 0 : heroYaw}
+              model={byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined} />}
       </group>
       {/* A second sheep half inside the doorway, head down in the hay by the bales. */}
       <group position={[2.6, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5}>

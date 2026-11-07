@@ -1,6 +1,6 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_TURN_MS,
+  BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_TURN_MS,
   STEAL_COOLDOWN_MS, STEAL_LATE_SHARE, STEAL_TURN_BOT_BOOST, STEAL_TURN_CHANCE, TRAP_LETTERS, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
@@ -55,7 +55,10 @@ function startTurn(s: GameState, seat: number, t: number) {
   const carryOn = !learning && !!s.settings.timeCarry && s.settings.timeCarry !== 'off';
   const baseMs = !carryOn ? roundBaseMs : s.history.length === 0 ? CARRY_OPENING_TURN_MS : carriedTurnMs(roundBaseMs, s.carryMs ?? 0);
   s.carryMs = 0;
-  const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : baseMs;
+  // A passed bomb: this sheep gets the fuse that was left, once.
+  const turnBaseMs = s.passMs ?? baseMs;
+  delete s.passMs;
+  const durationMs = learning && active.isHuman ? PRACTICE_TURN_MS : turnBaseMs;
   const endsAt = t + durationMs;
   const windowMs = s.settings.stealWindowSeconds * 1000;
   // Steals are an event: some turns are steal turns, drawn here. The tour's turns all are, so it can show one, and
@@ -70,7 +73,7 @@ function startTurn(s: GameState, seat: number, t: number) {
       const slow = seat === s.players.length - 1 && s.history.some((h) => h.kind === 'play' && h.seat === 0);
       botActAt = slow ? t + Math.max(1000, durationMs - 1500) : t + drawInt(s, 1200, 2200);
     } else {
-      botActAt = t + botResponseMs(s, active.difficulty!, baseMs);
+      botActAt = t + botResponseMs(s, active.difficulty!, turnBaseMs);
       // On a steal turn the bot always hesitates into the red seconds, so the window the alarm announced really
       // opens, and answers only in the window's last share: a person who reads the letter and types has the first go.
       if (stealable) botActAt = Math.max(botActAt, endsAt - windowMs * (0.05 + drawRandom(s) * (STEAL_LATE_SHARE - 0.05)));
@@ -425,6 +428,18 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
         return suggestion ? { ...reject(v.reason), suggestion } : reject(v.reason);
       }
       playTurn(s, turn.seat, v.word, now);
+      return { state: s, accepted: true };
+    }
+    case 'pass': {
+      if (action.seat !== turn.seat) return reject('not_your_turn');
+      if (s.mode === 'tour') return reject('no_pass');
+      if (player.passedRound === s.round) return reject('already_passed');
+      player.passedRound = s.round;
+      s.passMs = Math.max(PASS_MIN_MS, turn.endsAt - now);
+      s.history.push({ round: s.round, seat: turn.seat, kind: 'pass', word: null, points: 0 });
+      emit(s, now, 'pass', turn.seat, `${player.name} passed the bomb`);
+      s.carryMs = 0;
+      concludeTurn(s, now);
       return { state: s, accepted: true };
     }
     case 'bank':

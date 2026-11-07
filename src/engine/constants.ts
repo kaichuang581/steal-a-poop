@@ -20,6 +20,8 @@ export const CARRY_OPENING_TURN_MS = 10_000;
 export const CARRY_MAX_TURN_MS = 20_000;
 export const CARRY_MAX_SHIFT_MS = 4_000;
 export const CARRY_MS_PER_POINT = 500;
+/** A passed bomb: the next sheep gets the fuse that is left, but never less than this. */
+export const PASS_MIN_MS = 4_000;
 export const CARRY_HARD_LETTERS = new Set(['x', 'z', 'q', 'j']);
 export const STEAL_WINDOW_MS = 3_000;
 export const INTRO_MS = 2_500;

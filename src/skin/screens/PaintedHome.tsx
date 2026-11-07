@@ -8,7 +8,7 @@ import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
 import { useHuntUi } from '../hunt/huntStore';
 import { dreamShareText } from '../../dream/dream';
-import { getDream, getDreamStreak } from '../../dream/daily';
+import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
 import { useDreamUi } from '../dream/dreamStore';
 import { useToday } from '../hooks/useToday';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
@@ -21,7 +21,7 @@ import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES, legalHref } from '../../ui/legal/legalLinks';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
@@ -96,6 +96,16 @@ export function PaintedHome() {
   const huntBest = getHuntBest();
   const dream = getDream(today);
   const streak = getDreamStreak(today);
+  const blankets = loadStreak().blankets;
+  const repair = repairAvailable(today);
+  // The day a Warm Blanket covered a missed night, the ticket says so once.
+  const [covered] = useState(() => takeCoverNotice());
+  const nights = (
+    <span className="mt-1 flex items-center gap-2">
+      <span className="dr-nights" data-mini aria-label="The last seven nights">{dreamStreakDays(today).map((st, i) => <span key={i} className="dr-night" data-status={st} />)}</span>
+      {blankets > 0 && <span className="dr-blankets" aria-label={`${blankets} Warm Blanket${blankets === 1 ? '' : 's'}`}>{Array.from({ length: blankets }, (_, i) => <BlanketIcon key={i} size={12} />)}</span>}
+    </span>
+  );
   const ready = dictStatus === 'ready';
   const rooms = !!getServerUrl();
   const signedIn = authEnabled() && authStatus === 'ready';
@@ -168,13 +178,18 @@ export function PaintedHome() {
         id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
         badge: dream.status === 'done' ? <MenuTag tone="gold">{dream.count ?? 0} sheep</MenuTag> : <MenuTag tone="gray">used</MenuTag>,
         disabled: dream.status !== 'done', onSelect: shareDream,
-        caption: `The farmer is up for the day. Tonight's dream starts at ${timeOfNext}.`,
+        caption: <>The farmer is up for the day. Tonight's dream starts at {timeOfNext}.{nights}</>,
       }
       : {
         id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</MenuTag> : <MenuTag tone="gold">daily</MenuTag>, disabled: !ready,
-        caption: 'Keep the farmer asleep: type words with each fence\'s letters so the sheep clears it. One dream a night.',
+        caption: <>{covered ? `A Warm Blanket kept your streak warm · ${streak} nights. ` : ''}Keep the farmer asleep: type words with each fence's letters so the sheep clears it. One dream a night.{nights}</>,
         onSelect: () => useDreamUi.getState().openDream(false),
       },
+    ...(repair && !admin ? [{
+      id: 'repair', label: 'Dream last night\'s dream', badge: <MenuTag tone="gold">keeps your streak</MenuTag>, disabled: !ready,
+      caption: `Last night's dream, dreamt today: until ${new Date(new Date().setHours(23, 59, 0, 0)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase()}.`,
+      onSelect: () => useDreamUi.getState().openDream(false, repair),
+    } satisfies MenuItem] : []),
     {
       id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
       caption: 'Fight off predator after predator with words. Hunt as often as you like.',

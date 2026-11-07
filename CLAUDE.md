@@ -116,3 +116,14 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   turns right round, never altered, no frame. The one approved exception to the voxels-only rule. Players with no
   avatar, and bots, stay sheep; other people's avatars come from the room's member list. The preview page
   (?preview=sheep) switches between the animals.
+- Counting Sheep v4 (approved by Brian, 2026-11-06): the plan is docs/REDESIGN_PLAN_V4_DREAM.md. The dream is a voxel
+  scene in the painted skin (src/skin/dream); the pure logic in src/dream/dream.ts keeps its behaviour (lettersAt, fenceAt,
+  check, speedAt, takeoffDistance, jumpHeight, FIELD) and the screen only plays it out, in metres (PX = 0.036 m per logical
+  pixel). Approved changes outside src/skin: (a) src/dream/daily.ts gains Warm Blankets, the longest streak and the
+  one-night repair (V4 Part 12), with the tests V4 Part 12.5 lists; (b) src/dream/dream.ts gains `exampleWords` (hints on
+  the first three fences only), the glyph row and the game's name in `dreamShareText` (V4 Part 13), with tests; nothing
+  else in src/dream changes. The bedroom and the farmer are part of the dream screen (V4 Part 8). The v3 voxel rules
+  apply: 0.04 m for the sheep, the farmer and small props, 0.10 m for the bed, fences and signs, 0.20 m for the lane and
+  the islands, 1 m for hills and 3 m for mountains; merged face-culled meshes with baked AO; MeshLambertMaterial with
+  vertex colours; no bloom, no depth of field; transparency only for the moon halo, the aurora, snow and dream dust.
+- The bounded dream (V4 Part 15, Milestone D5) is NOT approved: `DREAM_LENGTH` stays null until Brian says otherwise.

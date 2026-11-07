@@ -43,15 +43,15 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
           <PanelRow label="Reduce motion"><Lever checked={s.reduceMotion} onChange={s.setReduceMotion} label="Reduce motion" /></PanelRow>
           <PanelRow label="Larger text"><Lever checked={s.largeText} onChange={s.setLargeText} label="Larger text" /></PanelRow>
           <PanelRow label="Tutorial">
-            <WoodButton className="kit-btn--sm flex items-center gap-2" disabled={!ready} onClick={() => s.startTour('menu')}><PlayIcon size={14} /> Replay</WoodButton>
+            <WoodButton className="kit-btn--sm flex items-center gap-2" aria-label="Replay tutorial" disabled={!ready} onClick={() => s.startTour('menu')}><PlayIcon size={14} /> Replay</WoodButton>
           </PanelRow>
           <PanelRow label="Gameplay tips">
-            <WoodButton className="kit-btn--sm flex items-center gap-2" onClick={() => { resetTips(); setTipsCleared(true); }}>
+            <WoodButton className="kit-btn--sm flex items-center gap-2" aria-label="Show gameplay tips again" onClick={() => { resetTips(); setTipsCleared(true); }}>
               {tipsCleared ? <><CheckIcon size={14} /> Reset</> : <><ResetIcon size={16} /> Show again</>}
             </WoodButton>
           </PanelRow>
           <PanelRow label="Credits and licenses">
-            <WoodButton className="kit-btn--sm" onClick={() => setCredits(true)}>Open</WoodButton>
+            <WoodButton className="kit-btn--sm" aria-label="Credits and licenses" onClick={() => setCredits(true)}>Open</WoodButton>
           </PanelRow>
         </Panel>
       </div>

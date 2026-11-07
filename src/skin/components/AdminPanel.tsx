@@ -6,6 +6,7 @@ import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
 import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
+import { Brass } from '../kit';
 
 /**
  * The admin lock: a small paper dialog off the lock button by the avatar. One password, no username; the right one
@@ -39,7 +40,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[55] flex items-center justify-center p-4" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={onClose}>
       <PaperPanel role="dialog" aria-modal="true" aria-label="Admin access" className="w-full max-w-xs p-4" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="sk-display flex items-center gap-2 text-xl"><LockIcon size={20} /> Admin access</h2>
+          <h2 className="sk-display flex items-center gap-2 text-xl"><span className="kit-peg kit-peg--light kit-peg--sm" style={{ width: 30, height: 30, cursor: 'default' }}><LockIcon size={16} /></span> Admin access</h2>
           <Chip className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
         </div>
         {admin ? (
@@ -74,7 +75,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
             {error && <p id="admin-error" role="alert" className="sk-hand mt-1 text-base" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
             <div className="mt-3 flex gap-2">
               <WoodButton type="button" onClick={onClose} className="sk-btn flex-1">Cancel</WoodButton>
-              <ClothButton type="submit" disabled={!password || busy} className="sk-btn flex-1">Unlock</ClothButton>
+              <Brass type="submit" disabled={!password || busy} className="flex-1">Unlock</Brass>
             </div>
           </form>
         )}

@@ -246,7 +246,7 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
   background: var(--kit-grain), var(--cloth-dark);
   box-shadow: inset 0 3px 0 rgba(200, 240, 200, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.45), 0 0 0 3px var(--wood-dark), 0 6px 0 3px rgba(40, 24, 10, 0.4);
 }
-.kit-peg, .sk-icon-btn {
+.kit-peg, .sk-icon-btn, .sk-icon-chip {
   display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--button-text); cursor: pointer;
   background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(40, 24, 10, 0.18) 35% 37%, transparent 38% 54%, rgba(40, 24, 10, 0.16) 55% 57%, transparent 58%), radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%);
   box-shadow: inset 0 0 0 3px var(--wood-ink), inset 0 2px 0 4px rgba(255, 220, 170, 0.18), 0 4px 0 rgba(40, 24, 10, 0.45);
@@ -255,7 +255,7 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-peg:hover, .sk-icon-btn:hover { filter: brightness(1.12); }
 .kit-peg:active, .sk-icon-btn:active { transform: translateY(2px); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
 .kit-peg[aria-pressed="true"], .sk-icon-btn[aria-pressed="true"] { filter: brightness(0.85); }
-.kit-peg--light, .sk-home .sk-icon-btn { color: var(--wood-ink); background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(40, 24, 10, 0.12) 35% 37%, transparent 38%), radial-gradient(circle at 40% 35%, #F0CC96 0%, var(--tile) 75%); }
+.kit-peg--light, .sk-home .sk-icon-btn, .sk-icon-chip { color: var(--wood-ink); background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(40, 24, 10, 0.12) 35% 37%, transparent 38%), radial-gradient(circle at 40% 35%, #F0CC96 0%, var(--tile) 75%); }
 .kit-peg--sm { width: 36px; height: 36px; }
 .kit-peg[data-admin], .sk-icon-btn[data-admin] { color: var(--glow); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 0 0 3px var(--amber), 0 4px 0 rgba(40, 24, 10, 0.45); }
 

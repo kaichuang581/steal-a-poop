@@ -461,8 +461,8 @@
 .sk-chain-who { font-family: var(--skin-font-hand); font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
 
 /* Icon chips (the corner controls) and paper sheets. */
-.sk-icon-chip { min-width: 40px; min-height: 40px; padding: 0 !important; justify-content: center; color: var(--wood-ink); box-shadow: inset 0 -3px 0 var(--paper-edge), 0 3px 8px rgba(40, 24, 10, 0.3); }
-.sk-icon-chip:hover { background: #FFF9EC; }
+/* A close or icon chip is a light peg (kit.css). */
+.sk-icon-chip { width: 40px; height: 40px; min-height: 40px; padding: 0 !important; outline: none; justify-content: center; }
 .sk-sheet {
   display: flex; flex-direction: column; width: 100%; max-width: 32rem; max-height: 82vh; overflow: hidden;
   border-radius: 18px 18px 0 0; background: var(--paper); color: var(--ink); box-shadow: 0 0 0 3px var(--wood-dark), var(--shadow-warm);
@@ -890,3 +890,50 @@
   .sk-title-plank { margin-top: 4px; padding-top: 8px; padding-bottom: 6px; }
   .sk-menu-item:not(.sk-menu-primary) { min-height: 38px; padding-top: 3px; padding-bottom: 3px; }
 }
+
+/* ---------- Rooms and the lobby (classic components, V6 6.5): a panel of planks, paper fields, brass and wood buttons ---------- */
+.sk-rooms main { color: var(--button-text); font-family: var(--skin-font-body); }
+.sk-rooms main > header h1 {
+  flex: none; padding: 6px 18px; border-radius: 3px; font-family: var(--skin-font-display); font-weight: 800; color: var(--button-text);
+  background: var(--kit-grain), var(--wood-dark); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.75), 0 1px 0 rgba(255, 220, 170, 0.35);
+  box-shadow: inset 0 3px 0 rgba(255, 220, 170, 0.32), inset 0 -4px 0 rgba(40, 24, 10, 0.55), 0 6px 0 rgba(40, 24, 10, 0.35);
+}
+.sk-rooms section, .sk-rooms main > div[class*="border-wood"] {
+  border: 0; border-radius: 3px; background: var(--kit-grain), var(--wood-ink);
+  box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.22), inset 0 -3px 0 rgba(40, 24, 10, 0.55), 0 6px 0 rgba(40, 24, 10, 0.35), 0 10px 18px rgba(40, 24, 10, 0.25);
+}
+.sk-rooms h2 { font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; letter-spacing: 0.02em; text-transform: none; color: var(--glow); }
+.sk-rooms p, .sk-rooms [class*="text-white"] { color: #F3E3C3; }
+.sk-rooms input {
+  border: 0; border-bottom: 2px solid var(--ink-soft); border-radius: 0; color: var(--ink); background: var(--kit-paper-tex), var(--paper);
+  box-shadow: 2px 3px 0 rgba(40, 24, 10, 0.35); font-family: var(--skin-font-hand); font-size: 20px;
+}
+.sk-rooms input::placeholder { color: var(--ink-soft); }
+.sk-rooms button {
+  border-radius: 3px; color: var(--button-text); font-family: var(--skin-font-display); font-weight: 800;
+  background: var(--kit-grain), var(--wood-dark); box-shadow: inset 0 3px 0 var(--wood), inset 0 -3px 0 rgba(40, 24, 10, 0.4), 0 3px 0 rgba(20, 12, 6, 0.6);
+}
+.sk-rooms button:active:not(:disabled) { translate: 0 2px; }
+/* The main actions (create, join, start, the chosen visibility) are brass plates; leaving is brass on barn red. */
+.sk-rooms button[class*="bg-emerald"], .sk-rooms button[class*="bg-fuchsia"], .sk-rooms button[class*="bg-sky"], .sk-rooms button[aria-pressed="true"] {
+  color: var(--wood-ink); text-shadow: 0 1px 0 rgba(255, 240, 200, 0.6);
+  background: var(--brass); box-shadow: inset 0 2px 0 var(--brass-light), inset 0 -3px 0 var(--brass-dark), 0 3px 0 rgba(20, 12, 6, 0.6);
+}
+.sk-rooms button[class*="bg-red"] { color: var(--wood-ink); background: var(--brass); box-shadow: inset 0 2px 0 var(--brass-light), inset 0 -3px 0 var(--brass-dark), 0 0 0 3px var(--barn-paint), 0 4px 0 3px rgba(20, 12, 6, 0.5); }
+.sk-rooms li { border-radius: 0; color: var(--ink); background: var(--kit-paper-tex), var(--paper); box-shadow: 2px 3px 0 rgba(40, 24, 10, 0.35); }
+.sk-rooms li [class*="text-white"], .sk-rooms li p { color: var(--ink-soft); }
+.sk-rooms [role="status"], .sk-rooms [class*="bg-red-500"] { border: 0; border-radius: 0; color: var(--ink); background: var(--kit-paper-tex), var(--paper); box-shadow: 2px 3px 0 rgba(40, 24, 10, 0.35); }
+.sk-rooms span[class*="rounded-full"] {
+  border-radius: 0; color: var(--wood-ink); background: var(--glow); clip-path: polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%); padding-left: 14px;
+}
+.sk-rooms [class*="text-amber-300"] { color: var(--glow); }
+/* The chat rules: a sheet of paper on a light board, not a navy card; the inline rules note is a pinned paper note. */
+.sk-rooms [role="alertdialog"] {
+  border: 10px solid var(--tile); border-radius: 3px; color: var(--ink); background: var(--kit-paper-tex), var(--paper);
+  box-shadow: 0 0 0 1px var(--wood), 0 6px 0 rgba(40, 24, 10, 0.35), 0 12px 24px rgba(40, 24, 10, 0.3);
+}
+.sk-rooms [role="alertdialog"] h2 { font-family: var(--skin-font-display); color: var(--wood-ink); }
+.sk-rooms [role="alertdialog"] p, .sk-rooms [role="alertdialog"] [class*="text-white"] { color: var(--ink); }
+.sk-rooms [role="alertdialog"] li { box-shadow: none; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
+.sk-rooms [role="note"] { border: 0; border-radius: 0; color: var(--ink); background: var(--kit-paper-tex), var(--paper); box-shadow: 2px 3px 0 rgba(40, 24, 10, 0.35); }
+.sk-rooms [role="note"] [class*="text-amber"], .sk-rooms [role="note"] [class*="text-white"] { color: var(--ink); }

@@ -68,8 +68,8 @@ export function PaintedApp() {
   const screen = dreaming ? <DreamScreen />
     : hunting ? <HuntScreen />
     : inGame ? <PaintedGame />
-    : inRoom ? <RoomScreen />
-    : lobbyOpen ? <Lobby />
+    : inRoom ? <div className="sk-rooms h-full"><RoomScreen /></div>
+    : lobbyOpen ? <div className="sk-rooms h-full"><Lobby /></div>
     : home;
   return <><JoinLink />{screen}{!dreaming && !hunting && !inGame && (inRoom || lobbyOpen) && <Garland />}</>;
 }

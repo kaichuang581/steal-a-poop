@@ -76,8 +76,9 @@ const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /** The pose channels every state writes; they are blended between states so no state is a cut. */
-const CH = { bodyY: 0, bodyRotX: 1, bodyRotZ: 2, headX: 3, headY: 4, headZ: 5, earL: 6, earR: 7, earBack: 8, eye: 9, puff: 10, legLift: 11, tail: 12, legSwing: 13, squash: 14, legFront: 15, legBack: 16 } as const;
-const N = 17;
+const CH = { bodyY: 0, bodyRotX: 1, bodyRotZ: 2, headX: 3, headY: 4, headZ: 5, earL: 6, earR: 7, earBack: 8, eye: 9, puff: 10, legLift: 11, tail: 12, legSwing: 13, squash: 14, legFront: 15, legBack: 16, neckX: 17 } as const;
+/** `neckX` (V5.1 Part 4.6) pitches the neck and the head together about the neck's base; species with no neck ignore it. */
+const N = 18;
 /** A rest pose to blend from before the first state lands: scales at 1, everything else at 0 (never a zero scale). */
 function restPose(): Float32Array { const p = new Float32Array(N); p[CH.eye] = 1; p[CH.puff] = 1; p[CH.squash] = 1; return p; }
 interface Face { brows: Brows; mouth: Mouth; lids: 'open' | Lids; breath: boolean; bubble: boolean }
@@ -87,12 +88,48 @@ const MOUTHS: Mouth[] = ['flat', 'smile', 'o', 'chewL', 'chewDown', 'chewR'];
 /** The four chewing frames. */
 const CHEW: Mouth[] = ['flat', 'chewL', 'chewDown', 'chewR'];
 
+/** The pitch that lifts a tail back (6.2's "tail up"): +0.3 for a tail hanging below its pivot, -0.3 for one above it. */
+export function tailLiftOf(m: SheepModel | AnimalModel): number {
+  const cells = (m.tail as Part & { cells?: Map<string, { y: number }> }).cells;
+  if (!cells?.size) return -0.3;
+  let dy = 0;
+  for (const c of cells.values()) dy += (c.y + 0.5) * 0.04 - m.tail.pivot[1];
+  return dy < 0 ? 0.3 : -0.3;
+}
+
+/** The species' channel ranges (V5.1 Part 6.6); every pose is clamped into them, and the pose test checks them. */
+type Range = [number, number];
+interface Ranges { headX: Range; neckX: Range; headY: number; headZ: number; bodyY: Range; squash: Range; legSwing: number; ears: Range }
+const RANGES: Record<string, Ranges> = {
+  sheep: { headX: [-0.35, 0.6], neckX: [0, 0], headY: 0.6, headZ: 0.2, bodyY: [0, 0.18], squash: [0.9, 1.06], legSwing: 0.49, ears: [DROOP - 0.3, DROOP + 0.4] },
+  pig: { headX: [-0.35, 0.45], neckX: [0, 0], headY: 0.6, headZ: 0.2, bodyY: [0, 0.18], squash: [0.9, 1.06], legSwing: 0.49, ears: [-0.5, 0.5] },
+  cow: { headX: [-0.3, 0.35], neckX: [-0.15, 0.4], headY: 0.6, headZ: 0.2, bodyY: [0, 0.14], squash: [0.92, 1.05], legSwing: 0.45, ears: [-0.4, 0.4] },
+  horse: { headX: [-0.3, 0.25], neckX: [-0.25, 0.6], headY: 0.6, headZ: 0.2, bodyY: [0, 0.16], squash: [0.92, 1.05], legSwing: 0.49, ears: [-0.4, 0.4] },
+  goat: { headX: [-0.3, 0.35], neckX: [-0.2, 0.35], headY: 0.6, headZ: 0.25, bodyY: [0, 0.2], squash: [0.9, 1.06], legSwing: 0.49, ears: [-0.5, 0.5] },
+  chicken: { headX: [-0.25, 0.5], neckX: [-0.15, 0.45], headY: 0.8, headZ: 0.25, bodyY: [0, 0.16], squash: [0.88, 1.08], legSwing: 0.35, ears: [0, 0] },
+};
+function clampPose(p: Float32Array, species: string) {
+  const r = RANGES[species] ?? RANGES.sheep;
+  p[CH.headX] = clamp(p[CH.headX], r.headX[0], r.headX[1]);
+  p[CH.neckX] = clamp(p[CH.neckX], r.neckX[0], r.neckX[1]);
+  p[CH.headY] = clamp(p[CH.headY], -r.headY, r.headY);
+  p[CH.headZ] = clamp(p[CH.headZ], -r.headZ, r.headZ);
+  p[CH.bodyY] = clamp(p[CH.bodyY], r.bodyY[0], r.bodyY[1]);
+  p[CH.squash] = clamp(p[CH.squash], r.squash[0], r.squash[1]);
+  p[CH.legSwing] = clamp(p[CH.legSwing], -r.legSwing, r.legSwing);
+  p[CH.earL] = clamp(p[CH.earL], r.ears[0], r.ears[1]);
+  p[CH.earR] = clamp(p[CH.earR], r.ears[0], r.ears[1]);
+}
+/** The grazers chew four frames every 12 s on their idle layer (6.5); the pig sniffs and the chicken bobs instead. */
+const GRAZERS = new Set(['sheep', 'cow', 'goat', 'horse']);
+
 /**
- * The pose for a state at `e` seconds into it (plan V3.3 Part 3.3). The idle layer (blink, ear twitch, chew) is
- * passed in; the speaker's chest-up and tail wag are added on top of idle and thinking.
+ * The pose for a state at `e` seconds into it: V5.1 Part 6.2's base table for every species, then the species' deltas
+ * (6.3, `flavour`), then the ranges (6.6). The idle layer (blink, ear twitch, chew) is passed in; the speaker's chest-up
+ * and slow tail wag are laid over idle and thinking.
  */
 function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: number, moving: boolean, speaking: boolean, blink: boolean, twitch: number, chew: Mouth | null, pace = 0, species = 'sheep') {
-  // `t` is already offset by this sheep's own phase, so no two sheep move in step.
+  // `t` is already offset by this animal's own phase, so no two move in step.
   p.fill(0);
   p[CH.eye] = 1;
   p[CH.puff] = 1;
@@ -100,7 +137,7 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
   p[CH.earL] = DROOP - twitch;
   p[CH.earR] = DROOP;
   f.brows = 'neutral';
-  f.mouth = chew ?? 'flat';
+  f.mouth = (GRAZERS.has(species) && chew) || 'flat';
   f.lids = blink ? 'closed' : 'open';
   f.breath = false;
   f.bubble = false;
@@ -123,11 +160,13 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       p[CH.earL] = p[CH.earR] = DROOP + 0.3;
       break;
     case 'grazing':
+      // The neck and the head go down by the species' own amounts (6.3); the sheep has no neck, so its head does it all.
       p[CH.headX] = 0.6 + (moving ? Math.sin(t * 3.1) * 0.03 : 0);
       f.mouth = moving ? CHEW[Math.floor(t / 0.2) % 4] : 'flat';
       break;
     case 'proud':
       p[CH.headX] = -0.3;
+      p[CH.neckX] = -0.1;
       p[CH.puff] = 1.06;
       p[CH.bodyRotX] = -0.05;
       f.mouth = 'smile';
@@ -144,42 +183,49 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       break;
     }
     case 'startled':
-      p[CH.bodyY] = Math.sin(clamp01(e / 0.5) * Math.PI) * 0.22;
+      p[CH.bodyY] = e < 0.3 ? Math.sin((e / 0.3) * Math.PI) * 0.14 : 0;
       p[CH.legSwing] = e < 0.5 ? 0.35 : 0;
-      p[CH.eye] = 1.35;
-      p[CH.earBack] = 0.9;
+      p[CH.headX] = -0.15;
+      p[CH.eye] = 1.25;
+      p[CH.earBack] = 1;
       f.brows = 'up';
       f.mouth = 'o';
       f.lids = 'open';
       break;
     case 'cold':
-      p[CH.bodyY] = -0.04;
-      p[CH.bodyRotX] = 0.08;
-      p[CH.headX] = 0.15;
+      // A hunch; the shiver (+-0.01 at 25 rad/s) is a sideways shake applied with the pose.
+      p[CH.bodyRotX] = 0.12;
+      p[CH.headX] = 0.25;
       p[CH.earL] = p[CH.earR] = DROOP + 0.3;
       f.brows = 'worried';
       f.mouth = 'flat';
       f.breath = moving;
       break;
     case 'freezing':
-    case 'frozen': {
-      // 0.5 s: startled, then caught mid-run with a front leg up and the body leaning back. Still from here on.
-      const posed = live === 'frozen' || e >= 0.5;
-      p[CH.puff] = posed ? 1.06 : 1 + 0.06 * (e / 0.5);
-      p[CH.eye] = posed ? 1.4 : 1.2;
-      if (posed) { p[CH.legLift] = 0.12; p[CH.bodyRotX] = -0.14; }
-      p[CH.earBack] = 0.6;
-      f.brows = 'up';
-      f.mouth = 'o';
-      f.lids = 'open';
+      // The shiver grows to +-0.02 as the frost fades in; the eyes close at the end.
+      p[CH.bodyRotX] = 0.12;
+      p[CH.headX] = 0.25;
+      p[CH.earL] = p[CH.earR] = DROOP + 0.3;
+      f.brows = 'worried';
+      f.lids = e > 2.0 ? 'closed' : 'open';
       break;
-    }
+    case 'frozen':
+      // Caught mid-stride: a front leg up, the body leaning back, inside the block.
+      p[CH.legLift] = 0.12;
+      p[CH.bodyRotX] = -0.14;
+      p[CH.puff] = 1.06;
+      p[CH.earBack] = 0.6;
+      f.lids = 'closed';
+      break;
     case 'thawing':
-      p[CH.bodyRotZ] = moving ? Math.sin(e * 20) * 0.1 * (1 - clamp01(e / 1.2)) : 0;
+      // A shake (+-0.03 at 20 rad/s, applied with the pose), two blinks, the ears flapping.
+      f.lids = (e > 0.3 && e < 0.42) || (e > 0.6 && e < 0.72) ? 'closed' : 'open';
+      p[CH.earL] += moving ? Math.sin(e * 18) * 0.2 : 0;
+      p[CH.earR] += moving ? Math.sin(e * 18 + 1) * 0.2 : 0;
       f.mouth = 'smile';
       break;
-    // Counting Sheep (V4 Part 7.2): a trot, front-left with back-right, 110 ms a half-step slowing to 70 at full
-    // pace; legs swing ±28°, the head bobs, ears flap 8°, the tail wags, the wool scales ±1.5% at the step rate.
+    // The run (Counting Sheep): a trot, front-left with back-right, 110 ms a half-step slowing to 70 at full pace; legs
+    // swing +-28 degrees, the head bobs, ears flap 8 degrees, the tail wags, the whole body squashes 1.5% at the step.
     case 'run': {
       const half = (TROT_MS.slow + (TROT_MS.fast - TROT_MS.slow) * pace) / 1000;
       const w = Math.PI / half;
@@ -189,28 +235,30 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       p[CH.headX] = moving ? Math.sin(t * w) * 0.04 : 0;
       p[CH.earL] = DROOP - twitch + stride * 0.14;
       p[CH.earR] = DROOP - stride * 0.14;
-      p[CH.puff] = 1 + stride * 0.015;
+      p[CH.squash] = 1 + Math.abs(stride) * 0.015;
       p[CH.tail] = moving ? Math.sin(t * w * 0.5) * 0.35 : 0;
       f.mouth = 'smile';
       break;
     }
     case 'jump': {
-      // A leap in three beats over the 0.72 s arc: the back legs drive while the front legs lift, both tuck at the top, and
-      // the front legs reach down for the snow as the back legs trail. The stage tilts and stretches the whole body.
+      // Over the 0.72 s arc: a crouch (squash 0.92 for 80 ms), the back legs drive while the front legs fold forward to
+      // 50 degrees and the back legs trail to 40, a stretch at the apex (1.06), then the front legs reach for the snow.
       const u = clamp01(e / 0.72);
       const rise = clamp01(u / 0.3), fall = clamp01((u - 0.55) / 0.45);
-      p[CH.legFront] = -0.25 - 1.0 * rise + 0.85 * fall;
-      p[CH.legBack] = 1.0 - 0.75 * clamp01(u / 0.5) + 0.65 * fall;
+      p[CH.squash] = e < 0.08 ? 0.92 : 1 + 0.06 * Math.sin(Math.PI * clamp01((u - 0.1) / 0.8));
+      p[CH.legFront] = -0.25 - 0.62 * rise + 0.6 * fall;
+      p[CH.legBack] = 0.7 - 0.45 * clamp01(u / 0.5) + 0.45 * fall;
       p[CH.earBack] = -0.2 - 0.5 * fall;
-      p[CH.earL] = p[CH.earR] = DROOP - 0.35 - 0.5 * fall;
+      p[CH.earL] = p[CH.earR] = DROOP - 0.3;
       p[CH.tail] = 0.5 - 0.8 * fall;
       p[CH.headX] = 0.1 - 0.22 * rise + 0.3 * fall;
-      p[CH.puff] = 1 + 0.03 * Math.sin(Math.PI * u);
+      p[CH.eye] = 1.2;
       f.mouth = 'smile';
       break;
     }
     case 'land':
-      // The legs take the weight, the head dips, the wool settles.
+      // The legs take the weight (squash 0.90 for 100 ms), the head dips.
+      p[CH.squash] = e < 0.1 ? 0.9 : 1;
       p[CH.legFront] = -0.12;
       p[CH.legBack] = 0.14;
       p[CH.headX] = 0.14;
@@ -218,14 +266,14 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       f.mouth = 'smile';
       break;
     case 'bonk': {
-      // Recoil and sit: back legs fold, the body tilts back 15°, ears back, worried brows, an "o", eyes shut 200 ms.
+      // Recoil and sit: the back legs fold, the body tips back 15 degrees, ears back, worried brows, an "o", lids arced
+      // for 200 ms. (The stage carries the recoil and the stars.)
       const k = clamp01(e / 0.2);
       p[CH.bodyRotX] = -0.26 * k;
-      p[CH.bodyY] = -0.06 * k;
-      p[CH.legBack] = 1.2 * k;
+      p[CH.legBack] = 1.0 * k; // folded, the hooves still under the belly line (6.6)
       p[CH.legFront] = -0.3 * k;
-      p[CH.earBack] = 0.9;
-      p[CH.eye] = 1.2;
+      p[CH.headX] = 0.1;
+      p[CH.earBack] = 1;
       f.brows = 'worried';
       f.mouth = 'o';
       f.lids = e < 0.2 ? 'arc' : 'open';
@@ -233,42 +281,66 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
     }
   }
   if (speaking && (live === 'idle' || live === 'thinking')) {
-    p[CH.bodyRotX] -= 0.06;
-    p[CH.bodyY] += 0.02;
-    p[CH.tail] = moving ? Math.sin(t * 9) * 0.45 : 0;
+    p[CH.puff] = 1.03; // chest up
+    p[CH.tail] = moving ? Math.sin(t * 3) * 0.35 : 0; // a slow wag
   }
   flavour(p, f, species, live, e, t, moving);
+  clampPose(p, species);
 }
 
-/** Species-specific motion (V5 Part 4.11): small touches on top of the sheep's poses, never a fork of them. */
+/** The species' deltas (V5.1 Part 6.3): only what differs from the base table, never a fork of it. */
 function flavour(p: Float32Array, f: Face, species: string, live: SheepState, e: number, t: number, moving: boolean) {
-  if (species === 'sheep' || !moving) return;
   const calm = live === 'idle' || live === 'thinking' || live === 'proud';
+  const pulse = (period: number, len: number) => (moving && t % period < len ? Math.sin(((t % period) / len) * Math.PI) : 0);
   switch (species) {
     case 'pig':
-      if (calm) { p[CH.earL] += Math.sin(t * 1.9) * 0.1; p[CH.earR] += Math.sin(t * 1.9 + 0.4) * 0.1; }
-      if (live === 'happy') p[CH.tail] = Math.sin(e * 30) * 0.8;
-      if (live === 'grazing') p[CH.headX] += Math.max(0, Math.sin(t * 2.6)) * 0.08;
+      if (calm && moving) { p[CH.earL] += Math.sin(t * 1.9) * 0.1; p[CH.earR] += Math.sin(t * 1.9 + 0.4) * 0.1; } // ears flop with the breath
+      if (live === 'grazing') { p[CH.headX] = 0.35; p[CH.headZ] = 0; f.mouth = 'flat'; } // rooting: the snout nudges (6.4)
+      if (live === 'proud') p[CH.headX] = -0.35; // snout up
+      if (live === 'happy') p[CH.tail] = moving ? Math.sin(e * 30) * 0.8 : 0; // the curl spins
+      if (live === 'frozen') p[CH.legLift] = 0.05; // a short leg lifts less, or its hoof rises past the belly
+      if (live === 'jump') p[CH.earBack] = 0; // the ears already fold forward beside the eyes: they bounce, never swing in
+      if (live === 'startled') p[CH.earL] = p[CH.earR] = -0.45; // ears straight up
       break;
     case 'cow':
-      if (calm) { p[CH.tail] = Math.sin(t * 1.4) * 0.35; if (t % 8 < 0.8) f.mouth = CHEW[Math.floor((t % 8) / 0.2) % 4]; }
-      if (live === 'proud') p[CH.headX] -= 0.1;
+      if (calm) { p[CH.tail] = moving ? Math.sin(t * 1.4) * 0.35 : 0; if (moving && t % 8 < 0.8) f.mouth = CHEW[Math.floor((t % 8) / 0.2) % 4]; }
+      if (calm) p[CH.earL] -= pulse(9, 0.3) * 0.4; // an ear flick (idle and thinking)
+      if (live === 'grazing') { p[CH.neckX] = 0.35; p[CH.headX] = 0.3 + (moving ? Math.sin(t * 3.1) * 0.03 : 0); }
+      if (live === 'happy') { const hop = e < 0.4 ? Math.sin((e / 0.4) * Math.PI) * 0.12 : 0; p[CH.bodyY] = hop; p[CH.legSwing] = hop * 1.5; } // one hop only
       break;
     case 'horse':
-      if (calm) { p[CH.tail] = Math.sin(t * 1.6) * 0.45; if (t % 9 < 0.5) p[CH.headX] -= Math.sin((t % 9) / 0.5 * Math.PI) * 0.25; }
-      if (live === 'happy' && e < 0.6) { p[CH.legFront] = -0.5; p[CH.bodyRotX] = -0.15; }
-      if (live === 'grazing' && t % 4 < 0.4) p[CH.legLift] = Math.sin((t % 4) / 0.4 * Math.PI) * 0.06;
+      if (calm) { p[CH.tail] = moving ? Math.sin(t * 1.6) * 0.45 : 0; p[CH.headX] -= pulse(9, 0.5) * 0.25; } // swish, a head toss
+      if (live === 'grazing') { p[CH.neckX] = 0.55; p[CH.headX] = 0.15; p[CH.legLift] = pulse(4, 0.4) * 0.06; } // one hoof paws
+      if (live === 'proud') { p[CH.neckX] = -0.2; p[CH.earBack] = -0.3; } // neck arched higher, ears forward
+      if (live === 'happy' && e < 0.6) { p[CH.legFront] = -0.5; p[CH.bodyRotX] = -0.15; p[CH.headY] = moving ? Math.sin(e * 20) * 0.2 : 0; } // rear, mane shake
+      if (live === 'startled') p[CH.tail] = 0; // tail up (drawn with the tail's lift)
+      if (live === 'sleeping') p[CH.neckX] = 0.3;
+      if (live === 'thinking') p[CH.earBack] = -0.25; // an ear turned to the speaker
+      if (live === 'run') p[CH.tail] = -0.4; // mane and tail stream
       break;
     case 'goat':
-      if (calm) p[CH.headZ] += (t % 7 < 1.2 ? Math.sin((t % 7) / 1.2 * Math.PI) * 0.15 : 0);
-      if (live === 'happy') p[CH.headY] += Math.sin(e * 12) * 0.2;
-      if (live === 'thinking') p[CH.eye] = 1.2;
+      if (calm) p[CH.headZ] += pulse(7, 1.2) * 0.15; // a head tilt now and then
+      if (live === 'grazing') { p[CH.neckX] = 0.3; p[CH.headX] = 0.3 + (moving ? Math.sin(t * 3.1) * 0.03 : 0); }
+      if (live === 'proud') { p[CH.neckX] = -0.15; p[CH.legFront] = 0.3; } // head high, one hoof forward
+      if (live === 'happy') p[CH.bodyRotZ] = moving && e < 0.8 ? Math.sin((e / 0.4) * Math.PI) * 0.1 : 0; // two hops with a twist
+      if (live === 'thinking') p[CH.eye] = 1.2; // the iris widens
       break;
-    case 'chicken':
-      if (calm || live === 'grazing') p[CH.headX] += Math.max(0, Math.sin(t * 2.5)) * 0.1;
+    case 'chicken': {
+      if (calm) p[CH.headX] += moving ? Math.max(0, Math.sin(t * 2.5)) * 0.1 : 0; // the head bob
+      if (live === 'grazing') {
+        // Pecks: three in 1.2 s, every 3 s; no chewing.
+        const c = t % 3, peck = moving && c < 1.2 ? Math.abs(Math.sin((c / 0.4) * Math.PI)) : 0;
+        p[CH.neckX] = 0.4 * peck; p[CH.headX] = 0.45 * peck; f.mouth = 'flat';
+      }
+      if (live === 'proud') p[CH.puff] = 1.08;
+      if (live === 'frozen') p[CH.legLift] = 0.04; // a short leg lifts less, or its foot rises past the belly
       if (live === 'startled') p[CH.puff] = 1.1;
-      if (live === 'sleeping') p[CH.headX] += 0.2;
+      if (live === 'cold') p[CH.puff] = 1.12;
+      if (live === 'sleeping') { p[CH.neckX] = 0.35; p[CH.headX] = 0.2; } // the head tucked
+      if (live === 'thinking') p[CH.headY] = 0.4; // one eye to the camera
+      if (live === 'run') { p[CH.legSwing] = Math.sign(p[CH.legSwing]) * Math.min(Math.abs(p[CH.legSwing]), 0.35); p[CH.bodyRotZ] = p[CH.legSwing] / 0.35 * 0.08; } // the waddle
       break;
+    }
     default: break;
   }
 }
@@ -308,6 +380,8 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     nextBlink: 2 + Math.random() * 3, blinkAt: -10, phase: Math.random() * 20, rate: 0.82 + Math.random() * 0.36, att: { yaw: 0, pitch: 0 },
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
   const v = useMemo(() => new Vector3(), []);
+  // "Tail up" turns the tail back, whichever way it grows: a hanging tail pitches +x, one that points up pitches -x.
+  const tailLift = useMemo(() => tailLiftOf(m), [m]);
 
   useFrame(({ clock, camera }, dt) => {
     const t = clock.elapsedTime;
@@ -359,10 +433,17 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     a.att.pitch += (wantPitch - a.att.pitch) * ka;
 
     // Apply the pose.
-    const shiver = live === 'cold' && moving ? Math.sin(tp * 60) * 0.012 : 0;
+    // Sideways shakes (6.2): the cold shiver +-0.01 at 25 rad/s, growing to +-0.02 while freezing, the thaw's +-0.03 at
+    // 20 rad/s; the goat's startle jumps 0.06 sideways (6.3).
+    const shiver = !moving ? 0
+      : live === 'cold' ? Math.sin(tp * 25) * 0.01
+      : live === 'freezing' ? Math.sin(tp * 25) * (0.01 + 0.01 * clamp01(e / 2.4))
+      : live === 'thawing' ? Math.sin(e * 20) * 0.03 * (1 - clamp01(e / 1.2))
+      : species === 'goat' && live === 'startled' ? Math.sin(clamp01(e / 0.3) * Math.PI) * 0.06 : 0;
     body.position.set(shiver, c[CH.bodyY], 0);
     body.rotation.set(c[CH.bodyRotX], 0, c[CH.bodyRotZ]);
-    head.rotation.set(c[CH.headX] + a.att.pitch, c[CH.headY] + a.att.yaw, c[CH.headZ]);
+    head.rotation.set(c[CH.headX] + a.att.pitch + (am.headPitch ?? 0), c[CH.headY] + a.att.yaw, c[CH.headZ]);
+    if (o.neck) (o.neck as Group).rotation.x = am.neckBase ? c[CH.neckX] : 0;
     (o.earL as Mesh).rotation.set(0, -c[CH.earBack], c[CH.earL]);
     (o.earR as Mesh).rotation.set(0, c[CH.earBack], -c[CH.earR]);
     // Breathing: the body lobes swell 2.5% either way; the fleece settles into place over half a second when the level changes.
@@ -381,14 +462,29 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     for (const sp of signature) {
       const mesh = o[`sig-${sp.name}`] as Mesh | undefined;
       if (!mesh || !sp.anim) continue;
-      if (sp.anim === 'snout') { const k = moving && tp % 6 < 0.6 ? 1 + 0.08 * Math.sin((tp % 6) / 0.6 * Math.PI * 2) ** 2 : 1; mesh.scale.setScalar(k); }
-      else if (sp.anim === 'wingL' || sp.anim === 'wingR') { const dir = sp.anim === 'wingL' ? 1 : -1; const flap = moving && (live === 'happy' || live === 'startled') && e < 1 ? Math.abs(Math.sin(e * 18)) * 0.9 : live === 'proud' ? 0.4 : 0; mesh.rotation.z = dir * flap; }
+      if (sp.anim === 'snout') {
+        // Two sniffs every 6 s in the calm states; while rooting, a 0.03 m push forward at 2.6 rad/s (6.4).
+        const k = moving && tp % 6 < 0.6 && live !== 'grazing' ? 1 + 0.08 * Math.sin((tp % 6) / 0.6 * Math.PI * 2) ** 2 : 1;
+        mesh.scale.setScalar(k);
+        mesh.position.z = sp.pivot[2] - m.head.pivot[2] + (moving && live === 'grazing' ? Math.max(0, Math.sin(tp * 2.6)) * 0.03 : 0);
+      }
+      else if (sp.anim === 'wingL' || sp.anim === 'wingR') {
+        // About the shoulder root (6.4): held 0.2 in the run, 0.4 proud, 0.6 startled, 0.7 airborne, a 0.9 flap for 1 s happy.
+        const dir = sp.anim === 'wingL' ? 1 : -1;
+        const open = live === 'happy' ? (moving && e < 1 ? Math.abs(Math.sin(e * 18)) * 0.9 : 0)
+          : live === 'run' ? 0.2 : live === 'proud' ? 0.4 : live === 'startled' ? 0.6 : live === 'jump' ? 0.7 : 0;
+        mesh.rotation.z = dir * open;
+      }
       else if (sp.anim === 'beard') mesh.rotation.x = moving && (live === 'idle' || live === 'grazing') ? Math.sin(tp * 2.2) * 0.12 : 0;
       else if (sp.anim === 'comb') mesh.rotation.z = moving ? Math.sin(tp * 2.5) * 0.08 : 0;
     }
     const tail = o.tail as Mesh;
     tail.visible = level > 0;
     tail.rotation.y = c[CH.tail];
+    // The tail lifts when proud (and the horse's when startled); the chicken's fan spreads 1.2 proud and happy, folds 0.9
+    // cold, and breathes +-4% at rest (6.4, 6.3).
+    tail.rotation.x = live === 'proud' || (species === 'horse' && live === 'startled') ? tailLift : 0;
+    if (am.tailAnim === 'tailFan') tail.scale.x = live === 'proud' || live === 'happy' ? 1.2 : live === 'cold' ? 0.9 : 1 + (moving ? Math.sin(tp * 1.9) * 0.04 : 0);
     tail.position.z = m.tail.pivot[2] - 0.4 * (LEVEL_K[lvl] - 1);
     const fl = o.legFL as Mesh;
     // The trot pairs front-left with back-right; a jump sets the front and back pairs apart.
@@ -400,7 +496,10 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     // Squash and stretch on the whole sheep, volume kept: shorter and wider, or taller and narrower.
     const sq = Math.max(0.5, c[CH.squash] || 1);
     root.current.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
-    (o.bell as Mesh).rotation.x = moving && (live === 'happy' || live === 'proud') ? Math.sin(e * 24) * 0.6 * Math.max(0, 1 - e / 1.2) : 0;
+    // The `bell` tag (the sheep's and the cow's) swings about its top (6.4): +-0.3 rad dying away over 0.8 s on happy, jump and bonk; +-0.08 in the run.
+    (o.bell as Mesh).rotation.x = !moving ? 0
+      : live === 'happy' || live === 'jump' || live === 'bonk' ? Math.sin(e * 24) * 0.3 * Math.max(0, 1 - e / 0.8)
+      : live === 'run' ? Math.sin(tp * 12) * 0.08 : 0;
     (o.eyeL as Mesh).scale.setScalar(c[CH.eye]);
     (o.eyeR as Mesh).scale.setScalar(c[CH.eye]);
     const iced = live === 'frozen' || live === 'freezing';
@@ -433,6 +532,9 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     <mesh key={key} ref={set(key)} geometry={p.geo} position={p.pivot} material={material} castShadow receiveShadow />
   );
   const rel = (p: Part): V3 => [p.pivot[0] - m.head.pivot[0], p.pivot[1] - m.head.pivot[1], p.pivot[2] - m.head.pivot[2]];
+  // The neck group turns about the neck's base and carries the neck and the head (V5.1 Part 4.6).
+  const nb: V3 = am.neckBase ?? [0, 0, 0];
+  const fromNeck = (q: V3): V3 => [q[0] - nb[0], q[1] - nb[1], q[2] - nb[2]];
 
   return (
     <group ref={root}>
@@ -445,11 +547,13 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         {mesh('legFR', m.legs[1])}
         {mesh('legBL', m.legs[2])}
         {mesh('legBR', m.legs[3])}
-        {am.neck && <mesh geometry={am.neck.geo} position={am.neck.pivot} material={mat} castShadow receiveShadow />}
+
         {signature.filter((sp) => sp.where === 'body').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={sp.pivot} material={mat} castShadow />)}
         <mesh geometry={m.collar.geo} position={m.collar.pivot} material={mat} />
         {mesh('bell', m.bell)}
-        <group ref={set('head')} position={m.head.pivot}>
+        <group ref={set('neck')} position={nb}>
+        {am.neck && <mesh geometry={am.neck.geo} position={fromNeck(am.neck.pivot)} material={mat} castShadow receiveShadow />}
+        <group ref={set('head')} position={fromNeck(m.head.pivot)}>
           <mesh geometry={m.head.geo} material={mat} castShadow />
           <mesh geometry={m.hood.geo} material={mat} castShadow />
           <SantaHat parts={[m.head.geo, m.hood.geo]} material={mat} />
@@ -462,6 +566,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
           <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow />
           {signature.filter((sp) => sp.where === 'head').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={rel(sp)} material={mat} castShadow />)}
           {am.worn && <mesh geometry={am.worn.geo} position={rel(am.worn)} material={mat} castShadow />}
+        </group>
         </group>
         <mesh ref={set('breath')} geometry={m.breath.geo} position={m.breath.pivot} material={breathMat} />
         {scarf && <Scarf />}
@@ -623,4 +728,4 @@ function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: numbe
 export const Animal = Sheep;
 
 /** The pose machinery for tests (V5 Part 4.13 test 9): stepping every state for every species without a renderer. */
-export const __rig = { poseFor, restPose, face0, N, CH } as const;
+export const __rig = { poseFor, restPose, face0, N, CH, RANGES, DURATION, DROOP } as const;

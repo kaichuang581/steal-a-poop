@@ -2,6 +2,18 @@
 
 All user-visible changes, newest first.
 
+## 0.3.2
+
+- Every animal avatar is rebuilt to proper farm-animal proportions: longer bodies, heads sized to them, necks that join smoothly, and a horse that stands tallest at the table
+- The sheep has a new face: a broad, blunt head held level with its back, small dark eyes, ears out to the sides, and its collar and bell at the neck
+- Beady eyes for the sheep, cow, horse, goat and chicken: small and dark, no more goggling
+- The cow is bigger, as a cow should be: second only to the horse, with spots you can see
+- The chicken is a real hen now: plump and level, head forward on a short neck, a proper beak, big wings and a raised fan tail
+- Mouths stay on faces: no more chewing below the chin
+- Sweaters, blankets and vests fit the body all round and close at the neck
+- Every animal moves like itself: horses and cows lower their necks to graze, the hen pecks and waddles, the pig roots, the goat jumps sideways, and bells swing
+- Counting Sheep runs the animal you wear
+
 ## 0.3.1
 
 - Counting Sheep's dream is rebuilt: a bright snow lane on a cloud raft, floating islands, hills and mountains, a crescent moon, and the farmer asleep in his own cloud bubble

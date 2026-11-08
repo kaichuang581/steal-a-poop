@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
 import { buildGeometry } from '../mesher';
 import { Grid, ellipsoid, solid } from '../primitives';
-import { CHAR, CREAM, FACE, NOSE, sheepModel } from '../sheep';
+import { CHAR, CREAM, FACE, HEAD_FACE, NOSE_V51, NOSTRIL_V51, sheepModel } from '../sheep';
 import type { Part } from '../sheep';
 
 describe('mesher', () => {
@@ -36,20 +36,21 @@ describe('the default sheep', () => {
     expect(m.lobes.body).toBeLessThanOrEqual(10);
     expect(m.woolTones).toBeLessThanOrEqual(3);
   });
-  it('has a tall dark wedge head about 1 : 1.6 to the body cloud, and thin legs', () => {
+  it('has the blunt dark head of V5.1 Part 5.1, wider than tall, about 1 : 1.6 to the body cloud, and thin legs', () => {
     const head = bounds(m.head);
-    expect(head.height).toBeGreaterThan(head.width);
-    expect(head.width).toBeLessThanOrEqual(0.3);
+    expect(head.width / head.height).toBeCloseTo(9 / 7, 1);
+    expect(head.width).toBeLessThanOrEqual(0.37);
     expect(bounds(m.wools[2]).depth / head.depth).toBeGreaterThan(1.6);
     expect(lum(FACE[0])).toBeLessThan(lum(CREAM[1]) / 2); // dark face, white fleece
     const leg = bounds(m.legs[0]);
     expect(leg.width).toBeLessThanOrEqual(0.13); // 0.08 m leg plus the splayed hoof
     expect(leg.top - leg.bottom).toBeGreaterThanOrEqual(0.28);
   });
-  it('has small eyes, a dark nose and no pink on the face', () => {
-    expect(m.eyes[0].voxels).toBeLessThanOrEqual(8);
+  it('has small simple eyes, a soft grey nose lighter than the face, and dark nostrils', () => {
+    expect(m.eyes[0].voxels).toBe(4); // 2 x 2 (Brian, 2026-11-07)
     expect(m.eyes[0].voxels).toBe(m.eyes[1].voxels);
-    expect(lum(NOSE)).toBeLessThan(lum(FACE[0]));
+    expect(lum(NOSE_V51)).toBeGreaterThan(lum(HEAD_FACE[1]));
+    expect(lum(NOSTRIL_V51)).toBeLessThan(lum(NOSE_V51));
   });
   it('keeps the voxel budget at the normal coat, and each coat level is bigger than the last', () => {
     expect(m.voxels).toBeGreaterThanOrEqual(2500);

@@ -358,3 +358,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   The dream camera widens its view in a window narrower than the shot (a browser snapped to half the screen used to
   crop the sheep off the left). The word bar is centred. A bump no longer shrinks the scene to a square: the dream
   blurs, clouds roll in from every edge (`.dr-clouds`), and part on the bedroom.
+- The victory screen, round two (requested by Brian, 2026-11-08: "remove the delay ... less basic ... numbers etched into
+  the podium ... dance differently ... taller ... hay texture ... farm theme not festive theme, add in festive subtly"):
+  the scoreboard is up at once (no 5 s wait). The stage is the barn: a straw floor, stacked hay bales, the red barn doors
+  with their white cross, the hayloft beam with three lanterns, two lantern beams sweeping, straw and a little confetti
+  drifting. Everyone stands on barn timber with their place carved into its front and gilded (the top three 1.5, 1.1 and
+  0.8 m, gold, silver and bronze; the rest on 0.55 m crates). Each place has its own dance (`DANCES` in Podium.tsx); the
+  winner leaps and spins. Festive only in passing: a wreath on a door and one short string of warm lights.

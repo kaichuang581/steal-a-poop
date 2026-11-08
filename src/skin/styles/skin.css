@@ -929,12 +929,7 @@
 /* ---------- The winning screen (Podium.tsx, PaintedGame's Results) ---------- */
 .sk-podium { position: fixed; inset: 0; z-index: 40; animation: sk-podium-in 600ms var(--ease-out) both; }
 @keyframes sk-podium-in { from { opacity: 0; } }
-/* Each place: its number big in gold on the step, the name under it on a black nameplate in beige. */
-.sk-pod-label { display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
-.sk-pod-num { font: 800 46px/1 var(--skin-font-display); color: #F4D27A; text-shadow: 0 3px 0 #5A3A10, 0 0 14px rgba(255, 200, 90, 0.55); }
-.sk-pod-label[data-place="2"] .sk-pod-num { color: #E3E7EC; text-shadow: 0 3px 0 #4A4E55, 0 0 12px rgba(220, 230, 240, 0.4); }
-.sk-pod-label[data-place="3"] .sk-pod-num { color: #E3A06A; text-shadow: 0 3px 0 #5A3218, 0 0 12px rgba(230, 150, 90, 0.4); }
-.sk-pod-label:not([data-place="1"]):not([data-place="2"]):not([data-place="3"]) .sk-pod-num { font-size: 28px; color: var(--chalk); text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6); }
+/* Each place: its name on a black nameplate in beige, under the number carved into its block. */
 .sk-pod-name {
   padding: 5px 14px 6px; border-radius: 3px; white-space: nowrap; background: #0E0B09; color: #EADBC0;
   font: 700 17px/1.1 var(--skin-font-display); letter-spacing: 0.02em; box-shadow: inset 0 0 0 1px rgba(234, 219, 192, 0.25), 0 3px 0 rgba(0, 0, 0, 0.45);
@@ -970,6 +965,6 @@
   .sk-final-rows { display: none; } /* the podium already shows every place on a phone */
   .sk-final-stats { grid-template-columns: 1fr; }
   .sk-final-title { font-size: 21px; }
-  .sk-pod-num { font-size: 30px; } .sk-pod-name { font-size: 13px; padding: 4px 9px; }
+  .sk-pod-name { font-size: 13px; padding: 4px 9px; }
 }
 :root.reduce-motion .sk-podium, :root.reduce-motion .sk-final { animation: none; }

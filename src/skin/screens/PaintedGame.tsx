@@ -508,10 +508,9 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
   const rematch = useStore((s) => s.rematch);
   const quit = useStore((s) => s.quit);
   const [copied, setCopied] = useState(false);
-  // The podium dances on its own for 5 s before the scoreboard comes up; it can be hidden again for a screenshot.
-  const [stats, setStats] = useState(false);
+  // The scoreboard is up at once beside the podium; it can be hidden for a screenshot and shown again.
+  const stats = true;
   const [hidden, setHidden] = useState(false);
-  useEffect(() => { const id = setTimeout(() => setStats(true), 5000); return () => clearTimeout(id); }, []);
   const reducedMotion = useStore((s) => s.reduceMotion);
   const phone = useIsMobile();
   // Read once: the table re-renders every frame and this reads storage.

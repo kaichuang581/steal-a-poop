@@ -2,6 +2,19 @@
 
 All user-visible changes, newest first.
 
+## 0.4.0
+
+- The Hunt opens on a lobby instead of throwing you straight into a fight: New Pack, Enter Code, Bestiary or back to the farm. Nothing starts until you choose
+- Every pack has a five-character code, shown during the fight, on the results card and in what you share. Type a friend's code, or open their link, to fight the very same predators and rules. "Fight this pack again" replays a code and counts which try it is
+- Rules teach before they bite: each rule sign says what it means in plain words, with a word that passes and a word that fails. A face-down card warns that a predator brings a secret rule when it's hurt. RULES shows the cards (reading costs time, not a turn)
+- As you type, the Hunt tells you if your word would break a rule, isn't a word, or was already used, and the rule's tag turns red. Sending it anyway still breaks the rule
+- When a run ends, a screen tells you what got you (the clock, a broken rule, or the predator's strikes) and a word that would have worked, then lets you fight the pack again, take a new pack, or see your results
+- The results are one picture made to be screenshotted: your sheep and the predator, predators beaten and damage, your best word, the pack code and which try, with stamps for a new best or walking home
+- After beating a boss you can walk home with your win, or hunt on. Leaving mid-run asks first
+- The bestiary: six cards, silhouettes until you meet each predator, with how many you've beaten, the highest level and your biggest hit. Flip a card for when you first met it and its signature move
+- A save code in Settings carries your records (Hunt bests, the bestiary, your dream streak and more) to another browser: copy it here, paste it there, see what will change, then restore
+- The Hunt keeps a log of your last 50 runs on this device (how far you got and what ended each run), so the Hunt can be tuned from real play. It never leaves the device; admin can copy it out by hand
+
 ## 0.3.4
 
 - The bomb is an ice bomb now: a frozen blue shell capped with frost, a frosted fuse and a cold blue spark, with icy blue seconds on its face

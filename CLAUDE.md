@@ -166,7 +166,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   black lake at night (src/skin/scene/duel.ts for the layout and voxels, src/skin/table/DuelTable.tsx for the stage). You and the
   bot stand face to face on one line, seen side on, and stare at each other. Pressure comes from your clock: the camera pushes
   in, a spotlight on whoever is on turn burns red, the screen's edges close in red and the camera shakes at the very end. A VS
-  bar replaces the scoreboard, and the bomb is the barn's own (`Bomb`, exported, with a `seatAt` prop). The lambing pens are gone.
+  bar replaces the scoreboard, and the bomb is the barn's own (`Bomb` in table/Bomb.tsx, with a `spotAt` prop for where it lands). The lambing pens are gone.
 - First games, soft games, farm sheep and the end board (requested by Brian, 2026-11-07), a small engine change. src/lib/record.ts
   keeps finished Quick Games, the last three results and the personal bests. `tableFor` in the store gives the first three Quick
   Games the easy bots and the Quick preset until the player touches a rule or the bots (`settings.tableChosen`); Start now is that
@@ -272,3 +272,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   word. The server's steal ordering (server/steals.ts, the room hold, STEAL_ORDERING) is gone, as are the steals
   leaderboard, stat, personal best, share line and coin reward. The game_players.steals column stays for older games and
   new rows write 0. Removing the steal draws changed the seeded random stream; no seeded test depended on it.
+- The ice bomb (requested by Brian, 2026-11-07: "make the bomb icier, in all aspects. also, make an animation for when
+  each player receives the bomb i dont like how it jsut floats on top of them"). The bomb never floats over a head and is
+  never held: each turn it is lobbed to the speaker (a fresh one drops from above), lands on the floor beside their front
+  hooves on the side the turn's camera sees clear, skids, wobbles and sits there; the speaker plays `startled` as it lands
+  (BOMB_TOSS_S, skipped while cold, freezing, frozen or thawing). Everything about the bomb is ice: the voxel model,
+  spark and digits, the 3D burst (frost, crystals, bouncing shell chunks, sinking mist), the jumpscare and word blast,
+  the hit flash, the pixel bombs and the boom sound. Keep the bomb icy, and keep it on the floor.

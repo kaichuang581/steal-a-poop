@@ -1,4 +1,4 @@
-import { Blast } from './Blast';
+import { Bomb } from './Bomb';
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -14,8 +14,7 @@ import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, s
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
-import { digitGeometry, tuftGeometry } from '../voxel/characters';
-import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, bombModel } from '../voxel/bomb';
+import { tuftGeometry } from '../voxel/characters';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { BOARD, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
@@ -412,111 +411,6 @@ function LetterBoard({ letter, isTrap, reduced }: { letter: string; isTrap: bool
       <mesh geometry={geo} material={boardMat} castShadow />
       {isTrap && <mesh geometry={iceGeo} material={iceMat} position={[0, boardMid, 0]} />}
     </group>
-  );
-}
-
-/**
- * The bomb: a voxel bomb floats over the sheep who holds it, bobbing, with the fuse burning shorter as the turn runs
- * out (red when `red`: the duel's last seconds). When the turn changes it arcs across the barn to the next sheep.
- */
-export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power, seatAt = seatPosition }: { seatAt?: (index: number, n: number) => { x: number; z: number }; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
-  const m = useMemo(() => bombModel(), []);
-  const body = useMemo(() => voxelMaterial(), []);
-  const fuseMat = useMemo(() => voxelMaterial(), []);
-  const sparkMat = useMemo(() => voxelMaterial({ emissive: '#ffb23a', emissiveIntensity: 1.4 }), []);
-  const group = useRef<Group>(null);
-  const label = useRef<Group>(null);
-  const digits = useRef<Mesh>(null);
-  const shown = useRef('');
-  const digitMat = useMemo(() => voxelMaterial({ emissive: '#ffcf5a', emissiveIntensity: 0.9 }), []);
-  const fuse = useRef<Group>(null);
-  const spark = useRef<Mesh>(null);
-  const flight = useRef({ from: new Vector3(), to: new Vector3(), t: 1, started: false });
-  const grown = useRef({ cur: size, last: size, pop: 0 });
-  const lastBoom = useRef({ key: boomKey, at: -9999 });
-  if (boomKey !== lastBoom.current.key) lastBoom.current = { key: boomKey, at: performance.now() };
-  // Where the bomb was when it went off: its spot before the turn moved on.
-  const goneFrom = useRef(new Vector3());
-  const goneAt = useRef(-9999);
-  const origin = useRef((): Vector3 | null => {
-    if (performance.now() - goneAt.current < 800) return goneFrom.current;
-    const f = flight.current;
-    return f.t < 1 ? f.from : (group.current?.position ?? null);
-  });
-  const target = useMemo(() => {
-    if (speaker === null) return null;
-    const p = seatAt(speaker, n);
-    return new Vector3(p.x, 1.1 * SHEEP_SCALE + 0.45, p.z);
-  }, [speaker, n, seatAt]);
-  useEffect(() => {
-    if (!target || !group.current) return;
-    const f = flight.current;
-    const justExploded = performance.now() - lastBoom.current.at < 600;
-    if (justExploded) { goneFrom.current.copy(group.current.position); goneAt.current = performance.now(); }
-    if (!f.started || reduced || justExploded) {
-      group.current.position.copy(target);
-      f.started = true;
-      f.t = 1;
-    } else {
-      f.from.copy(group.current.position);
-      f.t = 0;
-    }
-    f.to.copy(target);
-  }, [target, reduced]);
-  useFrame(({ clock, camera }, dt) => {
-    const g = group.current;
-    if (!g || !target) return;
-    // The seconds left, in glowing voxel digits on the bomb's face, turned to the camera so they read from any seat.
-    if (label.current) {
-      const text = secondsLeft === null ? '' : String(Math.max(0, Math.ceil(secondsLeft)));
-      if (text !== shown.current && digits.current) { shown.current = text; digits.current.geometry = digitGeometry(text, 0.03); }
-      label.current.visible = text !== '';
-      label.current.quaternion.copy(camera.quaternion);
-      const d = camera.position.clone().sub(g.position).normalize().multiplyScalar(0.21);
-      label.current.position.copy(d);
-      digitMat.color.set(red ? '#ff6f55' : '#ffffff');
-    }
-    const f = flight.current;
-    const now = clock.elapsedTime;
-    // Each word swells the bomb with a little pop; it eases up to its new size.
-    const gr = grown.current;
-    if (size > gr.last) gr.pop = 0.35;
-    if (size < gr.last) gr.cur = size; // it went off: a fresh small bomb
-    gr.last = size;
-    gr.cur += (size - gr.cur) * Math.min(1, dt * 7);
-    gr.pop = Math.max(0, gr.pop - dt * 1.6);
-    g.scale.setScalar(1.5 * gr.cur * (1 + gr.pop * 0.5));
-    if (f.t < 1) {
-      f.t = Math.min(1, f.t + dt / 0.5);
-      const e = easeInOut(f.t);
-      g.position.lerpVectors(f.from, f.to, e);
-      g.position.y += Math.sin(Math.PI * e) * 1.1;
-      g.rotation.z = Math.sin(Math.PI * e) * 0.6;
-    } else {
-      g.position.copy(f.to);
-      g.position.y += (reduced ? 0 : Math.sin(now * 3) * 0.04) + 0.3 * (gr.cur - 1);
-      g.rotation.z = red && !reduced ? Math.sin(now * 40) * 0.08 : 0;
-    }
-    body.color.set(red ? '#ff8a78' : '#ffffff');
-    if (fuse.current) fuse.current.scale.y = Math.max(0.02, Math.min(1, fraction));
-    if (spark.current) {
-      spark.current.position.y = BOMB_FUSE_LENGTH * Math.max(0.02, Math.min(1, fraction));
-      spark.current.visible = reduced || Math.sin(now * 30) > -0.5;
-    }
-  });
-  if (!target) return null;
-  return (
-    <>
-    <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} power={power} />
-    <group ref={group} scale={1.5} visible>
-      <mesh geometry={m.body} material={body} castShadow />
-      <group ref={label}><mesh ref={digits} material={digitMat} /></group>
-      <group ref={fuse} position={[0, BOMB_NECK_Y, 0]}>
-        <mesh geometry={m.fuse} material={fuseMat} />
-        <mesh ref={spark} geometry={m.spark} material={sparkMat} />
-      </group>
-    </group>
-    </>
   );
 }
 

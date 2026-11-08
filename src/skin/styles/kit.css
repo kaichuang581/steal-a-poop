@@ -489,3 +489,13 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 @media (prefers-reduced-motion: reduce) { .kit-float[data-wrong] .kit-float-word { animation: none; } }
 :root.reduce-motion .kit-float[data-wrong] .kit-float-word { animation: none; }
 .kit-float .sk-type-caret { height: 0.9em; margin-left: 6px; background: #fff; box-shadow: 0 2px 0 var(--glow-a); }
+/* Over the dream's bright snow the glow alone is too soft: a dark indigo outline round every letter, and bigger small text. */
+.kit-float[data-scene="dream"] { --glow-a: #2E2560; --glow-b: rgba(30, 20, 80, 0.9); }
+.kit-float[data-scene="dream"] :is(.kit-float-need, .kit-float-word, .kit-float-go, .kit-float-ph) {
+  text-shadow: 0 0 2px var(--glow-a), 0 0 2px var(--glow-a), 0 3px 0 var(--glow-a), 0 0 16px var(--glow-b);
+}
+.kit-float[data-scene="dream"] .kit-float-need { font-size: 34px; }
+.kit-float[data-scene="dream"] .kit-float-ph { font-size: clamp(24px, 2.2vw, 34px); }
+.kit-float[data-scene="dream"] .kit-float-rule { filter: drop-shadow(0 0 1px var(--glow-a)) drop-shadow(0 1px 0 var(--glow-a)); }
+.dr-root .sk-input-prompt { text-shadow: 0 0 2px #2E2560, 0 0 2px #2E2560, 0 2px 0 #2E2560, 0 0 10px rgba(30, 20, 80, 0.85); }
+@media (max-width: 640px) { .kit-float[data-scene="dream"] .kit-float-need { font-size: 26px; } }

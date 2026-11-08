@@ -10,7 +10,12 @@ export type RejectReason =
   | 'already_used'
   | 'modifier_no_e'
   | 'modifier_six_plus'
-  | 'modifier_double_letter';
+  | 'modifier_double_letter'
+  | 'modifier_no_a'
+  | 'modifier_no_s'
+  | 'modifier_five_max'
+  | 'modifier_ends_vowel'
+  | 'modifier_has_o';
 
 export type ValidationResult = { ok: true; word: string } | { ok: false; reason: RejectReason };
 
@@ -46,6 +51,21 @@ export function validateWord(raw: string, ctx: ValidationContext): ValidationRes
       break;
     case 'double_letter':
       if (!/(.)\1/.test(word)) return { ok: false, reason: 'modifier_double_letter' };
+      break;
+    case 'no_a':
+      if (word.includes('a')) return { ok: false, reason: 'modifier_no_a' };
+      break;
+    case 'no_s':
+      if (word.includes('s')) return { ok: false, reason: 'modifier_no_s' };
+      break;
+    case 'five_max':
+      if (word.length > 5) return { ok: false, reason: 'modifier_five_max' };
+      break;
+    case 'ends_vowel':
+      if (!/[aeiou]$/.test(word)) return { ok: false, reason: 'modifier_ends_vowel' };
+      break;
+    case 'has_o':
+      if (!word.includes('o')) return { ok: false, reason: 'modifier_has_o' };
       break;
     default:
       break;

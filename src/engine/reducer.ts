@@ -5,6 +5,7 @@ import {
   STEAL_COOLDOWN_MS, STEAL_LATE_SHARE, STEAL_TURN_BOT_BOOST, STEAL_TURN_CHANCE, TRAP_LETTERS, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
+import { modifierForRound } from './game';
 import { drawInt, drawPick, drawRandom } from './rng';
 import { computeWinners } from './standings';
 import { carriedTurnMs, practiceTurnMs, roundTurnMs, turnDurationMs, wordShiftMs } from './timer';
@@ -149,7 +150,7 @@ function endRound(s: GameState, t: number) {
   s.trap = null;
   if (s.phase === 'gameOver') return;
   s.round = (s.round + 1) as Round;
-  s.modifier = s.modifierDeck[(s.round - 1) % s.modifierDeck.length];
+  s.modifier = modifierForRound(s.modifierDeck, s.round);
   s.used = [];
   s.history = [];
   for (const p of s.players) {

@@ -196,3 +196,8 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Restraint with the season: one Christmas tree on the farm (by the barn doors), one in the barn, one on the ice. Pines stay plain pines.
 - The start screen comes first (approved by Brian, 2026-11-07): no landing page and no forced sample round or username step before it.
   The name is typed on the start screen's name plate; signing in is the Account button there. src/skin/landing is gone.
+- More twists (requested by Brian, 2026-11-08), an engine change: round 1 stays plain, and every later round has a twist
+  (`modifierForRound` in game.ts cycles the shuffled deck after its plain opener; a twists-off deck stays plain). Five new
+  word twists join no E, 6+ and double letter in `ALL_MODIFIERS`: no A, no S, 5 letters max, end on a vowel, needs an O.
+  Each one leaves every letter a legal word can end on with legal words in public/words.txt (src/engine/__tests__/twists.test.ts).
+  The longer deck shifts the seeded random stream after it.

@@ -10,6 +10,11 @@ export type RoundModifier =
   | 'no_e'
   | 'six_plus'
   | 'double_letter'
+  | 'no_a'
+  | 'no_s'
+  | 'five_max'
+  | 'ends_vowel'
+  | 'has_o'
   | 'vowel_double'
   | 'double_points_fast';
 

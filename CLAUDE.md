@@ -346,3 +346,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
 - Admin "Skip to the end" (requested by Brian, 2026-11-08): the admin panel deals a game and jumps to its results (a
   Quick Game won or lost, or a practice run over) via src/skin/admin/endPreview.ts. The finished game is set straight
   into the store, never played through the reducer, so nothing is recorded.
+- The winning screen (requested by Brian, 2026-11-08): at a game's end (not practice) src/skin/table/Podium.tsx takes the
+  screen, its own canvas: the top three dance on a podium in the barn (gold, silver and bronze trim), the rest dance on
+  the hay either side, confetti falls, and the winner holds up a big golden trophy (src/skin/voxel/trophy.ts). Every
+  place has its number and the player's name on a black nameplate in beige under it. The scoreboard comes up 5 s later,
+  dark and see-through with white text (`.sk-final`), and the camera eases so the podium sits beside it; it can be hidden
+  (for a screenshot) and shown again. On a phone it drops the standings list, which the podium already shows.

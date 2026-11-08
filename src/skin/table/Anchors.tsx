@@ -12,7 +12,7 @@ const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b);
  * ones over farther ones. Used instead of drei's Html, whose first-mounted root came up empty under React 19's double
  * mount (the speaker's own slip never showed).
  */
-export function ScreenAnchor({ el, position, above = false }: { el: RefObject<HTMLDivElement | null>; position: readonly [number, number, number]; above?: boolean }) {
+export function ScreenAnchor({ el, position, above = false, cull = above }: { el: RefObject<HTMLDivElement | null>; position: readonly [number, number, number]; above?: boolean; cull?: boolean }) {
   const g = useRef<Group>(null);
   const v = useMemo(() => new Vector3(), []);
   useFrame(({ camera, size }) => {
@@ -20,7 +20,7 @@ export function ScreenAnchor({ el, position, above = false }: { el: RefObject<HT
     if (!node || !g.current) return;
     g.current.getWorldPosition(v).project(camera);
     // Behind the camera, or (for a name over a head) a sheep that is off the frame's side: hidden, not pinned to the edge.
-    const hidden = v.z > 1 || (above && Math.abs(v.x) > 1.02);
+    const hidden = v.z > 1 || (cull && Math.abs(v.x) > 1.02);
     if (hidden !== (node.style.display === 'none')) node.style.display = hidden ? 'none' : '';
     if (hidden) return;
     // Kept inside the frame's sides, so a sheep at the edge still shows its whole name.

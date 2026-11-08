@@ -27,6 +27,9 @@ import { Lives } from '../components/Lives';
 import { TallyBoard } from '../components/TallyBoard';
 import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Panel, Paper, Peg, Slate, WoodButton } from '../kit';
 import { TwistSign } from '../components/TwistSign';
+import { LedgerRow } from '../components/Ledger';
+import { Podium } from '../table/Podium';
+import type { PodiumEntry } from '../table/Podium';
 import { SoundMenu } from '../components/SoundMenu';
 import { Alarm, useAlarms } from '../components/Alarm';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
@@ -406,7 +409,9 @@ export function PaintedGame() {
 
       {/* Coach tips only while a turn is running: never over the round tally or the end board. */}
       {storeMode === 'tour' ? <Tour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><CoachTips /></div>}
-      {game.phase === 'gameOver' && (practice ? <RunOver /> : <Results players={ranked} />)}
+      {game.phase === 'gameOver' && (practice ? <RunOver /> : (
+        <Results players={ranked} podium={ranked.map((p, i) => ({ key: p.id, name: p.name, place: i + 1, avatar: avatarOf(p), level: coatLevel(Math.max(p.lives, 1), maxLives), isYou: p.isYou }))} />
+      ))}
       {sheet && sheet !== 'leave' && (
         <Sheet title={{ cheat: 'How to play', chain: 'Chain history', chat: 'Room chat' }[sheet]} onClose={() => setSheet(null)}>
           {sheet === 'cheat' && <RulesCard />}
@@ -494,7 +499,7 @@ function RunOver() {
   );
 }
 
-function Results({ players }: { players: PlayerView[] }) {
+function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEntry[] }) {
   const game = useStore((s) => s.game)!;
   const mode = useStore((s) => s.mode);
   const mySeat = useStore((s) => s.mySeat);
@@ -503,6 +508,12 @@ function Results({ players }: { players: PlayerView[] }) {
   const rematch = useStore((s) => s.rematch);
   const quit = useStore((s) => s.quit);
   const [copied, setCopied] = useState(false);
+  // The podium dances on its own for 5 s before the scoreboard comes up; it can be hidden again for a screenshot.
+  const [stats, setStats] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => { const id = setTimeout(() => setStats(true), 5000); return () => clearTimeout(id); }, []);
+  const reducedMotion = useStore((s) => s.reduceMotion);
+  const phone = useIsMobile();
   // Read once: the table re-renders every frame and this reads storage.
   const days = useMemo(() => (mode === 'daily' ? streakDays(new Date(`${dailyDate ?? utcDateKey(new Date())}T12:00:00Z`)) : []), [mode, dailyDate]);
   const result = useStore((s) => s.gameResult);
@@ -531,45 +542,46 @@ function Results({ players }: { players: PlayerView[] }) {
 
   return (
     <>
-      {/* The barn dims and the board takes the middle: the game is over, this is the finale. */}
-      <div className="sk-results-backdrop" aria-hidden="true" />
-      <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-6">
-        <TallyBoard
-          players={players} round={game.round} isGameEnd winnerIds={game.winners?.map(String)} maxLives={startingWool(game.settings)}
-          actions={
-            <>
+      <Podium entries={podium} reduced={reducedMotion} phone={phone} aside={stats && !hidden} />
+      {stats && hidden && (
+        <button type="button" className="sk-final-show" onClick={() => setHidden(false)}>Show the scoreboard</button>
+      )}
+      {stats && !hidden && (
+        <div className="sk-final-wrap">
+          <section className="sk-final" role="dialog" aria-modal="true" aria-label="Game over">
+            <button type="button" className="sk-final-close" onClick={() => setHidden(true)} aria-label="Hide the scoreboard" title="Hide the scoreboard"><CloseIcon size={16} /></button>
+            <h2 className="sk-final-title">{players.find((p) => game.winners?.map(String).includes(p.id))?.name ?? players[0].name} is the last sheep standing!</h2>
+            <ol className="sk-final-rows">
+              {players.map((p, i) => <LedgerRow key={p.id} player={p} place={i + 1} maxLives={startingWool(game.settings)} ringed={game.winners?.map(String).includes(p.id)} />)}
+            </ol>
+            <p className="sk-final-note">{place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place} of ${game.players.length}. The last sheep standing gets the knitted scarf.`}</p>
+            {dreamWaiting && <p className="sk-final-note">{DREAM_LINE}</p>}
+            <div className="sk-final-stats">
+              {tiles.map(([key, v, best, beat]) => (
+                <div key={key} className="sk-final-stat" data-beat={beat || undefined}>
+                  <b>{v}</b><span>{key}{best !== undefined ? ` · ${beat ? 'new best!' : `best ${best}`}` : ''}</span>
+                </div>
+              ))}
+              <div className="sk-final-stat" data-beat={result?.beat.longest || undefined}>
+                <b>{me.longestWord ? me.longestWord.toUpperCase() : '—'}</b>
+                <span>Longest word{result?.bests.longest ? ` · ${result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}` : ''}</span>
+              </div>
+            </div>
+            {mode === 'room' && <RewardBanner />}
+            {mode === 'daily' && (
+              <div className="sk-tally-streak" aria-label={`Daily streak: ${days.filter(Boolean).length} of the last 7 days played`}>
+                <Knit stitches={days.map((on, i) => (i === days.length - 1 && on ? 'today' : on ? 'played' : 'missed'))} />
+                <p className="sk-hand">Daily streak: {streak}</p>
+              </div>
+            )}
+            <div className="sk-final-actions">
               {mode === 'quick' && <ClothButton onClick={rematch} className="basis-full">Same table again</ClothButton>}
               <Brass onClick={share} className="flex-1">{copied ? 'Copied!' : 'Share'}</Brass>
               <WoodButton onClick={quit} className="flex-1">{mode === 'room' ? 'Leave room' : 'Back to the farm'}</WoodButton>
-            </>
-          }
-        >
-          {/* The notes on one sheet pinned under the slate, then the stats chalked on three small slates. */}
-          <Paper kind="sheet" pin="top" seed="end" className="sk-tally-notes">
-            <p>{place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place} of ${game.players.length}. The last sheep standing gets the knitted scarf.`}</p>
-            {dreamWaiting && <p className="sk-hand">{DREAM_LINE}</p>}
-          </Paper>
-          <div className="sk-plaques">
-            {tiles.map(([key, v, best, beat]) => (
-              <Slate key={key} size="plaque" tone={beat ? 'amber' : 'chalk'}>
-                <span>{v}</span>
-                <span className="kit-chalk-hand">{key}{best !== undefined ? ` · ${beat ? 'new best!' : `best ${best}`}` : ''}</span>
-              </Slate>
-            ))}
-            <Slate size="plaque" tone={result?.beat.longest ? 'amber' : 'chalk'} className="sk-plaque-word">
-              <span style={{ '--len': Math.max(6, me.longestWord?.length ?? 1) } as React.CSSProperties}>{me.longestWord ? me.longestWord.toUpperCase() : '—'}</span>
-              <span className="kit-chalk-hand">Longest word{result?.bests.longest ? ` · ${result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}` : ''}</span>
-            </Slate>
-          </div>
-          {mode === 'room' && <RewardBanner />}
-          {mode === 'daily' && (
-            <div className="sk-tally-streak" aria-label={`Daily streak: ${days.filter(Boolean).length} of the last 7 days played`}>
-              <Knit stitches={days.map((on, i) => (i === days.length - 1 && on ? 'today' : on ? 'played' : 'missed'))} />
-              <p className="sk-hand">Daily streak: {streak}</p>
             </div>
-          )}
-        </TallyBoard>
-      </div>
+          </section>
+        </div>
+      )}
     </>
   );
 }

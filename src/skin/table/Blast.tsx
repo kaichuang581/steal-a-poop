@@ -34,7 +34,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
   const flameMat = useMemo(() => new PointsMaterial({ size: 2.3, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const sparkMat = useMemo(() => new PointsMaterial({ size: 0.34, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const smoke = useMemo(() => makeCloud(SMOKE), []);
-  const smokeMat = useMemo(() => new PointsMaterial({ size: 2.4, vertexColors: true, transparent: true, opacity: 0.45, depthWrite: false, blending: AdditiveBlending }), []);
+  const smokeMat = useMemo(() => new PointsMaterial({ size: 2.4, vertexColors: true, transparent: true, opacity: 0.22, depthWrite: false, blending: AdditiveBlending }), []);
   const flash = useMemo(() => makeCloud(1), []);
   const flashMat = useMemo(() => new PointsMaterial({ size: 6, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const flames3 = useRef<Points>(null);
@@ -111,7 +111,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
         const k = a / LIFE;
         if (!flame) { cloud.vel[i * 3] *= 1 - dt * 1.2; cloud.vel[i * 3 + 2] *= 1 - dt * 1.2; } // crystals float as they fall
         const col = flame ? FLAME_COLORS[Math.min(FLAME_COLORS.length - 1, Math.floor(k * FLAME_COLORS.length))] : SPARK_COLORS[Math.floor(i % 7 === 0 ? 0 : (a * 7) % 3)];
-        const fade = (1 - k) ** 1.5 * (flame ? 0.38 : 1.2); // blue piles up to white fast when drawn additive
+        const fade = (1 - k) ** 1.5 * (flame ? 0.2 : 1.0); // blue piles up to white fast when drawn additive
         c.setXYZ(i, col.r * fade, col.g * fade, col.b * fade);
       }
       p.needsUpdate = true;

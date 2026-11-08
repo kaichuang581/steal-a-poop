@@ -775,10 +775,10 @@
 
 /* The photo avatar: the picture and nothing else, with no thickness, the same photo on both faces. The outer span
    is the box, then jump, wiggle and spin each on their own layer, so the picture itself is never changed, only moved. */
-.sk-photo { display: inline-block; width: calc(var(--s, 30px) * 512 / 820); height: var(--s, 30px); perspective: calc(var(--s, 30px) * 4); vertical-align: middle; flex: none; }
+.sk-photo { display: inline-block; width: calc(var(--s, 30px) * 512 / 1339); height: var(--s, 30px); perspective: calc(var(--s, 30px) * 4); vertical-align: middle; flex: none; }
 .sk-photo-jump, .sk-photo-wiggle, .sk-photo-spin { display: block; width: 100%; height: 100%; }
 .sk-photo-spin { position: relative; transform-style: preserve-3d; }
-.sk-photo-face {
+.sk-photo-face { filter: drop-shadow(0 0 3px rgba(255, 236, 170, 0.95)) drop-shadow(0 0 7px rgba(255, 214, 120, 0.7));
   position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   user-select: none; -webkit-user-drag: none;
 }

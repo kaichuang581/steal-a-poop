@@ -344,7 +344,7 @@ export function PaintedGame() {
           <span className="sk-chip sk-display text-lg capitalize">{game.players[1].name} · farm sheep · {game.settings.botDifficulty}</span>
         </div>
       ) : (
-        <aside className={mobile ? 'relative z-30 mt-14 flex gap-1 overflow-x-auto px-2' : 'relative z-30 ml-auto mr-2 mt-14 flex flex-col gap-1.5'} aria-label="Scoreboard">
+        <aside className={mobile ? 'relative z-30 mt-14 grid grid-cols-3 gap-1 px-2' :'relative z-30 ml-auto mr-2 mt-14 flex flex-col gap-1.5'} aria-label="Scoreboard">
           {ranked.map((p) => (
             <PlayerCard key={p.id} player={p} isTurn={p.id === view.currentPlayerId} compact={mobile} lastWord={game.players[Number(p.id)].lastWord} maxLives={maxLives} />
           ))}

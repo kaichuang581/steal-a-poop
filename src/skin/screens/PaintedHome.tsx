@@ -4,6 +4,7 @@ import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
 import { useGuest } from '../../auth/guest';
+import { useDevice } from '../device';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
@@ -90,6 +91,7 @@ export function PaintedHome() {
   const [step, setStep] = useState<'tables' | 'setup' | 'practice'>('tables');
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
+  const device = useDevice();
   const [feedback, setFeedback] = useState(false);
   const [legal, setLegal] = useState<LegalSlug | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
@@ -356,6 +358,7 @@ export function PaintedHome() {
     <footer className="flex flex-wrap items-center gap-x-3 text-[11px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>
       <span>v{pkg.version}{mobile ? '' : ` · ${UPDATE_NAME}`}</span>
       <button className="min-h-8 content-center underline" onClick={() => setFeedback(true)}>Feedback</button>
+      <span className="text-xs" style={{ color: 'var(--button-text)' }} data-device-label>{device === 'phone' ? 'Phone layout' : 'Computer layout'}</span>
       {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
         <button key={slug} className="min-h-8 content-center underline" onClick={() => setLegal(slug)}>{LEGAL_TITLES[slug]}</button>
       ))}

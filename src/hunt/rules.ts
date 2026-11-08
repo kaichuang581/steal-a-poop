@@ -17,6 +17,11 @@ export interface Rule {
   label: string;
   /** What the predator says when it brings the rule. */
   line: string;
+  /**
+   * One plain sentence a child can act on (plan v7 Part 4.2). The chain rules' sentences depend on the last word:
+   * `ruleHow` fills them in.
+   */
+  how: string;
   /** Depends on the previous word (the chain rules); skipped for the first word of a run. */
   usesPrev?: boolean;
   test(word: string, ctx: RuleContext): boolean;
@@ -26,11 +31,13 @@ const VOWEL = new Set(['a', 'e', 'i', 'o', 'u']);
 const isVowel = (c: string) => VOWEL.has(c);
 const count = (w: string, f: (c: string) => boolean) => [...w].filter(f).length;
 const up = (c: string) => c.toUpperCase();
+/** The article for a letter's name said aloud: an M, an S, a K. */
+const an = (c: string) => ('aefhilmnorsx'.includes(c) ? 'an' : 'a');
 
 export function minLength(n: number): Rule {
   return {
     id: `min${n}`, group: 'length', difficulty: n <= 5 ? 1 : n <= 6 ? 2 : 3,
-    label: `${n}+ letters`, line: `Nothing shorter than ${n} letters!`,
+    label: `${n}+ letters`, line: `Nothing shorter than ${n} letters!`, how: `Count the letters: ${n} or more.`,
     test: (w) => w.length >= n,
   };
 }
@@ -38,7 +45,7 @@ export function minLength(n: number): Rule {
 export function maxLength(n: number): Rule {
   return {
     id: `max${n}`, group: 'length', difficulty: n >= 6 ? 1 : 2,
-    label: `${n} letters or fewer`, line: `Keep it short: ${n} letters at most!`,
+    label: `${n} letters or fewer`, line: `Keep it short: ${n} letters at most!`, how: `Short words only: ${n} letters at most.`,
     test: (w) => w.length <= n,
   };
 }
@@ -47,6 +54,7 @@ export function minConsonants(n: number): Rule {
   return {
     id: `cons${n}`, group: 'consonants', difficulty: n <= 3 ? 1 : n <= 4 ? 2 : 3,
     label: `${n}+ consonants`, line: `I want at least ${n} consonants. Crunchy ones.`,
+    how: `${n} or more consonants: every letter except A, E, I, O, U.`,
     test: (w) => count(w, (c) => !isVowel(c)) >= n,
   };
 }
@@ -54,7 +62,7 @@ export function minConsonants(n: number): Rule {
 export function minVowels(n: number): Rule {
   return {
     id: `vow${n}`, group: 'vowels', difficulty: n <= 3 ? 2 : 3,
-    label: `${n}+ vowels`, line: `Give me ${n} vowels or more!`,
+    label: `${n}+ vowels`, line: `Give me ${n} vowels or more!`, how: `${n} or more vowels: A, E, I, O and U.`,
     test: (w) => count(w, isVowel) >= n,
   };
 }
@@ -62,7 +70,7 @@ export function minVowels(n: number): Rule {
 export function banLetter(l: string): Rule {
   return {
     id: `ban${l}`, group: 'ban', difficulty: 'eaitrsno'.includes(l) ? 2 : 1,
-    label: `No ${up(l)}`, line: `The letter ${up(l)} is mine now. No ${up(l)}!`,
+    label: `No ${up(l)}`, line: `The letter ${up(l)} is mine now. No ${up(l)}!`, how: `No ${up(l)} anywhere in the word.`,
     test: (w) => !w.includes(l),
   };
 }
@@ -70,7 +78,7 @@ export function banLetter(l: string): Rule {
 export function mustContain(l: string): Rule {
   return {
     id: `has${l}`, group: 'contain', difficulty: 'kvwyfb'.includes(l) ? 3 : 2,
-    label: `Has a ${up(l)}`, line: `Every word needs a ${up(l)} in it!`,
+    label: `Has ${an(l)} ${up(l)}`, line: `Every word needs ${an(l)} ${up(l)} in it!`, how: `${an(l) === 'an' ? 'An' : 'A'} ${up(l)} somewhere in the word.`,
     test: (w) => w.includes(l),
   };
 }
@@ -78,49 +86,53 @@ export function mustContain(l: string): Rule {
 export const CHAIN: Rule = {
   id: 'chain', group: 'start', difficulty: 2, usesPrev: true,
   label: 'Start with your last letter', line: 'Chain it! Start with the last letter of your last word!',
+  how: 'Start with the letter your last word ended in.',
   test: (w, { prev }) => !prev || w[0] === prev[prev.length - 1],
 };
 
 export const LONGER: Rule = {
   id: 'longer', group: 'growth', difficulty: 3, usesPrev: true,
   label: 'At least as long as your last', line: 'No shrinking! At least as long as your last word!',
+  how: 'At least as many letters as your last word.',
   // Capped at 9 so a long word cannot lock the sheep out for the rest of the fight.
   test: (w, { prev }) => !prev || w.length >= Math.min(9, prev.length),
 };
 
 export const NO_REPEAT: Rule = {
   id: 'norepeat', group: 'letters', difficulty: 2,
-  label: 'No letter twice', line: 'Every letter only once. No repeats!',
+  label: 'No letter twice', line: 'Every letter only once. No repeats!', how: 'Every letter different: FARM, not SHEEP.',
   test: (w) => new Set(w).size === w.length,
 };
 
 export const DOUBLE: Rule = {
   id: 'double', group: 'letters', difficulty: 2,
   label: 'Has a double letter', line: 'I like my words with a double letter. Like "ee"... or "ll"!',
+  how: 'Two of the same letter in a row: SHEEP, WOOL.',
   test: (w) => /([a-z])\1/.test(w),
 };
 
 export const ENDS_VOWEL: Rule = {
   id: 'endvowel', group: 'end', difficulty: 2,
-  label: 'Ends with a vowel', line: 'Finish on a vowel, little lamb!',
+  label: 'Ends with a vowel', line: 'Finish on a vowel, little lamb!', how: 'The last letter is A, E, I, O or U.',
   test: (w) => isVowel(w[w.length - 1]),
 };
 
 export const ENDS_CONSONANT: Rule = {
   id: 'endcons', group: 'end', difficulty: 1,
-  label: 'Ends with a consonant', line: 'End on a consonant. Snap!',
+  label: 'Ends with a consonant', line: 'End on a consonant. Snap!', how: 'The last letter is not A, E, I, O or U.',
   test: (w) => !isVowel(w[w.length - 1]),
 };
 
 export const STARTS_VOWEL: Rule = {
   id: 'startvowel', group: 'start', difficulty: 2,
-  label: 'Starts with a vowel', line: 'Open with a vowel. A, E, I, O or U!',
+  label: 'Starts with a vowel', line: 'Open with a vowel. A, E, I, O or U!', how: 'The first letter is A, E, I, O or U.',
   test: (w) => isVowel(w[0]),
 };
 
 export const NO_FIRST_AGAIN: Rule = {
   id: 'newstart', group: 'start', difficulty: 1, usesPrev: true,
   label: 'New first letter each time', line: 'Never start two words the same way!',
+  how: 'Start with a different letter from your last word.',
   test: (w, { prev }) => !prev || w[0] !== prev[0],
 };
 
@@ -142,4 +154,14 @@ export function rulePool(strength: number): Rule[] {
 export function brokenRule(word: string, rules: readonly Rule[], ctx: RuleContext): Rule | null {
   for (const r of rules) if (!r.test(word, ctx)) return r;
   return null;
+}
+
+/** The rule's plain sentence, with the chain rules filled in from the last word when there is one. */
+export function ruleHow(rule: Rule, prev: string | null): string {
+  if (!prev) return rule.how;
+  const P = prev.toUpperCase();
+  if (rule.id === 'chain') return `Your last word ended in ${P.at(-1)}, so start with ${P.at(-1)}.`;
+  if (rule.id === 'longer') { const n = Math.min(9, prev.length); return `Your last word had ${n} letters; use ${n} or more.`; }
+  if (rule.id === 'newstart') return `Your last word started with ${P[0]}; start with any other letter.`;
+  return rule.how;
 }

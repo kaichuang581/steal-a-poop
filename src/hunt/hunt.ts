@@ -1,6 +1,7 @@
 import type { Dictionary } from '../engine/dictionary';
 import { rarityOf } from '../engine/rarity';
 import { basePoints } from '../engine/scoring';
+import { EVERYDAY } from './everyday';
 import { brokenRule, rulePool } from './rules';
 import type { Rule, RuleContext } from './rules';
 
@@ -27,7 +28,15 @@ export interface Predator {
   /** Brought out when its health first drops to half or below (from the second predator on). */
   reserve: Rule | null;
   enraged: boolean;
+  /**
+   * For each of its rules (the reserve too), by rule id: a friendly word that obeys it and one that breaks it, for the
+   * rule cards (plan v7 Part 4.2). Drawn after the rules from a stream of their own, so the rules never change.
+   */
+  examples: Record<string, Example>;
 }
+
+/** A word that obeys a rule and one that breaks it. For the chain rules before a first word: "apple then eagle". */
+export interface Example { yes: string; no: string }
 
 /** One mark per turn, for the share grid. */
 export type Mark = 'hit' | 'crit' | 'broke' | 'timeout' | 'item';
@@ -65,6 +74,8 @@ export interface Run {
   items: Record<ItemId, number>;
   /** A Spicy Pepper is waiting for the next word. */
   peppered: boolean;
+  /** The sheep walked home after a boss fainted (plan v7 Part 5.7). */
+  walkedHome?: boolean;
 }
 
 export type Outcome =
@@ -191,13 +202,20 @@ export function predatorAt(dict: Dictionary, seed: string, index: number): Preda
   // Should never happen with a real word list; a predator with no rules is still a fair fight.
   const build = BUILD[kind];
   const maxHp = Math.round((36 + 16 * index) * build.hp);
-  return {
-    kind, name: NAMES[kind], level: index + 1, boss, maxHp, hp: maxHp,
-    attack: Math.round((7 + 2 * index + (boss ? 3 : 0) + Math.floor(r() * 2)) * build.attack), rules, reserve, enraged: false,
-  };
+  const attack = Math.round((7 + 2 * index + (boss ? 3 : 0) + Math.floor(r() * 2)) * build.attack);
+  // The examples come last, from their own stream, so drawing them never changes the pack.
+  const exSeed = `${seed}:${index}:ex`;
+  const examples: Record<string, Example> = {};
+  for (const rule of rules) examples[rule.id] = exampleWords(dict, rule, exSeed, { together: rules });
+  if (reserve) examples[reserve.id] = exampleWords(dict, reserve, exSeed, { together: [...rules, reserve] });
+  return { kind, name: NAMES[kind], level: index + 1, boss, maxHp, hp: maxHp, attack, rules, reserve, enraged: false, examples };
 }
 
-export function startRun(dict: Dictionary, seed: string): Run {
+/**
+ * Starts a run. `opts.drowsy` is reserved for the drowsy fox (plan v7 Part 7, not approved): it exists so the signature
+ * never changes again, and does nothing.
+ */
+export function startRun(dict: Dictionary, seed: string, _opts: { drowsy?: boolean } = {}): Run {
   return {
     seed, index: 0, predator: predatorAt(dict, seed, 0), hp: PLAYER_HP, maxHp: PLAYER_HP,
     used: [], prev: null, damage: 0, defeated: 0, marks: [], best: null, over: false,
@@ -325,4 +343,110 @@ export function applyItem(run: Run, dict: Dictionary, item: ItemId): { run: Run;
     run: { ...run, items, hp, over: hp === 0, peppered: run.peppered || item === 'pepper', marks: [...run.marks, 'item'] },
     outcome: { kind: 'item', item, heal, hint, counter, hp, dead: hp === 0 },
   };
+}
+
+// ---------- teaching (plan v7 Part 4.2 and 4.3) ----------
+/** An everyday word of five to eight letters: what a rule card and the Hint Bell show. */
+export function isFriendly(w: string): boolean {
+  return w.length >= 5 && w.length <= 8 && rarityOf(w) !== 'rare';
+}
+
+/** The chain rules before a first word: a fixed pair to show how they work. */
+const CHAIN_EXAMPLES: Record<string, Example> = {
+  chain: { yes: 'apple then eagle', no: 'apple then tiger' },
+  longer: { yes: 'sheep then meadow', no: 'meadow then sheep' },
+  newstart: { yes: 'sheep then wool', no: 'sheep then snow' },
+};
+/**
+ * How many words that obey the rule the search for a "yes" word obeying every rule together looks at before settling
+ * for the rule alone. The plan says 400; rule sets of three leave so few everyday words that 400 missed about one in
+ * thirty, so the search goes further (it stops at the first fit, and only hard sets go deep).
+ */
+const TOGETHER_CANDIDATES = 4000;
+
+/** Words from a seeded starting point: the everyday list first, then the whole list letter by letter. */
+function* seededWords(dict: Dictionary, r: () => number): Generator<string> {
+  const off = Math.floor(r() * EVERYDAY.length);
+  for (let i = 0; i < EVERYDAY.length; i++) {
+    const w = EVERYDAY[(off + i) % EVERYDAY.length];
+    if (dict.has(w)) yield w;
+  }
+  const start = Math.floor(r() * 26);
+  for (let k = 0; k < 26; k++) {
+    const pool = dict.startingWith(LETTERS[(start + k) % 26]);
+    const offset = Math.floor(r() * Math.max(1, pool.length));
+    for (let i = 0; i < pool.length; i++) yield pool[(offset + i) % pool.length];
+  }
+}
+
+const EVERYDAY_SET = new Set(EVERYDAY);
+/** A rule card's YES word: five to eight letters, and everyday or friendly. */
+export function isExampleYes(w: string): boolean {
+  return w.length >= 5 && w.length <= 8 && (EVERYDAY_SET.has(w) || rarityOf(w) !== 'rare');
+}
+/** A rule card's NO word: three to eight letters (a 5+ rule's NO word is short), everyday or friendly. */
+export function isExampleNo(w: string): boolean {
+  return w.length >= MIN_LETTERS && w.length <= 8 && (EVERYDAY_SET.has(w) || rarityOf(w) !== 'rare');
+}
+
+/**
+ * A YES word that obeys `rule` and a NO word that breaks it, deterministic for the seed, from the everyday list when
+ * one fits. When `together` is given, the YES word obeys all of those rules at once if one is found, so it is a word
+ * the player could actually type. The chain rules use `prev` when there is one, else a fixed illustration.
+ */
+export function exampleWords(dict: Dictionary, rule: Rule, seed: string, opts: { together?: readonly Rule[]; prev?: string | null } = {}): Example {
+  const prev = opts.prev ?? null;
+  if (rule.usesPrev && !prev) return CHAIN_EXAMPLES[rule.id] ?? { yes: '', no: '' };
+  const ctx: RuleContext = { prev };
+  const together = opts.together ?? [rule];
+  const r = rng(`${seed}:${rule.id}`);
+  let yes: string | null = null, yesAlone: string | null = null, no: string | null = null;
+  let seen = 0;
+  for (const w of seededWords(dict, r)) {
+    if (w === prev) continue;
+    if (rule.test(w, ctx)) {
+      if (!isExampleYes(w)) continue;
+      if (!yes && seen < TOGETHER_CANDIDATES) {
+        seen++;
+        if (!brokenRule(w, together, ctx)) yes = w;
+      }
+      yesAlone ??= w;
+    } else if (!no && isExampleNo(w)) no = w;
+    if ((yes || (yesAlone && seen >= TOGETHER_CANDIDATES)) && no) break;
+  }
+  return { yes: yes ?? yesAlone ?? '', no: no ?? '' };
+}
+
+/** What the word being typed would do (plan v7 Part 4.2): the rule it breaks, whether it is short, used or a word. */
+export function checkTyped(run: Run, dict: Dictionary, typed: string): { broken: Rule | null; tooShort: boolean; used: boolean; known: boolean | null } {
+  const w = typed.trim().toLowerCase();
+  const tooShort = w.length < MIN_LETTERS;
+  const broken = w ? brokenRule(w, activeRules(run, dict).rules, { prev: run.prev }) : null;
+  return { broken, tooShort, used: run.used.includes(w), known: tooShort ? null : dict.has(w) };
+}
+
+/** How a run-ending outcome ended it: an item or a hit that ends the run counts as the predator's strikes. */
+export function causeOf(outcome: Outcome): 'timeout' | 'broke' | 'hits' {
+  return outcome.kind === 'timeout' ? 'timeout' : outcome.kind === 'broke' ? 'broke' : 'hits';
+}
+
+/**
+ * For the death screen, from the run as it was before the killing turn: a word that would have worked then (what the
+ * Hint Bell would have rung), and 'milk' when a Warm Milk was left that would have lasted out the predator's strike.
+ */
+export function lastWords(before: Run, dict: Dictionary): { word: string | null; itemHelp: 'milk' | null } {
+  const heal = Math.min(MILK_HEAL, before.maxHp - before.hp);
+  const milk = before.items.milk > 0 && before.hp + heal > before.predator.attack;
+  return { word: hintWord(before, dict), itemHelp: milk ? 'milk' : null };
+}
+
+/** Whether the run is in the pause after a boss fainted, when the sheep may walk home. */
+export function canWalkHome(run: Run): boolean {
+  return !run.over && run.predator.boss && run.predator.hp === 0;
+}
+
+/** Ends the run on a win after a boss (plan v7 Part 5.7). `defeated` is unchanged, so stopping never adds to a record. */
+export function walkHome(run: Run): Run {
+  if (!canWalkHome(run)) return run;
+  return { ...run, over: true, walkedHome: true };
 }

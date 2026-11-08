@@ -20,22 +20,24 @@
 .dr-bubble-rim, .dr-bubble-view { position: absolute; -webkit-mask: var(--cloud) center / 100% 100% no-repeat; mask: var(--cloud) center / 100% 100% no-repeat; }
 .dr-bubble-rim { inset: -3px; background: #EDE8F9; opacity: 0.85; }
 .dr-bubble-view { inset: 0; overflow: hidden; }
-.dr-bubble[data-woke] { animation: none; }
 /* The dream is over: the bubble opens to the whole screen and is his bedroom (V6 Part 6.4). No transform here, ever:
    the canvas inside is measured. */
 .dr-bubble[data-room] { left: 0; top: 0; bottom: 0; width: 100%; height: 100%; aspect-ratio: auto; z-index: 30; animation: dr-room-in 400ms ease-out both; transition: none; }
 .dr-bubble[data-room] .dr-bubble-view { -webkit-mask: none; mask: none; }
-.dr-bubble[data-room] .dr-bubble-rim, .dr-bubble[data-room] .dream-z, .dr-bubble[data-room] .dr-bubble-bang { display: none; }
+.dr-bubble[data-room] .dr-bubble-rim, .dr-bubble[data-room] .dr-bubble-zs, .dr-bubble[data-room] .dr-bubble-bang { display: none; }
 @keyframes dr-room-in { from { opacity: 0; } }
 /* The z's rise from the tip of his nightcap toward the first puff. */
 .dream-z { position: absolute; left: 47%; top: 32%; color: #EDE8F9; opacity: 0; font: 700 18px/1 var(--skin-font-display); animation: dr-z 2.2s linear infinite; }
 .dream-z[data-i="1"] { font-size: 24px; animation-delay: 0.73s; }
 .dream-z[data-i="2"] { font-size: 30px; animation-delay: 1.46s; }
 @keyframes dr-z { 0% { opacity: 0; transform: translate(0, 0); } 8% { opacity: 0.9; } 60% { opacity: 0.9; } 100% { opacity: 0; transform: translate(9%, -55%); } }
-.dr-bubble[data-woke] .dream-z { visibility: hidden; }
-.dr-bubble-bang { position: absolute; left: 42%; top: 6%; opacity: 0; color: var(--glow); font: 800 44px/1 var(--skin-font-display); text-shadow: 0 2px 0 #1E1A33; }
-.dr-root[data-gone] .dr-bubble-bang { animation: dr-bang 800ms ease-out both; }
-@keyframes dr-bang { 0% { opacity: 0; transform: translateY(8px) scale(0.6); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+/* A bump only stirs him: the z's fade out, and a sleepy "hm?" drifts up as he peeks (the stir itself is in BedroomBubble). */
+.dr-bubble-zs { position: absolute; inset: 0; transition: opacity 450ms ease-in-out; }
+.dr-bubble[data-woke] .dr-bubble-zs { opacity: 0; }
+.dr-bubble-bang { position: absolute; left: 40%; top: 8%; opacity: 0; color: #EDE8F9; font: italic 700 30px/1 var(--skin-font-display); text-shadow: 0 2px 0 #1E1A33; }
+.dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm 1100ms 700ms ease-in-out both; }
+@keyframes dr-hm { 0% { opacity: 0; transform: translate(-6px, 10px) rotate(-6deg); } 35% { opacity: 1; transform: translate(0, 0) rotate(-3deg); } 100% { opacity: 0.85; transform: translate(4px, -10px) rotate(-2deg); } }
+@keyframes dr-hm-fade { 0% { opacity: 0; } 100% { opacity: 0.85; } }
 
 /* The thought trail: three clouds from the bubble to the raft (V4.1 Part 7.3). */
 .dream-puff { position: absolute; z-index: 13; pointer-events: none; opacity: 0.92; animation: dr-bob 5s ease-in-out infinite; transition: transform 200ms ease-in; }
@@ -126,6 +128,7 @@
   .dr-boards .sk-notice { max-width: 92%; }
   .dr-bubble:not([data-room]) { width: min(42%, 240px); bottom: 150px; }
   .dream-z { font-size: 12px; } .dream-z[data-i="1"] { font-size: 15px; } .dream-z[data-i="2"] { font-size: 18px; }
+  .dr-bubble-bang { font-size: 18px; }
   .dr-count-main { font-size: 24px; }
   .dr-trough { flex-wrap: wrap; gap: 6px; padding: 6px 8px 14px; min-height: 64px; }
   .dr-bar-phone .dr-fence-rope { flex-basis: 100%; min-height: 50px; }
@@ -151,6 +154,8 @@
 :root.reduce-motion .dream-z[data-i="1"] { transform: translate(6%, -22%); }
 :root.reduce-motion .dream-z[data-i="2"] { transform: translate(12%, -44%); }
 :root.reduce-motion .dr-burst { display: none; }
+:root.reduce-motion .dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm-fade 400ms ease-in-out both; }
+:root.reduce-motion .dr-bubble-zs { transition-duration: 300ms; }
 /* The same for a reduced-motion setting on the device: three still z's at fixed heights. */
 @media (prefers-reduced-motion: reduce) {
   .dr-bubble, .dream-puff, .dr-blink, .dr-slip, .dr-typed { animation: none; }
@@ -158,4 +163,5 @@
   .dream-z[data-i="1"] { transform: translate(6%, -22%); }
   .dream-z[data-i="2"] { transform: translate(12%, -44%); }
   .dr-burst { display: none; }
+  .dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm-fade 400ms ease-in-out both; }
 }

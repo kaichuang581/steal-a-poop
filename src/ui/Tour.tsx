@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { inStealWindow } from '../engine';
 import { useStore } from '../state/store';
 import { TOUR_STEPS } from './tourSteps';
 
@@ -31,7 +30,6 @@ const CLEAR_ABOVE = 84;
 
 export function Tour() {
   const game = useStore((s) => s.game)!;
-  const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
   const pause = useStore((s) => s.pause);
   const resume = useStore((s) => s.resume);
   const endTour = useStore((s) => s.endTour);
@@ -41,7 +39,7 @@ export function Tour() {
   const [cardH, setCardH] = useState(190);
   const step = TOUR_STEPS[i];
   const last = i === TOUR_STEPS.length - 1;
-  const ctx = { game, stealOpen };
+  const ctx = { game };
   const rect = useTargetRect(step.target);
 
   // Track the card's real height so it can sit clear of the thing being highlighted.
@@ -61,8 +59,8 @@ export function Tour() {
 
   // Wait steps advance themselves when the player does the thing.
   useEffect(() => {
-    if (step.kind === 'wait' && step.done?.({ game, stealOpen })) setI((n) => Math.min(n + 1, TOUR_STEPS.length - 1));
-  }, [step, game, stealOpen]);
+    if (step.kind === 'wait' && step.done?.({ game })) setI((n) => Math.min(n + 1, TOUR_STEPS.length - 1));
+  }, [step, game]);
 
   // Skip and finish both mark the tour done; first-run players then land in a real game.
   const leave = (next: 'menu' | 'quick') => endTour(next);

@@ -1,4 +1,4 @@
-import { inStealWindow, TRAP_LETTERS, utcDateKey } from '../../engine';
+import { TRAP_LETTERS, utcDateKey } from '../../engine';
 import type { GameState, RoundModifier } from '../../engine';
 import { getDaily, getStreak } from '../../lib/daily';
 import { useMemo } from 'react';
@@ -93,7 +93,6 @@ export function toTableView(
     youId: String(mySeat),
     secondsLeft: turn ? Math.max(0, turn.endsAt - now) / 1000 : 0,
     turnSeconds: turn ? turn.durationMs / 1000 : 0,
-    stealOpen: inStealWindow(game, now) && turn?.seat !== mySeat && !game.players[mySeat]?.frozen,
     typed: extra.typed ?? '',
     message: extra.message ?? null,
     longestWord: longest,

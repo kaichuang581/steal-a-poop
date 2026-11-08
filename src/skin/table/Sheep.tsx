@@ -22,7 +22,7 @@ export type { WoolLevel };
 
 /**
  * Coat level: the coat is the sheep's wool balls. A full start is a normal coat, each one lost shears it thinner, and
- * extra ones won from steals and traps fluff it up.
+ * extra ones won from traps fluff it up.
  */
 export function coatLevel(lives: number, startLives: number): WoolLevel {
   return Math.max(0, Math.min(4, 2 + (lives - startLives))) as WoolLevel;
@@ -42,11 +42,11 @@ interface Props {
   state: SheepState;
   /** Change to restart a timed state (two banks in a row both hop). */
   stateKey?: number;
-  /** Seconds a cold state lasts (failed steal 3 s, time-out 2 s). */
+  /** Seconds a cold state lasts (a time-out: 2 s). */
   coldFor?: number;
   dimmed?: boolean;
   reduced?: boolean;
-  /** Steal window: no idle motion at all (plan V3 Milestone 3). */
+  /** No idle motion at all (plan V3 Milestone 3). */
   still?: boolean;
   /** Direction the freeze gust comes from, in the sheep's local space (the barn's back doors). */
   gustFrom?: [number, number, number];

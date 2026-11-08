@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
-export type AlarmTone = 'speed' | 'twist' | 'steal';
+export type AlarmTone = 'speed' | 'twist';
 
 export interface AlarmSpec {
   id: number;
   tone: AlarmTone;
-  /** The small line over the title: what kind of alarm this is ("Round 3 · faster", "Steal turn"). */
+  /** The small line over the title: what kind of alarm this is ("Round 3 · faster", "Round 2 · new rule"). */
   label: string;
   title: ReactNode;
   sub?: ReactNode;
@@ -27,7 +27,7 @@ function LampIcon({ size = 26 }: { size?: number }) {
 
 /**
  * The alarm board: a dark plank with hazard stripes and two blinking lamps, dropped in over the table for the
- * moments that change the game's rules on the spot: faster turns, a twist, a steal turn. The same carved display
+ * moments that change the game's rules on the spot: faster turns and twists. The same carved display
  * lettering as the signboards, so it belongs to the barn, but no snow and no warm wood: this is a warning.
  */
 export function Alarm({ tone, label, title, sub, compact = false }: Omit<AlarmSpec, 'id' | 'ms'> & { compact?: boolean }) {

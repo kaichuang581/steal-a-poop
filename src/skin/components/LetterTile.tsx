@@ -4,7 +4,6 @@ interface Props {
   isVowel: boolean;
   /** 0..1 of the turn left; the ring drains clockwise. Omit for a static tile. */
   fraction?: number;
-  stealOpen: boolean;
   secondsLeft?: number;
   size?: number;
 }
@@ -13,7 +12,7 @@ const R = 46;
 const C = 2 * Math.PI * R;
 
 /** Wooden tile with the required starting letter and the turn clock as a ring around it. */
-export function LetterTile({ letter, isTrap, isVowel, fraction, stealOpen, secondsLeft, size = 84 }: Props) {
+export function LetterTile({ letter, isTrap, isVowel, fraction, secondsLeft, size = 84 }: Props) {
   return (
     <div className="flex flex-col items-center gap-1" data-chain-tile data-tour="chain" title="Your word must start with this letter">
       <div className="relative" style={{ width: size + 16, height: size + 16 }}>
@@ -22,7 +21,7 @@ export function LetterTile({ letter, isTrap, isVowel, fraction, stealOpen, secon
             <circle cx="50" cy="50" r={R} fill="none" stroke="var(--paper-edge)" strokeWidth="5" />
             <circle
               cx="50" cy="50" r={R} fill="none" strokeWidth="5" strokeLinecap="round"
-              stroke={stealOpen ? 'var(--coral)' : 'var(--amber)'}
+              stroke="var(--amber)"
               strokeDasharray={C} strokeDashoffset={-C * (1 - Math.max(0, Math.min(1, fraction)))}
             />
           </svg>

@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { inStealWindow } from '../engine';
 import type { GameState } from '../engine';
 import { markTipSeen, tipSeen } from '../lib/tips';
 import { useStore } from '../state/store';
 
-interface Tip { id: string; title: string; text: (g: GameState) => string; when: (g: GameState, stealOpen: boolean) => boolean }
+interface Tip { id: string; title: string; text: (g: GameState) => string; when: (g: GameState) => boolean }
 
 /** First-time explanations, shown once each, in priority order. */
 const TIPS: Tip[] = [
@@ -12,11 +11,6 @@ const TIPS: Tip[] = [
     id: 'modifier', title: 'Round twist',
     text: () => 'The banner up top is this round’s twist. Words that break it bounce.',
     when: (g) => g.phase === 'playing' && g.modifier !== 'none',
-  },
-  {
-    id: 'steal', title: 'Steal!',
-    text: () => 'Their timer is red. Type a word starting with the chain letter and press STEAL: the first good word takes one of their wool balls. A bad word costs nothing.',
-    when: (g, open) => open && g.turn?.seat !== 0 && !g.players[0]?.frozen,
   },
   {
     id: 'trap', title: 'Trap letter',
@@ -35,16 +29,15 @@ const TIPS: Tip[] = [
 
 export function CoachTips() {
   const game = useStore((s) => s.game)!;
-  const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
   const [current, setCurrent] = useState<{ id: string; title: string; text: string } | null>(null);
 
   useEffect(() => {
     if (current || game.phase !== 'playing') return;
-    const tip = TIPS.find((t) => !tipSeen(t.id) && t.when(game, stealOpen));
+    const tip = TIPS.find((t) => !tipSeen(t.id) && t.when(game));
     if (!tip) return;
     markTipSeen(tip.id);
     setCurrent({ id: tip.id, title: tip.title, text: tip.text(game) });
-  }, [game, stealOpen, current]);
+  }, [game, current]);
 
   useEffect(() => {
     if (!current) return;

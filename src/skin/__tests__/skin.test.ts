@@ -65,7 +65,6 @@ describe('view model and events', () => {
     expect(v.phase).toBe('turn');
     expect(v.letter).toBe('c');
     expect(v.currentPlayerId).toBe('0');
-    expect(v.stealOpen).toBe(false); // never on your own turn
     expect(v.players[0]).toMatchObject({ isYou: true, isBot: false, creature: creatureFor(0) });
     expect(v.secondsLeft).toBeCloseTo((g.turn!.endsAt - T0) / 1000);
   });
@@ -78,11 +77,6 @@ describe('view model and events', () => {
     expect(mapEngineEvent(e, g, res.state)).toEqual([{ type: 'accepted', playerId: '0', word: 'cat', points: e.amount }]);
   });
 
-  it('names the victim of a steal from the previous turn', () => {
-    const before = { ...humanTurn('c'), turn: { ...humanTurn('c').turn!, seat: 2 } };
-    const e = { id: 9, at: 0, kind: 'steal' as const, seat: 0, text: '', amount: 12, word: 'cat' };
-    expect(mapEngineEvent(e, before, before)).toEqual([{ type: 'stole', byId: '0', fromId: '2', amount: 12, word: 'cat' }]);
-  });
 });
 
 describe('lives in the skin', () => {

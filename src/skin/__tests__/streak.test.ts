@@ -17,7 +17,7 @@ beforeEach(() => {
 afterEach(() => { delete (globalThis as { localStorage?: Storage }).localStorage; });
 
 const day = (d: string) => new Date(`${d}T12:00:00Z`);
-const finish = (date: string) => recordResult({ date, status: 'done', rank: 1, players: 6, banked: 10, steals: 0, longest: 5 });
+const finish = (date: string) => recordResult({ date, status: 'done', rank: 1, players: 6, banked: 10, longest: 5 });
 
 describe('streakDays', () => {
   it('lights every day of a streak, not just today', () => {

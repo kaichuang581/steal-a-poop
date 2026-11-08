@@ -14,8 +14,6 @@ export interface GameSettings {
   lives: 1 | 2 | 3 | 5 | 'unlimited';
   /** False: no round twist, plain rules every round. */
   twists: boolean;
-  /** 0 disables stealing. */
-  stealWindowSeconds: 0 | 3 | 5;
   botCount: number;
   botDifficulty: Difficulty;
   /**
@@ -33,7 +31,7 @@ export interface GameSettings {
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
-  rounds: 3, turnsPerRound: 2, lives: 3, twists: true, stealWindowSeconds: 3, botCount: 5, botDifficulty: 'medium',
+  rounds: 3, turnsPerRound: 2, lives: 3, twists: true, botCount: 5, botDifficulty: 'medium',
 };
 
 /** The lives counter a player with unlimited lives carries; it is never decremented. */
@@ -42,13 +40,13 @@ export const UNLIMITED_LIVES = 99;
 export type PresetId = 'quick' | 'standard' | 'long' | 'custom';
 
 /** The three presets (plan V3.3 Part 2.3); Custom is whatever the chips say. */
-export const PRESETS: Record<Exclude<PresetId, 'custom'>, Pick<GameSettings, 'turnsPerRound' | 'lives' | 'twists' | 'stealWindowSeconds'>> = {
-  quick: { turnsPerRound: 2, lives: 2, twists: true, stealWindowSeconds: 3 },
-  standard: { turnsPerRound: 2, lives: 3, twists: true, stealWindowSeconds: 3 },
-  long: { turnsPerRound: 3, lives: 5, twists: true, stealWindowSeconds: 5 },
+export const PRESETS: Record<Exclude<PresetId, 'custom'>, Pick<GameSettings, 'turnsPerRound' | 'lives' | 'twists'>> = {
+  quick: { turnsPerRound: 2, lives: 2, twists: true },
+  standard: { turnsPerRound: 2, lives: 3, twists: true },
+  long: { turnsPerRound: 3, lives: 5, twists: true },
 };
 
-const RULE_KEYS = ['turnsPerRound', 'lives', 'twists', 'stealWindowSeconds'] as const;
+const RULE_KEYS = ['turnsPerRound', 'lives', 'twists'] as const;
 
 /** Which preset the rule settings match, or 'custom'. */
 export function presetOf(s: GameSettings): PresetId {

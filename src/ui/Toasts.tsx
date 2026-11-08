@@ -5,14 +5,12 @@ import { useStore } from '../state/store';
 
 interface Toast { id: number; text: string; kind: EventKind }
 
-const TOASTED = new Set<EventKind>(['steal', 'trapSprung', 'burn', 'timeout', 'invalid', 'stealFail', 'bank']);
+const TOASTED = new Set<EventKind>(['trapSprung', 'burn', 'timeout', 'invalid', 'bank']);
 const TONE: Partial<Record<EventKind, string>> = {
-  steal: 'border-fuchsia-300 bg-fuchsia-600',
   trapSprung: 'border-amber-300 bg-amber-600',
   burn: 'border-orange-300 bg-orange-700',
   timeout: 'border-red-300 bg-red-700',
   invalid: 'border-red-300 bg-red-700',
-  stealFail: 'border-red-300 bg-red-800',
   bank: 'border-emerald-300 bg-emerald-700',
 };
 

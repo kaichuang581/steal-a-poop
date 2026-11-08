@@ -1,6 +1,5 @@
 import { HintIcon } from '../skin/components/PixelIcons';
 import { useEffect, useRef, useState } from 'react';
-import { inStealWindow } from '../engine';
 import { rejectMessage } from '../lib/messages';
 import { useStore } from '../state/store';
 
@@ -10,7 +9,6 @@ export function InputBar() {
   const mode = useStore((s) => s.mode);
   const mySeat = useStore((s) => s.mySeat);
   const suggest = useStore((s) => s.suggest);
-  const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState('');
   const [hint, setHint] = useState('');
@@ -20,8 +18,6 @@ export function InputBar() {
 
   const playing = game.phase === 'playing' && !!game.turn;
   const myTurn = playing && game.turn!.seat === mySeat;
-  // A frozen player (out of lives) can no longer steal, so they never get the steal prompt.
-  const canSteal = stealOpen && !myTurn && !game.players[mySeat]?.frozen;
   const learning = mode === 'tour';
 
   useEffect(() => {
@@ -35,7 +31,7 @@ export function InputBar() {
     return () => clearTimeout(id);
   }, [hint]);
 
-  const send = async (type: 'play' | 'steal') => {
+  const send = async (type: 'play') => {
     const typed = value.trim();
     if (!typed) return;
     const confirmed = fix !== null && typed.toLowerCase() === fix.from;
@@ -52,13 +48,6 @@ export function InputBar() {
 
   const submit = () => {
     if (myTurn) void send('play');
-    else if (canSteal) steal();
-  };
-
-  // A steal needs the word typed first, so an empty click does nothing.
-  const steal = () => {
-    if (!value.trim()) return setHint('Type your word first, then press STEAL.');
-    void send('steal');
   };
 
   const onChange = (next: string) => {
@@ -66,7 +55,7 @@ export function InputBar() {
     if (fix && next.trim().toLowerCase() !== fix.from) setFix(null);
   };
 
-  const keep = (e: React.MouseEvent) => e.preventDefault(); // buttons never steal focus from the input
+  const keep = (e: React.MouseEvent) => e.preventDefault(); // buttons never take focus from the input
   const btn = 'min-h-12 rounded-xl px-3 text-sm font-black uppercase tracking-wide shadow disabled:opacity-35 sm:px-6 sm:text-base';
 
   return (
@@ -89,7 +78,7 @@ export function InputBar() {
           </div>
         )}
         <div className="h-5 text-center text-xs font-bold text-amber-300" role="status">
-          {hint || (canSteal ? 'Steal window: type your word, then press STEAL.' : '')}
+          {hint}
         </div>
         {learning && ideas.length > 0 && (
           <div className="mb-1 flex flex-wrap items-center justify-center gap-1.5" aria-label="Word ideas">
@@ -120,22 +109,13 @@ export function InputBar() {
             placeholder={myTurn ? `Word starting with ${game.chainLetter.toUpperCase()}…` : 'Type ahead…'}
             className="min-h-12 min-w-0 flex-1 rounded-xl border-2 border-white/20 bg-black/40 px-4 text-lg font-bold lowercase placeholder:normal-case placeholder:text-white/35 focus:border-amber-300 focus:outline-none"
           />
-          {canSteal ? (
-            <button
-              onMouseDown={keep} onClick={steal} data-tour="steal"
-              className={`${btn} animate-pulse bg-fuchsia-700 text-white`}
-            >
-              Steal
-            </button>
-          ) : (
-            <button onMouseDown={keep} onClick={submit} disabled={!myTurn} className={`${btn} bg-emerald-500 text-emerald-950`}>
-              Play
-            </button>
-          )}
+          <button onMouseDown={keep} onClick={submit} disabled={!myTurn} className={`${btn} bg-emerald-500 text-emerald-950`}>
+            Play
+          </button>
           {learning && (
             <button
               onMouseDown={keep} onClick={() => setIdeas(suggest(3))}
-              disabled={!myTurn && !canSteal}
+              disabled={!myTurn}
               className={`${btn} min-w-12 bg-sky-500 text-sky-950`}
               aria-label="Hint" title="Hint"
             >

@@ -64,13 +64,13 @@ afterEach(() => {
 
 describe('avatar choice', () => {
   it('saves a chosen avatar and reads it back', () => {
-    setAvatar('sheep-dash');
-    expect(localStorage.getItem(KEY)).toBe('sheep-dash');
-    expect(getAvatar()).toBe('sheep-dash');
+    setAvatar('sheep');
+    expect(localStorage.getItem(KEY)).toBe('sheep');
+    expect(getAvatar()).toBe('sheep');
   });
 
   it('clears the saved avatar when the player goes back to the default sheep', () => {
-    setAvatar('pig-truffle');
+    setAvatar('pig');
     setAvatar(null);
     expect(localStorage.getItem(KEY)).toBeNull();
     expect(getAvatar()).toBeNull();
@@ -88,17 +88,17 @@ describe('avatar choice', () => {
 
     const onChange = vi.fn();
     const unsubscribe = hook.subscribe!(onChange);
-    setAvatar('goat-gizmo');
+    setAvatar('goat');
 
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(hook.getSnapshot!()).toBe('goat-gizmo');
-    expect(useAvatar()).toBe('goat-gizmo');
+    expect(hook.getSnapshot!()).toBe('goat');
+    expect(useAvatar()).toBe('goat');
     unsubscribe();
   });
 
   it('survives local storage being blocked', () => {
     vi.stubGlobal('localStorage', blockedStorage());
-    expect(() => setAvatar('cow-clover')).not.toThrow();
+    expect(() => setAvatar('cow')).not.toThrow();
     expect(getAvatar()).toBeNull();
     expect(useAvatar()).toBeNull();
   });

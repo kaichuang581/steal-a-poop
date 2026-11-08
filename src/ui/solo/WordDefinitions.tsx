@@ -14,7 +14,7 @@ type LookupView = { status: 'loading' } | DefinitionResult;
 function playedWords(history: readonly ChainEntry[]): string[] {
   const seen = new Set<string>();
   for (const entry of history) {
-    if ((entry.kind === 'play' || entry.kind === 'steal') && entry.word) {
+    if ((entry.kind === 'play') && entry.word) {
       seen.add(entry.word.toLowerCase());
     }
   }

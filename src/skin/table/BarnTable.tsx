@@ -1,4 +1,4 @@
-import { Blast } from './Blast';
+import { Bomb } from './Bomb';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -13,8 +13,7 @@ import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, s
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
-import { digitGeometry, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '../voxel/characters';
-import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, bombModel } from '../voxel/bomb';
+import { tuftGeometry } from '../voxel/characters';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { BOARD, boardFontReady, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
@@ -52,10 +51,6 @@ export interface BarnMoments {
   tuftIn?: { key: number; from: number };
   /** Bank: the pile's wool flies onto the banker's back. */
   tuftOut?: { key: number; to: number };
-  /** Successful steal: the wolf runs door, pile, stealer, door. */
-  wolf?: { key: number; to: number };
-  /** Failed steal: shears come down on the stealer and tufts fly off. */
-  shears?: { key: number; at: number };
   /** Any time-out: the bomb goes off over that sheep. */
   boom?: { key: number; at: number; power?: number };
   /** Time out: a cold gust blows a tuft off the sheep and out of the back door. */
@@ -77,7 +72,6 @@ interface Props {
   secondsLeft: number | null;
   letter: string;
   isTrap: boolean;
-  stealOpen: boolean;
   hour: Hour;
   reduced: boolean;
   phone: boolean;
@@ -118,7 +112,7 @@ export function worldBuildMs(): number | null {
 }
 
 /** The static farm: barn, yard, distance and the lanterns' glow boxes. Shared by the table and the Home backdrop. */
-export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: boolean; stealOpen: boolean }) {
+export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) {
   const { barn, yard, distance, festive } = w;
   const voxMat = useMemo(() => voxelMaterial(), []);
   // Bright enough to pass the bloom threshold, so only the lanterns glow.
@@ -130,8 +124,8 @@ export function Farm({ world: w, reduced, stealOpen }: { world: World; reduced: 
       <mesh geometry={barn.lanterns} material={glowMat} />
       <mesh geometry={barn.tarp} material={voxMat} />
       <mesh geometry={barn.front} material={voxMat} receiveShadow />
-      <Cat geo={barn.cat} reduced={reduced} frozen={stealOpen} mat={voxMat} />
-      <Robin geo={barn.robin} reduced={reduced || stealOpen} mat={voxMat} />
+      <Cat geo={barn.cat} reduced={reduced} mat={voxMat} />
+      <Robin geo={barn.robin} reduced={reduced} mat={voxMat} />
       {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
       <mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />
       <ChimneySmoke from={yard.smokeFrom} />
@@ -159,7 +153,7 @@ export function BarnTable(props: Props) {
     return () => clearTimeout(id);
   }, [pulseKey]);
   if (!w) return <Building />;
-  const { letter, isTrap, stealOpen, secondsLeft } = props;
+  const { letter, isTrap, secondsLeft } = props;
   return (
     <div className="relative size-full">
       <Canvas
@@ -176,7 +170,7 @@ export function BarnTable(props: Props) {
       <SlipLayer seats={props.seats} refFor={slipRef} />
       {/* The seconds on a mini slate hung under the carved board (V6 Part 5.2), anchored to it every frame. */}
       <div ref={clockEl} className="pointer-events-none absolute left-0 top-0 z-[25]" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
-        <LetterClock letter={letter} isTrap={isTrap} secondsLeft={secondsLeft} stealOpen={stealOpen} pop={pop} />
+        <LetterClock letter={letter} isTrap={isTrap} secondsLeft={secondsLeft} pop={pop} />
       </div>
     </div>
   );
@@ -192,7 +186,7 @@ export function Building() {
   );
 }
 
-function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, isTrap, stealOpen, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
+function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, isTrap, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
   const stake = useMemo(() => stakeGeometry(), []);
@@ -204,7 +198,7 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
   useEffect(() => { if (freezeKey !== undefined) freezeAt.current = performance.now() / 1000; }, [freezeKey]);
   useFrame(({ clock }) => {
     const dim = performance.now() / 1000 - freezeAt.current < 2.4 ? 0.4 : 1;
-    const flicker = reduced || stealOpen ? 1 : 1 + Math.sin(clock.elapsedTime * 7.3) * 0.05;
+    const flicker = reduced ? 1 : 1 + Math.sin(clock.elapsedTime * 7.3) * 0.05;
     for (const l of lamps.current) if (l) l.intensity = LANTERN_LIGHT.intensity * dim * flicker;
   });
 
@@ -225,23 +219,22 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
 
   return (
     <>
-      <SpeakerCamera speaker={speaker} n={n} phone={phone} reduced={reduced} stealOpen={stealOpen} moments={moments} fade={anchors.fade} headY={speakerHeadY} />
+      <SpeakerCamera speaker={speaker} n={n} phone={phone} reduced={reduced} moments={moments} fade={anchors.fade} headY={speakerHeadY} />
       <Atmosphere hour={hour} />
       <Lights hour={hour} phone={phone} viewYaw={0} lampRef={(i, l) => { lamps.current[i] = l; }} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
-      <Farm world={w} reduced={reduced} stealOpen={stealOpen} />
+      <Farm world={w} reduced={reduced} />
       <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
-      <LetterBoard letter={letter} isTrap={isTrap} stealOpen={stealOpen} reduced={reduced} />
+      <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} />
       <ProjectAnchor el={anchors.clock} at={[HEAP[0], BOARD.bottom - 0.02, 1.0]} board={[HEAP[0], BOARD.bottom + BOARD.height / 2, 1.0]} margin={phone ? 140 : 120} />
-      <Bomb speaker={speaker} n={n} fraction={fraction} red={stealOpen} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
-      {stealOpen && <WolfEyes />}
+      <Bomb speaker={speaker} n={n} fraction={fraction} red={false} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {seats.map((s) => {
         return (
           <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === speaker} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(s.avatar)?.animal ?? 'sheep').drawScale}>
             {s.avatar === ADMIN_AVATAR_ID ? (
-              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} still={stealOpen} speaking={s.index === speaker} />
+              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} speaking={s.index === speaker} />
             ) : (
-              <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} still={stealOpen} scarf={s.scarf}
+              <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} scarf={s.scarf}
                 gustFrom={[0, 0.8, -6]} lookAt={s.index === speaker ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking}
                 model={byId(s.avatar) ? animalModel(byId(s.avatar)!.animal) : undefined} />
             )}
@@ -260,7 +253,7 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
           </group>
         );
       })}
-      <Moments moments={moments} n={n} reduced={reduced} />
+      <Moments moments={moments} n={n} />
       {children}
       <Effects />
       <DevStats />
@@ -274,27 +267,24 @@ const polar = (p: readonly number[]) => ({ a: Math.atan2(p[0] - SEAT_RING.cx, -(
 
 /**
  * The speaker camera (plan V3.3 Part 4): at every turn it moves to frame the speaker (the home shot on your turn) in
- * one 650 ms ease-in-out swing round the pile, then holds with a 0.05 m drift. No move starts in a steal window; the
- * wolf run is always seen from home and a freeze is watched to the end. Reduced motion cuts behind a 150 ms fade.
+ * one 650 ms ease-in-out swing round the pile, then holds with a 0.05 m drift. A freeze is watched to the end.
+ * Reduced motion cuts behind a 150 ms fade.
  */
-function SpeakerCamera({ speaker, n, phone, reduced, stealOpen, moments, fade, headY }: { speaker: number | null; n: number; phone: boolean; reduced: boolean; stealOpen: boolean; moments: BarnMoments; fade: Anchors['fade']; headY: number }) {
+function SpeakerCamera({ speaker, n, phone, reduced, moments, fade, headY }: { speaker: number | null; n: number; phone: boolean; reduced: boolean; moments: BarnMoments; fade: Anchors['fade']; headY: number }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const st = useMemo(() => ({
     key: '', at: -10, from: null as Shot | null, to: null as Shot | null, cur: null as Shot | null,
-    wolfKey: undefined as number | undefined, wolfAt: -10, freezeKey: undefined as number | undefined, freezeAt: -10, freezeSeat: 0,
+    freezeKey: undefined as number | undefined, freezeAt: -10, freezeSeat: 0,
   }), []);
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    if (moments.wolf && moments.wolf.key !== st.wolfKey) { st.wolfKey = moments.wolf.key; st.wolfAt = t; }
     if (moments.freeze && moments.freeze.key !== st.freezeKey) { st.freezeKey = moments.freeze.key; st.freezeAt = t; st.freezeSeat = moments.freeze.at; }
-    const wolf = t - st.wolfAt < 1.3;
     let seat: number | null = speaker;
     if (t - st.freezeAt < 2.4) seat = st.freezeSeat;
-    // The wolf's run and the gaps between turns are seen from the wide home shot; every turn zooms on its speaker.
-    const home = wolf || seat === null;
+    // The gaps between turns are seen from the wide home shot; every turn zooms on its speaker.
+    const home = seat === null;
     const key = home ? `home/${phone}` : `${seat}/${n}/${phone}/${headY.toFixed(2)}`;
-    // A new shot starts only outside the steal window (the wolf's run is the window's own ending).
-    if (key !== st.key && (!stealOpen || wolf)) {
+    if (key !== st.key) {
       const to = home ? homeShot(phone) : speakerShot(seat!, n, phone, headY);
       const cut = reduced || !st.cur;
       st.from = cut ? to : st.cur;
@@ -376,8 +366,8 @@ function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; re
  * swinging a little with the wind, with the seconds on a slate just under it (V6 Part 5.2). `beamY` sets how long its
  * ropes are and `hook` where they hang from (the practice duel hangs it from a signpost on the ice).
  */
-export function LetterBoard({ letter, isTrap, stealOpen, reduced, beamY = BARN.beamY, hook = [HEAP[0], BARN.beamY - 0.15, 1.0] }: {
-  letter: string; isTrap: boolean; stealOpen: boolean; reduced: boolean; beamY?: number; hook?: readonly [number, number, number];
+export function LetterBoard({ letter, isTrap, reduced, beamY = BARN.beamY, hook = [HEAP[0], BARN.beamY - 0.15, 1.0] }: {
+  letter: string; isTrap: boolean; reduced: boolean; beamY?: number; hook?: readonly [number, number, number];
 }) {
   // The letter is cut in the title's face; until that has loaded the board uses the bitmap font, then rebuilds.
   const [fontReady, setFontReady] = useState(false);
@@ -391,7 +381,7 @@ export function LetterBoard({ letter, isTrap, stealOpen, reduced, beamY = BARN.b
   // The board hangs from one hook, so it turns to face the camera wherever the speaker camera stands.
   useFrame(({ clock, camera }, dt) => {
     if (!g.current) return;
-    g.current.rotation.z = reduced || stealOpen ? 0 : (Math.sin(clock.elapsedTime * 0.7) * 1.5 * Math.PI) / 180;
+    g.current.rotation.z = reduced ? 0 : (Math.sin(clock.elapsedTime * 0.7) * 1.5 * Math.PI) / 180;
     const want = Math.atan2(-(camera.position.x - hook[0]), -(camera.position.z - hook[2]));
     const d = Math.atan2(Math.sin(want - g.current.rotation.y), Math.cos(want - g.current.rotation.y));
     g.current.rotation.y += d * (reduced ? 1 : 1 - Math.exp(-dt * 6));
@@ -405,123 +395,11 @@ export function LetterBoard({ letter, isTrap, stealOpen, reduced, beamY = BARN.b
   );
 }
 
-/** The timer: an icicle hanging from the beam beside the letter board, shrinking with the clock, red in the steal window. */
-/**
- * The bomb: a voxel bomb floats over the sheep who holds it, bobbing, with the fuse burning shorter as the turn runs
- * out (red once others can steal). When the turn changes it arcs across the barn to the next sheep.
- */
-export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power, seatAt = seatPosition }: { seatAt?: (index: number, n: number) => { x: number; z: number }; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
-  const m = useMemo(() => bombModel(), []);
-  const body = useMemo(() => voxelMaterial(), []);
-  const fuseMat = useMemo(() => voxelMaterial(), []);
-  const sparkMat = useMemo(() => voxelMaterial({ emissive: '#ffb23a', emissiveIntensity: 1.4 }), []);
-  const group = useRef<Group>(null);
-  const label = useRef<Group>(null);
-  const digits = useRef<Mesh>(null);
-  const shown = useRef('');
-  const digitMat = useMemo(() => voxelMaterial({ emissive: '#ffcf5a', emissiveIntensity: 0.9 }), []);
-  const fuse = useRef<Group>(null);
-  const spark = useRef<Mesh>(null);
-  const flight = useRef({ from: new Vector3(), to: new Vector3(), t: 1, started: false });
-  const grown = useRef({ cur: size, last: size, pop: 0 });
-  const lastBoom = useRef({ key: boomKey, at: -9999 });
-  if (boomKey !== lastBoom.current.key) lastBoom.current = { key: boomKey, at: performance.now() };
-  // Where the bomb was when it went off: its spot before the turn moved on.
-  const goneFrom = useRef(new Vector3());
-  const goneAt = useRef(-9999);
-  const origin = useRef((): Vector3 | null => {
-    if (performance.now() - goneAt.current < 800) return goneFrom.current;
-    const f = flight.current;
-    return f.t < 1 ? f.from : (group.current?.position ?? null);
-  });
-  const target = useMemo(() => {
-    if (speaker === null) return null;
-    const p = seatAt(speaker, n);
-    return new Vector3(p.x, 1.1 * SHEEP_SCALE + 0.45, p.z);
-  }, [speaker, n, seatAt]);
-  useEffect(() => {
-    if (!target || !group.current) return;
-    const f = flight.current;
-    const justExploded = performance.now() - lastBoom.current.at < 600;
-    if (justExploded) { goneFrom.current.copy(group.current.position); goneAt.current = performance.now(); }
-    if (!f.started || reduced || justExploded) {
-      group.current.position.copy(target);
-      f.started = true;
-      f.t = 1;
-    } else {
-      f.from.copy(group.current.position);
-      f.t = 0;
-    }
-    f.to.copy(target);
-  }, [target, reduced]);
-  useFrame(({ clock, camera }, dt) => {
-    const g = group.current;
-    if (!g || !target) return;
-    // The seconds left, in glowing voxel digits on the bomb's face, turned to the camera so they read from any seat.
-    if (label.current) {
-      const text = secondsLeft === null ? '' : String(Math.max(0, Math.ceil(secondsLeft)));
-      if (text !== shown.current && digits.current) { shown.current = text; digits.current.geometry = digitGeometry(text, 0.03); }
-      label.current.visible = text !== '';
-      label.current.quaternion.copy(camera.quaternion);
-      const d = camera.position.clone().sub(g.position).normalize().multiplyScalar(0.21);
-      label.current.position.copy(d);
-      digitMat.color.set(red ? '#ff6f55' : '#ffffff');
-    }
-    const f = flight.current;
-    const now = clock.elapsedTime;
-    // Each word swells the bomb with a little pop; it eases up to its new size.
-    const gr = grown.current;
-    if (size > gr.last) gr.pop = 0.35;
-    if (size < gr.last) gr.cur = size; // it went off: a fresh small bomb
-    gr.last = size;
-    gr.cur += (size - gr.cur) * Math.min(1, dt * 7);
-    gr.pop = Math.max(0, gr.pop - dt * 1.6);
-    g.scale.setScalar(1.5 * gr.cur * (1 + gr.pop * 0.5));
-    if (f.t < 1) {
-      f.t = Math.min(1, f.t + dt / 0.5);
-      const e = easeInOut(f.t);
-      g.position.lerpVectors(f.from, f.to, e);
-      g.position.y += Math.sin(Math.PI * e) * 1.1;
-      g.rotation.z = Math.sin(Math.PI * e) * 0.6;
-    } else {
-      g.position.copy(f.to);
-      g.position.y += (reduced ? 0 : Math.sin(now * 3) * 0.04) + 0.3 * (gr.cur - 1);
-      g.rotation.z = red && !reduced ? Math.sin(now * 40) * 0.08 : 0;
-    }
-    body.color.set(red ? '#ff8a78' : '#ffffff');
-    if (fuse.current) fuse.current.scale.y = Math.max(0.02, Math.min(1, fraction));
-    if (spark.current) {
-      spark.current.position.y = BOMB_FUSE_LENGTH * Math.max(0.02, Math.min(1, fraction));
-      spark.current.visible = reduced || Math.sin(now * 30) > -0.5;
-    }
-  });
-  if (!target) return null;
-  return (
-    <>
-    <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} power={power} />
-    <group ref={group} scale={1.5} visible>
-      <mesh geometry={m.body} material={body} castShadow />
-      <group ref={label}><mesh ref={digits} material={digitMat} /></group>
-      <group ref={fuse} position={[0, BOMB_NECK_Y, 0]}>
-        <mesh geometry={m.fuse} material={fuseMat} />
-        <mesh ref={spark} geometry={m.spark} material={sparkMat} />
-      </group>
-    </group>
-    </>
-  );
-}
-
-function WolfEyes() {
-  const geo = useMemo(() => wolfEyes(), []);
-  const mat = useMemo(() => voxelMaterial({ emissive: '#FFE066', emissiveIntensity: 1 }), []);
-  return <mesh geometry={geo} material={mat} position={[BARN.minX + 0.15, 1.2, BARN.sideDoor.z]} rotation={[0, Math.PI / 2, 0]} />;
-}
-
-function Cat({ geo, reduced, frozen, mat }: { geo: { body: BufferGeometry; tail: BufferGeometry; tailPivot: [number, number, number] }; reduced: boolean; frozen: boolean; mat: MeshLambertMaterial }) {
+function Cat({ geo, reduced, mat }: { geo: { body: BufferGeometry; tail: BufferGeometry; tailPivot: [number, number, number] }; reduced: boolean; mat: MeshLambertMaterial }) {
   const body = useRef<Mesh>(null);
   const tail = useRef<Mesh>(null);
   useFrame(({ clock }) => {
-    if (reduced || frozen) return;
+    if (reduced) return;
     const t = clock.elapsedTime;
     if (body.current) body.current.scale.y = 1 + Math.sin(t * 1.4) * 0.02;
     if (tail.current) tail.current.rotation.z = Math.sin(t * 0.8) * 0.15;
@@ -545,12 +423,10 @@ function Robin({ geo, reduced, mat }: { geo: BufferGeometry; reduced: boolean; m
   return <mesh ref={r} geometry={geo} material={mat} position={ROBIN_SPOT} castShadow />;
 }
 
-/** Tufts, the wolf run, the shears and the gust, each a short one-shot from its key. */
-function Moments({ moments, n, reduced }: { moments: BarnMoments; n: number; reduced: boolean }) {
+/** Tufts and the gust, each a short one-shot from its key. */
+function Moments({ moments, n }: { moments: BarnMoments; n: number }) {
   const mat = useMemo(() => voxelMaterial(), []);
   const tuft = useMemo(() => tuftGeometry(3), []);
-  const wolf = useMemo(() => wolfModel(), []);
-  const shears = useMemo(() => shearsModel(), []);
   const at = useRef<Record<string, { key: number; t0: number }>>({});
   const refs = useRef<Record<string, Group | null>>({});
   const set = (k: string) => (g: Group | null) => { refs.current[k] = g; };
@@ -566,7 +442,7 @@ function Moments({ moments, n, reduced }: { moments: BarnMoments; n: number; red
       if (!m) { g.visible = false; return; }
       if (at.current[name]?.key !== m.key) at.current[name] = { key: m.key, t0: now };
       const e = now - at.current[name].t0;
-      g.visible = e < len && !(reduced && name === 'wolf');
+      g.visible = e < len;
       if (g.visible) fn(e, g);
     };
     const arc = (g: Group, a: readonly number[], b: readonly number[], p: number, h: number) =>
@@ -574,24 +450,6 @@ function Moments({ moments, n, reduced }: { moments: BarnMoments; n: number; red
     run('tuftIn', 0.8, (e, g) => arc(g, seat(moments.tuftIn!.from), pileTop, Math.min(1, e / 0.8), 1.2));
     run('tuftOut', 1.1, (e, g) => arc(g, pileTop, seat(moments.tuftOut!.to), Math.min(1, e / 1.1), 1.6));
     run('gust', 0.9, (e, g) => arc(g, seat(moments.gust!.at), [0, 1.2, BARN.maxZ + 2], Math.min(1, e / 0.9), 0.6));
-    run('wolf', 1.3, (e, g) => {
-      const door = [BARN.minX - 0.5, 0, BARN.sideDoor.z] as const;
-      const to = seat(moments.wolf!.to);
-      const pts = [door, HEAP, to, door];
-      const p = Math.min(0.999, e / 1.3) * 3;
-      const i = Math.floor(p), f = p - i;
-      const a = pts[i], b = pts[i + 1];
-      g.position.set(a[0] + (b[0] - a[0]) * f, Math.abs(Math.sin(p * Math.PI * 2)) * 0.12, a[2] + (b[2] - a[2]) * f);
-      g.rotation.y = Math.atan2(b[0] - a[0], b[2] - a[2]);
-    });
-    run('shears', 0.9, (e, g) => {
-      const s = seat(moments.shears!.at);
-      g.position.set(s[0], 2.2 - Math.min(1, e / 0.35) * 1.0, s[2]);
-      const blades = g.children;
-      const snip = Math.abs(Math.sin(e * 18)) * 0.5;
-      if (blades[0]) blades[0].rotation.y = snip;
-      if (blades[1]) blades[1].rotation.y = -snip;
-    });
   });
 
   return (
@@ -601,14 +459,6 @@ function Moments({ moments, n, reduced }: { moments: BarnMoments; n: number; red
         {[0, 1, 2].map((i) => <mesh key={i} geometry={tuft} material={mat} position={[i * 0.12 - 0.12, i * 0.05, 0]} />)}
       </group>
       <group ref={set('gust')} visible={false}><mesh geometry={tuft} material={mat} /></group>
-      <group ref={set('wolf')} visible={false} scale={1.4}>
-        {[wolf.body, wolf.head, wolf.tail, wolf.eyes, ...wolf.legs].map((p, i) => <mesh key={i} geometry={p.geo} position={p.pivot} material={mat} castShadow />)}
-        <mesh geometry={tuft} material={mat} position={[0, 0.75, 0.45]} scale={2.2} />
-      </group>
-      <group ref={set('shears')} visible={false} scale={1.4}>
-        <mesh geometry={shears.bladeA.geo} position={shears.bladeA.pivot} material={mat} />
-        <mesh geometry={shears.bladeB.geo} position={shears.bladeB.pivot} material={mat} />
-      </group>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import type { ChainEntry } from '../../engine';
 
-/** Words played (or stolen) since the last time-out, oldest first. Pass skipLast to ignore a time-out that has just happened. */
+/** Words played since the last time-out, oldest first. Pass skipLast to ignore a time-out that has just happened. */
 export function wordsSinceBoom(history: readonly ChainEntry[], skipLast = false): string[] {
   const end = skipLast && history.length && history[history.length - 1].kind === 'timeout' ? history.length - 1 : history.length;
   let start = 0;
@@ -8,7 +8,7 @@ export function wordsSinceBoom(history: readonly ChainEntry[], skipLast = false)
   const out: string[] = [];
   for (let i = start; i < end; i++) {
     const h = history[i];
-    if ((h.kind === 'play' || h.kind === 'steal') && h.word) out.push(h.word);
+    if (h.kind === 'play' && h.word) out.push(h.word);
   }
   return out;
 }

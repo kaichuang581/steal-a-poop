@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
 import { SnowCap } from './SnowCap';
 
-export type NoticeTone = 'wood' | 'steal' | 'ice' | 'cold' | 'gold';
+export type NoticeTone = 'wood' | 'ice' | 'cold' | 'gold';
 
-/** Each moment's paint on the kit's plank (V6 Part 4.1): a steal is barn red, your turn the lantern's gold. */
-const TONE: Record<NoticeTone, string> = { wood: '', steal: 'kit-plank--barn', ice: 'kit-plank--ice', cold: 'kit-plank--cold', gold: 'kit-plank--gold' };
+/** Each moment's paint on the kit's plank (V6 Part 4.1): your turn the lantern's gold. */
+const TONE: Record<NoticeTone, string> = { wood: '', ice: 'kit-plank--ice', cold: 'kit-plank--cold', gold: 'kit-plank--gold' };
 
 /**
- * A hanging signboard for the moments over the table (a steal, a freeze, time's up, the round's twist): the kit's
+ * A hanging signboard for the moments over the table (a freeze, time's up, the round's twist): the kit's
  * `Board heading`, a sawn plank with grain, two nails and a snow cap, painted per moment. Big carved text, an optional
  * pixel icon, and a small hand-lettered line under it.
  */

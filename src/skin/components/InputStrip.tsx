@@ -11,12 +11,10 @@ interface Props {
   typed: string;
   /** Your turn (Play enabled). */
   myTurn: boolean;
-  /** Another sheep's timer is red: you can steal. */
-  stealOpen: boolean;
-  /** Whose turn it is (for the "waiting" and "steal" lines). */
+  /** Whose turn it is (for the "waiting" line). */
   turnName: string;
   onChange: (v: string) => void;
-  /** Plays on your turn, steals in the red seconds. */
+  /** Plays your word on your turn. */
   onSubmit: () => void;
   message: MessageView | null;
   /** Tutorial: a Hint book and its word ideas. */
@@ -29,18 +27,16 @@ interface Props {
   out: boolean;
   /** Hand the bomb to the next sheep; only given when you can pass this round. */
   onPass?: () => void;
-  /** No stealing in this game (a practice run): the waiting line only says whose turn it is. */
-  noSteal?: boolean;
 }
 
-const keep = (e: MouseEvent) => e.preventDefault(); // buttons never steal focus from the input
+const keep = (e: MouseEvent) => e.preventDefault(); // buttons never take focus from the input
 
 /**
  * The word bar: floating letters (chosen from the mockups, 2026-11-07). What the word needs on a line above (it starts
  * with the chain letter), the typed word in big white letters floating over the barn with a warm glow, a dotted line
- * under it, and a small key that is Play on your turn and Steal, in coral, when another sheep's timer goes red.
+ * under it, and a small key that is Play on your turn.
  */
-export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out, onPass, noSteal }: Props) {
+export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out, onPass }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => ref.current?.focus(), [turnKey]);
   const [flash, setFlash] = useState(false);
@@ -52,14 +48,13 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChang
   }, [acceptKey]);
   const L = letter.toUpperCase();
   const letters = [...typed.trim()];
-  const mode = out ? 'out' : myTurn ? 'mine' : stealOpen ? 'steal' : 'wait';
+  const mode = out ? 'out' : myTurn ? 'mine' : 'wait';
   const prompt = {
     mine: <>Your turn: type a word starting with <b>{L}</b> and press Enter</>,
-    steal: <><b>STEAL!</b> {turnName}’s time is running out. Type a word starting with <b>{L}</b> first to take one of their wool balls</>,
-    wait: noSteal ? <>{turnName}’s turn. Get ready</> : <>{turnName}’s turn. When their timer turns <b style={{ color: 'var(--coral)' }}>red</b>, you can steal a wool ball</>,
+    wait: <>{turnName}’s turn. Get ready</>,
     out: <>You’re frozen solid: out of wool. Watch who’s the last sheep standing</>,
   }[mode];
-  const placeholder = { mine: 'type your word…', steal: `quick, a ${L}-word!`, wait: 'type ahead…', out: '' }[mode];
+  const placeholder = { mine: 'type your word…', wait: 'type ahead…', out: '' }[mode];
   return (
     <div className="px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4">
       <div className="mx-auto max-w-3xl">
@@ -75,12 +70,12 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChang
           </Paper>
         )}
         {/* On your own turn the line under it already says it all; the prompt stays for the screen reader. */}
-        <p className={`sk-input-prompt ${mode === 'steal' ? 'sk-input-prompt-steal' : ''} ${mode === 'mine' ? 'sr-only' : ''}`} aria-live="polite" data-mode={mode}>{prompt}</p>
+        <p className={`sk-input-prompt ${mode === 'mine' ? 'sr-only' : ''}`} aria-live="polite" data-mode={mode}>{prompt}</p>
         {/* Floating letters: no box. The chain letter above, the word big over the barn, Enter's key below. */}
         <div className={`sk-input-bar kit-float ${flash ? 'sk-accept-flash' : ''}`} data-mode={mode} data-tour="input"
           onMouseDown={(e) => { if ((e.target as HTMLElement).tagName !== 'BUTTON') { e.preventDefault(); ref.current?.focus(); } }}>
           <p className="kit-float-need" aria-hidden="true">
-            {mode === 'steal' ? <small>steal with a word starting with</small> : <small>starts with</small>}
+            <small>starts with</small>
             <span className="kit-float-chain sk-input-letter" title="Starts with">{L}</span>
           </p>
           {/* The typed word, letter by letter; the real input sits on top, invisible, so typing, pasting and phone
@@ -115,13 +110,9 @@ export function InputStrip({ letter, typed, myTurn, stealOpen, turnName, onChang
               <Peg small light onMouseDown={keep} onClick={onPass} aria-label="Pass the bomb" title="Pass the bomb" className="sk-input-hint"><PassIcon size={20} /></Peg>
             )}
             {hints && (
-              <Peg small light onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn && !stealOpen} aria-label="Hint" className="sk-input-hint"><BookIcon size={20} /></Peg>
+              <Peg small light onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn} aria-label="Hint" className="sk-input-hint"><BookIcon size={20} /></Peg>
             )}
-            {mode === 'steal' ? (
-              <button type="button" onMouseDown={keep} onClick={onSubmit} data-tour="steal" className="kit-float-go sk-input-go" aria-label="Steal"><b>Enter</b> to steal</button>
-            ) : (
-              <button type="button" onMouseDown={keep} onClick={onSubmit} disabled={!myTurn} className="kit-float-go sk-input-go" aria-label="Play"><b>Enter</b> to play</button>
-            )}
+            <button type="button" onMouseDown={keep} onClick={onSubmit} disabled={!myTurn} className="kit-float-go sk-input-go" aria-label="Play"><b>Enter</b> to play</button>
           </div>
         </div>
       </div>

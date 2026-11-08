@@ -6,10 +6,11 @@ import { AccountPanel } from '../../ui/auth/AccountPanel';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { PaintedCredits } from '../components/PaintedCredits';
 import { Board, Lever, Panel, PanelRow, Peg, RopeSlider, WoodButton } from '../kit';
+import { SaveCodeRow } from '../components/SaveCodeRow';
 
 /**
- * The existing settings, unchanged: a panel of planks under a nailed heading (V6 6.2). Each setting sits on its own
- * plank, its label on a slip of paper; toggles are levers, the volume a rope slider. No new settings.
+ * The existing settings: a panel of planks under a nailed heading (V6 6.2). Each setting sits on its own
+ * plank, its label on a slip of paper; toggles are levers, the volume a rope slider. The save code is plan v7 Part 6.
  */
 export function PaintedSettings({ onClose }: { onClose: () => void }) {
   const s = useStore();
@@ -50,6 +51,7 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
               {tipsCleared ? <><CheckIcon size={14} /> Reset</> : <><ResetIcon size={16} /> Show again</>}
             </WoodButton>
           </PanelRow>
+          <SaveCodeRow />
           <PanelRow label="Credits and licenses">
             <WoodButton className="kit-btn--sm" aria-label="Credits and licenses" onClick={() => setCredits(true)}>Open</WoodButton>
           </PanelRow>

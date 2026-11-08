@@ -166,7 +166,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   black lake at night (src/skin/scene/duel.ts for the layout and voxels, src/skin/table/DuelTable.tsx for the stage). You and the
   bot stand face to face on one line, seen side on, and stare at each other. Pressure comes from your clock: the camera pushes
   in, a spotlight on whoever is on turn burns red, the screen's edges close in red and the camera shakes at the very end. A VS
-  bar replaces the scoreboard, and the bomb is the barn's own (`Bomb`, exported, with a `seatAt` prop). The lambing pens are gone.
+  bar replaces the scoreboard, and the bomb is the barn's own (`Bomb` in table/Bomb.tsx, with a `spotAt` prop for where it lands). The lambing pens are gone.
 - First games, soft games, farm sheep and the end board (requested by Brian, 2026-11-07), a small engine change. src/lib/record.ts
   keeps finished Quick Games, the last three results and the personal bests. `tableFor` in the store gives the first three Quick
   Games the easy bots and the Quick preset until the player touches a rule or the bots (`settings.tableChosen`); Start now is that
@@ -249,3 +249,79 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
 - Floating letters (chosen by Brian from five mockups, 2026-11-07): the table's and the dream's word bars have no box. What the word
   needs on a line above, the typed word in big white Fraunces letters with a glow in the scene's shadow colour, a dotted line, and a
   small key that says what Enter does (`.kit-float` in kit.css). The old troughs are gone.
+- Farm animals v5.1 (approved by Brian, 2026-11-07): docs/REDESIGN_PLAN_V5_1.md is the final animal plan. The proportion
+  sheet (V5.1 Part 4.1), the connection rules (4.2), the face rule (4.4: every mouth, lid and brow voxel sits on a head
+  voxel; chewing never leaves the head), the neck channel (4.6) and the animation ranges (6.6) are binding for every
+  species, the sheep included: the sheep's head is rebuilt under V5.1 Part 5.1 (this supersedes "the sheep model does not
+  change"). The tests in V5.1 Part 7 are part of `npm test`; a model that fails one is not done.
+- V5.1 as built, F0 to F5 (2026-11-07): src/skin/voxel/animals/measure.ts and tools/animalReport.ts measure Part 4; the tests
+  are src/skin/voxel/__tests__/animalsV51.test.ts and src/skin/table/__tests__/animalPose.test.ts; ?preview=strips with
+  tools/animalStrips.mjs saves the strips; the report and pictures are in docs/skin/animals-v5_1. Where the plan disagreed
+  with itself, the ratio table won over a sheet's letter, except one row: the muzzle ratio (4.1) for the cow, horse and goat
+  cannot be met by any neck that follows 4.2.1, so their sheets win (1.10 to 1.30, Brian to decide). Solving the table moved
+  numbers: the horse's torso is 13 x 14 x 26 voxels and its head 7 x 8 x 13; the goat's torso 13 x 13 x 20; the pig's torso
+  is a row taller and its head two rows higher, with no separate neck wedge (the head and shoulder already overlap); the
+  chicken's torso is 9 rows, its head centred at z 0.42; the sheep's back is a row taller, its corner lobes half a row lower,
+  its leg shaft a row shorter (0.28 m shows), its nose on rows 17 and 18 (not 15 and 16, the mouth's row). Belly lines follow
+  4.5's shares (the pig's 0.40, not 0.34). Collars, bands and scarves trace the neck's own outline, so none floats off a
+  sloped neck. Hollowed shells no longer draw their cavity's faces (`addCavity`, the mesher's `all` set), and a coat is
+  hollowed with the body it covers: this is what keeps the longer bodies inside the budgets. The beak is drawn with the
+  chicken's head so both wings fit the three signature slots (v5 dropped the right wing). The worn avatar runs Counting
+  Sheep at its draw scale; the admin's photo disc dreams as the sheep. Known: the two-person silhouette test was not run;
+  an animal in the dream costs 6 to 8 more draws than the sheep.
+- Small simple eyes and a bigger cow (requested by Brian, 2026-11-07): the sheep, cow, horse and goat have beady eyes,
+  2 x 2 and dark with no whites (`smallEyes` in rig.ts), a white glint where the face is dark enough to show it (the
+  sheep, the horse, and the cow on its slightly darker coat): on the face's front for the sheep and the cow, on the head's sides for the horse and the goat. This
+  replaces V5.1's plates on those four; the eye-height row of the ratio sheet is 0.20 for them. The pig keeps its plates.
+  Change an animal only when Brian names it. The cow is drawn at 1.2 (`drawScale`), its back at 1.06 m, bigger than the goat and second
+  only to the horse; grown in voxels instead it would break the 3,200-voxel budget.
+- The chicken's head (requested by Brian, 2026-11-07): it rests nearer the breast (its centre at z 0.34, a row lower), a
+  short neck still reaching forward; the beak is a two-step wedge that reads from the side; the wattle is a 2 x 2 lobe
+  under the chin; its eyes are the small ones too. Its beak ratios in measure.ts are its own (reach 0.6 to 1.0, head with
+  beak 1.0 to 1.3 as long as wide). Small eyes are flat 2 x 2 squares: the head is filled out to one plane under them so
+  none reads as an L, and they sit flush (the sheep, cow and chicken) or one voxel proud on a long head's sides (the
+  horse and the goat, so they show from in front). A pale face gets no glint, which would melt into it.
+- The cow's spots (requested by Brian, 2026-11-07): where the blanket leaves the coat to be seen: both lower flanks, each
+  side of the neck, the rump, the chest, the back of the head and two legs. Never put its eyes in a dark patch (it hid
+  them and read as a mask). Its eyes are 2 x 2, dark, with a white glint in the outer top corner, and its coat is the
+  catalogue's white at 0.8 (Brian: "slightly darker than white so the contrast is shown"), so the glint stands out.
+- No steals (requested by Brian, 2026-11-07: "remove the steal feature entirely"), an engine change. This supersedes the
+  steal rules in "Last sheep standing" and "Faster turns, steal turns and alarms": there are no steal turns, no red window,
+  no steal action, cooldown, bot steal plans, `stealWindowSeconds` setting, steal events or alarms, and no wolf at the
+  table. Wool balls are lost only by running out of time and won only from traps; standings tie-break on the longest
+  word. The server's steal ordering (server/steals.ts, the room hold, STEAL_ORDERING) is gone, as are the steals
+  leaderboard, stat, personal best, share line and coin reward. The game_players.steals column stays for older games and
+  new rows write 0. Removing the steal draws changed the seeded random stream; no seeded test depended on it.
+- The ice bomb (requested by Brian, 2026-11-07: "make the bomb icier, in all aspects. also, make an animation for when
+  each player receives the bomb i dont like how it jsut floats on top of them"). The bomb never floats over a head and is
+  never held: each turn it is lobbed to the speaker (a fresh one drops from above), lands on the floor beside their front
+  hooves on the side the turn's camera sees clear, skids, wobbles and sits there; the speaker plays `startled` as it lands
+  (BOMB_TOSS_S, skipped while cold, freezing, frozen or thawing). Everything about the bomb is ice: the voxel model,
+  spark and digits, the 3D burst (frost, crystals, bouncing shell chunks, sinking mist), the jumpscare and word blast,
+  the hit flash, the pixel bombs and the boom sound. Keep the bomb icy, and keep it on the floor.
+- The Hunt v7 (approved by Brian, 2026-11-07): docs/REDESIGN_PLAN_V7_HUNT.md. Rules that bind every change to the Hunt:
+  (a) No persistent power. Nothing kept between runs may change health, damage, items, time or rules. What persists is
+      records, the bestiary, the run log and cosmetics. Items reset every run.
+  (b) Announced adjustments only. Nothing in the Hunt is tuned behind the player's back; anything that changes a run's
+      difficulty says so on screen and is marked in the share text. (The hidden `softGame` in Quick Games is outside this
+      plan and is listed as a decision for Brian.)
+  (c) Same code, same pack. A pack code must give every player the same predators, rules, reserves and hint words for a
+      given word-list version; the code carries the version and the game says so when it differs.
+  (d) Nothing on a calendar, nothing on a server. No weekly schedule, leaderboard, account or moderation is added by this
+      plan. Every feature keeps working with the server down.
+  (e) Local-storage keys are promises: add fields with defaults, never migrate, never rename. New keys: sap:hunt-log,
+      sap:hunt-packs, sap:hunt-bestiary. sap:hunt-best keeps its shape and gains optional fields.
+  (f) The Hunt's look stays the handheld console (src/skin/hunt, .gb-*); new screens are drawn in that style.
+- The Hunt v7 as built, H0 to H5 (2026-11-07; H6, the drowsy fox, is not built and waits for a month of the run log and a
+  separate yes from Brian). Pure layer: src/hunt/log.ts, codes.ts, packs.ts, bestiary.ts, everyday.ts and the additions to
+  hunt.ts, rules.ts and record.ts; the save code is src/lib/savecode.ts (Settings: src/skin/components/SaveCodeRow.tsx);
+  the screen is src/skin/hunt/HuntScreen.tsx with its panels in panels.tsx. `npm test` covers Part 4.7 and Part 6;
+  `node tools/huntCheck.mjs --base <dev url>` plays seeded packs and checks Part 10 (screenshots in docs/skin/hunt-v7).
+  Where the plan's letter did not fit: YES and NO words come from an everyday list first (src/hunt/everyday.ts), because
+  the rarity heuristic lets obscure words through, and the search for a YES word that obeys all of a predator's rules
+  goes to 4,000 candidates, not 400 (400 missed about one rule set in thirty); the death screen's word prefers an
+  everyday word too (`everydayWord`, else `hintWord`); the lobby's best and last-pack lines sit in a name box at the top
+  right, since the 38 px bar has no room under the menu; the code line sits under the predator's name box; the walk-home
+  and leave questions are a box over the stage with their buttons in the bar; the results card gains BACK (to the death
+  screen) as a fifth equal button; "Has a M" now reads "Has an M". Under reduced motion the announcement keeps its full
+  reading time. Decision 9.12 (the hidden softGame in Quick Games) is still Brian's.

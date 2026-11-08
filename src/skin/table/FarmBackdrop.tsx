@@ -59,7 +59,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} lampRef={lowerLamp} />
       <DoorSpill spot={spot} bounce={bounce} />
       <Sky hour={hour} reduced={reduced} blizzard={false} />
-      <Farm world={w} reduced={reduced} stealOpen={false} />
+      <Farm world={w} reduced={reduced} />
       <Farmstead world={w} reduced={reduced} phone={phone} />
       <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5}>
         {avatar === ADMIN_AVATAR_ID

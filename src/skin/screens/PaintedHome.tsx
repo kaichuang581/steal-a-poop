@@ -7,6 +7,7 @@ import { useGuest } from '../../auth/guest';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
+import { dexProgress, readBestiary } from '../../hunt/bestiary';
 import { useHuntUi } from '../hunt/huntStore';
 import { dreamSeed, dreamShareText } from '../../dream/dream';
 import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
@@ -63,7 +64,6 @@ const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
 const TIPS = [
   'Every word must start with the last letter of the one before it.',
-  'When a timer turns red, type a word first to steal one of their wool balls.',
   'Run out of time and you lose a wool ball. Lose them all and you freeze solid.',
   'End a word on X, Z, Q or J: if the next sheep runs out of time, you get a wool ball.',
   'A bad word just bounces, so try another before your timer runs out.',
@@ -78,7 +78,6 @@ const RULES: { key: keyof GameSettings; label: string; values: (number | string 
   { key: 'turnsPerRound', label: 'Turns per round', values: [2, 3, 5] },
   { key: 'lives', label: 'Wool balls', values: [1, 2, 3, 5] },
   { key: 'twists', label: 'Round twists', values: [true, false], show: (v) => (v ? 'On' : 'Off') },
-  { key: 'stealWindowSeconds', label: 'Steal window', values: [0, 3, 5], show: (v) => (v === 0 ? 'Off' : `${v} s`) },
 ];
 
 /**
@@ -113,6 +112,7 @@ export function PaintedHome() {
   const mobile = useIsMobile();
   const today = useToday();
   const huntBest = getHuntBest();
+  const huntMet = dexProgress(readBestiary()).met;
   const dream = getDream(today);
   const streak = getDreamStreak(today);
   const blankets = loadStreak().blankets;
@@ -219,8 +219,8 @@ export function PaintedHome() {
       onSelect: () => useDreamUi.getState().openDream(false, repair),
     } satisfies MenuItem] : []),
     {
-      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
-      caption: 'Fight off predator after predator with words. Hunt as often as you like.',
+      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}{huntMet ? ` · ${huntMet}/6 met` : ''}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
+      caption: "Fight off predator after predator with words. Hunt as often as you like. Got a friend's pack code? Enter it in the Hunt.",
       onSelect: () => useHuntUi.getState().openHunt(),
     },
     {

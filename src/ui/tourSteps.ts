@@ -1,9 +1,7 @@
-import { STEAL_WINDOW_MS } from '../engine';
 import type { GameState } from '../engine';
 
 export interface TourCtx {
   game: GameState;
-  stealOpen: boolean;
 }
 
 export interface TourStep {
@@ -20,15 +18,13 @@ export interface TourStep {
 }
 
 const letter = (c: TourCtx) => c.game.chainLetter.toUpperCase();
-const mySteal = (c: TourCtx) => c.game.history.find((h) => h.kind === 'steal' && h.seat === 0);
 const myWool = (c: TourCtx) => c.game.players[0]?.lives ?? 0;
-const redSeconds = STEAL_WINDOW_MS / 1000;
 
 export const TOUR_STEPS: TourStep[] = [
   {
     id: 'welcome', target: null, kind: 'info', pause: true,
     title: 'Welcome',
-    body: () => 'A one-minute tour. You will play a word and steal a wool ball. Nobody loses wool in the tour, so relax.',
+    body: () => 'A one-minute tour. You will play a word and see how wool balls, traps and twists work. Nobody loses wool in the tour, so relax.',
   },
   {
     id: 'chain', target: 'chain', kind: 'info', pause: true,
@@ -47,25 +43,6 @@ export const TOUR_STEPS: TourStep[] = [
       ? `Type a real word (3+ letters) starting with ${letter(c)} and press Enter. Stuck? Tap Hint. A word that doesn't work just bounces back, so try another. A clear typo gets a suggested fix: press Enter again to accept it.`
       : 'Your turn starts in a moment…',
     done: (c) => c.game.history.some((h) => h.kind === 'play' && h.seat === 0),
-  },
-  {
-    id: 'waitSteal', target: null, kind: 'wait', pause: false,
-    title: 'Now: stealing',
-    body: () => `Nice! Now watch the other sheep. When someone's timer turns red (their last ${redSeconds} seconds), you can steal…`,
-    done: (c) => c.stealOpen && c.game.turn?.seat !== 0,
-  },
-  {
-    id: 'steal', target: 'steal', kind: 'wait', pause: true,
-    title: 'Their timer is red: steal!',
-    body: (c) => `The clock is paused for you. Type a word starting with ${letter(c)} and press STEAL (or Enter). Get a word in first and you take one of their wool balls.`,
-    done: (c) => !!mySteal(c) || c.game.events.some((e) => e.kind === 'stealFail' && e.seat === 0),
-  },
-  {
-    id: 'stealResult', target: 'me', kind: 'info', pause: true,
-    title: 'Steal result',
-    body: (c) => mySteal(c)
-      ? 'STOLEN! One of their wool balls is now yours, and the turn moved on. Steal whenever you see red.'
-      : 'That word didn’t work, so it bounced. A bad steal word costs nothing: you just wait a second before you can try again.',
   },
   {
     id: 'traps', target: null, kind: 'info', pause: true,

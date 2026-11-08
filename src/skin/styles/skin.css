@@ -65,7 +65,6 @@
 .sk-flicker { animation: sk-flicker 0.9s ease-in-out infinite; }
 .sk-puff { animation: sk-puff 300ms var(--ease-out) forwards; }
 .sk-smoke { animation: sk-smoke 300ms var(--ease-out) forwards; }
-[data-steal-open="true"] .sk-flicker { animation-play-state: paused; }
 
 .sk-bob { animation: sk-bob 3.2s ease-in-out infinite; }
 .sk-mood-happy { animation: sk-happy 0.8s var(--ease-out) 2; }
@@ -89,9 +88,6 @@
   .sk-rise, .sk-fall, .sk-pop { animation-duration: 0.01ms; }
 }
 
-/* While the steal window is open, only the ring and the Steal button move. */
-[data-steal-open="true"] .sk-bob,
-[data-steal-open="true"] .sk-swing { animation-play-state: paused; }
 :root[data-skin="painted"].reduce-motion .sk-flicker { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-flicker { animation: none; } }
 
@@ -263,8 +259,6 @@
   color: var(--button-text); text-shadow: 0 1px 2px rgba(30, 18, 8, 0.85), 0 0 8px rgba(30, 18, 8, 0.6);
 }
 .sk-input-prompt b { color: var(--glow); font-weight: 800; }
-.sk-input-prompt-steal { font-size: 21px; color: #FFE3DC; animation: sk-steal-throb 0.8s ease-in-out infinite; }
-.sk-input-prompt-steal b { color: #FFD0C4; }
 .sk-input-bar { transition: opacity var(--t-fast); }
 .sk-input-bar[data-mode="wait"] { opacity: 0.94; }
 .sk-input-bar[data-mode="out"] { opacity: 0.6; filter: saturate(0.5); }
@@ -279,7 +273,6 @@
 .sk-idea { display: inline-flex; gap: 1px; padding: 3px 2px; border-radius: 3px; cursor: pointer; transition: translate var(--t-fast) var(--ease-out); }
 .sk-idea:hover { translate: 0 -2px; }
 .sk-message-slip { padding: 6px 18px 7px; font-size: 17px; }
-@keyframes sk-steal-throb { 50% { transform: scale(1.03); } }
 
 /* ---------- Word moments over the table ---------- */
 /* A played word: stamped big in gold, a burst of light and wool tufts behind it, then it floats off. */
@@ -306,7 +299,7 @@
 @keyframes sk-burst-ring { 0% { transform: scale(0.2); opacity: 1; } 100% { transform: scale(3.2); opacity: 0; } }
 @keyframes sk-burst-tuft { 0% { transform: translate(0, 0) scale(0.4); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; } }
 @keyframes sk-burst-life { 0%, 70% { transform: none; opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
-:root.reduce-motion .sk-word-burst, :root.reduce-motion .sk-word-burst *, :root.reduce-motion .sk-input-bar, :root.reduce-motion .sk-input-prompt-steal { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+:root.reduce-motion .sk-word-burst, :root.reduce-motion .sk-word-burst *, :root.reduce-motion .sk-input-bar { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
 
 /* ---------- The seconds under the carved letter board (V6 Part 5.2): a mini slate hung on two strings ---------- */
 .sk-clock { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 12px; transition: scale 200ms var(--ease-out); }
@@ -337,7 +330,6 @@
 .sk-notice-lg { padding: 12px 38px 10px; } .sk-notice-lg .sk-notice-title { font-size: 30px; } .sk-notice-lg .sk-notice-sub { font-size: 18px; }
 /* A dream board paints itself as a cloud: no end grain there. */
 .dr-board.kit-plank::before { display: none; }
-.sk-notice-steal .sk-notice-sub { color: #FFE3DC; }
 .sk-notice-ice .sk-notice-sub, .sk-notice-ice .sk-notice-icon { color: #E4F5FF; }
 .sk-notice-cold .sk-notice-sub, .sk-notice-cold .sk-notice-icon { color: var(--ice-light); }
 /* The turn call: rides in a touch bigger and leaves early, so it reads as a call, not a sign left hanging. */
@@ -369,10 +361,9 @@
 .sk-rule-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px; background: rgba(231, 217, 184, 0.55); font-size: 15px; line-height: 1.35; }
 .sk-rule-row b { color: var(--wood-ink); }
 .sk-rule-icon { flex: none; display: grid; place-items: center; min-width: 40px; color: var(--wood-dark); }
-/* The chain on the clipboard's ruled paper: one line a word, a red pencil line down the margin for a steal. */
+/* The chain on the clipboard's ruled paper: one line a word. */
 .sk-chain-list { display: flex; flex-direction: column; }
 .sk-chain-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; padding: 3px 4px 3px 10px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
-.sk-chain-list li[data-steal] { box-shadow: inset 2px 0 0 var(--coral-dark); }
 .sk-chain-word { display: flex; flex-wrap: wrap; gap: 2px; }
 .sk-chain-who { font-family: var(--skin-font-hand); font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
 
@@ -417,7 +408,6 @@
 }
 .sk-sheet-head h2 { font-family: var(--skin-font-display); font-weight: 800; font-size: 22px; color: var(--button-text); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.7); }
 .sk-sheet-body { overflow-y: auto; padding: 14px 16px 18px; }
-.sk-steal-throb { animation: sk-notice-in 420ms var(--ease-spring) both, sk-steal-throb 0.8s 420ms ease-in-out infinite; }
 
 /* ---------- The word bar's input: the real input lies invisible over the floating letters (kit.css, .kit-float) ---------- */
 .sk-input-tiles { cursor: text; }
@@ -485,7 +475,6 @@
 .sk-stake-slips[data-speaker] { opacity: 1; scale: 1.15; }
 .sk-stake-name { flex-direction: column; gap: 0; padding: 3px 9px 4px; white-space: nowrap; }
 .sk-stake-slips[data-speaker] .sk-stake-name { box-shadow: 0 0 0 3px var(--amber), 2px 3px 0 rgba(59, 48, 40, 0.22); }
-.sk-stake-slips[data-steal] .sk-stake-name { box-shadow: 0 0 0 3px var(--coral), 2px 3px 0 rgba(59, 48, 40, 0.22); }
 .sk-stake-line { display: inline-flex; align-items: center; gap: 4px; }
 .sk-stake-who { font-family: var(--skin-font-display); font-weight: 700; font-size: 14px; }
 .sk-stake-slips[data-speaker] .sk-stake-who { font-size: 16px; }
@@ -648,12 +637,11 @@
 /* The title's plank sits centred over its hanging tiles. */
 .sk-title-sign { display: inline-flex; flex-direction: column; align-items: center; }
 
-/* ---------- Alarm: the barn's emergency board, full width, for faster turns, a twist, a steal turn ----------
+/* ---------- Alarm: the barn's emergency board, full width, for faster turns and twists ----------
    A hazard-striped plank right across the screen, lamps blinking, the board throbbing with its colour, the edges of
    the whole screen flashing and the barn jolting under it. Nothing on the table looks like this: it is a warning. */
 /* The board itself is the kit's Board alarm (kit.css). The whole screen flashes at its edges in its colour, and the barn jolts. */
 .sk-alarm-flash { --alarm: var(--amber); --alarm-glow: rgba(242, 164, 68, 0.6); --alarm-deep: rgba(242, 164, 68, 0.24); }
-.sk-alarm-flash-steal { --alarm: var(--coral); --alarm-glow: rgba(231, 112, 94, 0.7); --alarm-deep: rgba(231, 112, 94, 0.3); }
 .sk-alarm-flash-twist { --alarm: var(--ice-mid); --alarm-glow: rgba(191, 227, 245, 0.6); --alarm-deep: rgba(191, 227, 245, 0.24); }
 .sk-alarm-flash {
   position: absolute; inset: 0; pointer-events: none;
@@ -678,10 +666,10 @@
 .sk-results-backdrop { position: fixed; inset: 0; z-index: 38; background: radial-gradient(ellipse at center, rgba(30, 18, 8, 0.4) 0%, rgba(30, 18, 8, 0.82) 100%); animation: sk-results-dim 700ms ease-out both; }
 @keyframes sk-results-dim { from { opacity: 0; } }
 
-/* A steal lands: a red glow around the edge of the screen that fades fast. */
-.sk-steal-flash { position: absolute; inset: 0; z-index: 40; pointer-events: none; box-shadow: inset 0 0 90px 24px rgba(220, 60, 40, 0.65); animation: sk-steal-flash 520ms ease-out forwards; }
-@keyframes sk-steal-flash { from { opacity: 1; } to { opacity: 0; } }
-:root.reduce-motion .sk-steal-flash { display: none; }
+/* A blast: a red glow around the edge of the screen that fades fast. */
+.sk-hit-flash { position: absolute; inset: 0; z-index: 40; pointer-events: none; box-shadow: inset 0 0 90px 24px rgba(120, 200, 255, 0.7); animation: sk-hit-flash 520ms ease-out forwards; }
+@keyframes sk-hit-flash { from { opacity: 1; } to { opacity: 0; } }
+:root.reduce-motion .sk-hit-flash { display: none; }
 
 /* Start now: swoop into the barn. The home zooms toward the door and washes to lantern light; the game then eases in from the same glow. */
 .sk-swoop-out { animation: sk-swoop-out 650ms cubic-bezier(0.55, 0, 0.9, 0.4) forwards; transform-origin: 30% 62%; pointer-events: none; }
@@ -761,7 +749,7 @@
 @keyframes sk-photo-spin-once { from { transform: rotateY(0); } to { transform: rotateY(360deg); } }
 :root.reduce-motion .sk-photo-jump, :root.reduce-motion .sk-photo-wiggle, :root.reduce-motion .sk-photo-spin { animation: none !important; }
 
-/* Bomb clock: the fuse burns down on the letter card, the sheep on turn holds a lit bomb, and a timeout blows it up. */
+/* The ice bomb: the sheep on turn has a lit one by its name, and a timeout bursts it in rings of frost. */
 .sk-letter-card-bomb { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 2px; }
 .sk-letter-card-bomb b { font-family: var(--skin-font-body); font-size: 13px; font-weight: 900; color: var(--ink); line-height: 1; }
 .sk-letter-card-bomb[data-level="red"] b { color: var(--coral-dark); }
@@ -773,29 +761,31 @@
 @keyframes sk-bomb-pass { from { transform: translateX(-26px) rotate(-120deg) scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
 .sk-boom { position: absolute; inset: 0; z-index: 41; pointer-events: none; display: grid; place-items: center; }
 .sk-boom i { position: absolute; border-radius: 50%; width: 140px; height: 140px; animation: sk-boom 900ms ease-out forwards; }
-.sk-boom i:nth-child(1) { background: radial-gradient(circle, #fff6c8, #ffb23a 45%, rgba(255, 90, 40, 0) 70%); }
-.sk-boom i:nth-child(2) { border: 8px solid #ff7a3a; animation-delay: 60ms; }
-.sk-boom i:nth-child(3) { border: 4px solid #ffd24a; animation-delay: 140ms; }
+.sk-boom i:nth-child(1) { background: radial-gradient(circle, #ffffff, #bfeaff 45%, rgba(90, 170, 240, 0) 70%); }
+.sk-boom i:nth-child(2) { border: 8px solid #7cc8f5; animation-delay: 60ms; }
+.sk-boom i:nth-child(3) { border: 4px solid #e6f7ff; animation-delay: 140ms; }
 @keyframes sk-boom { from { transform: scale(0.2); opacity: 1; } to { transform: scale(14); opacity: 0; } }
 :root.reduce-motion .sk-boom { display: none; }
 :root.reduce-motion .sk-bomb, :root.reduce-motion .sk-bomb-hand, :root.reduce-motion .sk-bomb-spark { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-boom { display: none; } .sk-bomb, .sk-bomb-hand, .sk-bomb-spark { animation: none; } }
 
-/* The jumpscare: when the bomb goes off the screen is taken over for about a second and a half. */
+/* The jumpscare: when the ice bomb goes off the screen is taken over for about a second and a half: a white-out, a
+   burst of frost that swallows the view, and frost that creeps in from the edges and thaws away. */
 .sk-jump { position: fixed; inset: 0; z-index: 80; pointer-events: none; overflow: hidden; }
 .sk-jump i { position: absolute; display: block; }
 .sk-jump-white { inset: 0; background: #fff; animation: sk-jump-white 1000ms ease-out forwards; }
-.sk-jump-fire { left: 50%; top: 46%; width: 60vmin; height: 60vmin; margin: -30vmin 0 0 -30vmin; border-radius: 50%;
-  background: radial-gradient(circle, #fffbe0 0%, #ffd24a 28%, #ff7a1e 55%, #c8321a 75%, rgba(120, 20, 10, 0) 100%);
-  animation: sk-jump-fire 1100ms cubic-bezier(0.1, 0.7, 0.2, 1) forwards; }
-.sk-jump-fire2 { background: radial-gradient(circle, rgba(255,255,255,0) 40%, #ff5a1e 62%, #7a1208 80%, rgba(0,0,0,0) 100%); animation-delay: 90ms; animation-duration: 1300ms; }
-.sk-jump-red { inset: 0; background: radial-gradient(ellipse at 50% 46%, rgba(255, 90, 30, 0.55), rgba(120, 10, 0, 0.85) 70%, #1a0000 100%); opacity: 0; animation: sk-jump-red 2300ms 150ms ease-out forwards; }
+.sk-jump-burst { left: 50%; top: 46%; width: 60vmin; height: 60vmin; margin: -30vmin 0 0 -30vmin; border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, #d6f3ff 28%, #7cc8f5 55%, #2f7fd6 75%, rgba(20, 60, 140, 0) 100%);
+  animation: sk-jump-burst 1100ms cubic-bezier(0.1, 0.7, 0.2, 1) forwards; }
+.sk-jump-burst2 { background: radial-gradient(circle, rgba(255,255,255,0) 40%, #8fd6ff 62%, #1d4f9a 80%, rgba(0,0,0,0) 100%); animation-delay: 90ms; animation-duration: 1300ms; }
+.sk-jump-frost { inset: 0; background: radial-gradient(ellipse at 50% 46%, rgba(150, 215, 255, 0.35), rgba(20, 70, 140, 0.8) 70%, #020b1a 100%);
+  box-shadow: inset 0 0 12vmin 4vmin rgba(235, 248, 255, 0.95), inset 0 0 30vmin 6vmin rgba(160, 215, 255, 0.6); opacity: 0; animation: sk-jump-frost 2300ms 150ms ease-out forwards; }
 @keyframes sk-jump-white { 0% { opacity: 1; } 30% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes sk-jump-fire { from { transform: scale(0.1); opacity: 1; } 70% { opacity: 1; } to { transform: scale(calc(9 + var(--p, 1) * 4)); opacity: 0; } }
-@keyframes sk-jump-red { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes sk-jump-burst { from { transform: scale(0.1); opacity: 1; } 70% { opacity: 1; } to { transform: scale(calc(9 + var(--p, 1) * 4)); opacity: 0; } }
+@keyframes sk-jump-frost { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
 .sk-wordblast { position: fixed; inset: 0; z-index: 85; pointer-events: none; overflow: hidden; }
-.sk-wordblast-w { position: absolute; left: 50%; top: 46%; font-family: var(--skin-font-display, system-ui); font-weight: 900; letter-spacing: 0.05em; white-space: nowrap; color: #fff6c8;
-  text-shadow: 0 0 14px #ff9a2a, 0 0 34px #ff4a1a, 0 3px 0 #7a1208; opacity: 0; transform: translate(-50%, -50%) scale(0.2);
+.sk-wordblast-w { position: absolute; left: 50%; top: 46%; font-family: var(--skin-font-display, system-ui); font-weight: 900; letter-spacing: 0.05em; white-space: nowrap; color: #f2fbff;
+  text-shadow: 0 0 14px #7fd4ff, 0 0 34px #2a8fe0, 0 3px 0 #123a6e; opacity: 0; transform: translate(-50%, -50%) scale(0.2);
   animation: sk-word-fly 1500ms cubic-bezier(0.2, 0.8, 0.3, 1) both; }
 @keyframes sk-word-fly {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
@@ -807,8 +797,8 @@
 :root.reduce-motion .sk-jump, :root.reduce-motion .sk-wordblast { display: none; }
 @media (prefers-reduced-motion: reduce) { .sk-jump, .sk-wordblast { display: none; } }
 
-.sk-jump-fire3 { background: radial-gradient(circle, #fff 0%, #ffe27a 35%, #ff8a2a 62%, rgba(255, 60, 20, 0) 100%); animation-delay: 40ms; animation-duration: 1500ms; }
-.sk-jump-ring { left: 50%; top: 46%; width: 40vmin; height: 40vmin; margin: -20vmin 0 0 -20vmin; border-radius: 50%; border: 3vmin solid rgba(255, 190, 90, 0.9); animation: sk-jump-ring 1400ms 80ms cubic-bezier(0.1, 0.6, 0.3, 1) forwards; opacity: 0; }
+.sk-jump-burst3 { background: radial-gradient(circle, #fff 0%, #e6f8ff 35%, #8fd0f5 62%, rgba(60, 140, 230, 0) 100%); animation-delay: 40ms; animation-duration: 1500ms; }
+.sk-jump-ring { left: 50%; top: 46%; width: 40vmin; height: 40vmin; margin: -20vmin 0 0 -20vmin; border-radius: 50%; border: 3vmin solid rgba(200, 236, 255, 0.9); animation: sk-jump-ring 1400ms 80ms cubic-bezier(0.1, 0.6, 0.3, 1) forwards; opacity: 0; }
 @keyframes sk-jump-ring { 0% { transform: scale(0.1); opacity: 1; } 100% { transform: scale(calc(14 + var(--p, 1) * 3)); opacity: 0; } }
 
 /* Short windows: a smaller title sign, so the menu fits between the name plate and the bottom bar. */
@@ -864,3 +854,8 @@
 .sk-rooms [role="alertdialog"] li { box-shadow: none; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
 .sk-rooms [role="note"] { border: 0; border-radius: 0; color: var(--ink); background: var(--kit-paper-tex), var(--paper); box-shadow: 2px 3px 0 rgba(40, 24, 10, 0.35); }
 .sk-rooms [role="note"] [class*="text-amber"], .sk-rooms [role="note"] [class*="text-white"] { color: var(--ink); }
+
+/* Settings' save code (plan v7 Part 6): a panel row that opens downwards when pasting. */
+:root[data-skin="painted"] .sk-save-row { flex-direction: column; align-items: stretch; gap: 2px; padding-block: 8px; }
+.sk-save-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sk-save-label { font-family: var(--skin-font-hand); font-size: 19px; }

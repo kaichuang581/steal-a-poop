@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { exportLog, readLog } from '../../hunt/log';
 import { useAdmin } from '../../lib/admin';
 import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
@@ -23,6 +24,14 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [logCopied, setLogCopied] = useState(false);
+  // The Hunt's run log (plan v7 Part 3.2): copied by hand, never sent anywhere.
+  const copyLog = async () => {
+    const text = exportLog();
+    try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy the hunt log:', text); }
+    setLogCopied(true);
+    setTimeout(() => setLogCopied(false), 2000);
+  };
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => { field.current?.focus(); }, []);
 
@@ -60,6 +69,10 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                   : <ClothButton onClick={() => setAvatar(ADMIN_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
               </div>
             </section>
+            <div className="mt-3 flex items-center gap-2">
+              <ClothButton onClick={copyLog} className="sk-btn">{logCopied ? 'Copied' : 'Copy hunt log'}</ClothButton>
+              <span className="sk-hand text-sm" style={{ color: 'var(--ink-soft)' }}>{readLog().length} runs on this device</span>
+            </div>
             <div className="mt-3 flex gap-2">
               <WoodButton onClick={() => { if (wearing) setAvatar(null); lock(); pokeAvatar(); setError(''); }} className="sk-btn flex-1">Lock</WoodButton>
               <ClothButton onClick={onClose} className="sk-btn flex-1">Done</ClothButton>

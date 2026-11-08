@@ -12,8 +12,8 @@
   --glow: #FFD98A;
   --cloth: #6BA372;      /* lit edge of Bank */
   --cloth-dark: #3F6A49; /* Bank body; #FFF4DC text = 5.7:1 */
-  --coral: #E7705E;      /* lit edge of Steal; steal-window ring */
-  --coral-dark: #B8432F; /* Steal body; penalty text; #FFF4DC text = 4.9:1 */
+  --coral: #E7705E;      /* warm red: alarms, the blast glow */
+  --coral-dark: #B8432F; /* deep warm red; penalty text; #FFF4DC text = 4.9:1 */
   --bramble: #4E3C2F;    /* trap tiles */
   --mist: #9FB7D6;       /* rain, mist, disabled */
   --button-text: #FFF4DC;

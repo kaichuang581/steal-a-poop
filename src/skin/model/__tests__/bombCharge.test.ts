@@ -5,8 +5,8 @@ import { bombSize, wordCharge, wordsSinceBoom } from '../bombCharge';
 const e = (kind: ChainEntry['kind'], word: string | null = null): ChainEntry => ({ round: 1, seat: 0, kind, word, points: 0 });
 
 describe('bomb charge', () => {
-  it('collects words since the last time-out, steals included', () => {
-    const h = [e('play', 'cat'), e('timeout'), e('play', 'tiger'), e('steal', 'rat'), e('invalid')];
+  it('collects words since the last time-out', () => {
+    const h = [e('play', 'cat'), e('timeout'), e('play', 'tiger'), e('play', 'rat'), e('invalid')];
     expect(wordsSinceBoom(h)).toEqual(['tiger', 'rat']);
   });
   it('can leave out a time-out that just happened', () => {

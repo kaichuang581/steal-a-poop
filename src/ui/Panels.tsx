@@ -16,7 +16,6 @@ export function Scoreboard({ game }: { game: GameState }) {
           <span className="w-4 text-white/50 tabular-nums">{i + 1}</span>
           <span aria-hidden="true">{p.emoji}</span>
           <span className="min-w-0 flex-1 truncate font-bold" style={{ color: p.color }}>{p.name}{room && p.id === mySeat ? ' (you)' : ''}</span>
-          {p.steals > 0 && <span className="text-xs text-amber-300" title="steals"><Px e="⚡" size={12} />{p.steals}</span>}
           <span className="font-black tabular-nums">{p.banked}</span>
         </li>
       ))}
@@ -27,10 +26,8 @@ export function Scoreboard({ game }: { game: GameState }) {
 function describe(e: ChainEntry): string {
   switch (e.kind) {
     case 'play': return `${e.word!.toUpperCase()} +${e.points}`;
-    case 'steal': return `${e.word!.toUpperCase()} STEAL +${e.points}`;
     case 'pass': return 'passed the bomb';
     case 'bank': return `banked ${e.points}`;
-    case 'stealFail': return e.points ? `steal failed ${e.points} pts` : 'steal failed (no penalty)';
     case 'timeout': return e.points ? 'timed out −5' : 'timed out (no penalty)';
     case 'invalid': return e.points ? 'invalid word −5' : 'invalid word (no penalty)';
   }

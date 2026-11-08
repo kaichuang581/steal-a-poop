@@ -474,9 +474,6 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-float-go b { padding: 3px 8px; border-radius: 4px; font: 900 13px/1.2 var(--skin-font-body); letter-spacing: 0.04em; color: #2A1E14; background: rgba(255, 255, 255, 0.92); text-shadow: none; box-shadow: 0 2px 0 var(--glow-a); }
 .kit-float-go:disabled { opacity: 0.45; cursor: default; }
 .kit-float-go:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; border-radius: 4px; }
-/* A steal: the word and the key burn coral. */
-.kit-float[data-mode="steal"] { --glow-a: #7A1E14; --glow-b: rgba(184, 67, 47, 0.9); }
-.kit-float[data-mode="steal"] .kit-float-go b { background: #FFB6A8; }
 /* A wrong word shakes and reddens; a taken word flares gold. */
 .kit-float[data-wrong] .kit-float-word { color: #FF8F7A; animation: kit-float-shake 0.4s ease-in-out; }
 .kit-float.sk-accept-flash .kit-float-word { text-shadow: 0 3px 0 var(--glow-a), 0 0 26px var(--glow), 0 0 8px var(--glow); }

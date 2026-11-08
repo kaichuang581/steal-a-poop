@@ -10,8 +10,8 @@ const hop = (p: number, h: number) => (p >= 0 && p < 1 ? Math.sin(p * Math.PI) *
 
 /**
  * The coin's pose for a state `e` seconds in, at clock time `t`, on its own `phase`. The picture never changes: it
- * only tilts (rotZ), leans (rotX), turns right round (rotY) and hops (lift). `moving` false (reduced motion, or the
- * table held still for a steal) gives a resting pose with the state's own tilt and nothing more.
+ * only tilts (rotZ), leans (rotX), turns right round (rotY) and hops (lift). `moving` false (reduced motion, or a
+ * table held still) gives a resting pose with the state's own tilt and nothing more.
  */
 export function discPose(state: SheepState, e: number, t: number, phase: number, moving: boolean, speaking = false): DiscPose {
   const tp = t + phase;

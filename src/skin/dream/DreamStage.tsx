@@ -13,6 +13,10 @@ import { DISTANCE } from '../scene/layout';
 import { Windmill } from '../scene/Sky';
 import { useWorld } from '../table/BarnTable';
 import { DevStats, devOn } from '../table/DevStats';
+import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { byId } from '../avatars/catalog';
+import { useAvatar } from '../avatars/store';
+import { animalModel } from '../voxel/animals';
 import { Sheep } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
 import { voxelMaterial } from '../voxel/material';
@@ -119,6 +123,10 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
   const size = useThree((s) => s.size);
   const probe = useMemo(() => ({ a: new Vector3(), b: new Vector3(), shown: 0 }), []);
   const [sheepState, setSheepState] = useState<SheepState>('grazing');
+  // The worn avatar runs the dream (V5.1 Part 6.7), drawn at its own scale; the admin's photo disc cannot trot, so
+  // it dreams as the sheep.
+  const avatar = useAvatar();
+  const runner = avatar !== ADMIN_AVATAR_ID && byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined;
   const [stateKey, setStateKey] = useState(0);
   const [pace, setPace] = useState(0);
   const paceRef = useRef(0);
@@ -304,8 +312,8 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
 
         {/* The sheep faces +x and runs on the spot; the world does the moving. */}
         <group ref={sheep}>
-          <group rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE}>
-            <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} />
+          <group rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner?.drawScale ?? 1)}>
+            <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} model={runner} />
           </group>
           {[0, 1, 2].map((i) => <mesh key={i} ref={(el) => { stars.current[i] = el; }} geometry={geo.star} material={glowMat} visible={false} />)}
           <Html position={[0, 1.4, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>

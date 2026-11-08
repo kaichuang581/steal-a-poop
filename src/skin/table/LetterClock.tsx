@@ -7,17 +7,17 @@ import { Slate, Tile } from '../kit';
 
 /**
  * The seconds under the carved letter board (V6 Part 5.2): a mini chalk slate hung from the board's bottom edge on two
- * strings, coral in the steal window. The board carries the letter; when the camera loses the board (a close-up), the
+ * strings. The board carries the letter; when the camera loses the board (a close-up), the
  * slate waits at the frame's edge and carries the letter too, on a mini tile, so it is never off screen. It is the
  * chain tile the tour points at.
  */
-export function LetterClock({ letter, isTrap, secondsLeft, stealOpen, pop }: { letter: string; isTrap: boolean; secondsLeft: number | null; stealOpen: boolean; pop: boolean }) {
+export function LetterClock({ letter, isTrap, secondsLeft, pop }: { letter: string; isTrap: boolean; secondsLeft: number | null; pop: boolean }) {
   const L = letter.toUpperCase();
   const s = secondsLeft === null ? '' : secondsLeft < 5 ? Math.max(0, secondsLeft).toFixed(1) : String(Math.ceil(secondsLeft));
   return (
     <div className={`sk-clock ${pop ? 'sk-clock-pop' : ''}`} data-chain-tile data-tour="chain" aria-label={`Required starting letter ${L}${isTrap ? ', a trap letter' : ''}`}>
       <span className="kit-string" /><span className="kit-string" />
-      <Slate size="mini" tone={stealOpen ? 'coral' : 'chalk'}>
+      <Slate size="mini" tone="chalk">
         <Tile size="mini" trap={isTrap} className="sk-clock-letter">{L}</Tile>
         {s && <span aria-label={`${s} seconds left`}>{s}</span>}
       </Slate>

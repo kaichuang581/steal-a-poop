@@ -910,3 +910,18 @@
 :root[data-skin="painted"] .sk-save-row { flex-direction: column; align-items: stretch; gap: 2px; padding-block: 8px; }
 .sk-save-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sk-save-label { font-family: var(--skin-font-hand); font-size: 19px; }
+
+/* The sound menu (SoundMenu.tsx): off the speaker button, a dark wool panel, a row each for the game's sounds and the
+   music, each with a lever and a rope slider. */
+.sk-sound { position: relative; }
+.sk-sound-menu {
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; display: flex; flex-direction: column; gap: 10px; width: 300px; padding: 14px 16px 12px;
+  border-radius: 4px; background: var(--kit-stitch-dark) 0 0 / 12px 12px, var(--slate); outline: 1.5px dashed rgba(243, 240, 230, 0.4); outline-offset: -5px;
+  box-shadow: 0 4px 0 rgba(30, 18, 8, 0.45); color: var(--chalk); animation: sk-say-in 180ms var(--ease-out) both;
+}
+.sk-sound-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 12px; }
+.sk-sound-name { font: 400 19px/1.1 var(--skin-font-hand); }
+.sk-sound-row .kit-rope-slider { grid-column: 1 / -1; width: 100%; }
+.sk-sound-row .kit-rope-slider:disabled { opacity: 0.4; }
+.sk-sound-note { margin: 0; font: 400 14px/1 var(--skin-font-hand); opacity: 0.6; text-align: right; }
+@media (max-width: 640px) { .sk-sound-menu { width: min(300px, calc(100vw - 24px)); } }

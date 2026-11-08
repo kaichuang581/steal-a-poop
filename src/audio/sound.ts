@@ -30,11 +30,17 @@ export function unlockAudio(): void {
   }
 }
 
-/** Audio starts only after the first tap or key press. */
+/** The running audio context, once the first tap or key press has unlocked it (music.ts plays through it). */
+export function audioContext(): AudioContext | null {
+  return ctx?.state === 'running' ? ctx : null;
+}
+
+/** Audio starts only after the first tap or key press; the lofi loop starts with it. */
 export function installAudioUnlock(): void {
   const handler = () => {
     unlockAudio();
     if (ctx?.state === 'running') {
+      void import('./music').then((m) => m.startMusic());
       window.removeEventListener('pointerdown', handler);
       window.removeEventListener('keydown', handler);
     }

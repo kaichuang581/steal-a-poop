@@ -28,7 +28,7 @@ import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
@@ -48,6 +48,7 @@ import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
 import { playBarnDoors } from '../components/BarnDoors';
 import { PaintedSettings } from './PaintedSettings';
+import { SoundMenu } from '../components/SoundMenu';
 
 export const PAINTED_TITLE = 'Finish the Word';
 /** What each bot level means in a practice run, where it can't beat you: only the letters it leaves you differ. */
@@ -85,7 +86,7 @@ const RULES: { key: keyof GameSettings; label: string; values: (number | string 
  * then set it. Every control calls the store's existing functions; Practice has its own small panel for its difficulty.
  */
 export function PaintedHome() {
-  const { settings, setSettings, start, startTour, dictStatus, retryDictionary, muted, toggleMute } = useStore();
+  const { settings, setSettings, start, startTour, dictStatus, retryDictionary } = useStore();
   const [step, setStep] = useState<'tables' | 'setup' | 'practice'>('tables');
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
@@ -385,7 +386,7 @@ export function PaintedHome() {
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
-        <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} title={muted ? 'Unmute' : 'Sound'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>
+        <SoundMenu />
         <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>
       </div>
 

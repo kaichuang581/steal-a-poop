@@ -5,7 +5,7 @@ import { useStore } from '../../state/store';
 import { AccountPanel } from '../../ui/auth/AccountPanel';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { PaintedCredits } from '../components/PaintedCredits';
-import { Board, Lever, Panel, PanelRow, Peg, RopeSlider, WoodButton } from '../kit';
+import { Board, Lever, Panel, PanelRow, Peg, WoodButton } from '../kit';
 import { SaveCodeRow } from '../components/SaveCodeRow';
 
 /**
@@ -37,10 +37,6 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
         <Panel className="-mt-3 pt-5">
           {/* The account panel is written light-on-dark; it sits on a cranberry patch. */}
           <div className="kit-panel-row sk-account-row empty:hidden"><AccountPanel onSignIn={() => setSignIn(true)} /></div>
-          <PanelRow label="Sound"><Lever checked={!s.muted} onChange={s.toggleMute} label="Sound" /></PanelRow>
-          <PanelRow label="Volume">
-            <RopeSlider min={0} max={100} value={Math.round(s.volume * 100)} onChange={(e) => s.setVolume(Number(e.target.value) / 100)} aria-label="Volume" className="w-32" />
-          </PanelRow>
           <PanelRow label="Reduce motion"><Lever checked={s.reduceMotion} onChange={s.setReduceMotion} label="Reduce motion" /></PanelRow>
           <PanelRow label="Larger text"><Lever checked={s.largeText} onChange={s.setLargeText} label="Larger text" /></PanelRow>
           <PanelRow label="Tutorial">

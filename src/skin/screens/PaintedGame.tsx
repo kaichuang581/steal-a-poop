@@ -13,7 +13,7 @@ import { useRoomStore } from '../../state/roomStore';
 import { useStore } from '../../state/store';
 import { useAvatar } from '../avatars/store';
 import { ChatPanel } from '../../ui/ChatPanel';
-import { AcornIcon, BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, LeafIcon, SeedlingIcon, SnowflakeIcon, SpeakerIcon } from '../components/Icons';
+import { AcornIcon, BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, LeafIcon, SeedlingIcon, SnowflakeIcon } from '../components/Icons';
 import { Notice } from '../components/Notice';
 import { ChainList, RulesCard } from '../components/RulesCard';
 import { CoachTips } from '../../ui/CoachTips';
@@ -27,6 +27,7 @@ import { Lives } from '../components/Lives';
 import { TallyBoard } from '../components/TallyBoard';
 import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Panel, Paper, Peg, Slate, WoodButton } from '../kit';
 import { TwistSign } from '../components/TwistSign';
+import { SoundMenu } from '../components/SoundMenu';
 import { Alarm, useAlarms } from '../components/Alarm';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { localDateKey } from '../hooks/useToday';
@@ -67,8 +68,6 @@ export function PaintedGame() {
   const game = useStore((s) => s.game)!;
   const mySeat = useStore((s) => s.mySeat);
   const storeMode = useStore((s) => s.mode);
-  const muted = useStore((s) => s.muted);
-  const toggleMute = useStore((s) => s.toggleMute);
   const quit = useStore((s) => s.quit);
   const dict = useStore((s) => s.dict);
   const now = useStore((s) => s.now);
@@ -324,7 +323,7 @@ export function PaintedGame() {
       <div className="pointer-events-none absolute inset-0 z-[5]" style={{ background: 'radial-gradient(ellipse at center, transparent 58%, rgba(59, 48, 40, 0.28) 100%)' }} aria-hidden="true" />
 
       {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. */}
-      <header className="pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
+      <header className="pointer-events-none relative z-40 flex items-start justify-between gap-2 p-2">
         <div className="flex flex-col items-start gap-1">
           {practice ? (
             <Slate size="plaque" tone={runWords > runBest && runBest > 0 ? 'amber' : 'chalk'} className="sk-run-plaque">
@@ -344,7 +343,7 @@ export function PaintedGame() {
           <Peg onClick={() => setSheet('cheat')} aria-label="How to play" title="How to play"><BookIcon size={22} /></Peg>
           <Peg onClick={() => setSheet('chain')} aria-label="Chain history" title="Chain history"><ChainIcon size={18} /></Peg>
           {storeMode === 'room' && <Peg onClick={() => setSheet('chat')} aria-label="Room chat" title="Room chat"><ChatIcon size={18} /></Peg>}
-          <Peg onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted} title={muted ? 'Unmute' : 'Mute'}><SpeakerIcon size={18} muted={muted} /></Peg>
+          <SoundMenu peg />
           <Peg onClick={() => setSheet('leave')} aria-label="Leave game" title="Leave game"><CloseIcon size={16} /></Peg>
         </div>
       </header>

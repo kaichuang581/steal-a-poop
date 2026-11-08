@@ -8,6 +8,8 @@ import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
 import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
 import { Brass } from '../kit';
+import { previewEnd } from '../admin/endPreview';
+import type { EndPreview } from '../admin/endPreview';
 
 /**
  * The admin lock: a small paper dialog off the lock button by the avatar. One password, no username; the right one
@@ -67,6 +69,16 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                 {wearing
                   ? <WoodButton onClick={() => setAvatar(null)} className="sk-btn mt-1" aria-pressed>Unequip</WoodButton>
                   : <ClothButton onClick={() => setAvatar(ADMIN_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
+              </div>
+            </section>
+            {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
+            <section className="sk-paper mt-3 p-2" aria-label="See the end screens">
+              <b className="sk-display block text-base">Skip to the end</b>
+              <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>Deal a game and jump to its results. Nothing counts toward your stats.</p>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {([['won', 'Win a game'], ['lost', 'Lose a game'], ['run', 'Practice run over']] as [EndPreview, string][]).map(([kind, label]) => (
+                  <ClothButton key={kind} className="sk-btn" onClick={() => { if (previewEnd(kind)) onClose(); }}>{label}</ClothButton>
+                ))}
               </div>
             </section>
             <div className="mt-3 flex items-center gap-2">

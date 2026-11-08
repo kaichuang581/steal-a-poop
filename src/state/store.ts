@@ -107,7 +107,7 @@ function finished(mode: Mode, before: GameState, after: GameState): Partial<Stor
   if (mode !== 'quick' && mode !== 'daily') return null;
   if (mode === 'quick') recordQuickResult(after.winners?.includes(0) ?? false, !!after.settings.softGame);
   const me = after.players[0];
-  return { gameResult: recordBests({ wool: me.lives, steals: me.steals, longest: me.longestWord }) };
+  return { gameResult: recordBests({ wool: me.lives, longest: me.longestWord }) };
 }
 const MUTE_KEY = 'sap:muted';
 const VOLUME_KEY = 'sap:volume';
@@ -245,7 +245,7 @@ export const useStore = create<Store>((set, get) => ({
       const streak = recordResult({
         date: dailyDate, status: 'done',
         rank: ranked.findIndex((p) => p.id === 0) + 1,
-        players: next.players.length, banked: me.banked, steals: me.steals,
+        players: next.players.length, banked: me.banked,
         longest: me.longestWord.length,
       });
       set({ streak });

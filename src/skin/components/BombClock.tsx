@@ -14,7 +14,7 @@ function BombBody({ red }: { red: boolean }) {
   );
 }
 
-/** The big bomb on the letter card: `fraction` of the fuse (0..1) is left; red once others can steal. */
+/** The big bomb on the letter card: `fraction` of the fuse (0..1) is left. */
 export function BombClock({ fraction, red, size = 44 }: { fraction: number; red: boolean; size?: number }) {
   const left = Math.max(0, Math.min(1, fraction));
   const n = Math.ceil(left * FUSE.length);

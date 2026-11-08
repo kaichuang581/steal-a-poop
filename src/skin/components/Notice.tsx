@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { SnowCap } from './SnowCap';
 
-export type NoticeTone = 'wood' | 'steal' | 'ice' | 'cold' | 'gold';
+export type NoticeTone = 'wood' | 'ice' | 'cold' | 'gold';
 
 /**
- * A hanging signboard for the moments over the table (a steal, a freeze, time's up, the round's twist): the same
+ * A hanging signboard for the moments over the table (a freeze, time's up, the round's twist): the same
  * nailed, wood-grained, snow-capped boards as the title, painted per moment. Big carved text, an optional pixel icon,
  * and a small hand-lettered line under it.
  */

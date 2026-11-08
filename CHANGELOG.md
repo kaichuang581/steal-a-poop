@@ -2,6 +2,11 @@
 
 All user-visible changes, newest first.
 
+## 0.3.3
+
+- Stealing is gone: no more red seconds, steal turns or STEAL button. Keep your wool by answering in time, and win more with traps
+- The steals leaderboard, stat and coins are retired with it
+
 ## 0.3.2
 
 - Every animal avatar is rebuilt to proper farm-animal proportions: longer bodies, heads sized to them, necks that join smoothly, and a horse that stands tallest at the table

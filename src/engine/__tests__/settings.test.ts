@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PRACTICE_TURN_MS } from '../constants';
 import { createGame, dailySetup } from '../game';
-import { advance, apply, inStealWindow } from '../reducer';
+import { advance } from '../reducer';
 import { DEFAULT_SETTINGS, estimateMinutes, PRESETS, presetOf, resolveSettings } from '../settings';
 import type { GameSettings } from '../settings';
 import { roundTurnMs, turnDurationMs } from '../timer';
@@ -13,7 +13,7 @@ function game(settings: Partial<GameSettings>, mode?: 'practice'): GameState {
   let s = createGame({ seed: 'settings', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'medium', settings, mode }, dict);
   s = advance(s, ctx, T0 + 2500);
   s = structuredClone(s);
-  if (s.turn) { s.turn.botActAt = null; s.turn.stealPlans = []; }
+  if (s.turn) s.turn.botActAt = null;
   return s;
 }
 
@@ -21,14 +21,14 @@ function game(settings: Partial<GameSettings>, mode?: 'practice'): GameState {
 function humanAgain(s: GameState): GameState {
   const c = structuredClone(s);
   if (!c.turn) return c;
-  c.turn = { ...c.turn, seat: 0, botActAt: null, stealPlans: [], endsAt: c.turn.startedAt + 10_000 };
+  c.turn = { ...c.turn, seat: 0, botActAt: null, endsAt: c.turn.startedAt + 10_000 };
   return c;
 }
 
 describe('game settings', () => {
   it('defaults are today\'s rules', () => {
     expect(resolveSettings()).toEqual(DEFAULT_SETTINGS);
-    expect(DEFAULT_SETTINGS).toMatchObject({ turnsPerRound: 2, lives: 3, twists: true, stealWindowSeconds: 3, botCount: 5, botDifficulty: 'medium' });
+    expect(DEFAULT_SETTINGS).toMatchObject({ turnsPerRound: 2, lives: 3, twists: true, botCount: 5, botDifficulty: 'medium' });
     expect(presetOf(DEFAULT_SETTINGS)).toBe('standard');
     const s = createGame({ seed: 'd', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'medium' }, dict);
     expect(s.settings).toEqual(DEFAULT_SETTINGS);
@@ -98,19 +98,10 @@ describe('game settings', () => {
     expect(one.players[0].frozen).toBe(true);
   });
 
-  it('twists: false draws no twist; stealWindowSeconds 0 rejects steals and 5 opens at 5 s', () => {
+  it('twists: false draws no twist', () => {
     const plain = game({ twists: false });
     expect(plain.modifierDeck.every((m) => m === 'none')).toBe(true);
     expect(plain.modifier).toBe('none');
-    const noSteal = game({ stealWindowSeconds: 0 });
-    noSteal.turn = { ...noSteal.turn!, seat: 1 };
-    expect(inStealWindow(noSteal, noSteal.turn.endsAt - 500)).toBe(false);
-    const res = apply(noSteal, ctx, { type: 'steal', seat: 0, word: 'cat' }, noSteal.turn.endsAt - 500);
-    expect(res.accepted).toBe(false);
-    expect(res.reason).toBe('outside_steal_window');
-    const wide = game({ stealWindowSeconds: 5 });
-    expect(inStealWindow(wide, wide.turn!.endsAt - 4500)).toBe(true);
-    expect(inStealWindow(wide, wide.turn!.endsAt - 5500)).toBe(false);
   });
 
   it('the Daily Table and Practice ignore the form', () => {

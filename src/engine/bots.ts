@@ -7,17 +7,15 @@ import type { Difficulty, Personality, RoundModifier } from './types';
 export interface BotProfile {
   responseMs: [number, number];
   failRate: number;
-  /** Chance, per other player's turn, that this bot plans a steal. */
-  stealChance: number;
   prefer: 'short' | 'any' | 'long';
   /** Practice runs: the chance, per word, that this bot aims for a CORNER_LETTERS ending. */
   corner: number;
 }
 
 export const BOT_PROFILES: Record<Difficulty, BotProfile> = {
-  easy: { responseMs: [4000, 9000], failRate: 0.2, stealChance: 0.08, prefer: 'short', corner: 0 },
-  medium: { responseMs: [3000, 7000], failRate: 0.12, stealChance: 0.18, prefer: 'any', corner: 0.35 },
-  hard: { responseMs: [2000, 6000], failRate: 0.05, stealChance: 0.3, prefer: 'long', corner: 0.8 },
+  easy: { responseMs: [4000, 9000], failRate: 0.2, prefer: 'short', corner: 0 },
+  medium: { responseMs: [3000, 7000], failRate: 0.12, prefer: 'any', corner: 0.35 },
+  hard: { responseMs: [2000, 6000], failRate: 0.05, prefer: 'long', corner: 0.8 },
 };
 
 export const PERSONALITIES: readonly Personality[] = ['cautious', 'greedy', 'random'];

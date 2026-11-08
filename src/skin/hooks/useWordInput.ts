@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { inStealWindow } from '../../engine';
 import { rejectMessage } from '../../lib/messages';
 import { useStore } from '../../state/store';
 import type { MessageView } from '../model/types';
@@ -14,7 +13,6 @@ export function useWordInput() {
   const mode = useStore((s) => s.mode);
   const mySeat = useStore((s) => s.mySeat);
   const suggest = useStore((s) => s.suggest);
-  const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
   const [typed, setTyped] = useState('');
   const [hint, setHint] = useState('');
   const [ideas, setIdeas] = useState<string[]>([]);
@@ -24,8 +22,6 @@ export function useWordInput() {
 
   const playing = game.phase === 'playing' && !!game.turn;
   const myTurn = playing && game.turn!.seat === mySeat;
-  // A frozen player (out of lives) can no longer steal, so they never get the steal prompt.
-  const canSteal = stealOpen && !myTurn && !game.players[mySeat]?.frozen;
   const learning = mode === 'tour';
 
   useEffect(() => setIdeas([]), [game.turn?.seat]);
@@ -35,7 +31,7 @@ export function useWordInput() {
     return () => clearTimeout(id);
   }, [hint]);
 
-  const send = async (type: 'play' | 'steal') => {
+  const send = async (type: 'play') => {
     const word = typed.trim();
     if (!word) return;
     const confirmed = fix !== null && word.toLowerCase() === fix.from;
@@ -52,13 +48,8 @@ export function useWordInput() {
       if (!res.reason) setAcceptKey((k) => k + 1);
     }
   };
-  const steal = () => {
-    if (!typed.trim()) return setHint(`Type a word starting with ${game.chainLetter.toUpperCase()} first.`);
-    void send('steal');
-  };
   const submit = () => {
     if (myTurn) void send('play');
-    else if (canSteal) steal();
   };
   const onChange = (next: string) => {
     setTyped(next);
@@ -72,7 +63,7 @@ export function useWordInput() {
       : null;
 
   return {
-    game, typed, onChange, submit, steal, message, ideas, learning, myTurn, canSteal, acceptKey,
+    game, typed, onChange, submit, message, ideas, learning, myTurn, acceptKey,
     hintIdeas: () => setIdeas(suggest(3)),
     useIdea: (w: string) => setTyped(w),
   };

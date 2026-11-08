@@ -19,7 +19,6 @@ export interface DailyBoardRow {
   rank: number;
   name: string;
   banked: number;
-  steals: number;
   longestWord: string;
   cosmetics?: Cosmetics;
 }
@@ -82,7 +81,7 @@ export class GameDataService {
     for (const r of raw) {
       const p = r.userId ? await this.visible(r.userId) : null;
       if (!p) continue;
-      rows.push({ rank: rows.length + 1, name: p.nickname, banked: r.banked, steals: r.steals, longestWord: r.longestWord, cosmetics: await this.d.economy.cosmetics(r.userId!) });
+      rows.push({ rank: rows.length + 1, name: p.nickname, banked: r.banked, longestWord: r.longestWord, cosmetics: await this.d.economy.cosmetics(r.userId!) });
       if (rows.length === BOARD_SIZE) break;
     }
     return { date, rows };

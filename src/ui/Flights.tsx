@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNewEvents } from './useNewEvents';
 import { WordText } from './WordText';
 
-interface Flight { id: number; seat: number; word: string; amount: number; steal: boolean }
+interface Flight { id: number; seat: number; word: string; amount: number }
 
 /** Word card pops up over the table, then a "+N" floater rises below it. */
 export function Flights() {
@@ -12,8 +12,8 @@ export function Flights() {
   const [flights, setFlights] = useState<Flight[]>([]);
 
   useNewEvents((e) => {
-    if ((e.kind !== 'play' && e.kind !== 'steal') || !e.word || e.seat === null) return;
-    const f = { id: e.id, seat: e.seat, word: e.word, amount: e.amount, steal: e.kind === 'steal' };
+    if (e.kind !== 'play' || !e.word || e.seat === null) return;
+    const f = { id: e.id, seat: e.seat, word: e.word, amount: e.amount };
     setFlights((list) => [...list.slice(-4), f]);
     setTimeout(() => setFlights((list) => list.filter((x) => x.id !== f.id)), 1700);
   });
@@ -34,7 +34,7 @@ export function Flights() {
                 <WordText word={f.word} />
               </motion.div>
               <motion.div
-                className={`absolute left-1/2 top-[52%] -translate-x-1/2 text-2xl font-black drop-shadow sm:text-4xl ${f.steal ? 'text-fuchsia-300' : 'text-emerald-300'}`}
+                className={`absolute left-1/2 top-[52%] -translate-x-1/2 text-2xl font-black drop-shadow sm:text-4xl text-emerald-300`}
                 initial={{ opacity: 0, y: 0, scale: 0.6 }}
                 animate={{ opacity: [0, 1, 1, 0], y: -50, scale: [0.6, 1.2, 1, 1] }}
                 transition={{ delay: 0.7, duration: 0.9 }}

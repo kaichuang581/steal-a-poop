@@ -1,6 +1,6 @@
 import { useStore } from '../state/store';
 
-export type SoundKind = 'play' | 'bank' | 'steal' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom';
+export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom';
 
 let ctx: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
@@ -110,7 +110,7 @@ function schedule(c: AudioContext, kind: SoundKind): void {
         tone(c, { freq: 2200 + Math.random() * 800, at: i * 0.055, dur: 0.09, type: 'triangle', vol: 0.04 });
       }
       break;
-    case 'steal':
+    case 'fanfare':
       whoosh(c, 0, 0.32, 400, 3200, 0.25);
       tone(c, { freq: 330, at: 0.28, dur: 0.14, type: 'sawtooth', vol: 0.1 });
       tone(c, { freq: 495, at: 0.36, dur: 0.14, type: 'sawtooth', vol: 0.1 });

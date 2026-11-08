@@ -10,8 +10,6 @@ import { RoomManager, toGameResult } from './rooms';
 import type { ClientAction } from './rooms';
 import type { RoomError, Visibility } from './types';
 import { BlockList } from './blocks';
-import { DEFAULT_BUFFER_MS, DEFAULT_MAX_COMPENSATION_MS, RttTracker, estimatedSendTime } from './steals';
-import type { PendingAction, StealOptions } from './steals';
 import type { AuditLog } from './moderation/audit';
 import type { RevocationBus } from './auth/revocations';
 import type { Cosmetics } from '../src/net/protocol';
@@ -47,8 +45,6 @@ export interface ServerOptions {
   tickMs?: number;
   reviewEveryMs?: number;
   limits?: ConnectionLimits;
-  /** How competing steals are ordered. Default: arrival order (unchanged). See server/steals.ts. */
-  steals?: StealOptions;
 }
 
 export interface ConnectionLimits {
@@ -293,25 +289,8 @@ export async function startServer(opts: ServerOptions) {
       }
       case 'act': {
         const a = msg.action;
-        const valid = a && ((a.type === 'bank') || (a.type === 'pass') || ((a.type === 'play' || a.type === 'steal') && typeof a.word === 'string' && a.word.length <= 40));
+        const valid = a && ((a.type === 'bank') || (a.type === 'pass') || (a.type === 'play' && typeof a.word === 'string' && a.word.length <= 40));
         if (!valid) return fail(ws, 'bad_message');
-        // Compensated ordering: competing steals wait a moment and are then applied in order of when they
-        // were probably sent. While a hold is open, every action from the room joins it so none jumps the queue.
-        const heldRoom = compensated ? rooms.roomFor(userId) : null;
-        if (heldRoom && rooms.contested(heldRoom) && (a.type === 'steal' || rooms.isHeld(heldRoom.code))) {
-          const arrivalAt = now();
-          const rtt = stealOpts.rttOverride ? stealOpts.rttOverride(userId) : rtts.minRtt(userId);
-          const entry: PendingAction<ClientAction> = { userId, action: a, arrivalAt, estSendAt: estimatedSendTime(arrivalAt, rtt, stealOpts.maxCompensationMs ?? DEFAULT_MAX_COMPENSATION_MS) };
-          let batch = held.get(heldRoom.code);
-          if (!batch) {
-            if (!rooms.beginHold(heldRoom.code, arrivalAt)) return fail(ws, 'game_not_running');
-            const code = heldRoom.code;
-            batch = { entries: [], timer: setTimeout(() => flushHeld(code), stealOpts.bufferMs ?? DEFAULT_BUFFER_MS) };
-            held.set(code, batch);
-          }
-          batch.entries.push(entry);
-          return; // the result is sent when the batch is ordered
-        }
         const r = rooms.act(userId, a);
         if (!r.ok) return fail(ws, r.error);
         send(ws, { t: 'result', accepted: r.result.accepted, reason: r.result.reason ?? null, suggestion: r.result.suggestion ?? null });
@@ -378,24 +357,6 @@ export async function startServer(opts: ServerOptions) {
     }
   }
 
-  // Round trips for the optional steal compensation, and the steals being held per room.
-  const stealOpts = opts.steals ?? {};
-  const compensated = stealOpts.ordering === 'compensated';
-  const rtts = new RttTracker(stealOpts.rttWindow);
-  const held = new Map<string, { entries: PendingAction<ClientAction>[]; timer: ReturnType<typeof setTimeout> }>();
-  const flushHeld = (code: string) => {
-    const batch = held.get(code);
-    if (!batch) return;
-    clearTimeout(batch.timer);
-    held.delete(code);
-    for (const { entry, outcome } of rooms.resolveHold(code, batch.entries, now())) {
-      const target = sockets.get(entry.userId);
-      if (!outcome.ok) send(target, { t: 'error', error: outcome.error });
-      else send(target, { t: 'result', accepted: outcome.result.accepted, reason: outcome.result.reason ?? null, suggestion: outcome.result.suggestion ?? null });
-    }
-    broadcastRoom(code);
-  };
-
   // One limiter per message type, keyed by player (or by connection before sign-in).
   const budgets = { ...DEFAULT_MESSAGE_LIMITS, ...lim.messageLimits };
   const limiters = new Map<string, RateLimiter>();
@@ -429,7 +390,6 @@ export async function startServer(opts: ServerOptions) {
       h.alive = true;
       h.lastPong = Date.now();
       h.rtt = h.lastPong - h.pingAt;
-      if (ref.user && h.pingAt) rtts.record(ref.user.userId, h.rtt);
     });
     ws.on('error', () => undefined); // a broken socket is handled by 'close'; it must not crash the server
     const helloTimer = setTimeout(() => !ref.user && ws.close(4000, 'no hello'), 5000);
@@ -465,7 +425,6 @@ export async function startServer(opts: ServerOptions) {
         user.userId,
         setTimeout(() => {
           pendingLeave.delete(user.userId);
-          rtts.forget(user.userId);
           const r = rooms.leave(user.userId);
           if (r.ok) broadcastRoom(r.code);
         }, grace),
@@ -555,8 +514,6 @@ export async function startServer(opts: ServerOptions) {
       clearInterval(reviewTimer);
       clearInterval(heartbeatTimer);
       clearInterval(sweepTimer);
-      for (const b of held.values()) clearTimeout(b.timer);
-      held.clear();
       unsubscribeModeration();
       unsubscribeRevocations?.();
       unsubscribeCosmetics?.();

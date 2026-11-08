@@ -78,7 +78,6 @@ export interface GameResult {
     name: string;
     seat: number;
     banked: number;
-    steals: number;
     wordsPlayed: number;
     longestWord: string;
   }[];

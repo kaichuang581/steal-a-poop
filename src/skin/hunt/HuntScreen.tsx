@@ -124,7 +124,7 @@ export function HuntScreen() {
       else if (step.fx === 'meHit') playSound('fail');
       else if (step.fx === 'foeFaint') playSound('bank');
       else if (step.fx === 'freeze') playSound('roundEnd');
-      else if (step.fx === 'heal') playSound('steal');
+      else if (step.fx === 'heal') playSound('fanfare');
     }
     const ms = (step.ms ?? (step.text ? 1250 + step.text.length * 18 : 750)) * speed;
     const id = setTimeout(() => setMode({ ...mode, at: mode.at + 1 }), ms);

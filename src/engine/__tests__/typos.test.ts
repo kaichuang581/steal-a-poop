@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { halveScore } from '../penalties';
 import { apply } from '../reducer';
 import { suggestCorrection } from '../typos';
 import { ctx, dict, humanTurn, T0 } from './helpers';
@@ -49,25 +48,5 @@ describe('typo flow in apply', () => {
     expect(confirmed.accepted).toBe(true);
     expect(confirmed.state.players[0].lastWord).toBe('cat');
   });
-  it('a steal typo gets a suggestion and no penalty; the corrected word is a success', () => {
-    const s = humanTurn('c');
-    const p = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
-    const c = structuredClone(p);
-    c.turn!.botActAt = null; c.turn!.stealPlans = []; c.turn!.stealable = true;
-    c.players[0].banked = 40;
-    const end = c.turn!.endsAt;
-    const typo = apply(c, ctx, { type: 'steal', seat: 0, word: 'tigr' }, end - 1500);
-    expect(typo.accepted).toBe(false);
-    expect(typo.suggestion).toBe('tiger');
-    expect(typo.state.players[0].banked).toBe(40);
-    const done = apply(typo.state, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 1200);
-    expect(done.accepted).toBe(true);
-    expect(done.state.players[0].steals).toBe(1);
-  });
 });
 
-describe('halveScore', () => {
-  it.each([[33, 16], [32, 16], [1, 0], [0, 0], [-22, -33], [-21, -32], [-1, -2]])('%i -> %i', (from, to) => {
-    expect(halveScore(from)).toBe(to);
-  });
-});

@@ -337,9 +337,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   bottom is one quiet row (starts with, hint, pass, Enter) with the real input invisible over it. This supersedes the
   floating letters on the table (the dream keeps them). The ledger and the round tab no longer hang on ropes; the round's
   twist is stitched onto the round tab in the top-left corner.
-- Lofi music and the sound menu (requested by Brian, 2026-11-08): src/audio/music.ts plays a lofi loop made live with Web
+- Lofi music and the sound menu (requested by Brian, 2026-11-08; no noise sources since "why is there static noise"): src/audio/music.ts plays a lofi loop made live with Web
   Audio (no audio files): electric piano on Fmaj7, Em7, Dm7, Cmaj7, a round bass, a swung kit, the odd pentatonic note,
-  vinyl crackle, a warm wobbling low-pass, 72 bpm. It starts with the first tap or key press. The speaker button (Home
+  a soft rim and tick for drums, a warm wobbling low-pass, 72 bpm. It starts with the first tap or key press. The speaker button (Home
   and the table) opens the sound menu (src/skin/components/SoundMenu.tsx): game sounds and music, each with a lever and
   a volume; `sap:muted` and `sap:volume` are the game's sounds only, `sap:music` and `sap:musicVolume` the music.
   Settings no longer has sound rows.

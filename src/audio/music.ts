@@ -4,8 +4,9 @@ import { audioContext } from './sound';
 
 /**
  * Lofi in the barn (Brian, 2026-11-08: "add like a background lofi music"), made live with Web Audio, no files: a mellow
- * electric piano on a four-chord loop (Fmaj7, Em7, Dm7, Cmaj7), a round bass, a lazy swung kit (kick, brushed snare,
- * hats), the odd pentatonic melody note, and vinyl crackle, all through a warm low-pass at 72 bpm. It has its own switch
+ * electric piano on a four-chord loop (Fmaj7, Em7, Dm7, Cmaj7), a round bass, a lazy swung kit (kick, a soft rim, a
+ * quiet tick), the odd pentatonic melody note, all through a warm low-pass at 72 bpm. Nothing is made from noise, so
+ * nothing hisses (Brian, 2026-11-08: "why is there static noise in the music"). It has its own switch
  * and volume in the sound menu (the speaker button), apart from the game's sound effects.
  */
 const MUSIC_KEY = 'sap:music';
@@ -35,25 +36,15 @@ const MELODY = [69, 72, 74, 76, 79, 81]; // A minor pentatonic, up high
 
 let bus: GainNode | null = null;
 let warm: BiquadFilterNode | null = null;
-let noise: AudioBuffer | null = null;
 let timer: number | null = null;
 let nextBeat = 0;
 let beat = 0;
-let crackle: AudioBufferSourceNode | null = null;
 
 function level(): number {
   const m = useMusic.getState();
   return m.on ? m.volume * LEVEL : 0;
 }
 
-function noiseBuffer(c: AudioContext): AudioBuffer {
-  if (!noise) {
-    noise = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
-    const d = noise.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  }
-  return noise;
-}
 
 function env(c: AudioContext, at: number, peak: number, attack: number, decay: number): GainNode {
   const g = c.createGain();
@@ -89,12 +80,21 @@ function kick(c: AudioContext, at: number) {
   o.connect(g).connect(warm!); o.start(at); o.stop(at + 0.4);
 }
 
-function hiss(c: AudioContext, at: number, type: BiquadFilterType, freq: number, vol: number, dur: number) {
-  const src = c.createBufferSource(); src.buffer = noiseBuffer(c);
-  const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = 0.8;
-  const g = env(c, at, vol, 0.004, dur);
-  src.connect(f).connect(g).connect(warm!);
-  src.start(at, Math.random()); src.stop(at + dur + 0.05);
+/** A soft rim knock for the backbeat: two short tones, no noise. */
+function rim(c: AudioContext, at: number) {
+  for (const [freq, vol, dur] of [[330, 0.16, 0.09], [1240, 0.05, 0.04]] as const) {
+    const g = env(c, at, vol, 0.003, dur);
+    const o = c.createOscillator(); o.type = 'triangle';
+    o.frequency.setValueAtTime(freq, at); o.frequency.exponentialRampToValueAtTime(freq * 0.7, at + dur);
+    o.connect(g).connect(warm!); o.start(at); o.stop(at + dur + 0.05);
+  }
+}
+
+/** A tick for the hat: a tiny, quiet high sine blip, clean where noise would hiss. */
+function tick8(c: AudioContext, at: number, vol: number) {
+  const g = env(c, at, vol, 0.002, 0.03);
+  const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = 5200;
+  o.connect(g).connect(warm!); o.start(at); o.stop(at + 0.06);
 }
 
 /** One beat's worth of notes, scheduled ahead on the audio clock. */
@@ -108,26 +108,15 @@ function scheduleBeat(c: AudioContext, at: number, n: number) {
   // Bass: the root on 1, again on the "and" of 3.
   if (b === 0) bass(c, chord.bass, at, BEAT * 1.6);
   if (b === 2) bass(c, chord.bass, off, BEAT * 0.9);
-  // Drums: kick on 1 and the "and" of 2, a brushed snare on 2 and 4 laid back, hats on the eighths.
+  // Drums: kick on 1 and the "and" of 2, a soft rim on 2 and 4 laid back, a quiet tick on the off-beats.
   if (b === 0) kick(c, at);
   if (b === 1) kick(c, off);
-  if (b === 1 || b === 3) hiss(c, at + 0.025, 'bandpass', 1800, 0.22, 0.18);
-  hiss(c, at, 'highpass', 7000, 0.05 + Math.random() * 0.03, 0.05);
-  hiss(c, off, 'highpass', 7000, 0.03 + Math.random() * 0.03, 0.04);
+  if (b === 1 || b === 3) rim(c, at + 0.025);
+  tick8(c, off, 0.012 + Math.random() * 0.008);
   // Now and then a high note from the pentatonic.
   if (Math.random() < 0.28) keys(c, MELODY[Math.floor(Math.random() * MELODY.length)], at + (Math.random() < 0.5 ? 0 : BEAT * SWING), BEAT * 2, 0.035);
 }
 
-function startCrackle(c: AudioContext) {
-  const buf = c.createBuffer(1, c.sampleRate * 3, c.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.015 + (Math.random() < 0.0004 ? (Math.random() * 2 - 1) * 0.6 : 0);
-  crackle = c.createBufferSource(); crackle.buffer = buf; crackle.loop = true;
-  const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 0.5;
-  const g = c.createGain(); g.gain.value = 0.5;
-  crackle.connect(f).connect(g).connect(bus!);
-  crackle.start();
-}
 
 function tick() {
   const c = audioContext();
@@ -150,7 +139,6 @@ export function startMusic(): void {
   const depth = c.createGain(); depth.gain.value = 260;
   lfo.connect(depth).connect(warm.frequency); lfo.start();
   warm.connect(bus).connect(c.destination);
-  startCrackle(c);
   nextBeat = c.currentTime + 0.3;
   timer = window.setInterval(tick, 100);
 }

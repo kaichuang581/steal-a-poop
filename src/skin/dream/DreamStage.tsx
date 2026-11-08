@@ -357,7 +357,7 @@ function Sign({ view, scale, boardRef }: { view: FenceView | null; scale: number
   const wood = useMemo(() => voxelMaterial({ color: WOOD_TINT }), []);
   const glass = useMemo(() => [voxelMaterial({ color: '#9A8A70' }), voxelMaterial({ emissive: '#FFC24B', emissiveIntensity: 0.9 })], []);
   useEffect(() => {
-    ink.color.set(view?.locked ? T.pine[0] : view?.wrong ? T.collar[0] : INK);
+    ink.color.set(view?.locked ? '#9BD49F' : view?.wrong ? '#FF8F7A' : INK);
     ink.emissive.set(view?.hot && !view.wrong ? '#3A2A14' : '#000000');
   }, [view?.locked, view?.wrong, view?.hot, ink]);
   const word = view?.locked ? view.word : '';

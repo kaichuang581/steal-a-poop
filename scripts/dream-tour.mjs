@@ -2,8 +2,8 @@
  * Plays a whole night of Counting Sheep and photographs every part of it, start to finish:
  *   node scripts/dream-tour.mjs <desktop|phone> [outDir]
  * Two runs: the main night (an 8-night streak with two Warm Blankets, so the results show the quilts) clears fences
- * with the dream's own hint words, shows a wrong word, a hint, a deliberate bump, hay bales and the late, fast fences,
- * and ends with the farmer asleep; the second night is all bumps, so the farmer wakes up. Then practice and the menu.
+ * with the dream's own hint words, shows a wrong word, a hint, hay bales and the late, fast fences,
+ * and ends with the farmer asleep; on the second night nothing is typed, so the first bump wakes him (one life). Then practice.
  * BASE_URL picks the server (default the local dev server), PW_CHROMIUM an installed Chrome.
  */
 import { mkdirSync } from 'node:fs';
@@ -129,17 +129,6 @@ async function mainNight() {
       await page.waitForTimeout(3500);
       await shot(page, 'hint');
     }
-    if (i === 5 && !shotAt.has('bump')) {
-      // Miss one on purpose: the bump holds the sheep and knocks the fence flat.
-      shotAt.add('bump');
-      await page.getByText(/bump/i).first().waitFor({ timeout: 20000 }).catch(() => {});
-      await page.waitForTimeout(150);
-      await shot(page, 'bump');
-      await page.waitForTimeout(1500);
-      await shot(page, 'after-bump');
-      i++;
-      continue;
-    }
     if (fences[i].kind === 'bale' && !shotAt.has('bale')) { shotAt.add('bale'); await shot(page, 'first-hay-bale'); }
     if (i >= 18 && !shotAt.has('late')) { shotAt.add('late'); await shot(page, 'late-fences'); }
     if (i === fences.length - 1) await shot(page, 'last-fence');
@@ -166,9 +155,11 @@ async function wokenNight() {
   await page.getByRole('button', { name: /^Counting Sheep/ }).first().click();
   await page.waitForTimeout(3500);
   await page.keyboard.press('Space');
-  // Type nothing: every fence bumps, and the third wakes the farmer.
-  await page.waitForFunction(() => document.querySelector('.dr-root')?.getAttribute('data-phase') !== 'running', null, { timeout: 120000 });
-  await page.waitForTimeout(500);
+  // Type nothing: the first fence bumps, and with one life that wakes the farmer.
+  await page.getByText(/bump/i).first().waitFor({ timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(150);
+  await shot(page, 'bump');
+  await page.waitForTimeout(900);
   await shot(page, 'waking-up');
   await page.getByRole('button', { name: /^Share$|^Copied!$/ }).first().waitFor({ timeout: 60000 });
   await page.waitForTimeout(2500);

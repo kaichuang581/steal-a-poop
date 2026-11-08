@@ -3,7 +3,8 @@ import type { SheepState } from '../table/Sheep';
 /** Where the coin is this frame: its centre's lift off the rest height, and its three tilts/turns. */
 export interface DiscPose { lift: number; rotX: number; rotY: number; rotZ: number }
 
-export const DISC = { radius: 0.5, thick: 0.06, rest: 0.52 } as const;
+/** `tall` stretches the picture into an upright oval (Brian, 2026-11-08: "stretch out kaiyan"); `rest` keeps its foot on the snow. */
+export const DISC = { radius: 0.5, tall: 1.3, thick: 0.06, rest: 0.5 * 1.3 + 0.02 } as const;
 
 const TAU = Math.PI * 2;
 const hop = (p: number, h: number) => (p >= 0 && p < 1 ? Math.sin(p * Math.PI) * h : 0);

@@ -25,6 +25,7 @@ import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
 import { animalModel, heightRatio } from '../voxel/animals';
+import { DISC } from '../avatars/discPose';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
 
@@ -441,6 +442,7 @@ function Moments({ moments, n }: { moments: BarnMoments; n: number }) {
 
 /** Where a seat's name plate stands: just over the hat of the animal it wears (a hen's low, a horse's high). */
 export function nameplateY(avatar: string | null | undefined): number {
+  if (avatar === ADMIN_AVATAR_ID) return (DISC.rest + DISC.radius * DISC.tall + 0.12) * SHEEP_SCALE; // the photo's oval top
   const c = byId(avatar ?? undefined);
   return 1.26 * SHEEP_SCALE * (c ? heightRatio(c.animal) * animalModel(c.animal).drawScale : 1);
 }

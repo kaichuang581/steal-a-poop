@@ -31,7 +31,7 @@ function photoTexture(): Texture {
   return photo;
 }
 
-const quad = new PlaneGeometry(DISC.radius * 2, DISC.radius * 2);
+const quad = new PlaneGeometry(DISC.radius * 2, DISC.radius * 2 * DISC.tall);
 
 export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0 }: Props) {
   const tex = useMemo(() => photoTexture(), []);

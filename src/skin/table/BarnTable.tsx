@@ -18,8 +18,7 @@ import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { BOARD, boardFontReady, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
 import { DevStats } from './DevStats';
-import { LetterClock, ProjectAnchor, ScreenAnchor, SlipLayer, useSlipRefs } from './LetterClock';
-import { plankY, stakeGeometry } from '../voxel/props';
+import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Festive } from './Festive';
 import { Atmosphere, Effects, LANTERN_LIGHT, Lights, MarkDrawn } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
@@ -141,19 +140,9 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
 export function BarnTable(props: Props) {
   const cam = props.phone ? CAMERA.phone : CAMERA.desktop;
   const w = useWorld();
-  const clockEl = useRef<HTMLDivElement>(null);
   const slipRef = useSlipRefs();
   const fadeEl = useRef<HTMLDivElement>(null);
-  const [pop, setPop] = useState(false);
-  const pulseKey = props.moments.tuftIn?.key;
-  useEffect(() => {
-    if (pulseKey === undefined) return;
-    setPop(true);
-    const id = setTimeout(() => setPop(false), 400);
-    return () => clearTimeout(id);
-  }, [pulseKey]);
   if (!w) return <Building />;
-  const { letter, isTrap, secondsLeft } = props;
   return (
     <div className="relative size-full">
       <Canvas
@@ -164,20 +153,16 @@ export function BarnTable(props: Props) {
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >
         <MarkDrawn />
-        <Scene {...props} world={w} anchors={{ clock: clockEl, fade: fadeEl, slip: slipRef }} />
+        <Scene {...props} world={w} anchors={{ fade: fadeEl, slip: slipRef }} />
       </Canvas>
       {/* Reduced motion: the camera cuts between speakers behind a 150 ms fade. */}
       <div ref={fadeEl} className="pointer-events-none absolute inset-0 z-[4]" style={{ background: 'var(--ink)', opacity: 0 }} aria-hidden="true" />
       <SlipLayer seats={props.seats} refFor={slipRef} />
-      {/* The seconds on a mini slate hung under the carved board (V6 Part 5.2), anchored to it every frame. */}
-      <div ref={clockEl} className="pointer-events-none absolute left-0 top-0 z-[25]" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
-        <LetterClock letter={letter} isTrap={isTrap} secondsLeft={secondsLeft} pop={pop} />
-      </div>
     </div>
   );
 }
 
-type Anchors = { clock: React.RefObject<HTMLDivElement | null>; fade: React.RefObject<HTMLDivElement | null>; slip: (seat: number) => React.RefObject<HTMLDivElement | null> };
+type Anchors = { fade: React.RefObject<HTMLDivElement | null>; slip: (seat: number) => React.RefObject<HTMLDivElement | null> };
 
 export function Building() {
   return (
@@ -190,8 +175,6 @@ export function Building() {
 function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, isTrap, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
-  const stake = useMemo(() => stakeGeometry(), []);
-  const stakeMat = useMemo(() => voxelMaterial(), []);
 
   // The freeze dims the lanterns to 40% for 2.4 s.
   const freezeAt = useRef(-10);
@@ -227,7 +210,6 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
       <Farm world={w} reduced={reduced} />
       <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} />
-      <ProjectAnchor el={anchors.clock} at={[HEAP[0], BOARD.bottom - 0.02, 1.0]} board={[HEAP[0], BOARD.bottom + BOARD.height / 2, 1.0]} margin={phone ? 140 : 120} />
       <Bomb speaker={speaker} n={n} fraction={fraction} red={false} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {seats.map((s) => {
         return (
@@ -242,17 +224,10 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
           </SeatGroup>
         );
       })}
-      {/* A name stake planted in the hay beside each seat (V6 Part 5.3), its plank turned to the room, the slips pinned to it. */}
+      {/* Each seat's name plate (and the speaker's speech bubble) stands just over its animal's head. */}
       {seats.map((s) => {
         const p = seatPosition(s.index, n);
-        return (
-          <group key={`stake-${s.seat}`} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]}>
-            <group position={[(p.x >= 0 ? 0.95 : -0.95) * SHEEP_SCALE, 0, 0]} rotation={[0, -p.yaw, 0]}>
-              <mesh geometry={stake} material={stakeMat} castShadow receiveShadow />
-              <ScreenAnchor el={anchors.slip(s.seat)} position={[0, plankY(), -0.12]} />
-            </group>
-          </group>
-        );
+        return <ScreenAnchor key={`name-${s.seat}`} el={anchors.slip(s.seat)} position={[p.x, nameplateY(s.avatar), p.z]} above />;
       })}
       <Moments moments={moments} n={n} />
       {children}
@@ -462,4 +437,10 @@ function Moments({ moments, n }: { moments: BarnMoments; n: number }) {
       <group ref={set('gust')} visible={false}><mesh geometry={tuft} material={mat} /></group>
     </>
   );
+}
+
+/** Where a seat's name plate stands: just over the hat of the animal it wears (a hen's low, a horse's high). */
+export function nameplateY(avatar: string | null | undefined): number {
+  const c = byId(avatar ?? undefined);
+  return 1.26 * SHEEP_SCALE * (c ? heightRatio(c.animal) * animalModel(c.animal).drawScale : 1);
 }

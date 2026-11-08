@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { ACESFilmicToneMapping, Color, FogExp2, Group, Object3D, PCFSoftShadowMap, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
@@ -13,15 +13,14 @@ import { Sky } from '../scene/Sky';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
 import { BOARD } from '../voxel/table';
-import { plankY, stakeGeometry } from '../voxel/props';
-import { LetterBoard } from './BarnTable';
+import { LetterBoard, nameplateY } from './BarnTable';
 import { Bomb } from './Bomb';
 import type { BombSpot } from './Bomb';
 import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
 import { Effects, LANTERN_LIGHT, MarkDrawn } from './Rendering';
-import { LetterClock, ProjectAnchor, ScreenAnchor, SlipLayer, useSlipRefs } from './LetterClock';
+import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Sheep } from './Sheep';
 
 const DARK = '#14233C';
@@ -40,16 +39,7 @@ const pressureOf = (speaker: number | null, fraction: number) => (speaker === 0 
  */
 export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, letter, isTrap, reduced, phone, moments }: BarnTableProps) {
   const open = duelShot(null, 0, phone);
-  const [pop, setPop] = useState(false);
-  const pulseKey = moments.tuftIn?.key;
-  useEffect(() => {
-    if (pulseKey === undefined) return;
-    setPop(true);
-    const id = setTimeout(() => setPop(false), 400);
-    return () => clearTimeout(id);
-  }, [pulseKey]);
   const heat = Math.max(0, pressureOf(speaker, fraction) - 0.5) * 2;
-  const clockEl = useRef<HTMLDivElement>(null);
   const slipRef = useSlipRefs();
   return (
     <div className="relative size-full" style={{ background: DARK }}>
@@ -67,15 +57,10 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} beamY={DUEL_BEAM} hook={DUEL.hook} />
         {/* The moon is behind the board's back: a warm lamp in front of it keeps the carved letter readable at night. */}
         <pointLight position={[0, BOARD_BOTTOM + 0.3, -1.1]} color={LANTERN_LIGHT.color} intensity={7} distance={3} decay={2} />
-        <ProjectAnchor el={clockEl} at={[DUEL.hook[0], BOARD_BOTTOM - 0.02, DUEL.hook[2]]} board={[DUEL.hook[0], BOARD_BOTTOM + BOARD.height / 2, DUEL.hook[2]]} margin={phone ? 140 : 120} />
       </Canvas>
       {/* The edges of the screen close in red over the last half of your clock. */}
       <div className="pointer-events-none absolute inset-0 z-[4]" style={{ opacity: heat, background: 'radial-gradient(ellipse at center, transparent 42%, rgba(170, 24, 14, 0.8) 100%)' }} aria-hidden="true" />
       <SlipLayer seats={seats} refFor={slipRef} />
-      {/* The seconds on a mini slate under the carved board on its signpost (V6 Part 5.2). */}
-      <div ref={clockEl} className="pointer-events-none absolute left-0 top-0 z-[25]" style={{ transform: 'translate3d(-9999px,0,0)', willChange: 'transform' }}>
-        <LetterClock letter={letter} isTrap={isTrap} secondsLeft={secondsLeft} pop={pop} />
-      </div>
     </div>
   );
 }
@@ -84,8 +69,6 @@ type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fracti
 
 function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone, boomKey, power, slipRef }: DuelProps) {
   const pressure = pressureOf(speaker, fraction);
-  const stake = useMemo(() => stakeGeometry({ height: DUEL.stake.height, ice: true }), []);
-  const stakeMat = useMemo(() => voxelMaterial(), []);
   return (
     <>
       <DuelCamera speaker={speaker} pressure={pressure} phone={phone} reduced={reduced} />
@@ -110,15 +93,10 @@ function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone,
           </Stand>
         );
       })}
-      {/* Each name stake is frozen into the ice just behind its sheep, tall enough for the slips to clear its back. */}
+      {/* Each sheep's name plate (and the speaker's speech bubble) stands just over its head. */}
       {seats.map((s) => {
-        const side = s.seat === 0 ? 1 : -1;
-        return (
-          <group key={`stake-${s.seat}`} position={[side * DUEL.stake.x, 0, DUEL.stake.z]}>
-            <mesh geometry={stake} material={stakeMat} castShadow receiveShadow />
-            <ScreenAnchor el={slipRef(s.seat)} position={[0, plankY(DUEL.stake.height), -0.12]} />
-          </group>
-        );
+        const at = duelSeat(s.seat);
+        return <ScreenAnchor key={`name-${s.seat}`} el={slipRef(s.seat)} position={[at.x, nameplateY(s.avatar), at.z]} above />;
       })}
       <Effects />
       <DevStats />

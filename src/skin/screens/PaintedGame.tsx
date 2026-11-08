@@ -25,7 +25,7 @@ import { InputStrip } from '../components/InputStrip';
 import { Ledger } from '../components/Ledger';
 import { Lives } from '../components/Lives';
 import { TallyBoard } from '../components/TallyBoard';
-import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Panel, Paper, Patch, Peg, Slate, WoodButton } from '../kit';
+import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Panel, Paper, Peg, Slate, WoodButton } from '../kit';
 import { TwistSign } from '../components/TwistSign';
 import { Alarm, useAlarms } from '../components/Alarm';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
@@ -285,28 +285,31 @@ export function PaintedGame() {
             return {
               seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.lives, maxLives), state: st.state, stateKey: st.key, coldFor: st.coldFor,
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou, avatar: avatarOf(p),
-              // The slips pinned to the seat's name stake (V6 Part 5.3): the speaker's is pinned, larger and ringed; the
-              // others hang from the plank's nail. What the sheep is typing comes down on a second slip under the first.
+              // Over each head: a knitted name plate (wool like the ledger, berry for the speaker) and, while a sheep
+              // speaks or you type ahead, a speech bubble with the word as it is typed.
               label: (() => {
                 const speaking = p.id === view.currentPlayerId;
-                const typed = p.isYou ? (speaking && input.typed ? input.typed : null) : speaking ? botTyped : null;
+                const typed = p.isYou ? input.typed : speaking ? botTyped : '';
+                const say = p.isYou ? (speaking && !p.frozen) || !!input.typed : speaking && !!typed;
+                const L = (view.letter ?? '').toLowerCase();
                 return (
-                  <div className="sk-stake-slips" data-speaker={speaking || undefined} data-frozen={p.frozen || undefined}>
-                    <Paper kind="slip" pin={speaking ? 'top' : 'none'} seed={p.id} className="sk-stake-name">
-                      <span className="sk-stake-line">
-                        <span className="sk-stake-who">{p.name}</span>
-                        {p.difficulty && <span role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
-                        <Lives lives={p.lives} max={maxLives} size={speaking ? 16 : 12} />
-                        {p.isYou && <span className="sk-stake-you">(you)</span>}
-                      </span>
-                      {p.isBot && <span className="sk-stake-farm">farm sheep</span>}
-                      {p.frozen && <Ice className="sk-stake-ice" />}
-                    </Paper>
-                    {typed !== null && (speaking || typed) && (
-                      <Paper kind="slip" seed={`${p.id}t`} className={`sk-stake-typed ${!p.isYou && botReject ? 'sk-tag-reject' : ''}`} aria-label={`${p.name} is typing`}>
-                        {typed.toUpperCase()}<span className="sk-caret" aria-hidden="true" />
-                      </Paper>
+                  <div className="sk-head" data-speaker={speaking || undefined} data-frozen={p.frozen || undefined}>
+                    {say && (
+                      <div className={`sk-say ${!p.isYou && botReject ? 'sk-tag-reject' : ''}`} data-wait={!speaking || undefined}
+                        aria-label={p.isYou ? undefined : `${p.name} is typing`}>
+                        {typed ? [...typed].map((ch, i) => (
+                          <span key={i} data-first={i === 0 && p.isYou ? (ch.toLowerCase() === L ? 'ok' : 'bad') : undefined}>{ch.toUpperCase()}</span>
+                        )) : <span className="sk-say-ph">a word with {L.toUpperCase()}…</span>}
+                        {speaking && <i className="sk-say-caret" aria-hidden="true" />}
+                      </div>
                     )}
+                    <div className="sk-plate">
+                      <span className="sk-plate-who">{p.name}</span>
+                      {p.difficulty && <span className="sk-plate-badge" role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
+                      <Lives lives={p.lives} max={maxLives} size={speaking ? 14 : 12} />
+                      {p.isYou && <span className="sk-plate-you">you</span>}
+                      {p.frozen && <Ice className="sk-plate-ice" />}
+                    </div>
                   </div>
                 );
               })(),
@@ -329,13 +332,13 @@ export function PaintedGame() {
               <span className="kit-chalk-hand">best {Math.max(runBest, runWords)}{game.turn ? ` · ${Math.round(game.turn.durationMs / 1000)}s turn` : ''}</span>
             </Slate>
           ) : (
-            <Patch tone="burlap" className="sk-round-patch">
-              {game.phase === 'gameOver'
+            <div className="sk-hud-tab">
+              <span className="sk-hud-round">{game.phase === 'gameOver'
                 ? `Game over · ${view.round} round${view.round === 1 ? '' : 's'}`
-                : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${mobile ? '' : game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}
-            </Patch>
+                : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${mobile ? '' : game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}</span>
+              <TwistSign twist={view.twist} state={signState} compact={mobile} />
+            </div>
           )}
-          <TwistSign twist={view.twist} state={signState} compact={mobile} />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1.5">
           <Peg onClick={() => setSheet('cheat')} aria-label="How to play" title="How to play"><BookIcon size={22} /></Peg>

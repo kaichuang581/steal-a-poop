@@ -2,7 +2,7 @@ import { useRoomStore } from '../../state/roomStore';
 import type { PlayerView } from '../model/types';
 import { AvatarIcon } from '../avatars/AvatarIcon';
 import { useAvatar } from '../avatars/store';
-import { Ropes, Slate, Tally } from '../kit';
+import { Slate, Tally } from '../kit';
 import { MiniBomb } from './BombClock';
 import { AcornIcon, LeafIcon, SeedlingIcon, SnowflakeIcon } from './Icons';
 import { SheepIcon } from './SheepIcon';
@@ -64,7 +64,7 @@ export function LedgerRow({ player: p, place, maxLives, ringed, bomb, lastWord, 
 }
 
 /**
- * The barn ledger (V6 Part 6.3): a chalk slate hung from the right wall's top edge on two ropes, one row per sheep in
+ * The barn ledger (V6 Part 6.3): a wool slate tucked under the top-right pegs, one row per sheep in
  * standings order. On a phone it is a strip of mini slates across the top: portrait, name, strokes.
  */
 export function Ledger({ players, turnId, lastWords, maxLives, compact }: {
@@ -87,7 +87,6 @@ export function Ledger({ players, turnId, lastWords, maxLives, compact }: {
   }
   return (
     <aside className="sk-ledger" aria-label="Scoreboard">
-      <Ropes hang={64} />
       <Slate size="board">
         <ol>
           {players.map((p, i) => <LedgerRow key={p.id} player={p} place={i + 1} maxLives={maxLives} ringed={p.id === turnId} bomb={p.id === turnId} lastWord={lastWords[p.id] ?? null} marks />)}

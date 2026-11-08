@@ -330,3 +330,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   word twists join no E, 6+ and double letter in `ALL_MODIFIERS`: no A, no S, 5 letters max, end on a vowel, needs an O.
   Each one leaves every letter a legal word can end on with legal words in public/words.txt (src/engine/__tests__/twists.test.ts).
   The longer deck shifts the seeded random stream after it.
+- Name plates and the speech bubble (requested by Brian, 2026-11-08): the name stakes and the seconds slate under the letter
+  board are gone. Each seat's name stands over its animal's head on a knitted plate (the ledger's dark wool, berry for the
+  speaker), anchored every frame by `ScreenAnchor ... above` (src/skin/table/Anchors.tsx, `nameplateY` in BarnTable.tsx).
+  The word being typed, yours or a bot's, shows in a cream wool speech bubble over the speaker's plate; the word bar at the
+  bottom is one quiet row (starts with, hint, pass, Enter) with the real input invisible over it. This supersedes the
+  floating letters on the table (the dream keeps them). The ledger and the round tab no longer hang on ropes; the round's
+  twist is stitched onto the round tab in the top-left corner.

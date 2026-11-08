@@ -301,18 +301,7 @@
 @keyframes sk-burst-life { 0%, 70% { transform: none; opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
 :root.reduce-motion .sk-word-burst, :root.reduce-motion .sk-word-burst *, :root.reduce-motion .sk-input-bar { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
 
-/* ---------- The seconds under the carved letter board (V6 Part 5.2): a mini slate hung on two strings ---------- */
-.sk-clock { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 12px; transition: scale 200ms var(--ease-out); }
-.sk-clock > .kit-string { top: 0; height: 14px; }
-.sk-clock > .kit-string:first-child { left: 30%; } .sk-clock > .kit-string:nth-child(2) { right: 30%; }
-.sk-clock .kit-slate { min-width: 52px; }
-.sk-clock .kit-slate-face { display: flex; align-items: center; justify-content: center; gap: 6px; font-variant-numeric: tabular-nums; }
-.sk-clock-pop { scale: 1.12; }
-/* Off the frame (a close-up): the board is out of sight, so the slate carries the letter too, as a mini tile. */
-.sk-clock-letter { display: none; }
-[data-off] .sk-clock-letter { display: inline-grid; }
-[data-off] .sk-clock > .kit-string { display: none; }
-@media (max-width: 640px) { .sk-clock .kit-slate--mini .kit-slate-face { font-size: 15px; padding: 0 6px; } .sk-clock .kit-slate { min-width: 44px; } }
+
 
 /* ---------- Signboards for the moments over the table (Notice) ---------- */
 /* The boards are the kit's Board heading (kit-plank, painted per moment); these rules only size and letter them. */
@@ -409,8 +398,13 @@
 .sk-sheet-head h2 { font-family: var(--skin-font-display); font-weight: 800; font-size: 22px; color: var(--button-text); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.7); }
 .sk-sheet-body { overflow-y: auto; padding: 14px 16px 18px; }
 
-/* ---------- The word bar's input: the real input lies invisible over the floating letters (kit.css, .kit-float) ---------- */
-.sk-input-tiles { cursor: text; }
+/* ---------- The word bar: one quiet row (the word itself is in your speech bubble); the real input lies invisible over it ---------- */
+.sk-input-row { --glow-a: #5B3A1E; --glow-b: rgba(30, 16, 6, 0.85); position: relative; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 16px; padding-bottom: 4px; cursor: text; }
+.sk-input-need { position: relative; display: flex; align-items: center; gap: 8px; color: #fff; text-shadow: 0 2px 0 var(--glow-a), 0 0 10px var(--glow-b); pointer-events: none; }
+.sk-input-need small { font: 400 20px/1 var(--skin-font-hand); }
+.sk-input-need .sk-input-letter { font: 800 28px/1 var(--skin-font-display); color: var(--glow); }
+.sk-input-field-wrap { position: absolute; inset: 0; }
+.sk-input-keys { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; }
 .sk-input-ghost {
   position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; border: 0; padding: 0; background: transparent; cursor: text;
 }
@@ -470,24 +464,45 @@
 .sk-ledger-strip .kit-tally i { height: 11px; }
 .sk-ledger-turn { box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.3), 0 0 0 2px var(--amber), 0 3px 0 rgba(40, 24, 10, 0.35); }
 
-/* The slips on a seat's name stake: the name and the wool on one, what the sheep is typing on a second slip under it. */
-.sk-stake-slips { position: relative; display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0.9; }
-.sk-stake-slips[data-speaker] { opacity: 1; scale: 1.15; }
-.sk-stake-name { flex-direction: column; gap: 0; padding: 3px 9px 4px; white-space: nowrap; }
-.sk-stake-slips[data-speaker] .sk-stake-name { box-shadow: 0 0 0 3px var(--amber), 2px 3px 0 rgba(59, 48, 40, 0.22); }
-.sk-stake-line { display: inline-flex; align-items: center; gap: 4px; }
-.sk-stake-who { font-family: var(--skin-font-display); font-weight: 700; font-size: 14px; }
-.sk-stake-slips[data-speaker] .sk-stake-who { font-size: 16px; }
-.sk-stake-you { font-size: 14px; color: var(--ink-soft); }
-.sk-stake-farm { margin-top: -2px; font-size: 12px; line-height: 1.1; color: var(--ink-soft); }
-.sk-stake-ice { position: absolute; inset: -2px; opacity: 0.85; }
-.sk-stake-typed {
-  position: absolute; top: calc(100% + 6px); min-width: 44px; min-height: 30px; padding: 2px 10px; white-space: nowrap;
-  font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink);
-  animation: sk-slip-down 200ms var(--ease-out) both;
+/* Over each head (PaintedGame's seat labels): a knitted name plate, the ledger's dark wool for everyone and berry for
+   the speaker, and over it, while a sheep speaks (or you type ahead), a cream wool speech bubble with the word. */
+.sk-head { display: flex; flex-direction: column; align-items: center; gap: 12px; pointer-events: none; }
+.sk-plate {
+  position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px 5px; white-space: nowrap; border-radius: 4px;
+  background: var(--kit-stitch-dark) 0 0 / 12px 12px, var(--slate); outline: 1.5px dashed rgba(243, 240, 230, 0.45); outline-offset: -4px;
+  box-shadow: 0 3px 0 rgba(30, 18, 8, 0.4); color: var(--chalk); opacity: 0.9;
 }
-@keyframes sk-slip-down { from { transform: translateY(-10px); opacity: 0; } }
-:root.reduce-motion .sk-stake-typed { animation: none; }
+.sk-plate-who { font-family: var(--skin-font-display); font-weight: 700; font-size: 15px; line-height: 1.1; }
+.sk-plate-badge { display: inline-flex; opacity: 0.85; }
+.sk-plate-you { font: 400 14px/1 var(--skin-font-hand); opacity: 0.8; }
+.sk-plate-ice { position: absolute; inset: -2px; opacity: 0.85; }
+.sk-head[data-speaker] .sk-plate {
+  background: var(--kit-stitch-light) 0 0 / 12px 12px, var(--berry); outline-color: rgba(255, 226, 160, 0.8); color: #FFF4E0; opacity: 1;
+  box-shadow: 0 3px 0 var(--berry-dark), 0 0 0 2px var(--amber); scale: 1.12;
+}
+.sk-head[data-frozen] .sk-plate { opacity: 0.6; }
+.sk-say {
+  --n: 6;
+  position: relative; display: inline-flex; align-items: center; min-height: 58px; min-width: 90px; max-width: min(86vw, 560px); padding: 6px 18px 8px;
+  border-radius: 4px; white-space: nowrap; background: var(--kit-stitch) 0 0 / 12px 12px, var(--wool);
+  outline: 2px dashed rgba(126, 36, 32, 0.32); outline-offset: -6px; box-shadow: 0 4px 0 var(--wool-edge), 0 7px 0 rgba(40, 24, 10, 0.22);
+  font: 800 38px/1 var(--skin-font-display); letter-spacing: 0.06em; color: var(--wood-ink);
+  animation: sk-say-in 200ms var(--ease-spring) both;
+}
+/* The tail: a stepped point under the bubble, toward the speaker's head. */
+.sk-say::before, .sk-say::after { content: ""; position: absolute; left: 50%; top: 100%; width: 20px; height: 13px; margin-left: -6px; clip-path: polygon(0 0, 100% 0, 15% 100%); }
+.sk-say::before { top: calc(100% + 3px); background: var(--wool-edge); }
+.sk-say::after { background: var(--wool); }
+.sk-say [data-first="ok"] { color: #B4681A; }
+.sk-say [data-first="bad"] { color: var(--berry); }
+.sk-say-ph { font: 400 26px/1 var(--skin-font-hand); letter-spacing: 0; color: var(--ink-soft); }
+.sk-say-caret { flex: none; width: 3px; height: 32px; margin-left: 4px; background: var(--berry); animation: sk-blink 1s steps(1) infinite; }
+.sk-say[data-wait] { opacity: 0.8; scale: 0.85; transform-origin: 50% 100%; }
+.sk-say.sk-tag-reject { color: var(--berry); animation: sk-say-shake 0.38s ease-in-out; }
+@keyframes sk-say-in { from { opacity: 0; transform: translateY(8px) scale(0.85); } }
+@keyframes sk-say-shake { 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
+:root.reduce-motion .sk-say { animation: none; }
+@media (max-width: 640px) { .sk-say { font-size: 22px; min-height: 38px; padding: 5px 12px 6px; } .sk-say-ph { font-size: 18px; } .sk-plate-who { font-size: 13px; } }
 
 /* The duel's fight card: two pinned slips and a carved VS. */
 .sk-vs-slip { flex-direction: column; gap: 0; padding: 6px 14px; font-family: var(--skin-font-display); font-weight: 700; font-size: 18px; }
@@ -495,8 +510,20 @@
 .sk-vs { font-family: var(--skin-font-display); font-weight: 800; font-size: 34px; color: var(--glow); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.8), 0 2px 0 rgba(40, 24, 10, 0.6); }
 .sk-run-plaque .kit-slate-face { min-height: 0; padding: 2px 12px; font-size: 24px; }
 .sk-run-plaque .kit-chalk-hand { font-size: 14px; }
-.sk-round-patch { min-height: 34px; white-space: nowrap; }
-.sk-twist-rope { position: relative; display: block; height: 16px; }
+/* The round tab: tucked into the top-left corner in the ledger's dark wool, this round's twist stitched on under it. */
+.sk-hud-tab {
+  display: flex; flex-direction: column; align-items: stretch; margin: -8px 0 0 -8px; padding: 9px 16px 8px; border-radius: 0 0 4px 0;
+  background: var(--kit-stitch-dark) 0 0 / 12px 12px, var(--slate); outline: 1.5px dashed rgba(243, 240, 230, 0.4); outline-offset: -5px;
+  box-shadow: 0 3px 0 rgba(30, 18, 8, 0.35); color: var(--chalk);
+}
+.sk-hud-round { font: 400 17px/1.2 var(--skin-font-hand); white-space: nowrap; }
+.sk-hud-twist { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 2px dashed rgba(243, 240, 230, 0.25); color: var(--glow); animation: sk-twist-in 500ms var(--ease-out) both; }
+.sk-hud-twist-icon { display: inline-flex; flex: none; }
+.sk-hud-twist b { display: block; font: 800 19px/1.1 var(--skin-font-display); }
+.sk-hud-twist small { display: block; font: 400 14px/1.1 var(--skin-font-hand); color: var(--chalk); opacity: 0.8; }
+.sk-hud-twist[data-compact] b { font-size: 15px; }
+@keyframes sk-twist-in { from { opacity: 0; transform: translateY(-10px); } }
+:root.reduce-motion .sk-hud-twist { animation: none; }
 /* The leave dialog and the sheets are clipboards; the chat keeps its ink card, squared. */
 .sk-table-sheet .kit-clipboard-sheet { max-height: min(64vh, 560px); }
 .sk-chat-card { padding: 8px; border-radius: 3px; background: var(--ink); color: var(--button-text); }

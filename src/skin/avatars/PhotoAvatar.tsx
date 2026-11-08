@@ -1,4 +1,4 @@
-import photo from '../assets/kaiyan.png';
+import photo from '../assets/kaiyan-forehead.png';
 
 /**
  * The admin avatar: the photo and nothing else, the picture itself never touched: no ring, no frame. It has no thickness,

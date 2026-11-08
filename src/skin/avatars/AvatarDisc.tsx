@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { Group, MeshDepthMaterial, MeshLambertMaterial, PlaneGeometry, RepeatWrapping, RGBADepthPacking, SRGBColorSpace, Texture, TextureLoader } from 'three';
-import photoUrl from '../assets/kaiyan.png';
+import photoUrl from '../assets/kaiyan-forehead.png';
 import type { SheepState } from '../table/Sheep';
 import { DISC, discPose } from './discPose';
 

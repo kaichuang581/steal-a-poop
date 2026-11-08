@@ -13,7 +13,7 @@ const W = 320;
 const { sheepX: SX, sheepW: SW, fenceW: FW, fenceH: FH } = FIELD;
 /** Fences spawn just past the right edge and open for typing a whole gap ahead, so the speed sets the time to type. */
 export const SPAWN_X = W + 24;
-export const TYPE_X = W + 238;
+export const TYPE_X = W + 330;
 export const MAX_TYPED = 16;
 
 export interface LiveFence { f: Fence; index: number; x: number; locked: boolean; passed: boolean; jumped: boolean; word: string; knockedAt: number | null }

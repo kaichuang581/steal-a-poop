@@ -265,28 +265,10 @@
 .sk-input-prompt b { color: var(--glow); font-weight: 800; }
 .sk-input-prompt-steal { font-size: 21px; color: #FFE3DC; animation: sk-steal-throb 0.8s ease-in-out infinite; }
 .sk-input-prompt-steal b { color: #FFD0C4; }
-.sk-input-bar {
-  display: flex; align-items: center; gap: 10px; min-height: 76px; padding: 6px 12px 14px 10px;
-  transition: box-shadow var(--t-fast), opacity var(--t-fast);
-}
-/* The table's word bar is a trough (V6 Part 6.3): a light board ledge with a raised darker lip along its front and
-   end caps (the plank's end grain), the letter tile standing at its left end and the word lying in it. */
-.sk-trough {
-  --lip: var(--wood); --ring: 0 0 0 0 transparent;
-  box-shadow: var(--ring), inset 0 3px 0 rgba(255, 240, 210, 0.6), inset 0 -8px 0 var(--lip), inset 0 -10px 0 rgba(40, 24, 10, 0.3),
-    inset 3px 0 0 rgba(40, 24, 10, 0.2), inset -3px 0 0 rgba(40, 24, 10, 0.2), 0 6px 0 rgba(40, 24, 10, 0.35), 0 10px 18px rgba(40, 24, 10, 0.25);
-  text-shadow: none;
-}
-.sk-trough[data-mode="mine"] { --ring: 0 0 0 3px var(--amber); }
-.sk-trough[data-mode="steal"] { --lip: var(--coral); --ring: 0 0 0 3px var(--coral); animation: sk-steal-throb 0.8s ease-in-out infinite; }
+.sk-input-bar { transition: opacity var(--t-fast); }
 .sk-input-bar[data-mode="wait"] { opacity: 0.94; }
 .sk-input-bar[data-mode="out"] { opacity: 0.6; filter: saturate(0.5); }
-.sk-input-letter { --tile-w: 58px; flex: none; }
-.sk-input-go { min-height: 58px; padding-left: 24px !important; padding-right: 24px !important; font-size: 20px !important; }
 @media (max-width: 640px) {
-  .sk-input-bar { min-height: 64px; gap: 8px; padding: 5px 8px 12px 8px; }
-  .sk-input-letter { --tile-w: 44px; }
-  .sk-input-go { min-height: 48px; padding-left: 16px !important; padding-right: 16px !important; }
   .sk-input-prompt { font-size: 16px; }
 }
 /* An accepted word: the trough flares gold and gives a little bounce. */
@@ -437,37 +419,18 @@
 .sk-sheet-body { overflow-y: auto; padding: 14px 16px 18px; }
 .sk-steal-throb { animation: sk-notice-in 420ms var(--ease-spring) both, sk-steal-throb 0.8s 420ms ease-in-out infinite; }
 
-/* ---------- Typed letters as wooden tiles ---------- */
-.sk-input-tiles {
-  position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; min-height: 58px; padding: 0 4px;
-  overflow: hidden; cursor: text;
-}
+/* ---------- The word bar's input: the real input lies invisible over the floating letters (kit.css, .kit-float) ---------- */
+.sk-input-tiles { cursor: text; }
 .sk-input-ghost {
   position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; border: 0; padding: 0; background: transparent; cursor: text;
 }
-/* Each typed letter is a carved tile (the kit's Tile, sized here); the dream paints its own over the same shape. */
-.sk-type-tile {
-  --t: 46px; --tile-w: var(--t);
-  flex: none; display: grid; place-items: center; width: var(--t); height: calc(var(--t) * 1.08); border-radius: 3px;
-  font-family: var(--skin-font-display); font-weight: 800; font-size: calc(var(--t) * 0.62); line-height: 1; color: var(--wood-ink);
-  animation: sk-tile-drop 180ms var(--ease-spring) both;
-}
-.sk-input-tiles[data-size="md"] .sk-type-tile { --t: 36px; }
-.sk-input-tiles[data-size="sm"] .sk-type-tile { --t: 27px; }
+.sk-type-tile { animation: dr-letter-in 160ms var(--ease-out) both; }
+@keyframes dr-letter-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 /* The caret: an amber pencil tick. */
 .sk-type-caret { flex: none; width: 3px; height: 34px; border-radius: 1px; background: var(--amber); animation: sk-blink 1s steps(1) infinite; }
 @keyframes sk-blink { 50% { opacity: 0; } }
-.sk-input-placeholder { flex: none; padding-left: 6px; font-family: var(--skin-font-hand); font-size: 24px; color: var(--ink-soft); opacity: 0.75; white-space: nowrap; }
-/* In the trough the placeholder is a paper slip lying in it; the steal window frosts its edge. */
-.sk-trough .sk-input-placeholder { padding: 4px 12px; font-size: 20px; opacity: 1; }
-.sk-trough[data-mode="steal"] .sk-input-placeholder { box-shadow: 2px 3px 0 rgba(59, 48, 40, 0.22), inset 0 0 0 2px var(--ice-dark); }
-.sk-input-go { font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 22px !important; letter-spacing: 0.03em; }
 .sk-input-hint { flex: none; }
 @keyframes sk-tile-drop { 0% { transform: translateY(-14px) scale(0.6); opacity: 0; } 70% { transform: translateY(2px) scale(1.06); opacity: 1; } 100% { transform: none; } }
-@media (max-width: 640px) {
-  .sk-type-tile { --t: 34px; } .sk-input-tiles[data-size="md"] .sk-type-tile { --t: 27px; } .sk-input-tiles[data-size="sm"] .sk-type-tile { --t: 21px; }
-  .sk-input-placeholder { font-size: 19px; } .sk-trough .sk-input-placeholder { font-size: 16px; padding: 3px 8px; }
-}
 :root.reduce-motion .sk-type-tile { animation: none; }
 
 /* ---------- The table in the kit (V6 Part 6.3) ---------- */

@@ -24,7 +24,7 @@ describe('the run (V4 Part 7.1 and 14)', () => {
     const L = freshLive(SEED);
     expect(L.fences[0].x).toBe(FIELD.sheepX + FIRST_FENCE_AHEAD);
     expect(SPAWN_X).toBe(344);
-    expect(TYPE_X).toBe(558);
+    expect(TYPE_X).toBe(650);
   });
   it('is deterministic: the same seed and the same input give the same count and the same events', () => {
     const a = play(SEED, 12000), b = play(SEED, 12000);

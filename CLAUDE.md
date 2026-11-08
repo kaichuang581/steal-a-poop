@@ -242,3 +242,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   first bump wakes the farmer and ends the night. The hint never offers a word already used tonight while an unused one
   fits. The fence signs and the table's letter board cut their letters from the display face (Fraunces) on a 0.02 m grid
   (`letterMask` in src/skin/voxel/table.ts), painted cream; the 5 x 7 bitmap is only the fallback before the face loads.
+- Faster dream, more room (requested by Brian, 2026-11-07), a rules change in src/dream: `speedAt` runs 85 to 160 (was 58 to 110),
+  fences stand 560 to 650 apart and bales 230 to 270 behind (were 400 to 480 and 170 to 200), and `TYPE_X` is W + 330, so a fence
+  still opens a whole gap ahead and each word gets about the same time while the world rushes past faster. The dream sky has
+  shooting stars (one at a time, every 6 to 14 s, none under reduced motion or in the gate's `?dreamSeed` runs).
+- Floating letters (chosen by Brian from five mockups, 2026-11-07): the table's and the dream's word bars have no box. What the word
+  needs on a line above, the typed word in big white Fraunces letters with a glow in the scene's shadow colour, a dotted line, and a
+  small key that says what Enter does (`.kit-float` in kit.css). The old troughs are gone.

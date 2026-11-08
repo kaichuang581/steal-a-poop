@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { dreamStreakDays, getDreamBest, getDreamStreak, loadStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
@@ -7,7 +7,7 @@ import { useStore } from '../../state/store';
 import { useIsMobile } from '../../ui/hooks';
 import { CloseIcon, GustIcon, MoonIcon } from '../components/Icons';
 import { Notice } from '../components/Notice';
-import { Board, Brass, Knit, Nails, Paper, Patch, Peg, Slate, Tally, Tile, WoodButton } from '../kit';
+import { Board, Brass, Knit, Paper, Patch, Peg, Slate, Tally, WoodButton } from '../kit';
 import { SheepIcon } from '../components/SheepIcon';
 import { localDateKey } from '../hooks/useToday';
 import { useMotionLevel } from '../hooks/useAmbient';
@@ -284,7 +284,8 @@ export function DreamScreen() {
 
   const mode = phase === 'results' ? 'out' : hud.active ? 'mine' : 'wait';
   const typedLetters = [...hud.typed];
-  const tileW = typedLetters.length <= 9 ? 46 : typedLetters.length <= 13 ? 36 : 27;
+  // Which typed letters meet the fence's letters, in order: they light up gold.
+  const typedHits = (() => { let k = 0; return typedLetters.map((ch) => { const hit = k < hud.letters.length && ch.toLowerCase() === hud.letters[k]; if (hit) k++; return hit; }); })();
   const sign = hud.letters.join('...').toUpperCase();
   const joined = hud.letters.map((l) => l.toUpperCase()).join(', then ');
   const examples = hud.active && hud.index >= 0 && hud.index < 3 ? exampleWords(fenceAt(seed, hud.index)) : [];
@@ -354,19 +355,22 @@ export function DreamScreen() {
         <div className={`dr-hud relative z-20 mt-auto px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4 ${mobile ? 'dr-bar-phone' : ''}`}>
           <div className={mobile ? 'mx-auto' : 'ml-[30%] mr-[6%]'}>
             {caption && <p className="sk-input-prompt" data-mode={mode}>{caption}</p>}
-            {/* The word bar is a wooden trough (V6 Part 6.3): the fence's letters hang on a rope at its left end, the typed word lies in it. */}
-            <div className="dr-trough kit-plank kit-plank--light" data-knot="2" data-mode={mode} onPointerDown={(e) => { e.preventDefault(); focus(); }}>
-              <div className="dr-fence-rope" data-wrong={hud.wrong || undefined} aria-label={hud.active ? `Needs ${hud.letters.join(', ')} in order` : 'No fence yet'}>
-                <Nails />
-                <span className="kit-rope dr-rope-line" />
+            {/* The word bar: floating letters (chosen from the mockups, 2026-11-07). The fence's letters above with gaps for
+                anything between them, lighting up as the word meets them; the word big over the snow; Enter's key below. */}
+            <div className="dr-trough kit-float" data-scene="dream" data-mode={mode} data-wrong={hud.wrong || undefined}
+              onPointerDown={(e) => { if ((e.target as HTMLElement).tagName !== 'BUTTON') { e.preventDefault(); focus(); } }}>
+              <p className="kit-float-need dr-fence-rope" data-wrong={hud.wrong || undefined} aria-label={hud.active ? `Needs ${hud.letters.join(', ')} in order` : 'No fence yet'}>
                 {hud.letters.map((ch, i) => (
-                  <Tile key={`${hud.index}:${i}`} size="sm" hung lit={i < hud.lit} done={i < hud.lit} bad={hud.wrong} className="dr-fence-tile">{ch.toUpperCase()}</Tile>
+                  <Fragment key={`${hud.index}:${i}`}>
+                    {i > 0 && <span className="kit-float-gap" />}
+                    <span className="dr-fence-tile" data-on={i < hud.lit || undefined}>{ch.toUpperCase()}</span>
+                  </Fragment>
                 ))}
-              </div>
-              <div className="sk-input-tiles dr-typed-row">
+              </p>
+              <div className="kit-float-word dr-typed-row" style={{ '--len': Math.max(6, typedLetters.length) } as React.CSSProperties}>
                 {typedLetters.length
-                  ? typedLetters.map((ch, i) => <Tile key={i} className="dr-typed" style={{ '--tile-w': `${tileW}px` } as React.CSSProperties}>{ch.toUpperCase()}</Tile>)
-                  : <Paper as="span" kind="slip" seed={hud.index} className="dr-placeholder">{hud.active ? `a word with ${joined}` : phase === 'ready' ? `a word with ${fenceAt(seed, 0).letters.map((l) => l.toUpperCase()).join(', then ')}` : 'type ahead...'}</Paper>}
+                  ? typedLetters.map((ch, i) => <span key={i} className="dr-typed" data-hit={typedHits[i] || undefined}>{ch.toUpperCase()}</span>)
+                  : <span className="kit-float-ph dr-placeholder">{hud.active ? `a word with ${joined}` : phase === 'ready' ? `a word with ${fenceAt(seed, 0).letters.map((l) => l.toUpperCase()).join(', then ')}` : 'type ahead...'}</span>}
                 <span className="sk-type-caret" aria-hidden="true" />
                 <input
                   ref={ghost} className="sk-input-ghost" autoFocus aria-label="Your word" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false}
@@ -374,8 +378,8 @@ export function DreamScreen() {
                   onBlur={() => { if (phaseRef.current === 'running' || phaseRef.current === 'ready') setTimeout(() => ghost.current?.focus(), 0); }}
                 />
               </div>
-              <Brass onMouseDown={(e) => e.preventDefault()} onClick={submit} disabled={phase === 'crashed' || phase === 'drifting'} className="dr-jump">Jump</Brass>
-              {!mobile && <p className="dr-help sk-hand">Each fence names letters: type any real word with them in that order and press Enter. Esc wakes up.</p>}
+              <span className="kit-float-rule" aria-hidden="true" />
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={submit} disabled={phase === 'crashed' || phase === 'drifting'} className="kit-float-go dr-jump" aria-label="Jump"><b>Enter</b> to jump</button>
             </div>
           </div>
         </div>

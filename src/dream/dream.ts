@@ -136,7 +136,7 @@ function buildFence(seed: string, index: number): Fence {
     if (fits > best) { best = fits; source = word; letters = set; }
   }
   // The distance barely changes, so the rising speed is what closes the gap; a little more room for each letter asked.
-  const gap = kind === 'bale' ? 170 + r() * 30 : 400 + (k - 1) * 10 + r() * 40;
+  const gap = kind === 'bale' ? 230 + r() * 40 : 560 + (k - 1) * 14 + r() * 60;
   return { index, kind, letters, source, gap };
 }
 
@@ -202,7 +202,7 @@ export const JUMP_HEIGHT = 28;
 
 /** Running speed in logical pixels a second after `count` fences, rising to a cap like the offline dinosaur. */
 export function speedAt(count: number): number {
-  return Math.min(110, 58 + count * 1.15);
+  return Math.min(160, 85 + count * 1.7);
 }
 
 /** How long a bump holds the sheep up before the lane moves again (V4 Part 15). */

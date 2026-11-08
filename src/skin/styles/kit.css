@@ -441,3 +441,51 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 :root[data-skin="painted"] .kit-plank--panel :is(h1, h2, h3), :root[data-skin="painted"] .sk-tally-title { font-family: var(--skin-font-display); font-weight: 800; color: var(--wood-ink); }
 :root[data-skin="painted"] .kit-plank--panel .sk-tally-line { color: var(--ink-soft); text-shadow: none; }
 :root[data-skin="painted"] .kit-slate--mini .kit-slate-face { padding: 3px 12px; outline-offset: -3px; outline-width: 1.5px; }
+
+/* ---------- Floating letters: the word bar with no box (the table's and the dream's) ----------
+   What the word needs on a line above, the typed word in big carved-white letters floating over the scene with a soft
+   glow, a dotted line under it, and a small key that says what Enter does. The glow is the scene's own shadow colour:
+   warm wood in the barn, indigo in the dream. */
+.kit-float {
+  --glow-a: #5B3A1E; --glow-b: rgba(30, 16, 6, 0.85);
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-bottom: 6px; color: #fff; text-align: center;
+}
+.kit-float[data-scene="dream"] { --glow-a: #4B3E8C; --glow-b: rgba(60, 40, 140, 0.8); }
+.kit-float-need { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 30px; font: 800 26px/1 var(--skin-font-display); color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2px 0 var(--glow-a), 0 0 10px var(--glow-b); }
+.kit-float-need [data-on], .kit-float-need .kit-float-chain { color: var(--glow); }
+.kit-float-need small { font: 400 20px/1 var(--skin-font-hand); color: rgba(255, 255, 255, 0.85); }
+.kit-float-gap { width: 26px; border-bottom: 3px dotted rgba(255, 255, 255, 0.75); align-self: center; }
+.kit-float-word {
+  position: relative; display: flex; align-items: center; justify-content: center; min-height: 1.15em; max-width: 100%; white-space: nowrap;
+  font: 800 min(clamp(36px, 4.2vw, 64px), calc(min(92vw, 760px) * 1.45 / var(--len, 6)))/1.1 var(--skin-font-display); letter-spacing: 0.08em;
+  text-shadow: 0 3px 0 var(--glow-a), 0 0 18px var(--glow-b);
+  transition: text-shadow var(--t-fast) var(--ease-out);
+}
+.kit-float-word [data-hit] { color: var(--glow); }
+.kit-float-word [data-miss] { color: #FF8F7A; }
+.kit-float-ph { font: 400 clamp(22px, 2vw, 30px)/1.2 var(--skin-font-hand); letter-spacing: 0; color: #fff; }
+.kit-float-rule { width: min(100%, 560px); height: 3px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.85) 0 6px, transparent 6px 14px); filter: drop-shadow(0 1px 0 var(--glow-a)); }
+.kit-float-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.kit-float-go {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 0; background: none; cursor: pointer;
+  font: 400 20px/1 var(--skin-font-hand); color: rgba(255, 255, 255, 0.92); text-shadow: 0 2px 0 var(--glow-a), 0 0 8px var(--glow-b);
+}
+.kit-float-go b { padding: 3px 8px; border-radius: 4px; font: 900 13px/1.2 var(--skin-font-body); letter-spacing: 0.04em; color: #2A1E14; background: rgba(255, 255, 255, 0.92); text-shadow: none; box-shadow: 0 2px 0 var(--glow-a); }
+.kit-float-go:disabled { opacity: 0.45; cursor: default; }
+.kit-float-go:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; border-radius: 4px; }
+/* A steal: the word and the key burn coral. */
+.kit-float[data-mode="steal"] { --glow-a: #7A1E14; --glow-b: rgba(184, 67, 47, 0.9); }
+.kit-float[data-mode="steal"] .kit-float-go b { background: #FFB6A8; }
+/* A wrong word shakes and reddens; a taken word flares gold. */
+.kit-float[data-wrong] .kit-float-word { color: #FF8F7A; animation: kit-float-shake 0.4s ease-in-out; }
+.kit-float.sk-accept-flash .kit-float-word { text-shadow: 0 3px 0 var(--glow-a), 0 0 26px var(--glow), 0 0 8px var(--glow); }
+@keyframes kit-float-shake { 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
+.kit-float .sk-input-ghost { position: absolute; inset: 0; opacity: 0; }
+@media (max-width: 640px) {
+  .kit-float-need { font-size: 22px; min-height: 26px; }
+  .kit-float-word { font-size: min(42px, calc(92vw * 1.45 / var(--len, 6))); }
+}
+@media (prefers-reduced-motion: reduce) { .kit-float[data-wrong] .kit-float-word { animation: none; } }
+:root.reduce-motion .kit-float[data-wrong] .kit-float-word { animation: none; }
+.kit-float .sk-type-caret { height: 0.9em; margin-left: 6px; background: #fff; box-shadow: 0 2px 0 var(--glow-a); }

@@ -4,6 +4,7 @@ import {
   AdditiveBlending, BackSide, BufferAttribute, CanvasTexture, Color, DoubleSide, Float32BufferAttribute, MeshBasicMaterial, PlaneGeometry, PointsMaterial, SphereGeometry,
   BufferGeometry,
 } from 'three';
+import { Vector3 } from 'three';
 import type { Mesh } from 'three';
 import { buildGeometry } from '../voxel/mesher';
 import { lin } from '../voxel/palette';
@@ -34,6 +35,7 @@ export function DreamSky({ shot, reduced }: { shot: Shot; reduced: boolean }) {
     <>
       <Dome shot={shot} />
       <Stars shot={shot} reduced={reduced} />
+      {!reduced && !GATE && <ShootingStar shot={shot} />}
       <Moon shot={shot} aspect={aspect} />
       <Aurora shot={shot} aspect={aspect} reduced={reduced} />
     </>
@@ -57,11 +59,11 @@ function Dome({ shot }: { shot: Shot }) {
 }
 
 /**
- * 180 stars. The plan keeps them to the top of the dome, but the camera never looks that high, so they are spread over
- * the part of the sky it does see. A third twinkle; the rest hold still, so the sky never goes out.
+ * 190 stars. The plan keeps them to the top of the dome, but the camera never looks that high, so they are spread over
+ * the part of the sky it does see. Two smaller sets twinkle out of step; the rest hold still, so the sky never goes out.
  */
 function Stars({ shot, reduced }: { shot: Shot; reduced: boolean }) {
-  const sets = useMemo(() => [120, 60].map((n, k) => {
+  const sets = useMemo(() => [110, 45, 35].map((n, k) => {
     const p = new Float32Array(n * 3);
     let seed = 7 + k * 31;
     const look = Math.atan2(shot.target[0] - shot.position[0], shot.position[2] - shot.target[2]);
@@ -74,7 +76,13 @@ function Stars({ shot, reduced }: { shot: Shot; reduced: boolean }) {
     geo.setAttribute('position', new Float32BufferAttribute(p, 3));
     return { geo, mat: new PointsMaterial({ color: '#FFFFFF', size: 3, sizeAttenuation: false, fog: false, transparent: true, depthWrite: false, toneMapped: false }) };
   }), [shot]);
-  useFrame(({ clock }) => { if (!reduced) sets[1].mat.opacity = 0.7 + 0.3 * Math.sin(clock.elapsedTime * 1.4); });
+  // Two sets twinkle at different rates and phases, so the sky shimmers rather than pulsing all at once.
+  useFrame(({ clock }) => {
+    if (reduced) return;
+    const t = clock.elapsedTime;
+    sets[1].mat.opacity = 0.65 + 0.35 * Math.sin(t * 1.4);
+    sets[2].mat.opacity = 0.6 + 0.4 * Math.sin(t * 0.9 + 2.1);
+  });
   useEffect(() => () => sets.forEach((s) => (s.geo.dispose(), s.mat.dispose())), [sets]);
   return <>{sets.map((s, i) => <points key={i} geometry={s.geo} material={s.mat} renderOrder={-9} />)}</>;
 }
@@ -143,4 +151,62 @@ function Aurora({ shot, aspect, reduced }: { shot: Shot; aspect: number; reduced
   });
   useEffect(() => () => { ribbons.forEach((r) => r.geo.dispose()); mat.dispose(); }, [ribbons, mat]);
   return <>{ribbons.map((r, i) => <mesh key={i} ref={(el) => { refs.current[i] = el; }} geometry={r.geo} material={mat} position={r.at} renderOrder={-8} />)}</>;
+}
+
+/** The gate script (V4.1 Part 10) samples the sky; nothing passing through it may land in a sample. */
+const GATE = typeof location !== 'undefined' && new URLSearchParams(location.search).has('dreamSeed');
+
+/**
+ * Now and then a shooting star: one at a time, every 6 to 14 s, a short streak down across the upper sky the camera sees,
+ * bright at its head and fading to nothing at its tail, in and out in under a second. A quad rebuilt each frame,
+ * additive, so its black tail adds nothing.
+ */
+function ShootingStar({ shot }: { shot: Shot }) {
+  const { geo, mat } = useMemo(() => {
+    const geo = new BufferGeometry();
+    geo.setAttribute('position', new BufferAttribute(new Float32Array(12), 3));
+    geo.setAttribute('color', new BufferAttribute(new Float32Array(12), 3));
+    geo.setIndex([0, 1, 2, 2, 1, 3]);
+    return { geo, mat: new MeshBasicMaterial({ vertexColors: true, transparent: true, blending: AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, side: DoubleSide }) };
+  }, []);
+  useEffect(() => () => (geo.dispose(), mat.dispose()), [geo, mat]);
+  const mesh = useRef<Mesh>(null);
+  const s = useMemo(() => ({ next: 4 + Math.random() * 5, t0: -1, a: new Vector3(), b: new Vector3(), head: new Vector3(), tail: new Vector3(), side: new Vector3(), view: new Vector3() }), []);
+  const DUR = 0.85, WIDTH = 1.6;
+  useFrame(({ clock }) => {
+    const m = mesh.current;
+    if (!m) return;
+    const t = clock.elapsedTime;
+    if (s.t0 < 0) {
+      m.visible = false;
+      if (t < s.next) return;
+      // Start somewhere in the sky in view, high up, and fall a little to one side.
+      const look = Math.atan2(shot.target[0] - shot.position[0], shot.position[2] - shot.target[2]);
+      const az = look + (Math.random() - 0.5) * 0.8, el = (9 + Math.random() * 4) * (Math.PI / 180), R = SKY_R * 0.9, dir = Math.random() < 0.5 ? -1 : 1;
+      const at = (a: number, e: number, out: Vector3) => out.set(shot.position[0] + Math.sin(a) * Math.cos(e) * R, shot.position[1] + Math.sin(e) * R, shot.position[2] - Math.cos(a) * Math.cos(e) * R);
+      at(az, el, s.a);
+      at(az + dir * 0.14, el - 0.045, s.b);
+      s.t0 = t;
+    }
+    const k = (t - s.t0) / DUR;
+    if (k >= 1) { s.t0 = -1; s.next = t + 6 + Math.random() * 8; m.visible = false; return; }
+    m.visible = true;
+    s.head.lerpVectors(s.a, s.b, k);
+    s.tail.lerpVectors(s.a, s.b, Math.max(0, k - 0.3));
+    s.view.set(shot.position[0], shot.position[1], shot.position[2]).sub(s.head);
+    s.side.subVectors(s.head, s.tail).cross(s.view).normalize().multiplyScalar(WIDTH / 2);
+    const p = geo.getAttribute('position') as BufferAttribute, c = geo.getAttribute('color') as BufferAttribute;
+    p.setXYZ(0, s.tail.x + s.side.x * 0.2, s.tail.y + s.side.y * 0.2, s.tail.z + s.side.z * 0.2);
+    p.setXYZ(1, s.tail.x - s.side.x * 0.2, s.tail.y - s.side.y * 0.2, s.tail.z - s.side.z * 0.2);
+    p.setXYZ(2, s.head.x + s.side.x, s.head.y + s.side.y, s.head.z + s.side.z);
+    p.setXYZ(3, s.head.x - s.side.x, s.head.y - s.side.y, s.head.z - s.side.z);
+    // Fade in and out over the streak's life; the tail is black, which adds nothing.
+    const glow = Math.sin(Math.PI * k);
+    for (const i of [0, 1]) c.setXYZ(i, 0, 0, 0);
+    for (const i of [2, 3]) c.setXYZ(i, glow, glow * 0.95, glow * 0.8);
+    p.needsUpdate = true;
+    c.needsUpdate = true;
+    geo.computeBoundingSphere();
+  });
+  return <mesh ref={mesh} geometry={geo} material={mat} renderOrder={-8} frustumCulled={false} />;
 }

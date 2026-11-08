@@ -153,4 +153,4 @@ export const PUFFS = [[12, 72, 3], [18.5, 71, 4.5], [27, 74, 6]] as const;
 /** The drift-off (V4 Part 15), in ms from the last fence: how long the board holds before the results. */
 export const DRIFT = { finish: 2000, reducedFinish: 600 } as const;
 /** Where the first fence waits before the first key, in logical pixels ahead of the sheep's nose. */
-export const FIRST_FENCE_AHEAD = 150;
+export const FIRST_FENCE_AHEAD = 560; // about 5 s before the first jump (Brian: "you get barely any time")

@@ -64,6 +64,12 @@ function recordOf(L: Live, night: string, repaired: boolean) {
   return { date: night, status: 'done' as const, count: L.count, longest: L.longest, repaired: repaired ? true : undefined, reached: L.reached, bumps: L.bumps, asleep: L.asleepAt !== null };
 }
 
+/** Waking clouds: x and y (% of the screen, the cloud's centre), width (vmax) and a delay (ms), round the edges inward. */
+const CLOUDS: [number, number, number, number][] = [
+  [0, 0, 60, 0], [50, -6, 64, 60], [100, 0, 60, 30], [-4, 50, 58, 90], [104, 50, 58, 120], [0, 100, 62, 40], [50, 106, 66, 80], [100, 100, 62, 10],
+  [25, 22, 48, 180], [75, 22, 48, 210], [25, 78, 48, 160], [75, 78, 48, 230], [50, 50, 56, 280],
+];
+
 export function DreamScreen() {
   const dict = useStore((s) => s.dict);
   const practice = useDreamUi((s) => s.practice);
@@ -320,6 +326,18 @@ export function DreamScreen() {
         </div>
       )}
       <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} />
+      {/* Waking (Brian, 2026-11-08: the old pop shrank the scene to a square): the dream blurs and soft clouds roll in from
+          every edge, the bedroom comes up behind them, and they part to show it. */}
+      {pop !== 'none' && !reduced && (
+        <div className="dr-clouds" data-state={phase === 'results' ? 'out' : 'in'} aria-hidden="true">
+          <i className="dr-clouds-fill" />
+          {CLOUDS.map(([x, y, w, d], i) => (
+            <svg key={i} className="dr-cloud" viewBox="0 0 150 100" style={{ left: `${x}%`, top: `${y}%`, width: `${w}vmax`, '--dx': `${(x - 50) * 1.6}vw`, '--dy': `${(y - 50) * 1.6}vh`, animationDelay: `${d}ms` } as React.CSSProperties}>
+              <g fill={i % 3 ? '#EDE8F9' : '#DCD4F3'}><ellipse cx="75" cy="58" rx="58" ry="30" /><circle cx="36" cy="50" r="27" /><circle cx="73" cy="32" r="31" /><circle cx="113" cy="47" r="27" /></g>
+            </svg>
+          ))}
+        </div>
+      )}
       <DevLine />
 
       {phase !== 'results' && (
@@ -353,7 +371,7 @@ export function DreamScreen() {
 
       {phase !== 'results' && (
         <div className={`dr-hud relative z-20 mt-auto px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4 ${mobile ? 'dr-bar-phone' : ''}`}>
-          <div className={mobile ? 'mx-auto' : 'ml-[30%] mr-[6%]'}>
+          <div className={mobile ? 'mx-auto' : 'mx-auto max-w-3xl'}>
             {caption && <p className="sk-input-prompt" data-mode={mode}>{caption}</p>}
             {/* The word bar: floating letters (chosen from the mockups, 2026-11-07). The fence's letters above with gaps for
                 anything between them, lighting up as the word meets them; the word big over the snow; Enter's key below. */}

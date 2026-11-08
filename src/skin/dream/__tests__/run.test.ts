@@ -20,21 +20,21 @@ function play(seed: string, clearUntil: number, dt = 16) {
 }
 
 describe('the run (V4 Part 7.1 and 14)', () => {
-  it('starts with the first fence 150 px ahead and converts the windows as specified', () => {
+  it('starts with the first fence 560 px ahead and converts the windows as specified', () => {
     const L = freshLive(SEED);
     expect(L.fences[0].x).toBe(FIELD.sheepX + FIRST_FENCE_AHEAD);
     expect(SPAWN_X).toBe(344);
-    expect(TYPE_X).toBe(650);
+    expect(TYPE_X).toBe(840);
   });
   it('is deterministic: the same seed and the same input give the same count and the same events', () => {
-    const a = play(SEED, 12000), b = play(SEED, 12000);
+    const a = play(SEED, 20000), b = play(SEED, 20000);
     expect(a.L.count).toBe(b.L.count);
     expect(a.log).toEqual(b.log);
     expect(a.L.count).toBeGreaterThan(2);
-    expect(play(dreamSeed('2026-11-07'), 12000).log).not.toEqual(a.log);
+    expect(play(dreamSeed('2026-11-07'), 20000).log).not.toEqual(a.log);
   });
   it('bumps exactly once, then the run is over and the wake-up finishes at 1500 ms (600 under reduced motion)', () => {
-    const { L, bumps } = play(SEED, 5000);
+    const { L, bumps } = play(SEED, 9000);
     expect(bumps).toBe(1);
     expect(L.crashAt).not.toBeNull();
     expect(update(L, 16, SEED, { bump: () => { throw new Error('bumped twice'); } })).toBe(true);

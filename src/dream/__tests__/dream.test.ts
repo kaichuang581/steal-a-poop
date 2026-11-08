@@ -149,8 +149,8 @@ describe('the pace, the bales and the night\'s ending', () => {
     for (const s of seeds) {
       for (let i = 1; i < 8; i++) expect(seconds(s, i)).toBeGreaterThan(5.5);
       for (let i = 1; i < 60; i++) if (fenceAt(s, i).kind === 'fence') {
-        expect(fenceAt(s, i).gap).toBeGreaterThanOrEqual(560);
-        expect(fenceAt(s, i).gap).toBeLessThan(680);
+        expect(fenceAt(s, i).gap).toBeGreaterThanOrEqual(760);
+        expect(fenceAt(s, i).gap).toBeLessThan(900);
         expect(seconds(s, i)).toBeGreaterThan(3.4); // the floor, at top speed
       }
     }
@@ -178,7 +178,7 @@ describe('the pace, the bales and the night\'s ending', () => {
         if (f.kind !== 'bale') continue;
         if (i < 18) early++; else if (i < 28) late++;
         expect(f.letters).toHaveLength(1);
-        expect(f.gap).toBeLessThan(270);
+        expect(f.gap).toBeLessThan(350);
         if (i < BALE_PAIRS_FROM) expect(fenceAt(s, i - 1).kind).toBe('fence');
         expect(fenceAt(s, i - 1).kind === 'bale' && fenceAt(s, i - 2).kind === 'bale').toBe(false);
       }

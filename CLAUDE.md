@@ -352,3 +352,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   place has its number and the player's name on a black nameplate in beige under it. The scoreboard comes up 5 s later,
   dark and see-through with white text (`.sk-final`), and the camera eases so the podium sits beside it; it can be hidden
   (for a screenshot) and shown again. On a phone it drops the standings list, which the podium already shows.
+- Faster dream, more room, round two (requested by Brian, 2026-11-08: "make it faster paced ... add more space"), a rules
+  change in src/dream: `speedAt` runs 110 to 210 (2.6 a fence), fences stand 760 to 900 apart and bales 300 to 350 behind,
+  `TYPE_X` is W + 520, and the first fence starts 560 px ahead (`FIRST_FENCE_AHEAD`, about 4 s before the first jump).
+  The dream camera widens its view in a window narrower than the shot (a browser snapped to half the screen used to
+  crop the sheep off the left). The word bar is centred. A bump no longer shrinks the scene to a square: the dream
+  blurs, clouds roll in from every edge (`.dr-clouds`), and part on the bedroom.

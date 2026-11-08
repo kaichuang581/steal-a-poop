@@ -391,7 +391,11 @@ function DreamCamera({ phone, landscapePhone, reduced, live }: { phone: boolean;
   const target = useMemo(() => new Object3D(), []);
   const size = useThree((s) => s.size);
   useEffect(() => {
-    camera.fov = shot.fov;
+    // A window narrower than the shot was framed for (a browser snapped to half the screen) widens the view, so the
+    // sheep on the left and the fence coming in on the right stay in frame: at least 4.2 m either side of the target.
+    const aspect = size.width / Math.max(1, size.height);
+    const dist = Math.hypot(...shot.position.map((v, i) => v - shot.target[i]));
+    camera.fov = phone ? shot.fov : Math.max(shot.fov, (2 * Math.atan(4.2 / (dist * aspect)) * 180) / Math.PI);
     camera.updateProjectionMatrix();
     // For the gate script on a phone: where each layer lands through this camera.
     if (devOn()) Object.assign(window, { __dreamFrame: dreamFrame(shot, size.width / Math.max(1, size.height), phone), __dreamLive: live });

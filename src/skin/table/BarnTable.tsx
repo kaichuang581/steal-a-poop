@@ -17,7 +17,7 @@ import { digitGeometry, shearsModel, tuftGeometry, wolfEyes, wolfModel } from '.
 import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, bombModel } from '../voxel/bomb';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
-import { BOARD, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
+import { BOARD, boardFontReady, letterBoardGeometry, pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
 import { DevStats } from './DevStats';
 import { LetterClock, ProjectAnchor, ScreenAnchor, SlipLayer, useSlipRefs } from './LetterClock';
 import { plankY, stakeGeometry } from '../voxel/props';
@@ -379,7 +379,10 @@ function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; re
 export function LetterBoard({ letter, isTrap, stealOpen, reduced, beamY = BARN.beamY, hook = [HEAP[0], BARN.beamY - 0.15, 1.0] }: {
   letter: string; isTrap: boolean; stealOpen: boolean; reduced: boolean; beamY?: number; hook?: readonly [number, number, number];
 }) {
-  const geo = useMemo(() => letterBoardGeometry(letter, isTrap, beamY), [letter, isTrap, beamY]);
+  // The letter is cut in the title's face; until that has loaded the board uses the bitmap font, then rebuilds.
+  const [fontReady, setFontReady] = useState(false);
+  useEffect(() => { let live = true; void boardFontReady().then(() => live && setFontReady(true)); return () => { live = false; }; }, []);
+  const geo = useMemo(() => letterBoardGeometry(letter, isTrap, beamY), [letter, isTrap, beamY, fontReady]);
   // A little warmth of its own, so the board still reads when the speaker camera sees its unlit side of the room.
   const boardMat = useMemo(() => voxelMaterial({ emissive: '#3A2A1C', emissiveIntensity: 1 }), []);
   const iceGeo = useMemo(() => new BoxGeometry(BOARD.width, BOARD.height, 0.24), []);

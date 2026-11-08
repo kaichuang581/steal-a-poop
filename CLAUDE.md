@@ -366,7 +366,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   0.8 m, gold, silver and bronze; the rest on 0.55 m crates). Each place has its own dance (`DANCES` in Podium.tsx); the
   winner leaps and spins. Festive only in passing: a wreath on a door and one short string of warm lights.
 - The wendigo (requested by Brian, 2026-11-08, for lore): src/skin/table/Wendigo.tsx, mounted in the Home farm
-  (FarmBackdrop). On purpose the one thing in the game that is not voxels: smooth tapered geometry, gaunt and hunched,
-  a deer skull under antlers, faint eye glints, a slow breath and a slow head tilt. It stands at the pines on the slope
-  behind the paddock (`WENDIGO_AT`), seen top right from the paddock camera, and is meant to be missed. Keep it subtle.
-  ?preview=wendigo shows it close up.
+  (FarmBackdrop), loaded lazily from public/models/wendigo.glb. That file is Brian's own Wendigo2.glb (kept out of git
+  as public/models/wendigo-src.glb) with the ribs removed, doubled parts dropped and every piece simplified, about 56k
+  triangles and 1 MB, one mesh per colour. On purpose the one thing in the game that is not voxels. The hide gets a
+  mottled, veined, bumpy texture in the shader (no UVs), and two red eyes glow where the model's red eyes were. It stands
+  between the pines just past the paddock (`WENDIGO_AT`), its feet put on the voxel ground by a ray down, and it is
+  drawn only while the camera is at the paddock shot (POV_SHOTS index 2): from every other Home view it is not there.
+  Keep it subtle. ?preview=wendigo shows it close up; ?wendigoDebug paints it magenta.

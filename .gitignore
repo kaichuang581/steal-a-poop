@@ -5,3 +5,7 @@ test-results
 playwright-report
 dist-auth
 dist-server
+
+# the wendigo source model (20 MB); only the optimised copy is committed
+public/models/wendigo-src.glb
+scripts/wendigo-lab.tmp.html

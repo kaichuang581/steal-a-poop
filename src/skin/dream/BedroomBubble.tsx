@@ -95,7 +95,17 @@ function Room({ live, phase, reduced, phone, blankets, anchors }: { live: Mutabl
     if (clock.current) clock.current.rotation.z = !reduced && ring ? Math.sin(t * 30 * Math.PI * 2) * ((2 * Math.PI) / 180) : 0;
 
     // The camera: the bubble's shot until the dream is over, then down to the bed over 900 ms (a cut under reduced motion).
-    if (!room) { cam.at = -1; return; }
+    if (!room) {
+      // Back from the results (Practice starts a new dream in place): put the bubble's own shot back.
+      if (cam.at >= 0) {
+        camera.position.set(...CAMERA.position);
+        camera.fov = CAMERA.fov;
+        camera.updateProjectionMatrix();
+        camera.lookAt(...CAMERA.target);
+      }
+      cam.at = -1;
+      return;
+    }
     if (cam.at < 0) { cam.at = t; cam.from.copy(camera.position); }
     const k = reduced ? 1 : ease(((t - cam.at) * 1000) / EASE_MS);
     camera.position.lerpVectors(cam.from, cam.p.set(shot.position[0], shot.position[1], shot.position[2]), k);

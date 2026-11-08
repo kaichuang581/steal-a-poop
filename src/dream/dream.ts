@@ -187,7 +187,10 @@ export function exampleWords(fence: Fence): string[] {
 /** A word that fits, for a player who has stopped to think: the same for everyone, never the fence's own source. */
 export function hintWord(fence: Fence, used: ReadonlySet<string> = new Set()): string {
   const fits = FENCE_WORDS.filter((w) => w !== fence.source && !used.has(w) && w.length <= 6 && matched(fence, w) === fence.letters.length);
-  const all = fits.length ? fits : FENCE_WORDS.filter((w) => matched(fence, w) === fence.letters.length);
+  // Short words first; then any length; a used word only when nothing else fits (it would be refused as used).
+  const fit = (w: string) => matched(fence, w) === fence.letters.length;
+  const longer = FENCE_WORDS.filter((w) => w !== fence.source && !used.has(w) && fit(w));
+  const all = fits.length ? fits : longer.length ? longer : FENCE_WORDS.filter(fit);
   return all[Math.floor(rng(`${fence.letters.join('')}#${fence.index}#hint`)() * all.length)] ?? fence.source;
 }
 

@@ -209,7 +209,9 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-stitch {
   position: relative; display: inline-grid; place-items: center; width: var(--st-w, 18px); height: calc(var(--st-w, 18px) * 1.15);
   font-family: var(--skin-font-body); font-size: 9px; font-weight: 900; color: var(--wood-ink);
-  background: linear-gradient(60deg, transparent 0 42%, var(--st, #E3D6BC) 42% 58%, transparent 58%), linear-gradient(-60deg, transparent 0 42%, var(--st, #E3D6BC) 42% 58%, transparent 58%);
+  /* A knit stitch is a V: each arm runs from a top corner to the bottom middle. */
+  background: linear-gradient(to top right, transparent 34%, var(--st, #E3D6BC) 34% 66%, transparent 66%) 0 0 / 50% 100% no-repeat,
+    linear-gradient(to top left, transparent 34%, var(--st, #E3D6BC) 34% 66%, transparent 66%) 100% 0 / 50% 100% no-repeat;
 }
 .kit-stitch[data-status="played"], .kit-stitch[data-status="done"] { --st: var(--amber); }
 .kit-stitch[data-status="repair"], .kit-stitch[data-status="repaired"] { --st: #F3E7CC; }

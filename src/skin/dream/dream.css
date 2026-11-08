@@ -27,8 +27,8 @@
 .dr-bubble[data-room] .dr-bubble-view { -webkit-mask: none; mask: none; }
 .dr-bubble[data-room] .dr-bubble-rim, .dr-bubble[data-room] .dream-z, .dr-bubble[data-room] .dr-bubble-bang { display: none; }
 @keyframes dr-room-in { from { opacity: 0; } }
-/* The z's rise out of the bubble toward the first puff. */
-.dream-z { position: absolute; left: 40%; top: 45%; color: #EDE8F9; opacity: 0; font: 700 18px/1 var(--skin-font-display); animation: dr-z 2.2s linear infinite; }
+/* The z's rise from the tip of his nightcap toward the first puff. */
+.dream-z { position: absolute; left: 47%; top: 32%; color: #EDE8F9; opacity: 0; font: 700 18px/1 var(--skin-font-display); animation: dr-z 2.2s linear infinite; }
 .dream-z[data-i="1"] { font-size: 24px; animation-delay: 0.73s; }
 .dream-z[data-i="2"] { font-size: 30px; animation-delay: 1.46s; }
 @keyframes dr-z { 0% { opacity: 0; transform: translate(0, 0); } 8% { opacity: 0.9; } 60% { opacity: 0.9; } 100% { opacity: 0; transform: translate(9%, -55%); } }

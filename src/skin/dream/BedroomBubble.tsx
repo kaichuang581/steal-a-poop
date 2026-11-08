@@ -2,27 +2,28 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { ACESFilmicToneMapping, Color, MeshBasicMaterial, SRGBColorSpace, Vector3 } from 'three';
-import type { Group, Mesh, PerspectiveCamera } from 'three';
-import { buildBubbleFestive } from '../scene/festive';
-import { Festive } from '../table/Festive';
+import type { Group, Mesh, MeshLambertMaterial, PerspectiveCamera, PointLight } from 'three';
 import { voxelMaterial } from '../voxel/material';
-import { BEAM, BED, bedroomGeometry, bedroomRoom, farmerGeometry, farmerSitting, foldedQuilt, LAMP, quiltSat, roomOn, ROOM_WINDOW, SITTING, WINDOW } from './bedroom';
+import { BEAM, BED, bedroomGeometry, CANDLE, CLOCK, farmerGeometry, farmerSitting, foldedQuilt, LAMP, quiltSat, roomOn, SITTING } from './bedroom';
 import type { Phase, StageLive } from './DreamStage';
 import { WAKE } from './stage';
 
-/** The foot of the bed, a little to the side: the farmer's face left of centre, the headboard and window behind him. */
-const CAMERA = { position: [2.35, 1.3, 0.95] as const, target: [0.62, 0.86, -0.22] as const, fov: 27 };
+/** From the foot of the bed on the lamp side: his face left of centre, the window and the nightstand to his right. */
+const CAMERA = { position: [2.3, 1.4, 1.05] as const, target: [0.35, 1.0, -0.4] as const, fov: 29 };
 /**
- * The results shot (V6 Part 6.4.3): the bed seen side on from the room, the headboard at the left, the window at the
- * top right, the beam along the top edge. A phone looks along the bed from its foot, the bed in the lower half.
+ * The results shot (V6 Part 6.4.3): the room from the foot of the bed, a little to the side, the headboard and the window
+ * at the left, the nightstand beside him, the back window at the top right, the beam along the top edge. A phone looks
+ * along the bed from its foot, the bed in the lower half.
  */
 const RESULTS = {
-  desktop: { position: [1.19, 1.8, 3.5] as const, target: [1.19, 1.36, 0] as const, fov: 34 },
-  phone: { position: [2.75, 1.7, 2.15] as const, target: [0.7, 1.25, -0.3] as const, fov: 64 },
+  desktop: { position: [3.4, 1.65, 3.1] as const, target: [1.0, 1.05, -0.4] as const, fov: 40 },
+  phone: { position: [2.8, 1.8, 1.9] as const, target: [0.3, 1.85, -0.45] as const, fov: 58 },
 };
 const EASE_MS = 900;
-const WALL = '#1E1A33';
-const PANE = '#4A4080';
+const NIGHT = '#141836';
+/** The lamp's light turned low while he sleeps and up when he wakes, and its chimney's glow with it. */
+const LAMP_LIGHT = { low: 1.1, high: 4.2 } as const;
+const GLASS = { low: 0.35, high: 1.6 } as const;
 
 /** The HTML that hangs in the room: the results board from the beam's hook, the paper slip from the headboard. */
 export interface RoomAnchors { board: MutableRefObject<HTMLElement | null>; slip: MutableRefObject<HTMLElement | null> }
@@ -30,8 +31,8 @@ export interface RoomAnchors { board: MutableRefObject<HTMLElement | null>; slip
 /**
  * The farmer's bubble (V4.1 Part 7): a small canvas of its own, masked to a cloud, so he is always framed whatever the
  * dream camera does. It reads the run's clock and never writes it. The z's float over it as HTML. When the dream is over
- * the bubble opens to the whole screen and becomes his bedroom (V6 Part 6.4): the walls, the window and the beam come
- * in, the camera comes down to the bed, and the results hang from the beam.
+ * the bubble opens to the whole screen and is the same bedroom seen whole (V6 Part 6.4): the camera comes down to the
+ * bed, the lamp is turned up if he woke, and the results hang from the beam.
  */
 export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, anchors }: {
   live: MutableRefObject<StageLive>; phase: Phase; reduced: boolean; phone: boolean; blankets?: number; anchors?: RoomAnchors;
@@ -45,7 +46,7 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
         <Canvas
           dpr={phone ? [1, 1.5] : [1, 2]} flat={false}
           gl={{ antialias: true, alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1 }}
-          camera={{ fov: CAMERA.fov, position: [...CAMERA.position], near: 0.1, far: 20 }}
+          camera={{ fov: CAMERA.fov, position: [...CAMERA.position], near: 0.05, far: 20 }}
           onCreated={({ camera }) => camera.lookAt(...CAMERA.target)}
         >
           <Room live={live} phase={phase} reduced={reduced} phone={phone} blankets={blankets} anchors={anchors} />
@@ -66,33 +67,49 @@ function Room({ live, phase, reduced, phone, blankets, anchors }: { live: Mutabl
   const b = useMemo(() => bedroomGeometry(), []);
   const f = useMemo(() => farmerGeometry(), []);
   const vox = useMemo(() => voxelMaterial(), []);
-  const lampMat = useMemo(() => voxelMaterial({ emissive: '#FFD9A0', emissiveIntensity: 1.3 }), []);
-  const wallMat = useMemo(() => new MeshBasicMaterial({ color: WALL, toneMapped: false }), []);
-  const paneMat = useMemo(() => new MeshBasicMaterial({ color: PANE, toneMapped: false }), []);
-  const moonMat = useMemo(() => new MeshBasicMaterial({ color: '#FFF1B8', toneMapped: false }), []);
-  const skyMat = useMemo(() => new MeshBasicMaterial({ vertexColors: true, toneMapped: false }), []);
+  const glassMat = useMemo(() => voxelMaterial({ emissive: '#FFB45A', emissiveIntensity: GLASS.low }), []);
+  const selfLit = useMemo(() => new MeshBasicMaterial({ vertexColors: true, toneMapped: false }), []);
   const room = roomOn(phase);
-  const r = useMemo(() => (room ? { ...bedroomRoom(), sitting: farmerSitting(), quilt: quiltSat(), folds: [foldedQuilt(0), foldedQuilt(1)] } : null), [room]);
+  const r = useMemo(() => (room ? { sitting: farmerSitting(), quilt: quiltSat(), folds: [foldedQuilt(0), foldedQuilt(1)] } : null), [room]);
   const sitting = room && live.current.asleepAt === null;
   const bump = useRef<Group>(null);
   const clock = useRef<Group>(null);
+  const ring = useRef<Mesh>(null);
   const asleep = useRef<Mesh>(null);
   const awake = useRef<Mesh>(null);
+  const sitAwake = useRef<Mesh>(null);
+  const sitBlink = useRef<Mesh>(null);
+  const lampLight = useRef<PointLight>(null);
+  const candle = useRef<PointLight>(null);
   const shot = phone ? RESULTS.phone : RESULTS.desktop;
-  const cam = useMemo(() => ({ at: -1, from: new Vector3(), look: new Vector3(), p: new Vector3() }), []);
-  useEffect(() => { scene.background = new Color(WALL); }, [scene]);
-  useFrame(({ clock: ck }) => {
+  const cam = useMemo(() => ({ at: -1, from: new Vector3(), look: new Vector3(), p: new Vector3(), lamp: 0 }), []);
+  useEffect(() => { scene.background = new Color(NIGHT); }, [scene]);
+  useEffect(() => () => { vox.dispose(); glassMat.dispose(); selfLit.dispose(); }, [vox, glassMat, selfLit]);
+  useFrame(({ clock: ck }, dt) => {
     const t = ck.elapsedTime, L = live.current;
     const since = L.crashAt !== null ? L.t - L.crashAt : -1;
     // A bump short of the last only stirs him: awake for 600 ms, then asleep again.
     const stirred = L.t < L.stumbleUntil - 100;
-    const woke = since >= WAKE.stir || stirred || (phase === 'results' && L.asleepAt === null);
+    const up = since >= WAKE.stir || (phase === 'results' && L.asleepAt === null);
+    const woke = up || stirred;
     if (asleep.current) asleep.current.visible = !woke;
     if (awake.current) awake.current.visible = woke;
+    // Sitting up he blinks, a quick shut every few seconds.
+    const blink = !reduced && t % 3.3 < 0.14;
+    if (sitAwake.current) sitAwake.current.visible = !blink;
+    if (sitBlink.current) sitBlink.current.visible = blink;
     if (bump.current) bump.current.scale.y = reduced || woke ? 1 : 1 + 0.035 * (0.5 + 0.5 * Math.sin((t / 3.6) * Math.PI * 2));
-    // The clock rings on the wake-up, and once more as the camera arrives at the bed.
-    const ring = (since >= WAKE.stir && since < WAKE.stir + 600) || (room && cam.at >= 0 && t - cam.at > EASE_MS / 1000 && t - cam.at < EASE_MS / 1000 + 0.6);
-    if (clock.current) clock.current.rotation.z = !reduced && ring ? Math.sin(t * 30 * Math.PI * 2) * ((2 * Math.PI) / 180) : 0;
+    // The lamp: turned low through the night, up when he wakes for good.
+    cam.lamp = reduced ? (up ? 1 : 0) : Math.min(1, Math.max(0, cam.lamp + (up ? dt * 2.5 : -dt * 2.5)));
+    const flicker = reduced ? 1 : 1 + 0.05 * Math.sin(t * 13.1) + 0.04 * Math.sin(t * 7.3 + 1.7);
+    if (lampLight.current) lampLight.current.intensity = (LAMP_LIGHT.low + (LAMP_LIGHT.high - LAMP_LIGHT.low) * cam.lamp) * flicker;
+    (glassMat as MeshLambertMaterial).emissiveIntensity = (GLASS.low + (GLASS.high - GLASS.low) * cam.lamp) * flicker;
+    if (candle.current) candle.current.intensity = 0.5 * (reduced ? 1 : 1 + 0.12 * Math.sin(t * 17.3) + 0.08 * Math.sin(t * 5.1));
+    // The clock rings on the wake-up, and in bursts while he sits up in the lamplight.
+    const arrived = room && cam.at >= 0 ? t - cam.at - EASE_MS / 1000 : -1;
+    const ringing = (since >= WAKE.stir && since < WAKE.stir + 600) || (sitting && arrived >= 0 && arrived % 3.2 < 0.8);
+    if (clock.current) clock.current.rotation.z = !reduced && ringing ? Math.sin(t * 30 * Math.PI * 2) * ((3 * Math.PI) / 180) : 0;
+    if (ring.current) ring.current.visible = ringing && (reduced || Math.floor(t * 8) % 2 === 0);
 
     // The camera: the bubble's shot until the dream is over, then down to the bed over 900 ms (a cut under reduced motion).
     if (!room) {
@@ -125,55 +142,37 @@ function Room({ live, phase, reduced, phone, blankets, anchors }: { live: Mutabl
   });
   return (
     <>
-      <hemisphereLight args={['#A09AC8', '#4A3A40', 1.3]} />
-      {/* The moon through the window falls cool on the pillow and the right of his face; the lamp warms the left. */}
-      <pointLight position={[WINDOW.x + 0.5, WINDOW.y - 0.1, WINDOW.z + 0.5]} color="#CFD8FF" intensity={1.3} distance={5} decay={2} />
-      <pointLight position={[LAMP.x + 0.55, LAMP.y + 0.2, LAMP.z - 0.35]} color="#FFC98A" intensity={2.6} distance={2.5} decay={2} />
-      {r ? (
-        <>
-          {/* The room (Part 6.4.1 and 6.4.2): the candle stays the warm light, the window brings the cool one. */}
-          <mesh geometry={r.room} material={vox} />
-          <mesh geometry={r.fine} material={vox} />
-          <mesh geometry={r.moon} material={skyMat} />
-          <pointLight position={[(ROOM_WINDOW.x0 + ROOM_WINDOW.x1) / 2, ROOM_WINDOW.y0 + 0.3, -0.7]} color="#CFD8FF" intensity={1.0} distance={4} decay={2} />
-          <pointLight position={[LAMP.x, LAMP.y + 0.15, LAMP.z]} color="#FFC24B" intensity={0.9} distance={3.5} decay={2} />
-          {[0, 1].slice(0, blankets).map((i) => (
-            <mesh key={i} geometry={r.folds[i]} material={vox} position={[1.72 + i * 0.03, BED.mattress.top + 0.1 + i * 0.12, -0.08 + i * 0.05]} rotation={[0, i ? 0.12 : -0.05, 0]} />
-          ))}
-        </>
-      ) : (
-        <>
-          <mesh material={wallMat} position={[-0.17, 2, 0]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[12, 8]} /></mesh>
-          <mesh material={wallMat} position={[2, 2, -1.8]}><planeGeometry args={[12, 8]} /></mesh>
-          <mesh material={paneMat} position={[WINDOW.x, WINDOW.y, WINDOW.z]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[WINDOW.w, WINDOW.h]} /></mesh>
-          <mesh material={moonMat} position={[WINDOW.x + 0.005, WINDOW.y - 0.24, WINDOW.z + 0.2]} rotation={[0, Math.PI / 2, 0]}><circleGeometry args={[0.125, 20]} /></mesh>
-          <mesh geometry={b.windowFrame} material={vox} />
-          <mesh geometry={b.floor} material={vox} />
-        </>
-      )}
-      <Festive geo={buildBubbleFestive()} reduced={reduced} />
-      <mesh geometry={b.rug} material={vox} />
-      <mesh geometry={b.slippers} material={vox} />
-      <mesh geometry={b.bed} material={vox} />
-      <mesh geometry={b.pillow} material={vox} />
-      <mesh geometry={b.quiltFlat} material={vox} />
+      {/* Night in the room: a dim cool fill, moonlight falling in from the windows, the lamp and the candle warm. */}
+      <hemisphereLight args={['#7A80C0', '#4A3A30', 1.1]} />
+      {/* The lamp's glow from the room side, so his face reads whichever way he lies. */}
+      <pointLight position={[1.4, 1.5, 0.9]} color="#FFD8B0" intensity={2.2} distance={4} decay={1.5} />
+      <directionalLight position={[-1, 3, -3.5]} color="#A9BCFF" intensity={1.1} />
+      <pointLight ref={lampLight} position={[LAMP.x + 0.08, LAMP.y + 0.3, LAMP.z + 0.12]} color="#FFC48A" intensity={LAMP_LIGHT.low} distance={6} decay={1.6} />
+      <pointLight ref={candle} position={[CANDLE.x, CANDLE.y + 0.25, CANDLE.z + 0.15]} color="#FFB060" intensity={0.5} distance={2.2} decay={2} />
+      <mesh geometry={b.room} material={vox} />
+      <mesh geometry={b.glow} material={selfLit} />
+      <mesh geometry={b.lampGlass} material={glassMat} />
+      <group ref={clock} position={[CLOCK.x, CLOCK.y + 0.025, CLOCK.z]} rotation={[0, CLOCK.turn, 0]}>
+        <mesh geometry={b.clock} material={vox} />
+        <mesh ref={ring} geometry={b.ring} material={selfLit} visible={false} />
+      </group>
+      {r && [0, 1].slice(0, blankets).map((i) => (
+        <mesh key={i} geometry={r.folds[i]} material={vox} position={[1.62 + i * 0.03, BED.mattress.top + 0.05 + i * 0.12, -0.12 + i * 0.05]} rotation={[0, i ? 0.12 : -0.05, 0]} />
+      ))}
       {sitting && r ? <mesh geometry={r.quilt} material={vox} /> : (
         <group ref={bump} position={[0, BED.mattress.top, 0]}><mesh geometry={b.quiltBump} material={vox} position={[0, -BED.mattress.top, 0]} /></group>
       )}
-      <mesh geometry={b.table} material={vox} />
-      <mesh geometry={b.lamp} material={vox} />
-      <mesh geometry={b.lampGlow} material={lampMat} />
-      <group ref={clock} position={[0.2, 0.6, BED.mattress.w / 2 + 0.42]}><mesh geometry={b.clock} material={vox} /></group>
       {sitting && r ? (
-        // Awake and sitting up against the headboard, turned toward the room, his nightcap knocked askew.
+        // Awake and sitting up against the headboard, turned toward the room, blinking, his nightcap knocked askew.
         <group position={[SITTING.x, SITTING.y, SITTING.z]} rotation={[0, SITTING.turn, 0]}>
-          <mesh geometry={f.awake} material={vox} />
-          <mesh geometry={f.cap} material={vox} rotation={[0, 0, -0.15]} position={[0.01, 0.01, 0]} />
+          <mesh ref={sitAwake} geometry={f.awake} material={vox} />
+          <mesh ref={sitBlink} geometry={f.asleep} material={vox} visible={false} />
+          <mesh geometry={f.cap} material={vox} rotation={[0, 0, -0.12]} position={[0.01, 0.01, 0]} />
           <mesh geometry={r.sitting} material={vox} />
         </group>
       ) : (
         // The farmer: built standing, laid down on the pillow, propped toward the foot of the bed so his face reads.
-        <group position={[0.34, BED.pillowTop + 0.06, -0.02]} rotation={[0.18, 0, -0.95]}>
+        <group position={[0.34, BED.pillowTop + 0.05, -0.02]} rotation={[0.3, -0.35, -0.95]}>
           <group rotation={[0, Math.PI / 2, 0]}>
             <group rotation={[-Math.PI / 2, 0, 0]}>
               <mesh ref={asleep} geometry={f.asleep} material={vox} />

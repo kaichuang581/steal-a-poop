@@ -343,7 +343,8 @@ const SIGN_AT = [0.1, 0, -1.34] as const;
  * drawn half as big again, which brings its letters to the readability gate's 16 px (V6 Part 7.5).
  */
 const signScale = (phone: boolean) => (phone ? 1.6 : 1);
-const INK = '#1E140C';
+// The cut letters are painted cream, as on the table's letter board; warm on the active sign, green once cleared, red on a bounce.
+const INK = '#F3E7CC';
 
 /**
  * The fence sign (V6 Part 5.1): letters carved into a plank hung from a crossbar. The active one has its lantern lit
@@ -357,7 +358,7 @@ function Sign({ view, scale, boardRef }: { view: FenceView | null; scale: number
   const glass = useMemo(() => [voxelMaterial({ color: '#9A8A70' }), voxelMaterial({ emissive: '#FFC24B', emissiveIntensity: 0.9 })], []);
   useEffect(() => {
     ink.color.set(view?.locked ? T.pine[0] : view?.wrong ? T.collar[0] : INK);
-    ink.emissive.set(view?.hot && !view.wrong ? '#2E1C08' : '#000000');
+    ink.emissive.set(view?.hot && !view.wrong ? '#3A2A14' : '#000000');
   }, [view?.locked, view?.wrong, view?.hot, ink]);
   const word = view?.locked ? view.word : '';
   return (

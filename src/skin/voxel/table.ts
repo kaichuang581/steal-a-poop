@@ -143,13 +143,15 @@ export function boardFontReady(): Promise<void> {
 /**
  * The letter as a mask of cells, `h` cells tall: drawn in the display face at 6x and averaged down, so every stroke
  * and serif lands on whole cells instead of a small bitmap stretched over a grid it does not divide. Where there is
- * no canvas or the face has not loaded, the 5 x 7 board font scaled by a whole 3, which still divides evenly.
+ * no canvas or the face has not loaded, the 5 x 7 board font scaled by a whole number of cells.
  */
 export function letterMask(ch: string, h: number): boolean[][] {
   const up = ch.toUpperCase();
+  // The fallback scales the 5 x 7 font by a whole number, so it still divides evenly.
+  const k = Math.max(1, Math.round(h / GLYPH.h));
   const fromFont = () => (FONT[up] ?? FONT.A).flatMap((row) => {
-    const line = [...row].flatMap((px) => [px === '#', px === '#', px === '#']);
-    return [line, line, line];
+    const line = [...row].flatMap((px) => Array<boolean>(k).fill(px === '#'));
+    return Array.from({ length: k }, () => line);
   });
   if (typeof document === 'undefined' || !document.fonts?.check(BOARD_FONT)) return fromFont();
   const K = 6;

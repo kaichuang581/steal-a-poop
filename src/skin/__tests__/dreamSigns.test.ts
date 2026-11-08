@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { foldedQuilt, roomOn } from '../dream/bedroom';
-import { fenceSign, signBoardCells, signCell, signCells, signGlyphCells, signWidth } from '../dream/world';
+import { fenceSign, SIGN_BASE, signBoardCells, signCell, signCells, signGlyphCells, signWidth } from '../dream/world';
 import { Grid } from '../voxel/primitives';
 
 /** Every voxel reaches every other through shared faces (V5 Part 4.13's connectivity test). */
@@ -38,7 +38,7 @@ describe('the fence sign', () => {
       const { wood, ink, w } = signBoardCells(letters);
       // Each glyph's cells plus three dots in each gap.
       expect(ink.count).toBe(signGlyphCells(letters).length);
-      expect(signGlyphCells(letters).filter((c) => c.y === 2).length).toBeGreaterThanOrEqual((letters.length - 1) * 3);
+      expect(signGlyphCells(letters).filter((c) => c.y === SIGN_BASE).length).toBeGreaterThanOrEqual((letters.length - 1) * 3);
       for (const { x, y } of signGlyphCells(letters)) expect(wood.has(x, y, 1)).toBe(false);
       // The board is as wide as signWidth says, within one cell.
       expect(Math.abs(w * signCell(letters.length) - signWidth(letters.length))).toBeLessThanOrEqual(signCell(letters.length));

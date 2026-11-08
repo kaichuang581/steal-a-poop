@@ -238,3 +238,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   `npm test` against a budget that only goes down; a screen with a non-kit surface is not done. A sign that is read
   every turn (the letter over the table, the dream's fence signs, the sheep's name stakes) is a voxel object anchored
   in the scene (V6 Part 5), never an HTML box floating over it. src/skin/hunt keeps its handheld-console look.
+- Counting Sheep, one life (requested by Brian, 2026-11-07), a rules change in src/dream: `DREAM_LENGTH.bumps` is 1, so the
+  first bump wakes the farmer and ends the night. The hint never offers a word already used tonight while an unused one
+  fits. The fence signs and the table's letter board cut their letters from the display face (Fraunces) on a 0.02 m grid
+  (`letterMask` in src/skin/voxel/table.ts), painted cream; the 5 x 7 bitmap is only the fallback before the face loads.

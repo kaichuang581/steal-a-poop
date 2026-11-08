@@ -3,7 +3,7 @@ import { buildGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
-import { GLYPH, paintGlyph } from '../voxel/table';
+import { letterMask } from '../voxel/table';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { dropFaces } from '../scene/yard';
 import { CHUNK, FAR, ISLAND_TONES, RAFT, RAFT_TONES } from './stage';
@@ -434,12 +434,21 @@ export function obstacle(look: ObstacleLook): BufferGeometry {
   return (OBSTACLES[look] ??= look === 'rail' ? railFence() : look === 'picket' ? picketFence() : look === 'wall' ? stoneWall() : look === 'log' ? fallenLog() : roundBales());
 }
 // ---------- the fence sign (V6 Part 5.1): letters carved into a plank hung on ropes from a post and crossbar ----------
-/** The letter cell (m) for a sign of `n` letters: the whole board scales with it. */
-export const signCell = (n: number) => (n >= 5 ? 0.035 : 0.04);
+/**
+ * The sign's cell (m) for `n` letters: 0.02 m, as fine as the table's letter board, so the letters are the title's own
+ * face (Fraunces) cut into the plank rather than a 5 x 7 bitmap; five letters and more shrink the board a little.
+ */
+export const signCell = (n: number) => (n >= 5 ? 0.0175 : 0.02);
+/** A letter's height in cells (0.28 m at 0.02 m, the old signs' cap height, so the readability gate holds). */
+export const SIGN_GLYPH_H = 14;
+/** Each letter has a slot this wide, centred in it, so a sign's width depends only on how many letters it has. */
+const SIGN_SLOT = 14;
 /** Between two letters: a space, three dots, a space (`R…N`, because anything may go there). */
-const SIGN_GAP = 7;
-/** The board in cells: the glyphs, the gaps, and a rim plus two cells of margin each side; 11 cells tall. */
-export const signCells = (n: number) => ({ w: n * GLYPH.w + (n - 1) * SIGN_GAP + 6, h: GLYPH.h + 4 });
+const SIGN_GAP = 12;
+/** The letters' baseline, in cells from the board's bottom edge (the dots sit on it). */
+export const SIGN_BASE = 4;
+/** The board in cells: the letter slots, the gaps, and a margin each side; the letters with four cells above and below. */
+export const signCells = (n: number) => ({ w: n * SIGN_SLOT + (n - 1) * SIGN_GAP + 12, h: SIGN_GLYPH_H + 8 });
 export function signWidth(n: number): number {
   return signCells(n).w * signCell(n);
 }
@@ -450,14 +459,14 @@ export function signWidth(n: number): number {
  */
 export const SIGN = { centre: 0.8, post: 11, pivot: 1.1, boardZ: 0.1, x: 0.05 } as const;
 /** The letters' cap height in metres, for the readability gate (V6 Part 7.5). */
-export const signCap = (n: number) => GLYPH.h * signCell(n);
+export const signCap = (n: number) => SIGN_GLYPH_H * signCell(n);
 
 export interface FenceSignGeo {
   /** Post, crossbar, snow, icicle and the lantern's iron, about the post's base. */
   post: BufferGeometry;
   /** The plank, its rim, nails, snow and ropes, about the crossbar's underside (the swing's pivot). */
   board: BufferGeometry;
-  /** The ink in the bottom of each carved letter, about the same pivot. */
+  /** The paint in the bottom of each carved letter, about the same pivot. */
   letters: BufferGeometry;
   /** The lantern's glass, lit on the active sign. */
   lantern: BufferGeometry;
@@ -467,43 +476,59 @@ export interface FenceSignGeo {
 
 /** The glyph cells of a sign's letters, in board cells (x from the board's left edge, y from its bottom). */
 export function signGlyphCells(letters: readonly string[]): { x: number; y: number }[] {
-  const g = new Grid(1), ink: RGB = [0, 0, 0];
-  let x = 3;
+  const out: { x: number; y: number }[] = [];
+  let x = 6;
   letters.forEach((ch, i) => {
-    paintGlyph(g, ch, x, 2, 0, ink);
-    x += GLYPH.w;
-    if (i < letters.length - 1) { for (const dx of [1, 3, 5]) g.set(x + dx, 2, 0, ink); x += SIGN_GAP; }
+    const mask = letterMask(ch, SIGN_GLYPH_H), w = mask[0]?.length ?? 0;
+    const x0 = x + Math.floor((SIGN_SLOT - w) / 2);
+    mask.forEach((row, r) => row.forEach((on, c) => { if (on) out.push({ x: x0 + c, y: SIGN_BASE + (SIGN_GLYPH_H - 1 - r) }); }));
+    x += SIGN_SLOT;
+    if (i < letters.length - 1) {
+      // Three square dots on the baseline, two cells each.
+      for (const dx of [2, 5, 8]) for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) out.push({ x: x + dx + a, y: SIGN_BASE + b });
+      x += SIGN_GAP;
+    }
   });
-  return [...g.map.values()].map((v) => ({ x: v.x, y: v.y }));
+  return out;
 }
 
-/** The board's cells: `wood` front and back layers with the letters cut through the front, `ink` the floor of each cut. */
+/**
+ * The board's cells: `wood` front and back layers with the letters cut through the front, `ink` the floor of each cut,
+ * painted cream as the table's letter board is. Two planks with a groove between them, a darker rim, bevelled top
+ * corners, brass nails, snow along the top and the two ropes.
+ */
 export function signBoardCells(letters: readonly string[]): { wood: Grid; ink: Grid; w: number; h: number } {
   const n = Math.max(1, letters.length), c = signCell(n), { w: W, h: H } = signCells(n);
-  const beam = T.beam.map(lin), snow = lin(T.snow[0]);
+  const beam = T.beam.map(lin), snow = lin(T.snow[0]), cream = lin('#F3E7CC');
   const glyph = new Set(signGlyphCells(letters).map((v) => `${v.x},${v.y}`));
   const b = new Grid(c), ink = new Grid(c);
+  const tones = [lin('#93653F'), lin('#8A5D39')];
+  const seamY = Math.floor(H / 2);
   for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
-    const rim = x === 0 || y === 0 || x === W - 1 || y === H - 1;
-    // The top corners are bevelled: the rim's corner cells are left off.
-    if (y === H - 1 && (x === 0 || x === W - 1)) continue;
-    // Grain in horizontal runs: a tone holds along a two-row strip for a few cells.
-    const face = rim ? beam[2] : beam[hash3(x >> 2, y >> 1, 0, 23) > 0.55 ? 0 : 1];
+    const fromTop = H - 1 - y, edge = Math.min(x, W - 1 - x);
+    if (fromTop + edge < 2) continue; // the top corners bevelled off
+    const rim = x === 0 || y === 0 || x === W - 1 || fromTop === 0 || fromTop + edge === 2;
+    // Grain along each plank: one tone per plank, each row a few percent lighter or darker.
+    const base = tones[y < seamY ? 0 : 1], f = 0.94 + 0.1 * hash3(y, x >> 3, 0, 23);
+    const face: RGB = rim ? beam[2] : [base[0] * f, base[1] * f, base[2] * f];
     b.set(x, y, 0, face);
-    // A letter is a hole one cell deep: the front layer is left empty and its floor is the ink in the back layer.
-    if (glyph.has(`${x},${y}`)) { b.del(x, y, 0); ink.set(x, y, 0, lin('#2A1E14')); } else b.set(x, y, 1, face);
+    // A letter is a hole one cell deep: the front layer is left empty and its floor, in the back layer, is painted.
+    if (glyph.has(`${x},${y}`)) { b.del(x, y, 0); ink.set(x, y, 0, cream); continue; }
+    if (y === seamY && !rim) continue; // the groove between the planks
+    b.set(x, y, 1, face);
   }
-  // Two brass nails one cell in from the rim at the top corners, standing proud.
-  for (const x of [1, W - 2]) b.set(x, H - 2, 2, lin(T.brass[1]));
+  // Two brass nails in from the rim at the top corners, standing proud.
+  for (const x of [2, W - 3]) b.set(x, H - 3, 2, lin(T.brass[1]));
   // Snow along the top with gaps, and the two ropes up to the crossbar from the top corners.
   for (let x = 1; x < W - 1; x++) if (hash3(x, H, 0, 41) > 0.3) { b.set(x, H, 0, snow); b.set(x, H, 1, snow); }
-  for (const x of [1, W - 2]) for (let y = H; y < H + 2; y++) b.set(x, y, 0, lin(T.hay[2]));
+  for (const x of [2, W - 3]) for (let y = H; y < H + 4; y++) b.set(x, y, 0, lin(T.hay[2]));
   return { wood: b, ink, w: W, h: H };
 }
 
 const signs = new Map<string, FenceSignGeo>();
 export function fenceSign(letters: readonly string[]): FenceSignGeo {
-  const key = letters.join('');
+  // A sign built before the display face loaded used the bitmap fallback; build it again once the face is in.
+  const key = letters.join('') + (typeof document !== 'undefined' && document.fonts?.check('800 100px Fraunces') ? ':f' : '');
   const hit = signs.get(key);
   if (hit) return hit;
   const n = Math.max(1, letters.length), c = signCell(n);

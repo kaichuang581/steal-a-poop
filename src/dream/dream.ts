@@ -79,7 +79,7 @@ export const MIN_FITS: Record<number, number> = { 1: 25, 2: 12, 3: 6 };
 const RARE = /[jqvxz]/;
 
 /** The nightly dream's shape (V4 Part 15): this many fences puts the farmer to sleep, and this many bumps wakes him. */
-export const DREAM_LENGTH: { fences: number; bumps: number } | null = { fences: 30, bumps: 3 };
+export const DREAM_LENGTH: { fences: number; bumps: number } | null = { fences: 30, bumps: 1 };
 
 /** Bales start here, and may come two at a time from `BALE_PAIRS_FROM`; never three. */
 export const BALES_FROM = 8;

@@ -12,7 +12,7 @@ import { Farm, useWorld } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Farmstead } from './Farmstead';
 import { Wendigo } from './Wendigo';
-import { Atmosphere, Effects, FOG, Lights, yawToward } from './Rendering';
+import { Atmosphere, Effects, FOG, Lights, MarkDrawn, yawToward } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
@@ -57,6 +57,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
     >
       <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} />
       <Atmosphere hour={hour} />
+      <MarkDrawn />
       <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} lampRef={lowerLamp} />
       <DoorSpill spot={spot} bounce={bounce} />
       <Sky hour={hour} reduced={reduced} blizzard={false} />

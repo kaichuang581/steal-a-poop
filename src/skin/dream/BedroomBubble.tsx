@@ -1,3 +1,4 @@
+import { MarkDrawn } from '../table/Rendering';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
@@ -52,6 +53,7 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
           onCreated={({ camera }) => camera.lookAt(...CAMERA.target)}
         >
           <Room live={live} phase={phase} reduced={reduced} phone={phone} blankets={blankets} anchors={anchors} />
+          <MarkDrawn />
         </Canvas>
       </div>
       <span className="dr-bubble-zs" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="dream-z" data-i={i}>z</span>)}</span>

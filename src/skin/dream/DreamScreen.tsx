@@ -1,3 +1,4 @@
+import { useLoadingHold } from '../components/BarnDoors';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
@@ -72,6 +73,7 @@ const CLOUDS: [number, number, number, number][] = [
 
 export function DreamScreen() {
   const dict = useStore((s) => s.dict);
+  useLoadingHold('words', !dict, 'Fetching the word list');
   const practice = useDreamUi((s) => s.practice);
   const repair = useDreamUi((s) => s.repair);
   const close = useDreamUi((s) => s.close);

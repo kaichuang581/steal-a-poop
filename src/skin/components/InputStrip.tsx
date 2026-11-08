@@ -47,12 +47,14 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
     return () => clearTimeout(id);
   }, [acceptKey]);
   const L = letter.toUpperCase();
+  const letters = [...typed.trim()];
   const mode = out ? 'out' : myTurn ? 'mine' : 'wait';
   const prompt = {
     mine: <>Your turn: type a word starting with <b>{L}</b> and press Enter</>,
     wait: <>{turnName}’s turn. Get ready</>,
     out: <>You’re frozen solid: out of wool. Watch who’s the last sheep standing</>,
   }[mode];
+  const placeholder = { mine: 'type your word…', wait: 'type ahead…', out: '' }[mode];
   return (
     <div className="px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4">
       <div className="mx-auto max-w-3xl">
@@ -69,16 +71,23 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
         )}
         {/* On your own turn the line under it already says it all; the prompt stays for the screen reader. */}
         <p className={`sk-input-prompt ${mode === 'mine' ? 'sr-only' : ''}`} aria-live="polite" data-mode={mode}>{prompt}</p>
-        {/* The word itself shows in the speech bubble over your sheep (PaintedGame's name plates); down here is one quiet
-            row: the letter it starts with, the hint and pass pegs, and Enter's key. The real input sits over the row,
-            invisible, so typing, pasting and phone keyboards all work as usual. */}
-        <div className={`sk-input-bar sk-input-row ${flash ? 'sk-accept-flash' : ''}`} data-mode={mode} data-tour="input"
+        {/* Floating letters: no box. The chain letter above, the word big over the barn, Enter's key below. */}
+        <div className={`sk-input-bar kit-float ${flash ? 'sk-accept-flash' : ''}`} data-mode={mode} data-tour="input"
           onMouseDown={(e) => { if ((e.target as HTMLElement).tagName !== 'BUTTON') { e.preventDefault(); ref.current?.focus(); } }}>
-          <p className="sk-input-need" data-tour="chain" aria-label={`Starts with ${L}`}>
+          <p className="kit-float-need" aria-hidden="true">
             <small>starts with</small>
-            <span className="sk-input-letter" title="Starts with">{L}</span>
+            <span className="kit-float-chain sk-input-letter" title="Starts with">{L}</span>
           </p>
-          <div className="sk-input-field-wrap">
+          {/* The typed word, letter by letter, as well as in the speech bubble over your sheep; the real input sits on top, invisible, so typing, pasting and phone
+              keyboards all work as usual. The first letter is gold when it fits the chain, red when it does not. */}
+          <div className="kit-float-word sk-input-tiles" style={{ '--len': Math.max(6, letters.length) } as React.CSSProperties}>
+            {letters.length ? letters.map((ch, i) => (
+              <span key={i} className="sk-type-tile"
+                data-hit={i === 0 && ch.toLowerCase() === letter.toLowerCase() ? '' : undefined}
+                data-miss={i === 0 && ch.toLowerCase() !== letter.toLowerCase() ? '' : undefined}
+                data-first={i === 0 ? (ch.toLowerCase() === letter.toLowerCase() ? 'ok' : 'bad') : undefined}>{ch.toUpperCase()}</span>
+            )) : placeholder ? <span className="kit-float-ph sk-input-placeholder">{placeholder}</span> : null}
+            {!out && <span className="sk-type-caret" aria-hidden="true" />}
             <input
               ref={ref}
               value={typed}
@@ -95,7 +104,8 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
               className="sk-input-ghost"
             />
           </div>
-          <div className="sk-input-keys">
+          <span className="kit-float-rule" aria-hidden="true" />
+          <div className="kit-float-row">
             {onPass && myTurn && (
               <Peg small light onMouseDown={keep} onClick={onPass} aria-label="Pass the bomb" title="Pass the bomb" className="sk-input-hint"><PassIcon size={20} /></Peg>
             )}

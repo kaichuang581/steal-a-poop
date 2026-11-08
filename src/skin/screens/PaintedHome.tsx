@@ -46,7 +46,6 @@ import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
-import { playBarnDoors } from '../components/BarnDoors';
 import { PaintedSettings } from './PaintedSettings';
 import { SoundMenu } from '../components/SoundMenu';
 
@@ -134,11 +133,8 @@ export function PaintedHome() {
     const nick = checkNickname(settings.name);
     if (!nick.ok) return setError(nick.message);
     setError('');
-    const begin = () => start(mode, mode === 'quick' ? table.game : undefined);
-    // Through the doors: the game opens at once behind shut barn doors, which swing open onto it once its barn has drawn.
-    // A practice run isn't in the barn, so it cuts straight to the ice.
-    if (!reduced && mode !== 'practice') playBarnDoors();
-    begin();
+    // The game opens behind the barn doors (PaintedApp): they shut first, and open once its scene has drawn.
+    start(mode, mode === 'quick' ? table.game : undefined);
   };
   const shareDream = async () => {
     if (dream?.status !== 'done') return;

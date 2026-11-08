@@ -1,3 +1,4 @@
+import { useLoadingHold } from '../components/BarnDoors';
 import { useEffect, useMemo, useState } from 'react';
 import type { Animal } from '../avatars/catalog';
 import { buildCountryside } from '../scene/countryside';
@@ -53,6 +54,9 @@ export function Farmstead({ world, reduced, phone }: { world: World; reduced: bo
     return () => clearTimeout(id);
   }, [farm]);
   useEffect(() => () => mat.dispose(), [mat]);
+  // The first time Home opens, the loading screen stays up until the farm and the land round it are built, so nothing
+  // pops in after the doors open. Both are kept for the session, so coming back to Home never waits.
+  useLoadingHold('farm', !farm || !country, 'Building the farm', true);
   return (
     <>
       {/* The range the yard looks at, turned round to stand behind the barn as well. */}
@@ -67,6 +71,7 @@ export function Farmstead({ world, reduced, phone }: { world: World; reduced: bo
           {country && (
             <>
               {[...country.woods, ...country.scrub].map((g, i) => <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
+              {country.forest.map((g, i) => <mesh key={`w${i}`} geometry={g} material={mat} receiveShadow />)}
               {country.drifts.map((g, i) => <mesh key={`d${i}`} geometry={g} material={mat} receiveShadow />)}
               <mesh geometry={country.tracks} material={mat} receiveShadow />
             </>

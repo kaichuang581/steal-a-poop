@@ -1,4 +1,3 @@
-import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import {
@@ -7,7 +6,6 @@ import {
 } from 'three';
 import { Box3 } from 'three';
 import type { Material } from 'three';
-import { WoolBall } from '../components/Lives';
 import { santaHat } from '../scene/festive';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
@@ -62,7 +60,7 @@ interface Props {
   lookAt?: [number, number, number] | 'camera';
   /** The current speaker: chest up, tail wagging. */
   speaking?: boolean;
-  /** A bot on its turn: whenever the sheep has nothing else to do it thinks (head tilt, one ear up, a thought bubble). */
+  /** A bot on its turn: whenever the sheep has nothing else to do it thinks (head tilt, one ear up). */
   thinking?: boolean;
   /** The dream's run: 0 at the slowest trot, 1 at full pace (V4 Part 7.2). */
   pace?: number;
@@ -85,8 +83,8 @@ const CH = { bodyY: 0, bodyRotX: 1, bodyRotZ: 2, headX: 3, headY: 4, headZ: 5, e
 const N = 18;
 /** A rest pose to blend from before the first state lands: scales at 1, everything else at 0 (never a zero scale). */
 function restPose(): Float32Array { const p = new Float32Array(N); p[CH.eye] = 1; p[CH.puff] = 1; p[CH.squash] = 1; return p; }
-interface Face { brows: Brows; mouth: Mouth; lids: 'open' | Lids; breath: boolean; bubble: boolean }
-const face0 = (): Face => ({ brows: 'neutral', mouth: 'flat', lids: 'open', breath: false, bubble: false });
+interface Face { brows: Brows; mouth: Mouth; lids: 'open' | Lids; breath: boolean }
+const face0 = (): Face => ({ brows: 'neutral', mouth: 'flat', lids: 'open', breath: false });
 const BROWS: Brows[] = ['neutral', 'up', 'worried'];
 const MOUTHS: Mouth[] = ['flat', 'smile', 'o', 'chewL', 'chewDown', 'chewR'];
 /** The four chewing frames. */
@@ -144,7 +142,6 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
   f.mouth = (GRAZERS.has(species) && chew) || 'flat';
   f.lids = blink ? 'closed' : 'open';
   f.breath = false;
-  f.bubble = false;
   const sway = moving ? Math.sin(t * 0.7) * 0.05 : 0;
   switch (live) {
     case 'idle':
@@ -155,7 +152,6 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       p[CH.headZ] = 0.15;
       p[CH.headY] = sway * 0.6;
       p[CH.earR] = -0.4; // one ear up
-      f.bubble = true;
       break;
     case 'sleeping':
       f.lids = 'closed';
@@ -371,11 +367,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
   const fx = useMemo(() => freezeFx(), []);
   const r = useRef<Record<string, Object3D | null>>({});
   const root = useRef<Group>(null);
-  const bubble = useRef<HTMLDivElement>(null);
   const set = (k: string) => (o: Object3D | null) => { r.current[k] = o; };
-  // The thought bubble is HTML; it mounts the first time this sheep thinks and stays (hidden) from then on.
-  const everThought = useRef(false);
-  if (thinking || state === 'thinking') everThought.current = true;
   // Animation memory: the state's start, the pose being blended from, and this sheep's own idle timers.
   const anim = useMemo(() => ({
     key: -1, state: '' as SheepState, at: 0, live: '' as SheepState, blendAt: -10, level, levelAt: -10,
@@ -521,7 +513,6 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
       breath.scale.setScalar(0.6 + p);
       breathMat.opacity = 0.8 * (1 - p);
     }
-    if (bubble.current) bubble.current.style.opacity = f.bubble ? '1' : '0';
 
     // Frost tint multiplies every part; dimming darkens it.
     const tint = live === 'frozen' ? 1 : live === 'freezing' ? (reduced ? (e >= 1.2 ? 1 : 0) : clamp01((e - 0.8) / 0.8)) : live === 'thawing' ? 1 - clamp01(e / 1.2) : 0;
@@ -576,11 +567,6 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
         </group>
         <mesh ref={set('breath')} geometry={m.breath.geo} position={m.breath.pivot} material={breathMat} />
         {scarf && <Scarf />}
-        {everThought.current && (
-          <Html position={[0.45, 1.15, 0.45]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-            <div ref={bubble} className="sk-think" aria-hidden="true"><WoolBall full size={8} /><WoolBall full size={10} /><WoolBall full size={12} /></div>
-          </Html>
-        )}
       </group>
       <primitive object={fx.root} />
     </group>

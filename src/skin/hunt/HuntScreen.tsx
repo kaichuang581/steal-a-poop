@@ -1,3 +1,4 @@
+import { useLoadingHold } from '../components/BarnDoors';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CloseIcon, FlameIcon } from '../components/Icons';
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
@@ -69,6 +70,7 @@ interface Ending { cause: 'timeout' | 'broke' | 'hits'; before: Run; outcome: Ou
 
 export function HuntScreen() {
   const dict = useStore((s) => s.dict);
+  useLoadingHold('words', !dict, 'Fetching the word list');
   const nickname = useStore((s) => s.settings.name);
   const close = useHuntUi((s) => s.close);
   const reduced = useMotionLevel() === 'reduced';

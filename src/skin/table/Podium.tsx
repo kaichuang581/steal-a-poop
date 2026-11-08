@@ -1,3 +1,4 @@
+import { MarkDrawn } from './Rendering';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -388,6 +389,7 @@ export function Podium({ entries, reduced, phone, aside = false }: { entries: Po
       >
         <Rig phone={phone} aside={aside} />
         <Scene entries={entries} reduced={reduced} anchors={anchors} />
+        <MarkDrawn />
       </Canvas>
       <SlipLayer refFor={anchors} seats={entries.map((e) => ({
         seat: e.place,

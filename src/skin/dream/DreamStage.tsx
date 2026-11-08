@@ -1,3 +1,4 @@
+import { MarkDrawn } from '../table/Rendering';
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -79,6 +80,7 @@ export function DreamStage(props: Props) {
       onCreated={({ camera }) => camera.lookAt(...shot.target)}
     >
       <Scene {...props} />
+      <MarkDrawn />
       <DevStats />
     </Canvas>
   );

@@ -378,10 +378,16 @@ export function bedroomGeometry(): BedroomGeo {
   return bedroomCache;
 }
 
-/** The quilt over his chest and legs, which rises and falls about the mattress top; a cream sheet turned down at his chin. */
+/**
+ * The quilt over him, which rises and falls about the mattress top: a big round mound over his belly, his legs lower
+ * toward the foot, and a cream sheet turned down at his chin.
+ */
 function quiltBumpGeometry(qPaint: Paint): BufferGeometry {
   const m = BED.mattress, g = new Grid(D), hw = Math.round(m.w / 2 / D);
-  ellipsoid(g, [1.2, m.top, 0], [0.55, 0.15, 0.27], (x, y, z) => (y * D < m.top ? null : qPaint(x, y, z)), 0, 4);
+  const over: Paint = (x, y, z) => (y * D < m.top ? null : x < 14 ? lin(TRIM[0]) : qPaint(x, y, z));
+  ellipsoid(g, [1.45, m.top, 0], [0.4, 0.14, 0.27], over, 0, 4);
+  // The belly, far enough down the bed that the hand he lies with rests on its slope rather than in it.
+  ellipsoid(g, [1.08, m.top, 0], [0.38, 0.27, 0.36], over, 0, 4);
   box(g, [0.65, m.top, (-hw - 1) * D], [0.95, m.top + D, (hw + 1) * D], (x, y, z) => (x < 14 ? lin(TRIM[0]) : qPaint(x, y, z)));
   box(g, [0.65, m.top + D, -0.32], [0.7, m.top + 2 * D, 0.32], () => lin(TRIM[0]));
   return buildGeometry(g.map, D);
@@ -389,12 +395,16 @@ function quiltBumpGeometry(qPaint: Paint): BufferGeometry {
 
 // ---------- the farmer ----------
 
-/** Warm peach skin, light to shade, and warm cream whiskers: nothing grey, so the room's AO never turns him muddy. */
-const SKIN = ['#F5C8A8', '#EDB896', '#E0A584'] as const;
+/** Weathered, ruddy skin, light to shade, and the creases at his eyes. */
+const SKIN = ['#EFB993', '#E3A57F', '#D3916D'] as const;
+const CREASE = '#B8755A';
+/** The cap's cuff and pom stay warm cream wool. */
 const WHISKER = ['#FCF8F0', '#F2EBDF', '#E6DCCB'] as const;
-const STACHE = '#FFFDF7';
-const BLUSH = '#F0A492';
-const NOSE = ['#F6BFA6', '#EAA08A'] as const;
+/** Grizzled hair and whiskers: warm greys from near white to pewter, and a few dark flecks. */
+const GREY = ['#F2EEE8', '#DCD6CE', '#C0BAB2', '#9C958D'] as const;
+const FLECK = '#6E665F';
+const BLUSH = '#E58C78';
+const NOSE = ['#E48A74', '#CC6A58'] as const;
 const IRIS = ['#5C3E31', '#3F2A23'] as const;
 const GLINT = '#FFF4E4';
 const LASH = '#8E5A48';
@@ -439,8 +449,9 @@ function lidCells(head: Grid, cols: readonly number[]): Grid {
 
 /**
  * The farmer, built standing (face toward +z, crown at +y) about the base of his neck; the stage lays him down on the
- * pillow or props him up. A round head (an egg, full at the cheeks, stepped by the voxels), small kind eyes with a glint,
- * a little round nose, a tidy moustache over a short rounded beard, soft brows that droop at the ends, rosy cheeks.
+ * pillow or props him up. A round head (an egg, plump at the cheeks and jowls, stepped by the voxels), small kind eyes
+ * with a glint, a round red nose, a bushy moustache over a full, scruffy grey beard, bushy brows that droop at the ends,
+ * ruddy cheeks, laugh lines at his eyes and grey tufts sticking out under his cap: plump and grizzled, still kind.
  * The lids are meshes of their own so a blink can ease. 0.02 m, not the plan's 0.04 m: a face that reads at bubble
  * size needs a head 15 voxels wide, and at 0.04 m it is 7.
  */
@@ -448,51 +459,80 @@ export function farmerGeometry(): FarmerGeo {
   if (farmerCache) return farmerCache;
   const s = HS;
   const skin: Paint = (x, y, z) => (y < 0 ? null : pick(SKIN, hash3(x >> 1, y >> 1, z >> 1, 5), [0.72, 0.97]));
-  const white: Paint = (x, y, z) => pick(WHISKER, hash3(x, y, z, 7), [0.55, 0.9]);
+  /** Grizzled: mostly pale greys, some pewter, a dark fleck here and there; `paler` shifts the mix (below 0, darker). */
+  const grey = (paler = 0): Paint => (x, y, z) => {
+    const h = hash3(x, y, z, 7), r = h - paler;
+    return lin(h > 0.985 && paler <= 0 ? FLECK : r < 0.42 ? GREY[0] : r < 0.72 ? GREY[1] : r < 0.92 ? GREY[2] : GREY[3]);
+  };
+  const white = grey();
   const g = new Grid(s);
   // The head: a rounded block (a superellipsoid, so the face is broad and flat enough for its features and every edge
-  // rounds off in steps), a little fuller through the cheeks and jaw.
+  // rounds off in steps), plump through the cheeks and jowls.
   for (let x = -9; x < 9; x++) for (let y = 0; y < 16; y++) for (let z = -9; z < 9; z++) {
-    const cy = y + 0.5, a = 7.4 * (1 + 0.06 * Math.max(0, 1 - Math.abs(cy - 4.5) / 4));
-    if (Math.abs((x + 0.5) / a) ** 3 + Math.abs((cy - 7.5) / 8) ** 3 + Math.abs((z + 0.75) / 6.25) ** 3 <= 1) g.set(x, y, z, skin(x, y, z)!);
+    const cy = y + 0.5, full = Math.max(0, 1 - Math.abs(cy - 4.5) / 5.5), a = 7.4 * (1 + 0.13 * full);
+    if (Math.abs((x + 0.5) / a) ** 3 + Math.abs((cy - 7.5) / 8) ** 3 + Math.abs((z + 0.75) / (6.25 * (1 + 0.05 * full))) ** 3 <= 1) g.set(x, y, z, skin(x, y, z)!);
   }
-  // Hair: white at the temples and round the back under the cap, down into soft sideburns.
+  // Hair: grey at the temples and round the back under the cap, down into bushy sideburns.
   for (const v of g.map.values()) {
     const ax = v.x < 0 ? -v.x - 1 : v.x;
     if ((ax >= 6 && v.y >= 4 && v.y <= 11 && v.z <= 3) || (v.z <= -4 && v.y >= 7)) v.c = white(v.x, v.y, v.z)!;
   }
-  // Small round ears.
-  for (const sx of [-1, 1]) ellipsoid(g, [sx * 0.148, 0.14, -0.01], [0.022, 0.036, 0.026], (_x, y) => lin(y === 7 ? SKIN[2] : SKIN[1]));
-  // A short rounded beard round the jaw and chin: one flat front a cell proud of the face, so it reads as a soft mass
-  // rather than a stack of ledges, its outline rounded and its outer columns set back a cell.
-  for (const v of [...g.map.values()]) if (v.y <= 3 && v.z >= -3) v.c = white(v.x, v.y, v.z)!;
-  for (const [y, w] of [[3, 6], [2, 7], [1, 7], [0, 7], [-1, 6], [-2, 4]] as const) for (let x = -w; x < w; x++) {
-    const ax = x < 0 ? -x - 1 : x;
-    for (let z = -3; z <= (ax === w - 1 ? 5 : 6); z++) g.set(x, y, z, white(x, y, z)!);
+  // Tufts of grey hair sticking out from under the cap's cuff, over the ears and round the back.
+  for (let x = -10; x < 10; x++) for (let z = -10; z < 4; z++) for (const y of [10, 11]) {
+    const d = ((x + 0.5) / 8.4) ** 2 + ((z + 0.5) / 7.4) ** 2, tuft = hash3(x >> 1, y, z >> 1, 31);
+    if (d > 1 && d <= (y === 11 ? 1.3 : 1.18) && tuft < 0.6) g.set(x, y, z, white(x, y, z)!);
   }
-  // The nose, small and round, lighter on top.
-  ellipsoid(g, [0, 0.112, 0.122], [0.028, 0.026, 0.026], (_x, y) => lin(NOSE[y >= 6 ? 0 : 1]));
-  // Rosy apple cheeks under the outer corners of the eyes, the middle of each a cell proud.
-  for (const sx of [-1, 1]) for (let x = -8; x < 8; x++) for (let y = 4; y <= 7; y++) {
-    const d = (x + 0.5 - sx * 4.8) ** 2 + (y + 0.5 - 5.6) ** 2;
-    if (d > 2.6) continue;
+  // Round ears.
+  for (const sx of [-1, 1]) ellipsoid(g, [sx * 0.158, 0.14, -0.01], [0.024, 0.038, 0.028], (_x, y) => lin(y === 7 ? SKIN[2] : SKIN[1]));
+  // A full, scruffy beard round the jowls and chin, its front a cell proud of the face with stray whiskers standing out
+  // of it and a ragged edge, so it reads as a few days' grizzle grown long, not a tidy mat.
+  for (const v of [...g.map.values()]) if (v.y <= 3 && v.z >= -3) v.c = white(v.x, v.y, v.z)!;
+  for (const [y, w] of [[3, 7], [2, 8], [1, 8], [0, 8], [-1, 7], [-2, 6], [-3, 4]] as const) for (let x = -w; x < w; x++) {
+    const ax = x < 0 ? -x - 1 : x, ragged = hash3(x, y, 0, 21);
+    if (ax === w - 1 && ragged < 0.35) continue;
+    const front = (ax >= w - 2 ? 5 : 6) + (ragged > 0.86 ? 1 : 0);
+    for (let z = -3; z <= front; z++) g.set(x, y, z, white(x, y, z)!);
+  }
+  for (const [x, y] of [[-2, -4], [1, -4], [-5, -3], [4, -3]] as const) g.set(x, y, 4, white(x, y, 4)!);
+  // Stubble creeping up the cheeks above the beard line.
+  for (let x = -9; x < 9; x++) for (const y of [4, 5]) {
+    const ax = x < 0 ? -x - 1 : x;
+    if (ax < 5 || hash3(x, y, 0, 23) > (y === 4 ? 0.7 : 0.3)) continue;
     const z = frontZ(g, x, y);
-    if (z !== null) g.set(x, y, z + (d <= 0.9 ? 1 : 0), lin(BLUSH));
+    if (z !== null) g.set(x, y, z, grey(-0.1)(x, y, z)!);
+  }
+  // The nose, round and red from the cold, lighter on top.
+  ellipsoid(g, [0, 0.112, 0.124], [0.03, 0.028, 0.028], (_x, y) => lin(NOSE[y >= 6 ? 0 : 1]));
+  // Full ruddy apple cheeks under the outer corners of the eyes, the middle of each a cell proud.
+  for (const sx of [-1, 1]) for (let x = -9; x < 9; x++) for (let y = 4; y <= 7; y++) {
+    const d = (x + 0.5 - sx * 5) ** 2 + (y + 0.5 - 5.6) ** 2;
+    if (d > 3.2) continue;
+    const z = frontZ(g, x, y);
+    if (z !== null) g.set(x, y, z + (d <= 1.3 ? 1 : 0), lin(BLUSH));
   }
   // The eyes: a warm brown, darker above, a glint low on the same side of each, so it shows under a heavy lid.
   for (const cols of [EYES.a, EYES.b]) for (const x of cols) for (const y of [7, 8, 9]) {
     g.set(x, y, frontZ(g, x, y)!, lin(y === 7 && x === cols[1] ? GLINT : IRIS[y === 7 ? 0 : 1]));
   }
-  // Soft white brows, a cell proud, drooping at the outer ends.
-  for (const sx of [1, -1]) for (const [u, y] of [[0, 11], [1, 11], [2, 11], [3, 10]] as const) {
-    const x = sx > 0 ? 1 + u : -2 - u, z = frontZ(g, x, y)!;
-    g.set(x, y, z, white(x, y, z)!); g.set(x, y, z + 1, white(x, y, z + 1)!);
+  // Laugh lines: two creases fanning out from each eye's outer corner, and a soft crease under each eye.
+  for (const sx of [1, -1]) {
+    for (const [u, y] of [[2, 9], [3, 10], [2, 7], [3, 6]] as const) {
+      const x = sx > 0 ? 3 + u : -4 - u, z = frontZ(g, x, y);
+      if (z !== null) g.set(x, y, z, lin(CREASE));
+    }
+    for (const x of sx > 0 ? EYES.a : EYES.b) { const z = frontZ(g, x, 6); if (z !== null) g.set(x, 6, z, lin(SKIN[2])); }
   }
-  // The moustache: two rounded lobes a cell proud of the beard, curling down at the ends, brighter than the beard.
-  const MOUSTACHE: [number, [number, number][]][] = [[4, [[-3, 2]]], [3, [[-5, 4]]], [2, [[-6, -3], [2, 5]]]];
+  // Bushy grey brows, two cells proud and a row deep, drooping at the outer ends, a few hairs standing out.
+  const brow = grey(-0.12);
+  for (const sx of [1, -1]) for (const [u, y, proud] of [[0, 11, 1], [1, 11, 2], [2, 11, 2], [3, 11, 1], [3, 10, 2], [4, 10, 1], [1, 12, 1], [2, 12, 1]] as const) {
+    const x = sx > 0 ? 1 + u : -2 - u, z = frontZ(g, x, y)!;
+    for (let k = 0; k <= proud; k++) g.set(x, y, z + k, brow(x, y, z + k)!);
+  }
+  // The moustache: two bushy lobes a cell proud of the beard, curling down past the mouth, paler than the beard.
+  const MOUSTACHE: [number, [number, number][]][] = [[4, [[-4, 3]]], [3, [[-6, 5]]], [2, [[-7, -3], [2, 6]]], [1, [[-7, -5], [4, 6]]]];
+  const stache = grey(0.18);
   for (const [y, spans] of MOUSTACHE) for (const [a, b] of spans) for (let x = a; x <= b; x++) {
-    const col = lin(hash3(x, y, 0, 15) < 0.2 ? WHISKER[0] : STACHE);
-    for (let z = frontZ(g, x, y)!; z <= 7; z++) g.set(x, y, z, col);
+    for (let z = frontZ(g, x, y)!; z <= 7 + (y === 3 && hash3(x, y, 0, 15) < 0.3 ? 1 : 0); z++) g.set(x, y, z, stache(x, y, z)!);
   }
   // A small soft mouth under it.
   for (const x of [-1, 0]) g.set(x, 1, frontZ(g, x, 1)!, lin('#C9786A'));
@@ -525,13 +565,15 @@ export function farmerGeometry(): FarmerGeo {
   }
   const tip = path(1);
   ellipsoid(cap, [tip[0] + 0.02, tip[1] - 0.04, 0], [0.05, 0.05, 0.05], (x, y, z) => pick(WHISKER, hash3(x, y, z, 13), [0.6, 0.95]), 0.25, 8);
-  // Shoulders in a striped flannel nightshirt under the turned-down sheet, one hand out on the quilt.
+  // Broad, round shoulders in a striped flannel nightshirt under the turned-down sheet, a thick neck and a double chin
+  // under the beard, one plump hand out on the quilt.
   const body = new Grid(s);
   const flannel: Paint = (x) => lin(mod(x, 3) === 0 ? '#F3EAD6' : '#7F9CC9');
-  for (const sx of [-1, 1]) ellipsoid(body, [sx * 0.2, -0.1, 0], [0.14, 0.08, 0.1], flannel, 0.05, 2);
-  box(body, [-0.1, -0.06, -0.06], [0.1, -0.02, 0.06], () => lin(TRIM[1]));
-  ellipsoid(body, [0.2, -0.21, 0.13], [0.06, 0.035, 0.055], handSkin);
-  box(body, [0.12, -0.2, -0.02], [0.28, -0.1, 0.1], flannel);
+  for (const sx of [-1, 1]) ellipsoid(body, [sx * 0.23, -0.1, 0], [0.17, 0.095, 0.115], flannel, 0.05, 2);
+  ellipsoid(body, [0, -0.02, 0.01], [0.13, 0.05, 0.11], handSkin);
+  box(body, [-0.13, -0.07, -0.07], [0.13, -0.03, 0.07], () => lin(TRIM[1]));
+  ellipsoid(body, [0.23, -0.22, 0.14], [0.07, 0.042, 0.065], handSkin);
+  box(body, [0.13, -0.21, -0.03], [0.33, -0.09, 0.12], flannel);
   farmerCache = {
     asleep: buildGeometry(shut.map, s), awake: buildGeometry(g.map, s),
     lidA: buildGeometry(lidA.map, s), lidB: buildGeometry(lidB.map, s),
@@ -544,7 +586,7 @@ export function farmerGeometry(): FarmerGeo {
 export const SITTING = { x: 0.42, y: 1.08, z: 0.02, turn: 0.55 } as const;
 /** He props himself up from his hips (this far under the base of his neck), and rubs his eye from the shoulder. */
 export const HIP = 0.5;
-export const SHOULDER: V3 = [0.2, -0.1, 0];
+export const SHOULDER: V3 = [0.25, -0.1, 0];
 const shirt: Paint = (x, y, z) => lin(mod(x, 2) === 0 ? '#F3EAD6' : hash3(x, y, z, 6) < 0.15 ? '#6F8DBB' : '#7F9CC9');
 const handSkin: Paint = (x, y, z) => pick(SKIN, hash3(x, y, z, 5), [0.72, 0.97]);
 function limb(g: Grid, pts: V3[], r: number, paint: Paint) {
@@ -556,21 +598,26 @@ function limb(g: Grid, pts: V3[], r: number, paint: Paint) {
 let sitCache: BufferGeometry | null = null;
 /**
  * The farmer propped up against the headboard, about the base of his neck like the heads: a striped flannel nightshirt
- * with rounded shoulders and a placket of buttons, one arm down with the hand on the quilt. The other arm, rubbing his
+ * stretched over broad shoulders and a round belly, a placket of buttons down its front, a thick neck, one chunky arm
+ * down with the hand on the quilt. The other arm, rubbing his
  * eye, is `farmerRubArm`. 0.04 m voxels.
  */
 export function farmerSitting(): BufferGeometry {
   if (sitCache) return sitCache;
   const g = new Grid(CHAR);
-  box(g, [-0.2, -0.52, -0.11], [0.2, -0.12, 0.11], shirt, 1);
-  ellipsoid(g, [0, -0.12, 0], [0.215, 0.085, 0.115], shirt);
-  // The collar and placket, cream, with three brass buttons.
-  for (let y = -12; y <= -2; y++) g.set(0, y, 3, lin(TRIM[1]));
-  for (const y of [-4, -7, -10]) g.set(0, y, 4, lin(T.brass[0]));
-  for (const x of [-2, -1, 1]) g.set(x, -2, 3, lin(TRIM[0]));
-  box(g, [-0.08, -0.08, -0.06], [0.08, 0.02, 0.06], handSkin);
-  limb(g, [[-0.22, -0.1, 0], [-0.25, -0.26, 0.04], [-0.24, -0.4, 0.1]], 0.05, shirt);
-  ellipsoid(g, [-0.24, -0.46, 0.13], [0.045, 0.035, 0.055], handSkin);
+  box(g, [-0.24, -0.52, -0.13], [0.24, -0.12, 0.13], shirt, 1);
+  ellipsoid(g, [0, -0.37, 0.06], [0.25, 0.18, 0.17], shirt);
+  ellipsoid(g, [0, -0.12, 0], [0.27, 0.1, 0.13], shirt);
+  // The collar and placket, cream, down the belly's curve, with three brass buttons.
+  for (let y = -12; y <= -2; y++) {
+    const z = frontZ(g, 0, y)!;
+    g.set(0, y, z, lin(TRIM[1]));
+    if (y === -4 || y === -7 || y === -10) g.set(0, y, z + 1, lin(T.brass[0]));
+  }
+  for (const x of [-2, -1, 1]) g.set(x, -2, frontZ(g, x, -2)!, lin(TRIM[0]));
+  box(g, [-0.12, -0.08, -0.08], [0.12, 0.02, 0.08], handSkin);
+  limb(g, [[-0.27, -0.1, 0], [-0.31, -0.26, 0.06], [-0.29, -0.4, 0.13]], 0.065, shirt);
+  ellipsoid(g, [-0.29, -0.46, 0.16], [0.055, 0.04, 0.065], handSkin);
   return (sitCache = buildGeometry(g.map, CHAR));
 }
 
@@ -583,11 +630,11 @@ let rubCache: BufferGeometry | null = null;
 export function farmerRubArm(): BufferGeometry {
   if (rubCache) return rubCache;
   const g = new Grid(HS);
-  const fist: Paint = (x, y, z) => (z >= 9 && mod(x, 2) === 0 && y >= 7 ? lin('#C98468') : pick(['#EBAA88', '#DE9C7B', '#CF8C6D'], hash3(x, y, z, 3), [0.6, 0.95]));
-  limb(g, [[0.2, -0.1, 0], [0.3, -0.13, 0.13], [0.17, 0.05, 0.19]], 0.048, (x, y, z) => lin(mod(x + y, 4) < 2 ? '#F3EAD6' : hash3(x, y, z, 6) < 0.15 ? '#6F8DBB' : '#7F9CC9'));
-  ellipsoid(g, [0.16, 0.065, 0.19], [0.05, 0.03, 0.05], (x, y, z) => lin(TRIM[hash3(x, y, z, 4) < 0.7 ? 0 : 1]));
-  limb(g, [[0.16, 0.08, 0.19], [0.14, 0.12, 0.18]], 0.032, fist);
-  ellipsoid(g, [0.115, 0.152, 0.168], [0.05, 0.045, 0.04], fist);
+  const fist: Paint = (x, y, z) => (z >= 9 && mod(x, 2) === 0 && y >= 7 ? lin('#B9735A') : pick(['#E5A47F', '#D8936F', '#C88262'], hash3(x, y, z, 3), [0.6, 0.95]));
+  limb(g, [[0.25, -0.1, 0], [0.35, -0.13, 0.14], [0.18, 0.05, 0.2]], 0.06, (x, y, z) => lin(mod(x + y, 4) < 2 ? '#F3EAD6' : hash3(x, y, z, 6) < 0.15 ? '#6F8DBB' : '#7F9CC9'));
+  ellipsoid(g, [0.165, 0.065, 0.195], [0.06, 0.032, 0.06], (x, y, z) => lin(TRIM[hash3(x, y, z, 4) < 0.7 ? 0 : 1]));
+  limb(g, [[0.16, 0.08, 0.19], [0.14, 0.12, 0.18]], 0.038, fist);
+  ellipsoid(g, [0.115, 0.152, 0.168], [0.055, 0.05, 0.042], fist);
   return (rubCache = buildGeometry(g.map, HS));
 }
 

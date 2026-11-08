@@ -13,7 +13,7 @@ import { DreamScreen } from './dream/DreamScreen';
 import { useDreamUi } from './dream/dreamStore';
 import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
-import { LineupPreview, SheepPreview } from './table/SheepPreview';
+import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import './styles/skin.css';
 
 /** The painted skin's fonts; loaded only when the skin is on, so the classic look never contacts Google Fonts. */
@@ -58,6 +58,7 @@ export function PaintedApp() {
   useEffect(() => { document.documentElement.dataset.hour = hour; }, [hour]);
 
   if (PREVIEW === 'sheep') return <SheepPreview />;
+  if (PREVIEW === 'strips') return <StripsPreview />;
   if (PREVIEW === 'lineup') return <LineupPreview />;
   // A ?join=CODE address joins that room once the player is signed in and online.
   // The start screen is always the first thing: nothing to get through before it. The name is picked there, and signing

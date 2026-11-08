@@ -63,7 +63,7 @@ describe('replaceWithBot', () => {
     expect(s.turn!.seat).toBe(0);
     s = replaceWithBot(s, 0, 'hard', T0 + 2600);
     expect(s.turn!.botActAt).not.toBeNull();
-    const out = advance(s, ctx, T0 + 2600 + 8000);
+    const out = advance(s, ctx, s.turn!.botActAt! + 1); // its think time is a seeded draw
     expect(out.history.length + out.events.length).toBeGreaterThan(s.history.length + s.events.length - 1);
     expect(out.turn?.seat === 0 && out.players[0].turnsTaken === 0).toBe(false);
   });

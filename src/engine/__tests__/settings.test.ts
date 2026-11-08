@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PRACTICE_TURN_MS } from '../constants';
-import { createGame, dailySetup } from '../game';
+import { ALL_MODIFIERS, createGame, dailySetup } from '../game';
 import { advance } from '../reducer';
 import { DEFAULT_SETTINGS, estimateMinutes, PRESETS, presetOf, resolveSettings } from '../settings';
 import type { GameSettings } from '../settings';
@@ -34,7 +34,7 @@ describe('game settings', () => {
     expect(s.settings).toEqual(DEFAULT_SETTINGS);
     // Round 1 plays plain, then every word twist once each, cycling (vowel_double and the faster-round twist are retired).
     expect(s.modifierDeck[0]).toBe('none');
-    expect([...s.modifierDeck.slice(1)].sort()).toEqual(['double_letter', 'no_e', 'six_plus']);
+    expect([...s.modifierDeck.slice(1)].sort()).toEqual([...ALL_MODIFIERS].sort());
     expect(s.players.every((p) => p.lives === 3)).toBe(true);
   });
 

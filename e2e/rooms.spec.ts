@@ -11,6 +11,11 @@ function pickWord(letter: string, modifier: string): string {
     if (/No E/i.test(modifier)) return !w.includes('e');
     if (/6\+/.test(modifier)) return w.length >= 6;
     if (/Double letter/i.test(modifier)) return /(.)\1/.test(w);
+    if (/No A/i.test(modifier)) return !w.includes('a');
+    if (/No S/i.test(modifier)) return !w.includes('s');
+    if (/5 letters max/i.test(modifier)) return w.length <= 5;
+    if (/End on a vowel/i.test(modifier)) return /[aeiou]$/.test(w);
+    if (/Needs an O/i.test(modifier)) return w.includes('o');
     return true;
   };
   const word = WORDS.find(ok);

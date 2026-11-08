@@ -8,6 +8,11 @@ export function rejectMessage(reason: string | undefined, chainLetter: string): 
     case 'modifier_no_e': return 'No E allowed this round.';
     case 'modifier_six_plus': return '6+ letters only this round.';
     case 'modifier_double_letter': return 'Needs a double letter this round.';
+    case 'modifier_no_a': return 'No A allowed this round.';
+    case 'modifier_no_s': return 'No S allowed this round.';
+    case 'modifier_five_max': return '5 letters max this round.';
+    case 'modifier_ends_vowel': return 'Must end in a vowel this round.';
+    case 'modifier_has_o': return 'Needs an O this round.';
     case 'no_bank': return 'There’s no banking any more: just play a word.';
     case 'frozen': return 'You’re frozen: out of wool, no more turns.';
     default: return 'Not allowed right now.';

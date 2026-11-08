@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react';
 import { TWIST_TEXT } from '../model/types';
 import type { TwistId } from '../model/types';
-import { ClockIcon, DoubleIcon, NoEIcon, RulerIcon } from './Icons';
+import { ChainIcon, CheckIcon, ClockIcon, CloseIcon, DoubleIcon, NoEIcon, RulerIcon } from './Icons';
 import { Notice } from './Notice';
 
 const ICON: Record<TwistId, ReactNode> = {
   noE: <NoEIcon size={18} />, sixPlus: <RulerIcon size={18} />, doubleLetter: <DoubleIcon size={18} />,
+  noA: <CloseIcon size={18} />, noS: <CloseIcon size={18} />, fiveMax: <RulerIcon size={18} />,
+  endsVowel: <ChainIcon size={18} />, hasO: <CheckIcon size={18} />,
   vowelDouble: null, doublePointsShort: <ClockIcon size={18} />,
 };
 

@@ -325,3 +325,8 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   and leave questions are a box over the stage with their buttons in the bar; the results card gains BACK (to the death
   screen) as a fifth equal button; "Has a M" now reads "Has an M". Under reduced motion the announcement keeps its full
   reading time. Decision 9.12 (the hidden softGame in Quick Games) is still Brian's.
+- More twists (requested by Brian, 2026-11-08), an engine change: round 1 stays plain, and every later round has a twist
+  (`modifierForRound` in game.ts cycles the shuffled deck after its plain opener; a twists-off deck stays plain). Five new
+  word twists join no E, 6+ and double letter in `ALL_MODIFIERS`: no A, no S, 5 letters max, end on a vowel, needs an O.
+  Each one leaves every letter a legal word can end on with legal words in public/words.txt (src/engine/__tests__/twists.test.ts).
+  The longer deck shifts the seeded random stream after it.

@@ -15,7 +15,8 @@ export function creatureFor(seat: number): CreatureId {
 
 export const TWIST_OF: Record<RoundModifier, TwistId | null> = {
   none: null,
-  no_e: 'noE', six_plus: 'sixPlus', double_letter: 'doubleLetter', vowel_double: 'vowelDouble', double_points_fast: 'doublePointsShort',
+  no_e: 'noE', six_plus: 'sixPlus', double_letter: 'doubleLetter',
+  no_a: 'noA', no_s: 'noS', five_max: 'fiveMax', ends_vowel: 'endsVowel', has_o: 'hasO', vowel_double: 'vowelDouble', double_points_fast: 'doublePointsShort',
 };
 
 const MODE_OF: Record<StoreMode, Mode> = { quick: 'quick', daily: 'daily', practice: 'practice', tour: 'tutorial', room: 'rooms' };

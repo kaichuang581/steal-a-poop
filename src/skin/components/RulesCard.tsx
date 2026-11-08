@@ -50,7 +50,7 @@ export function RulesCard() {
             Turns get faster every round, and the alarm calls it: {TURN_MS_BY_ROUND.map((ms) => ms / 1000).join(', ')} seconds, then {LAST_ROUND_TURN_MS / 1000} for good.
           </Row>
           <Row icon={<span className="flex gap-1"><NoEIcon size={16} /><RulerIcon size={16} /><DoubleIcon size={16} /></span>}>
-            After the first round each round has a twist, called out by the alarm: no letter E, 6 letters or more, or a double letter.
+            After the first round every round has a twist, called out by the alarm: no letter E, A or S, 6 letters or more, 5 letters or fewer, a double letter, an O, or a vowel at the end.
           </Row>
         </ul>
       </section>

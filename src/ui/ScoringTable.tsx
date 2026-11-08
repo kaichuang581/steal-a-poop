@@ -1,11 +1,7 @@
 import {
-  EXTRA_WOOL_CAP, LAST_ROUND_TURN_MS, LIVES_PER_GAME, TURN_MS_BY_ROUND,
+  ALL_MODIFIERS, EXTRA_WOOL_CAP, LAST_ROUND_TURN_MS, LIVES_PER_GAME, TURN_MS_BY_ROUND,
 } from '../engine';
-import type { RoundModifier } from '../engine';
 import { MODIFIER_INFO } from '../lib/modifiers';
-
-/** The twists the engine still deals (the points-only one and the faster-round one are retired). */
-const TWISTS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter'];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -53,8 +49,8 @@ export function ScoringTable() {
             {TURN_MS_BY_ROUND.map((ms) => `${ms / 1000} s`).join(', ')}, then {LAST_ROUND_TURN_MS / 1000} s for good.
           </Rule>
           <Rule icon="•">
-            Rounds after the first add a twist:{' '}
-            {TWISTS.map((m) => MODIFIER_INFO[m].label).join(', ')}.
+            Every round after the first has a twist:{' '}
+            {ALL_MODIFIERS.map((m) => MODIFIER_INFO[m].label).join(', ')}.
           </Rule>
         </ul>
       </Section>

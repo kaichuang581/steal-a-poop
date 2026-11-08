@@ -2,6 +2,12 @@
 
 All user-visible changes, newest first.
 
+## 0.3.4
+
+- The bomb is an ice bomb now: a frozen blue shell capped with frost, a frosted fuse and a cold blue spark, with icy blue seconds on its face
+- Each new holder gets the bomb properly: it is lobbed over in a tumbling arc (a fresh one drops from above), thuds onto the floor beside them, skids to a stop and wobbles still, and the holder flinches. Frost spreads under it and cold vapour spills off it while it sits there
+- It bursts in ice: a white-out, a ball of frost, glittering crystals, chunks of the shell bouncing across the floor and a freezing mist, with frost creeping in at the screen's edges, the words shattering in ice blue, and a glassy crack and tinkling shards to hear
+
 ## 0.3.3
 
 - Stealing is gone: no more red seconds, steal turns or STEAL button. Keep your wool by answering in time, and win more with traps

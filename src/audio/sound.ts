@@ -127,14 +127,15 @@ function schedule(c: AudioContext, kind: SoundKind): void {
     case 'roundEnd':
       [523, 659, 784, 1047].forEach((f, i) => tone(c, { freq: f, at: i * 0.11, dur: 0.3, type: 'triangle', vol: 0.1 }));
       break;
-    case 'boom': // a bomb: a hard crack, a deep thump, a rolling rumble and a scatter of crackles
-      whoosh(c, 0, 0.2, 8000, 1500, 0.9);
-      whoosh(c, 0, 1.4, 2000, 70, 1.0);
-      whoosh(c, 0.05, 0.6, 600, 60, 0.9);
+    case 'boom': // the ice bomb: a glassy crack, a deep thump, shards of ice tinkling down and a freezing gust after
+      whoosh(c, 0, 0.12, 9000, 3000, 0.9);
+      whoosh(c, 0, 1.2, 2000, 70, 0.9);
+      whoosh(c, 0.05, 0.6, 600, 60, 0.8);
       tone(c, { freq: 100, dur: 1.0, type: 'sine', vol: 0.95, to: 24 });
       tone(c, { freq: 45, at: 0.03, dur: 1.2, type: 'sine', vol: 0.8, to: 20 });
-      tone(c, { freq: 62, at: 0.02, dur: 1.2, type: 'sawtooth', vol: 0.3, to: 24 });
-      for (let i = 0; i < 22; i++) tone(c, { freq: 1800 + Math.random() * 3200, at: 0.12 + Math.random() * 1.0, dur: 0.05, type: 'square', vol: 0.09 });
+      tone(c, { freq: 2600, dur: 0.18, type: 'triangle', vol: 0.18, to: 900 });
+      for (let i = 0; i < 26; i++) tone(c, { freq: 2200 + Math.random() * 4800, at: 0.1 + Math.random() * 1.1, dur: 0.06 + Math.random() * 0.12, type: i % 3 ? 'sine' : 'triangle', vol: 0.05 + Math.random() * 0.05 });
+      whoosh(c, 0.35, 1.6, 1400, 4200, 0.35);
       break;
     case 'alarm': // the barn klaxon: two notes blared three times over a rising and falling siren
       for (let i = 0; i < 6; i++) tone(c, { freq: i % 2 ? 415 : 554, at: i * 0.22, dur: 0.2, type: 'square', vol: 0.085 });

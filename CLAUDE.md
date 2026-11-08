@@ -292,3 +292,16 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   (e) Local-storage keys are promises: add fields with defaults, never migrate, never rename. New keys: sap:hunt-log,
       sap:hunt-packs, sap:hunt-bestiary. sap:hunt-best keeps its shape and gains optional fields.
   (f) The Hunt's look stays the handheld console (src/skin/hunt, .gb-*); new screens are drawn in that style.
+- The Hunt v7 as built, H0 to H5 (2026-11-07; H6, the drowsy fox, is not built and waits for a month of the run log and a
+  separate yes from Brian). Pure layer: src/hunt/log.ts, codes.ts, packs.ts, bestiary.ts, everyday.ts and the additions to
+  hunt.ts, rules.ts and record.ts; the save code is src/lib/savecode.ts (Settings: src/skin/components/SaveCodeRow.tsx);
+  the screen is src/skin/hunt/HuntScreen.tsx with its panels in panels.tsx. `npm test` covers Part 4.7 and Part 6;
+  `node tools/huntCheck.mjs --base <dev url>` plays seeded packs and checks Part 10 (screenshots in docs/skin/hunt-v7).
+  Where the plan's letter did not fit: YES and NO words come from an everyday list first (src/hunt/everyday.ts), because
+  the rarity heuristic lets obscure words through, and the search for a YES word that obeys all of a predator's rules
+  goes to 4,000 candidates, not 400 (400 missed about one rule set in thirty); the death screen's word prefers an
+  everyday word too (`everydayWord`, else `hintWord`); the lobby's best and last-pack lines sit in a name box at the top
+  right, since the 38 px bar has no room under the menu; the code line sits under the predator's name box; the walk-home
+  and leave questions are a box over the stage with their buttons in the bar; the results card gains BACK (to the death
+  screen) as a fifth equal button; "Has a M" now reads "Has an M". Under reduced motion the announcement keeps its full
+  reading time. Decision 9.12 (the hidden softGame in Quick Games) is still Brian's.

@@ -8,7 +8,7 @@ import { Lobby } from '../ui/Lobby';
 import { RoomScreen } from '../ui/RoomScreen';
 import { useHour } from './hooks/useAmbient';
 import { HuntScreen } from './hunt/HuntScreen';
-import { useHuntUi } from './hunt/huntStore';
+import { takePackFromUrl, useHuntUi } from './hunt/huntStore';
 import { DreamScreen } from './dream/DreamScreen';
 import { useDreamUi } from './dream/dreamStore';
 import { PaintedGame } from './screens/PaintedGame';
@@ -56,6 +56,11 @@ export function PaintedApp() {
     return () => { delete root.dataset.skin; };
   }, []);
   useEffect(() => { document.documentElement.dataset.hour = hour; }, [hour]);
+  // A ?pack=CODE address opens the Hunt straight into that pack (plan v7 Part 5.1); the parameter is read once.
+  useEffect(() => {
+    const code = takePackFromUrl();
+    if (code !== null && !PREVIEW) useHuntUi.getState().openHunt(code);
+  }, []);
 
   if (PREVIEW === 'sheep') return <SheepPreview />;
   if (PREVIEW === 'strips') return <StripsPreview />;

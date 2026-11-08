@@ -431,13 +431,29 @@ export function causeOf(outcome: Outcome): 'timeout' | 'broke' | 'hits' {
 }
 
 /**
- * For the death screen, from the run as it was before the killing turn: a word that would have worked then (what the
- * Hint Bell would have rung), and 'milk' when a Warm Milk was left that would have lasted out the predator's strike.
+ * For the death screen, from the run as it was before the killing turn: a word that would have worked then (an
+ * everyday one when there is one, else what the Hint Bell would have rung), and 'milk' when a Warm Milk was left that would have lasted out the predator's strike.
  */
 export function lastWords(before: Run, dict: Dictionary): { word: string | null; itemHelp: 'milk' | null } {
   const heal = Math.min(MILK_HEAL, before.maxHp - before.hp);
   const milk = before.items.milk > 0 && before.hp + heal > before.predator.attack;
-  return { word: hintWord(before, dict), itemHelp: milk ? 'milk' : null };
+  return { word: everydayWord(before, dict) ?? hintWord(before, dict), itemHelp: milk ? 'milk' : null };
+}
+
+/**
+ * An everyday word that obeys every rule in force and has not been used, or null. The death screen prefers it to the
+ * Hint Bell's word, which is chosen by letters and can be one nobody knows. Deterministic per turn.
+ */
+export function everydayWord(run: Run, dict: Dictionary): string | null {
+  const { rules } = activeRules(run, dict);
+  const used = new Set(run.used);
+  const ctx: RuleContext = { prev: run.prev };
+  const off = Math.floor(rng(`${run.seed}:everyday:${run.used.length}`)() * EVERYDAY.length);
+  for (let i = 0; i < EVERYDAY.length; i++) {
+    const w = EVERYDAY[(off + i) % EVERYDAY.length];
+    if (w.length >= MIN_LETTERS && !used.has(w) && dict.has(w) && !brokenRule(w, rules, ctx)) return w;
+  }
+  return null;
 }
 
 /** Whether the run is in the pause after a boss fainted, when the sheep may walk home. */

@@ -3,10 +3,10 @@ import type { SheepState } from '../table/Sheep';
 /** Where the coin is this frame: its centre's lift off the rest height, and its three tilts/turns. */
 export interface DiscPose { lift: number; rotX: number; rotY: number; rotZ: number }
 
-/** `tall` is the picture's own height over its width: the photo with the forehead band spliced and stretched 7.5 times (Brian,
- * 2026-11-08: "make kaiyans forehead humongous and make the rest of him regular sized"; kaiyan-forehead.png is 512 x 655).
+/** `tall` is the picture's own height over its width: the photo with the forehead band spliced and stretched 15 times (Brian,
+ * 2026-11-08: "make kaiyans forehead humongous and make the rest of him regular sized"; kaiyan-forehead.png is 512 x 820; "twice as big" the same day).
  * `rest` keeps its foot on the snow. */
-export const DISC = { radius: 0.5, tall: 655 / 512, thick: 0.06, rest: 0.5 * (655 / 512) + 0.02 } as const;
+export const DISC = { radius: 0.5, tall: 820 / 512, thick: 0.06, rest: 0.5 * (820 / 512) + 0.02 } as const;
 
 const TAU = Math.PI * 2;
 const hop = (p: number, h: number) => (p >= 0 && p < 1 ? Math.sin(p * Math.PI) * h : 0);

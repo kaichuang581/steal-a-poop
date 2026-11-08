@@ -30,7 +30,7 @@ export function LegalDialog({ initial, onClose }: { initial: LegalSlug; onClose:
   const tab = (on: boolean) => `min-h-11 rounded-lg border-2 px-3 text-sm font-bold ${on ? 'border-[#c0792b] bg-white' : 'border-transparent bg-white/60'}`;
   return (
     <div role="dialog" aria-modal="true" aria-label={LEGAL_TITLES[slug]} className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-3" onClick={onClose}>
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col rounded-xl bg-[var(--paper,#f6efe0)] p-4 text-[#2b221d]" onClick={(e) => e.stopPropagation()}>
+      <div className="sk-framed flex max-h-[92vh] w-full max-w-3xl flex-col bg-[var(--paper,#f6efe0)] p-4 text-[#2b221d]" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Legal pages">
             {SLUGS.map((s) => <button key={s} role="tab" aria-selected={s === slug} className={tab(s === slug)} onClick={() => setSlug(s)}>{LEGAL_TITLES[s]}</button>)}

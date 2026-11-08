@@ -1,6 +1,56 @@
 /* Counting Sheep (V4): the farmer's dream. The scene is the game's own three.js world; what is here is the little that
    the painted skin's shared classes (chips, the word bar, boards) do not cover. */
-.dr-root { position: relative; display: flex; height: 100%; flex-direction: column; overflow: hidden; outline: none; user-select: none; background: #D2C6F4; }
+.dr-root { position: relative; display: flex; height: 100%; flex-direction: column; overflow: hidden; outline: none; user-select: none; background: #14112A; }
+
+/* The dream's canvas. It pops toward the last puff when the farmer wakes (V4.1 Part 7.4); it is only ever transformed
+   after it has been measured, so the renderer's size is not disturbed. */
+.dr-stage { position: absolute; inset: 0; transform-origin: 27% 74%; }
+.dr-stage[data-pop] { animation: dr-pop-away 500ms ease-in forwards; }
+@keyframes dr-pop-away { to { transform: scale(0.02); opacity: 0.9; } }
+.dr-stage[data-gone] { visibility: hidden; }
+.dr-stage[data-pop][data-reduced] { animation: dr-fade-away 150ms linear forwards; }
+@keyframes dr-fade-away { to { opacity: 0; } }
+
+/* The farmer's bubble: its own canvas, masked to a cloud with a pale rim (V4.1 Part 7.1). */
+.dr-bubble { --cloud: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 100' preserveAspectRatio='none'%3E%3Cg fill='black'%3E%3Cellipse cx='75' cy='50' rx='62' ry='37'/%3E%3Ccircle cx='24' cy='34' r='16'/%3E%3Ccircle cx='52' cy='19' r='15'/%3E%3Ccircle cx='84' cy='15' r='15'/%3E%3Ccircle cx='114' cy='24' r='16'/%3E%3Ccircle cx='132' cy='50' r='15'/%3E%3Ccircle cx='116' cy='76' r='16'/%3E%3Ccircle cx='84' cy='85' r='14'/%3E%3Ccircle cx='50' cy='82' r='15'/%3E%3Ccircle cx='20' cy='64' r='16'/%3E%3C/g%3E%3C/svg%3E");
+  position: absolute; left: 2%; bottom: 2%; z-index: 12; width: min(26%, 420px); aspect-ratio: 3 / 2; pointer-events: none; transition: width 300ms ease-out; animation: dr-breathe 4s ease-in-out infinite; transform-origin: 0 100%; }
+@keyframes dr-breathe { 50% { transform: scale(1.012); } }
+.dr-bubble-rim, .dr-bubble-view { position: absolute; -webkit-mask: var(--cloud) center / 100% 100% no-repeat; mask: var(--cloud) center / 100% 100% no-repeat; }
+.dr-bubble-rim { inset: -3px; background: #EDE8F9; opacity: 0.85; }
+.dr-bubble-view { inset: 0; overflow: hidden; }
+.dr-bubble[data-woke] { animation: none; }
+/* He wakes: the bubble grows beside the results card, above the backdrop that dims the rest. */
+.dr-root[data-gone] .dr-bubble { width: 40%; z-index: 41; }
+/* The z's rise out of the bubble toward the first puff. */
+.dream-z { position: absolute; left: 40%; top: 45%; color: #EDE8F9; opacity: 0; font: 700 18px/1 var(--skin-font-display); animation: dr-z 2.2s linear infinite; }
+.dream-z[data-i="1"] { font-size: 24px; animation-delay: 0.73s; }
+.dream-z[data-i="2"] { font-size: 30px; animation-delay: 1.46s; }
+@keyframes dr-z { 0% { opacity: 0; transform: translate(0, 0); } 8% { opacity: 0.9; } 60% { opacity: 0.9; } 100% { opacity: 0; transform: translate(9%, -55%); } }
+.dr-bubble[data-woke] .dream-z { visibility: hidden; }
+.dr-bubble-bang { position: absolute; left: 42%; top: 6%; opacity: 0; color: var(--glow); font: 800 44px/1 var(--skin-font-display); text-shadow: 0 2px 0 #1E1A33; }
+.dr-root[data-gone] .dr-bubble-bang { animation: dr-bang 800ms ease-out both; }
+@keyframes dr-bang { 0% { opacity: 0; transform: translateY(8px) scale(0.6); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* The thought trail: three clouds from the bubble to the raft (V4.1 Part 7.3). */
+.dream-puff { position: absolute; z-index: 13; pointer-events: none; opacity: 0.92; animation: dr-bob 5s ease-in-out infinite; transition: transform 200ms ease-in; }
+.dream-puff svg { display: block; width: 100%; height: auto; }
+.dream-puff[data-i="1"] { animation-delay: -1.6s; }
+.dream-puff[data-i="2"] { animation-delay: -3.2s; }
+@keyframes dr-bob { 50% { translate: 0 -3px; } }
+.dr-root[data-pop] .dream-puff { transform: scale(0); }
+.dr-root[data-pop] .dream-puff[data-i="2"] { transition-delay: 0ms; }
+.dr-root[data-pop] .dream-puff[data-i="1"] { transition-delay: 120ms; }
+.dr-root[data-pop] .dream-puff[data-i="0"] { transition-delay: 240ms; }
+
+/* Twenty cloud puffs burst from the trail as the dream pops. */
+.dr-burst { position: absolute; z-index: 11; pointer-events: none; left: 27%; top: 74%; width: 0; height: 0; }
+.dr-burst i { position: absolute; width: 22px; height: 15px; border-radius: 50%; background: #EDE8F9; opacity: 0; animation: dr-burst 650ms ease-out forwards; }
+@keyframes dr-burst { 0% { opacity: 0.95; transform: translate(0, 0) scale(0.5); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.3); } }
+
+/* The board keeps to the top of the sky (V4.1 Part 8), and the help line sits inside the bar. */
+.dr-boards .sk-notice { max-width: 44%; }
+.dr-root .sk-input-bar { position: relative; padding-bottom: 18px; }
+.dr-help { position: absolute; left: 0; right: 0; bottom: 2px; text-align: center; font-size: 12px; line-height: 1.2; color: var(--ink-soft); pointer-events: none; white-space: nowrap; overflow: hidden; }
 
 /* The board's subline blinks before the first key. */
 @keyframes dr-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.35; } }
@@ -30,14 +80,103 @@
 .dr-night[data-status="today"] { box-shadow: inset 0 0 0 2px var(--amber); }
 .dr-night[data-today] { outline: 3px solid var(--amber); outline-offset: 2px; }
 .dr-nights[data-mini] .dr-night { width: 10px; height: 10px; font-size: 0; box-shadow: inset 0 0 0 1.5px rgba(140, 90, 46, 0.4); }
+.dr-bumps { display: inline-flex; gap: 3px; }
+.dr-bump { width: 9px; height: 9px; border-radius: 50%; background: var(--cloth); box-shadow: inset 0 0 0 1.5px var(--cloth-dark); }
+.dr-bump[data-gone] { background: var(--coral); box-shadow: inset 0 0 0 1.5px var(--coral-dark); }
 .dr-blankets { display: inline-flex; gap: 4px; vertical-align: middle; }
 
 /* The phone's word bar: the fence tiles above the input, the Jump button 44 px tall. */
 @media (max-width: 640px) {
+  .dr-boards .sk-notice { max-width: 92%; }
+  .dr-root .sk-input-bar { padding-bottom: 8px; }
+  .dr-bubble { width: min(42%, 240px); bottom: 136px; }
+  .dr-root[data-gone] .dr-bubble { width: 42%; z-index: 12; }
+  .dream-z { font-size: 12px; } .dream-z[data-i="1"] { font-size: 15px; } .dream-z[data-i="2"] { font-size: 18px; }
   .dr-fence-tile { --t: 26px; }
   .dr-fence-tiles { min-width: 40px; }
   .dr-bar-phone .sk-input-bar { flex-wrap: wrap; }
   .dr-bar-phone .dr-fence-tiles { flex-basis: 100%; border-right: 0; border-bottom: 2px dashed rgba(140, 90, 46, 0.35); padding-bottom: 4px; margin-bottom: 4px; }
   .dr-bar-phone .sk-input-go { min-height: 44px; }
 }
-:root.reduce-motion .dr-pop, :root.reduce-motion .dr-tag, :root.reduce-motion .dr-fence-tile, :root.reduce-motion .dr-blink { animation: none; }
+:root.reduce-motion .dr-pop, :root.reduce-motion .dr-tag, :root.reduce-motion .dr-fence-tile, :root.reduce-motion .dr-blink, :root.reduce-motion .dr-bubble, :root.reduce-motion .dream-puff { animation: none; }
+:root.reduce-motion .dream-z { animation: none; opacity: 0.9; }
+:root.reduce-motion .dream-z[data-i="1"] { transform: translate(6%, -22%); }
+:root.reduce-motion .dream-z[data-i="2"] { transform: translate(12%, -44%); }
+:root.reduce-motion .dr-burst { display: none; }
+/* The same for a reduced-motion setting on the device: three still z's at fixed heights. */
+@media (prefers-reduced-motion: reduce) {
+  .dr-bubble, .dream-puff, .dr-blink { animation: none; }
+  .dream-z, .dream-z[data-i="1"], .dream-z[data-i="2"] { animation: none; opacity: 0.9; }
+  .dream-z[data-i="1"] { transform: translate(6%, -22%); }
+  .dream-z[data-i="2"] { transform: translate(12%, -44%); }
+  .dr-burst { display: none; }
+}
+
+/* ---------- The dream's own look. Everything on this screen belongs to the farmer's dream, not to the barn: night
+   indigo inside, a pale cloud edge like the bubble's, moon gold for the one thing to press, quilt patches for the nights. */
+.dr-root { --dr-night: #1E1A33; --dr-indigo: #2E2760; --dr-violet: #4C3F90; --dr-lav: #B8ADE6; --dr-cloud: #EDE8F9; --dr-moon: #FFF1B8; --dr-gold: #F7CE73; }
+
+.dr-root .sk-chip { background: rgba(30, 26, 51, 0.78); color: var(--dr-cloud); border: 2px solid rgba(237, 232, 249, 0.6); box-shadow: 0 3px 10px rgba(20, 16, 50, 0.35); }
+.dr-root .sk-chip b { color: var(--dr-moon); }
+.dr-root .sk-chip .text-xs, .dr-root .sk-chip [style] { color: var(--dr-lav) !important; }
+.dr-root .sk-icon-chip { color: var(--dr-cloud); }
+.dr-bump { background: var(--dr-lav); box-shadow: none; }
+.dr-bump[data-gone] { background: #E7705E; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.35); }
+
+/* The board: a small cloud in the sky, not a plank. */
+.dr-board.sk-notice { background: linear-gradient(180deg, var(--dr-indigo), var(--dr-night)); border: 2px solid rgba(237, 232, 249, 0.75); border-radius: 26px; box-shadow: 0 6px 18px rgba(20, 16, 50, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14); color: var(--dr-cloud); }
+.dr-board .sk-nail { display: none; }
+.dr-board .sk-notice-title { color: var(--dr-cloud); text-shadow: 0 2px 0 rgba(20, 16, 50, 0.7); }
+.dr-board .sk-notice-sub { color: var(--dr-moon); text-shadow: none; }
+.dr-board .sk-notice-icon { color: var(--dr-lav); filter: none; }
+.dr-board-bump.sk-notice { border-color: #F3A79A; }
+
+/* The word bar: the same night, lit by the moon when it wants a word. */
+.dr-root .sk-input-bar { background: linear-gradient(180deg, var(--dr-indigo), var(--dr-night)); border: 3px solid rgba(237, 232, 249, 0.7); border-radius: 24px; box-shadow: 0 6px 18px rgba(20, 16, 50, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12); opacity: 1; }
+.dr-root .sk-input-bar[data-mode="mine"] { border-color: var(--dr-moon); box-shadow: 0 0 0 3px rgba(255, 241, 184, 0.28), 0 6px 18px rgba(20, 16, 50, 0.4); }
+.dr-root .sk-input-placeholder { color: var(--dr-lav); }
+.dr-root .sk-type-caret { background: var(--dr-moon); }
+.dr-root .sk-type-tile { background: linear-gradient(180deg, #FFFFFF, var(--dr-cloud)); color: var(--dr-indigo); box-shadow: inset 0 -3px 0 #CFC8EA, 0 2px 4px rgba(20, 16, 50, 0.4); text-shadow: none; }
+.dr-root .dr-fence-tiles { border-color: rgba(237, 232, 249, 0.3); }
+.dr-root .dr-fence-tile { background: linear-gradient(180deg, #6A5BB8, var(--dr-violet)); color: var(--dr-moon); box-shadow: inset 0 -3px 0 #3A2F78, 0 2px 4px rgba(20, 16, 50, 0.4); }
+.dr-root .dr-fence-tile[data-lit] { background: linear-gradient(180deg, #FFF8DA, var(--dr-gold)); color: var(--dr-indigo); box-shadow: inset 0 -3px 0 #D9A94E, 0 0 0 2px var(--dr-moon); }
+.dr-root .sk-input-go { background: linear-gradient(180deg, #FFF3C4, var(--dr-gold)); color: #3A2F78; border-color: #D9A94E; text-shadow: none; box-shadow: inset 0 -3px 0 #D9A94E, 0 2px 6px rgba(20, 16, 50, 0.4); }
+.dr-root .sk-input-prompt { color: var(--dr-cloud); text-shadow: 0 1px 3px rgba(20, 16, 50, 0.9); }
+.dr-root .sk-input-prompt b { color: var(--dr-moon); }
+.dr-help { color: var(--dr-lav); }
+.dr-tag { background: var(--dr-night); color: var(--dr-moon); box-shadow: 0 0 0 2px rgba(237, 232, 249, 0.6); }
+
+/* The results: a piece of the night with a cloud along its top, not a board. */
+.dr-backdrop { position: fixed; inset: 0; z-index: 39; background: radial-gradient(ellipse at 60% 40%, rgba(46, 39, 96, 0.35), rgba(20, 17, 42, 0.72)); }
+.dr-root[data-gone] .dr-backdrop { background: radial-gradient(ellipse at 60% 40%, #1E1A33, #14112A); }
+.dr-card { position: relative; width: 100%; max-width: 400px; padding: 34px 20px 18px; color: var(--dr-cloud); text-align: center; background: linear-gradient(180deg, var(--dr-violet) 0%, var(--dr-indigo) 34%, var(--dr-night) 100%); border-radius: 26px; box-shadow: 0 0 0 3px rgba(237, 232, 249, 0.75), 0 18px 44px rgba(10, 8, 30, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.16); }
+/* Cloud lobes along the top edge, the bubble's scallops in a row. */
+.dr-card-scallop { position: absolute; left: 10px; right: 10px; top: -17px; height: 26px; background: radial-gradient(circle at 50% 100%, var(--dr-cloud) 0 63%, transparent 65%) 0 0 / 52px 26px round no-repeat; filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.6)); }
+.dr-card-stars { position: absolute; inset: 10px 14px auto; height: 90px; pointer-events: none; opacity: 0.85; background-image: radial-gradient(1.5px 1.5px at 12% 30%, #fff, transparent), radial-gradient(1.5px 1.5px at 27% 70%, #fff, transparent), radial-gradient(1px 1px at 44% 22%, #fff, transparent), radial-gradient(1.5px 1.5px at 62% 60%, #fff, transparent), radial-gradient(1px 1px at 74% 28%, #fff, transparent), radial-gradient(1.5px 1.5px at 7% 76%, #fff, transparent), radial-gradient(1px 1px at 90% 74%, #fff, transparent); }
+.dr-card-moon { position: absolute; right: 18px; top: 20px; width: 34px; height: 34px; filter: drop-shadow(0 0 8px rgba(255, 241, 184, 0.55)); }
+.dr-card-title { position: relative; margin: 0; font: 800 26px/1.15 var(--skin-font-display); color: var(--dr-cloud); }
+.dr-card-count { position: relative; margin: 2px 0 0; font: 700 22px/1.1 var(--skin-font-display); color: var(--dr-lav); }
+.dr-card-count b { font-size: 52px; font-weight: 800; color: var(--dr-moon); text-shadow: 0 0 18px rgba(255, 241, 184, 0.35); }
+.dr-card-line { margin: 4px 0 0; font: 400 17px/1.25 var(--skin-font-hand); color: var(--dr-cloud); }
+.dr-card-small { margin: 8px 0 0; font: 400 15px/1.25 var(--skin-font-hand); color: var(--dr-lav); }
+.dr-card-streak { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 0 8px; font: 400 19px/1.1 var(--skin-font-hand); color: var(--dr-moon); }
+.dr-card-streak span { font-size: 14px; color: var(--dr-lav); }
+.dr-card-quilt { margin-top: 12px; padding: 10px 10px 8px; border-radius: 14px; background: rgba(20, 16, 50, 0.4); box-shadow: inset 0 0 0 1.5px rgba(237, 232, 249, 0.16); }
+.dr-card-row { display: flex; gap: 8px; margin-top: 10px; }
+.dr-btn { flex: 1; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 16px; cursor: pointer; font: 800 16px/1 var(--skin-font-body); color: var(--dr-cloud); background: rgba(237, 232, 249, 0.14); box-shadow: inset 0 0 0 2px rgba(237, 232, 249, 0.55); transition: background var(--t-fast), transform 120ms; }
+.dr-btn:hover { background: rgba(237, 232, 249, 0.24); }
+.dr-btn:active { transform: translateY(1px); }
+.dr-btn:focus-visible { outline: 3px solid var(--dr-moon); outline-offset: 2px; }
+.dr-btn-moon { margin-top: 14px; color: #3A2F78; background: linear-gradient(180deg, #FFF8DA, var(--dr-gold)); box-shadow: inset 0 -3px 0 #D9A94E, 0 4px 12px rgba(247, 206, 115, 0.3); }
+.dr-btn-moon:hover { background: linear-gradient(180deg, #FFFBE8, #FAD889); }
+/* The nights are patches of his quilt, stitched at the edge. */
+.dr-card .dr-nights { gap: 5px; }
+.dr-card .dr-night { width: 34px; height: 34px; border-radius: 8px; color: rgba(237, 232, 249, 0.55); background: rgba(237, 232, 249, 0.07); box-shadow: none; outline: 1.5px dashed rgba(237, 232, 249, 0.25); outline-offset: -4px; }
+.dr-card .dr-night[data-status="played"], .dr-card .dr-night[data-status="repair"] { color: #2E2760; background: #8E7CC3; outline-color: rgba(255, 255, 255, 0.5); }
+.dr-card .dr-night[data-status="played"]:nth-child(3n + 1) { background: #D99B95; }
+.dr-card .dr-night[data-status="played"]:nth-child(3n + 2) { background: #5E8F8A; color: #fff; }
+.dr-card .dr-night[data-status="played"]:nth-child(3n) { background: #F3E9D2; }
+.dr-card .dr-night[data-status="blanket"] { color: #2E2760; background: var(--dr-gold); outline-color: rgba(255, 255, 255, 0.6); }
+.dr-card .dr-night[data-status="today"] { box-shadow: inset 0 0 0 2px var(--dr-moon); }
+.dr-card .dr-night[data-today] { outline: 2px solid var(--dr-moon); outline-offset: 2px; }
+@media (max-width: 640px) { .dr-card { max-width: 360px; padding: 30px 14px 14px; } .dr-card-count b { font-size: 42px; } .dr-card .dr-night { width: 30px; height: 30px; } }

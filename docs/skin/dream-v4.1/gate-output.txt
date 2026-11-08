@@ -1,0 +1,70 @@
+pass  G1  sky top L(50,3)                        0.235            0.2 to 0.3
+pass  G1  sky L(20,8)                            0.338            0.26 to 0.38
+pass  G1  sky L(80,8)                            0.367            0.26 to 0.38
+pass  G1  star pixels in y 0..10%                884.000          >= 40
+pass  G1  moon L(88,10)                          0.941            >= 0.92
+pass  G2  lane L(50,67)                          0.847            0.84 to 0.92
+pass  G2  lane L(70,67)                          0.847            0.84 to 0.92
+pass  G2  ridge L(45,84)                         0.792            0.78 to 0.86
+pass  G2  ridge L(65,84)                         0.780            0.78 to 0.86
+pass  G2  sea L(50,46)                           0.734            0.66 to 0.76
+pass  G2  lane box std                           0.000            <= 0.03
+pass  G2  lane box hue gap to #F3F0FA            3.000            <= 8
+pass  G2  lane box saturation                    0.070            <= 0.12
+pass  G3  hills L(30,25)                         0.366            0.36 to 0.46
+pass  G3  hills L(70,25)                         0.360            0.36 to 0.46
+pass  G3  L(30,25) - L(30,19)                    -0.210           <= -0.08
+pass  G3  mountains L(50,15)                     0.575            0.48 to 0.58
+pass  G3  |L(50,15) - L(50,9)|                   0.242            >= 0.08
+pass  G3  edges along y = 25%                    33.000           >= 12
+pass  G4  island A differs from sky              0.784            >= 0.6
+pass  G4  island B differs from sky              0.979            >= 0.6
+pass  G4  island C differs from sky              0.854            >= 0.6
+pass  G4  cloud tone at the top and side edges   0.000            <= 0
+pass  G4  underside L(19,29)                     0.687            0.66 to 0.78
+pass  G4  underside L(69,21)                     0.695            0.66 to 0.78
+pass  G4  underside L(45,32)                     0.704            0.66 to 0.78
+pass  G5  std of L over y 20..70%                0.170            >= 0.12
+pass  G6  bubble inside x 2..28%, y 70..98%      2.0..24.0, 71.9..98.0 inside
+pass  G6  wall L in the upper right third        0.107            <= 0.2
+pass  G6  a patch of skin in the middle band     found            found
+pass  G6  .dream-z and .dream-puff               3 and 3          3 and 3
+pass  G7  a patch of fence brown at ready        found            found
+
+dev overlay: 417,470 triangles · 582.7 ms/frame · 65 draws · dpr 1 (budget: under 500k triangles, under 60
+32 of 32 passed; screenshot in /private/tmp/claude-501/-Users-brianlee/5a90a504-cdf5-4ccd-a97e-5557f2b0100
+pass  G1  sky top L(50,1)                        0.242            0.2 to 0.3
+pass  G1  sky L(20,8)                            0.320            0.26 to 0.38
+pass  G1  sky L(80,8)                            0.345            0.26 to 0.38
+pass  G1  star pixels in y 0..10%                161.000          >= 40
+pass  G1  moon L(88,10)                          0.930            >= 0.92
+pass  G2  lane L(50,67)                          0.847            0.84 to 0.92
+pass  G2  lane L(70,67)                          0.846            0.84 to 0.92
+pass  G2  ridge L(45,84)                         0.833            0.78 to 0.86
+pass  G2  ridge L(65,84)                         0.809            0.78 to 0.86
+pass  G2  sea L(50,46)                           0.751            0.66 to 0.76
+pass  G2  lane box std                           0.000            <= 0.03
+pass  G2  lane box hue gap to #F3F0FA            3.000            <= 8
+pass  G2  lane box saturation                    0.070            <= 0.12
+pass  G3  hills L(30,25)                         0.386            0.36 to 0.46
+pass  G3  hills L(70,25)                         0.378            0.36 to 0.46
+pass  G3  L(30,25) - L(30,19)                    -0.162           <= -0.08
+pass  G3  mountains L(50,15)                     0.540            0.48 to 0.58
+pass  G3  |L(50,15) - L(50,9)|                   0.202            >= 0.08
+pass  G3  edges along y = 25%                    19.000           >= 12
+pass  G4  island A differs from sky              0.990            >= 0.6
+pass  G4  island B differs from sky              0.899            >= 0.6
+pass  G4  island C differs from sky              0.971            >= 0.6
+pass  G4  cloud tone at the top and side edges   0.000            <= 0
+pass  G4  underside L(19,29)                     0.706            0.66 to 0.78
+pass  G4  underside L(69,21)                     0.695            0.66 to 0.78
+pass  G4  underside L(45,32)                     0.736            0.66 to 0.78
+pass  G5  std of L over y 20..70%                0.132            >= 0.12
+pass  G6  bubble inside x 2..28%, y 70..98%      2.0..44.3, 70.9..83.9 inside
+pass  G6  wall L in the upper right third        0.069            <= 0.2
+pass  G6  a patch of skin in the middle band     found            found
+pass  G6  .dream-z and .dream-puff               3 and 3          3 and 3
+pass  G7  a patch of fence brown at ready        found            found
+
+dev overlay: 382,198 triangles · 146.0 ms/frame · 67 draws · dpr 1 (budget: under 500k triangles, under 60
+32 of 32 passed; screenshot in /private/tmp/claude-501/-Users-brianlee/5a90a504-cdf5-4ccd-a97e-5557f2b0100

@@ -1,6 +1,6 @@
 # Counting Sheep v4 for Claude Code: the farmer's dream
 
-Version 4.0, 6 November 2026. Addendum to v1, v3, v3.1, v3.2 and v3.3; the v1 guardrails and the v3 voxel rules still apply. This plan covers one screen, the daily dream (Counting Sheep), and the home-screen pieces that feed it. It has six milestones: **D0** (discovery), **D1** (the dream is the farmer's), **D2** (the dreamscape, refined), **D3** (the sheep, the fences and the HUD), **D4** (the results screen, streak bookkeeping and sharing) and **D5** (the bounded dream, specified but not yet approved).
+**Parts 4, 5 and 6 are superseded by docs/REDESIGN_PLAN_V4_1.md.** Version 4.0, 6 November 2026. Addendum to v1, v3, v3.1, v3.2 and v3.3; the v1 guardrails and the v3 voxel rules still apply. This plan covers one screen, the daily dream (Counting Sheep), and the home-screen pieces that feed it. It has six milestones: **D0** (discovery), **D1** (the dream is the farmer's), **D2** (the dreamscape, refined), **D3** (the sheep, the fences and the HUD), **D4** (the results screen, streak bookkeeping and sharing) and **D5** (the bounded dream, specified but not yet approved).
 
 ---
 
@@ -36,7 +36,7 @@ Then, one milestone per session, in order: D1, D2, D3, D4. D5 only if I say so.
   apply: 0.04 m for the sheep, the farmer and small props, 0.10 m for the bed, fences and signs, 0.20 m for the lane and
   the islands, 1 m for hills and 3 m for mountains; merged face-culled meshes with baked AO; MeshLambertMaterial with
   vertex colours; no bloom, no depth of field; transparency only for the moon halo, the aurora, snow and dream dust.
-- The bounded dream (V4 Part 15, Milestone D5) is NOT approved: `DREAM_LENGTH` stays null until Brian says otherwise.
+- The bounded dream (V4 Part 15, Milestone D5) was approved on 2026-11-07; `DREAM_LENGTH` is set.
 ```
 
 ---
@@ -433,9 +433,9 @@ End-to-end (add to the existing Playwright suite, painted build): open Counting 
 
 ---
 
-## 15. Milestone D5: the bounded dream (specified, NOT approved)
+## 15. Milestone D5: the bounded dream (approved and built, 2026-11-07)
 
-Do not implement until Brian approves; the constant ships as null.
+Built with 30 fences and 3 bumps as a first guess, until the playtest below sets the numbers.
 
 - `DREAM_LENGTH: { fences: number; bumps: number } | null = null` in `src/dream/dream.ts`. When set (proposed 30 fences, 3 bumps): a bump costs a bump instead of ending the dream: the sheep bonks for 700 ms, the fence falls, the farmer stirs (awake face for 600 ms, then sleeping again with a "mmf…" voxel glyph), the lane resumes at `speedAt(count)`; the third bump wakes him as today. At fence `fences`, the dream ends with the farmer drifting off: the board reads "Zzz… he's out cold", the dream does not pop; it softens (dust doubles for 1 s) and the results card reads "The farmer drifted off", with "30 fences · 1 bump · longest word 9".
 - Share text: "The farmer drifted off after 30 fences" and the glyph row shows each bump as ⬛ in place (not at the end).

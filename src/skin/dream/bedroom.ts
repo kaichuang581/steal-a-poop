@@ -1,17 +1,16 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
-import { box, ellipsoid, Grid, hash3, helix, taperedBox } from '../voxel/primitives';
+import { box, ellipsoid, Grid, hash3, taperedBox } from '../voxel/primitives';
 import type { Paint, RGB } from '../voxel/primitives';
 import { CHAR } from '../voxel/sheep';
-import { letterGeometry } from '../voxel/table';
 
 /**
- * The farmer's bedroom (V4 Part 5.1) and the farmer (Part 5.2), the real world under the dream. Everything uses
- * the bedroom palette only: dark wood, cream linen, the quilt's four patches, navy night; the one lavender here is
- * the quilt's, which is cloth, not light. The bed and its furniture are 0.10 m voxels; the farmer, the clock, the
- * candle and its smoke 0.04 m. All geometry is built in the bedroom group's own frame: the bed runs along +x with the
- * headboard at the -x end, the floor at y = 0.
+ * The farmer's bedroom and the farmer (V4.1 Part 7.2), the real world under the dream, drawn in its own small canvas.
+ * Everything uses the bedroom palette only: dark wood, cream linen, the quilt's four patches, navy night; the one
+ * lavender here is the quilt's, which is cloth, not light. The bed and its furniture are 0.10 m voxels; the farmer, the
+ * clock and the lamp 0.04 m. All geometry is built in the room's own frame: the bed runs along +x with the headboard
+ * at the -x end, the bedside table on the +z side, the window on the wall to the -z side, the floor at y = 0.
  */
 export const BED = {
   quilt: ['#8E7CC3', '#F3E9D2', '#D99B95', '#5E8F8A'] as const,
@@ -29,8 +28,12 @@ const linenTone = (xMax: number, yMax: number): Paint => (x, y, z) => lin(x >= x
 
 export interface BedroomGeo {
   floor: BufferGeometry; rug: BufferGeometry; slippers: BufferGeometry; bed: BufferGeometry; pillow: BufferGeometry;
-  quiltFlat: BufferGeometry; quiltBump: BufferGeometry; table: BufferGeometry; clock: BufferGeometry; candle: BufferGeometry; smoke: BufferGeometry;
+  quiltFlat: BufferGeometry; quiltBump: BufferGeometry; table: BufferGeometry; clock: BufferGeometry; lamp: BufferGeometry; lampGlow: BufferGeometry; windowFrame: BufferGeometry;
 }
+/** The window on the wall behind the headboard, to its right as seen from the foot of the bed. */
+export const WINDOW = { x: -0.14, y: 1.28, z: -1.05, w: 0.8, h: 1.0 } as const;
+/** Where the lamp stands on the table. */
+export const LAMP = { x: 0.3, y: 0.85, z: 0.9 } as const;
 
 let bedroomCache: BedroomGeo | null = null;
 export function bedroomGeometry(): BedroomGeo {
@@ -41,12 +44,12 @@ export function bedroomGeometry(): BedroomGeo {
   for (let xi = -8; xi < 16; xi++) for (let zi = -12; zi < 12; zi++) floor.set(xi, -1, zi, lin(T.bedwood[Math.floor(((zi + 12) / 1.2)) % 3 === 0 ? 1 : hash3(xi, 0, zi, 2) < 0.02 ? 2 : 0]));
   // Rag rug beside the bed (toward the camera, +z), rings of the quilt tones; two slippers on it.
   const rug = new Grid(B);
-  for (let xi = 2; xi < 11; xi++) for (let zi = 7; zi < 13; zi++) {
-    const d = Math.max(Math.abs(xi - 6.5) / 4.5, Math.abs(zi - 10) / 3);
+  for (let xi = 8; xi < 17; xi++) for (let zi = 7; zi < 13; zi++) {
+    const d = Math.max(Math.abs(xi - 12.5) / 4.5, Math.abs(zi - 10) / 3);
     if (d <= 1) rug.set(xi, 0, zi, lin(BED.quilt[Math.floor(d * 4) % 4]));
   }
   const slippers = new Grid(B);
-  for (const zi of [8, 11]) { box(slippers, [0.5, 0.1, zi * B], [0.72, 0.2, zi * B + 0.1], () => lin(BED.cap[0])); slippers.set(7, 1, zi, lin(BED.cap[1])); }
+  for (const zi of [8, 11]) { box(slippers, [1.1, 0.1, zi * B], [1.32, 0.2, zi * B + 0.1], () => lin(BED.cap[0])); slippers.set(13, 1, zi, lin(BED.cap[1])); }
   // Bed: headboard at the -x end, two posts, mattress, sheet on top.
   const bed = new Grid(B);
   box(bed, [-0.08, 0, -m.w / 2], [0, 0.8 + 0.25, m.w / 2], woodTone);
@@ -55,11 +58,10 @@ export function bedroomGeometry(): BedroomGeo {
   // Pillow 0.64 x 0.14 x 0.44, chamfered.
   const pillow = new Grid(B);
   box(pillow, [0.05, m.top, -0.22], [0.69, m.top + 0.14, 0.22], linenTone(7, Math.round((m.top + 0.14) / B)), 1);
-  // Quilt: patchwork of 0.30 m squares from 0.45 m below the headboard to the foot, cream stitch lines between.
+  // Quilt: patchwork of 0.30 m squares from 0.45 m below the headboard to the foot.
   const quiltPaint: Paint = (x, _y, z) => {
     const px = Math.floor((x * B) / 0.3), pz = Math.floor(((z + 6) * B) / 0.3);
-    const stitch = ((x * B) % 0.3) < B * 0.5 || (((z + 6) * B) % 0.3) < B * 0.5;
-    return lin(stitch ? BED.quilt[1] : BED.quilt[(px * 3 + pz * 5 + 1) % 4]);
+    return lin(BED.quilt[(px * 3 + pz * 5 + 1) % 4]);
   };
   const quiltFlat = new Grid(B);
   box(quiltFlat, [0.95, m.top, -m.w / 2 - 0.05], [m.l + 0.05, m.top + 0.1, m.w / 2 + 0.05], quiltPaint);
@@ -68,35 +70,44 @@ export function bedroomGeometry(): BedroomGeo {
   const quiltBump = new Grid(B);
   ellipsoid(quiltBump, [1.0, m.top, 0], [0.65, 0.14, 0.26], (x, y, z) => (y * B < m.top ? null : quiltPaint(x, y, z)), 0, 4);
   box(quiltBump, [0.45, m.top, -m.w / 2 - 0.05], [0.95, m.top + 0.1, m.w / 2 + 0.05], quiltPaint);
-  // Bedside table at the headboard's +z side, a drawer line and a brass knob.
+  // Bedside table on the +z side, a drawer line and a brass knob.
   const table = new Grid(B);
-  box(table, [0.1, 0, -m.w / 2 - 0.55], [0.5, 0.6, -m.w / 2 - 0.15], woodTone);
-  for (let xi = 1; xi < 5; xi++) table.set(xi, 3, Math.round((-m.w / 2 - 0.15) / B) - 1, lin(T.bedwood[2]));
-  table.set(3, 3, Math.round((-m.w / 2 - 0.15) / B), lin(T.brass[0]));
-  // Alarm clock: a 0.16 m drum, two bells, a cream face with dark hands at ten past two.
+  const tz = m.w / 2 + 0.15;
+  box(table, [0.1, 0, tz], [0.5, 0.6, tz + 0.4], woodTone);
+  for (let xi = 1; xi < 5; xi++) table.set(xi, 3, Math.round((tz + 0.4) / B), lin(T.bedwood[2]));
+  table.set(3, 3, Math.round((tz + 0.4) / B) + 1, lin(T.brass[0]));
+  // Alarm clock: a 0.16 m drum, two bells, a cream face with dark hands at ten past two, about its own base.
   const clock = new Grid(CHAR);
-  const cx = 0.3, cz = -m.w / 2 - 0.35, cy = 0.6;
-  ellipsoid(clock, [cx, cy + 0.08, cz], [0.08, 0.08, 0.05], () => lin(T.brass[1]));
-  for (const dx of [-0.05, 0.05]) ellipsoid(clock, [cx + dx, cy + 0.17, cz], [0.03, 0.025, 0.03], () => lin(T.brass[0]));
-  for (let yi = 0; yi < 3; yi++) for (let xi = -2; xi <= 2; xi++) if (Math.abs(xi) + Math.abs(yi - 1) <= 2) clock.set(Math.round(cx / CHAR) + xi, Math.round((cy + 0.08) / CHAR) + yi - 1, Math.round(cz / CHAR) + 2, lin(T.linen[0]));
-  clock.set(Math.round(cx / CHAR), Math.round((cy + 0.08) / CHAR), Math.round(cz / CHAR) + 3, lin(T.hoof[1]));
-  clock.set(Math.round(cx / CHAR) + 1, Math.round((cy + 0.08) / CHAR) + 1, Math.round(cz / CHAR) + 3, lin(T.hoof[1]));
-  // Candle stub with a dark wick.
-  const candle = new Grid(CHAR);
-  box(candle, [0.12, 0.6, cz - 0.15], [0.2, 0.7, cz - 0.07], () => lin(T.linen[0]));
-  candle.set(4, Math.round(0.7 / CHAR), Math.round((cz - 0.11) / CHAR), lin(T.hoof[1]));
-  // A curl of smoke above the wick: a helix, the bedroom's one transparent object.
-  const smoke = new Grid(CHAR);
-  helix(smoke, [0.16, 0.72, cz - 0.11], [0.15, 1, 0], () => lin(T.linen[0]), 0.03, 0.05, 1.5);
+  ellipsoid(clock, [0, 0.08, 0], [0.08, 0.08, 0.05], () => lin(T.brass[1]));
+  for (const dx of [-0.05, 0.05]) ellipsoid(clock, [dx, 0.17, 0], [0.03, 0.025, 0.03], () => lin(T.brass[0]));
+  for (let yi = 0; yi < 3; yi++) for (let xi = -2; xi <= 2; xi++) if (Math.abs(xi) + Math.abs(yi - 1) <= 2) clock.set(xi, 2 + yi - 1, 2, lin(T.linen[0]));
+  clock.set(0, 2, 3, lin(T.hoof[1]));
+  clock.set(1, 3, 3, lin(T.hoof[1]));
+  // The nightlight: a 2 x 2 x 3 stem and a 4 x 3 x 4 shade, glowing from inside.
+  const lamp = new Grid(CHAR), lampGlow = new Grid(CHAR);
+  const lx = Math.round(LAMP.x / CHAR), ly = Math.round(0.6 / CHAR), lz = Math.round((tz + 0.12) / CHAR);
+  for (let x = 0; x < 2; x++) for (let z = 0; z < 2; z++) for (let y = 0; y < 3; y++) lamp.set(lx + x, ly + y, lz + z, lin(T.brass[2]));
+  for (let x = -1; x < 3; x++) for (let z = -1; z < 3; z++) for (let y = 3; y < 6; y++) {
+    const edge = x === -1 || x === 2 || z === -1 || z === 2;
+    (edge && y === 5 ? lamp : lampGlow).set(lx + x, ly + y, lz + z, lin(edge && y === 5 ? '#F3E9D2' : '#FFD9A0'));
+  }
+  // The window's frame, on the wall: 0.8 x 1.0 m with a cross bar.
+  const windowFrame = new Grid(B);
+  const wy0 = Math.round((WINDOW.y - WINDOW.h / 2) / B), wy1 = Math.round((WINDOW.y + WINDOW.h / 2) / B);
+  const wz0 = Math.round((WINDOW.z - WINDOW.w / 2) / B), wz1 = Math.round((WINDOW.z + WINDOW.w / 2) / B);
+  for (let y = wy0; y <= wy1; y++) for (let z = wz0; z <= wz1; z++) {
+    const bar = y === wy0 || y === wy1 || z === wz0 || z === wz1 || y === Math.round((wy0 + wy1) / 2) || z === Math.round((wz0 + wz1) / 2);
+    if (bar) windowFrame.set(-1, y, z, woodTone(-1, y, z)!);
+  }
   bedroomCache = {
     floor: buildGeometry(floor.map, B), rug: buildGeometry(rug.map, B), slippers: buildGeometry(slippers.map, B), bed: buildGeometry(bed.map, B),
     pillow: buildGeometry(pillow.map, B), quiltFlat: buildGeometry(quiltFlat.map, B), quiltBump: buildGeometry(quiltBump.map, B), table: buildGeometry(table.map, B),
-    clock: buildGeometry(clock.map, CHAR), candle: buildGeometry(candle.map, CHAR), smoke: buildGeometry(smoke.map, CHAR),
+    clock: buildGeometry(clock.map, CHAR), lamp: buildGeometry(lamp.map, CHAR), lampGlow: buildGeometry(lampGlow.map, CHAR), windowFrame: buildGeometry(windowFrame.map, B),
   };
   return bedroomCache;
 }
 
-export interface FarmerGeo { asleep: BufferGeometry; awake: BufferGeometry; cap: BufferGeometry; body: BufferGeometry; bang: BufferGeometry; zs: BufferGeometry[] }
+export interface FarmerGeo { asleep: BufferGeometry; awake: BufferGeometry; cap: BufferGeometry; body: BufferGeometry }
 let farmerCache: FarmerGeo | null = null;
 /**
  * The farmer, built standing (face toward +z, crown at +y) about the base of his neck; the stage lays him down on
@@ -104,9 +115,11 @@ let farmerCache: FarmerGeo | null = null;
  */
 export function farmerGeometry(): FarmerGeo {
   if (farmerCache) return farmerCache;
-  const s = CHAR;
+  // 0.02 m, not the plan's 0.04 m: its features (an 11-voxel moustache, eyes 6 voxels apart) only fit a head 15 voxels
+  // wide, and at 0.04 m that head is 7. The bubble's camera is close enough for the finer grid to show.
+  const s = 0.02;
   const skin: Paint = (x, y, z) => pick(T.skin, hash3(x >> 1, y >> 1, z >> 1, 5), [0.6, 0.95]);
-  const grey = lin('#8C8C8C'), lid = lin('#2B2626');
+  const grey = lin('#D8D3CA'), lid = lin('#2B2626');
   const head = (awake: boolean) => {
     const g = new Grid(s);
     box(g, [-0.15, 0, -0.13], [0.15, 0.28, 0.13], skin, 2);
@@ -142,25 +155,8 @@ export function farmerGeometry(): FarmerGeo {
   const body = new Grid(s);
   for (const sx of [-1, 1]) ellipsoid(body, [sx * 0.2, -0.1, 0], [0.14, 0.08, 0.1], () => lin(T.linen[1]), 0.05, 2);
   box(body, [0.14, -0.22, 0.06], [0.26, -0.18, 0.16], skin);
-  // The "!" above his head when he wakes.
-  const bang = new Grid(s);
-  for (let y = 2; y < 9; y++) bang.set(0, y, 0, lin(T.lantern[0]));
-  bang.set(0, 0, 0, lin(T.lantern[0]));
-  const zs = [0.06, 0.08, 0.1].map((cell) => letterGeometry('Z', cell, T.linen[0]));
-  farmerCache = { asleep: head(false), awake: head(true), cap: buildGeometry(cap.map, s), body: buildGeometry(body.map, s), bang: buildGeometry(bang.map, s), zs };
+  farmerCache = { asleep: head(false), awake: head(true), cap: buildGeometry(cap.map, s), body: buildGeometry(body.map, s) };
   return farmerCache;
-}
-
-/** A trail puff: 4 to 6 overlapping cloud lobes of radius `r`, about its centre. On the 0.05 m grid: at 0.10 m, this close to the camera, the lobes read as cubes. */
-export function trailPuff(r: number, seed: number): BufferGeometry {
-  const g = new Grid(0.05);
-  const tone: Paint = (x, y, z) => pick(T.cloud, hash3(x, y, z, seed), [0.65, 0.95]);
-  const n = 4 + (seed % 3);
-  for (let k = 0; k < n; k++) {
-    const a = (k / n) * Math.PI * 2;
-    ellipsoid(g, [Math.cos(a) * r * 0.5, Math.sin(a * 2) * r * 0.2, Math.sin(a) * r * 0.4], [r * 0.7, r * 0.6, r * 0.65], tone, 0.1, seed + k);
-  }
-  return buildGeometry(g.map, 0.05);
 }
 
 export type { RGB };

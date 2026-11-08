@@ -4,6 +4,11 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { checkNickname } from '../../lib/nickname';
 import { huntShareText, recordHuntBest } from '../../hunt/record';
+import { appendLog, logLine, readLog } from '../../hunt/log';
+import type { RunCause } from '../../hunt/log';
+import { WORDS_VERSION } from '../../config';
+import { localDateKey } from '../hooks/useToday';
+import { devOn, DevLine } from '../table/DevStats';
 import { activeRules, applyItem, attack, HEAL_ON_WIN, HP_PER_LEVEL, ITEMS, MOVES, nextPredator, START_LEVEL, startRun, timeOut, turnSeconds } from '../../hunt/hunt';
 import type { ItemId, Outcome, Run } from '../../hunt/hunt';
 import type { Rule } from '../../hunt/rules';
@@ -59,6 +64,11 @@ export function HuntScreen() {
   const [copied, setCopied] = useState(false);
   const [scale, setScale] = useState(2);
   const ghost = useRef<HTMLInputElement>(null);
+  // For the run log: when the run began, where the current predator's marks start, how the run ended, and whether it is logged.
+  const startedAt = useRef(0);
+  const markStart = useRef(0);
+  const ending = useRef<{ cause: RunCause; brokeRule?: string } | null>(null);
+  const logged = useRef(false);
   const rootRef = useRef<HTMLElement>(null);
   const speed = reduced ? 0.5 : 1;
 
@@ -86,6 +96,10 @@ export function HuntScreen() {
     // Unlimited: every hunt is a fresh pack.
     const seed = `hunt:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
     const r = startRun(dict, seed);
+    startedAt.current = Date.now();
+    markStart.current = 0;
+    ending.current = null;
+    logged.current = false;
     setRun(r);
     sync(r);
     setMode(appearSteps(r, true));
@@ -109,6 +123,7 @@ export function HuntScreen() {
       else if (mode.after === 'results') setMode({ m: 'results' });
       else {
         const next = nextPredator(run, dict);
+        markStart.current = next.marks.length;
         setRun(next);
         sync(next);
         setMode(appearSteps(next, false));
@@ -163,7 +178,31 @@ export function HuntScreen() {
     if (mode.m !== 'results' || !run) return;
     const { best, isNew } = recordHuntBest({ defeated: run.defeated, damage: run.damage });
     setRecord(best ? { ...best, isNew } : null);
+    logRun(run, ending.current ?? { cause: 'hits' });
   }, [mode.m]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Writes the run to the log, once (plan v7 Part 3). */
+  function logRun(r: Run, end: { cause: RunCause; brokeRule?: string }) {
+    if (logged.current) return;
+    logged.current = true;
+    appendLog({
+      code: 'legacy', attempt: 1, date: localDateKey(new Date()), defeated: r.defeated, damage: r.damage, words: r.used.length,
+      level: r.level, reached: r.predator.kind, cause: end.cause, ...(end.brokeRule ? { brokeRule: end.brokeRule } : {}),
+      turnsAtDeath: r.marks.length - markStart.current, itemsLeft: { ...r.items }, seconds: Math.round((Date.now() - startedAt.current) / 1000),
+      wordsVersion: WORDS_VERSION,
+    });
+  }
+  /** Closing the Hunt mid-run logs the run as left. */
+  const leave = () => {
+    if (run && !run.over && !logged.current) logRun(run, { cause: 'left' });
+    close();
+  };
+  // The dev overlay's line: the log's summary.
+  useEffect(() => {
+    if (!devOn()) return;
+    const el = document.getElementById('sk-dev');
+    if (el) el.textContent = logLine(readLog());
+  }, [mode.m]);
 
   // Focus: the hidden input while typing a word, otherwise the screen itself for the arrow keys.
   useEffect(() => {
@@ -214,7 +253,10 @@ export function HuntScreen() {
       if (outcome.item === 'pepper') steps.push({ text: `${me}'s next word will hit twice as hard!` });
       strike(outcome.counter, outcome.hp, outcome.dead);
     }
-    if (next.over) after = 'results';
+    if (next.over) {
+      after = 'results';
+      ending.current = outcome.kind === 'timeout' ? { cause: 'timeout' } : outcome.kind === 'broke' ? { cause: 'broke', brokeRule: outcome.rule.id } : { cause: 'hits' };
+    }
     if (outcome.kind === 'hit' || outcome.kind === 'broke') setHint(null);
     setRun(next);
     setMode({ m: 'steps', steps, at: 0, after, enraged });
@@ -408,11 +450,12 @@ export function HuntScreen() {
           </div>
 
           {mode.m === 'results' && (
-            <Results run={run} record={record} copied={copied} onShare={share} onAgain={() => { setRecord(null); setRun(null); }} onClose={close} />
+            <Results run={run} record={record} copied={copied} onShare={share} onAgain={() => { setRecord(null); setRun(null); }} onClose={leave} />
           )}
         </div>
       </div>
-      <button className="gb-quit" onClick={close} aria-label="Leave the hunt"><CloseIcon size={16} /></button>
+      <button className="gb-quit" onClick={leave} aria-label="Leave the hunt"><CloseIcon size={16} /></button>
+      <DevLine />
       <p className="gb-help" aria-hidden="true">Arrow keys move · Enter picks · Esc goes back · type your word in FIGHT</p>
     </main>
   );

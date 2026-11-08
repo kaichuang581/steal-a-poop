@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## 0.4.0
+
+- The Hunt keeps a log of your last 50 runs on this device (how far you got and what ended each run), so the Hunt can be tuned from real play. It never leaves the device; admin can copy it out by hand
+
 ## 0.3.4
 
 - The bomb is an ice bomb now: a frozen blue shell capped with frost, a frosted fuse and a cold blue spark, with icy blue seconds on its face

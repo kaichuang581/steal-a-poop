@@ -279,3 +279,16 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   (BOMB_TOSS_S, skipped while cold, freezing, frozen or thawing). Everything about the bomb is ice: the voxel model,
   spark and digits, the 3D burst (frost, crystals, bouncing shell chunks, sinking mist), the jumpscare and word blast,
   the hit flash, the pixel bombs and the boom sound. Keep the bomb icy, and keep it on the floor.
+- The Hunt v7 (approved by Brian, 2026-11-07): docs/REDESIGN_PLAN_V7_HUNT.md. Rules that bind every change to the Hunt:
+  (a) No persistent power. Nothing kept between runs may change health, damage, items, time or rules. What persists is
+      records, the bestiary, the run log and cosmetics. Items reset every run.
+  (b) Announced adjustments only. Nothing in the Hunt is tuned behind the player's back; anything that changes a run's
+      difficulty says so on screen and is marked in the share text. (The hidden `softGame` in Quick Games is outside this
+      plan and is listed as a decision for Brian.)
+  (c) Same code, same pack. A pack code must give every player the same predators, rules, reserves and hint words for a
+      given word-list version; the code carries the version and the game says so when it differs.
+  (d) Nothing on a calendar, nothing on a server. No weekly schedule, leaderboard, account or moderation is added by this
+      plan. Every feature keeps working with the server down.
+  (e) Local-storage keys are promises: add fields with defaults, never migrate, never rename. New keys: sap:hunt-log,
+      sap:hunt-packs, sap:hunt-bestiary. sap:hunt-best keeps its shape and gains optional fields.
+  (f) The Hunt's look stays the handheld console (src/skin/hunt, .gb-*); new screens are drawn in that style.

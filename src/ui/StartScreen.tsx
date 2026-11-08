@@ -187,7 +187,7 @@ export function StartScreen() {
         <button className="min-h-11 content-center underline" onClick={() => setFeedback(true)}>Send feedback</button>
         {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
         {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
-          <a key={slug} className="min-h-11 content-center underline" href={legalHref(slug)} target="_blank" rel="noopener">
+          <a key={slug} className="min-h-11 min-w-11 content-center text-center underline" href={legalHref(slug)} target="_blank" rel="noopener">
             {LEGAL_TITLES[slug]}
           </a>
         ))}

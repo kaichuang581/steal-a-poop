@@ -1,5 +1,5 @@
 import type { BufferGeometry } from 'three';
-import { mouths as rigMouths, smallEyes } from './animals/rig';
+import { mouths as rigMouths, smallEyes, sockets } from './animals/rig';
 import { buildGeometry } from './mesher';
 import type { VoxelMap } from './mesher';
 import { ICE_CRACK, lin, pick, T } from './palette';
@@ -213,8 +213,8 @@ export function sheepModel(): SheepModel {
     return part(g, [sx * 4.5 * s + (sx < 0 ? 0 : s), 20 * s, 10 * s]);
   }) as [Part, Part];
 
-  // Legs: 0.08 m square in the face colour, a lighter hoof splayed one voxel outward. V5.1: the shaft stops at row 6 and
-  // the lowered fleece covers row 7, so 0.28 m shows below the wool (the proportion sheet's 0.55 of the torso).
+  // Legs: 0.08 m square in the face colour, a lighter hoof splayed one voxel outward. V5.1: 0.28 m shows below the wool
+  // (rows 0 to 6, the proportion sheet's 0.55 of the torso); rows 7 and 8 run up inside it (4.2.3), held by `sockets`.
   const legGrids: Grid[] = [];
   const legs = ([[-1, 1], [1, 1], [-1, -1], [1, -1]] as const).map(([sx, sz]) => {
     const g = new Grid(s);
@@ -222,7 +222,7 @@ export function sheepModel(): SheepModel {
     const zs = sz < 0 ? [-6, -5] : [4, 5];
     for (const x of xs) for (const z of zs) {
       // V5.1: the legs in the face's tone and the hooves in the nostrils' (the palette's 14 colours, Part 4.7).
-      for (let y = 1; y <= 6; y++) g.set(x, y, z, lin(HEAD_FACE[1]));
+      for (let y = 1; y <= 8; y++) g.set(x, y, z, lin(HEAD_FACE[1]));
       g.set(x + sx, 0, z, lin(NOSTRIL_V51));
     }
     legGrids.push(g);
@@ -245,6 +245,8 @@ export function sheepModel(): SheepModel {
   bell.set(0, 10, 12, lin(T.brass[1])); // the clapper
   for (let z = 11; z <= 13; z++) if (!collar.has(0, 14, z)) collar.set(0, 14, z, lin(T.collar[1])); // the strap the bell hangs from
 
+  const legSpots = legs.map((l) => ({ cx: l.pivot[0], cz: l.pivot[2], w: 2 }));
+
   // Cells the wool and the bare body must leave alone.
   const taken = (x: number, y: number, z: number) => head.has(x, y, z) || collar.has(x, y, z) || bell.has(x, y, z) || legGrids.some((g) => g.has(x, y, z));
 
@@ -255,6 +257,8 @@ export function sheepModel(): SheepModel {
   for (const level of [1, 2, 3, 4] as const) {
     const g = new Grid(s);
     paintLobes(g, bodyLobes(level), (xm, ym, zm, x, y, z) => ym >= 0.02 && !inFace(xm, ym, zm) && !taken(x, y, z));
+    // The thin coats ride higher than the legs' tops: the wool comes down round each one, so no coat floats off them.
+    sockets(g, legSpots, 7, 8, taken);
     wools[level] = part(g, [0, 0, 0]);
     if (level === 2) woolTones = new Set([...g.map.values()].map((v) => v.c.join(','))).size;
     const frost = new Grid(s);
@@ -293,6 +297,7 @@ export function sheepModel(): SheepModel {
   for (const v of [...sheared.map.values()]) {
     if (hash3(v.x, v.y, v.z, 55) < 0.08 && !sheared.has(v.x, v.y + 1, v.z) && !taken(v.x, v.y + 1, v.z)) sheared.set(v.x, v.y + 1, v.z, lin(CREAM[0]));
   }
+  sockets(sheared, legSpots, 7, 8, taken);
 
   const breath = new Grid(s);
   for (const [x, y, z] of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, 0, 1], [1, 1, 1]]) breath.set(x, 16 + y, 16 + z, lin(EYE_WHITE));

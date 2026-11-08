@@ -3,7 +3,7 @@ import { lin } from '../palette';
 import { box, Grid, line } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { barrel, breathAt, bury, cellsOf, hugCollar, hollow, leg, mouths, part, S, segment, shaded, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
+import { barrel, breathAt, bury, cellsOf, hugCollar, hollow, leg, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import { HOOF } from './pig';
 
@@ -26,6 +26,8 @@ export function horseModel(ch: Character): AnimalModel {
   // ---- Torso: a barrel 0.52 x 0.56 x 0.96 (1.04 with its rounded ends), chamfer 3, rounder 1, rows 11 to 24.
   const bg = new Grid(S);
   barrel(bg, [0.02, (TY + 7) * S, 0], [0.52, 0.56, 0.96], 3, shaded(body, TY + 13, TY), 1);
+  const legSpots = [[-0.15, 0.24], [0.19, 0.24], [-0.15, -0.24], [0.19, -0.24]] as const;
+  sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })), 13, 12); // shoulders and hips over the legs (4.2.3)
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -83,7 +85,6 @@ export function horseModel(ch: Character): AnimalModel {
 
   // ---- Legs: 3 x 3 x 13, a knee notch, light socks above the hoof on the front-left and back-right, hooves.
   // At the sheet's z (0.34) the barrel's chamfered ends lift the belly over the leg and it shows too long.
-  const legSpots = [[-0.15, 0.24], [0.19, 0.24], [-0.15, -0.24], [0.19, -0.24]] as const;
   const legs = legSpots.map(([cx, cz], i) => {
     const g = new Grid(S);
     leg(g, cx, cz, 3, 13, body, HOOF, { knee: true, oneTone: true, sock: i === 0 || i === 3 ? body[0] : undefined });

@@ -151,6 +151,39 @@ export function leg(g: Grid, cx: number, cz: number, w: number, h: number, body:
   if (opts.toes) for (let x = x0; x < x0 + w; x++) for (let k = 1; k <= 2; k++) g.set(x, 0, z0 - k, lin(hoof[1]));
 }
 
+/**
+ * Shoulders and hips (V5.1 Part 4.2.3): where a chamfer or a rounded end lifts the torso off a leg, fill the torso down
+ * over the leg's footprint and one voxel round it, so the leg runs up into the body instead of standing under it with
+ * its top showing. `legs` as `leg` places them and `top` is their top row. The sockets start at row `from` or where
+ * the torso already reaches over the leg, whichever is lower, so the visible leg keeps its length. Where a corner of
+ * the leg stands past the torso's edge, a pad caps it (only inside the torso's own width and length, so the
+ * proportions hold). New cells take the colour of the torso above them; `skip` leaves cells to another part.
+ */
+export function sockets(g: Grid, legs: readonly { cx: number; cz: number; w: number }[], from: number, top: number, skip?: (x: number, y: number, z: number) => boolean) {
+  const lowest = (x: number, z: number, y0: number) => { for (let y = y0; y < top + 14; y++) if (g.has(x, y, z)) return y; return Infinity; };
+  const b = { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity };
+  for (const v of g.map.values()) b.x0 = Math.min(b.x0, v.x), b.x1 = Math.max(b.x1, v.x), b.z0 = Math.min(b.z0, v.z), b.z1 = Math.max(b.z1, v.z);
+  for (const { cx, cz, w } of legs) {
+    const half = Math.floor(w / 2);
+    const x0 = Math.round(cx / S) - half, z0 = Math.round(cz / S) - half;
+    let y0 = from, mid: RGB | undefined;
+    for (let x = x0; x < x0 + w; x++) for (let z = z0; z < z0 + w; z++) {
+      const y = lowest(x, z, 0);
+      y0 = Math.min(y0, y);
+      mid ??= g.map.get(`${x},${y},${z}`)?.c;
+    }
+    if (!mid) continue;
+    for (let x = x0 - 1; x <= x0 + w; x++) for (let z = z0 - 1; z <= z0 + w; z++) {
+      const above = lowest(x, z, y0);
+      const inside = x >= b.x0 && x <= b.x1 && z >= b.z0 && z <= b.z1;
+      if (!Number.isFinite(above) && !inside) continue;
+      const y1 = Number.isFinite(above) ? above : top + 2;
+      const c = g.map.get(`${x},${above},${z}`)?.c ?? mid;
+      for (let y = y0; y < y1; y++) if (!skip?.(x, y, z)) g.set(x, y, z, c);
+    }
+  }
+}
+
 // ---------- the eye standard (Part 4.3) ----------
 export const EYE_WHITE_HEX = '#F4F1EA';
 export type EyeVariant = 5 | 4 | 'goat' | 2;

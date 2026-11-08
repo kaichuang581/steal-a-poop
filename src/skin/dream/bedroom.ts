@@ -14,7 +14,7 @@ import { CHAR } from '../voxel/sheep';
  * the bedpost, a rag rug and slippers, a shelf, a framed sheep, a second window toward the foot of the bed and the beam
  * the results hang from (the bubble's camera sees only the corner by the bed; the results see the room). Grids: 0.05 m for the room and its furniture (the plan's 0.10 m made the board seams and trim a hand wide), 0.10 m
  * for the ceiling and beam, 0.025 m for the small things on the nightstand, the sill and the post, 0.04 m for the farmer's
- * body and 0.02 m for his head. All in the room's own frame: the bed runs along +x with the headboard at x = 0, the
+ * body and 0.02 m for his head and the arm that rubs his eye. All in the room's own frame: the bed runs along +x with the headboard at x = 0, the
  * nightstand and the window on the -z side, the floor at y = 0.
  */
 export const BED = {
@@ -389,58 +389,120 @@ function quiltBumpGeometry(qPaint: Paint): BufferGeometry {
 
 // ---------- the farmer ----------
 
-const SKIN = ['#F6CDB4', '#EDBCA2', '#DBA68A'] as const;
-const WHISKER = ['#F4F1EA', '#E2DDD3', '#C9C3B8'] as const;
-const LID = '#4A322C';
-export interface FarmerGeo { asleep: BufferGeometry; awake: BufferGeometry; cap: BufferGeometry; body: BufferGeometry }
+/** Warm peach skin, light to shade, and warm cream whiskers: nothing grey, so the room's AO never turns him muddy. */
+const SKIN = ['#F5C8A8', '#EDB896', '#E0A584'] as const;
+const WHISKER = ['#FCF8F0', '#F2EBDF', '#E6DCCB'] as const;
+const STACHE = '#FFFDF7';
+const BLUSH = '#F0A492';
+const NOSE = ['#F6BFA6', '#EAA08A'] as const;
+const IRIS = ['#5C3E31', '#3F2A23'] as const;
+const GLINT = '#FFF4E4';
+const LASH = '#8E5A48';
+const LIDSKIN = '#E8B08F';
+/** The head's grid, and the top of his eyes, where the lids hinge (head frame, metres). */
+const HS = 0.02;
+export const EYE_TOP = 0.2;
+/** The point the head turns about on the pillow (head frame, metres above the base of the neck). */
+export const HEAD_PIVOT = 0.13;
+/** The eyes' columns on the 0.02 m grid: the +x eye and the -x eye, two cells wide, rows 7 to 9. */
+const EYES = { a: [2, 3], b: [-4, -3] } as const;
+
+export interface FarmerGeo {
+  /** The head with both lids shut, baked in, for the long sleep: one draw. */
+  asleep: BufferGeometry;
+  /** The head with his eyes open; the lids close over it. */
+  awake: BufferGeometry;
+  /** Each eye's upper lid, hinged at `EYE_TOP` (its top edge at y = 0): scale y 0 is open, 1 is shut. */
+  lidA: BufferGeometry;
+  lidB: BufferGeometry;
+  cap: BufferGeometry;
+  body: BufferGeometry;
+}
 let farmerCache: FarmerGeo | null = null;
+
+/** The frontmost filled cell in a column of the grid, or null. */
+function frontZ(g: Grid, x: number, y: number): number | null {
+  for (let z = 20; z >= -20; z--) if (g.has(x, y, z)) return z;
+  return null;
+}
+
+/** One eye's upper lid, in cells under its hinge: skin over the eye and a cell past it each side, the lash line curving down. */
+function lidCells(head: Grid, cols: readonly number[]): Grid {
+  const g = new Grid(HS), c0 = cols[0] - 1;
+  for (let c = 0; c < 4; c++) {
+    const x = c0 + c, rows = c === 0 || c === 3 ? 2 : 3;
+    const z = Math.max(...[7, 8, 9].map((y) => frontZ(head, x, y) ?? 0)) + 1;
+    for (let r = 1; r <= rows; r++) g.set(x, -r, z, lin(r === rows ? LASH : r === 1 ? SKIN[0] : LIDSKIN));
+  }
+  return g;
+}
+
 /**
  * The farmer, built standing (face toward +z, crown at +y) about the base of his neck; the stage lays him down on the
- * pillow. Two heads (asleep, awake) swap on the bump and blink on the results; the nightcap and the body are shared.
- * 0.02 m, not the plan's 0.04 m: a face that reads at bubble size needs a head 15 voxels wide, and at 0.04 m it is 7.
+ * pillow or props him up. A round head (an egg, full at the cheeks, stepped by the voxels), small kind eyes with a glint,
+ * a little round nose, a tidy moustache over a short rounded beard, soft brows that droop at the ends, rosy cheeks.
+ * The lids are meshes of their own so a blink can ease. 0.02 m, not the plan's 0.04 m: a face that reads at bubble
+ * size needs a head 15 voxels wide, and at 0.04 m it is 7.
  */
 export function farmerGeometry(): FarmerGeo {
   if (farmerCache) return farmerCache;
-  const s = 0.02;
-  const skin: Paint = (x, y, z) => pick(SKIN, hash3(x >> 2, y >> 2, z >> 2, 5), [0.75, 0.97]);
-  const white = (x: number, y: number, z: number) => pick(WHISKER, hash3(x, y, z, 7), [0.6, 0.92]);
-  const head = (awake: boolean) => {
-    const g = new Grid(s);
-    box(g, [-0.15, 0, -0.13], [0.15, 0.28, 0.13], skin, 2);
-    for (const sx of [-1, 1]) box(g, [sx * 0.16 - 0.02, 0.1, -0.03], [sx * 0.16 + 0.02, 0.18, 0.03], (_x, y) => lin(y === 6 ? SKIN[2] : SKIN[1])); // ears
-    const zf = 7; // one cell proud of the face
-    // A round, rosy nose.
-    for (let x = -1; x <= 1; x++) for (let y = 4; y <= 6; y++) for (const z of [zf, zf + 1]) if (!(z === zf + 1 && Math.abs(x) === 1 && y !== 5)) g.set(x, y, z, lin(z === zf + 1 && y === 6 ? '#F2C2AE' : '#E3A28C'));
-    for (const sx of [-1, 1]) {
-      const ex = sx * 3;
-      if (awake) {
-        // Wide open: white, a dark iris with a glint, brows up in surprise.
-        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) g.set(ex + dx, 8 + dy, zf, lin('#FBFBF8'));
-        g.set(ex, 8, zf, lin('#3B2E2A')); g.set(ex, 7, zf, lin('#3B2E2A')); g.set(ex + sx, 7, zf, lin('#3B2E2A')); g.set(ex, 8, zf + 1, lin('#5A463E'));
-        for (let dx = -2; dx <= 1; dx++) for (const z of [zf, zf + 1]) g.set(ex + (sx > 0 ? dx + 1 : dx), 11, z, white(ex + dx, 11, z));
-      } else {
-        // Closed: a lid line curving down at the ends, lashes, and heavy brows resting low.
-        for (let dx = -1; dx <= 1; dx++) g.set(ex + dx, 7, zf, lin(LID));
-        g.set(ex - 2, 8, zf, lin(LID)); g.set(ex + 2, 8, zf, lin(LID));
-        for (let dx = -2; dx <= 1; dx++) for (const z of [zf, zf + 1]) g.set(ex + (sx > 0 ? dx + 1 : dx), 10, z, white(ex + dx, 10, z));
-      }
-      // Rosy cheeks.
-      for (let dx = 0; dx < 3; dx++) for (let dy = 0; dy < 2; dy++) g.set(sx * 5 + (sx > 0 ? dx - 1 : -dx + 1), 4 + dy, zf - 1 + (Math.abs(sx * 5) > 5 ? 0 : 1), lin('#EE9C90'));
-      // Grey tufts at the temples, sticking out from under the cap.
-      for (let dy = 0; dy < 3; dy++) g.set(sx * 8, 9 + dy, 1 - dy, white(sx, dy, 0));
-    }
-    // A big white moustache under the nose, drooping at the ends, over the mouth.
-    for (let dx = -5; dx <= 5; dx++) for (let dy = 0; dy < 3; dy++) {
-      const droop = Math.abs(dx) >= 4 ? -1 - (Math.abs(dx) === 5 ? 1 : 0) : 0;
-      if (Math.abs(dx) === 5 && dy === 2) continue;
-      g.set(dx, 2 + dy + droop, zf, white(dx, dy, 0));
-      if (dy === 1 && Math.abs(dx) <= 3) g.set(dx, 3, zf + 1, white(dx, dy, 1));
-    }
-    if (awake) for (let dx = -1; dx <= 1; dx++) for (const dy of [-1, 0]) g.set(dx, dy + 1, zf, lin(dy === 0 && dx === 0 ? '#3A1C1C' : '#6A2E2E'));
-    return buildGeometry(g.map, s);
-  };
-  // The nightcap: a cream cuff round his head under the brim of the crown, then a long striped cone that flops over to
-  // the +x side and down, a fluffy pom at its end.
+  const s = HS;
+  const skin: Paint = (x, y, z) => (y < 0 ? null : pick(SKIN, hash3(x >> 1, y >> 1, z >> 1, 5), [0.72, 0.97]));
+  const white: Paint = (x, y, z) => pick(WHISKER, hash3(x, y, z, 7), [0.55, 0.9]);
+  const g = new Grid(s);
+  // The head: a rounded block (a superellipsoid, so the face is broad and flat enough for its features and every edge
+  // rounds off in steps), a little fuller through the cheeks and jaw.
+  for (let x = -9; x < 9; x++) for (let y = 0; y < 16; y++) for (let z = -9; z < 9; z++) {
+    const cy = y + 0.5, a = 7.4 * (1 + 0.06 * Math.max(0, 1 - Math.abs(cy - 4.5) / 4));
+    if (Math.abs((x + 0.5) / a) ** 3 + Math.abs((cy - 7.5) / 8) ** 3 + Math.abs((z + 0.75) / 6.25) ** 3 <= 1) g.set(x, y, z, skin(x, y, z)!);
+  }
+  // Hair: white at the temples and round the back under the cap, down into soft sideburns.
+  for (const v of g.map.values()) {
+    const ax = v.x < 0 ? -v.x - 1 : v.x;
+    if ((ax >= 6 && v.y >= 4 && v.y <= 11 && v.z <= 3) || (v.z <= -4 && v.y >= 7)) v.c = white(v.x, v.y, v.z)!;
+  }
+  // Small round ears.
+  for (const sx of [-1, 1]) ellipsoid(g, [sx * 0.148, 0.14, -0.01], [0.022, 0.036, 0.026], (_x, y) => lin(y === 7 ? SKIN[2] : SKIN[1]));
+  // A short rounded beard round the jaw and chin: one flat front a cell proud of the face, so it reads as a soft mass
+  // rather than a stack of ledges, its outline rounded and its outer columns set back a cell.
+  for (const v of [...g.map.values()]) if (v.y <= 3 && v.z >= -3) v.c = white(v.x, v.y, v.z)!;
+  for (const [y, w] of [[3, 6], [2, 7], [1, 7], [0, 7], [-1, 6], [-2, 4]] as const) for (let x = -w; x < w; x++) {
+    const ax = x < 0 ? -x - 1 : x;
+    for (let z = -3; z <= (ax === w - 1 ? 5 : 6); z++) g.set(x, y, z, white(x, y, z)!);
+  }
+  // The nose, small and round, lighter on top.
+  ellipsoid(g, [0, 0.112, 0.122], [0.028, 0.026, 0.026], (_x, y) => lin(NOSE[y >= 6 ? 0 : 1]));
+  // Rosy apple cheeks under the outer corners of the eyes, the middle of each a cell proud.
+  for (const sx of [-1, 1]) for (let x = -8; x < 8; x++) for (let y = 4; y <= 7; y++) {
+    const d = (x + 0.5 - sx * 4.8) ** 2 + (y + 0.5 - 5.6) ** 2;
+    if (d > 2.6) continue;
+    const z = frontZ(g, x, y);
+    if (z !== null) g.set(x, y, z + (d <= 0.9 ? 1 : 0), lin(BLUSH));
+  }
+  // The eyes: a warm brown, darker above, a glint low on the same side of each, so it shows under a heavy lid.
+  for (const cols of [EYES.a, EYES.b]) for (const x of cols) for (const y of [7, 8, 9]) {
+    g.set(x, y, frontZ(g, x, y)!, lin(y === 7 && x === cols[1] ? GLINT : IRIS[y === 7 ? 0 : 1]));
+  }
+  // Soft white brows, a cell proud, drooping at the outer ends.
+  for (const sx of [1, -1]) for (const [u, y] of [[0, 11], [1, 11], [2, 11], [3, 10]] as const) {
+    const x = sx > 0 ? 1 + u : -2 - u, z = frontZ(g, x, y)!;
+    g.set(x, y, z, white(x, y, z)!); g.set(x, y, z + 1, white(x, y, z + 1)!);
+  }
+  // The moustache: two rounded lobes a cell proud of the beard, curling down at the ends, brighter than the beard.
+  const MOUSTACHE: [number, [number, number][]][] = [[4, [[-3, 2]]], [3, [[-5, 4]]], [2, [[-6, -3], [2, 5]]]];
+  for (const [y, spans] of MOUSTACHE) for (const [a, b] of spans) for (let x = a; x <= b; x++) {
+    const col = lin(hash3(x, y, 0, 15) < 0.2 ? WHISKER[0] : STACHE);
+    for (let z = frontZ(g, x, y)!; z <= 7; z++) g.set(x, y, z, col);
+  }
+  // A small soft mouth under it.
+  for (const x of [-1, 0]) g.set(x, 1, frontZ(g, x, 1)!, lin('#C9786A'));
+  const lidA = lidCells(g, EYES.a), lidB = lidCells(g, EYES.b);
+  // Asleep: the same head with both lids shut.
+  const shut = new Grid(s);
+  for (const [k, v] of g.map) shut.map.set(k, v);
+  for (const lid of [lidA, lidB]) for (const v of lid.map.values()) shut.set(v.x, v.y + Math.round(EYE_TOP / s), v.z, v.c);
+
+  // The nightcap: a rounded cream cuff, then a long striped cone that flops over to the +x side and down, a fluffy pom.
   const cap = new Grid(s);
   const path = (t: number): V3 => {
     const a = Math.min(1, t * 1.6), u = Math.max(0, t * 1.6 - 0.6);
@@ -457,52 +519,138 @@ export function farmerGeometry(): FarmerGeo {
     along.forEach((p, k) => { const d = ((v.x + 0.5) * s - p[0]) ** 2 + ((v.y + 0.5) * s - p[1]) ** 2 + ((v.z + 0.5) * s - p[2]) ** 2; if (d < bd) { bd = d; best = k; } });
     v.c = lin(BED.cap[Math.floor((best / N) * 7) % 2]);
   }
-  box(cap, [-0.17, 0.24, -0.16], [0.17, 0.3, 0.16], (x, y, z) => pick(WHISKER, hash3(x, y, z, 11), [0.7, 0.95]), 1);
+  for (let x = -9; x < 9; x++) for (let z = -9; z < 9; z++) for (let y = 12; y <= 14; y++) {
+    const rx = y === 12 ? 8.6 : 8.2, rz = y === 12 ? 7.6 : 7.2;
+    if (((x + 0.5) / rx) ** 2 + ((z + 0.5) / rz) ** 2 <= 1) cap.set(x, y, z, pick(WHISKER, hash3(x, y, z, 11), [0.6, 0.95]));
+  }
   const tip = path(1);
-  ellipsoid(cap, [tip[0] + 0.02, tip[1] - 0.04, 0], [0.05, 0.05, 0.05], (x, y, z) => pick(WHISKER, hash3(x, y, z, 13), [0.7, 0.95]), 0.25, 8);
+  ellipsoid(cap, [tip[0] + 0.02, tip[1] - 0.04, 0], [0.05, 0.05, 0.05], (x, y, z) => pick(WHISKER, hash3(x, y, z, 13), [0.6, 0.95]), 0.25, 8);
   // Shoulders in a striped flannel nightshirt under the turned-down sheet, one hand out on the quilt.
   const body = new Grid(s);
   const flannel: Paint = (x) => lin(mod(x, 3) === 0 ? '#F3EAD6' : '#7F9CC9');
   for (const sx of [-1, 1]) ellipsoid(body, [sx * 0.2, -0.1, 0], [0.14, 0.08, 0.1], flannel, 0.05, 2);
-  box(body, [-0.1, -0.06, -0.06], [0.1, 0.0, 0.08], skin);
-  box(body, [0.14, -0.24, 0.08], [0.26, -0.18, 0.18], skin);
+  box(body, [-0.1, -0.06, -0.06], [0.1, -0.02, 0.06], () => lin(TRIM[1]));
+  ellipsoid(body, [0.2, -0.21, 0.13], [0.06, 0.035, 0.055], handSkin);
   box(body, [0.12, -0.2, -0.02], [0.28, -0.1, 0.1], flannel);
-  farmerCache = { asleep: head(false), awake: head(true), cap: buildGeometry(cap.map, s), body: buildGeometry(body.map, s) };
+  farmerCache = {
+    asleep: buildGeometry(shut.map, s), awake: buildGeometry(g.map, s),
+    lidA: buildGeometry(lidA.map, s), lidB: buildGeometry(lidB.map, s),
+    cap: buildGeometry(cap.map, s), body: buildGeometry(body.map, s),
+  };
   return farmerCache;
 }
 
 /** Where the farmer sits up: the base of his neck, his torso turned this far toward the camera. */
 export const SITTING = { x: 0.42, y: 1.08, z: 0.02, turn: 0.55 } as const;
+/** He props himself up from his hips (this far under the base of his neck), and rubs his eye from the shoulder. */
+export const HIP = 0.5;
+export const SHOULDER: V3 = [0.2, -0.1, 0];
+const shirt: Paint = (x, y, z) => lin(mod(x, 2) === 0 ? '#F3EAD6' : hash3(x, y, z, 6) < 0.15 ? '#6F8DBB' : '#7F9CC9');
+const handSkin: Paint = (x, y, z) => pick(SKIN, hash3(x, y, z, 5), [0.72, 0.97]);
+function limb(g: Grid, pts: V3[], r: number, paint: Paint) {
+  for (let k = 0; k < pts.length - 1; k++) for (let j = 0; j <= 6; j++) {
+    const t = j / 6, p = [0, 1, 2].map((n) => pts[k][n] + (pts[k + 1][n] - pts[k][n]) * t) as V3;
+    ellipsoid(g, p, [r, r, r], paint);
+  }
+}
 let sitCache: BufferGeometry | null = null;
 /**
- * The farmer sitting up against the headboard, about the base of his neck like the heads: a striped flannel nightshirt
- * with a placket of buttons, one arm down with the hand on the quilt, the other up scratching the side of his head.
- * 0.04 m voxels.
+ * The farmer propped up against the headboard, about the base of his neck like the heads: a striped flannel nightshirt
+ * with rounded shoulders and a placket of buttons, one arm down with the hand on the quilt. The other arm, rubbing his
+ * eye, is `farmerRubArm`. 0.04 m voxels.
  */
 export function farmerSitting(): BufferGeometry {
   if (sitCache) return sitCache;
   const g = new Grid(CHAR);
-  const shirt: Paint = (x, y, z) => lin(mod(x, 2) === 0 ? '#F3EAD6' : hash3(x, y, z, 6) < 0.15 ? '#6F8DBB' : '#7F9CC9');
-  const skin: Paint = (x, y, z) => pick(SKIN, hash3(x, y, z, 5), [0.75, 0.97]);
-  box(g, [-0.2, -0.52, -0.12], [0.2, -0.02, 0.12], shirt, 1);
+  box(g, [-0.2, -0.52, -0.11], [0.2, -0.12, 0.11], shirt, 1);
+  ellipsoid(g, [0, -0.12, 0], [0.215, 0.085, 0.115], shirt);
   // The collar and placket, cream, with three brass buttons.
-  for (let y = -12; y <= -1; y++) g.set(0, y, 3, lin(TRIM[1]));
-  for (const y of [-3, -6, -9]) g.set(0, y, 4, lin(T.brass[0]));
-  for (const x of [-2, -1, 1, 2]) g.set(x, -1, 3, lin(TRIM[0]));
-  box(g, [-0.08, -0.04, -0.06], [0.08, 0.02, 0.06], skin);
-  const limb = (pts: V3[], r: number, paint: Paint) => {
-    for (let k = 0; k < pts.length - 1; k++) for (let j = 0; j <= 6; j++) {
-      const t = j / 6, p = [0, 1, 2].map((n) => pts[k][n] + (pts[k + 1][n] - pts[k][n]) * t) as V3;
-      ellipsoid(g, p, [r, r, r], paint);
-    }
-  };
-  limb([[-0.22, -0.08, 0], [-0.25, -0.24, 0.04], [-0.24, -0.4, 0.1]], 0.05, shirt);
-  ellipsoid(g, [-0.24, -0.46, 0.13], [0.04, 0.035, 0.05], skin);
-  // The other arm up, elbow out, the hand at the side of his head above the ear.
-  limb([[0.22, -0.08, 0], [0.34, -0.06, 0.04], [0.3, 0.1, 0.02]], 0.05, shirt);
-  limb([[0.3, 0.1, 0.02], [0.22, 0.2, 0.0]], 0.035, skin);
-  ellipsoid(g, [0.2, 0.22, 0.0], [0.04, 0.045, 0.04], skin);
+  for (let y = -12; y <= -2; y++) g.set(0, y, 3, lin(TRIM[1]));
+  for (const y of [-4, -7, -10]) g.set(0, y, 4, lin(T.brass[0]));
+  for (const x of [-2, -1, 1]) g.set(x, -2, 3, lin(TRIM[0]));
+  box(g, [-0.08, -0.08, -0.06], [0.08, 0.02, 0.06], handSkin);
+  limb(g, [[-0.22, -0.1, 0], [-0.25, -0.26, 0.04], [-0.24, -0.4, 0.1]], 0.05, shirt);
+  ellipsoid(g, [-0.24, -0.46, 0.13], [0.045, 0.035, 0.055], handSkin);
   return (sitCache = buildGeometry(g.map, CHAR));
+}
+
+let rubCache: BufferGeometry | null = null;
+/**
+ * The arm that rubs his eye: up from the shoulder, elbow out and forward, a cream cuff, a loose fist with its knuckles in
+ * his +x eye. In the sitting frame, carried by the head so the fist stays at the eye as he nods. 0.02 m, finer than the
+ * body's 0.04 m: at 0.04 m the fist is two voxels and melts into his cheek.
+ */
+export function farmerRubArm(): BufferGeometry {
+  if (rubCache) return rubCache;
+  const g = new Grid(HS);
+  const fist: Paint = (x, y, z) => (z >= 9 && mod(x, 2) === 0 && y >= 7 ? lin('#C98468') : pick(['#EBAA88', '#DE9C7B', '#CF8C6D'], hash3(x, y, z, 3), [0.6, 0.95]));
+  limb(g, [[0.2, -0.1, 0], [0.3, -0.13, 0.13], [0.17, 0.05, 0.19]], 0.048, (x, y, z) => lin(mod(x + y, 4) < 2 ? '#F3EAD6' : hash3(x, y, z, 6) < 0.15 ? '#6F8DBB' : '#7F9CC9'));
+  ellipsoid(g, [0.16, 0.065, 0.19], [0.05, 0.03, 0.05], (x, y, z) => lin(TRIM[hash3(x, y, z, 4) < 0.7 ? 0 : 1]));
+  limb(g, [[0.16, 0.08, 0.19], [0.14, 0.12, 0.18]], 0.032, fist);
+  ellipsoid(g, [0.115, 0.152, 0.168], [0.05, 0.045, 0.04], fist);
+  return (rubCache = buildGeometry(g.map, HS));
+}
+
+// ---------- how he moves (pure, so it can be tested) ----------
+
+const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
+/** Cubic ease in and out: every move starts and lands at rest, so nothing snaps. */
+export const smooth = (t: number) => { const u = clamp01(t); return u < 0.5 ? 4 * u ** 3 : 1 - (-2 * u + 2) ** 3 / 2; };
+
+/** The stir on a bump, lying down: the head turns on the pillow (roll) and nods, each lid 1 shut .. 0 open, the quilt heaves. */
+export interface Stir { roll: number; nod: number; lidA: number; lidB: number; heave: number }
+/** [ms after the bump, roll, nod, lidA, lidB, heave]: a flinch, a toss toward the window, then one eye cracks open ("hm?"). */
+const STIR_KEYS = [
+  [0, 0, 0, 1, 1, 0],
+  [300, 0.14, -0.05, 1, 1, 0.6],
+  [600, -0.2, 0.04, 1, 1, 1],
+  [880, -0.14, -0.07, 1, 0.5, 0.35],
+  [1300, -0.11, -0.09, 0.85, 0.55, 0.15],
+] as const;
+export const STIR_MS = STIR_KEYS[STIR_KEYS.length - 1][0];
+export function stirAt(ms: number): Stir {
+  let k = 0;
+  while (k < STIR_KEYS.length - 2 && ms >= STIR_KEYS[k + 1][0]) k++;
+  const a = STIR_KEYS[k], b = STIR_KEYS[k + 1], u = smooth((ms - a[0]) / (b[0] - a[0]));
+  const at = (i: number) => a[i] + (b[i] - a[i]) * u;
+  return { roll: at(1), nod: at(2), lidA: at(3), lidB: at(4), heave: at(5) };
+}
+/** A bump that does not end the night: the same stir up to the peek, then he settles back to sleep. */
+export function settleAt(ms: number): Stir {
+  const p = stirAt(Math.min(ms, 880)), k = 1 - smooth((ms - 950) / 700);
+  return { roll: p.roll * k, nod: p.nod * k, lidA: 1 - (1 - p.lidA) * k, lidB: 1 - (1 - p.lidB) * k, heave: p.heave * k };
+}
+
+/** Propped up in the results: lean back from the hips, head droop and tilt, both lids (0 open .. 1 shut), the rub's offset. */
+export interface Drowsy { lean: number; droop: number; tilt: number; lid: number; rub: [number, number] }
+/** Half-lidded at rest. */
+export const DROWSY_LID = 0.45;
+const DOZE = { every: 9, from: 3.5, sink: 1.6, hold: 0.7, catch: 0.5 } as const;
+const BLINK = { every: 3.7, ms: 0.38 } as const;
+const RUB = { every: 9, from: 0.8, for: 2.6, hz: 1.4 } as const;
+const wrap = (t: number, n: number) => t - Math.floor(t / n) * n;
+/**
+ * `since` is seconds since the room arrived. He pushes himself up groggily over 1.6 s, rubbing his eye, then breathes,
+ * sways, blinks slowly, nods off now and then and catches himself. Reduced motion: the settled pose, held.
+ */
+export function drowsyAt(since: number, reduced: boolean): Drowsy {
+  if (reduced) return { lean: 0.14, droop: 0.06, tilt: -0.07, lid: DROWSY_LID, rub: [0, 0] };
+  const rise = smooth(since / 1.6), breath = Math.sin((since / 4.2) * Math.PI * 2);
+  let lean = 0.36 - 0.22 * rise + 0.012 * breath, droop = 0.22 - 0.16 * rise + 0.01 * breath;
+  const tilt = -0.07 + 0.025 * Math.sin((since / 7.3) * Math.PI * 2);
+  let lid = DROWSY_LID + (1 - DROWSY_LID) * (1 - rise) * 0.8;
+  // Nodding off: the lids sink and the head drops, then he catches himself, a little quicker.
+  const d = since - DOZE.from, du = wrap(d, DOZE.every);
+  const doze = d < 0 ? 0 : du < DOZE.sink ? smooth(du / DOZE.sink) : du < DOZE.sink + DOZE.hold ? 1 : 1 - smooth((du - DOZE.sink - DOZE.hold) / DOZE.catch);
+  droop += 0.12 * doze; lean += 0.04 * doze;
+  lid = Math.max(lid, DROWSY_LID + (1 - DROWSY_LID) * 0.92 * doze);
+  // A slow blink, eased shut and open, when he is not dozing.
+  const bu = wrap(since, BLINK.every) / BLINK.ms;
+  if (since > 1.6 && doze === 0 && bu < 1) lid = Math.max(lid, DROWSY_LID + (1 - DROWSY_LID) * Math.sin(bu * Math.PI) ** 2);
+  // Rubbing the eye: small circles of the fist, faded in and out.
+  const r = since - RUB.from, ru = wrap(r, RUB.every);
+  const env = r < 0 || ru > RUB.for ? 0 : Math.sin((ru / RUB.for) * Math.PI) ** 2, w = since * RUB.hz * Math.PI * 2;
+  return { lean, droop, tilt, lid, rub: [0.05 * env * Math.sin(w), 0.035 * env * Math.cos(w)] };
 }
 
 let quiltSatCache: BufferGeometry | null = null;

@@ -365,3 +365,8 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   drifting. Everyone stands on barn timber with their place carved into its front and gilded (the top three 1.5, 1.1 and
   0.8 m, gold, silver and bronze; the rest on 0.55 m crates). Each place has its own dance (`DANCES` in Podium.tsx); the
   winner leaps and spins. Festive only in passing: a wreath on a door and one short string of warm lights.
+- The wendigo (requested by Brian, 2026-11-08, for lore): src/skin/table/Wendigo.tsx, mounted in the Home farm
+  (FarmBackdrop). On purpose the one thing in the game that is not voxels: smooth tapered geometry, gaunt and hunched,
+  a deer skull under antlers, faint eye glints, a slow breath and a slow head tilt. It stands at the pines on the slope
+  behind the paddock (`WENDIGO_AT`), seen top right from the paddock camera, and is meant to be missed. Keep it subtle.
+  ?preview=wendigo shows it close up.

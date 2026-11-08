@@ -11,6 +11,7 @@ import { Sky } from '../scene/Sky';
 import { Farm, useWorld } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Farmstead } from './Farmstead';
+import { Wendigo } from './Wendigo';
 import { Atmosphere, Effects, FOG, Lights, yawToward } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -61,6 +62,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Sky hour={hour} reduced={reduced} blizzard={false} />
       <Farm world={w} reduced={reduced} />
       <Farmstead world={w} reduced={reduced} phone={phone} />
+      <Wendigo reduced={reduced} />
       <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5}>
         {avatar === ADMIN_AVATAR_ID
           ? <AvatarDisc state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} />

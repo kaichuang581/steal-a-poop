@@ -16,6 +16,7 @@ import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
 import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
 import { BarnDoors } from './components/BarnDoors';
+import { PreviewCanvas as WendigoPreviewCanvas } from './table/WendigoPreview';
 import './styles/skin.css';
 
 /** The painted skin's fonts; loaded only when the skin is on, so the classic look never contacts Google Fonts. */
@@ -68,6 +69,7 @@ export function PaintedApp() {
   if (PREVIEW === 'strips') return <StripsPreview />;
   if (PREVIEW === 'lineup') return <LineupPreview />;
   if (PREVIEW === 'kit') return <KitPreview />;
+  if (PREVIEW === 'wendigo') return <div style={{ position: 'fixed', inset: 0 }}><WendigoPreviewCanvas /></div>;
   // A ?join=CODE address joins that room once the player is signed in and online.
   // The start screen is always the first thing: nothing to get through before it. The name is picked there, and signing
   // in is one button on it, for whoever wants an account.

@@ -15,6 +15,7 @@ import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
 import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
+import { BarnDoors } from './components/BarnDoors';
 import './styles/skin.css';
 
 /** The painted skin's fonts; loaded only when the skin is on, so the classic look never contacts Google Fonts. */
@@ -77,5 +78,5 @@ export function PaintedApp() {
     : inRoom ? <div className="sk-rooms h-full"><RoomScreen /></div>
     : lobbyOpen ? <div className="sk-rooms h-full"><Lobby /></div>
     : home;
-  return <><JoinLink />{screen}{!dreaming && !hunting && !inGame && (inRoom || lobbyOpen) && <Garland />}</>;
+  return <><JoinLink />{screen}{!dreaming && !hunting && !inGame && (inRoom || lobbyOpen) && <Garland />}<BarnDoors /></>;
 }

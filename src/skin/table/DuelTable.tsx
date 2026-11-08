@@ -20,7 +20,7 @@ import type { BombSpot } from './Bomb';
 import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
-import { Effects, LANTERN_LIGHT } from './Rendering';
+import { Effects, LANTERN_LIGHT, MarkDrawn } from './Rendering';
 import { LetterClock, ProjectAnchor, ScreenAnchor, SlipLayer, useSlipRefs } from './LetterClock';
 import { Sheep } from './Sheep';
 
@@ -62,6 +62,7 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         camera={{ fov: open.fov, position: open.position, near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(open.target[0], open.target[1], open.target[2])}
       >
+        <MarkDrawn />
         <Duel bombSize={bombSize} seats={seats} speaker={speaker} fraction={fraction} secondsLeft={secondsLeft} reduced={reduced} phone={phone} boomKey={moments.boom?.key} power={moments.boom?.power} slipRef={slipRef} />
         <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} beamY={DUEL_BEAM} hook={DUEL.hook} />
         {/* The moon is behind the board's back: a warm lamp in front of it keeps the carved letter readable at night. */}

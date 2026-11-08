@@ -21,7 +21,7 @@ import { DevStats } from './DevStats';
 import { LetterClock, ProjectAnchor, ScreenAnchor, SlipLayer, useSlipRefs } from './LetterClock';
 import { plankY, stakeGeometry } from '../voxel/props';
 import { Festive } from './Festive';
-import { Atmosphere, Effects, LANTERN_LIGHT, Lights } from './Rendering';
+import { Atmosphere, Effects, LANTERN_LIGHT, Lights, MarkDrawn } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
@@ -163,6 +163,7 @@ export function BarnTable(props: Props) {
         camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >
+        <MarkDrawn />
         <Scene {...props} world={w} anchors={{ clock: clockEl, fade: fadeEl, slip: slipRef }} />
       </Canvas>
       {/* Reduced motion: the camera cuts between speakers behind a 150 ms fade. */}

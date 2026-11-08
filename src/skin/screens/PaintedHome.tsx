@@ -46,7 +46,7 @@ import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
-import { BarnDoors } from '../components/BarnDoors';
+import { playBarnDoors } from '../components/BarnDoors';
 import { PaintedSettings } from './PaintedSettings';
 
 export const PAINTED_TITLE = 'Finish the Word';
@@ -93,7 +93,6 @@ export function PaintedHome() {
   const [legal, setLegal] = useState<LegalSlug | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
   const admin = useAdmin((s) => s.admin);
-  const [swooping, setSwooping] = useState(false);
   const avatar = useAvatar();
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
@@ -135,11 +134,10 @@ export function PaintedHome() {
     if (!nick.ok) return setError(nick.message);
     setError('');
     const begin = () => start(mode, mode === 'quick' ? table.game : undefined);
-    // Through the doors: barn doors swing open on warm light and the view pushes through, then the game opens from the
-    // glow. A practice run isn't in the barn, so it cuts straight to the ice.
-    if (reduced || swooping || mode === 'practice') return begin();
-    setSwooping(true);
-    setTimeout(begin, 950);
+    // Through the doors: the game opens at once behind shut barn doors, which swing open onto it once its barn has drawn.
+    // A practice run isn't in the barn, so it cuts straight to the ice.
+    if (!reduced && mode !== 'practice') playBarnDoors();
+    begin();
   };
   const shareDream = async () => {
     if (dream?.status !== 'done') return;
@@ -431,7 +429,6 @@ export function PaintedHome() {
         </>
       )}
 
-      {swooping && <BarnDoors />}
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
       {help && <PaintedGuide onClose={() => setHelp(false)} />}

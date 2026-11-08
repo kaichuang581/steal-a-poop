@@ -4,7 +4,7 @@ import { lin, T } from '../palette';
 import { box, ellipsoid, Grid, line } from '../primitives';
 import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { barrel, breathAt, bury, cellsOf, hugCollar, hollow, leg, mask, mouths, part, S, segment, shaded, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
+import { barrel, breathAt, bury, cellsOf, hugCollar, hollow, leg, mask, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import { HOOF } from './pig';
 
@@ -40,6 +40,8 @@ export function cowModel(ch: Character): AnimalModel {
   mask(bg, [{ c: [-0.24, 0.40, -0.18], r: [0.12, 0.08, 0.2] }, { c: [-0.26, 0.42, 0.22], r: [0.12, 0.06, 0.08] }], patch, lin(body[2]));
   mask(bg, [{ c: [0.08, 0.66, -0.46], r: [0.14, 0.12, 0.08] }], patch, lin(body[2]));
   mask(bg, [{ c: [-0.12, 0.50, 0.44], r: [0.12, 0.10, 0.06] }], patch, lin(body[2]));
+  const legSpots = [[-0.17, 0.28], [0.21, 0.28], [-0.17, -0.28], [0.21, -0.28]] as const;
+  sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 4 })), 11, 10); // shoulders and hips over the legs (4.2.3)
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -101,7 +103,6 @@ export function cowModel(ch: Character): AnimalModel {
 
   // ---- Legs: four, 4 x 4 x 11, a knee notch, one body tone, hooves; tops 0.11 inside the belly.
   // At the sheet's z (0.32) the barrel's chamfered ends lift the belly over the leg and it shows too long.
-  const legSpots = [[-0.17, 0.28], [0.21, 0.28], [-0.17, -0.28], [0.21, -0.28]] as const;
   const legs = legSpots.map(([cx, cz]) => {
     const g = new Grid(S);
     leg(g, cx, cz, 4, 11, body, HOOF, { knee: true, oneTone: true });

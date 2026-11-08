@@ -29,6 +29,9 @@ export function coatLevel(lives: number, startLives: number): WoolLevel {
   return Math.max(0, Math.min(4, 2 + (lives - startLives))) as WoolLevel;
 }
 
+/** The coat's y offset when it swells by `k` about the legs' tops at `belly`, so the belly stays on the legs. */
+export const swellY = (belly: number, k: number) => belly * (1 - k);
+
 /** Seconds each timed state lasts before the sheep goes back to idle. */
 const DURATION: Partial<Record<SheepState, number>> = { proud: 1.2, happy: 1.6, startled: 0.9, cold: 2, freezing: 2.4, thawing: 1.2 };
 /** The dream's trot: ms per half-step at the slowest and the fastest run (V4 Part 7.2); `pace` 0..1 picks between. */
@@ -456,8 +459,10 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
       (o.frost as Mesh).geometry = m.frosts[lvl].geo;
     }
     wool.visible = level > 0;
+    // Swell about the legs' tops, not the ground: scaled from y 0 the belly rose off the legs with every breath and puff.
     const ws = settle * c[CH.puff] * (1 + breathe);
     wool.scale.set(ws, ws, ws);
+    wool.position.y = swellY(m.legs[0].pivot[1], ws);
     (o.sheared as Mesh).visible = level === 0 || bodyAlways;
     // The species' own touches: the snout sniffs, wings flap, the beard wags, the comb wobbles.
     for (const sp of signature) {

@@ -3,7 +3,7 @@ import { lin, T } from '../palette';
 import { box, ellipsoid, Grid, helix } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { breathAt, cellsOf, hugCollar, eyePlate, frontEye, hollow, leg, lidsAndBrows, mask, mouths, part, S, shaded, solidSet, statsOf, tones } from './rig';
+import { breathAt, cellsOf, hugCollar, eyePlate, frontEye, hollow, leg, lidsAndBrows, mask, mouths, part, S, shaded, sockets, solidSet, statsOf, tones } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 
 /**
@@ -32,6 +32,8 @@ export function pigModel(ch: Character): AnimalModel {
   ellipsoid(bg, [0, 0.50, 0.30], [0.26, 0.22, 0.18], paint);
   ellipsoid(bg, [0, 0.52, -0.26], [0.25, 0.22, 0.10], paint);
   mask(bg, [{ c: [0, 0.30, 0], r: [0.22, 0.12, 0.30] }], lin(body[0]), lin(body[1]));
+  const legSpots = [[-0.12, 0.2], [0.12, 0.2], [-0.12, -0.2], [0.12, -0.2]] as const;
+  sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })), 8, 7); // shoulders and hips over the legs (4.2.3)
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
 
@@ -83,7 +85,6 @@ export function pigModel(ch: Character): AnimalModel {
   }) as unknown as [CPart, CPart];
 
   // ---- Legs: four, 3 x 3 x 8 with splayed hooves, their tops inside the belly.
-  const legSpots = [[-0.12, 0.2], [0.12, 0.2], [-0.12, -0.2], [0.12, -0.2]] as const;
   const legs = legSpots.map(([cx, cz]) => {
     const g = new Grid(S);
     leg(g, cx, cz, 3, 8, body, HOOF, { splay: 1 });

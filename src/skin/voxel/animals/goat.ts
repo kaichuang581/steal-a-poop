@@ -3,7 +3,7 @@ import { lin } from '../palette';
 import { box, Grid, line } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { addCavity, barrel, breathAt, bury, cavityOf, cellsOf, hugCollar, hollow, leg, mouths, part, S, segment, shaded, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
+import { addCavity, barrel, breathAt, bury, cavityOf, cellsOf, hugCollar, hollow, leg, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import { HOOF } from './pig';
 
@@ -26,6 +26,8 @@ export function goatModel(ch: Character): AnimalModel {
   // ---- Torso: a barrel 0.52 x 0.52 x 0.72 (0.80 with its rounded ends), chamfer 2, rows 9 to 21.
   const bg = new Grid(S);
   barrel(bg, [0.02, (TY + 6.5) * S, 0], [0.52, 0.52, 0.72], 2, shaded(body, TY + 12, TY), 1);
+  const legSpots = [[-0.13, 0.20], [0.17, 0.20], [-0.13, -0.20], [0.17, -0.20]] as const;
+  sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })), 11, 10); // shoulders and hips over the legs (4.2.3)
   const bodySolid = solidSet(bg);
   hollow(bg);
   // The belly fringe: two-voxel drops every two voxels along both belly edges between z -0.30 and 0.30, dark tone.
@@ -98,7 +100,6 @@ export function goatModel(ch: Character): AnimalModel {
   }) as unknown as [CPart, CPart];
 
   // ---- Legs: four, 3 x 3 x 11, a knee notch, hooves; tops two voxels inside the belly.
-  const legSpots = [[-0.13, 0.20], [0.17, 0.20], [-0.13, -0.20], [0.17, -0.20]] as const;
   const legs = legSpots.map(([cx, cz]) => {
     const g = new Grid(S);
     leg(g, cx, cz, 3, 11, body, HOOF, { knee: true, oneTone: true });

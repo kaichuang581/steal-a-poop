@@ -333,9 +333,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
 - Name plates and the speech bubble (requested by Brian, 2026-11-08): the name stakes and the seconds slate under the letter
   board are gone. Each seat's name stands over its animal's head on a knitted plate (the ledger's dark wool, berry for the
   speaker), anchored every frame by `ScreenAnchor ... above` (src/skin/table/Anchors.tsx, `nameplateY` in BarnTable.tsx).
-  The word being typed, yours or a bot's, shows in a cream wool speech bubble over the speaker's plate; the word bar at the
-  bottom is one quiet row (starts with, hint, pass, Enter) with the real input invisible over it. This supersedes the
-  floating letters on the table (the dream keeps them). The ledger and the round tab no longer hang on ropes; the round's
+  The word being typed, yours or a bot's, shows in a cream wool speech bubble over the speaker's plate, and yours also
+  in the floating letters at the bottom, as in the dream (put back 2026-11-08: "it should be additional to the typing
+  shown"). The ledger and the round tab no longer hang on ropes; the round's
   twist is stitched onto the round tab in the top-left corner.
 - Lofi music and the sound menu (requested by Brian, 2026-11-08; no noise sources since "why is there static noise"): src/audio/music.ts plays a lofi loop made live with Web
   Audio (no audio files): electric piano on Fmaj7, Em7, Dm7, Cmaj7, a round bass, a swung kit, the odd pentatonic note,
@@ -373,3 +373,29 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   between the pines just past the paddock (`WENDIGO_AT`), its feet put on the voxel ground by a ray down, and it is
   drawn only while the camera is at the paddock shot (POV_SHOTS index 2): from every other Home view it is not there.
   Keep it subtle. ?preview=wendigo shows it close up; ?wendigoDebug paints it magenta.
+- The forest and the wendigo's pose (requested by Brian, 2026-11-08: "rearrange the trees so its more natural there, turn
+  the background into more of a forest ... close its mouth ... only see it once every 4 full pov cycles"): the clumps behind
+  the field are replaced by a forest (`forest` in src/skin/scene/countryside.ts) with a wandering edge, strays in front,
+  clearings, and taller trees deeper in; the near rows are 0.2 m pines, the rest the same pine at 0.4 m. The countryside
+  budget test is raised from 600k to 1.1M triangles for it. Round the wendigo (`WENDIGO_AT`, now in countryside.ts) the
+  trees are placed by hand, and nothing stands between it and the paddock camera. Its feet go on `groundAt` (a ray down
+  hit the pines' branches). The model is unrigged, so src/skin/table/wendigoPose.ts poses it on load by turning vertices
+  about joints with eased weights: the jaw shut, the arms hanging close, the head lowered and cocked. It shows on every
+  fourth visit to the paddock shot (the count lives as long as the page); ?pov= and ?wendigoDebug always show it.
+- Harder to see, and clean pines (requested by Brian, 2026-11-08: "should not be so easily seen ... on the second layer higher
+  up ... a lot of the pine trees are glitchy"): the wendigo stands up on the step to the back hills (z -36.1, 6 m above the
+  field), at its lip, a dark shape among dark trunks with only a narrow gap through to the paddock camera. Every countryside
+  tree is now a `forestPine` (countryside.ts): solid tiers with ragged rims, colour in patches, and snow set back from each
+  tier's rim. The yard's `pine` stays for the yard; at a distance, and above all at 0.4 m, its single-voxel branches with
+  snow on each became a crawling checker. Trees are planted on their own grid (the old offset put snow over needles) and
+  never on the step's face (`steep`). Check with `?wendigoDebug` after moving any tree near it: their skirts are wide.
+- One loading screen (requested by Brian, 2026-11-08: "make a loading screen that ties in with the theme that is applied
+  to all times when you need to load"): the barn doors (src/skin/components/BarnDoors.tsx) are it. They shut with a slip
+  pinned over the crack (a pixel sheep hopping a fence, and a line saying what is being got ready) and open only when the
+  new screen is ready: every three.js canvas on the page has drawn (`MarkDrawn` in Rendering.tsx; every scene canvas must
+  carry one, or the doors wait 15 s) and nothing holds them (`useLoadingHold`: the first Home until the farm and the land
+  are built, the dream and the Hunt until the word list is in). PaintedApp shuts them for every game, practice run and
+  dream, and mounts the new screen two frames later, so its build never freezes the screen being left or shows half a
+  scene (the dream used to stall on Home, then show its HUD over an empty dark screen, then pop in). Under reduced motion
+  they fade instead of swinging. Only transform and opacity animate on the slip, so the sheep keeps hopping while the
+  page is busy. The bots' thought dots over their heads are gone (the speech bubble shows them typing).

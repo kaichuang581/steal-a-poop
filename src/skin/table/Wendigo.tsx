@@ -1,23 +1,22 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AdditiveBlending, Box3, CanvasTexture, Color, DoubleSide, Raycaster, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SpriteMaterial, SRGBColorSpace, Vector3 } from 'three';
+import { AdditiveBlending, Box3, CanvasTexture, Color, DoubleSide, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, SpriteMaterial, SRGBColorSpace, Vector3 } from 'three';
 import type { Object3D, Sprite } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { landHeight } from '../scene/farmstead';
+import { groundAt, WENDIGO_AT } from '../scene/countryside';
 import { POV_SHOTS } from '../scene/homePov';
+import { EYES, pose } from './wendigoPose';
 
 /**
  * Lore (Brian, 2026-11-08): a wendigo standing in among the pines on the slope behind the paddock, watching the farm.
  * Brian's own model (public/models/wendigo.glb: his Wendigo2.glb with the ribs taken off, doubled parts dropped and every
  * piece simplified, about 56k triangles, merged into one mesh per colour). It is the one thing in the game that is not
  * voxels, on purpose. Its hide is given a mottled, leathery texture in the shader (no UVs needed), and its eyes glow.
- * It barely moves: a slow breath, and now and then it leans, very slowly. It stands between the trunks so that only the
+ * It barely moves: a slow breath, and now and then it leans, very slowly. It is posed on load (wendigoPose.ts). It stands between the trunks so that only the
  * paddock camera (POV_SHOTS.desktop[2]) catches it, top right, and even then it is easy to miss.
  */
-export const WENDIGO_AT: [number, number] = [-9.6, -30.9];
+export { WENDIGO_AT };
 const HEIGHT = 3.4;
-/** The red eyes in the source model's own frame (they were taken out of the mesh and are drawn glowing instead). */
-const EYES_SRC: [number, number, number][] = [[0.011, 0.179, 0.352], [-0.019, 0.177, 0.352]];
 
 /** A hide shader: mottled dark and pale patches, darker veins and a bumpy, leathery surface, all from world position. */
 function hide(color: string, scale = 18, bump = 0.18, veins = 0.6) {
@@ -62,17 +61,21 @@ function glowTexture() {
 }
 
 /** Only the paddock camera sees it: it is there while the camera is near that shot (desktop or phone), gone otherwise.
- *  The Home tour cross-fades between shots, so it never pops in view. */
+ *  The Home tour cross-fades between shots, so it never pops in view. And only on every fourth time round the tour:
+ *  the count of visits to that shot lives as long as the page, so leaving Home and coming back does not reset it.
+ *  A held shot (`?pov=`) and `?wendigoDebug` always show it, for screenshots. */
 const WATCHERS = [POV_SHOTS.desktop[2].position, POV_SHOTS.phone[2].position].map((p) => new Vector3(...p));
-const isInside = (o: Object3D, root: Object3D) => { for (let p: Object3D | null = o; p; p = p.parent) if (p === root) return true; return false; };
+const EVERY = 4;
+let visits = 0;
 
 let cached: Promise<Object3D> | null = null;
-const loadModel = () => (cached ??= new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/wendigo.glb`).then((g) => g.scene));
+const loadModel = () => (cached ??= new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}models/wendigo.glb`).then((g) => { pose(g.scene); return g.scene; }));
 
 /** `?wendigoDebug` paints it magenta, to check from which cameras it can be seen. */
 const DEBUG = typeof location !== 'undefined' && new URLSearchParams(location.search).has('wendigoDebug');
+const HELD = typeof location !== 'undefined' && new URLSearchParams(location.search).has('pov');
 
-export function Wendigo({ reduced, debug = DEBUG }: { reduced: boolean; debug?: boolean }) {
+export function Wendigo({ reduced, debug = DEBUG, anywhere = false }: { reduced: boolean; debug?: boolean; anywhere?: boolean }) {
   const [model, setModel] = useState<{ root: Object3D; scale: number; offset: Vector3 } | null>(null);
   const mats = useMemo(() => ({
     skin: debug ? new MeshBasicMaterial({ color: '#ff00ff', fog: false, side: DoubleSide }) : hide('#5A4A40', 7, 0.22, 0.55),
@@ -96,44 +99,40 @@ export function Wendigo({ reduced, debug = DEBUG }: { reduced: boolean; debug?: 
     }).catch(() => {});
     return () => { live = false; };
   }, [mats]);
-  const glow = useMemo(() => new SpriteMaterial({ map: glowTexture(), color: new Color('#FF5A2A'), blending: AdditiveBlending, depthWrite: false, transparent: true, fog: false }), []);
+  const glow = useMemo(() => new SpriteMaterial({ map: glowTexture(), color: new Color('#FF6A36'), blending: AdditiveBlending, depthWrite: false, transparent: true, fog: false }), []);
   const core = useMemo(() => new MeshBasicMaterial({ color: '#FFD9A0', fog: false }), []);
-  const coreGeo = useMemo(() => new SphereGeometry(0.0045, 8, 6), []);
+  const coreGeo = useMemo(() => new SphereGeometry(0.005, 8, 6), []);
   const root = useRef<Group>(null), sway = useRef<Group>(null);
   const sprites = useRef<(Sprite | null)[]>([]);
-  // Its feet go on the voxel ground itself: found by a ray straight down once the farm has built (the terrain's
-  // columns stand a little above the smooth landHeight it is built from), with landHeight until then.
-  const ground = useRef(landHeight(WENDIGO_AT[0], WENDIGO_AT[1]));
-  const settled = useRef(false);
-  const down = useMemo(() => new Raycaster(new Vector3(WENDIGO_AT[0], 80, WENDIGO_AT[1]), new Vector3(0, -1, 0)), []);
+  const near = useRef(false), shown = useRef(false);
+  // Its feet go on the terrain's own column tops (a ray down would catch the pines' branches over it).
+  const ground = groundAt(WENDIGO_AT[0], WENDIGO_AT[1]);
   // It faces the paddock camera, which is to say: you.
   const yaw = useMemo(() => Math.atan2(21 - WENDIGO_AT[0], 6 - WENDIGO_AT[1]), []);
-  useFrame(({ clock, scene: sc, camera: cam }) => {
+  useFrame(({ clock, camera: cam }) => {
     const t = clock.elapsedTime;
-    if (!settled.current && root.current) {
-      down.camera = cam;
-      const hit = down.intersectObjects(sc.children, true).find((i) => i.object.visible && !isInside(i.object, root.current!) && (i.object as Mesh).isMesh);
-      if (hit) { ground.current = hit.point.y; settled.current = true; root.current.position.y = hit.point.y - 0.05; }
-    }
-    if (root.current) root.current.visible = WATCHERS.some((w) => w.distanceTo(cam.position) < 7);
+    const here = WATCHERS.some((w) => w.distanceTo(cam.position) < 7);
+    if (here && !near.current) shown.current = HELD || debug || ++visits % EVERY === 0;
+    near.current = here;
+    if (root.current) root.current.visible = anywhere || (here && shown.current);
     if (root.current) root.current.scale.y = 1 + (reduced ? 0 : Math.sin(t * 0.6) * 0.006); // a slow breath
     // Every 11 s it leans, slowly, toward the farm, and settles back.
     if (sway.current) sway.current.rotation.x = reduced ? 0 : Math.max(0, Math.sin((t / 11) * Math.PI * 2)) ** 3 * 0.06;
     // The eyes pulse a little and now and then flare.
-    const k = reduced ? 1 : 0.75 + 0.25 * Math.sin(t * 1.7) + 0.6 * Math.max(0, Math.sin(t * 0.5)) ** 20;
+    const k = reduced ? 1 : 0.85 + 0.15 * Math.sin(t * 1.7) + 0.6 * Math.max(0, Math.sin(t * 0.5)) ** 20;
     sprites.current.forEach((s) => { if (s) s.material.opacity = Math.min(1, k); });
   });
   if (!model) return null;
   return (
-    <group ref={root} position={[WENDIGO_AT[0], ground.current - 0.05, WENDIGO_AT[1]]} rotation={[0, yaw, 0]}>
+    <group ref={root} position={[WENDIGO_AT[0], ground - 0.05, WENDIGO_AT[1]]} rotation={[0, yaw, 0]}>
       <group ref={sway}>
         <group scale={model.scale}>
           <group position={model.offset}>
             <primitive object={model.root} />
-            {EYES_SRC.map((p, i) => (
+            {EYES.map((p, i) => (
               <group key={i} position={p}>
                 <mesh geometry={coreGeo} material={core} />
-                <sprite ref={(el) => { sprites.current[i] = el; }} material={glow} scale={[0.038, 0.038, 1]} />
+                <sprite ref={(el) => { sprites.current[i] = el; }} material={glow} scale={[0.046, 0.046, 1]} />
               </group>
             ))}
           </group>

@@ -7,8 +7,8 @@ describe('the land around the farm', () => {
   it('builds inside its budget', () => {
     const c = buildCountryside();
     expect(c.woods.length).toBeGreaterThan(0);
-    expect(c.triangles).toBeLessThan(600_000);
-  });
+    expect(c.triangles).toBeLessThan(950_000); // was 600k before the forest behind the field (2026-11-08)
+  }, 20_000); // about 2 s alone; slower when the whole suite runs at once
   it('keeps off the farm', () => {
     expect(isClear(0, 2)).toBe(false);
     expect(isClear(FARM.coop.x, FARM.coop.z)).toBe(false);

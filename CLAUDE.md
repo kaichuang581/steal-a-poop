@@ -447,3 +447,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   doorBoxes.ts, import-free); BarnDoors lays them out on one voxel size (`--vox`) so the beam, leaves and drift meet on any
   screen, each leaf showing its half and swinging as before. Snow falls in front (none under reduced motion). Change the
   model, re-run the tool, commit the images; the tests check the boxes and that the images exist.
+- Warmer light (requested by Brian, 2026-11-08: "warmer and welcoming ... only changing the lighting, dont go too heavy ...
+  a warm white christmas whilst still keeping winter vibe. rn it looks a little dark"): in src/skin/table/Rendering.tsx the
+  sky fill is softer with a warm bounce from the snow below (hemisphere #C3CEE2 over #8A7560, about 0.75), the sun warmer
+  and a little stronger, the moon less blue and brighter (0.9), the lanterns warmer and reaching further (40, 14 m), the
+  day's haze a soft grey-white instead of icy teal and the night's a softer navy; exposure 1.08 on Home and the table.
+  The dream, the ice and the loading doors keep their own light.

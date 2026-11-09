@@ -11,15 +11,17 @@ import type { Hour } from '../model/types';
 import { BARN } from '../scene/layout';
 
 /** The look, applied once and globally (plan V3.1 Part 1.3). */
-export const FOG: Record<Hour, string> = { dawn: '#F3C9B5', day: '#BFE1F3', dusk: '#D08AA2', night: '#273B66' };
+// A warm white Christmas that is still winter (Brian, 2026-11-08: "warmer and more welcoming ... it looks a little dark"):
+// the day's haze is a warm white rather than icy blue, and the night's a softer navy.
+export const FOG: Record<Hour, string> = { dawn: '#F3CDB9', day: '#CED6DF', dusk: '#D49AA8', night: '#323E68' };
 const SUN: Record<Hour, { color: string; intensity: number }> = {
-  dawn: { color: '#FFD3A8', intensity: 1.4 },
-  day: { color: '#FFF1D6', intensity: 1.6 },
-  dusk: { color: '#FFD3A8', intensity: 1.6 },
-  night: { color: '#AFC3DE', intensity: 0.65 }, // moonlight; the lanterns carry the barn
+  dawn: { color: '#FFD3A8', intensity: 1.55 },
+  day: { color: '#FFE8C8', intensity: 1.85 },
+  dusk: { color: '#FFD3A8', intensity: 1.7 },
+  night: { color: '#C6CDE4', intensity: 0.9 }, // moonlight, less blue than it was; the lanterns carry the barn
 };
 // Physical falloff (decay 2) needs candela-scale intensity; 40 here lands where the plan's nominal 2.0 reads on screen.
-export const LANTERN_LIGHT = { color: '#FFB45A', intensity: 32, distance: 12, decay: 2 };
+export const LANTERN_LIGHT = { color: '#FFB862', intensity: 40, distance: 14, decay: 2 };
 
 /** Exponential fog in the hour's colour; the sky dome, stars and aurora ignore it (their materials have fog off). */
 export function Atmosphere({ hour }: { hour: Hour }) {
@@ -42,7 +44,8 @@ export function Lights({ hour, phone, viewYaw, lampRef }: { hour: Hour; phone: b
   const pos: [number, number, number] = [Math.sin(az) * Math.cos(el) * 60, Math.sin(el) * 60, Math.cos(az) * Math.cos(el) * 60];
   return (
     <>
-      <hemisphereLight args={['#9FB7D6', '#5B6B7A', hour === 'night' ? 0.45 : 0.55]} />
+      {/* Sky fill, and a warm bounce off the snow from below, so shaded sides are cosy rather than slate blue. */}
+      <hemisphereLight args={['#C3CEE2', '#8A7560', hour === 'night' ? 0.72 : 0.75]} />
       <directionalLight
         position={pos} color={sun.color} intensity={sun.intensity} castShadow
         shadow-mapSize={phone ? [2048, 2048] : [4096, 4096]} shadow-bias={-0.0004} shadow-normalBias={0.02}

@@ -149,7 +149,7 @@ export function BarnTable(props: Props) {
       <Canvas
         shadows={{ type: PCFSoftShadowMap }}
         dpr={props.phone ? [1, 1.5] : [1, 2]}
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.08, antialias: true }}
         camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >

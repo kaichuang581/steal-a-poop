@@ -109,4 +109,12 @@ describe('the save code', () => {
     applyImport(`${SAVE_PREFIX}${body}.${fnv(body)}`);
     expect(get('sap:settings')).toEqual({ name: 'Kai', game: { turnsPerRound: 3 } });
   });
+
+  it('keeps unlimited wool, which the game offers', () => {
+    const b64 = (x: string) => btoa(x).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const fnv = (x: string) => { let h = 2166136261; for (let i = 0; i < x.length; i++) h = Math.imul(h ^ x.charCodeAt(i), 16777619) >>> 0; return h.toString(16).padStart(8, '0'); };
+    const body = b64(JSON.stringify({ v: 1, at: 'x', data: { 'sap:settings': { game: { lives: 'unlimited' } } } }));
+    applyImport(`${SAVE_PREFIX}${body}.${fnv(body)}`);
+    expect(get('sap:settings')).toEqual({ game: { lives: 'unlimited' } });
+  });
 });

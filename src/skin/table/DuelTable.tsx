@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { ACESFilmicToneMapping, Color, FogExp2, Group, Object3D, PCFSoftShadowMap, SpotLight, SRGBColorSpace, Vector3 } from 'three';
+import { ACESFilmicToneMapping, Color, FogExp2, Group, Object3D, PCFShadowMap, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -46,7 +46,7 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
       <Canvas
         // Measured without transforms: the game screen zooms in as it opens, which would size the canvas too big for good.
         resize={{ offsetSize: true }}
-        shadows={{ type: PCFSoftShadowMap }}
+        shadows={{ type: PCFShadowMap }}
         dpr={phone ? [1, 1.5] : [1, 2]}
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
         camera={{ fov: open.fov, position: open.position, near: 0.1, far: 900 }}

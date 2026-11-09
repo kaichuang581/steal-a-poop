@@ -6,12 +6,13 @@ import { Color, MeshLambertMaterial } from 'three';
  * unbroken surface, and the cubes show only at silhouettes and real steps.
  */
 export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: number; transparent?: boolean; opacity?: number; color?: string } = {}) {
+  // Only the parameters that are set: three warns about every one given as undefined, and that was thousands a load.
   return new MeshLambertMaterial({
     vertexColors: true,
-    emissive: opts.emissive ? new Color(opts.emissive) : undefined,
+    ...(opts.emissive ? { emissive: new Color(opts.emissive) } : {}),
     emissiveIntensity: opts.emissiveIntensity ?? 1,
     transparent: opts.transparent ?? false,
     opacity: opts.opacity ?? 1,
-    color: opts.color,
+    ...(opts.color ? { color: opts.color } : {}),
   });
 }

@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace } from 'three';
 import type { DirectionalLight } from 'three';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
@@ -26,7 +26,7 @@ export default function DoorsRender() {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <Canvas
-        orthographic shadows={{ type: PCFSoftShadowMap }} dpr={1}
+        orthographic shadows={{ type: PCFShadowMap }} dpr={1}
         gl={{ preserveDrawingBuffer: true, alpha: true, antialias: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 0.9 }}
         camera={{ position: [cx, cy, 20], near: 0.1, far: 100 }}
       >

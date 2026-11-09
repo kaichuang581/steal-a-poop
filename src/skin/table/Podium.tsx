@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ACESFilmicToneMapping, AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Group, InstancedMesh,
-  MeshBasicMaterial, MeshLambertMaterial, Object3D, PCFSoftShadowMap, Points, PointsMaterial, SRGBColorSpace, Vector3,
+  MeshBasicMaterial, MeshLambertMaterial, Object3D, PCFShadowMap, Points, PointsMaterial, SRGBColorSpace, Vector3,
 } from 'three';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { byId } from '../avatars/catalog';
@@ -383,7 +383,7 @@ export function Podium({ entries, reduced, phone, aside = false }: { entries: Po
   return (
     <div className="sk-podium" aria-label="The podium">
       <Canvas
-        shadows={{ type: PCFSoftShadowMap }} dpr={phone ? [1, 1.5] : [1, 2]}
+        shadows={{ type: PCFShadowMap }} dpr={phone ? [1, 1.5] : [1, 2]}
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, antialias: true }}
         camera={{ fov: phone ? 58 : 40, position: phone ? [0, 3.4, 14.5] : [0, 3.0, 11.8], near: 0.1, far: 60 }}
       >

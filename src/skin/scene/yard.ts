@@ -15,6 +15,7 @@ const CHUNK = 8;
 const ix = (m: number) => Math.round(m / S);
 const tone = (t: Tone, seed: number, w?: [number, number]): Paint => (x, y, z) => pick(t, hash3(x, y, z, seed), w);
 const snow = snowPaint(S, 3);
+const groundSnow = snowPaint(S, 2);
 const CARROT = '#E8873A';
 const SKATE = '#EEF8FC';
 const WINDOW_FRAME = '#EDE6D6';
@@ -122,7 +123,7 @@ function ground(g: Grid, set: Set) {
       }
       const path = onPath(x, z);
       // Snow with soft drifts, ripples and grain (voxel/snow.ts), never the square patches it used to have.
-      set(xi, -1, zi, path ? pathTone : snowPaint(S, 2));
+      set(xi, -1, zi, path ? pathTone : groundSnow);
       if (path) continue;
       // 0.2 m drifts against the fence, the barn's walls and around the pond rim.
       const r = hash3(xi, 0, zi, 9);

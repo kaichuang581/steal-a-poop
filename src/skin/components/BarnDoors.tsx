@@ -77,6 +77,7 @@ const CLOSE_REDUCED_MS = 220; // reduced motion: a fade in instead
 const HOLD_MS = 350; // once shut, the doors are seen shut at least this long
 const VEIL_MS = 180; // a quick change: the dark fade, before the new screen mounts
 const GRACE_MS = 800; // and how long the new screen has to be ready before the doors come down after all
+const REVEAL_HOLD_MS = 700; // doors that come down late stay shut until their sign has dropped in (620 ms)
 const GIVE_UP_MS = 15000; // a scene that never draws (no WebGL, something stuck): open anyway this long after it mounted
 const GIVE_UP_TOTAL_MS = 30000; // and never stay shut longer than this, even while the scene is still being built
 /** Whether doors are on screen and not yet opening, so a hold joins them instead of shutting a second pair. */
@@ -153,6 +154,7 @@ function Doors({ id }: { id: number }) {
     const t0 = performance.now();
     let sceneAt = 0; // when a new scene first mounted: the first load builds its world before there is one
     let doorsAt = veilRef.current ? 0 : t0; // when the doors themselves came into view
+    let revealed = false;
     let raf = 0;
     const tick = () => {
       const now = performance.now();
@@ -163,9 +165,9 @@ function Doors({ id }: { id: number }) {
       const drawn = !canvas || (scenes.some((c) => c.hasAttribute(DRAWN_ATTR) && !before.current!.has(c)) && scenes.every((c) => c.hasAttribute(DRAWN_ATTR)));
       const ready = drawn && Object.keys(h).length === 0;
       // Behind the fade, ready means open straight away; slower than GRACE_MS, and it is a real load: the doors.
-      if (veilRef.current && !ready && age > GRACE_MS) { setVeil(false); doorsAt = now; }
+      if (veilRef.current && !ready && age > GRACE_MS) { setVeil(false); doorsAt = now; revealed = true; }
       const stuck = (canvas ? sceneAt > 0 && now - sceneAt > GIVE_UP_MS : age > GIVE_UP_MS) || age > GIVE_UP_TOTAL_MS;
-      if ((ready && (veilRef.current || now - doorsAt > HOLD_MS)) || stuck) return setPhase('open');
+      if ((ready && (veilRef.current || now - doorsAt > (revealed ? REVEAL_HOLD_MS : HOLD_MS))) || stuck) return setPhase('open');
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

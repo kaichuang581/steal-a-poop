@@ -759,6 +759,7 @@
 .sk-doors[data-phase="open"][data-veil] { animation: sk-veil-out 240ms ease-in forwards; }
 @keyframes sk-veil-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sk-veil-out { to { opacity: 0; } }
+.sk-doors[data-revealed][data-phase="shut"] { background: #0D0F1C; } /* the dark stays behind the doors as they fade in */
 .sk-doors[data-revealed][data-phase="shut"] :is(.sk-doors-frame, .sk-doors-sky, .sk-doors-lintel, .sk-doors-sill) { animation: sk-veil-in 240ms ease-out both; }
 .sk-doors[data-revealed][data-phase="shut"] :is(.sk-load-board, .sk-load-rope) { animation: sk-load-drop-late 620ms cubic-bezier(0.3, 0.8, 0.4, 1) both; }
 @keyframes sk-load-drop-late { 0% { transform: translateY(-80vh); } 70% { transform: translateY(8px); } 85% { transform: translateY(-3px); } 100% { transform: none; } }
@@ -1117,5 +1118,6 @@
 /* Home's farm (FarmBackdrop): over a soft sky until the farm and the land round it are built, then it fades in. */
 .sk-farm-fade { opacity: 0; transition: opacity 700ms ease-out; }
 .sk-farm-fade[data-ready] { opacity: 1; }
+.sk-farm-fade[data-instant] { transition: none; }
 :root.reduce-motion .sk-farm-fade { transition: none; }
 @media (prefers-reduced-motion: reduce) { .sk-farm-fade { transition: none; } }

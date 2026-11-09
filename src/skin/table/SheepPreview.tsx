@@ -1,6 +1,6 @@
 import { advance, Canvas, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace } from 'three';
 import { Chip, PaperPanel } from '../components/Materials';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
@@ -29,7 +29,7 @@ export function SheepPreview() {
   const floorMat = useMemo(() => voxelMaterial(), []);
   return (
     <div className="relative h-full" style={{ background: '#3A4E78' }}>
-      <Canvas shadows={{ type: PCFSoftShadowMap }} dpr={[1, 2]} gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 32, position: [0.5, 1.0, 2.6] }} onCreated={({ camera }) => camera.lookAt(0, 0.6, 0)}>
+      <Canvas shadows={{ type: PCFShadowMap }} dpr={[1, 2]} gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 32, position: [0.5, 1.0, 2.6] }} onCreated={({ camera }) => camera.lookAt(0, 0.6, 0)}>
         <hemisphereLight args={['#DCE6F2', '#8E3A31', 0.9]} />
         <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
         <mesh geometry={floor} receiveShadow position={[-1.6, -0.1, -1.6]} material={floorMat} />
@@ -108,7 +108,7 @@ export function LineupPreview() {
       <div id="lineup" className="flex" style={{ width: size * ANIMAL_AVATAR_IDS.length, height: size, filter: squint ? 'blur(6px)' : undefined }}>
         {ANIMAL_AVATAR_IDS.map((a) => (
           <div key={a} style={{ width: size, height: size, filter: silhouette ? 'brightness(0)' : undefined }}>
-            <Canvas shadows={!silhouette && { type: PCFSoftShadowMap }} dpr={1} gl={{ alpha: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 32, position: [1.3, 1.2, 3.4] }} onCreated={({ camera }) => camera.lookAt(0, 0.68, 0)}>
+            <Canvas shadows={!silhouette && { type: PCFShadowMap }} dpr={1} gl={{ alpha: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 32, position: [1.3, 1.2, 3.4] }} onCreated={({ camera }) => camera.lookAt(0, 0.68, 0)}>
               <hemisphereLight args={['#DCE6F2', '#8E3A31', 0.9]} />
               <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow={!silhouette} shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
               {!silhouette && <mesh geometry={floor} receiveShadow position={[-1.6, -0.1, -1.6]} material={floorMat} />}
@@ -161,7 +161,7 @@ export function StripsPreview() {
   return (
     <div className="p-4" style={{ background: '#273B66', color: '#fff', minHeight: '100%' }}>
       <div style={{ width: 160, height: 160 }}>
-        <Canvas frameloop="never" shadows={{ type: PCFSoftShadowMap }} dpr={1} gl={{ preserveDrawingBuffer: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 30, position: [h * 1.1, h * 0.95, h * 2.6] }}>
+        <Canvas frameloop="never" shadows={{ type: PCFShadowMap }} dpr={1} gl={{ preserveDrawingBuffer: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 30, position: [h * 1.1, h * 0.95, h * 2.6] }}>
           <color attach="background" args={['#3A4E78']} />
           <hemisphereLight args={['#DCE6F2', '#8E3A31', 0.9]} />
           <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} shadow-normalBias={0.02} />

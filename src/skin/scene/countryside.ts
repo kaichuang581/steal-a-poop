@@ -1,7 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry, triangles } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
-import { snowPaint } from '../voxel/snow';
+import { snowAt, snowPaint } from '../voxel/snow';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, RGB } from '../voxel/primitives';
 import { backHillHeight } from './distance';
@@ -254,7 +254,7 @@ function wall(g: Grid, points: [number, number][]) {
       if (crumble > 0.9) continue;
       const height = crumble > 0.72 ? 0.3 : 0.6 + hash3(Math.floor(x / 0.6), 1, Math.floor(z / 0.6), 345) * 0.2;
       box(g, [x - 0.2, 0, z - 0.2], [x + 0.2, height, z + 0.2], stone);
-      box(g, [x - 0.2, height, z - 0.2], [x + 0.2, height + F, z + 0.2], (a, b, c) => (hash3(a, 0, c, 347) > 0.2 ? snow(a, b, c) : null));
+      box(g, [x - 0.2, height, z - 0.2], [x + 0.2, height + F, z + 0.2], (a, b, c) => (hash3(a, 0, c, 347) > 0.2 ? snowAt(a, b, c, F, 201) : null)); // the wall is on the fine grid
     }
   }
 }

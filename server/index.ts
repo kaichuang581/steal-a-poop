@@ -224,7 +224,12 @@ export async function startServer(opts: ServerOptions) {
         if (msg.id !== null && !isAvatarId(msg.id)) return fail(ws, 'bad_message');
         // The admin avatar is Brian's photo: the client's admin lock is only a convenience, so the server decides who
         // may wear it in front of other players.
-        if (msg.id === ADMIN_AVATAR_ID && !user.isModerator && !(opts.adminUserIds ?? []).includes(userId)) return fail(ws, 'bad_message');
+        // Refused quietly (the others just see the plain sheep): the client resends its avatar on every connect, and an
+        // error here would show "Something went wrong" each time.
+        if (msg.id === ADMIN_AVATAR_ID && !user.isModerator && !(opts.adminUserIds ?? []).includes(userId)) {
+          if (avatars.delete(userId)) { const here = rooms.roomFor(userId); if (here) broadcastRoom(here.code); }
+          return;
+        }
         if ((avatars.get(userId) ?? null) === msg.id) return; // no change, nothing to send
         if (msg.id === null) avatars.delete(userId); else avatars.set(userId, msg.id);
         const here = rooms.roomFor(userId);

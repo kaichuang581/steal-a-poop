@@ -66,11 +66,11 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { friends?: { areFriends(a: string, b: string): Promise<boolean> }; cosmetics?: ServerOptions['cosmetics']; blocks?: BlockList; verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit } = {}) {
+async function boot(extra: { friends?: { areFriends(a: string, b: string): Promise<boolean> }; cosmetics?: ServerOptions['cosmetics']; blocks?: BlockList; verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit; adminUserIds?: string[] } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
-    dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit,
+    dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit, adminUserIds: extra.adminUserIds,
     limits: { shutdownGraceMs: 0, ...extra.limits }, now: extra.now,
     revocations: extra.revocations, friends: extra.friends, cosmetics: extra.cosmetics, blocks: extra.blocks,
     verifyToken: extra.verifyToken ?? (async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null)),
@@ -757,5 +757,35 @@ describe('invites and cosmetics over the wire', () => {
     listeners.forEach((l) => l(id('Ben'), { color: '#fbbf24' }));
     const again = await ana.waitFor((m) => m.t === 'room' && m.view.members.some((x: any) => x.cosmetics?.color === '#fbbf24')); // eslint-disable-line @typescript-eslint/no-explicit-any
     expect(again).toBeTruthy();
+  });
+});
+
+describe('the admin avatar', () => {
+  it('is refused quietly for a player who is not an admin: no error, and the room sees the plain sheep', async () => {
+    const server = await boot();
+    const a = await Client.connect(server.port, 'Plain1');
+    clients.push(a);
+    await a.waitFor((m) => m.t === 'welcome');
+    a.send({ t: 'create', visibility: 'private' });
+    await a.waitFor((m) => m.t === 'room');
+    const before = a.msgs.length;
+    a.send({ t: 'avatar', id: 'kaiyan' });
+    a.send({ t: 'avatar', id: 'pig' });
+    const room = await a.waitFor((m) => m.t === 'room' && a.msgs.indexOf(m) >= before && m.view.members[0].avatar === 'pig');
+    expect(room.view.members[0].avatar).toBe('pig');
+    expect(a.msgs.slice(before).some((m) => m.t === 'error')).toBe(false);
+  });
+
+  it('is allowed for an account on the admin list', async () => {
+    const server = await boot({ adminUserIds: ['dev:Brian1'] });
+    const a = await Client.connect(server.port, 'Brian1');
+    clients.push(a);
+    await a.waitFor((m) => m.t === 'welcome');
+    a.send({ t: 'create', visibility: 'private' });
+    await a.waitFor((m) => m.t === 'room');
+    const before = a.msgs.length;
+    a.send({ t: 'avatar', id: 'kaiyan' });
+    const room = await a.waitFor((m) => m.t === 'room' && a.msgs.indexOf(m) >= before);
+    expect(room.view.members[0].avatar).toBe('kaiyan');
   });
 });

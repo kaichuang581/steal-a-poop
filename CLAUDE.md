@@ -476,3 +476,14 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   moment it has drawn; only if that takes over GRACE_MS (800 ms) do the doors fade in, already shut, the sign dropping
   in (data-veil, data-revealed). The game clock is still held until either opens. A refresh still builds the farm from
   scratch (about 5 s); the doors were never what made it slow.
+- Review fixes (2026-11-09, after /code-review). Doors revealed late keep the dark behind them while they fade in, and
+  stay shut until their sign has dropped (REVEAL_HOLD_MS); on a first load the farm shows at once if doors are up
+  (`data-instant`), and Home's tour starts when the farm is shown (Drift `ready`). Snow takes each grid's own cell size
+  (the farm Builder passes `this.g.size`; the countryside wall uses F). The server refuses the admin avatar quietly
+  (no error to the client, which resends it on every connect). Save codes keep lives 'unlimited'. voxelMaterial only
+  passes the parameters that are set, and shadows ask for PCFShadowMap (three had removed PCFSoft and fell back to it):
+  that silenced about 2,200 console warnings a session. The door preloads in index.html are relative to the page
+  (`%BASE_URL%` was doubled by the dev server). Known and left: React's dev-only "synchronously unmount a root" warning
+  when entering the dream (it predates this work and never shows in production) and three's own THREE.Clock notice.
+  Tests outside src/skin were edited or added for the Hunt removal, the security pass and the clock hold; each one
+  follows a change Brian asked for.

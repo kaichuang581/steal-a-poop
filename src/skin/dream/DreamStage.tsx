@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import {
   ACESFilmicToneMapping, BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, FogExp2, Group, Mesh, MeshLambertMaterial,
-  Object3D, PCFSoftShadowMap, PointLight, Points, PointsMaterial, SRGBColorSpace, Vector3,
+  Object3D, PCFShadowMap, PointLight, Points, PointsMaterial, SRGBColorSpace, Vector3,
 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import { FIELD, JUMP_MS, jumpHeight, takeoffDistance } from '../../dream/dream';
@@ -74,7 +74,7 @@ export function DreamStage(props: Props) {
   const shot = dreamShot(props.phone, props.landscapePhone);
   return (
     <Canvas
-      shadows={{ type: PCFSoftShadowMap }} dpr={props.phone ? [1, 1.5] : [1, 2]}
+      shadows={{ type: PCFShadowMap }} dpr={props.phone ? [1, 1.5] : [1, 2]}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
       camera={{ fov: shot.fov, position: [...shot.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(...shot.target)}

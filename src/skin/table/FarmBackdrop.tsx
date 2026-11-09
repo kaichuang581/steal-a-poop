@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { ACESFilmicToneMapping, Object3D, PCFSoftShadowMap, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, Object3D, PCFShadowMap, SRGBColorSpace } from 'three';
 import type { PerspectiveCamera, PointLight, SpotLight } from 'three';
 import type { Hour } from '../model/types';
 import { HOME_CAMERA, pinnedPov, POV_SHOTS, povAt } from '../scene/homePov';
@@ -11,6 +11,7 @@ import { Sky } from '../scene/Sky';
 import { Farm, useWorld } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Farmstead, farmReady } from './Farmstead';
+import { doorsShut } from '../components/BarnDoors';
 import { Wendigo } from './Wendigo';
 import { Atmosphere, Effects, FOG, Lights, MarkDrawn, yawToward } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
@@ -46,7 +47,9 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
   // The farm fades in once it and the land round it are built, over a soft sky, so a load without the doors (a
   // refresh) never shows the scene going up piece by piece.
   const [ready, setReady] = useState(farmReady);
-  const onReady = useCallback((r: boolean) => setReady(r), []);
+  // Behind the doors (a first load) the farm is shown at once, so they open onto it, not onto a fade still under way.
+  const [instant, setInstant] = useState(farmReady);
+  const onReady = useCallback((r: boolean) => { if (r) setInstant(doorsShut()); setReady(r); }, []);
   const sky = <div className="absolute inset-0" style={{ background: `linear-gradient(${FOG[hour]}, #DCE6F2)` }} />;
   if (!w) return sky;
   // The hero stands 1.2 m in front of the doors and faces the camera.
@@ -55,14 +58,14 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
   return (
     <>
     {sky}
-    <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined}>
+    <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined} data-instant={instant || undefined}>
     <Canvas
-      shadows={{ type: PCFSoftShadowMap }} dpr={phone ? [1, 1.5] : [1, 2]}
+      shadows={{ type: PCFShadowMap }} dpr={phone ? [1, 1.5] : [1, 2]}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
-      <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} />
+      <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} />
       <Atmosphere hour={hour} />
       <MarkDrawn />
       <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} lampRef={lowerLamp} />
@@ -94,16 +97,20 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
  * The camera travels along each scene's `push` for a few seconds, with a slight 0.25 m by 0.12 m drift over 40 s, then
  * dips to dark to cut to the next. Under reduced motion it stays still on the first scene.
  */
-function Drift({ shots, veil, spot, bounce, reduced }: {
+function Drift({ shots, veil, spot, bounce, reduced, ready }: {
   shots: PovShot[]; veil: RefObject<HTMLDivElement | null>;
-  spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null>; reduced: boolean;
+  spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null>; reduced: boolean; ready: boolean;
 }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const pinned = useMemo(() => pinnedPov(location.search, shots.length), [shots]);
   const shown = useRef(-1);
+  // The tour starts when the farm is shown, not when the canvas mounts: until then the camera holds the opening shot,
+  // so a slow build never skips it (and no paddock visit nobody saw counts toward the wendigo).
+  const startedAt = useRef<number | null>(null);
   useFrame(({ clock }) => {
-    const still = reduced || pinned !== null;
-    const pov = still ? { index: pinned ?? 0, progress: 0, veil: 0 } : povAt(clock.elapsedTime, shots.length);
+    if (ready && startedAt.current === null) startedAt.current = clock.elapsedTime;
+    const still = reduced || pinned !== null || startedAt.current === null;
+    const pov = still ? { index: pinned ?? 0, progress: 0, veil: 0 } : povAt(clock.elapsedTime - startedAt.current!, shots.length);
     const shot = shots[pov.index];
     if (pov.index !== shown.current) {
       shown.current = pov.index;

@@ -2,7 +2,7 @@ import { Bomb } from './Bomb';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFSoftShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
+import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
@@ -147,7 +147,7 @@ export function BarnTable(props: Props) {
   return (
     <div className="relative size-full">
       <Canvas
-        shadows={{ type: PCFSoftShadowMap }}
+        shadows={{ type: PCFShadowMap }}
         dpr={props.phone ? [1, 1.5] : [1, 2]}
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
         camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}

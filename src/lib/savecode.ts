@@ -124,7 +124,7 @@ function settingsFromCode(v: unknown): Json | null {
     const g = v.game, game: Record<string, Json> = {};
     const rounds = pick(g.rounds, [1, 2, 3, 5]); if (rounds !== undefined) game.rounds = rounds;
     const turns = pick(g.turnsPerRound, [2, 3, 5, 7]); if (turns !== undefined) game.turnsPerRound = turns;
-    const lives = pick(g.lives, [1, 2, 3, 5]); if (lives !== undefined) game.lives = lives;
+    const lives = pick(g.lives, [1, 2, 3, 5, 'unlimited']); if (lives !== undefined) game.lives = lives;
     if (typeof g.twists === 'boolean') game.twists = g.twists;
     const bots = pick(g.botCount, [3, 4, 5, 6, 7, 8, 9]); if (bots !== undefined) game.botCount = bots;
     const botLevel = pick(g.botDifficulty, levels); if (botLevel) game.botDifficulty = botLevel;

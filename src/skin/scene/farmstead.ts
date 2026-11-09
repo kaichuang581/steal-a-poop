@@ -42,7 +42,8 @@ class Builder {
   constructor(readonly g: Grid) {}
   ix = (m: number) => Math.round(m / this.g.size);
   set(x: number, y: number, z: number, p: Paint) {
-    const c = p(x, y, z);
+    // Snow takes this builder's own cell size, so the roof's 0.2 m grid and the yard's 0.1 m grid get the same marks.
+    const c = p === snow ? snowAt(x, y, z, this.g.size, 3) : p(x, y, z);
     if (c) this.g.set(x, y, z, c);
   }
   /** An inclusive box of cells, by index. */

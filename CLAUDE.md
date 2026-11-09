@@ -449,10 +449,11 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   model, re-run the tool, commit the images; the tests check the boxes and that the images exist.
 - Warmer light (requested by Brian, 2026-11-08: "warmer and welcoming ... only changing the lighting, dont go too heavy ...
   a warm white christmas whilst still keeping winter vibe. rn it looks a little dark"): in src/skin/table/Rendering.tsx the
-  sky fill is softer with a warm bounce from the snow below (hemisphere #C3CEE2 over #8A7560, about 0.75), the sun warmer
-  and a little stronger, the moon less blue and brighter (0.9), the lanterns warmer and reaching further (40, 14 m), the
-  day's haze a soft grey-white instead of icy teal and the night's a softer navy; exposure 1.08 on Home and the table.
-  The dream, the ice and the loading doors keep their own light.
+  sun warmer and a little stronger, the moon less blue and brighter (0.9), the lanterns warmer and reaching further (40,
+  14 m), the day's haze a soft grey-white instead of icy teal and the night's a softer navy. The dream, the ice and the
+  loading doors keep their own light. Keep the hemisphere fill low (#AEBEDA over #655F5C, 0.5 at night, 0.58 by day) and
+  exposure at 1: a strong warm fill (0.75) with exposure 1.08 was tried and lit the snow's sides as much as its tops, so
+  every drift went one flat grey and the voxels read as blotches (Brian: "all the snow looks completely flat").
 - The loading sign (requested by Brian, 2026-11-08: "the issue isnt really the barn doors, its the paper thing with the
   animation"): the paper slip is gone. A snow-capped plank (kit plank, SnowCap, nails) hangs from the beam on two ropes,
   is lowered on them once the doors shut and sways from the beam. In it, a sunken window onto a moonlit field drawn in

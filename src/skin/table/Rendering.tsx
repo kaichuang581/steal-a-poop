@@ -44,8 +44,9 @@ export function Lights({ hour, phone, viewYaw, lampRef }: { hour: Hour; phone: b
   const pos: [number, number, number] = [Math.sin(az) * Math.cos(el) * 60, Math.sin(el) * 60, Math.cos(az) * Math.cos(el) * 60];
   return (
     <>
-      {/* Sky fill, and a warm bounce off the snow from below, so shaded sides are cosy rather than slate blue. */}
-      <hemisphereLight args={['#C3CEE2', '#8A7560', hour === 'night' ? 0.72 : 0.75]} />
+      {/* Sky fill and a faint bounce from below. Kept low, so the sun or moon on the tops against the shaded sides is what
+          gives the snow its shape: a strong fill here flattened every drift to one grey. */}
+      <hemisphereLight args={['#AEBEDA', '#655F5C', hour === 'night' ? 0.5 : 0.58]} />
       <directionalLight
         position={pos} color={sun.color} intensity={sun.intensity} castShadow
         shadow-mapSize={phone ? [2048, 2048] : [4096, 4096]} shadow-bias={-0.0004} shadow-normalBias={0.02}

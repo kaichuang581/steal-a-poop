@@ -6,6 +6,7 @@ All user-visible changes, newest first.
 
 - Word of the day! A new word floats on the start screen every day, with how to say it, what kind of word it is and a few words on what it means. Weekdays are gentler, weekends harder, and it changes at midnight
 - The Hunt is gone from the farm
+- The loading screen's barn doors are built from voxels like the rest of the farm: planked, painted, iron-hinged, a wreath on one door, snow on the beam and at their foot, and snow falling
 - Going into a game, the barn doors swing shut with a thud, a slip says what is being got ready, and they open onto the table. The game waits for them: the table's intro and your first turn start when you can see them, not behind the doors
 - Security: the game server can no longer be knocked over by a malformed request or message, rooms are harder to flood, a single player's report can no longer get someone banned without a person looking, a parent's "no" to a child's account is final, room names are checked like player names, and nobody but the owner can wear the owner's avatar
 - The game will not run inside another website's frame

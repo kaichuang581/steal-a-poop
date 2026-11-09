@@ -1,6 +1,6 @@
 import { JoinLink } from './share/JoinLink';
 import { useAvatar } from './avatars/store';
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Garland } from './components/Garland';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
@@ -13,6 +13,8 @@ import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
 import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
+// Dev only: bakes the loading screen's doors (tools/renderDoors.mjs). Loaded only when asked for.
+const DoorsRender = lazy(() => import('./loading/DoorsRender'));
 import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot, whenDoorsOpen, whenDoorsShut } from './components/BarnDoors';
 import { PreviewCanvas as WendigoPreviewCanvas } from './table/WendigoPreview';
 import './styles/skin.css';
@@ -93,6 +95,7 @@ export function PaintedApp() {
   if (PREVIEW === 'strips') return <StripsPreview />;
   if (PREVIEW === 'lineup') return <LineupPreview />;
   if (PREVIEW === 'kit') return <KitPreview />;
+  if (PREVIEW === 'doors') return <Suspense fallback={null}><DoorsRender /></Suspense>;
   if (PREVIEW === 'wendigo') return <div style={{ position: 'fixed', inset: 0 }}><WendigoPreviewCanvas /></div>;
   // A ?join=CODE address joins that room once the player is signed in and online.
   // The start screen is always the first thing: nothing to get through before it. The name is picked there, and signing

@@ -437,3 +437,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   dictionary's symbols) and the part of speech (`pos`), a strand of yarn, then the gist; tilted -3° and swaying like the
   title's tiles (still under reduced motion). The update plate no longer shows the version and tilts (4° on a computer,
   -1.5° on a phone).
+- The doors are voxels (requested by Brian, 2026-11-08: "make the loading screen less crappy looking ... nothing like what
+  we're looking for quality wise"). The flat CSS doors are replaced by baked renders of a voxel doorway built for them
+  (src/skin/loading/doorsModel.ts: planked leaves with recessed seams, the white frame and cross with worn paint, riveted
+  strap hinges, pull bars, one wreath; a snowy beam with icicles; a drift). `node tools/renderDoors.mjs` (dev server up)
+  lights them like the farm at night (?preview=doors&part=...) and writes public/loading/doors-*.webp (about 85 KB),
+  preloaded from index.html. The loading screen stays CSS on purpose: it must draw on the first frame and keep moving
+  while the farm is being built, which a live three.js scene can't. Every part has a fixed box (src/skin/loading/
+  doorBoxes.ts, import-free); BarnDoors lays them out on one voxel size (`--vox`) so the beam, leaves and drift meet on any
+  screen, each leaf showing its half and swinging as before. Snow falls in front (none under reduced motion). Change the
+  model, re-run the tool, commit the images; the tests check the boxes and that the images exist.

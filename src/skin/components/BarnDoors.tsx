@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { create } from 'zustand';
 import { playSound } from '../../audio/sound';
 import { useMotionLevel } from '../hooks/useAmbient';
 import { Paper } from '../kit';
+import { DOOR_BOXES, LINTEL_BEAM, LINTEL_SNOW } from '../loading/doorBoxes';
 
 /**
  * The loading screen: barn doors over the whole screen, with a slip pinned between them where a sheep hops a fence and
@@ -73,6 +75,21 @@ const GIVE_UP_TOTAL_MS = 30000; // and never stay shut longer than this, even wh
 /** Whether doors are on screen and not yet opening, so a hold joins them instead of shutting a second pair. */
 export const doorsShut = () => liveKey !== -1;
 let liveKey = -1;
+
+// The baked images, preloaded from index.html so they are in before the doors first draw, and the numbers that lay them
+// out at one voxel size: as big as covers the screen with the doors and the beam above them.
+const art = (part: string) => `url("${import.meta.env.BASE_URL}loading/doors-${part}.webp")`;
+const ART = {
+  '--doors-leaves': art('leaves'), '--doors-lintel': art('lintel'), '--doors-sill': art('sill'),
+  '--vox-cols': DOOR_BOXES.leaves.w, '--leaf-rows': DOOR_BOXES.leaves.h,
+  '--lintel-rows': DOOR_BOXES.lintel.h, '--lintel-above': LINTEL_BEAM + LINTEL_SNOW, '--sill-rows': DOOR_BOXES.sill.h,
+} as CSSProperties;
+
+/** A few flakes drifting down in front of the doors: placed by a fixed hash, so every load looks the same. */
+const FLAKES: CSSProperties[] = Array.from({ length: 22 }, (_, i) => {
+  const r = (k: number) => ((Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
+  return { left: `${(r(1) * 100).toFixed(1)}%`, width: `${4 + Math.round(r(2) * 4)}px`, animationDuration: `${7 + r(3) * 7}s`, animationDelay: `${-r(4) * 14}s`, ['--drift' as string]: `${Math.round((r(5) - 0.5) * 80)}px` } as CSSProperties;
+});
 
 const LINES = ['Counting the sheep', 'Fluffing the hay', 'Lighting the lanterns', 'Shooing the hens', 'Sweeping the snow off the step'];
 
@@ -157,18 +174,18 @@ function Doors({ id }: { id: number }) {
   }, [phase, label]);
   if (phase === 'gone') return null;
   return (
-    <div className="sk-doors" data-phase={phase} role="status" aria-live="polite" aria-label={phase === 'open' ? undefined : 'Loading'}>
+    <div className="sk-doors" data-phase={phase} role="status" aria-live="polite" aria-label={phase === 'open' ? undefined : 'Loading'} style={ART}>
       <div className="sk-doors-spill" />
+      {/* The doors are voxels baked to images (src/skin/loading, tools/renderDoors.mjs), each leaf showing its half. */}
       <div className="sk-doors-frame">
         {(['l', 'r'] as const).map((side) => (
-          <div key={side} className={`sk-door sk-door-${side}`}>
-            <span className="sk-door-brace" />
-            <span className="sk-door-hinge sk-door-hinge-top" /><span className="sk-door-hinge sk-door-hinge-low" />
-            <span className="sk-door-handle" />
-          </div>
+          <div key={side} className={`sk-door sk-door-${side}`}><span className="sk-door-art" /></div>
         ))}
       </div>
+      <div className="sk-doors-sky" />
       <div className="sk-doors-lintel" />
+      <div className="sk-doors-sill" />
+      <div className="sk-doors-snow" aria-hidden="true">{FLAKES.map((f, i) => <i key={i} style={f} />)}</div>
       {/* Pinned over the crack once the doors meet: a sheep hopping a fence, and what is being got ready. Only transform
           and opacity move, so it keeps hopping while a scene is being built and the page is busy. */}
       <Paper kind="slip" pin="top" className="sk-load" aria-hidden="true">

@@ -709,31 +709,39 @@
 /* Barn doors (BarnDoors.tsx): the game is already behind them. They stay shut, under a snowy lintel, until its barn has
    drawn; then they unlatch, lantern light shows in the crack, and they swing in on their hinges while the view steps
    through onto the table. No glow fills the screen and nothing goes white. */
-.sk-doors { position: fixed; inset: 0; z-index: 90; overflow: hidden; pointer-events: all; perspective: 1400px; perspective-origin: 50% 45%; }
+.sk-doors {
+  position: fixed; inset: 0; z-index: 90; overflow: hidden; pointer-events: all; perspective: 1400px; perspective-origin: 50% 45%;
+  /* One voxel's size on screen: as big as it takes for the doors to fill the width and, with the beam over them, the height. */
+  --vox: max(calc(100vw / var(--vox-cols, 96)), calc(100vh / (var(--leaf-rows, 52) + var(--lintel-above, 7) - 1)));
+  --art-w: calc(var(--vox) * var(--vox-cols, 96));
+}
 .sk-doors[data-phase="open"] { pointer-events: none; animation: sk-doors-through 1100ms cubic-bezier(0.5, 0, 0.7, 1) forwards; transform-origin: 50% 52%; }
 .sk-doors-frame { position: absolute; inset: 0; display: flex; transform-style: preserve-3d; }
-.sk-door {
-  position: relative; flex: 1; backface-visibility: hidden;
-  background: repeating-linear-gradient(90deg, rgba(40, 12, 6, 0.38) 0 3px, rgba(255, 210, 180, 0.06) 3px 5px, transparent 5px 52px), #9B3A26;
-  box-shadow: inset 0 0 0 14px #EFE2C8, inset 0 0 0 18px #6B2416, inset 0 -40px 0 18px rgba(40, 12, 6, 0.18);
-}
-.sk-door-l { transform-origin: 0 50%; box-shadow: inset 0 0 0 14px #EFE2C8, inset 0 0 0 18px #6B2416, inset -6px 0 0 18px #4A180E; }
-.sk-door-r { transform-origin: 100% 50%; box-shadow: inset 0 0 0 14px #EFE2C8, inset 0 0 0 18px #6B2416, inset 6px 0 0 18px #4A180E; }
+.sk-door { position: relative; flex: 1; overflow: hidden; backface-visibility: hidden; background: #3A2117; }
+.sk-door-l { transform-origin: 0 50%; }
+.sk-door-r { transform-origin: 100% 50%; }
+/* Each leaf shows its half of the baked doors (src/skin/loading), the crack exactly at the middle of the screen, the top
+   tucked under the beam. Until the image is in, the leaf is plain dark wood. */
+.sk-door-art { position: absolute; top: calc(var(--vox) * (var(--lintel-above, 7) - 1)); width: var(--art-w); height: calc(var(--vox) * var(--leaf-rows, 52)); background: var(--doors-leaves) 0 0 / 100% 100% no-repeat; }
+.sk-door-l .sk-door-art { left: calc(50vw - var(--art-w) / 2); }
+.sk-door-r .sk-door-art { left: calc(var(--art-w) / -2); }
 .sk-doors[data-phase="open"] .sk-door-l { animation: sk-door-swing-l 950ms cubic-bezier(0.5, 0, 0.25, 1) forwards; }
 .sk-doors[data-phase="open"] .sk-door-r { animation: sk-door-swing-r 950ms 40ms cubic-bezier(0.5, 0, 0.25, 1) forwards; }
-/* The cream X brace, like the barn's own doors. */
-.sk-door-brace { position: absolute; inset: 14% 10% 10%; background:
-  linear-gradient(to top right, transparent calc(50% - 9px), #EFE2C8 calc(50% - 9px), #EFE2C8 calc(50% + 9px), transparent calc(50% + 9px)),
-  linear-gradient(to bottom right, transparent calc(50% - 9px), #EFE2C8 calc(50% - 9px), #EFE2C8 calc(50% + 9px), transparent calc(50% + 9px));
-  box-shadow: inset 0 0 0 14px #EFE2C8; }
-/* Black iron strap hinges on the outer edge, and an iron pull by the crack. */
-.sk-door-hinge { position: absolute; width: 34%; height: 22px; background: #2B2420; box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.12), 0 3px 0 rgba(0, 0, 0, 0.3); }
-.sk-door-hinge-top { top: 15%; } .sk-door-hinge-low { bottom: 15%; }
-.sk-door-l .sk-door-hinge { left: 0; } .sk-door-r .sk-door-hinge { right: 0; }
-.sk-door-handle { position: absolute; top: 50%; width: 14px; height: 70px; margin-top: -35px; background: #2B2420; border-radius: 3px; box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.15), 0 3px 0 rgba(0, 0, 0, 0.35); }
-.sk-door-l .sk-door-handle { right: 30px; } .sk-door-r .sk-door-handle { left: 30px; }
-/* The lintel over the doorway, with snow on it. */
-.sk-doors-lintel { position: absolute; inset: 0 0 auto; height: 6vh; min-height: 34px; background: #4A2A18; box-shadow: inset 0 9px 0 #F4F8FB, inset 0 13px 0 #C9DCE8, 0 6px 0 rgba(20, 10, 4, 0.35); }
+/* The snowy beam over the doorway, with its icicles, and the drift at their foot: baked like the doors, at the same
+   voxel size, laid over the top and bottom of the screen. They stay put while the doors swing. */
+.sk-doors-lintel, .sk-doors-sill { position: absolute; left: calc(50vw - var(--art-w) / 2); width: var(--art-w); z-index: 1; pointer-events: none; background: 0 0 / 100% 100% no-repeat; }
+.sk-doors-lintel { top: 0; height: calc(var(--vox) * var(--lintel-rows, 13)); background-image: var(--doors-lintel); }
+/* Night sky behind the snow's uneven top, where the picture has gaps. */
+.sk-doors-sky { position: absolute; inset: 0 0 auto; z-index: 1; height: calc(var(--vox) * 3); background: #12152A; }
+.sk-doors[data-phase="closing"] .sk-doors-sky { animation: sk-doors-lintel-in 420ms ease-out both; }
+.sk-doors-sill { bottom: 0; height: calc(var(--vox) * var(--sill-rows, 7)); background-image: var(--doors-sill); }
+/* A few flakes drifting down in front of the doors, square like the game's snow. */
+.sk-doors-snow { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
+.sk-doors-snow i { position: absolute; top: -12px; aspect-ratio: 1; background: #F4F8FF; box-shadow: 1px 1px 0 rgba(40, 30, 60, 0.35); opacity: 0.85; animation: sk-doors-flake linear infinite; }
+@keyframes sk-doors-flake { from { transform: translate(0, -5vh); } to { transform: translate(var(--drift, 0), 108vh); } }
+.sk-doors[data-phase="open"] .sk-doors-snow { opacity: 0; transition: opacity 300ms ease-out; }
+:root.reduce-motion .sk-doors-snow { display: none; }
+@media (prefers-reduced-motion: reduce) { .sk-doors-snow { display: none; } }
 /* Lantern light in the crack as the latch lifts: a warm line down the middle that widens, then is gone. */
 .sk-doors-spill { position: absolute; top: 0; bottom: 0; left: 50%; width: 30vw; margin-left: -15vw; opacity: 0; pointer-events: none; z-index: 2;
   background: linear-gradient(90deg, transparent, rgba(255, 196, 110, 0.55) 46%, rgba(255, 236, 190, 0.85) 50%, rgba(255, 196, 110, 0.55) 54%, transparent); }
@@ -749,6 +757,7 @@
 .sk-doors[data-phase="closing"] .sk-door-r { animation: sk-door-close-r 620ms linear both; }
 .sk-doors[data-phase="closing"] .sk-doors-frame { animation: sk-doors-jolt 620ms linear both; }
 .sk-doors[data-phase="closing"] .sk-doors-lintel { animation: sk-doors-lintel-in 420ms ease-out both; }
+.sk-doors[data-phase="closing"] .sk-doors-sill { animation: sk-doors-sill-in 420ms ease-out both; }
 .sk-doors[data-phase="closing"] .sk-doors-spill { animation: sk-doors-spill-close 620ms linear both; }
 .sk-doors[data-phase="closing"] .sk-load { opacity: 0; }
 .sk-doors[data-phase="shut"] .sk-load { animation: sk-load-on 360ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both; }
@@ -766,6 +775,7 @@
 }
 @keyframes sk-doors-jolt { 0%, 79% { transform: none; } 83% { transform: translateY(4px) scale(1.006); } 91% { transform: translateY(-1px); } 100% { transform: none; } }
 @keyframes sk-doors-lintel-in { from { transform: translateY(-100%); } to { transform: none; } }
+@keyframes sk-doors-sill-in { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes sk-doors-spill-close { 0%, 40% { opacity: 0; transform: scaleX(1.6); } 62% { opacity: 0.85; transform: scaleX(0.7); } 80% { opacity: 1; transform: scaleX(0.04); } 86%, 100% { opacity: 0; transform: scaleX(0.02); } }
 @keyframes sk-load-on { from { opacity: 0; transform: translateY(-48px) rotate(-7deg); } to { opacity: 1; transform: none; } }
 /* Reduced motion: the doors still cover a load, but they fade in and out instead of swinging, and the sheep stands still. */

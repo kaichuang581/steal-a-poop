@@ -28,12 +28,32 @@ Docs: `docs/LAUNCH.md` (start here), `docs/DEPLOY.md`, `docs/DATABASE.md`, `docs
 The dictionary is the ENABLE word list in `public/words.txt` (172,823 lowercase words,
 one per line). It is fetched once at startup and held in a `Set`.
 
+## The painted barn
+
+The default look is a painted, storybook barn. The classic screens are still available with
+`?skin=classic` (the end-to-end tests build with `VITE_SKIN=classic`).
+
+- **Start now** puts you straight into an easy game with hints, without opening the table setup.
+- **Avatars.** The Avatar button on the home screen opens a picker with 15 characters across five animals.
+  The choice is saved in this browser and is free to change. Only your own player card wears it.
+- **Pixel icons.** The painted screens use small grid-drawn pixel icons instead of emoji, including the
+  icon-only controls for rules, scores, chain, chat, sound, hints, settings, coins, shop, friends and streaks.
+- **Steal feedback.** A steal jolts the table and flashes the screen edge red, with a message naming the
+  thief, the player stolen from, and the wool ball taken. Results include a best-steal line.
+- **Share card.** Finished games and Counting Sheep runs can be shared as a picture where the browser
+  supports sharing files; otherwise the image is downloaded and the text copied.
+- **Swoop.** Starting a game swoops from the home screen into the barn instead of cutting to it.
+
+**Avatars are local for now.** Other players cannot see your avatar yet; the server does not carry the
+choice, so everyone else still sees the default sheep.
+
 ## Architecture
 
 ```
 src/engine/   pure TypeScript, zero React imports. Deterministic given a seed.
 src/state/    zustand store + GameClient seam (the thing a server replaces)
-src/ui/       React components: read state, dispatch actions (incl. tour, guide, tips)
+src/ui/       classic React screens and components (read state, dispatch actions)
+src/skin/     painted barn screens, table scene, avatars, pixel icons, share card
 src/audio/    Web Audio synth (no audio files)
 src/lib/      nickname filter, storage, share card, daily streak, copy
 ```
@@ -75,7 +95,9 @@ interface. Note `apply` already rejects actions from non-human seats.
 | `src/engine/__tests__/` | Vitest suites |
 | `src/state/store.ts` | zustand store, settings, daily attempt bookkeeping |
 | `src/state/gameClient.ts` | The client interface a server replaces |
-| `src/ui/*` | Screens and components (Table, Seat, Pile, InputBar, panels, toasts, end screen…) |
+| `src/ui/*` | Classic screens and components (Table, Seat, Pile, InputBar, panels, toasts, end screen…) |
+| `src/skin/*` | Painted barn UI: home and game screens, 3D table, avatars, pixel icons and share card |
+| `src/skin/avatars/` | The 15-character avatar catalog, picker and browser-local choice |
 | `src/ui/Tour.tsx`, `tourSteps.ts` | Interactive first-game tutorial (data-driven steps) |
 | `src/ui/Guide.tsx`, `guideContent.ts` | How to Play hub: basics, scoring, glossary, FAQ |
 | `src/ui/ScoringTable.tsx` | Scoring reference, built from the engine's own constants and functions |
@@ -161,3 +183,5 @@ interface. Note `apply` already rejects actions from non-human seats.
 - Mobile layout was checked in Chromium device emulation, not on a physical phone with a
   real on-screen keyboard.
 - No UI unit tests; the engine is the tested layer.
+- Avatars are stored in this browser only. Other players cannot see your avatar yet; their view shows the
+  default sheep.

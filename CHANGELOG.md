@@ -58,7 +58,19 @@ All user-visible changes, newest first.
 - The land around the farm is alive: woods in natural clumps, an overgrown orchard, a dry stone wall, drifts, scrub and worn tracks, and sheep out on the open ground
 - The ice in Practice gets its own string of lights and a tree
 
-## Unreleased (not live until the server is deployed and sign-in is configured)
+## Unreleased
+
+### Painted barn (shipped)
+
+- The painted barn is now the default look; `?skin=classic` keeps the old screens
+- Avatar picker with 15 characters; your choice appears on your own player card only, and other players cannot see it yet
+- Pixel icons replace emoji and text on buttons and menu controls
+- "Start now" goes straight into an easy game with hints
+- A steal jolts the table, flashes the screen edge red and names who stole from whom; results show the best steal
+- Share a finished game or Counting Sheep run as a picture card
+- A swoop moves from the home screen into the barn when a game starts
+
+### Not live until the server is deployed and sign-in is configured
 
 - The first three Quick Games sit down at an easy table unless you set your own, and the home screen says so
 - The bots are the farm's own sheep: sheep names and a "farm sheep" tag on their cards, and every table opens with who is at it

@@ -13,7 +13,7 @@ function yearOfDates(year: number): string[] {
 }
 
 describe('the word list', () => {
-  it('has 365 entries, no duplicate words, every field filled, meanings at most 90 characters', () => {
+  it('has 365 entries, no duplicate words, every field filled, meanings at most 90 characters, the short gist at most 32', () => {
     expect(WOTD).toHaveLength(365);
     expect(new Set(WOTD.map((w) => w.word)).size).toBe(365);
     for (const w of WOTD) {
@@ -21,6 +21,8 @@ describe('the word list', () => {
       expect(w.meaning.trim(), w.word).not.toBe('');
       expect(w.example.trim(), w.word).not.toBe('');
       expect(w.meaning.length, w.word).toBeLessThanOrEqual(90);
+      expect(w.short.trim(), w.word).not.toBe('');
+      expect(w.short.length, w.word).toBeLessThanOrEqual(32);
       expect([1, 2, 3]).toContain(w.level);
     }
   });

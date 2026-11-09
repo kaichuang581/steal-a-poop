@@ -427,6 +427,8 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   WordOfDay.tsx, tests). The plan's hard rules bind it: no streak, count, reward or "come back" text; every meaning and
   example is written for the game; every word is in public/words.txt. Levels are 104 / 157 / 104, not the plan's rough
   105 / 155 / 105, because 2026 has exactly that many Mon-Tue, Wed-Fri and weekend days and its own test wants every
-  word in the first year. On a computer the slip hangs to the right of the title board (`.sk-wotd-anchor`), so opening
-  it never moves or covers the menu; on a phone it is one line in the 34 px strip above the name plate, and opened it
-  lies over the plate until tapped shut. Brian has not reviewed the 365 words yet.
+  word in the first year. No paper (Brian, 2026-11-08: "not a whole piece of paper, just make the text floating"): a label,
+  the word and its `short` gist (32 characters at most) float in white over a dark outline and glow, readable over day
+  snow and night sky alike. On a computer it stands alone on the right, level with the title (`.sk-wotd--side`), and
+  gives way to the right-hand panel when one opens; on a phone it is two small lines in the 34 px strip above the name
+  plate. It takes no clicks; the longer meaning and example stay in words.ts. Brian has not reviewed the 365 words yet.

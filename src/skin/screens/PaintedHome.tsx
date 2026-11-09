@@ -382,7 +382,7 @@ export function PaintedHome() {
 
       {mobile ? (
         <>
-          <div className="sk-wotd-strip absolute inset-x-0 top-16 flex flex-col items-center">
+          <div className="absolute inset-x-0 top-16 flex flex-col items-center">
             <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
             <WordOfDay className="sk-wotd--compact" />
           </div>
@@ -400,13 +400,11 @@ export function PaintedHome() {
           {/* Left column: the title board, then the menu, like a console title screen. */}
           {/* "safe": on a short window the column starts under the name plate instead of riding up over it. */}
           <div className="absolute bottom-14 left-10 top-20 flex w-[27rem] flex-col gap-3" style={{ justifyContent: 'safe center' }}>
-            <div className="sk-wotd-anchor">
-              <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
-              <WordOfDay />
-            </div>
+            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
             {step === 'tables' ? tables : <div className="pointer-events-none opacity-40" inert>{tables}</div>}
           </div>
-          {step !== 'tables' && (
+          {/* The word of the day stands on its own on the right; a panel opening there takes its place. */}
+          {step === 'tables' ? <WordOfDay className="sk-wotd--side" /> : (
             <div className="absolute right-12 top-1/2 max-h-[86%] w-[380px] -translate-y-1/2 overflow-y-auto">{panel}</div>
           )}
           {/* Bottom bar: button prompts, a rotating tip, the streak and the small print. */}

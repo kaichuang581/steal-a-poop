@@ -1,10 +1,4 @@
 import { ADMIN_AVATAR_ID, isAvatarId } from '../avatars/ids';
-import { asDexEntry, DEX_ORDER, mergeDex } from '../hunt/bestiary';
-import type { DexEntry } from '../hunt/bestiary';
-import { isRunLog, LOG_MAX } from '../hunt/log';
-import type { RunLog } from '../hunt/log';
-import { isPackRecord, PACKS_MAX } from '../hunt/packs';
-import type { PackRecord } from '../hunt/packs';
 
 /**
  * The save code (plan v7 Part 6): a copy-and-paste text that carries a player's records to another browser, because
@@ -19,7 +13,7 @@ export const MAX_CODE_LENGTH = 100_000;
 type Json = unknown;
 interface Spec {
   key: string;
-  /** How the change reads in the summary: "the bestiary". */
+  /** How the change reads in the summary: "the dream streak". */
   label: string;
   /** Stored as plain text rather than JSON (the avatar). */
   raw?: boolean;
@@ -35,60 +29,12 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
-interface HuntBest { defeated: number; damage: number; [k: string]: unknown }
-const betterHunt = (a: HuntBest, b: HuntBest) => (b.defeated > a.defeated || (b.defeated === a.defeated && b.damage > a.damage) ? b : a);
-
 interface Streak { count: number; last: string; best: number; blankets: number; earnedAt: number; covered?: boolean }
 
+/** Records older versions saved that this one no longer has. */
+const RETIRED_KEYS: readonly string[] = ['sap:hunt-best', 'sap:hunt-bestiary', 'sap:hunt-packs', 'sap:hunt-log'];
+
 export const SAVE_KEYS: readonly Spec[] = [
-  {
-    key: 'sap:hunt-best', label: 'your Hunt best',
-    valid: (v) => (isObj(v) && isNum(v.defeated) && isNum(v.damage) ? v : null),
-    merge: (l, i) => (l ? betterHunt(l as HuntBest, i as HuntBest) : i),
-  },
-  {
-    key: 'sap:hunt-bestiary', label: 'the bestiary',
-    valid: (v) => {
-      if (!isObj(v)) return null;
-      const out: Record<string, DexEntry> = {};
-      for (const [k, e] of Object.entries(v)) {
-        if (!(DEX_ORDER as readonly string[]).includes(k)) return null;
-        const card = asDexEntry(e);
-        if (!card) return null;
-        out[k] = card;
-      }
-      return out;
-    },
-    merge: (l, i) => {
-      const a = (l ?? {}) as Record<string, DexEntry>, b = i as Record<string, DexEntry>;
-      const out: Record<string, DexEntry> = { ...a };
-      for (const [k, e] of Object.entries(b)) out[k] = a[k] ? mergeDex(a[k], e) : e;
-      return out;
-    },
-  },
-  {
-    key: 'sap:hunt-packs', label: 'the packs you fought',
-    valid: (v) => (Array.isArray(v) && v.every(isPackRecord) ? v : null),
-    merge: (l, i) => {
-      const byCode = new Map<string, PackRecord>();
-      for (const p of [...((l ?? []) as PackRecord[]), ...(i as PackRecord[])]) {
-        const o = byCode.get(p.code);
-        if (!o) { byCode.set(p.code, p); continue; }
-        byCode.delete(p.code);
-        byCode.set(p.code, { code: p.code, attempts: Math.max(o.attempts, p.attempts), best: betterHunt(o.best, p.best) as PackRecord['best'] });
-      }
-      return [...byCode.values()].slice(-PACKS_MAX);
-    },
-  },
-  {
-    key: 'sap:hunt-log', label: 'the hunt log',
-    valid: (v) => (Array.isArray(v) && v.every(isRunLog) ? v : null),
-    merge: (l, i) => {
-      const seen = new Set<string>();
-      const all = [...((l ?? []) as RunLog[]), ...(i as RunLog[])].filter((e) => { const k = JSON.stringify(e); if (seen.has(k)) return false; seen.add(k); return true; });
-      return all.sort((a, b) => a.date.localeCompare(b.date)).slice(-LOG_MAX);
-    },
-  },
   {
     key: 'sap:dream', label: "the last night's dream",
     valid: (v) => (isObj(v) && isDate(v.date) && (v.status === 'started' || v.status === 'done') ? v : null),
@@ -190,19 +136,14 @@ function writeLocal(spec: Spec, v: Json): void {
   try { localStorage.setItem(spec.key, spec.raw ? String(v) : JSON.stringify(v)); } catch { /* storage blocked */ }
 }
 
-/** Every record on this device as one code. If it would pass the limit, the oldest hunt-log runs are left out. */
+/** Every record on this device as one code. */
 export function exportSave(now = new Date()): string {
   const data: Record<string, Json> = {};
   for (const spec of SAVE_KEYS) {
     const v = readLocal(spec);
     if (v !== undefined) data[spec.key] = v;
   }
-  let code = encode({ v: 1, at: now.toISOString(), data });
-  while (code.length > MAX_CODE_LENGTH && Array.isArray(data['sap:hunt-log']) && (data['sap:hunt-log'] as Json[]).length) {
-    data['sap:hunt-log'] = (data['sap:hunt-log'] as Json[]).slice(1);
-    code = encode({ v: 1, at: now.toISOString(), data });
-  }
-  return code;
+  return encode({ v: 1, at: now.toISOString(), data });
 }
 
 export type Change = 'new' | 'merged' | 'same' | 'kept';
@@ -237,8 +178,9 @@ export function planImport(input: string): ImportPlan {
     rows.push({ key: spec.key, label: spec.label, change: local === undefined ? 'new' : same ? 'same' : 'merged' });
     if (!same) values[spec.key] = merged;
   }
-  // Keys this version does not know are skipped, never written.
-  for (const k of Object.keys(data)) if (!SAVE_KEYS.some((s) => s.key === k)) skipped.push(k);
+  // Keys this version does not know are skipped, never written. The Hunt's records (removed in 0.5.0) are dropped quietly:
+  // a code saved before then is still good, there is just nothing left to restore them into.
+  for (const k of Object.keys(data)) if (!SAVE_KEYS.some((s) => s.key === k) && !RETIRED_KEYS.includes(k)) skipped.push(k);
   const total = rows.length + skipped.length;
   const restored = rows.filter((r) => r.change === 'new' || r.change === 'merged' || r.change === 'same').length;
   const summary = `${restored} of ${total} records restored${skipped.length ? `; ${skipped.join(', ')} ${skipped.length === 1 ? 'was' : 'were'} unreadable` : ''}.`;

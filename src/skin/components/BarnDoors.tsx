@@ -5,7 +5,7 @@ import { Paper } from '../kit';
 /**
  * The loading screen: shut barn doors over the whole screen, with a slip pinned between them where a sheep hops a fence
  * and the slip says what is being got ready. It is the one loading screen for the whole painted skin: the first load,
- * a game, practice, the dream, the Hunt's word list. Whatever is loading mounts behind the doors at once; they stay
+ * a game, practice, the dream. Whatever is loading mounts behind the doors at once; they stay
  * shut until it is ready, then swing in on their hinges onto it. Never a blank frame, never a half-built scene.
  *
  * Ready means: nothing is holding the doors (`useLoadingHold`), and, when the load has a 3D scene, every three.js
@@ -18,7 +18,7 @@ const useDoors = create<Doors>(() => ({ key: 0, canvas: true, holds: {} }));
 export const playBarnDoors = (opts: { canvas?: boolean } = {}) => useDoors.setState((s) => ({ key: s.key + 1, canvas: opts.canvas ?? true }));
 
 /** The page's first screen: the doors are shut from the very first frame, so the screen being built behind them is never
- *  seen first and then covered. `canvas: false` when the first screen has no 3D scene to wait for (the Hunt). */
+ *  seen first and then covered. `canvas: false` when the first screen has no 3D scene to wait for. */
 export const shutDoorsAtBoot = (opts: { canvas?: boolean } = {}) => {
   if (useDoors.getState().key === 0) useDoors.setState({ key: 1, canvas: opts.canvas ?? true });
 };

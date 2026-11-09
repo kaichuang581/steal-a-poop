@@ -7,8 +7,6 @@ import { useStore } from '../state/store';
 import { Lobby } from '../ui/Lobby';
 import { RoomScreen } from '../ui/RoomScreen';
 import { useHour } from './hooks/useAmbient';
-import { HuntScreen } from './hunt/HuntScreen';
-import { takePackFromUrl, useHuntUi } from './hunt/huntStore';
 import { DreamScreen } from './dream/DreamScreen';
 import { useDreamUi } from './dream/dreamStore';
 import { PaintedGame } from './screens/PaintedGame';
@@ -45,12 +43,10 @@ export function PaintedApp() {
   const inRoom = useRoomStore((s) => s.room !== null);
   const lobbyOpen = useRoomStore((s) => s.open);
   const hour = useHour();
-  const hunting = useHuntUi((s) => s.open);
   const dreaming = useDreamUi((s) => s.open);
   // The first load goes behind the doors from the first frame: Home's farm takes seconds to build, and shutting the
-  // doors only once its scene mounted showed Home first and then covered it. A ?pack link opens the Hunt, which has no
-  // scene, so the doors only wait for its word list.
-  useState(() => { if (!PREVIEW) shutDoorsAtBoot({ canvas: !new URLSearchParams(location.search).has('pack') }); });
+  // doors only once its scene mounted showed Home first and then covered it.
+  useState(() => { if (!PREVIEW) shutDoorsAtBoot(); });
   useSkinFonts();
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
@@ -63,11 +59,6 @@ export function PaintedApp() {
     return () => { delete root.dataset.skin; };
   }, []);
   useEffect(() => { document.documentElement.dataset.hour = hour; }, [hour]);
-  // A ?pack=CODE address opens the Hunt straight into that pack (plan v7 Part 5.1); the parameter is read once.
-  useEffect(() => {
-    const code = takePackFromUrl();
-    if (code !== null && !PREVIEW) useHuntUi.getState().openHunt(code);
-  }, []);
 
   // The loading screen (BarnDoors) covers every way into a 3D screen: the doors shut over the screen being left, and the
   // new one mounts only two frames later, once they are on screen, so its build never freezes the old screen half-way
@@ -93,10 +84,9 @@ export function PaintedApp() {
   // in is one button on it, for whoever wants an account.
   const home = <PaintedHome />;
   const screen = mounted === 'dream' && dreaming ? <DreamScreen />
-    : hunting ? <HuntScreen />
     : mounted === 'game' && inGame ? <PaintedGame />
     : inRoom ? <div className="sk-rooms h-full"><RoomScreen /></div>
     : lobbyOpen ? <div className="sk-rooms h-full"><Lobby /></div>
     : home;
-  return <><JoinLink />{screen}{!dreaming && !hunting && !inGame && (inRoom || lobbyOpen) && <Garland />}<BarnDoors /></>;
+  return <><JoinLink />{screen}{!dreaming && !inGame && (inRoom || lobbyOpen) && <Garland />}<BarnDoors /></>;
 }

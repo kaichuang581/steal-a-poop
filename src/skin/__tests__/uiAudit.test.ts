@@ -32,8 +32,4 @@ describe('the farm kit audit', () => {
       expect(findings.some((f) => f.file === a.file && (a.selectorOrLine === '*' || f.selector.includes(a.selectorOrLine) || f.text.includes(a.selectorOrLine))), `${a.file} ${a.selectorOrLine} matches nothing`).toBe(true);
     }
   });
-
-  it('never reads the Hunt, which keeps its own look', () => {
-    expect(findings.some((f) => f.file.includes('/hunt/'))).toBe(false);
-  });
 });

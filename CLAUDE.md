@@ -399,3 +399,8 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   scene (the dream used to stall on Home, then show its HUD over an empty dark screen, then pop in). Under reduced motion
   they fade instead of swinging. Only transform and opacity animate on the slip, so the sheep keeps hopping while the
   page is busy. The bots' thought dots over their heads are gone (the speech bubble shows them typing).
+- The Hunt is removed (requested by Brian, 2026-11-08: "remove the hunt entirely"). src/hunt, src/skin/hunt, the menu
+  item, the ?pack= link, the admin panel's hunt log, tools/huntCheck.mjs, the v7 plan and its screenshots are gone, as
+  are WORDS_VERSION/WORDS_HASH (only pack codes used them). Every Hunt bullet above is history; don't rebuild any of it
+  unprompted. Save codes made before keep working: their sap:hunt-* records are dropped quietly (RETIRED_KEYS in
+  src/lib/savecode.ts). Old sap:hunt-* keys left in players' browsers are harmless and are not cleaned up.

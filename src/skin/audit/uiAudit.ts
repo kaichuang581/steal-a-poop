@@ -5,8 +5,8 @@ import { join, relative, resolve as resolvePath, sep } from 'node:path';
  * The farm kit's audit (docs/REDESIGN_PLAN_V6_UI.md Part 3.1). It reads the painted skin's stylesheets and components
  * and reports every surface that is a shape rather than a material: gradients used as a colour, rounded corners over
  * 4 px, blur-only shadows, Tailwind colour and shadow utilities, emoji or typographic glyphs used as icons, and any font
- * that is not one of the three tokens. src/skin/hunt keeps its own look and is not read (V6 decision 9.3); tests and
- * this folder are not surfaces and are not read either.
+ * that is not one of the three tokens. Tests and
+ * this folder are not surfaces and are not read.
  */
 
 export type Kind = 'gradient' | 'radius' | 'shadow' | 'utility' | 'emoji' | 'font';
@@ -52,7 +52,7 @@ function files(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) {
-      if (name === 'hunt' || name === '__tests__' || name === 'audit') continue;
+      if (name === '__tests__' || name === 'audit') continue;
       files(p, out);
     } else if (/\.(css|tsx)$/.test(name) && !/\.test\.tsx$/.test(name)) out.push(p);
   }

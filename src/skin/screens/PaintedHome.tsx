@@ -7,9 +7,6 @@ import { useGuest } from '../../auth/guest';
 import { useDevice } from '../device';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
-import { getHuntBest } from '../../hunt/record';
-import { dexProgress, readBestiary } from '../../hunt/bestiary';
-import { useHuntUi } from '../hunt/huntStore';
 import { dreamSeed, dreamShareText } from '../../dream/dream';
 import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
 import { dreamLink, useDreamUi } from '../dream/dreamStore';
@@ -112,8 +109,6 @@ export function PaintedHome() {
   const reduced = useMotionLevel() === 'reduced';
   const mobile = useIsMobile();
   const today = useToday();
-  const huntBest = getHuntBest();
-  const huntMet = dexProgress(readBestiary()).met;
   const dream = getDream(today);
   const streak = getDreamStreak(today);
   const blankets = loadStreak().blankets;
@@ -215,11 +210,6 @@ export function PaintedHome() {
       caption: `Last night's dream, dreamt today: until ${new Date(new Date().setHours(23, 59, 0, 0)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase()}.`,
       onSelect: () => useDreamUi.getState().openDream(false, repair),
     } satisfies MenuItem] : []),
-    {
-      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}{huntMet ? ` · ${huntMet}/6 met` : ''}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
-      caption: "Fight off predator after predator with words. Hunt as often as you like. Got a friend's pack code? Enter it in the Hunt.",
-      onSelect: () => useHuntUi.getState().openHunt(),
-    },
     {
       id: 'practice', label: 'Practice', badge: drillBest > 0 ? <MenuTag tone="green">best {drillBest}</MenuTag> : undefined, disabled: !ready,
       caption: 'You against one bot, on one life. Chain as many words as you can.', onSelect: () => setStep('practice'),

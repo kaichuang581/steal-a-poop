@@ -40,7 +40,7 @@ export function SaveCodeRow() {
         </span>
       </div>
       <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>
-        {copied ? `Copied: ${copied.toLocaleString()} characters. Paste it into Settings on your other browser.` : 'Carry your records to another browser: your bests, the bestiary, your dream streak.'}
+        {copied ? `Copied: ${copied.toLocaleString()} characters. Paste it into Settings on your other browser.` : 'Carry your records to another browser: your bests, your dream streak, your name and avatar.'}
       </p>
       {pasting && (
         <div className="mt-2">

@@ -34,3 +34,4 @@ primary_region = "yyz" # Toronto; change to the region closest to most players
   memory = "512mb"
   cpu_kind = "shared"
   cpus = 1
+  memory_mb = 512

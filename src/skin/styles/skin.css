@@ -1121,3 +1121,6 @@
 .sk-farm-fade[data-instant] { transition: none; }
 :root.reduce-motion .sk-farm-fade { transition: none; }
 @media (prefers-reduced-motion: reduce) { .sk-farm-fade { transition: none; } }
+
+/* The animals' pixel heads (AvatarIcon): drawn whole, never squashed, no gap under them. */
+.sk-avatar-head { display: block; object-fit: contain; flex: none; user-select: none; }

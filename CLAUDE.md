@@ -487,3 +487,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   when entering the dream (it predates this work and never shows in production) and three's own THREE.Clock notice.
   Tests outside src/skin were edited or added for the Hunt removal, the security pass and the clock hold; each one
   follows a change Brian asked for.
+- The avatar heads and the tab icon (requested by Brian, 2026-11-09, with his own pixel-art sheet of six heads): AvatarIcon
+  shows src/skin/assets/heads/<animal>.png (cut from his sheet with its own transparency, each a padded square) wherever
+  an avatar appears: the picker, the name plate on Home and the ledger. The admin's photo is unchanged. The old 12 x 12
+  drawn portraits (portraits.ts) are no longer shown; the file stays for its existing test. The tab icon is the sheep's
+  head (public/favicon-32.png, favicon-64.png, and apple-touch-icon.png on a cream tile); favicon.svg is gone. Icon and
+  preload links in index.html are page-relative because the dev server doubles a %BASE_URL% prefix.

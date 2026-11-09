@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#2a1450"/>
-  <rect x="9" y="9" width="46" height="46" rx="10" fill="#fcd9a0" stroke="#c98a4b" stroke-width="3"/>
-  <text x="32" y="46" text-anchor="middle" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="36" font-weight="900" fill="#6b4423">S</text>
-</svg>

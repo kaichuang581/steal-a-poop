@@ -4,6 +4,7 @@ All user-visible changes, newest first.
 
 ## 0.5.0
 
+- New avatar portraits: pixel-art heads for the sheep, pig, cow, goat, horse and chicken, and the sheep is the tab icon
 - Word of the day! A new word floats on the start screen every day, with how to say it, what kind of word it is and a few words on what it means. Weekdays are gentler, weekends harder, and it changes at midnight
 - The Hunt is gone from the farm
 - The loading screen's barn doors are built from voxels like the rest of the farm: planked, painted, iron-hinged, a wreath on one door, snow on the beam and at their foot, and snow falling

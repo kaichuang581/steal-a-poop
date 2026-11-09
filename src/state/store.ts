@@ -9,6 +9,7 @@ import { isFirstGames, needsSoftGame, recordBests, recordQuickResult } from '../
 import type { GameResult } from '../lib/record';
 import type { PracticeRun } from '../lib/practice';
 import { clearSoloGame, loadSoloGame, saveSoloGame, type SavedSoloGame } from '../lib/soloSave';
+import { loadStats, recordGame, resetStats as resetStoredStats, type StatsData } from '../lib/stats';
 import { load, save } from '../lib/storage';
 import { isTourDone, setTourDone } from '../lib/tips';
 import { bridge } from './bridge';
@@ -60,6 +61,8 @@ interface Store {
   afterTour: 'menu' | 'quick';
   /** A Quick or Practice game left behind by an earlier visit, if it is still fresh. */
   resumable: SavedSoloGame | null;
+  /** Local-only stats for finished Quick and Practice games. */
+  stats: StatsData;
   loadDictionary(): Promise<void>;
   setSettings(patch: Partial<Settings>): void;
   /**
@@ -83,6 +86,8 @@ interface Store {
   refreshResume(): void;
   /** Restores a saved game and continues its clock from where it stopped. */
   resumeSaved(): boolean;
+  /** Wipes local stats. Callers ask the player to confirm first. */
+  resetStats(): void;
   startTour(after: 'menu' | 'quick'): boolean;
   endTour(next: 'menu' | 'quick'): void;
   /** Valid words for the current chain letter (tutorial hints). */
@@ -121,7 +126,7 @@ const VOLUME_KEY = 'sap:volume';
 const REDUCE_KEY = 'sap:reduceMotion';
 const LARGE_KEY = 'sap:largeText';
 
-/** Quick and Practice games run in this browser, so they are the games that can be resumed. */
+/** Quick and Practice games run in this browser: they can be resumed, and only their results count towards local stats. */
 function isSolo(mode: Mode): mode is 'quick' | 'practice' {
   return mode === 'quick' || mode === 'practice';
 }
@@ -131,6 +136,11 @@ function persist(mode: Mode, game: GameState | null, engineNow: number): void {
   if (!isSolo(mode)) return;
   if (!game || game.phase === 'gameOver') clearSoloGame();
   else saveSoloGame(mode, game, engineNow);
+}
+
+/** True on the update that finishes the game, so a result is recorded exactly once. */
+function justFinished(prev: GameState, next: GameState): boolean {
+  return next.phase === 'gameOver' && prev.phase !== 'gameOver';
 }
 
 export const useStore = create<Store>((set, get) => ({
@@ -156,6 +166,7 @@ export const useStore = create<Store>((set, get) => ({
   tourDone: isTourDone(),
   afterTour: 'menu',
   resumable: loadSoloGame(),
+  stats: loadStats(),
 
   async loadDictionary() {
     if (get().client) return;
@@ -246,6 +257,9 @@ export const useStore = create<Store>((set, get) => ({
     persist(mode, result.state, now);
     const done = finished(mode, game, result.state);
     if (done) set(done);
+    if (justFinished(game, result.state) && isSolo(mode)) {
+      set({ stats: recordGame(result.state, mode) });
+    }
     return result;
   },
 
@@ -267,6 +281,9 @@ export const useStore = create<Store>((set, get) => ({
     persist(mode, next, now);
     const done = finished(mode, game, next);
     if (done) set(done);
+    if (justFinished(game, next) && isSolo(mode)) {
+      set({ stats: recordGame(next, mode) });
+    }
     if (next.phase === 'gameOver' && game.phase !== 'gameOver' && mode === 'daily' && dailyDate) {
       const ranked = rankPlayers(next.players);
       const me = next.players[0];
@@ -313,6 +330,10 @@ export const useStore = create<Store>((set, get) => ({
       now: saved.savedNow, paused: false, pausedRaw: 0, timeOffset, resumable: null,
     });
     return true;
+  },
+
+  resetStats() {
+    set({ stats: resetStoredStats() });
   },
 
   startTour(after) {

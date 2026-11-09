@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## 0.4.1
+
+- The barn doors close from the very first frame when the game opens, and open once the farm is built, instead of the start screen showing first and the doors slamming shut over it seconds later
+
 ## 0.4.0
 
 - The Hunt opens on a lobby instead of throwing you straight into a fight: New Pack, Enter Code, Bestiary or back to the farm. Nothing starts until you choose

@@ -15,7 +15,7 @@ import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
 import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
-import { BarnDoors, doorsShut, playBarnDoors } from './components/BarnDoors';
+import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot } from './components/BarnDoors';
 import { PreviewCanvas as WendigoPreviewCanvas } from './table/WendigoPreview';
 import './styles/skin.css';
 
@@ -47,6 +47,10 @@ export function PaintedApp() {
   const hour = useHour();
   const hunting = useHuntUi((s) => s.open);
   const dreaming = useDreamUi((s) => s.open);
+  // The first load goes behind the doors from the first frame: Home's farm takes seconds to build, and shutting the
+  // doors only once its scene mounted showed Home first and then covered it. A ?pack link opens the Hunt, which has no
+  // scene, so the doors only wait for its word list.
+  useState(() => { if (!PREVIEW) shutDoorsAtBoot({ canvas: !new URLSearchParams(location.search).has('pack') }); });
   useSkinFonts();
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();

@@ -17,6 +17,12 @@ const useDoors = create<Doors>(() => ({ key: 0, canvas: true, holds: {} }));
 /** Shut the doors now; they open once the new scene has drawn (or, with `canvas: false`, once nothing holds them). */
 export const playBarnDoors = (opts: { canvas?: boolean } = {}) => useDoors.setState((s) => ({ key: s.key + 1, canvas: opts.canvas ?? true }));
 
+/** The page's first screen: the doors are shut from the very first frame, so the screen being built behind them is never
+ *  seen first and then covered. `canvas: false` when the first screen has no 3D scene to wait for (the Hunt). */
+export const shutDoorsAtBoot = (opts: { canvas?: boolean } = {}) => {
+  if (useDoors.getState().key === 0) useDoors.setState({ key: 1, canvas: opts.canvas ?? true });
+};
+
 /** While `active`, keep the doors shut (and shut them if they are not), with `label` on the slip. If this hold shuts
  *  the doors itself, `canvas` says whether they also wait for a new scene to draw. */
 export function useLoadingHold(id: string, active: boolean, label = 'Getting the barn ready', canvas = false) {
@@ -30,7 +36,8 @@ export function useLoadingHold(id: string, active: boolean, label = 'Getting the
 /** The scenes' canvases mark themselves once they have drawn a few frames (Rendering's MarkDrawn). */
 export const DRAWN_ATTR = 'data-drawn';
 const HOLD_MS = 450; // the doors are seen shut, at least for a beat
-const GIVE_UP_MS = 15000; // no WebGL, or something stuck: open anyway
+const GIVE_UP_MS = 15000; // a scene that never draws (no WebGL, something stuck): open anyway this long after it mounted
+const GIVE_UP_TOTAL_MS = 30000; // and never stay shut longer than this, even while the scene is still being built
 /** The key of the doors on screen now, so a hold joins them instead of shutting a second pair. */
 export const doorsShut = () => liveKey !== -1;
 let liveKey = -1;
@@ -54,12 +61,16 @@ function Doors({ id }: { id: number }) {
     before.current = new Set(document.querySelectorAll(`canvas[${DRAWN_ATTR}]`));
     const t0 = performance.now();
     let raf = 0;
+    let sceneAt = 0; // when a new scene first mounted: the first load builds its world before there is one
     const tick = () => {
-      const age = performance.now() - t0;
+      const now = performance.now();
+      const age = now - t0;
       const { holds: h, canvas } = useDoors.getState();
       const scenes = [...document.querySelectorAll('canvas[data-engine]')];
+      if (!sceneAt && scenes.some((c) => !before.current!.has(c))) sceneAt = now;
       const drawn = !canvas || (scenes.some((c) => c.hasAttribute(DRAWN_ATTR) && !before.current!.has(c)) && scenes.every((c) => c.hasAttribute(DRAWN_ATTR)));
-      if ((age > HOLD_MS && drawn && Object.keys(h).length === 0) || age > GIVE_UP_MS) return setPhase('open');
+      const stuck = (canvas ? sceneAt > 0 && now - sceneAt > GIVE_UP_MS : age > GIVE_UP_MS) || age > GIVE_UP_TOTAL_MS;
+      if ((age > HOLD_MS && drawn && Object.keys(h).length === 0) || stuck) return setPhase('open');
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

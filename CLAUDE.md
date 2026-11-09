@@ -404,3 +404,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   are WORDS_VERSION/WORDS_HASH (only pack codes used them). Every Hunt bullet above is history; don't rebuild any of it
   unprompted. Save codes made before keep working: their sap:hunt-* records are dropped quietly (RETIRED_KEYS in
   src/lib/savecode.ts). Old sap:hunt-* keys left in players' browsers are harmless and are not cleaned up.
+- The doors, refined (requested by Brian, 2026-11-08: "refine the loading screen and the animation to going into the core
+  gameplay"). Going into a game, practice, the tutorial or the dream, the doors swing shut over the screen being left
+  (CLOSE_MS 620, meeting at 80% with a thud sound and a jolt, the crack of light squeezed out), then the slip drops in
+  with what is loading ("Setting the table", "Clearing the ice", "Whistling for the sheepdog", "Tucking the farmer in";
+  "Opening up the barn" on the first load). PaintedApp mounts the new screen only once they are fully shut
+  (`whenDoorsShut`), and a solo game's clock is held (`holdClock`/`releaseClock` in the store, separate from the tutorial's
+  `paused`, overlap counted once) until they start to open (`whenDoorsOpen`), so the table's intro and the first turn
+  play in front of the player. Before this, the turn clock was at about 10 s when the doors opened. Keys are blocked
+  while the doors are up (Ctrl/Cmd/Alt shortcuts pass). The first load starts already shut (`shutDoorsAtBoot`). The
+  open swing has a latch-and-creak sound. Rooms are not held: the server keeps their time.

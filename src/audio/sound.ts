@@ -1,6 +1,6 @@
 import { useStore } from '../state/store';
 
-export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom';
+export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom' | 'doorShut' | 'doorOpen';
 
 let ctx: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
@@ -142,6 +142,20 @@ function schedule(c: AudioContext, kind: SoundKind): void {
       tone(c, { freq: 2600, dur: 0.18, type: 'triangle', vol: 0.18, to: 900 });
       for (let i = 0; i < 26; i++) tone(c, { freq: 2200 + Math.random() * 4800, at: 0.1 + Math.random() * 1.1, dur: 0.06 + Math.random() * 0.12, type: i % 3 ? 'sine' : 'triangle', vol: 0.05 + Math.random() * 0.05 });
       whoosh(c, 0.35, 1.6, 1400, 4200, 0.35);
+      break;
+    case 'doorShut': // the barn doors meeting: a heavy wooden thud, a short rattle of the latch
+      tone(c, { freq: 78, dur: 0.32, type: 'sine', vol: 0.32, to: 42 });
+      tone(c, { freq: 160, dur: 0.08, type: 'triangle', vol: 0.08, to: 90 });
+      whoosh(c, 0, 0.14, 900, 200, 0.28);
+      tone(c, { freq: 1900, at: 0.09, dur: 0.035, type: 'square', vol: 0.025 });
+      tone(c, { freq: 1500, at: 0.15, dur: 0.03, type: 'square', vol: 0.018 });
+      break;
+    case 'doorOpen': // the latch lifting, then the doors creaking in on their hinges
+      tone(c, { freq: 2100, dur: 0.03, type: 'square', vol: 0.03 });
+      tone(c, { freq: 1300, at: 0.05, dur: 0.04, type: 'square', vol: 0.02 });
+      tone(c, { freq: 210, at: 0.12, dur: 0.55, type: 'sawtooth', vol: 0.022, to: 150 });
+      tone(c, { freq: 231, at: 0.16, dur: 0.5, type: 'sawtooth', vol: 0.016, to: 170 });
+      whoosh(c, 0.1, 0.8, 300, 1400, 0.16);
       break;
     case 'alarm': // the barn klaxon: two notes blared three times over a rising and falling siren
       for (let i = 0; i < 6; i++) tone(c, { freq: i % 2 ? 415 : 554, at: i * 0.22, dur: 0.2, type: 'square', vol: 0.085 });

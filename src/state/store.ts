@@ -54,6 +54,10 @@ interface Store {
   largeText: boolean;
   /** Tutorial pause: the game clock stops; `now` stays at the moment of the pause. */
   paused: boolean;
+  /** The loading screen's hold: the clock stays stopped while the barn doors are shut over a new game, so its intro and
+   *  first turn start when the player can see them. Separate from `paused`, which the tutorial owns. */
+  held: boolean;
+  /** When the clock last stopped, for `paused` or `held`, whichever came first. */
   pausedRaw: number;
   /** Total time spent paused. Engine time is performance.now() minus this. */
   timeOffset: number;
@@ -82,6 +86,9 @@ interface Store {
   retryDictionary(): Promise<void>;
   pause(): void;
   resume(): void;
+  /** Stops a solo game's clock while the loading screen covers it (no effect in rooms, where the server keeps time). */
+  holdClock(): void;
+  releaseClock(): void;
   /** Re-reads the saved game. The start screen calls this when it appears. */
   refreshResume(): void;
   /** Restores a saved game and continues its clock from where it stopped. */
@@ -161,6 +168,7 @@ export const useStore = create<Store>((set, get) => ({
   reduceMotion: load<boolean>(REDUCE_KEY, false),
   largeText: load<boolean>(LARGE_KEY, false),
   paused: false,
+  held: false,
   pausedRaw: 0,
   timeOffset: 0,
   tourDone: isTourDone(),
@@ -225,7 +233,7 @@ export const useStore = create<Store>((set, get) => ({
     }
     const game = client.create(setup);
     persist(mode, game, now);
-    set({ game, mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0, practiceResult: null, gameResult: null, resumable: null });
+    set({ game, mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, held: false, timeOffset: 0, practiceResult: null, gameResult: null, resumable: null });
     return true;
   },
 
@@ -242,13 +250,13 @@ export const useStore = create<Store>((set, get) => ({
     // Leaving on purpose throws the game away, so a solo game cannot be resumed afterwards. Quitting
     // a Daily or tutorial game leaves an unrelated saved solo game alone.
     if (isSolo(mode)) clearSoloGame();
-    set({ game: null, paused: false, timeOffset: 0, resumable: loadSoloGame() });
+    set({ game: null, paused: false, held: false, timeOffset: 0, resumable: loadSoloGame() });
   },
 
   act(action) {
-    const { client, game, paused, mode, timeOffset } = get();
+    const { client, game, paused, held, mode, timeOffset } = get();
     if (mode === 'room') return bridge.act ? bridge.act(action) : null;
-    if (!client || !game) return null;
+    if (!client || !game || held) return null;
     if (paused && mode !== 'tour') return null;
     // While the tour pauses the clock, actions land at the frozen moment.
     const now = paused ? get().now : performance.now() - timeOffset;
@@ -264,13 +272,13 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   frame(raw) {
-    const { client, game, mode, dailyDate, paused, timeOffset } = get();
+    const { client, game, mode, dailyDate, paused, held, timeOffset } = get();
     if (mode === 'room') {
       // The server runs the game. This browser only keeps a clock in the server's time.
       if (game) set({ now: Date.now() + bridge.skew() });
       return;
     }
-    if (!client || !game || paused) return;
+    if (!client || !game || paused || held) return;
     const now = raw - timeOffset;
     const next = client.tick(game, now);
     if (next === game) {
@@ -297,15 +305,30 @@ export const useStore = create<Store>((set, get) => ({
     }
   },
 
+  // The clock is stopped while the tutorial pauses it or the loading screen holds it. It stops when the first of the two
+  // starts and the stopped time is made up when the last one ends, so an overlap is never counted twice.
   pause() {
-    if (get().paused) return;
-    set({ paused: true, pausedRaw: performance.now() });
+    const { paused, held } = get();
+    if (paused) return;
+    set({ paused: true, ...(held ? {} : { pausedRaw: performance.now() }) });
   },
 
   resume() {
-    const { paused, pausedRaw, timeOffset } = get();
+    const { paused, held, pausedRaw, timeOffset } = get();
     if (!paused) return;
-    set({ paused: false, timeOffset: timeOffset + (performance.now() - pausedRaw) });
+    set({ paused: false, ...(held ? {} : { timeOffset: timeOffset + (performance.now() - pausedRaw) }) });
+  },
+
+  holdClock() {
+    const { held, paused, mode, game } = get();
+    if (held || !game || mode === 'room') return;
+    set({ held: true, ...(paused ? {} : { pausedRaw: performance.now() }) });
+  },
+
+  releaseClock() {
+    const { held, paused, pausedRaw, timeOffset } = get();
+    if (!held) return;
+    set({ held: false, ...(paused ? {} : { timeOffset: timeOffset + (performance.now() - pausedRaw) }) });
   },
 
   refreshResume() {
@@ -327,7 +350,7 @@ export const useStore = create<Store>((set, get) => ({
     const timeOffset = performance.now() - saved.savedNow;
     set({
       game: saved.game, mode: saved.mode, mySeat: 0, dailyDate: null, streak: 0,
-      now: saved.savedNow, paused: false, pausedRaw: 0, timeOffset, resumable: null,
+      now: saved.savedNow, paused: false, held: false, pausedRaw: 0, timeOffset, resumable: null,
     });
     return true;
   },

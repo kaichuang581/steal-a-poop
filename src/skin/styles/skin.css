@@ -742,13 +742,44 @@
 @keyframes sk-door-swing-r { 0% { transform: rotateY(0); filter: brightness(1); } 12% { transform: rotateY(-4deg); } 100% { transform: rotateY(-104deg); filter: brightness(0.55); } }
 @keyframes sk-doors-spill { 0% { opacity: 0; transform: scaleX(0.05); } 18% { opacity: 1; transform: scaleX(0.25); } 100% { opacity: 0; transform: scaleX(2.2); } }
 @keyframes sk-doors-through { 0%, 35% { transform: scale(1); opacity: 1; } 80% { opacity: 1; } 100% { transform: scale(1.22); opacity: 0; } }
-/* Reduced motion: the doors still cover a load, but they fade away instead of swinging, and the sheep stands still. */
-:root.reduce-motion .sk-doors[data-phase="open"], :root.reduce-motion .sk-doors[data-phase="open"] :is(.sk-door-l, .sk-door-r, .sk-doors-spill) { animation: none; }
+/* Swinging shut over the screen being left (BarnDoors CLOSE_MS, 620 ms): the doors come round from inside the barn,
+   edge on, gathering speed, and meet at 80% with a thud that jolts the frame and squeezes the lantern light in the crack
+   down to nothing. The lintel settles in as they come, and the slip is pinned up only once they are shut. */
+.sk-doors[data-phase="closing"] .sk-door-l { animation: sk-door-close-l 620ms linear both; }
+.sk-doors[data-phase="closing"] .sk-door-r { animation: sk-door-close-r 620ms linear both; }
+.sk-doors[data-phase="closing"] .sk-doors-frame { animation: sk-doors-jolt 620ms linear both; }
+.sk-doors[data-phase="closing"] .sk-doors-lintel { animation: sk-doors-lintel-in 420ms ease-out both; }
+.sk-doors[data-phase="closing"] .sk-doors-spill { animation: sk-doors-spill-close 620ms linear both; }
+.sk-doors[data-phase="closing"] .sk-load { opacity: 0; }
+.sk-doors[data-phase="shut"] .sk-load { animation: sk-load-on 360ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both; }
+@keyframes sk-door-close-l {
+  0% { transform: rotateY(100deg); filter: brightness(0.5); animation-timing-function: cubic-bezier(0.45, 0, 0.9, 0.55); }
+  80% { transform: rotateY(0); filter: brightness(1); animation-timing-function: ease-out; }
+  88% { transform: rotateY(2.5deg); animation-timing-function: ease-in-out; }
+  100% { transform: rotateY(0); }
+}
+@keyframes sk-door-close-r {
+  0% { transform: rotateY(-100deg); filter: brightness(0.5); animation-timing-function: cubic-bezier(0.45, 0, 0.9, 0.55); }
+  80% { transform: rotateY(0); filter: brightness(1); animation-timing-function: ease-out; }
+  88% { transform: rotateY(-2.5deg); animation-timing-function: ease-in-out; }
+  100% { transform: rotateY(0); }
+}
+@keyframes sk-doors-jolt { 0%, 79% { transform: none; } 83% { transform: translateY(4px) scale(1.006); } 91% { transform: translateY(-1px); } 100% { transform: none; } }
+@keyframes sk-doors-lintel-in { from { transform: translateY(-100%); } to { transform: none; } }
+@keyframes sk-doors-spill-close { 0%, 40% { opacity: 0; transform: scaleX(1.6); } 62% { opacity: 0.85; transform: scaleX(0.7); } 80% { opacity: 1; transform: scaleX(0.04); } 86%, 100% { opacity: 0; transform: scaleX(0.02); } }
+@keyframes sk-load-on { from { opacity: 0; transform: translateY(-48px) rotate(-7deg); } to { opacity: 1; transform: none; } }
+/* Reduced motion: the doors still cover a load, but they fade in and out instead of swinging, and the sheep stands still. */
+:root.reduce-motion .sk-doors:is([data-phase="open"], [data-phase="closing"]), :root.reduce-motion .sk-doors:is([data-phase="open"], [data-phase="closing"]) :is(.sk-door-l, .sk-door-r, .sk-doors-spill, .sk-doors-frame, .sk-doors-lintel, .sk-load) { animation: none; }
+:root.reduce-motion .sk-doors[data-phase="closing"] { animation: sk-load-fade-in 220ms ease-out both; }
+:root.reduce-motion .sk-doors[data-phase="shut"] .sk-load { animation: none; }
 :root.reduce-motion .sk-doors[data-phase="open"] { opacity: 0; transition: opacity 300ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
-  .sk-doors[data-phase="open"], .sk-doors[data-phase="open"] :is(.sk-door-l, .sk-door-r, .sk-doors-spill) { animation: none; }
+  .sk-doors:is([data-phase="open"], [data-phase="closing"]), .sk-doors:is([data-phase="open"], [data-phase="closing"]) :is(.sk-door-l, .sk-door-r, .sk-doors-spill, .sk-doors-frame, .sk-doors-lintel, .sk-load) { animation: none; }
+  .sk-doors[data-phase="closing"] { animation: sk-load-fade-in 220ms ease-out both; }
+  .sk-doors[data-phase="shut"] .sk-load { animation: none; }
   .sk-doors[data-phase="open"] { opacity: 0; transition: opacity 300ms ease-out; }
 }
+@keyframes sk-load-fade-in { from { opacity: 0; } to { opacity: 1; } }
 /* The loading slip, pinned over the crack between the doors: a sheep hopping a little fence, and a line under it.
    Everything that moves is transform or opacity, so it keeps going while the page is busy building a scene. */
 .sk-load {

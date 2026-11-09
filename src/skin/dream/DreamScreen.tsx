@@ -2,6 +2,7 @@ import { useLoadingHold } from '../components/BarnDoors';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
+import { streakRow } from './streakRow';
 import { dreamStreakDays, getDreamBest, getDreamStreak, loadStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
 import { check, DREAM_LENGTH, dreamGlyphs, dreamSeed, dreamShareText, dreamSummary, fenceAt, formatHint, matched } from '../../dream/dream';
 import { useStore } from '../../state/store';
@@ -103,8 +104,7 @@ export function DreamScreen() {
   const ghost = useRef<HTMLInputElement>(null);
   // The results hang in the bedroom: the stage projects the beam's hook and the headboard onto these every frame.
   const boardAnchor = useRef<HTMLDivElement>(null);
-  const slipAnchor = useRef<HTMLDivElement>(null);
-  const anchors = useRef<RoomAnchors>({ board: boardAnchor, slip: slipAnchor }).current;
+  const anchors = useRef<RoomAnchors>({ board: boardAnchor }).current;
   const live = useRef<Live>(freshLive(seed));
   const phaseRef = useRef<Phase>('ready');
   phaseRef.current = phase;
@@ -280,7 +280,7 @@ export function DreamScreen() {
       headline: asleep ? 'The farmer drifted off' : `The farmer counted ${count} sheep`,
       lines: [asleep ? dreamSummary({ fences: L.reached, bumps: L.bumps, longest: L.longest }) : L.longest > 0 ? `Longest word: ${L.longest} letters` : '', streakNow > 1 ? `${streakNow}-night streak` : ''].filter(Boolean),
       count, unit: 'sheep',
-      stitches: practice ? undefined : dreamStreakDays(today),
+      stitches: practice ? undefined : streakRow(dreamStreakDays(today), streakNow),
       glyphs: dreamGlyphs(count, !asleep, { seed, bumps: L.bumps }),
     }, text);
     setCopied(true);
@@ -319,8 +319,10 @@ export function DreamScreen() {
   const longest = live.current.longest;
   const asleep = phase === 'results' && live.current.asleepAt !== null;
   const bumpsLeft = length ? length.bumps - bumps : 0;
-  // The week as knitted stitches; tonight's is ringed once it is played.
-  const days = phase === 'results' && !practice ? dreamStreakDays(today).map((st, i) => (i === 6 && st === 'played' ? 'today' as const : st)) : [];
+  // The streak as knitted stitches, filled from the left; tonight's is ringed once it is played.
+  const row = phase === 'results' && !practice ? streakRow(dreamStreakDays(today), streakNow) : [];
+  const tonight = row.filter((st) => st !== 'empty').length - 1;
+  const days = row.map((st, i) => (i === tonight && st === 'played' ? 'today' as const : st));
   const fenceNow = length ? Math.min(reached + 1, length.fences) : 0;
 
   return (
@@ -436,13 +438,11 @@ export function DreamScreen() {
                 <WoodButton onClick={practiceAgain}>Practice</WoodButton>
                 <WoodButton onClick={close}>Back to the farm</WoodButton>
               </div>
+              {/* The next dream's time is the board's last line, part of the plate itself (Brian, 2026-11-09: "dont make it a
+                  paper just extend the rectangle"). */}
+              {!practice && <p className="dr-results-next">Tonight's dream returns at {midnightLabel()}.</p>}
             </Board>
           </div>
-          {!practice && (
-            <div ref={slipAnchor} className="dr-results-slip">
-              <Paper kind="slip" pin="top" seed="midnight" tilt>Tonight's dream returns at {midnightLabel()}.</Paper>
-            </div>
-          )}
         </div>
       )}
     </main>

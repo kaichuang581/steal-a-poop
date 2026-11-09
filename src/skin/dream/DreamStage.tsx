@@ -17,6 +17,8 @@ import { DevStats, devOn } from '../table/DevStats';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { byId } from '../avatars/catalog';
 import { useAvatar } from '../avatars/store';
+import { AvatarDisc } from '../avatars/AvatarDisc';
+import { pictureHeight, useKaiyanLook } from '../avatars/kaiyanLook';
 import { animalModel } from '../voxel/animals';
 import { Sheep } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
@@ -35,6 +37,11 @@ const WOOD_TINT = '#FFD7A6';
 const SX = FIELD.sheepX, SW = FIELD.sheepW, FW = FIELD.fenceW;
 /** The sheep model is about 1.3 m long at scale 1; the logical sheep is 20 px = 0.72 m. */
 const SHEEP_SCALE = (FIELD.sheepW * PX) / 1.3;
+/** The admin's photo runs at the sheep's scale, as at the table, but never taller than this: a long forehead would
+ *  leave the top of the frame on the leap. */
+const DISC_MAX_H = 1.9;
+/** The photo leans into the leap less than the sheep's nose rises: it is a tall flat picture pivoting at its foot. */
+const DISC_PITCH = 0.35;
 
 /** What the stage reads every frame; the screen owns the state and only this view of it is shared. */
 export interface StageLive {
@@ -125,10 +132,17 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
   const size = useThree((s) => s.size);
   const probe = useMemo(() => ({ a: new Vector3(), b: new Vector3(), shown: 0 }), []);
   const [sheepState, setSheepState] = useState<SheepState>('grazing');
-  // The worn avatar runs the dream (V5.1 Part 6.7), drawn at its own scale; the admin's photo disc cannot trot, so
-  // it dreams as the sheep.
+  // The worn avatar runs the dream (V5.1 Part 6.7), drawn at its own scale. The admin's photo runs too (Brian,
+  // 2026-11-09), trotting and leaping as a picture facing the camera (discPose's dream states).
   const avatar = useAvatar();
-  const runner = avatar !== ADMIN_AVATAR_ID && byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined;
+  const admin = avatar === ADMIN_AVATAR_ID;
+  const runner = !admin && byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined;
+  const { length } = useKaiyanLook();
+  const discScale = Math.min(SHEEP_SCALE, DISC_MAX_H / pictureHeight(length));
+  // The bonk stars circle the head and the count pops over it, so both rise with a tall picture.
+  const shotPos = dreamShot(phone, landscapePhone).position;
+  const discYaw = Math.atan2(shotPos[0], shotPos[2]);
+  const headY = admin ? pictureHeight(length) * discScale + 0.08 : 0.95;
   const [stateKey, setStateKey] = useState(0);
   const [pace, setPace] = useState(0);
   const paceRef = useRef(0);
@@ -191,7 +205,7 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
           pitch = -0.14 * k;
         }
       }
-      sheep.current.rotation.z = pitch;
+      sheep.current.rotation.z = admin ? pitch * DISC_PITCH : pitch;
       sheep.current.scale.set(long, tall, 1);
     }
     if (sheepShadow.current) { const k = 1 - 0.4 * Math.min(1, air / (28 * PX)); sheepShadow.current.scale.set(k, 1, k); }
@@ -201,7 +215,7 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
       if (!m) return;
       m.visible = (since >= WAKE.stir || stumbling) && !reduced;
       const a = (t / 1.1) * Math.PI * 2 + (i / 3) * Math.PI * 2;
-      m.position.set(Math.cos(a) * 0.25, 0.95 + Math.sin(a * 2) * 0.03, Math.sin(a) * 0.25);
+      m.position.set(Math.cos(a) * 0.25, headY + Math.sin(a * 2) * 0.03, Math.sin(a) * 0.25);
     });
 
     // Fences: slot = index % 4; the bumped one tips over about its +x edge.
@@ -314,11 +328,19 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
 
         {/* The sheep faces +x and runs on the spot; the world does the moving. */}
         <group ref={sheep}>
-          <group rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner?.drawScale ?? 1)}>
-            <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} model={runner} />
-          </group>
+          {admin ? (
+            // Turned to face the shot's camera: the phone looks along the lane from the side, where the flat picture
+            // would show almost edge on.
+            <group scale={discScale} rotation={[0, discYaw, 0]}>
+              <AvatarDisc state={sheepState} stateKey={stateKey} reduced={reduced} pace={pace} />
+            </group>
+          ) : (
+            <group rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner?.drawScale ?? 1)}>
+              <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} model={runner} />
+            </group>
+          )}
           {[0, 1, 2].map((i) => <mesh key={i} ref={(el) => { stars.current[i] = el; }} geometry={geo.star} material={glowMat} visible={false} />)}
-          <Html position={[0, 1.4, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+          <Html position={[0, headY + 0.45, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
             {pop && <span key={pop.key} className="dr-pop sk-display">{pop.n}</span>}
           </Html>
         </group>

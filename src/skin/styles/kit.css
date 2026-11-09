@@ -216,7 +216,7 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-stitch[data-status="played"], .kit-stitch[data-status="done"] { --st: var(--amber); }
 .kit-stitch[data-status="repair"], .kit-stitch[data-status="repaired"] { --st: #F3E7CC; }
 .kit-stitch[data-status="blanket"] { --st: #C98BA6; }
-.kit-stitch[data-status="missed"] { --st: transparent; outline: 1px dashed rgba(122, 106, 88, 0.6); outline-offset: -3px; }
+.kit-stitch[data-status="missed"], .kit-stitch[data-status="empty"] { --st: transparent; outline: 1px dashed rgba(122, 106, 88, 0.6); outline-offset: -3px; }
 .kit-stitch[data-today] { box-shadow: 0 0 0 2px var(--amber); }
 .kit-stitches--mini { --st-w: 10px; }
 

@@ -20,6 +20,8 @@ interface Props {
   speaking?: boolean;
   /** The home hero follows the pointer a little (radians). */
   yaw?: number;
+  /** Counting Sheep's pace, 0 to 1: the trot quickens with it. */
+  pace?: number;
 }
 
 let photo: Texture | null = null;
@@ -79,7 +81,7 @@ function starTexture(): Texture {
   return starTex;
 }
 
-export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0 }: Props) {
+export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0, pace = 0 }: Props) {
   const { length, glare } = useKaiyanLook();
   const tex = useMemo(() => photoTexture(), []);
   const quad = useMemo(() => pictureGeometry(length), [length]);
@@ -119,7 +121,7 @@ export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false
     const t = clock.elapsedTime;
     if (anim.key !== stateKey || anim.state !== state) { anim.key = stateKey; anim.state = state; anim.at = t; }
     const moving = !still && !reduced;
-    const p = discPose(state, t - anim.at, t, anim.phase, moving, speaking);
+    const p = discPose(state, t - anim.at, t, anim.phase, moving, speaking, pace);
     g.position.y = rest + p.lift;
     g.rotation.set(p.rotX, p.rotY + yaw * 0.5, p.rotZ);
     const o = dimmed ? 0.5 : 1;

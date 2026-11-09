@@ -27,8 +27,8 @@ const NIGHT = '#141836';
 const LAMP_LIGHT = { low: 1.1, high: 4.2 } as const;
 const GLASS = { low: 0.35, high: 1.6 } as const;
 
-/** The HTML that hangs in the room: the results board from the beam's hook, the paper slip from the headboard. */
-export interface RoomAnchors { board: MutableRefObject<HTMLElement | null>; slip: MutableRefObject<HTMLElement | null> }
+/** The HTML that hangs in the room: the results board from the beam's hook. */
+export interface RoomAnchors { board: MutableRefObject<HTMLElement | null> }
 
 /**
  * The farmer's bubble (V4.1 Part 7): a small canvas of its own, masked to a cloud, so he is always framed whatever the
@@ -153,7 +153,7 @@ function Room({ live, phase, reduced, phone, blankets, anchors }: { live: Mutabl
     cam.look.set(CAMERA.target[0] + (shot.target[0] - CAMERA.target[0]) * k, CAMERA.target[1] + (shot.target[1] - CAMERA.target[1]) * k, CAMERA.target[2] + (shot.target[2] - CAMERA.target[2]) * k);
     if (camera.fov !== shot.fov) { camera.fov = CAMERA.fov + (shot.fov - CAMERA.fov) * k; camera.updateProjectionMatrix(); }
     camera.lookAt(cam.look);
-    // The board hangs from the beam's hook and the slip is pinned to the headboard: project both every frame.
+    // The board hangs from the beam's hook: project it every frame.
     const put = (el: HTMLElement | null | undefined, x: number, y: number, z: number) => {
       if (!el) return;
       const v = cam.p.set(x, y, z).project(camera);
@@ -162,7 +162,6 @@ function Room({ live, phase, reduced, phone, blankets, anchors }: { live: Mutabl
     };
     // A phone's frame is too narrow to show the beam and the bed together: there the board hangs from the top edge.
     if (!phone) put(anchors?.board.current, BEAM.hookX + 0.05, BEAM.y, BEAM.z + 0.2);
-    if (!phone) put(anchors?.slip.current, -0.05, 1.12, BED.mattress.w / 2);
   });
   return (
     <>

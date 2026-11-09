@@ -16,9 +16,25 @@ const hop = (p: number, h: number) => (p >= 0 && p < 1 ? Math.sin(p * Math.PI) *
  * only tilts (rotZ), leans (rotX), turns right round (rotY) and hops (lift). `moving` false (reduced motion, or a
  * table held still) gives a resting pose with the state's own tilt and nothing more.
  */
-export function discPose(state: SheepState, e: number, t: number, phase: number, moving: boolean, speaking = false): DiscPose {
+export function discPose(state: SheepState, e: number, t: number, phase: number, moving: boolean, speaking = false, pace = 0): DiscPose {
   const tp = t + phase;
   const pose: DiscPose = { lift: 0, rotX: 0, rotY: 0, rotZ: 0 };
+  // Counting Sheep's states (Brian, 2026-11-09: "make the kaiyan avatar usable there as well"). The picture faces the
+  // camera and the run goes to screen right (+x), so a negative rotZ leans it into the run. No turns or idle hops here:
+  // the dream moves the whole picture for the leap (DreamStage), and a spin mid-run would read as a stumble.
+  switch (state) {
+    case 'run': {
+      // A bouncing trot, quicker with the dream's pace (0 to 1).
+      const f = 9 + 6 * Math.min(1, Math.max(0, pace));
+      pose.rotZ = -0.1 + (moving ? Math.sin(tp * f) * 0.07 : 0);
+      pose.lift = moving ? Math.abs(Math.sin(tp * f)) * 0.08 : 0;
+      return pose;
+    }
+    case 'jump': pose.rotZ = -0.06; return pose;
+    case 'land': pose.rotZ = -0.04; return pose;
+    case 'bonk': pose.rotZ = 0.28 + (moving ? Math.sin(e * 30) * 0.16 * Math.max(0, 1 - e / 0.6) : 0); pose.rotX = -0.1; return pose;
+    default: break;
+  }
   switch (state) {
     case 'frozen': pose.rotZ = 0.26; return pose;
     case 'sleeping': pose.rotZ = 0.32; pose.lift = moving ? -0.04 + Math.sin(tp * 0.8) * 0.02 : -0.04; return pose;

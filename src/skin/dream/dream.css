@@ -128,8 +128,8 @@
 .dr-results-rail { display: flex; gap: 8px; padding-top: 10px; border-top: 3px solid rgba(40, 24, 10, 0.35); }
 .dr-results-rail > * { flex: 1; padding: 0 10px; white-space: nowrap; }
 @media (max-width: 640px) { .dr-results-rail > * { padding: 0 6px; font-size: 14px; } }
-.dr-results-slip { position: absolute; translate: -50% -100%; pointer-events: none; }
-.dr-results-slip .kit-paper { font-size: 15px; white-space: nowrap; }
+/* The next dream's time: the board's last line, under the buttons, set off by the same rule as the rail. */
+.dr-results-next { margin: 0; padding-top: 8px; border-top: 3px solid rgba(40, 24, 10, 0.35); text-align: center; font: 400 17px/1.2 var(--skin-font-hand); }
 
 /* ---------- Phones ---------- */
 @media (max-width: 640px) {
@@ -145,12 +145,11 @@
   .dr-results-count b { font-size: 40px; }
   .dr-results .dr-results-sheet { font-size: 16px; line-height: 24px; padding: 8px 10px; }
   .dr-results-streak { font-size: 16px; }
+  .dr-results-next { font-size: 15px; padding-top: 6px; }
   .dr-results-streak .kit-stitches { --st-w: 18px; }
   .dr-results .dr-results-blankets { font-size: 12px; padding: 4px 8px; }
   .dr-results-rail { flex-wrap: wrap; }
   .dr-results-rail > :first-child { flex-basis: 100%; }
-  /* The headboard is out of a phone's frame: the slip is pinned along the bottom instead. */
-  .dr-results-slip { left: 50%; top: auto; bottom: 14px; translate: -50% 0; }
   .dr-results-streak { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 4px 10px; }
 }
 :root.reduce-motion .dr-pop, :root.reduce-motion .dr-slip, :root.reduce-motion .dr-fence-tile, :root.reduce-motion .dr-typed, :root.reduce-motion .dr-blink, :root.reduce-motion .dr-bubble, :root.reduce-motion .dream-puff { animation: none; }

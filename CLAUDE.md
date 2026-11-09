@@ -560,3 +560,18 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   (b) The blast (Blast.tsx) draws nothing between bursts (draw range 0, chunk count 0) instead of 420+ black additive
   squares overdrawn at the middle of the barn every frame, and its meshes stay in the scene so their shaders compile
   while the table loads: the first blast used to stall a frame 115 to 150 ms compiling them (now under 40 ms).
+- Kaiyan runs the dream (requested by Brian, 2026-11-09: "make the kaiyan avatar usable there as well"), skin only. This
+  supersedes "the admin's photo disc dreams as the sheep" (V5.1 as built). DreamStage draws `AvatarDisc` in the sheep's
+  place when the admin avatar is worn: at the sheep's scale but never over `DISC_MAX_H` (1.9 m) tall, so a long forehead
+  stays in frame on the leap; turned to face the shot's camera (the phone looks along the lane from the side); leaning
+  into the leap at `DISC_PITCH` (0.35) of the sheep's pitch. `discPose` gained the dream's states (a trot that quickens
+  with `pace`, jump, land, bonk) with no idle spins or hops; only the dream uses them. The bonk stars and the count pop
+  ride above the picture's top.
+- The next dream's time is on the results board (requested by Brian, 2026-11-09: "it should be attached to the end plate
+  thing ... dont make it a paper just extend the rectangle"): "Tonight's dream returns at 12:00 am." is the board's last
+  line under the buttons (`.dr-results-next`), not a slip pinned to the headboard (the room no longer projects a slip anchor).
+- The night streak fills from the left (found by Brian, 2026-11-09: "the first box isnt filling in, if its a streak the
+  box should be filling in after each day"): the seven boxes on the results board, Home's mini row and the share card are
+  `streakRow` (src/skin/dream/streakRow.ts): the run's nights fill boxes 1, 2, 3..., tonight unplayed is ringed in the
+  next box, the rest are empty, and an eighth night starts the row again. They were the last seven calendar nights with
+  tonight on the right, so a first night lit only the last box. `dreamStreakDays` in src/dream is unchanged.

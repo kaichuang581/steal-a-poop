@@ -97,7 +97,7 @@ export function Patch({ tone = 'burlap', icon, pressed, small, as = 'span', clas
 /** 4.6 A knitted band: progress (segments, filled) or the week's stitches. */
 export function Knit({ a, b, height = 14, segments, filled = 0, stitches, className }: {
   a?: string; b?: string; height?: 14 | 20; segments?: number; filled?: number; className?: string;
-  stitches?: ('played' | 'missed' | 'blanket' | 'repair' | 'today')[];
+  stitches?: ('played' | 'missed' | 'blanket' | 'repair' | 'today' | 'empty')[];
 }) {
   if (stitches) return (
     <span className={join('kit-stitches', className)}>

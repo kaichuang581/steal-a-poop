@@ -8,6 +8,7 @@ import { useDevice } from '../device';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { dreamSeed, dreamShareText } from '../../dream/dream';
+import { streakRow } from '../dream/streakRow';
 import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
 import { dreamLink, useDreamUi } from '../dream/dreamStore';
 import { useToday } from '../hooks/useToday';
@@ -118,7 +119,7 @@ export function PaintedHome() {
   const [covered] = useState(() => takeCoverNotice());
   const nights = (
     <span className="mt-1 flex items-center gap-2">
-      <span className="dr-nights" data-mini aria-label="The last seven nights">{dreamStreakDays(today).map((st, i) => <span key={i} className="dr-night" data-status={st} />)}</span>
+      <span className="dr-nights" data-mini aria-label={`${streak}-night streak`}>{streakRow(dreamStreakDays(today), streak).map((st, i) => <span key={i} className="dr-night" data-status={st} />)}</span>
       {blankets > 0 && <span className="dr-blankets" aria-label={`${blankets} Warm Blanket${blankets === 1 ? '' : 's'}`}>{Array.from({ length: blankets }, (_, i) => <BlanketIcon key={i} size={12} />)}</span>}
     </span>
   );

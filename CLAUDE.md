@@ -423,3 +423,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   (moderators and ADMIN_USER_IDS). Never write the admin password into the repo, tests included. Public boards carry no
   account ids. Not done, and listed for Brian: own domain for the site, stripping rng/seed from room views, a sturdier
   chat filter for short split words, ending Supabase sessions server-side on logout.
+- Word of the day (docs/PLAN_WORD_OF_THE_DAY.md, built 2026-11-08), skin only: src/skin/wotd (words.ts, pick.ts,
+  WordOfDay.tsx, tests). The plan's hard rules bind it: no streak, count, reward or "come back" text; every meaning and
+  example is written for the game; every word is in public/words.txt. Levels are 104 / 157 / 104, not the plan's rough
+  105 / 155 / 105, because 2026 has exactly that many Mon-Tue, Wed-Fri and weekend days and its own test wants every
+  word in the first year. On a computer the slip hangs to the right of the title board (`.sk-wotd-anchor`), so opening
+  it never moves or covers the menu; on a phone it is one line in the 34 px strip above the name plate, and opened it
+  lies over the plate until tapped shut. Brian has not reviewed the 365 words yet.

@@ -39,6 +39,7 @@ import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { TitleBoard } from '../components/TitleBoard';
+import { WordOfDay } from '../wotd/WordOfDay';
 import { Chip, PaperPanel, WoodButton } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
@@ -381,8 +382,9 @@ export function PaintedHome() {
 
       {mobile ? (
         <>
-          <div className="absolute inset-x-0 top-16 flex justify-center">
+          <div className="sk-wotd-strip absolute inset-x-0 top-16 flex flex-col items-center">
             <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
+            <WordOfDay className="sk-wotd--compact" />
           </div>
           <div className="absolute inset-x-3 bottom-2 max-h-[64%] overflow-y-auto">
             {step === 'tables' ? (
@@ -398,7 +400,10 @@ export function PaintedHome() {
           {/* Left column: the title board, then the menu, like a console title screen. */}
           {/* "safe": on a short window the column starts under the name plate instead of riding up over it. */}
           <div className="absolute bottom-14 left-10 top-20 flex w-[27rem] flex-col gap-3" style={{ justifyContent: 'safe center' }}>
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
+            <div className="sk-wotd-anchor">
+              <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
+              <WordOfDay />
+            </div>
             {step === 'tables' ? tables : <div className="pointer-events-none opacity-40" inert>{tables}</div>}
           </div>
           {step !== 'tables' && (

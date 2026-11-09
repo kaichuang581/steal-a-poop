@@ -145,33 +145,47 @@ export function MarkDrawn() {
  * Keeps a scene smooth on any device by trading resolution for frame rate (Brian, 2026-11-09: "make the game less laggy
  * without removing anything ... optimize this for all devices whether thats ipad, laptop, phone, pc"). Nothing in the
  * scene changes; only how many pixels it is drawn at. The scenes are limited by the graphics chip filling pixels, not
- * by the page's code: the barn ran at 30 fps on a Retina laptop at 2x and at 60 on a phone. So every second this looks
- * at the frame rate: under about 48 fps for two seconds running, it draws a quarter step coarser; at the display's full
- * rate for eight seconds, a quarter step finer, but never back up to a resolution that was already too slow. It starts
- * at the device's own pixel ratio (capped at `max`), ignores the first seconds (the scene is still being built and its
- * shaders compiled) and any frame over 250 ms (a stall or a hidden tab says nothing about the steady cost).
+ * by the page's code: the barn ran at 30 fps on a Retina laptop at 2x and at 60 on a phone. So every half second this
+ * looks at the frame rate: under about 48 fps for a second running (or under about 36 fps for one half second), it draws
+ * a quarter step coarser; at the display's full rate for eight seconds, a quarter step finer, but never back up to a
+ * resolution that was already too slow. It starts at the device's own pixel ratio (capped at `max`), ignores the first
+ * 1.5 s (the scene is still being built and its shaders compiled) and any frame over 250 ms (a stall or a hidden tab
+ * says nothing about the steady cost). It used to look once a second and wait 3 s, so a short practice run (Brian,
+ * 2026-11-09: "the bomb explosion for the practice gamemode is still super laggy") spent its whole life at the slow
+ * resolution and only got smooth after the bang.
  */
 export const DPR_STEP = 0.25;
+/** How long each look at the frame rate averages over, and how many looks each way move the resolution. */
+export const DPR_WINDOW_S = 0.5;
+const SLOW_LOOKS = 2, FAST_LOOKS = 16, CLEARLY_SLOW_MS = 28;
 export function nextDpr(cur: number, avgMs: number, streak: { slow: number; fast: number; ceiling: number }, min: number, max: number): number {
   if (avgMs > 21) {
     streak.slow++; streak.fast = 0;
-    if (streak.slow >= 2 && cur > min) { streak.slow = 0; streak.ceiling = cur; return Math.max(min, cur - DPR_STEP); }
+    if ((streak.slow >= SLOW_LOOKS || avgMs > CLEARLY_SLOW_MS) && cur > min) { streak.slow = 0; streak.ceiling = cur; return Math.max(min, cur - DPR_STEP); }
   } else if (avgMs < 17.6) {
     streak.fast++; streak.slow = 0;
     const up = Math.min(max, cur + DPR_STEP);
-    if (streak.fast >= 8 && up > cur && up < streak.ceiling) { streak.fast = 0; return up; }
+    if (streak.fast >= FAST_LOOKS && up > cur && up < streak.ceiling) { streak.fast = 0; return up; }
   } else { streak.slow = 0; streak.fast = 0; }
   return cur;
 }
+/**
+ * Until when (performance.now) the judge looks away. A burst such as the bomb going off slows a few frames on purpose; a
+ * resolution change in the middle of it reallocates every buffer, a 70 to 100 ms hitch of its own at the worst moment.
+ */
+let holdUntil = 0;
+export function holdDpr(ms: number): void { holdUntil = Math.max(holdUntil, performance.now() + ms); }
+
 /** The steady frame rate's judge, inside a canvas: it reports a new resolution, and the level it found too slow. */
 function AdaptiveDpr({ max, min, value, ceiling, onChange }: { max: number; min: number; value: number; ceiling: number; onChange: (dpr: number, ceiling: number) => void }) {
   const st = useRef({ sum: 0, n: 0, age: 0, streak: { slow: 0, fast: 0, ceiling } });
   useFrame((_, dt) => {
     const s = st.current;
     s.age += dt;
-    if (s.age < 3 || dt > 0.25 || dt <= 0) return;
+    if (s.age < 1.5 || dt > 0.25 || dt <= 0) return;
+    if (performance.now() < holdUntil) { s.sum = 0; s.n = 0; s.streak.slow = 0; return; }
     s.sum += dt; s.n++;
-    if (s.sum < 1) return;
+    if (s.sum < DPR_WINDOW_S) return;
     const avg = (s.sum / s.n) * 1000;
     s.sum = 0; s.n = 0;
     const next = nextDpr(value, avg, s.streak, min, max);
@@ -189,6 +203,20 @@ function readSettled(key: string | undefined): Settled | null {
     return v && Number.isFinite(v.dpr) ? { dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : Infinity } : null;
   } catch { return null; }
 }
+/** The lowest resolution any scene settled on, on this device: a scene seen for the first time starts there, not at
+ *  the screen's full density, since the same graphics chip draws them all. */
+function deviceHint(): number | null {
+  let low: number | null = null;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k?.startsWith('sap:dpr:')) continue;
+      const v = readSettled(k.slice('sap:dpr:'.length));
+      if (v && (low === null || v.dpr < low)) low = v.dpr;
+    }
+  } catch { /* storage blocked */ }
+  return low;
+}
 function writeSettled(key: string | undefined, v: Settled) {
   if (!key) return;
   try { localStorage.setItem(`sap:dpr:${key}`, JSON.stringify({ dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : null })); } catch { /* storage blocked */ }
@@ -205,7 +233,9 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, children, ...pro
   const [state, setState] = useState<Settled>(() => {
     const device = Math.max(minDpr, Math.min(maxDpr, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1));
     const kept = readSettled(memory);
-    return kept ? { dpr: Math.max(minDpr, Math.min(device, kept.dpr)), ceiling: kept.ceiling } : { dpr: device, ceiling: Infinity };
+    if (kept) return { dpr: Math.max(minDpr, Math.min(device, kept.dpr)), ceiling: kept.ceiling };
+    const hint = memory ? deviceHint() : null;
+    return { dpr: hint === null ? device : Math.max(minDpr, Math.min(device, hint)), ceiling: Infinity };
   });
   const onChange = (dpr: number, ceiling: number) => {
     const next = { dpr, ceiling };

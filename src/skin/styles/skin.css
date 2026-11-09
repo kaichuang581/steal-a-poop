@@ -415,9 +415,11 @@
 .sk-tally-line { margin-top: 2px; text-align: center; font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; color: var(--glow); text-shadow: 0 1px 0 rgba(30, 18, 8, 0.8); }
 .sk-tally-slate { display: flex; width: 100%; margin-top: 10px; }
 .sk-tally-winner { box-shadow: 0 0 0 2px var(--amber), 0 0 14px var(--glow); }
-.sk-tally-notes { margin-top: 12px; font-size: 15px; line-height: 1.5; text-shadow: none; }
-.sk-tally-notes p + p { margin-top: 2px; }
-.sk-tally-notes .sk-hand { font-size: 17px; }
+/* A section of the results board: set off by a rule, part of the plate (not a pinned sheet). */
+.sk-tally-section { margin: 12px 0 0; padding-top: 10px; border-top: 3px solid rgba(40, 24, 10, 0.3); text-align: center; text-shadow: none; font-size: 17px; line-height: 1.35; }
+.sk-tally-longest { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sk-tally-longest .sk-hand { font-size: 15px; opacity: 0.8; }
+.sk-tally-longest b { font: 800 24px/1.1 var(--skin-font-display); letter-spacing: 0.06em; }
 .sk-plaques { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .sk-plaques .kit-slate { width: 100%; }
 .sk-plaques .kit-slate-face { padding: 4px 6px; font-size: 26px; min-height: 58px; }

@@ -663,13 +663,24 @@ function freezeFx() {
   });
   root.add(streaks, ...curls, snow, block, ...shards);
   root.visible = false;
-  return { root, streaks, curls, snow, block, cracks, shards };
+  // Drawn once, shrunk to nothing, on the first frames: a Mac's graphics driver builds each material's pipeline only on
+  // its first real draw, so the ice block used to stall the frame a second after the bang (Brian, 2026-11-09: "the bomb
+  // explosion for the practice gamemode is still super laggy").
+  return { root, streaks, curls, snow, block, cracks, shards, warm: 2 };
 }
 
 const dummy = new Object3D();
 function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: number, reduced: boolean, gustFrom: [number, number, number], thawing: boolean) {
   const freezing = live === 'freezing';
   const frozen = live === 'frozen';
+  if (fx.warm > 0) {
+    fx.warm--;
+    fx.root.visible = true;
+    fx.root.traverse((o) => { o.visible = true; });
+    fx.root.scale.setScalar(1e-4);
+    return;
+  }
+  if (fx.root.scale.x !== 1) fx.root.scale.setScalar(1);
   fx.root.visible = freezing || frozen || thawing;
   if (!fx.root.visible) return;
   // Gust: 40 streaks from the doors to the sheep along a sine path (0 to 0.8 s).

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, InstancedMesh, Matrix4, Points, PointsMaterial, PointLight, Quaternion, Vector3 } from 'three';
 import { bombModel } from '../voxel/bomb';
 import { voxelMaterial } from '../voxel/material';
+import { holdDpr } from './Rendering';
 
 const FLAMES = 420;
 const SPARKS = 260;
@@ -20,12 +21,28 @@ function makeCloud(n: number): Cloud {
   const geo = new BufferGeometry();
   geo.setAttribute('position', new BufferAttribute(new Float32Array(n * 3), 3));
   geo.setAttribute('color', new BufferAttribute(new Float32Array(n * 3), 3));
-  // Between bursts nothing is drawn (Brian, 2026-11-09: "the bomb primarily, it lags the website a lot"). The dead bits
-  // used to stay in the scene, black and additive, big squares overdrawn at the middle of the barn every frame. three
-  // still builds the shader for an empty draw, so it compiles while the table loads, not mid-blast.
-  geo.setDrawRange(0, 0);
+  park(geo);
   return { geo, vel: new Float32Array(n * 3), age: new Float32Array(n).fill(9), n };
 }
+
+/**
+ * Between bursts one bit is drawn, black (adds nothing) and parked far under the floor (no pixels). The dead bits used to
+ * stay in the scene, black and additive, big squares overdrawn at the middle of the barn every frame (Brian, 2026-11-09:
+ * "the bomb primarily, it lags the website a lot"), and then nothing was drawn at all. But a Mac's graphics driver builds
+ * a material's pipeline only on its first real draw, so the first bang after a page load still froze the frame for up
+ * to half a second (Brian, 2026-11-09: "the bomb explosion for the practice gamemode is still super laggy"). One parked
+ * draw builds it while the table loads.
+ */
+const PARKED_Y = -1e4;
+function park(geo: BufferGeometry) {
+  (geo.getAttribute('position') as BufferAttribute).setXYZ(0, 0, PARKED_Y, 0);
+  (geo.getAttribute('color') as BufferAttribute).setXYZ(0, 0, 0, 0);
+  geo.getAttribute('position').needsUpdate = true;
+  geo.getAttribute('color').needsUpdate = true;
+  geo.setDrawRange(0, 1);
+}
+/** A chunk drawn at zero size: the shell chunks' pipeline (and their shadow's) is built at load, nothing shows. */
+const ZERO = new Matrix4().makeScale(0, 0, 0);
 
 /**
  * The ice bomb going off: a cold white flash, a ball of square frost bits that spread and cool from white through ice
@@ -65,6 +82,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
     if (!o) return;
     at.current.copy(o);
     t0.current = 0;
+    holdDpr((LIFE + 0.8) * 1000); // no resolution change mid-burst
     const seed = (cloud: Cloud, speed: number, lift: number) => {
       const p = cloud.geo.getAttribute('position') as BufferAttribute;
       for (let i = 0; i < cloud.n; i++) {
@@ -175,8 +193,8 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
     if (t0.current > LIFE + 0.5) {
       t0.current = -1;
       if (light.current) light.current.intensity = 0;
-      if (chunks.current) chunks.current.count = 0;
-      for (const c of [flames, sparks, smoke, flash]) c.geo.setDrawRange(0, 0);
+      if (chunks.current) { chunks.current.setMatrixAt(0, ZERO); chunks.current.instanceMatrix.needsUpdate = true; chunks.current.count = 1; }
+      for (const c of [flames, sparks, smoke, flash]) park(c.geo);
     }
   });
 
@@ -187,9 +205,9 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
       <points ref={smoke3} geometry={smoke.geo} material={smokeMat} frustumCulled={false} />
       <points geometry={flash.geo} material={flashMat} frustumCulled={false} />
       <points ref={sparks3} geometry={sparks.geo} material={sparkMat} frustumCulled={false} />
-      {/* Always in the scene with no instances between bursts, so its shaders (and its shadow's) compile on mount: the
-          first blast used to stall a frame for over 100 ms building them. */}
-      <instancedMesh ref={chunks} args={[chunkGeo, chunkMat, CHUNKS]} count={0} frustumCulled={false} castShadow />
+      {/* Always in the scene with one zero-size chunk between bursts, so its pipeline (and its shadow's) is built on
+          mount: the first blast used to stall a frame for over 100 ms building them. */}
+      <instancedMesh ref={(m) => { chunks.current = m; if (m && t0.current < 0) { m.setMatrixAt(0, ZERO); m.instanceMatrix.needsUpdate = true; m.count = 1; } }} args={[chunkGeo, chunkMat, CHUNKS]} frustumCulled={false} castShadow />
       <pointLight ref={light} color="#9fdcff" intensity={0} distance={70} />
     </>
   );

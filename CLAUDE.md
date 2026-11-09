@@ -582,3 +582,17 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   or one out), `dropFaces` carries it, and `withRoundedEdges` bends the lighting normal over the last 16% of a face toward
   each outer edge (voxelMaterial plus the vertex-coloured Lambert materials in places.tsx, Sky.tsx and Sheep.tsx). To
   change it back: set `ROUNDED_VOXELS = false`, or `git revert` the commit "Rounded voxel corners (on trial)".
+- The practice bang, smooth (found by Brian, 2026-11-09: "the bomb explosion for the practice gamemode is still super
+  laggy. i like the effects n everything tho"). Measured at 2x on a Retina Mac; switching the burst's points or the CSS
+  jumpscare off changed nothing, so the effects are untouched. What it was: (a) a Mac's graphics driver builds a
+  material's pipeline only on its first real draw, so the first bang froze up to ~450 ms and the ice block ~70 ms a
+  second later. Blast now parks one black point per cloud far under the floor and one zero-size chunk between bursts
+  (`park`, `ZERO`), and each sheep draws its freeze effects once, shrunk to nothing, on its first frames (`fx.warm`).
+  (b) The auto-resolution changed resolution mid-burst (a 70 to 100 ms `setSize` hitch): `holdDpr` holds it for the
+  burst. (c) It reacted too slowly for a short run: it now looks every half second (`DPR_WINDOW_S`) after 1.5 s, steps
+  down after a second under ~48 fps or at once under ~36, and a scene seen for the first time starts at the lowest
+  resolution any scene settled on on this device (`deviceHint`). After: 60 fps through the bang (no frame over 34 ms).
+- Longest word on the plate (requested by Brian, 2026-11-09: "longest word should not be on a pin, it should be on the
+  plate as a section"): the practice results board shows "Longest word" and the word as a section under a rule
+  (`.sk-tally-section`, `.sk-tally-longest`), with the dream line as another section; Counting Sheep's results show the
+  night's facts as a section beside the count (`.dr-results-facts`), not a pinned sheet.

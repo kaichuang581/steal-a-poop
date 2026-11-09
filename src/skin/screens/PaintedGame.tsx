@@ -483,12 +483,15 @@ function RunOver() {
               <Slate key={key} size="plaque"><span>{v}</span><span className="kit-chalk-hand">{key}</span></Slate>
             ))}
           </div>
-          {(me.longestWord || dreamWaiting) && (
-            <Paper kind="sheet" pin="top" seed="run" className="sk-tally-notes">
-              {me.longestWord && <p>Longest word: <b className="tracking-wide">{me.longestWord.toUpperCase()}</b></p>}
-              {dreamWaiting && <p className="sk-hand">{DREAM_LINE}</p>}
-            </Paper>
+          {/* Sections of the board itself, not a sheet pinned to it (Brian, 2026-11-09: "longest word should not be on a
+              pin, it should be on the plate as a section"). */}
+          {me.longestWord && (
+            <div className="sk-tally-section sk-tally-longest">
+              <span className="sk-hand">Longest word</span>
+              <b>{me.longestWord.toUpperCase()}</b>
+            </div>
           )}
+          {dreamWaiting && <p className="sk-tally-section sk-hand">{DREAM_LINE}</p>}
           <div className="sk-tally-actions">
             <ClothButton autoFocus onClick={rematch} className="basis-full">Play again</ClothButton>
             <WoodButton onClick={quit} className="flex-1">Back to the farm</WoodButton>

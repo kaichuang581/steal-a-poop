@@ -416,7 +416,9 @@ export function DreamScreen() {
               <h2 className="dr-results-title">{practice ? 'Practice dream' : asleep ? 'The farmer drifted off' : 'The farmer woke up!'}</h2>
               <div className="dr-results-mid">
                 <Slate size="plaque" className="dr-results-count"><b>{count}</b><span className="kit-chalk-hand">sheep</span></Slate>
-                <Paper kind="sheet" pin="top" seed={night} className="dr-results-sheet">
+                {/* Part of the plate, not a sheet pinned to it (Brian, 2026-11-09: "longest word should not be on a pin, it
+                    should be on the plate as a section"). */}
+                <div className="dr-results-facts">
                   {asleep
                     ? <p>{dreamSummary({ fences: live.current.reached, bumps: live.current.bumps, longest })}</p>
                     : <>
@@ -424,7 +426,7 @@ export function DreamScreen() {
                         {length ? <p>fence {fenceNow} of {length.fences}</p> : null}
                       </>}
                   {practice ? <p>Practice dreams don’t count toward your streak.</p> : null}
-                </Paper>
+                </div>
               </div>
               {!practice && (
                 <div className="dr-results-streak">

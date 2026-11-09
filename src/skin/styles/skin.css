@@ -152,10 +152,10 @@
 .sk-title-holly { position: absolute; top: -8px; left: -14px; z-index: 2; width: 58px; height: auto; filter: drop-shadow(0 2px 2px rgba(30, 18, 8, 0.6)); }
 /* The update's name on a red ribbon, under the tagline. */
 .sk-update {
-  position: absolute; top: 8px; left: 342px; width: 150px; padding: 8px 10px 5px; text-align: center; transform: rotate(2deg);
+  position: absolute; top: 8px; left: 342px; width: 150px; padding: 8px 10px 5px; text-align: center; transform: rotate(4deg);
   font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; line-height: 1.3; color: var(--button-text);
 }
-.sk-title-compact .sk-update { position: static; display: block; width: fit-content; margin: 4px auto 0; font-size: 15px; transform: none; }
+.sk-title-compact .sk-update { position: static; display: block; width: fit-content; margin: 4px auto 0; font-size: 15px; transform: rotate(-1.5deg); }
 .sk-title-compact .sk-title-tagline { justify-content: center; padding-left: 0; font-size: 18px; }
 .sk-title-tag-part { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
 .sk-title-tag-part svg { filter: drop-shadow(0 1px 2px rgba(30, 18, 8, 0.7)); }
@@ -1025,24 +1025,35 @@
 }
 :root.reduce-motion .sk-podium, :root.reduce-motion .sk-final { animation: none; }
 
-/* The word of the day (src/skin/wotd/WordOfDay.tsx): floating words, no paper. White on a dark outline and glow, like the
-   table's floating letters, so they read over snow, sky and barn alike. It never takes clicks. */
+/* The word of the day (src/skin/wotd/WordOfDay.tsx), set like a dictionary entry and floating in the scene: no paper.
+   White on a dark outline and glow, like the table's floating letters, so it reads over snow, sky and barn alike. The
+   block hangs at a slight tilt and sways like the title's tiles. It never takes clicks. */
 .sk-wotd {
   --wotd-edge: #2A1A0C;
-  display: flex; flex-direction: column; gap: 2px; pointer-events: none; color: #fff;
+  display: flex; flex-direction: column; gap: 3px; pointer-events: none; color: #fff;
+  rotate: -3deg; transform-origin: 70% 0; animation: sk-wotd-sway 7s ease-in-out infinite;
   text-shadow: 1px 1px 0 var(--wotd-edge), -1px 1px 0 var(--wotd-edge), 1px -1px 0 var(--wotd-edge), -1px -1px 0 var(--wotd-edge), 0 2px 0 var(--wotd-edge), 0 0 12px rgba(30, 16, 6, 0.9);
 }
-.sk-wotd-label { font: 400 20px/1 var(--skin-font-hand); color: var(--glow); letter-spacing: 0.02em; }
+@keyframes sk-wotd-sway { 0%, 100% { rotate: -3deg; } 50% { rotate: -1.8deg; } }
+.sk-wotd-label { font: 400 22px/1 var(--skin-font-hand); color: var(--glow); letter-spacing: 0.02em; }
 .sk-wotd-word {
-  font: 800 clamp(40px, 3.6vw, 60px)/1.05 var(--skin-font-display); letter-spacing: 0.03em;
+  font: 800 clamp(44px, 3.8vw, 64px)/1 var(--skin-font-display); letter-spacing: 0.02em;
   text-shadow: 0 3px 0 #5B3A1E, 2px 2px 0 var(--wotd-edge), -2px 2px 0 var(--wotd-edge), 2px -1px 0 var(--wotd-edge), -2px -1px 0 var(--wotd-edge), 0 0 18px rgba(30, 16, 6, 0.85);
 }
-.sk-wotd-short { font: 400 24px/1.15 var(--skin-font-hand); }
+/* The dictionary line: how to say it, small, and the part of speech in italics. */
+.sk-wotd-say { display: flex; align-items: baseline; gap: 10px; font: 600 15px/1.1 var(--skin-font-body); letter-spacing: 0.04em; color: #FFE9C7; }
+.sk-wotd-pos { font: italic 400 19px/1 var(--skin-font-display); letter-spacing: 0; color: var(--glow); }
+/* A strand of yarn between the entry and its meaning, like the one the tagline hangs on. */
+.sk-wotd-yarn { width: 9rem; height: 0; margin: 5px 0 3px; border-top: 3px dotted rgba(255, 233, 199, 0.85); filter: drop-shadow(0 1px 0 var(--wotd-edge)); }
+.sk-wotd-short { font: 400 25px/1.15 var(--skin-font-hand); }
 /* A computer: on its own on the right, level with the title, clear of everything on the left. */
-.sk-wotd--side { position: absolute; right: 3.5rem; top: 17%; max-width: 30rem; align-items: flex-end; text-align: right; z-index: 5; }
+.sk-wotd--side { position: absolute; right: 4rem; top: 16%; max-width: 30rem; align-items: flex-end; text-align: right; z-index: 5; }
 /* A phone: two small lines in the strip between the update board and the name plate. */
-.sk-wotd--compact { margin-top: 1px; align-items: center; text-align: center; gap: 0; max-width: calc(100vw - 32px); }
-.sk-wotd--compact { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 6px; }
-.sk-wotd--compact .sk-wotd-label { font-size: 13px; }
-.sk-wotd--compact .sk-wotd-word { font-size: 17px; letter-spacing: 0.02em; text-shadow: 0 2px 0 #5B3A1E, 1px 1px 0 var(--wotd-edge), -1px 1px 0 var(--wotd-edge), 1px -1px 0 var(--wotd-edge), -1px -1px 0 var(--wotd-edge), 0 0 10px rgba(30, 16, 6, 0.9); }
-.sk-wotd--compact .sk-wotd-short { flex-basis: 100%; font-size: 14px; line-height: 1; }
+.sk-wotd--compact { margin-top: 0; max-width: calc(100vw - 32px); flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 6px; row-gap: 0; text-align: center; rotate: -1deg; animation: none; transform-origin: 50% 50%; }
+.sk-wotd--compact .sk-wotd-label { font-size: 12px; }
+.sk-wotd--compact .sk-wotd-word { font-size: 16px; line-height: 1; letter-spacing: 0.01em; text-shadow: 0 2px 0 #5B3A1E, 1px 1px 0 var(--wotd-edge), -1px 1px 0 var(--wotd-edge), 1px -1px 0 var(--wotd-edge), -1px -1px 0 var(--wotd-edge), 0 0 10px rgba(30, 16, 6, 0.9); }
+.sk-wotd--compact .sk-wotd-say { font-size: 10px; gap: 4px; }
+.sk-wotd--compact .sk-wotd-pos, .sk-wotd--compact .sk-wotd-yarn { display: none; }
+.sk-wotd--compact .sk-wotd-short { flex-basis: 100%; font-size: 13px; line-height: 0.95; }
+:root.reduce-motion .sk-wotd { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-wotd { animation: none; } }

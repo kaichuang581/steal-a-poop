@@ -15,6 +15,8 @@ import type { World } from './BarnTable';
 
 let built: Built | null = null;
 let land: Countryside | null = null;
+/** Whether the farm and the land round it are already built this session (coming back to Home: no wait, no fade). */
+export const farmReady = () => !!built && !!land;
 
 /** Who lives on the farm: [animal, x, z, facing, state]. Phones keep the first few. */
 const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
@@ -38,7 +40,7 @@ const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
  * Everything the start screen's farm has that the game's table does not: see scene/farmstead.ts. Built after the
  * first paint, like the world, and only ever mounted on the start screen.
  */
-export function Farmstead({ world, reduced, phone }: { world: World; reduced: boolean; phone: boolean }) {
+export function Farmstead({ world, reduced, phone, onReady }: { world: World; reduced: boolean; phone: boolean; onReady?: (ready: boolean) => void }) {
   const [farm, setFarm] = useState(built);
   const [country, setCountry] = useState(land);
   const mat = useMemo(() => voxelMaterial(), []);
@@ -56,7 +58,9 @@ export function Farmstead({ world, reduced, phone }: { world: World; reduced: bo
   useEffect(() => () => mat.dispose(), [mat]);
   // The first time Home opens, the loading screen stays up until the farm and the land round it are built, so nothing
   // pops in after the doors open. Both are kept for the session, so coming back to Home never waits.
-  useLoadingHold('farm', !farm || !country, 'Building the farm', true);
+  // Joins the first load's doors (never brings them down itself: a refresh has none, and the farm fades in instead).
+  useLoadingHold('farm', !farm || !country, 'Building the farm', true, false);
+  useEffect(() => { onReady?.(!!farm && !!country); }, [farm, country, onReady]);
   return (
     <>
       {/* The range the yard looks at, turned round to stand behind the barn as well. */}

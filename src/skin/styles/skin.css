@@ -750,6 +750,20 @@
 @keyframes sk-door-swing-r { 0% { transform: rotateY(0); filter: brightness(1); } 12% { transform: rotateY(-4deg); } 100% { transform: rotateY(-104deg); filter: brightness(0.55); } }
 @keyframes sk-doors-spill { 0% { opacity: 0; transform: scaleX(0.05); } 18% { opacity: 1; transform: scaleX(0.25); } 100% { opacity: 0; transform: scaleX(2.2); } }
 @keyframes sk-doors-through { 0%, 35% { transform: scale(1); opacity: 1; } 80% { opacity: 1; } 100% { transform: scale(1.22); opacity: 0; } }
+/* A quick change of screen (playBarnDoors({ quick })): only a short dark fade, which lifts as soon as the new screen has
+   drawn. If that takes longer than a moment it is a real load, and the doors fade in, already shut, the sign dropping
+   in on its ropes (data-revealed). */
+.sk-doors[data-veil] { background: #0D0F1C; }
+.sk-doors[data-veil] :is(.sk-doors-frame, .sk-doors-sky, .sk-doors-lintel, .sk-doors-sill, .sk-doors-snow, .sk-load, .sk-doors-spill) { visibility: hidden; }
+.sk-doors[data-phase="veiling"] { animation: sk-veil-in 180ms ease-out both; }
+.sk-doors[data-phase="open"][data-veil] { animation: sk-veil-out 240ms ease-in forwards; }
+@keyframes sk-veil-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sk-veil-out { to { opacity: 0; } }
+.sk-doors[data-revealed][data-phase="shut"] :is(.sk-doors-frame, .sk-doors-sky, .sk-doors-lintel, .sk-doors-sill) { animation: sk-veil-in 240ms ease-out both; }
+.sk-doors[data-revealed][data-phase="shut"] :is(.sk-load-board, .sk-load-rope) { animation: sk-load-drop-late 620ms cubic-bezier(0.3, 0.8, 0.4, 1) both; }
+@keyframes sk-load-drop-late { 0% { transform: translateY(-80vh); } 70% { transform: translateY(8px); } 85% { transform: translateY(-3px); } 100% { transform: none; } }
+:root.reduce-motion .sk-doors:is([data-phase="veiling"], [data-revealed]) :is(.sk-load-board, .sk-load-rope) { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-doors[data-revealed] :is(.sk-load-board, .sk-load-rope) { animation: none; } }
 /* Swinging shut over the screen being left (BarnDoors CLOSE_MS, 620 ms): the doors come round from inside the barn,
    edge on, gathering speed, and meet at 80% with a thud that jolts the frame and squeezes the lantern light in the crack
    down to nothing. The lintel settles in as they come, and the slip is pinned up only once they are shut. */
@@ -1099,3 +1113,9 @@
 .sk-wotd--compact .sk-wotd-short { flex-basis: 100%; font-size: 13px; line-height: 0.95; }
 :root.reduce-motion .sk-wotd { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-wotd { animation: none; } }
+
+/* Home's farm (FarmBackdrop): over a soft sky until the farm and the land round it are built, then it fades in. */
+.sk-farm-fade { opacity: 0; transition: opacity 700ms ease-out; }
+.sk-farm-fade[data-ready] { opacity: 1; }
+:root.reduce-motion .sk-farm-fade { transition: none; }
+@media (prefers-reduced-motion: reduce) { .sk-farm-fade { transition: none; } }

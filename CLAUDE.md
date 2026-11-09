@@ -467,3 +467,12 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   ripples, a little cool blue in the hollows, fine grain and an occasional glint, the darkest about 17% under the
   brightest. On coarse grids (the far land is 1 m voxels) the marks are wider and softer, or the big voxels step into
   squares. Keep it subtle; per-voxel tone picks on snow are what drew the squares before.
+- The loading screen is for loading (requested by Brian, 2026-11-08: "if the game is alrdy loaded ex) from just
+  refreshing the page then it shouldnt be spammed"). The boot doors show only on the first load in a tab
+  (`firstLoadThisTab`, sessionStorage sap:booted). On a refresh Home is up at once over a soft sky and its farm fades in
+  once the farm and the land are built (`.sk-farm-fade`, `farmReady`/`onReady` in Farmstead); the farm's hold joins doors
+  that are up but never brings them down (`useLoadingHold(..., shut = false)`). Going into a game, practice, the tutorial
+  or the dream is `playBarnDoors({ quick: true })`: a 180 ms dark fade, the new screen mounts, and the fade lifts the
+  moment it has drawn; only if that takes over GRACE_MS (800 ms) do the doors fade in, already shut, the sign dropping
+  in (data-veil, data-revealed). The game clock is still held until either opens. A refresh still builds the farm from
+  scratch (about 5 s); the doors were never what made it slow.

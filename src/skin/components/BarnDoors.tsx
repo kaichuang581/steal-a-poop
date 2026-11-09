@@ -22,22 +22,25 @@ interface Doors {
   key: number; canvas: boolean; holds: Record<string, string>; label: string | null;
   /** Whether this pair swings shut (false: already shut on its first frame, as on the first load). */
   swing: boolean;
+  /** A quick change of screen: a short dark fade first, and the doors only if the new screen is not ready in a moment. */
+  quick: boolean;
   /** The key of the pair that is fully shut, and of the pair that has started to open. */
   shut: number; opened: number;
 }
-const useDoors = create<Doors>(() => ({ key: 0, canvas: true, holds: {}, label: null, swing: false, shut: 0, opened: 0 }));
+const useDoors = create<Doors>(() => ({ key: 0, canvas: true, holds: {}, label: null, swing: false, quick: false, shut: 0, opened: 0 }));
 
-interface ShutOpts { canvas?: boolean; label?: string }
+interface ShutOpts { canvas?: boolean; label?: string; quick?: boolean }
 
 /** Swing the doors shut now, with `label` on the slip; they open once the new scene has drawn (or, with `canvas: false`,
- *  once nothing holds them). */
+ *  once nothing holds them). With `quick`, a short dark fade comes first and the doors only if the wait goes on: the
+ *  loading screen is for loading, not for every change of screen. */
 export const playBarnDoors = (opts: ShutOpts = {}) =>
-  useDoors.setState((s) => ({ key: s.key + 1, canvas: opts.canvas ?? true, label: opts.label ?? null, swing: true }));
+  useDoors.setState((s) => ({ key: s.key + 1, canvas: opts.canvas ?? true, label: opts.label ?? null, swing: !opts.quick, quick: !!opts.quick }));
 
 /** The page's first screen: the doors are shut from the very first frame, so the screen being built behind them is never
  *  seen first and then covered. `canvas: false` when the first screen has no 3D scene to wait for. */
 export const shutDoorsAtBoot = (opts: ShutOpts = {}) => {
-  if (useDoors.getState().key === 0) useDoors.setState({ key: 1, canvas: opts.canvas ?? true, label: opts.label ?? null, swing: false });
+  if (useDoors.getState().key === 0) useDoors.setState({ key: 1, canvas: opts.canvas ?? true, label: opts.label ?? null, swing: false, quick: false });
 };
 
 /** Calls `fn` once the current doors are fully shut (at once if they already are). Returns a cancel function. */
@@ -56,14 +59,15 @@ function when(test: (s: Doors) => boolean, fn: () => void): () => void {
   return off;
 }
 
-/** While `active`, keep the doors shut (and swing them shut if they are not), with `label` on the slip. If this hold
- *  shuts the doors itself, `canvas` says whether they also wait for a new scene to draw. */
-export function useLoadingHold(id: string, active: boolean, label = 'Getting the barn ready', canvas = false) {
+/** While `active`, keep the doors shut, with `label` on the slip. If no doors are up, `shut` says whether this hold brings
+ *  them down itself (and `canvas` whether they then also wait for a new scene to draw); with `shut: false` it only
+ *  keeps doors that are already up from opening early. */
+export function useLoadingHold(id: string, active: boolean, label = 'Getting the barn ready', canvas = false, shut = true) {
   useEffect(() => {
     if (!active) return;
-    useDoors.setState((s) => ({ holds: { ...s.holds, [id]: label }, ...(liveKey === s.key ? {} : { key: s.key + 1, canvas, label: null, swing: true }) }));
+    useDoors.setState((s) => ({ holds: { ...s.holds, [id]: label }, ...(liveKey === s.key || !shut ? {} : { key: s.key + 1, canvas, label: null, swing: true, quick: false }) }));
     return () => useDoors.setState((s) => { const holds = { ...s.holds }; delete holds[id]; return { holds }; });
-  }, [id, active, label, canvas]);
+  }, [id, active, label, canvas, shut]);
 }
 
 /** The scenes' canvases mark themselves once they have drawn a few frames (Rendering's MarkDrawn). */
@@ -71,6 +75,8 @@ export const DRAWN_ATTR = 'data-drawn';
 const CLOSE_MS = 620; // the swing shut (skin.css sk-door-close-*); the doors meet at 80% of it
 const CLOSE_REDUCED_MS = 220; // reduced motion: a fade in instead
 const HOLD_MS = 350; // once shut, the doors are seen shut at least this long
+const VEIL_MS = 180; // a quick change: the dark fade, before the new screen mounts
+const GRACE_MS = 800; // and how long the new screen has to be ready before the doors come down after all
 const GIVE_UP_MS = 15000; // a scene that never draws (no WebGL, something stuck): open anyway this long after it mounted
 const GIVE_UP_TOTAL_MS = 30000; // and never stay shut longer than this, even while the scene is still being built
 /** Whether doors are on screen and not yet opening, so a hold joins them instead of shutting a second pair. */
@@ -101,7 +107,15 @@ export function BarnDoors() {
 
 function Doors({ id }: { id: number }) {
   const reduced = useMotionLevel() === 'reduced';
-  const [phase, setPhase] = useState<'closing' | 'shut' | 'open' | 'gone'>(() => (useDoors.getState().swing ? 'closing' : 'shut'));
+  const [phase, setPhase] = useState<'veiling' | 'closing' | 'shut' | 'open' | 'gone'>(() => {
+    const { quick, swing } = useDoors.getState();
+    return quick ? 'veiling' : swing ? 'closing' : 'shut';
+  });
+  // A quick change shows only a dark fade, until the wait outlasts GRACE_MS: then the doors (a real load).
+  const [quick] = useState(() => useDoors.getState().quick);
+  const [veil, setVeil] = useState(quick);
+  const veilRef = useRef(veil);
+  veilRef.current = veil;
   const holds = useDoors((s) => s.holds);
   const doorsLabel = useDoors((s) => s.label);
   const [line, setLine] = useState(0);
@@ -118,6 +132,12 @@ function Doors({ id }: { id: number }) {
     before.current = new Set(document.querySelectorAll(`canvas[${DRAWN_ATTR}]`));
     return () => { if (liveKey === id) liveKey = -1; };
   }, [id]);
+  // A quick change: the fade, then the screen behind can mount.
+  useEffect(() => {
+    if (phase !== 'veiling') return;
+    const t = setTimeout(() => setPhase('shut'), VEIL_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
   // Swinging shut: the thud as they meet, then they count as shut.
   useEffect(() => {
     if (phase !== 'closing') return;
@@ -132,6 +152,7 @@ function Doors({ id }: { id: number }) {
     useDoors.setState({ shut: id });
     const t0 = performance.now();
     let sceneAt = 0; // when a new scene first mounted: the first load builds its world before there is one
+    let doorsAt = veilRef.current ? 0 : t0; // when the doors themselves came into view
     let raf = 0;
     const tick = () => {
       const now = performance.now();
@@ -140,8 +161,11 @@ function Doors({ id }: { id: number }) {
       const scenes = [...document.querySelectorAll('canvas[data-engine]')];
       if (!sceneAt && scenes.some((c) => !before.current!.has(c))) sceneAt = now;
       const drawn = !canvas || (scenes.some((c) => c.hasAttribute(DRAWN_ATTR) && !before.current!.has(c)) && scenes.every((c) => c.hasAttribute(DRAWN_ATTR)));
+      const ready = drawn && Object.keys(h).length === 0;
+      // Behind the fade, ready means open straight away; slower than GRACE_MS, and it is a real load: the doors.
+      if (veilRef.current && !ready && age > GRACE_MS) { setVeil(false); doorsAt = now; }
       const stuck = (canvas ? sceneAt > 0 && now - sceneAt > GIVE_UP_MS : age > GIVE_UP_MS) || age > GIVE_UP_TOTAL_MS;
-      if ((age > HOLD_MS && drawn && Object.keys(h).length === 0) || stuck) return setPhase('open');
+      if ((ready && (veilRef.current || now - doorsAt > HOLD_MS)) || stuck) return setPhase('open');
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -151,8 +175,8 @@ function Doors({ id }: { id: number }) {
     if (phase !== 'open') return;
     if (liveKey === id) liveKey = -1;
     useDoors.setState({ opened: id });
-    playSound('doorOpen', 0.8);
-    const t = setTimeout(() => setPhase('gone'), 1150);
+    if (!veilRef.current) playSound('doorOpen', 0.8);
+    const t = setTimeout(() => setPhase('gone'), veilRef.current ? 260 : 1150);
     return () => clearTimeout(t);
   }, [phase, id]);
   // The doors are modal: keys pressed while they are up do not reach the screen behind (starting the dream, typing at
@@ -175,7 +199,7 @@ function Doors({ id }: { id: number }) {
   }, [phase, label]);
   if (phase === 'gone') return null;
   return (
-    <div className="sk-doors" data-phase={phase} role="status" aria-live="polite" aria-label={phase === 'open' ? undefined : 'Loading'} style={ART}>
+    <div className="sk-doors" data-phase={phase} data-veil={veil || undefined} data-revealed={(quick && !veil) || undefined} role="status" aria-live="polite" aria-label={phase === 'open' ? undefined : 'Loading'} style={ART}>
       <div className="sk-doors-spill" />
       {/* The doors are voxels baked to images (src/skin/loading, tools/renderDoors.mjs), each leaf showing its half. */}
       <div className="sk-doors-frame">

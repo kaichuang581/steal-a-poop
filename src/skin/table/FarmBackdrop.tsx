@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { ACESFilmicToneMapping, Object3D, PCFSoftShadowMap, SRGBColorSpace } from 'three';
 import type { PerspectiveCamera, PointLight, SpotLight } from 'three';
@@ -10,7 +10,7 @@ import { BARN } from '../scene/layout';
 import { Sky } from '../scene/Sky';
 import { Farm, useWorld } from './BarnTable';
 import { DevStats } from './DevStats';
-import { Farmstead } from './Farmstead';
+import { Farmstead, farmReady } from './Farmstead';
 import { Wendigo } from './Wendigo';
 import { Atmosphere, Effects, FOG, Lights, MarkDrawn, yawToward } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
@@ -43,12 +43,19 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
   const veil = useRef<HTMLDivElement>(null);
   const spot = useRef<SpotLight>(null);
   const bounce = useRef<PointLight>(null);
-  if (!w) return <div className="absolute inset-0" style={{ background: `linear-gradient(${FOG[hour]}, #DCE6F2)` }} />;
+  // The farm fades in once it and the land round it are built, over a soft sky, so a load without the doors (a
+  // refresh) never shows the scene going up piece by piece.
+  const [ready, setReady] = useState(farmReady);
+  const onReady = useCallback((r: boolean) => setReady(r), []);
+  const sky = <div className="absolute inset-0" style={{ background: `linear-gradient(${FOG[hour]}, #DCE6F2)` }} />;
+  if (!w) return sky;
   // The hero stands 1.2 m in front of the doors and faces the camera.
   const hero: [number, number, number] = [0, 0, BARN.maxZ + 1.2];
   const heroFacing = Math.atan2(cam.position[0] - hero[0], cam.position[2] - hero[2]);
   return (
     <>
+    {sky}
+    <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined}>
     <Canvas
       shadows={{ type: PCFSoftShadowMap }} dpr={phone ? [1, 1.5] : [1, 2]}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
@@ -62,7 +69,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <DoorSpill spot={spot} bounce={bounce} />
       <Sky hour={hour} reduced={reduced} blizzard={false} />
       <Farm world={w} reduced={reduced} />
-      <Farmstead world={w} reduced={reduced} phone={phone} />
+      <Farmstead world={w} reduced={reduced} phone={phone} onReady={onReady} />
       <Wendigo reduced={reduced} />
       <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5}>
         {avatar === ADMIN_AVATAR_ID
@@ -77,6 +84,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Effects tiltShift={0.15} />
       <DevStats />
     </Canvas>
+    </div>
     <div ref={veil} className="pointer-events-none absolute inset-0 bg-[#0b0806] opacity-0" />
     </>
   );

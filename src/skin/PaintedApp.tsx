@@ -40,6 +40,17 @@ const PREVIEW = new URLSearchParams(location.search).get('preview');
  * The painted skin's screen switch, mirroring App's: game, room, lobby, home. The Rooms lobby and waiting room keep
  * the classic screens until the game server is live (plan Milestone 7).
  */
+/** True the first time the game loads in this tab; a refresh (or coming back to it) is not a first load. */
+function firstLoadThisTab(): boolean {
+  try {
+    const seen = sessionStorage.getItem('sap:booted');
+    sessionStorage.setItem('sap:booted', '1');
+    return !seen;
+  } catch {
+    return true;
+  }
+}
+
 /** What the loading slip says on the way into each screen. */
 function loadingLine(to: 'dream' | 'game'): string {
   if (to === 'dream') return 'Tucking the farmer in';
@@ -53,9 +64,11 @@ export function PaintedApp() {
   const lobbyOpen = useRoomStore((s) => s.open);
   const hour = useHour();
   const dreaming = useDreamUi((s) => s.open);
-  // The first load goes behind the doors from the first frame: Home's farm takes seconds to build, and shutting the
-  // doors only once its scene mounted showed Home first and then covered it.
-  useState(() => { if (!PREVIEW) shutDoorsAtBoot({ label: 'Opening up the barn' }); });
+  // The first load in a tab goes behind the doors from the first frame: Home's farm takes seconds to build, and shutting
+  // the doors only once its scene mounted showed Home first and then covered it. A refresh skips them (Brian: "if the
+  // game is already loaded ... from just refreshing the page then it shouldnt be spammed"): Home is there at once and
+  // its farm fades in when it is built (FarmBackdrop).
+  useState(() => { if (!PREVIEW && firstLoadThisTab()) shutDoorsAtBoot({ label: 'Opening up the barn' }); });
   useSkinFonts();
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
@@ -77,7 +90,8 @@ export function PaintedApp() {
   useEffect(() => {
     if (want === mounted) return;
     if (want === 'rest' || PREVIEW) return setMounted(want);
-    if (!doorsShut()) playBarnDoors({ label: loadingLine(want) });
+    // Quick: a short dark fade, and the doors only if the new screen keeps us waiting.
+    if (!doorsShut()) playBarnDoors({ label: loadingLine(want), quick: true });
     let a = 0, b = 0;
     const cancel = whenDoorsShut(() => { a = requestAnimationFrame(() => { b = requestAnimationFrame(() => setMounted(want)); }); });
     return () => { cancel(); cancelAnimationFrame(a); cancelAnimationFrame(b); };

@@ -46,6 +46,15 @@ export function Credits({ onClose }: { onClose: () => void }) {
           <a className="underline" href="https://github.com/dolph/dictionary" target="_blank" rel="noreferrer">github.com/dolph/dictionary</a>.
         </p>
 
+        <h3 className="text-sm font-black uppercase tracking-wider text-amber-300">Word frequency</h3>
+        <p className="mb-3 mt-1 text-sm text-white/80">
+          Word rarity uses a frequency list derived from the Google Books Ngram Corpus (Google Books Ngram
+          Viewer), published by hackerb9 as gwordlist and licensed under CC BY 3.0. The game ships a copy
+          filtered to the ENABLE word list.{' '}
+          <a className="underline" href="https://github.com/hackerb9/gwordlist" target="_blank" rel="noreferrer">github.com/hackerb9/gwordlist</a>{' · '}
+          <a className="underline" href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a>.
+        </p>
+
         <h3 className="text-sm font-black uppercase tracking-wider text-amber-300">Software</h3>
         <ul className="mb-3 mt-1 space-y-1 text-sm">
           {used.map(([id, info]) => (

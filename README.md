@@ -47,6 +47,11 @@ The default look is a painted, storybook barn. The classic screens are still ava
 **Avatars are local for now.** Other players cannot see your avatar yet; the server does not carry the
 choice, so everyone else still sees the default sheep.
 
+Word rarity uses a frequency list derived from the Google Books Ngram Corpus, via
+[hackerb9/gwordlist](https://github.com/hackerb9/gwordlist), licensed under
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The game ships a filtered copy in
+`public/word-frequency.txt`; words it does not cover fall back to the old letter-frequency estimate.
+
 ## Architecture
 
 ```

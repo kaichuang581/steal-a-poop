@@ -8,6 +8,7 @@ import { recordPracticeRun } from '../lib/practice';
 import { isFirstGames, needsSoftGame, recordBests, recordQuickResult } from '../lib/record';
 import type { GameResult } from '../lib/record';
 import type { PracticeRun } from '../lib/practice';
+import { clearSoloGame, loadSoloGame, saveSoloGame, type SavedSoloGame } from '../lib/soloSave';
 import { load, save } from '../lib/storage';
 import { isTourDone, setTourDone } from '../lib/tips';
 import { bridge } from './bridge';
@@ -57,6 +58,8 @@ interface Store {
   timeOffset: number;
   tourDone: boolean;
   afterTour: 'menu' | 'quick';
+  /** A Quick or Practice game left behind by an earlier visit, if it is still fresh. */
+  resumable: SavedSoloGame | null;
   loadDictionary(): Promise<void>;
   setSettings(patch: Partial<Settings>): void;
   /**
@@ -76,6 +79,10 @@ interface Store {
   retryDictionary(): Promise<void>;
   pause(): void;
   resume(): void;
+  /** Re-reads the saved game. The start screen calls this when it appears. */
+  refreshResume(): void;
+  /** Restores a saved game and continues its clock from where it stopped. */
+  resumeSaved(): boolean;
   startTour(after: 'menu' | 'quick'): boolean;
   endTour(next: 'menu' | 'quick'): void;
   /** Valid words for the current chain letter (tutorial hints). */
@@ -114,6 +121,18 @@ const VOLUME_KEY = 'sap:volume';
 const REDUCE_KEY = 'sap:reduceMotion';
 const LARGE_KEY = 'sap:largeText';
 
+/** Quick and Practice games run in this browser, so they are the games that can be resumed. */
+function isSolo(mode: Mode): mode is 'quick' | 'practice' {
+  return mode === 'quick' || mode === 'practice';
+}
+
+/** Mirrors the live game into localStorage. A finished game is not worth resuming, so it is cleared. */
+function persist(mode: Mode, game: GameState | null, engineNow: number): void {
+  if (!isSolo(mode)) return;
+  if (!game || game.phase === 'gameOver') clearSoloGame();
+  else saveSoloGame(mode, game, engineNow);
+}
+
 export const useStore = create<Store>((set, get) => ({
   client: null,
   dict: null,
@@ -136,6 +155,7 @@ export const useStore = create<Store>((set, get) => ({
   timeOffset: 0,
   tourDone: isTourDone(),
   afterTour: 'menu',
+  resumable: loadSoloGame(),
 
   async loadDictionary() {
     if (get().client) return;
@@ -192,7 +212,9 @@ export const useStore = create<Store>((set, get) => ({
         },
       };
     }
-    set({ game: client.create(setup), mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0, practiceResult: null, gameResult: null });
+    const game = client.create(setup);
+    persist(mode, game, now);
+    set({ game, mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, timeOffset: 0, practiceResult: null, gameResult: null, resumable: null });
     return true;
   },
 
@@ -204,8 +226,12 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   quit() {
-    if (get().mode === 'room') bridge.leaveRoom?.();
-    set({ game: null, paused: false, timeOffset: 0 });
+    const { mode } = get();
+    if (mode === 'room') bridge.leaveRoom?.();
+    // Leaving on purpose throws the game away, so a solo game cannot be resumed afterwards. Quitting
+    // a Daily or tutorial game leaves an unrelated saved solo game alone.
+    if (isSolo(mode)) clearSoloGame();
+    set({ game: null, paused: false, timeOffset: 0, resumable: loadSoloGame() });
   },
 
   act(action) {
@@ -217,6 +243,7 @@ export const useStore = create<Store>((set, get) => ({
     const now = paused ? get().now : performance.now() - timeOffset;
     const result = client.act(game, action, now);
     set({ game: result.state, now });
+    persist(mode, result.state, now);
     const done = finished(mode, game, result.state);
     if (done) set(done);
     return result;
@@ -237,6 +264,7 @@ export const useStore = create<Store>((set, get) => ({
       return;
     }
     set({ game: next, now });
+    persist(mode, next, now);
     const done = finished(mode, game, next);
     if (done) set(done);
     if (next.phase === 'gameOver' && game.phase !== 'gameOver' && mode === 'daily' && dailyDate) {
@@ -261,6 +289,30 @@ export const useStore = create<Store>((set, get) => ({
     const { paused, pausedRaw, timeOffset } = get();
     if (!paused) return;
     set({ paused: false, timeOffset: timeOffset + (performance.now() - pausedRaw) });
+  },
+
+  refreshResume() {
+    set({ resumable: loadSoloGame() });
+  },
+
+  resumeSaved() {
+    const { client, game } = get();
+    if (game) return false;
+    const saved = loadSoloGame();
+    if (!client || !saved) {
+      set({ resumable: null });
+      return false;
+    }
+    // The saved state's timestamps are in engine time, and engine time is performance.now() minus
+    // timeOffset. Shifting the offset, and not the state, moves the whole clock: the game carries on
+    // from the instant it stopped, so the time the tab was closed is neither charged to the player
+    // nor given to them, and nothing that was mid-turn fires early or late.
+    const timeOffset = performance.now() - saved.savedNow;
+    set({
+      game: saved.game, mode: saved.mode, mySeat: 0, dailyDate: null, streak: 0,
+      now: saved.savedNow, paused: false, pausedRaw: 0, timeOffset, resumable: null,
+    });
+    return true;
   },
 
   startTour(after) {

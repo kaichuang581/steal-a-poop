@@ -112,11 +112,20 @@ const SETTINGS_KEY = 'sap:settings';
 export const STALL_MS = 400;
 /** performance.now() of the last frame of this solo game, or null before its first. */
 let lastRaw: number | null = null;
-/** The clock offset with any stall since the last frame taken out of the game's time. */
+/** The wall clock (Date.now) at that frame. */
+let lastWall = 0;
+/**
+ * The clock offset with any stall since the last frame taken out of the game's time. Whether there was a stall is read
+ * on the wall clock, not the game's: the end-to-end test runs the game clock 20x fast by patching performance.now, so
+ * every ordinary frame there looked like a stall and a full game never ended (the deploy failed on it, 2026-11-09).
+ */
 function absorbStall(raw: number, timeOffset: number): number {
+  const wall = Date.now();
   const gap = lastRaw === null ? 0 : raw - lastRaw;
+  const stalled = lastRaw !== null && wall - lastWall > STALL_MS;
   lastRaw = raw;
-  return gap > STALL_MS ? timeOffset + gap - 17 : timeOffset;
+  lastWall = wall;
+  return stalled ? timeOffset + gap - 17 : timeOffset;
 }
 
 /** Saved settings, with the game rules filled in over the defaults (saves from before v3.3 have none). */

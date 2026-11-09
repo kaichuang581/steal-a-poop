@@ -10,6 +10,7 @@ let clock = 0;
 beforeEach(() => {
   clock = 1_000;
   vi.spyOn(performance, 'now').mockImplementation(() => clock);
+  vi.spyOn(Date, 'now').mockImplementation(() => clock); // stalls are read on the wall clock
   const game = createGame({ seed: 'stall', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy' }, dict);
   useStore.setState({ client: createLocalClient(dict), game, mode: 'quick', mySeat: 0, paused: false, held: false, pausedRaw: 0, timeOffset: clock - T0, now: T0 });
   useStore.getState().quit(); // forget any earlier test's last frame
@@ -48,6 +49,14 @@ describe('a stall between frames', () => {
     clock += 60_000;
     useStore.getState().act({ type: 'play', seat: 0, word: 'zzzz' });
     expect(useStore.getState().now).toBeLessThan(T0 + STALL_MS);
+  });
+
+  it('runs a sped-up game clock on, as the end-to-end test does (performance.now 20x, the wall clock real)', () => {
+    let wall = 5_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => wall);
+    step(0);
+    for (let i = 0; i < 30; i++) { wall += 25; step(500); } // 25 ms frames read as 500 ms on the fast clock
+    expect(useStore.getState().now).toBe(T0 + 15_000);
   });
 
   it('leaves a room on the server clock', () => {

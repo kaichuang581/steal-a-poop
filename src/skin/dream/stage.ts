@@ -144,13 +144,16 @@ export function dreamFrame(shot: Shot, aspect: number, phone: boolean): Record<s
 /** How fast each layer scrolls against the lane. */
 export const LAYER = { hills: 0.02, mountains: 0.01 } as const;
 /** The wake-up timeline (V4.1 Part 7.4), in ms from the bump. */
-export const WAKE = { stir: 350, pop: 600, popMs: 500, dark: 1100, finish: 1500, reducedFinish: 600, shakeMs: 300, shake: 0.03 } as const;
+/** The wake-up, in ms from the bump: the farmer stirs, the dream pops and the clouds roll in (WakeClouds, covered
+ *  CLOUD_MS.covered later), the dream is hidden once they cover it, the results come up under them, and `reveal` after
+ *  that they part. */
+export const WAKE = { stir: 350, pop: 600, popMs: 500, dark: 1650, finish: 1700, reveal: 450, reducedFinish: 600, shakeMs: 300, shake: 0.03 } as const;
 /**
  * The thought trail, as a share of the frame: x, y and width. The plan's third puff at (22, 66) would sit on the sheep's
  * hooves at (22, 67), so the trail runs clear of the sheep and ends on the near ridge, which is what the plan asks of it.
  */
 export const PUFFS = [[12, 72, 3], [18.5, 71, 4.5], [27, 74, 6]] as const;
-/** The drift-off (V4 Part 15), in ms from the last fence: how long the board holds before the results. */
-export const DRIFT = { finish: 2000, reducedFinish: 600 } as const;
+/** The drift-off (V4 Part 15), in ms from the last fence: when the clouds roll in, and when the results come up under them. */
+export const DRIFT = { clouds: 900, finish: 2650, reducedFinish: 600 } as const; // clouds: gentle ones, covered 1,700 ms later
 /** Where the first fence waits before the first key, in logical pixels ahead of the sheep's nose. */
 export const FIRST_FENCE_AHEAD = 560; // about 5 s before the first jump (Brian: "you get barely any time")

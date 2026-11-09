@@ -20,6 +20,10 @@ function makeCloud(n: number): Cloud {
   const geo = new BufferGeometry();
   geo.setAttribute('position', new BufferAttribute(new Float32Array(n * 3), 3));
   geo.setAttribute('color', new BufferAttribute(new Float32Array(n * 3), 3));
+  // Between bursts nothing is drawn (Brian, 2026-11-09: "the bomb primarily, it lags the website a lot"). The dead bits
+  // used to stay in the scene, black and additive, big squares overdrawn at the middle of the barn every frame. three
+  // still builds the shader for an empty draw, so it compiles while the table loads, not mid-blast.
+  geo.setDrawRange(0, 0);
   return { geo, vel: new Float32Array(n * 3), age: new Float32Array(n).fill(9), n };
 }
 
@@ -48,6 +52,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
   // Chunks of the ice shell: real voxel bits that tumble out, bounce on the floor and melt away.
   const chunkMat = useMemo(() => voxelMaterial({ emissive: '#6fbfff', emissiveIntensity: 0.2 }), []);
   const chunks = useRef<InstancedMesh>(null);
+  const chunkGeo = useMemo(() => bombModel().chunk, []);
   const ch = useMemo(() => ({
     pos: new Float32Array(CHUNKS * 3), vel: new Float32Array(CHUNKS * 3), axis: Array.from({ length: CHUNKS }, () => new Vector3()),
     spin: new Float32Array(CHUNKS), size: new Float32Array(CHUNKS), m: new Matrix4(), q: new Quaternion(), v: new Vector3(), sc: new Vector3(),
@@ -71,6 +76,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
         cloud.age[i] = -Math.random() * 0.08;
       }
       p.needsUpdate = true;
+      cloud.geo.setDrawRange(0, cloud.n);
     };
     const m = 1.7 * (1 + 0.6 * (power - 1));
     flameMat.size = 1.0 * m; // small enough that the frost never piles up to a white screen near the camera
@@ -91,11 +97,11 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
     }
     (flash.geo.getAttribute('position') as BufferAttribute).setXYZ(0, o.x, o.y, o.z);
     (flash.geo.getAttribute('position') as BufferAttribute).needsUpdate = true;
+    flash.geo.setDrawRange(0, 1);
+    if (chunks.current) chunks.current.count = CHUNKS;
   }, [boomKey, origin, flames, sparks, smoke, flameMat, sparkMat, smokeMat, flashMat, power, ch]);
 
   useFrame((_, rawDt) => {
-    // The mist shows only while a burst is on.
-    if (smoke3.current) smoke3.current.visible = t0.current >= 0;
     if (t0.current < 0) return;
     const dt = Math.min(rawDt, 1 / 30); // a slow frame never skips the blast
     t0.current += dt;
@@ -161,23 +167,29 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
         chunks.current.setMatrixAt(i, ch.m);
       }
       chunks.current.instanceMatrix.needsUpdate = true;
-      chunks.current.visible = true;
     }
     if (light.current) {
       light.current.position.copy(at.current);
       light.current.intensity = Math.max(0, 1 - t0.current / 0.4) * 110 * boost.current;
     }
-    if (t0.current > LIFE + 0.5) { t0.current = -1; if (light.current) light.current.intensity = 0; if (chunks.current) chunks.current.visible = false; }
+    if (t0.current > LIFE + 0.5) {
+      t0.current = -1;
+      if (light.current) light.current.intensity = 0;
+      if (chunks.current) chunks.current.count = 0;
+      for (const c of [flames, sparks, smoke, flash]) c.geo.setDrawRange(0, 0);
+    }
   });
 
   if (reduced) return null;
   return (
     <>
       <points ref={flames3} geometry={flames.geo} material={flameMat} frustumCulled={false} />
-      <points ref={smoke3} geometry={smoke.geo} material={smokeMat} frustumCulled={false} visible={false} />
+      <points ref={smoke3} geometry={smoke.geo} material={smokeMat} frustumCulled={false} />
       <points geometry={flash.geo} material={flashMat} frustumCulled={false} />
       <points ref={sparks3} geometry={sparks.geo} material={sparkMat} frustumCulled={false} />
-      <instancedMesh ref={chunks} args={[bombModel().chunk, chunkMat, CHUNKS]} frustumCulled={false} visible={false} castShadow />
+      {/* Always in the scene with no instances between bursts, so its shaders (and its shadow's) compile on mount: the
+          first blast used to stall a frame for over 100 ms building them. */}
+      <instancedMesh ref={chunks} args={[chunkGeo, chunkMat, CHUNKS]} count={0} frustumCulled={false} castShadow />
       <pointLight ref={light} color="#9fdcff" intensity={0} distance={70} />
     </>
   );

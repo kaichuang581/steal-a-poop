@@ -103,6 +103,22 @@ interface Store {
 
 const SETTINGS_KEY = 'sap:settings';
 
+/**
+ * A gap between frames longer than this (ms) is time the player could not see or act in: the tab was hidden, the window
+ * was covered (Chrome stops drawing it), or the page froze while it built something. A solo game's clock does not run
+ * through it (found by Brian, 2026-11-09: "sometimes it skips my turn": the turn ran out unseen and the game caught up
+ * all at once on the next frame). Rooms keep the server's time.
+ */
+export const STALL_MS = 400;
+/** performance.now() of the last frame of this solo game, or null before its first. */
+let lastRaw: number | null = null;
+/** The clock offset with any stall since the last frame taken out of the game's time. */
+function absorbStall(raw: number, timeOffset: number): number {
+  const gap = lastRaw === null ? 0 : raw - lastRaw;
+  lastRaw = raw;
+  return gap > STALL_MS ? timeOffset + gap - 17 : timeOffset;
+}
+
 /** Saved settings, with the game rules filled in over the defaults (saves from before v3.3 have none). */
 function loadSettings(): Settings {
   const saved = load<Partial<Settings>>(SETTINGS_KEY, {});
@@ -233,6 +249,7 @@ export const useStore = create<Store>((set, get) => ({
     }
     const game = client.create(setup);
     persist(mode, game, now);
+    lastRaw = null;
     set({ game, mode, mySeat: 0, dailyDate, now, streak: 0, paused: false, held: false, timeOffset: 0, practiceResult: null, gameResult: null, resumable: null });
     return true;
   },
@@ -250,6 +267,7 @@ export const useStore = create<Store>((set, get) => ({
     // Leaving on purpose throws the game away, so a solo game cannot be resumed afterwards. Quitting
     // a Daily or tutorial game leaves an unrelated saved solo game alone.
     if (isSolo(mode)) clearSoloGame();
+    lastRaw = null;
     set({ game: null, paused: false, held: false, timeOffset: 0, resumable: loadSoloGame() });
   },
 
@@ -258,8 +276,12 @@ export const useStore = create<Store>((set, get) => ({
     if (mode === 'room') return bridge.act ? bridge.act(action) : null;
     if (!client || !game || held) return null;
     if (paused && mode !== 'tour') return null;
+    // A key pressed straight after a stall (back on the tab) lands after it, not at the end of it.
+    const raw = performance.now();
+    const offset = paused ? timeOffset : absorbStall(raw, timeOffset);
+    if (offset !== timeOffset) set({ timeOffset: offset });
     // While the tour pauses the clock, actions land at the frozen moment.
-    const now = paused ? get().now : performance.now() - timeOffset;
+    const now = paused ? get().now : raw - offset;
     const result = client.act(game, action, now);
     set({ game: result.state, now });
     persist(mode, result.state, now);
@@ -278,8 +300,10 @@ export const useStore = create<Store>((set, get) => ({
       if (game) set({ now: Date.now() + bridge.skew() });
       return;
     }
-    if (!client || !game || paused || held) return;
-    const now = raw - timeOffset;
+    if (!client || !game || paused || held) { lastRaw = null; return; }
+    const offset = absorbStall(raw, timeOffset);
+    if (offset !== timeOffset) set({ timeOffset: offset });
+    const now = raw - offset;
     const next = client.tick(game, now);
     if (next === game) {
       set({ now });
@@ -348,6 +372,7 @@ export const useStore = create<Store>((set, get) => ({
     // from the instant it stopped, so the time the tab was closed is neither charged to the player
     // nor given to them, and nothing that was mid-turn fires early or late.
     const timeOffset = performance.now() - saved.savedNow;
+    lastRaw = null;
     set({
       game: saved.game, mode: saved.mode, mySeat: 0, dailyDate: null, streak: 0,
       now: saved.savedNow, paused: false, held: false, pausedRaw: 0, timeOffset, resumable: null,

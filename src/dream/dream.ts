@@ -2,8 +2,8 @@ import type { Dictionary } from '../engine/dictionary';
 
 /**
  * Counting Sheep, the daily dream: the farmer is asleep, and in the thought bubble a sheep runs at a row of fences.
- * Each fence names a few letters in order. Type any real word that has those letters in that order (any letters
- * before, between or after) and the sheep jumps it, and the farmer counts one more. Reach a fence without one and
+ * Each fence names the letters a word starts with (one, then two, then three, all common starts like S, GR and STR).
+ * Type any real word that starts with them and the sheep jumps it, and the farmer counts one more. Reach a fence without one and
  * the sheep bumps it. Fences start with one letter and ask for more as the count climbs. Like the offline dinosaur,
  * the fences stand about the same distance apart and the sheep keeps speeding up, so the same gap gives less and less
  * time, and hay bales start turning up close behind the fences. The nightly dream ends after `DREAM_LENGTH.fences` with
@@ -33,9 +33,9 @@ export type Obstacle = 'fence' | 'bale';
 export interface Fence {
   index: number;
   kind: Obstacle;
-  /** The letters a word must contain, in this order, e.g. ['s', 'p'] for S...P. */
+  /** The letters a word must start with, e.g. ['g', 'r'] for GR…. */
   letters: string[];
-  /** A word the letters were taken from, so every fence can be cleared. */
+  /** A fence word that starts with them, if the fence words have one (the dictionary has plenty: the tests check). */
   source: string;
   /** Distance from the previous fence to this one, in logical pixels. */
   gap: number;
@@ -73,10 +73,22 @@ export function lettersAt(index: number): number {
   return 3;
 }
 
-/** At least this many of the fence words must fit each fence, by letters asked, so an answer is always easy to find. */
-export const MIN_FITS: Record<number, number> = { 1: 25, 2: 12, 3: 6 };
-/** Letters a fence never asks for: too few common words have them. */
-const RARE = /[jqvxz]/;
+/**
+ * What a fence can ask a word to start with, by letters asked (Brian, 2026-11-09: "dont make it 'including' letters for
+ * the multiple letters portion, make it starting. and make it common starting like GR, not stuff like LK or impossible
+ * stuff"). One letter is a common first letter; two and three are starts that hundreds of everyday words share: the
+ * consonant blends (GR, ST, SH, STR), and a consonant with a vowel (BA, MO, CHA). Every one is checked against the word
+ * list by the tests. A fence's word must begin with them, nothing else.
+ */
+export const STARTS: Record<1 | 2 | 3, readonly string[]> = {
+  1: 'b c d f g h l m n p r s t w'.split(' '),
+  2: ('bl br ch cl cr dr fl fr gl gr pl pr sc sh sk sl sm sn sp st sw th tr wh ' +
+    'ba be bo bu ca co cu da de di fa fe fi fo ha he hi ho la le li lo ma me mi mo pa pe pi po ra re ri ro sa se si so su ta te ti to wa we wi').split(' '),
+  3: ('str spr scr thr spl shr cha che chi sha she shi sho sta ste sti sto spa spi spo sla sle sli sno sna ' +
+    'bla bri bro cra cre cro dra dri fla fle fli fro gra gre gri gro pla pre pri pro tra tre tri wha whi con com dis').split(' '),
+};
+/** A start used by any of the last this many fences is not asked again so soon. */
+const RECENT_STARTS = 8;
 
 /** The nightly dream's shape (V4 Part 15): this many fences puts the farmer to sleep, and this many bumps wakes him. */
 export const DREAM_LENGTH: { fences: number; bumps: number } | null = { fences: 30, bumps: 1 };
@@ -116,46 +128,43 @@ export function fenceAt(seed: string, index: number): Fence {
   built.set(key, f);
   return f;
 }
+/** A fence's first letter is never one of the last this many fences' (Brian, 2026-11-09: "the run i just did just did
+ *  the letter s 5 times in a row"). */
+export const NO_REPEAT = 2;
+
 function buildFence(seed: string, index: number): Fence {
   const r = rng(`${seed}#${index}`);
   const kind = obstacleAt(seed, index);
-  const k = lettersFor(seed, index);
-  // Take the letters, in order, from a word long enough to leave room around them, and keep only a set that plenty of
-  // common words fit. Everyone gets the same fence: the tries come from the seeded stream.
-  const pool = FENCE_WORDS.filter((w) => w.length >= Math.max(MIN_WORD, k + 1));
-  let source = '', letters: string[] = [], best = -1;
-  for (let attempt = 0; attempt < 200 && best < MIN_FITS[k]; attempt++) {
-    const word = pool[Math.floor(r() * pool.length)];
-    const spots = Array.from(word, (_, i) => i);
-    const picked: number[] = [];
-    while (picked.length < k) picked.push(spots.splice(Math.floor(r() * spots.length), 1)[0]);
-    picked.sort((a, b) => a - b);
-    const set = picked.map((i) => word[i]);
-    if (set.some((c) => RARE.test(c))) continue;
-    const fits = FENCE_WORDS.filter((w) => inOrder(set, w)).length;
-    if (fits > best) { best = fits; source = word; letters = set; }
+  const k = lettersFor(seed, index) as 1 | 2 | 3;
+  // An even, seeded pick from the starts for this many letters, never beginning with the last fences' first letters and
+  // never a start used in the last few fences (unless nothing else is left). Everyone gets the same fence.
+  const firsts = new Set<string>(), recent = new Set<string>();
+  for (let i = Math.max(0, index - RECENT_STARTS); i < index; i++) {
+    const start = fenceAt(seed, i).letters.join('');
+    recent.add(start);
+    if (i >= index - NO_REPEAT) firsts.add(start[0]);
   }
+  const all = STARTS[k];
+  const fresh = all.filter((p) => !firsts.has(p[0]) && !recent.has(p));
+  const pool = fresh.length ? fresh : all.filter((p) => !firsts.has(p[0])).length ? all.filter((p) => !firsts.has(p[0])) : all;
+  const start = pool[Math.floor(r() * pool.length)];
   // The distance barely changes, so the rising speed is what closes the gap; a little more room for each letter asked.
   const gap = kind === 'bale' ? 300 + r() * 50 : 760 + (k - 1) * 18 + r() * 80;
-  return { index, kind, letters, source, gap };
+  return { index, kind, letters: [...start], source: FENCE_WORDS.find((w) => w.startsWith(start) && w.length > start.length) ?? '', gap };
 }
 
-function inOrder(letters: readonly string[], word: string): boolean {
-  let k = 0;
-  for (const ch of word) if (k < letters.length && ch === letters[k]) k++;
-  return k === letters.length;
-}
-
-/** How many of the fence's letters `typed` already has in order (greedy from the left). */
+/** How many of the fence's letters `typed` already has: the letters it starts with, in order, up to the first miss. */
 export function matched(fence: Fence, typed: string): number {
+  const t = typed.toLowerCase();
   let k = 0;
-  for (const ch of typed.toLowerCase()) if (k < fence.letters.length && ch === fence.letters[k]) k++;
+  while (k < fence.letters.length && t[k] === fence.letters[k]) k++;
   return k;
 }
 
 export type Verdict = { ok: true } | { ok: false; reason: 'short' | 'letters' | 'word' | 'used' };
 
-/** Whether `typed` clears the fence: a real word of 3+ letters, not used yet this dream, with the letters in order. */
+/** Whether `typed` clears the fence: a real word of 3+ letters, not used yet this dream, that starts with the fence's
+ *  letters. */
 export function check(dict: Dictionary, fence: Fence, typed: string, used: ReadonlySet<string>): Verdict {
   const w = typed.trim().toLowerCase();
   if (w.length < MIN_WORD) return { ok: false, reason: 'short' };
@@ -165,33 +174,29 @@ export function check(dict: Dictionary, fence: Fence, typed: string, used: Reado
   return { ok: true };
 }
 
-/** The fence's sign: its letters with room between them, e.g. `S…P`, because a word may have anything in the gaps. */
+/** The fence's sign: the letters a word starts with, then dots for the rest of it, e.g. `GR…`. */
 export function signOf(fence: Fence): string {
-  return fence.letters.join('…').toUpperCase();
+  return `${fence.letters.join('').toUpperCase()}…`;
 }
 
 /**
- * Example words for the first three fences only (V4 Part 13.1): up to three fence words that fit, never the fence's
- * own source, seeded by the fence so everyone sees the same ones, shortest first. Nothing from the fourth fence on.
+ * The one hint the dream gives: when a fence first asks for a new number of letters, an example of how it works, from
+ * a different start than the fence in front of you, so it never hands over the answer (Brian, 2026-11-09: "it gives too
+ * many hints, and hints that also literally give the word directly. make hints only pop up when theres a new letter
+ * format"). Null for a format already seen.
  */
-export function exampleWords(fence: Fence): string[] {
-  if (fence.index >= 3) return [];
-  const fits = FENCE_WORDS.filter((w) => w !== fence.source && matched(fence, w) === fence.letters.length);
-  const r = rng(`${fence.letters.join('')}#${fence.index}#examples`);
-  const picked: string[] = [];
-  const pool = [...fits];
-  while (picked.length < 3 && pool.length) picked.push(pool.splice(Math.floor(r() * pool.length), 1)[0]);
-  return picked.sort((a, b) => a.length - b.length || a.localeCompare(b));
-}
-
-/** A word that fits, for a player who has stopped to think: the same for everyone, never the fence's own source. */
-export function hintWord(fence: Fence, used: ReadonlySet<string> = new Set()): string {
-  const fits = FENCE_WORDS.filter((w) => w !== fence.source && !used.has(w) && w.length <= 6 && matched(fence, w) === fence.letters.length);
-  // Short words first; then any length; a used word only when nothing else fits (it would be refused as used).
-  const fit = (w: string) => matched(fence, w) === fence.letters.length;
-  const longer = FENCE_WORDS.filter((w) => w !== fence.source && !used.has(w) && fit(w));
-  const all = fits.length ? fits : longer.length ? longer : FENCE_WORDS.filter(fit);
-  return all[Math.floor(rng(`${fence.letters.join('')}#${fence.index}#hint`)() * all.length)] ?? fence.source;
+const FORMAT_EXAMPLES: Record<1 | 2 | 3, readonly [string, string][]> = {
+  1: [['s', 'sheep'], ['b', 'barn'], ['m', 'moon'], ['h', 'hay']],
+  2: [['gr', 'grass'], ['st', 'star'], ['sh', 'sheep'], ['fl', 'flock'], ['sn', 'snow'], ['tr', 'tree']],
+  3: [['str', 'straw'], ['sle', 'sleep'], ['sno', 'snow'], ['pla', 'plant'], ['thr', 'three'], ['cha', 'chair']],
+};
+export function formatHint(seed: string, fence: Fence): { start: string; word: string } | null {
+  const k = fence.letters.length as 1 | 2 | 3;
+  if (!FORMAT_EXAMPLES[k]) return null;
+  for (let i = 0; i < fence.index; i++) if (fenceAt(seed, i).letters.length === k) return null;
+  const mine = fence.letters.join('');
+  const [start, word] = FORMAT_EXAMPLES[k].find(([p]) => p !== mine && p[0] !== mine[0]) ?? FORMAT_EXAMPLES[k][0];
+  return { start, word };
 }
 
 // ---------- the run ----------
@@ -200,9 +205,12 @@ export const FIELD = { width: 320, ground: 104, sheepX: 78, sheepW: 20, fenceW: 
 export const JUMP_MS = 720;
 export const JUMP_HEIGHT = 28;
 
-/** Running speed in logical pixels a second after `count` fences, rising to a cap like the offline dinosaur. */
+/** Running speed in logical pixels a second after `count` fences, rising to a cap like the offline dinosaur. Brian,
+ *  2026-11-09: "make the dream get progressively faster this is boring": 120 rising 5 a fence (was 110 rising 2.6),
+ *  so the night's last fence comes at 265 and practice tops out at 320 after 40 fences (was 210 after 38). */
+export const SPEED = { start: 120, perFence: 5, cap: 320 } as const;
 export function speedAt(count: number): number {
-  return Math.min(210, 110 + count * 2.6);
+  return Math.min(SPEED.cap, SPEED.start + count * SPEED.perFence);
 }
 
 /** How long a bump holds the sheep up before the lane moves again (V4 Part 15). */

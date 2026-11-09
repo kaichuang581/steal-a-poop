@@ -1,5 +1,5 @@
 import { Bomb } from './Bomb';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
@@ -20,12 +20,12 @@ import { BOARD, boardFontReady, letterBoardGeometry, pileGeometry, pileWidth, PL
 import { DevStats } from './DevStats';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Festive } from './Festive';
-import { Atmosphere, Effects, LANTERN_LIGHT, Lights, MarkDrawn } from './Rendering';
+import { AdaptiveCanvas, Atmosphere, Effects, LANTERN_LIGHT, Lights, MarkDrawn } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
 import { animalModel, heightRatio } from '../voxel/animals';
-import { DISC } from '../avatars/discPose';
+import { getKaiyanLook, pictureHeight, useKaiyanLook } from '../avatars/kaiyanLook';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
 
@@ -146,16 +146,16 @@ export function BarnTable(props: Props) {
   if (!w) return <Building />;
   return (
     <div className="relative size-full">
-      <Canvas
+      <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="table"
         shadows={{ type: PCFShadowMap }}
-        dpr={props.phone ? [1, 1.5] : [1, 2]}
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
+       
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
         camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >
         <MarkDrawn />
         <Scene {...props} world={w} anchors={{ fade: fadeEl, slip: slipRef }} />
-      </Canvas>
+      </AdaptiveCanvas>
       {/* Reduced motion: the camera cuts between speakers behind a 150 ms fade. */}
       <div ref={fadeEl} className="pointer-events-none absolute inset-0 z-[4]" style={{ background: 'var(--ink)', opacity: 0 }} aria-hidden="true" />
       <SlipLayer seats={props.seats} refFor={slipRef} />
@@ -174,6 +174,7 @@ export function Building() {
 }
 
 function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, isTrap, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
+  useKaiyanLook(); // the admin's name plate follows the forehead's length
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
 
@@ -442,7 +443,9 @@ function Moments({ moments, n }: { moments: BarnMoments; n: number }) {
 
 /** Where a seat's name plate stands: just over the hat of the animal it wears (a hen's low, a horse's high). */
 export function nameplateY(avatar: string | null | undefined): number {
-  if (avatar === ADMIN_AVATAR_ID) return (DISC.rest + DISC.radius * DISC.tall + 0.12) * SHEEP_SCALE; // the photo's oval top
+  // Over the photo's top, but never higher than the head stood on 2026-11-08: a forehead stretched far up would carry the
+  // plate and the speech bubble off the screen.
+  if (avatar === ADMIN_AVATAR_ID) return (Math.min(pictureHeight(getKaiyanLook().length), pictureHeight(1)) + 0.14) * SHEEP_SCALE;
   const c = byId(avatar ?? undefined);
   return 1.26 * SHEEP_SCALE * (c ? heightRatio(c.animal) * animalModel(c.animal).drawScale : 1);
 }

@@ -498,3 +498,65 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   it swallowed every key for the rest of the session. `keysBlocked` (BarnDoors.tsx) now blocks only while veiling,
   closing or shut, with a test. The e2e suite runs the classic look, so it cannot catch painted-skin input bugs:
   check typing at the table in a browser after touching the doors.
+- Kaiyan's head, adjustable (requested by Brian, 2026-11-09: "make kaiyans head adjustable in both length and glare, make
+  it extend even further and get even brighter"): the admin panel has Forehead and Glare sliders (x0.1 to x6 and x0 to
+  x6, multiples of the 2026-11-08 look) and a Reset, kept on this device in sap:kaiyan-look (src/skin/avatars/kaiyanLook.ts).
+  The defaults are x1.8 and x2. AvatarDisc draws the picture as three slices on one quad (hair, forehead band, face) and
+  stretches only the band; the glare scales the halo (drawn hotter than white, so it catches the bloom), a turning star
+  of glare streaks, the warm light's strength and reach, and lifts the photo a little. The light stays mounted at 0 glare
+  so the slider never recompiles the scene. The name plate follows a shorter head but never rises past the 2026-11-08
+  height, so the plate and speech bubble stay on screen. Settings are per device: others in a room see the defaults.
+- The dream speeds up for real, and new wake-up clouds (requested by Brian, 2026-11-09: "make the dream get progressively
+  faster this is boring also the animation transition with the clouds from dream to farmer scenery is trash refine it"),
+  a rules change in src/dream: `speedAt` is `SPEED` (120, +5 a fence, cap 320; was 110, +2.6, cap 210), so a night ends
+  at 265 and practice reaches the cap at 40 fences. The pace tests in src/dream/__tests__/dream.test.ts moved with it
+  (first fence over 6 s, the first seven over 4.5 s, the floor at top speed 2.3 s). The waking clouds are
+  src/skin/dream/WakeClouds.tsx: painted clouds in three layers (a shade under each, a lit cap on each lobe) sweep in
+  from both sides, outer ones first, with a cloud-coloured wash under them, so the dream never shows through a hole;
+  the dream is hidden only once they cover it (`WAKE.dark` 1650, results at `WAKE.finish` 1700); they hold while the
+  bedroom is built behind them and part like curtains `WAKE.reveal` (450 ms) later, opaque until nearly off screen.
+  Falling asleep on the last fence gets the same clouds, slower (`DRIFT.clouds` 900, results at 2650). None under
+  reduced motion. The old flat clouds faded into see-through blobs over the room and left dark gaps on the way in.
+- Dream words start with the letter (requested by Brian, 2026-11-09: "make it so that the words must START with the
+  letter. idk why u put it so that u have to just 'include' it"), a rules change in src/dream: a fence's first letter is
+  always its source word's first letter, and a word counts only if it starts with that letter and has the rest in order
+  after it (`lettersIn` in dream.ts; `matched`, `check`, the fits count, examples and hints all follow). The sign still
+  reads `S…P`; the HUD says "a word starting with S, with P after", and the typed letters light only when the word
+  starts right. This supersedes "the letters may have anything between them" above for the first letter.
+- Turns no longer run out unseen (found by Brian, 2026-11-09: "sometimes it skips my turn"). The rules were fine; the
+  clock was not. A solo game's clock is performance.now(), but the game only looks at it on a frame, and Chrome draws no
+  frames while the tab is hidden or the window is covered, so the next frame caught up all at once and the turn was gone.
+  A page freeze did the same. Now a gap between frames over `STALL_MS` (400 ms, src/state/store.ts) is left off a solo
+  game's clock, in `frame` and in `act` (a key pressed straight after a stall); rooms keep the server's time. Tests in
+  src/state/__tests__/stallClock.test.ts. Checked in the browser: a freeze longer than a whole turn left the turn as it was.
+- Mixed start letters (found by Brian, 2026-11-09: "the dream game is too consistent, the run i just did just did the
+  letter s 5 times in a row"), a rules change in src/dream: `buildFence` picks the start letter first, evenly among the
+  letters with enough fence words, never one of the last `NO_REPEAT` (2) fences' start letters (unless nothing else
+  can make the fence), then the source word and the other letters. It used to keep the letter set the most fence words
+  fit, which was nearly always S (29 of the 211 fence words start with it). `MIN_FITS` is 8 / 5 / 3 so a dozen letters
+  qualify; the dictionary still judges what is typed. Tests in dream.test.ts check no repeats and at least 8 start
+  letters in a night.
+- Fences ask for starts, with one hint per format (requested by Brian, 2026-11-09: "it gives too many hints, and hints
+  that also literally give the word directly. make hints only pop up when theres a new letter format, also dont make it
+  'including' letters for the multiple letters portion, make it starting. and make it common starting like GR, not stuff
+  like LK"), a rules change in src/dream: a fence asks for a start from `STARTS` (one common first letter, then a two-
+  letter start such as GR, ST, BA, then a three-letter one such as STR, CHA, PRO; every start begins plenty of words in
+  public/words.txt, checked by a test) and a word clears it only if it begins with that start. No first letter repeats
+  within NO_REPEAT (2) fences and no start within RECENT_STARTS (8). Signs read `GR…` (letters side by side, dots after).
+  The only hint is `formatHint`: on the first fence of each new length, an example from a different start and first
+  letter ("like GRASS for GR"), so it never answers the fence. The timed word hint and the example words are gone
+  (`hintWord`, `exampleWords` and src/skin/__tests__/dreamHint.test.ts removed with them).
+- Smoother on every device (requested by Brian, 2026-11-09: "make the game less laggy without removing anything? the
+  bomb primarily ... optimize this for all devices whether thats ipad, laptop, phone, pc"). Measured first: the scenes
+  are limited by the graphics chip filling pixels (the barn ran at 30 fps on a Retina laptop at 2x, 60 on a phone; the
+  production build holds 60 with the CPU throttled 4x, so React re-rendering the scene each frame is not the cost).
+  (a) The six scene canvases are `AdaptiveCanvas` (src/skin/table/Rendering.tsx): the resolution steps down a quarter
+  when the frame rate stays under about 48 fps, back up when it holds the display's rate, never to a level already too
+  slow (`nextDpr`, tests in src/skin/table/__tests__/adaptiveDpr.test.ts), and each scene keeps what it settled on per
+  device (sap:dpr:<scene>). The resolution must live in the canvas's `dpr` prop: the canvas re-applies that prop on
+  every render and the game screen renders every frame, so a resolution set from inside the scene was put straight
+  back. The composer follows `viewport.dpr`. Canvases with the composer have `antialias: false` (it has its own 4x
+  MSAA target). The Retina laptop now settles at 1.5x, about 58 fps.
+  (b) The blast (Blast.tsx) draws nothing between bursts (draw range 0, chunk count 0) instead of 420+ black additive
+  squares overdrawn at the middle of the barn every frame, and its meshes stay in the scene so their shaders compile
+  while the table loads: the first blast used to stall a frame 115 to 150 ms compiling them (now under 40 ms).

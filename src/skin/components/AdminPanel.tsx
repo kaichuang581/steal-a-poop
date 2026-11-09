@@ -6,7 +6,8 @@ import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
 import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
-import { Brass } from '../kit';
+import { Brass, RopeSlider } from '../kit';
+import { GLARE, LENGTH, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
 import { previewEnd } from '../admin/endPreview';
 import type { EndPreview } from '../admin/endPreview';
 
@@ -62,6 +63,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                   : <ClothButton onClick={() => setAvatar(ADMIN_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
               </div>
             </section>
+            <KaiyanSliders />
             {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
             <section className="sk-paper mt-3 p-2" aria-label="See the end screens">
               <b className="sk-display block text-base">Skip to the end</b>
@@ -93,5 +95,27 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
         )}
       </PaperPanel>
     </div>
+  );
+}
+
+/** How long Kaiyan's forehead is and how hard it shines, on this device (src/skin/avatars/kaiyanLook.ts). */
+function KaiyanSliders() {
+  const { length, glare } = useKaiyanLook();
+  const row = (label: string, value: number, r: { min: number; max: number; step: number }, set: (v: number) => void) => (
+    <label className="mt-1 flex items-center gap-2">
+      <span className="sk-hand w-20 shrink-0 text-sm" style={{ color: 'var(--ink-soft)' }}>{label}</span>
+      <RopeSlider className="min-w-0 flex-1" min={r.min} max={r.max} step={r.step} value={value} onChange={(e) => set(Number(e.target.value))} aria-label={label} />
+      <span className="sk-hand w-10 shrink-0 text-right text-sm">×{value.toFixed(1)}</span>
+    </label>
+  );
+  return (
+    <section className="sk-paper mt-3 p-2" aria-label="Kaiyan's head">
+      <div className="flex items-center justify-between gap-2">
+        <b className="sk-display block text-base">Kaiyan’s head</b>
+        <ClothButton className="sk-btn" onClick={() => setKaiyanLook(null)}>Reset</ClothButton>
+      </div>
+      {row('Forehead', length, LENGTH, (v) => setKaiyanLook({ length: v }))}
+      {row('Glare', glare, GLARE, (v) => setKaiyanLook({ glare: v }))}
+    </section>
   );
 }

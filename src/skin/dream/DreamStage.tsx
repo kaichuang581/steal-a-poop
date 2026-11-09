@@ -1,6 +1,6 @@
-import { MarkDrawn } from '../table/Rendering';
+import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
 import { Html } from '@react-three/drei';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import {
@@ -73,8 +73,8 @@ interface Props {
 export function DreamStage(props: Props) {
   const shot = dreamShot(props.phone, props.landscapePhone);
   return (
-    <Canvas
-      shadows={{ type: PCFShadowMap }} dpr={props.phone ? [1, 1.5] : [1, 2]}
+    <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="dream"
+      shadows={{ type: PCFShadowMap }}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
       camera={{ fov: shot.fov, position: [...shot.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(...shot.target)}
@@ -82,7 +82,7 @@ export function DreamStage(props: Props) {
       <Scene {...props} />
       <MarkDrawn />
       <DevStats />
-    </Canvas>
+    </AdaptiveCanvas>
   );
 }
 

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDictionary } from '../../engine/dictionary';
 import { dreamStreakDays, getDream, getDreamBest, getDreamStreak, markDreamStarted, recordDream } from '../daily';
-import { BALE_PAIRS_FROM, BALES_FROM, check, dreamSeed, dreamGlyphs, dreamShareText, dreamSummary, FENCE_WORDS, fenceAt, FIELD, hintWord, JUMP_MS, jumpHeight, lettersAt, matched, signOf, speedAt, takeoffDistance } from '../dream';
+import { BALE_PAIRS_FROM, BALES_FROM, check, formatHint, NO_REPEAT, STARTS, dreamSeed, dreamGlyphs, dreamShareText, dreamSummary, FENCE_WORDS, fenceAt, FIELD, JUMP_MS, jumpHeight, lettersAt, matched, signOf, speedAt, takeoffDistance } from '../dream';
 
 const words = readFileSync(new URL('../../../public/words.txt', import.meta.url), 'utf8').split('\n');
 const dict = createDictionary(words);
@@ -25,10 +25,45 @@ describe('fences', () => {
     for (let i = 0; i < 60; i++) if (fenceAt(SEED, i).kind === 'fence') expect(fenceAt(SEED, i).letters).toHaveLength(lettersAt(i));
   });
 
-  it('can always be cleared: the word the letters came from fits', () => {
+  it('asks only for common starts from the list (Brian, 2026-11-09: "common starting like GR, not stuff like LK")', () => {
+    for (const seed of [SEED, dreamSeed('2026-12-25')]) for (let i = 0; i < 60; i++) {
+      const f = fenceAt(seed, i);
+      expect(STARTS[f.letters.length as 1 | 2 | 3]).toContain(f.letters.join(''));
+    }
+  });
+
+  it('every start in the list begins plenty of real words', () => {
+    const real = words.filter((w) => w.length >= 3);
+    const need = { 1: 400, 2: 60, 3: 25 } as const;
+    for (const k of [1, 2, 3] as const) for (const p of STARTS[k]) {
+      expect(real.filter((w) => w.startsWith(p)).length, p).toBeGreaterThanOrEqual(need[k]);
+    }
+  });
+
+  it('does not ask for the same start again within a few fences', () => {
+    for (let d = 1; d <= 10; d++) {
+      const starts = Array.from({ length: 40 }, (_, i) => fenceAt(dreamSeed(`2026-10-${String(d).padStart(2, '0')}`), i).letters.join(''));
+      for (let i = 1; i < starts.length; i++) expect(starts.slice(Math.max(0, i - 4), i)).not.toContain(starts[i]);
+    }
+  });
+
+  it('mixes up the start letters (Brian, 2026-11-09: "the letter s 5 times in a row")', () => {
+    for (let d = 1; d <= 30; d++) {
+      const seed = dreamSeed(`2026-12-${String(d).padStart(2, '0')}`);
+      const firsts = Array.from({ length: 40 }, (_, i) => fenceAt(seed, i).letters[0]);
+      // Never the same start letter as either of the last two fences.
+      for (let i = 1; i < firsts.length; i++) for (let back = 1; back <= Math.min(NO_REPEAT, i); back++) expect(firsts[i]).not.toBe(firsts[i - back]);
+      // A night of 30 fences uses plenty of letters, and none takes over.
+      const night = firsts.slice(0, 30);
+      expect(new Set(night).size).toBeGreaterThanOrEqual(8);
+      for (const l of new Set(night)) expect(night.filter((x) => x === l).length).toBeLessThanOrEqual(7);
+    }
+  });
+
+  it('can always be cleared: its fence word, when it has one, fits', () => {
     for (let i = 0; i < 80; i++) {
       const f = fenceAt(SEED, i);
-      expect(check(dict, f, f.source, new Set())).toEqual({ ok: true });
+      if (f.source) expect(check(dict, f, f.source, new Set())).toEqual({ ok: true });
     }
   });
 
@@ -39,18 +74,20 @@ describe('fences', () => {
     }
   });
 
-  it('takes any real word with the letters in order, with anything around and between them', () => {
-    const f = { index: 0, kind: 'fence' as const, letters: ['s', 'p'], source: 'sheep', gap: 400 };
-    expect(signOf(f)).toBe('S…P');
+  it('takes any real word that starts with the letters, and nothing else', () => {
+    const f = { index: 0, kind: 'fence' as const, letters: ['g', 'r'], source: 'grass', gap: 400 };
+    expect(signOf(f)).toBe('GR…');
     const none = new Set<string>();
-    for (const w of ['sheep', 'stop', 'slip', 'sleepy', 'gasps', 'whisper']) expect(check(dict, f, w, none)).toEqual({ ok: true });
-    expect(check(dict, f, 'pass', none)).toEqual({ ok: false, reason: 'letters' }); // wrong order
-    expect(check(dict, f, 'sxp', none)).toEqual({ ok: false, reason: 'word' });
-    expect(check(dict, f, 'sp', none)).toEqual({ ok: false, reason: 'short' });
-    expect(check(dict, f, 'sheep', new Set(['sheep']))).toEqual({ ok: false, reason: 'used' });
-    expect(matched(f, 'sh')).toBe(1);
-    expect(matched(f, 'shee')).toBe(1);
-    expect(matched(f, 'sheep')).toBe(2);
+    for (const w of ['grass', 'green', 'grow', 'grumpy']) expect(check(dict, f, w, none)).toEqual({ ok: true });
+    // The letters inside the word, or apart, no longer count (Brian, 2026-11-09: "make it starting").
+    for (const w of ['agree', 'gear', 'garden', 'rag']) expect(check(dict, f, w, none)).toEqual({ ok: false, reason: 'letters' });
+    expect(check(dict, f, 'grx', none)).toEqual({ ok: false, reason: 'word' });
+    expect(check(dict, f, 'gr', none)).toEqual({ ok: false, reason: 'short' });
+    expect(check(dict, f, 'grass', new Set(['grass']))).toEqual({ ok: false, reason: 'used' });
+    expect(matched(f, 'g')).toBe(1);
+    expect(matched(f, 'gar')).toBe(1);
+    expect(matched(f, 'gra')).toBe(2);
+    expect(matched(f, 'agr')).toBe(0);
   });
 });
 
@@ -109,21 +146,25 @@ describe('daily dream', () => {
   });
 });
 
-describe('hints and the share text (V4 Part 13)', () => {
-  it('gives one to three example words on the first three fences only, never the source, all fitting, the same every time', async () => {
-    const { exampleWords } = await import('../dream');
-    for (let i = 0; i < 6; i++) {
-      const f = fenceAt(SEED, i);
-      const ex = exampleWords(f);
-      if (i < 3) {
-        expect(ex.length).toBeGreaterThanOrEqual(1);
-        expect(ex.length).toBeLessThanOrEqual(3);
-        expect(ex).not.toContain(f.source);
-        for (const w of ex) expect(matched(f, w)).toBe(f.letters.length);
-        expect(exampleWords(f)).toEqual(ex);
-      } else expect(ex).toEqual([]);
+describe('the hint and the share text (V4 Part 13)', () => {
+  it('hints only on the first fence of each new length, and never with the fence\'s own start', () => {
+    for (let d = 1; d <= 10; d++) {
+      const seed = dreamSeed(`2026-09-${String(d).padStart(2, '0')}`);
+      const hinted: number[] = [];
+      for (let i = 0; i < 40; i++) {
+        const f = fenceAt(seed, i);
+        const h = formatHint(seed, f);
+        if (!h) continue;
+        hinted.push(f.letters.length);
+        expect(h.start).not.toBe(f.letters.join(''));
+        expect(h.start[0]).not.toBe(f.letters[0]); // never even the same first letter: no answer handed over
+        expect(h.word.startsWith(h.start)).toBe(true);
+        expect(dict.has(h.word)).toBe(true);
+      }
+      expect(hinted).toEqual([1, 2, 3]);
     }
   });
+
   it('writes the glyph row by letters asked, grouped in fives, the bump last, with the painted title', () => {
     const t = (count: number) => dreamShareText({ date: '2026-11-06', count, longest: 8, streak: 5, blankets: 1, bumped: true, title: 'Finish the Word' });
     expect(t(0).split('\n')[2]).toBe('⬛');
@@ -147,14 +188,17 @@ describe('the pace, the bales and the night\'s ending', () => {
     const fencesOnly = (from: number, to: number) => seeds.flatMap((s) => Array.from({ length: to - from }, (_, k) => from + k).filter((i) => fenceAt(s, i).kind === 'fence'));
     expect(fencesOnly(1, 6).length).toBeGreaterThan(0);
     for (const s of seeds) {
-      for (let i = 1; i < 8; i++) expect(seconds(s, i)).toBeGreaterThan(5.5);
+      // The opening fences still give time to find the game (faster since 2026-11-09: the first above 6 s, the first
+      // few above 4.5 s).
+      expect(seconds(s, 1)).toBeGreaterThan(6);
+      for (let i = 1; i < 8; i++) expect(seconds(s, i)).toBeGreaterThan(4.5);
       for (let i = 1; i < 60; i++) if (fenceAt(s, i).kind === 'fence') {
         expect(fenceAt(s, i).gap).toBeGreaterThanOrEqual(760);
         expect(fenceAt(s, i).gap).toBeLessThan(900);
-        expect(seconds(s, i)).toBeGreaterThan(3.4); // the floor, at top speed
+        expect(seconds(s, i)).toBeGreaterThan(2.3); // the floor, at top speed
       }
     }
-    expect(speedAt(29)).toBeGreaterThan(speedAt(0) * 1.5);
+    expect(speedAt(29)).toBeGreaterThan(speedAt(0) * 2); // a night ends at more than twice the speed it starts
   });
 
   it('never asks for something ordinary words cannot answer', () => {
@@ -162,10 +206,6 @@ describe('the pace, the bales and the night\'s ending', () => {
       const f = fenceAt(s, i);
       expect(f.letters.length).toBeLessThanOrEqual(3);
       expect(f.letters.join('')).not.toMatch(/[jqvxz]/);
-      expect(FENCE_WORDS.filter((w) => matched(f, w) === f.letters.length).length).toBeGreaterThanOrEqual(f.letters.length === 3 ? 4 : 10);
-      const hint = hintWord(f);
-      expect(matched(f, hint)).toBe(f.letters.length);
-      expect(hint).not.toBe(f.source);
     }
   });
 

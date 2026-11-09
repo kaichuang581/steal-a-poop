@@ -1,5 +1,5 @@
-import { MarkDrawn } from '../table/Rendering';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { ACESFilmicToneMapping, Color, MeshBasicMaterial, SRGBColorSpace, Vector3 } from 'three';
@@ -46,15 +46,15 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
     <div className="dr-bubble" data-woke={woke || undefined} data-room={room || undefined}>
       <div className="dr-bubble-rim" />
       <div className="dr-bubble-view">
-        <Canvas
-          dpr={phone ? [1, 1.5] : [1, 2]} flat={false}
+        <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="bedroom"
+          flat={false}
           gl={{ antialias: true, alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1 }}
           camera={{ fov: CAMERA.fov, position: [...CAMERA.position], near: 0.05, far: 20 }}
           onCreated={({ camera }) => camera.lookAt(...CAMERA.target)}
         >
           <Room live={live} phase={phase} reduced={reduced} phone={phone} blankets={blankets} anchors={anchors} />
           <MarkDrawn />
-        </Canvas>
+        </AdaptiveCanvas>
       </div>
       <span className="dr-bubble-zs" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="dream-z" data-i={i}>z</span>)}</span>
       <span className="dr-bubble-bang" aria-hidden="true">hm?</span>

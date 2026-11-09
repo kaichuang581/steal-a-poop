@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dreamSeed, FIELD } from '../../../dream/dream';
 import { activeFence, freshLive, SPAWN_X, TYPE_X, update } from '../run';
 import { FIRST_FENCE_AHEAD, WAKE } from '../stage';
+import { CLOUD_MS } from '../WakeClouds';
 
 const SEED = dreamSeed('2026-11-06');
 
@@ -33,16 +34,19 @@ describe('the run (V4 Part 7.1 and 14)', () => {
     expect(a.L.count).toBeGreaterThan(2);
     expect(play(dreamSeed('2026-11-07'), 20000).log).not.toEqual(a.log);
   });
-  it('bumps exactly once, then the run is over and the wake-up finishes at 1500 ms (600 under reduced motion)', () => {
+  it('bumps exactly once, then the run is over and the wake-up finishes at 1700 ms (600 under reduced motion)', () => {
     const { L, bumps } = play(SEED, 9000);
     expect(bumps).toBe(1);
     expect(L.crashAt).not.toBeNull();
     expect(update(L, 16, SEED, { bump: () => { throw new Error('bumped twice'); } })).toBe(true);
-    expect(WAKE.finish).toBe(1500);
+    expect(WAKE.finish).toBe(1700);
     expect(WAKE.reducedFinish).toBe(600);
     expect(WAKE.stir).toBe(350);
     expect(WAKE.pop).toBe(600);
-    expect(WAKE.dark).toBe(1100);
+    expect(WAKE.dark).toBe(1650);
+    // The dream is hidden only once the clouds cover it, and the results come up under them.
+    expect(WAKE.dark).toBeGreaterThanOrEqual(WAKE.pop + CLOUD_MS.covered);
+    expect(WAKE.finish).toBeGreaterThan(WAKE.dark);
   });
 });
 

@@ -1,5 +1,6 @@
-import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import type { CanvasProps } from '@react-three/fiber';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Color, FogExp2, HalfFloatType, Vector2, WebGLRenderTarget } from 'three';
 import type { PointLight } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -87,6 +88,8 @@ export function Effects({ tiltShift = 0 }: { tiltShift?: number }) {
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
+  // The resolution can change under it (AdaptiveDpr), and the composer's targets must follow or it draws blurred.
+  const dpr = useThree((s) => s.viewport.dpr);
   const composer = useMemo(() => {
     const target = new WebGLRenderTarget(size.width, size.height, { type: HalfFloatType, samples: 4 });
     const c = new EffectComposer(gl, target);
@@ -108,7 +111,7 @@ export function Effects({ tiltShift = 0 }: { tiltShift?: number }) {
     composer.setPixelRatio(gl.getPixelRatio());
     composer.setSize(size.width, size.height);
     for (const p of composer.passes) if (p instanceof ShaderPass && p.uniforms.texelY) p.uniforms.texelY.value = 1 / size.height;
-  }, [composer, gl, size]);
+  }, [composer, gl, size, dpr]);
   useEffect(() => () => composer.dispose(), [composer]);
   // The composer is several draws; counting across all of them keeps the dev overlay's triangle count honest.
   useEffect(() => {
@@ -136,4 +139,83 @@ export function MarkDrawn() {
   });
   useEffect(() => () => gl.domElement.removeAttribute('data-drawn'), [gl]);
   return null;
+}
+
+/**
+ * Keeps a scene smooth on any device by trading resolution for frame rate (Brian, 2026-11-09: "make the game less laggy
+ * without removing anything ... optimize this for all devices whether thats ipad, laptop, phone, pc"). Nothing in the
+ * scene changes; only how many pixels it is drawn at. The scenes are limited by the graphics chip filling pixels, not
+ * by the page's code: the barn ran at 30 fps on a Retina laptop at 2x and at 60 on a phone. So every second this looks
+ * at the frame rate: under about 48 fps for two seconds running, it draws a quarter step coarser; at the display's full
+ * rate for eight seconds, a quarter step finer, but never back up to a resolution that was already too slow. It starts
+ * at the device's own pixel ratio (capped at `max`), ignores the first seconds (the scene is still being built and its
+ * shaders compiled) and any frame over 250 ms (a stall or a hidden tab says nothing about the steady cost).
+ */
+export const DPR_STEP = 0.25;
+export function nextDpr(cur: number, avgMs: number, streak: { slow: number; fast: number; ceiling: number }, min: number, max: number): number {
+  if (avgMs > 21) {
+    streak.slow++; streak.fast = 0;
+    if (streak.slow >= 2 && cur > min) { streak.slow = 0; streak.ceiling = cur; return Math.max(min, cur - DPR_STEP); }
+  } else if (avgMs < 17.6) {
+    streak.fast++; streak.slow = 0;
+    const up = Math.min(max, cur + DPR_STEP);
+    if (streak.fast >= 8 && up > cur && up < streak.ceiling) { streak.fast = 0; return up; }
+  } else { streak.slow = 0; streak.fast = 0; }
+  return cur;
+}
+/** The steady frame rate's judge, inside a canvas: it reports a new resolution, and the level it found too slow. */
+function AdaptiveDpr({ max, min, value, ceiling, onChange }: { max: number; min: number; value: number; ceiling: number; onChange: (dpr: number, ceiling: number) => void }) {
+  const st = useRef({ sum: 0, n: 0, age: 0, streak: { slow: 0, fast: 0, ceiling } });
+  useFrame((_, dt) => {
+    const s = st.current;
+    s.age += dt;
+    if (s.age < 3 || dt > 0.25 || dt <= 0) return;
+    s.sum += dt; s.n++;
+    if (s.sum < 1) return;
+    const avg = (s.sum / s.n) * 1000;
+    s.sum = 0; s.n = 0;
+    const next = nextDpr(value, avg, s.streak, min, max);
+    if (next !== value) onChange(next, s.streak.ceiling);
+  });
+  return null;
+}
+
+/** What a scene settled on, on this device: the next visit starts there instead of stepping down again. */
+interface Settled { dpr: number; ceiling: number }
+function readSettled(key: string | undefined): Settled | null {
+  if (!key) return null;
+  try {
+    const v = JSON.parse(localStorage.getItem(`sap:dpr:${key}`) ?? 'null') as Settled | null;
+    return v && Number.isFinite(v.dpr) ? { dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : Infinity } : null;
+  } catch { return null; }
+}
+function writeSettled(key: string | undefined, v: Settled) {
+  if (!key) return;
+  try { localStorage.setItem(`sap:dpr:${key}`, JSON.stringify({ dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : null })); } catch { /* storage blocked */ }
+}
+
+/**
+ * A scene canvas whose resolution follows the frame rate (see `nextDpr`). The resolution lives here, as the canvas's own
+ * `dpr`: the canvas re-applies its `dpr` prop every time it renders, and the game screen renders every frame, so a
+ * resolution set from inside the scene was put straight back (and each round trip reallocated the buffers, a 120 ms
+ * hitch every two seconds). `memory` names the scene, so the level it settles on is kept per device and the next visit
+ * starts there: each change of resolution reallocates the buffers, a short hitch best paid once.
+ */
+export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, children, ...props }: Omit<CanvasProps, 'dpr'> & { maxDpr: number; minDpr?: number; memory?: string }) {
+  const [state, setState] = useState<Settled>(() => {
+    const device = Math.max(minDpr, Math.min(maxDpr, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1));
+    const kept = readSettled(memory);
+    return kept ? { dpr: Math.max(minDpr, Math.min(device, kept.dpr)), ceiling: kept.ceiling } : { dpr: device, ceiling: Infinity };
+  });
+  const onChange = (dpr: number, ceiling: number) => {
+    const next = { dpr, ceiling };
+    setState(next);
+    writeSettled(memory, next);
+  };
+  return (
+    <Canvas {...props} dpr={state.dpr}>
+      <AdaptiveDpr max={maxDpr} min={minDpr} value={state.dpr} ceiling={state.ceiling} onChange={onChange} />
+      {children}
+    </Canvas>
+  );
 }

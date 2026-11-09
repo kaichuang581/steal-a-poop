@@ -33,12 +33,12 @@ describe('the fence sign', () => {
       }
     }
   });
-  it('carves one, three and five letters, with the dots between them', () => {
+  it('carves one, three and five letters, side by side with the dots after them', () => {
     for (const letters of [['r'], ['r', 'a', 'n'], ['s', 't', 'o', 'n', 'e']]) {
       const { wood, ink, w } = signBoardCells(letters);
-      // Each glyph's cells plus three dots in each gap.
+      // Each glyph's cells plus three dots after the last.
       expect(ink.count).toBe(signGlyphCells(letters).length);
-      expect(signGlyphCells(letters).filter((c) => c.y === SIGN_BASE).length).toBeGreaterThanOrEqual((letters.length - 1) * 3);
+      expect(signGlyphCells(letters).filter((c) => c.y === SIGN_BASE).length).toBeGreaterThanOrEqual(6);
       for (const { x, y } of signGlyphCells(letters)) expect(wood.has(x, y, 1)).toBe(false);
       // The board is as wide as signWidth says, within one cell.
       expect(Math.abs(w * signCell(letters.length) - signWidth(letters.length))).toBeLessThanOrEqual(signCell(letters.length));

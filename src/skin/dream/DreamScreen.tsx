@@ -1,9 +1,9 @@
 import { useLoadingHold } from '../components/BarnDoors';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { dreamStreakDays, getDreamBest, getDreamStreak, loadStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
-import { check, DREAM_LENGTH, dreamGlyphs, dreamSeed, dreamShareText, dreamSummary, exampleWords, fenceAt, hintWord, matched } from '../../dream/dream';
+import { check, DREAM_LENGTH, dreamGlyphs, dreamSeed, dreamShareText, dreamSummary, fenceAt, formatHint, matched } from '../../dream/dream';
 import { useStore } from '../../state/store';
 import { useIsMobile } from '../../ui/hooks';
 import { CloseIcon, GustIcon, MoonIcon } from '../components/Icons';
@@ -23,6 +23,8 @@ import { dreamLink, useDreamUi } from './dreamStore';
 import { activeFence, freshLive, MAX_TYPED, TYPE_X, update } from './run';
 import type { Live } from './run';
 import { DRIFT, PUFFS, WAKE } from './stage';
+import { CLOUD_MS, WakeClouds } from './WakeClouds';
+import type { CloudState } from './WakeClouds';
 import './dream.css';
 
 /**
@@ -33,10 +35,8 @@ import './dream.css';
  * and has no last fence. The rules live in src/dream/dream.ts and are only played out here; nothing in the scene writes
  * to the run.
  */
-const SAYS: Record<string, string> = { short: 'Three letters or more', letters: 'Needs those letters, in order', word: 'Not in the dictionary', used: 'Already counted that one', wait: 'Wait for the next fence' };
-interface Hud { letters: string[]; lit: number; typed: string; say: string; wrong: boolean; active: boolean; index: number; hint: string }
-/** How long a fence waits before it offers a word, in ms of the run. */
-const HINT_AFTER = 3200;
+const SAYS: Record<string, string> = { short: 'Three letters or more', letters: 'Start with the letters on the sign', word: 'Not in the dictionary', used: 'Already counted that one', wait: 'Wait for the next fence' };
+interface Hud { letters: string[]; lit: number; typed: string; say: string; wrong: boolean; active: boolean; index: number }
 
 /** The local date as "6 Nov". */
 const shortDate = (key: string) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -65,12 +65,6 @@ function recordOf(L: Live, night: string, repaired: boolean) {
   return { date: night, status: 'done' as const, count: L.count, longest: L.longest, repaired: repaired ? true : undefined, reached: L.reached, bumps: L.bumps, asleep: L.asleepAt !== null };
 }
 
-/** Waking clouds: x and y (% of the screen, the cloud's centre), width (vmax) and a delay (ms), round the edges inward. */
-const CLOUDS: [number, number, number, number][] = [
-  [0, 0, 60, 0], [50, -6, 64, 60], [100, 0, 60, 30], [-4, 50, 58, 90], [104, 50, 58, 120], [0, 100, 62, 40], [50, 106, 66, 80], [100, 100, 62, 10],
-  [25, 22, 48, 180], [75, 22, 48, 210], [25, 78, 48, 160], [75, 78, 48, 230], [50, 50, 56, 280],
-];
-
 export function DreamScreen() {
   const dict = useStore((s) => s.dict);
   useLoadingHold('words', !dict, 'Fetching the word list');
@@ -95,7 +89,7 @@ export function DreamScreen() {
   const [best, setBest] = useState(() => getDreamBest());
   const [streak, setStreak] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [hud, setHud] = useState<Hud>({ letters: [], lit: 0, typed: '', say: '', wrong: false, active: false, index: -1, hint: '' });
+  const [hud, setHud] = useState<Hud>({ letters: [], lit: 0, typed: '', say: '', wrong: false, active: false, index: -1 });
   const [fences, setFences] = useState<FenceView[]>([]);
   const [counted, setCounted] = useState<{ n: number; key: number } | null>(null);
   const [bump, setBump] = useState(0);
@@ -104,6 +98,8 @@ export function DreamScreen() {
   const [stirred, setStirred] = useState(0);
   // The wake-up (V4.1 Part 7.4): none, the dream popping, then gone.
   const [pop, setPopStage] = useState<'none' | 'pop' | 'gone'>('none');
+  // The clouds between the dream and the bedroom: null, or rolling in, holding while the room is built, and parting.
+  const [clouds, setClouds] = useState<{ state: CloudState; gentle: boolean } | null>(null);
   const ghost = useRef<HTMLInputElement>(null);
   // The results hang in the bedroom: the stage projects the beam's hook and the headboard onto these every frame.
   const boardAnchor = useRef<HTMLDivElement>(null);
@@ -135,6 +131,22 @@ export function DreamScreen() {
     if (practice) setBest(recordBest(L.count));
     else { setStreak(record()); setBest(getDreamBest()); }
   }, [practice, record]);
+
+  // Once the results are up the bedroom is being built behind the clouds: hold them a moment for its first frames, then
+  // part them on it. Any other phase (a fresh run) takes them away.
+  const hasClouds = clouds !== null;
+  useEffect(() => {
+    if (phase !== 'results') {
+      if (phase === 'ready' || phase === 'running') setClouds(null);
+      return;
+    }
+    if (!hasClouds) return;
+    setClouds((c) => c && { ...c, state: 'hold' });
+    const part = setTimeout(() => setClouds((c) => c && { ...c, state: 'out' }), WAKE.reveal);
+    const gone = setTimeout(() => setClouds(null), WAKE.reveal + CLOUD_MS.out + 300);
+    return () => { clearTimeout(part); clearTimeout(gone); };
+    // Only a change of phase starts this; the clouds' own changes must not restart the timers.
+  }, [phase]);
 
   // Leaving mid-dream still uses up the night's attempt, with what was counted so far.
   useEffect(() => () => {
@@ -192,7 +204,7 @@ export function DreamScreen() {
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
-    let hudKey = '', fenceKey = '', alarmed = false, activeIndex = -1, activeAt = 0;
+    let hudKey = '', fenceKey = '', alarmed = false;
 
     const events = {
       jump: () => playSound('play'), // the bell at take-off
@@ -210,6 +222,7 @@ export function DreamScreen() {
         playSound('roundEnd', 0.7);
         setReached(live.current.reached);
         setPhase('drifting');
+        if (!reduced) setTimeout(() => setClouds({ state: 'in', gentle: true }), DRIFT.clouds);
         setTimeout(finish, reduced ? DRIFT.reducedFinish : DRIFT.finish);
       },
       bump: () => {
@@ -219,7 +232,7 @@ export function DreamScreen() {
         setCount(live.current.count);
         setBumps(live.current.bumps.length);
         setBump(Math.random() + 1);
-        setTimeout(() => setPopStage('pop'), reduced ? 0 : WAKE.pop);
+        setTimeout(() => { setPopStage('pop'); if (!reduced) setClouds({ state: 'in', gentle: false }); }, reduced ? 0 : WAKE.pop);
         setTimeout(() => setPopStage('gone'), reduced ? 150 : WAKE.dark);
         setTimeout(finish, reduced ? WAKE.reducedFinish : WAKE.finish);
       },
@@ -239,13 +252,10 @@ export function DreamScreen() {
       const a = L.fences.find((x) => !x.locked && !x.passed && x.x < TYPE_X);
       const wrong = L.t < L.wrongUntil;
       const lit = a ? matched(a.f, L.typed) : 0;
-      if ((a?.index ?? -1) !== activeIndex) { activeIndex = a?.index ?? -1; activeAt = L.t; }
-      // Stuck on a fence? After a moment it offers a word that fits.
-      const hint = a && !L.typed && L.t - activeAt > HINT_AFTER ? hintWord(a.f, L.used) : '';
-      const hk = `${a?.index ?? -1}:${lit}:${L.typed}:${L.say}:${wrong}:${hint}`;
+      const hk = `${a?.index ?? -1}:${lit}:${L.typed}:${L.say}:${wrong}`;
       if (hk !== hudKey) {
         hudKey = hk;
-        setHud({ letters: a ? a.f.letters : [], lit, typed: L.typed, say: L.say, wrong, active: !!a, index: a?.index ?? -1, hint });
+        setHud({ letters: a ? a.f.letters : [], lit, typed: L.typed, say: L.say, wrong, active: !!a, index: a?.index ?? -1 });
       }
       const fk = L.fences.map((fe) => `${fe.index}:${fe.locked ? fe.word : ''}:${fe === a}:${fe === a && wrong}`).join('|');
       if (fk !== fenceKey) {
@@ -293,17 +303,18 @@ export function DreamScreen() {
   const mode = phase === 'results' ? 'out' : hud.active ? 'mine' : 'wait';
   const typedLetters = [...hud.typed];
   // Which typed letters meet the fence's letters, in order: they light up gold.
-  const typedHits = (() => { let k = 0; return typedLetters.map((ch) => { const hit = k < hud.letters.length && ch.toLowerCase() === hud.letters[k]; if (hit) k++; return hit; }); })();
-  const sign = hud.letters.join('...').toUpperCase();
-  const joined = hud.letters.map((l) => l.toUpperCase()).join(', then ');
-  const examples = hud.active && hud.index >= 0 && hud.index < 3 ? exampleWords(fenceAt(seed, hud.index)) : [];
+  // The typed letters that match the start on the sign light up, up to the first one that does not.
+  const typedHits = typedLetters.map((_, i) => i < hud.letters.length && typedLetters.slice(0, i + 1).every((ch, j) => ch.toLowerCase() === hud.letters[j]));
+  const sign = hud.letters.join('').toUpperCase();
+  const needText = (letters: readonly string[]) => `a word starting with ${letters.join('').toUpperCase()}`;
+  // The only hint: on the first fence of each new length, how it works, shown with a different start.
+  const hint = hud.active && hud.index >= 0 ? formatHint(seed, fenceAt(seed, hud.index)) : null;
   const caption = phase !== 'running' ? null
     : hud.say ? <span style={{ color: '#FFD0C4' }}>{hud.say}</span>
-      : hud.active
-        ? <>
-            {hud.letters.length > 1 ? <>Any word with <b>{joined}</b> somewhere after it.</> : <>Any word with a <b>{sign}</b> in it.</>}
-            {examples.length ? <> Like {examples.map((w) => w.toUpperCase()).join(', ').replace(/, ([^,]*)$/, ' or $1')}.</> : hud.hint ? <> Try <b>{hud.hint.toUpperCase()}</b>.</> : null}
-          </>
+      : hint
+        ? hud.letters.length === 1
+          ? <>Type any word that starts with the letter on the sign, like <b>{hint.word.toUpperCase()}</b> for {hint.start.toUpperCase()}.</>
+          : <>Now {hud.letters.length === 2 ? 'two' : 'three'} letters: start your word with all of them, like <b>{hint.word.toUpperCase()}</b> for {hint.start.toUpperCase()}.</>
         : null;
   const longest = live.current.longest;
   const asleep = phase === 'results' && live.current.asleepAt !== null;
@@ -328,18 +339,9 @@ export function DreamScreen() {
         </div>
       )}
       <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} />
-      {/* Waking (Brian, 2026-11-08: the old pop shrank the scene to a square): the dream blurs and soft clouds roll in from
-          every edge, the bedroom comes up behind them, and they part to show it. */}
-      {pop !== 'none' && !reduced && (
-        <div className="dr-clouds" data-state={phase === 'results' ? 'out' : 'in'} aria-hidden="true">
-          <i className="dr-clouds-fill" />
-          {CLOUDS.map(([x, y, w, d], i) => (
-            <svg key={i} className="dr-cloud" viewBox="0 0 150 100" style={{ left: `${x}%`, top: `${y}%`, width: `${w}vmax`, '--dx': `${(x - 50) * 1.6}vw`, '--dy': `${(y - 50) * 1.6}vh`, animationDelay: `${d}ms` } as React.CSSProperties}>
-              <g fill={i % 3 ? '#EDE8F9' : '#DCD4F3'}><ellipse cx="75" cy="58" rx="58" ry="30" /><circle cx="36" cy="50" r="27" /><circle cx="73" cy="32" r="31" /><circle cx="113" cy="47" r="27" /></g>
-            </svg>
-          ))}
-        </div>
-      )}
+      {/* Waking or drifting off (Brian, 2026-11-09: "refine it"): clouds close over the dream, the bedroom is built behind
+          them, and they part on it (WakeClouds.tsx). */}
+      {clouds && !reduced && <WakeClouds state={clouds.state} gentle={clouds.gentle} />}
       <DevLine />
 
       {phase !== 'results' && (
@@ -364,7 +366,7 @@ export function DreamScreen() {
       {/* The board at the top centre: how to play before the run, the bump when it ends. */}
       <div className={`dr-boards pointer-events-none absolute inset-x-0 z-20 flex flex-col items-center gap-3 px-3 ${mobile ? 'top-[9%]' : 'top-[6%]'}`} aria-live="polite">
         {phase === 'ready' && (
-          <Notice tone="wood" snow={false} size={mobile ? 'sm' : 'lg'} title={length ? 'Count sheep to keep the farmer asleep' : 'How far can you run?'} sub={<span className="dr-blink">Type a word with the fence’s letters, in order · press any key</span>} />
+          <Notice tone="wood" snow={false} size={mobile ? 'sm' : 'lg'} title={length ? 'Count sheep to keep the farmer asleep' : 'How far can you run?'} sub={<span className="dr-blink">Type a word that starts with the letters on the sign · press any key</span>} />
         )}
         {stirred > 0 && phase === 'running' && <Notice key={stirred} tone="wood" snow={false} size="lg" icon={<GustIcon size={26} />} title="Bump!" sub={`mmf… ${bumpsLeft === 1 ? 'one more wakes him' : `${bumpsLeft} bumps left`}`} />}
         {phase === 'drifting' && <Notice tone="wood" snow={false} size="lg" title="Zzz…" sub="he’s out cold" />}
@@ -375,22 +377,20 @@ export function DreamScreen() {
         <div className={`dr-hud relative z-20 mt-auto px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4 ${mobile ? 'dr-bar-phone' : ''}`}>
           <div className={mobile ? 'mx-auto' : 'mx-auto max-w-3xl'}>
             {caption && <p className="sk-input-prompt" data-mode={mode}>{caption}</p>}
-            {/* The word bar: floating letters (chosen from the mockups, 2026-11-07). The fence's letters above with gaps for
-                anything between them, lighting up as the word meets them; the word big over the snow; Enter's key below. */}
+            {/* The word bar: floating letters (chosen from the mockups, 2026-11-07). The letters the word starts with above, side
+                by side and a gap for the rest, lighting up as the word meets them; the word big over the snow; Enter's key below. */}
             <div className="dr-trough kit-float" data-scene="dream" data-mode={mode} data-wrong={hud.wrong || undefined}
               onPointerDown={(e) => { if ((e.target as HTMLElement).tagName !== 'BUTTON') { e.preventDefault(); focus(); } }}>
-              <p className="kit-float-need dr-fence-rope" data-wrong={hud.wrong || undefined} aria-label={hud.active ? `Needs ${hud.letters.join(', ')} in order` : 'No fence yet'}>
+              <p className="kit-float-need dr-fence-rope" data-wrong={hud.wrong || undefined} aria-label={hud.active ? `Starts with ${hud.letters.join('').toUpperCase()}` : 'No fence yet'}>
                 {hud.letters.map((ch, i) => (
-                  <Fragment key={`${hud.index}:${i}`}>
-                    {i > 0 && <span className="kit-float-gap" />}
-                    <span className="dr-fence-tile" data-on={i < hud.lit || undefined}>{ch.toUpperCase()}</span>
-                  </Fragment>
+                  <span key={`${hud.index}:${i}`} className="dr-fence-tile" data-on={i < hud.lit || undefined}>{ch.toUpperCase()}</span>
                 ))}
+                {hud.active && <span className="kit-float-gap" />}
               </p>
               <div className="kit-float-word dr-typed-row" style={{ '--len': Math.max(6, typedLetters.length) } as React.CSSProperties}>
                 {typedLetters.length
                   ? typedLetters.map((ch, i) => <span key={i} className="dr-typed" data-hit={typedHits[i] || undefined}>{ch.toUpperCase()}</span>)
-                  : <span className="kit-float-ph dr-placeholder">{hud.active ? `a word with ${joined}` : phase === 'ready' ? `a word with ${fenceAt(seed, 0).letters.map((l) => l.toUpperCase()).join(', then ')}` : 'type ahead...'}</span>}
+                  : <span className="kit-float-ph dr-placeholder">{hud.active ? needText(hud.letters) : phase === 'ready' ? needText(fenceAt(seed, 0).letters) : 'type ahead...'}</span>}
                 <span className="sk-type-caret" aria-hidden="true" />
                 <input
                   ref={ghost} className="sk-input-ghost" autoFocus aria-label="Your word" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false}
@@ -404,7 +404,7 @@ export function DreamScreen() {
           </div>
         </div>
       )}
-      <p className="sr-only" aria-live="polite">{phase === 'running' ? `${sign}. ${count} sheep.` : ''}</p>
+      <p className="sr-only" aria-live="polite">{phase === 'running' ? `Starts with ${sign}. ${count} sheep.` : ''}</p>
 
       {phase === 'results' && (
         // The results hang in his bedroom (V6 Part 6.4): a plank on ropes from the beam, the room itself is the backdrop.

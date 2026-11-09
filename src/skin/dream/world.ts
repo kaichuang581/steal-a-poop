@@ -443,12 +443,12 @@ export const signCell = (n: number) => (n >= 5 ? 0.0175 : 0.02);
 export const SIGN_GLYPH_H = 14;
 /** Each letter has a slot this wide, centred in it, so a sign's width depends only on how many letters it has. */
 const SIGN_SLOT = 14;
-/** Between two letters: a space, three dots, a space (`R…N`, because anything may go there). */
-const SIGN_GAP = 12;
+/** After the letters: a space and three dots (`GR…`: the word starts with them and goes on; Brian, 2026-11-09). */
+const SIGN_TAIL = 12;
 /** The letters' baseline, in cells from the board's bottom edge (the dots sit on it). */
 export const SIGN_BASE = 4;
 /** The board in cells: the letter slots, the gaps, and a margin each side; the letters with four cells above and below. */
-export const signCells = (n: number) => ({ w: n * SIGN_SLOT + (n - 1) * SIGN_GAP + 12, h: SIGN_GLYPH_H + 8 });
+export const signCells = (n: number) => ({ w: n * SIGN_SLOT + SIGN_TAIL + 12, h: SIGN_GLYPH_H + 8 });
 export function signWidth(n: number): number {
   return signCells(n).w * signCell(n);
 }
@@ -483,11 +483,8 @@ export function signGlyphCells(letters: readonly string[]): { x: number; y: numb
     const x0 = x + Math.floor((SIGN_SLOT - w) / 2);
     mask.forEach((row, r) => row.forEach((on, c) => { if (on) out.push({ x: x0 + c, y: SIGN_BASE + (SIGN_GLYPH_H - 1 - r) }); }));
     x += SIGN_SLOT;
-    if (i < letters.length - 1) {
-      // Three square dots on the baseline, two cells each.
-      for (const dx of [2, 5, 8]) for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) out.push({ x: x + dx + a, y: SIGN_BASE + b });
-      x += SIGN_GAP;
-    }
+    // After the last letter, three square dots on the baseline, two cells each: the rest of the word.
+    if (i === letters.length - 1) for (const dx of [1, 4, 7]) for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) out.push({ x: x + dx + a, y: SIGN_BASE + b });
   });
   return out;
 }

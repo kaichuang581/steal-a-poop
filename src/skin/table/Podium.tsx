@@ -1,5 +1,5 @@
-import { MarkDrawn } from './Rendering';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { AdaptiveCanvas, MarkDrawn } from './Rendering';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ACESFilmicToneMapping, AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Group, InstancedMesh,
@@ -382,15 +382,15 @@ export function Podium({ entries, reduced, phone, aside = false }: { entries: Po
   const anchors = useSlipRefs();
   return (
     <div className="sk-podium" aria-label="The podium">
-      <Canvas
-        shadows={{ type: PCFShadowMap }} dpr={phone ? [1, 1.5] : [1, 2]}
+      <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="podium"
+        shadows={{ type: PCFShadowMap }}
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, antialias: true }}
         camera={{ fov: phone ? 58 : 40, position: phone ? [0, 3.4, 14.5] : [0, 3.0, 11.8], near: 0.1, far: 60 }}
       >
         <Rig phone={phone} aside={aside} />
         <Scene entries={entries} reduced={reduced} anchors={anchors} />
         <MarkDrawn />
-      </Canvas>
+      </AdaptiveCanvas>
       <SlipLayer refFor={anchors} seats={entries.map((e) => ({
         seat: e.place,
         label: <span className="sk-pod-name" data-place={e.place}>{e.name}{e.isYou ? ' (you)' : ''}</span>,

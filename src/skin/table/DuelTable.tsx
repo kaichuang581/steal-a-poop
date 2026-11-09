@@ -1,10 +1,11 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { ACESFilmicToneMapping, Color, FogExp2, Group, Object3D, PCFShadowMap, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
+import { useKaiyanLook } from '../avatars/kaiyanLook';
 import { byId } from '../avatars/catalog';
 import { buildDuel, DUEL, duelSeat, duelShot } from '../scene/duel';
 import { buildDuelFestive } from '../scene/festive';
@@ -19,7 +20,7 @@ import type { BombSpot } from './Bomb';
 import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
-import { Effects, LANTERN_LIGHT, MarkDrawn } from './Rendering';
+import { AdaptiveCanvas, Effects, LANTERN_LIGHT, MarkDrawn } from './Rendering';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Sheep } from './Sheep';
 
@@ -43,12 +44,12 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
   const slipRef = useSlipRefs();
   return (
     <div className="relative size-full" style={{ background: DARK }}>
-      <Canvas
+      <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="ice"
         // Measured without transforms: the game screen zooms in as it opens, which would size the canvas too big for good.
         resize={{ offsetSize: true }}
         shadows={{ type: PCFShadowMap }}
-        dpr={phone ? [1, 1.5] : [1, 2]}
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
+       
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
         camera={{ fov: open.fov, position: open.position, near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(open.target[0], open.target[1], open.target[2])}
       >
@@ -57,7 +58,7 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} beamY={DUEL_BEAM} hook={DUEL.hook} />
         {/* The moon is behind the board's back: a warm lamp in front of it keeps the carved letter readable at night. */}
         <pointLight position={[0, BOARD_BOTTOM + 0.3, -1.1]} color={LANTERN_LIGHT.color} intensity={7} distance={3} decay={2} />
-      </Canvas>
+      </AdaptiveCanvas>
       {/* The edges of the screen close in red over the last half of your clock. */}
       <div className="pointer-events-none absolute inset-0 z-[4]" style={{ opacity: heat, background: 'radial-gradient(ellipse at center, transparent 42%, rgba(170, 24, 14, 0.8) 100%)' }} aria-hidden="true" />
       <SlipLayer seats={seats} refFor={slipRef} />
@@ -69,6 +70,7 @@ type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fracti
 
 function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone, boomKey, power, slipRef }: DuelProps) {
   const pressure = pressureOf(speaker, fraction);
+  useKaiyanLook(); // the admin's name plate follows the forehead's length
   return (
     <>
       <DuelCamera speaker={speaker} pressure={pressure} phone={phone} reduced={reduced} />

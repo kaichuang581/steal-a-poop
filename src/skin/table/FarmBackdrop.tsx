@@ -1,4 +1,4 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { ACESFilmicToneMapping, Object3D, PCFShadowMap, SRGBColorSpace } from 'three';
@@ -13,7 +13,7 @@ import { DevStats } from './DevStats';
 import { Farmstead, farmReady } from './Farmstead';
 import { doorsShut } from '../components/BarnDoors';
 import { Wendigo } from './Wendigo';
-import { Atmosphere, Effects, FOG, Lights, MarkDrawn, yawToward } from './Rendering';
+import { AdaptiveCanvas, Atmosphere, Effects, FOG, Lights, MarkDrawn, yawToward } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
@@ -59,9 +59,9 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
     <>
     {sky}
     <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined} data-instant={instant || undefined}>
-    <Canvas
-      shadows={{ type: PCFShadowMap }} dpr={phone ? [1, 1.5] : [1, 2]}
-      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
+    <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm"
+      shadows={{ type: PCFShadowMap }}
+      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
@@ -86,7 +86,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       </group>
       <Effects tiltShift={0.15} />
       <DevStats />
-    </Canvas>
+    </AdaptiveCanvas>
     </div>
     <div ref={veil} className="pointer-events-none absolute inset-0 bg-[#0b0806] opacity-0" />
     </>

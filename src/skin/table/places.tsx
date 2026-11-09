@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import { Color, MeshLambertMaterial } from 'three';
+import { withRoundedEdges } from '../voxel/rounded';
 import type { Group, Mesh } from 'three';
 import type { Mode } from '../model/types';
 import { BARN, YARD } from '../scene/layout';
@@ -38,8 +39,8 @@ const POSTS = [-8.4, -6.2, -4, -2, 2, 4, 6.2];
 /** Seven lanterns on the fence posts behind the barn, lit for each of the last seven days played; today is last. */
 function StreakPosts({ days }: { days: boolean[] }) {
   const geo = smallLantern();
-  const lit = useMemo(() => new MeshLambertMaterial({ vertexColors: true, emissive: new Color(T.lantern[1]), emissiveIntensity: 0.9 }), []);
-  const dark = useMemo(() => new MeshLambertMaterial({ vertexColors: true, color: '#7A7A80' }), []);
+  const lit = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, emissive: new Color(T.lantern[1]), emissiveIntensity: 0.9 })), []);
+  const dark = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, color: '#7A7A80' })), []);
   return (
     <group>
       {days.map((on, i) => <mesh key={i} geometry={geo} material={on ? lit : dark} position={[POSTS[i], 1.25, YARD.fence.z]} />)}
@@ -50,7 +51,7 @@ function StreakPosts({ days }: { days: boolean[] }) {
 /** The tutorial's guide: a sheepdog sitting by the back door, wagging, pointing at the heap with its nose. */
 function Sheepdog({ reduced }: { reduced: boolean }) {
   const m = useMemo(() => sheepdogModel(), []);
-  const mat = useMemo(() => new MeshLambertMaterial({ vertexColors: true }), []);
+  const mat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true })), []);
   const tail = useRef<Mesh>(null);
   const head = useRef<Mesh>(null);
   const root = useRef<Group>(null);

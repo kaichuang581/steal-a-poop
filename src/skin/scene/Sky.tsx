@@ -4,6 +4,7 @@ import {
   AdditiveBlending, BackSide, BufferAttribute, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh,
   MeshBasicMaterial, MeshLambertMaterial, PlaneGeometry, PointsMaterial, SphereGeometry,
 } from 'three';
+import { withRoundedEdges } from '../voxel/rounded';
 import { buildGeometry } from '../voxel/mesher';
 import { lin, T } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
@@ -165,7 +166,7 @@ export function ChimneySmoke({ from }: { from: [number, number, number] }) {
     ellipsoid(g, [0, 0, 0], [0.3, 0.25, 0.3], (x, y, z) => lin(hash3(x, y, z, 5) > 0.5 ? '#E9ECF2' : T.stone[0]));
     const geo = buildGeometry(g.map, 0.2);
     geo.center();
-    const mats = Array.from({ length: PUFFS }, () => new MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false }));
+    const mats = Array.from({ length: PUFFS }, () => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false })));
     return { geo, mats };
   }, []);
   useFrame(({ clock }) => {
@@ -191,7 +192,7 @@ export function ChimneySmoke({ from }: { from: [number, number, number] }) {
 /** The distant windmill: static body, blades (built around the origin) placed at the hub and turned once per 40 s. */
 export function Windmill({ body, blades, hub }: { body: BufferGeometry; blades: BufferGeometry; hub: [number, number, number] }) {
   const ref = useRef<Group>(null);
-  const mat = useMemo(() => new MeshLambertMaterial({ vertexColors: true }), []);
+  const mat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true })), []);
   useFrame(({ clock }) => {
     if (ref.current) ref.current.rotation.z = -(clock.elapsedTime / 40) * Math.PI * 2;
   });

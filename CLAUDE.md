@@ -575,3 +575,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   `streakRow` (src/skin/dream/streakRow.ts): the run's nights fill boxes 1, 2, 3..., tonight unplayed is ringed in the
   next box, the rest are empty, and an eighth night starts the row again. They were the last seven calendar nights with
   tonight on the right, so a first night lit only the last box. `dreamStreakDays` in src/dream is unchanged.
+- Rounded voxel corners, ON TRIAL (requested by Brian, 2026-11-09: "make all the voxels SLIGHTLY rounded on the corners
+  so everything doesnt feel so sharp ... i might ask to change it back"). All of it hangs on `ROUNDED_VOXELS` in
+  src/skin/voxel/rounded.ts (`?voxels=sharp` / `?voxels=round` override it per page). Shapes are untouched: the mesher
+  adds a `bevel` attribute (the face's u, w and a mask of its outer edges: no voxel beside it that way, in its own layer
+  or one out), `dropFaces` carries it, and `withRoundedEdges` bends the lighting normal over the last 16% of a face toward
+  each outer edge (voxelMaterial plus the vertex-coloured Lambert materials in places.tsx, Sky.tsx and Sheep.tsx). To
+  change it back: set `ROUNDED_VOXELS = false`, or `git revert` the commit "Rounded voxel corners (on trial)".

@@ -465,19 +465,22 @@ function farmhouse(g: Grid, set: Set, boxI: BoxI, cap: Cap): [number, number, nu
  */
 export function dropFaces(g: BufferGeometry, drop: (ny: number, y: number) => boolean): BufferGeometry {
   const P = g.getAttribute('position').array, N = g.getAttribute('normal').array, C = g.getAttribute('color').array, I = g.index!.array;
-  const pos: number[] = [], nor: number[] = [], col: number[] = [], idx: number[] = [];
+  const B = g.getAttribute('bevel')?.array; // rounded corners (voxel/rounded.ts), when on
+  const pos: number[] = [], nor: number[] = [], col: number[] = [], idx: number[] = [], bev: number[] = [];
   for (let f = 0; f < I.length / 6; f++) {
     const b = f * 4;
     const minY = Math.min(P[b * 3 + 1], P[b * 3 + 4], P[b * 3 + 7], P[b * 3 + 10]);
     if (drop(N[b * 3 + 1], minY)) continue;
     const nb = pos.length / 3;
     for (let k = 0; k < 12; k++) pos.push(P[b * 3 + k]), nor.push(N[b * 3 + k]), col.push(C[b * 3 + k]);
+    if (B) for (let k = 0; k < 12; k++) bev.push(B[b * 3 + k]);
     for (let k = 0; k < 6; k++) idx.push(I[f * 6 + k] - b + nb);
   }
   const out = new BufferGeometry();
   out.setAttribute('position', new Float32BufferAttribute(pos, 3));
   out.setAttribute('normal', new Float32BufferAttribute(nor, 3));
   out.setAttribute('color', new Float32BufferAttribute(col, 3));
+  if (B) out.setAttribute('bevel', new Float32BufferAttribute(bev, 3));
   out.setIndex(idx);
   out.computeBoundingSphere();
   g.dispose();

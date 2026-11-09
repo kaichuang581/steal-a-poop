@@ -1,4 +1,5 @@
 import { BufferGeometry, Float32BufferAttribute } from 'three';
+import { EDGE, ROUND } from './rounded';
 
 export type Voxel = { x: number; y: number; z: number; c: [number, number, number] }; // colour as linear RGB 0..1
 export type VoxelMap = Map<string, Voxel>; // key "x,y,z"
@@ -48,7 +49,7 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true 
   const solid = solidOf(vox);
   // UVs are kept so a material may map a texture, but the voxel material carries none (plan V3.1 Part 1.1).
   const has = (p: number[]) => solid.has(cellKey(p[0], p[1], p[2]));
-  const pos: number[] = [], col: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [];
+  const pos: number[] = [], col: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [], bev: number[] = [];
   for (const v of vox.values()) {
     const P = [v.x, v.y, v.z];
     for (const f of FACES) {
@@ -58,6 +59,17 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true 
       if (has(outside)) continue; // face culling: never emit a hidden face
       const corners = cornersFor(f.axis, f.sign);
       const base = pos.length / 3;
+      // Rounded corners (rounded.ts): an edge of this face rounds when nothing stands beside the voxel that way, in its
+      // own layer or one out, so coplanar runs of voxels stay one flat surface and concave steps stay sharp.
+      let mask = 0;
+      if (ROUND) {
+        const open = (t: number, d: number) => {
+          const q = [...P]; q[t] += d;
+          const o = [...outside]; o[t] += d;
+          return !has(q) && !has(o);
+        };
+        mask = (open(f.t1, -1) ? EDGE.t1Lo : 0) | (open(f.t1, 1) ? EDGE.t1Hi : 0) | (open(f.t2, -1) ? EDGE.t2Lo : 0) | (open(f.t2, 1) ? EDGE.t2Hi : 0);
+      }
       const aos: number[] = [];
       for (const [u, w] of corners) {
         const c = [0, 0, 0];
@@ -67,6 +79,7 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true 
         pos.push((P[0] + c[0]) * size, (P[1] + c[1]) * size, (P[2] + c[2]) * size);
         nor.push(N[0], N[1], N[2]);
         uv.push(u, w);
+        if (ROUND) bev.push(u, w, mask);
         // ambient occlusion: the two edge neighbours and the diagonal neighbour around this corner, one layer out
         const d1 = u ? 1 : -1, d2 = w ? 1 : -1;
         const s1 = [...outside]; s1[f.t1] += d1;
@@ -88,6 +101,7 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true 
   g.setAttribute('normal', new Float32BufferAttribute(nor, 3));
   g.setAttribute('color', new Float32BufferAttribute(col, 3));
   g.setAttribute('uv', new Float32BufferAttribute(uv, 2));
+  if (ROUND) g.setAttribute('bevel', new Float32BufferAttribute(bev, 3));
   g.setIndex(idx);
   g.computeBoundingSphere();
   return g;

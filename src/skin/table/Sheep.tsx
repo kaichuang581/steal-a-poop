@@ -4,6 +4,7 @@ import {
   AdditiveBlending, DoubleSide, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group,
   InstancedMesh, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial, Vector3,
 } from 'three';
+import { withRoundedEdges } from '../voxel/rounded';
 import { Box3 } from 'three';
 import type { Material } from 'three';
 import { santaHat } from '../scene/festive';
@@ -361,7 +362,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
   const mat = useMemo(() => voxelMaterial(), []);
   // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice.
   const faceMat = useMemo(() => voxelMaterial(), []);
-  const breathMat = useMemo(() => new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 }), []);
+  const breathMat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 })), []);
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
   const fx = useMemo(() => freezeFx(), []);
@@ -616,7 +617,7 @@ function freezeFx() {
   const streakMat = new MeshLambertMaterial({ color: '#D9EEF8', transparent: true, opacity: 0.6, blending: AdditiveBlending, depthWrite: false });
   const streaks = new InstancedMesh(new BoxGeometry(0.04, 0.04, 0.24), streakMat, 40);
   const curlGeo = windCurl();
-  const curlMat = new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
+  const curlMat = withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.9 }));
   const curls = Array.from({ length: 6 }, () => {
     const c = new Mesh(curlGeo, curlMat);
     c.rotation.order = 'YXZ'; // stand up (x), then face out (y)

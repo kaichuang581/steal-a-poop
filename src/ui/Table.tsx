@@ -1,7 +1,5 @@
-import { Px } from '../skin/components/PixelIcons';
 import { Billboard, Html, Text3D } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { AnimatePresence, motion } from 'framer-motion';
 import { Component, Suspense, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Vector3 } from 'three';
@@ -9,7 +7,6 @@ import { Vector3 } from 'three';
 // alongside it) is served from public/fonts: the page's content security policy only lets it fetch from itself.
 const FONT = `${import.meta.env.BASE_URL}fonts/helvetiker_bold.typeface.json`;
 import type { Player } from '../engine';
-import { inStealWindow } from '../engine';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
 import { ChainTile } from './ChainTile';
@@ -29,7 +26,6 @@ function seatDir(i: number, n: number): Vector3 {
 
 export function Table() {
   const game = useStore((s) => s.game)!;
-  const stealOpen = useStore((s) => (s.game ? inStealWindow(s.game, s.now) : false));
   const mySeat = useStore((s) => s.mySeat);
   const room = useStore((s) => s.mode === 'room');
   const roomView = useRoomStore((s) => s.room);
@@ -58,17 +54,6 @@ export function Table() {
       <div className="pointer-events-none absolute inset-x-0 top-2 z-30 flex justify-center">
         <ChainTile letter={game.chainLetter} />
       </div>
-      <AnimatePresence>
-        {stealOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-            className="absolute left-1/2 top-[30%] z-10 -translate-x-1/2 rounded-full border-2 border-fuchsia-300 bg-fuchsia-600/90 px-3 py-1 text-xs font-black uppercase tracking-wider shadow-lg sm:text-sm"
-            role="status"
-          >
-            {game.turn?.seat === mySeat ? <><Px e="⚠" size={14} /> Others can steal!</> : <><Px e="⚡" size={14} /> Steal window</>}
-          </motion.div>
-        )}
-      </AnimatePresence>
       <Flights />
     </div>
   );

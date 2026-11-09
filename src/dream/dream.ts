@@ -4,9 +4,11 @@ import type { Dictionary } from '../engine/dictionary';
  * Counting Sheep, the daily dream: the farmer is asleep, and in the thought bubble a sheep runs at a row of fences.
  * Each fence names a few letters in order. Type any real word that has those letters in that order (any letters
  * before, between or after) and the sheep jumps it, and the farmer counts one more. Reach a fence without one and
- * the sheep bumps it: the farmer wakes up. Fences start with one letter and ask for more as the count climbs, and the
- * sheep runs faster. Everything here is pure and seeded, so the daily dream is the same for everyone; the screen
- * (src/skin/dream) only plays it out.
+ * the sheep bumps it. Fences start with one letter and ask for more as the count climbs. Like the offline dinosaur,
+ * the fences stand about the same distance apart and the sheep keeps speeding up, so the same gap gives less and less
+ * time, and hay bales start turning up close behind the fences. The nightly dream ends after `DREAM_LENGTH.fences` with
+ * the farmer asleep, or on the last bump with him awake; practice has no end and one bump finishes it. Everything here
+ * is pure and seeded, so the daily dream is the same for everyone; the screen (src/skin/dream) only plays it out.
  */
 
 /** Words the fences are cut from: common, sleepy, farmy. Any real word that fits the blanks is accepted. */
@@ -25,13 +27,17 @@ export const FENCE_WORDS: readonly string[] = (
   'nightcap fireside bubbles rainbow snowman sweater mittens lantern cricket firefly'
 ).split(' ');
 
+/** A fence, or a hay bale: a quick obstacle close behind the one before it, asking for fewer letters. */
+export type Obstacle = 'fence' | 'bale';
+
 export interface Fence {
   index: number;
+  kind: Obstacle;
   /** The letters a word must contain, in this order, e.g. ['s', 'p'] for S...P. */
   letters: string[];
   /** A word the letters were taken from, so every fence can be cleared. */
   source: string;
-  /** Seconds of running from the previous fence to this one. */
+  /** Distance from the previous fence to this one, in logical pixels. */
   gap: number;
 }
 
@@ -57,33 +63,87 @@ export function dreamSeed(dateKey: string): string {
   return `dream:${dateKey}`;
 }
 
-/** How many letters a fence asks for: one for the first few jumps, then two, three, four and five. */
+/**
+ * How many letters a fence asks for: one for the first few jumps, then two, then three, and never more. Four or five
+ * letters left fences with no ordinary word at all (S·W·M·A, S·H·H·E·R).
+ */
 export function lettersAt(index: number): number {
-  if (index < 3) return 1;
-  if (index < 8) return 2;
-  if (index < 15) return 3;
-  if (index < 25) return 4;
-  return 5;
+  if (index < 5) return 1;
+  if (index < 16) return 2;
+  return 3;
+}
+
+/** At least this many of the fence words must fit each fence, by letters asked, so an answer is always easy to find. */
+export const MIN_FITS: Record<number, number> = { 1: 25, 2: 12, 3: 6 };
+/** Letters a fence never asks for: too few common words have them. */
+const RARE = /[jqvxz]/;
+
+/** The nightly dream's shape (V4 Part 15): this many fences puts the farmer to sleep, and this many bumps wakes him. */
+export const DREAM_LENGTH: { fences: number; bumps: number } | null = { fences: 30, bumps: 1 };
+
+/** Bales start here, and may come two at a time from `BALE_PAIRS_FROM`; never three. */
+export const BALES_FROM = 8;
+export const BALE_PAIRS_FROM = 18;
+function baleRoll(seed: string, index: number): boolean {
+  if (index < BALES_FROM) return false;
+  return rng(`${seed}#bale#${index}`)() < Math.min(0.42, 0.16 + (index - BALES_FROM) * 0.012);
+}
+
+/** What stands at position `index`: more and more often a bale as the dream goes on. */
+export function obstacleAt(seed: string, index: number): Obstacle {
+  if (!baleRoll(seed, index)) return 'fence';
+  if (obstacleAt(seed, index - 1) !== 'bale') return 'bale';
+  return index >= BALE_PAIRS_FROM && obstacleAt(seed, index - 2) !== 'bale' ? 'bale' : 'fence';
+}
+
+/** How many letters position `index` asks for: `lettersAt` for a fence; a bale is a quick one, a single letter. */
+export function lettersFor(seed: string, index: number): number {
+  return obstacleAt(seed, index) === 'bale' ? 1 : lettersAt(index);
 }
 
 /** The shortest word that counts. */
 export const MIN_WORD = 3;
 
+/** Fences are pure, so each is built once: the reroll for common words makes building one cost a little. */
+const built = new Map<string, Fence>();
 /** The fence at position `index` of the dream with this seed. */
 export function fenceAt(seed: string, index: number): Fence {
+  const key = `${seed}#${index}`;
+  const hit = built.get(key);
+  if (hit) return hit;
+  if (built.size > 4000) built.clear();
+  const f = buildFence(seed, index);
+  built.set(key, f);
+  return f;
+}
+function buildFence(seed: string, index: number): Fence {
   const r = rng(`${seed}#${index}`);
-  const k = lettersAt(index);
-  // Take the letters, in order, from a word long enough to leave room around them.
+  const kind = obstacleAt(seed, index);
+  const k = lettersFor(seed, index);
+  // Take the letters, in order, from a word long enough to leave room around them, and keep only a set that plenty of
+  // common words fit. Everyone gets the same fence: the tries come from the seeded stream.
   const pool = FENCE_WORDS.filter((w) => w.length >= Math.max(MIN_WORD, k + 1));
-  const source = pool[Math.floor(r() * pool.length)];
-  const spots = Array.from(source, (_, i) => i);
-  const picked: number[] = [];
-  while (picked.length < k) picked.push(spots.splice(Math.floor(r() * spots.length), 1)[0]);
-  picked.sort((a, b) => a - b);
-  const letters = picked.map((i) => source[i]);
-  // Time to think and type: a long breath at first, tightening to a floor, a little more for each letter asked.
-  const gap = index === 0 ? 3.6 : Math.max(2.8, 4.8 - index * 0.05) + (k - 1) * 0.35 + r() * 0.6;
-  return { index, letters, source, gap };
+  let source = '', letters: string[] = [], best = -1;
+  for (let attempt = 0; attempt < 200 && best < MIN_FITS[k]; attempt++) {
+    const word = pool[Math.floor(r() * pool.length)];
+    const spots = Array.from(word, (_, i) => i);
+    const picked: number[] = [];
+    while (picked.length < k) picked.push(spots.splice(Math.floor(r() * spots.length), 1)[0]);
+    picked.sort((a, b) => a - b);
+    const set = picked.map((i) => word[i]);
+    if (set.some((c) => RARE.test(c))) continue;
+    const fits = FENCE_WORDS.filter((w) => inOrder(set, w)).length;
+    if (fits > best) { best = fits; source = word; letters = set; }
+  }
+  // The distance barely changes, so the rising speed is what closes the gap; a little more room for each letter asked.
+  const gap = kind === 'bale' ? 300 + r() * 50 : 760 + (k - 1) * 18 + r() * 80;
+  return { index, kind, letters, source, gap };
+}
+
+function inOrder(letters: readonly string[], word: string): boolean {
+  let k = 0;
+  for (const ch of word) if (k < letters.length && ch === letters[k]) k++;
+  return k === letters.length;
 }
 
 /** How many of the fence's letters `typed` already has in order (greedy from the left). */
@@ -105,9 +165,9 @@ export function check(dict: Dictionary, fence: Fence, typed: string, used: Reado
   return { ok: true };
 }
 
-/** The fence's sign: its letters with dots between, e.g. `S·P`. */
+/** The fence's sign: its letters with room between them, e.g. `S…P`, because a word may have anything in the gaps. */
 export function signOf(fence: Fence): string {
-  return fence.letters.join('·').toUpperCase();
+  return fence.letters.join('…').toUpperCase();
 }
 
 /**
@@ -124,16 +184,29 @@ export function exampleWords(fence: Fence): string[] {
   return picked.sort((a, b) => a.length - b.length || a.localeCompare(b));
 }
 
+/** A word that fits, for a player who has stopped to think: the same for everyone, never the fence's own source. */
+export function hintWord(fence: Fence, used: ReadonlySet<string> = new Set()): string {
+  const fits = FENCE_WORDS.filter((w) => w !== fence.source && !used.has(w) && w.length <= 6 && matched(fence, w) === fence.letters.length);
+  // Short words first; then any length; a used word only when nothing else fits (it would be refused as used).
+  const fit = (w: string) => matched(fence, w) === fence.letters.length;
+  const longer = FENCE_WORDS.filter((w) => w !== fence.source && !used.has(w) && fit(w));
+  const all = fits.length ? fits : longer.length ? longer : FENCE_WORDS.filter(fit);
+  return all[Math.floor(rng(`${fence.letters.join('')}#${fence.index}#hint`)() * all.length)] ?? fence.source;
+}
+
 // ---------- the run ----------
 /** The dream's logical size (pixels), and where the sheep stands. */
 export const FIELD = { width: 320, ground: 104, sheepX: 78, sheepW: 20, fenceW: 12, fenceH: 16 } as const;
-export const JUMP_MS = 600;
+export const JUMP_MS = 720;
 export const JUMP_HEIGHT = 28;
 
 /** Running speed in logical pixels a second after `count` fences, rising to a cap like the offline dinosaur. */
 export function speedAt(count: number): number {
-  return Math.min(100, 58 + count * 2);
+  return Math.min(210, 110 + count * 2.6);
 }
+
+/** How long a bump holds the sheep up before the lane moves again (V4 Part 15). */
+export const STUMBLE_MS = 700;
 
 /** The gap between the sheep and a finished fence when the sheep takes off, so the top of the jump is over it. */
 export function takeoffDistance(speed: number): number {
@@ -156,18 +229,28 @@ export interface DreamResult {
   streak: number;
   /** Warm Blankets held (V4 Part 12). */
   blankets?: number;
-  /** Whether the dream ended on a bump (false only in the bounded dream's drift-off, V4 Part 15, not approved). */
+  /** Whether the dream ended on a bump (false when the farmer drifted off, V4 Part 15). */
   bumped?: boolean;
+  /** Fences reached, and the positions of the bumps among them, for a dream that has them. */
+  fences?: number;
+  bumps?: readonly number[];
+  /** The dream's seed: the bales change which glyph a position gets. */
+  seed?: string;
+  /** Where a friend can play. */
+  url?: string;
   /** The game's title as the home screen shows it. */
   title?: string;
 }
 
-/** One glyph per fence cleared, by the letters it asked: 1 🟩, 2 🟦, 3 🟪, 4 🟧, 5 🟥; ⬛ for the bump. */
+/** One glyph per fence cleared, by the letters it asked: 1 🟩, 2 🟦, 3 🟪; ⬛ for the bump. */
 const GLYPHS = ['🟩', '🟦', '🟪', '🟧', '🟥'] as const;
-export function dreamGlyphs(count: number, bumped = true): string {
+export function dreamGlyphs(count: number, bumped = true, run: { seed?: string; bumps?: readonly number[] } = {}): string {
   const row: string[] = [];
-  for (let i = 0; i < count; i++) row.push(GLYPHS[Math.min(5, lettersAt(i)) - 1]);
-  if (bumped) row.push('⬛');
+  const bumps = run.bumps ?? [];
+  const letters = (i: number) => (run.seed ? lettersFor(run.seed, i) : lettersAt(i));
+  // Each bump sits where it happened; a dream that recorded none ends on the one that finished it.
+  for (let i = 0; i < count + bumps.length; i++) row.push(bumps.includes(i) ? '⬛' : GLYPHS[Math.min(5, letters(i)) - 1]);
+  if (bumped && bumps.length === 0) row.push('⬛');
   if (row.length === 0) return '⬛';
   const groups: string[] = [];
   for (let i = 0; i < row.length; i += 5) groups.push(row.slice(i, i + 5).join(''));
@@ -176,15 +259,24 @@ export function dreamGlyphs(count: number, bumped = true): string {
   return lines.join('\n');
 }
 
+const BUMP_WORDS = ['no bumps', 'one bump', 'two bumps'];
+/** "Asleep after 30 fences, one bump, longest word 9 letters": the line a finished night is told in. */
+export function dreamSummary(r: Pick<DreamResult, 'fences' | 'bumps' | 'longest'>): string {
+  const bumps = r.bumps?.length ?? 0;
+  return `Asleep after ${r.fences} fences, ${BUMP_WORDS[bumps] ?? `${bumps} bumps`}, longest word ${r.longest} letters`;
+}
+
 /** The spoiler-free result to share (V4 Part 13.2). */
 export function dreamShareText(r: DreamResult): string {
   const bumped = r.bumped ?? true;
+  const asleep = !bumped && !!r.fences;
   const streak = r.streak > 1 ? `${r.streak}-night streak${r.blankets ? ` · 🛏 ${r.blankets} Warm Blanket${r.blankets === 1 ? '' : 's'}` : ''}` : '';
   return [
     `${r.title ?? 'Counting Sheep'} · Counting Sheep ${r.date}`,
-    `The farmer counted ${r.count} sheep ${bumped ? 'then woke up' : 'and drifted off'}`,
-    dreamGlyphs(r.count, bumped),
-    r.longest > 0 ? `Longest word: ${r.longest} letters` : '',
+    asleep ? dreamSummary(r) : `The farmer counted ${r.count} sheep ${bumped ? 'then woke up' : 'and drifted off'}`,
+    dreamGlyphs(r.count, bumped, { seed: r.seed, bumps: r.bumps }),
+    !asleep && r.longest > 0 ? `Longest word: ${r.longest} letters` : '',
     streak,
+    r.url ?? '',
   ].filter(Boolean).join('\n');
 }

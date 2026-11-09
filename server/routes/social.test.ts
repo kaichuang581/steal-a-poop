@@ -97,8 +97,8 @@ describe('leaderboard routes', () => {
     data.record({
       gameId: 'g1', mode: 'room', roomCode: 'R', dailyDate: null, finishedAt: NOW - 1000, winners: ['a'],
       players: [
-        { userId: 'a', name: 'A', seat: 0, banked: 50, steals: 3, wordsPlayed: 4, longestWord: 'zebra' },
-        { userId: 'b', name: 'B', seat: 1, banked: 20, steals: 0, wordsPlayed: 4, longestWord: 'cat' },
+        { userId: 'a', name: 'A', seat: 0, banked: 50, wordsPlayed: 4, longestWord: 'zebra' },
+        { userId: 'b', name: 'B', seat: 1, banked: 20, wordsPlayed: 4, longestWord: 'cat' },
       ],
     });
   it('are public, validate their inputs, and show only nicknames', async () => {
@@ -116,7 +116,7 @@ describe('leaderboard routes', () => {
     const { call, data } = await boot();
     await finished(data);
     expect((await call('GET', '/api/me/stats')).status).toBe(401);
-    expect((await call('GET', '/api/me/stats', 'a')).json).toMatchObject({ gamesPlayed: 1, wins: 1, points: 50, steals: 3, longestWord: 'zebra' });
+    expect((await call('GET', '/api/me/stats', 'a')).json).toMatchObject({ gamesPlayed: 1, wins: 1, points: 50, longestWord: 'zebra' });
     expect((await call('POST', '/api/me/settings', 'a', { leaderboardVisible: false })).json).toEqual({ leaderboardVisible: false });
     expect((await call('GET', '/api/leaderboard/all?metric=wins')).json.rows).toEqual([]);
     expect((await call('POST', '/api/me/settings', 'a', { leaderboardVisible: 'yes' })).status).toBe(400);

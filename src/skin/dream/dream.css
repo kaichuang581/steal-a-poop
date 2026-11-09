@@ -1,43 +1,163 @@
-/* Counting Sheep (V4): the farmer's dream. The scene is the game's own three.js world; what is here is the little that
-   the painted skin's shared classes (chips, the word bar, boards) do not cover. */
-.dr-root { position: relative; display: flex; height: 100%; flex-direction: column; overflow: hidden; outline: none; user-select: none; background: #D2C6F4; }
+/* Counting Sheep (V4): the farmer's dream. The scene is the game's own three.js world; the HUD is cut from the farm kit
+   (V6 Parts 5.4 and 6.4): a burlap patch for the night, a slate for the count, a peg to leave, a wooden trough for the
+   word bar with the fence's letters hanging on a rope, and the results hung from the bedroom's beam. What is here is
+   only layout and the dream's own light, never a surface of its own. */
+.dr-root { position: relative; display: flex; height: 100%; flex-direction: column; overflow: hidden; outline: none; user-select: none; background: #14112A; }
 
-/* The board's subline blinks before the first key. */
+/* The dream's canvas. It pops toward the last puff when the farmer wakes (V4.1 Part 7.4); it is only ever transformed
+   after it has been measured, so the renderer's size is not disturbed. */
+.dr-stage { position: absolute; inset: 0; transform-origin: 27% 74%; }
+.dr-stage[data-pop] { animation: dr-pop-away 600ms ease-in forwards; }
+@keyframes dr-pop-away { to { transform: scale(1.06); filter: blur(14px) brightness(1.25); opacity: 0.6; } }
+/* The waking clouds (DreamScreen): they roll in from every edge over the blurring dream, then part on the bedroom. */
+.dr-clouds { position: absolute; inset: 0; z-index: 40; overflow: hidden; pointer-events: none; }
+.dr-cloud { position: absolute; height: auto; translate: -50% -50%; filter: drop-shadow(0 6px 0 rgba(120, 104, 180, 0.25)); animation: dr-cloud-in 560ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.dr-clouds-fill { position: absolute; inset: 0; background: #E6E0F7; opacity: 0; animation: dr-cloud-fill 300ms 420ms ease-out forwards; }
+@keyframes dr-cloud-in { from { transform: translate(var(--dx), var(--dy)) scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes dr-cloud-fill { to { opacity: 1; } }
+.dr-clouds[data-state="out"] .dr-cloud { animation: dr-cloud-out 900ms cubic-bezier(0.5, 0, 0.75, 0.4) both; }
+.dr-clouds[data-state="out"] .dr-clouds-fill { opacity: 1; animation: dr-cloud-unfill 450ms ease-in forwards; }
+@keyframes dr-cloud-out { from { transform: none; opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.3); opacity: 0; } }
+@keyframes dr-cloud-unfill { to { opacity: 0; } }
+.dr-stage[data-gone] { visibility: hidden; }
+.dr-stage[data-pop][data-reduced] { animation: dr-fade-away 150ms linear forwards; }
+@keyframes dr-fade-away { to { opacity: 0; } }
+
+/* The farmer's bubble: its own canvas, masked to a cloud with a pale rim (V4.1 Part 7.1). */
+.dr-bubble { --cloud: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 100' preserveAspectRatio='none'%3E%3Cg fill='black'%3E%3Cellipse cx='75' cy='50' rx='62' ry='37'/%3E%3Ccircle cx='24' cy='34' r='16'/%3E%3Ccircle cx='52' cy='19' r='15'/%3E%3Ccircle cx='84' cy='15' r='15'/%3E%3Ccircle cx='114' cy='24' r='16'/%3E%3Ccircle cx='132' cy='50' r='15'/%3E%3Ccircle cx='116' cy='76' r='16'/%3E%3Ccircle cx='84' cy='85' r='14'/%3E%3Ccircle cx='50' cy='82' r='15'/%3E%3Ccircle cx='20' cy='64' r='16'/%3E%3C/g%3E%3C/svg%3E");
+  position: absolute; left: 2%; bottom: 2%; z-index: 12; width: min(26%, 420px); aspect-ratio: 3 / 2; pointer-events: none; transition: width 300ms ease-out; animation: dr-breathe 4s ease-in-out infinite; transform-origin: 0 100%; }
+@keyframes dr-breathe { 50% { transform: scale(1.012); } }
+.dr-bubble-rim, .dr-bubble-view { position: absolute; -webkit-mask: var(--cloud) center / 100% 100% no-repeat; mask: var(--cloud) center / 100% 100% no-repeat; }
+.dr-bubble-rim { inset: -3px; background: #EDE8F9; opacity: 0.85; }
+.dr-bubble-view { inset: 0; overflow: hidden; }
+/* The dream is over: the bubble opens to the whole screen and is his bedroom (V6 Part 6.4). No transform here, ever:
+   the canvas inside is measured. */
+.dr-bubble[data-room] { left: 0; top: 0; bottom: 0; width: 100%; height: 100%; aspect-ratio: auto; z-index: 30; animation: dr-room-in 400ms ease-out both; transition: none; }
+.dr-bubble[data-room] .dr-bubble-view { -webkit-mask: none; mask: none; }
+.dr-bubble[data-room] .dr-bubble-rim, .dr-bubble[data-room] .dr-bubble-zs, .dr-bubble[data-room] .dr-bubble-bang { display: none; }
+@keyframes dr-room-in { from { opacity: 0; } }
+/* The z's rise from the tip of his nightcap toward the first puff. */
+.dream-z { position: absolute; left: 47%; top: 32%; color: #EDE8F9; opacity: 0; font: 700 18px/1 var(--skin-font-display); animation: dr-z 2.2s linear infinite; }
+.dream-z[data-i="1"] { font-size: 24px; animation-delay: 0.73s; }
+.dream-z[data-i="2"] { font-size: 30px; animation-delay: 1.46s; }
+@keyframes dr-z { 0% { opacity: 0; transform: translate(0, 0); } 8% { opacity: 0.9; } 60% { opacity: 0.9; } 100% { opacity: 0; transform: translate(9%, -55%); } }
+/* A bump only stirs him: the z's fade out, and a sleepy "hm?" drifts up as he peeks (the stir itself is in BedroomBubble). */
+.dr-bubble-zs { position: absolute; inset: 0; transition: opacity 450ms ease-in-out; }
+.dr-bubble[data-woke] .dr-bubble-zs { opacity: 0; }
+.dr-bubble-bang { position: absolute; left: 40%; top: 8%; opacity: 0; color: #EDE8F9; font: italic 700 30px/1 var(--skin-font-display); text-shadow: 0 2px 0 #1E1A33; }
+.dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm 1100ms 700ms ease-in-out both; }
+@keyframes dr-hm { 0% { opacity: 0; transform: translate(-6px, 10px) rotate(-6deg); } 35% { opacity: 1; transform: translate(0, 0) rotate(-3deg); } 100% { opacity: 0.85; transform: translate(4px, -10px) rotate(-2deg); } }
+@keyframes dr-hm-fade { 0% { opacity: 0; } 100% { opacity: 0.85; } }
+
+/* The thought trail: three clouds from the bubble to the raft (V4.1 Part 7.3). */
+.dream-puff { position: absolute; z-index: 13; pointer-events: none; opacity: 0.92; animation: dr-bob 5s ease-in-out infinite; transition: transform 200ms ease-in; }
+.dream-puff svg { display: block; width: 100%; height: auto; }
+.dream-puff[data-i="1"] { animation-delay: -1.6s; }
+.dream-puff[data-i="2"] { animation-delay: -3.2s; }
+@keyframes dr-bob { 50% { translate: 0 -3px; } }
+.dr-root[data-pop] .dream-puff { transform: scale(0); }
+.dr-root[data-pop] .dream-puff[data-i="2"] { transition-delay: 0ms; }
+.dr-root[data-pop] .dream-puff[data-i="1"] { transition-delay: 120ms; }
+.dr-root[data-pop] .dream-puff[data-i="0"] { transition-delay: 240ms; }
+
+/* Twenty cloud puffs burst from the trail as the dream pops: square tufts, like the voxel clouds. */
+.dr-burst { position: absolute; z-index: 11; pointer-events: none; left: 27%; top: 74%; width: 0; height: 0; }
+.dr-burst i { position: absolute; width: 18px; height: 14px; border-radius: 3px; background: #EDE8F9; opacity: 0; animation: dr-burst 650ms ease-out forwards; }
+@keyframes dr-burst { 0% { opacity: 0.95; transform: translate(0, 0) scale(0.5); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.3); } }
+
+/* ---------- The HUD ---------- */
+.dr-loading { margin: auto; }
+.dr-night-patch { pointer-events: auto; }
+.dr-hud .dr-count .kit-slate-face { min-height: 0; padding: 4px 12px 6px; gap: 0; }
+.dr-count-main { display: inline-flex; align-items: center; gap: 6px; font-size: 30px; line-height: 1; }
+.dr-count-sub { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; line-height: 1.2; }
+.dr-count-sub .kit-tally i { height: 12px; }
+
+/* The board keeps to the top of the sky (V4.1 Part 8). */
+.dr-boards .sk-notice { max-width: 44%; }
 @keyframes dr-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.35; } }
 .dr-blink { animation: dr-blink 1s steps(1) infinite; }
 
-/* The fence's letters: small wooden tiles at the left of the word bar; each lights gold once typed in order, with a check mark. */
-.dr-fence-tiles { flex: none; display: flex; align-items: center; gap: 3px; min-width: 58px; padding: 0 6px 0 2px; border-right: 2px dashed rgba(140, 90, 46, 0.35); }
-.dr-fence-tile { --t: 34px; animation: none; position: relative; }
-.dr-fence-tile[data-lit] { background: linear-gradient(180deg, #FFE7A8, var(--glow)); box-shadow: inset 0 -4px 0 var(--amber), 0 0 0 2px var(--amber), 0 2px 4px rgba(40, 24, 10, 0.3); }
-.dr-fence-tile[data-lit]::after { content: '✓'; position: absolute; right: -3px; top: -6px; font-size: 11px; color: var(--cloth-dark); background: var(--paper); border-radius: 999px; width: 13px; height: 13px; line-height: 13px; text-align: center; }
-.dr-fence-tiles[data-wrong] .dr-fence-tile { background: linear-gradient(180deg, #FFB9A8, var(--coral)); color: #fff; text-shadow: 0 2px 0 var(--coral-dark); animation: dr-shake 320ms ease-in-out; }
-.dr-fence-none { font-size: 22px; color: var(--ink-soft); padding: 0 8px; }
-@keyframes dr-shake { 25% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 75% { transform: translateX(-2px); } }
+/* The word bar: a light plank trough with a raised front lip, lit by the lantern ring when it wants a word. */
+/* Each typed letter rises into place over the snow. */
+.dr-typed { animation: dr-letter-in 160ms var(--ease-out) both; }
+@keyframes dr-letter-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 
-/* The paper tag over a cleared fence's sign: the word and a tick. */
-.dr-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; white-space: nowrap; font-size: 16px; background: var(--paper); color: var(--cloth-dark); box-shadow: var(--shadow-warm); }
+/* The fence's letters hang on a rope strung between two nails at the bar's left end; a knot ends it. */
+@keyframes dr-shake { 25% { translate: -3px 0; } 50% { translate: 3px 0; } 75% { translate: -2px 0; } }
+
+/* A cleared fence's word, on a paper slip pinned over its sign; it slides down from the pin. */
+.dr-slip.kit-paper { white-space: nowrap; color: var(--cloth-dark); animation: dr-slip 300ms var(--ease-out) both; }
+@keyframes dr-slip { from { translate: 0 -10px; opacity: 0; } }
 
 /* The count popping over the sheep as it lands: Fraunces 800 at 26 px, paper on a dark outline, rising and fading over 1.2 s. */
 .dr-pop { display: inline-block; font-size: 26px; font-weight: 800; color: var(--paper); text-shadow: 0 2px 0 rgba(40, 24, 10, 0.8), -1px 0 0 rgba(40, 24, 10, 0.6), 1px 0 0 rgba(40, 24, 10, 0.6); animation: dr-pop 1200ms var(--ease-out) both; }
 @keyframes dr-pop { 0% { opacity: 0; transform: translateY(6px) scale(0.7); } 20% { opacity: 1; transform: translateY(0) scale(1.1); } 100% { opacity: 0; transform: translateY(-40px) scale(1); } }
 
-/* The seven-night calendar on the results card and the home ticket. */
+/* The seven mini nights on the home screen's ticket (Home moves them to knitted stitches in its own milestone). */
 .dr-nights { display: flex; gap: 6px; justify-content: center; align-items: center; }
 .dr-night { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 11px; font-weight: 800; color: var(--ink-soft); background: transparent; box-shadow: inset 0 0 0 2px rgba(140, 90, 46, 0.35); }
 .dr-night[data-status="played"], .dr-night[data-status="repair"] { background: var(--cloth); color: var(--button-text); box-shadow: inset 0 -2px 0 var(--cloth-dark); }
 .dr-night[data-status="blanket"] { background: var(--glow); color: var(--ink); box-shadow: inset 0 0 0 2px var(--amber); }
 .dr-night[data-status="today"] { box-shadow: inset 0 0 0 2px var(--amber); }
-.dr-night[data-today] { outline: 3px solid var(--amber); outline-offset: 2px; }
 .dr-nights[data-mini] .dr-night { width: 10px; height: 10px; font-size: 0; box-shadow: inset 0 0 0 1.5px rgba(140, 90, 46, 0.4); }
-.dr-blankets { display: inline-flex; gap: 4px; vertical-align: middle; }
 
-/* The phone's word bar: the fence tiles above the input, the Jump button 44 px tall. */
+/* ---------- The results, hung in the bedroom (V6 Part 6.4.5) ---------- */
+.dr-results { position: fixed; inset: 0; z-index: 40; pointer-events: none; }
+/* The stage moves these to the projected hook and headboard every frame; the board hangs a rope's length below. */
+.dr-results-anchor { position: absolute; left: 50%; top: 8%; width: min(420px, calc(100vw - 32px)); translate: -50% 0; padding-top: 40px; pointer-events: auto; }
+.dr-results .dr-results-board { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 16px 16px 14px; }
+.dr-results-title { margin: 0; text-align: center; font: 800 26px/1.15 var(--skin-font-display); }
+.dr-results-mid { display: flex; align-items: stretch; gap: 12px; }
+.dr-results .dr-results-count .kit-slate-face { min-width: 104px; min-height: 96px; }
+.dr-results-count b { font-size: 52px; line-height: 1; }
+.dr-results-count .kit-chalk-hand { font-size: 20px; }
+.dr-results .dr-results-sheet { flex: 1; margin-top: 6px; padding: 12px 14px; font-family: var(--skin-font-hand); font-size: 18px; line-height: 28px; text-shadow: none; font-weight: 400; }
+.dr-results-sheet p { margin: 0; }
+.dr-results-streak { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 400 18px/1.2 var(--skin-font-hand); text-shadow: 0 -1px 0 rgba(40, 24, 10, 0.6); }
+.dr-results-streak .kit-stitches { padding: 6px 8px; background: var(--paper); box-shadow: 2px 3px 0 rgba(59, 48, 40, 0.22); --st-w: 22px; gap: 4px; }
+.dr-results .dr-results-blankets { font-size: 15px; line-height: 1.3; text-align: center; text-shadow: none; padding: 6px 10px; }
+.dr-results-rail { display: flex; gap: 8px; padding-top: 10px; border-top: 3px solid rgba(40, 24, 10, 0.35); }
+.dr-results-rail > * { flex: 1; padding: 0 10px; white-space: nowrap; }
+@media (max-width: 640px) { .dr-results-rail > * { padding: 0 6px; font-size: 14px; } }
+.dr-results-slip { position: absolute; translate: -50% -100%; pointer-events: none; }
+.dr-results-slip .kit-paper { font-size: 15px; white-space: nowrap; }
+
+/* ---------- Phones ---------- */
 @media (max-width: 640px) {
-  .dr-fence-tile { --t: 26px; }
-  .dr-fence-tiles { min-width: 40px; }
-  .dr-bar-phone .sk-input-bar { flex-wrap: wrap; }
-  .dr-bar-phone .dr-fence-tiles { flex-basis: 100%; border-right: 0; border-bottom: 2px dashed rgba(140, 90, 46, 0.35); padding-bottom: 4px; margin-bottom: 4px; }
-  .dr-bar-phone .sk-input-go { min-height: 44px; }
+  .dr-boards .sk-notice { max-width: 92%; }
+  .dr-bubble:not([data-room]) { width: min(42%, 240px); bottom: 150px; }
+  .dream-z { font-size: 12px; } .dream-z[data-i="1"] { font-size: 15px; } .dream-z[data-i="2"] { font-size: 18px; }
+  .dr-bubble-bang { font-size: 18px; }
+  .dr-count-main { font-size: 24px; }
+  .dr-results-anchor { top: 4%; }
+  .dr-results .dr-results-board { padding: 12px 12px 10px; gap: 8px; }
+  .dr-results-title { font-size: 21px; }
+  .dr-results .dr-results-count .kit-slate-face { min-width: 84px; min-height: 76px; }
+  .dr-results-count b { font-size: 40px; }
+  .dr-results .dr-results-sheet { font-size: 16px; line-height: 24px; padding: 8px 10px; }
+  .dr-results-streak { font-size: 16px; }
+  .dr-results-streak .kit-stitches { --st-w: 18px; }
+  .dr-results .dr-results-blankets { font-size: 12px; padding: 4px 8px; }
+  .dr-results-rail { flex-wrap: wrap; }
+  .dr-results-rail > :first-child { flex-basis: 100%; }
+  /* The headboard is out of a phone's frame: the slip is pinned along the bottom instead. */
+  .dr-results-slip { left: 50%; top: auto; bottom: 14px; translate: -50% 0; }
+  .dr-results-streak { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 4px 10px; }
 }
-:root.reduce-motion .dr-pop, :root.reduce-motion .dr-tag, :root.reduce-motion .dr-fence-tile, :root.reduce-motion .dr-blink { animation: none; }
+:root.reduce-motion .dr-pop, :root.reduce-motion .dr-slip, :root.reduce-motion .dr-fence-tile, :root.reduce-motion .dr-typed, :root.reduce-motion .dr-blink, :root.reduce-motion .dr-bubble, :root.reduce-motion .dream-puff { animation: none; }
+:root.reduce-motion .dream-z { animation: none; opacity: 0.9; }
+:root.reduce-motion .dream-z[data-i="1"] { transform: translate(6%, -22%); }
+:root.reduce-motion .dream-z[data-i="2"] { transform: translate(12%, -44%); }
+:root.reduce-motion .dr-burst { display: none; }
+:root.reduce-motion .dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm-fade 400ms ease-in-out both; }
+:root.reduce-motion .dr-bubble-zs { transition-duration: 300ms; }
+/* The same for a reduced-motion setting on the device: three still z's at fixed heights. */
+@media (prefers-reduced-motion: reduce) {
+  .dr-bubble, .dream-puff, .dr-blink, .dr-slip, .dr-typed { animation: none; }
+  .dream-z, .dream-z[data-i="1"], .dream-z[data-i="2"] { animation: none; opacity: 0.9; }
+  .dream-z[data-i="1"] { transform: translate(6%, -22%); }
+  .dream-z[data-i="2"] { transform: translate(12%, -44%); }
+  .dr-burst { display: none; }
+  .dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm-fade 400ms ease-in-out both; }
+}

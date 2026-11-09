@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { exportLog, readLog } from '../../hunt/log';
 import { useAdmin } from '../../lib/admin';
 import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
 import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
+import { Brass } from '../kit';
+import { previewEnd } from '../admin/endPreview';
+import type { EndPreview } from '../admin/endPreview';
 
 /**
  * The admin lock: a small paper dialog off the lock button by the avatar. One password, no username; the right one
@@ -22,6 +26,14 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [logCopied, setLogCopied] = useState(false);
+  // The Hunt's run log (plan v7 Part 3.2): copied by hand, never sent anywhere.
+  const copyLog = async () => {
+    const text = exportLog();
+    try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy the hunt log:', text); }
+    setLogCopied(true);
+    setTimeout(() => setLogCopied(false), 2000);
+  };
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => { field.current?.focus(); }, []);
 
@@ -39,7 +51,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[55] flex items-center justify-center p-4" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={onClose}>
       <PaperPanel role="dialog" aria-modal="true" aria-label="Admin access" className="w-full max-w-xs p-4" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="sk-display flex items-center gap-2 text-xl"><LockIcon size={20} /> Admin access</h2>
+          <h2 className="sk-display flex items-center gap-2 text-xl"><span className="kit-peg kit-peg--light kit-peg--sm" style={{ width: 30, height: 30, cursor: 'default' }}><LockIcon size={16} /></span> Admin access</h2>
           <Chip className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
         </div>
         {admin ? (
@@ -59,6 +71,20 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                   : <ClothButton onClick={() => setAvatar(ADMIN_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
               </div>
             </section>
+            {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
+            <section className="sk-paper mt-3 p-2" aria-label="See the end screens">
+              <b className="sk-display block text-base">Skip to the end</b>
+              <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>Deal a game and jump to its results. Nothing counts toward your stats.</p>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {([['won', 'Win a game'], ['lost', 'Lose a game'], ['run', 'Practice run over']] as [EndPreview, string][]).map(([kind, label]) => (
+                  <ClothButton key={kind} className="sk-btn" onClick={() => { if (previewEnd(kind)) onClose(); }}>{label}</ClothButton>
+                ))}
+              </div>
+            </section>
+            <div className="mt-3 flex items-center gap-2">
+              <ClothButton onClick={copyLog} className="sk-btn">{logCopied ? 'Copied' : 'Copy hunt log'}</ClothButton>
+              <span className="sk-hand text-sm" style={{ color: 'var(--ink-soft)' }}>{readLog().length} runs on this device</span>
+            </div>
             <div className="mt-3 flex gap-2">
               <WoodButton onClick={() => { if (wearing) setAvatar(null); lock(); pokeAvatar(); setError(''); }} className="sk-btn flex-1">Lock</WoodButton>
               <ClothButton onClick={onClose} className="sk-btn flex-1">Done</ClothButton>
@@ -74,7 +100,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
             {error && <p id="admin-error" role="alert" className="sk-hand mt-1 text-base" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
             <div className="mt-3 flex gap-2">
               <WoodButton type="button" onClick={onClose} className="sk-btn flex-1">Cancel</WoodButton>
-              <ClothButton type="submit" disabled={!password || busy} className="sk-btn flex-1">Unlock</ClothButton>
+              <Brass type="submit" disabled={!password || busy} className="flex-1">Unlock</Brass>
             </div>
           </form>
         )}

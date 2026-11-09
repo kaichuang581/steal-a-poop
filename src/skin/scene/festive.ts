@@ -261,15 +261,15 @@ export function buildFarmFestive(): FestiveGeometry {
   return (farmstead = d.build());
 }
 
-let bedroom: FestiveGeometry | null = null;
-/** The farmer's bedroom, in the room's own coordinates: a small string of lights on the headboard and presents beside it. */
-export function buildBedroomFestive(): FestiveGeometry {
-  if (bedroom) return bedroom;
+let bubble: FestiveGeometry | null = null;
+/** The farmer's bubble (dream v4.1): lights along the headboard, presents by the foot of the bed where its camera sees them. */
+export function buildBubbleFestive(): FestiveGeometry {
+  if (bubble) return bubble;
   const d = new Dressing();
   d.strand([-0.1, 1.2, -0.75], [-0.1, 1.2, 0.75], 0.12, 0.2, 0.1);
-  d.present(-0.5, -0.3, 0.3, 0.2, T.collar[1], GOLD);
-  d.present(-0.55, 0.15, 0.3, 0.3, T.pine[1], T.snow[1]);
-  return (bedroom = d.build());
+  d.present(1.55, 0.95, 0.24, 0.2, T.collar[1], GOLD);
+  d.present(1.25, 1.1, 0.2, 0.26, T.pine[1], T.snow[1]);
+  return (bubble = d.build());
 }
 
 let duel: FestiveGeometry | null = null;

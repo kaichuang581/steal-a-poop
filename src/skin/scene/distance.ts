@@ -177,6 +177,7 @@ export function buildDistance(): {
   columns(backG, [-100, 99], [bz0, bz1], backH, (x, y, z, top) => pick(T.snow, hash3(x >> 2, y >> 2, z >> 2, 63), y === top - 1 ? [0.6, 0.95] : [0.1, 0.5]));
   for (let x = -100; x < 100; x++)
     for (const line of [0, 1]) {
+      if (line === 0 && x > -60 && x < 34) continue; // the forest behind the field stands there now (countryside.ts)
       const z = Math.floor(-52 - line * 26 + Math.sin(x / 19 + line) * 6);
       if (hash3(x, line, z, 64) < 0.45) continue;
       backG.set(x, Math.max(1, Math.round(backH(x, z))), z, pineDark);

@@ -3,15 +3,18 @@ import type { SheepState } from '../table/Sheep';
 /** Where the coin is this frame: its centre's lift off the rest height, and its three tilts/turns. */
 export interface DiscPose { lift: number; rotX: number; rotY: number; rotZ: number }
 
-export const DISC = { radius: 0.5, thick: 0.06, rest: 0.52 } as const;
+/** `tall` is the picture's own height over its width: the photo with the forehead band spliced and stretched 38.6 times (Brian,
+ * 2026-11-08: "make kaiyans forehead humongous and make the rest of him regular sized"; kaiyan-forehead.png is 512 x 1339; later "as tall as the barndoor": 3.4 m at the table, BARN.backDoor.height).
+ * `rest` keeps its foot on the snow. */
+export const DISC = { radius: 0.5, tall: 1339 / 512, thick: 0.06, rest: 0.5 * (1339 / 512) + 0.02 } as const;
 
 const TAU = Math.PI * 2;
 const hop = (p: number, h: number) => (p >= 0 && p < 1 ? Math.sin(p * Math.PI) * h : 0);
 
 /**
  * The coin's pose for a state `e` seconds in, at clock time `t`, on its own `phase`. The picture never changes: it
- * only tilts (rotZ), leans (rotX), turns right round (rotY) and hops (lift). `moving` false (reduced motion, or the
- * table held still for a steal) gives a resting pose with the state's own tilt and nothing more.
+ * only tilts (rotZ), leans (rotX), turns right round (rotY) and hops (lift). `moving` false (reduced motion, or a
+ * table held still) gives a resting pose with the state's own tilt and nothing more.
  */
 export function discPose(state: SheepState, e: number, t: number, phase: number, moving: boolean, speaking = false): DiscPose {
   const tp = t + phase;

@@ -1,3 +1,4 @@
+import { CloseIcon } from './Icons';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { LEGAL_REVIEWED } from '../../config';
@@ -27,18 +28,18 @@ export function LegalDialog({ initial, onClose }: { initial: LegalSlug; onClose:
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const tab = (on: boolean) => `min-h-11 rounded-lg border-2 px-3 text-sm font-bold ${on ? 'border-[#c0792b] bg-white' : 'border-transparent bg-white/60'}`;
+  const tab = (on: boolean) => `kit-index-tab ${on ? 'font-black' : ''}`;
   return (
-    <div role="dialog" aria-modal="true" aria-label={LEGAL_TITLES[slug]} className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-3" onClick={onClose}>
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col rounded-xl bg-[var(--paper,#f6efe0)] p-4 text-[#2b221d]" onClick={(e) => e.stopPropagation()}>
+    <div role="dialog" aria-modal="true" aria-label={LEGAL_TITLES[slug]} className="fixed inset-0 z-50 grid place-items-center p-3" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={onClose}>
+      <div className="sk-framed kit-paper flex max-h-[92vh] w-full max-w-3xl flex-col p-4" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Legal pages">
             {SLUGS.map((s) => <button key={s} role="tab" aria-selected={s === slug} className={tab(s === slug)} onClick={() => setSlug(s)}>{LEGAL_TITLES[s]}</button>)}
           </div>
-          <button className="min-h-11 min-w-11 rounded-lg px-3 font-bold" onClick={onClose} aria-label="Close" title="Close" autoFocus>Close</button>
+          <button className="kit-peg kit-peg--light kit-peg--sm" onClick={onClose} aria-label="Close" title="Close" autoFocus><CloseIcon size={16} /></button>
         </div>
         {!LEGAL_REVIEWED && (
-          <div role="note" className="mb-3 rounded-lg border-2 border-red-400 bg-red-100 p-2 text-sm font-bold text-red-900">
+          <div role="note" className="kit-paper kit-paper--note mb-3 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>
             DRAFT. This text has not been reviewed by a lawyer and is not final.{draftFields > 0 && ` ${draftFields} highlighted field${draftFields === 1 ? ' is' : 's are'} still to be filled in.`}
           </div>
         )}

@@ -60,9 +60,13 @@
 .gb-exp i { display: block; height: 1px; background: #48C8F8; transition: width 700ms steps(24); }
 
 /* The predator's rules, as small tags under its box. */
-.gb-tags { position: absolute; left: 8px; top: 37px; width: 120px; display: flex; flex-wrap: wrap; gap: 2px; }
+.gb-tags { position: absolute; left: 8px; top: 43px; width: 120px; display: flex; flex-wrap: wrap; gap: 2px; }
 .gb-tags li { padding: 0 3px; font-size: 7px; line-height: 9px; color: #F8F6EC; background: #5E4430; border-radius: 2px; }
 .gb-tags li[data-relaxed] { background: #9FB7D6; color: #404850; text-decoration: line-through; }
+.gb-tags li[data-broken] { background: #D9453A; }
+.gb-tags li.gb-tag-q { background: #36403F; color: #F8D088; }
+/* The pack code, under the predator's box, so a screenshot mid-fight carries it too. */
+.gb-packline { position: absolute; left: 9px; top: 34px; font-size: 6px; line-height: 7px; color: #2B5070; text-shadow: 1px 1px 0 #FFFFFF; white-space: nowrap; }
 
 /* The text box: navy with a gold frame and white text; menus white with a lavender frame. */
 .gb-bottom { position: absolute; left: 0; right: 0; bottom: 0; height: 38px; display: flex; background: #2A2E36; }
@@ -85,6 +89,7 @@
 .gb-caret { display: inline-block; width: 1px; height: 9px; margin-left: 1px; background: #404850; animation: gb-blinkcaret 0.9s steps(1) infinite; }
 @keyframes gb-blinkcaret { 50% { opacity: 0; } }
 .gb-note { margin-top: 2px; font-size: 6px; line-height: 7px; color: #6870A0; text-shadow: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.gb-note[data-bad] { color: #D9453A; }
 /* The real input: invisible, over the move box, at 16px so phones do not zoom. */
 .gb-ghost { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; border: 0; padding: 0; cursor: text; }
 .gb-info { flex: 1; display: flex; flex-direction: column; justify-content: center; font-size: 7px; line-height: 8px; }
@@ -145,12 +150,8 @@
 .gb-arrows span[data-lit]:nth-child(2) { color: #fff; background: #3FA6C9; border-color: #fff; }
 .gb-arrows span[data-lit]:nth-child(3) { color: #fff; background: #4FB04A; border-color: #fff; }
 .gb-arrows span[data-lit]:nth-child(4) { color: #fff; background: #D9453A; border-color: #fff; }
-.gb-signs { position: absolute; left: 8px; top: 24px; width: 120px; display: flex; flex-direction: column; gap: 3px; }
-.gb-sign {
-  padding: 1px 4px 2px; font-size: 8px; line-height: 10px; color: #404850; background: #F8F6E4; border: 1px solid #36403F; border-radius: 3px;
-  box-shadow: inset 0 0 0 1px #FFFFF4, 1px 1px 0 rgba(0, 0, 0, 0.35); animation: gb-slam 300ms steps(5) both; text-shadow: 1px 1px 0 #DAD8BE;
-}
-.gb-sign b { display: block; font-size: 5px; line-height: 6px; font-weight: 400; color: #D9453A; text-shadow: none; }
+.gb-signs { position: absolute; left: 6px; top: 20px; width: 136px; display: flex; flex-direction: column; gap: 2px; }
+.gb-sign { animation: gb-slam 300ms steps(5) both; }
 @keyframes gb-slam { from { transform: scale(2) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* Results. */
@@ -173,3 +174,128 @@
 /* Reduced motion: effects end at once, no snowfall. */
 :root.reduce-motion .gb-root *, :root.reduce-motion .gb-frame { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
 @media (prefers-reduced-motion: reduce) { .gb-root *, .gb-frame { animation-duration: 1ms !important; animation-iteration-count: 1 !important; } }
+
+/* ---------- plan v7: rule cards, the lobby, codes, the death screen, the results card, the bestiary ---------- */
+
+/* A rule card: its label, a plain sentence, and a word that obeys it and one that breaks it. */
+.gb-card {
+  display: flex; flex-direction: column; padding: 1px 4px 2px; color: #404850; background: #F8F6E4; border: 1px solid #36403F; border-radius: 3px;
+  box-shadow: inset 0 0 0 1px #FFFFF4, 1px 1px 0 rgba(0, 0, 0, 0.35); text-shadow: 1px 1px 0 #DAD8BE;
+}
+.gb-card b { font-size: 5px; line-height: 6px; font-weight: 400; color: #D9453A; text-shadow: none; }
+.gb-card-label { font-size: 8px; line-height: 9px; }
+.gb-card i { font-style: normal; font-size: 6px; line-height: 7px; color: #5A6470; text-shadow: none; }
+.gb-card-ex { display: flex; flex-wrap: wrap; gap: 0 5px; font-size: 6px; line-height: 7px; text-shadow: none; }
+.gb-card-ex em { font-style: normal; letter-spacing: 0.5px; }
+.gb-yes { color: #2E8A4E; }
+.gb-no { color: #C83A30; }
+.gb-card[data-asleep] .gb-card-label { text-decoration: line-through; color: #8A94A4; }
+.gb-card-hidden { align-items: flex-start; background: #36403F; color: #F8D088; text-shadow: none; box-shadow: inset 0 0 0 1px #586260, 1px 1px 0 rgba(0, 0, 0, 0.35); }
+.gb-card-hidden b { color: #F8D088; }
+.gb-card-hidden .gb-card-q { font-size: 9px; line-height: 9px; }
+.gb-card-hidden i { color: #C8CCD4; }
+/* Four signs at once: tighter, so the column still fits above the text box. */
+.gb-signs[data-count="4"] .gb-card i { line-height: 6px; }
+.gb-rulecards .gb-card { width: 118px; }
+.gb-rulecards {
+  position: absolute; inset: 0 0 38px; z-index: 6; display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 4px; padding: 6px;
+  background: rgba(16, 20, 32, 0.72); animation: gb-fade 200ms steps(4) both;
+}
+
+/* Buttons that start unchosen: navy with a gold frame, the chosen one gold. Equal sizes. */
+.gb-buttons { display: flex; gap: 3px; }
+.gb-buttons button {
+  flex: 1 1 0; min-width: 0; padding: 1px 2px; font-size: 7px !important; line-height: 9px; text-align: center; white-space: nowrap;
+  color: #F8F8F8 !important; background: #2B5070 !important; border: 1px solid #E0A048 !important; border-radius: 2px; text-shadow: 1px 1px 0 #566A80;
+}
+.gb-buttons button[data-on] { color: #2B3A55 !important; background: #F8D088 !important; text-shadow: none; }
+.gb-buttons button:focus-visible { outline: 1px solid #404850; outline-offset: 1px; }
+.gb-buttons-col { flex-direction: column; }
+.gb-buttons-col button { flex: none; padding: 2px; font-size: 8px !important; }
+.gb-buttons-bar { flex: 1; align-items: center; padding: 4px 4px; }
+.gb-buttons-bar button { padding: 4px 1px; }
+
+/* A question over the stage (walk home, leave). */
+.gb-ask {
+  position: absolute; left: 6px; right: 6px; bottom: 42px; z-index: 7; padding: 4px 7px; font-size: 8px; line-height: 10px; color: #F8F8F8;
+  background: #2B5070; border: 2px solid #E0A048; border-radius: 3px; box-shadow: inset 0 0 0 1px #F8D088; text-shadow: 1px 1px 0 #566A80;
+  animation: gb-slam 300ms steps(5) both;
+}
+
+/* The lobby: the sheep looks out over the snow; its records in a name box. */
+.gb-lobby-box { left: 120px; top: 16px; width: 126px; }
+.gb-lobby-title { font-size: 10px; color: #2B5070; }
+.gb-lobby-title span:last-child { font-size: 6px; color: #6870A0; }
+.gb-lobby-line { font-size: 6px; line-height: 8px; color: #5A6470; text-shadow: none; white-space: nowrap; }
+.gb-lobby-menu button { font-size: 8px; }
+
+/* Entering a code: five boxes; a bad code shakes them. */
+.gb-code {
+  position: absolute; left: 34px; right: 34px; top: 30px; z-index: 6; padding: 4px 8px 6px; text-align: center; background: #F8F8F8;
+  border: 2px solid #7078A8; border-radius: 3px; box-shadow: inset 0 0 0 1px #C0C6E0, 2px 2px 0 rgba(0, 0, 0, 0.4); text-shadow: 1px 1px 0 #D6D6CE;
+  animation: gb-slam 300ms steps(5) both;
+}
+.gb-code h2 { margin: 0 0 3px; font-size: 9px; font-weight: 400; color: #2B5070; letter-spacing: 1px; }
+.gb-code p { margin: 3px 0; font-size: 6px; line-height: 8px; color: #5A6470; text-shadow: none; }
+.gb-code .gb-code-error { color: #D9453A; }
+.gb-code-input { position: relative; cursor: text; }
+.gb-code-boxes { display: flex; justify-content: center; gap: 3px; }
+.gb-code-boxes span {
+  display: grid; place-items: center; width: 17px; height: 20px; font-size: 12px; color: #2B3A55; background: #FFFFFF;
+  border: 1px solid #2B5070; border-radius: 2px; box-shadow: inset 0 -2px 0 #DCE4F0;
+}
+.gb-code-boxes span[data-cursor] { border-color: #E0A048; box-shadow: inset 0 -2px 0 #E0A048; }
+.gb-shake { animation: gb-shake 360ms steps(6); }
+@keyframes gb-shake { 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+.gb-buttons-row { justify-content: center; margin-top: 3px; }
+.gb-buttons-row button { flex: 0 1 70px; }
+
+/* What got you: slams in like a sign. */
+.gb-death {
+  position: absolute; left: 18px; right: 18px; top: 12px; z-index: 8; padding: 5px 8px 6px; background: #F8F8F8; border: 2px solid #7078A8;
+  border-radius: 4px; box-shadow: inset 0 0 0 1px #C0C6E0, 2px 2px 0 rgba(0, 0, 0, 0.4); text-shadow: 1px 1px 0 #D6D6CE; animation: gb-slam 300ms steps(5) both;
+}
+.gb-death h2 { margin: 0 0 3px; font-size: 10px; font-weight: 400; color: #2B5070; letter-spacing: 1px; }
+.gb-death p { margin: 0 0 3px; font-size: 8px; line-height: 10px; }
+.gb-death .gb-death-help { color: #2E8A4E; }
+.gb-death .gb-buttons { margin-top: 5px; }
+
+/* The results card: a photo print, slightly turned, with the snowfield around it. */
+.gb-screen:has(.gb-polaroid) :is(.gb-box, .gb-tags, .gb-packline, .gb-foe, .gb-me, .gb-pad) { visibility: hidden; }
+.gb-polaroid {
+  position: absolute; left: 14px; top: 9px; width: 228px; height: 136px; z-index: 8; background: #FDFDF8; border: 1px solid #C8C8BE;
+  box-shadow: 2px 3px 0 rgba(40, 50, 70, 0.35); transform: rotate(-2deg); animation: gb-print 600ms steps(10) both;
+}
+@keyframes gb-print { from { transform: translateY(160px) rotate(-2deg); } }
+.gb-photo { position: absolute; left: 6px; right: 6px; top: 6px; height: 92px; overflow: hidden; background: linear-gradient(180deg, #C4DFF2 0, #EEF6FB 50px, #F9FBFD 60px); }
+.gb-photo-sky { position: absolute; left: 0; right: 0; bottom: 0; height: 26px; background: #E8F0F7; box-shadow: inset 0 1px 0 #DCE8F2; }
+.gb-photo-me { position: absolute; left: 6px; bottom: 2px; }
+.gb-photo-foe { position: absolute; right: 8px; top: 8px; }
+.gb-photo-fainted { transform: translateY(22px) rotate(80deg); filter: grayscale(0.5); opacity: 0.85; }
+.gb-photo-result { position: absolute; left: 0; right: 0; top: 30px; text-align: center; font-size: 9px; color: #2B3A55; text-shadow: 1px 1px 0 #FFFFFF; }
+.gb-photo-word {
+  position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); padding: 1px 4px; font-size: 9px; letter-spacing: 1px; white-space: nowrap;
+  color: #F8F8F8; background: #2B5070; border: 1px solid #E0A048; border-radius: 2px; text-shadow: 1px 1px 0 #404850;
+}
+.gb-stamp { position: absolute; padding: 0 3px; font-size: 7px; line-height: 9px; border: 1px solid; border-radius: 2px; letter-spacing: 1px; }
+.gb-stamp-walk { left: 70px; top: 8px; color: #2E8A4E; border-color: #2E8A4E; background: rgba(255, 255, 255, 0.75); transform: rotate(-8deg); }
+.gb-stamp-best { right: 72px; top: 50px; color: #8A5A08; border-color: #D9A030; background: #F8D088; transform: rotate(7deg); }
+.gb-polaroid-code { position: absolute; left: 0; right: 0; top: 102px; text-align: center; font-size: 14px; line-height: 15px; color: #2B3A55; letter-spacing: 1px; }
+.gb-polaroid-marks { position: absolute; left: 10px; right: 10px; top: 119px; max-height: 14px; overflow: hidden; text-align: center; font-size: 6px; line-height: 7px; letter-spacing: 1px; color: #7078A8; word-break: break-all; }
+
+/* The bestiary: six cards, silhouettes until met. */
+.gb-dex { position: absolute; inset: 0 0 38px; z-index: 6; padding: 3px 8px 0; background: #2B5070; box-shadow: inset 0 0 0 2px #E0A048, inset 0 0 0 3px #F8D088; }
+.gb-dex h2 { margin: 1px 0 1px; text-align: center; font-size: 9px; font-weight: 400; color: #F8F8F8; letter-spacing: 2px; text-shadow: 1px 1px 0 #566A80; }
+.gb-dex-grid { display: grid; grid-template-columns: repeat(3, 72px); grid-auto-rows: 58px; justify-content: center; gap: 3px 6px; }
+.gb-dex-card {
+  display: flex !important; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0; padding: 2px !important; overflow: hidden;
+  background: #F8F8F8 !important; border: 2px solid #7078A8 !important; border-radius: 3px; box-shadow: inset 0 0 0 1px #C0C6E0; text-shadow: none;
+}
+.gb-dex-card[data-on] { border-color: #E0A048 !important; box-shadow: inset 0 0 0 1px #F8D088; }
+.gb-dex-card[data-back] { justify-content: center; background: #F8F6E4 !important; animation: gb-flip 160ms steps(2); }
+@keyframes gb-flip { 50% { transform: scaleX(0.1); } }
+.gb-dex-art img, .gb-dex-art span { width: 32px !important; height: 32px !important; }
+.gb-dex-name { font-size: 6px; line-height: 7px; color: #2B3A55; white-space: nowrap; }
+.gb-dex-card span:not(.gb-dex-name):not(.gb-dex-art) { font-size: 5px; line-height: 6px; color: #5A6470; white-space: nowrap; }
+.gb-dex-card[data-back] span:not(.gb-dex-small):not(.gb-dex-name) { font-size: 6px; line-height: 8px; color: #2B3A55; }
+.gb-dex-foot { margin: 2px 0 0; text-align: center; font-size: 6px; color: #F8D088; letter-spacing: 1px; }

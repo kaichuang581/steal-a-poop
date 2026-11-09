@@ -3,7 +3,8 @@ export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 export type Place = 'meadow' | 'pier' | 'porch' | 'kitchen' | 'teahouse';
 export type Mode = 'quick' | 'daily' | 'practice' | 'tutorial' | 'rooms';
 export type Difficulty = 'easy' | 'medium' | 'hard';
-export type TwistId = 'noE' | 'sixPlus' | 'doubleLetter' | 'vowelDouble' | 'doublePointsShort';
+export type TwistId =
+  | 'noE' | 'sixPlus' | 'doubleLetter' | 'noA' | 'noS' | 'fiveMax' | 'endsVowel' | 'hasO' | 'vowelDouble' | 'doublePointsShort';
 export type CreatureId = 'moss' | 'pip' | 'willow' | 'bramble' | 'fern' | 'quill' | 'juniper';
 export type Weather = 'none' | 'mist' | 'rain' | 'leaves' | 'snow';
 
@@ -15,7 +16,7 @@ export interface PlayerView {
   difficulty?: Difficulty;
   creature?: CreatureId;      // assigned by the skin, stable per player id
   banked: number;             // unused since there are no points (always 0)
-  dimmed: boolean;            // lost turn or failed steal, until the next turn starts
+  dimmed: boolean;            // lost turn, until the next turn starts
   lives: number;              // wool balls left (3 at game start)
   frozen: boolean;            // out of lives: skipped for the rest of the game
 }
@@ -40,7 +41,6 @@ export interface TableView {
   youId: string;
   secondsLeft: number;        // fractional allowed
   turnSeconds: number;        // 5..16 (faster each round), or 25 in the tutorial
-  stealOpen: boolean;         // last 3 seconds of another player's turn
   typed: string;              // the current input text
   message: MessageView | null;
   longestWord?: { word: string; playerId: string };
@@ -53,6 +53,11 @@ export const TWIST_TEXT: Record<TwistId, string> = {
   noE: 'No letter E',
   sixPlus: 'Words of 6 letters or more',
   doubleLetter: 'Words need a double letter',
+  noA: 'No letter A',
+  noS: 'No letter S',
+  fiveMax: 'Words of 5 letters or fewer',
+  endsVowel: 'Words end in a vowel',
+  hasO: 'Words need an O',
   vowelDouble: 'Plain rules',
   doublePointsShort: 'Faster round: 2 seconds shorter',
 };

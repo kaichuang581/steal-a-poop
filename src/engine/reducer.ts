@@ -1,10 +1,10 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
   BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_BOT_MS,
-  PRACTICE_TURN_MS, SOFT_GAME_PRESSURE,
-  STEAL_COOLDOWN_MS, STEAL_LATE_SHARE, STEAL_TURN_BOT_BOOST, STEAL_TURN_CHANCE, TRAP_LETTERS, TURN_MS_BY_ROUND,
+  PRACTICE_TURN_MS, SOFT_GAME_PRESSURE, TRAP_LETTERS, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
+import { modifierForRound } from './game';
 import { drawInt, drawPick, drawRandom } from './rng';
 import { computeWinners } from './standings';
 import { carriedTurnMs, practiceTurnMs, roundTurnMs, turnDurationMs, wordShiftMs } from './timer';
@@ -65,37 +65,13 @@ function startTurn(s: GameState, seat: number, t: number) {
   // the clock under the letter never says one thing on your turn and another on the bots'.
   const durationMs = tour && active.isHuman ? PRACTICE_TURN_MS : turnBaseMs;
   const endsAt = t + durationMs;
-  const windowMs = s.settings.stealWindowSeconds * 1000;
-  // Steals are an event: some turns are steal turns, drawn here. The tour's turns all are, so it can show one.
-  const stealable = windowMs > 0 && (tour || drawRandom(s) < STEAL_TURN_CHANCE);
   let botActAt: number | null = null;
   if (!active.isHuman) {
-    if (tour) {
-      // Bots answer quickly, except the last seat once the human has played a word: that slow turn
-      // runs into its steal window so the tutorial can show a steal.
-      const slow = seat === s.players.length - 1 && s.history.some((h) => h.kind === 'play' && h.seat === 0);
-      botActAt = slow ? t + Math.max(1000, durationMs - 1500) : t + drawInt(s, 1200, 2200);
-    } else if (s.mode === 'practice') {
-      botActAt = t + drawInt(s, PRACTICE_BOT_MS[0], PRACTICE_BOT_MS[1]);
-    } else {
-      botActAt = t + botResponseMs(s, active.difficulty!, turnBaseMs);
-      // On a steal turn the bot always hesitates into the red seconds, so the window the alarm announced really
-      // opens, and answers only in the window's last share: a person who reads the letter and types has the first go.
-      if (stealable) botActAt = Math.max(botActAt, endsAt - windowMs * (0.05 + drawRandom(s) * (STEAL_LATE_SHARE - 0.05)));
-      botActAt = Math.min(botActAt, endsAt - 50);
-    }
+    if (tour) botActAt = t + drawInt(s, 1200, 2200); // the tutorial's bots answer quickly
+    else if (s.mode === 'practice') botActAt = t + drawInt(s, PRACTICE_BOT_MS[0], PRACTICE_BOT_MS[1]);
+    else botActAt = Math.min(t + botResponseMs(s, active.difficulty!, turnBaseMs), endsAt - 50);
   }
-  // The other bots only plan steals on a steal turn, and then more eagerly than their usual urge.
-  const stealPlans: { seat: number; at: number }[] = [];
-  for (const p of s.players) {
-    if (tour || !stealable || p.id === seat || p.isHuman || p.frozen) continue;
-    if (drawRandom(s) < Math.min(0.9, BOT_PROFILES[p.difficulty!].stealChance * STEAL_TURN_BOT_BOOST)) {
-      // Only in the window's last share, once a person has had their go.
-      stealPlans.push({ seat: p.id, at: endsAt - windowMs * (0.05 + drawRandom(s) * (STEAL_LATE_SHARE - 0.05)) });
-    }
-  }
-  s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt, stealPlans, stealable };
-  if (stealable && !tour) emit(s, t, 'stealTurn', seat, `Steal turn: ${active.name} can be robbed in the red seconds`);
+  s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt };
 }
 
 function concludeTurn(s: GameState, t: number) {
@@ -109,7 +85,7 @@ function concludeTurn(s: GameState, t: number) {
   startTurn(s, next, t);
 }
 
-/** Most wool a sheep can hold: what it started with plus a little from steals and traps. */
+/** Most wool a sheep can hold: what it started with plus a little from traps. */
 function woolCap(s: GameState): number {
   return startingWool(s.settings) + EXTRA_WOOL_CAP;
 }
@@ -149,7 +125,7 @@ function endRound(s: GameState, t: number) {
   s.trap = null;
   if (s.phase === 'gameOver') return;
   s.round = (s.round + 1) as Round;
-  s.modifier = s.modifierDeck[(s.round - 1) % s.modifierDeck.length];
+  s.modifier = modifierForRound(s.modifierDeck, s.round);
   s.used = [];
   s.history = [];
   for (const p of s.players) {
@@ -172,7 +148,7 @@ function resolveTrap(s: GameState, seat: number, failed: boolean, t: number) {
 
 /**
  * A word ending in X/Z/Q/J traps whoever owns the next turn. Nobody can trap themselves: when the next turn is the
- * trapper's own (they are the last unfrozen player, or they stole from the player just before them) no trap is set.
+ * trapper's own (they are the last unfrozen player) no trap is set.
  */
 function setTrap(s: GameState, word: string, trapperSeat: number, turnSeat: number) {
   if (s.mode === 'practice') return;
@@ -220,32 +196,6 @@ function failTurn(s: GameState, seat: number, t: number) {
   concludeTurn(s, t);
 }
 
-/** A bad steal word: nothing lost, just a short wait before that sheep can try again. */
-function stealFailed(s: GameState, seat: number, t: number) {
-  const p = s.players[seat];
-  p.stealCooldownUntil = t + STEAL_COOLDOWN_MS;
-  s.history.push({ round: s.round, seat, kind: 'stealFail', word: null, points: 0 });
-  emit(s, t, 'stealFail', seat, `${p.name}'s steal missed`, 0);
-}
-
-/** A steal: the stealer answered first in the red seconds, so they take one of the wool balls of the sheep on turn. */
-function stealSucceeded(s: GameState, stealerSeat: number, word: string, t: number) {
-  const turn = s.turn!;
-  const stealer = s.players[stealerSeat];
-  const victim = s.players[turn.seat];
-  stealer.steals += 1;
-  recordWord(s, stealerSeat, word, word.length);
-  s.history.push({ round: s.round, seat: stealerSeat, kind: 'steal', word, points: 1, fromSeat: turn.seat });
-  emit(s, t, 'steal', stealerSeat, `${stealer.name} stole a wool ball from ${victim.name}!`, 1, word);
-  resolveTrap(s, turn.seat, false, t);
-  if (woolAtStake(s, turn.seat)) {
-    gainWool(s, stealerSeat);
-    loseWool(s, turn.seat, t, 'stolen');
-  }
-  setTrap(s, word, stealerSeat, turn.seat);
-  concludeTurn(s, t);
-}
-
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
 /**
@@ -267,13 +217,12 @@ function drawChainLetter(s: GameState, ctx: EngineContext, at: number, why: stri
   emit(s, at, 'chainReset', null, `${why}, so the chain letter is now ${s.chainLetter.toUpperCase()}`);
 }
 
-type Due = { at: number; kind: 'botAct' | 'timeout' } | { at: number; kind: 'botSteal'; index: number };
+type Due = { at: number; kind: 'botAct' | 'timeout' };
 
 function nextDue(s: GameState, now: number): Due | null {
   const turn = s.turn!;
   const candidates: Due[] = [];
   if (turn.botActAt !== null) candidates.push({ at: turn.botActAt, kind: 'botAct' });
-  turn.stealPlans.forEach((p, index) => candidates.push({ at: p.at, kind: 'botSteal', index }));
   candidates.push({ at: turn.endsAt, kind: 'timeout' });
   let best: Due | null = null;
   for (const c of candidates) if (c.at <= now && (!best || c.at < best.at)) best = c;
@@ -311,10 +260,9 @@ function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
   const turn = s.turn!;
   turn.botActAt = null;
   const plan = decideBotTurn(s, ctx);
-  // A bot that can't find a word doesn't give up at once: like a person, it stares at the clock until it runs out,
-  // so the whole red window is open for the others to steal.
+  // A bot that can't find a word doesn't give up at once: like a person, it stares at the clock until it runs out.
   if (plan.kind !== 'play') {
-    // A practice bot can't end the run and nobody can steal, so its fumble just hands you a fresh letter at once.
+    // A practice bot can't end the run, so its fumble just hands you a fresh letter at once.
     if (s.mode === 'practice') {
       drawChainLetter(s, ctx, t, `${s.players[turn.seat].name} fumbled`);
       concludeTurn(s, t);
@@ -329,7 +277,6 @@ function runBotTurn(s: GameState, ctx: EngineContext, t: number) {
 /**
  * What the bot on turn is going to do, for display only (the table types its word out): the same decision the bot
  * makes when it acts, taken on a copy, so the game and its random stream are untouched. Null on a human's turn.
- * If something draws from the stream before the bot acts (a bot steal landing first), the real move can differ.
  */
 export function previewBotTurn(state: GameState, ctx: EngineContext): BotPlan | null {
   const t = state.turn;
@@ -337,30 +284,15 @@ export function previewBotTurn(state: GameState, ctx: EngineContext): BotPlan | 
   return decideBotTurn(structuredClone(state), ctx);
 }
 
-function runBotSteal(s: GameState, ctx: EngineContext, seat: number, t: number) {
-  const bot = s.players[seat];
-  const profile = BOT_PROFILES[bot.difficulty!];
-  const word =
-    drawRandom(s) < profile.failRate
-      ? null
-      : pickBotWord({
-          dict: ctx.dict, chainLetter: s.chainLetter, used: s.used, modifier: s.modifier,
-          prefer: profile.prefer, random: () => drawRandom(s),
-        });
-  if (!word) return stealFailed(s, seat, t);
-  stealSucceeded(s, seat, word, t);
-}
-
 export function needsAdvance(s: GameState, now: number): boolean {
   if (s.phase === 'intro') return s.introEndsAt !== null && now >= s.introEndsAt;
   const t = s.turn;
   if (s.phase !== 'playing' || !t) return false;
-  return t.endsAt <= now || (t.botActAt !== null && t.botActAt <= now) || t.stealPlans.some((p) => p.at <= now);
+  return t.endsAt <= now || (t.botActAt !== null && t.botActAt <= now);
 }
 
 /**
- * Runs everything that became due by `now` (intro end, bot moves, bot steals,
- * timeouts) in timestamp order. Returns the same object if nothing was due.
+ * Runs everything that became due by `now` (intro end, bot moves, timeouts) in timestamp order. Returns the same object if nothing was due.
  */
 export function advance(state: GameState, ctx: EngineContext, now: number): GameState {
   if (!needsAdvance(state, now)) return state;
@@ -389,9 +321,6 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
       case 'botAct':
         runBotTurn(s, ctx, due.at);
         break;
-      case 'botSteal':
-        runBotSteal(s, ctx, s.turn.stealPlans.splice(due.index, 1)[0].seat, due.at);
-        break;
     }
   }
   return s;
@@ -416,13 +345,6 @@ export function replaceWithBot(state: GameState, seat: number, difficulty: Diffi
     s.turn.botActAt = now + botResponseMs(s, difficulty);
   }
   return s;
-}
-
-/** The red seconds of a steal turn (and only a steal turn): when the other sheep can steal. */
-export function inStealWindow(s: GameState, now: number): boolean {
-  const t = s.turn;
-  const windowMs = s.settings.stealWindowSeconds * 1000;
-  return s.phase === 'playing' && !!t && t.stealable && windowMs > 0 && now >= t.endsAt - windowMs && now < t.endsAt;
 }
 
 /** Applies a human action at time `now`. Never mutates the input state. */
@@ -466,21 +388,5 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
     case 'bank':
       // There is no pile to bank any more: words just pass the turn on.
       return reject('no_bank');
-    case 'steal': {
-      if (action.seat === turn.seat) return reject('own_turn');
-      if (player.frozen) return reject('frozen');
-      if (!inStealWindow(s, now)) return reject('outside_steal_window');
-      if (now < player.stealCooldownUntil) return reject('steal_cooldown');
-      const v = check(action.word);
-      if (!v.ok) {
-        // A clear typo gets a suggestion. Anything else misses: nothing lost, but a short wait before the next try.
-        const suggestion = typoFix(v.reason, action.word);
-        if (suggestion) return { ...reject(v.reason), suggestion };
-        stealFailed(s, action.seat, now);
-        return { state: s, accepted: true, reason: v.reason };
-      }
-      stealSucceeded(s, action.seat, v.word, now);
-      return { state: s, accepted: true };
-    }
   }
 }

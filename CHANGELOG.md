@@ -2,6 +2,55 @@
 
 All user-visible changes, newest first.
 
+## 0.4.0
+
+- The Hunt opens on a lobby instead of throwing you straight into a fight: New Pack, Enter Code, Bestiary or back to the farm. Nothing starts until you choose
+- Every pack has a five-character code, shown during the fight, on the results card and in what you share. Type a friend's code, or open their link, to fight the very same predators and rules. "Fight this pack again" replays a code and counts which try it is
+- Rules teach before they bite: each rule sign says what it means in plain words, with a word that passes and a word that fails. A face-down card warns that a predator brings a secret rule when it's hurt. RULES shows the cards (reading costs time, not a turn)
+- As you type, the Hunt tells you if your word would break a rule, isn't a word, or was already used, and the rule's tag turns red. Sending it anyway still breaks the rule
+- When a run ends, a screen tells you what got you (the clock, a broken rule, or the predator's strikes) and a word that would have worked, then lets you fight the pack again, take a new pack, or see your results
+- The results are one picture made to be screenshotted: your sheep and the predator, predators beaten and damage, your best word, the pack code and which try, with stamps for a new best or walking home
+- After beating a boss you can walk home with your win, or hunt on. Leaving mid-run asks first
+- The bestiary: six cards, silhouettes until you meet each predator, with how many you've beaten, the highest level and your biggest hit. Flip a card for when you first met it and its signature move
+- A save code in Settings carries your records (Hunt bests, the bestiary, your dream streak and more) to another browser: copy it here, paste it there, see what will change, then restore
+- The Hunt keeps a log of your last 50 runs on this device (how far you got and what ended each run), so the Hunt can be tuned from real play. It never leaves the device; admin can copy it out by hand
+
+## 0.3.4
+
+- The bomb is an ice bomb now: a frozen blue shell capped with frost, a frosted fuse and a cold blue spark, with icy blue seconds on its face
+- Each new holder gets the bomb properly: it is lobbed over in a tumbling arc (a fresh one drops from above), thuds onto the floor beside them, skids to a stop and wobbles still, and the holder flinches. Frost spreads under it and cold vapour spills off it while it sits there
+- It bursts in ice: a white-out, a ball of frost, glittering crystals, chunks of the shell bouncing across the floor and a freezing mist, with frost creeping in at the screen's edges, the words shattering in ice blue, and a glassy crack and tinkling shards to hear
+
+## 0.3.3
+
+- Stealing is gone: no more red seconds, steal turns or STEAL button. Keep your wool by answering in time, and win more with traps
+- The steals leaderboard, stat and coins are retired with it
+
+## 0.3.2
+
+- Every animal avatar is rebuilt to proper farm-animal proportions: longer bodies, heads sized to them, necks that join smoothly, and a horse that stands tallest at the table
+- The sheep has a new face: a broad, blunt head held level with its back, small dark eyes, ears out to the sides, and its collar and bell at the neck
+- Beady eyes for the sheep, cow, horse, goat and chicken: small and dark, no more goggling
+- The cow is bigger, as a cow should be: second only to the horse, with spots you can see
+- The chicken is a real hen now: plump and level, head forward on a short neck, a proper beak, big wings and a raised fan tail
+- Mouths stay on faces: no more chewing below the chin
+- Sweaters, blankets and vests fit the body all round and close at the neck
+- Every animal moves like itself: horses and cows lower their necks to graze, the hen pecks and waddles, the pig roots, the goat jumps sideways, and bells swing
+- Counting Sheep runs the animal you wear
+
+## 0.3.1
+
+- Counting Sheep's dream is rebuilt: a bright snow lane on a cloud raft, floating islands, hills and mountains, a crescent moon, and the farmer asleep in his own cloud bubble
+- Counting Sheep is easier and fairer: fences ask for three letters at most, every fence has plenty of common words that fit, signs read R…N, and a fence offers a word if you stop to think
+- The sheep leaps properly: fences, walls, logs and hay bales now cross the lane, and a word typed in time can no longer end in a bump
+- Counting Sheep has its own night-time look, and every dialog on the farm is paper in a snowy wooden frame
+- Counting Sheep has an ending: clear 30 fences and the farmer drifts off; three bumps wake him, and two bumps no longer end the night
+- Practice stays endless: how far can you run?
+- Fences start further apart and the sheep keeps speeding up, like the offline dinosaur game
+- Hay bales turn up later in the run, close behind the fences, for a quick second word
+- The result screen shows your night first, then your streak, Share, when the next dream arrives, and Practice
+- Shared results show each bump where it happened and link to the game
+
 ## 0.3.0: Fleece Navidad
 
 - The whole farm is dressed for the season: a tree by the barn doors, presents, and lights and wreaths at every stop from the paddock and coop to the silo, pond and farmhouse, and a hat for every animal, the sheepdog and the snowman

@@ -341,3 +341,48 @@ export const SHEEP_DEFS = { warm: sheepBack(false), ice: sheepBack(true) };
 export function SheepBackSprite({ size = SPRITE, frozen = false }: { size?: number; frozen?: boolean }) {
   return <PixelSprite def={frozen ? SHEEP_DEFS.ice : SHEEP_DEFS.warm} size={size} />;
 }
+
+const shadows = new Map<string, Promise<string>>();
+/**
+ * A sprite as a black silhouette, for a bestiary card not yet met (plan v7 Part 5.6). With `eyes`, the bright red
+ * pixels (the Shadow Wolf's eyes) show through the dark.
+ */
+function silhouette(def: SpriteDef, eyes: boolean): Promise<string> {
+  const key = `${def.svg}:${eyes}`;
+  const hit = shadows.get(key);
+  if (hit) return hit;
+  const job = (async () => {
+    const url = await pixelate(def);
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = SPRITE;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, SPRITE, SPRITE);
+    const px = data.data;
+    for (let o = 0; o < px.length; o += 4) {
+      if (px[o + 3] === 0) continue;
+      const eye = eyes && px[o] > 230 && px[o + 1] < 120 && px[o + 2] < 110;
+      if (!eye) px.set([24, 22, 34], o);
+    }
+    ctx.putImageData(data, 0, 0);
+    return canvas.toDataURL('image/png');
+  })();
+  shadows.set(key, job);
+  return job;
+}
+
+/** A predator as a silhouette (red eyes optional). */
+export function SilhouetteSprite({ kind, size = SPRITE, eyes = false }: { kind: PredatorKind; size?: number; eyes?: boolean }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    silhouette(PREDATOR_SPRITES[kind], eyes).then((u) => { if (live) setUrl(u); }).catch(() => {});
+    return () => { live = false; };
+  }, [kind, eyes]);
+  return url
+    ? <img src={url} width={size} height={size} alt="" aria-hidden="true" style={{ imageRendering: 'pixelated', display: 'block' }} draggable={false} />
+    : <span style={{ display: 'block', width: size, height: size }} aria-hidden="true" />;
+}

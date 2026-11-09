@@ -7,7 +7,7 @@ import type { ResultsStore, StoredGame } from './results';
 
 const NOW = Date.UTC(2026, 10, 4, 15, 0, 0); // a Wednesday
 const player = (seat: number, userId: string | null, over: Partial<StoredGame['players'][number]> = {}) => ({
-  seat, userId, displayName: userId ?? 'Bot', banked: 10 * (seat + 1), steals: seat, wordsPlayed: 5, longestWord: 'cat'.repeat(seat + 1), won: false, ...over,
+  seat, userId, displayName: userId ?? 'Bot', banked: 10 * (seat + 1), wordsPlayed: 5, longestWord: 'cat'.repeat(seat + 1), won: false, ...over,
 });
 const game = (id: string, over: Partial<StoredGame> = {}, players = [player(0, 'a', { won: true, banked: 50 }), player(1, 'b'), player(2, null)]): StoredGame => ({
   gameId: id, mode: 'room', roomCode: 'ABCDE', dailyDate: null, finishedAt: NOW - 1000, players, ...over,
@@ -21,16 +21,15 @@ function behaves(make: () => Promise<ResultsStore>) {
     expect((await s.userStats('a')).gamesPlayed).toBe(1);
   });
 
-  it('ranks by wins, points and steals, ignores bots, and only counts the chosen period', async () => {
+  it('ranks by wins and points, ignores bots, and only counts the chosen period', async () => {
     const s = await make();
-    await s.saveGame(game('today', {}, [player(0, 'a', { won: true, banked: 50, steals: 1 }), player(1, 'b', { banked: 30, steals: 5 }), player(2, null)]));
-    await s.saveGame(game('lastweek', { finishedAt: NOW - 5 * DAY_MS }, [player(0, 'b', { won: true, banked: 99, steals: 0 }), player(1, 'a', { banked: 1, steals: 0 })]));
-    await s.saveGame(game('old', { finishedAt: NOW - 30 * DAY_MS }, [player(0, 'b', { won: true, banked: 200, steals: 0 }), player(1, 'a', { banked: 1, steals: 0 })]));
-    const q = (period: 'day' | 'week' | 'all', metric: 'wins' | 'points' | 'steals') => s.leaderboard({ period, metric, now: NOW, limit: 10 });
+    await s.saveGame(game('today', {}, [player(0, 'a', { won: true, banked: 50 }), player(1, 'b', { banked: 30 }), player(2, null)]));
+    await s.saveGame(game('lastweek', { finishedAt: NOW - 5 * DAY_MS }, [player(0, 'b', { won: true, banked: 99 }), player(1, 'a', { banked: 1 })]));
+    await s.saveGame(game('old', { finishedAt: NOW - 30 * DAY_MS }, [player(0, 'b', { won: true, banked: 200 }), player(1, 'a', { banked: 1 })]));
+    const q = (period: 'day' | 'week' | 'all', metric: 'wins' | 'points') => s.leaderboard({ period, metric, now: NOW, limit: 10 });
     expect((await q('day', 'wins')).map((r) => [r.userId, r.value])).toEqual([['a', 1]]);
     expect((await q('week', 'wins')).map((r) => [r.userId, r.value])).toEqual([['a', 1], ['b', 1]].sort((x, y) => (x[0] as string).localeCompare(y[0] as string)).map((x) => x)); // tie on wins: fewer games first, then id
     expect((await q('all', 'points')).map((r) => [r.userId, r.value])).toEqual([['b', 329], ['a', 52]]);
-    expect((await q('day', 'steals')).map((r) => [r.userId, r.value])).toEqual([['b', 5], ['a', 1]]);
     expect(await s.leaderboard({ period: 'all', metric: 'wins', now: NOW, limit: 1 })).toHaveLength(1);
   });
 
@@ -44,10 +43,10 @@ function behaves(make: () => Promise<ResultsStore>) {
 
   it('adds up personal stats', async () => {
     const s = await make();
-    await s.saveGame(game('g1', {}, [player(0, 'a', { won: true, banked: 50, steals: 2, longestWord: 'zebra' })]));
-    await s.saveGame(game('g2', { mode: 'daily', dailyDate: '2026-11-04', roomCode: null }, [player(0, 'a', { banked: 70, steals: 1, longestWord: 'quiz' })]));
-    expect(await s.userStats('a')).toEqual({ gamesPlayed: 2, wins: 1, points: 120, bestScore: 70, steals: 3, longestWord: 'zebra', dailyPlayed: 1 });
-    expect(await s.userStats('nobody')).toEqual({ gamesPlayed: 0, wins: 0, points: 0, bestScore: 0, steals: 0, longestWord: '', dailyPlayed: 0 });
+    await s.saveGame(game('g1', {}, [player(0, 'a', { won: true, banked: 50, longestWord: 'zebra' })]));
+    await s.saveGame(game('g2', { mode: 'daily', dailyDate: '2026-11-04', roomCode: null }, [player(0, 'a', { banked: 70, longestWord: 'quiz' })]));
+    expect(await s.userStats('a')).toEqual({ gamesPlayed: 2, wins: 1, points: 120, bestScore: 70, longestWord: 'zebra', dailyPlayed: 1 });
+    expect(await s.userStats('nobody')).toEqual({ gamesPlayed: 0, wins: 0, points: 0, bestScore: 0, longestWord: '', dailyPlayed: 0 });
   });
 
   it('removing a person keeps the games but takes their name and their daily attempts', async () => {
@@ -85,9 +84,9 @@ describe('toStoredGame', () => {
   const result: GameResult = {
     gameId: 'g', mode: 'room', roomCode: 'R', dailyDate: null, finishedAt: 5, winners: ['a'],
     players: [
-      { userId: 'a', name: 'Ana', seat: 0, banked: 50, steals: 1, wordsPlayed: 4, longestWord: 'zebra' },
-      { userId: 'kid', name: 'Kiddo', seat: 1, banked: 30, steals: 0, wordsPlayed: 3, longestWord: 'cat' },
-      { userId: null, name: 'Bot Bo', seat: 2, banked: 10, steals: 0, wordsPlayed: 2, longestWord: 'dog' },
+      { userId: 'a', name: 'Ana', seat: 0, banked: 50, wordsPlayed: 4, longestWord: 'zebra' },
+      { userId: 'kid', name: 'Kiddo', seat: 1, banked: 30, wordsPlayed: 3, longestWord: 'cat' },
+      { userId: null, name: 'Bot Bo', seat: 2, banked: 10, wordsPlayed: 2, longestWord: 'dog' },
     ],
   };
   it('keeps names for allowed players, hides a child whose parent has not consented, and marks winners', () => {

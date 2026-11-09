@@ -1,6 +1,5 @@
-import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { ACESFilmicToneMapping, Color, FogExp2, Group, Object3D, PCFSoftShadowMap, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
@@ -13,14 +12,21 @@ import { SHEEP_SCALE } from '../scene/layout';
 import { Sky } from '../scene/Sky';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
-import { Bomb } from './BarnTable';
+import { BOARD } from '../voxel/table';
+import { LetterBoard, nameplateY } from './BarnTable';
+import { Bomb } from './Bomb';
+import type { BombSpot } from './Bomb';
 import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
-import { Effects, LANTERN_LIGHT } from './Rendering';
+import { Effects, LANTERN_LIGHT, MarkDrawn } from './Rendering';
+import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Sheep } from './Sheep';
 
 const DARK = '#14233C';
+/** The letter board hangs on short ropes from its signpost's arm: `letterBoardGeometry` measures them from this beam height. */
+const DUEL_BEAM = DUEL.hook[1] + 0.65;
+const BOARD_BOTTOM = DUEL.hook[1] + BOARD.bottom - (DUEL_BEAM - 0.15);
 const CALM = new Color('#FFD9A0');
 const DANGER = new Color('#FF5A3C');
 
@@ -31,17 +37,10 @@ const pressureOf = (speaker: number | null, fraction: number) => (speaker === 0 
  * The practice run's stage: you and the bot face to face on the ice (src/skin/scene/duel.ts). It takes the barn's props
  * so the game screen can swap it in, and has no pile, ring or speaker swing: only the two of them and the bomb.
  */
-export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, letter, isTrap, stealOpen, reduced, phone, moments }: BarnTableProps) {
+export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, letter, isTrap, reduced, phone, moments }: BarnTableProps) {
   const open = duelShot(null, 0, phone);
-  const [pop, setPop] = useState(false);
-  const pulseKey = moments.tuftIn?.key;
-  useEffect(() => {
-    if (pulseKey === undefined) return;
-    setPop(true);
-    const id = setTimeout(() => setPop(false), 400);
-    return () => clearTimeout(id);
-  }, [pulseKey]);
   const heat = Math.max(0, pressureOf(speaker, fraction) - 0.5) * 2;
+  const slipRef = useSlipRefs();
   return (
     <div className="relative size-full" style={{ background: DARK }}>
       <Canvas
@@ -53,23 +52,22 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         camera={{ fov: open.fov, position: open.position, near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(open.target[0], open.target[1], open.target[2])}
       >
-        <Duel bombSize={bombSize} seats={seats} speaker={speaker} fraction={fraction} secondsLeft={secondsLeft} stealOpen={stealOpen} reduced={reduced} phone={phone} boomKey={moments.boom?.key} power={moments.boom?.power} />
+        <MarkDrawn />
+        <Duel bombSize={bombSize} seats={seats} speaker={speaker} fraction={fraction} secondsLeft={secondsLeft} reduced={reduced} phone={phone} boomKey={moments.boom?.key} power={moments.boom?.power} slipRef={slipRef} />
+        <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} beamY={DUEL_BEAM} hook={DUEL.hook} />
+        {/* The moon is behind the board's back: a warm lamp in front of it keeps the carved letter readable at night. */}
+        <pointLight position={[0, BOARD_BOTTOM + 0.3, -1.1]} color={LANTERN_LIGHT.color} intensity={7} distance={3} decay={2} />
       </Canvas>
       {/* The edges of the screen close in red over the last half of your clock. */}
       <div className="pointer-events-none absolute inset-0 z-[4]" style={{ opacity: heat, background: 'radial-gradient(ellipse at center, transparent 42%, rgba(170, 24, 14, 0.8) 100%)' }} aria-hidden="true" />
-      <div className={`pointer-events-none absolute left-1/2 z-[25] -translate-x-1/2 ${phone ? 'top-28' : 'top-20'}`}>
-        <div className={`sk-letter-card ${pop ? 'sk-letter-pop' : ''}`} data-trap={isTrap || undefined} data-chain-tile aria-label={`Required starting letter ${letter.toUpperCase()}`}>
-          <span className="sk-letter-card-label">starts with</span>
-          <span className="sk-letter-card-letter">{letter.toUpperCase()}</span>
-        </div>
-      </div>
+      <SlipLayer seats={seats} refFor={slipRef} />
     </div>
   );
 }
 
-type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fraction' | 'secondsLeft' | 'stealOpen' | 'reduced' | 'phone'> & { boomKey: number | undefined; power: number | undefined };
+type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fraction' | 'secondsLeft' | 'reduced' | 'phone'> & { boomKey: number | undefined; power: number | undefined; slipRef: (seat: number) => React.RefObject<HTMLDivElement | null> };
 
-function Duel({ bombSize, seats, speaker, fraction, secondsLeft, stealOpen, reduced, phone, boomKey, power }: DuelProps) {
+function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone, boomKey, power, slipRef }: DuelProps) {
   const pressure = pressureOf(speaker, fraction);
   return (
     <>
@@ -79,23 +77,26 @@ function Duel({ bombSize, seats, speaker, fraction, secondsLeft, stealOpen, redu
       <Sky hour="night" reduced={reduced} blizzard={false} />
       <Place />
       <Festive geo={buildDuelFestive()} reduced={reduced} />
-      <Bomb speaker={speaker} n={2} fraction={fraction} red={pressure > 0.7} reduced={reduced} boomKey={boomKey} secondsLeft={secondsLeft} size={Math.min(bombSize ?? 1, DUEL.maxBomb)} power={power ?? 1} seatAt={duelSeat} />
+      <Bomb speaker={speaker} n={2} fraction={fraction} red={pressure > 0.7} reduced={reduced} boomKey={boomKey} secondsLeft={secondsLeft} size={Math.min(bombSize ?? 1, DUEL.maxBomb)} power={power ?? 1} spotAt={duelSpot} />
       {seats.map((s) => {
         const other = duelSeat(s.seat === 0 ? 1 : 0);
         const model = byId(s.avatar);
         return (
           <Stand key={s.seat} seat={s.seat} active={s.index === speaker} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(model?.animal ?? 'sheep').drawScale}>
             {s.avatar === ADMIN_AVATAR_ID ? (
-              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} still={stealOpen} speaking={s.index === speaker} />
+              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} speaking={s.index === speaker} />
             ) : (
               <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} scarf={s.scarf}
                 gustFrom={[0, 0.8, -6]} lookAt={[other.x, 0.85 * SHEEP_SCALE, other.z]} speaking={s.index === speaker} thinking={s.thinking}
                 model={model ? animalModel(model.animal) : undefined} />
             )}
-            {/* Behind the shoulders, clear of the bomb overhead and of the gap between the two faces. */}
-            <Html position={[0, 1.45, -0.75]} center zIndexRange={[20, 0]}>{s.label}</Html>
           </Stand>
         );
+      })}
+      {/* Each sheep's name plate (and the speaker's speech bubble) stands just over its head. */}
+      {seats.map((s) => {
+        const at = duelSeat(s.seat);
+        return <ScreenAnchor key={`name-${s.seat}`} el={slipRef(s.seat)} position={[at.x, nameplateY(s.avatar), at.z]} above />;
       })}
       <Effects />
       <DevStats />
@@ -159,6 +160,13 @@ function Place() {
       <mesh geometry={w.glow} material={glow} />
     </>
   );
+}
+
+/** Where the bomb lands on the duel: on the ice in front of the speaker, toward the other sheep and a little toward the camera. */
+function duelSpot(index: number): BombSpot {
+  const p = duelSeat(index);
+  const fwd = -Math.sign(p.x);
+  return (r) => [p.x + fwd * (0.85 + r), -0.3];
 }
 
 /** A sheep on its mark, stepping 0.35 m toward the other on its turn. */

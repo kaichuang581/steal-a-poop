@@ -9,10 +9,14 @@ const ready = (page: Page, label: string) =>
 
 const skipTourFlag = (page: Page) => page.addInitScript(() => localStorage.setItem('sap:tourDone', 'true'));
 
-/** One everyday word per letter, for games with no Hint button. */
+/**
+ * One word per letter, for games with no Hint button. Long, so that swapping two letters leaves exactly one word a single
+ * edit away and the game offers a clear typo fix: a short word like PLANT is one edit from PAINT and PLEAT as well.
+ */
 const WORD_FOR: Record<string, string> = {
-  a: 'apple', b: 'bread', c: 'chair', d: 'dance', e: 'eagle', f: 'flame', g: 'grape', h: 'house', i: 'image', j: 'judge', k: 'knife', l: 'lemon', m: 'mouse',
-  n: 'night', o: 'ocean', p: 'plant', q: 'queen', r: 'river', s: 'stone', t: 'train', u: 'uncle', v: 'voice', w: 'water', x: 'xenon', y: 'youth', z: 'zebra',
+  a: 'airplane', b: 'blanket', c: 'chimney', d: 'dolphin', e: 'elephant', f: 'fountain', g: 'goldfish', h: 'hospital', i: 'iceberg', j: 'jungle',
+  k: 'kitchen', l: 'lantern', m: 'mountain', n: 'necklace', o: 'octopus', p: 'pumpkin', q: 'question', r: 'rainbow', s: 'sandwich', t: 'triangle',
+  u: 'umbrella', v: 'volcano', w: 'whistle', x: 'xylophone', y: 'yesterday', z: 'zeppelin',
 };
 const chainWord = async (page: Page) => {
   const label = await page.getByLabel(/^Type a word/).getAttribute('aria-label');
@@ -69,38 +73,6 @@ test('practice: the run ends when your clock runs out, and shows your score', as
   await expect(page.getByText('Run over: 0 words')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Rematch' }).click();
   await expect(page.getByText('Run over: 0 words')).toHaveCount(0);
-});
-
-test('a quick game: a steal needs a typed word, then takes the turn', async ({ page }) => {
-  test.setTimeout(240_000); // how soon a bot opens a usable steal window is random
-  await skipTourFlag(page);
-  await page.goto('./');
-  await ready(page, 'Quick Game');
-  await page.getByRole('button', { name: /^Quick Game/ }).click();
-  const stealBtn = page.locator('[data-tour="steal"]');
-  const input = page.getByLabel(/^Type a word/);
-
-  // A steal window can be very short (a bot that answers late in its turn leaves a fraction of a
-  // second), so a missed window just means waiting for the next one, as a real player would.
-  let stole = false;
-  let checkedEmpty = false;
-  for (let attempt = 0; attempt < 8 && !stole; attempt++) {
-    await expect(stealBtn).toBeVisible({ timeout: 90_000 });
-    try {
-      if (!checkedEmpty) {
-        await stealBtn.click({ timeout: 2000 }); // empty: nothing happens
-        await expect(input).toHaveValue('', { timeout: 1000 });
-        checkedEmpty = true;
-      }
-      await input.fill(await chainWord(page));
-      await stealBtn.click({ timeout: 2000 });
-      await expect(page.locator('aside').last()).toContainText('STEAL', { timeout: 2000 });
-      stole = true;
-    } catch {
-      await page.waitForTimeout(1500); // window closed under us: wait for the next one
-    }
-  }
-  expect(stole, 'a steal should land within a few windows').toBe(true);
 });
 
 test('a full game reaches the end screen', async ({ browser }) => {

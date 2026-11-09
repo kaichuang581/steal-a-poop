@@ -4,7 +4,7 @@ import { advance, previewBotTurn } from '../reducer';
 import type { GameState } from '../types';
 import { ctx, dict, T0 } from './helpers';
 
-/** A game of bots only (seat 0 handed to a bot), with no bot steals, so nothing draws before the bot on turn acts. */
+/** A game of bots only (seat 0 handed to a bot), so nothing draws before the bot on turn acts. */
 function botGame(seed: string): GameState {
   const s = createGame({ seed, now: T0, humanName: 'h', playerCount: 4, difficulty: 'medium' }, dict);
   s.players[0].isHuman = false;
@@ -36,7 +36,6 @@ describe('previewBotTurn', () => {
       for (let step = 0; step < 60 && s.phase !== 'gameOver'; step++) {
         if (s.phase !== 'playing' || !s.turn) { s = advance(s, ctx, (s.introEndsAt ?? s.events.at(-1)!.at) + 1); continue; }
         s = structuredClone(s);
-        s.turn!.stealPlans = [];
         const plan = previewBotTurn(s, ctx)!;
         const late = s.turn!.botActAt! >= s.turn!.endsAt; // the clock runs out before this bot answers
         const seat = s.turn!.seat;

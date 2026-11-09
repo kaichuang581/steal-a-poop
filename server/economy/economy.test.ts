@@ -28,15 +28,14 @@ describe('catalog', () => {
 });
 
 describe('rewards', () => {
-  it('pays for finishing, winning and steals (capped)', () => {
-    expect(rewardFor('room', { won: false, steals: 0 }).coins).toBe(10);
-    expect(rewardFor('room', { won: true, steals: 3 }).coins).toBe(10 + 25 + 6);
-    expect(rewardFor('room', { won: false, steals: 99 }).coins).toBe(10 + DEFAULT_RULES.stealCap);
-    expect(rewardFor('daily', { won: true, steals: 0 }).coins).toBe(15 + 10);
-    expect(rewardFor('room', { won: true, steals: 1 }).parts.map((p) => p.label)).toEqual(['Finished the game', 'Won', '1 steal']);
+  it('pays for finishing and winning', () => {
+    expect(rewardFor('room', { won: false }).coins).toBe(DEFAULT_RULES.roomFinish);
+    expect(rewardFor('room', { won: true }).coins).toBe(10 + 25);
+    expect(rewardFor('daily', { won: true }).coins).toBe(15 + 10);
+    expect(rewardFor('room', { won: true }).parts.map((p) => p.label)).toEqual(['Finished the game', 'Won']);
   });
   it('stops at the daily limit', () => {
-    const r = rewardFor('room', { won: true, steals: 5 });
+    const r = rewardFor('room', { won: true });
     expect(capReward(r, 0).coins).toBe(r.coins);
     expect(capReward(r, 190).coins).toBe(10);
     expect(capReward(r, 200).coins).toBe(0);
@@ -118,9 +117,9 @@ describe('MemoryEconomyStore', () => {
 const game = (id: string, mode: 'room' | 'daily' = 'room'): StoredGame => ({
   gameId: id, mode, roomCode: null, dailyDate: null, finishedAt: NOW,
   players: [
-    { seat: 0, userId: 'a', displayName: 'Ana', banked: 50, steals: 2, wordsPlayed: 4, longestWord: 'zebra', won: true },
-    { seat: 1, userId: 'b', displayName: 'Ben', banked: 20, steals: 0, wordsPlayed: 3, longestWord: 'cat', won: false },
-    { seat: 2, userId: null, displayName: 'Bot', banked: 10, steals: 0, wordsPlayed: 3, longestWord: 'dog', won: false },
+    { seat: 0, userId: 'a', displayName: 'Ana', banked: 50, wordsPlayed: 4, longestWord: 'zebra', won: true },
+    { seat: 1, userId: 'b', displayName: 'Ben', banked: 20, wordsPlayed: 3, longestWord: 'cat', won: false },
+    { seat: 2, userId: null, displayName: 'Bot', banked: 10, wordsPlayed: 3, longestWord: 'dog', won: false },
   ],
 });
 
@@ -132,9 +131,9 @@ describe('EconomyService', () => {
   it('pays each human player of a finished game, once, and not the bots', async () => {
     const { svc, store } = make();
     const awards = await svc.awardGame(game('g1'));
-    expect([...awards].map(([id, r]) => [id, r.coins, r.balance])).toEqual([['a', 10 + 25 + 4, 39], ['b', 10, 10]]);
+    expect([...awards].map(([id, r]) => [id, r.coins, r.balance])).toEqual([['a', 10 + 25, 35], ['b', 10, 10]]);
     expect(await svc.awardGame(game('g1'))).toEqual(new Map()); // the same game cannot pay again
-    expect(await store.balance('a')).toBe(39);
+    expect(await store.balance('a')).toBe(35);
     expect(store.wallets.size).toBe(2);
   });
   it('a player stops earning at the daily limit', async () => {

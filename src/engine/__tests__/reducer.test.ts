@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apply, advance, inStealWindow } from '../reducer';
+import { apply, advance } from '../reducer';
 import { createGame } from '../game';
 import { turnDurationMs } from '../timer';
 import type { GameState } from '../types';
@@ -75,75 +75,7 @@ function botTurnWithPile(): GameState {
   return freezeBots(r.state);
 }
 
-describe('steal resolution', () => {
-  it('only opens in the last 3 seconds of another player\'s turn', () => {
-    const s = botTurnWithPile();
-    const end = s.turn!.endsAt;
-    expect(inStealWindow(s, end - 3001)).toBe(false);
-    expect(inStealWindow(s, end - 3000)).toBe(true);
-    expect(apply(s, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 4000).accepted).toBe(false);
-  });
-  it('valid steal: the stealer takes one wool ball from the sheep on turn and play moves on', () => {
-    const s = botTurnWithPile();
-    const end = s.turn!.endsAt;
-    const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'tiger' }, end - 1000);
-    expect(r.accepted).toBe(true);
-    expect(r.state.players[0].lives).toBe(4);
-    expect(r.state.players[1].lives).toBe(2);
-    expect(r.state.players[0].steals).toBe(1);
-    expect(r.state.players[0].banked).toBe(0);
-    expect(r.state.pile).toBe(0);
-    expect(r.state.chainLetter).toBe('r');
-    expect(r.state.turn!.seat).toBe(2); // play continues after the victim
-    expect(r.state.events.find((e) => e.kind === 'steal')).toMatchObject({ seat: 0, amount: 1, word: 'tiger' });
-  });
-  it('a steal can freeze the sheep on turn, and ends the game if that leaves one sheep', () => {
-    const s = botTurnWithPile();
-    s.players[1].lives = 1;
-    const frozeOnly = apply(s, ctx, { type: 'steal', seat: 0, word: 'tiger' }, s.turn!.endsAt - 1000).state;
-    expect(frozeOnly.players[1]).toMatchObject({ lives: 0, frozen: true, frozenAt: s.turn!.endsAt - 1000 });
-    expect(frozeOnly.phase).toBe('playing');
-    expect(frozeOnly.turn!.seat).toBe(2);
-
-    const last = botTurnWithPile();
-    last.players[1].lives = 1;
-    last.players[2].frozen = true;
-    last.players[3].frozen = true;
-    const over = apply(last, ctx, { type: 'steal', seat: 0, word: 'tiger' }, last.turn!.endsAt - 1000).state;
-    expect(over.players[1].frozen).toBe(true);
-    expect(over.phase).toBe('gameOver');
-    expect(over.turn).toBeNull();
-    expect(over.winners).toEqual([0]);
-    expect(over.events.some((e) => e.kind === 'gameOver')).toBe(true);
-  });
-  it('a bad steal word costs nothing, starts a 1 s cooldown, and the turn continues', () => {
-    const s = botTurnWithPile();
-    const at = s.turn!.endsAt - 2500;
-    const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'nope' }, at);
-    expect(r.accepted).toBe(true);
-    expect(r.reason).toBeDefined();
-    expect(r.state.players[0].lives).toBe(3);
-    expect(r.state.players[1].lives).toBe(3);
-    expect(r.state.players[0].stealCooldownUntil).toBe(at + 1000);
-    expect(r.state.turn!.seat).toBe(1);
-    expect(r.state.events.at(-1)!.kind).toBe('stealFail');
-    const early = apply(r.state, ctx, { type: 'steal', seat: 0, word: 'tiger' }, at + 999);
-    expect(early.accepted).toBe(false);
-    expect(early.reason).toBe('steal_cooldown');
-    const later = apply(r.state, ctx, { type: 'steal', seat: 0, word: 'tiger' }, at + 1000);
-    expect(later.accepted).toBe(true);
-    expect(later.state.players[0].steals).toBe(1);
-  });
-  it('steals are unlimited: the same player can steal again in a later turn', () => {
-    const s = botTurnWithPile();
-    const first = apply(s, ctx, { type: 'steal', seat: 0, word: 'tiger' }, s.turn!.endsAt - 1000).state;
-    const again = structuredClone(first);
-    again.turn!.seat = 1; again.turn!.botActAt = null; again.turn!.stealPlans = []; again.turn!.stealable = true;
-    const second = apply(again, ctx, { type: 'steal', seat: 0, word: 'rat' }, again.turn!.endsAt - 1000);
-    expect(second.accepted).toBe(true);
-    expect(second.state.players[0].steals).toBe(2);
-    expect(second.state.players[0].lives).toBe(5);
-  });
+describe('players', () => {
   it('players never have a token count', () => {
     expect(botTurnWithPile().players[0]).not.toHaveProperty('tokens');
   });
@@ -183,7 +115,7 @@ describe('rounds', () => {
     const t = structuredClone(r.state);
     t.players.forEach((p) => (p.turnsTaken = 2));
     t.players[1].turnsTaken = 1;
-    t.turn!.seat = 1; t.turn!.botActAt = null; t.turn!.stealPlans = [];
+    t.turn!.seat = 1; t.turn!.botActAt = null;
     const out = advance(t, ctx, t.turn!.endsAt);
     expect(out.round).toBe(2);
     expect(out.phase).toBe('intro');

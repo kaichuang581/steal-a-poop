@@ -66,7 +66,7 @@ for (const species of BUILT) {
       if (named.wing0) expect(overlap(named.wing0, named.wing1)).toBeGreaterThan(0.8);
       expect(overlap(named.leg0, named.leg1)).toBeGreaterThan(0.85);
     });
-    it('3. meets the eye standard: two plates, whites, an iris and one catchlight on the same side', () => {
+    it('3. meets the eye standard: two plates, an iris and one catchlight on the same side (whites on the bigger plates)', () => {
       expect(m.eyes).toHaveLength(2);
       const light = '#ffffff';
       for (const eye of [named.eye0, named.eye1]) {
@@ -74,8 +74,10 @@ for (const species of BUILT) {
         const lights = cols.filter((c) => c === light).length;
         const iris = cols.filter((c) => c !== light && lum(c) < 0.5).length;
         const whites = cols.length - lights - iris;
-        // A 5 x 5 plate has 21 cells: 12 whites round an iris of 8 plus the catchlight (the goat's bar iris: 15 and 5);
-        // the hen's 4 x 4 has 12 cells: 8 whites, an iris of 3 and the catchlight.
+        // A 5 x 5 plate has 21 cells: 12 whites round an iris of 8 plus the catchlight; the pig's and the hen's 4 x 4 has
+        // 12: 8 whites, an iris of 3 and the catchlight. The small eye (Brian, 2026-11-07: the sheep, cow, horse and goat)
+        // is 2 x 2: an iris of 3 and the catchlight, no whites.
+        if (whites === 0) { expect(lights).toBeLessThanOrEqual(1); expect(iris).toBe(cols.length - lights); expect(whites).toBe(0); continue; } // small eyes (no whites): 2 x 2, or the cow's 3 x 4; a pale face may have no glint
         expect(lights).toBe(1);
         expect([8, 5, 3]).toContain(iris);
         expect(whites).toBe(iris === 8 ? 12 : iris === 5 ? 15 : 8);
@@ -85,6 +87,14 @@ for (const species of BUILT) {
       for (const eye of [named.eye0, named.eye1]) {
         const cells = [...eye.values()];
         const l = cells.find((v) => hexOf(v.c) === light)!;
+        const small = cells.every((v) => hexOf(v.c) === light || lum(hexOf(v.c)) < 0.5);
+        if (small && !l) continue;
+        if (small) {
+          // A small eye: the glint in its top row (the cow's oval: the row under it, inside), at its front.
+          expect(Math.max(...cells.map((v) => v.y)) - l.y).toBeLessThanOrEqual(1);
+          expect(l.z).toBe(Math.max(...cells.map((v) => v.z)));
+          continue;
+        }
         const zs = cells.map((v) => v.z), xs = cells.map((v) => v.x);
         const front = Math.max(...zs) - Math.min(...zs) <= 1; // a flat plate on the front face
         if (front) expect(l.x - Math.min(...xs)).toBe(1); else expect(l.z).toBeGreaterThanOrEqual(Math.max(...zs) - 1);
@@ -137,8 +147,9 @@ for (const species of BUILT) {
     });
     it('10. builds from its catalogue character', () => {
       expect(m.species).toBe(species);
-      expect(m.height).toBeGreaterThan(0.8);
-      expect(m.height).toBeLessThanOrEqual(1.2);
+      // V5.1's sheets: from the pig's 0.78 m to the horse's ear tips, the tallest at the table (V5.1 decision 10.3).
+      expect(m.height).toBeGreaterThan(0.7);
+      expect(m.height).toBeLessThanOrEqual(1.6);
     });
   });
 }

@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Color, FogExp2, HalfFloatType, Vector2, WebGLRenderTarget } from 'three';
 import type { PointLight } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -121,4 +121,15 @@ export function Effects({ tiltShift = 0 }: { tiltShift?: number }) {
 /** The camera's horizontal heading (0 = looking toward +z) from a position and a target. */
 export function yawToward(from: readonly number[], to: readonly number[]): number {
   return Math.atan2(to[0] - from[0], to[2] - from[2]);
+}
+
+/** Marks the canvas once the scene has drawn a few frames, so the barn doors (BarnDoors) open onto a finished picture. */
+export function MarkDrawn() {
+  const gl = useThree((s) => s.gl);
+  const frames = useRef(0);
+  useFrame(() => {
+    if (++frames.current === 3) gl.domElement.setAttribute('data-drawn', '');
+  });
+  useEffect(() => () => gl.domElement.removeAttribute('data-drawn'), [gl]);
+  return null;
 }

@@ -12,8 +12,8 @@
   --glow: #FFD98A;
   --cloth: #6BA372;      /* lit edge of Bank */
   --cloth-dark: #3F6A49; /* Bank body; #FFF4DC text = 5.7:1 */
-  --coral: #E7705E;      /* lit edge of Steal; steal-window ring */
-  --coral-dark: #B8432F; /* Steal body; penalty text; #FFF4DC text = 4.9:1 */
+  --coral: #E7705E;      /* warm red: alarms, the blast glow */
+  --coral-dark: #B8432F; /* deep warm red; penalty text; #FFF4DC text = 4.9:1 */
   --bramble: #4E3C2F;    /* trap tiles */
   --mist: #9FB7D6;       /* rain, mist, disabled */
   --button-text: #FFF4DC;
@@ -46,10 +46,21 @@
   --sheep-nose: #F2B6B0;
   --sheep-skin: #EBCDB9;
 
+  /* The farm kit's materials (V6 Part 4.11). Chalk on slate 12:1, ink on burlap 7:1, wood-ink on brass 5:1. */
+  --slate: #26292D;
+  --chalk: #F3F0E6;
+  --burlap: #D6C39C;
+  --brass: #D8B460;
+  --brass-light: #F0D48C;
+  --brass-dark: #8F6D22;
+  --barn-paint: #A6453A;
+  /* Wool (the knitted panels): cream wool, its ribbed edge, cranberry and its shadow. Ink on wool 10:1, cream on cranberry 6:1. */
+  --wool: #F4ECDD;
+  --wool-edge: #E2D3B9;
+  --berry: #A8322C;
+  --berry-dark: #7E2420;
+
   --shadow-warm: 0 6px 18px rgba(80, 50, 20, 0.18);
-  --radius-paper: 14px 18px 12px 20px / 18px 12px 20px 14px; /* uneven corners */
-  --radius-button: 12px;
-  --radius-tile: 16px;
 
   --skin-font-display: 'Fraunces', Georgia, serif;
   --skin-font-body: 'Nunito', 'Segoe UI', system-ui, sans-serif;

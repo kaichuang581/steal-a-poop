@@ -10,6 +10,11 @@ export type RoundModifier =
   | 'no_e'
   | 'six_plus'
   | 'double_letter'
+  | 'no_a'
+  | 'no_s'
+  | 'five_max'
+  | 'ends_vowel'
+  | 'has_o'
   | 'vowel_double'
   | 'double_points_fast';
 
@@ -36,18 +41,15 @@ export interface Player {
   bankThreshold: number;
   /** Unused since the game became last-sheep-standing (no points); always 0. Kept so saved games and rooms still load. */
   banked: number;
-  /** Wool balls: the sheep's lives. A turn that runs out costs one, a steal takes one; none left and the sheep freezes. */
+  /** Wool balls: the sheep's lives. A turn that runs out costs one; none left and the sheep freezes. */
   lives: number;
-  /** Out of wool: skipped for the rest of the game, cannot steal. The last unfrozen sheep wins. */
+  /** Out of wool: skipped for the rest of the game. The last unfrozen sheep wins. */
   frozen: boolean;
   /** When the sheep froze (game time), so later freezes rank above earlier ones. Null while it is still in. */
   frozenAt: number | null;
-  /** A bad steal word blocks this sheep's next steal until this time. */
-  stealCooldownUntil: number;
   /** Turns used this round. A round ends when every unfrozen player has used the round's turns. */
   turnsTaken: number;
   lastWord: string | null;
-  steals: number;
   wordsPlayed: number;
   longestWord: string;
   bestWord: { word: string; points: number } | null;
@@ -60,10 +62,6 @@ export interface TurnState {
   durationMs: number;
   /** When the active bot acts. Null for a human turn. */
   botActAt: number | null;
-  /** Scheduled steal attempts by bots on this turn. */
-  stealPlans: { seat: number; at: number }[];
-  /** A steal turn: the last (red) seconds are open for the other sheep to rob this one. Drawn when the turn starts. */
-  stealable: boolean;
 }
 
 export interface Trap {
@@ -75,11 +73,9 @@ export interface Trap {
 export interface ChainEntry {
   round: Round;
   seat: number;
-  kind: 'play' | 'steal' | 'bank' | 'timeout' | 'invalid' | 'stealFail' | 'pass';
+  kind: 'play' | 'bank' | 'timeout' | 'invalid' | 'pass';
   word: string | null;
   points: number;
-  /** For a steal: the seat the wool ball was taken from. */
-  fromSeat?: number;
 }
 
 export type EventKind =
@@ -87,15 +83,12 @@ export type EventKind =
   | 'play'
   | 'pass'
   | 'bank'
-  | 'steal'
-  | 'stealFail'
   | 'timeout'
   | 'invalid'
   | 'trapSprung'
   | 'burn'
   | 'chainReset'
   | 'seatBot'
-  | 'stealTurn'
   | 'lifeLost'
   | 'frozen'
   | 'gameOver';
@@ -107,7 +100,7 @@ export interface GameEvent {
   seat: number | null;
   text: string;
   amount: number;
-  /** The word, for play and steal events. */
+  /** The word, for play events. */
   word?: string;
 }
 
@@ -143,7 +136,6 @@ export interface GameState {
 export type Action =
   | { type: 'play'; seat: number; word: string }
   | { type: 'bank'; seat: number }
-  | { type: 'steal'; seat: number; word: string }
   /** Hand the bomb to the next sheep without playing a word: once a round, and they get the fuse that is left. */
   | { type: 'pass'; seat: number };
 

@@ -10,8 +10,6 @@ function humanTurn(mode: GameMode, letter = 'c'): GameState {
   let s = createGame({ seed: 'm', now: T0, humanName: 'Me', playerCount: 4, difficulty: 'easy', mode }, dict);
   s = structuredClone(advance(s, ctx, T0 + 2500));
   s.chainLetter = letter;
-  s.turn!.stealPlans = [];
-  s.turn!.stealable = true;
   return s;
 }
 const start = T0 + 2500;
@@ -46,22 +44,10 @@ describe('tour mode', () => {
     expect(out.history.some((h) => h.kind === 'bank')).toBe(false);
     expect(out.pile).toBe(0);
   });
-  it('bots answer fast and nobody plans a steal', () => {
+  it('bots answer fast', () => {
     const s = humanTurn('tour');
     const p = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
     expect(p.turn!.botActAt! - p.turn!.startedAt).toBeLessThanOrEqual(2200);
-    expect(p.turn!.stealPlans).toEqual([]);
-  });
-  it('once the human has played a word, the last bot runs into its steal window', () => {
-    let s = humanTurn('tour');
-    s = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, start + 100).state;
-    // Bots 1 and 2 are quick (or, on a dead-end letter in this tiny word list, run their clock out): either way the
-    // turn reaches seat 3.
-    for (let guard = 0; guard < 4 && s.turn!.seat !== 3; guard++) s = advance(s, ctx, s.turn!.botActAt ?? s.turn!.endsAt);
-    expect(s.turn!.seat).toBe(3);
-    const t = s.turn!;
-    expect(t.botActAt! - t.startedAt).toBeGreaterThanOrEqual(3500);
-    expect(t.botActAt!).toBeGreaterThan(t.endsAt - 3000); // lands inside the window
   });
   it('before the human has played a word, the last bot answers quickly', () => {
     const s = humanTurn('tour');

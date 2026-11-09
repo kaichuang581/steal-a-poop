@@ -1,13 +1,17 @@
-import { CheckIcon, CloseIcon, PlayIcon, ResetIcon, SpeakerIcon } from '../components/Icons';
+import { CheckIcon, CloseIcon, PlayIcon, ResetIcon } from '../components/Icons';
 import { useEffect, useRef, useState } from 'react';
 import { resetTips } from '../../lib/tips';
 import { useStore } from '../../state/store';
 import { AccountPanel } from '../../ui/auth/AccountPanel';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { PaintedCredits } from '../components/PaintedCredits';
-import { Chip, PaperPanel } from '../components/Materials';
+import { Board, Lever, Panel, PanelRow, Peg, WoodButton } from '../kit';
+import { SaveCodeRow } from '../components/SaveCodeRow';
 
-/** The existing settings, unchanged, in a paper panel. No new settings. */
+/**
+ * The existing settings: a panel of planks under a nailed heading (V6 6.2). Each setting sits on its own
+ * plank, its label on a slip of paper; toggles are levers, the volume a rope slider. The save code is plan v7 Part 6.
+ */
 export function PaintedSettings({ onClose }: { onClose: () => void }) {
   const s = useStore();
   const ready = s.dictStatus === 'ready';
@@ -23,48 +27,32 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const row = 'flex min-h-12 w-full items-center justify-between gap-3 rounded-xl px-4 text-left font-bold disabled:opacity-45';
-  const rowStyle = { background: 'var(--paper-edge)' };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{ background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
-      <PaperPanel role="dialog" aria-modal="true" aria-label="Settings" className="w-full max-w-sm p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="sk-display text-2xl">Settings</h2>
-          <Chip ref={closeRef} className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
+      <div role="dialog" aria-modal="true" aria-label="Settings" className="relative w-full max-w-sm pt-2" onClick={(e) => e.stopPropagation()}>
+        <div className="relative z-10 mx-auto flex justify-center">
+          <Board size="heading" tone="knit" snow id="settings-head">Settings</Board>
         </div>
-        <div className="space-y-2">
-          {/* The account panel is written light-on-dark; it sits on an ink card. */}
-          <div className="rounded-xl p-1 empty:hidden" style={{ background: 'var(--ink)', color: 'var(--button-text)' }}>
-            <AccountPanel onSignIn={() => setSignIn(true)} />
-          </div>
-          <button className={row} style={rowStyle} onClick={s.toggleMute} aria-pressed={s.muted}>
-            <span>Sound</span><span className="flex items-center gap-2"><SpeakerIcon size={16} muted={s.muted} />{s.muted ? 'Off' : 'On'}</span>
-          </button>
-          <label className={`${row} cursor-pointer`} style={rowStyle}>
-            <span>Volume</span>
-            <input
-              type="range" min={0} max={100} value={Math.round(s.volume * 100)}
-              onChange={(e) => s.setVolume(Number(e.target.value) / 100)}
-              aria-label="Volume" className="h-6 w-32" style={{ accentColor: 'var(--amber)' }}
-            />
-          </label>
-          <button className={row} style={rowStyle} onClick={() => s.setReduceMotion(!s.reduceMotion)} aria-pressed={s.reduceMotion}>
-            <span>Reduce motion</span><span>{s.reduceMotion ? 'On' : 'Off'}</span>
-          </button>
-          <button className={row} style={rowStyle} onClick={() => s.setLargeText(!s.largeText)} aria-pressed={s.largeText}>
-            <span>Larger text</span><span>{s.largeText ? 'On' : 'Off'}</span>
-          </button>
-          <button className={row} style={rowStyle} disabled={!ready} onClick={() => s.startTour('menu')}>
-            <span>Replay tutorial</span><PlayIcon size={14} />
-          </button>
-          <button className={row} style={rowStyle} onClick={() => { resetTips(); setTipsCleared(true); }}>
-            <span>Show gameplay tips again</span><span className="flex items-center gap-1">{tipsCleared ? <><CheckIcon size={14} /> Reset</> : <ResetIcon size={16} />}</span>
-          </button>
-          <button className={row} style={rowStyle} onClick={() => setCredits(true)}>
-            <span>Credits and licenses</span><span aria-hidden="true" className="sk-display text-xl leading-none">›</span>
-          </button>
-        </div>
-      </PaperPanel>
+        <Peg ref={closeRef} small light className="absolute right-1 top-3 z-20" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Peg>
+        <Panel className="-mt-3 pt-5">
+          {/* The account panel is written light-on-dark; it sits on a cranberry patch. */}
+          <div className="kit-panel-row sk-account-row empty:hidden"><AccountPanel onSignIn={() => setSignIn(true)} /></div>
+          <PanelRow label="Reduce motion"><Lever checked={s.reduceMotion} onChange={s.setReduceMotion} label="Reduce motion" /></PanelRow>
+          <PanelRow label="Larger text"><Lever checked={s.largeText} onChange={s.setLargeText} label="Larger text" /></PanelRow>
+          <PanelRow label="Tutorial">
+            <WoodButton className="kit-btn--sm flex items-center gap-2" aria-label="Replay tutorial" disabled={!ready} onClick={() => s.startTour('menu')}><PlayIcon size={14} /> Replay</WoodButton>
+          </PanelRow>
+          <PanelRow label="Gameplay tips">
+            <WoodButton className="kit-btn--sm flex items-center gap-2" aria-label="Show gameplay tips again" onClick={() => { resetTips(); setTipsCleared(true); }}>
+              {tipsCleared ? <><CheckIcon size={14} /> Reset</> : <><ResetIcon size={16} /> Show again</>}
+            </WoodButton>
+          </PanelRow>
+          <SaveCodeRow />
+          <PanelRow label="Credits and licenses">
+            <WoodButton className="kit-btn--sm" aria-label="Credits and licenses" onClick={() => setCredits(true)}>Open</WoodButton>
+          </PanelRow>
+        </Panel>
+      </div>
       {credits && <PaintedCredits onClose={() => setCredits(false)} />}
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
     </div>

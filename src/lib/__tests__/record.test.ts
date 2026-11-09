@@ -45,14 +45,14 @@ describe('the soft game', () => {
 
 describe('personal bests', () => {
   it('keeps the best of each, and says which this game beat', () => {
-    expect(recordBests({ wool: 2, steals: 1, longest: 'cat' }).beat).toEqual({ wool: true, steals: true, longest: true });
-    const next = recordBests({ wool: 1, steals: 3, longest: 'dog' });
-    expect(next.beat).toEqual({ wool: false, steals: true, longest: false });
-    expect(next.bests).toEqual({ wool: 2, steals: 3, longest: 'cat' });
-    expect(getBests()).toEqual({ wool: 2, steals: 3, longest: 'cat' });
+    expect(recordBests({ wool: 2, longest: 'cat' }).beat).toEqual({ wool: true, longest: true });
+    const next = recordBests({ wool: 3, longest: 'dog' });
+    expect(next.beat).toEqual({ wool: true, longest: false });
+    expect(next.bests).toEqual({ wool: 3, longest: 'cat' });
+    expect(getBests()).toEqual({ wool: 3, longest: 'cat' });
   });
   it('survives alongside the game count', () => {
-    recordBests({ wool: 2, steals: 0, longest: 'zebra' });
+    recordBests({ wool: 2, longest: 'zebra' });
     recordQuickResult(true, false);
     expect(getBests().longest).toBe('zebra');
   });

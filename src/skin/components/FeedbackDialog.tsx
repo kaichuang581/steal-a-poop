@@ -1,3 +1,4 @@
+import { CloseIcon } from './Icons';
 import { useEffect, useRef, useState } from 'react';
 import { apiBase } from '../../auth/config';
 
@@ -41,13 +42,13 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const chip = (on: boolean) => `min-h-11 rounded-lg border-2 px-3 text-sm font-bold ${on ? 'border-[#c0792b] bg-white' : 'border-transparent bg-white/60'}`;
+  const chip = (on: boolean) => `kit-patch min-h-11 ${on ? 'kit-patch--pressed kit-patch--cream' : ''}`;
   return (
-    <div role="dialog" aria-modal="true" aria-label="Send feedback" className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-3" onClick={onClose}>
-      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-xl bg-[var(--paper,#f6efe0)] p-4 text-[#2b221d]" onClick={(e) => e.stopPropagation()}>
+    <div role="dialog" aria-modal="true" aria-label="Send feedback" className="fixed inset-0 z-50 grid place-items-center p-3" style={{ background: 'color-mix(in srgb, var(--ink) 50%, transparent)' }} onClick={onClose}>
+      <div className="sk-framed kit-paper max-h-[92vh] w-full max-w-md overflow-y-auto p-4" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-bold">Send feedback</h2>
-          <button className="min-h-11 min-w-11 rounded-lg px-3 font-bold" onClick={onClose} aria-label="Close" title="Close">Close</button>
+          <h2 className="kit-clipboard-title">Send feedback</h2>
+          <button className="kit-peg kit-peg--light kit-peg--sm" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
         </div>
         {state === 'sent' ? (
           <p role="status" className="py-6 text-center font-bold">Thank you. Your message was sent.</p>
@@ -59,14 +60,14 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
               {KINDS.map(([k, label]) => <button type="button" key={k} aria-pressed={kind === k} className={chip(kind === k)} onClick={() => setKind(k)}>{label}</button>)}
             </div>
             <label className="mb-3 block text-sm font-bold">Short title
-              <input ref={first} value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border-2 border-[#c9b896] bg-white px-3 font-normal" />
+              <input ref={first} value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} className="sk-field mt-1 w-full" />
             </label>
             <label className="mb-1 block text-sm font-bold">What happened?
-              <textarea value={message} maxLength={1500} rows={5} onChange={(e) => setMessage(e.target.value)} className="mt-1 w-full rounded-lg border-2 border-[#c9b896] bg-white p-3 font-normal" />
+              <textarea value={message} maxLength={1500} rows={5} onChange={(e) => setMessage(e.target.value)} className="kit-paper kit-paper--sheet mt-1 w-full" />
             </label>
             <p className="mb-3 text-xs">{message.length}/1500</p>
-            {state === 'error' && <p role="alert" className="mb-2 text-sm font-bold text-[#a02a1a]">That did not send. Please try again in a moment.</p>}
-            <button type="submit" disabled={!valid || state === 'sending'} className="min-h-11 w-full rounded-lg bg-[#c0792b] px-3 font-bold text-white disabled:opacity-50">{state === 'sending' ? 'Sending…' : 'Send'}</button>
+            {state === 'error' && <p role="alert" className="mb-2 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>That did not send. Please try again in a moment.</p>}
+            <button type="submit" disabled={!valid || state === 'sending'} className="kit-btn kit-brass w-full">{state === 'sending' ? 'Sending…' : 'Send'}</button>
           </form>
         )}
       </div>

@@ -25,8 +25,9 @@ export interface GameSetup {
 /**
  * Round twists: the word rules. The points-only twist (vowel_double) is retired with points, and the faster-round twist
  * (double_points_fast) with it: turns get faster every round on their own (TURN_MS_BY_ROUND), that is not a twist.
+ * Each must leave every starting letter some legal word (twists.test.ts checks the real word list).
  */
-const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter'];
+export const ALL_MODIFIERS: RoundModifier[] = ['no_e', 'six_plus', 'double_letter', 'no_a', 'no_s', 'five_max', 'ends_vowel', 'has_o'];
 /** The bots are the farm's own sheep, named so nobody takes one for a person. */
 const BOT_NAMES = ['Maple', 'Clover', 'Bram', 'Hazel', 'Barley', 'Thistle', 'Nettle', 'Sorrel', 'Tansy'];
 const BOT_EMOJIS = ['🦊', '🐸', '🐙', '🦉', '🐼', '🦄', '🐨', '🐯', '🦝'];
@@ -48,9 +49,9 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const resolved = resolveSettings(setup.settings);
   // Practice is a one-life speed run: nothing but the chain and the clock.
   const settings: GameSettings = mode === 'practice'
-    ? { ...resolved, lives: 1, twists: false, stealWindowSeconds: 0, timeCarry: 'off', botCount: 1, botDifficulty: setup.difficulty }
+    ? { ...resolved, lives: 1, twists: false, timeCarry: 'off', botCount: 1, botDifficulty: setup.difficulty }
     : resolved;
-  // Round twists, drawn without repeats: round 1 plays plain, then the deck cycles for as long as the game runs.
+  // Round twists, drawn without repeats: round 1 plays plain, then every later round has a twist (modifierForRound).
   const modifierDeck: RoundModifier[] = settings.twists ? ['none', ...shuffle(state, ALL_MODIFIERS)] : ['none'];
   const playable = ALPHABET.filter((l) => hasPlayableWord(dict, l, [], modifierDeck[0]));
   const base = playable.length ? playable : ALPHABET;
@@ -62,8 +63,8 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const looks = shuffle(state, room ? [...pool, EXTRA_LOOK] : pool);
 
   const blank = {
-    banked: 0, lives: startingWool(settings), frozen: false, frozenAt: null, stealCooldownUntil: 0, turnsTaken: 0, lastWord: null,
-    steals: 0, wordsPlayed: 0, longestWord: '', bestWord: null,
+    banked: 0, lives: startingWool(settings), frozen: false, frozenAt: null, turnsTaken: 0, lastWord: null,
+    wordsPlayed: 0, longestWord: '', bestWord: null,
   };
   const players: Player[] = room
     ? humans.map((name, seat) => ({
@@ -107,6 +108,15 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
     eventSeq: 1,
     winners: null,
   };
+}
+
+/**
+ * The twist for a round: round 1 is the deck's plain opener, every later round cycles through the twists after it, so
+ * no round past the first is plain while twists are on. A deck of just ['none'] (twists off) stays plain.
+ */
+export function modifierForRound(deck: readonly RoundModifier[], round: number): RoundModifier {
+  if (round <= 1 || deck.length < 2) return deck[0];
+  return deck[1 + ((round - 2) % (deck.length - 1))];
 }
 
 /** UTC date key, e.g. 2026-10-31. */

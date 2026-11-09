@@ -8,6 +8,10 @@ export interface DreamRecord {
   longest?: number;
   /** A missed night dreamt the day after (V4 Part 12.2 rule 4). */
   repaired?: boolean;
+  /** How the night went: fences reached, where the bumps fell, and whether the farmer drifted off. */
+  reached?: number;
+  bumps?: number[];
+  asleep?: boolean;
 }
 /** The streak (V4 Part 12.1): consecutive nights, the longest ever, and the Warm Blankets held. */
 export interface Streak {

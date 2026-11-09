@@ -8,7 +8,6 @@ const SOFT_AFTER_LOSSES = 2;
 
 export interface Bests {
   wool: number;
-  steals: number;
   longest: string;
 }
 
@@ -23,11 +22,13 @@ interface PlayerRecord {
 export interface GameResult {
   bests: Bests;
   /** Which of this game's numbers beat the old best. */
-  beat: { wool: boolean; steals: boolean; longest: boolean };
+  beat: { wool: boolean; longest: boolean };
 }
 
 function read(): PlayerRecord {
-  return { played: 0, results: [], ...load<Partial<PlayerRecord>>(KEY, {}), bests: { wool: 0, steals: 0, longest: '', ...load<Partial<PlayerRecord>>(KEY, {}).bests } };
+  const saved = load<Partial<PlayerRecord>>(KEY, {});
+  // Older records carry a steals best as well; it is dropped (steals were taken out of the game).
+  return { played: 0, results: [], ...saved, bests: { wool: saved.bests?.wool ?? 0, longest: saved.bests?.longest ?? '' } };
 }
 
 export const isFirstGames = () => read().played < FIRST_GAMES;
@@ -46,10 +47,9 @@ export const getBests = () => read().bests;
 /** Saves any new personal bests from a finished game. */
 export function recordBests(game: Bests): GameResult {
   const r = read();
-  const beat = { wool: game.wool > r.bests.wool, steals: game.steals > r.bests.steals, longest: game.longest.length > r.bests.longest.length };
+  const beat = { wool: game.wool > r.bests.wool, longest: game.longest.length > r.bests.longest.length };
   const bests = {
     wool: beat.wool ? game.wool : r.bests.wool,
-    steals: beat.steals ? game.steals : r.bests.steals,
     longest: beat.longest ? game.longest : r.bests.longest,
   };
   save(KEY, { ...r, bests });

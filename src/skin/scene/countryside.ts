@@ -2,11 +2,11 @@ import type { BufferGeometry } from 'three';
 import { buildGeometry, triangles } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
-import type { Paint } from '../voxel/primitives';
+import type { Paint, RGB } from '../voxel/primitives';
+import { backHillHeight } from './distance';
 import { chunks, FARM, landHeight } from './farmstead';
 import { POV_SHOTS } from './homePov';
 import { BARN, YARD } from './layout';
-import { pine } from './yard';
 
 /**
  * The land around the farm, seen only from the start screen, so it reads as a place rather than a flat white board:
@@ -46,14 +46,117 @@ export function isClear(x: number, z: number): boolean {
   return [...POV_SHOTS.desktop, ...POV_SHOTS.phone].every((s) => fromSightLine(x, z, s.position, s.target) > 3);
 }
 
-/** Clumps of woodland: [x, z, radius, trees]. Uneven on purpose, with gaps between them to see through. */
+/** Clumps of woodland: [x, z, radius, trees]. Uneven on purpose, with gaps between them to see through. The land behind
+ *  the field is not clumps but a forest (`forest`). */
 const WOODS: [number, number, number, number][] = [
-  [-31, -33, 10, 7], [-11, -31, 6, 3], [6, -37, 11, 8], [25, -33, 7, 4], [47, -29, 12, 7],
-  [-54, -14, 11, 7], [-60, 13, 13, 8], [-44, 33, 8, 4], [37, -13, 7, 4], [42, 11, 10, 6], [33, 33, 7, 3],
+  [47, -29, 12, 7], [-54, -14, 11, 7], [-60, 13, 13, 8], [-44, 33, 8, 4], [37, -13, 7, 4], [42, 11, 10, 6], [33, 33, 7, 3],
 ];
 
-function woods(): Grid {
-  const g = new Grid(S);
+/** Where the wendigo stands (src/skin/table/Wendigo.tsx): up on the back hills, past the step up from the field, in
+ *  among the trees, so from the paddock the lip of the step hides its feet. */
+export const WENDIGO_AT: [number, number] = [-9.6, -36.1];
+
+/** The ground's own height at (x, z): the terrain's columns (round(landHeight)) in front, the back hills' behind. */
+export function groundAt(x: number, z: number): number {
+  return z < -34 && Math.abs(x) < 100 ? Math.max(1, Math.round(backHillHeight(x, z))) : Math.round(landHeight(x, z));
+}
+/** Where a trunk goes in: the ground under it, a little sunk. None stands near the step up to the back hills (`steep`),
+ *  where any one height would leave it buried in the face or standing out on a stilt. */
+const footing = (x: number, z: number) => groundAt(x, z) - 0.2;
+const steep = (x: number, z: number) => Math.max(...[[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]].map(([a, b]) => Math.abs(groundAt(x + a, z + b) - groundAt(x, z)))) > 1.5;
+
+/**
+ * A pine for the woods, seen from twenty metres and more: solid tiers of needles, each a skirt that slopes up and in, with
+ * a ragged rim and snow lying on what each tier leaves open to the sky. The yard's pine (`pine` in yard.ts) is built from
+ * single-voxel branches with snow on every one; from far off, and above all at the forest's coarser grid, that became a
+ * white and green checker that crawled as the camera moved. `ground` is in metres; the tree is drawn at the grid's size.
+ */
+function forestPine(g: Grid, wx: number, wz: number, H: number, seed: number, ground: number) {
+  const k = g.size, r = rng(seed * 131);
+  const cx = wx / k, cz = wz / k, y0 = Math.round(ground / k);
+  const cells = new Map<string, [number, number, number, number]>(); // x, y, z, how far out (0 at the trunk, 1 at the rim)
+  const put = (x: number, y: number, z: number, out: number) => cells.set(`${x},${y},${z}`, [x, y, z, out]);
+  const bare = H * 0.2, top = H;
+  // The trunk, round, up into the crown.
+  const tr = Math.max(0.5, 0.17 / k);
+  for (let y = 0; y < (top * 0.8) / k; y++)
+    for (let x = Math.floor(cx - tr); x <= Math.ceil(cx + tr); x++)
+      for (let z = Math.floor(cz - tr); z <= Math.ceil(cz + tr); z++) if ((x + 0.5 - cx) ** 2 + (z + 0.5 - cz) ** 2 <= tr * tr) put(x, y, z, -1);
+  // Tiers from the bottom of the crown to the top, overlapping, each smaller than the one below.
+  const n = Math.max(3, Math.round((top - bare) / 0.95));
+  const span = (top - bare) / n;
+  for (let i = 0; i < n; i++) {
+    const t = i / n, yb = bare + (top - bare) * t * 0.94, R = (0.3 * H * (1 - t) ** 0.9 + 0.3) * (0.9 + r() * 0.2);
+    const turn = r() * Math.PI * 2;
+    for (let y = Math.round(yb / k); y <= Math.round((yb + span * 1.35) / k); y++) {
+      const f = (y * k - yb) / (span * 1.35), rr = (R * (1 - 0.7 * f)) / k;
+      for (let x = Math.floor(cx - rr - 1); x <= Math.ceil(cx + rr + 1); x++)
+        for (let z = Math.floor(cz - rr - 1); z <= Math.ceil(cz + rr + 1); z++) {
+          const dx = x + 0.5 - cx, dz = z + 0.5 - cz, d = Math.hypot(dx, dz);
+          // A ragged rim: the edge comes and goes in a dozen boughs round the tier.
+          const a = Math.atan2(dz, dx) + turn, bough = 0.82 + 0.18 * Math.abs(Math.sin(a * 6)) + (hash3(Math.floor(a * 2), i, seed, 91) - 0.5) * 0.16;
+          if (d <= rr * bough) put(x, y, z, d / Math.max(1, rr));
+        }
+    }
+  }
+  // A leader above the top tier.
+  for (let y = Math.round(top / k); y < Math.round((top + 0.5) / k); y++) put(Math.floor(cx), y, Math.floor(cz), 0);
+  const bark = pick(T.trunk, hash3(seed, 0, 0, 93), [0.3, 0.8]);
+  for (const [x, y, z, out] of cells.values()) {
+    // Colour comes in patches a few voxels across, never voxel by voxel: single-voxel flecks are what read as noise.
+    const h = hash3(x >> 1, y >> 1, z >> 1, 95), open = !cells.has(`${x},${y + 1},${z}`);
+    let c: RGB;
+    if (out < 0) c = bark;
+    // Snow lies where the tier is open to the sky, set back from its rim: on the rim itself it striped every step white.
+    else if (open && out > 0.2 && out < 0.8 && h > 0.12) c = lin(h > 0.6 ? T.snow[0] : T.snow[1]);
+    else c = lin(out > 0.7 ? (h > 0.5 ? T.pine[0] : T.pine[1]) : T.pine[h > 0.4 ? 1 : 2]); // darker in toward the trunk
+    g.set(x, y + y0, z, c);
+  }
+}
+
+const FAR = 0.4;
+
+/**
+ * The forest on the rising land behind the field, the paddock camera's whole background. Its edge wanders, a few young
+ * trees stray out in front of it, it has the odd clearing, and the trees are tallest deep in. The near rows are built on
+ * a 0.2 m grid; further back, where no camera comes near, at 0.4 m. Every tree here is a `forestPine`.
+ * Round the wendigo the trees are placed by hand: it stands up on the step to the back hills with pines either side and
+ * close behind, and two tall pines at the foot of the step leave only a narrow gap through to the paddock camera.
+ */
+function forest(near: Grid, far: Grid, r: () => number) {
+  const [wx, wz] = WENDIGO_AT;
+  // From the wendigo: toward the paddock camera, and that camera's right.
+  const tc = [0.58, 0.82], rt = [0.82, -0.58];
+  const at = (side: number, toward: number, h: number): [number, number, number] => [wx + rt[0] * side + tc[0] * toward, wz + rt[1] * side + tc[1] * toward, h];
+  const placed: [number, number, number][] = [
+    at(3.6, -0.6, 9.5), at(-3.5, 0.1, 7), at(2.8, 0.9, 4.2), at(0.2, -4.3, 9), at(-1.6, -6, 10.5), at(3.4, -4.8, 8), at(-4.4, 1.4, 6),
+    // Below it, at the foot of the step: two tall pines either side of the line to the paddock, a young one between them.
+    at(-2.7, 3.6, 8.6), at(2.9, 3.9, 7.6), at(0.2, 6.6, 4.4),
+  ];
+  const edge = (x: number) => -28.9 + Math.sin(x / 5.3) * 1.6 + Math.sin(x / 2.3 + 1.7) * 0.9 + Math.sin(x / 11 + 0.4) * 1.2;
+  const clearing = (x: number, z: number) => Math.sin(x / 7.1 + 2) * Math.sin(z / 4.3 + 1) > 0.82;
+  const CELL = 3;
+  for (let gx = -58; gx < 32; gx += CELL)
+    for (let gz = -27; gz > -66; gz -= CELL) {
+      const x = gx + r() * CELL, z = gz - r() * CELL;
+      const into = edge(x) - z; // metres inside the edge; negative in front of it
+      const keep = into > 0 ? (clearing(x, z) ? 0.15 : into > 9 ? 0.6 : 0.9) : into > -4 ? 0.14 * (1 + into / 4) : 0;
+      // Nothing between it and the paddock camera.
+      const ahead = (x - wx) * tc[0] + (z - wz) * tc[1], aside = Math.abs((x - wx) * rt[0] + (z - wz) * rt[1]);
+      if (r() > keep || !isClear(x, z) || Math.hypot(x - wx, z - wz) < 2.6 || (ahead > 0 && ahead < 14 && aside < 1.2)) continue;
+      if (steep(x, z) || placed.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.2)) continue;
+      const deep = Math.min(1, Math.max(0, into / 14));
+      placed.push([x, z, into < 0 ? 2.2 + r() * 2.4 : 4.5 + deep * 4 + r() * 3.5]);
+    }
+  let seed = 600;
+  for (const [x, z, h] of placed) {
+    const fine = Math.hypot(x - wx, z - wz) < 9 || (z > -35 && x > -30 && x < 12);
+    forestPine(fine ? near : far, x, z, h, seed++, footing(x, z));
+  }
+}
+
+function woods(): { near: Grid; far: Grid } {
+  const g = new Grid(S), far = new Grid(FAR);
   const r = rng(301);
   const placed: [number, number][] = [];
   let seed = 400;
@@ -62,16 +165,16 @@ function woods(): Grid {
       // Summing two draws bunches the trees toward the middle of the clump and thins them at its edge.
       const a = r() * Math.PI * 2, d = ((r() + r()) / 2) * radius;
       const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
-      if (!isClear(x, z) || placed.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.6)) continue;
+      if (!isClear(x, z) || steep(x, z) || placed.some(([px, pz]) => Math.hypot(x - px, z - pz) < 2.6)) continue;
       placed.push([x, z]);
       i++;
       // Tall in the heart of a clump, young at the edge.
       const height = 3 + (1 - d / radius) * 4 + r() * 3;
-      const base = Math.round(landHeight(x, z) / S);
-      pine(g, (px, py, pz, p) => { const c = p(px, py, pz); if (c) g.set(px, py + base, pz, c); }, x, z, seed++, height);
+      forestPine(g, x, z, height, seed++, footing(x, z));
     }
   }
-  return g;
+  forest(g, far, rng(303));
+  return { near: g, far };
 }
 
 /** Long low drifts, so the open ground rises and falls instead of lying dead flat. */
@@ -185,12 +288,13 @@ function tracks(g: Grid, points: [number, number][]) {
   }
 }
 
-export interface Countryside { woods: BufferGeometry[]; scrub: BufferGeometry[]; drifts: BufferGeometry[]; tracks: BufferGeometry; triangles: number }
+export interface Countryside { woods: BufferGeometry[]; forest: BufferGeometry[]; scrub: BufferGeometry[]; drifts: BufferGeometry[]; tracks: BufferGeometry; triangles: number }
 
 let built: Countryside | null = null;
 export function buildCountryside(): Countryside {
   if (built) return built;
-  const trees = chunks(woods().map, S);
+  const wood = woods();
+  const trees = chunks(wood.near.map, S), far = chunks(wood.far.map, FAR);
   const mounds = new Grid(S);
   drifts(mounds);
   const small = new Grid(F);
@@ -203,6 +307,6 @@ export function buildCountryside(): Countryside {
   tracks(worn, [[1.6, 12.4], [6, 12], [11, 11.2], [16.8, 8.2]]);
   const flat = buildGeometry(worn.map, S);
   flat.translate(0, -0.16, 0); // all but flush with the snow: a mark in it, not a slab on it
-  const parts = { woods: trees, scrub: chunks(small.map, F), drifts: chunks(mounds.map, S), tracks: flat };
-  return (built = { ...parts, triangles: [...parts.woods, ...parts.scrub, ...parts.drifts, flat].reduce((n, g) => n + triangles(g), 0) });
+  const parts = { woods: trees, forest: far, scrub: chunks(small.map, F), drifts: chunks(mounds.map, S), tracks: flat };
+  return (built = { ...parts, triangles: [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts, flat].reduce((n, g) => n + triangles(g), 0) });
 }

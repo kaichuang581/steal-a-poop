@@ -8,10 +8,11 @@ import { useDevice } from '../device';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
+import { dexProgress, readBestiary } from '../../hunt/bestiary';
 import { useHuntUi } from '../hunt/huntStore';
-import { dreamShareText } from '../../dream/dream';
+import { dreamSeed, dreamShareText } from '../../dream/dream';
 import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
-import { useDreamUi } from '../dream/dreamStore';
+import { dreamLink, useDreamUi } from '../dream/dreamStore';
 import { useToday } from '../hooks/useToday';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
 import { getPracticeBest } from '../../lib/practice';
@@ -28,7 +29,7 @@ import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, SpeakerIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
@@ -41,13 +42,13 @@ import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { TitleBoard } from '../components/TitleBoard';
-import { Chip, ClothButton, PaperPanel, WoodButton } from '../components/Materials';
+import { Chip, PaperPanel, WoodButton } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
-import { BarnDoors } from '../components/BarnDoors';
 import { PaintedSettings } from './PaintedSettings';
+import { SoundMenu } from '../components/SoundMenu';
 
 export const PAINTED_TITLE = 'Finish the Word';
 /** What each bot level means in a practice run, where it can't beat you: only the letters it leaves you differ. */
@@ -64,7 +65,6 @@ const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
 const TIPS = [
   'Every word must start with the last letter of the one before it.',
-  'When a timer turns red, type a word first to steal one of their wool balls.',
   'Run out of time and you lose a wool ball. Lose them all and you freeze solid.',
   'End a word on X, Z, Q or J: if the next sheep runs out of time, you get a wool ball.',
   'A bad word just bounces, so try another before your timer runs out.',
@@ -79,7 +79,6 @@ const RULES: { key: keyof GameSettings; label: string; values: (number | string 
   { key: 'turnsPerRound', label: 'Turns per round', values: [2, 3, 5] },
   { key: 'lives', label: 'Wool balls', values: [1, 2, 3, 5] },
   { key: 'twists', label: 'Round twists', values: [true, false], show: (v) => (v ? 'On' : 'Off') },
-  { key: 'stealWindowSeconds', label: 'Steal window', values: [0, 3, 5], show: (v) => (v === 0 ? 'Off' : `${v} s`) },
 ];
 
 /**
@@ -87,7 +86,7 @@ const RULES: { key: keyof GameSettings; label: string; values: (number | string 
  * then set it. Every control calls the store's existing functions; Practice has its own small panel for its difficulty.
  */
 export function PaintedHome() {
-  const { settings, setSettings, start, startTour, dictStatus, retryDictionary, muted, toggleMute } = useStore();
+  const { settings, setSettings, start, startTour, dictStatus, retryDictionary } = useStore();
   const [step, setStep] = useState<'tables' | 'setup' | 'practice'>('tables');
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
@@ -96,7 +95,6 @@ export function PaintedHome() {
   const [legal, setLegal] = useState<LegalSlug | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
   const admin = useAdmin((s) => s.admin);
-  const [swooping, setSwooping] = useState(false);
   const avatar = useAvatar();
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
@@ -115,6 +113,7 @@ export function PaintedHome() {
   const mobile = useIsMobile();
   const today = useToday();
   const huntBest = getHuntBest();
+  const huntMet = dexProgress(readBestiary()).met;
   const dream = getDream(today);
   const streak = getDreamStreak(today);
   const blankets = loadStreak().blankets;
@@ -136,16 +135,15 @@ export function PaintedHome() {
     const nick = checkNickname(settings.name);
     if (!nick.ok) return setError(nick.message);
     setError('');
-    const begin = () => start(mode, mode === 'quick' ? table.game : undefined);
-    // Through the doors: barn doors swing open on warm light and the view pushes through, then the game opens from the
-    // glow. A practice run isn't in the barn, so it cuts straight to the ice.
-    if (reduced || swooping || mode === 'practice') return begin();
-    setSwooping(true);
-    setTimeout(begin, 950);
+    // The game opens behind the barn doors (PaintedApp): they shut first, and open once its scene has drawn.
+    start(mode, mode === 'quick' ? table.game : undefined);
   };
   const shareDream = async () => {
     if (dream?.status !== 'done') return;
-    const text = dreamShareText({ date: today, count: dream.count ?? 0, longest: dream.longest ?? 0, streak });
+    const text = dreamShareText({
+      date: today, count: dream.count ?? 0, longest: dream.longest ?? 0, streak, title: PAINTED_TITLE, url: dreamLink(), seed: dreamSeed(today),
+      bumped: !dream.asleep, fences: dream.reached, bumps: dream.bumps,
+    });
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopiedDream(true);
     setTimeout(() => setCopiedDream(false), 2000);
@@ -218,8 +216,8 @@ export function PaintedHome() {
       onSelect: () => useDreamUi.getState().openDream(false, repair),
     } satisfies MenuItem] : []),
     {
-      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
-      caption: 'Fight off predator after predator with words. Hunt as often as you like.',
+      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}{huntMet ? ` · ${huntMet}/6 met` : ''}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
+      caption: "Fight off predator after predator with words. Hunt as often as you like. Got a friend's pack code? Enter it in the Hunt.",
       onSelect: () => useHuntUi.getState().openHunt(),
     },
     {
@@ -244,8 +242,8 @@ export function PaintedHome() {
   const tables = (
     <div className="flex flex-col gap-3" key="tables">
       {mobile && (
-        <div className="sk-plate self-center" aria-label="Player">
-          <span className="sk-plate-avatar" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={22} /> : <SheepIcon size={22} />}</span>
+        <div className="sk-plate kit-plank kit-plank--label self-center" aria-label="Player">
+          <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={22} /> : <SheepIcon size={22} />}</span>
           {nameField}
         </div>
       )}
@@ -256,7 +254,7 @@ export function PaintedHome() {
           <WoodButton onClick={() => void retryDictionary()} className="mt-2">Retry</WoodButton>
         </PaperPanel>
       )}
-      {error && <p role="alert" className="sk-paper px-3 py-1 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
+      {error && <p role="alert" className="kit-paper kit-paper--note" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
       {signedIn && rooms && (
         <div className="flex gap-2" role="group" aria-label="Community">
           {([['friends', <><FriendsIcon size={16} /> Friends</>], ['boards', <><TrophyIcon size={16} /> Boards</>], ['shop', <><BagIcon size={16} /> Shop</>]] as const).map(([t, label]) => (
@@ -264,7 +262,7 @@ export function PaintedHome() {
           ))}
         </div>
       )}
-      {roomNotice && !useRoomStore.getState().open && <p role="status" className="sk-paper px-3 py-1 text-center text-sm">{roomNotice}</p>}
+      {roomNotice && !useRoomStore.getState().open && <p role="status" className="kit-paper kit-paper--note text-center">{roomNotice}</p>}
     </div>
   );
 
@@ -283,12 +281,12 @@ export function PaintedHome() {
             <Chip key={id} aria-pressed={preset === id} className="capitalize" onClick={() => { if (id !== 'custom') setRule(PRESETS[id]); }}>{id}</Chip>
           ))}
         </div>
-        <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">about {minutes} min</p>
+        <p className="mt-1.5" aria-live="polite"><span className="kit-slate kit-slate--mini"><span className="kit-slate-face kit-chalk-hand">about {minutes} min</span></span></p>
       </fieldset>
       <fieldset>
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Sheep at the table</legend>
         <div className="mt-1 flex flex-wrap gap-1.5">
-          {COUNTS.map((c) => <Chip key={c} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</Chip>)}
+          {COUNTS.map((c) => <button key={c} type="button" className={`kit-tile kit-tile--sm ${settings.playerCount === c ? 'kit-tile--lit' : ''}`} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</button>)}
         </div>
         {/* One icon per seat; a seat added walks in from the left. */}
         <div className="mt-1.5 flex items-end gap-0.5" aria-hidden="true">
@@ -302,11 +300,11 @@ export function PaintedHome() {
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot difficulty</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
-            <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })} aria-pressed={table.difficulty === d.id} className="capitalize">{d.id}</Chip>
+            <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })} aria-pressed={table.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
           ))}
         </div>
       </fieldset>
-      <details className="rounded-xl px-3 py-1" style={{ background: 'var(--paper-edge)' }} open={preset === 'custom'}>
+      <details className="px-1 py-1" style={{ borderTop: '1px dashed var(--ink-soft)', borderBottom: '1px dashed var(--ink-soft)' }} open={preset === 'custom'}>
         <summary className="cursor-pointer text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Custom rules</summary>
         <div className="space-y-2 py-2">
           {RULES.map((r) => (
@@ -321,7 +319,7 @@ export function PaintedHome() {
           ))}
         </div>
       </details>
-      <ClothButton onClick={() => go('quick')} disabled={!ready} className="sk-sit w-full">Sit down</ClothButton>
+      <button onClick={() => go('quick')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Sit down</button>
     </PaperPanel>
   );
 
@@ -342,14 +340,14 @@ export function PaintedHome() {
         <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
-            <Chip key={d.id} onClick={() => setDrill({ difficulty: d.id })} aria-pressed={drill.difficulty === d.id} className="capitalize">{d.id}</Chip>
+            <Chip key={d.id} onClick={() => setDrill({ difficulty: d.id })} aria-pressed={drill.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
           ))}
         </div>
         <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">{DRILL_BOTS[drill.difficulty]}</p>
       </fieldset>
-      <p className="sk-display text-lg" aria-live="polite">{drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'}</p>
+      <p className="kit-slate kit-slate--mini kit-slate--amber" aria-live="polite"><span className="kit-slate-face kit-chalk-hand">{drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'}</span></p>
       {error && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
-      <ClothButton autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-sit w-full">Start run</ClothButton>
+      <button autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Start run</button>
     </PaperPanel>
   );
   const panel = step === 'practice' ? drillSetup : setup;
@@ -373,8 +371,8 @@ export function PaintedHome() {
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 p-3 sm:p-4 [&>*]:pointer-events-auto">
         {!mobile && (
-          <div className="sk-plate mr-auto" aria-label="Player">
-            <span className="sk-plate-avatar" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={24} /> : <SheepIcon size={24} />}</span>
+          <div className="sk-plate kit-plank kit-plank--label mr-auto" aria-label="Player">
+            <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={24} /> : <SheepIcon size={24} />}</span>
             {nameField}
             {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
@@ -387,7 +385,7 @@ export function PaintedHome() {
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
-        <button className="sk-icon-btn" onClick={toggleMute} aria-label={muted ? 'Unmute' : 'Mute'} title={muted ? 'Unmute' : 'Sound'} aria-pressed={muted}><SpeakerIcon muted={muted} /></button>
+        <SoundMenu />
         <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>
       </div>
 
@@ -419,9 +417,9 @@ export function PaintedHome() {
           {/* Bottom bar: button prompts, a rotating tip, the streak and the small print. */}
           <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3 text-sm font-bold" style={{ color: 'var(--button-text)', textShadow: '0 1px 2px rgba(30, 18, 8, 0.8)' }}>
             <div className="flex shrink-0 items-center gap-4">
-              <span className="sk-prompt"><span className="sk-key"><ArrowUpIcon size={12} /></span><span className="sk-key"><ArrowDownIcon size={12} /></span> Choose</span>
-              <span className="sk-prompt"><span className="sk-key">Enter</span> Select</span>
-              {step !== 'tables' && <span className="sk-prompt"><span className="sk-key">Esc</span> Back</span>}
+              <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key"><ArrowUpIcon size={12} /></span><span className="sk-key kit-tile kit-tile--key"><ArrowDownIcon size={12} /></span> Choose</span>
+              <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Enter</span> Select</span>
+              {step !== 'tables' && <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Esc</span> Back</span>}
             </div>
             <p key={tip} className="sk-tip sk-hand flex min-w-0 flex-1 items-center justify-center gap-2 text-lg" style={{ color: 'var(--glow)' }} aria-live="off"><span className="truncate">{TIPS[tip]}</span></p>
             <div className="flex shrink-0 flex-col items-end gap-1">
@@ -431,7 +429,6 @@ export function PaintedHome() {
         </>
       )}
 
-      {swooping && <BarnDoors />}
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
       {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
       {help && <PaintedGuide onClose={() => setHelp(false)} />}

@@ -1,4 +1,4 @@
-import { inStealWindow, TRAP_LETTERS, utcDateKey } from '../../engine';
+import { TRAP_LETTERS, utcDateKey } from '../../engine';
 import type { GameState, RoundModifier } from '../../engine';
 import { getDaily, getStreak } from '../../lib/daily';
 import { useMemo } from 'react';
@@ -15,7 +15,8 @@ export function creatureFor(seat: number): CreatureId {
 
 export const TWIST_OF: Record<RoundModifier, TwistId | null> = {
   none: null,
-  no_e: 'noE', six_plus: 'sixPlus', double_letter: 'doubleLetter', vowel_double: 'vowelDouble', double_points_fast: 'doublePointsShort',
+  no_e: 'noE', six_plus: 'sixPlus', double_letter: 'doubleLetter',
+  no_a: 'noA', no_s: 'noS', five_max: 'fiveMax', ends_vowel: 'endsVowel', has_o: 'hasO', vowel_double: 'vowelDouble', double_points_fast: 'doublePointsShort',
 };
 
 const MODE_OF: Record<StoreMode, Mode> = { quick: 'quick', daily: 'daily', practice: 'practice', tour: 'tutorial', room: 'rooms' };
@@ -93,7 +94,6 @@ export function toTableView(
     youId: String(mySeat),
     secondsLeft: turn ? Math.max(0, turn.endsAt - now) / 1000 : 0,
     turnSeconds: turn ? turn.durationMs / 1000 : 0,
-    stealOpen: inStealWindow(game, now) && turn?.seat !== mySeat && !game.players[mySeat]?.frozen,
     typed: extra.typed ?? '',
     message: extra.message ?? null,
     longestWord: longest,

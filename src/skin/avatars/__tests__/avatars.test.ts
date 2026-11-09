@@ -56,7 +56,7 @@ describe('the avatar coin', () => {
     expect(Object.keys(PORTRAIT)).toHaveLength(6);
   });
   it('rests on the snow, wiggles and hops when idle, and holds still when asked', () => {
-    expect(DISC.rest).toBeGreaterThanOrEqual(DISC.radius);
+    expect(DISC.rest).toBeGreaterThanOrEqual(DISC.radius * DISC.tall);
     let hopped = false, wiggled = false;
     for (let t = 0; t < 12; t += 0.05) { const p = discPose('idle', t, t, 0, true); if (p.lift > 0.1) hopped = true; if (Math.abs(p.rotZ) > 0.05) wiggled = true; expect(p.lift).toBeGreaterThan(-0.05); }
     expect(hopped && wiggled).toBe(true);

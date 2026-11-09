@@ -236,23 +236,6 @@ describe('playing', () => {
     const r = m.act('u0', { type: 'play', word: 'cat' });
     expect(r).toMatchObject({ ok: true, result: { accepted: true } });
   });
-  it('lets another player steal in the last three seconds of a turn, and not before', () => {
-    const { m, tick, clock, room } = running();
-    tick(100);
-    m.act('u0', { type: 'play', word: 'cat' }); // chain letter is now T, seat 1 is up
-    room.game = structuredClone(room.game!);
-    room.game.turn!.stealable = true; // a steal turn (drawn at random in play)
-    const turn = room.game.turn!;
-    expect(turn.seat).toBe(1);
-    tick(turn.endsAt - 5000 - clock()); // five seconds left: too early
-    const early = m.act('u2', { type: 'steal', word: 'tiger' });
-    expect(early).toMatchObject({ ok: true, result: { accepted: false, reason: 'outside_steal_window' } });
-    tick(4000); // one second left: inside the window
-    const steal = m.act('u2', { type: 'steal', word: 'tiger' });
-    expect(steal).toMatchObject({ ok: true, result: { accepted: true } });
-    expect(room.game!.players[2].steals).toBe(1);
-    expect(room.game!.turn!.seat).toBe(2); // play continues after the victim
-  });
   it('rejects actions from people not in a running game', () => {
     const { m } = manager();
     expect(m.act('nobody', { type: 'bank' })).toEqual({ ok: false, error: 'not_in_room' });

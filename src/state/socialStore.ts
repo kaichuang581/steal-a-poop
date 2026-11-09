@@ -24,7 +24,6 @@ export interface ShopItem {
 }
 export interface BoardRow {
   rank: number;
-  userId: string;
   name: string;
   value: number;
   games: number;

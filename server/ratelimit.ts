@@ -1,6 +1,7 @@
 /** Sliding-window limiter: at most `max` events per `windowMs` for each key. */
 export class RateLimiter {
   private hits = new Map<string, number[]>();
+  private calls = 0;
 
   constructor(
     private max: number,
@@ -9,6 +10,9 @@ export class RateLimiter {
 
   /** Records the event and returns true if it is allowed. A refused event is not recorded. */
   allow(key: string, now: number): boolean {
+    // Every so often, forget keys with nothing recent. Limiters keyed by address would otherwise keep one entry for
+    // every address that ever called, and a caller rotating addresses could grow the server's memory without end.
+    if (++this.calls % 1000 === 0) this.prune(now);
     const recent = (this.hits.get(key) ?? []).filter((t) => now - t < this.windowMs);
     if (recent.length >= this.max) {
       this.hits.set(key, recent);

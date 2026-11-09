@@ -129,6 +129,27 @@ describe('parental consent', () => {
     expect(await svc.decideConsent('tok1', 'refuse')).toEqual({ ok: true, state: 'refused' });
     expect((await store.getProfile('u1'))!.consentStatus).toBe('refused');
   });
+  it('a parent\'s no is final: an older or newer link cannot turn it into a yes', async () => {
+    const { svc, store, advance } = await pending();
+    advance(60_000);
+    await svc.resendConsent('u1'); // a second link, tok2
+    expect(await svc.decideConsent('tok1', 'refuse')).toEqual({ ok: true, state: 'refused' });
+    expect(await svc.decideConsent('tok2', 'grant')).toEqual({ ok: false, reason: 'already_decided' });
+    expect((await store.getProfile('u1'))!.consentStatus).toBe('refused');
+  });
+  it('a child can ask for only a handful of consent emails in all', async () => {
+    const { svc, advance } = await pending();
+    for (let i = 0; i < 4; i++) {
+      advance(60_000);
+      expect(await svc.resendConsent('u1')).toMatchObject({ ok: true });
+    }
+    advance(60_000);
+    expect(await svc.resendConsent('u1')).toEqual({ ok: false, reason: 'rate_limited' });
+  });
+  it('a resend respects the per-address mail limit', async () => {
+    const { svc } = await pending();
+    expect(await svc.resendConsent('u1', () => false)).toEqual({ ok: false, reason: 'rate_limited' });
+  });
   it('a link works once, and not after it expires', async () => {
     const a = await pending();
     await a.svc.decideConsent('tok1', 'refuse');

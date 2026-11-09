@@ -13,7 +13,8 @@ import { BlockList } from './blocks';
 import type { AuditLog } from './moderation/audit';
 import type { RevocationBus } from './auth/revocations';
 import type { Cosmetics } from '../src/net/protocol';
-import { isAvatarId } from '../src/avatars/ids';
+import { ADMIN_AVATAR_ID, isAvatarId } from '../src/avatars/ids';
+import { clientAddress, limitKey } from './address';
 
 export type { AuthUser, VerifyToken } from './contracts';
 
@@ -45,6 +46,10 @@ export interface ServerOptions {
   tickMs?: number;
   reviewEveryMs?: number;
   limits?: ConnectionLimits;
+  /** Whether a room name may be shown in the public list (the same check as player names). Unset: any name. */
+  nameAllowed?: (name: string) => boolean;
+  /** Accounts allowed to wear the admin avatar (Brian's photo), besides moderators. */
+  adminUserIds?: readonly string[];
 }
 
 export interface ConnectionLimits {
@@ -92,6 +97,7 @@ export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> =
   kick: [20, 60_000],
   auth: [10, 60_000],
   invite: [20, 60_000],
+  avatar: [10, 60_000],
 };
 
 type ClientMsg =
@@ -123,6 +129,7 @@ export async function startServer(opts: ServerOptions) {
     ctx: opts.ctx,
     now,
     randomInt: opts.randomInt,
+    onClosed: (code) => opts.chat.dropRoom(code),
     onFinished: (room) => {
       // A failing sink must never break the game or the server.
       try {
@@ -145,15 +152,8 @@ export async function startServer(opts: ServerOptions) {
   let closing = false;
   const perIp = new Map<string, number>();
   let total = 0;
-  const addressOf = (req: IncomingMessage): string => {
-    if (lim.trustProxy) {
-      const fly = req.headers['fly-client-ip'];
-      const fwd = req.headers['x-forwarded-for'];
-      const first = (typeof fly === 'string' ? fly : typeof fwd === 'string' ? fwd.split(',')[0] : '')?.trim();
-      if (first) return first;
-    }
-    return req.socket.remoteAddress ?? 'unknown';
-  };
+  // Connections per address count an IPv6 address by its /64 (limitKey), so one network cannot rotate past the limit.
+  const addressOf = (req: IncomingMessage): string => limitKey(clientAddress(req, lim.trustProxy));
   // Decided before the upgrade completes, so a refused client costs almost nothing.
   const verifyClient = (info: { origin: string; req: IncomingMessage }, cb: (ok: boolean, code?: number, message?: string) => void) => {
     if (closing) return cb(false, 503, 'server restarting');
@@ -192,7 +192,11 @@ export async function startServer(opts: ServerOptions) {
   async function handle(ws: WebSocket, userRef: { user: AuthUser | null }, msg: ClientMsg) {
     if (msg.t === 'hello') {
       const user = typeof msg.token === 'string' ? await opts.verifyToken(msg.token) : null;
+      // The socket may have closed while the token was checked: taking the seat back now would leave it held forever.
+      if (ws.readyState !== ws.OPEN) return;
       if (!user) return ws.close(4001, 'bad token');
+      // A socket belongs to one account. A second hello may refresh the same login, never switch to another.
+      if (userRef.user && userRef.user.userId !== user.userId) return ws.close(4001, 'one account per connection');
       userRef.user = user;
       trackSession(ws, user);
       names.set(user.userId, user.name);
@@ -218,6 +222,10 @@ export async function startServer(opts: ServerOptions) {
     switch (msg.t) {
       case 'avatar': {
         if (msg.id !== null && !isAvatarId(msg.id)) return fail(ws, 'bad_message');
+        // The admin avatar is Brian's photo: the client's admin lock is only a convenience, so the server decides who
+        // may wear it in front of other players.
+        if (msg.id === ADMIN_AVATAR_ID && !user.isModerator && !(opts.adminUserIds ?? []).includes(userId)) return fail(ws, 'bad_message');
+        if ((avatars.get(userId) ?? null) === msg.id) return; // no change, nothing to send
         if (msg.id === null) avatars.delete(userId); else avatars.set(userId, msg.id);
         const here = rooms.roomFor(userId);
         if (here) broadcastRoom(here.code);
@@ -250,7 +258,10 @@ export async function startServer(opts: ServerOptions) {
         return send(ws, { t: 'rooms', list: rooms.listPublic(), serverNow: now() });
       case 'create': {
         if (!createLimit.allow(userId, now())) return fail(ws, 'rate_limited');
-        const r = rooms.createRoom(userId, name, { visibility: msg.visibility === 'private' ? 'private' : 'public', roomName: msg.roomName });
+        // A room's name is shown to everyone browsing rooms, so it passes the same check as a player's name.
+        const asked = typeof msg.roomName === 'string' ? msg.roomName : undefined;
+        const roomName = asked && opts.nameAllowed && !opts.nameAllowed(asked.trim()) ? undefined : asked;
+        const r = rooms.createRoom(userId, name, { visibility: msg.visibility === 'private' ? 'private' : 'public', roomName });
         if (!r.ok) return fail(ws, r.error);
         return broadcastRoom(r.code);
       }
@@ -361,7 +372,9 @@ export async function startServer(opts: ServerOptions) {
   const budgets = { ...DEFAULT_MESSAGE_LIMITS, ...lim.messageLimits };
   const limiters = new Map<string, RateLimiter>();
   const limiterFor = (type: string) => {
-    const key = type in budgets ? type : '*';
+    // Own keys only: `in` would also find "constructor", "toString" and the rest on the prototype (a function, not a
+    // budget), and a client could crash the server with {"t":"constructor"}.
+    const key = Object.hasOwn(budgets, type) ? type : '*';
     let l = limiters.get(key);
     if (!l) {
       const [max, windowMs] = budgets[key];
@@ -392,23 +405,33 @@ export async function startServer(opts: ServerOptions) {
       h.rtt = h.lastPong - h.pingAt;
     });
     ws.on('error', () => undefined); // a broken socket is handled by 'close'; it must not crash the server
-    const helloTimer = setTimeout(() => !ref.user && ws.close(4000, 'no hello'), 5000);
+    // terminate, not close: a polite close waits up to 30 s for the other side, holding the connection slot all along.
+    const helloTimer = setTimeout(() => !ref.user && ws.terminate(), 5000);
     ws.on('message', (data) => {
-      let msg: ClientMsg;
+      // Nothing a client sends may take the process down: every room and game lives in it.
       try {
-        msg = JSON.parse(data.toString()) as ClientMsg;
+        let msg: ClientMsg;
+        try {
+          msg = JSON.parse(data.toString()) as ClientMsg;
+        } catch {
+          return fail(ws, 'bad_message');
+        }
+        if (!msg || typeof msg !== 'object' || typeof msg.t !== 'string') return fail(ws, 'bad_message');
+        // Every message counts against the overall budget and its own type's budget.
+        const who = ref.user?.userId ?? connKey;
+        const at = now();
+        if (!limiterFor('*').allow(who, at) || !limiterFor(msg.t).allow(who, at)) {
+          if (!abuse.allow(who, at)) {
+            // Say why (4008), but do not wait on a flooding client to agree: the slot is freed within a second either way.
+            ws.close(4008, 'too many messages');
+            return void setTimeout(() => ws.terminate(), 1000).unref?.();
+          }
+          return fail(ws, 'rate_limited');
+        }
+        handle(ws, ref, msg).catch(() => fail(ws, 'bad_message'));
       } catch {
-        return fail(ws, 'bad_message');
+        fail(ws, 'bad_message');
       }
-      if (!msg || typeof msg !== 'object' || typeof msg.t !== 'string') return fail(ws, 'bad_message');
-      // Every message counts against the overall budget and its own type's budget.
-      const who = ref.user?.userId ?? connKey;
-      const at = now();
-      if (!limiterFor('*').allow(who, at) || !limiterFor(msg.t).allow(who, at)) {
-        if (!abuse.allow(who, at)) return void ws.close(4008, 'too many messages');
-        return fail(ws, 'rate_limited');
-      }
-      handle(ws, ref, msg).catch(() => fail(ws, 'bad_message'));
     });
     ws.on('close', () => {
       clearTimeout(helloTimer);

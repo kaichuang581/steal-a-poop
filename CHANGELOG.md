@@ -2,6 +2,13 @@
 
 All user-visible changes, newest first.
 
+## 0.5.0
+
+- The Hunt is gone from the farm
+- Going into a game, the barn doors swing shut with a thud, a slip says what is being got ready, and they open onto the table. The game waits for them: the table's intro and your first turn start when you can see them, not behind the doors
+- Security: the game server can no longer be knocked over by a malformed request or message, rooms are harder to flood, a single player's report can no longer get someone banned without a person looking, a parent's "no" to a child's account is final, room names are checked like player names, and nobody but the owner can wear the owner's avatar
+- The game will not run inside another website's frame
+
 ## 0.4.1
 
 - The barn doors close from the very first frame when the game opens, and open once the farm is built, instead of the start screen showing first and the doors slamming shut over it seconds later

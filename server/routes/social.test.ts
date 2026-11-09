@@ -106,7 +106,7 @@ describe('leaderboard routes', () => {
     await finished(data);
     const r = await call('GET', '/api/leaderboard/all?metric=wins');
     expect(r.status).toBe(200);
-    expect(r.json.rows).toEqual([{ rank: 1, userId: 'a', name: 'A', value: 1, games: 1, cosmetics: {} }]);
+    expect(r.json.rows).toEqual([{ rank: 1, name: 'A', value: 1, games: 1, cosmetics: {} }]);
     expect((await call('GET', '/api/leaderboard/forever')).status).toBe(400);
     expect((await call('GET', '/api/leaderboard/all?metric=hax')).status).toBe(400);
     expect((await call('GET', '/api/daily/not-a-date')).status).toBe(400);

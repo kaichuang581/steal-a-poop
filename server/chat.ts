@@ -99,6 +99,12 @@ export class ChatService {
   private buffers = new Map<string, { buffer: SpellBuffer; at: number }>();
   private chatLimit = new RateLimiter(5, 10_000);
   private reportLimit = new RateLimiter(5, 60_000);
+  /** A reporter's day: reports go to the paid reviewer, so one account must not be able to spend its daily budget. */
+  private reportDaily = new RateLimiter(30, 86_400_000);
+  /** Messages already reported, per room: a message is reviewed once, however many times (or by whom) it is reported. */
+  private reported = new Map<string, Set<number>>();
+  /** True while processReviews is running, so overlapping runs never review the same item twice. */
+  private reviewing = false;
   private listeners = new Set<(userId: string) => void>();
 
   constructor(private deps: ChatDeps) {}
@@ -122,6 +128,7 @@ export class ChatService {
     const now = this.deps.now();
     this.chatLimit.prune(now);
     this.reportLimit.prune(now);
+    this.reportDaily.prune(now);
     for (const [id, b] of this.buffers) if (now - b.at > SPELL_WINDOW_MS) this.buffers.delete(id);
   }
 
@@ -241,10 +248,15 @@ export class ChatService {
   /** A player reports a message they saw. It is reviewed like a held message. */
   report(input: { reporterId: string; messageId: number; roomCode: string; note?: string }): { ok: boolean; reason?: string } {
     const now = this.deps.now();
-    if (!this.reportLimit.allow(input.reporterId, now)) return { ok: false, reason: 'rate_limited' };
+    if (!this.reportLimit.allow(input.reporterId, now) || !this.reportDaily.allow(input.reporterId, now)) return { ok: false, reason: 'rate_limited' };
     const msg = (this.history.get(input.roomCode) ?? []).find((m) => m.id === input.messageId);
     if (!msg) return { ok: false, reason: 'message_not_found' };
     if (msg.userId === input.reporterId) return { ok: false, reason: 'cannot_report_yourself' };
+    // Already in the queue: say thanks, add nothing. Reporting it again must not buy another roll of the reviewer.
+    const seen = this.reported.get(input.roomCode) ?? new Set<number>();
+    if (seen.has(msg.id)) return { ok: true };
+    seen.add(msg.id);
+    this.reported.set(input.roomCode, seen);
     const childSafety = childSafetySignal(msg.text);
     const item = this.addItem({
       userId: msg.userId, roomCode: input.roomCode, text: msg.text, at: now, category: childSafety ? 'child_safety' : 'player_report',
@@ -272,6 +284,16 @@ export class ChatService {
 
   /** Sends every pending item to the reviewer. A reviewer failure never punishes anyone. */
   async processReviews(): Promise<void> {
+    if (this.reviewing) return;
+    this.reviewing = true;
+    try {
+      await this.reviewPending();
+    } finally {
+      this.reviewing = false;
+    }
+  }
+
+  private async reviewPending(): Promise<void> {
     const reviewer = this.deps.reviewer;
     for (const item of this.items.filter((i) => i.status === 'pending')) {
       if (!reviewer) {
@@ -291,7 +313,9 @@ export class ChatService {
           this.persistItem(item);
           continue;
         }
-        this.apply(item, verdict);
+        // A ban on a player's report is a person's decision: the reviewer sees one message without the talk around it,
+        // and a report is one player's word against another's. It goes to the human queue with the reviewer's opinion.
+        this.apply(item, item.category === 'player_report' && verdict === 'ban' ? 'escalate' : verdict);
       } catch {
         item.status = 'human';
         item.reason = 'review failed; needs a person';
@@ -308,6 +332,8 @@ export class ChatService {
     if (verdict !== 'clear' && verdict !== 'suspend' && verdict !== 'ban') return false;
     const item = this.items.find((i) => i.id === itemId && i.status === 'human');
     if (!item) return false;
+    // Nobody decides their own case or appeal; another moderator has to.
+    if (item.userId === decidedBy) return false;
     const now = this.deps.now();
     item.reason = reason.slice(0, 500);
     item.decidedBy = decidedBy;
@@ -372,6 +398,12 @@ export class ChatService {
 
   queue(status?: ItemStatus): readonly ReviewItem[] {
     return status ? this.items.filter((i) => i.status === status) : this.items;
+  }
+
+  /** A room has closed: its chat goes with it, so a later room given the same code starts clean. */
+  dropRoom(roomCode: string): void {
+    this.history.delete(roomCode);
+    this.reported.delete(roomCode);
   }
 
   recentMessages(roomCode: string): readonly ChatMessage[] {

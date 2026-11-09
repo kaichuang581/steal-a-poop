@@ -5,10 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Read-only by default; only the deploy job (below) may publish to Pages.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -36,7 +35,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - run: npm test
       # Public settings for the website build (Settings, Secrets and variables, Actions, Variables). Empty means off.
       - run: npm run build
@@ -58,7 +57,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
@@ -73,6 +72,9 @@ jobs:
   deploy:
     needs: [build, e2e]
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

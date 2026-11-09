@@ -7,9 +7,9 @@ import type { Reward } from '../economy/rules';
 import { METRICS, PERIODS, toStoredGame } from './results';
 import type { Metric, Period, ResultsStore, UserStats } from './results';
 
+/** A public board row: a nickname and numbers only. No account id: the board is public and does not need one. */
 export interface BoardRow {
   rank: number;
-  userId: string;
   name: string;
   value: number;
   games: number;
@@ -69,7 +69,7 @@ export class GameDataService {
     for (const r of raw) {
       const p = await this.visible(r.userId);
       if (!p) continue;
-      rows.push({ rank: rows.length + 1, userId: r.userId, name: p.nickname, value: r.value, games: r.games, cosmetics: await this.d.economy.cosmetics(r.userId) });
+      rows.push({ rank: rows.length + 1, name: p.nickname, value: r.value, games: r.games, cosmetics: await this.d.economy.cosmetics(r.userId) });
       if (rows.length === BOARD_SIZE) break;
     }
     return { period: period as Period, metric: metric as Metric, rows };

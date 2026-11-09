@@ -99,4 +99,14 @@ describe('the save code', () => {
     const plan = planImport(code);
     expect(plan.ok).toBe(true);
   });
+
+  it('keeps only settings the game can offer, so a shared code cannot break someone\'s games', () => {
+    const b64 = (x: string) => btoa(x).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const fnv = (x: string) => { let h = 2166136261; for (let i = 0; i < x.length; i++) h = Math.imul(h ^ x.charCodeAt(i), 16777619) >>> 0; return h.toString(16).padStart(8, '0'); };
+    const body = b64(JSON.stringify({ v: 1, at: 'x', data: {
+      'sap:settings': { name: 'Kai', playerCount: 999, game: { lives: 1e9, turnsPerRound: 3, botCount: -4, evil: true }, practice: { clock: 0, difficulty: 'easy' } },
+    } }));
+    applyImport(`${SAVE_PREFIX}${body}.${fnv(body)}`);
+    expect(get('sap:settings')).toEqual({ name: 'Kai', game: { turnsPerRound: 3 } });
+  });
 });

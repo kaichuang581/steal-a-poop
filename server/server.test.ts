@@ -503,12 +503,45 @@ describe('connection limits and resilience', () => {
 
   it('with trustProxy, limits by the proxy-reported address instead of the socket', async () => {
     const server = await boot({ limits: { maxPerIp: 1, trustProxy: true } });
-    const a = await raw(server.port, { 'x-forwarded-for': '203.0.113.1' });
-    const b = await raw(server.port, { 'x-forwarded-for': '203.0.113.2' });
+    const a = await raw(server.port, { 'fly-client-ip': '203.0.113.1' });
+    const b = await raw(server.port, { 'fly-client-ip': '203.0.113.2' });
     expect([a.status, b.status]).toEqual(['open', 'open']);
-    expect((await raw(server.port, { 'x-forwarded-for': '203.0.113.1, 10.0.0.1' })).status).toBe(429);
+    expect((await raw(server.port, { 'fly-client-ip': '203.0.113.1' })).status).toBe(429);
     a.ws!.close();
     b.ws!.close();
+  });
+
+  it('with trustProxy, takes the address the proxy appended, not one the client wrote in front of it', async () => {
+    const server = await boot({ limits: { maxPerIp: 1, trustProxy: true } });
+    const a = await raw(server.port, { 'x-forwarded-for': '203.0.113.1' });
+    expect(a.status).toBe('open');
+    // The client claims to be someone else; the proxy appends the real address, which is already at its limit.
+    expect((await raw(server.port, { 'x-forwarded-for': '198.51.100.7, 203.0.113.1' })).status).toBe(429);
+    a.ws!.close();
+  });
+
+  it('counts IPv6 connections by their /64, so rotating addresses does not get round the limit', async () => {
+    const server = await boot({ limits: { maxPerIp: 1, trustProxy: true } });
+    const a = await raw(server.port, { 'fly-client-ip': '2001:db8:1:2::1' });
+    expect(a.status).toBe('open');
+    expect((await raw(server.port, { 'fly-client-ip': '2001:db8:1:2:ffff::9' })).status).toBe(429);
+    expect((await raw(server.port, { 'fly-client-ip': '2001:db8:1:3::1' })).status).toBe('open');
+    a.ws!.close();
+  });
+
+  it('survives messages named after Object.prototype keys (once a crash)', async () => {
+    const server = await boot();
+    for (const t of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
+      const ws = new WebSocket(`ws://127.0.0.1:${server.port}`);
+      await new Promise((r) => ws.once('open', r));
+      const reply = new Promise<string>((r) => ws.once('message', (d) => r(d.toString())));
+      ws.send(JSON.stringify({ t }));
+      expect(JSON.parse(await reply)).toMatchObject({ t: 'error' });
+      ws.close();
+    }
+    const c = await Client.connect(server.port, 'StillUp1');
+    clients.push(c);
+    await c.waitFor((m) => m.t === 'welcome');
   });
 
   it('drops a connection that stops answering heartbeats, and keeps one that answers', async () => {

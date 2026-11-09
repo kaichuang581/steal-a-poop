@@ -271,6 +271,13 @@ const httpServer = createHttpServer({
 const port = Number(process.env.PORT ?? 8787);
 await new Promise<void>((resolve) => httpServer.listen(port, resolve));
 
+// A last line of defence. Every room and game lives in this one process, so a stray rejected promise must not end it:
+// log it and carry on. (Node 22's default for an unhandled rejection is to exit.) A synchronous uncaught exception is
+// still fatal, as it should be: the state may be half-changed, and Fly restarts the machine.
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandled rejection (kept running):', reason instanceof Error ? reason.stack ?? reason.message : String(reason));
+});
+
 const server = await startServer({
   onGameFinished: (result) => gameData.record(result),
   dailyGate: { reserve: (userId, date) => gameData.claimDaily(userId, date) },
@@ -285,6 +292,8 @@ const server = await startServer({
   chat,
   verifyToken,
   randomInt: (n) => randomInt(n),
+  nameAllowed: (n) => !filter.check(n) && !isInappropriateName(n),
+  adminUserIds: (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
   limits: {
     allowedOrigins: allowedOrigins.length ? allowedOrigins : undefined,
     maxPerIp: envNumber('MAX_CONNECTIONS_PER_IP'),

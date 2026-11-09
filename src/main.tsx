@@ -49,8 +49,28 @@ function Root() {
   return <><App /><InviteToast /><LegalPopupHost /></>;
 }
 
+/**
+ * Inside another site's frame the game does not start, so nobody can lay a page over it and trick a signed-in player
+ * into clicks (buying, befriending, joining rooms). GitHub Pages cannot send the frame-ancestors header that would do
+ * this in the browser, so the page checks for itself. A frame from the game's own origin (its tests) is fine.
+ */
+function framedByAnotherSite(): boolean {
+  if (window.top === window.self) return false;
+  try {
+    return window.top!.location.origin !== window.location.origin;
+  } catch {
+    return true; // reading a cross-origin parent throws
+  }
+}
+
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <Root />
-  </StrictMode>,
+  framedByAnotherSite() ? (
+    <p style={{ padding: 24, font: '16px system-ui, sans-serif' }}>
+      <a href={window.location.href} target="_top" rel="noopener">Open Finish the Word in its own tab</a>
+    </p>
+  ) : (
+    <StrictMode>
+      <Root />
+    </StrictMode>
+  ),
 );

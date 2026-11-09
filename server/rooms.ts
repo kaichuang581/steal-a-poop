@@ -15,6 +15,8 @@ export interface RoomManagerDeps {
   randomInt: (n: number) => number;
   /** Called once when a game ends. Must not throw; failures are the caller's to handle. */
   onFinished?: (room: Room) => void;
+  /** Called when a room is gone for good (its last member left, a daily table ended, or a finished room was swept). */
+  onClosed?: (code: string) => void;
 }
 
 export interface RoomView {
@@ -107,7 +109,7 @@ export class RoomManager {
     const room = this.roomFor(userId);
     if (!room) return { ok: false, error: 'not_in_room' };
     if (room.kind === 'daily') {
-      this.rooms.delete(room.code);
+      this.close(room.code);
       this.roomOfUser.delete(userId);
       return { ok: true, code: room.code, newHostId: null, botSeat: null, roomClosed: true };
     }
@@ -132,7 +134,7 @@ export class RoomManager {
       room.hostId = newHostId;
     }
     const roomClosed = room.members.length === 0;
-    if (roomClosed) this.rooms.delete(room.code);
+    if (roomClosed) this.close(room.code);
     return { newHostId, botSeat, roomClosed };
   }
 
@@ -269,10 +271,15 @@ export class RoomManager {
       if (room.phase !== 'finished' || room.finishedAt === null || now - room.finishedAt < ttlMs) continue;
       const members = room.members.map((m) => m.userId);
       for (const id of members) if (this.roomOfUser.get(id) === room.code) this.roomOfUser.delete(id);
-      this.rooms.delete(room.code);
+      this.close(room.code);
       gone.push({ code: room.code, members });
     }
     return gone;
+  }
+
+  private close(code: string): void {
+    this.rooms.delete(code);
+    try { this.deps.onClosed?.(code); } catch { /* a listener must never break the rooms */ }
   }
 
   /** Counts for monitoring. */

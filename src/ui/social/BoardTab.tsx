@@ -47,7 +47,7 @@ export function BoardTab() {
               </li>
             ))
           : board?.rows.map((r) => (
-              <li key={r.userId} className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1">
+              <li key={r.rank} className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1">
                 <span className="w-6 text-right font-black text-amber-300">{r.rank}</span>
                 <span className="min-w-0 flex-1"><NameTag name={r.name} cosmetics={r.cosmetics} /></span>
                 <span className="font-black">{r.value}</span>

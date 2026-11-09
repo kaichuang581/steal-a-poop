@@ -10,6 +10,11 @@ on:
         type: boolean
         default: true
 
+# The token only needs to read the code; the deploy itself uses FLY_API_TOKEN. Keep DATABASE_URL and FLY_API_TOKEN as
+# secrets of the production environment (not repository secrets), so no other workflow or branch can read them.
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-server
   cancel-in-progress: false
@@ -17,7 +22,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Put a required reviewer on this environment (Settings, Environments) so a second person approves every server deploy.
+    # Only main is deployed. Put a required reviewer on this environment (Settings, Environments) so a second person
+    # approves every server deploy, and limit its deployment branches to main there too.
+    if: github.ref == 'refs/heads/main'
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +44,8 @@ jobs:
         run: npm run migrate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # Pinned to a commit: this step runs in the job that holds FLY_API_TOKEN, so it must not follow a moving branch.
+      - uses: superfly/flyctl-actions/setup-flyctl@98172f70657cb3e15db199af139be99bd3e61200 # master on 2026-10-30
       - run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

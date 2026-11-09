@@ -14,6 +14,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist-server ./dist-server
 COPY public/words.txt ./public/words.txt
+# the bots judge how rare a word is from this list (src/engine/rarity.ts); without it they fall back to a rough guess
+COPY public/word-frequency.txt ./public/word-frequency.txt
 COPY server/data ./server/data
 USER node
 EXPOSE 8080

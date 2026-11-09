@@ -331,3 +331,45 @@ describe('child-safety waiting time', () => {
     expect(svc.oldestChildSafetyOpen()).toMatchObject({ ageMs: 90_000 });
   });
 });
+
+describe('reports cannot be used to get someone banned', () => {
+  const deliver = (svc: ChatService) => {
+    const m = say(svc, 'victim', 'gg you are trash lol');
+    if (!m.delivered) throw new Error('not delivered');
+    return m.message.id;
+  };
+  it('a reviewer ban on a player report goes to a person instead of banning', async () => {
+    const { svc } = service({ reviewer: reviewerSaying('ban') });
+    const id = deliver(svc);
+    svc.report({ reporterId: 'r1', messageId: id, roomCode: 'ROOM1' });
+    await svc.processReviews();
+    expect(svc.state('victim').banned).toBe(false);
+    expect(svc.queue('human')).toHaveLength(1);
+    expect(svc.queue('human')[0].opinion).toMatchObject({ verdict: 'ban' });
+  });
+  it('a message is reviewed once, however many times and by whoever it is reported', async () => {
+    const review = vi.fn(async () => ({ verdict: 'clear' as Verdict, reason: 'banter' }));
+    const { svc } = service({ reviewer: { review } });
+    const id = deliver(svc);
+    for (const r of ['r1', 'r1', 'r2', 'r3']) expect(svc.report({ reporterId: r, messageId: id, roomCode: 'ROOM1' })).toEqual({ ok: true });
+    await svc.processReviews();
+    expect(review).toHaveBeenCalledTimes(1);
+  });
+  it('overlapping review runs never review the same item twice', async () => {
+    let release: () => void = () => {};
+    const review = vi.fn(() => new Promise<{ verdict: Verdict; reason: string }>((r) => { release = () => r({ verdict: 'clear', reason: 'ok' }); }));
+    const { svc } = service({ reviewer: { review } });
+    svc.report({ reporterId: 'r1', messageId: deliver(svc), roomCode: 'ROOM1' });
+    const first = svc.processReviews();
+    await svc.processReviews(); // a second run while the first waits on the reviewer
+    release();
+    await first;
+    expect(review).toHaveBeenCalledTimes(1);
+  });
+  it('a closed room takes its chat with it, so a reused code starts clean', () => {
+    const { svc } = service();
+    deliver(svc);
+    svc.dropRoom('ROOM1');
+    expect(svc.recentMessages('ROOM1')).toHaveLength(0);
+  });
+});

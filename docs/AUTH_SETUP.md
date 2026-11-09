@@ -77,6 +77,7 @@ Supabase, Google and Meta change now and then; where a name below is missing, lo
 | `ALLOWED_ORIGINS` | the website origin(s) |
 | `AGE_OF_CONSENT_BY_COUNTRY` | JSON such as `{"DE":16}`; **fill from your lawyer**. Default is 13 everywhere |
 | `ALLOWED_COUNTRIES`, `BLOCKED_COUNTRIES` | optional, comma-separated ISO codes |
+| `ADMIN_USER_IDS` | optional, comma-separated account ids (Supabase user ids) allowed to wear the admin avatar (Brian's photo) in rooms. Moderators always may; nobody else can, whatever the browser's admin lock says |
 
 With `NODE_ENV=production` the server refuses to start unless real sign-in, `DATABASE_URL`, the CAPTCHA secret, `APP_URL` and
 the service key are set. Development sign-in (`dev:name`) cannot be switched on in production.

@@ -98,10 +98,45 @@ export const SAVE_KEYS: readonly Spec[] = [
   },
   {
     key: 'sap:settings', label: 'your name and table', onlyIfDefault: true,
-    valid: (v) => (isObj(v) && (v.name === undefined || (typeof v.name === 'string' && v.name.length <= 40)) ? v : null),
+    valid: settingsFromCode,
     merge: (l, i) => l ?? i,
   },
 ];
+
+/**
+ * The settings record from a pasted code, keeping only known fields with values the game can offer: a code shared
+ * around ("free records!") must not be able to give someone a billion wool balls or a broken clock. Unknown or
+ * out-of-range fields are dropped, and the game fills them in with its defaults.
+ */
+function settingsFromCode(v: unknown): Json | null {
+  if (!isObj(v)) return null;
+  if (v.name !== undefined && (typeof v.name !== 'string' || v.name.length > 40)) return null;
+  const pick = <T>(x: unknown, ok: readonly T[]): T | undefined => (ok.includes(x as T) ? (x as T) : undefined);
+  const levels = ['easy', 'medium', 'hard'] as const;
+  const out: Record<string, Json> = {};
+  if (typeof v.name === 'string') out.name = v.name;
+  const players = pick(v.playerCount, [4, 5, 6, 7, 8, 9, 10]);
+  if (players !== undefined) out.playerCount = players;
+  const level = pick(v.difficulty, levels);
+  if (level) out.difficulty = level;
+  if (v.tableChosen === true) out.tableChosen = true;
+  if (isObj(v.game)) {
+    const g = v.game, game: Record<string, Json> = {};
+    const rounds = pick(g.rounds, [1, 2, 3, 5]); if (rounds !== undefined) game.rounds = rounds;
+    const turns = pick(g.turnsPerRound, [2, 3, 5, 7]); if (turns !== undefined) game.turnsPerRound = turns;
+    const lives = pick(g.lives, [1, 2, 3, 5]); if (lives !== undefined) game.lives = lives;
+    if (typeof g.twists === 'boolean') game.twists = g.twists;
+    const bots = pick(g.botCount, [3, 4, 5, 6, 7, 8, 9]); if (bots !== undefined) game.botCount = bots;
+    const botLevel = pick(g.botDifficulty, levels); if (botLevel) game.botDifficulty = botLevel;
+    const carry = pick(g.timeCarry, ['off', 'more', 'less']); if (carry) game.timeCarry = carry;
+    out.game = game;
+  }
+  if (isObj(v.practice)) {
+    const clock = pick(v.practice.clock, [5, 10, 15]), level2 = pick(v.practice.difficulty, levels);
+    if (clock !== undefined && level2) out.practice = { clock, difficulty: level2 };
+  }
+  return out;
+}
 
 // ---------- encoding ----------
 function fnv(s: string): string {

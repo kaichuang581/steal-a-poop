@@ -3,6 +3,7 @@ import type { CaptchaVerifier } from '../auth/captcha';
 import { normalizeEmail, sha256 } from '../auth/policy';
 import { RateLimiter } from '../ratelimit';
 import type { AccountService, CreateProfileFailure } from '../auth/service';
+import { limitKey } from '../address';
 
 /**
  * HTTP endpoints owned by the "accounts" lane. They need the live AccountService, so main.ts builds them
@@ -57,7 +58,7 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
       method: 'POST', path: '/api/account/profile', auth: 'session',
       handler: async (req) => {
         const b = body(req);
-        if (limited(signupByIp, req.ip) || limited(signupByUser, req.session!.userId)) return tooMany();
+        if (limited(signupByIp, limitKey(req.ip)) || limited(signupByUser, req.session!.userId)) return tooMany();
         if (!(await captcha.verify(typeof b.captchaToken === 'string' ? b.captchaToken : undefined, req.ip))) return bad('captcha_failed', 403);
         const parentEmail = typeof b.parentEmail === 'string' ? b.parentEmail.trim() : '';
         if (parentEmail && limited(parentMailByEmail, sha256(normalizeEmail(parentEmail)))) return tooMany();
@@ -73,7 +74,7 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
       method: 'POST', path: '/api/account/username', auth: 'session',
       handler: async (req) => {
         const b = body(req);
-        if (limited(signupByIp, req.ip) || limited(signupByUser, req.session!.userId)) return tooMany();
+        if (limited(signupByIp, limitKey(req.ip)) || limited(signupByUser, req.session!.userId)) return tooMany();
         if (!(await captcha.verify(typeof b.captchaToken === 'string' ? b.captchaToken : undefined, req.ip))) return bad('captcha_failed', 403);
         const out = await service.createUsernameProfile(req.session!, String(b.nickname ?? ''));
         if (!out.ok) return bad(STATUS[out.reason][1], STATUS[out.reason][0]);
@@ -89,8 +90,8 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
       method: 'POST', path: '/api/account/consent/resend', auth: 'session',
       handler: async (req) => {
         if (limited(resendByUser, req.session!.userId)) return tooMany();
-        const out = await service.resendConsent(req.session!.userId);
-        if (!out.ok) return bad(out.reason, out.reason === 'consent_unavailable' ? 503 : 409);
+        const out = await service.resendConsent(req.session!.userId, (email) => !limited(parentMailByEmail, sha256(normalizeEmail(email))));
+        if (!out.ok) return out.reason === 'rate_limited' ? tooMany() : bad(out.reason, out.reason === 'consent_unavailable' ? 503 : 409);
         return { status: 200, json: { parentMailed: out.mailed } };
       },
     },
@@ -126,7 +127,7 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
     {
       method: 'GET', path: '/api/consent/:token', auth: 'none',
       handler: async (req) => {
-        if (limited(consentByIp, req.ip)) return tooMany();
+        if (limited(consentByIp, limitKey(req.ip))) return tooMany();
         const info = await service.consentInfo(req.params.token);
         return info ? { status: 200, json: info } : bad('not_found', 404);
       },
@@ -134,7 +135,7 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
     {
       method: 'POST', path: '/api/consent/:token', auth: 'none',
       handler: async (req) => {
-        if (limited(decideByIp, req.ip)) return tooMany();
+        if (limited(decideByIp, limitKey(req.ip))) return tooMany();
         const decision = body(req).decision;
         if (decision !== 'grant' && decision !== 'refuse') return bad('bad_decision');
         const out = await service.decideConsent(req.params.token, decision);
@@ -145,7 +146,7 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
     {
       method: 'POST', path: '/api/consent/manage/:token/withdraw', auth: 'none',
       handler: async (req) => {
-        if (limited(decideByIp, req.ip)) return tooMany();
+        if (limited(decideByIp, limitKey(req.ip))) return tooMany();
         const out = await service.withdrawConsent(req.params.token);
         if (!out.ok) return bad(out.reason === 'unknown' ? 'not_found' : out.reason, out.reason === 'unknown' ? 404 : 409);
         return { status: 200, json: { state: 'withdrawn' } };

@@ -414,3 +414,12 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   play in front of the player. Before this, the turn clock was at about 10 s when the doors opened. Keys are blocked
   while the doors are up (Ctrl/Cmd/Alt shortcuts pass). The first load starts already shut (`shutDoorsAtBoot`). The
   open swing has a latch-and-creak sound. Rooms are not held: the server keeps their time.
+- Security pass (requested by Brian, 2026-11-08). Rules that keep it fixed: the server is one process holding every
+  room, so nothing a client sends may throw out of a handler (http.ts wraps every request; the socket's message handler
+  is in try/catch; look up client-chosen keys with Object.hasOwn, never `in`). Per-address limits use `limitKey`
+  (server/address.ts: IPv6 by /64) and the address comes from `clientAddress` (Fly-Client-IP, else the right-most
+  X-Forwarded-For). A reviewer's ban on a player report is escalated to a person; a message is reviewed once however
+  often it is reported. The admin lock is client-only, so the server alone decides who wears the admin avatar
+  (moderators and ADMIN_USER_IDS). Never write the admin password into the repo, tests included. Public boards carry no
+  account ids. Not done, and listed for Brian: own domain for the site, stripping rng/seed from room views, a sturdier
+  chat filter for short split words, ending Supabase sessions server-side on logout.

@@ -9,3 +9,8 @@ playwright-report
 docs
 e2e
 *.md
+
+# secrets never go into the image build
+.env
+.env.*
+*.env

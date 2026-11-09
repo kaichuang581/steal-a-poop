@@ -104,6 +104,8 @@ export function createModerationRoutes({ chat, reporting, economy, audit, log = 
         // The caller's request id makes a double click or a retry do the change once.
         const requestId = typeof b.requestId === 'string' && /^[\w-]{6,64}$/.test(b.requestId) ? b.requestId : null;
         if (!requestId) return bad('request_id_required');
+        // Coins are for fixing someone else's balance: a moderator cannot pay themselves.
+        if (req.params.userId === req.user!.userId) return bad('not_your_own', 403);
         const r = await economy.apply({ userId: req.params.userId, delta, reason: 'adjustment', ref: `${req.user!.userId}:${requestId}`, at: Date.now() });
         if (!r.ok) return bad(r.reason, 409);
         await audit?.record({ at: Date.now(), actor: req.user!.userId, action: 'coins_adjusted', userId: req.params.userId, details: { delta, note } }).catch(() => undefined);

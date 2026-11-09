@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import net from 'node:net';
 import type { Server } from 'node:http';
 import type { AuthUser, Route } from './contracts';
 import { createHttpServer } from './http';
@@ -74,5 +75,38 @@ describe('http server', () => {
     expect((await f('/api/open', { headers: { origin: 'https://evil.example' } })).status).toBe(403);
     expect((await f('/api/open')).status).toBe(200); // no Origin header: not a browser, so not a cross-site call
     expect((await f('/api/open', { method: 'OPTIONS', headers: { origin: 'https://good.example' } })).status).toBe(204);
+  });
+});
+
+describe('requests that once crashed the process', () => {
+  const rawRequest = (port: number, text: string, destroyAfter = false) => new Promise<string>((resolve) => {
+    const sock = net.connect(port, '127.0.0.1', () => {
+      sock.write(text);
+      if (destroyAfter) setTimeout(() => { sock.destroy(); resolve(''); }, 50);
+    });
+    let got = '';
+    sock.on('data', (d) => { got += d.toString(); });
+    sock.on('end', () => resolve(got));
+    sock.on('error', () => resolve(got));
+  });
+  async function bootRaw() {
+    const server = createHttpServer({ routes, maxBodyBytes: 100_000, verifyToken: async () => null });
+    await new Promise<void>((r) => server.listen(0, r));
+    servers.push(server);
+    return (server.address() as { port: number }).port;
+  }
+
+  it('answers 400 to a path that is not a URL, and keeps serving', async () => {
+    const port = await bootRaw();
+    const reply = await rawRequest(port, 'GET //[::1 HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n');
+    expect(reply).toMatch(/^HTTP\/1\.1 400/);
+    expect((await fetch(`http://127.0.0.1:${port}/healthz`)).status).toBe(200);
+  });
+
+  it('survives a client that hangs up half-way through its body', async () => {
+    const port = await bootRaw();
+    await rawRequest(port, 'POST /api/echo HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: 1000\r\n\r\n{"a":', true);
+    await new Promise((r) => setTimeout(r, 100));
+    expect((await fetch(`http://127.0.0.1:${port}/healthz`)).status).toBe(200);
   });
 });

@@ -11,7 +11,11 @@ import type { Mailer } from './mailer';
 import type { RevocationBus } from './revocations';
 import type { AccountStore, ConsentRecord, Profile } from './store';
 
+/** Consent emails one child may ever ask for (the first and four resends). */
+const MAX_CONSENT_REQUESTS = 5;
+
 /** Removes a user from the Supabase Auth system (their email and password). Needs the service key. */
+
 export interface AuthAdmin {
   deleteUser(userId: string): Promise<void>;
 }
@@ -206,12 +210,19 @@ export class AccountService {
   }
 
   /** A child whose consent email never arrived (or expired) asks for another. */
-  async resendConsent(userId: string): Promise<{ ok: true; mailed: boolean } | { ok: false; reason: 'not_pending' | 'consent_unavailable' | 'no_request' }> {
+  async resendConsent(
+    userId: string,
+    /** The route's per-address mail limit: one parent's inbox is shared by every child that names it. */
+    mayMail: (parentEmail: string) => boolean = () => true,
+  ): Promise<{ ok: true; mailed: boolean } | { ok: false; reason: 'not_pending' | 'consent_unavailable' | 'no_request' | 'rate_limited' }> {
     const profile = await this.d.store.getProfile(userId);
     if (!profile || profile.deletedAt !== null || profile.consentStatus !== 'pending') return { ok: false, reason: 'not_pending' };
     if (!this.d.mailer) return { ok: false, reason: 'consent_unavailable' };
-    const last = (await this.d.store.consentsForChild(userId)).at(-1);
+    const all = await this.d.store.consentsForChild(userId);
+    const last = all.at(-1);
     if (!last) return { ok: false, reason: 'no_request' };
+    // A child gets a handful of tries in all, not three an hour for ever: the address belongs to someone else.
+    if (all.length >= MAX_CONSENT_REQUESTS || !mayMail(last.parentEmail)) return { ok: false, reason: 'rate_limited' };
     return { ok: true, mailed: await this.requestConsent(profile, last.parentEmail) };
   }
 
@@ -231,6 +242,9 @@ export class AccountService {
     const child = await this.d.store.getProfile(rec.childUserId);
     if (!child || child.deletedAt !== null) return { ok: false, reason: 'unknown' };
     if (rec.decision) return { ok: false, reason: 'already_decided' };
+    // Each resend makes another link, and older ones stay open for a while. Once a parent has refused (or later
+    // withdrawn) on any of them, that is the answer: a leftover link must not turn it back into a yes.
+    if (child.consentStatus !== 'pending') return { ok: false, reason: 'already_decided' };
     const now = this.d.now();
     if (now > rec.expiresAt) return { ok: false, reason: 'expired' };
 

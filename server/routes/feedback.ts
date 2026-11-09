@@ -1,5 +1,6 @@
 import type { Route, RouteResponse } from '../contracts';
 import { RateLimiter } from '../ratelimit';
+import { limitKey } from '../address';
 
 export interface FeedbackDeps {
   /** A GitHub token that may create issues in `repo` (fine-grained, Issues: read and write). Without it the route says it is unavailable. */
@@ -16,8 +17,13 @@ type Kind = keyof typeof FEEDBACK_KINDS;
 const bad = (error: string, status = 400): RouteResponse => ({ status, json: { error } });
 // eslint-disable-next-line no-control-regex
 const clean = (s: unknown) => (typeof s === 'string' ? s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim() : '');
-/** Issues are public and ping anyone mentioned: break "@name" and turn links into plain text. */
-const defang = (s: string) => s.replace(/@/g, '@​').replace(/https?:\/\//gi, (m) => m.replace('//', '/​/'));
+// Feedback is posted to a public GitHub issue: no @mentions, and no links of any kind (http://, www. autolinks, markdown
+// [text](url) and images), so nobody can use the form to post links or ping people through the game's account.
+const defang = (s: string) => s
+  .replace(/@/g, '@\u200b')
+  .replace(/https?:\/\//gi, (m) => m.replace('//', '/\u200b/'))
+  .replace(/\bwww\./gi, (m) => `${m.slice(0, 3)}\u200b.`)
+  .replace(/\]\(/g, ']\u200b(');
 
 /** Sends a player's feedback to GitHub as an issue, so the form never has to leave the game. */
 export function createFeedbackRoutes({ token, repo, fetchFn = fetch, now = Date.now }: FeedbackDeps): Route[] {
@@ -27,9 +33,9 @@ export function createFeedbackRoutes({ token, repo, fetchFn = fetch, now = Date.
     method: 'POST', path: '/api/feedback', auth: 'none',
     handler: async (req) => {
       if (!token) return bad('feedback_unavailable', 503);
-      if (!perIp.allow(req.ip, now()) || !overall.allow('all', now())) return bad('rate_limited', 429);
+      if (!perIp.allow(limitKey(req.ip), now()) || !overall.allow('all', now())) return bad('rate_limited', 429);
       const b = req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>) : {};
-      const kind = (typeof b.kind === 'string' && b.kind in FEEDBACK_KINDS ? b.kind : 'other') as Kind;
+      const kind = (typeof b.kind === 'string' && Object.hasOwn(FEEDBACK_KINDS, b.kind) ? b.kind : 'other') as Kind;
       const title = clean(b.title).replace(/\s+/g, ' ');
       const message = clean(b.message);
       if (title.length < 3 || title.length > 80) return bad('bad_title');

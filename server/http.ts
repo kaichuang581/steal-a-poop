@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
-import type { IncomingMessage, Server } from 'node:http';
+import type { IncomingMessage, Server, ServerResponse } from 'node:http';
+import { clientAddress } from './address';
 import type { Route, RouteRequest, SessionClaims, VerifyToken } from './contracts';
 
 export interface HttpOptions {
@@ -16,17 +17,6 @@ export interface HttpOptions {
 
 const DEFAULT_MAX_BODY = 64 * 1024;
 
-/** The caller's address. Behind a trusted proxy, the first value of its forwarding header. */
-function addressOf(req: IncomingMessage, trustProxy?: boolean): string {
-  if (trustProxy) {
-    const fly = req.headers['fly-client-ip'];
-    const fwd = req.headers['x-forwarded-for'];
-    const first = (typeof fly === 'string' ? fly : typeof fwd === 'string' ? fwd.split(',')[0] : '')?.trim();
-    if (first) return first;
-  }
-  return req.socket.remoteAddress ?? 'unknown';
-}
-
 const compile = (path: string) => {
   const names: string[] = [];
   const source = path.replace(/[.*+?^${}()|[\]\\]/g, (c) => (c === ':' ? c : `\\${c}`)).replace(/:([A-Za-z_]+)/g, (_, n: string) => {
@@ -36,13 +26,17 @@ const compile = (path: string) => {
   return { re: new RegExp(`^${source}/?$`), names };
 };
 
-async function readBody(req: IncomingMessage, limit: number): Promise<unknown | 'too_large' | 'bad_json'> {
+async function readBody(req: IncomingMessage, limit: number): Promise<unknown | 'too_large' | 'bad_json' | 'aborted'> {
   const chunks: Buffer[] = [];
   let size = 0;
-  for await (const chunk of req) {
-    size += (chunk as Buffer).length;
-    if (size > limit) return 'too_large';
-    chunks.push(chunk as Buffer);
+  try {
+    for await (const chunk of req) {
+      size += (chunk as Buffer).length;
+      if (size > limit) return 'too_large';
+      chunks.push(chunk as Buffer);
+    }
+  } catch {
+    return 'aborted'; // the client hung up part-way (or lost signal): nobody is left to answer
   }
   if (size === 0) return null;
   try {
@@ -64,9 +58,14 @@ export function createHttpServer(opts: HttpOptions): Server {
   ];
   const allowed = new Set(opts.allowedOrigins ?? []);
 
-  return createServer(async (req, res) => {
+  const handle = async (req: IncomingMessage, res: ServerResponse) => {
     const send = (status: number, json?: unknown) => {
-      res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+      if (res.headersSent || res.destroyed) return;
+      res.writeHead(status, {
+        'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff',
+        'x-frame-options': 'DENY', 'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+        'referrer-policy': 'no-referrer', 'strict-transport-security': 'max-age=31536000',
+      });
       res.end(json === undefined ? '' : JSON.stringify(json));
     };
     const origin = req.headers.origin;
@@ -79,7 +78,12 @@ export function createHttpServer(opts: HttpOptions): Server {
     }
     if (req.method === 'OPTIONS') return send(204);
 
-    const url = new URL(req.url ?? '/', 'http://localhost');
+    let url: URL;
+    try {
+      url = new URL(req.url ?? '/', 'http://localhost');
+    } catch {
+      return send(400, { error: 'bad_path' }); // e.g. "GET //" or "GET //a:b@": not a path at all
+    }
     let pathMatched = false;
     for (const { route, re, names } of compiled) {
       const m = re.exec(url.pathname);
@@ -110,10 +114,11 @@ export function createHttpServer(opts: HttpOptions): Server {
       }
 
       const body = req.method === 'GET' || req.method === 'DELETE' ? null : await readBody(req, opts.maxBodyBytes ?? DEFAULT_MAX_BODY);
+      if (body === 'aborted') return void res.destroy();
       if (body === 'too_large') return send(413, { error: 'body_too_large' });
       if (body === 'bad_json') return send(400, { error: 'bad_json' });
 
-      const request: RouteRequest = { params, query: Object.fromEntries(url.searchParams), body, user, session, ip: addressOf(req, opts.trustProxy) };
+      const request: RouteRequest = { params, query: Object.fromEntries(url.searchParams), body, user, session, ip: clientAddress(req, opts.trustProxy) };
       try {
         const out = await route.handler(request);
         return send(out.status, out.json);
@@ -122,5 +127,20 @@ export function createHttpServer(opts: HttpOptions): Server {
       }
     }
     return send(pathMatched ? 405 : 404, { error: pathMatched ? 'method_not_allowed' : 'not_found' });
+  };
+
+  // Nothing a request does may take the process down: every room and game lives in it. Whatever escapes the handler
+  // becomes a 500 (or a dropped connection if the answer had already started).
+  const server = createServer((req, res) => {
+    handle(req, res).catch(() => {
+      if (!res.headersSent && !res.destroyed) {
+        res.writeHead(500, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+        res.end(JSON.stringify({ error: 'server_error' }));
+      } else res.destroy();
+    });
   });
+  // Slow clients cannot hold a request open for minutes (Node's defaults are 60 s for headers and 5 min per request).
+  server.headersTimeout = 15_000;
+  server.requestTimeout = 30_000;
+  return server;
 }

@@ -9,3 +9,9 @@ dist-server
 # the wendigo source model (20 MB); only the optimised copy is committed
 public/models/wendigo-src.glb
 scripts/wendigo-lab.tmp.html
+
+# secrets: never commit an env file (the server's keys go in Fly secrets and GitHub environment secrets)
+.env
+.env.*
+*.env
+!.env.example

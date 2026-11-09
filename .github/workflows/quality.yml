@@ -1,0 +1,75 @@
+name: Quality
+
+# Runs on every pull request and on main. Deploy is separate (deploy.yml) and stays the only
+# workflow that publishes the site.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: unit (types, tests, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    name: e2e (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Browsers are keyed to the Playwright version in the lockfile, so a cache hit is safe.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+
+  audit:
+    name: audit (production dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Only high and critical fail the build; low and moderate are reported, not blocking.
+      - run: npm audit --omit=dev --audit-level=high
+
+  size:
+    name: size (gzipped JavaScript budget)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run size

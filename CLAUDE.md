@@ -453,3 +453,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   and a little stronger, the moon less blue and brighter (0.9), the lanterns warmer and reaching further (40, 14 m), the
   day's haze a soft grey-white instead of icy teal and the night's a softer navy; exposure 1.08 on Home and the table.
   The dream, the ice and the loading doors keep their own light.
+- The loading sign (requested by Brian, 2026-11-08: "the issue isnt really the barn doors, its the paper thing with the
+  animation"): the paper slip is gone. A snow-capped plank (kit plank, SnowCap, nails) hangs from the beam on two ropes,
+  is lowered on them once the doors shut and sways from the beam. In it, a sunken window onto a moonlit field drawn in
+  pixels (night sky, stars, moon, hills, two pines, snow, the snowy fence), where the sheep, redrawn at 24 x 16 with an
+  outline, shaded wool, collar and bell, trots (two leg frames), leaps the fence and lands in a puff of snow. The line
+  is cream on the wood. Pixel art is written as rows of letters (`Pixels` in BarnDoors.tsx). Bigger on big screens.

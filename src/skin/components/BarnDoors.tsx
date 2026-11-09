@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 import { create } from 'zustand';
 import { playSound } from '../../audio/sound';
 import { useMotionLevel } from '../hooks/useAmbient';
-import { Paper } from '../kit';
+import { Nails } from '../kit';
+import { SnowCap } from './SnowCap';
 import { DOOR_BOXES, LINTEL_BEAM, LINTEL_SNOW } from '../loading/doorBoxes';
 
 /**
@@ -186,29 +187,109 @@ function Doors({ id }: { id: number }) {
       <div className="sk-doors-lintel" />
       <div className="sk-doors-sill" />
       <div className="sk-doors-snow" aria-hidden="true">{FLAKES.map((f, i) => <i key={i} style={f} />)}</div>
-      {/* Pinned over the crack once the doors meet: a sheep hopping a fence, and what is being got ready. Only transform
-          and opacity move, so it keeps hopping while a scene is being built and the page is busy. */}
-      <Paper kind="slip" pin="top" className="sk-load" aria-hidden="true">
-        <span className="sk-load-field">
-          <span className="sk-load-sheep"><HopSheep /></span>
-          <span className="sk-load-fence"><i /><i /><i /></span>
-        </span>
-        <span className="sk-load-line">{shown.current}…</span>
-      </Paper>
+      {/* A sign hung from the beam on two ropes once the doors meet: a little moonlit window where a sheep runs and leaps
+          a snowy fence, and under it what is being got ready. Only transform and opacity move, so it keeps going while
+          the page is busy building a scene. */}
+      <div className="sk-load" aria-hidden="true">
+        <span className="kit-rope sk-load-rope sk-load-rope--l" /><span className="kit-rope sk-load-rope sk-load-rope--r" />
+        <div className="sk-load-board kit-plank" data-knot="2">
+          <SnowCap className="kit-snow" />
+          <Nails />
+          <span className="sk-load-window">
+            <LoadingScene />
+            <span className="sk-load-sheep"><HopSheep /></span>
+            <span className="sk-load-puff"><SnowPuff /></span>
+          </span>
+          <span className="sk-load-line">{shown.current}…</span>
+        </div>
+      </div>
     </div>
   );
 }
 
-/** The slip's sheep, side on in pixels: a wool body with an ink outline (it is on cream paper), a dark face and legs. */
+/** Pixel art from rows of letters: one letter a pixel, '.' empty. Drawn with crisp edges, like the game's icons. */
+function Pixels({ rows, colors, className }: { rows: readonly string[]; colors: Record<string, string>; className?: string }) {
+  const rects: ReactElement[] = [];
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; ) {
+      const c = row[x];
+      let run = 1;
+      while (x + run < row.length && row[x + run] === c) run++;
+      if (c !== '.') rects.push(<rect key={`${x},${y}`} x={x} y={y} width={run} height={1} fill={colors[c]} />);
+      x += run;
+    }
+  });
+  return <g className={className}>{rects}</g>;
+}
+
+// The sheep, side on and running right: an ink outline, wool with a highlight and a shaded belly, a dark face with a
+// white eye and a glint, a red collar and a brass bell. Two sets of legs take turns, so it trots.
+const SHEEP_BODY = [
+  '......KKKK..KKKK........',
+  '....KKWWWWKKWWWWKK......',
+  '...KWWHHWWWWWWHHWWK.....',
+  '..KWWHWWWWWWWWWWWWWK....',
+  '.KWWWWWWWWWWWWWWWWKKKK..',
+  '.KWWWWWWWWWWWWWWWKFFFFK.',
+  'KWWWWWWWWWWWWWWWWKFGEFFK',
+  'KSWWWWWWWWWWWWWWWKFGKFFK',
+  'KSWWWWWWWWWWWWWWWKFFFFFK',
+  '.KSWWWWWWWWWWWWWCCKFFFK.',
+  '.KSSWWWWWWWWWWWSCBCKKK..',
+  '..KSSSSWWWWSSSSSKK......',
+];
+const SHEEP_LEGS_A = ['...KKLLKKKKKKLLKK.......', '....KLLK....KLLK........', '....KLLK....KLLK........', '....KKKK....KKKK........'];
+const SHEEP_LEGS_B = ['...KKLLKKKKKKLLKK.......', '...KLLK......KLLK.......', '..KLLK........KLLK......', '..KKKK........KKKK......'];
+const SHEEP_COLORS = { K: '#2E2724', W: '#FBF7EC', H: '#FFFFFF', S: '#DCD3C0', F: '#4A4242', G: '#625957', E: '#F6F1E6', L: '#4A4242', C: '#C24E45', B: '#F0C45C' };
+
 function HopSheep() {
-  const ink = '#3B3028', wool = '#FBF7EC', fleck = '#E6DDC8', face = '#4A4444';
   return (
-    <svg width={64} height={48} viewBox="0 0 16 12" shapeRendering="crispEdges" aria-hidden="true">
-      <rect x={1} y={2} width={12} height={7} fill={ink} /><rect x={2} y={1} width={10} height={1} fill={ink} /><rect x={0} y={3} width={1} height={2} fill={ink} />
-      <rect x={2} y={3} width={10} height={5} fill={wool} /><rect x={3} y={2} width={8} height={1} fill={wool} /><rect x={1} y={4} width={1} height={1} fill={wool} />
-      <rect x={4} y={4} width={1} height={1} fill={fleck} /><rect x={8} y={3} width={1} height={1} fill={fleck} /><rect x={6} y={6} width={1} height={1} fill={fleck} /><rect x={10} y={5} width={1} height={1} fill={fleck} />
-      <rect x={12} y={2} width={4} height={4} fill={face} /><rect x={12} y={1} width={2} height={1} fill={face} /><rect x={14} y={3} width={1} height={1} fill={wool} />
-      <rect x={3} y={9} width={1} height={3} fill={face} /><rect x={5} y={9} width={1} height={2} fill={face} /><rect x={9} y={9} width={1} height={3} fill={face} /><rect x={11} y={9} width={1} height={2} fill={face} />
+    <svg width={72} height={48} viewBox="0 0 24 16" shapeRendering="crispEdges" aria-hidden="true">
+      <Pixels rows={SHEEP_BODY} colors={SHEEP_COLORS} />
+      <g transform="translate(0 12)">
+        <Pixels rows={SHEEP_LEGS_A} colors={SHEEP_COLORS} className="sk-load-legs-a" />
+        <Pixels rows={SHEEP_LEGS_B} colors={SHEEP_COLORS} className="sk-load-legs-b" />
+      </g>
+    </svg>
+  );
+}
+
+/** The window's night: sky, a few stars and the moon, dark hills, two snowy pines, the snow field and the fence. */
+function LoadingScene() {
+  const stars = [[6, 3], [15, 7], [24, 2], [33, 5], [41, 2], [58, 4], [66, 8], [71, 2], [77, 6], [12, 12], [62, 13]];
+  const pine = (x: number) => (
+    <g key={x}>
+      <rect x={x + 3} y={21} width={2} height={5} fill="#3A2A1E" />
+      {[0, 1, 2, 3, 4].map((t) => <rect key={t} x={x + 3 - Math.ceil(t * 0.8)} y={11 + t * 2} width={2 + Math.ceil(t * 0.8) * 2} height={2} fill={t % 2 ? '#24453A' : '#2D5546'} />)}
+      {[0, 2, 4].map((t) => <rect key={`s${t}`} x={x + 3 - Math.ceil(t * 0.8)} y={11 + t * 2} width={1 + Math.ceil(t * 0.8)} height={1} fill="#EAF2FB" />)}
+    </g>
+  );
+  return (
+    <svg className="sk-load-scene" viewBox="0 0 96 32" preserveAspectRatio="none" shapeRendering="crispEdges" aria-hidden="true">
+      <rect width={96} height={32} fill="#1B2143" />
+      <rect y={14} width={96} height={18} fill="#222A52" />
+      {stars.map(([x, y], i) => <rect key={i} x={x} y={y} width={1} height={1} fill="#FFF3CF" className={i % 3 === 0 ? 'sk-load-twinkle' : undefined} />)}
+      <rect x={82} y={3} width={5} height={5} fill="#FFF1C9" /><rect x={81} y={4} width={1} height={3} fill="#FFF1C9" /><rect x={84} y={4} width={2} height={2} fill="#E9DBB0" />
+      <path d="M0 22h8v-2h10v-2h12v2h10v-3h14v3h12v-2h12v2h8v10H0z" fill="#2B3561" />
+      {pine(2)}{pine(84)}
+      <rect y={26} width={96} height={6} fill="#EEF4FA" />
+      <rect y={26} width={96} height={1} fill="#FFFFFF" />
+      <path d="M0 31h96v1H0zM10 29h6v1h-6zM60 28h8v1h-8zM30 30h10v1H30z" fill="#C9D7E8" />
+      {/* The fence the sheep jumps: two posts and two rails, snow on top. */}
+      <rect x={43} y={17} width={2} height={10} fill="#8B5E3C" /><rect x={51} y={17} width={2} height={10} fill="#8B5E3C" />
+      <rect x={44} y={17} width={1} height={10} fill="#5A3C25" /><rect x={52} y={17} width={1} height={10} fill="#5A3C25" />
+      <rect x={40} y={19} width={16} height={2} fill="#9A6B47" /><rect x={40} y={23} width={16} height={2} fill="#9A6B47" />
+      <rect x={40} y={20} width={16} height={1} fill="#6F4A2E" /><rect x={40} y={24} width={16} height={1} fill="#6F4A2E" />
+      <rect x={42} y={16} width={4} height={1} fill="#FFFFFF" /><rect x={50} y={16} width={4} height={1} fill="#FFFFFF" /><rect x={40} y={18} width={16} height={1} fill="#F2F7FC" />
+    </svg>
+  );
+}
+
+/** The puff of snow kicked up where the sheep lands. */
+function SnowPuff() {
+  return (
+    <svg width={36} height={18} viewBox="0 0 12 6" shapeRendering="crispEdges" aria-hidden="true">
+      <path d="M2 4h2v2H2zM5 2h2v4H5zM8 3h2v3H8zM0 5h1v1H0zM11 5h1v1h-1zM4 1h1v1H4zM8 1h1v1H8z" fill="#F4F8FF" />
     </svg>
   );
 }

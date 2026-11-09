@@ -760,7 +760,7 @@
 .sk-doors[data-phase="closing"] .sk-doors-sill { animation: sk-doors-sill-in 420ms ease-out both; }
 .sk-doors[data-phase="closing"] .sk-doors-spill { animation: sk-doors-spill-close 620ms linear both; }
 .sk-doors[data-phase="closing"] .sk-load { opacity: 0; }
-.sk-doors[data-phase="shut"] .sk-load { animation: sk-load-on 360ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both; }
+.sk-doors[data-phase="shut"] .sk-load-board, .sk-doors[data-phase="shut"] .sk-load-rope { animation: sk-load-drop 620ms cubic-bezier(0.3, 0.8, 0.4, 1) both; }
 @keyframes sk-door-close-l {
   0% { transform: rotateY(100deg); filter: brightness(0.5); animation-timing-function: cubic-bezier(0.45, 0, 0.9, 0.55); }
   80% { transform: rotateY(0); filter: brightness(1); animation-timing-function: ease-out; }
@@ -777,47 +777,79 @@
 @keyframes sk-doors-lintel-in { from { transform: translateY(-100%); } to { transform: none; } }
 @keyframes sk-doors-sill-in { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes sk-doors-spill-close { 0%, 40% { opacity: 0; transform: scaleX(1.6); } 62% { opacity: 0.85; transform: scaleX(0.7); } 80% { opacity: 1; transform: scaleX(0.04); } 86%, 100% { opacity: 0; transform: scaleX(0.02); } }
-@keyframes sk-load-on { from { opacity: 0; transform: translateY(-48px) rotate(-7deg); } to { opacity: 1; transform: none; } }
 /* Reduced motion: the doors still cover a load, but they fade in and out instead of swinging, and the sheep stands still. */
 :root.reduce-motion .sk-doors:is([data-phase="open"], [data-phase="closing"]), :root.reduce-motion .sk-doors:is([data-phase="open"], [data-phase="closing"]) :is(.sk-door-l, .sk-door-r, .sk-doors-spill, .sk-doors-frame, .sk-doors-lintel, .sk-load) { animation: none; }
 :root.reduce-motion .sk-doors[data-phase="closing"] { animation: sk-load-fade-in 220ms ease-out both; }
-:root.reduce-motion .sk-doors[data-phase="shut"] .sk-load { animation: none; }
+:root.reduce-motion .sk-doors[data-phase="shut"] :is(.sk-load-board, .sk-load-rope) { animation: none; }
 :root.reduce-motion .sk-doors[data-phase="open"] { opacity: 0; transition: opacity 300ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .sk-doors:is([data-phase="open"], [data-phase="closing"]), .sk-doors:is([data-phase="open"], [data-phase="closing"]) :is(.sk-door-l, .sk-door-r, .sk-doors-spill, .sk-doors-frame, .sk-doors-lintel, .sk-load) { animation: none; }
   .sk-doors[data-phase="closing"] { animation: sk-load-fade-in 220ms ease-out both; }
-  .sk-doors[data-phase="shut"] .sk-load { animation: none; }
+  .sk-doors[data-phase="shut"] :is(.sk-load-board, .sk-load-rope) { animation: none; }
   .sk-doors[data-phase="open"] { opacity: 0; transition: opacity 300ms ease-out; }
 }
 @keyframes sk-load-fade-in { from { opacity: 0; } to { opacity: 1; } }
 /* The loading slip, pinned over the crack between the doors: a sheep hopping a little fence, and a line under it.
    Everything that moves is transform or opacity, so it keeps going while the page is busy building a scene. */
 .sk-load {
-  position: absolute; left: 50%; top: 50%; z-index: 3; translate: -50% -50%; display: flex; flex-direction: column; align-items: center; gap: 6px;
-  min-width: 300px; padding: 22px 34px 16px; rotate: -1.5deg;
+  /* The sign hangs from the beam: its top a third of the way down the screen, ropes up to the beam's underside. */
+  --rope: calc(33vh - var(--vox, 20px) * var(--lintel-above, 7));
+  position: absolute; left: 50%; top: 33vh; z-index: 3; translate: -50% 0;
+  transform-origin: 50% calc(-1 * var(--rope)); animation: sk-load-sway 6s ease-in-out infinite;
 }
-.sk-doors[data-phase="open"] .sk-load { animation: sk-load-off 260ms ease-in forwards; }
-.sk-load-field { position: relative; display: block; width: 220px; height: 96px; border-bottom: 4px solid var(--wood-dark); }
-.sk-load-sheep { position: absolute; left: 0; bottom: 0; display: block; animation: sk-load-hop 1.6s linear infinite; }
-.sk-load-fence { position: absolute; left: 50%; bottom: 0; width: 46px; height: 40px; margin-left: -23px; }
-.sk-load-fence i { position: absolute; bottom: 0; width: 8px; height: 40px; background: var(--wood); box-shadow: inset -2px 0 0 var(--wood-dark); }
-.sk-load-fence i:nth-child(1) { left: 0; } .sk-load-fence i:nth-child(2) { right: 0; }
-.sk-load-fence i:nth-child(3) { left: -6px; right: -6px; bottom: 22px; width: auto; height: 8px; box-shadow: inset 0 -2px 0 var(--wood-dark); }
-.sk-load-line { font: 400 26px/1.2 var(--skin-font-hand); color: var(--ink); white-space: nowrap; }
-/* Run in from the left, leap the fence in the middle, run off the right; then again. */
+@keyframes sk-load-sway { 0%, 100% { rotate: -1.2deg; } 50% { rotate: 1.2deg; } }
+.sk-load-rope { top: calc(-1 * var(--rope)); height: calc(var(--rope) + 6px); z-index: 0; }
+.sk-load-rope--l { left: 22%; } .sk-load-rope--r { right: 22%; }
+.sk-load-board { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 20px 14px; }
+/* A window in the plank onto a moonlit field: sunk into the wood, its frame a dark rebate. */
+.sk-load-window {
+  position: relative; display: block; width: 288px; height: 96px; overflow: hidden; border-radius: 2px;
+  box-shadow: 0 0 0 3px #3A2416, 0 0 0 5px rgba(255, 220, 170, 0.18), inset 0 3px 0 rgba(10, 8, 20, 0.45);
+}
+.sk-load-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sk-load-twinkle { animation: sk-load-twinkle 2.4s steps(1) infinite; }
+@keyframes sk-load-twinkle { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0.25; } }
+/* The sheep runs in from the left, leaps the fence in the middle, lands in a puff of snow and runs off; then again. */
+.sk-load-sheep { position: absolute; left: 0; bottom: 16px; display: block; width: 72px; height: 48px; animation: sk-load-hop 1.9s linear infinite; }
+.sk-load-sheep svg { display: block; }
+.sk-load-legs-a { animation: sk-load-legs 0.26s steps(1) infinite; }
+.sk-load-legs-b { animation: sk-load-legs 0.26s steps(1) infinite reverse; }
+@keyframes sk-load-legs { 0% { opacity: 1; } 50% { opacity: 0; } }
 @keyframes sk-load-hop {
-  0% { transform: translate(-8px, 0); opacity: 0; }
-  8% { opacity: 1; }
-  30% { transform: translate(44px, 0) rotate(0deg); }
-  43% { transform: translate(80px, -46px) rotate(-12deg); }
-  56% { transform: translate(112px, 0) rotate(6deg); }
-  62% { transform: translate(122px, 0) rotate(0deg); }
-  90% { opacity: 1; }
-  100% { transform: translate(164px, 0); opacity: 0; }
+  0% { transform: translate(-76px, 0); }
+  32% { transform: translate(64px, 0) rotate(0deg); }
+  44% { transform: translate(108px, -40px) rotate(-9deg); }
+  56% { transform: translate(150px, 0) rotate(5deg); }
+  62% { transform: translate(168px, 0) rotate(0deg); }
+  100% { transform: translate(296px, 0); }
 }
+.sk-load-puff { position: absolute; left: 172px; bottom: 12px; display: block; opacity: 0; animation: sk-load-puff 1.9s ease-out infinite; }
+.sk-load-puff svg { display: block; }
+@keyframes sk-load-puff { 0%, 55% { opacity: 0; transform: scale(0.5); } 58% { opacity: 1; transform: scale(0.8); } 75% { opacity: 0; transform: scale(1.4) translateY(-4px); } 100% { opacity: 0; } }
+.sk-load-line { font: 400 26px/1.1 var(--skin-font-hand); color: var(--button-text); white-space: nowrap; letter-spacing: 0.01em; }
+/* Lowered on its ropes once the doors are shut, with a little bounce; gone quickly when they open. */
+@keyframes sk-load-drop { 0% { transform: translateY(-80vh); } 70% { transform: translateY(8px); } 85% { transform: translateY(-3px); } 100% { transform: none; } }
 @keyframes sk-load-off { to { opacity: 0; } }
-:root.reduce-motion .sk-load-sheep { animation: none; transform: translate(20px, 0); }
-@media (prefers-reduced-motion: reduce) { .sk-load-sheep { animation: none; transform: translate(20px, 0); } }
+.sk-doors[data-phase="open"] .sk-load { animation: sk-load-off 260ms ease-in forwards; }
+/* Big screens: a bigger sign, scaled from where its ropes meet the beam, so it still hangs from it. */
+@media (min-width: 1400px) and (min-height: 760px) { .sk-load { scale: 1.25; } }
+@media (min-width: 2200px) and (min-height: 1100px) { .sk-load { scale: 1.55; } }
+/* Phones: a smaller sign, the same picture. */
+@media (max-width: 480px) {
+  .sk-load-board { padding: 18px 14px 10px; gap: 8px; }
+  .sk-load-window { width: 240px; height: 80px; }
+  .sk-load-sheep { bottom: 13px; scale: 0.84; transform-origin: 0 100%; }
+  .sk-load-puff { left: 143px; bottom: 10px; scale: 0.84; }
+  .sk-load-line { font-size: 22px; }
+}
+:root.reduce-motion :is(.sk-load, .sk-load-sheep, .sk-load-legs-a, .sk-load-legs-b, .sk-load-twinkle) { animation: none; }
+:root.reduce-motion .sk-load-sheep { transform: translate(30px, 0); }
+:root.reduce-motion .sk-load-legs-b, :root.reduce-motion .sk-load-puff { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sk-load, .sk-load-sheep, .sk-load-legs-a, .sk-load-legs-b, .sk-load-twinkle { animation: none; }
+  .sk-load-sheep { transform: translate(30px, 0); }
+  .sk-load-legs-b, .sk-load-puff { display: none; }
+}
 
 /* ---------- Text fields on paper (the admin password) ---------- */
 .sk-field {

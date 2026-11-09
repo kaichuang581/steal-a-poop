@@ -101,6 +101,11 @@ const FLAKES: CSSProperties[] = Array.from({ length: 22 }, (_, i) => {
 
 const LINES = ['Counting the sheep', 'Fluffing the hay', 'Lighting the lanterns', 'Shooing the hens', 'Sweeping the snow off the step'];
 
+/** Whether the doors swallow key presses in this phase: while they are coming down or shut, never once they open, and
+ *  never when they are gone. ('gone' doors stay mounted until the next pair: blocking there swallowed every letter typed
+ *  at the table for the rest of the session, 2026-11-09.) */
+export const keysBlocked = (phase: string) => phase === 'veiling' || phase === 'closing' || phase === 'shut';
+
 export function BarnDoors() {
   const key = useDoors((s) => s.key);
   return key ? <Doors key={key} id={key} /> : null;
@@ -184,7 +189,7 @@ function Doors({ id }: { id: number }) {
   // The doors are modal: keys pressed while they are up do not reach the screen behind (starting the dream, typing at
   // the table). Browser shortcuts with Ctrl, Cmd or Alt still work.
   useEffect(() => {
-    if (phase === 'open') return;
+    if (!keysBlocked(phase)) return;
     const block = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       e.preventDefault();

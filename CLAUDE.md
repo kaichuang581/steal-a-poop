@@ -493,3 +493,8 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   drawn portraits (portraits.ts) are no longer shown; the file stays for its existing test. The tab icon is the sheep's
   head (public/favicon-32.png, favicon-64.png, and apple-touch-icon.png on a cream tile); favicon.svg is gone. Icon and
   preload links in index.html are page-relative because the dev server doubles a %BASE_URL% prefix.
+- Typing at the table was dead after the first doors (found by Brian, 2026-11-09: "why is it that i cant type for the
+  games?"): the doors' key blocker ran in every phase but 'open', and 'gone' doors stay mounted until the next pair, so
+  it swallowed every key for the rest of the session. `keysBlocked` (BarnDoors.tsx) now blocks only while veiling,
+  closing or shut, with a test. The e2e suite runs the classic look, so it cannot catch painted-skin input bugs:
+  check typing at the table in a browser after touching the doors.

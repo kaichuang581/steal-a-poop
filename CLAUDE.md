@@ -460,3 +460,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   pixels (night sky, stars, moon, hills, two pines, snow, the snowy fence), where the sheep, redrawn at 24 x 16 with an
   outline, shaded wool, collar and bell, trots (two leg frames), leaps the fence and lands in a puff of snow. The line
   is cream on the wood. Pixel art is written as rows of letters (`Pixels` in BarnDoors.tsx). Bigger on big screens.
+- Snow with a little texture (requested by Brian, 2026-11-08: "the snow looks super flat and untexturized ... not
+  overtexturized like the barn floor, just slight more detail"): the yard's ground, the farm's buildings and land, and the
+  countryside paint snow with `snowPaint`/`snowAt` (src/skin/voxel/snow.ts) instead of two near-white tones in square
+  patches. In metres, so every grid matches: soft drifts (~2.2 m) and finer undulation (~0.7 m), faint slanted wind
+  ripples, a little cool blue in the hollows, fine grain and an occasional glint, the darkest about 17% under the
+  brightest. On coarse grids (the far land is 1 m voxels) the marks are wider and softer, or the big voxels step into
+  squares. Keep it subtle; per-voxel tone picks on snow are what drew the squares before.

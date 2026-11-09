@@ -3,6 +3,7 @@ import { buildGeometry, triangles } from '../voxel/mesher';
 import { detailed } from '../voxel/refine';
 import type { Voxel, VoxelMap } from '../voxel/mesher';
 import { lin, pick, SCARF, T } from '../voxel/palette';
+import { snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, V3 } from '../voxel/primitives';
@@ -13,7 +14,7 @@ const S = 0.2;
 const CHUNK = 8;
 const ix = (m: number) => Math.round(m / S);
 const tone = (t: Tone, seed: number, w?: [number, number]): Paint => (x, y, z) => pick(t, hash3(x, y, z, seed), w);
-const snow = tone(T.snow, 3, [0.55, 0.9]);
+const snow = snowPaint(S, 3);
 const CARROT = '#E8873A';
 const SKATE = '#EEF8FC';
 const WINDOW_FRAME = '#EDE6D6';
@@ -120,8 +121,8 @@ function ground(g: Grid, set: Set) {
         continue;
       }
       const path = onPath(x, z);
-      // Snow in broad patches of the two light tones; the dark tone only where drifts shade it.
-      set(xi, -1, zi, path ? pathTone : (gx, gy, gz) => pick(T.snow, hash3(gx >> 3, gy, gz >> 3, 2), [0.6, 1.01]));
+      // Snow with soft drifts, ripples and grain (voxel/snow.ts), never the square patches it used to have.
+      set(xi, -1, zi, path ? pathTone : snowPaint(S, 2));
       if (path) continue;
       // 0.2 m drifts against the fence, the barn's walls and around the pond rim.
       const r = hash3(xi, 0, zi, 9);

@@ -1,6 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry, triangles } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
+import { snowPaint } from '../voxel/snow';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, RGB } from '../voxel/primitives';
 import { backHillHeight } from './distance';
@@ -17,7 +18,7 @@ import { BARN, YARD } from './layout';
 
 const S = 0.2;
 const F = 0.1;
-const snow: Paint = (x, y, z) => pick(T.snow, hash3(x >> 2, y, z >> 2, 201), [0.55, 1.01]);
+const snow: Paint = snowPaint(S, 201);
 
 const RECTS: [number, number, number, number][] = [
   [BARN.minX - 2, BARN.maxX + 2, BARN.minZ - 2, BARN.maxZ + 3],

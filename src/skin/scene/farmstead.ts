@@ -2,6 +2,7 @@ import type { BufferGeometry } from 'three';
 import { buildGeometry, triangles } from '../voxel/mesher';
 import { detailed } from '../voxel/refine';
 import { lin, pick, T } from '../voxel/palette';
+import { snowAt, snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, V3 } from '../voxel/primitives';
@@ -31,7 +32,7 @@ export const FARM = {
 };
 
 const tone = (t: Tone, seed: number, w?: [number, number]): Paint => (x, y, z) => pick(t, hash3(x, y, z, seed), w);
-const snow = tone(T.snow, 3, [0.55, 0.9]);
+const snow = snowPaint(F, 3);
 const white = tone(T.trim, 5, [0.6, 0.95]);
 
 /** Top of the barn's own roof boards at column x (0.1 m index), as in barn.ts. */
@@ -481,7 +482,7 @@ function terrain(): BufferGeometry {
     if (z < BARN.minZ && Math.abs(x) >= 13) return false;
     return true;
   };
-  const paint = (x: number, y: number, z: number) => pick(T.snow, hash3(x >> 2, y >> 1, z >> 2, 71), [0.6, 1.01]); // the two light tones: the dark one drew squares on the land
+  const paint = (x: number, y: number, z: number) => snowAt(x, y, z, 1, 71); // smooth drifts and grain (voxel/snow.ts): tones in squares drew squares on the land
   for (let x = -150; x < 150; x++)
     for (let z = -60; z < YARD.maxZ; z++) {
       if (yardCovers(x, z)) continue;

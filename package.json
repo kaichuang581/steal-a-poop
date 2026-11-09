@@ -23,8 +23,8 @@
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
-    "@supabase/supabase-js": "^2.118.0",
-    "framer-motion": "^14.9.0",
+    "@supabase/supabase-js": "^2.119.0",
+    "framer-motion": "^14.9.1",
     "jose": "^6.2.15",
     "nodemailer": "^10.3.1",
     "pg": "^8.23.1",

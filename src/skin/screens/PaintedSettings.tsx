@@ -6,8 +6,9 @@ import { AccountPanel } from '../../ui/auth/AccountPanel';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { PaintedCredits } from '../components/PaintedCredits';
 import { Chip, PaperPanel } from '../components/Materials';
+import { SaveCodeRow } from '../components/SaveCodeRow';
 
-/** The existing settings, unchanged, in a paper panel. No new settings. */
+/** The existing settings in a paper panel, and the save code (plan v7 Part 6). */
 export function PaintedSettings({ onClose }: { onClose: () => void }) {
   const s = useStore();
   const ready = s.dictStatus === 'ready';
@@ -60,6 +61,7 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
           <button className={row} style={rowStyle} onClick={() => { resetTips(); setTipsCleared(true); }}>
             <span>Show gameplay tips again</span><span className="flex items-center gap-1">{tipsCleared ? <><CheckIcon size={14} /> Reset</> : <ResetIcon size={16} />}</span>
           </button>
+          <SaveCodeRow />
           <button className={row} style={rowStyle} onClick={() => setCredits(true)}>
             <span>Credits and licenses</span><span aria-hidden="true" className="sk-display text-xl leading-none">›</span>
           </button>

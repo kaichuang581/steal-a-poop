@@ -7,6 +7,7 @@ import { useGuest } from '../../auth/guest';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { getHuntBest } from '../../hunt/record';
+import { dexProgress, readBestiary } from '../../hunt/bestiary';
 import { useHuntUi } from '../hunt/huntStore';
 import { dreamSeed, dreamShareText } from '../../dream/dream';
 import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
@@ -111,6 +112,7 @@ export function PaintedHome() {
   const mobile = useIsMobile();
   const today = useToday();
   const huntBest = getHuntBest();
+  const huntMet = dexProgress(readBestiary()).met;
   const dream = getDream(today);
   const streak = getDreamStreak(today);
   const blankets = loadStreak().blankets;
@@ -217,8 +219,8 @@ export function PaintedHome() {
       onSelect: () => useDreamUi.getState().openDream(false, repair),
     } satisfies MenuItem] : []),
     {
-      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
-      caption: 'Fight off predator after predator with words. Hunt as often as you like.',
+      id: 'hunt', label: 'Hunt', badge: huntBest ? <MenuTag tone="green">best {huntBest.defeated}{huntMet ? ` · ${huntMet}/6 met` : ''}</MenuTag> : <MenuTag tone="green">new</MenuTag>, disabled: !ready,
+      caption: "Fight off predator after predator with words. Hunt as often as you like. Got a friend's pack code? Enter it in the Hunt.",
       onSelect: () => useHuntUi.getState().openHunt(),
     },
     {

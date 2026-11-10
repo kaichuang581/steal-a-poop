@@ -46,6 +46,8 @@ function cornersFor(axis: number, sign: number): [number, number][] {
  * voxel indices times `size`.
  */
 export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true }: { ao?: boolean } = {}): BufferGeometry {
+  // tools/floatingVoxels.ts listens here to find voxels that touch nothing; nothing else sets it.
+  (globalThis as { __voxelHook?: (vox: VoxelMap, size: number) => void }).__voxelHook?.(vox, size);
   const solid = solidOf(vox);
   // UVs are kept so a material may map a texture, but the voxel material carries none (plan V3.1 Part 1.1).
   const has = (p: number[]) => solid.has(cellKey(p[0], p[1], p[2]));

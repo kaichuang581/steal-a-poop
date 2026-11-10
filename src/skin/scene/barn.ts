@@ -135,8 +135,12 @@ function beams(): Grid {
   fill(g, 57, 59, 39, 41, -40, 69, wood, 2);
   fill(g, -60, 59, 39, 41, 67, 69, wood, 0);
   const bz = I(BARN.lanterns[0][2]);
-  fill(g, -57, 56, I(BARN.beamY) - 1, I(BARN.beamY) + 1, bz - 1, bz + 1, wood, 0);
-  for (const x of [-55, 54]) for (const y of [38, 39]) g.set(x, y, bz - 2, peg);
+  // The cross beam runs wall to wall over the plates and stands on a post at each end (Brian, 2026-11-09: "a lot of
+  // them are floating"): it moved to the lanterns' z long ago and was left hanging between the walls, 0.1 m over the
+  // plates and clear of every post, with its two pegs in the air below it. The pegs are in the posts now.
+  fill(g, -60, 59, I(BARN.beamY) - 1, I(BARN.beamY) + 1, bz - 1, bz + 1, wood, 0);
+  for (const x0 of [-60, 57]) fill(g, x0, x0 + 2, 0, I(BARN.beamY) - 2, bz - 1, bz + 1, wood, 1);
+  for (const x of [-57, 56]) for (const y of [36, 37]) g.set(x, y, bz, peg);
   fill(g, -21, 20, 34, 36, 67, 69, wood, 0); // back door header
   fill(g, -60, -59, SD.y1 + 1, SD.y1 + 3, SD.z0 - 2, SD.z1 + 2, wood, 2); // side door header
 

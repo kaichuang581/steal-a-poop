@@ -100,8 +100,12 @@ function forestPine(g: Grid, wx: number, wz: number, H: number, seed: number, gr
         }
     }
   }
-  // A leader above the top tier.
-  for (let y = Math.round(top / k); y < Math.round((top + 0.5) / k); y++) put(Math.floor(cx), y, Math.floor(cz), 0);
+  // A leader above the top tier, from the tier's own top: started at the drawn height it could leave a cell of air
+  // under it (Brian, 2026-11-09: "a lot of them are floating").
+  const lx = Math.floor(cx), lz = Math.floor(cz);
+  let crown = 0;
+  for (const [x, y, z] of cells.values()) if (x === lx && z === lz) crown = Math.max(crown, y);
+  for (let y = crown + 1; y < Math.max(crown + 2, Math.round((top + 0.5) / k)); y++) put(lx, y, lz, 0);
   const bark = pick(T.trunk, hash3(seed, 0, 0, 93), [0.3, 0.8]);
   for (const [x, y, z, out] of cells.values()) {
     // Colour comes in patches a few voxels across, never voxel by voxel: single-voxel flecks are what read as noise.
@@ -217,7 +221,7 @@ function scrub(g: Grid) {
     const [x, z] = at;
     for (let k = 0, n = 4 + Math.floor(r() * 3); k < n; k++) {
       const a = r() * Math.PI * 2, lean = 0.25 + r() * 0.45, h = 0.6 + r() * 0.7;
-      line(g, [x, 0, z], [x + Math.cos(a) * lean, h, z + Math.sin(a) * lean], twig);
+      line(g, [x, 0, z], [x + Math.cos(a) * lean, h, z + Math.sin(a) * lean], twig, true);
     }
   }
   for (let i = 0; i < 12; i++) {

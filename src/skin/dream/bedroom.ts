@@ -245,8 +245,12 @@ export function bedroomGeometry(): BedroomGeo {
     const edge = y === 6 || y === 10 || z === i(s.z0) + 1 || z === i(s.z1) - 2;
     if (edge) g.set(i(s.x1), y, z, lin(WALNUT[2]));
   }
-  fine.set(Math.round(s.x1 / S) + 2, 16, Math.round(((s.z0 + s.z1) / 2) / S), lin(T.brass[0]));
-  fine.set(Math.round(s.x1 / S) + 2, 16, Math.round(((s.z0 + s.z1) / 2) / S) - 1, lin(T.brass[1]));
+  // The knob runs back to the stand's face: the drawer is only an outline frame, and a knob at the frame's face hung in
+  // the air in front of it (Brian, 2026-11-09: "a lot of them are floating").
+  for (let dx = 0; dx <= 2; dx++) {
+    fine.set(Math.round(s.x1 / S) + dx, 16, Math.round(((s.z0 + s.z1) / 2) / S), lin(T.brass[0]));
+    fine.set(Math.round(s.x1 / S) + dx, 16, Math.round(((s.z0 + s.z1) / 2) / S) - 1, lin(T.brass[1]));
+  }
 
   // ---- the oil lamp: a brass foot and collar, an amber oil font (the chimney and flame are `lampGlass`)
   const lamp = new Grid(S), lampGlass = new Grid(S);

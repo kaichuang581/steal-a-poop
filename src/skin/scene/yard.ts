@@ -227,7 +227,13 @@ export function pine(g: Grid, set: Set, wx: number, wz: number, seed: number, he
   // Bare lower branches below the needle rows.
   for (let k = 0; k < 3; k++) {
     const a = r() * Math.PI * 2, y = 3 + k * 2, L = 3 + Math.floor(r() * 2);
-    for (let i = 2; i <= L; i++) set(Math.round(tx + 1 + Math.cos(a) * i), y + (i === L ? 1 : 0), Math.round(tz + 1 + Math.sin(a) * i), ridge);
+    // From the trunk's face out (starting two cells off the trunk's middle left a branch pointing along an axis a cell
+    // clear of the bark, in the air), the tip turned up on top of its last cell rather than beside it.
+    for (let i = 1; i <= L; i++) {
+      const x = Math.round(tx + 1 + Math.cos(a) * i), z = Math.round(tz + 1 + Math.sin(a) * i);
+      set(x, y, z, ridge);
+      if (i === L) set(x, y + 1, z, ridge);
+    }
   }
   // Layered rows: 1-voxel radial branches, a 1-voxel gap above the snow, slight droop at the tips.
   const rMax = (H * 0.27) / S;
@@ -241,17 +247,22 @@ export function pine(g: Grid, set: Set, wx: number, wz: number, seed: number, he
       const a = off + (d / dirs) * Math.PI * 2;
       const L = R * (0.8 + hash3(d, tier, seed, 31) * 0.3);
       const bare = tier === 0 && hash3(d, 0, seed, 33) < 0.2;
+      let drooped = false;
       for (let i = 1; i <= L; i += 0.6) {
         const x = Math.round(tx + 0.5 + Math.cos(a) * i), z = Math.round(tz + 0.5 + Math.sin(a) * i);
-        const yy = y - (i > L * 0.7 ? 1 : 0);
-        if (bare) set(x, yy, z, ridge);
-        else branch.push([x, yy, z]);
+        const droop = i > L * 0.7;
+        // Where the tip first drops a row it keeps a cell on the branch's own row too: dropping while stepping out
+        // diagonally left the tip touching the branch at a corner only, and it hung in the air.
+        const cells: V3[] = droop && !drooped ? [[x, y, z], [x, y - 1, z]] : [[x, droop ? y - 1 : y, z]];
+        drooped ||= droop;
+        for (const c of cells) if (bare) set(c[0], c[1], c[2], ridge); else branch.push(c);
       }
     }
   }
   for (const [x, y, z] of branch) set(x, y, z, needles);
   for (const [x, y, z] of branch) if (!g.has(x, y + 1, z)) set(x, y + 1, z, snow);
-  // Leader at the top with a snow tip.
+  // Leader at the top with a snow tip, standing on the trunk (which stops at hv - 3).
+  set(tx, hv - 2, tz, needles);
   set(tx, hv - 1, tz, needles);
   set(tx, hv, tz, needles);
   set(tx, hv + 1, tz, snow);

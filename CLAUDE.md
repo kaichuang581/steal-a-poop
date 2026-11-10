@@ -596,3 +596,20 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   plate as a section"): the practice results board shows "Longest word" and the word as a section under a rule
   (`.sk-tally-section`, `.sk-tally-longest`), with the dream line as another section; Counting Sheep's results show the
   night's facts as a section beside the count (`.dr-results-facts`), not a pinned sheet.
+- No floating voxels (requested by Brian, 2026-11-09: "can you fix all the misplaced voxels, a lot of them are floating").
+  `npm run check:floating` (tools/floatingVoxels.ts; also `-- [table|farm|duel|bedroom] [--props] [--detail=<file>]`)
+  builds each scene, catches every model the mesher gets (`__voxelHook` in mesher.ts, set by nothing else), and lists
+  every piece touching nothing (no shared face or edge) with the code that built it; it must say "Nothing floats."
+  after any scenery change. It is not in `npm test`: building every scene there timed out the other builder tests.
+  src/skin/voxel/__tests__/primitives.floating.test.ts and refine.test.ts pin the causes. Before: 185 loose pieces at the table, 36 on the farm. Causes and fixes, keep them fixed:
+  (a) `refine` took off the small cells that were the only bridge between two voxels meeting at an edge or corner (a
+  drooping pine branch fell off); it keeps them now, and treats below y = 0 as ground, so a thin post or tyre keeps its
+  foot. (b) `box` drew nothing for a one-cell box on a half cell (5.75 on a 0.1 grid rounded its sides apart): the wire
+  along the barn's right wall did not exist and its bulbs floated; an empty box now takes its width from its size, and
+  every box that drew before draws the same. (c) `line(..., joined)` and festive `strand` step one axis at a time, so a
+  limb or a wire is one piece (the animals keep the old `line`). (d) Things placed in the air: the cross beam (moved to
+  the lanterns' z, now on its own posts at each wall), the tractor (tyres 0.1 m up, no axles), the yard pines' leader
+  and bare branches, the forest pines' leader, the stars on the trees, the wreaths and stockings, the lights on the coop,
+  the shed and the orchard, the nightstand's knob. The outside wreath and the gable lights hang on the farm's barn shell
+  (z 7.3 to 7.4), so they live in `buildFarmFestive`. Known and fine: the distant hills and mountains, the dream's
+  islands, and the bedroom's clock, ring and window view are placed by their meshes, not in world space.

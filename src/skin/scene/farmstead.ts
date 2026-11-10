@@ -381,12 +381,12 @@ function bareTree(b: Builder, x: number, z: number, seed: number, size = 1) {
   const r = rng(seed * 31 + 7);
   const bark = tone(T.trunk, seed + 50, [0.4, 0.85]);
   const trunkH = (1.4 + r() * 0.5) * size;
-  line(b.g, [x, 0, z], [x, trunkH, z], bark);
-  line(b.g, [x + S, 0, z], [x + S, trunkH * 0.8, z], bark);
-  line(b.g, [x, 0, z + S], [x, trunkH * 0.7, z + S], bark);
+  line(b.g, [x, 0, z], [x, trunkH, z], bark, true);
+  line(b.g, [x + S, 0, z], [x + S, trunkH * 0.8, z], bark, true);
+  line(b.g, [x, 0, z + S], [x, trunkH * 0.7, z + S], bark, true);
   const limb = (from: V3, a: number, up: number, len: number, depth: number) => {
     const to: V3 = [from[0] + Math.cos(a) * len, from[1] + up * len, from[2] + Math.sin(a) * len];
-    line(b.g, from, to, bark);
+    line(b.g, from, to, bark, true);
     if (depth === 0) {
       ORCHARD_TIPS.push(to);
       return;
@@ -445,17 +445,23 @@ function tractor(b: Builder) {
         }
       }
   };
+  // Each wheel's centre one cell under its radius: the tyre's bottom row is a gap between lugs, so a centre at the
+  // radius left every tyre 0.1 m over the snow (Brian, 2026-11-09: "a lot of them are floating").
   for (const s of [-1, 1]) {
-    wheel(X + 11, 8, s < 0 ? Z - 12 : Z + 8, s < 0 ? Z - 8 : Z + 12, 8);
-    wheel(X - 13, 5, s < 0 ? Z - 10 : Z + 7, s < 0 ? Z - 7 : Z + 10, 5);
+    wheel(X + 11, 7, s < 0 ? Z - 12 : Z + 8, s < 0 ? Z - 8 : Z + 12, 8);
+    wheel(X - 13, 4, s < 0 ? Z - 10 : Z + 7, s < 0 ? Z - 7 : Z + 10, 5);
   }
+  // Axles, and a post from the front axle up into the hood: nothing joined the wheels to the body.
+  b.box(X + 10, X + 12, 6, 8, Z - 12, Z + 12, iron);
+  b.box(X - 14, X - 12, 3, 5, Z - 10, Z + 10, iron);
+  b.box(X - 14, X - 12, 5, 7, Z - 1, Z + 1, iron);
   b.box(X - 19, X + 6, 7, 14, Z - 4, Z + 4, red); // hood
   b.box(X - 19, X - 19, 8, 13, Z - 3, Z + 3, iron); // grille
   b.box(X - 20, X - 20, 12, 13, Z - 3, Z - 2, () => lin(T.lantern[0]));
   b.box(X - 20, X - 20, 12, 13, Z + 2, Z + 3, () => lin(T.lantern[0]));
   b.box(X + 6, X + 15, 6, 11, Z - 5, Z + 5, red); // body
-  b.box(X + 7, X + 16, 12, 13, Z - 9, Z - 7, red); // fenders
-  b.box(X + 7, X + 16, 12, 13, Z + 7, Z + 9, red);
+  b.box(X + 7, X + 16, 12, 13, Z - 9, Z - 5, red); // fenders, run in to the body's sides
+  b.box(X + 7, X + 16, 12, 13, Z + 5, Z + 9, red);
   b.box(X + 9, X + 13, 12, 13, Z - 2, Z + 2, iron); // seat
   b.box(X + 13, X + 14, 14, 18, Z - 2, Z + 2, iron);
   b.box(X + 5, X + 5, 15, 19, Z, Z, iron); // steering column

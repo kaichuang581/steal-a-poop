@@ -48,12 +48,24 @@ class Dressing {
     const length = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
     const steps = Math.max(1, Math.round(length / 0.1));
     const bulbEvery = Math.max(1, Math.round(every / 0.1));
+    // The wire steps one axis at a time from cell to cell, so it is one unbroken line: a step that moved along all
+    // three at once left two cells touching at a corner only, and the sag between them hung in the air (Brian,
+    // 2026-11-09: "a lot of them are floating").
+    const wire = lin(T.face[2]), g = this.decor;
+    let prev: V3 | null = null;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       const x = a[0] + (b[0] - a[0]) * t, z = a[2] + (b[2] - a[2]) * t;
       const y = a[1] + (b[1] - a[1]) * t - droop * 4 * t * (1 - t);
-      box(this.decor, [x, y, z], [x + 0.1, y + 0.1, z + 0.1], () => lin(T.face[2]));
-      if (i % bulbEvery === bulbEvery >> 1) this.bulb(x + 0.05, y - bulb / 2, z + 0.05, bulb);
+      const cell: V3 = [g.i(x), g.i(y), g.i(z)];
+      if (prev) {
+        const at: V3 = [...prev];
+        for (const axis of [0, 2, 1] as const) while (at[axis] !== cell[axis]) { at[axis] += Math.sign(cell[axis] - at[axis]); g.set(at[0], at[1], at[2], wire); }
+      }
+      g.set(cell[0], cell[1], cell[2], wire);
+      prev = cell;
+      // The bulb hangs from the wire's own cell.
+      if (i % bulbEvery === bulbEvery >> 1) this.bulb((cell[0] + 0.5) * g.size, cell[1] * g.size - bulb / 2, (cell[2] + 0.5) * g.size, bulb);
     }
   }
 
@@ -83,10 +95,21 @@ class Dressing {
     }
     for (let i = 0, count = Math.round(height * 7); i < count; i++) {
       const y = trunk + 0.3 + (i / count) * (height - trunk - 0.7);
-      const r = radiusAt(y) + 0.05, a = i * 2.4;
+      const r = Math.max(0, radiusAt(y) - 0.05), a = i * 2.4; // set into the branches, not hung off their tips
       this.bulb(x + Math.cos(a) * r, y, z + Math.sin(a) * r, bauble);
     }
-    if (topped) this.star(x, height - 0.2, z);
+    if (topped) {
+      // The star stands on the tree's own tip, on a short gold stem: placed at the drawn height it hung just over a tip
+      // that tapers away below it.
+      const cx = g.i(x), cz = g.i(z);
+      let top: { x: number; y: number; z: number } | null = null;
+      for (const v of g.map.values()) if (Math.abs(v.x - cx) <= 1 && Math.abs(v.z - cz) <= 1 && (!top || v.y > top.y)) top = v;
+      if (top) {
+        // A stem up from the tip's own cell to the star's middle row (STAR row 5 is the first with a middle cell).
+        for (let k = 1; k <= 4; k++) this.stars.set(top.x, top.y + k, top.z, lin(GOLD));
+        this.star(top.x * g.size, (top.y + 1) * g.size, top.z * g.size);
+      }
+    }
   }
 
   /** A gold star, steady while the bulbs twinkle, standing on `y`. */
@@ -144,11 +167,14 @@ class Dressing {
   /** A ring of pine with berries and a red bow, facing along z. */
   wreath(x: number, y: number, z: number) {
     const g = this.decor;
-    for (let dx = -0.6; dx <= 0.6; dx += 0.1) {
-      for (let dy = -0.6; dy <= 0.6; dy += 0.1) {
-        const d = Math.hypot(dx, dy);
-        if (d < 0.3 || d > 0.6) continue;
-        box(g, [x + dx, y + dy, z], [x + dx + 0.1, y + dy + 0.1, z + 0.2], (a, b, c) => (hash3(a, b, c, 79) > 0.86 ? lin(RED) : pick(T.pine, hash3(a, b, c, 81))));
+    // Whole cells round the centre: stepping in metres let the rounding open gaps, and the ring came apart in arcs.
+    const cx = g.i(x), cy = g.i(y), cz = g.i(z);
+    for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) {
+      const d = Math.hypot(i, j) * g.size;
+      if (d < 0.3 || d > 0.62) continue;
+      for (const k of [0, 1]) {
+        const [a, b, c] = [cx + i, cy + j, cz + k];
+        g.set(a, b, c, hash3(a, b, c, 79) > 0.86 ? lin(RED) : pick(T.pine, hash3(a, b, c, 81)));
       }
     }
     box(g, [x - 0.3, y - 0.7, z - 0.1], [x + 0.4, y - 0.5, z + 0.3], () => lin(RED));
@@ -188,15 +214,11 @@ export function buildFestive(): FestiveGeometry {
   // Lights: along the cross beam over the table, up the gable over the doors, and along the yard fence.
   d.strand([BARN.minX + 0.4, BARN.beamY - 0.1, 1.0], [-1.2, BARN.beamY - 0.1, 1.0], 0.45);
   d.strand([1.2, BARN.beamY - 0.1, 1.0], [BARN.maxX - 0.4, BARN.beamY - 0.1, 1.0], 0.45);
-  const gableZ = BARN.maxZ + 0.5;
-  d.strand([BARN.minX, BARN.wallHeight, gableZ], [0, BARN.ridgeHeight - 0.2, gableZ], 0.12, 0.5);
-  d.strand([0, BARN.ridgeHeight - 0.2, gableZ], [BARN.maxX, BARN.wallHeight, gableZ], 0.12, 0.5);
   const { minX, maxX, gateHalfWidth, z: fenceZ } = YARD.fence;
   for (let x = minX; x < -gateHalfWidth; x += 3.6) d.strand([x, 1.45, fenceZ], [Math.min(x + 3.6, -gateHalfWidth), 1.45, fenceZ], 0.3);
   for (let x = gateHalfWidth; x < maxX; x += 3.6) d.strand([x, 1.45, fenceZ], [Math.min(x + 3.6, maxX), 1.45, fenceZ], 0.3);
   // A wreath over the doors, on the yard side and the table side.
-  d.wreath(0, BARN.backDoor.height + 1.55, BARN.maxZ + 0.6); // on the hayloft door
-  d.wreath(0, BARN.backDoor.height + 0.75, BARN.maxZ - 0.3);
+  d.wreath(0, BARN.backDoor.height + 0.75, BARN.maxZ - 0.2); // on its inside face
   // Candy canes down both sides of the path.
   for (let z = BARN.maxZ + 3; z < YARD.fence.z - 1; z += 2.4) {
     d.cane(-YARD.path.halfWidth - 1.4, z, 1); // set back: the tour's path shot looks straight down this side
@@ -206,7 +228,7 @@ export function buildFestive(): FestiveGeometry {
   // Round the barn walls, for the table's camera: swags down both sides and stockings either side of the doors.
   for (const side of [-1, 1]) {
     d.swags([side * (BARN.maxX - 0.25), 3.6, -3.4], [side * (BARN.maxX - 0.25), 3.6, BARN.maxZ - 0.6], 3.2, 0.4);
-    for (const x of [2.7, 3.5]) d.stocking(side * x, 2.5, BARN.maxZ - 0.2, side);
+    for (const x of [2.7, 3.5]) d.stocking(side * x, 2.5, BARN.maxZ - 0.1, side); // against the inside face
   }
   // Out in the yard: the sled loaded, the farmhouse lit up, and lights round the pond. There is one Christmas tree on
   // this farm, by the barn doors, and one in the barn. The pines are just pines; more trees would only be noise.
@@ -233,6 +255,13 @@ export function buildFarmFestive(): FestiveGeometry {
   const d = new Dressing();
   // The barn's long sides, under the eaves.
   for (const side of [-1, 1]) d.swags([side * 6.7, 4.0, BARN.minZ + 0.4], [side * 6.7, 4.0, BARN.maxZ], 2.8, 0.2, 0.5);
+  // Up the gable over the doors and a wreath on the loft door. They hang on this farm's outside of the barn (farmstead.ts:
+  // its boards' face is at z 7.3, the loft door's cross at 7.4), which only the start screen has; the table never sees
+  // that side. At 7.5 they hung in the air in front of it.
+  const gableZ = BARN.maxZ + 0.3;
+  d.strand([BARN.minX, BARN.wallHeight, gableZ], [0, BARN.ridgeHeight - 0.2, gableZ], 0.12, 0.5);
+  d.strand([0, BARN.ridgeHeight - 0.2, gableZ], [BARN.maxX, BARN.wallHeight, gableZ], 0.12, 0.5);
+  d.wreath(0, BARN.backDoor.height + 1.55, BARN.maxZ + 0.4);
   // The silo: lights wound round it from bottom to top.
   const { silo, coop, tractor, paddock: P } = FARM;
   const turns = 5, steps = turns * 12;
@@ -248,16 +277,21 @@ export function buildFarmFestive(): FestiveGeometry {
   d.swags([18.2, rail, P.maxZ], [P.maxX, rail, P.maxZ], 3, 0.25);
   d.swags([P.maxX, rail, P.minZ], [P.maxX, rail, P.maxZ], 3, 0.25);
   d.strand([15, 1.6, -3], [18.2, 1.6, -3], 0.15, 0.4);
-  d.swags([12.8, 2.6, -9.9], [20.6, 2.6, -9.9], 2.6, 0.18);
+  // Up against the shed roof's underside, a cell in from its bevelled edge (at 2.6 it hung 0.1 m under the roof).
+  d.swags([12.8, 2.7, -10.0], [20.6, 2.7, -10.0], 2.6, 0.18);
   // The coop: lights along both eaves.
-  for (const z of [coop.z + 1.75, coop.z - 1.85]) d.strand([coop.x - 2.2, 2.25, z], [coop.x + 2.2, 2.25, z], 0.16, 0.4);
+  // Under the eaves' own cells (2.0 to 2.2 m up, z -0.2 to 0 and 3.0 to 3.2): they hung past the eaves' ends in the air.
+  for (const z of [coop.z + 1.52, coop.z - 1.62]) d.strand([coop.x - 2.2, 1.9, z], [coop.x + 2.2, 1.9, z], 0.16, 0.4);
   // The tractor: lights down both sides of the hood, and presents waiting to be loaded.
   for (const side of [-0.5, 0.5]) d.strand([tractor.x - 1.9, 1.5, tractor.z + side], [tractor.x + 0.6, 1.5, tractor.z + side], 0.02, 0.3, 0.1);
   d.present(tractor.x - 1.2, tractor.z + 2.1, 0.7, 0.6, T.collar[1], GOLD);
   d.present(tractor.x - 0.2, tractor.z + 2.4, 0.5, 0.4, T.pine[1], T.snow[1]);
   d.present(tractor.x + 0.6, tractor.z + 2.1, 0.6, 0.7, GOLD, T.collar[1]);
   // The orchard: the odd bauble left hanging on a branch.
-  ORCHARD_TIPS.forEach(([x, y, z], i) => { if (i % 5 === 0) d.bulb(x, y - 0.2, z); });
+  // Each hangs from its tip's own cell (the orchard's 0.2 m grid), overlapping the cell's lower half: hung 0.2 m under
+  // the tip's point, a bauble often missed the branch and floated.
+  const cell = 0.2, at = (m: number) => Math.round(m / cell) * cell;
+  ORCHARD_TIPS.forEach(([x, y, z], i) => { if (i % 5 === 0) d.bulb(at(x) + cell / 2, at(y), at(z) + cell / 2); });
   return (farmstead = d.build());
 }
 

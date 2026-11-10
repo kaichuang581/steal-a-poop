@@ -60,8 +60,14 @@ export function ellipsoid(g: Grid, c: V3, r: V3, paint: Paint, noise = 0, seed =
 
 /** Axis-aligned box from min to max (metres, inclusive of min), with `chamfer` voxels cut off every edge. */
 export function box(g: Grid, min: V3, max: V3, paint: Paint, chamfer = 0) {
+  // A box one cell thick that sits on a half cell (x = 5.75 on a 0.1 m grid) had its near side round up and its far side
+  // round down, and came out empty: that is how the lights along the barn's right wall lost their wire and floated
+  // (Brian, 2026-11-09). Such a box now takes its width from its size. Every box that drew before draws as it did.
   const a = min.map((v) => Math.round(v / g.size));
-  const b = max.map((v) => Math.round(v / g.size) - 1);
+  const b = max.map((v, i) => {
+    const far = Math.round(v / g.size) - 1;
+    return far < a[i] ? a[i] + Math.round((v - min[i]) / g.size) - 1 : far;
+  });
   for (let x = a[0]; x <= b[0]; x++)
     for (let y = a[1]; y <= b[1]; y++)
       for (let z = a[2]; z <= b[2]; z++) {
@@ -123,14 +129,22 @@ export function ring(g: Grid, c: V3, rx: number, rz: number, thickness: number, 
 }
 
 /** One-voxel line between two points in metres. */
-export function line(g: Grid, a: V3, b: V3, paint: Paint) {
+export function line(g: Grid, a: V3, b: V3, paint: Paint, joined = false) {
   const d = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
   const n = Math.max(1, Math.ceil((d / g.size) * 2));
+  let prev: V3 | null = null;
+  const put = (x: number, y: number, z: number) => { const col = paint(x, y, z); if (col) g.set(x, y, z, col); };
   for (let i = 0; i <= n; i++) {
     const t = i / n;
     const x = Math.round((a[0] + (b[0] - a[0]) * t) / g.size), y = Math.round((a[1] + (b[1] - a[1]) * t) / g.size), z = Math.round((a[2] + (b[2] - a[2]) * t) / g.size);
-    const col = paint(x, y, z);
-    if (col) g.set(x, y, z, col);
+    // `joined`: step one axis at a time between samples, so the line is one piece. A diagonal step that moved along all
+    // three at once left two cells touching at a corner only, and a tree's limb hung in the air (Brian, 2026-11-09).
+    if (joined && prev) {
+      const at: V3 = [...prev];
+      for (const axis of [1, 0, 2] as const) while (at[axis] !== [x, y, z][axis]) { at[axis] += Math.sign([x, y, z][axis] - at[axis]); put(at[0], at[1], at[2]); }
+    }
+    put(x, y, z);
+    prev = [x, y, z];
   }
 }
 

@@ -108,9 +108,9 @@ export async function fakeCommunity(page: Page, st: CommunityState) {
       st.incoming = st.incoming.filter((x) => x.userId !== id);
       return json(route, { ok: true });
     }
-    if (path === '/api/daily/today') return json(route, { date: '2026-11-04', rows: [{ rank: 1, name: 'Ben', banked: 95, steals: 2, longestWord: 'zebra' }, { rank: 2, name: 'Ana', banked: 80, steals: 1, longestWord: 'quiz' }] });
+    if (path === '/api/daily/today') return json(route, { date: '2026-11-04', rows: [{ rank: 1, name: 'Ben', banked: 95, longestWord: 'zebra' }, { rank: 2, name: 'Ana', banked: 80, longestWord: 'quiz' }] });
     if (path.startsWith('/api/leaderboard/')) return json(route, { period: path.split('/').pop(), metric: url.searchParams.get('metric'), rows: [{ rank: 1, userId: 'u9', name: 'Cy', value: 12, games: 20, cosmetics: { badge: '👑' } }] });
-    if (path === '/api/me/stats') return json(route, { gamesPlayed: 7, wins: 3, points: 410, bestScore: 88, steals: 9, longestWord: 'zebra', dailyPlayed: 2 });
+    if (path === '/api/me/stats') return json(route, { gamesPlayed: 7, wins: 3, points: 410, bestScore: 88, longestWord: 'zebra', dailyPlayed: 2 });
     if (path === '/api/me/settings') {
       st.visible = body.leaderboardVisible;
       return json(route, { leaderboardVisible: st.visible });

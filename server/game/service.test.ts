@@ -14,7 +14,7 @@ const profile = (id: string, over: Partial<Profile> = {}): Profile => ({
 });
 const result = (id: string, userIds: (string | null)[], winner: string, mode: 'room' | 'daily' = 'room'): GameResult => ({
   gameId: id, mode, roomCode: 'R', dailyDate: mode === 'daily' ? '2026-11-04' : null, finishedAt: NOW - 1000, winners: [winner],
-  players: userIds.map((u, i) => ({ userId: u, name: u ? `Name${u}` : 'Bot', seat: i, banked: 50 - i * 10, steals: i, wordsPlayed: 3, longestWord: 'cat' })),
+  players: userIds.map((u, i) => ({ userId: u, name: u ? `Name${u}` : 'Bot', seat: i, banked: 50 - i * 10, wordsPlayed: 3, longestWord: 'cat' })),
 });
 
 async function setup(profiles: Profile[] = [], banned: string[] = []) {
@@ -33,7 +33,7 @@ describe('recording a finished game', () => {
     const { svc, economyStore, awards, results } = await setup([profile('a'), profile('b')]);
     await svc.record(result('g1', ['a', 'b', null], 'a'));
     expect(results.games.size).toBe(1);
-    expect(awards).toEqual([['a', 10 + 25], ['b', 10 + 2]]);
+    expect(awards).toEqual([['a', 10 + 25], ['b', 10]]);
     expect(await economyStore.balance('a')).toBe(35);
   });
 
@@ -124,6 +124,6 @@ describe('the Daily Table gate and account deletion', () => {
     expect((await svc.myStats('a')).gamesPlayed).toBe(0);
     expect((await svc.myStats('b')).gamesPlayed).toBe(1);
     expect(await economyStore.balance('a')).toBe(0);
-    expect(await economyStore.balance('b')).toBe(12);
+    expect(await economyStore.balance('b')).toBe(10);
   });
 });

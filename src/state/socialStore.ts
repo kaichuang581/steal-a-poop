@@ -34,7 +34,6 @@ export interface DailyRow {
   rank: number;
   name: string;
   banked: number;
-  steals: number;
   longestWord: string;
   cosmetics?: Cosmetics;
 }
@@ -43,12 +42,11 @@ export interface Stats {
   wins: number;
   points: number;
   bestScore: number;
-  steals: number;
   longestWord: string;
   dailyPlayed: number;
 }
 export type Period = 'day' | 'week' | 'all';
-export type Metric = 'wins' | 'points' | 'steals';
+export type Metric = 'wins' | 'points';
 
 interface SocialState {
   balance: number | null;

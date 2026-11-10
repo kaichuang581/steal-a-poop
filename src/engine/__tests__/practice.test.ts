@@ -25,13 +25,12 @@ function play(s: GameState, word: string): GameState {
 }
 
 describe('practice run setup', () => {
-  it('is you and one bot, on one life, with no twists and no steal window, whatever is asked for', () => {
-    const s = createGame({ seed: 'x', now: T0, humanName: 'Me', playerCount: 8, difficulty: 'hard', mode: 'practice', settings: { lives: 5, twists: true, stealWindowSeconds: 5 } }, dict);
+  it('is you and one bot, on one life, with no twists, whatever is asked for', () => {
+    const s = createGame({ seed: 'x', now: T0, humanName: 'Me', playerCount: 8, difficulty: 'hard', mode: 'practice', settings: { lives: 5, twists: true } }, dict);
     expect(s.players).toHaveLength(2);
     expect(s.players[1].difficulty).toBe('hard');
     expect(s.players.map((p) => p.lives)).toEqual([1, 1]);
     expect(s.settings.twists).toBe(false);
-    expect(s.settings.stealWindowSeconds).toBe(0);
     expect(s.modifierDeck).toEqual(['none']);
   });
   it('the human goes first', () => {
@@ -145,13 +144,12 @@ describe('practice run', () => {
     expect(s.players[0].wordsPlayed).toBe(12);
     expect(s.used.length).toBeGreaterThanOrEqual(12);
   });
-  it('sets no traps, and passing and stealing are refused', () => {
+  it('sets no traps, and passing is refused', () => {
     const s = run();
     expect(apply(s, ctx, { type: 'pass', seat: 0 }, s.turn!.startedAt + 100).reason).toBe('no_pass');
     const c = structuredClone(s);
     c.chainLetter = 't';
     const trapped = apply(c, ctx, { type: 'play', seat: 0, word: 'tax' }, c.turn!.startedAt + 100).state;
     expect(trapped.trap).toBeNull();
-    expect(apply(trapped, ctx, { type: 'steal', seat: 0, word: 'xylem' }, trapped.turn!.endsAt - 500).accepted).toBe(false);
   });
 });

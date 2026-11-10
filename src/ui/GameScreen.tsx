@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '../state/store';
 import { ChatPanel } from './ChatPanel';
 import { Confetti } from './Confetti';
@@ -12,7 +12,6 @@ import { BottomSheet, ChainHistory, Scoreboard, SidePanel } from './Panels';
 import { RoundBanner } from './RoundBanner';
 import { Table } from './Table';
 import { useGameSounds } from './useGameSounds';
-import { useNewEvents } from './useNewEvents';
 import { EventFeed } from './Toasts';
 import { TopBar } from './TopBar';
 
@@ -26,19 +25,9 @@ export function GameScreen() {
   const mode = useStore((s) => s.mode);
   const mySeat = useStore((s) => s.mySeat);
   const [sheet, setSheet] = useState<'score' | 'chain' | 'cheat' | 'chat' | null>(null);
-  const [shaking, setShaking] = useState(false);
-  const shakeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(shakeTimer.current), []);
-  useNewEvents((e) => {
-    if (e.kind === 'steal' && e.amount >= 30) {
-      setShaking(true);
-      clearTimeout(shakeTimer.current);
-      shakeTimer.current = setTimeout(() => setShaking(false), 500);
-    }
-  });
 
   return (
-    <div className={`flex h-full flex-col ${shaking ? 'shake' : ''}`}>
+    <div className="flex h-full flex-col">
       <TopBar
         onCheat={() => setSheet('cheat')}
         onChat={mode === 'room' ? () => setSheet('chat') : undefined}

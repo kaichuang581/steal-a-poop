@@ -92,7 +92,7 @@ export type ClientMsg =
   | { t: 'leave' }
   | { t: 'start' }
   | { t: 'daily' }
-  | { t: 'act'; action: { type: 'play'; word: string } | { type: 'steal'; word: string } | { type: 'bank' } | { type: 'pass' } }
+  | { t: 'act'; action: { type: 'play'; word: string } | { type: 'bank' } | { type: 'pass' } }
   | { t: 'chat'; text: string }
   | { t: 'report'; messageId: number }
   | { t: 'appeal'; note: string }

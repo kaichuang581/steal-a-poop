@@ -5,7 +5,7 @@ import type { Metric, Period } from '../../state/socialStore';
 import { NameTag } from './NameTag';
 
 const PERIODS: [Period | 'daily', string][] = [['daily', 'Daily Table'], ['day', 'Today'], ['week', 'This week'], ['all', 'All time']];
-const METRICS: [Metric, string][] = [['wins', 'Wins'], ['points', 'Points'], ['steals', 'Steals']];
+const METRICS: [Metric, string][] = [['wins', 'Wins'], ['points', 'Points']];
 
 export function BoardTab() {
   const { board, daily, stats, error, notice, loadBoard, loadDaily, loadStats, setVisible } = useSocial();
@@ -62,7 +62,7 @@ export function BoardTab() {
         <h3 className="text-sm font-black uppercase tracking-wider text-white/60">Your stats</h3>
         {stats ? (
           <dl className="mt-1 grid grid-cols-3 gap-2 text-center text-sm">
-            {([['Games', stats.gamesPlayed], ['Wins', stats.wins], ['Points', stats.points], ['Best score', stats.bestScore], ['Steals', stats.steals], ['Longest word', stats.longestWord ? stats.longestWord.toUpperCase() : '—']] as const).map(([k, v]) => (
+            {([['Games', stats.gamesPlayed], ['Wins', stats.wins], ['Points', stats.points], ['Best score', stats.bestScore], ['Longest word', stats.longestWord ? stats.longestWord.toUpperCase() : '—']] as const).map(([k, v]) => (
               <div key={k}><dt className="text-xs text-white/50">{k}</dt><dd className="truncate font-black">{v}</dd></div>
             ))}
           </dl>

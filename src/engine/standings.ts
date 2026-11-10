@@ -3,13 +3,13 @@ import type { Player } from './types';
 
 /**
  * Negative when `a` ranks above `b`. Last sheep standing: unfrozen before frozen; among the unfrozen, more wool balls;
- * among the frozen, whoever lasted longer. Then steals, then longest word.
+ * among the frozen, whoever lasted longer. Then longest word.
  */
 export function compareStandings(a: Player, b: Player): number {
   return (
     (Number(a.frozen) - Number(b.frozen)) ||
     (a.frozen ? (b.frozenAt ?? 0) - (a.frozenAt ?? 0) === 0 ? 0 : (b.frozenAt ?? 0) > (a.frozenAt ?? 0) ? 1 : -1 : b.lives - a.lives) ||
-    (b.steals - a.steals) || (b.longestWord.length - a.longestWord.length)
+    (b.longestWord.length - a.longestWord.length)
   );
 }
 
@@ -25,7 +25,6 @@ export function computeWinners(players: readonly Player[]): number[] {
 
 export interface GameSummary {
   wordsPlayed: number;
-  steals: number;
   longestWord: { word: string; seat: number } | null;
   bestWord: { word: string; points: number; seat: number } | null;
 }
@@ -34,10 +33,8 @@ export function summarize(players: readonly Player[]): GameSummary {
   let longestWord: GameSummary['longestWord'] = null;
   let bestWord: GameSummary['bestWord'] = null;
   let wordsPlayed = 0;
-  let steals = 0;
   for (const p of players) {
     wordsPlayed += p.wordsPlayed;
-    steals += p.steals;
     if (p.longestWord && (!longestWord || p.longestWord.length > longestWord.word.length)) {
       longestWord = { word: p.longestWord, seat: p.id };
     }
@@ -45,7 +42,7 @@ export function summarize(players: readonly Player[]): GameSummary {
       bestWord = { ...p.bestWord, seat: p.id };
     }
   }
-  return { wordsPlayed, steals, longestWord, bestWord };
+  return { wordsPlayed, longestWord, bestWord };
 }
 
 export const ROUND_COUNT = ROUNDS;

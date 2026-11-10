@@ -54,7 +54,7 @@ export function StartScreen() {
     if (daily?.status !== 'done') return;
     const text = buildShareText({
       daily: today, rank: daily.rank ?? 1, players: daily.players ?? 0, banked: daily.banked ?? 0,
-      steals: daily.steals ?? 0, longest: daily.longest ?? 0, streak,
+      longest: daily.longest ?? 0, streak,
     });
     try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); }
     setCopied(true);

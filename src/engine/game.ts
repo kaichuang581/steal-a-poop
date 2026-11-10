@@ -48,7 +48,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const resolved = resolveSettings(setup.settings);
   // Practice is a one-life speed run: nothing but the chain and the clock.
   const settings: GameSettings = mode === 'practice'
-    ? { ...resolved, lives: 1, twists: false, stealWindowSeconds: 0, timeCarry: 'off', botCount: 1, botDifficulty: setup.difficulty }
+    ? { ...resolved, lives: 1, twists: false, timeCarry: 'off', botCount: 1, botDifficulty: setup.difficulty }
     : resolved;
   // Round twists, drawn without repeats: round 1 plays plain, then the deck cycles for as long as the game runs.
   const modifierDeck: RoundModifier[] = settings.twists ? ['none', ...shuffle(state, ALL_MODIFIERS)] : ['none'];
@@ -62,8 +62,8 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const looks = shuffle(state, room ? [...pool, EXTRA_LOOK] : pool);
 
   const blank = {
-    banked: 0, lives: startingWool(settings), frozen: false, frozenAt: null, stealCooldownUntil: 0, turnsTaken: 0, lastWord: null,
-    steals: 0, wordsPlayed: 0, longestWord: '', bestWord: null,
+    banked: 0, lives: startingWool(settings), frozen: false, frozenAt: null, turnsTaken: 0, lastWord: null,
+    wordsPlayed: 0, longestWord: '', bestWord: null,
   };
   const players: Player[] = room
     ? humans.map((name, seat) => ({

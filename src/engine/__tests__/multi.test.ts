@@ -45,34 +45,6 @@ describe('room games (several humans)', () => {
     expect(r.state.turn!.botActAt).toBeNull();
     expect(apply(r.state, ctx, { type: 'play', seat: 1, word: 'tab' }, T0 + 2900).accepted).toBe(true);
   });
-  it('any human can steal from another human\'s turn', () => {
-    let s = advance(make(), ctx, T0 + 2500);
-    s = structuredClone(s);
-    s.chainLetter = 'c';
-    s.modifier = 'vowel_double'; // a modifier that does not restrict which words are legal
-    s = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, T0 + 2600).state; // seat 1 is up
-    s.turn!.stealable = true; // a steal turn (drawn at random in play)
-    const end = s.turn!.endsAt;
-    const r = apply(s, ctx, { type: 'steal', seat: 3, word: 'tiger' }, end - 1000);
-    expect(r.accepted).toBe(true);
-    expect(r.state.players[3].steals).toBe(1);
-  });
-  it('two humans stealing at the same moment: the first processed wins, the second gets a failed steal', () => {
-    let s = advance(make(), ctx, T0 + 2500);
-    s = structuredClone(s);
-    s.chainLetter = 'c';
-    s.modifier = 'vowel_double'; // a modifier that does not restrict which words are legal
-    s = apply(s, ctx, { type: 'play', seat: 0, word: 'cat' }, T0 + 2600).state;
-    s.turn!.stealable = true; // a steal turn (drawn at random in play)
-    const end = s.turn!.endsAt;
-    s.players[4].banked = 20;
-    const first = apply(s, ctx, { type: 'steal', seat: 3, word: 'tiger' }, end - 1000);
-    // the turn already moved on, so seat 4's steal now lands on the next player's turn, outside its window
-    const second = apply(first.state, ctx, { type: 'steal', seat: 4, word: 'rat' }, end - 1000);
-    expect(first.accepted).toBe(true);
-    expect(second.accepted).toBe(false);
-    expect(second.state.players[4].banked).toBe(20);
-  });
 });
 
 describe('replaceWithBot', () => {

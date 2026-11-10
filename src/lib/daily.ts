@@ -9,7 +9,6 @@ export interface DailyRecord {
   rank?: number;
   players?: number;
   banked?: number;
-  steals?: number;
   longest?: number;
 }
 export interface Streak { count: number; last: string }

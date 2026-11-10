@@ -31,7 +31,7 @@ const pressureOf = (speaker: number | null, fraction: number) => (speaker === 0 
  * The practice run's stage: you and the bot face to face on the ice (src/skin/scene/duel.ts). It takes the barn's props
  * so the game screen can swap it in, and has no pile, ring or speaker swing: only the two of them and the bomb.
  */
-export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, letter, isTrap, stealOpen, reduced, phone, moments }: BarnTableProps) {
+export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, letter, isTrap, reduced, phone, moments }: BarnTableProps) {
   const open = duelShot(null, 0, phone);
   const [pop, setPop] = useState(false);
   const pulseKey = moments.tuftIn?.key;
@@ -53,7 +53,7 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         camera={{ fov: open.fov, position: open.position, near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(open.target[0], open.target[1], open.target[2])}
       >
-        <Duel bombSize={bombSize} seats={seats} speaker={speaker} fraction={fraction} secondsLeft={secondsLeft} stealOpen={stealOpen} reduced={reduced} phone={phone} boomKey={moments.boom?.key} power={moments.boom?.power} />
+        <Duel bombSize={bombSize} seats={seats} speaker={speaker} fraction={fraction} secondsLeft={secondsLeft} reduced={reduced} phone={phone} boomKey={moments.boom?.key} power={moments.boom?.power} />
       </Canvas>
       {/* The edges of the screen close in red over the last half of your clock. */}
       <div className="pointer-events-none absolute inset-0 z-[4]" style={{ opacity: heat, background: 'radial-gradient(ellipse at center, transparent 42%, rgba(170, 24, 14, 0.8) 100%)' }} aria-hidden="true" />
@@ -67,9 +67,9 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
   );
 }
 
-type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fraction' | 'secondsLeft' | 'stealOpen' | 'reduced' | 'phone'> & { boomKey: number | undefined; power: number | undefined };
+type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fraction' | 'secondsLeft' | 'reduced' | 'phone'> & { boomKey: number | undefined; power: number | undefined };
 
-function Duel({ bombSize, seats, speaker, fraction, secondsLeft, stealOpen, reduced, phone, boomKey, power }: DuelProps) {
+function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone, boomKey, power }: DuelProps) {
   const pressure = pressureOf(speaker, fraction);
   return (
     <>
@@ -86,7 +86,7 @@ function Duel({ bombSize, seats, speaker, fraction, secondsLeft, stealOpen, redu
         return (
           <Stand key={s.seat} seat={s.seat} active={s.index === speaker} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(model?.animal ?? 'sheep').drawScale}>
             {s.avatar === ADMIN_AVATAR_ID ? (
-              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} still={stealOpen} speaking={s.index === speaker} />
+              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} speaking={s.index === speaker} />
             ) : (
               <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} scarf={s.scarf}
                 gustFrom={[0, 0.8, -6]} lookAt={[other.x, 0.85 * SHEEP_SCALE, other.z]} speaking={s.index === speaker} thinking={s.thinking}

@@ -265,3 +265,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   side of the neck, the rump, the chest, the back of the head and two legs. Never put its eyes in a dark patch (it hid
   them and read as a mask). Its eyes are 2 x 2, dark, with a white glint in the outer top corner, and its coat is the
   catalogue's white at 0.8 (Brian: "slightly darker than white so the contrast is shown"), so the glint stands out.
+- No steals (requested by Brian, 2026-11-07: "remove the steal feature entirely"), an engine change. This supersedes the
+  steal rules in "Last sheep standing" and "Faster turns, steal turns and alarms": there are no steal turns, no red window,
+  no steal action, cooldown, bot steal plans, `stealWindowSeconds` setting, steal events or alarms, and no wolf at the
+  table. Wool balls are lost only by running out of time and won only from traps; standings tie-break on the longest
+  word. The server's steal ordering (server/steals.ts, the room hold, STEAL_ORDERING) is gone, as are the steals
+  leaderboard, stat, personal best, share line and coin reward. The game_players.steals column stays for older games and
+  new rows write 0. Removing the steal draws changed the seeded random stream; no seeded test depended on it.

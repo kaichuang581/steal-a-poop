@@ -28,7 +28,7 @@ export function EndScreen() {
   const share = async () => {
     const text = buildShareText({
       daily: mode === 'daily' ? dailyDate : null, rank: myRank, players: game.players.length,
-      banked: me.banked, steals: me.steals, longest: me.longestWord.length, streak,
+      banked: me.banked, longest: me.longestWord.length, streak,
     });
     try {
       await navigator.clipboard.writeText(text);
@@ -67,7 +67,6 @@ export function EndScreen() {
         <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
           {[
             ['Words played', stats.wordsPlayed],
-            ['Steals', stats.steals],
             ['Longest word', stats.longestWord ? `${stats.longestWord.word.toUpperCase()} (${game.players[stats.longestWord.seat].name})` : '—'],
             ['Best word', stats.bestWord ? `${stats.bestWord.word.toUpperCase()} · ${stats.bestWord.points} pts` : '—'],
           ].map(([k, v]) => (

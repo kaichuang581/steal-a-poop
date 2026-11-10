@@ -14,7 +14,7 @@ function timeOut(s: GameState): GameState {
 /** Puts the human back on turn with inert bots, keeping lives. */
 function backToHuman(s: GameState): GameState {
   const c = structuredClone(s);
-  c.turn = { ...c.turn!, seat: 0, botActAt: null, stealPlans: [], stealable: true, endsAt: c.turn!.startedAt + 10_000 };
+  c.turn = { ...c.turn!, seat: 0, botActAt: null, endsAt: c.turn!.startedAt + 10_000 };
   return c;
 }
 
@@ -60,40 +60,14 @@ describe('lives', () => {
     expect(seats.has(0)).toBe(false);
   });
 
-  it('a steal moves one wool ball from the sheep on turn to the stealer; a failed stealer keeps theirs', () => {
-    const s = freezeBots(humanTurn('c'));
-    s.turn = { ...s.turn!, seat: 1 };
-    const inWindow = s.turn.endsAt - 1000;
-    const stolen = apply(s, ctx, { type: 'steal', seat: 0, word: 'cat' }, inWindow);
-    expect(stolen.accepted).toBe(true);
-    expect(stolen.state.players[0].lives).toBe(LIVES_PER_GAME + 1);
-    expect(stolen.state.players[1].lives).toBe(LIVES_PER_GAME - 1);
-    const failed = apply(s, ctx, { type: 'steal', seat: 0, word: 'qqqqqq' }, inWindow);
-    expect(failed.state.players[0].lives).toBe(LIVES_PER_GAME);
-    expect(failed.state.players[1].lives).toBe(LIVES_PER_GAME);
-  });
-
   it('wool is capped at the starting count plus the extra allowance', () => {
     const s = freezeBots(humanTurn('c'));
     s.turn = { ...s.turn!, seat: 1 };
     s.players[0].lives = LIVES_PER_GAME + EXTRA_WOOL_CAP;
-    const r = apply(s, ctx, { type: 'steal', seat: 0, word: 'cat' }, s.turn.endsAt - 1000);
-    expect(r.accepted).toBe(true);
-    expect(r.state.players[0].lives).toBe(LIVES_PER_GAME + EXTRA_WOOL_CAP);
-    expect(r.state.players[1].lives).toBe(LIVES_PER_GAME - 1); // the victim still loses one
-  });
-
-  it('a frozen player cannot steal, and nothing changes', () => {
-    const s = freezeBots(humanTurn('c'));
-    s.turn = { ...s.turn!, seat: 1 };
-    s.players[0].frozen = true;
-    s.players[0].lives = 0;
-    const res = apply(s, ctx, { type: 'steal', seat: 0, word: 'cat' }, s.turn.endsAt - 1000);
-    expect(res.accepted).toBe(false);
-    expect(res.reason).toBe('frozen');
-    expect(res.state.players[0].lives).toBe(0);
-    expect(res.state.players[1].lives).toBe(LIVES_PER_GAME);
-    expect(res.state.turn!.seat).toBe(1);
+    s.trap = { trapperSeat: 0, victimSeat: 1, letter: 'x' };
+    const r = advance(s, ctx, s.turn.endsAt);
+    expect(r.players[0].lives).toBe(LIVES_PER_GAME + EXTRA_WOOL_CAP); // the trap pays, but not past the cap
+    expect(r.players[1].lives).toBe(LIVES_PER_GAME - 1); // the trapped sheep still loses one
   });
 
   it('tour time-outs cost nobody wool', () => {
@@ -107,7 +81,7 @@ describe('lives', () => {
   it('ranks unfrozen players above frozen ones: more wool first, then the later freeze', () => {
     const s = humanTurn('c');
     const [a, b, c, d] = s.players;
-    Object.assign(a, { frozen: true, lives: 0, frozenAt: 500, steals: 9 });
+    Object.assign(a, { frozen: true, lives: 0, frozenAt: 500 });
     Object.assign(b, { frozen: false, lives: 1 });
     Object.assign(c, { frozen: true, lives: 0, frozenAt: 900 });
     Object.assign(d, { frozen: false, lives: 4 });
@@ -117,7 +91,7 @@ describe('lives', () => {
 
   it('a new game starts everyone with full lives and unfrozen', () => {
     const s = createGame({ seed: 'new', now: T0, humanName: 'Me', playerCount: 6, difficulty: 'hard' }, dict);
-    expect(s.players.every((p) => p.lives === LIVES_PER_GAME && !p.frozen && p.frozenAt === null && p.stealCooldownUntil === 0)).toBe(true);
+    expect(s.players.every((p) => p.lives === LIVES_PER_GAME && !p.frozen && p.frozenAt === null)).toBe(true);
   });
 });
 

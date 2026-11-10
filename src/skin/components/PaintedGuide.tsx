@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useStore } from '../../state/store';
 import { BASICS, FAQ, GLOSSARY } from '../../ui/guideContent';
-import { ClockIcon, CloseIcon, PlayIcon, SnowflakeIcon, TrophyIcon, WolfIcon } from './Icons';
+import { ClockIcon, CloseIcon, PlayIcon, SnowflakeIcon, TrophyIcon } from './Icons';
 import { WoolBall } from './Lives';
 import { Chip, ClothButton, WoodButton } from './Materials';
 import { MiniTile, RulesCard } from './RulesCard';
@@ -15,7 +15,6 @@ type Tab = (typeof TABS)[number];
 const ART: ReactNode[] = [
   <span key="chain" className="flex items-center gap-1"><MiniTile ch="c" /><MiniTile ch="a" /><MiniTile ch="t" hot /></span>,
   <span key="wool" className="flex gap-0.5"><WoolBall full size={22} /><WoolBall full size={22} /><WoolBall full size={22} /></span>,
-  <WolfIcon key="steal" size={34} />,
   <span key="trap" className="flex gap-0.5"><MiniTile ch="x" /><MiniTile ch="z" /><MiniTile ch="q" /><MiniTile ch="j" /></span>,
   <ClockIcon key="clock" size={30} />,
   <TrophyIcon key="win" size={30} />,

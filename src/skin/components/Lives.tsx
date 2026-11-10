@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 /**
  * A sheep's lives, as small balls of wool: one per wool ball it has, wound tight, with an empty dashed ring for each
  * one it has lost (up to the most it started with). A ball that is lost unravels: it shrinks and spins off with a
- * loose strand. A ball that is gained (a steal, a trap) pops in. Lives come from engine state only.
+ * loose strand. A ball that is gained (from a trap) pops in. Lives come from engine state only.
  */
 export function Lives({ lives, max = 3, size = 14 }: { lives: number; max?: number; size?: number }) {
   const prev = useRef(lives);

@@ -13,7 +13,8 @@ import { SHEEP_SCALE } from '../scene/layout';
 import { Sky } from '../scene/Sky';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
-import { Bomb } from './BarnTable';
+import { Bomb } from './Bomb';
+import type { BombSpot } from './Bomb';
 import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
@@ -79,7 +80,7 @@ function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone,
       <Sky hour="night" reduced={reduced} blizzard={false} />
       <Place />
       <Festive geo={buildDuelFestive()} reduced={reduced} />
-      <Bomb speaker={speaker} n={2} fraction={fraction} red={pressure > 0.7} reduced={reduced} boomKey={boomKey} secondsLeft={secondsLeft} size={Math.min(bombSize ?? 1, DUEL.maxBomb)} power={power ?? 1} seatAt={duelSeat} />
+      <Bomb speaker={speaker} n={2} fraction={fraction} red={pressure > 0.7} reduced={reduced} boomKey={boomKey} secondsLeft={secondsLeft} size={Math.min(bombSize ?? 1, DUEL.maxBomb)} power={power ?? 1} spotAt={duelSpot} />
       {seats.map((s) => {
         const other = duelSeat(s.seat === 0 ? 1 : 0);
         const model = byId(s.avatar);
@@ -159,6 +160,13 @@ function Place() {
       <mesh geometry={w.glow} material={glow} />
     </>
   );
+}
+
+/** Where the bomb lands on the duel: on the ice in front of the speaker, toward the other sheep and a little toward the camera. */
+function duelSpot(index: number): BombSpot {
+  const p = duelSeat(index);
+  const fwd = -Math.sign(p.x);
+  return (r) => [p.x + fwd * (0.85 + r), -0.3];
 }
 
 /** A sheep on its mark, stepping 0.35 m toward the other on its turn. */

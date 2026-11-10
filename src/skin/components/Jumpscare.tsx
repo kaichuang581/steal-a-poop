@@ -1,20 +1,20 @@
 import { useMemo } from 'react';
 
-/** The whole screen goes up: a white flash, a fireball that swallows the view, a red glow that lingers. `power` is the bomb's size. */
+/** The ice bomb bursts over the whole screen: a white-out, a ball of frost that swallows the view, frost creeping in from the edges. `power` is the bomb's size. */
 export function Jumpscare({ power }: { power: number }) {
   return (
     <div className="sk-jump" aria-hidden="true" style={{ ['--p' as string]: power }}>
       <i className="sk-jump-white" />
-      <i className="sk-jump-fire" />
-      <i className="sk-jump-fire sk-jump-fire2" />
-      <i className="sk-jump-fire sk-jump-fire3" />
+      <i className="sk-jump-burst" />
+      <i className="sk-jump-burst sk-jump-burst2" />
+      <i className="sk-jump-burst sk-jump-burst3" />
       <i className="sk-jump-ring" />
-      <i className="sk-jump-red" />
+      <i className="sk-jump-frost" />
     </div>
   );
 }
 
-/** Every word from the chain bursts out of the bomb, flies across the screen and blows up in turn. */
+/** Every word from the chain bursts out of the bomb, flies across the screen and shatters in turn. */
 export function WordBlast({ words, power }: { words: string[]; power: number }) {
   const bits = useMemo(() => words.map((w, i) => {
     const a = (i / Math.max(1, words.length)) * Math.PI * 2 + Math.random() * 0.5;

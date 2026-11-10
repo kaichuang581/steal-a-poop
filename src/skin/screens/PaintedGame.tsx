@@ -1,4 +1,5 @@
 import { MiniBomb } from '../components/BombClock';
+import { BOMB_TOSS_S } from '../voxel/bomb';
 import { Jumpscare, WordBlast } from '../components/Jumpscare';
 import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
@@ -108,7 +109,7 @@ export function PaintedGame() {
   const [blast, setBlast] = useState<{ key: number; words: string[]; power: number } | null>(null);
   // The bomb swells with every word played since it last went off, more for a long word.
   const bombSz = useMemo(() => bombSize(wordsSinceBoom(game.history)), [game.history.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  /** A blast: the whole table jolts and a red edge flashes (neither under reduced motion). */
+  /** A blast: the whole table jolts and a frosty edge flashes (neither under reduced motion). */
   const jolt = (px = 9, punch = 1) => {
     if (reduced) return;
     setHit(Math.random() + 1);
@@ -143,6 +144,18 @@ export function PaintedGame() {
         sub={me ? `a word starting with ${(game.chainLetter ?? '').toUpperCase()}` : undefined} />,
       1200,
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnSeat, turnStartedAt]);
+
+  // The bomb lands beside each new speaker (see Bomb) and they flinch as it hits the floor, unless they are busy being cold.
+  useEffect(() => {
+    if (turnSeat === undefined || game.phase !== 'playing' || reduced) return;
+    const id = setTimeout(() => setMoods((m) => {
+      const now = m[turnSeat]?.state;
+      if (now === 'cold' || now === 'freezing' || now === 'frozen' || now === 'thawing') return m;
+      return { ...m, [turnSeat]: { state: 'startled', key: k() } };
+    }), BOMB_TOSS_S * 1000);
+    return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnSeat, turnStartedAt]);
 

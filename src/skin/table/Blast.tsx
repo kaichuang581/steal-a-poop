@@ -1,12 +1,18 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, Points, PointsMaterial, PointLight, Vector3 } from 'three';
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, InstancedMesh, Matrix4, Points, PointsMaterial, PointLight, Quaternion, Vector3 } from 'three';
+import { bombModel } from '../voxel/bomb';
+import { voxelMaterial } from '../voxel/material';
 
 const FLAMES = 420;
 const SPARKS = 260;
 const SMOKE = 90;
 const LIFE = 1.9;
-const FLAME_COLORS = ['#fff2b0', '#ffd04a', '#ff9a2a', '#ff5a1e', '#c8321a'].map((c) => new Color(c));
+/** The burst cools from white through ice blue to a deep cold blue as it spreads. */
+const FLAME_COLORS = ['#ffffff', '#bfe9ff', '#5fb8f5', '#2f7fd6', '#173f8f'].map((c) => new Color(c));
+/** Ice crystals glitter white and pale blue as they fall. */
+const SPARK_COLORS = ['#ffffff', '#e6f8ff', '#b6e6ff'].map((c) => new Color(c));
+const CHUNKS = 46;
 
 interface Cloud { geo: BufferGeometry; vel: Float32Array; age: Float32Array; n: number }
 
@@ -18,8 +24,9 @@ function makeCloud(n: number): Cloud {
 }
 
 /**
- * A bomb going off: a flash of light, a ball of square flame bits that rise and cool from white through orange to red,
- * and fast sparks that fly out and fall. One burst each time `boomKey` changes, from where the bomb was.
+ * The ice bomb going off: a cold white flash, a ball of square frost bits that spread and cool from white through ice
+ * blue, glittering ice crystals that fly out and drift down, chunks of the shell that tumble and bounce on the floor,
+ * and a freezing mist that sinks and spreads. One burst each time `boomKey` changes, from where the bomb was.
  */
 export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number | undefined; origin: () => Vector3 | null; reduced: boolean; power?: number }) {
   const flames = useMemo(() => makeCloud(FLAMES), []);
@@ -27,7 +34,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
   const flameMat = useMemo(() => new PointsMaterial({ size: 2.3, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const sparkMat = useMemo(() => new PointsMaterial({ size: 0.34, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const smoke = useMemo(() => makeCloud(SMOKE), []);
-  const smokeMat = useMemo(() => new PointsMaterial({ size: 2.4, vertexColors: true, transparent: true, opacity: 0.45, depthWrite: false }), []);
+  const smokeMat = useMemo(() => new PointsMaterial({ size: 2.4, vertexColors: true, transparent: true, opacity: 0.45, depthWrite: false, blending: AdditiveBlending }), []);
   const flash = useMemo(() => makeCloud(1), []);
   const flashMat = useMemo(() => new PointsMaterial({ size: 6, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
   const flames3 = useRef<Points>(null);
@@ -38,6 +45,13 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
   const last = useRef<number | undefined>(boomKey);
   const t0 = useRef(-1);
   const at = useRef(new Vector3());
+  // Chunks of the ice shell: real voxel bits that tumble out, bounce on the floor and melt away.
+  const chunkMat = useMemo(() => voxelMaterial({ emissive: '#6fbfff', emissiveIntensity: 0.2 }), []);
+  const chunks = useRef<InstancedMesh>(null);
+  const ch = useMemo(() => ({
+    pos: new Float32Array(CHUNKS * 3), vel: new Float32Array(CHUNKS * 3), axis: Array.from({ length: CHUNKS }, () => new Vector3()),
+    spin: new Float32Array(CHUNKS), size: new Float32Array(CHUNKS), m: new Matrix4(), q: new Quaternion(), v: new Vector3(), sc: new Vector3(),
+  }), []);
 
   useEffect(() => {
     if (boomKey === undefined || boomKey === last.current) return;
@@ -61,18 +75,26 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
     const m = 1.7 * (1 + 0.6 * (power - 1));
     flameMat.size = 2.3 * m;
     sparkMat.size = 0.34 * m;
-    smokeMat.size = 2.4 * m;
+    smokeMat.size = 1.3 * m;
     flashMat.size = 6 * m * 1.6;
     boost.current = power;
     seed(flames, 5.2 * m, 1.3 * m);
     seed(sparks, 12 * m, 2.4 * m);
     seed(smoke, 2.4 * m, 1.4 * m);
+    for (let i = 0; i < CHUNKS; i++) {
+      const th = Math.random() * Math.PI * 2, up = 0.25 + Math.random() * 0.75, sp = (2.2 + Math.random() * 3.2) * Math.sqrt(m);
+      ch.pos.set([o.x, o.y, o.z], i * 3);
+      ch.vel.set([Math.cos(th) * sp * (1 - up * 0.5), up * sp * 1.2, Math.sin(th) * sp * (1 - up * 0.5)], i * 3);
+      ch.axis[i].set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+      ch.spin[i] = (Math.random() - 0.5) * 18;
+      ch.size[i] = (1.2 + Math.random() * 1.6) * Math.sqrt(m);
+    }
     (flash.geo.getAttribute('position') as BufferAttribute).setXYZ(0, o.x, o.y, o.z);
     (flash.geo.getAttribute('position') as BufferAttribute).needsUpdate = true;
-  }, [boomKey, origin, flames, sparks, smoke, flameMat, sparkMat, smokeMat, flashMat, power]);
+  }, [boomKey, origin, flames, sparks, smoke, flameMat, sparkMat, smokeMat, flashMat, power, ch]);
 
   useFrame((_, rawDt) => {
-    // Smoke is the one cloud that isn't additive: its idle black points would show as a dark square where they rest.
+    // The mist shows only while a burst is on.
     if (smoke3.current) smoke3.current.visible = t0.current >= 0;
     if (t0.current < 0) return;
     const dt = Math.min(rawDt, 1 / 30); // a slow frame never skips the blast
@@ -87,8 +109,9 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
         cloud.vel[i * 3 + 1] -= gravity * dt;
         p.setXYZ(i, p.getX(i) + cloud.vel[i * 3] * dt, p.getY(i) + cloud.vel[i * 3 + 1] * dt, p.getZ(i) + cloud.vel[i * 3 + 2] * dt);
         const k = a / LIFE;
-        const col = flame ? FLAME_COLORS[Math.min(FLAME_COLORS.length - 1, Math.floor(k * FLAME_COLORS.length))] : FLAME_COLORS[Math.min(2, Math.floor(k * 3))];
-        const fade = (1 - k) * (flame ? 1.2 : 1.5);
+        if (!flame) { cloud.vel[i * 3] *= 1 - dt * 1.2; cloud.vel[i * 3 + 2] *= 1 - dt * 1.2; } // crystals float as they fall
+        const col = flame ? FLAME_COLORS[Math.min(FLAME_COLORS.length - 1, Math.floor(k * FLAME_COLORS.length))] : SPARK_COLORS[Math.floor(i % 7 === 0 ? 0 : (a * 7) % 3)];
+        const fade = (1 - k) ** 1.5 * (flame ? 0.55 : 1.5); // blue piles up to white fast when drawn additive
         c.setXYZ(i, col.r * fade, col.g * fade, col.b * fade);
       }
       p.needsUpdate = true;
@@ -97,11 +120,11 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
     {
       const c = flash.geo.getAttribute('color') as BufferAttribute;
       const k = Math.max(0, 1 - t0.current / 0.4);
-      c.setXYZ(0, 1.0 * k, 0.8 * k, 0.4 * k);
+      c.setXYZ(0, 0.8 * k, 0.93 * k, 1.0 * k);
       c.needsUpdate = true;
     }
-    step(flames, -0.9, true); // flames keep rising a little
-    step(sparks, 9, false);
+    step(flames, 0.5, true); // the frost hangs, then settles
+    step(sparks, 3.5, false);
     {
       const p = smoke.geo.getAttribute('position') as BufferAttribute;
       const c = smoke.geo.getAttribute('color') as BufferAttribute;
@@ -109,18 +132,42 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
         smoke.age[i] += dt;
         const a = smoke.age[i];
         if (a < 0.15 || a > LIFE + 0.3) { c.setXYZ(i, 0, 0, 0); continue; }
-        p.setXYZ(i, p.getX(i) + smoke.vel[i * 3] * dt * 0.5, p.getY(i) + smoke.vel[i * 3 + 1] * dt * 0.5, p.getZ(i) + smoke.vel[i * 3 + 2] * dt * 0.5);
+        // Freezing air is heavy: the mist sinks to the floor and rolls out along it.
+        smoke.vel[i * 3 + 1] -= 1.6 * dt;
+        let y = p.getY(i) + smoke.vel[i * 3 + 1] * dt * 0.5;
+        if (y < 0.15) { y = 0.15; smoke.vel[i * 3 + 1] = 0; smoke.vel[i * 3] *= 1 + dt; smoke.vel[i * 3 + 2] *= 1 + dt; }
+        p.setXYZ(i, p.getX(i) + smoke.vel[i * 3] * dt * 0.5, y, p.getZ(i) + smoke.vel[i * 3 + 2] * dt * 0.5);
         const k = 1 - (a - 0.15) / (LIFE + 0.15);
-        c.setXYZ(i, 0.22 * k, 0.2 * k, 0.2 * k);
+        c.setXYZ(i, 0.16 * k, 0.22 * k, 0.3 * k);
       }
       p.needsUpdate = true;
       c.needsUpdate = true;
+    }
+    if (chunks.current) {
+      const life = t0.current;
+      for (let i = 0; i < CHUNKS; i++) {
+        const j = i * 3;
+        ch.vel[j + 1] -= 9.8 * dt;
+        ch.pos[j] += ch.vel[j] * dt; ch.pos[j + 1] += ch.vel[j + 1] * dt; ch.pos[j + 2] += ch.vel[j + 2] * dt;
+        const floor = 0.03 * ch.size[i];
+        if (ch.pos[j + 1] < floor) {
+          ch.pos[j + 1] = floor;
+          ch.vel[j + 1] = Math.abs(ch.vel[j + 1]) > 0.6 ? -ch.vel[j + 1] * 0.35 : 0;
+          ch.vel[j] *= 0.6; ch.vel[j + 2] *= 0.6; ch.spin[i] *= 0.6;
+        }
+        const melt = Math.max(0, Math.min(1, (LIFE + 0.4 - life) / 0.5));
+        ch.q.setFromAxisAngle(ch.axis[i], ch.spin[i] * life);
+        ch.m.compose(ch.v.set(ch.pos[j], ch.pos[j + 1], ch.pos[j + 2]), ch.q, ch.sc.setScalar(ch.size[i] * melt));
+        chunks.current.setMatrixAt(i, ch.m);
+      }
+      chunks.current.instanceMatrix.needsUpdate = true;
+      chunks.current.visible = true;
     }
     if (light.current) {
       light.current.position.copy(at.current);
       light.current.intensity = Math.max(0, 1 - t0.current / 0.5) * 260 * boost.current;
     }
-    if (t0.current > LIFE + 0.5) { t0.current = -1; if (light.current) light.current.intensity = 0; }
+    if (t0.current > LIFE + 0.5) { t0.current = -1; if (light.current) light.current.intensity = 0; if (chunks.current) chunks.current.visible = false; }
   });
 
   if (reduced) return null;
@@ -130,7 +177,8 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
       <points ref={smoke3} geometry={smoke.geo} material={smokeMat} frustumCulled={false} visible={false} />
       <points geometry={flash.geo} material={flashMat} frustumCulled={false} />
       <points ref={sparks3} geometry={sparks.geo} material={sparkMat} frustumCulled={false} />
-      <pointLight ref={light} color="#ffb04a" intensity={0} distance={70} />
+      <instancedMesh ref={chunks} args={[bombModel().chunk, chunkMat, CHUNKS]} frustumCulled={false} visible={false} castShadow />
+      <pointLight ref={light} color="#9fdcff" intensity={0} distance={70} />
     </>
   );
 }

@@ -629,3 +629,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   prices come from the shared catalogue. The server cannot see solo games, so faking reports gains at most the daily cap of cosmetic coins.
 - The shop is called the Trading Post (renamed by Kai, 2026-11-11, from the Barn Bazaar). Code names stay `Bazaar`, `bazaar` and `.sk-bazaar*`;
   every word a player reads says Trading Post. The bullets above that say Barn Bazaar mean the Trading Post.
+- No profanity anywhere (requested by Kai, 2026-11-11: "make sure there is absolutely nothing at all in the whole game"). The list is
+  src/lib/profanity.ts (`isProfaneWord`: ROOTS refused inside any word, WORDS refused exactly, CLEAN for real words a root sits in).
+  public/words.txt and public/word-frequency.txt have every match removed (518 and 273 words), `createDictionary` drops any that come
+  back, so tables, rooms, bots and the dream all refuse them, and nickname.ts checks names against it too. Room chat keeps its own
+  filter (server/filter.ts). src/lib/__tests__/profanity.test.ts checks the lists, the dictionary, names, chat, the dream's and the
+  word of the day's words. When in doubt a word goes, even with a clean meaning (hoe, tit, niggle); adding to the list means
+  re-stripping both word files. rarity.test.ts's size pin moved from 88,400 to 88,127 for it.

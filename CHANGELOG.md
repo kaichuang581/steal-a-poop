@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## 0.6.3
+
+- No swears, slurs or sexual words anywhere: they are gone from the word list, so no one (and no bot) can play one at a table, in a room or in Counting Sheep, and the same list keeps them out of names
+
 ## 0.6.2
 
 - The Barn Bazaar is now the Trading Post

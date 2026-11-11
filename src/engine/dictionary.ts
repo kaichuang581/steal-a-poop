@@ -1,3 +1,4 @@
+import { isProfaneWord } from '../lib/profanity';
 export interface Dictionary {
   readonly size: number;
   has(word: string): boolean;
@@ -13,7 +14,8 @@ export function createDictionary(lines: Iterable<string>): Dictionary {
   const byStart = new Map<string, string[]>();
   for (const raw of lines) {
     const word = raw.trim().toLowerCase();
-    if (!/^[a-z]+$/.test(word) || words.has(word)) continue;
+    // Swears, slurs and sexual words are never words in this game, whatever list they come from.
+    if (!/^[a-z]+$/.test(word) || words.has(word) || isProfaneWord(word)) continue;
     words.add(word);
     const bucket = byStart.get(word[0]);
     if (bucket) bucket.push(word);

@@ -23,7 +23,7 @@ afterEach(() => {
 describe('frequency data file', () => {
   it('is the ENABLE-filtered list with source ranks intact', () => {
     const ranks = shipped();
-    expect(ranks.size).toBe(88_400);
+    expect(ranks.size).toBe(88_127); // 88,400 less the 273 swears, slurs and sexual words (src/lib/profanity.ts)
     expect(ranks.get('the')).toBe(1);
     expect(ranks.get('cat')).toBe(3_432);
     expect(ranks.get('jazz')).toBe(7_885);

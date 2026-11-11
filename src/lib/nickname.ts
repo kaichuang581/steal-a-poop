@@ -1,3 +1,5 @@
+import { isProfaneWord } from './profanity';
+
 export const MAX_NICKNAME = 12;
 
 /**
@@ -40,9 +42,11 @@ const HATE_PATTERNS = /1488|\b88\b|k\W*k\W*k/i;
 export function isInappropriateName(name: string): boolean {
   if (HATE_PATTERNS.test(name)) return true;
   if (BLOCKED_RE.test(letters(name))) return true;
+  // The game's own list of swears and slurs: as the whole name run together, and as each word in it.
+  if (isProfaneWord(letters(name))) return true;
   // Spaces, dots, dashes and underscores split words; camelCase also splits ("BigAss" is "Big" and "Ass").
   const spaced = name.replace(/([a-z])([A-Z])/g, '$1 $2');
-  return spaced.split(/[^A-Za-z0-9@$!]+/).some((w) => w && WHOLE_RE.test(letters(w)));
+  return spaced.split(/[^A-Za-z0-9@$!]+/).some((w) => w && (WHOLE_RE.test(letters(w)) || isProfaneWord(letters(w))));
 }
 
 export type NicknameResult = { ok: true; name: string } | { ok: false; message: string };

@@ -33,7 +33,7 @@ one per line). It is fetched once at startup and held in a `Set`.
 The default look is a painted, storybook barn. The classic screens are still available with
 `?skin=classic` (the end-to-end tests build with `VITE_SKIN=classic`).
 
-- **Start now** puts you straight into an easy game with hints, without opening the table setup.
+- **Quick play** puts you straight into an open barn with other players when a game server is configured; without one it starts an easy game against the bots. **Create lobby** opens a room of your own, **Join party** takes a friend's code, and **Custom game** is a table against the bots.
 - **Avatars.** The Avatar button on the home screen opens a picker with 15 characters across five animals.
   The choice is saved in this browser and is free to change. Only your own player card wears it.
 - **Pixel icons.** The painted screens use small grid-drawn pixel icons instead of emoji, including the

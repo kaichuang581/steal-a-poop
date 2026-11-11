@@ -17,11 +17,22 @@ export interface Cosmetics {
   badge?: string;
 }
 
+/** The rules a host may set before starting (server/types.ts RoomSettings). */
+export interface RoomSettingsDTO {
+  turnsPerRound: 2 | 3 | 5;
+  lives: 1 | 2 | 3 | 5;
+  twists: boolean;
+}
+
 export interface RoomViewDTO {
   code: string;
   name: string;
   visibility: 'public' | 'private';
   hostId: string;
+  /** Opened by Quick play: shown as a queue, not as someone's lobby. */
+  queue?: boolean;
+  /** Game length, picked by the host in the lobby. Absent from an older server. */
+  settings?: RoomSettingsDTO;
   members: { userId: string; name: string; cosmetics?: Cosmetics; /** The avatar they picked (an id from src/avatars/ids.ts). */ avatar?: string }[];
   phase: 'lobby' | 'playing' | 'finished';
   min: number;
@@ -87,8 +98,12 @@ export type ServerMsg =
 export type ClientMsg =
   | { t: 'hello'; token: string }
   | { t: 'rooms' }
-  | { t: 'create'; visibility: 'public' | 'private'; roomName?: string }
+  | ({ t: 'create'; visibility: 'public' | 'private'; roomName?: string } & Partial<RoomSettingsDTO>)
   | { t: 'join'; code: string }
+  /** Quick start: the fullest open public room, or a new one. */
+  | { t: 'quick' }
+  /** Host only, before the game: game length and whether quick-start players may come in. */
+  | ({ t: 'options'; visibility?: 'public' | 'private' } & Partial<RoomSettingsDTO>)
   | { t: 'leave' }
   | { t: 'start' }
   | { t: 'daily' }
@@ -117,7 +132,8 @@ export function describeError(code: string): string {
     case 'room_started': return 'That game has already started.';
     case 'already_in_room': return 'You are already in a room.';
     case 'not_host': return 'Only the host can do that.';
-    case 'not_enough_players': return 'You need at least 4 players to start.';
+    case 'not_enough_players': return 'You need at least 2 people to start.';
+    case 'bad_settings': return 'That setting is not available.';
     case 'rate_limited': return 'Slow down a little and try again.';
     case 'not_in_room': return 'You are not in a room.';
     case 'game_not_running': return 'The game is not running.';

@@ -1,5 +1,8 @@
 import { useEffect } from 'react';
 import { useRoomStore } from '../../state/roomStore';
+import { useStore } from '../../state/store';
+import { authEnabled } from '../../auth/config';
+import { getServerUrl } from '../../net/config';
 
 /** The address that puts a friend straight into your room (they still sign in first, as for any room). */
 export function inviteLink(code: string): string {
@@ -22,8 +25,12 @@ export function JoinLink() {
   const inRoom = useRoomStore((s) => s.room !== null);
   useEffect(() => {
     const code = codeFromSearch(location.search);
-    if (!code || status !== 'online' || inRoom) return;
-    useRoomStore.getState().join(code);
+    if (!code || inRoom) return;
+    // Without accounts the link connects by itself, under the name on the plate (or a guest name). With accounts it
+    // waits for the sign-in.
+    if (authEnabled() && status !== 'online') return;
+    if (!getServerUrl()) return;
+    useRoomStore.getState().enter(useStore.getState().settings.name ?? '', { t: 'join', code });
     const u = new URL(location.href);
     u.searchParams.delete('join');
     history.replaceState(null, '', u.toString());

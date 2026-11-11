@@ -8,8 +8,7 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { Garland } from './components/Garland';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
-import { Lobby } from '../ui/Lobby';
-import { RoomScreen } from '../ui/RoomScreen';
+import { PaintedRoom } from './rooms/PaintedRoom';
 import { useHour } from './hooks/useAmbient';
 import { DreamScreen } from './dream/DreamScreen';
 import { useDreamUi } from './dream/dreamStore';
@@ -65,7 +64,6 @@ function loadingLine(to: 'dream' | 'game'): string {
 export function PaintedApp() {
   const inGame = useStore((s) => s.game !== null);
   const inRoom = useRoomStore((s) => s.room !== null);
-  const lobbyOpen = useRoomStore((s) => s.open);
   const hour = useHour();
   const dreaming = useDreamUi((s) => s.open);
   // The first load in a tab goes behind the doors from the first frame: Home's farm takes seconds to build, and shutting
@@ -125,8 +123,7 @@ export function PaintedApp() {
   const home = <PaintedHome />;
   const screen = mounted === 'dream' && dreaming ? <DreamScreen />
     : mounted === 'game' && inGame ? <PaintedGame />
-    : inRoom ? <div className="sk-rooms h-full"><RoomScreen /></div>
-    : lobbyOpen ? <div className="sk-rooms h-full"><Lobby /></div>
+    : inRoom ? <PaintedRoom />
     : home;
-  return <><JoinLink />{screen}{!dreaming && !inGame && (inRoom || lobbyOpen) && <Garland />}<BarnDoors /></>;
+  return <><JoinLink />{screen}{!dreaming && !inGame && inRoom && <Garland />}<BarnDoors /></>;
 }

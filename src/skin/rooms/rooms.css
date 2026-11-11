@@ -1,0 +1,73 @@
+/* The painted lobby and party room (src/skin/rooms): the barn at night, a title plank, paper cards from the farm kit. */
+.rm-screen { position: relative; height: 100%; overflow: hidden; color: var(--button-text); font-family: var(--skin-font-body); background: #1B2C4A; }
+/* Everything laid over the pen. On a computer the pieces are pinned to the edges and the pen shows between them; on a
+   phone the pen is the top of the screen and the pieces scroll under it. */
+.rm-body { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 44vh 12px 20px; }
+.rm-head { position: absolute; inset: 34px 12px auto; display: flex; align-items: center; gap: 10px; }
+.rm-head .kit-plank { flex: 1; min-width: 0; text-align: center; font-family: var(--skin-font-display); font-weight: 800; font-size: 24px; }
+.rm-head .kit-plank > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rm-start { display: flex; flex-direction: column; gap: 8px; }
+.rm-go { min-height: 60px; color: var(--button-text) !important; }
+.rm-caption { text-align: center; font-family: var(--skin-font-hand); font-size: 18px; line-height: 1.2; color: var(--button-text); text-shadow: 0 1px 3px rgba(10, 16, 30, 0.9); }
+.rm-left { display: flex; flex-direction: column; gap: 12px; }
+.rm-left section + section { padding-top: 10px; border-top: 1px dashed var(--ink-soft); }
+.rm-card h3 { display: flex; align-items: center; gap: 8px; font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; color: var(--ink); }
+.rm-rule-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rm-rule-row legend { float: left; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+.rm-plates { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.rm-plates > div { position: absolute; left: 0; top: 0; }
+.rm-plate { display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 8px; white-space: nowrap; font-family: var(--skin-font-display); font-weight: 800; font-size: 14px; }
+.rm-plate i { font-family: var(--skin-font-hand); font-style: normal; font-size: 13px; color: var(--glow); }
+.rm-plate--you { color: var(--glow); }
+@media (min-width: 900px) {
+  .rm-body { display: block; overflow: hidden; padding: 0; pointer-events: none; }
+  .rm-body > * { pointer-events: auto; }
+  .rm-head { inset: 30px 24px auto; justify-content: center; }
+  .rm-head .kit-plank { flex: 0 1 26rem; }
+  .rm-head .rm-back { position: absolute; left: 0; }
+  .rm-head .kit-tag { position: absolute; right: 0; }
+  .rm-screen .rm-left { position: absolute; left: 20px; top: 104px; bottom: 20px; width: 330px; overflow-y: auto; }
+  .rm-screen .rm-dock { position: absolute; right: 20px; bottom: 20px; width: 330px; max-height: calc(100% - 124px); overflow-y: auto; }
+  .rm-screen .rm-start { position: absolute; left: 370px; right: 370px; bottom: 22px; margin: 0 auto; max-width: 22rem; }
+}
+.rm-back { min-height: 44px; padding: 0 10px; font-weight: 800; color: var(--button-text); text-shadow: 0 1px 2px rgba(30, 18, 8, 0.8); }
+.rm-back:hover { color: var(--glow); }
+.rm-card { padding: 16px; color: var(--ink); }
+.rm-card h2 { font-family: var(--skin-font-display); font-weight: 800; font-size: 20px; color: var(--ink); }
+.rm-soft { color: var(--ink-soft); }
+.rm-hand { font-family: var(--skin-font-hand); font-size: 17px; line-height: 1.25; color: var(--ink-soft); }
+.rm-list { display: flex; flex-direction: column; gap: 6px; }
+.rm-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
+.rm-row:last-child { border-bottom: 0; }
+.rm-row b { font-weight: 800; }
+.rm-slip { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; color: var(--ink); font-weight: 700; }
+.rm-code { display: flex; justify-content: center; gap: 6px; margin: 6px 0 10px; }
+.rm-code .kit-tile { font-size: 26px; }
+.rm-mini { min-height: 36px; padding: 0 8px; font-size: 12px; font-weight: 800; color: var(--ink-soft); text-decoration: underline; }
+.rm-mini:hover { color: var(--ink); }
+/* The chat keeps its classic component, restyled as one more paper card: ink on paper, no dark boxes. */
+.rm-chat.sk-rooms section { background: none; box-shadow: none; }
+.rm-chat.sk-rooms p, .rm-chat.sk-rooms [class*="text-white"], .rm-chat.sk-rooms [class*="text-amber"], .rm-chat.sk-rooms [class*="text-sky"] { color: var(--ink); }
+.rm-chat.sk-rooms [class*="text-white/5"], .rm-chat.sk-rooms [class*="text-white/6"], .rm-chat.sk-rooms [class*="text-white/7"] { color: var(--ink-soft); }
+.rm-chat.sk-rooms [role="note"] { padding: 0 0 6px; box-shadow: none; background: none; border-bottom: 1px dashed var(--ink-soft); font-size: 12px; }
+.rm-chat.sk-rooms [role="log"] { border-radius: 2px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(59, 48, 40, 0.14); }
+.rm-chat.sk-rooms input { box-shadow: none; background: rgba(255, 255, 255, 0.55); font-size: 18px; }
+.rm-chat.sk-rooms [role="log"] button, .rm-chat.sk-rooms details button { min-height: 28px; background: none; box-shadow: none; color: var(--ink-soft); font-family: var(--skin-font-body); }
+/* The queue: how many are in, big, with three dots that take turns. */
+.rm-count { font-family: var(--skin-font-display); font-weight: 800; font-size: 54px; line-height: 1; color: var(--ink); }
+.rm-count small { font-size: 24px; color: var(--ink-soft); }
+.rm-dots i { display: inline-block; width: 6px; height: 6px; margin-left: 4px; background: var(--ink-soft); animation: rm-dot 1.2s ease-in-out infinite; }
+.rm-dots i:nth-child(2) { animation-delay: 0.2s; }
+.rm-dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes rm-dot { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rm-dots i { animation: none; } }
+:root.reduce-motion .rm-dots i { animation: none; }
+/* The party code field: five carved tiles; the real input lies over them, unseen. */
+.sk-code { position: relative; display: flex; justify-content: center; gap: 6px; cursor: text; }
+.sk-code .kit-tile { font-size: 26px; }
+.sk-code-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: text; }
+.sk-code-empty { opacity: 0.45; }
+.sk-code:focus-within .sk-code-next { opacity: 1; outline: 3px solid var(--amber); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rm-chat.sk-rooms h2 { font-family: var(--skin-font-display); font-weight: 800; font-size: 20px; color: var(--ink); margin-bottom: 4px; }
+.rm-chat.sk-rooms section > button { min-height: 30px; padding: 0; background: none; box-shadow: none; color: var(--ink-soft); font-family: var(--skin-font-body); font-size: 12px; text-decoration: underline; }

@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## 0.6.4
+
+- Real people first: Quick play (the old Start now) puts you in a queue with other players, with a chat while the barn fills. Create lobby opens a barn of your own, friends only or public, with a party code and a link to send; the host picks the game length there, and a game needs only two people (farm sheep take the empty seats). Join party takes a friend's code. A table against the bots is now Custom game. The lobby is a sheep pen in the snow: everyone who joins stands inside the fence until the host opens the gate
+
 ## 0.6.3
 
 - No swears, slurs or sexual words anywhere: they are gone from the word list, so no one (and no bot) can play one at a table, in a room or in Counting Sheep, and the same list keeps them out of names

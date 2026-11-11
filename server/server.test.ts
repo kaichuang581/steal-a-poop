@@ -132,7 +132,7 @@ describe('rooms over the wire', () => {
     c.send({ t: 'rooms' });
     const list = await c.waitFor((m) => m.t === 'rooms');
     expect(list.list).toHaveLength(1);
-    expect(list.list[0]).toMatchObject({ code: pub, name: 'Open table', hostName: 'Ana', players: 1, max: 10, min: 4 });
+    expect(list.list[0]).toMatchObject({ code: pub, name: 'Open table', hostName: 'Ana', players: 1, max: 10, min: 2 });
     c.send({ t: 'join', code: pub.toLowerCase() });
     const joined = await c.waitFor((m) => m.t === 'room');
     expect(joined.view.members.map((m: Msg) => m.name)).toEqual(['Ana', 'Cy']);

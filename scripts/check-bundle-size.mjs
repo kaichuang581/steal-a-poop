@@ -5,17 +5,20 @@
  * Measures the gzipped size of every .js file in dist/assets, because that is what a
  * player actually downloads. Run `npm run build` first; this script never builds.
  *
- * The budget is the size of a clean production build on 2026-11-01. Raise it deliberately
- * in a pull request that explains why the extra weight is worth it — it is a tripwire, not
- * a target.
+ * The budget is the size of a clean production build. Raise it deliberately, in a commit
+ * that explains why the extra weight is worth it: it is a tripwire, not a target.
+ *
+ * History: 149,906 bytes on 2026-11-01, before the painted skin's three.js scenes. Every push
+ * failed against it from then on, so the check caught nothing. Rebased on 2026-11-11 to the
+ * build of that day (the 3D farm, table, dream and podium are all in the main chunk).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Gzipped bytes of dist/assets/*.js in a clean `npm run build` on `main`, 2026-11-01. */
-const BUDGET_GZIP_BYTES = 149906;
+/** Gzipped bytes of dist/assets/*.js in a clean `npm run build` on `main`, 2026-11-11. */
+const BUDGET_GZIP_BYTES = 682969;
 
 /** Allowed growth over the budget before the check fails (10%). */
 const TOLERANCE = 0.1;

@@ -1127,7 +1127,7 @@
 /* The animals' pixel heads (AvatarIcon): drawn whole, never squashed, no gap under them. */
 .sk-avatar-head { display: block; object-fit: contain; flex: none; user-select: none; }
 
-/* ---------- the Barn Bazaar: cosmetics for Wool Coins ---------- */
+/* ---------- the Trading Post: cosmetics for Wool Coins ---------- */
 .sk-bazaar-status { font-family: var(--skin-font-body); font-weight: 800; font-size: 13px; color: var(--wood-dark); }
 .sk-bazaar-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
 .sk-bazaar-progress { display: flex; flex-direction: column; gap: 8px; }

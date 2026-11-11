@@ -8,7 +8,7 @@ import { grantStreak, payFinishedGame } from './store';
 const shown = new Map<string, Promise<Payout | null>>();
 
 /**
- * Pays a finished game into the Barn Bazaar wallet once and returns what was paid (null until it is known). `id` is
+ * Pays a finished game into the Trading Post wallet once and returns what was paid (null until it is known). `id` is
  * null for a game that must not pay (rooms, the tutorial, the admin's end previews, whose seeds start `preview:`).
  * Signed in, the payment goes to the account's wallet on the server, so it arrives a moment after the board.
  */
@@ -53,7 +53,7 @@ export function DreamPayout({ id, sheep, slept, bestStreak }: { id: string; shee
   return (
     <div className="dr-results-payout">
       {payout && <PayoutLines payout={payout} />}
-      {granted.length > 0 && <p className="sk-payout-level">New in the Barn Bazaar: {granted.join(', ')}, yours for your dream streak.</p>}
+      {granted.length > 0 && <p className="sk-payout-level">New in the Trading Post: {granted.join(', ')}, yours for your dream streak.</p>}
     </div>
   );
 }

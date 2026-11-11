@@ -103,8 +103,8 @@ export const SAVE_KEYS: readonly Spec[] = [
     merge: (l, i) => l ?? i,
   },
   {
-    // The Barn Bazaar's wallet: Wool Coins, XP, what is owned and worn, the words played. Merged, never lowered.
-    key: 'sap:barn', label: 'Wool Coins and the Barn Bazaar',
+    // The Trading Post's wallet: Wool Coins, XP, what is owned and worn, the words played. Merged, never lowered.
+    key: 'sap:barn', label: 'Wool Coins and the Trading Post',
     valid: (v) => (isObj(v) && isNum(v.coins) && isNum(v.xp) && Array.isArray(v.owned) ? v : null),
     merge: (l, i) => (l ? mergeWallets(normalise(l), normalise(i)) : normalise(i)),
   },

@@ -2,7 +2,7 @@ import { CATALOG, DEFAULTS, itemById } from './catalog';
 import type { Kind } from './catalog';
 
 /**
- * Wool Coins, XP and the Barn Bazaar's inventory, kept in this browser (`sap:barn`). The pure functions here take a
+ * Wool Coins, XP and the Trading Post's inventory, kept in this browser (`sap:barn`). The pure functions here take a
  * wallet and return a new one, so every rule is tested without a browser; `store.ts` holds the live copy.
  *
  * Rules that keep it fair (docs/plans/SHOP.md): coins only buy cosmetics; a day's earnings from games stop at

@@ -8,7 +8,7 @@ import { buy, equip, freshWallet, grantStreakItems, normalise, payGame } from '.
 import type { BuyResult, GameReward, Line, Payout, Wallet } from './economy';
 
 /**
- * The Barn Bazaar's wallet. Signed out, it lives in this browser (`sap:barn`). Signed in, the game server keeps it
+ * The Trading Post's wallet. Signed out, it lives in this browser (`sap:barn`). Signed in, the game server keeps it
  * (/api/barn), so it follows the player to any device: the first time a player signs in, this browser's wallet is
  * brought into the account once (the server caps the coins), and from then on the account's wallet is the one shown.
  * Signing out shows this browser's own wallet again.

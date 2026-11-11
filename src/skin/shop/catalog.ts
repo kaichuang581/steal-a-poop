@@ -1,5 +1,5 @@
 /**
- * The Barn Bazaar's catalogue. Everything here is cosmetic: it changes how the bomb looks, how its burst looks, or how
+ * The Trading Post's catalogue. Everything here is cosmetic: it changes how the bomb looks, how its burst looks, or how
  * its fuse ticks, never a turn, a word, the clock or who wins. Prices are fixed and shown; nothing is random.
  *
  * `source` says how an item is had: `free` (everyone owns it), `coins` (bought with Wool Coins at `price`), or

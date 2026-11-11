@@ -50,7 +50,7 @@ const ZERO = new Matrix4().makeScale(0, 0, 0);
  * and a freezing mist that sinks and spreads. One burst each time `boomKey` changes, from where the bomb was.
  */
 export function Blast({ boomKey, origin, reduced, power = 1, palette }: { boomKey: number | undefined; origin: () => Vector3 | null; reduced: boolean; power?: number; palette?: { flame: string[]; spark: string[] } }) {
-  // The burst's colours: frost unless a Barn Bazaar burst is worn (cosmetic only).
+  // The burst's colours: frost unless a Trading Post burst is worn (cosmetic only).
   const flameColors = useMemo(() => (palette ? palette.flame.map((c) => new Color(c)) : FLAME_COLORS), [palette]);
   const sparkColors = useMemo(() => (palette ? palette.spark.map((c) => new Color(c)) : SPARK_COLORS), [palette]);
   const flames = useMemo(() => makeCloud(FLAMES), []);

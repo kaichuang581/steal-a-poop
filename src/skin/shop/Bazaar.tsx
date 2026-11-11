@@ -26,7 +26,7 @@ const SECTIONS: { id: Section; label: string }[] = [
 ];
 
 /**
- * The Barn Bazaar, a page of its own (opened from the main menu, in the same tab): your level and coins at the top,
+ * The Trading Post, a page of its own (opened from the main menu, in the same tab): your level and coins at the top,
  * then every item under its heading in one long scroll, and the milestones at the foot. A bar of section tabs stays
  * at the top and jumps down the page. Prices are fixed and shown, nothing is random, nothing is sold for money, and
  * nothing here changes how a game plays. The browser's Back button and Esc both go back to the farm.
@@ -78,16 +78,16 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   };
   const lv = levelOf(wallet.xp);
   return (
-    <div className="sk-shop" role="dialog" aria-modal="true" aria-label="The Barn Bazaar">
+    <div className="sk-shop" role="dialog" aria-modal="true" aria-label="The Trading Post">
       <header className="sk-shop-top kit-plank kit-plank--barn">
         <WoodButton onClick={onClose} className="sk-shop-back" aria-label="Back to the farm">← Farm</WoodButton>
-        <h1 className="sk-shop-title sk-display">The Barn Bazaar</h1>
+        <h1 className="sk-shop-title sk-display">The Trading Post</h1>
         <span className="sk-shop-purse" aria-label={`${wallet.coins} Wool Coins, level ${lv.level}`}>
           <span className="sk-shop-coins"><CoinIcon size={20} /> {wallet.coins.toLocaleString()}</span>
           <span className="sk-shop-level">Lv {lv.level}</span>
         </span>
       </header>
-      <nav className="sk-shop-tabs" aria-label="Bazaar sections">
+      <nav className="sk-shop-tabs" aria-label="Trading Post sections">
         {SECTIONS.map((s) => (
           <Patch key={s.id} as="button" small pressed={at === s.id} tone={at === s.id ? 'gold' : 'burlap'} onClick={() => jump(s.id)}>{s.label}</Patch>
         ))}
@@ -119,7 +119,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
               </ul>
             </Paper>
           </section>
-          <p className="sk-hand sk-shop-foot">Only for show: nothing in the Bazaar changes how a game plays. Wool Coins are earned by playing, never bought.</p>
+          <p className="sk-hand sk-shop-foot">Only for show: nothing in the Trading Post changes how a game plays. Wool Coins are earned by playing, never bought.</p>
         </div>
       </div>
       {note && <p role="status" className="sk-shop-note kit-paper kit-paper--slip">{note}</p>}

@@ -13,7 +13,7 @@ export function previewEnd(kind: EndPreview): boolean {
   if (!store.start(kind === 'run' ? 'practice' : 'quick')) return false;
   const g = structuredClone(useStore.getState().game!);
   g.phase = 'gameOver';
-  // Marked so the Barn Bazaar never pays for a game that was not played (src/skin/shop/Payout.tsx).
+  // Marked so the Trading Post never pays for a game that was not played (src/skin/shop/Payout.tsx).
   g.seed = `preview:${g.seed}`;
   g.turn = null;
   g.round = 4;

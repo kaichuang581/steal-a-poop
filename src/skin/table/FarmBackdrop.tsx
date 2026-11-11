@@ -34,7 +34,7 @@ interface Props {
   heroYaw?: number;
   /** Bump to make the hero hop (the name field took focus). */
   hopKey?: number;
-  /** A full page (the Barn Bazaar) covers the farm: stop drawing it until the page closes. */
+  /** A full page (the Trading Post) covers the farm: stop drawing it until the page closes. */
   paused?: boolean;
 }
 
@@ -111,7 +111,7 @@ function Drift({ shots, veil, spot, bounce, reduced, ready }: {
   const startedAt = useRef<number | null>(null);
   useFrame(({ clock }) => {
     if (ready && startedAt.current === null) startedAt.current = clock.elapsedTime;
-    // A pause (the Bazaar over the farm) restarts the clock at 0: the tour starts again from its first shot.
+    // A pause (the Trading Post over the farm) restarts the clock at 0: the tour starts again from its first shot.
     if (startedAt.current !== null && clock.elapsedTime < startedAt.current) { startedAt.current = clock.elapsedTime; }
     const still = reduced || pinned !== null || startedAt.current === null;
     const pov = still ? { index: pinned ?? 0, progress: 0, veil: 0 } : povAt(clock.elapsedTime - startedAt.current!, shots.length);

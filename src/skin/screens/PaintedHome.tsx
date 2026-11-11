@@ -222,7 +222,7 @@ export function PaintedHome() {
     },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {
-      id: 'bazaar', label: 'Barn Bazaar', badge: <MenuTag tone="gold" label={`${wool} Wool Coins`}><CoinIcon size={11} />{wool}</MenuTag>,
+      id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${wool} Wool Coins`}><CoinIcon size={11} />{wool}</MenuTag>,
       caption: 'Bomb skins, bursts and fuse sounds for the Wool Coins you earn by playing.', onSelect: () => setBazaar(true),
     },
     {
@@ -382,7 +382,7 @@ export function PaintedHome() {
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
         )}
         <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account"><PersonIcon /></button>
-        <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Barn Bazaar, ${wool} Wool Coins`} title="The Barn Bazaar"><BagIcon size={20} /><span>{wool}</span></button>
+        <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${wool} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{wool}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>

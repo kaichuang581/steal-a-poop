@@ -77,7 +77,7 @@ export function PaintedApp() {
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
   useEffect(() => { useRoomStore.getState().sendAvatar(avatar); }, [avatar]);
-  // The Barn Bazaar: the fuse sound worn, and any streak item the best dream streak has earned (kept for good).
+  // The Trading Post: the fuse sound worn, and any streak item the best dream streak has earned (kept for good).
   const tick = useWallet().equipped.tick;
   useEffect(() => { setTickVoice(TICK_VOICE[tick] ?? 'chime'); }, [tick]);
   useEffect(() => { void grantStreak(loadStreak().best); }, []);

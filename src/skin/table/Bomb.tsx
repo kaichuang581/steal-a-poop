@@ -46,7 +46,7 @@ interface Ring { mesh: Mesh | null; x: number; z: number; size: number; at: numb
 export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power, spotAt = barnSpot }: { spotAt?: (index: number, n: number) => BombSpot; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
   const m = useMemo(() => bombModel(), []);
   const body = useMemo(() => voxelMaterial({ emissive: '#3f97d6', emissiveIntensity: 0.1 }), []);
-  // Barn Bazaar cosmetics: a tint on the shell and the burst's colours. Only how it looks.
+  // Trading Post cosmetics: a tint on the shell and the burst's colours. Only how it looks.
   const equipped = useWallet().equipped;
   const tint = BOMB_TINT[equipped.bomb] ?? BOMB_TINT['bomb-ice'];
   const palette = BLAST_PALETTE[equipped.blast];

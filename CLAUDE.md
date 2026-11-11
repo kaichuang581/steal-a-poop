@@ -627,3 +627,5 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Signed in, the wallet lives on the server (db/migrations/105_barn_wallets.sql, server/barn, /api/barn/*): the browser's wallet is
   imported once per account (coins capped at IMPORT_COIN_CAP), games are claimed by id with the daily cap held on the server (UTC day),
   prices come from the shared catalogue. The server cannot see solo games, so faking reports gains at most the daily cap of cosmetic coins.
+- The shop is called the Trading Post (renamed by Kai, 2026-11-11, from the Barn Bazaar). Code names stay `Bazaar`, `bazaar` and `.sk-bazaar*`;
+  every word a player reads says Trading Post. The bullets above that say Barn Bazaar mean the Trading Post.

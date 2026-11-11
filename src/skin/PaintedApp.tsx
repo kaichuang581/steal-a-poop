@@ -80,7 +80,7 @@ export function PaintedApp() {
   // The Barn Bazaar: the fuse sound worn, and any streak item the best dream streak has earned (kept for good).
   const tick = useWallet().equipped.tick;
   useEffect(() => { setTickVoice(TICK_VOICE[tick] ?? 'chime'); }, [tick]);
-  useEffect(() => { grantStreak(loadStreak().best); }, []);
+  useEffect(() => { void grantStreak(loadStreak().best); }, []);
 
   useEffect(() => {
     const root = document.documentElement;

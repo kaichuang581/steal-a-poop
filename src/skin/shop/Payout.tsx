@@ -1,25 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CoinIcon } from '../components/Icons';
 import type { GameReward, Payout } from './economy';
 import { itemById } from './catalog';
 import { grantStreak, payFinishedGame } from './store';
 
-/** Payouts already worked out this session, by game id, so a re-render (or React's double render) shows the same lines. */
-const shown = new Map<string, Payout>();
+/** Payouts already worked out (or on their way) this session, by game id, so a re-render shows the same lines. */
+const shown = new Map<string, Promise<Payout | null>>();
 
 /**
- * Pays a finished game into the Barn Bazaar wallet once and returns what was paid. `id` is null for a game that must not
- * pay (rooms, the tutorial, the admin's end previews, whose seeds start `preview:`).
+ * Pays a finished game into the Barn Bazaar wallet once and returns what was paid (null until it is known). `id` is
+ * null for a game that must not pay (rooms, the tutorial, the admin's end previews, whose seeds start `preview:`).
+ * Signed in, the payment goes to the account's wallet on the server, so it arrives a moment after the board.
  */
 export function usePayout(id: string | null, reward: GameReward | null): Payout | null {
-  const [payout] = useState(() => {
-    if (!id || !reward || id.includes('preview:')) return null;
-    const hit = shown.get(id);
-    if (hit) return hit;
-    const p = payFinishedGame(id, reward);
-    shown.set(id, p);
-    return p;
-  });
+  const [payout, setPayout] = useState<Payout | null>(null);
+  useEffect(() => {
+    if (!id || !reward || id.includes('preview:')) return;
+    let live = true;
+    let p = shown.get(id);
+    if (!p) { p = payFinishedGame(id, reward); shown.set(id, p); }
+    void p.then((r) => { if (r === null) shown.delete(id); if (live) setPayout(r); });
+    return () => { live = false; };
+    // The reward is fixed once the game is over; the id says which game it is.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
   return payout && payout.lines.length ? payout : null;
 }
 
@@ -39,7 +43,12 @@ export function PayoutLines({ payout, className = '' }: { payout: Payout; classN
 /** The dream's results: its Wool Coins, and any streak item the best streak has now earned (kept for good). */
 export function DreamPayout({ id, sheep, slept, bestStreak }: { id: string; sheep: number; slept: boolean; bestStreak: number }) {
   const payout = usePayout(id, { mode: 'dream', sheep, slept });
-  const [granted] = useState(() => grantStreak(bestStreak).map((i) => itemById(i)?.name ?? i));
+  const [granted, setGranted] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    void grantStreak(bestStreak).then((ids) => { if (live) setGranted(ids.map((i) => itemById(i)?.name ?? i)); });
+    return () => { live = false; };
+  }, [bestStreak]);
   if (!payout && !granted.length) return null;
   return (
     <div className="dr-results-payout">

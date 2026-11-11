@@ -621,3 +621,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   sale, no ads, no item that changes play. Rooms, the daily table, the tutorial and the admin's end previews (seeds `preview:`) never
   pay. The save code carries `sap:barn` (merged, never lowered). The wallet is local; the server's coin shop (server/economy) is
   separate and still only for signed-in room play.
+- The Bazaar page and the account wallet (requested by Kai, 2026-11-11). The Bazaar is a menu item ("Barn Bazaar") that opens a
+  full page in the same tab (src/skin/shop/Bazaar.tsx: header, section tabs, one scroll of item cards under headings; a history entry so
+  Back closes it); the farm stops drawing behind it (`paused` on FarmBackdrop; a pause restarts three's clock, so the tour restarts).
+  Signed in, the wallet lives on the server (db/migrations/105_barn_wallets.sql, server/barn, /api/barn/*): the browser's wallet is
+  imported once per account (coins capped at IMPORT_COIN_CAP), games are claimed by id with the daily cap held on the server (UTC day),
+  prices come from the shared catalogue. The server cannot see solo games, so faking reports gains at most the daily cap of cosmetic coins.

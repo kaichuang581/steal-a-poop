@@ -34,10 +34,12 @@ interface Props {
   heroYaw?: number;
   /** Bump to make the hero hop (the name field took focus). */
   hopKey?: number;
+  /** A full page (the Barn Bazaar) covers the farm: stop drawing it until the page closes. */
+  paused?: boolean;
 }
 
 /** Home's backdrop: the farm seen from the yard, the barn's open back doors glowing, the player's sheep in the doorway light. */
-export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey = 0 }: Props) {
+export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey = 0, paused = false }: Props) {
   const w = useWorld();
   const avatar = useAvatar();
   const cam = phone ? HOME_CAMERA.phone : HOME_CAMERA.desktop;
@@ -59,7 +61,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
     <>
     {sky}
     <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined} data-instant={instant || undefined}>
-    <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm"
+    <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm" frameloop={paused ? 'never' : 'always'}
       shadows={{ type: PCFShadowMap }}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
@@ -109,6 +111,8 @@ function Drift({ shots, veil, spot, bounce, reduced, ready }: {
   const startedAt = useRef<number | null>(null);
   useFrame(({ clock }) => {
     if (ready && startedAt.current === null) startedAt.current = clock.elapsedTime;
+    // A pause (the Bazaar over the farm) restarts the clock at 0: the tour starts again from its first shot.
+    if (startedAt.current !== null && clock.elapsedTime < startedAt.current) { startedAt.current = clock.elapsedTime; }
     const still = reduced || pinned !== null || startedAt.current === null;
     const pov = still ? { index: pinned ?? 0, progress: 0, veil: 0 } : povAt(clock.elapsedTime - startedAt.current!, shots.length);
     const shot = shots[pov.index];

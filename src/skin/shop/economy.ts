@@ -172,7 +172,7 @@ export function payGame(wallet: Wallet, id: string, g: GameReward, today: string
 
 // ---------------------------------------------------------------- the shop
 
-export type BuyResult = { ok: true; wallet: Wallet } | { ok: false; reason: 'unknown' | 'owned' | 'not_for_sale' | 'short' };
+export type BuyResult = { ok: true; wallet: Wallet } | { ok: false; reason: 'unknown' | 'owned' | 'not_for_sale' | 'short' | 'offline' };
 
 export function buy(wallet: Wallet, id: string): BuyResult {
   const w = normalise(wallet);

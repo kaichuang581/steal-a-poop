@@ -31,6 +31,9 @@ import { AlertMonitor, WebhookSender } from './ops/alerts';
 import type { Snapshot } from './ops/alerts';
 import { EconomyService } from './economy/service';
 import { MemoryEconomyStore, PostgresEconomyStore } from './economy/store';
+import { BarnService } from './barn/service';
+import { MemoryBarnStore, PostgresBarnStore } from './barn/store';
+import { createBarnRoutes } from './routes/barn';
 import { MemoryResultsStore, PostgresResultsStore } from './game/results';
 import { GameDataService } from './game/service';
 import { FriendsService } from './social/friends';
@@ -186,6 +189,7 @@ if (!mailer) console.warn('No mail sender is configured (SMTP_URL and MAIL_FROM)
 // ---- game data: results, coins, friends ---------------------------------------------------------------
 const economyStore = pool ? new PostgresEconomyStore(pool) : new MemoryEconomyStore();
 const economy = new EconomyService(economyStore);
+const barn = new BarnService(pool ? new PostgresBarnStore(pool) : new MemoryBarnStore());
 const presence = { online: (_id: string) => false };
 let notify: (userId: string, msg: object) => void = () => undefined;
 const friends = new FriendsService({
@@ -208,7 +212,7 @@ const gameData = new GameDataService({
 
 const accounts = new AccountService({
   standing: (id) => ({ suspendedUntil: chat.state(id).suspendedUntil, openItems: chat.status(id).openItems }),
-  erasers: [(id) => gameData.erase(id), (id) => friends.erase(id)],
+  erasers: [(id) => gameData.erase(id), (id) => friends.erase(id), (id) => barn.erase(id)],
   store: accountStore,
   now: Date.now,
   mailer,
@@ -259,6 +263,7 @@ const httpServer = createHttpServer({
     ...createFriendRoutes({ friends }),
     ...createLeaderboardRoutes({ data: gameData, accounts }),
     ...createShopRoutes({ economy, store: economyStore }),
+    ...createBarnRoutes({ barn }),
     ...createOpsRoutes({ snapshot: takeSnapshot }),
     ...createFeedbackRoutes({ token: process.env.GITHUB_FEEDBACK_TOKEN, repo: process.env.GITHUB_FEEDBACK_REPO || 'kaichuang581/steal-a-poop' }),
     ...createAccountRoutes({ service: accounts, captcha: turnstileSecret ? new TurnstileVerifier({ secret: turnstileSecret }) : new DevCaptcha() }),

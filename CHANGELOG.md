@@ -2,6 +2,11 @@
 
 All user-visible changes, newest first.
 
+## 0.6.1
+
+- The Barn Bazaar is on the main menu and opens as its own page: your level and coins at the top, then every item under its heading (Bomb skins, Bursts, Fuse sounds, Milestones) in one scroll, with tabs that jump down the page. The browser's Back button or Esc returns to the farm
+- Signed in, your Wool Coins, XP and items are kept on your account and follow you to any device. The first time you sign in, this browser's wallet is brought in (up to 1,000 coins)
+
 ## 0.6.0
 
 - The Barn Bazaar: a shop on the start screen (the bag button, with your Wool Coins on it). Buy bomb skins, burst colours and fuse sounds with Wool Coins. Everything is only for show, every price is shown, and nothing is random or sold for money

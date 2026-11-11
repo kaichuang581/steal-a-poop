@@ -49,7 +49,10 @@ const ZERO = new Matrix4().makeScale(0, 0, 0);
  * blue, glittering ice crystals that fly out and drift down, chunks of the shell that tumble and bounce on the floor,
  * and a freezing mist that sinks and spreads. One burst each time `boomKey` changes, from where the bomb was.
  */
-export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number | undefined; origin: () => Vector3 | null; reduced: boolean; power?: number }) {
+export function Blast({ boomKey, origin, reduced, power = 1, palette }: { boomKey: number | undefined; origin: () => Vector3 | null; reduced: boolean; power?: number; palette?: { flame: string[]; spark: string[] } }) {
+  // The burst's colours: frost unless a Barn Bazaar burst is worn (cosmetic only).
+  const flameColors = useMemo(() => (palette ? palette.flame.map((c) => new Color(c)) : FLAME_COLORS), [palette]);
+  const sparkColors = useMemo(() => (palette ? palette.spark.map((c) => new Color(c)) : SPARK_COLORS), [palette]);
   const flames = useMemo(() => makeCloud(FLAMES), []);
   const sparks = useMemo(() => makeCloud(SPARKS), []);
   const flameMat = useMemo(() => new PointsMaterial({ size: 2.3, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }), []);
@@ -134,7 +137,7 @@ export function Blast({ boomKey, origin, reduced, power = 1 }: { boomKey: number
         p.setXYZ(i, p.getX(i) + cloud.vel[i * 3] * dt, p.getY(i) + cloud.vel[i * 3 + 1] * dt, p.getZ(i) + cloud.vel[i * 3 + 2] * dt);
         const k = a / LIFE;
         if (!flame) { cloud.vel[i * 3] *= 1 - dt * 1.2; cloud.vel[i * 3 + 2] *= 1 - dt * 1.2; } // crystals float as they fall
-        const col = flame ? FLAME_COLORS[Math.min(FLAME_COLORS.length - 1, Math.floor(k * FLAME_COLORS.length))] : SPARK_COLORS[Math.floor(i % 7 === 0 ? 0 : (a * 7) % 3)];
+        const col = flame ? flameColors[Math.min(flameColors.length - 1, Math.floor(k * flameColors.length))] : sparkColors[Math.floor(i % 7 === 0 ? 0 : (a * 7) % 3) % sparkColors.length];
         const fade = (1 - k) ** 1.5 * (flame ? 0.2 : 1.0); // blue piles up to white fast when drawn additive
         c.setXYZ(i, col.r * fade, col.g * fade, col.b * fade);
       }

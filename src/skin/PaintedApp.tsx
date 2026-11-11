@@ -1,4 +1,8 @@
 import { JoinLink } from './share/JoinLink';
+import { setTickVoice } from '../audio/sound';
+import { loadStreak } from '../dream/daily';
+import { TICK_VOICE } from './shop/catalog';
+import { grantStreak, useWallet } from './shop/store';
 import { useAvatar } from './avatars/store';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Garland } from './components/Garland';
@@ -73,6 +77,10 @@ export function PaintedApp() {
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
   useEffect(() => { useRoomStore.getState().sendAvatar(avatar); }, [avatar]);
+  // The Barn Bazaar: the fuse sound worn, and any streak item the best dream streak has earned (kept for good).
+  const tick = useWallet().equipped.tick;
+  useEffect(() => { setTickVoice(TICK_VOICE[tick] ?? 'chime'); }, [tick]);
+  useEffect(() => { grantStreak(loadStreak().best); }, []);
 
   useEffect(() => {
     const root = document.documentElement;

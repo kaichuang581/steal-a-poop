@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { streakRow } from './streakRow';
+import { DreamPayout } from '../shop/Payout';
 import { dreamStreakDays, getDreamBest, getDreamStreak, loadStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
 import { check, DREAM_LENGTH, dreamGlyphs, dreamSeed, dreamShareText, dreamSummary, fenceAt, formatHint, matched } from '../../dream/dream';
 import { useStore } from '../../state/store';
@@ -435,6 +436,7 @@ export function DreamScreen() {
                   <Paper kind="note" seed="blankets" className="dr-results-blankets">Warm Blankets keep your streak warm when you miss a night. You earn one every 7 nights.</Paper>
                 </div>
               )}
+              <DreamPayout id={`dream:${seed}`} sheep={count} slept={asleep} bestStreak={practice ? 0 : loadStreak().best} />
               <div className="dr-results-rail">
                 <Brass onClick={share} autoFocus>{copied ? 'Copied!' : 'Share'}</Brass>
                 <WoodButton onClick={practiceAgain}>Practice</WoodButton>

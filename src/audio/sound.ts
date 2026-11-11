@@ -1,6 +1,6 @@
 import { useStore } from '../state/store';
 
-export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom' | 'doorShut' | 'doorOpen';
+export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom' | 'doorShut' | 'doorOpen' | 'crunch';
 
 let ctx: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
@@ -133,6 +133,11 @@ function schedule(c: AudioContext, kind: SoundKind): void {
     case 'roundEnd':
       [523, 659, 784, 1047].forEach((f, i) => tone(c, { freq: f, at: i * 0.11, dur: 0.3, type: 'triangle', vol: 0.1 }));
       break;
+    case 'crunch': // your word breaks the frost: a short bright crackle and a click
+      whoosh(c, 0, 0.09, 7000, 2500, 0.32);
+      whoosh(c, 0.03, 0.07, 4000, 1500, 0.2);
+      tone(c, { freq: 1600, dur: 0.04, type: 'square', vol: 0.05, to: 900 });
+      break;
     case 'boom': // the ice bomb: a glassy crack, a deep thump, shards of ice tinkling down and a freezing gust after
       whoosh(c, 0, 0.12, 9000, 3000, 0.9);
       whoosh(c, 0, 1.2, 2000, 70, 0.9);
@@ -186,6 +191,40 @@ export function stopBombClock(): void {
 }
 
 /** Schedules the beeps for a turn that has `remainingMs` left out of `totalMs`. Replaces any beeps already scheduled. */
+/** How the bomb's fuse beeps: a shop cosmetic (src/skin/shop/catalog.ts, TICK_VOICE). Never changes the timing. */
+export type TickVoice = 'chime' | 'square' | 'wood' | 'lullaby';
+let tickVoice: TickVoice = 'chime';
+export function setTickVoice(v: TickVoice): void { tickVoice = v; }
+
+/** One beep of the fuse at audio time `at`: `r` whole seconds left, `u` how far through the turn (0 to 1). */
+function beep(c: AudioContext, dest: AudioNode, at: number, r: number, u: number, voice: TickVoice) {
+  const finale = r <= 3;
+  const shape: Record<TickVoice, { type: OscillatorType; freq: number; vol: number; dur: number; edge: OscillatorType | null }> = {
+    chime: { type: finale ? 'square' : 'triangle', freq: finale ? 1100 + (3 - r) * 180 : 520 + u * 480, vol: finale ? 0.9 : 0.08 + u * 0.22, dur: finale ? 0.22 : 0.12, edge: 'sawtooth' },
+    square: { type: 'square', freq: finale ? 880 + (3 - r) * 220 : 440 + u * 440, vol: finale ? 0.7 : 0.06 + u * 0.16, dur: finale ? 0.18 : 0.09, edge: 'square' },
+    wood: { type: 'triangle', freq: finale ? 700 + (3 - r) * 120 : 300 + u * 260, vol: finale ? 0.95 : 0.12 + u * 0.3, dur: finale ? 0.08 : 0.05, edge: 'triangle' },
+    lullaby: { type: 'sine', freq: finale ? 880 + (3 - r) * 110 : 440 + u * 220, vol: finale ? 0.8 : 0.1 + u * 0.2, dur: finale ? 0.3 : 0.2, edge: null },
+  };
+  const v = shape[voice];
+  const one = (type: OscillatorType, freq: number, vol: number) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, at);
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol * gainScale), at + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + v.dur);
+    osc.connect(gain).connect(dest);
+    osc.start(at);
+    osc.stop(at + v.dur + 0.03);
+    clockNodes.push({ osc, gain });
+  };
+  one(v.type, v.freq, v.vol);
+  // A harder second voice for the last three seconds, a fifth above, so they are as loud as the sound can get.
+  if (finale && v.edge) one(v.edge, v.freq * 1.5, voice === 'chime' ? 0.5 : 0.35);
+}
+
+/** Schedules the beeps for a turn that has `remainingMs` left out of `totalMs`. Replaces any beeps already scheduled. */
 export function startBombClock(remainingMs: number, totalMs: number): void {
   stopBombClock();
   const c = out();
@@ -196,35 +235,16 @@ export function startBombClock(remainingMs: number, totalMs: number): void {
   for (let r = secs; r >= 1; r--) {
     // Beep when `r` whole seconds are left. Time from now to that moment, on the audio clock.
     const at = t0 + (remainingMs - r * 1000) / 1000;
-    const u = 1 - r / Math.max(1, totalMs / 1000); // 0 at the start of the turn, toward 1 at the end
-    const finale = r <= 3;
-    const freq = finale ? 1100 + (3 - r) * 180 : 520 + u * 480;
-    const vol = finale ? 0.9 : 0.08 + u * 0.22;
-    const dur = finale ? 0.22 : 0.12;
-    const osc = c.createOscillator();
-    const gain = c.createGain();
-    osc.type = finale ? 'square' : 'triangle';
-    osc.frequency.setValueAtTime(freq, at);
-    gain.gain.setValueAtTime(0.0001, at);
-    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol * gainScale), at + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-    osc.connect(gain).connect(dest);
-    osc.start(at);
-    osc.stop(at + dur + 0.03);
-    clockNodes.push({ osc, gain });
-    if (finale) {
-      // A harder second voice for the last three seconds, a fifth above, so they are as loud as the sound can get.
-      const o2 = c.createOscillator();
-      const g2 = c.createGain();
-      o2.type = 'sawtooth';
-      o2.frequency.setValueAtTime(freq * 1.5, at);
-      g2.gain.setValueAtTime(0.0001, at);
-      g2.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.5 * gainScale), at + 0.004);
-      g2.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-      o2.connect(g2).connect(dest);
-      o2.start(at);
-      o2.stop(at + dur + 0.03);
-      clockNodes.push({ osc: o2, gain: g2 });
-    }
+    const u = 1 - r / Math.max(1, totalMs / 1000);
+    beep(c, dest, at, r, u, tickVoice);
   }
+}
+
+/** A short sample of a fuse voice for the shop: two calm beeps and the last three seconds' beeps. */
+export function previewTick(voice: TickVoice): void {
+  const c = out();
+  if (!c) return;
+  const dest = destination(c);
+  const t0 = c.currentTime + 0.05;
+  [[6, 0.3], [5, 0.5], [3, 0.8], [2, 0.9], [1, 1]].forEach(([r, u], i) => beep(c, dest, t0 + i * 0.35, r, u, voice));
 }

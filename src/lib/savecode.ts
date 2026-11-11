@@ -1,4 +1,5 @@
 import { ADMIN_AVATAR_ID, isAvatarId } from '../avatars/ids';
+import { mergeWallets, normalise } from '../skin/shop/economy';
 
 /**
  * The save code (plan v7 Part 6): a copy-and-paste text that carries a player's records to another browser, because
@@ -100,6 +101,12 @@ export const SAVE_KEYS: readonly Spec[] = [
     key: 'sap:settings', label: 'your name and table', onlyIfDefault: true,
     valid: settingsFromCode,
     merge: (l, i) => l ?? i,
+  },
+  {
+    // The Barn Bazaar's wallet: Wool Coins, XP, what is owned and worn, the words played. Merged, never lowered.
+    key: 'sap:barn', label: 'Wool Coins and the Barn Bazaar',
+    valid: (v) => (isObj(v) && isNum(v.coins) && isNum(v.xp) && Array.isArray(v.owned) ? v : null),
+    merge: (l, i) => (l ? mergeWallets(normalise(l), normalise(i)) : normalise(i)),
   },
 ];
 

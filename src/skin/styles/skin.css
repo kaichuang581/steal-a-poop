@@ -1126,3 +1126,35 @@
 
 /* The animals' pixel heads (AvatarIcon): drawn whole, never squashed, no gap under them. */
 .sk-avatar-head { display: block; object-fit: contain; flex: none; user-select: none; }
+
+/* ---------- the Barn Bazaar: cosmetics for Wool Coins ---------- */
+.sk-bazaar { width: min(640px, calc(100vw - 24px)); }
+.sk-bazaar-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.sk-bazaar-coins { display: inline-flex; align-items: center; gap: 6px; font-family: var(--skin-font-display); font-weight: 800; font-size: 18px; color: var(--wood-ink); }
+.sk-bazaar-note { margin: 4px 0 8px; color: var(--ink-soft); }
+.sk-bazaar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.sk-bazaar-item { align-items: stretch; text-align: left; gap: 4px; }
+.sk-bazaar-item[data-worn] { outline: 3px solid var(--amber); outline-offset: -3px; }
+.sk-bazaar-swatch { display: flex; gap: 3px; }
+.sk-bazaar-swatch i { display: block; width: 18px; height: 18px; border: 2px solid var(--wood-dark); }
+.sk-bazaar-status { font-family: var(--skin-font-body); font-weight: 800; font-size: 13px; color: var(--wood-dark); }
+.sk-bazaar-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.sk-bazaar-progress { display: flex; flex-direction: column; gap: 8px; }
+.sk-bazaar-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.sk-bazaar-list li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 6px; border-bottom: 1px dashed var(--wood); }
+.sk-bazaar-list li[data-done] { color: var(--ink-soft); text-decoration: line-through; }
+.sk-payout { display: flex; flex-direction: column; gap: 2px; margin: 6px 0; }
+.sk-payout-total { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-family: var(--skin-font-display); font-weight: 800; font-size: 18px; }
+.sk-payout-lines { margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.sk-payout-lines li { display: flex; justify-content: space-between; gap: 12px; }
+.sk-payout-level { margin: 2px 0 0; font-weight: 800; }
+.dr-results-payout { margin: 6px 0; }
+.sk-bazaar-btn { width: auto; min-width: 44px; padding: 0 10px; gap: 4px; display: inline-flex; align-items: center; font-weight: 800; }
+/* Frost in the last three seconds: ice creeping in from all four edges, thicker as the fuse burns down. */
+.sk-frost { position: fixed; inset: 0; z-index: 35; pointer-events: none; --t: calc(var(--frost) * 7vmin); }
+.sk-frost > .kit-ice { position: absolute; opacity: calc(0.35 + var(--frost) * 0.5); transition: width 300ms linear, height 300ms linear; }
+.sk-frost-t { top: 0; left: 0; right: 0; height: var(--t); }
+.sk-frost-b { bottom: 0; left: 0; right: 0; height: var(--t); }
+.sk-frost-l { top: 0; bottom: 0; left: 0; width: var(--t); }
+.sk-frost-r { top: 0; bottom: 0; right: 0; width: var(--t); }
+.sk-word-burst[data-rare] .sk-word-burst-word { color: var(--amber); }

@@ -2,6 +2,17 @@
 
 All user-visible changes, newest first.
 
+## 0.6.0
+
+- The Barn Bazaar: a shop on the start screen (the bag button, with your Wool Coins on it). Buy bomb skins, burst colours and fuse sounds with Wool Coins. Everything is only for show, every price is shown, and nothing is random or sold for money
+- Wool Coins and XP: every finished Quick Game, practice run and Counting Sheep night pays coins and XP. Coins from games stop at 300 a day; levels and milestones pay on top
+- Levels and barn titles, from Lamb to Golden Fleece, with a coin bonus each level
+- Your word collection: every different word you play is kept, with milestones at 50, 250, 1,000 and 5,000 words, and for words starting with X, Z, Q or J
+- Dream streak rewards: the Aurora bomb at 7 nights in a row, the Starlight burst at 30 and the Lullaby fuse at 100. Once earned they are yours for good, even if the streak ends
+- Frost creeps in from the screen's edges in the last three seconds of a turn, your words land with a crunch, and on phones a word or a timeout gives a little buzz
+- Words with X, Z, Q or J flash gold
+- The save code in Settings now carries your Wool Coins, XP and Barn Bazaar items too
+
 ## 0.5.0
 
 - New avatar portraits: pixel-art heads for the sheep, pig, cow, goat, horse and chicken, and the sheep is the tab icon

@@ -1,5 +1,8 @@
 import { MiniBomb } from '../components/BombClock';
 import { BOMB_TOSS_S } from '../voxel/bomb';
+import { PayoutLines, usePayout } from '../shop/Payout';
+import { playSound } from '../../audio/sound';
+import { buzz } from '../hooks/buzz';
 import { Jumpscare, WordBlast } from '../components/Jumpscare';
 import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
@@ -169,7 +172,7 @@ export function PaintedGame() {
     });
     const size = Math.min(64, Math.max(34, 520 / Math.max(6, word.length)));
     flash(
-      <div className={`sk-word-burst ${mine ? 'sk-word-burst-mine' : ''}`}>
+      <div className={`sk-word-burst ${mine ? 'sk-word-burst-mine' : ''}`} data-rare={/[xzqj]/i.test(word) || undefined}>
         <span className="sk-word-burst-ring" />
         {!reduced && tufts}
         <span className="sk-word-burst-word" style={{ fontSize: mine ? size * 1.15 : size }}>{word.toUpperCase()}</span>
@@ -185,6 +188,8 @@ export function PaintedGame() {
         setMoments((m) => ({ ...m, tuftIn: { key: k(), from: rel(Number(e.playerId)) } }));
         if (e.word.length >= 8) mood(e.playerId, 'proud');
         burst(e.word, name(e.playerId), Number(e.playerId) === mySeat);
+        // Your word lands with a crunch (it breaks the frost) and, on a phone, a tiny buzz.
+        if (Number(e.playerId) === mySeat) { playSound('crunch'); buzz(12); }
         break;
       case 'passed':
         mood(e.playerId, 'happy');
@@ -192,6 +197,7 @@ export function PaintedGame() {
         break;
       case 'timedOut':
         setDimmed((d) => new Set(d).add(Number(e.playerId)));
+        if (Number(e.playerId) === mySeat) buzz([60, 40, 120]);
         // Every time-out blows the bomb up, learning games included.
         {
           // Everything said since the bomb last went off comes out and goes up with it; a bigger bomb is a bigger blast.
@@ -274,6 +280,12 @@ export function PaintedGame() {
   return (
     <div ref={rootRef} className="sk-swoop-in relative flex h-full flex-col overflow-hidden">
       {boom > 0 && <div key={boom} className="sk-boom" aria-hidden="true"><i /><i /><i /></div>}
+      {/* Frost creeps in from the screen's edges in the last three seconds of a turn (not on the ice, which has its own red edge). */}
+      {!practice && game.turn && game.phase === 'playing' && view.secondsLeft <= 3 && (
+        <div className="sk-frost" aria-hidden="true" style={{ '--frost': String(Math.min(1, Math.max(0, (3 - view.secondsLeft) / 3))) } as React.CSSProperties}>
+          <Ice className="sk-frost-t" /><Ice className="sk-frost-b" /><Ice className="sk-frost-l" /><Ice className="sk-frost-r" />
+        </div>
+      )}
       {blast && !reduced && <Jumpscare key={`j${blast.key}`} power={blast.power} />}
       {blast && !reduced && <WordBlast key={`w${blast.key}`} words={blast.words} power={blast.power} />}
       {hit > 0 && <div key={hit} className="sk-hit-flash" aria-hidden="true" />}
@@ -461,6 +473,9 @@ function RunOver() {
   const dreamWaiting = useDreamWaiting();
   const me = game.players[0];
   const score = run?.score ?? me.wordsPlayed;
+  const payout = usePayout(`practice:${game.seed}`, {
+    mode: 'practice', score, words: game.history.filter((h) => h.seat === 0 && h.kind === 'play' && h.word).map((h) => h.word!),
+  });
   const stats: [string, string | number][] = [
     ['Best', run?.best ?? score],
     ['Clock', `${game.settings.practiceClock ?? 15} s`],
@@ -491,6 +506,7 @@ function RunOver() {
               <b>{me.longestWord.toUpperCase()}</b>
             </div>
           )}
+          {payout && <PayoutLines payout={payout} className="sk-tally-section" />}
           {dreamWaiting && <p className="sk-tally-section sk-hand">{DREAM_LINE}</p>}
           <div className="sk-tally-actions">
             <ClothButton autoFocus onClick={rematch} className="basis-full">Play again</ClothButton>
@@ -521,6 +537,11 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
   const result = useStore((s) => s.gameResult);
   const dreamWaiting = useDreamWaiting();
   const me = game.players[mySeat];
+  // Wool Coins for a finished Quick Game (not rooms, the daily or the tutorial), paid once.
+  const payout = usePayout(mode === 'quick' ? `quick:${game.seed}` : null, {
+    mode: 'quick', won: !!game.winners?.includes(mySeat),
+    words: game.history.filter((h) => h.seat === mySeat && h.kind === 'play' && h.word).map((h) => h.word!),
+  });
   const tiles: [string, number, number | undefined, boolean | undefined][] = [
     ['Wool kept', me.lives, result?.bests.wool, result?.beat.wool],
   ];
@@ -532,6 +553,7 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
       place === 1 ? `Last sheep standing out of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
       `Longest word: ${me.longestWord.length} letters`,
       mode === 'daily' && streak > 1 ? `${streak}-day streak` : '',
+      `${location.origin}${import.meta.env.BASE_URL}`,
     ].filter(Boolean).join('\n');
     await shareCard({
       title: 'Finish the Word',
@@ -569,6 +591,7 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
                 <span>Longest word{result?.bests.longest ? ` · ${result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}` : ''}</span>
               </div>
             </div>
+            {payout && <PayoutLines payout={payout} className="sk-final-note" />}
             {mode === 'room' && <RewardBanner />}
             {mode === 'daily' && (
               <div className="sk-tally-streak" aria-label={`Daily streak: ${days.filter(Boolean).length} of the last 7 days played`}>

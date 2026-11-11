@@ -613,3 +613,11 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   the shed and the orchard, the nightstand's knob. The outside wreath and the gable lights hang on the farm's barn shell
   (z 7.3 to 7.4), so they live in `buildFarmFestive`. Known and fine: the distant hills and mountains, the dream's
   islands, and the bedroom's clock, ring and window view are placed by their meshes, not in world space.
+- The Barn Bazaar (requested by Kai, 2026-11-11), skin only plus small hooks: src/skin/shop (catalog.ts, economy.ts for the pure rules,
+  store.ts for the wallet in `sap:barn`, Bazaar.tsx, Payout.tsx). Wool Coins and XP are paid once per finished Quick Game (by seed),
+  practice run and Counting Sheep night; game coins stop at DAILY_CAP (300) a local day, XP does not; levels, word milestones and
+  dream streak items (7, 30, 100 nights, never taken back) pay on top. Everything sold is cosmetic: bomb tints (Bomb.tsx), burst
+  palettes (Blast.tsx `palette`) and fuse voices (`setTickVoice` in src/audio/sound.ts). Hard rules: no random rewards, no real-money
+  sale, no ads, no item that changes play. Rooms, the daily table, the tutorial and the admin's end previews (seeds `preview:`) never
+  pay. The save code carries `sap:barn` (merged, never lowered). The wallet is local; the server's coin shop (server/economy) is
+  separate and still only for signed-in room play.

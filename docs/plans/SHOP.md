@@ -1,6 +1,6 @@
 # Shop and currency (plan, not built)
 
-Status: **draft for decision.** Nothing here is built. Items marked DECIDE need your answer. Anything that takes real money from a child needs your lawyer's review and a parental approval step before launch.
+Status: **coins and cosmetics built (0.6.0); real money not built.** What is built: Wool Coins and XP earned in this browser, the Barn Bazaar (src/skin/shop), levels, word milestones and dream streak items. Not built: Golden Apples or any real-money sale, ads of any kind, and syncing the wallet to an account. Those wait for the server, a payment provider, parental approval and a lawyer. Items marked DECIDE need your answer. Anything that takes real money from a child needs your lawyer's review and a parental approval step before launch.
 
 ## Principles
 1. **No random paid rewards.** No loot boxes, no gacha, no spin wheels, no "pity" timers. Every paid item is listed with its price, and the player gets exactly that item.

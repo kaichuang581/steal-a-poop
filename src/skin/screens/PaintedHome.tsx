@@ -32,6 +32,8 @@ import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
 import { FeedbackDialog } from '../components/FeedbackDialog';
+import { Bazaar } from '../shop/Bazaar';
+import { useWallet } from '../shop/store';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
 import { AvatarButtonIcon, PersonIcon } from '../components/PixelIcons';
@@ -89,6 +91,8 @@ export function PaintedHome() {
   const [step, setStep] = useState<'tables' | 'setup' | 'practice'>('tables');
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
+  const [bazaar, setBazaar] = useState(false);
+  const wool = useWallet().coins;
   const device = useDevice();
   const [feedback, setFeedback] = useState(false);
   const [legal, setLegal] = useState<LegalSlug | null>(null);
@@ -374,6 +378,7 @@ export function PaintedHome() {
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
         )}
         <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account"><PersonIcon /></button>
+        <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Barn Bazaar, ${wool} Wool Coins`} title="The Barn Bazaar"><BagIcon size={20} /><span>{wool}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
@@ -429,6 +434,7 @@ export function PaintedHome() {
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
       {legal && <LegalDialog initial={legal} onClose={() => setLegal(null)} />}
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
+      {bazaar && <Bazaar onClose={() => setBazaar(false)} />}
       {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       <DevLine />

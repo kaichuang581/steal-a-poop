@@ -6,6 +6,8 @@ import { digitGeometry } from '../voxel/characters';
 import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S, bombModel } from '../voxel/bomb';
 import { voxelMaterial } from '../voxel/material';
 import { Blast } from './Blast';
+import { BLAST_PALETTE, BOMB_TINT } from '../shop/catalog';
+import { useWallet } from '../shop/store';
 
 /** Where the bomb comes to rest beside a holder, given its radius in metres. */
 export type BombSpot = (radius: number) => [number, number];
@@ -44,6 +46,11 @@ interface Ring { mesh: Mesh | null; x: number; z: number; size: number; at: numb
 export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power, spotAt = barnSpot }: { spotAt?: (index: number, n: number) => BombSpot; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
   const m = useMemo(() => bombModel(), []);
   const body = useMemo(() => voxelMaterial({ emissive: '#3f97d6', emissiveIntensity: 0.1 }), []);
+  // Barn Bazaar cosmetics: a tint on the shell and the burst's colours. Only how it looks.
+  const equipped = useWallet().equipped;
+  const tint = BOMB_TINT[equipped.bomb] ?? BOMB_TINT['bomb-ice'];
+  const palette = BLAST_PALETTE[equipped.blast];
+  useEffect(() => { body.color.set(tint.color); body.emissive.set(tint.emissive); }, [body, tint]);
   const fuseMat = useMemo(() => voxelMaterial({ emissive: '#9fd8ff', emissiveIntensity: 0.15 }), []);
   const sparkMat = useMemo(() => voxelMaterial({ emissive: '#5fd0ff', emissiveIntensity: 2 }), []);
   const digitMat = useMemo(() => voxelMaterial({ emissive: '#8fe4ff', emissiveIntensity: 0.35 }), []);
@@ -263,7 +270,7 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
 
   return (
     <>
-      <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} power={power} />
+      <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} power={power} palette={equipped.blast === 'blast-frost' ? undefined : palette} />
       {rings.current.map((r, i) => (
         <mesh key={i} ref={(mm) => { r.mesh = mm; }} geometry={m.frost} material={ringMats[i]} visible={false} renderOrder={1} />
       ))}

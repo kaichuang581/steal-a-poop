@@ -32,7 +32,9 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
 
   useEffect(() => {
     markRead();
-    endRef.current?.scrollIntoView({ block: 'end' });
+    // Only the log scrolls to its newest line: scrollIntoView would also drag the whole page down to the chat.
+    const log = endRef.current?.parentElement;
+    if (log) log.scrollTop = log.scrollHeight;
   }, [chat.length, markRead]);
 
   const submit = () => {

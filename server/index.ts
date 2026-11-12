@@ -84,6 +84,8 @@ export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> =
   rooms: [10, 10_000],
   create: [10, 60_000],
   join: [30, 60_000],
+  quick: [30, 60_000],
+  options: [60, 60_000],
   leave: [10, 60_000],
   start: [10, 60_000],
   daily: [5, 60_000],
@@ -103,8 +105,10 @@ export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> =
 type ClientMsg =
   | { t: 'hello'; token: string }
   | { t: 'rooms' }
-  | { t: 'create'; visibility: Visibility; roomName?: string }
+  | { t: 'create'; visibility: Visibility; roomName?: string; turnsPerRound?: unknown; lives?: unknown; twists?: unknown }
   | { t: 'join'; code: string }
+  | { t: 'quick' }
+  | { t: 'options'; turnsPerRound?: unknown; lives?: unknown; twists?: unknown; visibility?: unknown }
   | { t: 'leave' }
   | { t: 'start' }
   | { t: 'daily' }
@@ -268,11 +272,24 @@ export async function startServer(opts: ServerOptions) {
         const roomName = asked && opts.nameAllowed && !opts.nameAllowed(asked.trim()) ? undefined : asked;
         const r = rooms.createRoom(userId, name, { visibility: msg.visibility === 'private' ? 'private' : 'public', roomName });
         if (!r.ok) return fail(ws, r.error);
+        // The game length picked on the way in. A value that is not on the list leaves the room on the standard game.
+        rooms.setOptions(userId, { turnsPerRound: msg.turnsPerRound, lives: msg.lives, twists: msg.twists });
         return broadcastRoom(r.code);
       }
       case 'join': {
         if (!joinLimit.allow(userId, now())) return fail(ws, 'rate_limited');
         const r = rooms.join(userId, name, String(msg.code ?? ''));
+        if (!r.ok) return fail(ws, r.error);
+        return broadcastRoom(r.code);
+      }
+      case 'quick': {
+        if (!joinLimit.allow(userId, now())) return fail(ws, 'rate_limited');
+        const r = rooms.quickJoin(userId, name);
+        if (!r.ok) return fail(ws, r.error);
+        return broadcastRoom(r.code);
+      }
+      case 'options': {
+        const r = rooms.setOptions(userId, { turnsPerRound: msg.turnsPerRound, lives: msg.lives, twists: msg.twists, visibility: msg.visibility });
         if (!r.ok) return fail(ws, r.error);
         return broadcastRoom(r.code);
       }

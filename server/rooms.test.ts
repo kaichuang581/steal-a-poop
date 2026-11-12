@@ -105,7 +105,7 @@ describe('public and private rooms', () => {
     m.createRoom('p0', 'Priv', { visibility: 'private' });
     const list = m.listPublic();
     expect(list.map((r) => r.code)).toEqual([pub]);
-    expect(list[0]).toMatchObject({ players: 2, max: 10, min: 4, hostName: 'Host' });
+    expect(list[0]).toMatchObject({ players: 2, max: 10, min: 2, hostName: 'Host' });
   });
   it('drops a public room from the list when it is full', () => {
     const { m, tick } = manager();
@@ -127,10 +127,12 @@ describe('public and private rooms', () => {
 });
 
 describe('starting', () => {
-  it('only the host can start, and only with four or more players', () => {
+  it('only the host can start, and only with two or more people', () => {
     const { m, tick } = manager();
-    const code = lobby(m, 3, 'public', tick);
+    const code = lobby(m, 1, 'public', tick);
     expect(m.start('u0')).toEqual({ ok: false, error: 'not_enough_players' });
+    m.join('u1', 'Ben', code);
+    m.join('u2', 'Cal', code);
     m.join('u3', 'Dee', code);
     expect(m.start('u2')).toEqual({ ok: false, error: 'not_host' });
     expect(m.start('stranger')).toEqual({ ok: false, error: 'not_in_room' });
@@ -437,5 +439,52 @@ describe('clean-up of finished games', () => {
     tick(10 * 60_000);
     expect(m.sweepFinished(1)).toEqual([]);
     expect(m.stats().rooms).toBe(2);
+  });
+});
+
+describe('quick start', () => {
+  it('opens a public room when none is open, and the next player lands in it', () => {
+    const { m } = manager();
+    const a = m.quickJoin('a', 'Ann');
+    expect(a).toMatchObject({ ok: true, created: true });
+    const b = m.quickJoin('b', 'Ben');
+    expect(b).toMatchObject({ ok: true, created: false, code: a.ok && a.code });
+    expect(m.listPublic()[0].players).toBe(2);
+  });
+  it('picks the fullest open room, and never a private, started or kicked-from one', () => {
+    const { m, tick } = manager();
+    const small = m.createRoom('s0', 'Sam', { visibility: 'public' });
+    tick(10);
+    const big = m.createRoom('b0', 'Bea', { visibility: 'public' });
+    const priv = m.createRoom('p0', 'Pat', { visibility: 'private' });
+    if (!small.ok || !big.ok || !priv.ok) throw new Error('create failed');
+    m.join('b1', 'Bo', big.code);
+    m.join('p1', 'Pip', priv.code);
+    m.join('p2', 'Pam', priv.code);
+    expect(m.quickJoin('x', 'Xan')).toMatchObject({ ok: true, code: big.code });
+    m.kick('b0', 'x');
+    expect(m.quickJoin('x', 'Xan')).toMatchObject({ ok: true, code: small.code });
+    m.start('b0');
+    expect(m.quickJoin('y', 'Yul')).toMatchObject({ ok: true, code: small.code });
+    expect(m.quickJoin('y', 'Yul')).toEqual({ ok: false, error: 'already_in_room' });
+  });
+});
+
+describe('room options', () => {
+  it('the host sets the game length and it reaches the game; farm sheep fill the table to four', () => {
+    const { m } = manager();
+    const code = lobby(m, 2, 'private');
+    expect(m.view(code)!.settings).toEqual({ turnsPerRound: 2, lives: 3, twists: true });
+    expect(m.setOptions('u1', { lives: 5 })).toEqual({ ok: false, error: 'not_host' });
+    expect(m.setOptions('u0', { lives: 4 })).toEqual({ ok: false, error: 'bad_settings' });
+    expect(m.setOptions('u0', { turnsPerRound: 'x' })).toEqual({ ok: false, error: 'bad_settings' });
+    expect(m.setOptions('u0', { lives: 5, turnsPerRound: 3, twists: false, visibility: 'public' })).toEqual({ ok: true, code });
+    expect(m.listPublic()).toHaveLength(1);
+    expect(m.start('u0')).toEqual({ ok: true, code });
+    const game = m.room(code)!.game!;
+    expect(game.settings).toMatchObject({ lives: 5, turnsPerRound: 3, twists: false });
+    expect(game.players).toHaveLength(4);
+    expect(game.players.filter((p) => p.isHuman)).toHaveLength(2);
+    expect(m.setOptions('u0', { lives: 1 })).toEqual({ ok: false, error: 'room_started' });
   });
 });

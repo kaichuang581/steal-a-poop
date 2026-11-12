@@ -636,3 +636,26 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   filter (server/filter.ts). src/lib/__tests__/profanity.test.ts checks the lists, the dictionary, names, chat, the dream's and the
   word of the day's words. When in doubt a word goes, even with a clean meaning (hoe, tit, niggle); adding to the list means
   re-stripping both word files. rarity.test.ts's size pin moved from 88,400 to 88,127 for it.
+- Quick start and parties (requested by Brian, 2026-11-11), a server and skin change. Rooms start with 2 or more people (`MIN_TO_START`),
+  and farm sheep fill the table to 4 (`MIN_TABLE`). `quick` joins the fullest open public room or opens one (`quickJoin` in
+  server/rooms.ts); `options` is the host's game length and public/private switch (`setOptions`). A party is a private room: its code
+  and the `?join=CODE` link (which now opens the lobby by itself when no accounts are configured). The painted lobby and room are
+  src/skin/rooms (PaintedLobby, PaintedRoom, rooms.css; no gradients there, the kit audit counts them); the classic Lobby and
+  RoomScreen stay for ?skin=classic and the end-to-end tests. Dev sign-in tokens are `dev:<name>#<per-tab id>`, so two people with one
+  name are two players. `npm run dev:online` runs the server and the site together; `npm run dev:fly` points the site at Fly.
+- Real people are the default (requested by Brian, 2026-11-11), skin plus one server flag. With a game server configured the start screen's
+  menu is: "Quick play" (the server's `quick`; the label never changes while connecting), "Create lobby" (creates a friends-only room at once;
+  game length and Friends only / Public are set inside the room, never on the start screen), "Join party" (a panel with five letter tiles),
+  and "Custom game" (the bot table that used to be Play). Brian rejected, in turn: a "Play with friends" lobby screen, a code slip under the
+  menu, and a Play panel with settings before the lobby; don't rebuild them. A room opened by Quick play has `queue: true` and PaintedRoom
+  shows it as a queue page ("Finding players", the count, chat); the first player in is host and starts it by hand. The chat is the classic
+  ChatPanel on a paper card (`.rm-chat` in rooms.css). `enter(name, intent)` in roomStore connects and sends the one message. Without a
+  server URL, Quick play is the old Start now and Play is the bot table.
+- The lobby is a pen (requested by Brian, 2026-11-11: "make it like a pen"), skin only. The party room and the Quick play queue are one
+  screen, PaintedRoom, laid over a voxel scene: a rail-fenced sheep pen on the snow at night (src/skin/scene/pen.ts for the layout and
+  voxels, src/skin/rooms/PenStage.tsx for the stage). Every player is their animal inside the fence with a name plank overhead (ScreenAnchor,
+  not drei's Html, which threw on unmount here); seats nobody has taken are farm sheep grazing at the back. One paper sheet on the left holds
+  the party code, who can join, the game length and the player list; the chat is docked bottom right; the start sign reads "Open the gate".
+  `shift` on PenStage slides the picture (camera view offset) so the panels do not cover the pen. On a phone the pen is the top of the screen
+  and the sheets scroll under it. ChatPanel scrolls only its own log now (scrollIntoView dragged the whole page to the chat).
+

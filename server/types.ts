@@ -1,7 +1,18 @@
 import type { GameState } from '../src/engine';
 
 export const MAX_ROOM_SIZE = 10;
-export const MIN_TO_START = 4;
+/** People needed before the host can start. Empty seats up to MIN_TABLE are taken by farm sheep (bots). */
+export const MIN_TO_START = 2;
+/** The smallest table the game plays at (the engine's MIN_PLAYERS). */
+export const MIN_TABLE = 4;
+
+/** The rules the host picks before starting: the same three the solo "Set the table" panel offers. */
+export interface RoomSettings {
+  turnsPerRound: 2 | 3 | 5;
+  lives: 1 | 2 | 3 | 5;
+  twists: boolean;
+}
+export const DEFAULT_ROOM_SETTINGS: RoomSettings = { turnsPerRound: 2, lives: 3, twists: true };
 
 export type Visibility = 'public' | 'private';
 export type RoomPhase = 'lobby' | 'playing' | 'finished';
@@ -18,6 +29,10 @@ export interface Room {
   name: string;
   visibility: Visibility;
   hostId: string;
+  /** Opened by Quick play, not by someone creating a lobby: the app shows it as a queue. */
+  queue: boolean;
+  /** Game length, set by the host in the lobby. */
+  settings: RoomSettings;
   members: Member[];
   phase: RoomPhase;
   game: GameState | null;
@@ -52,6 +67,7 @@ export type RoomError =
   | 'game_not_running'
   | 'bad_name'
   | 'bad_code'
+  | 'bad_settings'
   | 'kicked'
   | 'cannot_target'
   | 'daily_used'

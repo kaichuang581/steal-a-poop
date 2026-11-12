@@ -18,6 +18,8 @@ import { UPDATE_NAME } from '../../config';
 import { farmSheepLine } from '../../lib/record';
 import { getServerUrl } from '../../net/config';
 import { useRoomStore } from '../../state/roomStore';
+import type { Intent } from '../../state/roomStore';
+import '../rooms/rooms.css';
 import { useSocial } from '../../state/socialStore';
 import { useStore, tableFor } from '../../state/store';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
@@ -88,7 +90,9 @@ const RULES: { key: keyof GameSettings; label: string; values: (number | string 
  */
 export function PaintedHome() {
   const { settings, setSettings, start, startTour, dictStatus, retryDictionary } = useStore();
-  const [step, setStep] = useState<'tables' | 'setup' | 'practice'>('tables');
+  const [step, setStep] = useState<'tables' | 'setup' | 'practice' | 'join'>('tables');
+  const [partyCode, setPartyCode] = useState('');
+  const entering = useRoomStore((st) => st.entering);
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
   const [bazaar, setBazaar] = useState(false);
@@ -149,16 +153,17 @@ export function PaintedHome() {
     setCopiedDream(true);
     setTimeout(() => setCopiedDream(false), 2000);
   };
-  const openRooms = () => {
-    // With real sign-in the nickname comes from the account, and a login is required first.
+  // Real people are the default once a game server is configured: Quick play lands in an open barn, Play opens a lobby
+  // of your own, and a party code joins a friend's. With accounts, a login comes first and the name is the account's.
+  const online = (intent: Intent) => {
     if (authEnabled()) {
       if (authStatus !== 'ready') return setSignIn(true);
-      return useRoomStore.getState().openLobby(useAuth.getState().profile?.nickname ?? '');
+      return useRoomStore.getState().enter(useAuth.getState().profile?.nickname ?? '', intent);
     }
     const nick = checkNickname(settings.name);
     if (!nick.ok) return setError(nick.message);
     setError('');
-    useRoomStore.getState().openLobby(nick.name);
+    useRoomStore.getState().enter(nick.name, intent);
   };
   // Game length (plan V3.3 Part 2.6): a preset sets every rule; touching a rule makes it Custom. Saved with the other settings.
   const rules = table.game;
@@ -190,8 +195,17 @@ export function PaintedHome() {
 
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const items: MenuItem[] = [
-    { id: 'start', label: ready ? 'Start now' : 'Loading…', caption: table.first ? 'Easy table for your first games. No setup.' : 'Straight into a game at the table you last set. No setup.', disabled: !ready, onSelect: () => go('quick') },
-    { id: 'play', label: ready ? 'Play' : 'Loading…', caption: 'You and the bots in the barn. Set the table, then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
+    rooms
+      ? { id: 'start', label: 'Quick play', caption: 'Join the queue: straight into an open barn with real people.', disabled: entering, onSelect: () => online({ t: 'quick' }) }
+      : { id: 'start', label: ready ? 'Quick play' : 'Loading…', caption: table.first ? 'Easy table for your first games. No setup.' : 'Straight into a game at the table you last set. No setup.', disabled: !ready, onSelect: () => go('quick') },
+    ...(rooms ? [
+      { id: 'lobby', label: 'Create lobby', caption: 'Open your own barn, send the party code, and set the game inside.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private' }) },
+      { id: 'join', label: 'Join party', caption: 'Got a party code from a friend? Type it in.', onSelect: () => { setPartyCode(''); setStep('join'); } },
+    ] satisfies MenuItem[] : []),
+    {
+      id: 'play', label: ready ? (rooms ? 'Custom game' : 'Play') : 'Loading…', disabled: !ready, onSelect: () => setStep('setup'),
+      caption: rooms ? 'You against the farm sheep (bots). Set the table, then sit down.' : 'You and the bots in the barn. Set the table, then sit down.',
+    },
     // Admin plays tonight's dream as often as it likes; everyone else gets the one attempt, then the share.
     admin
       ? {
@@ -224,10 +238,6 @@ export function PaintedHome() {
     {
       id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${wool} Wool Coins`}><CoinIcon size={11} />{wool}</MenuTag>,
       caption: 'Bomb skins, bursts and fuse sounds for the Wool Coins you earn by playing.', onSelect: () => setBazaar(true),
-    },
-    {
-      id: 'rooms', label: 'Play with friends', badge: rooms ? undefined : <MenuTag tone="gray">soon</MenuTag>, disabled: !rooms, onSelect: openRooms,
-      caption: rooms ? '4 to 10 people in the big barn.' : 'Rooms open when the game server is live.',
     },
   ];
   // The name is typed straight onto the plate on the start screen: no screen of its own, no step before the menu.
@@ -262,16 +272,17 @@ export function PaintedHome() {
           ))}
         </div>
       )}
-      {roomNotice && !useRoomStore.getState().open && <p role="status" className="kit-paper kit-paper--note text-center">{roomNotice}</p>}
+      {roomNotice && step !== 'join' && <p role="status" className="kit-paper kit-paper--note text-center">{roomNotice}</p>}
     </div>
   );
 
   const setup = (
     <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
       <div className="sk-setup-head">
-        <h2>Set the table</h2>
+        <h2>{rooms ? 'Custom game' : 'Set the table'}</h2>
         <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
       </div>
+      {rooms && <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>A table of your own against the farm sheep (bots).</p>}
       {table.first && <p className="sk-display text-base">Easy table for your first games</p>}
       {error && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
       <fieldset>
@@ -350,7 +361,30 @@ export function PaintedHome() {
       <button autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Start run</button>
     </PaperPanel>
   );
-  const panel = step === 'practice' ? drillSetup : setup;
+  const joinParty = (
+    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="join" role="dialog" aria-label="Join a party">
+      <div className="sk-setup-head">
+        <h2>Join party</h2>
+        <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
+      </div>
+      <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>Type the five-letter code your friend sent.</p>
+      <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); if (partyCode.length === 5) online({ t: 'join', code: partyCode }); }}>
+        <label className="sk-code">
+          <span className="sr-only">Party code</span>
+          <input
+            id="sk-party-code" autoFocus value={partyCode} onChange={(e) => setPartyCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))}
+            autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text" maxLength={5} className="sk-code-input"
+          />
+          {Array.from({ length: 5 }, (_, i) => (
+            <span key={i} aria-hidden="true" className={`kit-tile kit-tile--md ${partyCode[i] ? '' : 'sk-code-empty'} ${i === Math.min(partyCode.length, 4) ? 'sk-code-next' : ''}`}>{partyCode[i] ?? ''}</span>
+          ))}
+        </label>
+        {(error || roomNotice) && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error || roomNotice}</p>}
+        <button type="submit" disabled={partyCode.length < 5 || entering} className="sk-btn sk-sit kit-sign w-full" data-join-party><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Join party</button>
+      </form>
+    </PaperPanel>
+  );
+  const panel = step === 'practice' ? drillSetup : step === 'join' ? joinParty : setup;
 
   const footer = (
     <footer className="flex flex-wrap items-center gap-x-3 text-[11px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>

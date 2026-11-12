@@ -5,6 +5,8 @@ browser), and chat. It is **not deployed anywhere**. The web app can talk to it,
 with a server URL, so the public site does not show multiplayer yet.
 
 ```bash
+npm run dev:online                                        # both of the next two lines in one command
+npm run dev:fly                                           # the site only, pointed at the deployed server (FLY_SERVER_URL, or wss://<app in fly.toml>.fly.dev)
 ALLOW_DEV_AUTH=1 npm run server                          # ws://localhost:8787, dev sign-in only
 VITE_SERVER_URL=ws://localhost:8787 npm run dev          # the app, with "Play with others" turned on
 npm test                                                  # includes the server tests
@@ -26,7 +28,11 @@ Without `VITE_SERVER_URL` (the GitHub Pages build) the "Play with others" button
 ## Rules as built
 
 - Anyone can create a **public** or **private** room. Only open public rooms are listed.
-- A room holds 4 to 10 players. **The host starts the game by hand**; it never starts itself.
+- A room holds up to 10 people. **The host starts the game by hand**, with at least 2 people in; it never starts itself.
+  Farm sheep (bots) take the empty seats up to 4.
+- **Quick start** (`quick`) puts a player in the fullest open public room, or opens a new public one.
+- A **party** is a private room: its 5-character code, or the `?join=CODE` link, lets friends in. The host can open it
+  to quick-start players, and sets the game length (`options`: turns per round, wool balls, twists, visibility).
 - Nobody can join a game that has started.
 - Leaving mid-game puts a **bot in the seat** with the same score. If the host leaves, the player who
   joined next becomes host. An empty room is closed.
@@ -34,8 +40,8 @@ Without `VITE_SERVER_URL` (the GitHub Pages build) the "Play with others" button
 
 ## Protocol (JSON text frames)
 
-Client to server: `hello {token}` (first), `rooms`, `create {visibility, roomName?}`, `join {code}`,
-`leave`, `start`, `daily`, `act {action: {type:'play', word} | {type:'pass'} | {type:'bank'}}`, `chat {text}`,
+Client to server: `hello {token}` (first), `rooms`, `create {visibility, roomName?, turnsPerRound?, lives?, twists?}`, `join {code}`, `quick`,
+`options {turnsPerRound?, lives?, twists?, visibility?}`, `leave`, `start`, `daily`, `act {action: {type:'play', word} | {type:'pass'} | {type:'bank'}}`, `chat {text}`,
 `report {messageId}`, `appeal {note}`.
 
 Server to client: `welcome`, `rooms {list}`, `room {view, you}`, `left`, `result {accepted, reason,

@@ -158,14 +158,16 @@ if (supabaseUrl) {
   const devModerators = new Set((process.env.DEV_MODERATORS ?? '').split(',').map((s) => s.trim()).filter(Boolean));
   verifyToken = async (token) => {
     if (!(token.startsWith('dev:') && token.length > 4)) return null;
-    const name = token.slice(4, 16);
+    // "dev:<name>" or "dev:<name>#<device id>": the id keeps two people who typed the same name apart.
+    const name = token.slice(4).split('#')[0].slice(0, 12).trim();
+    if (!name || token.length > 64) return null;
     // Development players get a profile at once so friends, leaderboards and coins can be tried locally.
     const now = Date.now();
     await accountStore.createProfile({
       userId: token, nickname: name, emailHash: '', dateOfBirth: '1990-01-01', country: 'CA', consentStatus: 'not_required', leaderboardVisible: true,
       isModerator: false, sessionsValidAfter: 0, createdAt: now, updatedAt: now, deletedAt: null,
     }).catch(() => false);
-    return { userId: token, name, chatAllowed: true, resultsAllowed: true, isModerator: devModerators.has(token.slice(4)) };
+    return { userId: token, name, chatAllowed: true, resultsAllowed: true, isModerator: devModerators.has(name) };
   };
   verifySession = async () => null; // the account endpoints need a real login
 }

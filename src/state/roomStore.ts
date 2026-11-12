@@ -5,7 +5,7 @@ import { load, save } from '../lib/storage';
 import { NetClient } from '../net/client';
 import { getServerUrl } from '../net/config';
 import { describeError } from '../net/protocol';
-import type { ChatMsg, ModerationStatus, PublicRoomInfo, RoomViewDTO, ServerMsg } from '../net/protocol';
+import type { ChatMsg, ModerationStatus, PublicRoomInfo, RoomSettingsDTO, RoomViewDTO, ServerMsg } from '../net/protocol';
 import { authEnabled } from '../auth/config';
 import { getAccessToken } from '../auth/authStore';
 import { bridge } from './bridge';
@@ -53,10 +53,20 @@ interface RoomStore {
   /** Starts today's server-run Daily Table. */
   startDaily(): void;
   openLobby(name: string): void;
+  /**
+   * Connects if need be, then does one thing: quick play, a new lobby, or a party code. No lobby screen in between;
+   * the room appears when the server answers. `entering` is true until it does.
+   */
+  enter(name: string, intent: Intent): void;
+  entering: boolean;
   closeLobby(): void;
   refresh(): void;
   create(visibility: 'public' | 'private', roomName?: string): void;
   join(code: string): void;
+  /** Quick start: straight into the fullest open room, or a new one. */
+  quick(): void;
+  /** Host only: game length, and whether the room is open to quick-start players. */
+  setOptions(patch: Partial<RoomSettingsDTO> & { visibility?: 'public' | 'private' }): void;
   leave(): void;
   start(): void;
   sendChat(text: string): void;
@@ -72,6 +82,8 @@ interface RoomStore {
   clearNotice(): void;
 }
 
+export type Intent = { t: 'quick' } | ({ t: 'create'; visibility: 'public' | 'private' } & Partial<RoomSettingsDTO>) | { t: 'join'; code: string };
+
 export interface Invite {
   code: string;
   roomName: string;
@@ -84,7 +96,25 @@ export interface Reward {
 }
 
 let net: NetClient | null = null;
+
+/**
+ * The development sign-in (no accounts configured): "dev:<name>#<id>". The id is kept per tab, so two people who typed
+ * the same name are two players, and a reload or a dropped connection comes back as the same one. A real server refuses it.
+ */
+function devToken(name: string): string {
+  let id = '';
+  try {
+    id = sessionStorage.getItem('sap:devId') ?? '';
+    if (!id) {
+      id = Math.random().toString(36).slice(2, 10);
+      sessionStorage.setItem('sap:devId', id);
+    }
+  } catch { /* storage blocked: the name alone still signs in */ }
+  const clean = name.replace(/#/g, '').slice(0, 12);
+  return id ? `dev:${clean}#${id}` : `dev:${clean}`;
+}
 let dailyWhenOnline = false;
+let pendingIntent: Intent | null = null;
 let welcomedAt = 0;
 let lastRoomMsgAt = 0;
 let pending: ((r: ActionResult | null) => void)[] = [];
@@ -120,6 +150,10 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         welcomedAt = Date.now();
         net?.send({ t: 'avatar', id: getAvatar() });
         send({ t: 'rooms' });
+        if (pendingIntent) {
+          send(pendingIntent);
+          pendingIntent = null;
+        }
         if (dailyWhenOnline) {
           dailyWhenOnline = false;
           send({ t: 'daily' });
@@ -166,6 +200,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
           mySeat: msg.you.seat,
           skew: msg.serverNow - Date.now(),
           chat: previous && previous.code === msg.view.code ? get().chat : [],
+          entering: false,
         });
         // Feed the table: the game screen reads the same store it uses for solo games.
         useStore.setState(
@@ -198,7 +233,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         set({ notice: msg.ok ? 'Your appeal was sent. A person will review it.' : msg.reason === 'appeal_already_open' ? 'You already have an appeal open.' : 'There is nothing to appeal.' });
         break;
       case 'error':
-        set({ notice: describeError(msg.error) });
+        set({ notice: describeError(msg.error), entering: false });
         break;
     }
   };
@@ -224,6 +259,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
 
   return {
     open: false,
+    entering: false,
     status: 'off',
     statusDetail: null,
     user: null,
@@ -246,7 +282,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       if (!url || net) return;
       // With real sign-in the token is the Supabase login (fetched fresh on every connect). The dev stub is for local servers only.
       const nickname = `Player${Math.floor(Math.random() * 900 + 100)}`;
-      net = new NetClient(url, authEnabled() ? getAccessToken : `dev:${nickname}`, {
+      net = new NetClient(url, authEnabled() ? getAccessToken : devToken(nickname), {
         onMessage,
         onStatus: (status, detail) => set({ status, statusDetail: detail ?? null }),
       });
@@ -257,7 +293,8 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       net = null;
       pending = [];
       dailyWhenOnline = false;
-      set({ open: false, status: 'off', user: null, publicRooms: [], room: null, notice: null, invites: [], lastReward: null });
+      pendingIntent = null;
+      set({ open: false, entering: false, status: 'off', user: null, publicRooms: [], room: null, notice: null, invites: [], lastReward: null });
     },
     openLobby(name) {
       const url = getServerUrl();
@@ -266,9 +303,30 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       if (net) return;
       // Development sign-in (no accounts configured): the typed nickname becomes the dev token. The server only accepts it locally.
       const nickname = name.trim() || `Player${Math.floor(Math.random() * 900 + 100)}`;
-      net = new NetClient(url, authEnabled() ? getAccessToken : `dev:${nickname}`, {
+      net = new NetClient(url, authEnabled() ? getAccessToken : devToken(nickname), {
         onMessage,
         onStatus: (status, detail) => set({ status, statusDetail: detail ?? null }),
+      });
+      net.connect();
+    },
+    enter(name, intent) {
+      const url = getServerUrl();
+      if (!url) return set({ notice: 'The game server is not set up yet.' });
+      set({ notice: null, entering: true });
+      if (net && get().status === 'online') return send(intent);
+      pendingIntent = intent;
+      if (net && get().status !== 'closed') return; // already on its way up: the welcome sends it
+      net?.close();
+      const nickname = name.trim() || `Player${Math.floor(Math.random() * 900 + 100)}`;
+      net = new NetClient(url, authEnabled() ? getAccessToken : devToken(nickname), {
+        onMessage,
+        onStatus: (status, detail) => {
+          set({ status, statusDetail: detail ?? null });
+          if (status === 'closed' && pendingIntent) {
+            pendingIntent = null;
+            set({ entering: false, notice: 'Could not reach the game server. Try again in a moment.' });
+          }
+        },
       });
       net.connect();
     },
@@ -297,6 +355,8 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     refresh: () => send({ t: 'rooms' }),
     create: (visibility, roomName) => send({ t: 'create', visibility, roomName }),
     join: (code) => send({ t: 'join', code }),
+    quick: () => send({ t: 'quick' }),
+    setOptions: (patch) => send({ t: 'options', ...patch }),
     leave: () => send({ t: 'leave' }),
     start: () => send({ t: 'start' }),
     sendChat: (text) => send({ t: 'chat', text }),

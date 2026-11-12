@@ -2,8 +2,8 @@ import { advance, apply, createGame, dailySetup, replaceWithBot } from '../src/e
 import type { ActionResult, EngineContext } from '../src/engine';
 import type { GameResult } from './contracts';
 import { CODE_PATTERN, generateCode, normalizeCode } from './codes';
-import { MAX_ROOM_SIZE, MIN_TO_START } from './types';
-import type { Member, PublicRoomInfo, Result, Room, Visibility } from './types';
+import { DEFAULT_ROOM_SETTINGS, MAX_ROOM_SIZE, MIN_TABLE, MIN_TO_START } from './types';
+import type { Member, PublicRoomInfo, Result, Room, RoomSettings, Visibility } from './types';
 
 /** What a client may send during a game. The server fills in the seat from who is asking. */
 export type ClientAction = { type: 'play'; word: string } | { type: 'bank' } | { type: 'pass' };
@@ -24,6 +24,8 @@ export interface RoomView {
   name: string;
   visibility: Visibility;
   hostId: string;
+  queue: boolean;
+  settings: RoomSettings;
   members: { userId: string; name: string }[];
   phase: Room['phase'];
   min: number;
@@ -67,6 +69,8 @@ export class RoomManager {
       name: (opts.roomName?.trim() || `${name}'s room`).slice(0, ROOM_NAME_MAX),
       visibility: opts.visibility,
       hostId: userId,
+      queue: false,
+      settings: { ...DEFAULT_ROOM_SETTINGS },
       members: [{ userId, name, joinedAt: this.deps.now() }],
       phase: 'lobby',
       game: null,
@@ -99,6 +103,59 @@ export class RoomManager {
     room.members.push({ userId, name: this.uniqueName(room, name), joinedAt: this.deps.now() });
     this.roomOfUser.set(userId, code);
     return { ok: true, code };
+  }
+
+  /**
+   * Quick start: puts the player in the fullest open public room they may join (the oldest on a tie), so tables fill
+   * one at a time, or opens a new public room when there is none.
+   */
+  quickJoin(userId: string, rawName: string): Result<{ code: string; created: boolean }> {
+    const name = rawName.trim().slice(0, NAME_MAX);
+    if (!name) return { ok: false, error: 'bad_name' };
+    if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
+    const open = [...this.rooms.values()]
+      .filter((r) => r.kind === 'room' && r.visibility === 'public' && r.phase === 'lobby' && r.members.length < MAX_ROOM_SIZE && !r.kicked.includes(userId))
+      .sort((a, b) => b.members.length - a.members.length || (a.members[0]?.joinedAt ?? 0) - (b.members[0]?.joinedAt ?? 0));
+    if (open.length > 0) {
+      const joined = this.join(userId, name, open[0].code);
+      return joined.ok ? { ...joined, created: false } : joined;
+    }
+    const made = this.createRoom(userId, name, { visibility: 'public', roomName: 'Quick play' });
+    if (!made.ok) return made;
+    this.rooms.get(made.code)!.queue = true;
+    return { ...made, created: true };
+  }
+
+  /**
+   * Host-only, before the game starts: the game length (turns per round, wool balls, twists) and whether the room is
+   * open to quick-start players. Only the listed values are accepted; anything else changes nothing.
+   */
+  setOptions(hostId: string, patch: { turnsPerRound?: unknown; lives?: unknown; twists?: unknown; visibility?: unknown }): Result<{ code: string }> {
+    const room = this.roomFor(hostId);
+    if (!room || room.kind === 'daily') return { ok: false, error: 'not_in_room' };
+    if (room.hostId !== hostId) return { ok: false, error: 'not_host' };
+    if (room.phase !== 'lobby') return { ok: false, error: 'room_started' };
+    const next = { ...room.settings };
+    let visibility = room.visibility;
+    if (patch.turnsPerRound !== undefined) {
+      if (patch.turnsPerRound !== 2 && patch.turnsPerRound !== 3 && patch.turnsPerRound !== 5) return { ok: false, error: 'bad_settings' };
+      next.turnsPerRound = patch.turnsPerRound;
+    }
+    if (patch.lives !== undefined) {
+      if (patch.lives !== 1 && patch.lives !== 2 && patch.lives !== 3 && patch.lives !== 5) return { ok: false, error: 'bad_settings' };
+      next.lives = patch.lives;
+    }
+    if (patch.twists !== undefined) {
+      if (typeof patch.twists !== 'boolean') return { ok: false, error: 'bad_settings' };
+      next.twists = patch.twists;
+    }
+    if (patch.visibility !== undefined) {
+      if (patch.visibility !== 'public' && patch.visibility !== 'private') return { ok: false, error: 'bad_settings' };
+      visibility = patch.visibility;
+    }
+    room.settings = next;
+    room.visibility = visibility;
+    return { ok: true, code: room.code };
   }
 
   /**
@@ -194,6 +251,8 @@ export class RoomManager {
       name: `Daily Table ${dailyDate}`,
       visibility: 'private',
       hostId: userId,
+      queue: false,
+      settings: { ...DEFAULT_ROOM_SETTINGS },
       members: [{ userId, name, joinedAt: now }],
       phase: 'playing',
       game: createGame(setup, this.deps.ctx.dict),
@@ -212,7 +271,7 @@ export class RoomManager {
     return { ok: true, code };
   }
 
-  /** The host starts the game by hand once at least four players are in. */
+  /** The host starts the game by hand once at least two people are in. Farm sheep (bots) fill the table up to four. */
   start(userId: string): Result<{ code: string }> {
     const room = this.roomFor(userId);
     if (!room) return { ok: false, error: 'not_in_room' };
@@ -223,7 +282,7 @@ export class RoomManager {
     const now = this.deps.now();
     room.seatOf = Object.fromEntries(seated.map((m, seat) => [m.userId, seat]));
     room.game = createGame(
-      { seed: `room:${room.code}:${now}`, now, humans: seated.map((m) => m.name), playerCount: seated.length, difficulty: 'medium', settings: { timeCarry: 'more' } },
+      { seed: `room:${room.code}:${now}`, now, humans: seated.map((m) => m.name), playerCount: Math.max(seated.length, MIN_TABLE), difficulty: 'medium', settings: { ...room.settings, timeCarry: 'more' } },
       this.deps.ctx.dict,
     );
     room.phase = 'playing';
@@ -306,7 +365,7 @@ export class RoomManager {
     const r = this.rooms.get(code);
     if (!r) return null;
     return {
-      code: r.code, name: r.name, visibility: r.visibility, hostId: r.hostId,
+      code: r.code, name: r.name, visibility: r.visibility, hostId: r.hostId, queue: r.queue, settings: { ...r.settings },
       members: r.members.map((m: Member) => ({ userId: m.userId, name: m.name })),
       phase: r.phase, min: MIN_TO_START, max: MAX_ROOM_SIZE, seatOf: { ...r.seatOf }, game: r.game, chatMuted: r.chatMuted, mutedIds: [...r.mutedIds],
     };

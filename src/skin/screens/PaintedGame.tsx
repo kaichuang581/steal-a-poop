@@ -1,7 +1,13 @@
 import { MiniBomb } from '../components/BombClock';
 import { BOMB_TOSS_S } from '../voxel/bomb';
-import { PayoutLines, usePayout } from '../shop/Payout';
+import { BLAST_PALETTE, burstExplodes } from '../shop/catalog';
+import { payEarly, PayoutLines, usePayout } from '../shop/Payout';
+import type { GameReward } from '../shop/economy';
+import type { GameState } from '../../engine/types';
+import { useWallet } from '../shop/store';
 import { playSound } from '../../audio/sound';
+import { AFTERMATH_MS } from '../../engine/constants';
+import { playBarnDoors, whenDoorsShut } from '../components/BarnDoors';
 import { buzz } from '../hooks/buzz';
 import { Jumpscare, WordBlast } from '../components/Jumpscare';
 import { bombSize, wordsSinceBoom } from '../model/bombCharge';
@@ -53,8 +59,19 @@ import { coatLevel } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
 
 interface Fx { id: number; node: ReactNode }
+/**
+ * The end of a game, in ms (Brian, 2026-11-13: "some sort of a animation that transitions between the end of the game
+ * and the win screen. rn its too abrupt"). The win screen used to take the table the instant the last bomb went off,
+ * so the bang and the freeze were never seen. Now the table plays them out (`bang`), then turns to the winner, who
+ * is named and has a moment (`winner`), and only then does the screen change, behind the loading doors' short dark fade.
+ */
+const FINALE = { bang: AFTERMATH_MS, winner: 2400 };
+/** How long before a fuse is lit, in the beat after a bomb, the table turns to the sheep that is up next, in ms: the camera's swing. */
+const PREROLL_MS = 650;
+/** How long a practice run's end board waits for a worn Trading Post act to be seen, in ms. */
+const ACT_WATCH_MS = 1900;
 const BADGE = { easy: <SeedlingIcon size={12} />, medium: <LeafIcon size={12} />, hard: <AcornIcon size={12} /> } as const;
-interface Mood { state: SheepState; key: number; coldFor?: number }
+interface Mood { state: SheepState; key: number }
 
 export function PaintedGame() {
   useGameLoop();
@@ -111,13 +128,59 @@ export function PaintedGame() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [hit, setHit] = useState(0);
   const [boom, setBoom] = useState(0);
-  const [blast, setBlast] = useState<{ key: number; words: string[]; power: number } | null>(null);
+  const [blast, setBlast] = useState<{ key: number; words: string[]; power: number; glow?: string } | null>(null);
+  // A worn Trading Post burst that is not an explosion (a haystack, an aurora): the screen does not flash, crack and
+  // shake as for the ice blast; it glows at its edges in the burst's colour. Read through a ref by the event handler.
+  const wornBurst = useWallet().equipped.blast;
+  const softGlow = useRef<string | undefined>(undefined);
+  softGlow.current = burstExplodes(wornBurst) ? undefined : BLAST_PALETTE[wornBurst]?.flame[2];
+  // A practice run ends on the bang, and its board comes down over the very spot. A worn act is watched first: the
+  // board waits ACT_WATCH_MS for it (not for the frost blast, not under reduced motion, not for the admin's end preview).
+  const overAt = useRef<number | null>(null);
+  if (game.phase !== 'gameOver') overAt.current = null; else if (overAt.current === null) overAt.current = performance.now();
+  const watchingAct = storeMode === 'practice' && !reduced && softGlow.current !== undefined && !String(game.seed).startsWith('preview:')
+    && overAt.current !== null && performance.now() - overAt.current < ACT_WATCH_MS;
+  const [, afterAct] = useState(0);
+  useEffect(() => {
+    if (!watchingAct) return;
+    const t = setTimeout(() => afterAct((v) => v + 1), ACT_WATCH_MS);
+    return () => clearTimeout(t);
+  }, [watchingAct]);
+  // The game is paid for the moment it ends: its board (which shows the payment) only comes up after the finale or
+  // the act, and a player who left in between got nothing.
+  useEffect(() => {
+    if (game.phase !== 'gameOver') return;
+    if (storeMode === 'quick') payEarly(`quick:${game.seed}`, quickReward(game, mySeat));
+    if (storeMode === 'practice') payEarly(`practice:${game.seed}`, practiceReward(game, useStore.getState().practiceResult?.score ?? game.players[0].wordsPlayed));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.phase === 'gameOver', game.seed]);
+  // The finale (see FINALE): 'bang', then 'winner', then 'results', the win screen. A game that was already over
+  // when this screen came up (a room joined late, the admin's end preview), a practice run and reduced motion go
+  // straight to the results.
+  const over = game.phase === 'gameOver';
+  const sawItEnd = useRef(!over);
+  if (!over) sawItEnd.current = true;
+  const [finale, setFinale] = useState<'none' | 'bang' | 'winner' | 'results'>('none');
+  useEffect(() => {
+    if (!over) { setFinale('none'); return; }
+    if (storeMode === 'practice') return;
+    if (reduced || !sawItEnd.current || String(game.seed).startsWith('preview:')) { setFinale('results'); return; }
+    setFinale('bang');
+    let unhook = () => {};
+    const toWinner = setTimeout(() => setFinale('winner'), FINALE.bang);
+    const toResults = setTimeout(() => {
+      playBarnDoors({ label: 'Counting the wool', quick: true });
+      unhook = whenDoorsShut(() => setFinale('results'));
+    }, FINALE.bang + FINALE.winner);
+    return () => { clearTimeout(toWinner); clearTimeout(toResults); unhook(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [over, storeMode, reduced]);
   // The bomb swells with every word played since it last went off, more for a long word.
   const bombSz = useMemo(() => bombSize(wordsSinceBoom(game.history)), [game.history.length]); // eslint-disable-line react-hooks/exhaustive-deps
   /** A blast: the whole table jolts and a frosty edge flashes (neither under reduced motion). */
-  const jolt = (px = 9, punch = 1) => {
+  const jolt = (px = 9, punch = 1, frost = true) => {
     if (reduced) return;
-    setHit(Math.random() + 1);
+    if (frost) setHit(Math.random() + 1);
     rootRef.current?.animate?.(
       [{ transform: 'translate(0,0)' }, { transform: `translate(${-px}px,${px * 0.45}px)` }, { transform: `translate(${px * 0.9}px,${-px * 0.55}px)` }, { transform: `translate(${-px * 0.55}px,${px * 0.33}px)` }, { transform: `translate(${px * 0.33}px,${-px * 0.22}px)` }, { transform: 'translate(0,0)' }],
       { duration: px > 9 ? 650 : 380, easing: 'ease-out' },
@@ -130,15 +193,39 @@ export function PaintedGame() {
     setFx((list) => [...list.slice(-5), { id, node }]);
     setTimeout(() => setFx((list) => list.filter((f) => f.id !== id)), ms);
   };
-  const mood = (seat: string | number, state: SheepState, coldFor?: number) =>
-    setMoods((m) => ({ ...m, [Number(seat)]: { state, key: k(), coldFor } }));
+  const mood = (seat: string | number, state: SheepState) =>
+    setMoods((m) => ({ ...m, [Number(seat)]: { state, key: k() } }));
+
+  // The winner's moment, once the last bang has played out: the table turns to them (see `upNext` below), a gold
+  // board names them, they hop, and the fanfare plays.
+  useEffect(() => {
+    const won = game.winners ?? [];
+    if (finale !== 'winner' || !won.length) return;
+    for (const w of won) mood(w, 'happy');
+    playSound('fanfare');
+    flash(
+      <Notice tone="gold" size="lg" className="sk-turn-call" title={won.includes(mySeat) ? 'You win!' : won.length > 1 ? 'A tie!' : `${name(String(won[0]))} wins!`} sub="last sheep standing" />,
+      FINALE.winner,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finale]);
 
   // A lost turn dims a card until the next turn starts.
   useEffect(() => setDimmed(new Set()), [game.turn?.seat]);
 
+  // The beat after a bomb has gone off (the engine lights the next fuse AFTERMATH_MS later): first the sheep it went
+  // off beside is dazed and the table watches it, then, PREROLL_MS before the fuse is lit, the table turns to the
+  // sheep that is up next, so the camera has arrived and the turn has been called when its clock starts.
+  const [boomSeat, setBoomSeat] = useState<number | null>(null);
+  const untilLit = game.turn && game.phase === 'playing' ? game.turn.startedAt - now : 0;
+  const dazedSeat = untilLit > PREROLL_MS && boomSeat !== null && !game.players[boomSeat]?.frozen ? boomSeat : null;
+  const upNextSeat = untilLit > 0 && untilLit <= PREROLL_MS ? game.turn!.seat : null;
+  // The seat whose fuse is lit: none in that beat, and none between rounds.
+  const litSeat = game.turn && game.phase === 'playing' && untilLit <= 0 ? game.turn.seat : undefined;
+
   // Every change of the floor is called out: as the camera swings to the new speaker a board over the table names
   // whose turn it is (gold for yours), so the swing never leaves you guessing who is on. The tour has its own cards.
-  const turnSeat = game.turn?.seat;
+  const turnSeat = litSeat ?? upNextSeat ?? undefined;
   const turnStartedAt = game.turn?.startedAt;
   useEffect(() => {
     // A practice run changes turns too fast for a board, and with two seats the letter and the word bar say it all.
@@ -154,15 +241,15 @@ export function PaintedGame() {
 
   // The bomb lands beside each new speaker (see Bomb) and they flinch as it hits the floor, unless they are busy being cold.
   useEffect(() => {
-    if (turnSeat === undefined || game.phase !== 'playing' || reduced) return;
+    if (litSeat === undefined || reduced) return;
     const id = setTimeout(() => setMoods((m) => {
-      const now = m[turnSeat]?.state;
+      const now = m[litSeat]?.state;
       if (now === 'cold' || now === 'freezing' || now === 'frozen' || now === 'thawing') return m;
-      return { ...m, [turnSeat]: { state: 'startled', key: k() } };
+      return { ...m, [litSeat]: { state: 'startled', key: k() } };
     }), BOMB_TOSS_S * 1000);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turnSeat, turnStartedAt]);
+  }, [litSeat, turnStartedAt]);
 
   // A played word lands with a stamp: big gold letters, a burst of light and a puff of wool tufts.
   const burst = (word: string, by: string, mine: boolean) => {
@@ -203,16 +290,18 @@ export function PaintedGame() {
           // Everything said since the bomb last went off comes out and goes up with it; a bigger bomb is a bigger blast.
           const words = wordsSinceBoom(useStore.getState().game?.history ?? [], true);
           const power = bombSize(words);
-          jolt(70 + 34 * power, 1.25 + 0.12 * power);
-          setBoom(k() + 1);
-          setBlast({ key: k() + 1, words: words.slice(-14), power });
+          const glow = softGlow.current;
+          if (glow) jolt(8, 1, false); else { jolt(70 + 34 * power, 1.25 + 0.12 * power); setBoom(k() + 1); }
+          setBlast({ key: k() + 1, words: words.slice(-14), power, glow });
           setMoments((m) => ({ ...m, boom: { key: k(), at: rel(Number(e.playerId)), power } }));
         }
+        // The sheep it went off beside is dazed for the table's beat (a sheep that froze is busy freezing instead).
+        setBoomSeat(Number(e.playerId));
+        mood(e.playerId, 'dazed');
         if (game.players[Number(e.playerId)]?.isHuman && storeMode === 'tour') {
           flash(<Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!" sub="no wool lost while you practise" />, 1500);
           break; // learning: no loss
         }
-        mood(e.playerId, 'cold', 2);
         setMoments((m) => ({ ...m, gust: { key: k(), at: rel(Number(e.playerId)) } }));
         flash(
           <Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!"
@@ -286,18 +375,20 @@ export function PaintedGame() {
           <Ice className="sk-frost-t" /><Ice className="sk-frost-b" /><Ice className="sk-frost-l" /><Ice className="sk-frost-r" />
         </div>
       )}
-      {blast && !reduced && <Jumpscare key={`j${blast.key}`} power={blast.power} />}
+      {blast && !reduced && <Jumpscare key={`j${blast.key}`} power={blast.power} glow={blast.glow} />}
       {blast && !reduced && <WordBlast key={`w${blast.key}`} words={blast.words} power={blast.power} />}
       {hit > 0 && <div key={hit} className="sk-hit-flash" aria-hidden="true" />}
       <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
         <Stage
-          bombSize={bombSz} pile={view.pile} speaker={speaker} fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
+          bombSize={bombSz} pile={view.pile} speaker={speaker} dazed={dazedSeat === null ? null : rel(dazedSeat)}
+          upNext={finale === 'winner' && game.winners?.length ? rel(game.winners[0]) : upNextSeat === null ? null : rel(upNextSeat)}
+          fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
           secondsLeft={game.turn ? view.secondsLeft : null} letter={view.letter ?? ''} isTrap={view.isTrapLetter}
           hour={hour} reduced={reduced} phone={mobile} blizzard={view.twist === 'doublePointsShort'} moments={moments}
           seats={view.players.map((p) => {
             const st = stateOf(p);
             return {
-              seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.lives, maxLives), state: st.state, stateKey: st.key, coldFor: st.coldFor,
+              seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.lives, maxLives), state: st.state, stateKey: st.key,
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou, avatar: avatarOf(p),
               // Over each head: a knitted name plate (wool like the ledger, berry for the speaker) and, while a sheep
               // speaks or you type ahead, a speech bubble with the word as it is typed.
@@ -410,7 +501,7 @@ export function PaintedGame() {
         <div className="relative z-20 mt-auto">
           <InputStrip
             letter={view.letter ?? ''} typed={input.typed} myTurn={input.myTurn}
-            turnName={view.currentPlayerId === '' ? 'Next sheep' : name(view.currentPlayerId)}
+            turnName={(view.currentPlayerId || view.nextPlayerId) === '' ? 'Next sheep' : name(view.currentPlayerId || view.nextPlayerId)}
             onChange={input.onChange} onSubmit={input.submit} acceptKey={input.acceptKey} out={!!game.players[mySeat]?.frozen}
             message={input.message} turnKey={game.turn?.seat}
             onPass={storeMode !== 'tour' && !practice && game.players[mySeat]?.passedRound !== game.round ? () => void useStore.getState().act({ type: 'pass', seat: mySeat }) : undefined}
@@ -421,7 +512,7 @@ export function PaintedGame() {
 
       {/* Coach tips only while a turn is running: never over the round tally or the end board. */}
       {storeMode === 'tour' ? <Tour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><CoachTips /></div>}
-      {game.phase === 'gameOver' && (practice ? <RunOver /> : (
+      {game.phase === 'gameOver' && (practice ? !watchingAct && <RunOver /> : finale === 'results' && (
         <Results players={ranked} podium={ranked.map((p, i) => ({ key: p.id, name: p.name, place: i + 1, avatar: avatarOf(p), level: coatLevel(Math.max(p.lives, 1), maxLives), isYou: p.isYou }))} />
       ))}
       {sheet && sheet !== 'leave' && (
@@ -464,6 +555,11 @@ const DREAM_LINE = 'Tonight’s dream is still waiting: Counting Sheep, on the f
 /** Read once: the table re-renders every frame and this reads storage. */
 const useDreamWaiting = () => useMemo(() => !getDream(localDateKey(new Date())), []);
 
+/** What a finished game earns in the Trading Post (shop/economy.ts): the same for the early payment and for the board that shows it. */
+const wordsOf = (game: GameState, seat: number) => game.history.filter((h) => h.seat === seat && h.kind === 'play' && h.word).map((h) => h.word!);
+const quickReward = (game: GameState, seat: number): GameReward => ({ mode: 'quick', won: !!game.winners?.includes(seat), words: wordsOf(game, seat) });
+const practiceReward = (game: GameState, score: number): GameReward => ({ mode: 'practice', score, words: wordsOf(game, 0) });
+
 /** The end of a practice run: the score, the best for this clock and bot, and straight back in. */
 function RunOver() {
   const game = useStore((s) => s.game)!;
@@ -473,9 +569,7 @@ function RunOver() {
   const dreamWaiting = useDreamWaiting();
   const me = game.players[0];
   const score = run?.score ?? me.wordsPlayed;
-  const payout = usePayout(`practice:${game.seed}`, {
-    mode: 'practice', score, words: game.history.filter((h) => h.seat === 0 && h.kind === 'play' && h.word).map((h) => h.word!),
-  });
+  const payout = usePayout(`practice:${game.seed}`, practiceReward(game, score));
   const stats: [string, string | number][] = [
     ['Best', run?.best ?? score],
     ['Clock', `${game.settings.practiceClock ?? 15} s`],
@@ -538,10 +632,7 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
   const dreamWaiting = useDreamWaiting();
   const me = game.players[mySeat];
   // Wool Coins for a finished Quick Game (not rooms, the daily or the tutorial), paid once.
-  const payout = usePayout(mode === 'quick' ? `quick:${game.seed}` : null, {
-    mode: 'quick', won: !!game.winners?.includes(mySeat),
-    words: game.history.filter((h) => h.seat === mySeat && h.kind === 'play' && h.word).map((h) => h.word!),
-  });
+  const payout = usePayout(mode === 'quick' ? `quick:${game.seed}` : null, quickReward(game, mySeat));
   const tiles: [string, number, number | undefined, boolean | undefined][] = [
     ['Wool kept', me.lives, result?.bests.wool, result?.beat.wool],
   ];

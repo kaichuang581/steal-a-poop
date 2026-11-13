@@ -2,12 +2,13 @@ import type { Route } from '../contracts';
 import type { BarnService } from '../barn/service';
 import { readGameId, readReward } from '../barn/service';
 import { RateLimiter } from '../ratelimit';
+import { isSackId } from '../../src/skin/shop/sacks';
 
 const bad = (error: string, status = 400) => ({ status, json: { error } });
 
 /**
- * The Barn Bazaar's wallet for signed-in players (Wool Coins, XP, cosmetics). Nothing here takes money. Every route needs
- * a signed-in player with a profile; prices come from the catalogue on the server, never from the request.
+ * The Trading Post's wallet for signed-in players (Wool Coins, XP, cosmetics). Nothing here takes money. Every route needs
+ * a signed-in player with a profile. Wool Coins open Feed Sacks (rolled here); Golden Bells buy the Bell Shelf.
  */
 export function createBarnRoutes(deps: { barn: BarnService; now?: () => number }): Route[] {
   const now = deps.now ?? Date.now;
@@ -22,6 +23,11 @@ export function createBarnRoutes(deps: { barn: BarnService; now?: () => number }
       handler: async (req) => (read.allow(req.user!.userId, now()) ? ok(await deps.barn.wallet(req.user!.userId)) : bad('rate_limited', 429)),
     },
     {
+      // The profile's board: the top 100 players by XP, and where the asker stands. No account ids in it.
+      method: 'GET', path: '/api/barn/top', auth: 'user',
+      handler: async (req) => (read.allow(req.user!.userId, now()) ? ok(await deps.barn.board(req.user!.userId)) : bad('rate_limited', 429)),
+    },
+    {
       method: 'POST', path: '/api/barn/claim', auth: 'user',
       handler: async (req) => {
         if (!claims.allow(req.user!.userId, now())) return bad('rate_limited', 429);
@@ -32,6 +38,7 @@ export function createBarnRoutes(deps: { barn: BarnService; now?: () => number }
       },
     },
     {
+      // The Bell Shelf: Golden Bells only, at the catalogue's price.
       method: 'POST', path: '/api/barn/buy', auth: 'user',
       handler: async (req) => {
         if (!write.allow(req.user!.userId, now())) return bad('rate_limited', 429);
@@ -39,6 +46,18 @@ export function createBarnRoutes(deps: { barn: BarnService; now?: () => number }
         if (typeof itemId !== 'string' || itemId.length > 60) return bad('bad_request');
         const r = await deps.barn.buy(req.user!.userId, itemId);
         return r.ok ? ok({ wallet: r.wallet }) : bad(r.reason, r.reason === 'unknown' ? 404 : 409);
+      },
+    },
+    {
+      // One sack, Wool Coins only, rolled here. The body names which sack (bomb, blast or tick) and nothing else counts:
+      // nothing the browser sends picks the result.
+      method: 'POST', path: '/api/barn/sack', auth: 'user',
+      handler: async (req) => {
+        if (!write.allow(req.user!.userId, now())) return bad('rate_limited', 429);
+        const sack = body(req.body).sack;
+        if (!isSackId(sack)) return bad('bad_request');
+        const r = await deps.barn.openSack(req.user!.userId, sack);
+        return r.ok ? ok({ wallet: r.wallet, entry: r.entry }) : bad(r.reason, 409);
       },
     },
     {

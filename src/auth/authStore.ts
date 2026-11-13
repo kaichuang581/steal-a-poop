@@ -45,6 +45,8 @@ interface AuthState {
   requestReset(email: string, captchaToken?: string): Promise<void>;
   setNewPassword(password: string): Promise<void>;
   finishProfile(input: { nickname: string; dateOfBirth: string; country: string; parentEmail?: string; captchaToken?: string }): Promise<{ parentMailed: boolean }>;
+  /** Changes a signed-in player's nickname (the profile page). Throws ApiError: bad_nickname, nickname_taken, rate_limited. */
+  rename(nickname: string): Promise<void>;
   /** The simple sign-up step: a username and nothing else. */
   finishUsername(nickname: string, captchaToken?: string): Promise<void>;
   refreshProfile(): Promise<void>;
@@ -189,6 +191,11 @@ export const useAuth = create<AuthState>((set, get) => {
     async finishUsername(nickname, captchaToken) {
       const out = await api<{ profile: Profile }>('POST', '/api/account/username', token(), { nickname, captchaToken });
       set({ profile: out.profile, status: 'ready' });
+    },
+
+    async rename(nickname) {
+      const out = await api<{ profile: Profile }>('POST', '/api/account/nickname', token(), { nickname });
+      set({ profile: out.profile });
     },
 
     async refreshProfile() {

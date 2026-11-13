@@ -1,12 +1,15 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Group, Mesh, PerspectiveCamera, PointLight, PointsMaterial, Quaternion, Vector3 } from 'three';
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, Group, Mesh, PerspectiveCamera, PointLight, PointsMaterial, Quaternion, Vector3 } from 'three';
 import { HEAP, SPEAKER_CAMERA, seatPosition, speakerShot } from '../scene/layout';
 import { digitGeometry } from '../voxel/characters';
-import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S, bombModel } from '../voxel/bomb';
+import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S } from '../voxel/bomb';
+import { bombLook } from '../voxel/bombSkins';
 import { voxelMaterial } from '../voxel/material';
 import { Blast } from './Blast';
-import { BLAST_PALETTE, BOMB_TINT } from '../shop/catalog';
+import { BombAura, useBombGlow } from './BombAura';
+import { BLAST_PALETTE, BOMB_TINT, BURST_SHAPE } from '../shop/catalog';
+import { auraOf } from '../shop/bombAura';
 import { useWallet } from '../shop/store';
 
 /** Where the bomb comes to rest beside a holder, given its radius in metres. */
@@ -32,7 +35,6 @@ export function barnSpot(index: number, n: number): BombSpot {
   return (r) => at(side, r);
 }
 
-const VAPOUR = 36;
 const PUFF = 40;
 
 interface Ring { mesh: Mesh | null; x: number; z: number; size: number; at: number; leftAt: number }
@@ -42,19 +44,34 @@ interface Ring { mesh: Mesh | null; x: number; z: number; size: number; at: numb
  * floor beside them with a squash and a frosty puff, skids to a stop and wobbles still, and frost spreads on the floor
  * under it. Cold vapour spills off it while it sits there, its fuse burns down with a blue spark, and its seconds glow
  * on its face. The table makes the speaker flinch as it lands (see BOMB_TOSS_S).
+ *
+ * A Trading Post skin is the same bomb doing the same things as another object: its own model (voxel/bombSkins.ts) and
+ * its own way of sitting there (shop/bombAura.ts, BombAura.tsx), a coal shedding embers, a bell that rocks and rings.
+ * Only how it looks.
  */
 export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power, spotAt = barnSpot }: { spotAt?: (index: number, n: number) => BombSpot; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
-  const m = useMemo(() => bombModel(), []);
   const body = useMemo(() => voxelMaterial({ emissive: '#3f97d6', emissiveIntensity: 0.1 }), []);
-  // Trading Post cosmetics: a tint on the shell and the burst's colours. Only how it looks.
+  // Trading Post cosmetics: the skin's own model, glow and way of sitting there, and the burst's colours. Only how it looks.
   const equipped = useWallet().equipped;
   const tint = BOMB_TINT[equipped.bomb] ?? BOMB_TINT['bomb-ice'];
+  const look = useMemo(() => bombLook(equipped.bomb), [equipped.bomb]);
+  const aura = auraOf(equipped.bomb);
+  const glowMat = useBombGlow(equipped.bomb);
   const palette = BLAST_PALETTE[equipped.blast];
-  useEffect(() => { body.color.set(tint.color); body.emissive.set(tint.emissive); }, [body, tint]);
+  useEffect(() => { body.emissive.set(tint.emissive); }, [body, tint]);
   const fuseMat = useMemo(() => voxelMaterial({ emissive: '#9fd8ff', emissiveIntensity: 0.15 }), []);
   const sparkMat = useMemo(() => voxelMaterial({ emissive: '#5fd0ff', emissiveIntensity: 2 }), []);
   const digitMat = useMemo(() => voxelMaterial({ emissive: '#8fe4ff', emissiveIntensity: 0.35 }), []);
-  const ringMats = useMemo(() => [0, 1].map(() => voxelMaterial({ transparent: true, opacity: 0, emissive: '#bfe6ff', emissiveIntensity: 0.25 })), []);
+  const ringMats = useMemo(() => [0, 1].map(() => voxelMaterial({ transparent: true, opacity: 0, color: '#ffffff', emissive: '#bfe6ff', emissiveIntensity: 0.25 })), []);
+  // The skin's fuse and spark glow, the glow of the mark it leaves on the floor (its own: a scorch, coins, a pool of
+  // light; see bombSkins.ts) and the puff where it lands, in its own colours.
+  const puffTone = useMemo(() => new Color(), []);
+  useEffect(() => {
+    fuseMat.emissive.set(aura.fuseGlow);
+    sparkMat.emissive.set(aura.sparkGlow);
+    for (const m of ringMats) m.emissive.set(aura.ring.emissive);
+    puffTone.set(aura.puff);
+  }, [aura, fuseMat, sparkMat, ringMats, puffTone]);
   const group = useRef<Group>(null);
   const label = useRef<Group>(null);
   const digits = useRef<Mesh>(null);
@@ -66,8 +83,14 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
   const ringNext = useRef(0);
   const st = useRef({ phase: 'none' as 'none' | 'toss' | 'drop' | 'rest', t: 0, from: new Vector3(), land: new Vector3(), dir: new Vector3(), landedAt: -99, pending: false });
   const grown = useRef({ cur: size, last: size, pop: 0 });
+  // The bomb's radius now, and what its aura needs to know: where it is, how big, and whether it is sitting still.
+  const rNow = useRef(BOMB_RADIUS * 1.5);
+  const auraOn = useRef(false);
+  const auraSees = useMemo(() => ({ at: () => group.current?.position ?? null, radius: () => rNow.current, active: () => auraOn.current }), []);
+  // It went off: the next one is a fresh bomb, dropped from above, however long the table's beat lasts before it comes.
   const lastBoom = useRef({ key: boomKey, at: -9999 });
-  if (boomKey !== lastBoom.current.key) lastBoom.current = { key: boomKey, at: performance.now() };
+  const spent = useRef(false);
+  if (boomKey !== lastBoom.current.key) { lastBoom.current = { key: boomKey, at: performance.now() }; spent.current = true; }
   // Where the bomb was when it went off: its spot before the turn moved on.
   const goneFrom = useRef(new Vector3());
   const goneAt = useRef(-9999);
@@ -75,9 +98,28 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
     if (performance.now() - goneAt.current < 800) return goneFrom.current;
     return group.current?.position ?? null;
   });
+  // Where the bomb last rested before the turn moved on, and how a bomb of any radius rests beside that holder (see
+  // BombSpot). Noted by the frame loop the moment the spot changes, before the bomb is moved: `origin` reads the
+  // bomb's position, which may already be the next sheep's by the time a burst asks.
+  const seenSpot = useRef<BombSpot | null>(null);
+  const left = useRef({ from: new Vector3(), spot: null as BombSpot | null, at: -9999 });
+  const beside = useRef(new Vector3());
+  // Where a Trading Post act happens (a haystack, a snow cloud): the place the bomb went off at, or, given `room`
+  // (a radius in metres), where something that wide stands clear of the holder's fleece, as a bomb grown that big
+  // would: a haystack comes up beside the sheep, not through it.
+  const stage = useRef((room: number): Vector3 | null => {
+    const recent = performance.now() - left.current.at < 800;
+    const at = recent ? left.current.from : group.current?.position ?? null;
+    const held = recent ? left.current.spot : seenSpot.current;
+    if (!at) return null;
+    if (!room || !held) return beside.current.copy(at);
+    const [x, z] = held(room);
+    return beside.current.set(x, at.y, z);
+  });
   const spot = useMemo(() => (speaker === null ? null : spotAt(speaker, n)), [speaker, n, spotAt]);
 
-  // Vapour spilling off the ice, and the puff where it lands: square bits of frost, drawn additive so they fade to nothing.
+  // The puff where it lands: square bits of frost, drawn additive so they fade to nothing. (What comes off it while it
+  // sits there, the ice bomb's cold vapour or a skin's own, is BombAura.)
   const fx = useMemo(() => {
     const cloud = (count: number) => {
       const geo = new BufferGeometry();
@@ -85,18 +127,15 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
       geo.setAttribute('color', new BufferAttribute(new Float32Array(count * 3), 3));
       return { geo, vel: new Float32Array(count * 3), age: new Float32Array(count).fill(99), life: new Float32Array(count).fill(1), count };
     };
-    return {
-      vapour: cloud(VAPOUR), puff: cloud(PUFF), next: 0,
-      vapourMat: new PointsMaterial({ size: 0.09, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }),
-      puffMat: new PointsMaterial({ size: 0.11, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }),
-    };
+    return { puff: cloud(PUFF), puffMat: new PointsMaterial({ size: 0.11, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }) };
   }, []);
 
   useEffect(() => {
     if (!spot || !group.current) return;
     const s = st.current;
-    const justExploded = performance.now() - lastBoom.current.at < 600;
-    if (justExploded) { goneFrom.current.copy(group.current.position); goneAt.current = performance.now(); }
+    const justExploded = spent.current;
+    spent.current = false;
+    if (justExploded && performance.now() - lastBoom.current.at < 600) { goneFrom.current.copy(group.current.position); goneAt.current = performance.now(); }
     // The frost it leaves behind thaws away.
     for (const r of rings.current) if (r.leftAt < r.at) r.leftAt = performance.now() / 1000;
     if (reduced) { s.phase = 'rest'; s.landedAt = -99; s.pending = true; return; }
@@ -108,7 +147,12 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
 
   useFrame(({ clock, camera }, rawDt) => {
     const g = group.current;
+    if (spot !== seenSpot.current) {
+      if (g && seenSpot.current) { left.current.from.copy(g.position); left.current.spot = seenSpot.current; left.current.at = performance.now(); }
+      seenSpot.current = spot;
+    }
     if (g) g.visible = spot !== null;
+    auraOn.current = false;
     if (!g || !spot) return;
     const dt = Math.min(rawDt, 1 / 20);
     const now = clock.elapsedTime;
@@ -123,6 +167,8 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
     gr.pop = Math.max(0, gr.pop - dt * 1.6);
     const scale = 1.5 * gr.cur * (1 + gr.pop * 0.5);
     const r = BOMB_RADIUS * scale;
+    rNow.current = r;
+    auraOn.current = st.current.phase === 'rest';
     const [rx, rz] = spot(r);
     const rest = new Vector3(rx, r, rz);
     if (s.pending) {
@@ -164,7 +210,10 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
       const wob = e < 1.2 ? 0.32 * Math.exp(-e * 5) * Math.sin(e * 16) : 0;
       // Near the end it rattles on the floor.
       const rattle = red && !reduced ? Math.sin(now * 40) * 0.07 : 0;
-      g.quaternion.setFromAxisAngle(axis, wob).multiply(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), rattle));
+      // A bell rocks from side to side once it has settled, its lip lifting a little each way.
+      const rock = aura.rock && !reduced ? Math.sin(e * 2.6) * aura.rock * Math.min(1, Math.max(0, e - 0.8)) : 0;
+      g.position.y += Math.abs(rock) * r * 0.6;
+      g.quaternion.setFromAxisAngle(axis, wob).multiply(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), rattle + rock));
     }
     g.scale.set(scale * sx, scale * sy, scale * sx);
 
@@ -174,10 +223,10 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
       if (text !== shown.current && digits.current) { shown.current = text; digits.current.geometry = digitGeometry(text, 0.03); }
       label.current.visible = text !== '';
       label.current.quaternion.copy(g.quaternion).invert().multiply(camera.quaternion);
-      const d = camera.position.clone().sub(g.position).normalize().multiplyScalar(0.21).applyQuaternion(g.quaternion.clone().invert());
+      const d = camera.position.clone().sub(g.position).normalize().multiplyScalar(aura.face ?? 0.21).applyQuaternion(g.quaternion.clone().invert());
       label.current.position.copy(d);
-      digitMat.color.set(red ? '#ff6f55' : '#e6f6ff');
-      digitMat.emissive.set(red ? '#ff5a3a' : '#8fe4ff');
+      digitMat.color.set(red ? '#ff6f55' : aura.digits[0]);
+      digitMat.emissive.set(red ? '#ff5a3a' : aura.digits[1]);
     }
     // Close to bursting, the ice glows from inside.
     body.emissiveIntensity = red && !reduced ? 0.35 + 0.35 * (0.5 + 0.5 * Math.sin(now * 16)) : 0.1;
@@ -203,7 +252,7 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
       ring.mesh.position.set(ring.x, 0.006 + i * 0.002, ring.z);
       ring.mesh.scale.setScalar(ring.size * (0.3 + 0.7 * (1 - (1 - grow) ** 3)));
     }
-    stepFx(dt, g.position, r, !reduced && s.phase === 'rest');
+    stepFx(dt);
   });
 
   function land(rest: Vector3) {
@@ -225,31 +274,7 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
     p.needsUpdate = true;
   }
 
-  function stepFx(dt: number, at: Vector3, r: number, spill: boolean) {
-    // Vapour: a few bits a second roll off the lower half, sink to the floor and spread along it.
-    const v = fx.vapour;
-    const vp = v.geo.getAttribute('position') as BufferAttribute, vc = v.geo.getAttribute('color') as BufferAttribute;
-    if (spill && Math.random() < dt * 14) {
-      const i = fx.next = (fx.next + 1) % VAPOUR;
-      const a = Math.random() * Math.PI * 2;
-      vp.setXYZ(i, at.x + Math.cos(a) * r * 0.9, at.y - r * (0.1 + Math.random() * 0.4), at.z + Math.sin(a) * r * 0.9);
-      v.vel.set([Math.cos(a) * 0.08, -0.12 - Math.random() * 0.1, Math.sin(a) * 0.08], i * 3);
-      v.age[i] = 0;
-      v.life[i] = 1.4 + Math.random() * 0.8;
-    }
-    for (let i = 0; i < VAPOUR; i++) {
-      v.age[i] += dt;
-      const k = v.age[i] / v.life[i];
-      if (k > 1) { vc.setXYZ(i, 0, 0, 0); continue; }
-      let y = vp.getY(i) + v.vel[i * 3 + 1] * dt;
-      // On the floor the cold air spreads out instead of falling.
-      if (y < 0.03) { y = 0.03; v.vel[i * 3] *= 1 + dt * 2.5; v.vel[i * 3 + 2] *= 1 + dt * 2.5; v.vel[i * 3 + 1] = 0; }
-      vp.setXYZ(i, vp.getX(i) + v.vel[i * 3] * dt, y, vp.getZ(i) + v.vel[i * 3 + 2] * dt);
-      const f = Math.sin(Math.PI * k) * 0.28;
-      vc.setXYZ(i, 0.62 * f, 0.82 * f, f);
-    }
-    vp.needsUpdate = true;
-    vc.needsUpdate = true;
+  function stepFx(dt: number) {
     // The landing puff: thrown out and up, slowed by the air, falling back.
     const pf = fx.puff;
     const pp = pf.geo.getAttribute('position') as BufferAttribute, pc = pf.geo.getAttribute('color') as BufferAttribute;
@@ -262,7 +287,7 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
       pf.vel[i * 3 + 1] -= 3.2 * dt;
       pp.setXYZ(i, pp.getX(i) + pf.vel[i * 3] * dt, Math.max(0.02, pp.getY(i) + pf.vel[i * 3 + 1] * dt), pp.getZ(i) + pf.vel[i * 3 + 2] * dt);
       const f = 1 - k;
-      pc.setXYZ(i, 0.85 * f, 0.95 * f, f);
+      pc.setXYZ(i, puffTone.r * f, puffTone.g * f, puffTone.b * f);
     }
     pp.needsUpdate = true;
     pc.needsUpdate = true;
@@ -270,19 +295,20 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
 
   return (
     <>
-      <Blast boomKey={boomKey} origin={origin.current} reduced={reduced} power={power} palette={equipped.blast === 'blast-frost' ? undefined : palette} />
+      <Blast boomKey={boomKey} origin={origin.current} stage={stage.current} reduced={reduced} power={power} palette={equipped.blast === 'blast-frost' ? undefined : palette} shape={BURST_SHAPE[equipped.blast] ?? 'ball'} chunk={look.chunk} chunkGlow={tint.emissive} />
+      <BombAura id={equipped.bomb} at={auraSees.at} radius={auraSees.radius} active={auraSees.active} glow={glowMat} light={glow} reduced={reduced} />
       {rings.current.map((r, i) => (
-        <mesh key={i} ref={(mm) => { r.mesh = mm; }} geometry={m.frost} material={ringMats[i]} visible={false} renderOrder={1} />
+        <mesh key={i} ref={(mm) => { r.mesh = mm; }} geometry={look.ground} material={ringMats[i]} visible={false} renderOrder={1} />
       ))}
-      {!reduced && <points geometry={fx.vapour.geo} material={fx.vapourMat} frustumCulled={false} />}
       {!reduced && <points geometry={fx.puff.geo} material={fx.puffMat} frustumCulled={false} />}
-      <pointLight ref={glow} color="#8fd8ff" intensity={0} distance={3} decay={2} />
+      <pointLight ref={glow} color={aura.light} intensity={0} distance={3} decay={2} />
       <group ref={group} scale={1.5}>
-        <mesh geometry={m.body} material={body} castShadow />
+        <mesh geometry={look.body} material={body} castShadow />
+        {look.glow && glowMat && <mesh geometry={look.glow} material={glowMat} />}
         <group ref={label}><mesh ref={digits} material={digitMat} /></group>
         <group ref={fuse} position={[0, BOMB_NECK_Y, 0]}>
-          <mesh geometry={m.fuse} material={fuseMat} />
-          <mesh ref={spark} geometry={m.spark} material={sparkMat} />
+          <mesh geometry={look.fuse} material={fuseMat} />
+          <mesh ref={spark} geometry={look.spark} material={sparkMat} />
         </group>
       </group>
     </>

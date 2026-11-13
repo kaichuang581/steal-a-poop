@@ -60,13 +60,24 @@ describe('clock', () => {
 describe('view model and events', () => {
   it('maps the store to a TableView', () => {
     const g = humanTurn('c');
-    const v = toTableView(g, 'tour', 0, T0)!;
+    // Read as the fuse is lit: before that nobody has the floor (the beat after a bomb, see the next test).
+    const lit = g.turn!.startedAt;
+    const v = toTableView(g, 'tour', 0, lit)!;
     expect(v.mode).toBe('tutorial');
     expect(v.phase).toBe('turn');
     expect(v.letter).toBe('c');
     expect(v.currentPlayerId).toBe('0');
     expect(v.players[0]).toMatchObject({ isYou: true, isBot: false, creature: creatureFor(0) });
-    expect(v.secondsLeft).toBeCloseTo((g.turn!.endsAt - T0) / 1000);
+    expect(v.secondsLeft).toBeCloseTo((g.turn!.endsAt - lit) / 1000);
+  });
+
+  it('in the beat after a bomb nobody has the floor, the next sheep is named, and the clock stands full', () => {
+    const g = humanTurn('c');
+    const before = toTableView(g, 'quick', 0, g.turn!.startedAt - 1000)!;
+    expect(before.currentPlayerId).toBe('');
+    expect(before.nextPlayerId).toBe('0');
+    expect(before.secondsLeft).toBe(g.turn!.durationMs / 1000);
+    expect(toTableView(g, 'quick', 0, g.turn!.startedAt + 1000)!.secondsLeft).toBeCloseTo(g.turn!.durationMs / 1000 - 1);
   });
 
   it('turns an accepted play into an accepted visual event', () => {

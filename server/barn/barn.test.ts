@@ -28,25 +28,23 @@ function behaves(make: () => Promise<BarnStore>) {
     for (let i = 2; i < 12; i++) await svc.claim('u1', `quick:s${i}`, win);
     expect((await svc.wallet('u1')).wallet.earnedToday).toBe(300);
   });
-  it('buys at the catalogue price, refuses what it cannot afford, and equips only what is owned', async () => {
-    expect(await svc.buy('u1', 'bomb-ember')).toEqual({ ok: false, reason: 'short' });
+  it('opens a sack only with enough coins, and equips only what is owned', async () => {
+    expect(await svc.openSack('u1', 'bomb')).toEqual({ ok: false, reason: 'short' });
     for (let i = 0; i < 8; i++) await svc.claim('u1', `quick:b${i}`, win);
-    const r = await svc.buy('u1', 'bomb-ember');
+    const r = await svc.openSack('u1', 'bomb', () => 0);
     expect(r.ok).toBe(true);
-    expect(await svc.equip('u1', 'bomb-gold')).toEqual({ ok: false, reason: 'not_owned' });
-    const e = await svc.equip('u1', 'bomb-ember');
-    expect(e.ok && e.wallet.equipped.bomb).toBe('bomb-ember');
-    expect(await svc.buy('u1', 'bomb-aurora')).toEqual({ ok: false, reason: 'not_for_sale' });
+    if (!r.ok) return;
+    expect(await svc.equip('u1', 'bomb-diamond')).toEqual({ ok: false, reason: 'not_owned' });
+    const e = await svc.equip('u1', r.entry.itemId);
+    expect(e.ok && e.wallet.equipped.bomb).toBe(r.entry.itemId);
   });
-  it('two purchases at once never spend the same coins twice', async () => {
+  it('sacks opened at once never spend the same coins twice', async () => {
     for (let i = 0; i < 9; i++) await svc.claim('u1', `quick:c${i}`, win);
     const coins = (await svc.wallet('u1')).wallet.coins;
-    const results = await Promise.all(['bomb-ember', 'bomb-mint', 'bomb-plum'].map((id) => svc.buy('u1', id)));
-    const spent = results.filter((r) => r.ok).length;
+    const results = await Promise.all(['bomb', 'blast', 'tick', 'bomb'].map((s) => svc.openSack('u1', s as 'bomb')));
     const after = (await svc.wallet('u1')).wallet;
     expect(after.coins).toBeGreaterThanOrEqual(0);
-    expect(after.owned.filter((i) => ['bomb-ember', 'bomb-mint', 'bomb-plum'].includes(i))).toHaveLength(spent);
-    expect(coins - after.coins).toBe(results.reduce((n, r, i) => n + (r.ok ? [400, 400, 500][i] : 0), 0));
+    expect(coins - after.coins).toBe(results.reduce((n, r) => n + (r.ok ? 250 - r.entry.refund : 0), 0));
   });
   it('imports a browser wallet once, with coins and XP capped', async () => {
     const local = { ...freshWallet(), coins: 99_999, xp: 999_999, owned: [...freshWallet().owned, 'bomb-gold'], words: ['cat', 'dog'] };
@@ -59,11 +57,11 @@ function behaves(make: () => Promise<BarnStore>) {
     expect(second.done).toBe(false);
     expect(second.wallet.coins).toBe(IMPORT_COIN_CAP);
   });
-  it('gives streak items for a reported streak, and erases on request', async () => {
-    const s = await svc.streak('u1', 30);
-    expect(s.granted).toEqual(['bomb-aurora', 'blast-starlight']);
+  it('erases on request', async () => {
+    await svc.claim('u1', 'quick:e1', win);
+    expect((await svc.wallet('u1')).wallet.xp).toBeGreaterThan(0);
     await svc.erase('u1');
-    expect((await svc.wallet('u1')).wallet.owned).not.toContain('bomb-aurora');
+    expect((await svc.wallet('u1')).wallet.xp).toBe(0);
   });
 }
 

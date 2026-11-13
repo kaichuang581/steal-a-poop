@@ -1,6 +1,6 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_BOT_MS,
+  AFTERMATH_MS, BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_BOT_MS,
   PRACTICE_TURN_MS, SOFT_GAME_PRESSURE, TRAP_LETTERS, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
@@ -49,8 +49,10 @@ function botResponseMs(s: GameState, difficulty: Difficulty, turnMs: number = ro
   return drawInt(s, Math.round(lo * scale), Math.round(hi * scale));
 }
 
-function startTurn(s: GameState, seat: number, t: number) {
+/** Starts `seat`'s turn. `wait` is how long after `t` its fuse is lit (the beat after a bomb has gone off). */
+function startTurn(s: GameState, seat: number, t: number, wait = 0) {
   const active = s.players[seat];
+  t += wait;
   const tour = s.mode === 'tour';
   const roundBaseMs = turnDurationMs(0, s.modifier, roundTurnMs(s.round));
   // Time carry (normal games only): the opening turn is 10 s, then the last word's shift is applied to this turn once.
@@ -74,7 +76,7 @@ function startTurn(s: GameState, seat: number, t: number) {
   s.turn = { seat, startedAt: t, endsAt, durationMs, botActAt };
 }
 
-function concludeTurn(s: GameState, t: number) {
+function concludeTurn(s: GameState, t: number, wait = 0) {
   const turn = s.turn!;
   if (s.phase === 'gameOver') { s.turn = null; return; }
   s.players[turn.seat].turnsTaken += 1;
@@ -82,7 +84,7 @@ function concludeTurn(s: GameState, t: number) {
   // Frozen players are skipped, so the round ends once every unfrozen player has used their turns.
   const next = nextSeat(s, turn.seat);
   if (next === null) return endRound(s, t);
-  startTurn(s, next, t);
+  startTurn(s, next, t, wait);
 }
 
 /** Most wool a sheep can hold: what it started with plus a little from traps. */
@@ -193,7 +195,8 @@ function failTurn(s: GameState, seat: number, t: number) {
   emit(s, t, 'timeout', seat, `Time's up for ${p.name}`, 0);
   resolveTrap(s, seat, true, t);
   if (woolAtStake(s, seat)) loseWool(s, seat, t, '');
-  concludeTurn(s, t);
+  // The bomb has gone off: the table takes a beat before the next fuse is lit.
+  concludeTurn(s, t, AFTERMATH_MS);
 }
 
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('');
@@ -342,7 +345,8 @@ export function replaceWithBot(state: GameState, seat: number, difficulty: Diffi
   p.bankThreshold = bankThresholdFor(personality, drawRandom(s));
   emit(s, now, 'seatBot', seat, `${p.name} left. A bot took their seat`);
   if (s.turn && s.turn.seat === seat) {
-    s.turn.botActAt = now + botResponseMs(s, difficulty);
+    // From when its fuse is lit, if that is still to come (the beat after a bomb): a bot never answers inside the beat.
+    s.turn.botActAt = Math.max(now, s.turn.startedAt) + botResponseMs(s, difficulty);
   }
   return s;
 }
@@ -378,7 +382,8 @@ export function apply(state: GameState, ctx: EngineContext, action: Action, now:
       if (s.mode !== 'normal') return reject('no_pass');
       if (player.passedRound === s.round) return reject('already_passed');
       player.passedRound = s.round;
-      s.passMs = Math.max(PASS_MIN_MS, turn.endsAt - now);
+      // The fuse that is left: never more than the whole turn, if the bomb is passed before its fuse was even lit.
+      s.passMs = Math.max(PASS_MIN_MS, Math.min(turn.durationMs, turn.endsAt - now));
       s.history.push({ round: s.round, seat: turn.seat, kind: 'pass', word: null, points: 0 });
       emit(s, now, 'pass', turn.seat, `${player.name} passed the bomb`);
       s.carryMs = 0;

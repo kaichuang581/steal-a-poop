@@ -11,13 +11,13 @@ vi.mock('../../../auth/authStore', () => ({
     calls.push({ method, path, body });
     const wallet = { ...freshWallet(), coins: 777 };
     if (path === '/api/barn/claim') return { ok: true, wallet, lines: [{ label: 'Finished the game', coins: 20 }], coins: 20, xp: 20, levelUp: null, achievements: [] };
-    if (path === '/api/barn/buy') throw Object.assign(new Error('short'), { code: 'short' });
+    if (path === '/api/barn/sack') throw Object.assign(new Error('short'), { code: 'short' });
     if (path === '/api/barn/streak') return { wallet, granted: [] };
     return { wallet };
   }),
 }));
 
-import { buyItem, getWallet, payFinishedGame, resetWalletForTests, syncWithServer } from '../store';
+import { getWallet, openFeedSack, payFinishedGame, resetWalletForTests, syncWithServer } from '../store';
 
 beforeEach(() => {
   calls.length = 0;
@@ -44,6 +44,6 @@ describe('the wallet and the sign-in', () => {
     const p = await payFinishedGame('quick:b', { mode: 'quick', won: false, words: [] });
     expect(calls.at(-1)?.path).toBe('/api/barn/claim');
     expect(p?.coins).toBe(20);
-    expect(await buyItem('bomb-gold')).toEqual({ ok: false, reason: 'short' });
+    expect(await openFeedSack('bomb')).toEqual({ ok: false, reason: 'short' });
   });
 });

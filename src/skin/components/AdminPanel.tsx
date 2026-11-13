@@ -6,7 +6,7 @@ import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
 import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
-import { Brass, RopeSlider } from '../kit';
+import { Brass, Lever, RopeSlider } from '../kit';
 import { GLARE, LENGTH, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
 import { previewEnd } from '../admin/endPreview';
 import type { EndPreview } from '../admin/endPreview';
@@ -63,6 +63,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                   : <ClothButton onClick={() => setAvatar(ADMIN_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
               </div>
             </section>
+            <AdminCoins />
             <KaiyanSliders />
             {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
             <section className="sk-paper mt-3 p-2" aria-label="See the end screens">
@@ -116,6 +117,23 @@ function KaiyanSliders() {
       </div>
       {row('Forehead', length, LENGTH, (v) => setKaiyanLook({ length: v }))}
       {row('Glare', glare, GLARE, (v) => setKaiyanLook({ glare: v }))}
+    </section>
+  );
+}
+
+/** The Trading Post's unlimited Wool Coins, for trying sacks: this browser only, never the account's wallet. */
+function AdminCoins() {
+  const coins = useAdmin((s) => s.coins);
+  const setCoins = useAdmin((s) => s.setCoins);
+  return (
+    <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label="Admin coins">
+      <div className="min-w-0 flex-1">
+        <b className="sk-display block text-base">Unlimited Wool Coins</b>
+        <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>
+          {coins ? 'On: Feed Sacks cost nothing here. Your real coins come back when you turn it off.' : 'Off. This browser only, never the account’s wallet.'}
+        </p>
+      </div>
+      <Lever checked={coins} onChange={setCoins} label="Unlimited Wool Coins" />
     </section>
   );
 }

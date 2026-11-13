@@ -19,10 +19,18 @@ const SUN: Record<Hour, { color: string; intensity: number }> = {
   dawn: { color: '#FFD3A8', intensity: 1.55 },
   day: { color: '#FFE8C8', intensity: 1.85 },
   dusk: { color: '#FFD3A8', intensity: 1.7 },
-  night: { color: '#C6CDE4', intensity: 0.9 }, // moonlight, less blue than it was; the lanterns carry the barn
+  night: { color: '#C6CDE4', intensity: 1.15 }, // moonlight, less blue than it was; the lanterns carry the barn
 };
 // Physical falloff (decay 2) needs candela-scale intensity; 40 here lands where the plan's nominal 2.0 reads on screen.
 export const LANTERN_LIGHT = { color: '#FFB862', intensity: 40, distance: 14, decay: 2 };
+/**
+ * At night the lanterns burn brighter and reach further, and the moon and the sky's fill are up a little (Brian,
+ * 2026-11-13, of a room game, which is always at night: "make the room a little brighter ngl i cant see a thing").
+ * The fill stays modest: a strong one flattens the snow (see Lights).
+ */
+const NIGHT = { lantern: 1.5, reach: 19, fill: 0.62 };
+/** How bright a lantern burns at this hour. */
+export const lanternIntensity = (hour: Hour) => LANTERN_LIGHT.intensity * (hour === 'night' ? NIGHT.lantern : 1);
 
 /** Exponential fog in the hour's colour; the sky dome, stars and aurora ignore it (their materials have fog off). */
 export function Atmosphere({ hour }: { hour: Hour }) {
@@ -47,14 +55,14 @@ export function Lights({ hour, phone, viewYaw, lampRef }: { hour: Hour; phone: b
     <>
       {/* Sky fill and a faint bounce from below. Kept low, so the sun or moon on the tops against the shaded sides is what
           gives the snow its shape: a strong fill here flattened every drift to one grey. */}
-      <hemisphereLight args={['#AEBEDA', '#655F5C', hour === 'night' ? 0.5 : 0.58]} />
+      <hemisphereLight args={['#AEBEDA', '#655F5C', hour === 'night' ? NIGHT.fill : 0.58]} />
       <directionalLight
         position={pos} color={sun.color} intensity={sun.intensity} castShadow
         shadow-mapSize={phone ? [2048, 2048] : [4096, 4096]} shadow-bias={-0.0004} shadow-normalBias={0.02}
         shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20} shadow-camera-near={1} shadow-camera-far={160}
       />
       {BARN.lanterns.map((p, i) => (
-        <pointLight key={i} ref={(l) => lampRef?.(i, l)} position={[p[0], p[1] - 0.3, p[2]]} color={LANTERN_LIGHT.color} intensity={LANTERN_LIGHT.intensity} distance={LANTERN_LIGHT.distance} decay={LANTERN_LIGHT.decay} />
+        <pointLight key={i} ref={(l) => lampRef?.(i, l)} position={[p[0], p[1] - 0.3, p[2]]} color={LANTERN_LIGHT.color} intensity={lanternIntensity(hour)} distance={hour === 'night' ? NIGHT.reach : LANTERN_LIGHT.distance} decay={LANTERN_LIGHT.decay} />
       ))}
     </>
   );
@@ -80,6 +88,18 @@ const TiltShiftShader = {
 };
 
 /**
+ * What the picture costs at a fine resolution (Brian, 2026-11-13: "make the website less laggy"). Measured at the barn
+ * table at 1.5x on a Retina laptop: 24.5 ms a frame, of which the 4x multisampling was about 7.5 (every pass of the
+ * composer resolves it again) and the bloom about 7.5, and both grow with every pixel. So: 4 samples only at 1x, where
+ * the edges need them, 2 a little above, and none from 1.5x up, where the pixels are too small to show a stair (looked
+ * at side by side, with and without); and the bloom, which only has to find the lanterns and the things that glow,
+ * works on a picture no wider than BLOOM_MAX_W whatever the screen. After: 60 frames a second at 1.5x and at the full
+ * 2x, where it had been 41 at 1.5x. Shadows were measured too and cost next to nothing.
+ */
+const samplesFor = (pixelRatio: number) => (pixelRatio > 1.4 ? 0 : pixelRatio > 1.1 ? 2 : 4);
+const BLOOM_MAX_W = 720;
+
+/**
  * The composer: the scene into a multisampled half-float target, bloom for the lanterns and windows only
  * (threshold 0.85), the optional tilt-shift, then tone mapping and sRGB in the output pass.
  */
@@ -91,7 +111,7 @@ export function Effects({ tiltShift = 0 }: { tiltShift?: number }) {
   // The resolution can change under it (AdaptiveDpr), and the composer's targets must follow or it draws blurred.
   const dpr = useThree((s) => s.viewport.dpr);
   const composer = useMemo(() => {
-    const target = new WebGLRenderTarget(size.width, size.height, { type: HalfFloatType, samples: 4 });
+    const target = new WebGLRenderTarget(size.width, size.height, { type: HalfFloatType, samples: samplesFor(gl.getPixelRatio()) });
     const c = new EffectComposer(gl, target);
     c.addPass(new RenderPass(scene, camera));
     // Bloom at half resolution: it only has to catch the lanterns, and the full-size blur chain costs most of a frame.
@@ -108,9 +128,16 @@ export function Effects({ tiltShift = 0 }: { tiltShift?: number }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gl, scene, camera, tiltShift]);
   useEffect(() => {
-    composer.setPixelRatio(gl.getPixelRatio());
+    const ratio = gl.getPixelRatio(), samples = samplesFor(ratio);
+    // Fewer samples at a finer resolution: changing the count means new buffers, which setSize alone would not make.
+    for (const t of [composer.renderTarget1, composer.renderTarget2]) if (t.samples !== samples) { t.samples = samples; t.dispose(); }
+    composer.setPixelRatio(ratio);
     composer.setSize(size.width, size.height);
-    for (const p of composer.passes) if (p instanceof ShaderPass && p.uniforms.texelY) p.uniforms.texelY.value = 1 / size.height;
+    for (const p of composer.passes) {
+      if (p instanceof ShaderPass && p.uniforms.texelY) p.uniforms.texelY.value = 1 / size.height;
+      // The bloom works at half of whatever size it is given: give it no more than BLOOM_MAX_W across.
+      if (p instanceof UnrealBloomPass) { const w = size.width * ratio, k = Math.min(1, (BLOOM_MAX_W * 2) / w); p.setSize(w * k, size.height * ratio * k); }
+    }
   }, [composer, gl, size, dpr]);
   useEffect(() => () => composer.dispose(), [composer]);
   // The composer is several draws; counting across all of them keeps the dev overlay's triangle count honest.
@@ -196,11 +223,16 @@ function AdaptiveDpr({ max, min, value, ceiling, onChange }: { max: number; min:
 
 /** What a scene settled on, on this device: the next visit starts there instead of stepping down again. */
 interface Settled { dpr: number; ceiling: number }
+/**
+ * Which way of drawing a kept level was measured under. A level settled on before the picture got cheaper (see
+ * `samplesFor`) says a resolution is too slow that no longer is, so it is not believed: the scene finds its level again.
+ */
+const SETTLED_UNDER = 2;
 function readSettled(key: string | undefined): Settled | null {
   if (!key) return null;
   try {
-    const v = JSON.parse(localStorage.getItem(`sap:dpr:${key}`) ?? 'null') as Settled | null;
-    return v && Number.isFinite(v.dpr) ? { dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : Infinity } : null;
+    const v = JSON.parse(localStorage.getItem(`sap:dpr:${key}`) ?? 'null') as (Settled & { v?: number }) | null;
+    return v && v.v === SETTLED_UNDER && Number.isFinite(v.dpr) ? { dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : Infinity } : null;
   } catch { return null; }
 }
 /** The lowest resolution any scene settled on, on this device: a scene seen for the first time starts there, not at
@@ -219,7 +251,7 @@ function deviceHint(): number | null {
 }
 function writeSettled(key: string | undefined, v: Settled) {
   if (!key) return;
-  try { localStorage.setItem(`sap:dpr:${key}`, JSON.stringify({ dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : null })); } catch { /* storage blocked */ }
+  try { localStorage.setItem(`sap:dpr:${key}`, JSON.stringify({ dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : null, v: SETTLED_UNDER })); } catch { /* storage blocked */ }
 }
 
 /**
@@ -242,6 +274,8 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, children, ...pro
     setState(next);
     writeSettled(memory, next);
   };
+  // `?dpr=1.5` pins the resolution, for measuring what a scene or an effect costs at one size (nothing adapts, nothing is kept).
+  if (PINNED_DPR) return <Canvas {...props} dpr={PINNED_DPR}>{children}</Canvas>;
   return (
     <Canvas {...props} dpr={state.dpr}>
       <AdaptiveDpr max={maxDpr} min={minDpr} value={state.dpr} ceiling={state.ceiling} onChange={onChange} />
@@ -249,3 +283,8 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, children, ...pro
     </Canvas>
   );
 }
+const PINNED_DPR = (() => {
+  if (typeof location === 'undefined') return 0;
+  const v = Number(new URLSearchParams(location.search).get('dpr'));
+  return Number.isFinite(v) && v >= 0.5 && v <= 3 ? v : 0;
+})();

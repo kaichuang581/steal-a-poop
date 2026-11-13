@@ -37,7 +37,10 @@ export interface TableView {
   letter: string | null;      // the required starting letter
   isTrapLetter: boolean;      // letter is X, Z, Q or J
   players: PlayerView[];
+  /** Who has the floor: '' between turns, and in the beat after a bomb has gone off, before the next fuse is lit. */
   currentPlayerId: string;
+  /** Whose turn it is or is about to be: the sheep the next fuse is lit for, while the table takes its beat. '' if none. */
+  nextPlayerId: string;
   youId: string;
   secondsLeft: number;        // fractional allowed
   turnSeconds: number;        // 5..16 (faster each round), or 25 in the tutorial

@@ -31,9 +31,12 @@ let model: BombModel | null = null;
  * it, a cap of frost, a collar of frost round a neck of clear ice, a frosted fuse and a cold
  * blue spark. It sits on the floor.
  */
-export function bombModel(): BombModel {
-  if (model) return model;
-  const deep = lin('#1d4a7c'), mid = lin('#3a7ab2'), pale = lin('#78b6e0'), shine = lin('#d6f1ff'), frost = lin('#f1faff'), vein = lin('#2a5f94');
+/** The colours of a bomb's shell: its shaded to lit ice (deep, mid, pale, shine), the frost on its crown, the cracks, and its neck. */
+export interface BombShell { deep: string; mid: string; pale: string; shine: string; frost: string; vein: string; neck?: [string, string] }
+export const ICE_SHELL: BombShell = { deep: '#1d4a7c', mid: '#3a7ab2', pale: '#78b6e0', shine: '#d6f1ff', frost: '#f1faff', vein: '#2a5f94', neck: ['#cdeefc', '#94cfee'] };
+
+export function shellGrid(shell: BombShell): Grid {
+  const deep = lin(shell.deep), mid = lin(shell.mid), pale = lin(shell.pale), shine = lin(shell.shine), frost = lin(shell.frost), vein = lin(shell.vein);
   const g = new Grid(S);
   ellipsoid(g, [0, 0, 0], [0.2, 0.2, 0.2], (x, y, z) => {
     const lit = (-x * 0.5 + y * 0.6 + z * 0.6) / 5;
@@ -44,9 +47,30 @@ export function bombModel(): BombModel {
     return lit > 0.7 ? shine : lit > 0.35 ? pale : lit > -0.05 ? mid : deep;
   });
   // The neck: a block of clear ice, with a collar of frost round its foot.
-  const ice = lin('#cdeefc'), iceDark = lin('#94cfee');
+  const [neckA, neckB] = shell.neck ?? ICE_SHELL.neck!;
+  const ice = lin(neckA), iceDark = lin(neckB);
   for (let y = 5; y <= 6; y++) for (let x = -1; x <= 1; x++) for (let z = -1; z <= 1; z++) g.set(x, y, z, (x + z + y) % 2 ? ice : iceDark);
   for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) if (Math.abs(x) === 2 || Math.abs(z) === 2) if (!(Math.abs(x) === 2 && Math.abs(z) === 2)) g.set(x, 5, z, frost);
+  return g;
+}
+
+const chunkGeos = new Map<string, BufferGeometry>();
+/** One chunk of a skin's shell, for the burst: the bits that fly out are the bomb that was there. Cached by `key`. */
+export function bombChunk(key: string, shell: BombShell): BufferGeometry {
+  let geo = chunkGeos.get(key);
+  if (!geo) {
+    const ch = new Grid(S);
+    ch.set(0, 0, 0, lin(shell.pale)); ch.set(1, 0, 0, lin(shell.shine)); ch.set(0, 1, 0, lin(shell.frost)); ch.set(0, 0, 1, lin(shell.mid));
+    geo = buildGeometry(ch.map, S, { ao: false }).translate(-S, -S, -S);
+    chunkGeos.set(key, geo);
+  }
+  return geo;
+}
+
+export function bombModel(): BombModel {
+  if (model) return model;
+  const pale = lin(ICE_SHELL.pale), shine = lin(ICE_SHELL.shine), frost = lin(ICE_SHELL.frost), mid = lin(ICE_SHELL.mid);
+  const g = shellGrid(ICE_SHELL);
   const f = new Grid(S);
   for (let i = 0; i < 10; i++) f.set(i > 6 ? 1 : 0, i, 0, lin(i % 2 ? '#e4f4ff' : '#9cc6e4'));
   const sp = new Grid(S);

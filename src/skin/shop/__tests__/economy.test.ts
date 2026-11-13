@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { BLAST_PALETTE, BOMB_TINT, CATALOG, DEFAULTS, TICK_VOICE } from '../catalog';
-import { DAILY_CAP, buy, equip, freshWallet, grantStreakItems, levelOf, mergeWallets, normalise, payGame, rewardLines, titleFor, xpForLevel } from '../economy';
+import { DAILY_CAP, MISSIONS, equip, freshWallet, grantStreakItems, levelOf, mergeWallets, normalise, openSack, payGame, rewardLines, titleFor, xpForLevel } from '../economy';
 
 const DAY = '2026-11-11';
 
 describe('the catalogue', () => {
-  it('is cosmetic, priced when sold, and every item has its look defined', () => {
+  it('is cosmetic, every sack item has a rarity, every mission item a mission, and every item has its look defined', () => {
     for (const i of CATALOG) {
-      if (i.source === 'coins') expect(i.price, i.id).toBeGreaterThan(0);
-      if (i.source === 'streak') expect(i.streak, i.id).toBeGreaterThan(0);
+      if (i.source === 'sack') expect(i.rarity, i.id).toBeTruthy();
+      if (i.source === 'mission') expect(MISSIONS.some((m) => m.id === i.mission && m.itemId === i.id), i.id).toBe(true);
       if (i.kind === 'bomb') expect(BOMB_TINT[i.id], i.id).toBeTruthy();
       if (i.kind === 'blast') expect(BLAST_PALETTE[i.id], i.id).toBeTruthy();
       if (i.kind === 'tick') expect(TICK_VOICE[i.id], i.id).toBeTruthy();
@@ -75,23 +75,19 @@ describe('levels and achievements', () => {
   });
 });
 
-describe('the shop', () => {
-  it('buys with enough coins, refuses without, never twice, and never sells streak or free items', () => {
-    const rich = { ...freshWallet(), coins: 1000 };
-    const r = buy(rich, 'bomb-ember');
+describe('the Trading Post (Feed Sacks only since 2026-11-12: nothing is sold on its own)', () => {
+  it('a sack takes its price in coins, and refuses without enough', () => {
+    const r = openSack({ ...freshWallet(), coins: 1000 }, 'bomb', () => 0, 1);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.wallet.coins).toBe(600);
-    expect(buy(r.wallet, 'bomb-ember')).toEqual({ ok: false, reason: 'owned' });
-    expect(buy(freshWallet(), 'bomb-gold')).toEqual({ ok: false, reason: 'short' });
-    expect(buy(rich, 'bomb-aurora')).toEqual({ ok: false, reason: 'not_for_sale' });
-    expect(buy(rich, 'nope')).toEqual({ ok: false, reason: 'unknown' });
+    expect(r.wallet.coins).toBe(1000 - 250 + r.entry.refund);
+    expect(openSack(freshWallet(), 'bomb', () => 0, 1)).toEqual({ ok: false, reason: 'short' });
   });
   it('equips only what is owned', () => {
     expect(equip(freshWallet(), 'bomb-gold').equipped.bomb).toBe('bomb-ice');
-    const r = buy({ ...freshWallet(), coins: 500 }, 'blast-ember');
-    if (!r.ok) throw new Error('buy failed');
-    expect(equip(r.wallet, 'blast-ember').equipped.blast).toBe('blast-ember');
+    const r = openSack({ ...freshWallet(), coins: 1000 }, 'blast', () => 0, 1);
+    if (!r.ok) throw new Error('open failed');
+    expect(equip(r.wallet, r.entry.itemId).equipped.blast).toBe(r.entry.itemId);
   });
   it('streak items are given at their streak and kept', () => {
     const a = grantStreakItems(freshWallet(), 7);

@@ -1,13 +1,16 @@
 import { JoinLink } from './share/JoinLink';
-import { setTickVoice } from '../audio/sound';
+import { heatFor, setMusicScene } from '../audio/scene';
+import { setSoftBoom, setTickVoice } from '../audio/sound';
 import { loadStreak } from '../dream/daily';
-import { TICK_VOICE } from './shop/catalog';
+import { burstExplodes, TICK_VOICE } from './shop/catalog';
 import { grantStreak, useWallet } from './shop/store';
 import { useAvatar } from './avatars/store';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Garland } from './components/Garland';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
+import { useAuth } from '../auth/authStore';
+import { authEnabled } from '../auth/config';
 import { PaintedRoom } from './rooms/PaintedRoom';
 import { useHour } from './hooks/useAmbient';
 import { DreamScreen } from './dream/DreamScreen';
@@ -18,6 +21,8 @@ import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview
 import KitPreview from './kit/KitPreview';
 // Dev only: bakes the loading screen's doors (tools/renderDoors.mjs). Loaded only when asked for.
 const DoorsRender = lazy(() => import('./loading/DoorsRender'));
+const ThumbRender = lazy(() => import('./shop/ThumbRender'));
+const StallRender = lazy(() => import('./shop/StallRender'));
 import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot, whenDoorsOpen, whenDoorsShut } from './components/BarnDoors';
 import { PreviewCanvas as WendigoPreviewCanvas } from './table/WendigoPreview';
 import './styles/skin.css';
@@ -75,10 +80,28 @@ export function PaintedApp() {
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
   useEffect(() => { useRoomStore.getState().sendAvatar(avatar); }, [avatar]);
-  // The Trading Post: the fuse sound worn, and any streak item the best dream streak has earned (kept for good).
-  const tick = useWallet().equipped.tick;
+  // The Trading Post: the fuse sound and the burst worn, and any streak item the best dream streak has earned (kept for good).
+  // A signed-in player has one name, the account's. Solo games seat the player under `settings.name`, so it follows
+  // the account: it used to keep whatever the browser's guest name had been, with nowhere to change it while signed in.
+  const accountName = useAuth((st) => (authEnabled() && st.status === 'ready' ? st.profile?.nickname ?? '' : ''));
+  const localName = useStore((st) => st.settings.name);
+  useEffect(() => { if (accountName && accountName !== localName) useStore.getState().setSettings({ name: accountName }); }, [accountName, localName]);
+  const { tick, blast } = useWallet().equipped;
   useEffect(() => { setTickVoice(TICK_VOICE[tick] ?? 'chime'); }, [tick]);
+  // A worn burst that is not an explosion goes off with a soft pop, not the ice blast.
+  useEffect(() => { setSoftBoom(!burstExplodes(blast)); }, [blast]);
   useEffect(() => { void grantStreak(loadStreak().best); }, []);
+  // The music follows the player (audio/scene.ts): the start screen's lofi, a lobby's wait, a song for each game mode.
+  // The battle song plays harder each round, as the fuses get shorter, and lets go when the game is over.
+  const mode = useStore((st) => st.mode);
+  const round = useStore((st) => st.game?.round ?? 1);
+  const gameOver = useStore((st) => st.game?.phase === 'gameOver');
+  useEffect(() => {
+    if (dreaming) setMusicScene('dream');
+    else if (!inGame) setMusicScene(inRoom ? 'lobby' : 'home');
+    else if (mode === 'practice' || mode === 'tour') setMusicScene(mode);
+    else setMusicScene('battle', heatFor(round, gameOver));
+  }, [dreaming, inGame, inRoom, mode, round, gameOver]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -116,6 +139,8 @@ export function PaintedApp() {
   if (PREVIEW === 'lineup') return <LineupPreview />;
   if (PREVIEW === 'kit') return <KitPreview />;
   if (PREVIEW === 'doors') return <Suspense fallback={null}><DoorsRender /></Suspense>;
+  if (PREVIEW === 'thumb') return <Suspense fallback={null}><ThumbRender /></Suspense>;
+  if (PREVIEW === 'stall') return <Suspense fallback={null}><StallRender /></Suspense>;
   if (PREVIEW === 'wendigo') return <div style={{ position: 'fixed', inset: 0 }}><WendigoPreviewCanvas /></div>;
   // A ?join=CODE address joins that room once the player is signed in and online.
   // The start screen is always the first thing: nothing to get through before it. The name is picked there, and signing

@@ -134,15 +134,18 @@ test('a private room is not listed, but works with its code; the game cannot be 
   await host.page.getByRole('button', { name: 'Create', exact: true }).click();
   const code = (await host.page.locator('[data-room-code]').innerText()).trim();
 
+  // alone in the room: the host cannot start (two people start a game; farm sheep fill the rest of the table)
+  await expect(host.page.getByRole('button', { name: 'Start game' })).toBeDisabled();
+  await expect(host.page.getByText(/You need at least 2 players/)).toBeVisible();
+
   await lurker.page.getByRole('button', { name: 'Refresh' }).click();
   await expect(lurker.page.getByLabel('Open public rooms')).not.toContainText(`${tag('Host')}'s room`);
   await lurker.page.getByLabel('Room code').fill(code);
   await lurker.page.getByLabel('Join with a code').getByRole('button', { name: 'Join' }).click();
   await expect(lurker.page.locator('[data-room-code]')).toHaveText(code);
 
-  // fewer than four players: the host cannot start
-  await expect(host.page.getByRole('button', { name: 'Start game' })).toBeDisabled();
-  await expect(host.page.getByText(/You need at least 4 players/)).toBeVisible();
+  // two people in: now the host can start
+  await expect(host.page.getByRole('button', { name: 'Start game' })).toBeEnabled();
 
   // a wrong code is refused with a clear message
   const stranger = await newPlayer(browser, tag('Guest'));

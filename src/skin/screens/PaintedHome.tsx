@@ -412,8 +412,10 @@ export function PaintedHome() {
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
         )}
-        {guestName && authEnabled() && authStatus !== 'ready' && (
+        {guestName && authEnabled() && authStatus !== 'ready' ? (
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
+        ) : (
+          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account" style={{ width: 'auto', padding: '0 12px' }}>Account</button>
         )}
         <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${wool} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{wool}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>

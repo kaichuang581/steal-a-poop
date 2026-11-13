@@ -152,10 +152,10 @@ export function PaintedHome() {
     setTimeout(() => setCopiedDream(false), 2000);
   };
   // Real people are the default once a game server is configured: Quick play lands in an open barn, Play opens a lobby
-  // of your own, and a party code joins a friend's. With accounts, a login comes first and the name is the account's.
+  // of your own, and a party code joins a friend's. Signed in, the account's name is used; signed out, a guest plays
+  // under the name on the plate (no account needed; progress stays in this browser).
   const online = (intent: Intent) => {
-    if (authEnabled()) {
-      if (authStatus !== 'ready') return setSignIn(true);
+    if (authEnabled() && authStatus === 'ready') {
       return useRoomStore.getState().enter(useAuth.getState().profile?.nickname ?? '', intent);
     }
     const nick = checkNickname(settings.name);

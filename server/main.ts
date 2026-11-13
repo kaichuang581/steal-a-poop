@@ -40,6 +40,7 @@ import { FriendsService } from './social/friends';
 import { MemoryFriendStore, PostgresFriendStore } from './social/friends';
 import { allRoutes } from './routes';
 import { ClaudeReviewer } from './review';
+import { guestUser } from './guest';
 
 /**
  * Starts the game server.
@@ -148,7 +149,8 @@ if (supabaseUrl) {
     },
     accountStore,
   );
-  verifyToken = (t) => verifier.authenticate(t);
+  // Guests (no account) come first: a `guest:` token is checked here and never reaches the account verifier.
+  verifyToken = (t) => (t.startsWith('guest:') ? Promise.resolve(guestUser(t)) : verifier.authenticate(t));
   verifySession = (t) => verifier.claims(t);
 } else {
   if (isProduction || process.env.ALLOW_DEV_AUTH !== '1') {

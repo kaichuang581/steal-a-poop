@@ -3,6 +3,7 @@ import { DEFAULT_SETTINGS, PRESETS, estimateMinutes, presetOf } from '../../engi
 import type { RoomSettingsDTO } from '../../net/protocol';
 import { useRoomStore } from '../../state/roomStore';
 import { authEnabled } from '../../auth/config';
+import { useAuth } from '../../auth/authStore';
 import { ChatPanel } from '../../ui/ChatPanel';
 import { Hub } from '../../ui/social/Hub';
 import { Chip, PaperPanel, WoodButton } from '../components/Materials';
@@ -41,6 +42,8 @@ export function PaintedRoom() {
   const [confirmKick, setConfirmKick] = useState<string | null>(null);
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
   const [invite, setInvite] = useState(false);
+  // Friends need an account: guests get no invite list.
+  const signedIn = useAuth((s) => s.status) === 'ready' && authEnabled();
   const isHost = room.hostId === me;
   const people = room.members.length;
   const enough = people >= room.min;
@@ -114,7 +117,7 @@ export function PaintedRoom() {
               <div className="flex flex-wrap justify-center gap-2">
                 <WoodButton onClick={() => copy('link')} className="min-h-10 px-4" data-copy-link>{copied === 'link' ? 'Copied!' : 'Copy party link'}</WoodButton>
                 <Chip onClick={() => copy('code')}>{copied === 'code' ? 'Copied!' : 'Copy code'}</Chip>
-                {authEnabled() && <Chip onClick={() => setInvite(true)}>Invite friends</Chip>}
+                {signedIn && <Chip onClick={() => setInvite(true)}>Invite friends</Chip>}
               </div>
             </section>
           )}

@@ -8,6 +8,7 @@ import { describeError } from '../net/protocol';
 import type { ChatMsg, ModerationStatus, PublicRoomInfo, RoomSettingsDTO, RoomViewDTO, ServerMsg } from '../net/protocol';
 import { authEnabled } from '../auth/config';
 import { getAccessToken } from '../auth/authStore';
+import { guestToken } from '../auth/guest';
 import { bridge } from './bridge';
 import { useSocial } from './socialStore';
 import { useStore } from './store';
@@ -96,6 +97,14 @@ export interface Reward {
 }
 
 let net: NetClient | null = null;
+
+/**
+ * The login for a real server: the account's token when signed in, otherwise a guest token with the typed name, so
+ * anyone can open a lobby without an account. Fetched fresh on every connect, like the account token.
+ */
+function signInToken(name: string): () => Promise<string | null> {
+  return async () => (await getAccessToken()) ?? guestToken(name);
+}
 
 /**
  * The development sign-in (no accounts configured): "dev:<name>#<id>". The id is kept per tab, so two people who typed
@@ -282,7 +291,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       if (!url || net) return;
       // With real sign-in the token is the Supabase login (fetched fresh on every connect). The dev stub is for local servers only.
       const nickname = `Player${Math.floor(Math.random() * 900 + 100)}`;
-      net = new NetClient(url, authEnabled() ? getAccessToken : devToken(nickname), {
+      net = new NetClient(url, authEnabled() ? signInToken(nickname) : devToken(nickname), {
         onMessage,
         onStatus: (status, detail) => set({ status, statusDetail: detail ?? null }),
       });
@@ -303,7 +312,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       if (net) return;
       // Development sign-in (no accounts configured): the typed nickname becomes the dev token. The server only accepts it locally.
       const nickname = name.trim() || `Player${Math.floor(Math.random() * 900 + 100)}`;
-      net = new NetClient(url, authEnabled() ? getAccessToken : devToken(nickname), {
+      net = new NetClient(url, authEnabled() ? signInToken(nickname) : devToken(nickname), {
         onMessage,
         onStatus: (status, detail) => set({ status, statusDetail: detail ?? null }),
       });
@@ -318,7 +327,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       if (net && get().status !== 'closed') return; // already on its way up: the welcome sends it
       net?.close();
       const nickname = name.trim() || `Player${Math.floor(Math.random() * 900 + 100)}`;
-      net = new NetClient(url, authEnabled() ? getAccessToken : devToken(nickname), {
+      net = new NetClient(url, authEnabled() ? signInToken(nickname) : devToken(nickname), {
         onMessage,
         onStatus: (status, detail) => {
           set({ status, statusDetail: detail ?? null });

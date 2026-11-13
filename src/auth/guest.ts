@@ -39,3 +39,23 @@ export function forgetGuest(): void {
 export function useGuest(): Guest | null {
   return useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f); }; }, getGuest, () => null);
 }
+
+const ID_KEY = 'sap:guest-id';
+
+/** This browser's guest id: random, made once, kept with the other saved data. */
+function guestId(): string {
+  try {
+    const saved = localStorage.getItem(ID_KEY);
+    if (saved && /^[0-9a-f-]{36}$/i.test(saved)) return saved.toLowerCase();
+    const id = crypto.randomUUID();
+    localStorage.setItem(ID_KEY, id);
+    return id;
+  } catch {
+    return crypto.randomUUID(); // storage blocked: a new guest each visit
+  }
+}
+
+/** The login token a guest sends to the game server: `guest:<id>:<name>`. The server checks its shape and name. */
+export function guestToken(name: string): string {
+  return `guest:${guestId()}:${encodeURIComponent(name.trim().slice(0, 12))}`;
+}

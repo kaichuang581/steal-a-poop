@@ -3,7 +3,6 @@ import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
-import { useGuest } from '../../auth/guest';
 import { useDevice } from '../device';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
@@ -107,7 +106,6 @@ export function PaintedHome() {
   const [error, setError] = useState('');
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
-  const guestName = useGuest()?.nickname ?? null;
   const [hub, setHub] = useState<HubTab | null>(null);
   const [heroYaw, setHeroYaw] = useState(0);
   const [hopKey, setHopKey] = useState(0);
@@ -412,11 +410,11 @@ export function PaintedHome() {
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
           </div>
         )}
-        {guestName && authEnabled() && authStatus !== 'ready' ? (
-          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
-        ) : (
+        {authEnabled() && (authStatus === 'ready' ? (
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account" style={{ width: 'auto', padding: '0 12px' }}>Account</button>
-        )}
+        ) : (
+          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
+        ))}
         <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${wool} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{wool}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>

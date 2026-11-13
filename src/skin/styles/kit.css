@@ -496,3 +496,64 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-float[data-scene="dream"] .kit-float-rule { filter: drop-shadow(0 0 1px var(--glow-a)) drop-shadow(0 1px 0 var(--glow-a)); }
 .dr-root .sk-input-prompt { text-shadow: 0 0 2px #2E2560, 0 0 2px #2E2560, 0 2px 0 #2E2560, 0 0 10px rgba(30, 20, 80, 0.85); }
 @media (max-width: 640px) { .kit-float[data-scene="dream"] .kit-float-need { font-size: 26px; } }
+
+/* ---------- The Trading Post's room (docs/PLAN_TRADING_POST_REFINE.md): materials the kit did not have yet ---------- */
+/* A plank wall: dark upright boards with a 2 px gap between them. */
+/* Lit from above by the shop's lanterns: a warm wash that falls off toward the floor. */
+.kit-wall { color: var(--button-text); background: radial-gradient(ellipse 85% 70% at 50% 0%, rgba(255, 190, 110, 0.3), transparent 72%), repeating-linear-gradient(90deg, transparent 0 118px, rgba(20, 12, 6, 0.5) 118px 120px), var(--kit-grain), #553923; }
+/* A shelf seen edge on, on two brackets. */
+.kit-shelf { position: relative; display: block; height: 16px; border-radius: 2px; background: var(--kit-grain), var(--tile); box-shadow: inset 0 3px 0 rgba(255, 240, 210, 0.55), inset 0 -4px 0 var(--wood), 0 6px 0 rgba(20, 12, 6, 0.45); }
+.kit-shelf::before, .kit-shelf::after { content: ''; position: absolute; top: 100%; width: 14px; height: 20px; background: var(--wood-dark); }
+.kit-shelf::before { left: 7%; clip-path: polygon(0 0, 100% 0, 100% 30%, 0 100%); }
+.kit-shelf::after { right: 7%; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 30%); }
+/* A picture frame, its material set by rarity (shop/rarity.ts): a plain plank, a plank with a green painted edge, corners
+   bound in blue rope, gilded with a glint; brass for the Bell Shelf, a flame edge for missions. The mat is warm plank. */
+.kit-pic { --frame: var(--wood-dark); --edge: rgba(255, 220, 170, 0.35); position: relative; display: grid; padding: 7px; border-radius: 2px; background: var(--kit-grain), var(--frame); box-shadow: inset 0 2px 0 var(--edge), inset 0 -3px 0 rgba(20, 12, 6, 0.5), 0 3px 0 rgba(20, 12, 6, 0.4); }
+/* The mat is a small stage: a pale wall, a floor, and the thing's own shadow on the floor, so it stands and does not float. */
+.kit-pic-mat { position: relative; display: grid; place-items: center; overflow: hidden; aspect-ratio: 1; background: radial-gradient(ellipse 34% 7% at 50% 87%, rgba(30, 18, 8, 0.5) 0 55%, transparent 100%), linear-gradient(#D9BF94 0 74%, #A9875C 74% 76%, #B8966A 76%); box-shadow: inset 0 0 0 2px rgba(20, 12, 6, 0.4); }
+.kit-pic-mat img { display: block; width: 84%; height: auto; }
+.kit-pic--uncommon { box-shadow: inset 0 0 0 3px #4CAF6A, inset 0 -3px 0 rgba(20, 12, 6, 0.5), 0 3px 0 rgba(20, 12, 6, 0.4); }
+.kit-pic--mission { box-shadow: inset 0 0 0 3px #E08A5A, inset 0 -3px 0 rgba(20, 12, 6, 0.5), 0 3px 0 rgba(20, 12, 6, 0.4); }
+.kit-pic-knot { position: absolute; width: 15px; height: 15px; background: repeating-linear-gradient(45deg, #5A9CEA 0 3px, #2F68B0 3px 6px); box-shadow: 0 2px 0 rgba(20, 12, 6, 0.5); }
+.kit-pic-knot:nth-of-type(1) { left: -3px; top: -3px; }
+.kit-pic-knot:nth-of-type(2) { right: -3px; top: -3px; }
+.kit-pic-knot:nth-of-type(3) { left: -3px; bottom: -3px; }
+.kit-pic-knot:nth-of-type(4) { right: -3px; bottom: -3px; }
+.kit-pic--bells { --frame: var(--brass); --edge: var(--brass-light); background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 3px), var(--frame); }
+.kit-pic--legendary { --frame: #D9A82A; --edge: rgba(255, 248, 200, 0.85); background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 4px), var(--frame); }
+/* The rarer frames give off light. */
+.kit-pic--rare { box-shadow: 0 0 14px rgba(90, 156, 234, 0.55), inset 0 2px 0 var(--edge), inset 0 -3px 0 rgba(20, 12, 6, 0.5), 0 3px 0 rgba(20, 12, 6, 0.4); }
+.kit-pic--legendary { box-shadow: 0 0 18px rgba(255, 210, 90, 0.7), inset 0 2px 0 var(--edge), inset 0 -3px 0 rgba(20, 12, 6, 0.5), 0 3px 0 rgba(20, 12, 6, 0.4); }
+.kit-pic--legendary .kit-pic-mat::after { content: ''; position: absolute; inset: -30% -60%; pointer-events: none; background: linear-gradient(105deg, transparent 44%, rgba(255, 248, 200, 0.6) 50%, transparent 56%); transform: translateX(-70%); animation: kit-glint 4.8s ease-in-out infinite; }
+@keyframes kit-glint { 0%, 62% { transform: translateX(-70%); } 86%, 100% { transform: translateX(70%); } }
+/* The one being worn: the lantern's ring. */
+.kit-pic--lit { box-shadow: 0 0 0 3px var(--amber), 0 0 22px var(--glow), inset 0 2px 0 var(--edge), inset 0 -3px 0 rgba(20, 12, 6, 0.5); }
+/* Not found yet: the art is still there, dimmed, with a padlock. */
+.kit-pic[data-locked] .kit-pic-mat img { opacity: 0.5; filter: saturate(0.55); }
+.kit-pic[data-locked] .kit-pic-mat { background: radial-gradient(ellipse 34% 7% at 50% 87%, rgba(30, 18, 8, 0.35) 0 55%, transparent 100%), linear-gradient(#C4AD88 0 74%, #9A7C56 74% 76%, #A68860 76%); }
+.kit-pic-lock { position: absolute; right: 5px; bottom: 5px; display: inline-flex; padding: 3px; background: rgba(20, 12, 6, 0.6); }
+/* Where a scrolling body has more: a fade into the wall. */
+.kit-fade { position: absolute; left: 0; right: 0; height: 24px; pointer-events: none; opacity: 0; transition: opacity 160ms; }
+.kit-fade--top { top: 0; background: linear-gradient(#2A1A10, transparent); }
+.kit-fade--bottom { bottom: 0; background: linear-gradient(transparent, #2A1A10); }
+.kit-fade[data-on] { opacity: 1; }
+/* An open book: a leather cover, two paper pages shaded into the spine. */
+.kit-book { display: grid; grid-template-columns: 1fr 1fr; padding: 8px 8px 12px; border-radius: 3px; background: var(--kit-grain), #6B3A22; box-shadow: inset 0 0 0 2px rgba(20, 12, 6, 0.5), 0 5px 0 rgba(20, 12, 6, 0.45); }
+.kit-book-page { position: relative; padding: 14px 20px; color: var(--ink); background: var(--kit-paper-tex), var(--paper); }
+.kit-book-page:first-child { box-shadow: inset -16px 0 12px -10px rgba(59, 48, 40, 0.3); }
+.kit-book-page:last-child { box-shadow: inset 16px 0 12px -10px rgba(59, 48, 40, 0.3); }
+/* A ruled ledger page. */
+.kit-ruled { background: repeating-linear-gradient(transparent 0 43px, rgba(59, 48, 40, 0.16) 43px 44px), var(--kit-paper-tex), var(--paper); }
+/* A cork notice board in a plank frame. */
+.kit-cork { background: var(--kit-paper-tex), #B08556; box-shadow: inset 0 0 0 6px var(--wood-dark), inset 0 0 0 8px rgba(20, 12, 6, 0.45), 0 4px 0 rgba(20, 12, 6, 0.45); }
+:root[data-skin="painted"].reduce-motion .kit-pic--legendary .kit-pic-mat::after { animation: none; transform: translateX(0); }
+@media (prefers-reduced-motion: reduce) { .kit-pic--legendary .kit-pic-mat::after { animation: none; transform: translateX(0); } }
+/* Lit by a lantern: a plank or tab that is the picked one glows gold. */
+/* (Written twice over so it wins over the plain look of whatever it lights, which is declared later.) */
+.kit-lit.kit-lit { color: #7A3E12; background: var(--kit-grain), var(--glow); box-shadow: inset 0 3px 0 rgba(255, 250, 230, 0.85), inset 0 -4px 0 var(--amber), 0 0 0 3px var(--amber), 0 0 22px rgba(255, 217, 138, 0.9), 0 3px 0 rgba(40, 24, 10, 0.35); }
+/* A button that asks to be pressed: a halo of lantern light that breathes. */
+.kit-pulse::after { content: ''; position: absolute; inset: -3px; border-radius: 4px; pointer-events: none; box-shadow: 0 0 0 2px rgba(255, 217, 138, 0.9), 0 0 22px 4px rgba(255, 200, 110, 0.85); opacity: 0.25; animation: kit-pulse 1.9s ease-in-out infinite; }
+@keyframes kit-pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+/* A pool of lantern light behind something on show. */
+:root[data-skin="painted"].reduce-motion .kit-pulse::after { animation: none; opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) { .kit-pulse::after { animation: none; opacity: 0.7; } }

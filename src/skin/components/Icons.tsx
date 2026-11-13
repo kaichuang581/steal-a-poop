@@ -1,3 +1,4 @@
+import { pixelRects } from './pixels';
 /** Small voxel-style icons drawn as crisp SVG rectangles (plan V3.1 Part 2.3: icons, not emoji). */
 
 type P = { size?: number };
@@ -141,8 +142,7 @@ export function HelpIcon({ size = 20 }: P) {
 }
 
 // ---------- More pixel icons, so no emoji is ever needed (all 10 x 10, currentColor unless noted). ----------
-const px = (cells: string, color = 'currentColor') =>
-  cells.trim().split('\n').flatMap((row, y) => [...row.trim()].map((ch, x) => (ch === '#' ? R(x, y, 1, 1, color, `${x}-${y}`) : null)));
+const px = (cells: string, color = 'currentColor') => pixelRects(cells.trim().split('\n').map((row) => row.trim()), { '#': color });
 function Pixel({ size = 20, rows, color, title }: P & { rows: string; color?: string; title?: string }) {
   return (
     <svg viewBox="0 0 10 10" width={size} height={size} aria-hidden={title ? undefined : true} role={title ? 'img' : undefined} aria-label={title} shapeRendering="crispEdges">
@@ -269,32 +269,6 @@ export const FlameIcon = ({ size = 16 }: P) => (
 ..##..##..
 ...#..#...
 ..........`, 'var(--flame-light)')}
-  </svg>
-);
-export const CoinIcon = ({ size = 16 }: P) => (
-  <svg viewBox="0 0 10 10" width={size} height={size} aria-hidden="true" shapeRendering="crispEdges">
-    {px(`
-...####...
-..######..
-.########.
-.########.
-.########.
-.########.
-.########.
-..######..
-...####...
-..........`, 'var(--amber)')}
-    {px(`
-..........
-..........
-....##....
-...#......
-...#......
-...#......
-....##....
-..........
-..........
-..........`, 'var(--wood-ink)')}
   </svg>
 );
 export const FriendsIcon = (p: P) => <Pixel {...p} rows={`

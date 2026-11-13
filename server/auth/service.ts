@@ -188,6 +188,30 @@ export class AccountService {
     return { ok: true, profile: publicOf(profile) };
   }
 
+  /**
+   * Changes a signed-in player's nickname. The same checks as sign-up: allowed characters, nothing rude, not taken by
+   * another live account (the player's own name in different capitals is fine).
+   */
+  async renameProfile(userId: string, rawNickname: string): Promise<{ ok: true; profile: PublicProfile; changed: boolean } | { ok: false; reason: 'not_found' | 'bad_nickname' | 'nickname_taken' }> {
+    const cur = await this.d.store.getProfile(userId);
+    if (!cur || cur.deletedAt !== null) return { ok: false, reason: 'not_found' };
+    const nickname = cleanNickname(String(rawNickname ?? ''));
+    if (!nickname || !this.d.nicknameAllowed(nickname)) return { ok: false, reason: 'bad_nickname' };
+    if (nickname === cur.nickname) return { ok: true, profile: publicOf(cur), changed: false };
+    if (nickname.toLowerCase() !== cur.nickname.toLowerCase() && (await this.d.store.nicknameTaken(nickname))) return { ok: false, reason: 'nickname_taken' };
+    const updatedAt = this.d.now();
+    try {
+      await this.d.store.updateProfile(userId, { nickname, updatedAt });
+    } catch (e) {
+      // Only the unique nickname rule (Postgres 23505) means someone took the name a moment earlier. Anything else is
+      // the database being unwell, and saying "that name is taken" of a free name sent players round in circles.
+      if ((e as { code?: unknown } | null)?.code === '23505') return { ok: false, reason: 'nickname_taken' };
+      throw e;
+    }
+    this.log('profile renamed');
+    return { ok: true, profile: publicOf({ ...cur, nickname, updatedAt }), changed: true };
+  }
+
   // ---------------------------------------------------------------- parental consent
 
   private async requestConsent(child: Profile, parentEmail: string): Promise<boolean> {

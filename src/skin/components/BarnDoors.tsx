@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties, ReactElement } from 'react';
+import type { CSSProperties } from 'react';
 import { create } from 'zustand';
 import { playSound } from '../../audio/sound';
 import { useMotionLevel } from '../hooks/useAmbient';
 import { Nails } from '../kit';
+import { pixelRects } from './pixels';
 import { SnowCap } from './SnowCap';
 import { DOOR_BOXES, LINTEL_BEAM, LINTEL_SNOW } from '../loading/doorBoxes';
 
@@ -238,19 +239,9 @@ function Doors({ id }: { id: number }) {
   );
 }
 
-/** Pixel art from rows of letters: one letter a pixel, '.' empty. Drawn with crisp edges, like the game's icons. */
+/** Pixel art from rows of letters (components/pixels.tsx), as a group inside a bigger drawing. */
 function Pixels({ rows, colors, className }: { rows: readonly string[]; colors: Record<string, string>; className?: string }) {
-  const rects: ReactElement[] = [];
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; ) {
-      const c = row[x];
-      let run = 1;
-      while (x + run < row.length && row[x + run] === c) run++;
-      if (c !== '.') rects.push(<rect key={`${x},${y}`} x={x} y={y} width={run} height={1} fill={colors[c]} />);
-      x += run;
-    }
-  });
-  return <g className={className}>{rects}</g>;
+  return <g className={className}>{pixelRects(rows, colors)}</g>;
 }
 
 // The sheep, side on and running right: an ink outline, wool with a highlight and a shaded belly, a dark face with a

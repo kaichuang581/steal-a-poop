@@ -61,6 +61,8 @@ export function toTableView(
 ): TableView | null {
   if (!game) return null;
   const turn = game.turn;
+  // The beat after a bomb: the turn is the next sheep's already, but its fuse is not lit, so nobody has the floor.
+  const lit = !!turn && now >= turn.startedAt;
   const players: PlayerView[] = game.players.map((p) => ({
     id: String(p.id),
     name: p.name,
@@ -90,9 +92,10 @@ export function toTableView(
     letter: game.chainLetter,
     isTrapLetter: TRAP_LETTERS.has(game.chainLetter),
     players,
-    currentPlayerId: turn ? String(turn.seat) : '',
+    currentPlayerId: turn && lit ? String(turn.seat) : '',
+    nextPlayerId: turn ? String(turn.seat) : '',
     youId: String(mySeat),
-    secondsLeft: turn ? Math.max(0, turn.endsAt - now) / 1000 : 0,
+    secondsLeft: turn ? Math.min(turn.durationMs, Math.max(0, turn.endsAt - now)) / 1000 : 0,
     turnSeconds: turn ? turn.durationMs / 1000 : 0,
     typed: extra.typed ?? '',
     message: extra.message ?? null,

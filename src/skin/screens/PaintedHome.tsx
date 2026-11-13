@@ -11,7 +11,7 @@ import { streakRow } from '../dream/streakRow';
 import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
 import { dreamLink, useDreamUi } from '../dream/dreamStore';
 import { useToday } from '../hooks/useToday';
-import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
+import { checkNickname } from '../../lib/nickname';
 import { getPracticeBest } from '../../lib/practice';
 import { UPDATE_NAME } from '../../config';
 import { farmSheepLine } from '../../lib/record';
@@ -28,13 +28,16 @@ import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
 import { Hub } from '../../ui/social/Hub';
 import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, CoinIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
 import { FeedbackDialog } from '../components/FeedbackDialog';
 import { Bazaar } from '../shop/Bazaar';
+import { Profile } from '../profile/Profile';
 import { useWallet } from '../shop/store';
+import { CoinArt } from '../shop/art';
+import { formatCoins } from '../shop/format';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
 import { AvatarButtonIcon } from '../components/PixelIcons';
@@ -95,6 +98,7 @@ export function PaintedHome() {
   const [help, setHelp] = useState(false);
   const [pickAvatar, setPickAvatar] = useState(false);
   const [bazaar, setBazaar] = useState(false);
+  const [profile, setProfile] = useState(false);
   const wool = useWallet().coins;
   const device = useDevice();
   const [feedback, setFeedback] = useState(false);
@@ -113,6 +117,7 @@ export function PaintedHome() {
   const coins = useSocial((st) => st.balance);
   const roomNotice = useRoomStore((st) => st.notice);
   const authStatus = useAuth((st) => st.status);
+  const accountName = useAuth((st) => st.profile?.nickname ?? '');
   const hour = useHour();
   const reduced = useMotionLevel() === 'reduced';
   const mobile = useIsMobile();
@@ -234,18 +239,20 @@ export function PaintedHome() {
     },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {
-      id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${wool} Wool Coins`}><CoinIcon size={11} />{wool}</MenuTag>,
-      caption: 'Bomb skins, bursts and fuse sounds for the Wool Coins you earn by playing.', onSelect: () => setBazaar(true),
+      id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${formatCoins(wool)} Wool Coins`}><CoinArt size={11} />{formatCoins(wool, true)}</MenuTag>,
+      caption: 'Feed Sacks of bomb skins, bursts and fuse sounds, missions, and your collection.', onSelect: () => setBazaar(true),
     },
+    { id: 'profile', label: 'Profile', caption: 'Your stats and standing, your name and your avatar.', onSelect: () => setProfile(true) },
   ];
-  // The name is typed straight onto the plate on the start screen: no screen of its own, no step before the menu.
+  // The name plate opens the profile, where the name, the avatar and the stats live.
+  const shownName = (signedIn ? accountName : settings.name) || '';
   const nameField = (
-    <input
-      className="sk-plate-name" value={settings.name} aria-label="Your name" placeholder="Your name"
-      onChange={(e) => { setSettings({ name: e.target.value.slice(0, MAX_NICKNAME) }); setError(''); }}
-      onFocus={() => setHopKey((k) => k + 1)}
-      maxLength={MAX_NICKNAME} autoComplete="off" spellCheck={false}
-    />
+    <button
+      type="button" className="sk-plate-name sk-plate-open" onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
+      aria-label={`Your profile${shownName ? `: ${shownName}` : ''}`} title="Your profile, stats and name"
+    >
+      {shownName || <span style={{ opacity: 0.75 }}>Your name</span>}
+    </button>
   );
   const tables = (
     <div className="flex flex-col gap-3" key="tables">
@@ -407,7 +414,7 @@ export function PaintedHome() {
             <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={24} /> : <SheepIcon size={24} />}</span>
             {nameField}
             {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
-            {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinIcon size={14} /></span>}
+            {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinArt size={14} /></span>}
           </div>
         )}
         {authEnabled() && (authStatus === 'ready' ? (
@@ -415,7 +422,7 @@ export function PaintedHome() {
         ) : (
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
         ))}
-        <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${wool} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{wool}</span></button>
+        <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${formatCoins(wool)} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{formatCoins(wool, true)}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
         <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
@@ -472,6 +479,7 @@ export function PaintedHome() {
       {legal && <LegalDialog initial={legal} onClose={() => setLegal(null)} />}
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
       {bazaar && <Bazaar onClose={() => setBazaar(false)} />}
+      {profile && <Profile onClose={() => setProfile(false)} />}
       {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       <DevLine />

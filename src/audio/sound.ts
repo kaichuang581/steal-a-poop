@@ -1,6 +1,8 @@
 import { useStore } from '../state/store';
+import { fuseBeat, fuseTones } from './fuseVoices';
+import type { TickVoice } from './fuseVoices';
 
-export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom' | 'doorShut' | 'doorOpen' | 'crunch';
+export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom' | 'poof' | 'doorShut' | 'doorOpen' | 'crunch';
 
 let ctx: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
@@ -35,7 +37,7 @@ export function audioContext(): AudioContext | null {
   return ctx?.state === 'running' ? ctx : null;
 }
 
-/** Audio starts only after the first tap or key press; the lofi loop starts with it. */
+/** Audio starts only after the first tap or key press; the music starts with it. */
 export function installAudioUnlock(): void {
   const handler = () => {
     unlockAudio();
@@ -98,11 +100,19 @@ function whoosh(c: AudioContext, at: number, dur: number, from: number, to: numb
 /** Scales every tone's volume while a sound is being scheduled (the dream's alarm plays at low gain). */
 let gainScale = 1;
 
-export function playSound(kind: SoundKind, gain = 1): void {
+/**
+ * How the bomb sounds when it goes off: a shop cosmetic (src/skin/shop/catalog.ts, `burstExplodes`). A worn burst that
+ * is not an explosion (a haystack, an aurora) goes off with the soft 'poof', not the ice blast. Never changes the timing.
+ */
+let softBoom = false;
+export function setSoftBoom(soft: boolean): void { softBoom = soft; }
+
+/** `exact` plays the kind asked for; otherwise 'boom' is whatever the worn burst sounds like. */
+export function playSound(kind: SoundKind, gain = 1, exact = false): void {
   const c = out();
   if (!c) return;
   gainScale = gain;
-  try { schedule(c, kind); } finally { gainScale = 1; }
+  try { schedule(c, kind === 'boom' && softBoom && !exact ? 'poof' : kind); } finally { gainScale = 1; }
 }
 
 function schedule(c: AudioContext, kind: SoundKind): void {
@@ -148,6 +158,13 @@ function schedule(c: AudioContext, kind: SoundKind): void {
       for (let i = 0; i < 26; i++) tone(c, { freq: 2200 + Math.random() * 4800, at: 0.1 + Math.random() * 1.1, dur: 0.06 + Math.random() * 0.12, type: i % 3 ? 'sine' : 'triangle', vol: 0.05 + Math.random() * 0.05 });
       whoosh(c, 0.35, 1.6, 1400, 4200, 0.35);
       break;
+    case 'poof': // the shell falling open and something coming out: a soft pop, a breath of air, three small rising notes
+      tone(c, { freq: 190, dur: 0.22, type: 'sine', vol: 0.55, to: 80 });
+      tone(c, { freq: 95, at: 0.02, dur: 0.3, type: 'sine', vol: 0.35, to: 50 });
+      whoosh(c, 0, 0.3, 700, 2600, 0.22);
+      [660, 880, 1320].forEach((f, i) => tone(c, { freq: f, at: 0.1 + i * 0.09, dur: 0.5, type: 'sine', vol: 0.09 }));
+      [1320, 1760, 2640].forEach((f, i) => tone(c, { freq: f, at: 0.1 + i * 0.09, dur: 0.3, type: 'triangle', vol: 0.03 }));
+      break;
     case 'doorShut': // the barn doors meeting: a heavy wooden thud, a short rattle of the latch
       tone(c, { freq: 78, dur: 0.32, type: 'sine', vol: 0.32, to: 42 });
       tone(c, { freq: 160, dur: 0.08, type: 'triangle', vol: 0.08, to: 90 });
@@ -177,74 +194,150 @@ export function playTick(progress: number): void {
   tone(c, { freq: 600 + progress * 1000, dur: 0.05, type: 'square', vol: 0.06 });
 }
 
-// The bomb's clock: one beep on each whole second left, all scheduled on the audio clock so they land exactly on the
-// beat whatever the screen is doing. The beeps climb in pitch and loudness as the fuse burns down; the last three
-// seconds are at full volume with a harder edge.
-let clockNodes: { osc: OscillatorNode; gain: GainNode }[] = [];
+// The bomb's clock: one sound on each whole second left, all scheduled on the audio clock so they land exactly on the
+// beat whatever the screen is doing. What a second sounds like is the fuse voice worn (fuseVoices.ts); when it sounds
+// is the same for every voice.
+interface Sounding { source: AudioScheduledSourceNode; gain: GainNode; at: number }
+let clockNodes: Sounding[] = [];
+let sampleNodes: Sounding[] = [];
+
+/** Silences sounds already scheduled: one not begun yet never plays; one ringing fades in a blink, so it does not click. */
+function hush(nodes: Sounding[]): void {
+  const now = ctx?.currentTime ?? 0;
+  for (const n of nodes) {
+    try {
+      if (n.at > now) { n.source.stop(); n.source.disconnect(); n.gain.disconnect(); continue; }
+      const g = n.gain.gain;
+      if (typeof g.cancelAndHoldAtTime === 'function') g.cancelAndHoldAtTime(now); else g.cancelScheduledValues(now);
+      g.setTargetAtTime(0, now, 0.015);
+      n.source.stop(now + 0.1);
+    } catch { /* already finished */ }
+  }
+}
 
 export function stopBombClock(): void {
-  for (const n of clockNodes) {
-    try { n.osc.stop(); } catch { /* already finished */ }
-    try { n.osc.disconnect(); n.gain.disconnect(); } catch { /* ignore */ }
-  }
+  hush(clockNodes);
   clockNodes = [];
 }
 
-/** Schedules the beeps for a turn that has `remainingMs` left out of `totalMs`. Replaces any beeps already scheduled. */
-/** How the bomb's fuse beeps: a shop cosmetic (src/skin/shop/catalog.ts, TICK_VOICE). Never changes the timing. */
-export type TickVoice = 'chime' | 'square' | 'wood' | 'lullaby';
+/** How the bomb's fuse sounds: a shop cosmetic (src/skin/shop/catalog.ts, TICK_VOICE). Never changes the timing. */
+export type { TickVoice } from './fuseVoices';
 let tickVoice: TickVoice = 'chime';
 export function setTickVoice(v: TickVoice): void { tickVoice = v; }
 
-/** One beep of the fuse at audio time `at`: `r` whole seconds left, `u` how far through the turn (0 to 1). */
-function beep(c: AudioContext, dest: AudioNode, at: number, r: number, u: number, voice: TickVoice) {
-  const finale = r <= 3;
-  const shape: Record<TickVoice, { type: OscillatorType; freq: number; vol: number; dur: number; edge: OscillatorType | null }> = {
-    chime: { type: finale ? 'square' : 'triangle', freq: finale ? 1100 + (3 - r) * 180 : 520 + u * 480, vol: finale ? 0.9 : 0.08 + u * 0.22, dur: finale ? 0.22 : 0.12, edge: 'sawtooth' },
-    square: { type: 'square', freq: finale ? 880 + (3 - r) * 220 : 440 + u * 440, vol: finale ? 0.7 : 0.06 + u * 0.16, dur: finale ? 0.18 : 0.09, edge: 'square' },
-    wood: { type: 'triangle', freq: finale ? 700 + (3 - r) * 120 : 300 + u * 260, vol: finale ? 0.95 : 0.12 + u * 0.3, dur: finale ? 0.08 : 0.05, edge: 'triangle' },
-    lullaby: { type: 'sine', freq: finale ? 880 + (3 - r) * 110 : 440 + u * 220, vol: finale ? 0.8 : 0.1 + u * 0.2, dur: finale ? 0.3 : 0.2, edge: null },
-  };
-  const v = shape[voice];
-  const one = (type: OscillatorType, freq: number, vol: number) => {
-    const osc = c.createOscillator();
-    const gain = c.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, at);
-    gain.gain.setValueAtTime(0.0001, at);
-    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol * gainScale), at + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + v.dur);
-    osc.connect(gain).connect(dest);
-    osc.start(at);
-    osc.stop(at + v.dur + 0.03);
-    clockNodes.push({ osc, gain });
-  };
-  one(v.type, v.freq, v.vol);
-  // A harder second voice for the last three seconds, a fifth above, so they are as loud as the sound can get.
-  if (finale && v.edge) one(v.edge, v.freq * 1.5, voice === 'chime' ? 0.5 : 0.35);
-}
-
-/** Schedules the beeps for a turn that has `remainingMs` left out of `totalMs`. Replaces any beeps already scheduled. */
+/** Schedules the fuse's sounds for a turn that has `remainingMs` left out of `totalMs`. Replaces any already scheduled. */
 export function startBombClock(remainingMs: number, totalMs: number): void {
   stopBombClock();
   const c = out();
   if (!c || remainingMs <= 0 || totalMs <= 0) return;
   const t0 = c.currentTime;
   const dest = destination(c);
-  const secs = Math.floor(remainingMs / 1000);
+  // Nothing for a second the turn does not have: after a bomb has gone off the fuse is lit a beat later, and until
+  // then more time is left than the turn is long.
+  const whole = Math.floor(totalMs / 1000), secs = Math.min(Math.floor(remainingMs / 1000), whole);
   for (let r = secs; r >= 1; r--) {
-    // Beep when `r` whole seconds are left. Time from now to that moment, on the audio clock.
+    // Sound when `r` whole seconds are left. Time from now to that moment, on the audio clock.
     const at = t0 + (remainingMs - r * 1000) / 1000;
-    const u = 1 - r / Math.max(1, totalMs / 1000);
-    beep(c, dest, at, r, u, tickVoice);
+    const through = 1 - r / Math.max(1, totalMs / 1000);
+    fuseBeat(c, dest, tickVoice, { at, left: r, through, step: whole - r }, (source, gain, starts) => clockNodes.push({ source, gain, at: starts }), gainScale);
   }
 }
 
-/** A short sample of a fuse voice for the shop: two calm beeps and the last three seconds' beeps. */
-export function previewTick(voice: TickVoice): void {
+/** What a sample plays: three calm seconds of a ten-second turn, then its last three, `SAMPLE_GAP` seconds apart. */
+const SAMPLE: readonly [left: number, through: number][] = [[10, 0], [9, 0.1], [8, 0.2], [3, 0.7], [2, 0.8], [1, 0.9]];
+const SAMPLE_GAP = 0.6;
+/** Until when (performance.now) a sample is playing: the music steps back for it (musicDuck). */
+let sampleUntil = 0;
+
+/**
+ * A sample of a fuse voice for the shop. Stops the sample before it, if one is still playing. Returns how long this
+ * one lasts in milliseconds (0 if nothing can be heard: sound is off, or audio has not been unlocked yet).
+ */
+export function previewTick(voice: TickVoice): number {
+  stopPreviewTick();
   const c = out();
-  if (!c) return;
+  if (!c) return 0;
   const dest = destination(c);
   const t0 = c.currentTime + 0.05;
-  [[6, 0.3], [5, 0.5], [3, 0.8], [2, 0.9], [1, 1]].forEach(([r, u], i) => beep(c, dest, t0 + i * 0.35, r, u, voice));
+  SAMPLE.forEach(([left, through], i) => fuseBeat(c, dest, voice, { at: t0 + i * SAMPLE_GAP, left, through, step: i }, (source, gain, starts) => sampleNodes.push({ source, gain, at: starts })));
+  const tail = Math.max(...fuseTones(voice, { at: 0, left: 1, through: 0.9, step: SAMPLE.length - 1 }).map((t) => t.lasts));
+  const ms = Math.round((0.05 + (SAMPLE.length - 1) * SAMPLE_GAP + Math.min(tail, 0.6)) * 1000);
+  sampleUntil = performance.now() + ms;
+  return ms;
+}
+/** Cuts a sample short: another is starting, or the thing that played it has gone. */
+export function stopPreviewTick(): void {
+  hush(sampleNodes);
+  sampleNodes = [];
+  sampleUntil = 0;
+}
+/** How much of itself the music should play at: it steps back while a fuse sound is being sampled, so the sample is heard. */
+export function musicDuck(): number {
+  return performance.now() < sampleUntil ? 0.25 : 1;
+}
+
+/** The Feed Sack machine's reel: a short wooden click as each tile passes the window. */
+export function reelClick(): void {
+  const c = out();
+  if (!c) return;
+  tone(c, { freq: 900, dur: 0.035, type: 'triangle', vol: 0.05, to: 600 });
+}
+
+/** The machine's bell when the reel stops: brighter and longer the rarer the tier (0 common to 3 legendary). */
+export function reelDing(tier: number): void {
+  const c = out();
+  if (!c) return;
+  const base = [660, 784, 988, 1175][Math.max(0, Math.min(3, tier))];
+  tone(c, { freq: base, dur: 0.35 + tier * 0.15, type: 'triangle', vol: 0.12 });
+  tone(c, { freq: base * 1.5, at: 0.08, dur: 0.3 + tier * 0.15, type: 'sine', vol: 0.06 });
+  if (tier >= 2) tone(c, { freq: base * 2, at: 0.16, dur: 0.5, type: 'sine', vol: 0.05 });
+}
+
+/** The machine's lever going down: a wooden clunk and the ratchet catching. */
+export function leverPull(): void {
+  const c = out();
+  if (!c) return;
+  tone(c, { freq: 190, dur: 0.14, type: 'triangle', vol: 0.14, to: 70 });
+  tone(c, { freq: 620, at: 0.11, dur: 0.04, type: 'square', vol: 0.035 });
+  tone(c, { freq: 520, at: 0.17, dur: 0.04, type: 'square', vol: 0.03 });
+}
+
+/** A little rising tune for a rare prize; a longer one for a legendary. */
+export function fanfare(legendary: boolean): void {
+  const c = out();
+  if (!c) return;
+  const notes = legendary ? [523.25, 659.25, 783.99, 1046.5, 1318.5, 1568] : [523.25, 659.25, 783.99, 1046.5];
+  notes.forEach((freq, i) => {
+    tone(c, { freq, at: 0.25 + i * 0.11, dur: 0.24, type: 'triangle', vol: 0.11 });
+    tone(c, { freq: freq * 2, at: 0.25 + i * 0.11, dur: 0.18, type: 'sine', vol: 0.03 });
+  });
+}
+
+/** The Trading Post: a coin dropped on the counter. */
+export function coinClink(): void {
+  const c = out();
+  if (!c) return;
+  tone(c, { freq: 2100, dur: 0.07, type: 'triangle', vol: 0.09 });
+  tone(c, { freq: 3150, at: 0.05, dur: 0.16, type: 'sine', vol: 0.06 });
+}
+/** A sack picked up off the counter: a soft double brush of burlap. */
+export function burlapRustle(): void {
+  const c = out();
+  if (!c) return;
+  tone(c, { freq: 240, dur: 0.06, type: 'triangle', vol: 0.05, to: 140 });
+  tone(c, { freq: 200, at: 0.07, dur: 0.07, type: 'triangle', vol: 0.04, to: 110 });
+}
+/** A Golden Bell spent: one clear ring. */
+export function bellChime(): void {
+  const c = out();
+  if (!c) return;
+  tone(c, { freq: 1318.5, dur: 0.5, type: 'sine', vol: 0.1 });
+  tone(c, { freq: 2637, dur: 0.3, type: 'sine', vol: 0.04 });
+}
+/** The Barn Book opened: a page turned. */
+export function pageTurn(): void {
+  const c = out();
+  if (!c) return;
+  tone(c, { freq: 520, dur: 0.09, type: 'triangle', vol: 0.045, to: 260 });
+  tone(c, { freq: 760, at: 0.06, dur: 0.08, type: 'triangle', vol: 0.03, to: 380 });
 }

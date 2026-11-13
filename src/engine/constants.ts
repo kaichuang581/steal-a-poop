@@ -24,6 +24,12 @@ export const CARRY_MS_PER_POINT = 500;
 export const PASS_MIN_MS = 4_000;
 export const CARRY_HARD_LETTERS = new Set(['x', 'z', 'q', 'j']);
 export const INTRO_MS = 2_500;
+/**
+ * After a bomb goes off the table takes a beat (the sheep it went off beside is dazed, the screens show it): the next
+ * sheep's fuse is lit this long after the bang, and its whole turn runs from then. Without it the next turn's clock
+ * was already running under the blast, and a 5 s turn felt like 3 (Brian, 2026-11-13).
+ */
+export const AFTERMATH_MS = 2_400;
 /** Human turn length in the tour, whose steps need reading time. Practice keeps the game's own clock. */
 export const PRACTICE_TURN_MS = 25_000;
 /** Practice runs: the starting clocks on offer, in seconds. */

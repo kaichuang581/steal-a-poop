@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { CoinIcon } from '../components/Icons';
 import type { GameReward, Payout } from './economy';
+import { CoinArt } from './art';
 import { itemById } from './catalog';
 import { grantStreak, payFinishedGame } from './store';
 
@@ -27,14 +27,27 @@ export function usePayout(id: string | null, reward: GameReward | null): Payout 
   return payout && payout.lines.length ? payout : null;
 }
 
+/**
+ * Starts paying a finished game at once, whether or not its board is up yet: a board that comes later (the win screen
+ * follows the table's finale by some seconds) shows this same payment. Leaving in between used to lose the coins.
+ */
+export function payEarly(id: string | null, reward: GameReward | null): void {
+  if (!id || !reward || id.includes('preview:') || shown.has(id)) return;
+  const p = payFinishedGame(id, reward);
+  shown.set(id, p);
+  void p.then((r) => { if (r === null) shown.delete(id); });
+}
+
 /** What a game paid, for a results board. */
 export function PayoutLines({ payout, className = '' }: { payout: Payout; className?: string }) {
   return (
     <div className={`sk-payout ${className}`} aria-label={`You earned ${payout.coins} Wool Coins`}>
-      <p className="sk-payout-total"><CoinIcon size={18} /> +{payout.coins} Wool Coins</p>
+      <p className="sk-payout-total"><CoinArt size={18} /> +{payout.coins} Wool Coins</p>
       <ul className="sk-payout-lines">
         {payout.lines.map((l) => <li key={l.label}><span>{l.label}</span><span>{l.coins >= 0 ? `+${l.coins}` : l.coins}</span></li>)}
       </ul>
+      {payout.bells > 0 && <p className="sk-payout-level">+{payout.bells} Golden Bell{payout.bells === 1 ? '' : 's'}</p>}
+      {payout.items.length > 0 && <p className="sk-payout-level">Mission done! New in your collection: {payout.items.map((i) => itemById(i)?.name ?? i).join(', ')}.</p>}
       {payout.levelUp && <p className="sk-payout-level">Level {payout.levelUp.to}!{payout.levelUp.title ? ` You are now a ${payout.levelUp.title}.` : ''}</p>}
     </div>
   );

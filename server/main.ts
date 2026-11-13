@@ -41,6 +41,8 @@ import { MemoryFriendStore, PostgresFriendStore } from './social/friends';
 import { allRoutes } from './routes';
 import { ClaudeReviewer } from './review';
 import { guestUser } from './guest';
+import { GuestFriends } from './social/guestFriends';
+import { createGuestFriendRoutes } from './routes/guestFriends';
 
 /**
  * Starts the game server.
@@ -194,7 +196,9 @@ if (!mailer) console.warn('No mail sender is configured (SMTP_URL and MAIL_FROM)
 const economyStore = pool ? new PostgresEconomyStore(pool) : new MemoryEconomyStore();
 const economy = new EconomyService(economyStore);
 const barn = new BarnService(pool ? new PostgresBarnStore(pool) : new MemoryBarnStore());
-const presence = { online: (_id: string) => false };
+const presence = { online: (_id: string) => false, guests: (): Array<{ userId: string; name: string }> => [] };
+// Guests' friend codes come from their id and this secret. Set GUEST_CODE_SECRET in production; the fallback only keeps development working.
+const guestFriends = new GuestFriends({ secret: process.env.GUEST_CODE_SECRET || 'steal-a-poop-guest-friend-codes' });
 let notify: (userId: string, msg: object) => void = () => undefined;
 const friends = new FriendsService({
   store: pool ? new PostgresFriendStore(pool) : new MemoryFriendStore(),
@@ -265,6 +269,7 @@ const httpServer = createHttpServer({
     ...allRoutes,
     ...createModerationRoutes({ chat, reporting, economy: economyStore, audit, log: console.log }),
     ...createFriendRoutes({ friends }),
+    ...createGuestFriendRoutes({ friends: guestFriends, online: () => presence.guests() }),
     ...createLeaderboardRoutes({ data: gameData, accounts }),
     ...createShopRoutes({ economy, store: economyStore }),
     ...createBarnRoutes({ barn }),
@@ -314,6 +319,7 @@ const server = await startServer({
 });
 serverRef = server;
 presence.online = server.isOnline;
+presence.guests = server.onlineGuests;
 notify = server.notify;
 const alertUrl = process.env.ALERT_WEBHOOK_URL;
 const stopAlerts = alertUrl

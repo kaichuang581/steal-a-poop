@@ -551,6 +551,8 @@ export async function startServer(opts: ServerOptions) {
     /** Open sockets, for monitoring. */
     connections: () => total,
     isOnline: (userId: string) => sockets.get(userId)?.readyState === 1,
+    /** Guests connected now (id and name): the guest friends list's online dots. */
+    onlineGuests: (): Array<{ userId: string; name: string }> => [...sockets].filter(([id, ws]) => id.startsWith('guest:') && ws.readyState === 1).map(([id]) => ({ userId: id, name: names.get(id) ?? '' })),
     /** Sends a message to one signed-in player, if they are connected. */
     notify: (userId: string, msg: object) => sendTo(userId, msg),
     async close() {

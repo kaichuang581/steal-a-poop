@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { clientAddress } from './address';
+import { isGuestId } from './guest';
 import type { Route, RouteRequest, SessionClaims, VerifyToken } from './contracts';
 
 export interface HttpOptions {
@@ -109,6 +110,8 @@ export function createHttpServer(opts: HttpOptions): Server {
         } else {
           user = token ? await opts.verifyToken(token).catch(() => null) : null;
           if (!user) return send(401, { error: 'not_signed_in' });
+          // Guests have no profile, wallet or friends on the server: only routes made for them let them in.
+          if (isGuestId(user.userId) && !route.guests) return send(403, { error: 'account_required' });
           if (route.auth === 'moderator' && !user.isModerator) return send(403, { error: 'not_a_moderator' });
         }
       }

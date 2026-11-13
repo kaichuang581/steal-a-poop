@@ -60,6 +60,8 @@ export interface Route {
   path: string;
   /** none: anyone. session: a verified login (a profile is not required yet). user: a signed-in user with a profile. moderator: a signed-in moderator. */
   auth: 'none' | 'session' | 'user' | 'moderator';
+  /** A guest (no account, id "guest:...") is refused on every signed-in route unless the route says it is for guests. */
+  guests?: boolean;
   handler: (req: RouteRequest) => Promise<RouteResponse> | RouteResponse;
 }
 

@@ -7,10 +7,12 @@ import { createHttpServer } from './http';
 const users: Record<string, AuthUser> = {
   user: { userId: 'u1', name: 'User', chatAllowed: true, isModerator: false },
   mod: { userId: 'm1', name: 'Mod', chatAllowed: true, isModerator: true },
+  guest: { userId: 'guest:3f2b8c1e-9d4a-4b7e-8f10-2c6d5e7a9b01', name: 'Guest', chatAllowed: true, isModerator: false },
 };
 const routes: Route[] = [
   { method: 'GET', path: '/api/open', auth: 'none', handler: () => ({ status: 200, json: { hello: 'world' } }) },
   { method: 'GET', path: '/api/me', auth: 'user', handler: (r) => ({ status: 200, json: { id: r.user!.userId } }) },
+  { method: 'GET', path: '/api/guestok', auth: 'user', guests: true, handler: (r) => ({ status: 200, json: { id: r.user!.userId } }) },
   { method: 'GET', path: '/api/mod', auth: 'moderator', handler: () => ({ status: 200, json: { secret: true } }) },
   { method: 'GET', path: '/api/things/:id', auth: 'none', handler: (r) => ({ status: 200, json: { id: r.params.id, q: r.query.q ?? null } }) },
   { method: 'POST', path: '/api/echo', auth: 'none', handler: (r) => ({ status: 200, json: { got: r.body } }) },
@@ -39,6 +41,16 @@ describe('http server', () => {
     const r = await f('/healthz');
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({ ok: true });
+  });
+  it('keeps guests off account routes unless the route is made for them', async () => {
+    const f = await boot();
+    const refused = await f('/api/me', { token: 'guest' });
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toEqual({ error: 'account_required' });
+    expect((await f('/api/mod', { token: 'guest' })).status).toBe(403);
+    expect((await f('/api/guestok', { token: 'guest' })).status).toBe(200);
+    expect((await f('/api/me', { token: 'user' })).status).toBe(200);
+    expect((await f('/api/open')).status).toBe(200);
   });
   it('routes by method and path, with params and query', async () => {
     const f = await boot();

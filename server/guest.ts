@@ -20,3 +20,6 @@ export function guestUser(token: string): AuthUser | null {
   if (!name || isInappropriateName(name)) return null;
   return { userId: `guest:${m[1].toLowerCase()}`, name, chatAllowed: true, resultsAllowed: false, isModerator: false };
 }
+
+/** True for a guest's server id (`guest:<uuid>`). Account ids never start this way. */
+export const isGuestId = (userId: string): boolean => userId.startsWith('guest:');

@@ -38,7 +38,7 @@ import { Bazaar } from '../shop/Bazaar';
 import { useWallet } from '../shop/store';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
-import { AvatarButtonIcon, PersonIcon } from '../components/PixelIcons';
+import { AvatarButtonIcon } from '../components/PixelIcons';
 import { PaintedGuide } from '../components/PaintedGuide';
 import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
@@ -415,7 +415,6 @@ export function PaintedHome() {
         {guestName && authEnabled() && authStatus !== 'ready' && (
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
         )}
-        <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account"><PersonIcon /></button>
         <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${wool} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{wool}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>

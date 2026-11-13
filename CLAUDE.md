@@ -659,3 +659,12 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   `shift` on PenStage slides the picture (camera view offset) so the panels do not cover the pen. On a phone the pen is the top of the screen
   and the sheets scroll under it. ChatPanel scrolls only its own log now (scrollIntoView dragged the whole page to the chat).
 
+- Guests, lobbies and friends without an account (requested by Kai, 2026-11-13). Signed out, Quick play, Create lobby and Join party work: the
+  browser keeps a random id (`sap:guest-id`) and the room connection and the API send `guest:<id>:<name>` (src/auth/guest.ts); the server accepts
+  it in server/guest.ts (shape and name checked; chat on, results off, never a moderator). Every `auth: 'user'` route refuses a guest with 403
+  `account_required` unless the route says `guests: true` (server/http.ts); only the guest friend routes do. Friends for guests: the list lives in
+  the browser (`sap:guest-friends`, src/lib/guestFriends.ts); the server only relays requests in memory for up to two weeks and reports who is
+  online (server/social/guestFriends.ts, server/routes/guestFriends.ts); a guest's friend code is an HMAC of their id (set GUEST_CODE_SECRET in
+  production). Guests and account players are not friends with each other, a guest has no room invites, and a guest is not on the leaderboards
+  (the boards are public to read; their stats are the browser's own). The red Friends / Boards / Shop row on Home is gone: Friends and Boards are
+  buttons in the top bar (one Community button on a phone, where the bar is full), and the Shop tab is not offered there.

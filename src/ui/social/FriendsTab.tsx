@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useRoomStore } from '../../state/roomStore';
 import { useSocial } from '../../state/socialStore';
+import type { FriendsStore } from '../../state/guestSocial';
 import { NameTag } from './NameTag';
 
 const input = 'min-h-11 min-w-0 flex-1 rounded-lg border border-white/30 bg-black/40 px-3 uppercase tracking-widest';
 const small = 'min-h-11 rounded-lg px-3 text-sm font-bold';
 
-export function FriendsTab() {
-  const { friends, code, error, notice, loadFriends, loadCode, resetCode, request, accept, remove } = useSocial();
+/**
+ * `useStore` is the account's friends by default. A guest (no account) passes the guest store: the list is kept in this
+ * browser, the code never changes, and room invites (which need accounts) are left out.
+ */
+export function FriendsTab({ useStore = useSocial, guest = false }: { useStore?: () => FriendsStore; guest?: boolean }) {
+  const { friends, code, error, notice, loadFriends, loadCode, resetCode, request, accept, remove } = useStore();
   const inRoom = useRoomStore((s) => !!s.room && s.room.phase === 'lobby');
   const [typed, setTyped] = useState('');
   const [copied, setCopied] = useState(false);
@@ -39,9 +44,10 @@ export function FriendsTab() {
         <h3 className="text-sm font-black uppercase tracking-wider text-white/60">Your friend code</h3>
         <p className="my-1 text-3xl font-black tracking-[0.25em] text-amber-300" data-friend-code>{code ?? '…'}</p>
         <p className="text-xs text-white/60">Give it only to people you know. Anyone with the code can ask to be your friend. You choose whether to accept.</p>
+        {guest && <p className="mt-1 text-xs text-white/60">You are playing without an account, so your friends are kept in this browser only. Clearing its data, or using another browser, starts the list again.</p>}
         <div className="mt-2 flex gap-2">
           <button className={`${small} bg-white/15`} onClick={copy}>{copied ? 'Copied!' : 'Copy'}</button>
-          <button className={`${small} bg-white/10`} onClick={() => void resetCode()}>Make a new code</button>
+          {resetCode && <button className={`${small} bg-white/10`} onClick={() => void resetCode()}>Make a new code</button>}
         </div>
       </section>
 
@@ -73,7 +79,7 @@ export function FriendsTab() {
             <li key={f.userId} className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1">
               <span role="img" aria-label={f.online ? 'Online' : 'Offline'} className={`size-2.5 rounded-full ${f.online ? 'bg-emerald-400' : 'bg-white/25'}`} />
               <span className="min-w-0 flex-1"><NameTag name={f.name} cosmetics={f.cosmetics} /></span>
-              {inRoom && f.online && (
+              {!guest && inRoom && f.online && (
                 <button className={`${small} bg-sky-500 text-sky-950`} aria-label={`Invite ${f.name}`} onClick={() => useRoomStore.getState().invite(f.userId)}>Invite</button>
               )}
               <button className={`${small} bg-white/10`} aria-label={`Remove ${f.name}`} onClick={() => void remove(f.userId)}>Remove</button>

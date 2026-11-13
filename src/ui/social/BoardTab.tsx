@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth/authStore';
+import { loadStats as loadLocalStats } from '../../lib/stats';
 import { useSocial } from '../../state/socialStore';
 import type { Metric, Period } from '../../state/socialStore';
 import { NameTag } from './NameTag';
@@ -7,15 +8,17 @@ import { NameTag } from './NameTag';
 const PERIODS: [Period | 'daily', string][] = [['daily', 'Daily Table'], ['day', 'Today'], ['week', 'This week'], ['all', 'All time']];
 const METRICS: [Metric, string][] = [['wins', 'Wins'], ['points', 'Points']];
 
-export function BoardTab() {
+/** `guest`: playing without an account. The boards are public; the stats are this browser's own, and a guest is not listed. */
+export function BoardTab({ guest = false }: { guest?: boolean }) {
   const { board, daily, stats, error, notice, loadBoard, loadDaily, loadStats, setVisible } = useSocial();
   const profile = useAuth((s) => s.profile);
   const [period, setPeriod] = useState<Period | 'daily'>('daily');
   const [metric, setMetric] = useState<Metric>('wins');
 
   useEffect(() => {
-    void loadStats();
-  }, [loadStats]);
+    if (!guest) void loadStats();
+  }, [guest, loadStats]);
+  const local = useMemo(() => (guest ? loadLocalStats() : null), [guest]);
   useEffect(() => {
     if (period === 'daily') void loadDaily();
     else void loadBoard(period, metric);
@@ -60,7 +63,13 @@ export function BoardTab() {
 
       <section aria-label="Your stats" className="rounded-xl bg-white/5 p-3">
         <h3 className="text-sm font-black uppercase tracking-wider text-white/60">Your stats</h3>
-        {stats ? (
+        {guest && local ? (
+          <dl className="mt-1 grid grid-cols-3 gap-2 text-center text-sm">
+            {([['Games', local.games], ['Wins', local.wins], ['Longest word', local.longestWord ? local.longestWord.toUpperCase() : '—']] as const).map(([k, v]) => (
+              <div key={k}><dt className="text-xs text-white/50">{k}</dt><dd className="truncate font-black">{v}</dd></div>
+            ))}
+          </dl>
+        ) : stats ? (
           <dl className="mt-1 grid grid-cols-3 gap-2 text-center text-sm">
             {([['Games', stats.gamesPlayed], ['Wins', stats.wins], ['Points', stats.points], ['Best score', stats.bestScore], ['Longest word', stats.longestWord ? stats.longestWord.toUpperCase() : '—']] as const).map(([k, v]) => (
               <div key={k}><dt className="text-xs text-white/50">{k}</dt><dd className="truncate font-black">{v}</dd></div>
@@ -68,7 +77,9 @@ export function BoardTab() {
           </dl>
         ) : <p className="text-sm text-white/60">Loading…</p>}
         {notice && <p role="status" className="mt-2 text-sm text-sky-200">{notice}</p>}
-        {canShow ? (
+        {guest ? (
+          <p className="mt-2 text-xs text-white/60">You are playing without an account, so these come from this browser and you are not on the leaderboards. Sign up to climb them.</p>
+        ) : canShow ? (
           <label className="mt-2 flex min-h-11 items-center gap-2 text-sm">
             <input type="checkbox" checked={profile?.leaderboardVisible !== false} onChange={(e) => void setVisible(e.target.checked)} />
             Show me on the leaderboards

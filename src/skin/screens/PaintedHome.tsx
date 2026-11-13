@@ -263,13 +263,6 @@ export function PaintedHome() {
         </PaperPanel>
       )}
       {error && <p role="alert" className="kit-paper kit-paper--note" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
-      {signedIn && rooms && (
-        <div className="flex gap-2" role="group" aria-label="Community">
-          {([['friends', <><FriendsIcon size={16} /> Friends</>], ['boards', <><TrophyIcon size={16} /> Boards</>], ['shop', <><BagIcon size={16} /> Shop</>]] as const).map(([t, label]) => (
-            <WoodButton key={t} onClick={() => setHub(t)} className="inline-flex flex-1 items-center justify-center gap-1.5 text-sm">{label}</WoodButton>
-          ))}
-        </div>
-      )}
       {roomNotice && step !== 'join' && <p role="status" className="kit-paper kit-paper--note text-center">{roomNotice}</p>}
     </div>
   );
@@ -415,6 +408,15 @@ export function PaintedHome() {
         ) : (
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
         ))}
+        {/* Friends and the leaderboards. A phone's bar is already full, so there it is one button for the same panel. */}
+        {rooms && (mobile ? (
+          <button className="sk-icon-btn" onClick={() => setHub('friends')} aria-label="Friends and leaderboards" title="Friends and leaderboards"><FriendsIcon size={20} /></button>
+        ) : (
+          <>
+            <button className="sk-icon-btn" onClick={() => setHub('friends')} aria-label="Friends" title="Friends"><FriendsIcon size={20} /></button>
+            <button className="sk-icon-btn" onClick={() => setHub('boards')} aria-label="Leaderboards" title="Leaderboards"><TrophyIcon size={20} /></button>
+          </>
+        ))}
         <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${wool} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{wool}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
@@ -466,7 +468,7 @@ export function PaintedHome() {
       )}
 
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
-      {hub && <Hub initial={hub} onClose={() => setHub(null)} />}
+      {hub && <Hub initial={hub} tabs={['friends', 'boards']} guest={!signedIn} guestName={settings.name} onClose={() => setHub(null)} />}
       {help && <PaintedGuide onClose={() => setHelp(false)} />}
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
       {legal && <LegalDialog initial={legal} onClose={() => setLegal(null)} />}

@@ -161,6 +161,7 @@ if (supabaseUrl) {
   }
   const devModerators = new Set((process.env.DEV_MODERATORS ?? '').split(',').map((s) => s.trim()).filter(Boolean));
   verifyToken = async (token) => {
+    if (token.startsWith('guest:')) return guestUser(token); // guests work in development too
     if (!(token.startsWith('dev:') && token.length > 4)) return null;
     // "dev:<name>" or "dev:<name>#<device id>": the id keeps two people who typed the same name apart.
     const name = token.slice(4).split('#')[0].slice(0, 12).trim();

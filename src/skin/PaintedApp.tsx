@@ -23,6 +23,7 @@ import KitPreview from './kit/KitPreview';
 const DoorsRender = lazy(() => import('./loading/DoorsRender'));
 const ThumbRender = lazy(() => import('./shop/ThumbRender'));
 const StallRender = lazy(() => import('./shop/StallRender'));
+import { OnboardingGate } from './onboarding/Onboarding';
 import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot, whenDoorsOpen, whenDoorsShut } from './components/BarnDoors';
 import { PreviewCanvas as WendigoPreviewCanvas } from './table/WendigoPreview';
 import './styles/skin.css';
@@ -150,5 +151,6 @@ export function PaintedApp() {
     : mounted === 'game' && inGame ? <PaintedGame />
     : inRoom ? <PaintedRoom />
     : home;
-  return <><JoinLink />{screen}{!dreaming && !inGame && inRoom && <Garland />}<BarnDoors /></>;
+  // The first-visit form: every new player says how they play, their country and age, and a parent agrees if needed.
+  return <><JoinLink />{screen}{!dreaming && !inGame && inRoom && <Garland />}<OnboardingGate /><BarnDoors /></>;
 }

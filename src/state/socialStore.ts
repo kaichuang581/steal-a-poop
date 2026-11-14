@@ -78,7 +78,7 @@ interface SocialState {
 /** Plain words for what the social, shop and board endpoints can answer. */
 export function describeSocialError(code: string): string {
   switch (code) {
-    case 'not_allowed': return 'Friends, the shop and chat unlock once a parent has said yes.';
+    case 'not_allowed': return 'Finish setting up your account first: give your country and age.';
     case 'unknown_code': return 'No player has that code. Check it and try again.';
     case 'self': return 'That is your own code.';
     case 'already_friends': return 'You are already friends.';

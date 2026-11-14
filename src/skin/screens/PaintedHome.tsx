@@ -22,6 +22,7 @@ import '../rooms/rooms.css';
 import { useSocial } from '../../state/socialStore';
 import { useStore, tableFor } from '../../state/store';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
+import { openSignInForm } from '../onboarding/Onboarding';
 import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
@@ -411,9 +412,9 @@ export function PaintedHome() {
           </div>
         )}
         {authEnabled() && (authStatus === 'ready' ? (
-          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account" style={{ width: 'auto', padding: '0 12px' }}>Account</button>
+          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Account</button>
         ) : (
-          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px' }}>Log in</button>
+          <button className="sk-icon-btn" onClick={openSignInForm} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Log in</button>
         ))}
         {/* Friends and the leaderboards. A phone's bar is already full, so there it is one button for the same panel. */}
         {rooms && (mobile ? (

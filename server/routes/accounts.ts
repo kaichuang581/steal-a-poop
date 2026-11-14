@@ -36,6 +36,8 @@ const STATUS: Record<CreateProfileFailure, [number, string]> = {
   parent_email_invalid: [400, 'parent_email_invalid'],
   parent_email_same: [400, 'parent_email_same'],
   consent_unavailable: [503, 'consent_unavailable'],
+  bad_age: [400, 'bad_age'],
+  parent_consent_required: [400, 'parent_consent_required'],
 };
 
 export function createAccountRoutes({ service, captcha, now = Date.now }: AccountRouteDeps): Route[] {
@@ -66,6 +68,7 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
         if (parentEmail && limited(parentMailByEmail, sha256(normalizeEmail(parentEmail)))) return tooMany();
         const out = await service.createProfile(req.session!, {
           nickname: String(b.nickname ?? ''), dateOfBirth: String(b.dateOfBirth ?? ''), country: String(b.country ?? ''), parentEmail,
+          ...(b.age !== undefined ? { age: b.age as number } : {}), parentConsent: b.parentConsent === true,
         });
         if (!out.ok) return bad(STATUS[out.reason][1], STATUS[out.reason][0]);
         return { status: 201, json: { profile: out.profile, parentMailed: out.mailed } };
@@ -95,6 +98,18 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
         if (!out.ok) return out.reason === 'not_found' ? bad('not_found', 404) : bad(out.reason, out.reason === 'nickname_taken' ? 409 : 400);
         if (out.changed) renameByUser.allow(id, now());
         return { status: 200, json: { profile: out.profile } };
+      },
+    },
+    {
+      // Country and age for an account made before the sign-up form asked for them (see AccountService.confirmAge).
+      method: 'POST', path: '/api/account/age', auth: 'session',
+      handler: async (req) => {
+        if (limited(signupByUser, req.session!.userId)) return tooMany();
+        const b = body(req);
+        const out = await service.confirmAge(req.session!.userId, { age: b.age, country: b.country, parentConsent: b.parentConsent });
+        if (out.ok) return { status: 200, json: { profile: out.profile } };
+        const code = out.reason === 'no_profile' ? 404 : out.reason === 'parent_refused' || out.reason === 'country_not_supported' ? 403 : 400;
+        return bad(out.reason, code);
       },
     },
     {

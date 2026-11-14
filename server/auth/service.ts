@@ -6,6 +6,7 @@
 import { randomBytes } from 'node:crypto';
 import type { SessionClaims } from '../contracts';
 import { ageOn, checkCountry, cleanNickname, identityHash, mayChat, needsParentalConsent, normalizeEmail, sha256 } from './policy';
+import { PARENT_AGREE, PARENT_NOTICE, validAge } from '../../src/lib/ageRules';
 import type { AgePolicy, ConsentStatus } from './policy';
 import type { Mailer } from './mailer';
 import type { RevocationBus } from './revocations';
@@ -59,10 +60,19 @@ export interface AccountServiceDeps {
   randomToken?: () => string;
 }
 
-export type CreateProfileInput = { nickname: string; dateOfBirth: string; country: string; parentEmail?: string };
+/**
+ * `age` (a whole number) takes the place of `dateOfBirth` in the sign-up form of 2026-11-14. `parentConsent` true means a
+ * parent pressed the agree button on the child's screen: an under-age profile is then made `granted` at once and a record
+ * of the click is kept. Without it, an under-age sign-up needs `parentEmail` (the older email path) or is refused.
+ */
+export type CreateProfileInput = { nickname: string; dateOfBirth?: string; age?: number; country: string; parentEmail?: string; parentConsent?: boolean };
 export type CreateProfileFailure =
   | 'profile_exists' | 'email_required' | 'bad_nickname' | 'nickname_taken' | 'bad_dob' | 'bad_country' | 'country_not_supported'
-  | 'identity_banned' | 'identity_restricted' | 'parent_email_required' | 'parent_email_invalid' | 'parent_email_same' | 'consent_unavailable';
+  | 'identity_banned' | 'identity_restricted' | 'parent_email_required' | 'parent_email_invalid' | 'parent_email_same' | 'consent_unavailable'
+  | 'bad_age' | 'parent_consent_required';
+
+/** The exact text the parent saw on screen, hashed into the consent record. */
+export const ON_SCREEN_NOTICE = [...PARENT_NOTICE, PARENT_AGREE].join('\n');
 
 export interface PublicProfile {
   nickname: string;
@@ -101,11 +111,11 @@ export class AccountService {
 
   // ---------------------------------------------------------------- sign-up
 
-  /** Show or hide the player on public leaderboards. A player who needed a parent's consent cannot turn it on. */
+  /** Show or hide the player on public leaderboards: anyone old enough, or whose parent agreed. */
   async setLeaderboardVisible(userId: string, visible: boolean): Promise<'ok' | 'not_allowed' | 'no_profile'> {
     const p = await this.d.store.getProfile(userId);
     if (!p || p.deletedAt !== null) return 'no_profile';
-    if (visible && p.consentStatus !== 'not_required') return 'not_allowed';
+    if (visible && !mayChat(p.consentStatus)) return 'not_allowed';
     await this.d.store.updateProfile(userId, { leaderboardVisible: visible, updatedAt: this.d.now() });
     return 'ok';
   }
@@ -125,8 +135,14 @@ export class AccountService {
     if (!nickname || !this.d.nicknameAllowed(nickname)) return fail('bad_nickname');
     if (await this.d.store.nicknameTaken(nickname)) return fail('nickname_taken');
 
-    const age = ageOn(String(input.dateOfBirth ?? ''), now);
-    if (age === null) return fail('bad_dob');
+    let age: number | null;
+    if (input.age !== undefined) {
+      if (!validAge(input.age)) return fail('bad_age');
+      age = input.age;
+    } else {
+      age = ageOn(String(input.dateOfBirth ?? ''), now);
+      if (age === null) return fail('bad_dob');
+    }
     const country = checkCountry(String(input.country ?? ''), this.d.agePolicy);
     if (!country.ok) return fail(country.reason);
 
@@ -135,9 +151,11 @@ export class AccountService {
     if (await this.d.store.restrictedUntil(emailHash, now)) return fail('identity_restricted');
 
     const needsConsent = needsParentalConsent(age, country.consentAge);
+    const onScreen = needsConsent && input.parentConsent === true;
     let parentEmail = '';
-    if (needsConsent) {
+    if (needsConsent && !onScreen) {
       parentEmail = String(input.parentEmail ?? '').trim();
+      if (!parentEmail && input.age !== undefined) return fail('parent_consent_required'); // the new form asks for the click
       if (!parentEmail) return fail('parent_email_required');
       if (!EMAIL.test(parentEmail)) return fail('parent_email_invalid');
       if (normalizeEmail(parentEmail) === normalizeEmail(claims.email)) return fail('parent_email_same'); // the child cannot be their own parent
@@ -145,8 +163,9 @@ export class AccountService {
     }
 
     const profile: Profile = {
-      userId: claims.userId, nickname, emailHash, dateOfBirth: String(input.dateOfBirth), country: country.country,
-      consentStatus: needsConsent ? 'pending' : 'not_required', leaderboardVisible: !needsConsent, isModerator: false, sessionsValidAfter: 0, createdAt: now, updatedAt: now, deletedAt: null,
+      userId: claims.userId, nickname, emailHash, dateOfBirth: input.age !== undefined ? null : String(input.dateOfBirth), country: country.country,
+      consentStatus: onScreen ? 'granted' : needsConsent ? 'pending' : 'not_required', leaderboardVisible: !needsConsent || onScreen,
+      isModerator: false, sessionsValidAfter: 0, createdAt: now, updatedAt: now, deletedAt: null,
     };
     try {
       if (!(await this.d.store.createProfile(profile))) return fail('profile_exists'); // lost a race with ourselves
@@ -155,8 +174,9 @@ export class AccountService {
     }
 
     let mailed = true;
-    if (needsConsent) mailed = await this.requestConsent(profile, parentEmail);
-    this.log(`profile created (${needsConsent ? 'consent pending' : 'no consent needed'})`);
+    if (onScreen) await this.recordOnScreenConsent(profile.userId);
+    else if (needsConsent) mailed = await this.requestConsent(profile, parentEmail);
+    this.log(`profile created (${onScreen ? 'parent agreed on screen' : needsConsent ? 'consent pending' : 'no consent needed'})`);
     return { ok: true, profile: publicOf(profile), mailed };
   }
 
@@ -213,6 +233,42 @@ export class AccountService {
   }
 
   // ---------------------------------------------------------------- parental consent
+
+  /** Keeps a record of a parent pressing the agree button on the child's screen: when, and exactly what they read. */
+  private async recordOnScreenConsent(childUserId: string): Promise<void> {
+    const now = this.d.now();
+    await this.d.store.saveConsent({
+      id: `pc-${childUserId}-${now}`, childUserId, parentEmail: '', requestTokenHash: sha256(`on-screen:${this.token()}`), manageTokenHash: null,
+      policyVersion: CONSENT_POLICY_VERSION, noticeHash: sha256(ON_SCREEN_NOTICE), method: 'on_screen',
+      requestedAt: now, expiresAt: now, decidedAt: now, decision: 'granted',
+    });
+  }
+
+  /**
+   * The age step for an account made before the sign-up form asked for one (a username-only account) or still waiting
+   * on a parent's email: the player gives their country and age, and a parent presses the agree button if needed.
+   * A parent's refusal or withdrawal by email stands: the button cannot undo it.
+   */
+  async confirmAge(userId: string, input: { age: unknown; country: unknown; parentConsent?: unknown }): Promise<
+    { ok: true; profile: PublicProfile } | { ok: false; reason: 'no_profile' | 'bad_age' | 'bad_country' | 'country_not_supported' | 'parent_consent_required' | 'parent_refused' }
+  > {
+    const p = await this.d.store.getProfile(userId);
+    if (!p || p.deletedAt !== null) return { ok: false, reason: 'no_profile' };
+    if (p.consentStatus === 'refused' || p.consentStatus === 'withdrawn') return { ok: false, reason: 'parent_refused' };
+    if (!validAge(input.age)) return { ok: false, reason: 'bad_age' };
+    const country = checkCountry(String(input.country ?? ''), this.d.agePolicy);
+    if (!country.ok) return { ok: false, reason: country.reason };
+    if (mayChat(p.consentStatus) && p.country) return { ok: true, profile: publicOf(p) }; // already done
+    const needsConsent = needsParentalConsent(input.age, country.consentAge);
+    if (needsConsent && input.parentConsent !== true) return { ok: false, reason: 'parent_consent_required' };
+    const now = this.d.now();
+    const patch = { country: country.country, consentStatus: (needsConsent ? 'granted' : 'not_required') as ConsentStatus, leaderboardVisible: true, updatedAt: now };
+    await this.d.store.updateProfile(userId, patch);
+    if (needsConsent) await this.recordOnScreenConsent(userId);
+    this.d.bus.emit(userId, null, 'status'); // open connections reconnect and pick up chat
+    this.log(`age confirmed (${needsConsent ? 'parent agreed on screen' : 'no consent needed'})`);
+    return { ok: true, profile: publicOf({ ...p, ...patch }) };
+  }
 
   private async requestConsent(child: Profile, parentEmail: string): Promise<boolean> {
     const now = this.d.now();

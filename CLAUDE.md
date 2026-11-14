@@ -992,3 +992,18 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   production). Guests and account players are not friends with each other, a guest has no room invites, and a guest is not on the leaderboards
   (the boards are public to read; their stats are the browser's own). The red Friends / Boards / Shop row on Home is gone: Friends and Boards are
   buttons in the top bar (one Community button on a phone, where the bar is full), and the Shop tab is not offered there.
+- Country, age and a parent's click, first (requested by Kai, 2026-11-14). This supersedes the email-link consent for new sign-ups
+  and "until a parent says yes, the account can play but cannot chat". On the first visit, before Home can be used, the painted skin
+  shows one form (src/skin/onboarding: Onboarding.tsx, gate.ts): play as a guest, email and password, or Google; then country and age
+  (and a username for a new account); then, only if the country's rules say the player is too young, a screen for the parent with the
+  notice and the button "I, as a parent, agree to let my child play". After that nothing is held back. The rules are one table,
+  src/lib/ageRules.ts (`CONSENT_RULES`: GDPR art. 8 ages for the EU and EEA, UK 13, US 13, CA 14 for Quebec, KR and CN 14, IN and ZA
+  18, 13 elsewhere, never under 13), read by the browser and by the server (main.ts; AGE_OF_CONSENT_BY_COUNTRY can raise a country,
+  never lower one). NOT LEGAL ADVICE: a lawyer has not checked the table. A guest's answers stay in the browser (`sap:age-check`);
+  an account's are on the server: `createProfile` takes `age` and `parentConsent` (the profile is `granted` at once, its date of
+  birth null, and a `parental_consents` row with method `on_screen` keeps the time and a hash of the exact notice shown), and
+  POST /api/account/age gives an older account (username-only or waiting on a parent's email) its country and age once. A parent's
+  refusal or withdrawal by email stands. The older email path and ConsentPage still work for links already sent; the classic look
+  keeps its AuthDialog. Home's Log in opens the same form (`openSignInForm`). Guests and accounts whose parent agreed can chat, use
+  friends and show themselves on the leaderboards. Known and told to Kai: a click on the child's own screen is not verified
+  parental consent (COPPA's list of methods does not include it), and anyone can choose an older age.

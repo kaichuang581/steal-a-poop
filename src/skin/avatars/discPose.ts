@@ -39,6 +39,7 @@ export function discPose(state: SheepState, e: number, t: number, phase: number,
     case 'frozen': pose.rotZ = 0.26; return pose;
     case 'sleeping': pose.rotZ = 0.32; pose.lift = moving ? -0.04 + Math.sin(tp * 0.8) * 0.02 : -0.04; return pose;
     case 'cold': pose.rotZ = 0.12 + (moving ? Math.sin(tp * 45) * 0.03 : 0); return pose;
+    case 'dazed': pose.rotZ = moving ? Math.sin(e * 5.2) * 0.3 : 0.2; pose.rotX = moving ? Math.cos(e * 5.2) * 0.12 - 0.08 : -0.08; return pose;
     case 'freezing': { const k = Math.min(1, e / 2); pose.rotZ = 0.12 + k * 0.14 + (moving ? Math.sin(tp * 45) * 0.03 * (1 - k) : 0); return pose; }
     case 'thawing': pose.rotZ = moving ? Math.sin(tp * 22) * 0.12 * Math.max(0, 1 - e) : 0; return pose;
     case 'thinking': pose.rotZ = 0.18 + (moving ? Math.sin(tp * 1.5) * 0.04 : 0); pose.rotX = 0.08; return pose;

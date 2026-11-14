@@ -14,6 +14,8 @@ export interface Bests {
 interface PlayerRecord {
   /** Quick Games finished. */
   played: number;
+  /** Quick Games won (counted from 0.7.0 on; older records start at 0). */
+  wins: number;
   /** The last few Quick Games, oldest first. True is a win. */
   results: boolean[];
   bests: Bests;
@@ -28,7 +30,7 @@ export interface GameResult {
 function read(): PlayerRecord {
   const saved = load<Partial<PlayerRecord>>(KEY, {});
   // Older records carry a steals best as well; it is dropped (steals were taken out of the game).
-  return { played: 0, results: [], ...saved, bests: { wool: saved.bests?.wool ?? 0, longest: saved.bests?.longest ?? '' } };
+  return { played: 0, wins: 0, results: [], ...saved, bests: { wool: saved.bests?.wool ?? 0, longest: saved.bests?.longest ?? '' } };
 }
 
 export const isFirstGames = () => read().played < FIRST_GAMES;
@@ -39,10 +41,16 @@ export const needsSoftGame = () => read().results.filter((won) => !won).length >
 /** Counts a finished Quick Game. A soft game clears the slate, so it is only ever one game at a time. */
 export function recordQuickResult(won: boolean, soft: boolean): void {
   const r = read();
-  save(KEY, { ...r, played: r.played + 1, results: soft ? [] : [...r.results, won].slice(-KEPT_RESULTS) });
+  save(KEY, { ...r, played: r.played + 1, wins: r.wins + (won ? 1 : 0), results: soft ? [] : [...r.results, won].slice(-KEPT_RESULTS) });
 }
 
 export const getBests = () => read().bests;
+
+/** The profile's numbers: Quick Games finished and won on this device, and the bests. */
+export function getRecord(): { played: number; wins: number; bests: Bests } {
+  const r = read();
+  return { played: r.played, wins: Math.min(r.wins, r.played), bests: r.bests };
+}
 
 /** Saves any new personal bests from a finished game. */
 export function recordBests(game: Bests): GameResult {

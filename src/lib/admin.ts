@@ -9,6 +9,8 @@ import { load, save } from './storage';
  * it unlocks may reach other players: the server refuses the admin avatar unless the account is on its own admin list.
  */
 const ADMIN_KEY = 'sap:admin';
+/** The admin panel's "unlimited Wool Coins" switch (src/skin/shop/store.ts), on this device only. */
+const COINS_KEY = 'sap:admin-coins';
 /**
  * SHA-256 of the admin password: a long random one, so the hash in the bundle cannot be guessed back. Never write the
  * password itself into the repo (not in tests either; they set their own hash). The old one leaked that way and was
@@ -21,6 +23,9 @@ export const setAdminHashForTests = (hash: string) => { adminHash = hash; };
 
 interface AdminStore {
   admin: boolean;
+  /** Unlimited Wool Coins in the Trading Post, while admin is unlocked. */
+  coins: boolean;
+  setCoins(on: boolean): void;
   unlock(password: string): Promise<boolean>;
   lock(): void;
 }
@@ -34,6 +39,11 @@ export async function sha256Hex(text: string): Promise<string> {
 
 export const useAdmin = create<AdminStore>((set) => ({
   admin: load<boolean>(ADMIN_KEY, false),
+  coins: load<boolean>(COINS_KEY, false),
+  setCoins(on) {
+    save(COINS_KEY, on);
+    set({ coins: on });
+  },
   async unlock(password) {
     const ok = (await sha256Hex(password.trim())) === adminHash;
     if (ok) { save(ADMIN_KEY, true); set({ admin: true }); }

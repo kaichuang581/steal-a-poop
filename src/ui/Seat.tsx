@@ -29,7 +29,7 @@ export function Seat({ player, turn, mine, cosmetics }: Props) {
       <div className="flex items-center gap-2 text-[11px] leading-none sm:text-xs">
         <span className="font-black tabular-nums">{player.banked}</span>
         {active && turn && (
-          <span className="font-bold tabular-nums text-white/80"><SecondsLeft endsAt={turn.endsAt} /></span>
+          <span className="font-bold tabular-nums text-white/80"><SecondsLeft endsAt={turn.endsAt} max={turn.durationMs} /></span>
         )}
       </div>
       <div className="min-h-4 max-w-full truncate text-[10px] font-bold uppercase tracking-wide sm:text-xs" data-seat-word={player.id}>

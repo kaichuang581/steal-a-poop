@@ -659,6 +659,330 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   `shift` on PenStage slides the picture (camera view offset) so the panels do not cover the pen. On a phone the pen is the top of the screen
   and the sheets scroll under it. ChatPanel scrolls only its own log now (scrollIntoView dragged the whole page to the chat).
 
+- The profile (requested by Brian, 2026-11-12: "a basic stat/user profile overview so people can see their ranking ... also make
+  this the place where u can change ur username"): src/skin/profile/Profile.tsx, a full page over Home like the Trading Post (both
+  use `usePageHistory` in src/skin/hooks: Back and Esc close it, and its deferred history.back() survives StrictMode's double mount).
+  It opens from the name plate (now a button, no longer a text field) and a "Profile" menu item. The name is changed there: a
+  guest's in this browser (`settings.name`), a signed-in player's account nickname (POST /api/account/nickname, the sign-up rules,
+  5 a day). The standing is by XP among signed-in players with any XP (GET /api/barn/rank): a place under 10 players, "Top X%"
+  from 10 up, never 0%. Numbers: different words, Quick Game wins (`wins` in src/lib/record.ts, counted from 0.7.0; older records
+  start at 0), win rate, longest word, practice best at any clock, Counting Sheep best, night streak, and online wins when signed in.
+- Trading Post v2 (approved by Brian, 2026-11-12): docs/PLAN_TRADING_POST_V2.md. This supersedes "no random rewards" in the
+  Barn Bazaar bullet above, for Feed Sacks only.
+  (a) Cosmetic only: nothing bought, earned or opened changes how any game plays.
+  (b) Feed Sacks cost Wool Coins only. Golden Bells (the second currency) can never open, buy or discount a Feed Sack,
+      directly or by conversion. The two currencies never convert into each other.
+  (c) Every item that can come from a Feed Sack can also be bought directly at a fixed price; achievement items
+      (streaks, milestones) are never in sacks and never for sale.
+  (d) The odds are shown before every opening and are the real odds. The reveal shows the result honestly: no fake
+      near-misses, no animation that suggests a better result than the one rolled.
+  (e) No countdown timers, push notifications or "last chance" wording anywhere in the Trading Post.
+- Trading Post v2 as built, T0 to T3 (2026-11-12; T4, payments, is not approved and not built). Brian asked for a near-miss
+  effect on the sacks; it was not built (plan decision 8.1, guardrail (d)): don't add one. Pure rules: src/skin/shop/sacks.ts
+  (odds, pity, refunds, the pool: the one source the roll and the screen read), roll.ts (`rollSack`, crypto randomness),
+  shelf.ts (`dailyShelf`); economy.ts applies them (`openSack`, `withShelf`, `buy(..., { shelfDay })`, Bells in `payGame` and
+  `grantStreakItems`). Screens: FeedSacks.tsx (card, odds table, "Your sacks", the reveal), Bazaar.tsx (Today's shelf, Feed Sacks,
+  Bell shelf, Bells in the header), ItemArt.tsx. Where the plan's letter did not fit: the balances, pity counters, sack log and
+  frozen shelf live in the existing wallet (`sap:barn` and, signed in, the server's barn_wallets row), not separate sap:wool /
+  sap:bells / sap:sack-pity / sap:sack-log keys, so save codes and the account wallet carry them; signed in, the server rolls the
+  sack (POST /api/barn/sack, the body is ignored) and freezes the shelf (POST /api/barn/shelf, the player's local date only within
+  a day of the server's); the shelf is frozen per player per day the first time it is seen, because a re-draw past owned items
+  would refill it after every purchase. New items, so every tier has some: Northern Lights (rare burst, 800), Diamond (legendary
+  bomb, 1500), Solstice (legendary burst, 1500); Bell items Brass Bell (30) and Golden Quill (40). Bells: 5 a level, 10 a
+  milestone, 20 per 7 nights of the best dream streak (paid once, `bellStreak`); an import from a browser brings at most 100.
+  Tests: src/skin/shop/__tests__/sacks.test.ts (the plan's 7.2 list) and server/barn/sacks.test.ts.
+- Three Feed Sacks (requested by Brian, 2026-11-12: "make it 3 different feed sacks. i dont want different types of material in the
+  same lootbox ... ensure that everything is coherent with theme"). One sack per kind, never mixed: the Oat Sack (bomb skins), the
+  Corn Sack (bursts) and the Barley Sack (fuse sounds), each with its own pool, pity counters (`wallet.pity[sack]`) and log
+  (`SackEntry.sack`); the odds table is shared. `SACKS` in src/skin/shop/sacks.ts names them and colours their burlap and
+  stencil; POST /api/barn/sack takes `{ sack }` and nothing else. Every sack needs at least one item of every rarity (a test
+  checks), so new items fill the gaps: bursts Hay and Snowfall (common); fuse sounds Cowbell and Sleigh bells (uncommon), Barn
+  owl (rare) and Music box (legendary), new voices in `beep` (src/audio/sound.ts: overtones and a glide, no noise sources). The
+  Bell burst is Lantern Glow (was Golden Quill). For the farm theme, three older items changed their names only (ids kept):
+  8-bit is Tin toy, Bubblegum is Heather, Confetti is Harvest Fair. Rarity tags are the kit's paper hang tag (`kit-tag`).
+- Admin's unlimited purse (requested by Brian, 2026-11-12: "make admin panel give infinite currency"): while the admin lock is open,
+  the Trading Post shows ADMIN_PURSE (999,999) Wool Coins and Golden Bells and nothing bought or opened costs anything
+  (`adminDo` in src/skin/shop/store.ts puts the real balances back after every action; items got this way stay owned). It runs on
+  this browser's wallet even when signed in: the admin lock is client-only, so the account's wallet on the server is never
+  touched and the server never pays out on a browser's say-so. Locking shows the real balance again.
+- Feed Sacks only, Missions and the Barn Book (requested by Brian, 2026-11-12: "remove everything except for the feed sacks, i dont
+  want stuff to be purchased seperately ... missions ... a dictionary thing ... make the lootbox opening more similar to like a casino
+  style"). This supersedes guardrails (b) and (c) of Trading Post v2 and its T2 and T3: there is no direct purchase, no daily shelf,
+  no Golden Bells and no Bell shelf (POST /api/barn/buy and /api/barn/shelf are gone; old `bells` and `shelf` fields in saved wallets
+  are dropped quietly). Items are `free`, `sack` (with a rarity) or `mission`; `MISSIONS` in src/skin/shop/economy.ts gives the
+  mission items for good (dream streaks 7, 30, 100 via `wallet.bestStreak`; level 5 the Brass Bell; 500 different words Lantern
+  Glow), granted in `payGame` and `grantStreakItems`; the word milestones still pay coins. The Trading Post has three tabs: Feed
+  Sacks (three sacks on a barn counter), Missions (progress for each) and Collection, the Barn Book (every item, found ones in
+  colour with Wear and Listen, others as dark shapes saying where they come from). The opening is the fair machine (Reveal in
+  FeedSacks.tsx): lever, chasing square bulbs, a spinning reel, a bell. It stays honest, guardrail (d) unchanged: the result
+  is rolled and saved first, the bulbs and every reel tile show the rolled rarity from the first frame, and the reel holds only
+  items of that rarity (`reelFor`), so nothing better slides past. Don't add better items to the reel or a slow-down near them.
+  Admin coins are now a switch in the admin panel (`coins` in src/lib/admin.ts, sap:admin-coins), effective only while unlocked;
+  a stopgap Brian means to change.
+- Rule (d) lifted, Golden Bells back, and the Trading Post looks like the rest of the UI (Brian, 2026-11-12: "override rule d, i changed
+  my mind ... FIX THE DESIGN PLEASE it should match the rest of the UI ... why did u remove the purchasing with bells?").
+  (1) Guardrail (d) of Trading Post v2 is withdrawn. The fair machine's reel (`reelFor` in FeedSacks.tsx) holds the sack's items at
+  the sack's own odds, and when the result is short of legendary, NEAR_MISS (0.55) of the time the tile just past it is rarer and the
+  reel stops leaning toward it, with a "So close!" line. The result itself is still the real roll, saved before the spin, and the
+  odds shown are still the real odds; only the tiles around it are for show. The bulbs are string lights until it lands.
+  (2) Golden Bells and the Bell Shelf are back (Brass Bell 30, Lantern Glow 40), earned 5 a level, 10 a milestone, 20 per 7 nights
+  of best dream streak; POST /api/barn/buy sells Bell Shelf items only. Wool Coins still only open sacks, Bells never open a sack,
+  and the two never convert. Missions are the three dream-streak items. No daily shelf.
+  (3) The Trading Post and the profile are `.sk-guide` panels over the farm, like How to play and Settings: the knitted frame and
+  festive band, a snow-capped head with the round close button, paper tabs (Feed Sacks, Bell Shelf, Missions, Collection), the
+  guide's rows and outlined art boxes on cream, red WoodButtons and green ClothButtons, and the kit's hang tags. The dark
+  full-page `.sk-shop` shell is no longer used by either. The fair machine is a `.sk-guide` panel too.
+- The Trading Post, rebuilt and polished (requested by Brian, 2026-11-12: "fix all the formatting issues ... this is so shoddily made. fix it up,
+  everything from the icons to the ui itself ... make this feel more exciting, make sure everything is placed intentionally"), skin only.
+  Art: src/skin/shop/art.tsx draws everything as rows of characters (`Pix`): bombs are the turn clock's own ice bomb in each skin's
+  colours with one mark each, bursts use the burst's real BLAST_PALETTE, every fuse sound has its own picture (bell, tin robot, wood
+  block, cowbell, sleigh bells, owl, music box, moon), and the sacks are tied burlap with a printed label. Item art always sits on a
+  dark tile (`.sk-art`, rarity along its bottom edge), because pale bursts and ice vanish on cream paper. Feed Sacks tab: pick one of
+  three sacks on top (pips show what is found, by rarity); below, what is inside in two balanced rows, the odds as a bar with a key,
+  two meters for the guaranteed rare and legendary, and one Open button. Open brings up the fair machine READY: nothing is spent
+  until the lever (or the Pull button) is pulled; that replaces the old inline confirm. Then the reel spins, the winning tile
+  pops, a near-miss neighbour stays lit, the bulbs turn the rarity's colour for rare and legendary, with a tune, confetti and (legendary)
+  a shake. Bell Shelf: the three ways Bells are earned as live progress tiles, and the items standing on a plank. Missions: a level
+  tile, meters of one length, reward tags. Collection: a count banner and aligned entries. The profile sizes to its content. The
+  old `.sk-shop*` styles are deleted. Every layout was checked at 1280 x 860 and 390 x 844; don't add a control without checking both.
+- Trading Post refinement (docs/PLAN_TRADING_POST_REFINE.md, executed 2026-11-12 on Brian's "execute plan trading post refine md"), R1 to R7.
+  The Trading Post is the inside of the shop: a plank wall (`kit-wall`), the sign on ropes, balances chalked on a slate, paper index
+  tabs with icons, one strip with the level, and a body that scrolls and fades into the wall (src/skin/shop/Bazaar.tsx). One item card
+  everywhere (ItemCard.tsx): a picture in the frame of its rarity (`kit-pic--common|uncommon|rare|legendary`, shop/rarity.ts), three
+  states only (not found: art dimmed to 35% with a padlock and where it comes from, never a "?"; owned: Wear; wearing: lit frame).
+  Feed Sacks stand on a counter with an even 4-column grid and a chalk odds slate; the Bell Shelf is a two-tier shelf with brass
+  price tags and "More soon" pegs; Missions are slips on a cork board with a DONE stamp, milestones a ruled ledger; the Collection
+  is the Barn Book (count, filters kept in `sap:book-filter`, a page per kind). New kit materials are at the end of kit.css.
+  Balances are written by `formatCoins` (shop/format.ts) everywhere, Home's peg and badge included (short form above 99,999).
+  Type: Fraunces for names and numbers, Patrick Hand for descriptions and progress, Nunito only for uppercase tags.
+  Art: items and sacks are voxel thumbnails baked by `node tools/renderThumbs.mjs` (dev server up) from ?preview=thumb into
+  public/shop/*.webp; re-run and commit after changing a look. Bomb skins are no longer a tint: each has its own shell colours
+  (`BOMB_SHELL` in shop/shells.ts, `bombShell` in voxel/bomb.ts), used by the table's bomb too, so Gold is gold in the game.
+  `node tools/postCheck.mjs` checks nothing is clipped at 1920 x 1080 and 390 x 844 and that Left/Right change tab; it is a tool,
+  not part of `npm test` (the e2e suite runs the classic look). Tests: src/skin/shop/__tests__/refine.test.tsx.
+  Where Brian's own words overrode the plan: (1) the near miss stays but is quieter (same day: "less frequent ... remove the text
+  ... make it also go close to other stuff too"): NEAR_MISS is 0.15, the planted tile is usually one rarity up and on either side,
+  the reel otherwise rests anywhere in its tile, and nothing on screen mentions it; the reveal is still the fair machine, not the
+  plan's wobbling sack. (2) No Today's shelf and no "or buy directly": he removed buying items on their own, and the plan says
+  no rule changes. Also: fuse sounds are each their own voxel object, not one tinted horn (four would have been the same tan).
+- Trading Post, third pass (requested by Brian, 2026-11-12: "make a preview thing in the barnbook ... make the lighting better everything is
+  really dark ... feed sacks a little more simpler ... a simple background bc rn it looks like its floating ... the tabs look horrendous ...
+  dont use the basic pin thing ... more flashy, glowing stuff ... bursts, make them more unique please, they are all just reskins ... make
+  sure that they are all actually usable in game"). He liked the sack opening (the fair machine): leave it as it is.
+  (1) Bursts are no longer recolours: `BURST_SHAPE` (catalog.ts) gives each its own motion in the real effect (`MOTION` in table/Blast.tsx):
+  frost ball, straw fountain, snow coming down, confetti popper, rising fire, flat ring, standing ribbons, sunburst spokes, drifting
+  lanterns, stars that stop and twinkle. The flash, light and mist take the burst's colour; the shell chunks are the worn bomb skin's
+  (`bombChunk`). 'ball' is exactly the old frost burst. Keep the cloud counts and the parked draws (the lag fixes of 2026-11-09).
+  A burst drawn by adding light needs an opaque dark background: on a clear canvas each faded bit turned its pixel black.
+  (2) The closer look: Preview.tsx (dialog) and PreviewStage.tsx (lazy canvas), opened by an item's picture on any card. A bomb skin or
+  a sound's object turns on a stand; a burst is the real Blast replaying, with "Set it off"; a sound has Listen. Still picture under
+  reduced motion. shop/models3d.tsx is shared with the thumbnail bake.
+  (3) Look: the wall is lighter and washed with lantern light; every frame's mat is a small stage (wall, floor, the thing's shadow), so
+  nothing floats; not-found art is at 50%, not 35%; the tabs are four wooden boards, the picked one lit (`kit-lit`), no pins; a string
+  of lights under the beam; a halo on Open (`kit-pulse`); rare and legendary frames glow; a pool of light behind the picked sack
+  (`kit-spot`). The sacks are built on the bomb's 0.04 m voxels with a printed label and one mark (bomb, burst, note), not stencilled
+  words at 0.02 m. The heading sits over both columns so the odds slate starts level with the cards. Under 940 px tall the sacks shrink.
+  (4) Checked in a real practice run (GPU Playwright, `--use-angle=metal`): the worn skin is the bomb at your hooves, its chunks and the
+  worn burst fly when it goes off. Tests: "every item is its own thing, and is used by the game" in refine.test.tsx.
+- Bursts are acts, not explosions (requested by Brian, 2026-11-12: "the burst doesnt literally have to be an explosion every single
+  time, maybe something pops up ... it feels weird for an aurora to be exploding"). This supersedes (1) of "Trading Post, third pass".
+  Only Frost (`ball`) is the explosion, exactly as it was. Every other burst is an act (`ACTS` in src/skin/table/burstActs.ts, played
+  by Blast.tsx): the shell falls open with a small puff and a few pieces, and something appears where the bomb was. Hay: a haystack
+  pops up and throws two forkfuls of straw. Snowfall: a snow cloud floats up and snows. Harvest Fair: balloons drift off and pop into
+  confetti. Ember: a campfire. Heather: a patch of heather shedding petals. Northern Lights: light climbs and is drawn open into an
+  aurora overhead. Solstice: a little sun rises with its rays. Lantern Glow: paper lanterns let go. Starlight: stars come out one by
+  one. The voxel things are src/skin/voxel/burstProps.ts, drawn as one instanced mesh, parked at zero size between bursts like the
+  shell chunks (the lag fixes of 2026-11-09 still hold: 58 fps through the bang, no frame over 45 ms). The thumbnails are built from the
+  same models: re-bake after changing one. An act has no flash, mist or flying shell, and for an act only: the screen does not flash,
+  crack or shake (Jumpscare `glow`: a soft light at the edges in the burst's colour); the bang is the soft 'poof' (`setSoftBoom` in
+  src/audio/sound.ts); the barn camera stays on that seat for ACT_WATCH_S (2 s) before it swings on, as it does for a freeze
+  (BarnTable.tsx); a practice run's end board waits ACT_WATCH_MS (1.9 s) (PaintedGame.tsx). Without the last two an act is never
+  seen: the camera had left, or the board was over it. An act happens where the bomb was when it went off (`stage` in Bomb.tsx,
+  noted in the frame loop: by the time a burst asks, the bomb's own position is usually the next sheep's; the frost blast still reads
+  `origin` as before, which is why it goes off in front of the camera); a thing that needs the floor stands beside the sheep (`room`);
+  tall acts keep under what the camera sees (`top` in Blast.tsx). Acts' lights are weak on purpose (3 to 14): 34 lit the wool white.
+  Checked in the Barn Book preview (desktop and phone), at the barn table and on the ice. Tests: src/skin/table/__tests__/burstActs.test.ts.
+- Bomb skins are their own models with their own effects (requested by Brian, 2026-11-13: "add effects to the cooler bombs, like diamond
+  just looks like the default snowy bomb ... everything needs to be differentiated, perhaps even remodel them slightly"). This
+  supersedes "The shape, the frost and the cracks are the ice bomb's, voxel for voxel" for every skin but Ice, which is untouched.
+  Models: src/skin/voxel/bombSkins.ts (`bombLook(id)`: body, glowing parts, fuse and spark in the skin's colours, a piece for the
+  burst). Ember is a cracked coal with glowing cracks; Peppermint a striped sweet in a wrapper's ruff on a candy-cane neck; Plum a
+  plum with a cleft, stem and leaf; Gold a strapped, studded orb with a crown; Diamond a brilliant-cut gem standing on its point;
+  Brass Bell a bell on its lip; Aurora a ball of night sky with a raised ribbon and rays of light. Every skin still stands on row
+  -5, keeps about the ice bomb's width and has a neck voxel at 0,6,0 for the fuse, so the table treats them all alike.
+  What each does at rest: src/skin/shop/bombAura.ts (pure, no three) drawn by src/skin/table/BombAura.tsx, in the world, not on
+  the bomb: Ice cold vapour (the old code, same numbers), Ember rising embers and throbbing cracks, Peppermint mint air and a
+  glint of sugar, Plum dusk motes, Gold falling dust and constant glints, Diamond rainbow sparkle, glints and edges that pass through
+  the spectrum, Brass Bell rocks and sends rings along the floor, Aurora a small aurora over it and bands that pass green to violet.
+  Glowing parts are a second mesh with an emissive Lambert (as the barn's lanterns are); glints are small flat voxel stars turned to
+  the camera, one instanced mesh parked at zero size. Each skin also has its own fuse, spark, floor light, floor mark and landing
+  puff. The countdown digits take a colour that reads on that skin and stand `face` metres out, clear of its widest voxel (a test
+  checks): on the Diamond and Gold they were buried in the girdle and the belt. The Barn Book shows a bomb on a dark floor now, like
+  a burst: what comes off it is drawn by adding light, which turned to black squares on the cream mat. Rarer skins do more; keep it
+  that way when adding one. Checked at the barn table, on the ice and in the preview; 60 fps with the Diamond worn.
+  Tests: src/skin/voxel/__tests__/bombSkins.test.ts. Re-bake the thumbnails after changing a model.
+- The beat after a bomb (requested by Brian, 2026-11-13: "people only get 3s when it says 5s or 10s ... make some sort of a pause, the
+  sheep actually becoming dazed or something to show the impact of the bomb"), an engine change. After a time-out the next sheep's
+  fuse is lit AFTERMATH_MS (2.4 s) later: `turn.startedAt` is that far in the future and the whole turn runs from then (`startTurn`'s
+  `wait`, given only by `failTurn`). A word played normally still starts the next turn at once. A word or a pass sent in the beat is
+  accepted (the clock on a client can be a few ms off the server's); a pass then hands on a whole turn at most. This was the "3 s"
+  bug: nothing was wrong with the room clock (a two-client run on the local server shows every sheep getting the time it is told, to
+  0.1 s), but the next turn's clock ran while the camera was still on the sheep the bomb went off beside (2.4 s for a freeze, and the 2 s
+  act hold of 2026-11-12, which this replaces: ACT_WATCH_S is gone). What the screens do with the beat (painted skin): nobody has the
+  floor (`TableView.currentPlayerId` is '' until the fuse is lit, `nextPlayerId` says who is next; the clock stands
+  full); the sheep is `dazed` (Sheep.tsx: knocked back, head rolling; `DazeStars` in BarnTable circle its head) and the table stays on
+  it (`dazed`); PREROLL_MS (650) before the fuse is lit the table turns to the sheep up next (`upNext`), the turn is called, and a
+  fresh bomb drops as the clock starts. The frost blast is now watched where it happened too. The fuse beeps only for seconds the
+  turn has. The classic look shows a full clock through the beat. Tests: src/engine/__tests__/aftermath.test.ts.
+- The end of a game plays out (requested by Brian, 2026-11-13: "make some sort of a animation that transitions between the end of the
+  game and the win screen. rn its too abrupt"), skin only: FINALE in PaintedGame.tsx. The win screen used to take the table the instant
+  the last bomb went off. Now the last bang and the freeze are watched (2.4 s), the table turns to the winner, who is named on a gold
+  board, hops, and gets the fanfare (2.4 s), and the screen changes behind the loading doors (`playBarnDoors({ quick: true })`: a
+  short dark fade, the doors only if the podium is slow to draw). A game already over when the screen came up, the admin's end
+  preview, a practice run and reduced motion go straight to the results.
+- Faster at fine resolutions (requested by Brian, 2026-11-13: "make the website less laggy"). Measured first, at the barn table on a
+  Retina laptop with the resolution pinned (`?dpr=1.5`, new: AdaptiveCanvas draws at exactly that and adapts nothing): 24.5 ms a frame
+  at 1.5x, of which 4x multisampling was about 7.5 ms (every composer pass resolves it again) and the bloom about 7.5 ms; shadows
+  next to nothing; and a bang, frost or any act, added nothing measurable on top. So the bursts were not the cost, the picture was.
+  Now `samplesFor` in Rendering.tsx: 4 samples at 1x, 2 up to 1.4x, none from 1.5x up (compared side by side: no stair shows at that
+  density), and the bloom works on a picture at most BLOOM_MAX_W (720) across. After: 60 fps pinned at 1.5x and at 2x, and left to
+  itself the table settles at 1.75x to 2x where it used to settle at 1x to 1.25x. Levels settled under the old pipeline are not
+  believed (`SETTLED_UNDER` in the saved value), or a kept "1.5x is too slow" would hold a device down for good. The Trading Post's
+  pages and previews were measured too and hold 60. A burst now holds the resolution for 3.2 s at most.
+- What a bomb leaves on the floor is its own (requested by Brian, 2026-11-13: "all the bombs have like an ice thing on the ground which
+  doesnt make sense for stuff like fire"): `ground` in bombSkins.ts. Ice keeps its frost; Ember a scorch with embers at its edge,
+  Peppermint a scatter of sugar, Plum a pool of juice and three leaves, Gold coins in gold dust, Diamond rays of thrown light, Brass
+  Bell two thin rings, Aurora a pool of green and violet. Painted in full (the old one was the frost disc with a tint multiplied
+  over it); the table fades it in and out as before, and the Barn Book's preview shows it under the bomb.
+- Brighter nights (requested by Brian, 2026-11-13, of a room game, which is always at night: "make the room a little brighter ngl i
+  cant see a thing"): `NIGHT` in Rendering.tsx. At night the lanterns burn at 1.5 and reach 19 m, the moon is 1.15 (was 0.9) and the
+  fill 0.62 (was 0.5). The fill stays modest on purpose: see "Warmer light" above for what a strong one does to the snow.
+- Review fixes (2026-11-13, after /code-review), the four that came from that day's own changes. A finished Quick Game or practice run
+  is paid the moment it ends (`payEarly` in shop/Payout.tsx, called from PaintedGame): its board, which shows the payment, now comes
+  up seconds later (the finale, or the wait for an act), and a player who left in between got nothing. A bot that takes over the seat
+  that is up next waits for the fuse like any bot (`replaceWithBot`). The word bar says "Next sheep" between rounds again, not seat 0's
+  name (`Number('')` is 0). The daze stars circle at the animal's own head height (`nameplateY`), not the sheep's. Not fixed, and
+  listed for Brian: the eleven findings in code from before that day (the sack pity counters once a tier is all owned, Bells minted
+  from a browser-reported streak, the profile's win rate, and smaller ones).
+- After the review, second round (asked for by Brian, 2026-11-13, item by item).
+  (a) The server no longer takes a browser's word for what is worth something. A Counting Sheep streak rises by at most one night
+  for each UTC day gone by since it last rose (`streak` in server/barn/service.ts, `Wallet.streakDay`): one request claiming ten
+  years used to be paid thousands of Golden Bells. A browser's wallet comes into a new account under caps (`importable`): a week's
+  streak, 2 rare and 1 legendary Feed Sack items (worn ones first), Bell Shelf items only while their prices fit under the 100-Bell
+  cap, mission items only if the capped streak earned them, fresh pity counters. An honest long-time guest can lose a rarer item or
+  part of a streak on first sign-in: the cost of the caps, told to Brian, who has not yet said whether they should be looser.
+  (b) A sack's result stays off the screen until the reel stops: the wallet is saved at the pull as before, but `useWallet` goes
+  on returning the wallet from before the lever (`holdWalletView` / `releaseWalletView` in shop/store.ts) until the machine is done.
+  (c) The profile shows "Wins" (Quick Games won), no win rate: wins were only counted from 0.7.0, games from the start.
+  (d) The profile's board (he asked for it in place of the bare rank): GET /api/barn/top gives the 100 players with the most XP
+  (name, level, XP; no account ids; hidden, deleted and banned accounts left out, as on the game leaderboards) and the asker's place.
+  On the board you see "#7"; below it, "You are in the top 0.5%" (`topPercent`: rounded up, two figures under one percent, never
+  0). The list is read once a minute for everyone; /api/barn/rank is gone.
+  (e) Signed in, `settings.name` follows the account's nickname (PaintedApp), so solo games use the one name. A stopgap until
+  Google sign-in holds names and stats.
+  (f) The avatar picker and the sign-in dialog are drawn beside the profile, not inside its scrim (a click that closed the picker
+  closed the profile too). The farm keeps moving behind the profile; it is paused only behind the Trading Post.
+  (g) Renames: five a day, counted only when the name really changes; a save that fails for any reason but the name being taken
+  is an error, not "taken".
+  (h) Removed as unused: the wallet's log of opened sacks (old ones are dropped quietly), `pityLine`, `bombShell`, `Item.swatch`,
+  `BOMB_TINT.color`, the `coldFor` plumbing, `BellIcon` and `CoinIcon` (the Trading Post's `CoinArt` is the one coin). Pixel art is
+  drawn by one helper, components/pixels.tsx (`pixelRects`), used by Icons, the Trading Post's art and the loading sign.
+  Not changed, waiting on Brian: what a sack does when its guarantee comes due and every rare in it is already owned (today the
+  guarantee stays due, so each sack after is 20% legendary and 80% uncommon until a legendary drops, while the slate shows 2% and 28%).
+- The Feed Sacks' counter (requested by Brian, 2026-11-13: "make the three Feed Sacks belong in the room. Skin only"). No price, odds
+  or behaviour changed. The thin shelf line is a real counter (`kit-counter` in kit.css): a 28 px plank with grain, a lit top edge
+  and a dark front lip, on two brackets, the room's full width. The sacks stand ON it: a thumbnail's sack ends at 95% of its height
+  and the plank's top is 5 px above that line (`--stand` in skin.css), with a hard dark ellipse under each (an SVG ellipse: no
+  blur). The radial glow behind the picked sack is gone (`kit-spot` deleted): the picked sack slides 8 px forward at full size
+  in warmer light, a lit lantern hangs over it on a string and swings once, and its tag gets a gold edge; the others sit back at
+  92% in less light. Names are no longer cream text on the wall: each sack's name, "Bomb skins · 3 of 5 found" and its pips are on
+  a paper tag (the cards' paper, a slight tilt) hung by a string from a nail in the counter's front edge under it. The counter is
+  dressed with a brass scale at one end and a rope coil and a scoop at the other, behind the sacks' line, and a little grain at
+  each sack's foot in its own colour (oat pale, corn yellow, barley brown): voxel props in shop/thumbModels.ts (`COUNTER_PROPS`),
+  baked by tools/renderThumbs.mjs like every thumbnail. Sacks and props are baked at the fuse sounds' turn under the same key
+  light, so their shading matches the cards. Hover wobbles a sack 2 degrees; none of the motion runs under reduced motion. Phone:
+  the counter stays, sacks at 112 px (80% of the laptop's 140), tags stacked under each, props hidden under 480 px, the last
+  sack's lantern on its left. tools/postCheck.mjs passes; before and after pictures were sent at 1920 x 1080 and 390 x 844.
+- The Feed Sacks' market stall (requested by Brian, 2026-11-13: "turn the counter into a market stall. Skin only; no change to
+  prices, odds or behaviour. Keep the voxel sacks, the tags' text and the odds slate"). It replaces the counter in the bullet
+  above: `kit-counter`, the `sk-counter-*` rules, `COUNTER_PROPS`, `PropArt`, `SackArt` and the sack and prop thumbnails are gone.
+  - What it is: one baked voxel picture per window shape, with a few live pieces laid over it. shop/stallPlan.ts measures the
+    stall in voxels (no three, so the page can read it); shop/stallModels.ts builds it on the sacks' own voxel size;
+    `?preview=stall` (shop/StallRender.tsx) shows one layer from the front, 0.2 rad above, under the thumbnails' three lights;
+    `node tools/renderStall.mjs` (dev server up) bakes public/shop/stall/*.webp. Re-run it after changing the plan or the models.
+  - In the picture: a barn red and cream awning with a snow bank on its ridge, two posts standing on the counter's ends, a dark
+    back wall with two shelves of small sacks, jars and tins, a rope coil, dried corn and a string of onions hung from a rail, a
+    chalkboard, a thick plank over a boarded front (upright boards, two rails, a cross brace in each bay between tags), a brass
+    scale 14 voxels tall on the counter's left end, a barrel on the floor at the left and two stacked closed crates at the right.
+    Everything on the back wall is painted bright and then shown 20% darker (`DIM`), so the sacks stand out.
+  - Laid over it by FeedSacks.tsx (`Stall`, `StallSack`), all in percent of the stall's box so it scales as one thing: each sack
+    in an open crate leaning 0.2 rad toward the buyer, heaped with its own grain (a tin scoop in the oats), as two pictures (the
+    crate with its hard shadow, and the sack cut off where the crate stands in front of it) so a hover wobbles the sack alone;
+    its paper tag on 12 px of string from a nail in the rail under the plank, all three nails at one height; the one lantern,
+    which slides along to the picked sack's shoulder and swings once; the awning's scalloped edge; and the chalk "Feed Sacks ·
+    250 each" with the coin, the number read from `SACK.price`. The sack model is `sackGrid`, unchanged, seen from the front now.
+  - Picked: the crate steps 8 px forward in brighter light and its tag gets a 3 px amber ring. The soft ellipse shadows are gone.
+  - Four stalls (`STALLS`), chosen by `useStallSize`: `wide` (desktop), `low` (window 940 px tall or less: drawn smaller and
+    wider so the cards stay in view), `mid` (480 to 760 px wide), `narrow` (under 480 px: the awning, the counter's front, the
+    crates and the tags, and nothing else). Each front panel is as tall as that window's tag needs; the tags' type is sized from
+    the stall's width (`--tag`, container units), so a tag fits its panel at any width. Checked from 320 to 1920 px wide.
+  - Motion: the awning's edge is two halves hung from the posts' ends that sag and lift in the middle through one degree in
+    all (`sk-awning-sway`; the band it is sewn to is also in the picture, so no gap opens); a hovered sack wobbles 2 degrees.
+    Neither runs under reduced motion, and the lantern does not slide or swing there.
+  - Departures from the request, for Brian to overrule: the sacks face the front in their crates (the stall is drawn in one
+    projection, and three crates do not fit a phone at the old three-quarter turn); the sacks' tied tops sit just behind the
+    awning's edge; a phone and a tablet have no cross brace (their tags leave no bay for one); the stall is about 370 px tall
+    on a desktop against the counter's 355, with the gaps round it trimmed so the first row of cards is still whole at 1080.
+  - Tests: shop/__tests__/stall.test.ts (the plan, the models, the pictures, the page's rules). tools/postCheck.mjs and
+    `npm run check:floating` pass. Before and after pictures were sent at 1920 x 1080 and 390 x 844.
+- The fuse sounds are real sounds (requested by Brian, 2026-11-13: "make the sounds actually useable, i dont see them working
+  both in the preview and in game"). Nothing was broken: the worn sound was reaching the game and the samples were playing.
+  But all eight were one short beep at slightly different pitches, and every second before the last three was quieter than
+  the music, so wearing one changed nothing a player could hear.
+  - src/audio/fuseVoices.ts holds the eight voices, each a function of one second of a turn (seconds left, how far through,
+    which second of the turn). Tin toy: a two-note chirp. Wood block: tick, then tock. Lullaby: a bell and the note it falls
+    to. Cowbell: a clank through a band-pass filter. Sleigh bells: five small bells struck three times. Barn owl: a hoo, and
+    a lower hoo in answer. Music box: Brahms's lullaby, one note a second, from the top of each turn. Tones only, no noise
+    (Brian, 2026-11-08, of the music: "why is there static"). The ice chime, the free default, is exactly as it was.
+  - Loudness: every calm second of the seven is now louder than the music (measured at the speakers in a real game: 0.26 to
+    0.47 against the music's 0.06 to 0.25; they were 0.13 to 0.3). The last three seconds are louder, higher and doubled.
+    None clips. A voice changes what a second sounds like, never when it sounds (src/audio/__tests__/sound.test.ts).
+  - Sampling in the Trading Post goes through shop/sample.ts: one sample at a time (three calm seconds and the last three);
+    a card's speaker is ringed in amber and beats while it plays, the closer look's button reads "Playing"; the music
+    steps back to a quarter for the sample (`musicDuck`); a sample stops when another starts, when the closer look or the
+    fair machine closes, when the tab changes or the Trading Post shuts. With sound switched off, tapping a speaker says so.
+  - When a turn changes, sounds not begun never play and one still ringing fades in a blink (`hush` in sound.ts): the old
+    clock cut them dead, which a long note like the music box's would have made into a click.
+  - Checked by measurement, not by ear: tools cannot listen. Each voice was rendered with an OfflineAudioContext and
+    looked at as a spectrogram and by level, and the game and the Trading Post were listened to through an analyser on the
+    speakers. Brian should say if any of them sounds wrong.
+- Music for every place (requested by Brian, 2026-11-13: "the calm lofi should only be in the start screen. once u go in the
+  game, change it to something more intense ... ensure each gamemode and when u switch onto something else the music changes.
+  while ur at it, refine the lofi, rn its a bit too boring and isnt very aesthetically pleasing"). He offered a track; none was
+  needed: every song is written out in code and played live, as the lofi always was. No audio files, no noise.
+  - Four files in src/audio. scene.ts says where the player is (no imports, anything may set it). musicKit.ts is the band:
+    every instrument, drums included, made of plain oscillators. songs.ts is the seven songs, note by note, each asked for
+    one bar at a time. music.ts is the player: it schedules a bar a moment before it starts and crossfades (about half a
+    second) when the scene changes. PaintedApp sets the scene from the stores; the Trading Post sets an overlay while open.
+  - The songs. home, "Lofi in the barn": 76 bpm, swung, eight chords (ii V I vi, IV iv iii VI), a walking bass, and a
+    32-bar shape: the band comes in, a written tune on the vibes, its answer, then four bars with no drums. It was four
+    chords with random notes. shop, "The Trading Post shuffle": a swung I vi ii V with a walking bass and a glockenspiel
+    tune. lobby, "Waiting at the gate": the battle's key at rest. battle, "Pass the bomb" (Quick play, rooms, daily): A
+    minor at 124 bpm, and it heats up with the round (`heatFor`): a galloping bass and an arp from round two, the tune
+    from round three, 138 bpm and tom fills from round four; when the game is over it lets go to held chords.
+    practice, "Clearing the ice": G major, a marimba, a whistled tune. tour, "Whistling for the sheepdog": C major, bass
+    and chord by turns. dream, "Counting sheep": a lullaby in three, no drums.
+  - Levels were set by measurement: each song rendered with an OfflineAudioContext (`renderScene`) and its A-weighted
+    level and peak read off. All sit within about 3 dB of each other (the battle rises 4.5 dB from round one to four, the
+    lullaby is the quietest); the old lofi measured about 4 dB under the new one. The home and shop songs pick up where
+    they were left, so flipping between them does not replay an opening.
+  - The sound menu says which song is playing. The fuse-sample ducking (`musicDuck`) applies to every song.
+  - Tests: src/audio/__tests__/songs.test.ts (every note in key and in its bar, no two songs alike, none a short loop,
+    the lofi's and the battle's shapes) and music.test.ts (the player, on a stand-in for Web Audio).
+  - Checked by measurement and by spectrogram, not by ear. The notes are written to be right by the rules of harmony;
+    whether they are good to listen to is Brian's call. To use a recording instead, a scene's entry in `SONGS` is the
+    place: the player would need a branch that plays a file for that scene.
+
 - Guests, lobbies and friends without an account (requested by Kai, 2026-11-13). Signed out, Quick play, Create lobby and Join party work: the
   browser keeps a random id (`sap:guest-id`) and the room connection and the API send `guest:<id>:<name>` (src/auth/guest.ts); the server accepts
   it in server/guest.ts (shape and name checked; chat on, results off, never a moderator). Every `auth: 'user'` route refuses a guest with 403

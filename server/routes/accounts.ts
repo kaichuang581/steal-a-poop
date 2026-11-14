@@ -48,6 +48,8 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
   const decideByIp = new RateLimiter(20, HOUR);
   const sessionByUser = new RateLimiter(20, 60_000);
   const deleteByUser = new RateLimiter(5, HOUR);
+  const renameByUser = new RateLimiter(5, 24 * HOUR); // a name is not a chat channel: a few changes a day
+  const renameTries = new RateLimiter(30, HOUR); // tries that change nothing (a name that is taken or not allowed) are not changes
   const limited = (l: RateLimiter, key: string) => !l.allow(key, now());
   const tooMany = () => bad('rate_limited', 429);
   const body = (req: RouteRequest) => (req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>) : {});
@@ -79,6 +81,20 @@ export function createAccountRoutes({ service, captcha, now = Date.now }: Accoun
         const out = await service.createUsernameProfile(req.session!, String(b.nickname ?? ''));
         if (!out.ok) return bad(STATUS[out.reason][1], STATUS[out.reason][0]);
         return { status: 201, json: { profile: out.profile } };
+      },
+    },
+    {
+      // Changing the nickname afterwards, from the profile page. Same rules as sign-up.
+      method: 'POST', path: '/api/account/nickname', auth: 'user',
+      handler: async (req) => {
+        // Five changes a day, counted only when the name really changes: five tries at names that were taken used
+        // to lock a player out for the day without one rename.
+        const id = req.user!.userId;
+        if (renameByUser.retryAfter(id, now()) > 0 || limited(renameTries, id)) return tooMany();
+        const out = await service.renameProfile(id, String(body(req).nickname ?? ''));
+        if (!out.ok) return out.reason === 'not_found' ? bad('not_found', 404) : bad(out.reason, out.reason === 'nickname_taken' ? 409 : 400);
+        if (out.changed) renameByUser.allow(id, now());
+        return { status: 200, json: { profile: out.profile } };
       },
     },
     {

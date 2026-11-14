@@ -12,6 +12,7 @@ export function useWordInput() {
   const act = useStore((s) => s.act);
   const mode = useStore((s) => s.mode);
   const mySeat = useStore((s) => s.mySeat);
+  const now = useStore((s) => s.now);
   const suggest = useStore((s) => s.suggest);
   const [typed, setTyped] = useState('');
   const [hint, setHint] = useState('');
@@ -21,7 +22,8 @@ export function useWordInput() {
   const [acceptKey, setAcceptKey] = useState(0);
 
   const playing = game.phase === 'playing' && !!game.turn;
-  const myTurn = playing && game.turn!.seat === mySeat;
+  // Yours once your fuse is lit: in the beat after a bomb has gone off a word can be typed ahead, not sent.
+  const myTurn = playing && game.turn!.seat === mySeat && now >= game.turn!.startedAt;
   const learning = mode === 'tour';
 
   useEffect(() => setIdeas([]), [game.turn?.seat]);

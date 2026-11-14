@@ -13,6 +13,7 @@ import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, s
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
+import { bonkStar } from '../dream/world';
 import { tuftGeometry } from '../voxel/characters';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
@@ -20,7 +21,7 @@ import { BOARD, boardFontReady, letterBoardGeometry, pileGeometry, pileWidth, PL
 import { DevStats } from './DevStats';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Festive } from './Festive';
-import { AdaptiveCanvas, Atmosphere, Effects, LANTERN_LIGHT, Lights, MarkDrawn } from './Rendering';
+import { AdaptiveCanvas, Atmosphere, Effects, LANTERN_LIGHT, lanternIntensity, Lights, MarkDrawn } from './Rendering';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
@@ -35,7 +36,6 @@ export interface BarnSeat {
   level: WoolLevel;
   state: SheepState;
   stateKey: number;
-  coldFor?: number;
   dimmed: boolean;
   scarf: boolean;
   /** A bot on its turn: the sheep thinks whenever it has nothing else to do. */
@@ -66,6 +66,13 @@ interface Props {
   pile: number;
   /** Seat index (as in BarnSeat.index) whose turn it is: that sheep steps toward the pile. */
   speaker: number | null;
+  /**
+   * The beat after a bomb has gone off, when nobody has the floor: `dazed` is the seat it went off beside (the camera
+   * stays on it, stars circle its head, everyone looks at it), then `upNext` is the seat whose fuse is about to be
+   * lit (the camera swings there, so it has arrived when the turn starts).
+   */
+  dazed?: number | null;
+  upNext?: number | null;
   /** 0..1 of the turn left (the icicle's length). */
   fraction: number;
   /** Seconds left on the clock, chalked on the slate under the letter board. */
@@ -173,7 +180,9 @@ export function Building() {
   );
 }
 
-function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, isTrap, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
+function Scene({ bombSize, seats, pile, speaker, dazed = null, upNext = null, fraction, secondsLeft, letter, isTrap, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
+  // Who the table is turned to: the speaker, or in the beat after a bomb the dazed sheep and then the one up next.
+  const focus = speaker ?? dazed ?? upNext;
   useKaiyanLook(); // the admin's name plate follows the forehead's length
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
@@ -185,27 +194,27 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
   useFrame(({ clock }) => {
     const dim = performance.now() / 1000 - freezeAt.current < 2.4 ? 0.4 : 1;
     const flicker = reduced ? 1 : 1 + Math.sin(clock.elapsedTime * 7.3) * 0.05;
-    for (const l of lamps.current) if (l) l.intensity = LANTERN_LIGHT.intensity * dim * flicker;
+    for (const l of lamps.current) if (l) l.intensity = lanternIntensity(hour) * dim * flicker;
   });
 
   // The camera aims at the speaker's head, wherever the animal it wears carries it (a hen low, a horse high).
   const speakerHeadY = useMemo(() => {
-    const a = seats.find((s) => s.index === speaker)?.avatar;
+    const a = seats.find((s) => s.index === focus)?.avatar;
     const c = byId(a);
     return SPEAKER_CAMERA.headY * (c ? heightRatio(c.animal) : 1);
-  }, [seats, speaker]);
+  }, [seats, focus]);
 
   // Attention (plan V3.3 Part 3.3): every sheep looks at the speaker's head; the speaker looks at the camera.
   const speakerHead = useMemo((): [number, number, number] | undefined => {
-    if (speaker === null) return undefined;
-    const p = seatPosition(speaker, n);
+    if (focus === null) return undefined;
+    const p = seatPosition(focus, n);
     const dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;
     return [p.x + (dx / len) * 0.35, 0.85 * SHEEP_SCALE, p.z + (dz / len) * 0.35];
-  }, [speaker, n]);
+  }, [focus, n]);
 
   return (
     <>
-      <SpeakerCamera speaker={speaker} n={n} phone={phone} reduced={reduced} moments={moments} fade={anchors.fade} headY={speakerHeadY} />
+      <SpeakerCamera speaker={focus} n={n} phone={phone} reduced={reduced} moments={moments} fade={anchors.fade} headY={speakerHeadY} />
       <Atmosphere hour={hour} />
       <Lights hour={hour} phone={phone} viewYaw={0} lampRef={(i, l) => { lamps.current[i] = l; }} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
@@ -215,12 +224,12 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
       <Bomb speaker={speaker} n={n} fraction={fraction} red={false} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {seats.map((s) => {
         return (
-          <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === speaker} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(s.avatar)?.animal ?? 'sheep').drawScale}>
+          <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === focus || s.index === dazed} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(s.avatar)?.animal ?? 'sheep').drawScale}>
             {s.avatar === ADMIN_AVATAR_ID ? (
               <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} speaking={s.index === speaker} />
             ) : (
-              <Sheep level={s.level} state={s.state} stateKey={s.stateKey} coldFor={s.coldFor} dimmed={s.dimmed} reduced={reduced} scarf={s.scarf}
-                gustFrom={[0, 0.8, -6]} lookAt={s.index === speaker ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking}
+              <Sheep level={s.level} state={s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} scarf={s.scarf}
+                gustFrom={[0, 0.8, -6]} lookAt={s.index === focus ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking}
                 model={byId(s.avatar) ? animalModel(byId(s.avatar)!.animal) : undefined} />
             )}
           </SeatGroup>
@@ -232,6 +241,7 @@ function Scene({ bombSize, seats, pile, speaker, fraction, secondsLeft, letter, 
         return <ScreenAnchor key={`name-${s.seat}`} el={anchors.slip(s.seat)} position={[p.x, nameplateY(s.avatar), p.z]} above />;
       })}
       <Moments moments={moments} n={n} />
+      {!reduced && <DazeStars seat={dazed} n={n} y={nameplateY(seats.find((s) => s.index === dazed)?.avatar)} />}
       {children}
       <Effects />
       <DevStats />
@@ -245,8 +255,9 @@ const polar = (p: readonly number[]) => ({ a: Math.atan2(p[0] - SEAT_RING.cx, -(
 
 /**
  * The speaker camera (plan V3.3 Part 4): at every turn it moves to frame the speaker (the home shot on your turn) in
- * one 650 ms ease-in-out swing round the pile, then holds with a 0.05 m drift. A freeze is watched to the end.
- * Reduced motion cuts behind a 150 ms fade.
+ * one 650 ms ease-in-out swing round the pile, then holds with a 0.05 m drift. A freeze is watched to the end. In the
+ * beat after a bomb has gone off `speaker` is the dazed sheep and then the one up next (see Props), so the bang is
+ * watched where it happened and the camera has arrived when the next fuse is lit. Reduced motion cuts behind a 150 ms fade.
  */
 function SpeakerCamera({ speaker, n, phone, reduced, moments, fade, headY }: { speaker: number | null; n: number; phone: boolean; reduced: boolean; moments: BarnMoments; fade: Anchors['fade']; headY: number }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
@@ -292,6 +303,37 @@ function SpeakerCamera({ speaker, n, phone, reduced, moments, fade, headY }: { s
     if (Math.abs(camera.fov - st.cur.fov) > 0.01) { camera.fov = st.cur.fov; camera.updateProjectionMatrix(); }
   });
   return null;
+}
+
+/**
+ * The stars round a dazed animal's head: three of them circling just over it, bobbing, for as long as it is dazed. The
+ * dream's own bonk stars (dream/world.ts), with the lanterns' glow. Always in the scene (hidden), so the first bang
+ * builds nothing.
+ */
+function DazeStars({ seat, n, y }: { seat: number | null; n: number; /** Where that animal's name plate stands: just over its own head, a hen's low, a horse's high. */ y: number }) {
+  const geo = useMemo(() => bonkStar(), []);
+  const mat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2 }), []);
+  const stars = useRef<(Mesh | null)[]>([]);
+  const at = useMemo(() => {
+    if (seat === null) return null;
+    const p = seatPosition(seat, n), dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;
+    return [p.x + (dx / len) * 0.5, p.z + (dz / len) * 0.5] as const;
+  }, [seat, n]);
+  const since = useRef(0);
+  useFrame(({ clock }, dt) => {
+    since.current = at ? since.current + dt : 0;
+    const t = clock.elapsedTime, grow = Math.min(1, since.current / 0.25);
+    stars.current.forEach((m, i) => {
+      if (!m) return;
+      m.visible = !!at;
+      if (!at) return;
+      const a = (t / 1.1) * Math.PI * 2 + (i / 3) * Math.PI * 2;
+      m.position.set(at[0] + Math.cos(a) * 0.42, y + Math.sin(a * 2) * 0.05, at[1] + Math.sin(a) * 0.42);
+      m.rotation.y = -a;
+      m.scale.setScalar(1.6 * grow);
+    });
+  });
+  return <>{[0, 1, 2].map((i) => <mesh key={i} ref={(el) => { stars.current[i] = el; }} geometry={geo} material={mat} visible={false} />)}</>;
 }
 
 /** A seat: the sheep faces the pile and, on its turn, steps 0.35 m toward it. */

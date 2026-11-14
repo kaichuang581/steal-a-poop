@@ -11,6 +11,10 @@ export interface BarnStore {
   get(userId: string): Promise<BarnRow>;
   change<T>(userId: string, fn: (row: BarnRow) => { row: { wallet: Wallet; imported: boolean } | null; out: T }, at: number): Promise<T>;
   erase(userId: string): Promise<void>;
+  /** For the profile's rank: how many players with any XP have more than `xp`, and how many have any XP at all. */
+  rank(xp: number): Promise<{ above: number; total: number }>;
+  /** The players with the most XP, most first (ties by id, so the order is steady), at most `limit` of them. */
+  top(limit: number): Promise<{ userId: string; xp: number }[]>;
 }
 
 export class MemoryBarnStore implements BarnStore {
@@ -31,6 +35,19 @@ export class MemoryBarnStore implements BarnStore {
   }
   async erase(userId: string) {
     this.rows.delete(userId);
+  }
+  async rank(xp: number) {
+    let above = 0, total = 0;
+    for (const { wallet } of this.rows.values()) {
+      if (!(wallet?.xp > 0)) continue;
+      total++;
+      if (wallet.xp > xp) above++;
+    }
+    return { above, total };
+  }
+  async top(limit: number) {
+    return [...this.rows.entries()].filter(([, r]) => r.wallet?.xp > 0).map(([userId, r]) => ({ userId, xp: r.wallet.xp }))
+      .sort((a, b) => b.xp - a.xp || (a.userId < b.userId ? -1 : 1)).slice(0, limit);
   }
 }
 
@@ -61,5 +78,23 @@ export class PostgresBarnStore implements BarnStore {
   }
   async erase(userId: string) {
     await this.pool.query('delete from barn_wallets where user_id = $1', [userId]);
+  }
+  async rank(xp: number) {
+    // jsonb_typeof guards the rows a first `change` leaves as JSON null for a moment.
+    const { rows } = await this.pool.query(
+      `select count(*) filter (where (wallet->>'xp')::numeric > $1) as above, count(*) as total
+         from barn_wallets where jsonb_typeof(wallet) = 'object' and jsonb_typeof(wallet->'xp') = 'number' and (wallet->>'xp')::numeric > 0`,
+      [xp],
+    );
+    return { above: Number(rows[0]?.above ?? 0), total: Number(rows[0]?.total ?? 0) };
+  }
+  async top(limit: number) {
+    const { rows } = await this.pool.query(
+      `select user_id, (wallet->>'xp')::numeric as xp
+         from barn_wallets where jsonb_typeof(wallet) = 'object' and jsonb_typeof(wallet->'xp') = 'number' and (wallet->>'xp')::numeric > 0
+        order by (wallet->>'xp')::numeric desc, user_id limit $1`,
+      [limit],
+    );
+    return rows.map((r) => ({ userId: String(r.user_id), xp: Number(r.xp) }));
   }
 }

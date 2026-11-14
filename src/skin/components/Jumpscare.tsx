@@ -3,9 +3,11 @@ import { useMemo } from 'react';
 /**
  * The ice bomb going off, over the 3D burst rather than instead of it: a short pale flash, a thin shockwave ring, ice
  * shards flung out from the bomb, and frost that creeps in at the screen's edges and thaws. The middle of the screen
- * (the table and the burst) is never covered. `power` is the bomb's size.
+ * (the table and the burst) is never covered. `power` is the bomb's size. With `glow` (the colour of a worn burst that
+ * is not an explosion: a haystack, an aurora) there is no flash, ring or shard, only a soft light at the screen's
+ * edges in that colour.
  */
-export function Jumpscare({ power }: { power: number }) {
+export function Jumpscare({ power, glow }: { power: number; glow?: string }) {
   const shards = useMemo(() => Array.from({ length: 18 }, (_, i) => {
     const a = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
     const r = 38 + Math.random() * 26 + power * 4;
@@ -14,6 +16,7 @@ export function Jumpscare({ power }: { power: number }) {
       w: 10 + Math.random() * 18, delay: Math.random() * 60, tilt: (a * 180) / Math.PI,
     };
   }), [power]);
+  if (glow) return <div className="sk-jump" aria-hidden="true"><i className="sk-jump-glow" style={{ ['--tint' as string]: glow }} /></div>;
   return (
     <div className="sk-jump" aria-hidden="true" style={{ ['--p' as string]: power }}>
       <i className="sk-jump-white" />

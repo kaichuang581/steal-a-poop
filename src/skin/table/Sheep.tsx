@@ -1,4 +1,5 @@
 import { useFrame } from '@react-three/fiber';
+import { AFTERMATH_MS } from '../../engine/constants';
 import { useMemo, useRef } from 'react';
 import {
   AdditiveBlending, DoubleSide, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group,
@@ -17,7 +18,7 @@ import { CREAM, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
 import type { Brows, Lids, Mouth, Part, SheepModel, WoolLevel } from '../voxel/sheep';
 import type { AnimalModel, SigPart } from '../voxel/animals/rig';
 
-export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'run' | 'jump' | 'bonk' | 'land';
+export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'dazed' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'run' | 'jump' | 'bonk' | 'land';
 export type { WoolLevel };
 
 /**
@@ -32,7 +33,9 @@ export function coatLevel(lives: number, startLives: number): WoolLevel {
 export const swellY = (belly: number, k: number) => belly * (1 - k);
 
 /** Seconds each timed state lasts before the sheep goes back to idle. */
-const DURATION: Partial<Record<SheepState, number>> = { proud: 1.2, happy: 1.6, startled: 0.9, cold: 2, freezing: 2.4, thawing: 1.2 };
+/** How long a sheep is dazed after a bomb goes off beside it: the table's beat (the engine's AFTERMATH_MS), in seconds. */
+export const DAZED_S = AFTERMATH_MS / 1000;
+const DURATION: Partial<Record<SheepState, number>> = { proud: 1.2, happy: 1.6, startled: 0.9, cold: 2, dazed: DAZED_S, freezing: 2.4, thawing: 1.2 };
 /** The dream's trot: ms per half-step at the slowest and the fastest run (V4 Part 7.2); `pace` 0..1 picks between. */
 const TROT_MS = { slow: 110, fast: 70 };
 
@@ -45,8 +48,6 @@ interface Props {
   state: SheepState;
   /** Change to restart a timed state (two banks in a row both hop). */
   stateKey?: number;
-  /** Seconds a cold state lasts (a time-out: 2 s). */
-  coldFor?: number;
   dimmed?: boolean;
   reduced?: boolean;
   /** No idle motion at all (plan V3 Milestone 3). */
@@ -202,6 +203,23 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       f.mouth = 'flat';
       f.breath = moving;
       break;
+    case 'dazed': {
+      // The bomb went off beside it: thrown up a little, knocked back onto its haunches, and its head rolls round and
+      // round (the table puts the stars over it) until the beat is over and it gets back up.
+      const k = clamp01(e / 0.18), up = clamp01((DAZED_S - e) / 0.35), roll = moving ? e * 5.2 : 0.8;
+      p[CH.bodyY] = e < 0.25 ? Math.sin((e / 0.25) * Math.PI) * 0.12 : 0;
+      p[CH.bodyRotX] = -0.2 * k * up;
+      p[CH.legBack] = 0.8 * k * up;
+      p[CH.legFront] = -0.22 * k * up;
+      p[CH.headX] = 0.08;
+      p[CH.headZ] = Math.sin(roll) * 0.22 * up;
+      p[CH.headY] = Math.cos(roll) * 0.2 * up;
+      p[CH.earL] = p[CH.earR] = DROOP + 0.25;
+      f.brows = 'worried';
+      f.mouth = 'o';
+      f.lids = moving && Math.floor(e / 0.3) % 2 ? 'arc' : 'open';
+      break;
+    }
     case 'freezing':
       // The shiver grows to +-0.02 as the frost fades in; the eyes close at the end.
       p[CH.bodyRotX] = 0.12;
@@ -353,7 +371,7 @@ function flavour(p: Float32Array, f: Face, species: string, live: SheepState, e:
  * model; only level, state and seat differ. Each coat level is its own fleece built to fit the head and legs, so
  * growing or losing wool swaps the fleece rather than scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model }: Props) {
+export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model }: Props) {
   const m = model ?? sheepModel();
   const am = m as Partial<AnimalModel>;
   const species = am.species ?? 'sheep';
@@ -388,7 +406,7 @@ export function Sheep({ level, state, stateKey = 0, coldFor = 2, dimmed = false,
     if (!body || !head || !wool || !root.current) return;
     if (a.key !== stateKey || a.state !== state) a.key = stateKey, a.state = state, a.at = t;
     const e = t - a.at;
-    const dur = state === 'cold' ? coldFor : DURATION[state];
+    const dur = DURATION[state];
     let live: SheepState = dur !== undefined && e > dur ? (state === 'freezing' ? 'frozen' : 'idle') : state;
     if (live === 'idle' && thinking) live = 'thinking';
     if (a.level !== level) a.level = level, a.levelAt = t;

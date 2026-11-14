@@ -24,3 +24,8 @@ export function recordPracticeRun(clock: number, difficulty: Difficulty, score: 
   save(KEY, { ...all, [slot(clock, difficulty)]: score });
   return { score, best: score, isNew: true };
 }
+
+/** The best practice run on this device at any clock and bot level. */
+export function getPracticeBestOverall(): number {
+  return Math.max(0, ...Object.values(load<Record<string, number>>(KEY, {})).filter((n) => typeof n === 'number'));
+}

@@ -196,7 +196,11 @@ if (!mailer) console.warn('No mail sender is configured (SMTP_URL and MAIL_FROM)
 // ---- game data: results, coins, friends ---------------------------------------------------------------
 const economyStore = pool ? new PostgresEconomyStore(pool) : new MemoryEconomyStore();
 const economy = new EconomyService(economyStore);
-const barn = new BarnService(pool ? new PostgresBarnStore(pool) : new MemoryBarnStore());
+// The profile's top-100 board names a player only as the game leaderboards would: a live, visible account that is not banned.
+const barn = new BarnService(pool ? new PostgresBarnStore(pool) : new MemoryBarnStore(), Date.now, async (id) => {
+  const p = await accountStore.getProfile(id);
+  return p && p.deletedAt === null && p.leaderboardVisible && !chat.state(id).banned ? p.nickname : null;
+});
 const presence = { online: (_id: string) => false, guests: (): Array<{ userId: string; name: string }> => [] };
 // Guests' friend codes come from their id and this secret. Set GUEST_CODE_SECRET in production; the fallback only keeps development working.
 const guestFriends = new GuestFriends({ secret: process.env.GUEST_CODE_SECRET || 'steal-a-poop-guest-friend-codes' });

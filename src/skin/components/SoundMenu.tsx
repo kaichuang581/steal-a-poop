@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMusic } from '../../audio/music';
+import { nowPlaying, useMusic } from '../../audio/music';
 import { useStore } from '../../state/store';
 import { Lever, Peg, RopeSlider } from '../kit';
 import { SpeakerIcon } from './Icons';
@@ -7,7 +7,8 @@ import { SpeakerIcon } from './Icons';
 /**
  * The speaker button and its sound menu (Brian, 2026-11-08: "put all the music stuff in the sound menu and make all the
  * stuff adjustable"): two rows on a little dark wool panel, the game's sounds and the music, each with its own switch
- * and volume. Closes on a click outside or Escape.
+ * and volume, and under them which song is playing (every screen and game mode has its own). Closes on a click outside
+ * or Escape.
  */
 export function SoundMenu({ peg = false, size = 18 }: { peg?: boolean; size?: number }) {
   const [open, setOpen] = useState(false);
@@ -43,7 +44,7 @@ export function SoundMenu({ peg = false, size = 18 }: { peg?: boolean; size?: nu
             <Lever checked={music.on} onChange={music.toggle} label="Music" />
             <RopeSlider min={0} max={100} value={Math.round(music.volume * 100)} onChange={(e) => music.setVolume(Number(e.target.value) / 100)} aria-label="Music volume" disabled={!music.on} />
           </div>
-          <p className="sk-sound-note">lofi in the barn, all night</p>
+          <p className="sk-sound-note">{music.on ? `Playing: ${nowPlaying()}` : 'Music is off'}</p>
         </div>
       )}
     </div>

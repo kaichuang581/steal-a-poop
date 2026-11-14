@@ -57,6 +57,10 @@ export interface Player {
 
 export interface TurnState {
   seat: number;
+  /**
+   * When the fuse is lit. After a bomb has gone off this is a little in the future (AFTERMATH_MS): the turn is the
+   * next sheep's already, but its clock has not started. `endsAt` is always `startedAt + durationMs`.
+   */
   startedAt: number;
   endsAt: number;
   durationMs: number;

@@ -981,6 +981,16 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   .sk-title { --title-tile: 46px; }
   .sk-title-plank { margin-top: 4px; padding-top: 8px; padding-bottom: 6px; }
   .sk-menu-item:not(.sk-menu-primary) { min-height: 38px; padding-top: 3px; padding-bottom: 3px; }
+  /* The start screen's own row rule (.sk-home .sk-menu-board .sk-menu-item, 48 px) is heavier and used to win here, so
+     on a 1280 x 720 laptop the caption ran under the bottom bar; with Leaderboards added (eight rows) it is a step
+     heavier on purpose. */
+  .sk-home .sk-menu-board .sk-menu-row .sk-menu-item:not(.sk-menu-primary) { min-height: 38px; font-size: 22px; }
+  .sk-home .sk-menu-board .sk-menu-row .sk-menu-primary { min-height: 68px; margin: 10px 0 4px; }
+  .sk-home .sk-menu-board .sk-menu-caption { margin-top: 6px; padding-top: 6px; }
+}
+@media (max-height: 740px) and (min-width: 641px) {
+  .sk-home .sk-menu-board .sk-menu-row .sk-menu-item:not(.sk-menu-primary) { min-height: 35px; font-size: 21px; }
+  .sk-home .sk-menu-board .sk-menu-row .sk-menu-primary { min-height: 64px; }
 }
 
 /* ---------- Rooms and the lobby (classic components, V6 6.5): a panel of planks, paper fields, brass and wood buttons ---------- */

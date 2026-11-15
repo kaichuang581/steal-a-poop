@@ -89,3 +89,59 @@
 .sk-prof-ranked-text span { font: 400 17px/1.25 var(--skin-font-hand); }
 .sk-prof-ranked-bar { height: 8px; border-radius: 2px; background: rgba(59, 42, 30, 0.2); overflow: hidden; }
 .sk-prof-ranked-bar i { display: block; height: 100%; background: var(--amber); }
+
+/* The profile's ranked card keeps the ladder's button on its right, in the space the text leaves. */
+.sk-prof-ranked-text { flex: 1 1 auto; }
+.sk-prof-ranked .sk-prof-ranked-how { flex: none; margin-left: auto; padding: 0 18px; min-height: 44px; font-size: 17px; white-space: nowrap; }
+@media (max-width: 560px) {
+  .sk-prof-ranked { flex-wrap: wrap; }
+  .sk-prof-ranked .sk-prof-ranked-text { flex: 1 1 0; }
+  .sk-prof-ranked .sk-prof-ranked-how { flex: 1 1 100%; margin-left: 0; }
+}
+
+/* How ranks work (RankGuide.tsx): the leaderboards' board, a dark wool ladder of every rank, and the rules beside it. */
+.sk-rg { z-index: 60; }
+.sk-rg-box { display: flex; flex-direction: column; gap: 12px; width: min(980px, 100%); max-height: calc(100dvh - 24px); padding: 18px 18px 18px; animation: sk-play-in 180ms ease-out both; }
+.sk-rg-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
+.sk-rg-head h2 { margin: 0; font: 800 22px/1.1 var(--skin-font-display); white-space: nowrap; }
+.sk-rg-close.kit-peg { flex: none; width: 44px; height: 44px; }
+.sk-rg-body { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px; min-height: 0; overflow-y: auto; }
+.sk-rg .sk-rg-ladder.kit-slate .kit-slate-face { padding: 6px 12px; }
+.sk-rg-ladder ol { margin: 0; padding: 0; list-style: none; }
+.sk-rg-rung { display: grid; grid-template-columns: 22px 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 56px; padding: 6px 4px; border-top: 1px dashed rgba(243, 240, 230, 0.16); }
+.sk-rg-rung:first-child { border-top: 0; }
+.sk-rg-rung[data-you] { margin: 0 -6px; padding: 6px 10px; border-radius: 3px; box-shadow: inset 0 0 0 2px var(--amber); }
+.sk-rg-rung[data-you] + .sk-rg-rung { border-top-color: transparent; }
+.sk-rg-n { font: 800 16px/1 var(--skin-font-display); color: rgba(243, 240, 230, 0.55); text-align: right; }
+.sk-rg-name { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; row-gap: 1px; min-width: 0; }
+.sk-rg-name b { font: 800 19px/1.15 var(--skin-font-display); color: var(--chalk); }
+.sk-rg-name small { flex: 1 1 100%; font: 400 16px/1.2 var(--skin-font-hand); color: rgba(243, 240, 230, 0.78); }
+.sk-rg-you { font: 800 11px/1 var(--skin-font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--glow); }
+.sk-rg-divs { display: flex; gap: 4px; }
+.sk-rg-divs i { display: grid; place-items: center; min-width: 30px; height: 24px; padding: 0 6px; border-radius: 2px; font: 800 13px/1 var(--skin-font-display); font-style: normal; color: var(--chalk); background: rgba(243, 240, 230, 0.1); box-shadow: inset 0 0 0 1px rgba(243, 240, 230, 0.22); }
+.sk-rg-divs i[data-top] { padding: 0 10px; color: var(--glow); box-shadow: inset 0 0 0 1px rgba(255, 210, 120, 0.55); }
+.sk-rg-rules { display: flex; flex-direction: column; gap: 10px; }
+.sk-rg .sk-rg-rule.kit-slate .kit-slate-face { padding: 10px 14px 12px; }
+.sk-rg-rule h3 { margin: 0 0 4px; font: 800 17px/1.15 var(--skin-font-display); color: var(--glow); }
+.sk-rg-rule p { margin: 0; font: 400 17px/1.3 var(--skin-font-hand); color: var(--chalk); }
+@media (max-width: 760px) {
+  .sk-rg { padding: 8px; }
+  .sk-rg-box { padding: 14px 12px 12px; max-height: calc(100dvh - 16px); }
+  .sk-rg-body { grid-template-columns: minmax(0, 1fr); }
+  .sk-rg-rung { grid-template-columns: 18px 34px minmax(0, 1fr) auto; gap: 8px; }
+  .sk-rg-rung svg { width: 34px; height: auto; }
+  .sk-rg-divs i { min-width: 24px; height: 22px; padding: 0 4px; font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .sk-rg-divs { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sk-rg-box { animation: none; } }
+:root.reduce-motion .sk-rg-box { animation: none; }
+
+/* Zenith, the top rank, has an aura: pixel rays round its badge (TierBadge draws them past its own box), the long
+   and the short set taking turns to flare. Opacity only, so it costs nothing to draw; still under reduced motion. */
+.sk-zenith-rays { animation: sk-zenith 2.4s ease-in-out infinite; }
+.sk-zenith-rays + .sk-zenith-rays { animation-delay: -1.2s; }
+@keyframes sk-zenith { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sk-zenith-rays { animation: none; opacity: 0.8; } }
+:root.reduce-motion .sk-zenith-rays { animation: none; opacity: 0.8; }

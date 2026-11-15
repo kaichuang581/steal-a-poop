@@ -5,12 +5,12 @@
  * names obviously just the structure)".
  *
  * The structure is theirs: eight ranks, the first seven split into divisions I, II and III of 100 points each, the
- * eighth open-ended at the top. The names are the farm's. A rating is one number, the points: it starts at 0 (Lamb I)
+ * eighth open-ended at the top. The names were chosen by Brian on 2026-11-14 after several rounds ("for number one keep everything but replace frostfire with titan"): materials for the climb, then Titan, Eclipse and Zenith, the very top. A rating is one number, the points: it starts at 0 (Wood I)
  * and moves by Elo after every ranked game, each player compared with every other player at the table.
  *
  * Two things are added to plain Elo, both borrowed from those ladders so that playing moves a newcomer up:
- * - the bottom ranks soften a loss (LOSS_SHARE): nothing is lost in Lamb, half in Yearling, three quarters in
- *   Shearling; from Ram up a loss counts in full;
+ * - the bottom ranks soften a loss (LOSS_SHARE): nothing is lost in Wood, half in Stone, three quarters in
+ *   Iron; from Gold up a loss counts in full;
  * - a rating never goes below 0.
  * These numbers are a first guess. Change them here; the server and the game both read this file.
  */
@@ -26,14 +26,14 @@ export const RANKED_MAX_PLAYERS = 4;
 
 export interface Tier { id: string; name: string; /** The share of an Elo loss that is taken off, at this rank. */ lossShare: number }
 export const TIERS: readonly Tier[] = [
-  { id: 'lamb', name: 'Lamb', lossShare: 0 },
-  { id: 'yearling', name: 'Yearling', lossShare: 0.5 },
-  { id: 'shearling', name: 'Shearling', lossShare: 0.75 },
-  { id: 'ram', name: 'Ram', lossShare: 1 },
-  { id: 'bellwether', name: 'Bellwether', lossShare: 1 },
-  { id: 'shepherd', name: 'Shepherd', lossShare: 1 },
-  { id: 'blue-ribbon', name: 'Blue Ribbon', lossShare: 1 },
-  { id: 'golden-fleece', name: 'Golden Fleece', lossShare: 1 },
+  { id: 'wood', name: 'Wood', lossShare: 0 },
+  { id: 'stone', name: 'Stone', lossShare: 0.5 },
+  { id: 'iron', name: 'Iron', lossShare: 0.75 },
+  { id: 'gold', name: 'Gold', lossShare: 1 },
+  { id: 'crystal', name: 'Crystal', lossShare: 1 },
+  { id: 'titan', name: 'Titan', lossShare: 1 },
+  { id: 'eclipse', name: 'Eclipse', lossShare: 1 },
+  { id: 'zenith', name: 'Zenith', lossShare: 1 },
 ];
 const TOP = TIERS.length - 1;
 /** Where the last rank starts: seven ranks of three divisions below it. */
@@ -41,19 +41,19 @@ export const TOP_FLOOR = TOP * DIVISIONS * DIVISION_POINTS;
 const ROMAN = ['I', 'II', 'III'] as const;
 
 export interface Rank {
-  /** 0 (Lamb) to 7 (Golden Fleece). */
+  /** 0 (Wood) to 7 (Zenith). */
   tier: number;
   id: string;
   name: string;
   /** 1 to 3, the higher the better; null in the last rank, which has none. */
   division: 1 | 2 | 3 | null;
-  /** "Ram II", "Golden Fleece". */
+  /** "Gold II", "Zenith". */
   label: string;
   /** Points into this division (0 to 99), or above the last rank's floor. */
   points: number;
   /** Points still needed for the next division or rank; null in the last rank. */
   toNext: number | null;
-  /** What comes next: "Ram III", "Bellwether I"; null in the last rank. */
+  /** What comes next: "Gold III", "Crystal I"; null in the last rank. */
   next: string | null;
 }
 

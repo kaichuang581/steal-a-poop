@@ -6,21 +6,21 @@ describe('the ladder', () => {
     expect(TIERS).toHaveLength(8);
     expect(new Set(TIERS.map((t) => t.id)).size).toBe(8);
     expect(TOP_FLOOR).toBe(7 * 3 * DIVISION_POINTS);
-    expect(rankOf(0).label).toBe('Lamb I');
-    expect(rankOf(99).label).toBe('Lamb I');
-    expect(rankOf(100).label).toBe('Lamb II');
-    expect(rankOf(299).label).toBe('Lamb III');
-    expect(rankOf(300).label).toBe('Yearling I');
-    expect(rankOf(1000).label).toBe('Ram II');
-    expect(rankOf(2099).label).toBe('Blue Ribbon III');
-    expect(rankOf(2100).label).toBe('Golden Fleece');
+    expect(rankOf(0).label).toBe('Wood I');
+    expect(rankOf(99).label).toBe('Wood I');
+    expect(rankOf(100).label).toBe('Wood II');
+    expect(rankOf(299).label).toBe('Wood III');
+    expect(rankOf(300).label).toBe('Stone I');
+    expect(rankOf(1000).label).toBe('Gold II');
+    expect(rankOf(2099).label).toBe('Eclipse III');
+    expect(rankOf(2100).label).toBe('Zenith');
     expect(rankOf(2600)).toMatchObject({ tier: 7, division: null, points: 500, toNext: null, next: null });
   });
 
   it('says how far into a division a rating is and what comes next', () => {
-    expect(rankOf(964)).toMatchObject({ tier: 3, name: 'Ram', division: 1, points: 64, toNext: 36, next: 'Ram II' });
-    expect(rankOf(1199)).toMatchObject({ label: 'Ram III', toNext: 1, next: 'Bellwether I' });
-    expect(rankOf(2050).next).toBe('Golden Fleece');
+    expect(rankOf(964)).toMatchObject({ tier: 3, name: 'Gold', division: 1, points: 64, toNext: 36, next: 'Gold II' });
+    expect(rankOf(1199)).toMatchObject({ label: 'Gold III', toNext: 1, next: 'Crystal I' });
+    expect(rankOf(2050).next).toBe('Zenith');
   });
 
   it('every rating belongs to exactly one rank, and ranks only go up with the rating', () => {
@@ -31,12 +31,13 @@ describe('the ladder', () => {
       expect(order).toBeGreaterThanOrEqual(last);
       last = order;
     }
-    expect(rankOf(-50).label).toBe('Lamb I');
-    expect(rankOf(Number.NaN).label).toBe('Lamb I');
+    expect(rankOf(-50).label).toBe('Wood I');
+    expect(rankOf(Number.NaN).label).toBe('Wood I');
   });
 
-  it('names nothing after another game\'s ranks', () => {
-    for (const t of TIERS) expect(t.name).not.toMatch(/iron|bronze|silver|gold\b|platinum|diamond|ascendant|immortal|radiant|mythic|legendary|masters|pro\b/i);
+  it('are the names Brian chose, lowest to highest (2026-11-14), none copying another game\'s top ranks', () => {
+    expect(TIERS.map((t) => t.name)).toEqual(['Wood', 'Stone', 'Iron', 'Gold', 'Crystal', 'Titan', 'Eclipse', 'Zenith']);
+    for (const t of TIERS) expect(t.name).not.toMatch(/ascendant|immortal|radiant|mythic|legendary|masters|grandmaster/i);
   });
 });
 
@@ -59,7 +60,7 @@ describe('the rating maths', () => {
   it('at a table of four equals, first and last move as in a duel and the middle two a third as much', () => {
     const r = ratingChanges(at(1200, 1, 2, 3, 4));
     expect([r.p1.delta, r.p2.delta, r.p3.delta, r.p4.delta]).toEqual([16, 5, -5, -16]);
-    expect(Object.values(r).reduce((a, x) => a + x.delta, 0)).toBe(0); // from Ram up, what one gains another loses
+    expect(Object.values(r).reduce((a, x) => a + x.delta, 0)).toBe(0); // from Gold up, what one gains another loses
   });
 
   it('beating a much stronger player pays far more than beating a much weaker one', () => {
@@ -71,7 +72,7 @@ describe('the rating maths', () => {
     expect(routine.low.delta).toBe(-3);
   });
 
-  it('softens a loss at the bottom of the ladder: none in Lamb, half in Yearling, three quarters in Shearling, all from Ram up', () => {
+  it('softens a loss at the bottom of the ladder: none in Wood, half in Stone, three quarters in Iron, all from Gold up', () => {
     const lost = (rating: number) => ratingChanges([{ id: 'w', rating, place: 1 }, { id: 'l', rating, place: 2 }]).l.delta;
     expect(lost(150)).toBe(0);
     expect(lost(450)).toBe(-8);

@@ -43,7 +43,7 @@ describe('the rank badges', () => {
     expect(pips(150)).toBe(2);
     expect(pips(1199)).toBe(3);
     expect(renderToStaticMarkup(<RankBadge rating={2100} />)).not.toContain('sk-rank-pips');
-    expect(renderToStaticMarkup(<RankBadge rating={964} />)).toContain('aria-label="Ram I"');
+    expect(renderToStaticMarkup(<RankBadge rating={964} />)).toContain('aria-label="Gold I"');
   });
 });
 

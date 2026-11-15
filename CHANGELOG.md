@@ -2,6 +2,12 @@
 
 All user-visible changes, newest first.
 
+## 0.7.4
+
+- New rank names: Wood, Stone, Iron, Gold, Crystal, Titan, Eclipse and Zenith, each badge in its own colours, and Zenith with rays of light that pulse round it. Your points stay as they were.
+- Your profile's Ranked card has a "How ranks work" button: every rank from Zenith down to Wood, with its badge, divisions and points, your own rank marked, and how points are won and lost.
+- "Ranked" is found under Queue now, and the profile and leaderboards say so (they still said Play).
+
 ## 0.7.3
 
 - Empty seats fill by themselves. In the casual queue and in a lobby you make, if nobody new comes in for 15 seconds, players sit down one at a time, a few seconds apart, until the table has four; anyone who comes in after that takes one of those seats. A full queue table starts by itself after a 5 second countdown; a lobby still waits for its host to open the gate.

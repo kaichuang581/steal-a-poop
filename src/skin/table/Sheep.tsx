@@ -18,7 +18,7 @@ import { CREAM, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
 import type { Brows, Lids, Mouth, Part, SheepModel, WoolLevel } from '../voxel/sheep';
 import type { AnimalModel, SigPart } from '../voxel/animals/rig';
 
-export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'dazed' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'run' | 'jump' | 'bonk' | 'land';
+export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'dazed' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'run' | 'jump' | 'bonk' | 'land' | 'walk' | 'flop' | 'perch' | 'lounge';
 export type { WoolLevel };
 
 /**
@@ -38,6 +38,8 @@ export const DAZED_S = AFTERMATH_MS / 1000;
 const DURATION: Partial<Record<SheepState, number>> = { proud: 1.2, happy: 1.6, startled: 0.9, cold: 2, dazed: DAZED_S, freezing: 2.4, thawing: 1.2 };
 /** The dream's trot: ms per half-step at the slowest and the fastest run (V4 Part 7.2); `pace` 0..1 picks between. */
 const TROT_MS = { slow: 110, fast: 70 };
+/** The walk: seconds a half-step. At WALK_SPEED (rooms/penWander.ts) the hooves keep pace with the ground. */
+export const WALK_HALF_STEP = 0.34;
 
 /** Reserved customisation slots (plan V3 Part 5.4): ids only, no UI, no store. */
 export interface SheepLook { woolColour: string; facePattern: string; collar: string; hat: string; scarf: string; bell: string }
@@ -161,6 +163,42 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       p[CH.headX] = 0.2;
       p[CH.earL] = p[CH.earR] = DROOP + 0.3;
       break;
+    // The leaderboards' loungers on their pedestals (Brian, 2026-11-14: "nonchalant poses, like 3rd place sleeping on his
+    // belly with his legs dangling off the pedestal"). The pedestal holds the body; these set the legs, head and face.
+    case 'flop': // asleep on its belly over an edge, the legs hanging and swinging a little, the head lolled toward us
+      f.lids = 'closed';
+      f.mouth = 'flat';
+      p[CH.headX] = 0.6;
+      p[CH.neckX] = 0.5;
+      p[CH.headY] = 0.45;
+      p[CH.headZ] = 0.12;
+      p[CH.earL] = DROOP + 0.3 - twitch;
+      p[CH.earR] = DROOP + 0.3;
+      p[CH.legFront] = moving ? Math.sin(t * 0.8) * 0.1 : 0;
+      p[CH.legBack] = moving ? Math.sin(t * 0.8 + 2) * 0.12 : 0;
+      break;
+    case 'perch': // sat up on the edge, both pairs of legs over it, heels kicking, chewing, looking off to one side
+      p[CH.bodyRotX] = -0.9;
+      p[CH.legBack] = 0.7 + (moving ? Math.sin(t * 2.2) * 0.2 : 0);
+      p[CH.legFront] = 0.8;
+      p[CH.legSwing] = moving ? Math.sin(t * 1.1) * 0.08 : 0;
+      p[CH.headX] = 0.6;
+      p[CH.neckX] = 0.3;
+      p[CH.headY] = 0.45 + sway;
+      p[CH.tail] = moving ? Math.sin(t * 1.4) * 0.3 : 0;
+      f.mouth = moving ? CHEW[Math.floor(t / 0.35) % 4] : 'flat';
+      break;
+    case 'lounge': // sat right back, hind legs stretched out along the top, one ear cocked, a smile and a slow blink
+      p[CH.bodyRotX] = -1;
+      p[CH.legBack] = -0.57;
+      p[CH.legFront] = 0.9;
+      p[CH.headX] = 0.6;
+      p[CH.neckX] = 0.3;
+      p[CH.earR] = -0.4;
+      p[CH.tail] = moving ? Math.sin(t * 1.4) * 0.3 : 0;
+      f.mouth = 'smile';
+      if (moving && t % 5 < 0.6) f.lids = 'closed';
+      break;
     case 'grazing':
       // The neck and the head go down by the species' own amounts (6.3); the sheep has no neck, so its head does it all.
       p[CH.headX] = 0.6 + (moving ? Math.sin(t * 3.1) * 0.03 : 0);
@@ -243,6 +281,17 @@ function poseFor(p: Float32Array, f: Face, live: SheepState, e: number, t: numbe
       p[CH.earR] += moving ? Math.sin(e * 18 + 1) * 0.2 : 0;
       f.mouth = 'smile';
       break;
+    // The walk (the lobby's pen): an amble, the trot's pairs at a third of its speed. Legs swing +-17 degrees, the head
+    // nods with each step, the tail sways; no smile, no flapping ears. It is an animal going somewhere, not hurrying.
+    case 'walk': {
+      const w = Math.PI / WALK_HALF_STEP;
+      const stride = moving ? Math.sin(t * w) : 0;
+      p[CH.legSwing] = stride * 0.3;
+      p[CH.bodyY] = moving ? Math.abs(stride) * 0.008 : 0;
+      p[CH.headX] = 0.05 + stride * 0.025;
+      p[CH.tail] = moving ? Math.sin(t * w * 0.5) * 0.2 : 0;
+      break;
+    }
     // The run (Counting Sheep): a trot, front-left with back-right, 110 ms a half-step slowing to 70 at full pace; legs
     // swing +-28 degrees, the head bobs, ears flap 8 degrees, the tail wags, the whole body squashes 1.5% at the step.
     case 'run': {
@@ -462,7 +511,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     (o.earL as Mesh).rotation.set(0, -c[CH.earBack], c[CH.earL]);
     (o.earR as Mesh).rotation.set(0, c[CH.earBack], -c[CH.earR]);
     // Breathing: the body lobes swell 2.5% either way; the fleece settles into place over half a second when the level changes.
-    const breathe = moving && live !== 'freezing' && live !== 'startled' ? Math.sin(tp * (live === 'sleeping' ? 1.0 : 1.9)) * 0.025 : 0;
+    const breathe = moving && live !== 'freezing' && live !== 'startled' ? Math.sin(tp * (live === 'sleeping' || live === 'flop' ? 1.0 : 1.9)) * 0.025 : 0;
     const settle = reduced ? 1 : 0.94 + 0.06 * easeOut((t - a.levelAt) / 0.5);
     const lvl = Math.max(1, level) as 1 | 2 | 3 | 4;
     if (wool.geometry !== m.wools[lvl].geo) {

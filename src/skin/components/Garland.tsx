@@ -1,12 +1,28 @@
-/** A string of bulbs along the top of the screen and a little snow, for the screens with no 3D scene of their own. */
-export function Garland() {
+const SAG = 15;
+const AT = [0.1, 0.3, 0.5, 0.7, 0.9];
+
+/**
+ * A string of lights hung in swags under a beam: a wire sagging between nails, and on it glass bulbs in red, green
+ * and gold, each glowing and twinkling on its own time. The lobby hangs it under its top bar.
+ *
+ * It used to be a straight wire across the very top of the screen with 24 small squares on it, over a layer of
+ * falling dots (Brian, 2026-11-14: "the little lights are horrendous"). The falling dots are gone too: the pen has its
+ * own snowfall, and the second one fell across the panels and their text.
+ */
+export function Garland({ swags = 7 }: { swags?: number }) {
   return (
     <div className="sk-garland" aria-hidden="true">
-      <div className="sk-garland-flakes" />
-      <div className="sk-garland-wire">
-        {/* Each bulb keeps its own time, from a fixed scatter so the pattern does not jump on every render. */}
-        {Array.from({ length: 24 }, (_, i) => <i key={i} data-c={i % 3} style={{ animationDelay: `${-((i * 0.618) % 1) * 3}s`, animationDuration: `${1.1 + ((i * 0.377) % 1) * 1.8}s` }} />)}
-      </div>
+      {Array.from({ length: swags }, (_, s) => (
+        <div key={s} className="sk-garland-wire">
+          <svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d={`M0,3 Q100,${3 + SAG * 2} 200,3`} /></svg>
+          {AT.map((t, k) => {
+            const i = s * AT.length + k;
+            // The bulb hangs where the wire is: the curve's own height at this point along it. (When each one twinkles is
+            // in skin.css, by its place on the wire.)
+            return <i key={k} data-c={i % 3} style={{ left: `${t * 100}%`, top: 3 + 4 * SAG * t * (1 - t) }} />;
+          })}
+        </div>
+      ))}
     </div>
   );
 }

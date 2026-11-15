@@ -58,7 +58,7 @@ test.describe('build with accounts', () => {
   test('sign-in, the bot check, the game connection and the Community window are all allowed by the policy', async ({ page }) => {
     await watch(page);
     await fakeBackends(page, { profile: { nickname: 'Ana', country: 'CA', consentStatus: 'not_required', createdAt: 1 } });
-    await fakeCommunity(page, { balance: 5, friends: [], incoming: [], owned: new Set(), worn: {}, visible: true });
+    await fakeCommunity(page, { balance: 5, owned: new Set(), worn: {}, visible: true });
     const game = await fakeGameServer(page);
     await page.addInitScript(() => localStorage.setItem('sap:tourDone', 'true'));
     await page.goto('./');
@@ -75,7 +75,7 @@ test.describe('build with accounts', () => {
     await dlg.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect.poll(() => game.received.some((m) => m.t === 'hello')).toBe(true);
     await page.getByRole('button', { name: 'Shop' }).click();
-    await expect(page.getByRole('dialog', { name: 'Friends, boards and shop' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Boards and shop' })).toBeVisible();
     expect(await violations(page)).toEqual([]);
   });
 });

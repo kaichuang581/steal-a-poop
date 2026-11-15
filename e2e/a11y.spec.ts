@@ -104,9 +104,9 @@ test.describe('build with accounts', () => {
       if (label === 'phone') await noSideways(page, 'parent page');
     });
 
-    test(`friends, boards and shop: ${label}`, async ({ page }) => {
+    test(`boards and shop: ${label}`, async ({ page }) => {
       await page.setViewportSize(viewport);
-      const st: CommunityState = { balance: 120, friends: [{ userId: 'f1', name: 'Fay', online: true, cosmetics: { badge: '🔥' } }], incoming: [{ userId: 'f2', name: 'Gus', online: false }], owned: new Set(['badge-fire']), worn: {}, visible: true };
+      const st: CommunityState = { balance: 120, owned: new Set(['badge-fire']), worn: {}, visible: true };
       await fakeBackends(page, { profile: { nickname: 'Ana', country: 'CA', consentStatus: 'not_required', createdAt: 1 } });
       await fakeCommunity(page, st);
       await fakeGameServer(page);
@@ -120,9 +120,9 @@ test.describe('build with accounts', () => {
       await dlg.getByRole('button', { name: 'Continue', exact: true }).click();
       await audit(page, 'start screen signed in');
       if (label === 'phone') await noSideways(page, 'start screen signed in');
-      for (const [button, ready] of [['Friends', 'Friends'], ['Boards', 'Leaderboard'], ['Shop', 'Badges']] as const) {
+      for (const [button, ready] of [['Boards', 'Leaderboard'], ['Shop', 'Badges']] as const) {
         await page.getByRole('button', { name: button }).click();
-        const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
+        const hub = page.getByRole('dialog', { name: 'Boards and shop' });
         await expect(hub.getByRole(ready === 'Leaderboard' ? 'list' : 'region', { name: ready })).toBeVisible();
         await audit(page, `community ${button}`);
         if (label === 'phone') {

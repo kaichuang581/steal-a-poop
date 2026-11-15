@@ -1,7 +1,8 @@
-# Friends, leaderboards, coins and the shop
+# Leaderboards, coins and the shop
 
 How these work, why they are built this way, and what to tune. Code: `server/game`, `server/economy`, `server/social`,
-`server/routes/{friends,leaderboard,shop}.ts`, screens in `src/ui/social`, tables in migrations `101` to `103`.
+`server/routes/{leaderboard,shop,barn,ranked}.ts`, screens in `src/skin/boards` (the painted game) and `src/ui/social` (the old look),
+tables in migrations `101`, `102`, `105` and `106`. (The friends list was removed on 2026-11-14: see "Friends" below.)
 
 ## Results
 
@@ -18,18 +19,26 @@ person's name and id from every stored game and clears their Daily Table attempt
 - Every listing shows the player's *current* nickname, so a renamed or deleted account does not leave an old name behind.
 - Personal stats (`/api/me/stats`) are private.
 - Weakness: points and wins reward whoever plays most. There is no minimum-games rule and no season reset yet.
+- **The painted game's leaderboards page** (`src/skin/boards/Leaderboards.tsx`, the trophy button on the start screen) shows three boards:
+  **Ranked** (the 100 best ratings, `server/ranked`), **Wins** (online games won: today, this week, all time; the `wins` metric above) and
+  **Level** (the 100 players with the most XP, `server/barn`). It has no Daily Table board and no points board: the painted game has no
+  Daily Table and no points. The old look's window keeps them.
+- The ranked and level boards are read without a login at `GET /api/ranked/board` and `GET /api/barn/board` (limited per address; a name
+  and a score for each player the other boards would name, no ids, nobody's own place). Signed in, the page reads `/api/ranked/top` and
+  `/api/barn/top` instead, which also say where the asker stands.
 
-## Friends and invites
+## Friends (removed)
 
-- A player has a private 8-character **friend code** and shares it themselves. **There is no name search**, on purpose, so strangers
-  cannot look children up. The code can be changed at any time (the old one stops working).
-- A request needs the other player to accept. Asking someone who already asked you makes you friends. Up to 100 friends.
-- **Only players who may chat can use friends** (a child waiting for a parent's consent cannot, and cannot be found by code).
-- Blocks apply: you cannot ask someone you blocked; if someone blocked you, your request looks as if it worked and never reaches them;
-  blocking someone hides their pending request.
-- Invites (`{t:"invite"}` over the game connection): friends only, only from a room still in the lobby, to a friend who is online and
-  not in a room, not blocked either way, not repeated within 30 seconds. The room code is sent only to a friend.
-- Signed-in players stay connected in the background so friends see them online and invites reach them anywhere in the app.
+The friends list, friend codes, requests, the online dots and room invites were removed on 2026-11-14 (Brian: "remove friend feature"),
+for accounts and for guests, in the game and on the server. A room is reached by its code or its `?join=CODE` link, which the host hands
+out themselves. What is left on purpose:
+
+- The two tables from migration `103` (`friend_codes`, `friendships`) are still in the database with whatever players stored before.
+  Nothing reads them. Deleting an account still removes that person's rows (`server/social/friendRows.ts`). Dropping the tables is a
+  separate decision: it deletes those lists for good.
+- A signed-in player's browser still keeps a connection to the game server open in the background (it used to carry invites). It makes
+  going into a room quick and carries what a game paid; it could be closed when idle now.
+- An older browser may still hold `sap:guest-friends` in local storage. It is harmless and is not cleaned up.
 
 ## Coins (the currency)
 
@@ -45,8 +54,8 @@ Rules, in `server/economy/rules.ts`:
 | **Daily limit per account** | **200** |
 
 **Spent only on cosmetic items** (`server/economy/catalog.ts`): name colors, titles, badges and table themes. Nothing sold changes how
-a player scores, how long they get, or who wins. Players see colors, badges and titles beside each other's names in rooms, on boards and in
-the friends list. Items are chosen from a fixed list, never typed, so they need no chat filtering.
+a player scores, how long they get, or who wins. Players see colors, badges and titles beside each other's names in rooms and on the old
+look's boards. Items are chosen from a fixed list, never typed, so they need no chat filtering.
 
 Design rules that were chosen deliberately:
 
@@ -71,8 +80,8 @@ Daily board. Players who are not signed in still play the old on-device Daily Ta
 ## What is not built
 
 - Seasons, resets, or a minimum number of games for the boards.
-- Team or friends-only leaderboards, and "friends' scores" on the Daily board.
+- Team leaderboards.
 - Gifting coins or items (on purpose), selling coins (on purpose), trading.
-- Cosmetics on the seat labels during the game (they show in the lobby, chat, boards and friends list).
-- A way to see a friend's room to join it directly; friends must invite you.
+- Cosmetics on the seat labels during the game (they show in the lobby, chat and boards).
+- A friends list (built once, then removed: see above).
 - An admin tool to grant or remove coins (the ledger has an `adjustment` reason for it; use SQL for now).

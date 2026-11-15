@@ -76,7 +76,7 @@ function Stall({ sack, wallet, onPick }: { sack: SackId; wallet: Wallet; onPick:
   const at = SACK_IDS.indexOf(sack);
   // A crate's picture starts a little under its front foot; its button runs from the picture's top down to the floor, so the tag is in it.
   const foot = rise(p.top, DEPTH.crateRest), boxTop = foot - CRATE_BOX.below + CRATE_BOX.h, rows = boxTop - f.bottom;
-  // The nail a tag hangs from: in the rail under the plank, the same height for all three.
+  // Where a tag's place starts: the rail under the plank, the same height for all three.
   const nail = rise(p.panel - 1, DEPTH.front + 1);
   const edge = valanceBox(p);
   // The lantern's ring is a row under the awning's edge, by the picked sack's shoulder.
@@ -91,7 +91,7 @@ function Stall({ sack, wallet, onPick }: { sack: SackId; wallet: Wallet; onPick:
         </span>
       )}
       {SACK_IDS.map((id, n) => (
-        <StallSack key={id} sack={id} wallet={wallet} picked={sack === id} onPick={() => onPick(id)} tilt={n + 1}
+        <StallSack key={id} sack={id} wallet={wallet} picked={sack === id} onPick={() => onPick(id)}
           style={{ left: wide(p.crates[n] - CRATE_BOX.w / 2), width: wide(CRATE_BOX.w), bottom: 0, height: tall(rows) }}
           art={`${(CRATE_BOX.h / rows) * 100}%`} tag={`${((boxTop - nail) / rows) * 100}%`} />
       ))}
@@ -110,9 +110,9 @@ function Stall({ sack, wallet, onPick }: { sack: SackId; wallet: Wallet; onPick:
  * One sack in its crate on the stall, and its tag: one radio button. The crate and the sack are two pictures (the sack
  * cut off where its crate stands in front of it), so a hover can wobble the sack in the crate. The picked one's crate
  * stands 8 px forward in the lantern's light; the others sit back in less. The tag, with the sack's name, what is in it
- * and how much of that is found, hangs by 12 px of string from a nail in the stall's front, right under the crate.
+ * and how much of that is found, is a plain card on the stall's front, right under the crate (no nail, no string).
  */
-function StallSack({ sack, wallet, picked, onPick, tilt, style, art, tag }: { sack: SackId; wallet: Wallet; picked: boolean; onPick: () => void; tilt: number; style: CSSProperties; art: string; tag: string }) {
+function StallSack({ sack, wallet, picked, onPick, style, art, tag }: { sack: SackId; wallet: Wallet; picked: boolean; onPick: () => void; style: CSSProperties; art: string; tag: string }) {
   const pool = [...poolFor(sack)].sort(byRarity);
   const found = pool.filter((i) => wallet.owned.includes(i.id)).length;
   return (
@@ -122,8 +122,7 @@ function StallSack({ sack, wallet, picked, onPick, tilt, style, art, tag }: { sa
         <img className="sk-thumb sk-stall-burlap" src={stallArt(`sack-${sack}`)} alt="" draggable={false} />
       </span>
       <span className="sk-stall-hang" style={{ top: tag }}>
-        <i className="kit-nail" aria-hidden="true" /><i className="kit-string" aria-hidden="true" />
-        <span className={`sk-stall-tag kit-paper kit-paper--tilt-${tilt}`} data-seed={tilt}>
+        <span className="sk-stall-tag kit-paper">
           <span className="sk-stall-name">{SACKS[sack].name}</span>
           <span className="sk-stall-found"><span className="sk-stall-kind">{KIND_LABEL[sack]} · </span>{found} of {pool.length} found</span>
           <span className="sk-pips">

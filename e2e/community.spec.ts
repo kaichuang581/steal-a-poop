@@ -7,8 +7,6 @@ test.use({ baseURL: 'http://127.0.0.1:4174/steal-a-poop/' });
 
 const state = (over: Partial<CommunityState> = {}): CommunityState => ({
   balance: 120,
-  friends: [{ userId: 'f1', name: 'Fay', online: true, cosmetics: { badge: '🔥', color: '#6ee7b7' } }],
-  incoming: [{ userId: 'f2', name: 'Gus', online: false }],
   owned: new Set(),
   worn: {},
   visible: true,
@@ -31,42 +29,11 @@ async function signedIn(page: Page, st: CommunityState) {
   return { seen, game };
 }
 
-test('friends: your code, accepting a request, adding by code, removing', async ({ page }) => {
-  const st = state();
-  const { seen } = await signedIn(page, st);
-  await expect(page.getByRole('group', { name: 'Community' })).toContainText('120'); // the coin balance
-  await page.getByRole('button', { name: 'Friends' }).click();
-  const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
-
-  await expect(hub.locator('[data-friend-code]')).toHaveText('ABCD2345');
-  await expect(hub.getByRole('region', { name: 'Friends' })).toContainText('Fay');
-  await expect(hub.getByLabel('Online')).toBeVisible();
-  await expect(hub.getByRole('region', { name: 'Friend requests' })).toContainText('Gus');
-
-  await hub.getByRole('button', { name: 'Accept Gus' }).click();
-  await expect(hub.getByRole('region', { name: 'Friends' })).toContainText('Gus');
-  await expect(hub.getByRole('region', { name: 'Friend requests' })).toHaveCount(0);
-
-  await hub.getByLabel("Friend's code").fill('wxyz-2345');
-  await hub.getByRole('button', { name: 'Add' }).click();
-  await expect(hub.getByRole('status')).toContainText('Request sent');
-  expect(seen.find((s) => s.url === '/api/friends/request')!.body).toEqual({ code: 'wxyz-2345' }); // the server cleans the code up
-
-  await hub.getByLabel("Friend's code").fill('NOSUCH22');
-  await hub.getByRole('button', { name: 'Add' }).click();
-  await expect(hub.getByRole('alert')).toContainText('No player has that code');
-
-  await hub.getByRole('button', { name: 'Remove Fay' }).click();
-  await expect(hub.getByRole('region', { name: 'Friends' })).not.toContainText('Fay');
-  await hub.getByRole('button', { name: 'Make a new code' }).click();
-  await expect(hub.locator('[data-friend-code]')).toHaveText('ZZZZ9999');
-});
-
 test('boards and stats, and hiding yourself', async ({ page }) => {
   const st = state();
   const { seen } = await signedIn(page, st);
   await page.getByRole('button', { name: 'Boards' }).click();
-  const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
+  const hub = page.getByRole('dialog', { name: 'Boards and shop' });
 
   const list = hub.getByRole('list', { name: 'Leaderboard' });
   await expect(list).toContainText('Ben'); // the Daily Table is first
@@ -90,7 +57,7 @@ test('the shop: buying with coins, being unable to afford more, wearing and taki
   const st = state();
   const { seen } = await signedIn(page, st);
   await page.getByRole('button', { name: 'Shop' }).click();
-  const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
+  const hub = page.getByRole('dialog', { name: 'Boards and shop' });
   await expect(hub.locator('[data-balance]')).toHaveText('120');
   await expect(hub.getByText('cannot be bought with money')).toBeVisible();
 
@@ -107,18 +74,16 @@ test('the shop: buying with coins, being unable to afford more, wearing and taki
   await expect(hub.getByRole('button', { name: 'Wear Mint name' })).toBeVisible();
 });
 
-test('a friend\'s invitation appears anywhere, joins the room, and friends can be invited from the room', async ({ page }) => {
+// The friends list and its room invites are gone (Brian, 2026-11-14): a room is reached by its code or link.
+test('in a room everyone sees what the others wear, and there is no friends list to invite from', async ({ page }) => {
   const st = state();
   const { game } = await signedIn(page, st);
   await expect.poll(() => game.received.some((m) => m.t === 'hello')).toBe(true); // connected in the background after sign-in
   expect(game.received.find((m) => m.t === 'hello').token).toMatch(/^.+\..+\..+$/); // with the real login token
+  await expect(page.getByRole('button', { name: 'Friends' })).toHaveCount(0);
 
-  game.push({ t: 'invited', from: { userId: 'f1', name: 'Fay' }, code: 'ROOM5', roomName: "Fay's room" });
-  const toast = page.getByRole('alert').filter({ hasText: 'Fay' });
-  await expect(toast).toContainText("invites you to Fay's room");
-  await toast.getByRole('button', { name: 'Join' }).click();
-  await expect.poll(() => game.received.some((m) => m.t === 'join' && m.code === 'ROOM5')).toBe(true);
-
+  const others = page.getByRole('button', { name: /^Play with others/ });
+  if (await others.isVisible()) await others.click();
   game.push({
     t: 'room', serverNow: Date.now(), you: { userId: 'u1', seat: null },
     view: {
@@ -132,10 +97,10 @@ test('a friend\'s invitation appears anywhere, joins the room, and friends can b
   await expect(players).toContainText('the Thief'); // what they wear is shown to everyone in the room
 
   await page.getByRole('button', { name: 'I understand and agree' }).click(); // the chat rules come first in any room
-  await page.getByRole('button', { name: 'Invite friends' }).click();
-  const hub = page.getByRole('dialog', { name: 'Friends, boards and shop' });
-  await hub.getByRole('button', { name: 'Invite Fay' }).click();
-  await expect.poll(() => game.received.find((m) => m.t === 'invite')?.userId).toBe('f1');
+  await expect(page.getByRole('button', { name: 'Copy invite link' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Invite friends' })).toHaveCount(0);
+  game.push({ t: 'invited', from: { userId: 'f1', name: 'Fay' }, code: 'OTHER', roomName: 'Another room' }); // an older server's message is ignored
+  await expect(page.getByText('invites you to')).toHaveCount(0);
 });
 
 test('coins earned by a game update the balance', async ({ page }) => {

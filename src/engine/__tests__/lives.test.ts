@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EXTRA_WOOL_CAP, LIVES_PER_GAME } from '../constants';
+import { LIVES_PER_GAME } from '../constants';
 import { createGame } from '../game';
 import { advance, apply } from '../reducer';
 import { computeWinners, rankPlayers } from '../standings';
@@ -60,14 +60,15 @@ describe('lives', () => {
     expect(seats.has(0)).toBe(false);
   });
 
-  it('wool is capped at the starting count plus the extra allowance', () => {
+  it('wool is never gained: a sheep running out of time costs it a ball and gives nobody one', () => {
     const s = freezeBots(humanTurn('c'));
     s.turn = { ...s.turn!, seat: 1 };
-    s.players[0].lives = LIVES_PER_GAME + EXTRA_WOOL_CAP;
+    // Even a trap left in a game saved before traps were removed pays nothing.
     s.trap = { trapperSeat: 0, victimSeat: 1, letter: 'x' };
     const r = advance(s, ctx, s.turn.endsAt);
-    expect(r.players[0].lives).toBe(LIVES_PER_GAME + EXTRA_WOOL_CAP); // the trap pays, but not past the cap
-    expect(r.players[1].lives).toBe(LIVES_PER_GAME - 1); // the trapped sheep still loses one
+    expect(r.players[0].lives).toBe(LIVES_PER_GAME);
+    expect(r.players[1].lives).toBe(LIVES_PER_GAME - 1);
+    expect(r.players.every((p) => p.lives <= LIVES_PER_GAME)).toBe(true);
   });
 
   it('tour time-outs cost nobody wool', () => {
@@ -95,8 +96,8 @@ describe('lives', () => {
   });
 });
 
-describe('traps with frozen players', () => {
-  it('the last unfrozen player cannot trap themselves', () => {
+describe('no traps with frozen players either', () => {
+  it('the last unfrozen player ending on X sets nothing', () => {
     const s = humanTurn('t');
     for (const p of s.players.slice(1)) p.frozen = true;
     const r = apply(s, ctx, { type: 'play', seat: 0, word: 'tax' }, s.turn!.startedAt + 100);

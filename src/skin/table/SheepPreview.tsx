@@ -14,7 +14,7 @@ import { DevLine, DevStats } from './DevStats';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
 
-const STATES: SheepState[] = ['idle', 'thinking', 'proud', 'happy', 'startled', 'cold', 'freezing', 'frozen', 'thawing', 'sleeping', 'grazing'];
+const STATES: SheepState[] = ['idle', 'thinking', 'proud', 'happy', 'startled', 'cold', 'freezing', 'frozen', 'thawing', 'sleeping', 'grazing', 'flop', 'perch', 'lounge'];
 
 /** ?skin=painted&preview=sheep: one sheep (or any animal avatar) with buttons for every wool level and state (plan V3 Milestone 1). */
 export function SheepPreview() {

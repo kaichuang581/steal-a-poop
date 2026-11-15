@@ -20,6 +20,9 @@ export interface GameSetup {
   mode?: GameMode;
   /** Game length settings; anything left out takes today's rules (DEFAULT_SETTINGS). */
   settings?: Partial<GameSettings>;
+  /** The fewest seats at the table, 2 at least. Left out, it is MIN_PLAYERS (4) and farm sheep fill the empty seats.
+   *  A ranked game sets it to 2: only the people who queued sit down. */
+  minPlayers?: number;
 }
 
 /**
@@ -44,7 +47,8 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const wanted = room ? Math.max(setup.playerCount, humans.length) : setup.playerCount;
   const mode = setup.mode ?? 'normal';
   // Practice is always you and one bot.
-  const n = mode === 'practice' ? 2 : Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, Math.round(wanted)));
+  const fewest = Math.max(2, Math.min(MIN_PLAYERS, Math.round(setup.minPlayers ?? MIN_PLAYERS)));
+  const n = mode === 'practice' ? 2 : Math.min(MAX_PLAYERS, Math.max(fewest, Math.round(wanted)));
 
   const resolved = resolveSettings(setup.settings);
   // Practice is a one-life speed run: nothing but the chain and the clock.

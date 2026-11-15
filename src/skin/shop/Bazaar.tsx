@@ -215,20 +215,22 @@ function BellShelf({ wallet, onNote, onFound }: { wallet: Wallet; onNote: (s: st
 
 // ---------------------------------------------------------------- Missions
 
-/** A notice board of pinned slips, one a mission, and under it the ledger of word milestones. */
+/** The missions, one card each, and under them the ledger of word milestones. */
 function Missions({ wallet }: { wallet: Wallet }) {
   const missions = MISSIONS.map((m) => ({ m, item: CATALOG.find((i) => i.id === m.itemId)!, done: wallet.owned.includes(m.itemId) }))
     .sort((a, b) => Number(a.done) - Number(b.done));
   return (
     <div className="sk-missions">
-      <div className="kit-cork sk-noticeboard">
-        <Board size="label" tone="wood" className="sk-room-heading"><h3>Missions</h3></Board>
-        <p className="sk-room-hint">Earned by playing, never in a sack. Each one is yours for good.</p>
-        <div className="sk-noticeboard-slips">
-          {missions.map(({ m, item, done }, n) => {
+      <div className="sk-mission-list">
+        <div className="sk-mission-head">
+          <Board size="label" tone="wood" className="sk-room-heading"><h3>Missions</h3></Board>
+          <p className="sk-room-hint">Earned by playing, never in a sack. Each one is yours for good.</p>
+        </div>
+        <div className="sk-mission-cards">
+          {missions.map(({ m, item, done }) => {
             const have = Math.min(m.have(wallet), m.need);
             return (
-              <Paper key={m.id} kind="note" pin="top" seed={n + 1} tilt className="sk-mslip" data-done={done || undefined}>
+              <Paper key={m.id} kind="note" className="sk-mslip" data-done={done || undefined}>
                 <ItemFrame item={item} size={72} className="sk-mslip-pic" />
                 <b className="sk-mslip-name">{item.name}</b>
                 <span className="sk-mslip-kind">{KIND_ONE[item.kind]}</span>

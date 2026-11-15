@@ -2,7 +2,7 @@ import { advance, apply, createGame, dailySetup, replaceWithBot } from '../src/e
 import type { ActionResult, EngineContext } from '../src/engine';
 import type { GameResult } from './contracts';
 import { CODE_PATTERN, generateCode, normalizeCode } from './codes';
-import { DEFAULT_ROOM_SETTINGS, MAX_ROOM_SIZE, MIN_TABLE, MIN_TO_START } from './types';
+import { DEFAULT_ROOM_SETTINGS, MAX_BOTS, MAX_ROOM_SIZE, MIN_TABLE, MIN_TO_START, RANKED_FULL_WAIT_MS, RANKED_MAX_PLAYERS, RANKED_MIN_PLAYERS, RANKED_WAIT_MS } from './types';
 import type { Member, PublicRoomInfo, Result, Room, RoomSettings, Visibility } from './types';
 
 /** What a client may send during a game. The server fills in the seat from who is asking. */
@@ -34,7 +34,14 @@ export interface RoomView {
   game: Room['game'];
   chatMuted: boolean;
   mutedIds: string[];
+  /** A ranked table, when it will start (null: still waiting for a second player), and the rating changes once it is over. */
+  ranked: boolean;
+  startAt: number | null;
+  rated: Room['rated'];
 }
+
+/** The parts of a room every new room starts with (not ranked, nothing rated). */
+const FRESH = { ranked: false, startAt: null, ratedSeats: [], leftAt: {}, rated: null } as const;
 
 const NAME_MAX = 12;
 const ROOM_NAME_MAX = 24;
@@ -83,6 +90,7 @@ export class RoomManager {
       mutedIds: [],
       kicked: [],
       finishedAt: null,
+      ...FRESH, ratedSeats: [], leftAt: {},
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -96,7 +104,8 @@ export class RoomManager {
     if (!CODE_PATTERN.test(code)) return { ok: false, error: 'bad_code' };
     if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
     const room = this.rooms.get(code);
-    if (!room) return { ok: false, error: 'room_not_found' };
+    // A ranked table is reached through the ranked queue only: a code would let friends pick who they are rated against.
+    if (!room || room.ranked) return { ok: false, error: 'room_not_found' };
     if (room.kicked.includes(userId)) return { ok: false, error: 'kicked' };
     if (room.phase !== 'lobby') return { ok: false, error: 'room_started' };
     if (room.members.length >= MAX_ROOM_SIZE) return { ok: false, error: 'room_full' };
@@ -114,7 +123,7 @@ export class RoomManager {
     if (!name) return { ok: false, error: 'bad_name' };
     if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
     const open = [...this.rooms.values()]
-      .filter((r) => r.kind === 'room' && r.visibility === 'public' && r.phase === 'lobby' && r.members.length < MAX_ROOM_SIZE && !r.kicked.includes(userId))
+      .filter((r) => r.kind === 'room' && !r.ranked && r.visibility === 'public' && r.phase === 'lobby' && r.members.length < MAX_ROOM_SIZE && !r.kicked.includes(userId))
       .sort((a, b) => b.members.length - a.members.length || (a.members[0]?.joinedAt ?? 0) - (b.members[0]?.joinedAt ?? 0));
     if (open.length > 0) {
       const joined = this.join(userId, name, open[0].code);
@@ -127,12 +136,51 @@ export class RoomManager {
   }
 
   /**
+   * The ranked queue: the fullest ranked table still waiting (the oldest on a tie), or a new one. A ranked table seats
+   * two to four people and no farm sheep, plays the standard rules, and starts itself: RANKED_WAIT_MS after its second
+   * player sits down, or RANKED_FULL_WAIT_MS after its fourth. Nobody hosts it, and it cannot be joined by code. The
+   * caller has already checked that this is an account (a guest has no rating to play for).
+   */
+  rankedJoin(userId: string, rawName: string): Result<{ code: string; created: boolean }> {
+    const name = rawName.trim().slice(0, NAME_MAX);
+    if (!name) return { ok: false, error: 'bad_name' };
+    if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
+    const now = this.deps.now();
+    const open = [...this.rooms.values()]
+      .filter((r) => r.kind === 'room' && r.ranked && r.phase === 'lobby' && r.members.length < RANKED_MAX_PLAYERS)
+      .sort((a, b) => b.members.length - a.members.length || (a.members[0]?.joinedAt ?? 0) - (b.members[0]?.joinedAt ?? 0));
+    if (open.length > 0) {
+      const room = open[0];
+      room.members.push({ userId, name: this.uniqueName(room, name), joinedAt: now });
+      this.roomOfUser.set(userId, room.code);
+      this.armRanked(room);
+      return { ok: true, code: room.code, created: false };
+    }
+    const made = this.createRoom(userId, name, { visibility: 'public', roomName: 'Ranked' });
+    if (!made.ok) return made;
+    const room = this.rooms.get(made.code)!;
+    room.queue = true;
+    room.ranked = true;
+    return { ...made, created: true };
+  }
+
+  /** Sets, moves up or clears a waiting ranked table's start, after someone sat down or left. */
+  private armRanked(room: Room): void {
+    if (!room.ranked || room.phase !== 'lobby') return;
+    const now = this.deps.now();
+    if (room.members.length < RANKED_MIN_PLAYERS) room.startAt = null;
+    else if (room.members.length >= RANKED_MAX_PLAYERS) room.startAt = Math.min(room.startAt ?? Infinity, now + RANKED_FULL_WAIT_MS);
+    else room.startAt ??= now + RANKED_WAIT_MS;
+  }
+
+  /**
    * Host-only, before the game starts: the game length (turns per round, wool balls, twists) and whether the room is
    * open to quick-start players. Only the listed values are accepted; anything else changes nothing.
    */
-  setOptions(hostId: string, patch: { turnsPerRound?: unknown; lives?: unknown; twists?: unknown; visibility?: unknown }): Result<{ code: string }> {
+  setOptions(hostId: string, patch: { turnsPerRound?: unknown; lives?: unknown; twists?: unknown; visibility?: unknown; bots?: unknown; botLevel?: unknown }): Result<{ code: string }> {
     const room = this.roomFor(hostId);
     if (!room || room.kind === 'daily') return { ok: false, error: 'not_in_room' };
+    if (room.ranked) return { ok: false, error: 'ranked_room' }; // everyone is rated on the same rules
     if (room.hostId !== hostId) return { ok: false, error: 'not_host' };
     if (room.phase !== 'lobby') return { ok: false, error: 'room_started' };
     const next = { ...room.settings };
@@ -152,6 +200,15 @@ export class RoomManager {
     if (patch.visibility !== undefined) {
       if (patch.visibility !== 'public' && patch.visibility !== 'private') return { ok: false, error: 'bad_settings' };
       visibility = patch.visibility;
+    }
+    // Farm sheep at the table: a whole number the host picks. The Quick play queue keeps the old fill-to-four rule.
+    if (patch.bots !== undefined) {
+      if (room.queue || typeof patch.bots !== 'number' || !Number.isInteger(patch.bots) || patch.bots < 0 || patch.bots > MAX_BOTS) return { ok: false, error: 'bad_settings' };
+      next.bots = patch.bots;
+    }
+    if (patch.botLevel !== undefined) {
+      if (patch.botLevel !== 'easy' && patch.botLevel !== 'medium' && patch.botLevel !== 'hard') return { ok: false, error: 'bad_settings' };
+      next.botLevel = patch.botLevel;
     }
     room.settings = next;
     room.visibility = visibility;
@@ -178,6 +235,8 @@ export class RoomManager {
     let botSeat: number | null = null;
     if (room.phase === 'playing' && room.game && userId in room.seatOf) {
       botSeat = room.seatOf[userId];
+      // Walking out of a ranked game is a loss from that moment: the seat is placed as if it had just frozen.
+      if (room.ranked) room.leftAt[userId] = this.deps.now();
       room.game = replaceWithBot(room.game, botSeat, 'medium', this.deps.now());
       delete room.seatOf[userId];
     }
@@ -192,6 +251,7 @@ export class RoomManager {
     }
     const roomClosed = room.members.length === 0;
     if (roomClosed) this.close(room.code);
+    else this.armRanked(room);
     return { newHostId, botSeat, roomClosed };
   }
 
@@ -202,6 +262,7 @@ export class RoomManager {
   kick(hostId: string, targetId: string): Result<{ code: string; botSeat: number | null }> {
     const room = this.roomFor(hostId);
     if (!room || room.kind === 'daily') return { ok: false, error: 'not_in_room' };
+    if (room.ranked) return { ok: false, error: 'ranked_room' }; // nobody hosts a ranked table
     if (room.hostId !== hostId) return { ok: false, error: 'not_host' };
     if (targetId === hostId) return { ok: false, error: 'cannot_target' };
     if (!room.members.some((m) => m.userId === targetId)) return { ok: false, error: 'not_in_room' };
@@ -217,6 +278,7 @@ export class RoomManager {
   setMute(hostId: string, on: boolean, targetId?: string): Result<{ code: string }> {
     const room = this.roomFor(hostId);
     if (!room || room.kind === 'daily') return { ok: false, error: 'not_in_room' };
+    if (room.ranked) return { ok: false, error: 'ranked_room' };
     if (room.hostId !== hostId) return { ok: false, error: 'not_host' };
     if (targetId === undefined) {
       room.chatMuted = on;
@@ -265,6 +327,7 @@ export class RoomManager {
       mutedIds: [],
       kicked: [],
       finishedAt: null,
+      ...FRESH, ratedSeats: [], leftAt: {},
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -275,19 +338,39 @@ export class RoomManager {
   start(userId: string): Result<{ code: string }> {
     const room = this.roomFor(userId);
     if (!room) return { ok: false, error: 'not_in_room' };
+    if (room.ranked) return { ok: false, error: 'ranked_room' }; // a ranked table starts itself (tick)
     if (room.hostId !== userId) return { ok: false, error: 'not_host' };
     if (room.phase !== 'lobby') return { ok: false, error: 'room_started' };
-    if (room.members.length < MIN_TO_START) return { ok: false, error: 'not_enough_players' };
+    // A game needs two at the table. Where the host has chosen the farm sheep they count, so one person and a bot is
+    // a game; under the old fill rule (bots: null) two people are still needed.
+    const enough = room.settings.bots === null ? room.members.length >= MIN_TO_START : room.members.length + botsFor(room) >= 2;
+    if (!enough) return { ok: false, error: 'not_enough_players' };
+    this.begin(room);
+    return { ok: true, code: room.code };
+  }
+
+  /** Seats everyone in the order they came and deals the game. A ranked table seats only its people: no farm sheep. */
+  private begin(room: Room): void {
     const seated = [...room.members].sort((a, b) => a.joinedAt - b.joinedAt);
     const now = this.deps.now();
     room.seatOf = Object.fromEntries(seated.map((m, seat) => [m.userId, seat]));
     room.game = createGame(
-      { seed: `room:${room.code}:${now}`, now, humans: seated.map((m) => m.name), playerCount: Math.max(seated.length, MIN_TABLE), difficulty: 'medium', settings: { ...room.settings, timeCarry: 'more' } },
+      room.ranked
+        ? {
+            seed: `ranked:${room.code}:${now}`, now, humans: seated.map((m) => m.name), playerCount: seated.length, minPlayers: RANKED_MIN_PLAYERS, difficulty: 'medium',
+            settings: { turnsPerRound: DEFAULT_ROOM_SETTINGS.turnsPerRound, lives: DEFAULT_ROOM_SETTINGS.lives, twists: DEFAULT_ROOM_SETTINGS.twists, timeCarry: 'more' },
+          }
+        : {
+            seed: `room:${room.code}:${now}`, now, humans: seated.map((m) => m.name), playerCount: seated.length + botsFor(room), minPlayers: 2, difficulty: room.settings.botLevel,
+            settings: { turnsPerRound: room.settings.turnsPerRound, lives: room.settings.lives, twists: room.settings.twists, timeCarry: 'more' },
+          },
       this.deps.ctx.dict,
     );
     room.phase = 'playing';
     room.gameId = `${room.code}:${now}`;
-    return { ok: true, code: room.code };
+    room.startAt = null;
+    room.ratedSeats = room.ranked ? seated.map((m, seat) => ({ userId: m.userId, seat })) : [];
+    room.leftAt = {};
   }
 
   /** A player's move. Returns the engine's verdict, or a room error if they are not in a running game. */
@@ -308,6 +391,12 @@ export class RoomManager {
     const now = this.deps.now();
     const changed: string[] = [];
     for (const room of this.rooms.values()) {
+      // A waiting ranked table whose time has come sits down and starts.
+      if (room.ranked && room.phase === 'lobby' && room.startAt !== null && now >= room.startAt && room.members.length >= RANKED_MIN_PLAYERS) {
+        this.begin(room);
+        changed.push(room.code);
+        continue;
+      }
       if (room.phase !== 'playing' || !room.game) continue;
       const next = advance(room.game, this.deps.ctx, now);
       if (next !== room.game) {
@@ -350,7 +439,7 @@ export class RoomManager {
 
   listPublic(): PublicRoomInfo[] {
     return [...this.rooms.values()]
-      .filter((r) => r.visibility === 'public' && r.phase === 'lobby' && r.members.length < MAX_ROOM_SIZE)
+      .filter((r) => !r.ranked && r.visibility === 'public' && r.phase === 'lobby' && r.members.length < MAX_ROOM_SIZE)
       .map((r) => ({
         code: r.code,
         name: r.name,
@@ -367,7 +456,9 @@ export class RoomManager {
     return {
       code: r.code, name: r.name, visibility: r.visibility, hostId: r.hostId, queue: r.queue, settings: { ...r.settings },
       members: r.members.map((m: Member) => ({ userId: m.userId, name: m.name })),
-      phase: r.phase, min: MIN_TO_START, max: MAX_ROOM_SIZE, seatOf: { ...r.seatOf }, game: r.game, chatMuted: r.chatMuted, mutedIds: [...r.mutedIds],
+      phase: r.phase, min: r.ranked ? RANKED_MIN_PLAYERS : MIN_TO_START, max: r.ranked ? RANKED_MAX_PLAYERS : MAX_ROOM_SIZE,
+      seatOf: { ...r.seatOf }, game: r.game, chatMuted: r.chatMuted, mutedIds: [...r.mutedIds],
+      ranked: r.ranked, startAt: r.startAt, rated: r.rated,
     };
   }
 
@@ -417,4 +508,36 @@ export function toGameResult(room: Room, finishedAt: number): GameResult {
       return id && game.players[seat].isHuman ? [id] : [];
     }),
   };
+}
+
+/**
+ * How many farm sheep sit down with a room's people. The host's number where one was chosen (never more than the table
+ * holds); otherwise the old rule: enough to fill the table to MIN_TABLE.
+ */
+export function botsFor(room: Pick<Room, 'settings' | 'members'>): number {
+  const people = room.members.length;
+  if (room.settings.bots === null) return Math.max(0, MIN_TABLE - people);
+  return Math.max(0, Math.min(room.settings.bots, MAX_ROOM_SIZE - people));
+}
+
+/**
+ * A finished ranked game's finishing order, for the ratings: one entry for everyone who sat down. The last sheep
+ * standing is first; behind it, whoever was out later is ahead (frozen, or gone: walking out counts from that
+ * moment, whatever the farm sheep that took the seat did afterwards). Two who were out at the same instant tie.
+ */
+export function rankedPlaces(room: Room): { userId: string; place: number }[] {
+  const game = room.game;
+  if (!game) return [];
+  const rows = room.ratedSeats.map(({ userId, seat }) => {
+    const p = game.players[seat];
+    const left = room.leftAt[userId];
+    const out = left !== undefined ? left : p?.frozen ? (p.frozenAt ?? 0) : Infinity;
+    return { userId, out, lives: left !== undefined ? 0 : (p?.lives ?? 0) };
+  }).sort((a, b) => (a.out === b.out ? b.lives - a.lives : a.out > b.out ? -1 : 1));
+  let place = 0;
+  return rows.map((r, i) => {
+    const prev = rows[i - 1];
+    if (!prev || prev.out !== r.out || prev.lives !== r.lives) place = i + 1;
+    return { userId: r.userId, place };
+  });
 }

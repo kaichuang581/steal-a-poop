@@ -83,37 +83,21 @@
 button.kit-sign:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.22), 0 0 0 2px var(--wood-ink), 0 3px 0 rgba(20, 30, 20, 0.45); }
 button.kit-sign:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ---------- Paper ---------- */
+/* ---------- Paper: a plain card, flat and square, with a clean edge. No pin, no tilt, no torn edge (Brian, 2026-11-13). ---------- */
 .kit-paper, .sk-paper {
-  position: relative; color: var(--ink); border-radius: 0;
+  position: relative; color: var(--ink); border-radius: 2px;
   background: var(--kit-paper-tex), var(--paper);
   box-shadow: 2px 3px 0 rgba(59, 48, 40, 0.22), inset 0 0 0 1px rgba(122, 106, 88, 0.18);
 }
-/* A torn edge: a strip of deckle along the bottom, drawn, not clipped, so the hard shadow survives. */
-.kit-paper::after, .sk-paper:not([role="dialog"])::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 5px; pointer-events: none;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='5' preserveAspectRatio='none'%3E%3Cpath d='M0 0 L40 0 L40 2 L36 4 L31 1.5 L27 3.5 L22 1 L17 4 L12 2 L8 4.5 L4 1.5 L0 3 Z' fill='%23FBF4E4'/%3E%3C/svg%3E") repeat-x;
-  background-size: 40px 5px;
-}
-.kit-paper[data-seed="1"]::after { background-position: 13px 0; }
-.kit-paper[data-seed="2"]::after { background-position: 27px 0; transform: scaleX(-1); }
-.kit-paper[data-seed="3"]::after { background-position: 7px 0; }
 .kit-paper--slip { padding: 6px 10px; font-family: var(--skin-font-hand); font-size: 17px; line-height: 1.2; display: inline-flex; align-items: center; gap: 6px; }
 .kit-paper--note { padding: 10px 14px; font-family: var(--skin-font-hand); font-size: 16px; line-height: 1.35; }
 .kit-paper--sheet {
   padding: 16px 18px; font-family: var(--skin-font-body); font-size: 15px; line-height: 1.5;
   background: repeating-linear-gradient(0deg, transparent 0 27px, rgba(59, 48, 40, 0.12) 27px 28px), var(--kit-paper-tex), var(--paper);
 }
-.kit-paper--tilt-1 { rotate: -1.2deg; } .kit-paper--tilt-2 { rotate: 0.8deg; } .kit-paper--tilt-3 { rotate: 1.4deg; }
 .kit-paper--lift { transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out); }
 .kit-paper--lift:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 3px 4px 0 rgba(59, 48, 40, 0.24), inset 0 0 0 1px rgba(122, 106, 88, 0.18); }
 .kit-paper--lift:active:not(:disabled) { transform: translateY(1px); }
-.kit-pin {
-  position: absolute; top: -6px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); border-radius: 50%; z-index: 2; pointer-events: none;
-  background: radial-gradient(circle at 35% 30%, #FFF1B8 0 18%, var(--brass) 45%, var(--brass-dark) 100%);
-  box-shadow: inset 0 0 0 1px rgba(60, 40, 10, 0.6), 1px 1px 0 rgba(40, 24, 10, 0.35);
-}
-.kit-pin--corner { left: 8px; transform: none; }
 /* A hang tag: a paper tag with a punched hole, tinted, never a gradient fill of its own. */
 .kit-tag {
   position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px 3px 16px;
@@ -124,8 +108,6 @@ button.kit-sign:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .kit-tag::before { content: ''; position: absolute; left: 7px; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 50%; background: rgba(40, 24, 10, 0.75); }
 .kit-tag--gold { --tag-tint: var(--glow); } .kit-tag--green { --tag-tint: #CDE3BF; } .kit-tag--gray { --tag-tint: #DCD6CB; } .kit-tag--flame { --tag-tint: #F6C6A0; }
-/* A ticket: perforated on its left edge. */
-.kit-ticket { padding-left: 18px; background: radial-gradient(circle at 4px 6px, rgba(59, 48, 40, 0.35) 0 1.5px, transparent 2px) 0 0 / 8px 12px repeat-y, var(--kit-paper-tex), var(--paper); }
 
 /* ---------- Tile: a carved wooden letter tile ---------- */
 .kit-tile {
@@ -147,6 +129,30 @@ button.kit-sign:disabled { opacity: 0.5; cursor: not-allowed; }
   content: ''; position: absolute; top: -5px; right: -5px; width: 14px; height: 12px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath d='M6 0h1v2h-1v1h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h2v1h1v-1h1v-1h1z' fill='%233F6A49'/%3E%3C/svg%3E") center / contain no-repeat;
 }
+
+/* ---------- Drift: snow lying along the top edge of a board ----------
+   Mounds of different sizes with a blue shade under them and drips of different lengths, drawn at its own size and
+   repeated, never stretched: a snow cap pulled across a wide board became "a long horizontal slightly wiggly line"
+   (Brian, 2026-11-14). `round` fits a whole number of mounds to the board. */
+.kit-drift { --kit-drift: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 232 44'%3E%3Cpath d='M0,21 C6,11 18,7 30,10 C38,3 58,2 70,9 C80,5 96,6 104,12 C114,7 132,4 146,10 C156,6 172,7 180,13 C190,8 208,7 218,12 C226,14 232,17 232,21 L232,25 C228,28 222,28 218,26 C214,26 212,35 208,35 C204,35 204,27 200,27 L170,27 C166,27 166,31 162,31 C158,31 158,27 154,27 L120,27 C116,28 116,41 111,41 C106,41 107,28 102,27 L74,27 C70,27 70,32 66,32 C62,32 62,27 58,27 L30,27 C26,28 26,37 22,37 C18,37 18,28 14,27 L0,25 Z' fill='%23C7D8EF'/%3E%3Cpath d='M0,19 C6,9 18,5 30,8 C38,1 58,0 70,7 C80,3 96,4 104,10 C114,5 132,2 146,8 C156,4 172,5 180,11 C190,6 208,5 218,10 C226,12 232,15 232,19 L232,22 C228,25 222,25 218,23 C214,23 212,31 208,31 C204,31 204,24 200,24 L170,24 C166,24 166,28 162,28 C158,28 158,24 154,24 L120,24 C116,25 116,37 111,37 C106,37 107,25 102,24 L74,24 C70,24 70,29 66,29 C62,29 62,24 58,24 L30,24 C26,25 26,33 22,33 C18,33 18,25 14,24 L0,22 Z' fill='%23FFFFFF'/%3E%3Cpath d='M22,14 C28,10 36,10 42,13 M92,13 C100,9 110,9 116,13 M160,14 C168,10 178,10 186,14' fill='none' stroke='%23DCE8F7' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.kit-drift::after {
+  content: ''; position: absolute; left: -9px; right: -9px; top: -23px; height: 44px; pointer-events: none;
+  background: var(--kit-drift) 0 0 / 232px 44px round no-repeat;
+}
+/* On something small (a sign, a button): the same snow at two thirds the size. */
+.kit-drift--small::after { left: -6px; right: -6px; top: -15px; height: 29px; background-size: 154px 29px; }
+/* ---------- Beam: a timber laid across the top of a screen, strapped with iron at its ends ---------- */
+.kit-beam {
+  position: relative; color: var(--button-text); border-radius: 4px;
+  background: repeating-linear-gradient(1.2deg, rgba(255, 230, 190, 0.09) 0 1px, transparent 1px 6px, rgba(40, 24, 10, 0.16) 6px 7px, transparent 7px 15px), linear-gradient(180deg, #6B4729 0%, #573820 55%, #452B17 100%);
+  box-shadow: inset 0 3px 0 rgba(255, 214, 160, 0.24), inset 0 -5px 0 rgba(20, 12, 6, 0.5), 0 0 0 4px #1F130B, 0 10px 0 rgba(20, 12, 6, 0.5);
+}
+.kit-beam-strap {
+  position: absolute; top: -4px; bottom: -4px; width: 20px; border-radius: 2px; pointer-events: none;
+  background: radial-gradient(circle at 50% 22%, #8B8580 0 2.5px, transparent 3px), radial-gradient(circle at 50% 78%, #8B8580 0 2.5px, transparent 3px), linear-gradient(90deg, #4A4541, #33302D);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16), inset -2px 0 0 rgba(0, 0, 0, 0.4), 0 3px 0 rgba(20, 12, 6, 0.5);
+}
+.kit-beam-strap:first-of-type { left: 14px; } .kit-beam-strap:nth-of-type(2) { right: 14px; }
 
 /* ---------- Slate: chalk on a framed board ---------- */
 .kit-slate {
@@ -276,7 +282,6 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
   background: linear-gradient(180deg, transparent 0 14px, var(--brass-dark) 14px 15px, transparent 15px), repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 3px), var(--brass);
   box-shadow: inset 0 2px 0 var(--brass-light), inset 0 -3px 0 var(--brass-dark), 0 3px 0 rgba(40, 24, 10, 0.35);
 }
-.sk-paper[role="dialog"]::after { display: none; }
 
 .kit-clipboard {
   position: relative; width: min(420px, calc(100vw - 24px)); padding: 34px 14px 16px; border-radius: 3px;
@@ -309,20 +314,22 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
   box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.22), inset 0 -2px 0 rgba(40, 24, 10, 0.45);
   color: var(--button-text);
 }
-.kit-lever {
-  position: relative; flex: none; width: 44px; height: 30px; border: 0; background: transparent; cursor: pointer;
+.kit-switch {
+  position: relative; flex: none; width: 46px; height: 26px; padding: 0; border: 0; border-radius: 4px; cursor: pointer;
+  background: #B9AC97; box-shadow: inset 0 0 0 2px rgba(59, 48, 40, 0.35); transition: background-color var(--t-fast) var(--ease-out);
 }
-.kit-lever::before { content: ''; position: absolute; left: 6px; right: 6px; bottom: 6px; height: 6px; border-radius: 1px; background: var(--kit-grain), var(--wood-ink); }
-.kit-lever-arm { position: absolute; left: 50%; bottom: 9px; width: 6px; height: 20px; margin-left: -3px; border-radius: 2px; transform-origin: 50% 100%; rotate: 35deg; background: var(--kit-grain), var(--tile); box-shadow: inset -1px 0 0 var(--wood); transition: rotate var(--t-fast) var(--ease-out); }
-.kit-lever-pivot { position: absolute; left: 50%; bottom: 6px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFF1B8 0 18%, var(--brass) 45%, var(--brass-dark) 100%); }
-.kit-lever-lamp { position: absolute; right: 0; top: 2px; width: 8px; height: 8px; border-radius: 50%; background: #3A2A1C; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4); }
-.kit-lever[aria-checked="true"] .kit-lever-arm { rotate: -35deg; }
-.kit-lever[aria-checked="true"] .kit-lever-lamp { background: var(--amber); box-shadow: 0 0 0 2px rgba(242, 164, 68, 0.35); }
-.kit-rope-slider { -webkit-appearance: none; appearance: none; height: 22px; background: transparent; cursor: pointer; }
-.kit-rope-slider::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px); }
-.kit-rope-slider::-moz-range-track { height: 4px; border-radius: 2px; background: repeating-linear-gradient(160deg, #C9A46E 0 2px, #7A5630 2px 4px); }
-.kit-rope-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%); box-shadow: inset 0 0 0 2px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
-.kit-rope-slider::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--wood) 0%, var(--wood-dark) 75%); box-shadow: inset 0 0 0 2px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
+.kit-switch-knob {
+  position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 3px; background: var(--paper);
+  box-shadow: 0 2px 0 rgba(40, 24, 10, 0.4); transition: translate var(--t-fast) var(--ease-out);
+}
+.kit-switch[aria-checked="true"] { background: var(--cloth-dark); }
+.kit-switch[aria-checked="true"] .kit-switch-knob { translate: 20px 0; }
+.kit-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+.kit-slider { -webkit-appearance: none; appearance: none; height: 22px; background: transparent; cursor: pointer; }
+.kit-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #B9AC97; box-shadow: inset 0 0 0 1px rgba(59, 48, 40, 0.35); }
+.kit-slider::-moz-range-track { height: 6px; border-radius: 3px; background: #B9AC97; box-shadow: inset 0 0 0 1px rgba(59, 48, 40, 0.35); }
+.kit-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 22px; margin-top: -8px; border-radius: 3px; background: var(--paper); box-shadow: inset 0 0 0 2px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
+.kit-slider::-moz-range-thumb { width: 16px; height: 22px; border: 0; border-radius: 3px; background: var(--paper); box-shadow: inset 0 0 0 2px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
 
 /* ---------- Board alarm: the hazard-striped plank (V6 Part 4.1), right across the screen for faster turns, a twist, a
    steal turn. Dark wood, lamps blinking, the board throbbing with its colour. Nothing else looks like this: a warning. */
@@ -364,12 +371,12 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 }
 
 /* ---------- Focus: the lantern ring, everywhere ---------- */
-:root[data-skin="painted"] :is(.kit-btn, .kit-peg, .sk-icon-btn, .sk-chip, .kit-patch, .kit-lever, .kit-index-tab, .kit-rope-slider, .kit-paper--lift):focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+:root[data-skin="painted"] :is(.kit-btn, .kit-peg, .sk-icon-btn, .sk-chip, .kit-patch, .kit-switch, .kit-index-tab, .kit-slider, .kit-paper--lift):focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 
 /* ---------- Reduced motion: every swing, drop and slide is a fade ---------- */
 @media (prefers-reduced-motion: reduce) {
   .kit-plank--hung, .kit-plank--sway, .kit-tile--hung { animation: sk-title-fade 200ms both; }
-  .kit-paper--lift, .kit-btn, .kit-peg, .kit-lever-arm { transition: none; }
+  .kit-paper--lift, .kit-btn, .kit-peg, .kit-switch, .kit-switch-knob { transition: none; }
 }
 :root[data-skin="painted"].reduce-motion :is(.kit-plank--hung, .kit-plank--sway, .kit-tile--hung) { animation: sk-title-fade 200ms both; }
 
@@ -392,11 +399,10 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
   box-shadow: inset 4px 0 0 var(--wool-edge), inset -4px 0 0 var(--wool-edge), 0 4px 0 rgba(60, 36, 22, 0.3), 0 12px 24px rgba(30, 18, 8, 0.3);
 }
 :root[data-skin="painted"] :is(.kit-frame, .kit-plank--panel, .sk-paper[role="dialog"], .sk-setup, .sk-guide, .sk-sheet, .sk-framed)::before { display: none; }
-:root[data-skin="painted"] .sk-paper[role="dialog"]::after, :root[data-skin="painted"] .kit-clip { display: none; }
+:root[data-skin="painted"] .kit-clip { display: none; }
 /* What sat on the wood now sits straight on the wool. */
 :root[data-skin="painted"] .kit-clipboard { padding-top: 14px; }
 :root[data-skin="painted"] .kit-clipboard .kit-clipboard-sheet { background: none; box-shadow: none; padding: 0 4px; }
-:root[data-skin="painted"] .kit-clipboard .kit-clipboard-sheet::after { display: none; }
 :root[data-skin="painted"] .kit-clipboard-close { top: 8px; right: 8px; }
 :root[data-skin="painted"] .kit-index-tabs { top: 40px; }
 :root[data-skin="painted"] .sk-sheet-head { background: none; }
@@ -408,7 +414,6 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 :root[data-skin="painted"] .kit-panel-row { background: none; box-shadow: none; color: var(--ink); border-bottom: 2px dashed rgba(122, 106, 88, 0.35); border-radius: 0; }
 :root[data-skin="painted"] .kit-panel-row:last-child { border-bottom: 0; }
 :root[data-skin="painted"] .kit-panel-row .kit-paper--slip { background: none; box-shadow: none; padding: 0; font-size: 19px; }
-:root[data-skin="painted"] .kit-panel-row .kit-paper--slip::after { display: none; }
 :root[data-skin="painted"] .sk-account-row { margin: 4px 6px; border-radius: 4px; background: var(--kit-stitch-light) 0 0 / 12px 12px, var(--berry-dark); color: var(--button-text); border-bottom: 0; }
 /* A knitted label: cranberry wool with cream letters (the settings title, headings over wool). */
 :root[data-skin="painted"] .kit-plank--knit {
@@ -544,8 +549,6 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-book-page:last-child { box-shadow: inset 16px 0 12px -10px rgba(59, 48, 40, 0.3); }
 /* A ruled ledger page. */
 .kit-ruled { background: repeating-linear-gradient(transparent 0 43px, rgba(59, 48, 40, 0.16) 43px 44px), var(--kit-paper-tex), var(--paper); }
-/* A cork notice board in a plank frame. */
-.kit-cork { background: var(--kit-paper-tex), #B08556; box-shadow: inset 0 0 0 6px var(--wood-dark), inset 0 0 0 8px rgba(20, 12, 6, 0.45), 0 4px 0 rgba(20, 12, 6, 0.45); }
 :root[data-skin="painted"].reduce-motion .kit-pic--legendary .kit-pic-mat::after { animation: none; transform: translateX(0); }
 @media (prefers-reduced-motion: reduce) { .kit-pic--legendary .kit-pic-mat::after { animation: none; transform: translateX(0); } }
 /* Lit by a lantern: a plank or tab that is the picked one glows gold. */

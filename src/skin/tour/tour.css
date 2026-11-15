@@ -1,0 +1,60 @@
+/* The tutorial's guide (PaintedTour.tsx): a card in the kit's paper with the sheepdog on it, a ring round what it is
+   talking about, and a light dimming of everything else while a card is being read. Nothing here blacks the table out. */
+.sk-tour { position: fixed; inset: 0; z-index: 45; pointer-events: none; }
+
+/* While a card is read, the screen dims a little everywhere but the ringed thing: one box at the ring, its shadow
+   spread over the rest. With nothing ringed, the whole screen. */
+.sk-tour-dim { position: absolute; border-radius: 4px; box-shadow: 0 0 0 200vmax rgba(10, 8, 18, 0.36); }
+.sk-tour-dim--all { inset: 0; border-radius: 0; box-shadow: none; background: rgba(10, 8, 18, 0.36); }
+
+.sk-tour-ring {
+  position: absolute; border: 3px solid var(--amber); border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(34, 20, 8, 0.7), inset 0 0 0 2px rgba(34, 20, 8, 0.45);
+  animation: sk-tour-ring 1.4s ease-in-out infinite;
+}
+@keyframes sk-tour-ring { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+.sk-tour-card {
+  position: absolute; pointer-events: auto; box-sizing: border-box; padding: 12px 14px 12px;
+  box-shadow: 4px 5px 0 rgba(30, 18, 8, 0.4), inset 0 0 0 1px rgba(122, 106, 88, 0.3);
+}
+/* Who is talking and how far along: the dog on a dark tile (it is black and white, and the white is lost on paper). */
+.sk-tour-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sk-tour-dog { flex: none; width: 48px; height: 48px; border-radius: 3px; background: var(--slate); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.28), 0 2px 0 rgba(59, 48, 40, 0.3); overflow: hidden; }
+.sk-tour-dog img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.sk-tour-meta { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.sk-tour-kicker { font: 800 11px/1 var(--skin-font-body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-soft); }
+.sk-tour-pips { display: flex; gap: 4px; }
+.sk-tour-pips i { width: 14px; height: 5px; border-radius: 1px; background: var(--paper-edge); box-shadow: inset 0 0 0 1px rgba(59, 48, 40, 0.18); }
+.sk-tour-pips i[data-on="done"] { background: var(--wood-dark); }
+.sk-tour-pips i[data-on="now"] { background: var(--amber); }
+
+.sk-tour-text { animation: sk-tour-in 180ms ease-out both; }
+@keyframes sk-tour-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.sk-tour-title { margin: 0; font: 800 22px/1.15 var(--skin-font-display); color: var(--wood-ink); }
+.sk-tour-body { margin: 5px 0 0; font: 400 18px/1.3 var(--skin-font-hand); color: var(--ink); text-wrap: pretty; }
+.sk-tour-note { margin: 6px 0 0; font: 400 16px/1.3 var(--skin-font-hand); color: var(--ink-soft); text-wrap: pretty; }
+
+.sk-tour-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 11px; }
+.sk-tour-next, .sk-tour-go { display: inline-flex; align-items: center; gap: 9px; }
+.sk-tour-key { padding: 2px 6px; border-radius: 3px; font: 900 11px/1.2 var(--skin-font-body); letter-spacing: 0.04em; color: var(--wood-ink); background: var(--paper); box-shadow: 0 2px 0 rgba(30, 18, 8, 0.45); }
+/* No keyboard, no key to show. */
+@media (hover: none), (pointer: coarse) { .sk-tour-key { display: none; } }
+.sk-tour-skip { min-height: 36px; padding: 0 4px; border: 0; background: none; cursor: pointer; font: 400 16px/1 var(--skin-font-hand); color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; }
+.sk-tour-skip:hover { color: var(--wood-ink); }
+.sk-tour-skip:focus-visible, .sk-tour-card .kit-btn:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.sk-tour-leave { margin-left: auto; }
+
+/* A phone: the card lies across the top, under the bar, and is kept short. */
+.sk-tour-card[data-dock="top"] { padding: 9px 12px 9px; }
+.sk-tour-card[data-dock="top"] .sk-tour-head { margin-bottom: 5px; gap: 9px; }
+.sk-tour-card[data-dock="top"] .sk-tour-dog { width: 38px; height: 38px; }
+.sk-tour-card[data-dock="top"] .sk-tour-meta { gap: 5px; }
+.sk-tour-card[data-dock="top"] .sk-tour-pips i { width: 12px; height: 4px; }
+.sk-tour-card[data-dock="top"] .sk-tour-title { font-size: 19px; }
+.sk-tour-card[data-dock="top"] .sk-tour-body { font-size: 17px; margin-top: 3px; }
+.sk-tour-card[data-dock="top"] .sk-tour-note { font-size: 15px; margin-top: 4px; }
+.sk-tour-card[data-dock="top"] .sk-tour-actions { margin-top: 7px; }
+
+:root.reduce-motion .sk-tour-ring, :root.reduce-motion .sk-tour-text { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-tour-ring, .sk-tour-text { animation: none; } }

@@ -2,8 +2,6 @@ import { Px } from '../skin/components/PixelIcons';
 import { useState } from 'react';
 import { useRoomStore } from '../state/roomStore';
 import { ChatPanel } from './ChatPanel';
-import { authEnabled } from '../auth/config';
-import { Hub } from './social/Hub';
 import { NameTag } from './social/NameTag';
 
 /** Waiting room: share the code, see who is in, and (for the host) start the game. */
@@ -15,7 +13,6 @@ export function RoomScreen() {
   const { start, leave, clearNotice, mute, kick } = useRoomStore.getState();
   const [confirmKick, setConfirmKick] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [invite, setInvite] = useState(false);
   const isHost = room.hostId === me;
   const enough = room.members.length >= room.min;
 
@@ -63,7 +60,6 @@ export function RoomScreen() {
         <button onClick={copy} className="min-h-11 rounded-lg bg-white/15 px-4 font-bold">{copied ? 'Copied!' : 'Copy code'}</button>
         <button onClick={copyLink} className="ml-2 min-h-11 rounded-lg bg-white/15 px-4 font-bold">{linkCopied ? 'Copied!' : 'Copy invite link'}</button>
         <p className="mt-1 text-xs text-white/60">Anyone with this code can join before the game starts.</p>
-        {authEnabled() && <button onClick={() => setInvite(true)} className="mt-2 min-h-11 rounded-lg bg-sky-500 px-4 font-bold text-sky-950">Invite friends</button>}
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-white/5 p-3" aria-label="Players">
@@ -116,7 +112,6 @@ export function RoomScreen() {
       </section>
 
       <ChatPanel />
-      {invite && <Hub initial="friends" onClose={() => setInvite(false)} />}
     </main>
   );
 }

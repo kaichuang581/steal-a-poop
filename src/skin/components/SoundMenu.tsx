@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { nowPlaying, useMusic } from '../../audio/music';
 import { useStore } from '../../state/store';
-import { Lever, Peg, RopeSlider } from '../kit';
+import { Switch, Peg, Slider } from '../kit';
 import { SpeakerIcon } from './Icons';
 
 /**
@@ -36,13 +36,13 @@ export function SoundMenu({ peg = false, size = 18 }: { peg?: boolean; size?: nu
         <div className="sk-sound-menu" role="dialog" aria-label="Sound and music">
           <div className="sk-sound-row">
             <span className="sk-sound-name">Game sounds</span>
-            <Lever checked={!muted} onChange={toggleMute} label="Game sounds" />
-            <RopeSlider min={0} max={100} value={Math.round(volume * 100)} onChange={(e) => setVolume(Number(e.target.value) / 100)} aria-label="Game sounds volume" disabled={muted} />
+            <Switch checked={!muted} onChange={toggleMute} label="Game sounds" />
+            <Slider min={0} max={100} value={Math.round(volume * 100)} onChange={(e) => setVolume(Number(e.target.value) / 100)} aria-label="Game sounds volume" disabled={muted} />
           </div>
           <div className="sk-sound-row">
             <span className="sk-sound-name">Music</span>
-            <Lever checked={music.on} onChange={music.toggle} label="Music" />
-            <RopeSlider min={0} max={100} value={Math.round(music.volume * 100)} onChange={(e) => music.setVolume(Number(e.target.value) / 100)} aria-label="Music volume" disabled={!music.on} />
+            <Switch checked={music.on} onChange={music.toggle} label="Music" />
+            <Slider min={0} max={100} value={Math.round(music.volume * 100)} onChange={(e) => music.setVolume(Number(e.target.value) / 100)} aria-label="Music volume" disabled={!music.on} />
           </div>
           <p className="sk-sound-note">{music.on ? `Playing: ${nowPlaying()}` : 'Music is off'}</p>
         </div>

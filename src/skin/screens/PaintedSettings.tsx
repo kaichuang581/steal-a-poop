@@ -5,7 +5,7 @@ import { useStore } from '../../state/store';
 import { AccountPanel } from '../../ui/auth/AccountPanel';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { PaintedCredits } from '../components/PaintedCredits';
-import { Board, Lever, Panel, PanelRow, Peg, WoodButton } from '../kit';
+import { Board, Switch, Panel, PanelRow, Peg, WoodButton } from '../kit';
 import { SaveCodeRow } from '../components/SaveCodeRow';
 
 /**
@@ -37,8 +37,8 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
         <Panel className="-mt-3 pt-5">
           {/* The account panel is written light-on-dark; it sits on a cranberry patch. */}
           <div className="kit-panel-row sk-account-row empty:hidden"><AccountPanel onSignIn={() => setSignIn(true)} /></div>
-          <PanelRow label="Reduce motion"><Lever checked={s.reduceMotion} onChange={s.setReduceMotion} label="Reduce motion" /></PanelRow>
-          <PanelRow label="Larger text"><Lever checked={s.largeText} onChange={s.setLargeText} label="Larger text" /></PanelRow>
+          <PanelRow label="Reduce motion"><Switch checked={s.reduceMotion} onChange={s.setReduceMotion} label="Reduce motion" /></PanelRow>
+          <PanelRow label="Larger text"><Switch checked={s.largeText} onChange={s.setLargeText} label="Larger text" /></PanelRow>
           <PanelRow label="Tutorial">
             <WoodButton className="kit-btn--sm flex items-center gap-2" aria-label="Replay tutorial" disabled={!ready} onClick={() => s.startTour('menu')}><PlayIcon size={14} /> Replay</WoodButton>
           </PanelRow>

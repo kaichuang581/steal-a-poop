@@ -98,18 +98,6 @@ export const SoundIcon = ({ size = 20, muted = false }: { size?: number; muted?:
 };
 
 const CoinIcon = grid(['  ####  ', ' #oooo# ', '#oo##oo#', '#o#oo#o#', '#o#oo#o#', '#oo##oo#', ' #oooo# ', '  ####  '], 'coin');
-const FriendsIcon = grid([
-  ' ##    ## ',
-  '#  #  #  #',
-  '#  #  #  #',
-  ' ##    ## ',
-  '          ',
-  '  #    #  ',
-  ' ###  ### ',
-  '#  #  #  #',
-  '##########',
-  '          ',
-], 'friends');
 const ShopIcon = grid(['  ####  ', ' #    # ', '########', '#oooooo#', '#oooooo#', '#oooooo#', '########'], 'shop');
 const WarnIcon = grid(['    #    ', '   ###   ', '   # #   ', '  ## ##  ', '  ## ##  ', ' ###### # '.slice(0, 9), ' ###  ### '.slice(0, 9), '#########'].map((r) => r.padEnd(9)), 'warn');
 const BanIcon = grid(['  ####  ', ' #   ## ', '#   # ##', '#  #  ##', '# #   ##'.replace('##', '# '), ' ##   # ', '  ####  '], 'ban');
@@ -174,7 +162,7 @@ const CheckIcon = grid(['      #', '     ##', '#   ## ', '## ##  ', ' ###   ', '
 const ResetIcon = grid([' #### ', '#    #', '#   ##', '    # ', '#    #', ' #### '], 'reset');
 
 const MAP: Record<string, (p: { size?: number }) => React.ReactElement> = {
-  '🪙': CoinIcon, '👥': FriendsIcon, '🏆': ScoresIcon, '🛍': ShopIcon, '⚠': WarnIcon, '🚫': BanIcon, '✕': CloseIcon, '⚡': BoltIcon,
+  '🪙': CoinIcon, '🏆': ScoresIcon, '🛍': ShopIcon, '⚠': WarnIcon, '🚫': BanIcon, '✕': CloseIcon, '⚡': BoltIcon,
   '💩': PoopIcon, '🥇': Medal('gold'), '🥈': Medal('silver'), '🥉': Medal('bronze'), '🌬': WindIcon, '🌱': SproutIcon, '🍃': LeafSmall,
   '🌰': AcornSmall, '📏': RulerIcon, '👯': TwinsIcon, '✨': SparkIcon, '🌶': PepperIcon, '⚙': GearPx, '✓': CheckIcon, '↺': ResetIcon, '💡': HintIcon, '🔥': FireIcon,
 };

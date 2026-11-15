@@ -60,7 +60,7 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
       <div className="mx-auto max-w-3xl">
         <MessageSlip message={message} />
         {hints && hints.ideas.length > 0 && (
-          <Paper kind="note" pin="top" className="sk-pop sk-ideas" aria-label="Word ideas">
+          <Paper kind="note" className="sk-pop sk-ideas" aria-label="Word ideas">
             <span className="flex items-center gap-1" style={{ color: 'var(--ink-soft)' }}><BookIcon size={18} /> try:</span>
             {hints.ideas.map((w) => (
               <button key={w} onMouseDown={keep} onClick={() => hints.onPick(w)} className="sk-idea" aria-label={w}>

@@ -8,7 +8,7 @@ import { CloseIcon } from '../components/Icons';
  */
 
 const join = (...c: (string | undefined | false | null)[]) => c.filter(Boolean).join(' ');
-/** A small stable number from a string, so a board's knot or a paper's edge differs from its neighbour's but not between renders. */
+/** A small stable number from a string, so a board's knot differs from its neighbour's but not between renders. */
 export const seedOf = (s: string | number = 0) => [...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % 4;
 
 type Div = HTMLAttributes<HTMLDivElement>;
@@ -42,18 +42,15 @@ export function Board({ size = 'label', tone = 'wood', hang = 'none', snow = fal
   );
 }
 
-/** 4.2 Paper, pinned or strung. */
-export function Paper({ kind = 'note', pin = 'none', seed = 0, tilt = false, as: As = 'div', className, children, ...rest }: HTMLAttributes<HTMLElement> & {
-  kind?: 'slip' | 'note' | 'sheet' | 'ticket'; pin?: 'top' | 'corner' | 'none'; seed?: number | string; tilt?: boolean; as?: 'div' | 'span';
+/**
+ * 4.2 Paper: a plain card. It sits flat and square, with a clean edge. It used to come pinned, tilted and torn along the
+ * bottom; all three are gone and are not to come back (Brian, 2026-11-13: "fix all the obviously ai generated things
+ * throughout the site. ex) those stupid papers held up by pins").
+ */
+export function Paper({ kind = 'note', as: As = 'div', className, children, ...rest }: HTMLAttributes<HTMLElement> & {
+  kind?: 'slip' | 'note' | 'sheet'; as?: 'div' | 'span';
 }) {
-  const s = seedOf(seed);
-  return (
-    <As {...rest} data-seed={s}
-      className={join('kit-paper', `kit-paper--${kind === 'ticket' ? 'slip kit-ticket' : kind}`, tilt && `kit-paper--tilt-${s || 1}`, className)}>
-      {pin !== 'none' && <span className={join('kit-pin', pin === 'corner' && 'kit-pin--corner')} />}
-      {children}
-    </As>
-  );
+  return <As {...rest} className={join('kit-paper', `kit-paper--${kind}`, className)}>{children}</As>;
 }
 /** A hang tag: paper tinted by tone, with a punched hole. */
 export function Tag({ tone = 'gold', className, ...rest }: HTMLAttributes<HTMLSpanElement> & { tone?: 'gold' | 'green' | 'gray' | 'flame' }) {
@@ -154,15 +151,16 @@ export function Panel({ className, ...rest }: Div) { return <div {...rest} class
 export function PanelRow({ label, children, className }: { label: ReactNode; children?: ReactNode; className?: string }) {
   return <div className={join('kit-panel-row', className)}><Paper kind="slip" as="span">{label}</Paper><span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>{children}</span></div>;
 }
-/** A toggle: a wooden lever on a brass pivot, with a lamp. */
-export function Lever({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
+/** A toggle: an ordinary switch, green and to the right when on. (It was a little wooden lever with a lamp, which nobody could read.) */
+export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
   return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} className="kit-lever" onClick={() => onChange(!checked)}>
-      <span className="kit-lever-arm" /><span className="kit-lever-pivot" /><span className="kit-lever-lamp" />
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} className="kit-switch" onClick={() => onChange(!checked)}>
+      <span className="kit-switch-knob" />
     </button>
   );
 }
-export function RopeSlider({ className, ...rest }: ComponentProps<'input'>) { return <input type="range" {...rest} className={join('kit-rope-slider', className)} />; }
+/** A slider: a plain track and a square handle. (It was a rope with a wooden bead.) */
+export function Slider({ className, ...rest }: ComponentProps<'input'>) { return <input type="range" {...rest} className={join('kit-slider', className)} />; }
 
 /** 4.10 Ice: penalties, the trap and the frozen overlay. */
 export function Ice({ className, ...rest }: Div) { return <div {...rest} className={join('kit-ice', className)} />; }

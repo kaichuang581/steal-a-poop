@@ -299,7 +299,7 @@ export function DreamScreen() {
     ghost.current?.focus();
   };
 
-  if (!dict) return <main className="dr-root"><Paper kind="slip" pin="top" className="dr-loading">Loading the word list...</Paper></main>;
+  if (!dict) return <main className="dr-root"><Paper kind="slip" className="dr-loading">Loading the word list...</Paper></main>;
 
   const mode = phase === 'results' ? 'out' : hud.active ? 'mine' : 'wait';
   const typedLetters = [...hud.typed];
@@ -433,7 +433,7 @@ export function DreamScreen() {
                 <div className="dr-results-streak">
                   <Knit stitches={days} />
                   <span>{streakNow}-night streak · best {loadStreak().best}</span>
-                  <Paper kind="note" seed="blankets" className="dr-results-blankets">Warm Blankets keep your streak warm when you miss a night. You earn one every 7 nights.</Paper>
+                  <Paper kind="note" className="dr-results-blankets">Warm Blankets keep your streak warm when you miss a night. You earn one every 7 nights.</Paper>
                 </div>
               )}
               <DreamPayout id={`dream:${seed}`} sheep={count} slept={asleep} bestStreak={practice ? 0 : loadStreak().best} />

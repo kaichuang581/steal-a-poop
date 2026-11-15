@@ -402,7 +402,7 @@ function Sign({ view, scale, boardRef }: { view: FenceView | null; scale: number
         <mesh geometry={geo.letters} material={ink} />
       </group>
       <Html position={[SIGN.x, SIGN.pivot + 0.32, 0.1]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-        {word ? <Paper kind="slip" pin="top" seed={word} className="dr-slip" style={{ fontSize: word.length > 10 ? 12 : 16 }}><CheckIcon size={14} />{word.toUpperCase()}</Paper> : null}
+        {word ? <Paper kind="slip" className="dr-slip" style={{ fontSize: word.length > 10 ? 12 : 16 }}><CheckIcon size={14} />{word.toUpperCase()}</Paper> : null}
       </Html>
     </group>
   );

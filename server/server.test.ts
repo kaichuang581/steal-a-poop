@@ -66,13 +66,13 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { friends?: { areFriends(a: string, b: string): Promise<boolean> }; cosmetics?: ServerOptions['cosmetics']; blocks?: BlockList; verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit; adminUserIds?: string[] } = {}) {
+async function boot(extra: { cosmetics?: ServerOptions['cosmetics']; blocks?: BlockList; verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit; adminUserIds?: string[] } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
     dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit, adminUserIds: extra.adminUserIds,
     limits: { shutdownGraceMs: 0, ...extra.limits }, now: extra.now,
-    revocations: extra.revocations, friends: extra.friends, cosmetics: extra.cosmetics, blocks: extra.blocks,
+    revocations: extra.revocations, cosmetics: extra.cosmetics, blocks: extra.blocks,
     verifyToken: extra.verifyToken ?? (async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null)),
   });
   open.push(server);
@@ -673,11 +673,10 @@ describe('logins on open connections', () => {
   });
 });
 
-describe('invites and cosmetics over the wire', () => {
-  const friendsOf = (pairs: [string, string][]) => ({ areFriends: async (a: string, b: string) => pairs.some(([x, y]) => (x === a && y === b) || (x === b && y === a)) });
+describe('cosmetics over the wire, and no invites', () => {
   const id = (n: string) => `dev:${n}`;
   async function pair(extra: Parameters<typeof boot>[0] = {}) {
-    const server = await boot({ friends: friendsOf([[id('Ana'), id('Ben')]]), ...extra });
+    const server = await boot(extra);
     const [ana, ben, cy] = await Promise.all(['Ana', 'Ben', 'Cy'].map((n) => Client.connect(server.port, n)));
     clients.push(ana, ben, cy);
     await Promise.all([ana, ben, cy].map((c) => c.waitFor((m) => m.t === 'welcome')));
@@ -688,56 +687,17 @@ describe('invites and cosmetics over the wire', () => {
     return (await c.waitFor((m) => m.t === 'room')).view.code as string;
   };
 
-  it('a friend in the lobby gets the room code; a non-friend is refused without being told anything', async () => {
-    const { ana, ben, cy } = await pair();
+  // Room invites went with the friends list (Brian, 2026-11-14): a room is reached by its code or link, which the
+  // host hands out themselves. The old message is refused like any other the server does not know, and nobody is sent a code.
+  it('an invite is not a message any more: it is refused and nobody is sent the room code', async () => {
+    const { ana, ben } = await pair();
     const code = await makeRoom(ana);
-    ana.send({ t: 'invite', userId: id('Cy') });
-    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'friends_only' });
-    expect(cy.msgs.some((m) => m.t === 'invited')).toBe(false);
     ana.send({ t: 'invite', userId: id('Ben') });
-    expect(await ana.next('inviteResult')).toMatchObject({ ok: true });
-    expect(await ben.waitFor((m) => m.t === 'invited')).toMatchObject({ from: { userId: id('Ana'), name: 'Ana' }, code, roomName: expect.stringContaining('Ana') });
-  });
-
-  it('is refused when you are not in a lobby, the friend is busy or offline, or you already asked', async () => {
-    const { ana } = await pair();
-    ana.send({ t: 'invite', userId: id('Ben') });
-    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'not_in_lobby' });
-    await makeRoom(ana);
-    ana.send({ t: 'invite', userId: id('Ben') });
-    expect(await ana.next('inviteResult')).toMatchObject({ ok: true });
-    ana.send({ t: 'invite', userId: id('Ben') });
-    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'already_invited' });
-    // a friend who is not connected
-    const s2 = await boot({ friends: friendsOf([[id('Ann'), id('Ghost')]]) });
-    const ann = await Client.connect(s2.port, 'Ann');
-    clients.push(ann);
-    await ann.waitFor((m) => m.t === 'welcome');
-    await makeRoom(ann);
-    ann.send({ t: 'invite', userId: id('Ghost') });
-    expect(await ann.next('inviteResult')).toMatchObject({ ok: false, reason: 'offline' });
-    const s3 = await boot({ friends: friendsOf([[id('Ana'), id('Ben')]]) });
-    const [a3, b3] = await Promise.all(['Ana', 'Ben'].map((n) => Client.connect(s3.port, n)));
-    clients.push(a3, b3);
-    await Promise.all([a3, b3].map((c) => c.waitFor((m) => m.t === 'welcome')));
-    await makeRoom(b3);
-    await makeRoom(a3);
-    a3.send({ t: 'invite', userId: id('Ben') });
-    expect(await a3.next('inviteResult')).toMatchObject({ ok: false, reason: 'busy' });
-  });
-
-  it('a block in either direction stops an invite, with the same answer as a non-friend', async () => {
-    const blocks = new BlockList();
-    const { ana, ben } = await pair({ blocks });
-    await makeRoom(ana);
-    blocks.block(id('Ben'), id('Ana'));
-    ana.send({ t: 'invite', userId: id('Ben') });
-    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'friends_only' });
-    blocks.unblock(id('Ben'), id('Ana'));
-    blocks.block(id('Ana'), id('Ben'));
-    ana.send({ t: 'invite', userId: id('Ben') });
-    expect(await ana.next('inviteResult')).toMatchObject({ ok: false, reason: 'friends_only' });
+    expect((await ana.waitFor((m) => m.t === 'error')).error).toBe('bad_message');
+    ben.send({ t: 'join', code });
+    await ben.waitFor((m) => m.t === 'room' && m.view.members.length === 2);
     expect(ben.msgs.some((m) => m.t === 'invited')).toBe(false);
+    expect(ana.msgs.some((m) => m.t === 'inviteResult')).toBe(false);
   });
 
   it('shows what players wear in the room, and updates when they change it', async () => {

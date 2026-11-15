@@ -60,8 +60,6 @@ export async function fakeBackends(page: Page, opts: { profile?: object | null; 
 
 export interface CommunityState {
   balance: number;
-  friends: { userId: string; name: string; online: boolean; cosmetics?: object }[];
-  incoming: { userId: string; name: string; online: boolean }[];
   owned: Set<string>;
   worn: Record<string, string>;
   visible: boolean;
@@ -75,7 +73,7 @@ const ITEMS = [
   { id: 'theme-night', slot: 'theme', name: 'Night table', price: 250, value: '#12163a' },
 ];
 
-/** The friends, boards, shop and wallet endpoints, with a little memory so buying and accepting change what the next call returns. */
+/** The boards, shop and wallet endpoints, with a little memory so buying changes what the next call returns. */
 export async function fakeCommunity(page: Page, st: CommunityState) {
   const seen: Seen[] = [];
   await page.route(`${API}/api/**`, async (route: Route) => {
@@ -88,26 +86,6 @@ export async function fakeCommunity(page: Page, st: CommunityState) {
     const shopView = () => ({ balance: st.balance, items: ITEMS.map((i) => ({ ...i, owned: st.owned.has(i.id), equipped: st.worn[i.slot] === i.id })) });
     if (path === '/api/account/me') return json(route, { profile: { nickname: 'Ana', country: 'CA', consentStatus: 'not_required', leaderboardVisible: st.visible, createdAt: 1 } });
     if (path === '/api/wallet') return json(route, { balance: st.balance, history: [] });
-    if (path === '/api/friends') return json(route, { friends: st.friends, incoming: st.incoming, outgoing: [] });
-    if (path === '/api/friends/code') return json(route, { code: 'ABCD2345' });
-    if (path === '/api/friends/code/reset') return json(route, { code: 'ZZZZ9999' });
-    if (path === '/api/friends/request') return body.code === 'NOSUCH22' ? json(route, { error: 'unknown_code' }, 404) : json(route, { state: 'sent' });
-    const acc = /^\/api\/friends\/(.+)\/accept$/.exec(path);
-    if (acc) {
-      const f = st.incoming.find((x) => x.userId === decodeURIComponent(acc[1]));
-      if (f) {
-        st.incoming = st.incoming.filter((x) => x !== f);
-        st.friends.push(f);
-      }
-      return json(route, { ok: true });
-    }
-    const rem = /^\/api\/friends\/(.+)\/remove$/.exec(path);
-    if (rem) {
-      const id = decodeURIComponent(rem[1]);
-      st.friends = st.friends.filter((x) => x.userId !== id);
-      st.incoming = st.incoming.filter((x) => x.userId !== id);
-      return json(route, { ok: true });
-    }
     if (path === '/api/daily/today') return json(route, { date: '2026-11-04', rows: [{ rank: 1, name: 'Ben', banked: 95, longestWord: 'zebra' }, { rank: 2, name: 'Ana', banked: 80, longestWord: 'quiz' }] });
     if (path.startsWith('/api/leaderboard/')) return json(route, { period: path.split('/').pop(), metric: url.searchParams.get('metric'), rows: [{ rank: 1, userId: 'u9', name: 'Cy', value: 12, games: 20, cosmetics: { badge: '👑' } }] });
     if (path === '/api/me/stats') return json(route, { gamesPlayed: 7, wins: 3, points: 410, bestScore: 88, longestWord: 'zebra', dailyPlayed: 2 });

@@ -212,12 +212,14 @@
 .sk-prompt { display: inline-flex; align-items: center; gap: 6px; }
 .sk-key { min-width: 26px; height: 26px; padding: 0 6px; font-family: var(--skin-font-body); font-weight: 900; font-size: 13px; }
 .sk-tip { animation: sk-title-fade 500ms var(--ease-out) both; }
-.sk-plate-name {
-  width: 11rem; min-height: 28px; padding: 0 4px; border: 0; border-radius: 4px; outline: none; background: transparent;
-  font: inherit; color: inherit; text-shadow: inherit;
-}
-.sk-plate-name::placeholder { color: rgba(255, 244, 220, 0.75); }
-.sk-plate-name:focus { background: rgba(255, 244, 220, 0.16); box-shadow: 0 0 0 2px var(--amber); }
+/* The box with your name is the way into your profile: one button, your name over a line that says so. */
+.sk-plate-id { display: flex; flex-direction: column; gap: 1px; min-width: 6.5rem; max-width: 12rem; text-align: left; }
+.sk-plate-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: inherit; line-height: 1.15; color: inherit; text-shadow: inherit; }
+.sk-plate-sub { font: 400 14px/1.1 var(--skin-font-hand); color: var(--glow); letter-spacing: 0.01em; }
+button.sk-plate { border: 0; color: var(--button-text); transition: transform var(--t-fast) var(--ease-out), filter var(--t-fast); }
+button.sk-plate:hover { filter: brightness(1.12); transform: translateY(-1px); }
+button.sk-plate:active { transform: translateY(1px); }
+button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .sk-plate { display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 10px; font-family: var(--skin-font-body); font-weight: 800; }
 
 :root[data-skin="painted"].reduce-motion :is(.sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip),
@@ -364,26 +366,26 @@
   background: repeating-linear-gradient(135deg, #C8342E 0 8px, #FFF4DC 8px 16px);
 }
 /* The season's lights, for screens with no scene behind them. */
-.sk-garland { position: fixed; inset: 0; z-index: 60; overflow: hidden; pointer-events: none; }
-.sk-garland-wire { position: absolute; left: 0; right: 0; top: 6px; display: flex; justify-content: space-between; padding: 0 8px; border-top: 2px solid rgba(40, 32, 26, 0.7); }
-.sk-garland-wire i { width: 10px; height: 14px; margin-top: 2px; border-radius: 3px 3px 5px 5px; animation: sk-garland-blink 1.5s ease-in-out infinite; }
-.sk-garland-wire i[data-c='0'] { background: #E8402E; box-shadow: 0 0 8px #E8402E; }
-.sk-garland-wire i[data-c='1'] { background: #3FBF5F; box-shadow: 0 0 8px #3FBF5F; }
-.sk-garland-wire i[data-c='2'] { background: #FFC24B; box-shadow: 0 0 8px #FFC24B; }
-@keyframes sk-garland-blink { 50% { opacity: 0.55; } }
-.sk-garland-flakes {
-  position: absolute; inset: -367px 0 0;
-  opacity: 0.8;
-  background-image:
-    radial-gradient(2px 2px at 31px 43px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 97px 211px, #fff 99%, transparent),
-    radial-gradient(2.5px 2.5px at 163px 119px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 229px 19px, #fff 99%, transparent),
-    radial-gradient(2px 2px at 281px 257px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 347px 151px, #fff 99%, transparent),
-    radial-gradient(2.5px 2.5px at 409px 293px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 59px 331px, #fff 99%, transparent),
-    radial-gradient(2px 2px at 197px 349px, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 373px 67px, #fff 99%, transparent);
-  background-size: 431px 367px; animation: sk-garland-snow 14s linear infinite;
-}
-@keyframes sk-garland-snow { to { transform: translateY(367px); } }
-@media (prefers-reduced-motion: reduce) { .sk-garland-wire i, .sk-garland-flakes { animation: none; } }
+.sk-garland { display: flex; height: 44px; pointer-events: none; }
+/* One swag: the wire's curve, a nail where it is pinned, and the bulbs hanging from it. */
+.sk-garland-wire { position: relative; flex: 1 1 0; min-width: 0; }
+.sk-garland-wire svg { position: absolute; inset: 0; width: 100%; height: 40px; overflow: visible; }
+.sk-garland-wire path { fill: none; stroke: #2B211A; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.sk-garland-wire::before { content: ''; position: absolute; left: -3px; top: 0; width: 6px; height: 6px; background: #2B211A; }
+.sk-garland-wire i { position: absolute; width: 11px; height: 15px; margin: 4px 0 0 -5.5px; border-radius: 5px 5px 7px 7px; animation: sk-garland-blink 2s ease-in-out infinite; }
+.sk-garland-wire i::before { content: ''; position: absolute; left: 2.5px; top: -4px; width: 6px; height: 5px; background: #3A3028; }
+.sk-garland-wire i::after { content: ''; position: absolute; left: 2px; top: 2px; width: 3px; height: 5px; border-radius: 2px; background: rgba(255, 255, 255, 0.6); }
+.sk-garland-wire i[data-c='0'] { background: #F0503C; box-shadow: 0 0 12px #F0503C; }
+.sk-garland-wire i[data-c='1'] { background: #4CCB6A; box-shadow: 0 0 12px #4CCB6A; }
+.sk-garland-wire i[data-c='2'] { background: #FFCB55; box-shadow: 0 0 12px #FFCB55; }
+/* Each bulb on its own time, so the string twinkles and does not pulse. */
+.sk-garland-wire i:nth-of-type(2) { animation-delay: -0.7s; animation-duration: 2.9s; }
+.sk-garland-wire i:nth-of-type(3) { animation-delay: -1.9s; animation-duration: 1.7s; }
+.sk-garland-wire i:nth-of-type(4) { animation-delay: -0.3s; animation-duration: 3.4s; }
+.sk-garland-wire i:nth-of-type(5) { animation-delay: -2.4s; animation-duration: 2.3s; }
+.sk-garland-wire:nth-child(even) i { animation-direction: reverse; }
+@keyframes sk-garland-blink { 50% { opacity: 0.5; filter: brightness(0.8); } }
+@media (prefers-reduced-motion: reduce) { .sk-garland-wire i { animation: none; } }
 .sk-sheet-head {
   position: relative;
   display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 10px 18px;
@@ -543,25 +545,21 @@
 .sk-guide-faq summary { cursor: pointer; font-family: var(--skin-font-display); font-weight: 800; font-size: 16px; color: var(--wood-ink); }
 .sk-guide-faq p { margin-top: 6px; font-size: 15px; line-height: 1.4; }
 
-/* ---------- The tutorial card and the first-time tips, in paper and wood (classic components, painted here) ---------- */
-:root[data-skin="painted"] .tour-card, :root[data-skin="painted"] .coach-tip {
+/* ---------- The first-time tips, in paper and wood (a classic component, painted here). The tutorial is no longer
+   one of these: the painted game has its own guide (src/skin/tour). ---------- */
+:root[data-skin="painted"] .coach-tip {
   background: var(--paper) !important; color: var(--ink) !important; border: 3px solid var(--wood-dark) !important; border-radius: 3px !important;
   box-shadow: inset 0 2px 0 #fff, 0 6px 0 rgba(40, 24, 10, 0.35), 0 14px 30px rgba(40, 24, 10, 0.4) !important;
 }
-:root[data-skin="painted"] .tour-step, :root[data-skin="painted"] .coach-tip-label {
+:root[data-skin="painted"] .coach-tip-label {
   font-family: var(--skin-font-hand) !important; font-size: 15px !important; font-weight: 400 !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--ink-soft) !important;
 }
-:root[data-skin="painted"] .tour-title { font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 22px !important; color: var(--wood-ink) !important; }
-:root[data-skin="painted"] .tour-body, :root[data-skin="painted"] .coach-tip-text { color: var(--ink) !important; font-size: 15px !important; line-height: 1.45 !important; }
-:root[data-skin="painted"] .tour-next, :root[data-skin="painted"] .tour-primary, :root[data-skin="painted"] .tour-secondary, :root[data-skin="painted"] .coach-tip-btn {
+:root[data-skin="painted"] .coach-tip-text { color: var(--ink) !important; font-size: 15px !important; line-height: 1.45 !important; }
+:root[data-skin="painted"] .coach-tip-btn {
   font-family: var(--skin-font-display) !important; font-weight: 800 !important; border-radius: 3px !important; color: var(--button-text) !important;
   box-shadow: inset 0 -4px 0 rgba(40, 24, 10, 0.35), inset 0 2px 0 rgba(255, 240, 210, 0.3) !important;
+  background: var(--wood-dark) !important;
 }
-:root[data-skin="painted"] .tour-next, :root[data-skin="painted"] .coach-tip-btn { background: var(--wood-dark) !important; }
-:root[data-skin="painted"] .tour-primary { background: var(--cloth-dark) !important; }
-:root[data-skin="painted"] .tour-secondary { background: var(--paper-edge) !important; color: var(--wood-ink) !important; }
-:root[data-skin="painted"] .tour-link { color: var(--ink-soft) !important; }
-:root[data-skin="painted"] .tour-ring { border-color: var(--amber) !important; border-width: 3px !important; }
 
 /* ---------- The menu board: everything under Play ---------- */
 .sk-menu-board { position: relative; margin: 4px 6px 0; padding: 8px 8px 0; }
@@ -711,13 +709,16 @@
 /* Barn doors (BarnDoors.tsx): the game is already behind them. They stay shut, under a snowy lintel, until its barn has
    drawn; then they unlatch, lantern light shows in the crack, and they swing in on their hinges while the view steps
    through onto the table. No glow fills the screen and nothing goes white. */
+/* boot-doors:start. The rules from here to boot-doors:end draw the doors shut, and nothing else. vite.config.ts also
+   writes them into index.html, with the shut doors themselves (src/skin/loading/bootDoors.ts), so the doors are on
+   screen with the page's first frame, before this file or any of the game's code has arrived. Keep them free of
+   anything defined elsewhere (tokens, kit classes): there they stand alone. */
 .sk-doors {
   position: fixed; inset: 0; z-index: 90; overflow: hidden; pointer-events: all; perspective: 1400px; perspective-origin: 50% 45%;
   /* One voxel's size on screen: as big as it takes for the doors to fill the width and, with the beam over them, the height. */
   --vox: max(calc(100vw / var(--vox-cols, 96)), calc(100vh / (var(--leaf-rows, 52) + var(--lintel-above, 7) - 1)));
   --art-w: calc(var(--vox) * var(--vox-cols, 96));
 }
-.sk-doors[data-phase="open"] { pointer-events: none; animation: sk-doors-through 1100ms cubic-bezier(0.5, 0, 0.7, 1) forwards; transform-origin: 50% 52%; }
 .sk-doors-frame { position: absolute; inset: 0; display: flex; transform-style: preserve-3d; }
 .sk-door { position: relative; flex: 1; overflow: hidden; backface-visibility: hidden; background: #3A2117; }
 .sk-door-l { transform-origin: 0 50%; }
@@ -727,23 +728,27 @@
 .sk-door-art { position: absolute; top: calc(var(--vox) * (var(--lintel-above, 7) - 1)); width: var(--art-w); height: calc(var(--vox) * var(--leaf-rows, 52)); background: var(--doors-leaves) 0 0 / 100% 100% no-repeat; }
 .sk-door-l .sk-door-art { left: calc(50vw - var(--art-w) / 2); }
 .sk-door-r .sk-door-art { left: calc(var(--art-w) / -2); }
-.sk-doors[data-phase="open"] .sk-door-l { animation: sk-door-swing-l 950ms cubic-bezier(0.5, 0, 0.25, 1) forwards; }
-.sk-doors[data-phase="open"] .sk-door-r { animation: sk-door-swing-r 950ms 40ms cubic-bezier(0.5, 0, 0.25, 1) forwards; }
 /* The snowy beam over the doorway, with its icicles, and the drift at their foot: baked like the doors, at the same
    voxel size, laid over the top and bottom of the screen. They stay put while the doors swing. */
 .sk-doors-lintel, .sk-doors-sill { position: absolute; left: calc(50vw - var(--art-w) / 2); width: var(--art-w); z-index: 1; pointer-events: none; background: 0 0 / 100% 100% no-repeat; }
 .sk-doors-lintel { top: 0; height: calc(var(--vox) * var(--lintel-rows, 13)); background-image: var(--doors-lintel); }
 /* Night sky behind the snow's uneven top, where the picture has gaps. */
 .sk-doors-sky { position: absolute; inset: 0 0 auto; z-index: 1; height: calc(var(--vox) * 3); background: #12152A; }
-.sk-doors[data-phase="closing"] .sk-doors-sky { animation: sk-doors-lintel-in 420ms ease-out both; }
 .sk-doors-sill { bottom: 0; height: calc(var(--vox) * var(--sill-rows, 7)); background-image: var(--doors-sill); }
 /* A few flakes drifting down in front of the doors, square like the game's snow. */
 .sk-doors-snow { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
 .sk-doors-snow i { position: absolute; top: -12px; aspect-ratio: 1; background: #F4F8FF; box-shadow: 1px 1px 0 rgba(40, 30, 60, 0.35); opacity: 0.85; animation: sk-doors-flake linear infinite; }
 @keyframes sk-doors-flake { from { transform: translate(0, -5vh); } to { transform: translate(var(--drift, 0), 108vh); } }
+@media (prefers-reduced-motion: reduce) { .sk-doors-snow { display: none; } }
+/* The page's own doors sit just under BarnDoors' (which take over from them, shut, and then open). */
+#boot-doors { z-index: 89; }
+/* boot-doors:end */
+.sk-doors[data-phase="open"] { pointer-events: none; animation: sk-doors-through 1100ms cubic-bezier(0.5, 0, 0.7, 1) forwards; transform-origin: 50% 52%; }
+.sk-doors[data-phase="open"] .sk-door-l { animation: sk-door-swing-l 950ms cubic-bezier(0.5, 0, 0.25, 1) forwards; }
+.sk-doors[data-phase="open"] .sk-door-r { animation: sk-door-swing-r 950ms 40ms cubic-bezier(0.5, 0, 0.25, 1) forwards; }
+.sk-doors[data-phase="closing"] .sk-doors-sky { animation: sk-doors-lintel-in 420ms ease-out both; }
 .sk-doors[data-phase="open"] .sk-doors-snow { opacity: 0; transition: opacity 300ms ease-out; }
 :root.reduce-motion .sk-doors-snow { display: none; }
-@media (prefers-reduced-motion: reduce) { .sk-doors-snow { display: none; } }
 /* Lantern light in the crack as the latch lifts: a warm line down the middle that widens, then is gone. */
 .sk-doors-spill { position: absolute; top: 0; bottom: 0; left: 50%; width: 30vw; margin-left: -15vw; opacity: 0; pointer-events: none; z-index: 2;
   background: linear-gradient(90deg, transparent, rgba(255, 196, 110, 0.55) 46%, rgba(255, 236, 190, 0.85) 50%, rgba(255, 196, 110, 0.55) 54%, transparent); }
@@ -1040,8 +1045,8 @@
 }
 .sk-sound-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 12px; }
 .sk-sound-name { font: 400 19px/1.1 var(--skin-font-hand); }
-.sk-sound-row .kit-rope-slider { grid-column: 1 / -1; width: 100%; }
-.sk-sound-row .kit-rope-slider:disabled { opacity: 0.4; }
+.sk-sound-row .kit-slider { grid-column: 1 / -1; width: 100%; }
+.sk-sound-row .kit-slider:disabled { opacity: 0.4; }
 .sk-sound-note { margin: 0; font: 400 14px/1 var(--skin-font-hand); opacity: 0.6; text-align: right; }
 @media (max-width: 640px) { .sk-sound-menu { width: min(300px, calc(100vw - 24px)); } }
 
@@ -1233,10 +1238,8 @@
 .sk-stall-sack[aria-checked="true"] .sk-stall-art { translate: 0 8px; filter: brightness(1.07) saturate(1.06); }
 .sk-stall-art > .sk-stall-burlap { transform-origin: 50% 80%; }
 .sk-stall-sack:hover .sk-stall-burlap { animation: sk-sack-wobble 420ms ease-in-out; }
-/* The tag: the item cards' paper, on 12 px of string from a nail in the rail under the plank. Ink on paper. */
+/* The tag: the item cards' paper, a plain card on the stall's front, 12 px under the rail. Ink on paper. */
 .sk-stall-hang { position: absolute; left: 50%; display: grid; justify-items: center; width: max-content; max-width: 32.5cqw; padding-top: 12px; translate: -50% 0; font-size: var(--tag); }
-.sk-stall-hang > .kit-nail { left: 50%; top: -4px; margin-left: -4px; }
-.sk-stall-hang > .kit-string { left: 50%; top: 0; height: 13px; margin-left: -1px; }
 .sk-stall-tag { display: grid; justify-items: center; gap: 0.08em; min-width: 8.4em; padding: 0.32em 0.7em 0.4em; transition: box-shadow 200ms; }
 .sk-stall-name { font-family: var(--skin-font-display); font-weight: 800; font-size: 1em; line-height: 1.1; color: var(--wood-ink); white-space: nowrap; }
 .sk-stall-found { font-family: var(--skin-font-hand); font-size: var(--sub); line-height: 1.15; color: var(--ink); white-space: nowrap; }
@@ -1302,16 +1305,17 @@
 .sk-tier-kind { font-size: 16px; color: var(--glow); }
 .sk-pricetag { position: relative; display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; padding: 2px 10px; border-radius: 2px; font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; }
 .sk-pricetag::before { content: ''; position: absolute; left: 50%; bottom: 100%; width: 2px; height: 14px; margin-left: -1px; background: #C9A66B; }
-.sk-tier-soon { padding: 3px 12px; margin-top: 8px; font-size: 16px; color: var(--ink-soft); transform: rotate(-2deg); }
+.sk-tier-soon { padding: 3px 12px; margin-top: 8px; font-size: 16px; color: var(--ink-soft); }
 .sk-buy { min-height: 38px; padding: 0 18px; font-size: 17px; }
 .sk-bells-earn { margin-top: 26px !important; text-align: center; }
 
 /* Missions: slips pinned to a cork board; then the milestones on a ruled ledger page. */
 .sk-missions { display: flex; flex-direction: column; gap: 18px; }
-.sk-noticeboard { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 18px 20px 22px; }
-.sk-noticeboard .sk-room-hint { color: #3A2618; }
-.sk-noticeboard-slips { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 8px; }
-.sk-mslip { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 2px; align-content: start; padding: 16px 12px 12px; color: var(--ink); }
+/* The missions: a heading and its hint side by side on the wall, like the profile's sections, then one card each. */
+.sk-mission-list { display: flex; flex-direction: column; gap: 10px; }
+.sk-mission-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.sk-mission-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.sk-mslip { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 2px; align-content: start; padding: 12px; color: var(--ink); }
 .sk-mslip-pic { grid-row: 1 / span 3; width: 84px; align-self: start; }
 .sk-mslip-name { font-family: var(--skin-font-display); font-weight: 800; font-size: 19px; line-height: 1.1; color: var(--wood-ink); }
 .sk-mslip-kind { font-size: 15px; color: var(--ink-soft); }
@@ -1319,7 +1323,8 @@
 .sk-mslip .sk-band { grid-column: 1 / -1; margin-top: 8px; }
 .sk-mslip-count { grid-column: 1 / -1; justify-self: end; font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; color: var(--wood-ink); }
 .sk-mslip[data-done] .sk-band, .sk-mslip[data-done] .sk-mslip-count { visibility: hidden; }
-.sk-stamp { position: absolute; right: 16px; bottom: 12px; padding: 0 9px; font-family: var(--skin-font-display); font-weight: 800; font-size: 21px; letter-spacing: 0.08em; text-transform: uppercase; color: #B02A1E; border: 3px solid #B02A1E; border-radius: 2px; transform: rotate(-11deg); opacity: 0.88; }
+/* A finished mission says so on a plain green label (it was a tilted red rubber stamp). */
+.sk-stamp { position: absolute; right: 12px; bottom: 12px; padding: 2px 10px; font-family: var(--skin-font-display); font-weight: 800; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--button-text); background: var(--cloth-dark); border-radius: 2px; }
 .sk-miles { padding: 14px 20px 6px; color: var(--ink); }
 .sk-miles h3 { font-family: var(--skin-font-display); font-weight: 800; font-size: 22px; line-height: 30px; color: var(--wood-ink); }
 .sk-miles-sub { height: 14px; font-size: 16px; line-height: 14px; color: var(--ink-soft); }
@@ -1480,8 +1485,7 @@
   .sk-odds { position: static; }
   .sk-shelves { overflow-x: auto; margin-inline: -10px; padding: 0 10px 8px; gap: 22px; }
   .sk-tier { min-width: 520px; }
-  .sk-noticeboard { padding: 14px 12px 16px; }
-  .sk-noticeboard-slips { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .sk-mission-cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .sk-miles { padding: 12px 12px 4px; }
   .sk-miles li { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 22px 22px; gap: 0 10px; font-size: 16px; }
   .sk-miles li .sk-band { grid-column: 1; grid-row: 2; }
@@ -1507,56 +1511,102 @@
 }
 
 /* The few plain-paper pieces the profile panel still uses. */
-.sk-post { max-width: 60rem; position: relative; }
-.sk-post .sk-guide-head { gap: 10px; }
-.sk-post .sk-guide-head h2 { flex: 1; white-space: nowrap; }
-.sk-post-h { margin: 0; font-family: var(--skin-font-display); font-weight: 800; font-size: 18px; color: var(--wood-ink); }
-.sk-post-sect { margin: 16px 0 8px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; }
-.sk-post-sub { margin: 0; font-size: 13.5px; line-height: 1.35; color: var(--ink-soft); }
-.sk-post-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.sk-post-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 0 14px; font-size: 15px; }
-/* The profile: a .sk-guide panel like the Trading Post, with who you are, your standing and your numbers. */
-.sk-prof { max-width: 52rem; height: auto; max-height: 100%; }
-.sk-prof-top { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; }
-.sk-prof-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; outline: 1px solid var(--ink-soft); outline-offset: -1px; box-shadow: 2px 2px 0 rgba(59, 48, 40, 0.12); }
-.sk-prof-card p { margin: 0; }
-.sk-prof-who { display: flex; align-items: center; gap: 12px; }
-.sk-prof-avatar { flex: none; width: 76px; height: 76px; display: inline-grid; place-items: center; cursor: pointer; }
+/* The profile: the Trading Post's room (the plank wall, the hung sign, paper and slate), a little narrower. A card pinned
+   to the wall says who you are, a slate where you stand; then your numbers on six slips, your practice bests chalked by
+   bot and starting clock, and the top 100 on a ruled sheet. */
+.sk-prof.sk-room { width: min(940px, 100%); }
+.sk-prof-content { display: flex; flex-direction: column; gap: 18px; padding-bottom: 22px; }
+.sk-prof-content > section { display: flex; flex-direction: column; gap: 10px; }
+/* A section's label on its board, and a line beside it saying what the numbers are. */
+.sk-prof-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; }
+.sk-prof-head .sk-room-hint { margin: 0; flex: 1; min-width: 12em; }
+.sk-prof-top { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; align-items: stretch; margin-top: 6px; }
+/* The card. */
+.sk-prof-card { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; }
+.sk-prof-who { display: flex; align-items: center; gap: 14px; }
+.sk-prof-avatar { flex: none; width: 80px; height: 80px; display: inline-grid; place-items: center; cursor: pointer; }
 .sk-prof-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.sk-prof-name { display: flex; flex-direction: column; gap: 2px; }
+.sk-prof-name { display: flex; flex-direction: column; gap: 3px; }
 .sk-prof-name-row { display: flex; align-items: center; gap: 8px; }
-.sk-prof-name-input { flex: 1; min-width: 0; min-height: 38px; padding: 4px 10px; font-family: var(--skin-font-display); font-weight: 800; font-size: 19px; color: var(--ink); background: var(--paper); border: 0; outline: 1px solid var(--ink-soft); outline-offset: -1px; }
+.sk-prof-name-input { flex: 1; min-width: 0; min-height: 40px; padding: 4px 10px; font-family: var(--skin-font-display); font-weight: 800; font-size: 21px; color: var(--ink); background: #fffaf0; border: 0; outline: 2px solid var(--paper-edge); outline-offset: -2px; box-shadow: inset 0 2px 0 rgba(59, 48, 40, 0.1); }
 .sk-prof-name-input:focus-visible { outline: 3px solid var(--amber); outline-offset: 0; }
-.sk-prof-msg { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+.sk-prof-msg { font-family: var(--skin-font-hand); font-size: 16px; color: var(--ink-soft); }
 .sk-prof-msg[data-bad] { color: var(--coral-dark); }
-.sk-prof-rank { justify-content: center; }
-.sk-prof-rank-big { font-family: var(--skin-font-display); font-weight: 800; font-size: clamp(22px, 3vw, 30px); line-height: 1.1; color: var(--wood-ink); }
-.sk-prof-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-flow: dense; gap: 10px; margin-top: 6px; }
-.sk-prof-stat { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; outline: 1px solid var(--ink-soft); outline-offset: -1px; box-shadow: 2px 2px 0 rgba(59, 48, 40, 0.12); container-type: inline-size; }
-.sk-prof-stat[data-wide] { grid-column: span 2; }
-.sk-prof-stat-label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
-.sk-prof-stat-value { font-family: var(--skin-font-display); font-weight: 800; font-size: 26px; line-height: 1.15; color: var(--wood-ink); overflow-wrap: anywhere; }
-.sk-prof-stat-value[data-long] { font-size: min(26px, calc(100cqi / (var(--n) * 0.8))); line-height: 1.3; }
-.sk-prof-stat-note { font-size: 13px; color: var(--ink-soft); }
-/* The top 100: a ruled list on the page's own paper, a line a player; your own line is inked in. */
-.sk-prof-board { margin-top: 14px; }
-.sk-prof-board-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 340px; overflow-y: auto; outline: 1px solid var(--ink-soft); outline-offset: -1px; }
-.sk-prof-board-row { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) auto 7.5em; align-items: baseline; gap: 10px; padding: 6px 12px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); font-size: 15px; color: var(--wood-ink); }
+.sk-prof-level { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+.sk-prof-level .sk-level-badge { font-family: var(--skin-font-display); font-weight: 800; color: var(--wood-ink); }
+.sk-prof-xp { font-family: var(--skin-font-hand); font-size: 17px; line-height: 1.2; color: var(--ink-soft); }
+.sk-prof-band { display: block; }
+.sk-prof-acts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sk-prof-acts .sk-prof-xp { margin-right: auto; }
+/* The slate. */
+.sk-prof-rank { display: flex; align-items: stretch; }
+.sk-prof-rank .kit-slate-face { flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 16px 18px; }
+.sk-prof-rank .kit-slate-face p { margin: 0; }
+.sk-prof-rank .kit-chalk-hand { font-size: 17px; line-height: 1.25; color: var(--chalk); }
+.sk-prof-rank-label { opacity: 0.75; }
+.sk-prof-rank-big { font-family: var(--skin-font-display); font-weight: 800; font-size: clamp(34px, 5vw, 48px); line-height: 1.05; color: var(--glow); }
+.sk-prof-rank-big[data-none] { font-size: clamp(28px, 4vw, 36px); color: var(--chalk); }
+/* The slips: a label, a number, a line under it. Always six. */
+.sk-prof-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 14px; }
+.sk-prof-stat { display: flex; flex-direction: column; gap: 1px; padding: 10px 14px 12px; container-type: inline-size; }
+.sk-prof-stat-label { font-family: var(--skin-font-body); font-size: 12px; font-weight: 800; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
+.sk-prof-stat-value { font-family: var(--skin-font-display); font-weight: 800; font-size: 32px; line-height: 1.1; color: var(--wood-ink); white-space: nowrap; }
+/* A long word is set smaller so it stays on one line: a wide capital of this face (M, W, O) is about 0.9 of its size across. */
+.sk-prof-stat-value[data-long] { font-size: clamp(11px, calc(100cqi / (var(--n) * 0.92)), 32px); line-height: 35px; white-space: normal; overflow-wrap: anywhere; }
+.sk-prof-stat-value[data-none], .sk-prof-rating-value[data-none] { color: var(--ink-soft); }
+.sk-prof-stat-note { font-family: var(--skin-font-hand); font-size: 16px; line-height: 1.2; color: var(--ink-soft); }
+/* Practice: the rating on a card, every setting's best chalked beside it. */
+.sk-prof-drill { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 9fr); gap: 18px; align-items: stretch; }
+.sk-prof-rating { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 12px 16px 14px; }
+.sk-prof-rating-value { font-family: var(--skin-font-display); font-weight: 800; font-size: 54px; line-height: 1; color: var(--wood-ink); }
+.sk-prof-rating-run { font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; line-height: 1.25; color: var(--ink); }
+.sk-prof-rating .sk-prof-stat-note { margin-top: 6px; }
+.sk-prof-sheet { display: flex; align-items: stretch; }
+.sk-prof-sheet .kit-slate-face { flex: 1; display: flex; padding: 8px 12px 10px; }
+.sk-prof-sheet table { flex: 1; width: 100%; border-collapse: collapse; table-layout: fixed; color: var(--chalk); }
+.sk-prof-sheet th { padding: 6px 8px; font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; line-height: 1.1; text-align: center; white-space: nowrap; }
+.sk-prof-sheet th i { margin-left: 6px; font-style: normal; font-size: 15px; opacity: 0.65; }
+.sk-prof-sheet thead th { border-bottom: 2px solid rgba(243, 240, 230, 0.45); }
+.sk-prof-sheet tbody th { width: 34%; text-align: left; border-right: 2px solid rgba(243, 240, 230, 0.45); }
+.sk-prof-bot { display: flex; align-items: center; gap: 8px; }
+.sk-prof-bot svg { flex: none; }
+.sk-prof-bot > span { display: flex; align-items: baseline; flex-wrap: wrap; }
+.sk-prof-sheet td { padding: 7px 4px; text-align: center; border-top: 1px dashed rgba(243, 240, 230, 0.22); }
+.sk-prof-sheet tbody tr:first-child td { border-top: 0; }
+.sk-prof-sheet td > span { display: inline-flex; flex-direction: column; align-items: center; min-width: 62px; padding: 2px 8px 3px; }
+.sk-prof-sheet td b { font-family: var(--skin-font-display); font-weight: 800; font-size: 26px; line-height: 1.05; }
+.sk-prof-sheet td small { font-family: var(--skin-font-hand); font-size: 14px; line-height: 1.1; opacity: 0.75; }
+.sk-prof-sheet td[data-none] b { opacity: 0.35; }
+.sk-prof-sheet td[data-top] b { color: var(--glow); }
+.sk-prof-sheet td[data-top] small { opacity: 1; color: var(--glow); }
+/* The top 100. */
+.sk-prof-board-sheet { padding: 4px 0; }
+.sk-prof-board-list { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow-y: auto; }
+.sk-prof-board-row { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) auto 7.5em; align-items: baseline; gap: 10px; padding: 6px 16px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); font-family: var(--skin-font-hand); font-size: 18px; color: var(--ink); }
 .sk-prof-board-row:last-child { border-bottom: 0; }
-.sk-prof-board-row[data-you] { background: rgba(126, 168, 92, 0.2); font-weight: 800; }
-.sk-prof-board-place { font-family: var(--skin-font-display); font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
-.sk-prof-board-name { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sk-prof-board-level { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+.sk-prof-board-row[data-you] { background: rgba(126, 168, 92, 0.24); }
+.sk-prof-board-place { font-family: var(--skin-font-display); font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; color: var(--wood-ink); }
+.sk-prof-board-name { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; }
+.sk-prof-board-level { font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
 .sk-prof-board-xp { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-@media (max-width: 560px) {
-  .sk-prof-board-row { grid-template-columns: 2.4em minmax(0, 1fr) 6em; }
+@media (max-width: 760px) {
+  .sk-prof-content { gap: 16px; }
+  .sk-prof-top, .sk-prof-drill { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .sk-prof-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; }
+  .sk-prof-stat { padding: 9px 12px 11px; }
+  .sk-prof-stat-value { font-size: 28px; }
+  .sk-prof-stat-value[data-long] { font-size: clamp(11px, calc(100cqi / (var(--n) * 0.92)), 28px); line-height: 31px; }
+  .sk-prof-rating-value { font-size: 46px; }
+  .sk-prof-sheet .kit-slate-face { padding: 6px 6px 8px; }
+  .sk-prof-sheet th { padding: 6px 4px; font-size: 17px; }
+  .sk-prof-sheet tbody th { width: 38%; }
+  .sk-prof-bot { gap: 6px; }
+  /* On a phone a bot's weight goes under its name: beside it, it ran into the first column. */
+  .sk-prof-bot > span { flex-direction: column; align-items: flex-start; }
+  .sk-prof-bot > span i { margin-left: 0; }
+  .sk-prof-sheet td > span { min-width: 54px; padding: 2px 4px 3px; }
+  .sk-prof-board-row { grid-template-columns: 2.4em minmax(0, 1fr) 6em; padding: 6px 10px; }
   .sk-prof-board-level { display: none; }
-}
-@media (max-width: 640px) {
-  .sk-prof-top { grid-template-columns: minmax(0, 1fr); }
-  .sk-prof-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .sk-prof-stat-value { font-size: 21px; }
-  .sk-prof-stat-value[data-long] { font-size: min(21px, calc(100cqi / (var(--n) * 0.8))); }
 }
 .sk-plate-open { cursor: pointer; text-align: left; }
 .sk-bazaar-btn { width: auto; min-width: 44px; padding: 0 10px; gap: 4px; display: inline-flex; align-items: center; font-weight: 800; }

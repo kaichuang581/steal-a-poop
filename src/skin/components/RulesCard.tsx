@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import {
-  EXTRA_WOOL_CAP, LAST_ROUND_TURN_MS, LIVES_PER_GAME, TURN_MS_BY_ROUND,
+  LAST_ROUND_TURN_MS, LIVES_PER_GAME, TURN_MS_BY_ROUND,
 } from '../../engine';
 import type { GameState } from '../../engine';
 import { ClockIcon, DoubleIcon, NoEIcon, RulerIcon, SnowflakeIcon, TrophyIcon } from './Icons';
@@ -21,7 +21,7 @@ export function MiniTile({ ch, hot = false }: { ch: string; hot?: boolean }) {
   return <span className={`sk-mini-tile ${hot ? 'sk-mini-tile-hot' : ''}`}>{ch.toUpperCase()}</span>;
 }
 
-/** The whole game on one card: your turn, wool, traps, rounds, winning. Numbers come from the engine. */
+/** The whole game on one card: your turn, wool, rounds, winning. Numbers come from the engine. */
 export function RulesCard() {
   return (
     <div className="sk-rules">
@@ -33,14 +33,6 @@ export function RulesCard() {
           </Row>
           <Row icon={<WoolBall full size={22} />}>Run out of time and you <b>lose a wool ball</b>. Wool balls are your lives.</Row>
           <Row icon={<SnowflakeIcon size={20} />}>No wool left and you <b>freeze solid</b>: you’re out of the game.</Row>
-        </ul>
-      </section>
-      <section>
-        <h3>Traps</h3>
-        <ul>
-          <Row icon={<span className="flex gap-0.5"><MiniTile ch="x" /><MiniTile ch="z" /><MiniTile ch="q" /><MiniTile ch="j" /></span>}>
-            End a word on X, Z, Q or J. If the next sheep runs out of time, <b>you get a wool ball</b>.
-          </Row>
         </ul>
       </section>
       <section>
@@ -57,7 +49,7 @@ export function RulesCard() {
       <section>
         <h3>Winning</h3>
         <ul>
-          <Row icon={<TrophyIcon size={20} />}><b>Last sheep standing wins.</b> Everyone starts with {LIVES_PER_GAME} wool balls and can win up to {EXTRA_WOOL_CAP} more.</Row>
+          <Row icon={<TrophyIcon size={20} />}><b>Last sheep standing wins.</b> Everyone starts with {LIVES_PER_GAME} wool balls, and wool is never won back.</Row>
         </ul>
       </section>
     </div>

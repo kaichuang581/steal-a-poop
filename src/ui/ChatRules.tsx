@@ -22,7 +22,7 @@ export function ChatBanner({ compact = false }: { compact?: boolean }) {
         <div className="flex items-center gap-2 font-black text-amber-300">
           <Px e="⚠" size={14} /> CHAT RULES: BREAK THEM AND YOU ARE SUSPENDED
         </div>
-        <p className="mt-0.5 font-bold text-white/90">No swearing · Nothing sexual · No slurs · Keep it safe for kids</p>
+        <p className="mt-0.5 font-bold text-white/90">No swearing, nothing sexual, no slurs. Keep it safe for kids.</p>
         <details className="mt-0.5">
           <summary className="min-h-8 cursor-pointer text-xs font-bold text-amber-200 underline">All the rules</summary>
           <ul className="list-inside list-disc text-white/90">

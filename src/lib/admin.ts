@@ -13,9 +13,9 @@ const ADMIN_KEY = 'sap:admin';
 const COINS_KEY = 'sap:admin-coins';
 /**
  * SHA-256 of the admin password. Never write the password itself into the repo (not in tests either; they set their own
- * hash). The old one leaked that way and was changed on 2026-11-08; it was changed again on 2026-11-15, to a password Kai
- * chose and typed into a chat. That one is not random, so a determined reader of the bundle could guess it back from this
- * hash: it is a convenience lock and unlocks nothing that reaches other players. Change it to a long random one when it matters.
+ * hash). This is the hash of a password that was once written into the repo, so it can be found in git history. It was
+ * replaced on 2026-11-08 and restored on 2026-11-15 at Kai's request. It is a convenience lock and unlocks nothing that
+ * reaches other players; change it to a long random one if that ever matters.
  */
 export const ADMIN_HASH = '4303a4957aae4dbf0d0c392f5e0bb4690b8b8be1f032f07d5692b960c8248f90';
 let adminHash = ADMIN_HASH;

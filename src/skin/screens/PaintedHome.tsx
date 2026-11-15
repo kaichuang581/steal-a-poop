@@ -13,7 +13,7 @@ import { dreamLink, useDreamUi } from '../dream/dreamStore';
 import { useToday } from '../hooks/useToday';
 import { checkNickname } from '../../lib/nickname';
 import { getPracticeBest } from '../../lib/practice';
-import { UPDATE_NAME } from '../../config';
+import { PAINTED_GAME_TITLE, UPDATE_NAME } from '../../config';
 import { farmSheepLine } from '../../lib/record';
 import { getServerUrl } from '../../net/config';
 import { useRoomStore } from '../../state/roomStore';
@@ -58,7 +58,7 @@ import { FarmBackdrop } from '../table/FarmBackdrop';
 import { PaintedSettings } from './PaintedSettings';
 import { SoundMenu } from '../components/SoundMenu';
 
-export const PAINTED_TITLE = 'Finish the Word';
+export const PAINTED_TITLE = PAINTED_GAME_TITLE;
 /** What each bot level means in a practice run, where it can't beat you: only the letters it leaves you differ. */
 const DRILL_BOTS: Record<Difficulty, string> = {
   easy: 'Plays short, common words.',

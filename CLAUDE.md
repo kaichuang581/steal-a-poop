@@ -1667,8 +1667,20 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
       Table; the classic tour still listed the removed "even faster round" twist. src/skin/__tests__/guideText.test.ts pins
       the text to the engine.
   New tests also cover the ranked and visit stores against Postgres and `profileCounts` (server/ranked/store.test.ts,
-  server/ops/siteStats.test.ts, server/auth/store.test.ts). Found and left for Brian and Kai: the page's own title and its
-  link preview (index.html), the legal pages and the parent's consent page say "Steal a Poop" while the game says "Finish
-  the Word"; the sack odds shown once a sack's guarantee is due (listed 2026-11-13). Checked and fine: the chat filter
+  server/ops/siteStats.test.ts, server/auth/store.test.ts). Then, with Kai's go-ahead on everything (same day):
+  (g) Feed Sack guarantees run only while their tier has something left to find (`liveGuarantees` and `forcedTier` in
+      src/skin/shop/roll.ts, used by the browser and the server alike). With every rare in a sack owned, the rare guarantee
+      used to stay due for good, so each sack after was rolled 20% legendary while the slate said 2%; with every legendary
+      owned, every 40th-and-after sack was forced to a rare. Now the slate's odds are the real ones, the legendary guarantee
+      carries on, and the meter of a finished tier reads "every rare found" (FeedSacks.tsx). This settles the question left
+      for Brian on 2026-11-13. Tests in src/skin/shop/__tests__/sacks.test.ts.
+  (h) The name: the page title, the link preview (index.html), the legal pages' and the parent's consent page's titles and
+      the consent page's "Your child asked to play ..." use `PAINTED_GAME_TITLE` ("Finish the Word") in the default look;
+      the old look keeps GAME_TITLE. public/og.png, the link preview picture, said "STEAL ... Build the pile. Don't get
+      stolen from."; it is now the game's own farm (the home tour's wide shot) with its title board, captured from the
+      built game. The legal documents in docs/legal still name the service "Steal a Poop": that is for whoever reviews them.
+  (i) The end-to-end tests built player names from the clock, and about one run in sixty made a name the game rightly
+      refuses ("Ana1..." reads as a rude word): e2e/names.ts picks a run number that keeps every name acceptable.
+  Checked and fine: the chat filter
   already catches a blocked word split by zero-width, joiner, soft-hyphen or direction characters. Not checkable here: the
   live site and server (this machine cannot reach them), real sign-in, real GPUs and phones, and how anything looks or sounds.

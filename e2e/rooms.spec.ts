@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { runNumber } from './names';
 import type { Browser, BrowserContext, Page } from '@playwright/test';
 
 const WORDS = readFileSync('public/words.txt', 'utf8').split('\n').filter((w) => /^[a-z]{4,8}$/.test(w));
@@ -24,7 +25,7 @@ function pickWord(letter: string, modifier: string): string {
 }
 
 /** Names carry a per-run suffix: a reused server remembers earlier players' suspensions and rooms. */
-const run = String(Date.now() % 100000);
+const run = runNumber(['Ana', 'Ben', 'Cy', 'Di', 'Host', 'Lurker', 'Guest']);
 const tag = (n: string) => `${n}${run}`;
 
 async function newPlayer(browser: Browser, name: string): Promise<{ ctx: BrowserContext; page: Page }> {

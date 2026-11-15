@@ -11,7 +11,7 @@ import type { SackEntry, Wallet } from './economy';
 import { formatCoins } from './format';
 import { ItemCard, ItemFrame, ItemTag } from './ItemCard';
 import { RARITIES, RARITY_COLOR, RARITY_LABEL } from './rarity';
-import { sackComplete, tierFor } from './roll';
+import { liveGuarantees, sackComplete, tierFor } from './roll';
 import { oddsLine, poolFor, poolOf, SACK, SACK_IDS, SACKS } from './sacks';
 import type { SackId } from './sacks';
 import { playSample, stopSample } from './sample';
@@ -140,6 +140,7 @@ function OddsSlate({ sack, wallet, onOpen }: { sack: SackId; wallet: Wallet; onO
   const short = wallet.coins < SACK.price;
   const pity = wallet.pity[sack];
   const rareIn = Math.max(1, SACK.pity.rare - pity.sinceRare), legIn = Math.max(1, SACK.pity.legendary - pity.sinceLegendary);
+  const live = liveGuarantees(sack, wallet.owned);
   return (
     <aside className="sk-odds" aria-label="Odds and opening">
       <Slate size="board" className="sk-odds-slate">
@@ -150,8 +151,8 @@ function OddsSlate({ sack, wallet, onOpen }: { sack: SackId; wallet: Wallet; onO
         <ul className="sk-odds-key">
           {RARITIES.map((r) => <li key={r} style={rarityVar(r)}><i />{RARITY_LABEL[r]}<b>{SACK.odds[r]}%</b></li>)}
         </ul>
-        <PityRow label="Rare or better" left={rareIn} of={SACK.pity.rare} rarity="rare" />
-        <PityRow label="Legendary" left={legIn} of={SACK.pity.legendary} rarity="legendary" />
+        <PityRow label="Rare or better" left={rareIn} of={SACK.pity.rare} rarity="rare" found={!live.rare} />
+        <PityRow label="Legendary" left={legIn} of={SACK.pity.legendary} rarity="legendary" found={!live.legendary} />
       </Slate>
       <button type="button" className={`kit-btn kit-plank kit-plank--barn sk-plankbtn sk-open ${complete || short ? '' : 'kit-pulse'}`} onClick={onOpen} disabled={complete || short} aria-label={complete ? `All found in the ${info.name}` : `Open the ${info.name} for ${SACK.price} Wool Coins`}>
         {complete ? 'All found' : short ? <>Need <CoinArt /> {formatCoins(SACK.price)}</> : <>Open <CoinArt /> {formatCoins(SACK.price)}</>}
@@ -164,12 +165,13 @@ function OddsSlate({ sack, wallet, onOpen }: { sack: SackId; wallet: Wallet; onO
 }
 
 /** How near a guaranteed tier is: chalk strokes that fill as sacks go by without one. */
-function PityRow({ label, left, of, rarity }: { label: string; left: number; of: number; rarity: Rarity }) {
-  const ticks = 10, filled = Math.round(((of - left) / (of - 1)) * ticks);
+/** `found`: every item of that tier in this sack is owned, so there is nothing left to guarantee. */
+function PityRow({ label, left, of, rarity, found = false }: { label: string; left: number; of: number; rarity: Rarity; found?: boolean }) {
+  const ticks = 10, filled = found ? ticks : Math.round(((of - left) / (of - 1)) * ticks);
   return (
-    <div className="sk-pity" style={rarityVar(rarity)} role="img" aria-label={`${label} guaranteed within ${left} sack${left === 1 ? '' : 's'}`}>
+    <div className="sk-pity" style={rarityVar(rarity)} role="img" aria-label={found ? `${label}: every ${rarity} in this sack found` : `${label} guaranteed within ${left} sack${left === 1 ? '' : 's'}`}>
       <span>{label}</span>
-      <b>{left === 1 ? 'next sack' : `within ${left}`}</b>
+      <b>{found ? `every ${rarity} found` : left === 1 ? 'next sack' : `within ${left}`}</b>
       <span className="sk-pity-bar">{Array.from({ length: ticks }, (_, i) => <i key={i} data-on={i < filled || undefined} />)}</span>
     </div>
   );

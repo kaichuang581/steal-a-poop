@@ -32,10 +32,23 @@ export function tierFor(r: number): Rarity {
   return 'common';
 }
 
-/** The tier this sack must give, if a guarantee is due: legendary on the 40th, rare-or-better on the 10th. */
-export function forcedTier(c: Pity, r: number): Rarity | null {
-  if (c.sinceLegendary >= SACK.pity.legendary - 1) return 'legendary';
-  if (c.sinceRare >= SACK.pity.rare - 1) return r < SACK.pityOdds.legendary / 100 ? 'legendary' : 'rare';
+/** Which guarantees can still pay out in this sack: a tier's guarantee runs only while that tier has something to find. */
+export interface Live { rare: boolean; legendary: boolean }
+export const ALL_LIVE: Live = { rare: true, legendary: true };
+export function liveGuarantees(sack: SackId, owned: readonly string[]): Live {
+  const has = new Set(owned);
+  const left = (t: Rarity) => poolOf(sack, t).some((i) => !has.has(i.id));
+  return { rare: left('rare'), legendary: left('legendary') };
+}
+
+/**
+ * The tier this sack must give, if a guarantee is due: legendary on the 40th, rare-or-better on the 10th. A guarantee
+ * whose tier is all found does not run. It used to stay due for good: with every rare owned, each sack after was rolled
+ * 20% legendary while the slate showed 2%, and with every legendary owned each sack was forced to a rare.
+ */
+export function forcedTier(c: Pity, r: number, live: Live = ALL_LIVE): Rarity | null {
+  if (live.legendary && c.sinceLegendary >= SACK.pity.legendary - 1) return 'legendary';
+  if (live.rare && c.sinceRare >= SACK.pity.rare - 1) return live.legendary && r < SACK.pityOdds.legendary / 100 ? 'legendary' : 'rare';
   return null;
 }
 
@@ -50,7 +63,7 @@ export const sackComplete = (sack: SackId, owned: readonly string[]) => poolFor(
 export function rollSack(sack: SackId, owned: readonly string[], counters: Pity, rand: () => number): Roll | null {
   if (sackComplete(sack, owned)) return null;
   const has = new Set(owned);
-  let tier = forcedTier(counters, rand()) ?? tierFor(rand());
+  let tier = forcedTier(counters, rand(), liveGuarantees(sack, owned)) ?? tierFor(rand());
   if (tier === 'rare' || tier === 'legendary') {
     const unowned = (t: Rarity) => poolOf(sack, t).some((i) => !has.has(i.id));
     if (!unowned(tier)) {

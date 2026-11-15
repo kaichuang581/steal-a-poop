@@ -4,7 +4,7 @@ import { CATALOG } from '../catalog';
 import { BELLS, buy, freshWallet, grantStreakItems, MISSIONS, normalise, openSack, payGame } from '../economy';
 import { NEAR_MISS, REEL, reelFor } from '../FeedSacks';
 import type { Wallet } from '../economy';
-import { freshPity, rollSack, tierFor } from '../roll';
+import { forcedTier, freshPity, liveGuarantees, rollSack, tierFor } from '../roll';
 import { POOL, poolFor, poolOf, RARITIES, SACK, SACK_IDS, oddsLine } from '../sacks';
 import type { SackId } from '../sacks';
 
@@ -86,13 +86,49 @@ describe('T1: Feed Sacks', () => {
   it('4. with every rare owned a rare roll falls to an unowned uncommon; with the pool complete the sack will not open', () => {
     const rares = [...poolOf('blast', 'rare'), ...poolOf('blast', 'legendary')].map((i) => i.id);
     const ownedRares = [...freshWallet().owned, ...rares, poolOf('blast', 'uncommon')[0].id];
-    const forced = rollSack('blast', ownedRares, { sinceRare: 9, sinceLegendary: 0 }, () => 0.5)!; // a rare is due
-    expect(forced.tier).toBe('uncommon');
-    expect(forced.duplicate).toBe(false);
+    // 0.5 answers the guarantee check, 0.95 is a rare on the odds table; every rare is owned, so it falls to an uncommon.
+    const seq = [0.5, 0.95, 0.5];
+    const rare = rollSack('blast', ownedRares, { sinceRare: 0, sinceLegendary: 0 }, () => seq.shift()!)!;
+    expect(rare.tier).toBe('uncommon');
+    expect(rare.duplicate).toBe(false);
     const allBombs = rich({ owned: [...freshWallet().owned, ...poolFor('bomb').map((i) => i.id)] });
     expect(rollSack('bomb', allBombs.owned, freshPity(), Math.random)).toBeNull();
     expect(openSack(allBombs, 'bomb', Math.random, 1)).toEqual({ ok: false, reason: 'complete' });
     expect(openSack(allBombs, 'blast', Math.random, 1).ok).toBe(true); // the other sacks still open
+  });
+
+  it('a guarantee whose tier is all found does not run, so the odds on the slate stay the real odds', () => {
+    const rares = poolOf('blast', 'rare').map((i) => i.id);
+    const legendaries = poolOf('blast', 'legendary').map((i) => i.id);
+    expect(liveGuarantees('blast', [])).toEqual({ rare: true, legendary: true });
+    expect(liveGuarantees('blast', rares)).toEqual({ rare: false, legendary: true });
+    expect(liveGuarantees('blast', [...rares, ...legendaries])).toEqual({ rare: false, legendary: false });
+    const due = { sinceRare: 9, sinceLegendary: 39 };
+    expect(forcedTier(due, 0.5)).toBe('legendary');
+    expect(forcedTier(due, 0.5, { rare: true, legendary: false })).toBe('rare');
+    expect(forcedTier(due, 0.1, { rare: true, legendary: false })).toBe('rare'); // never a legendary that cannot be given
+    expect(forcedTier(due, 0.5, { rare: false, legendary: false })).toBeNull();
+    // Every rare owned, owned items never change: legendaries come at about the slate's 2% plus one every 40 sacks.
+    // Before, the rare guarantee stayed due for good and every sack was rolled 20% legendary.
+    const rand = mulberry(7);
+    let pity = freshPity(), legendary = 0;
+    const N = 20_000;
+    for (let i = 0; i < N; i++) {
+      const r = rollSack('blast', rares, pity, rand)!;
+      if (r.tier === 'legendary') legendary++;
+      pity = r.counters;
+    }
+    expect(legendary / N).toBeGreaterThan(0.03);
+    expect(legendary / N).toBeLessThan(0.06);
+    // Every legendary owned: no sack is forced to a rare any more (it was, every time, once the 40th came round).
+    let rareN = 0;
+    pity = { sinceRare: 0, sinceLegendary: 39 };
+    for (let i = 0; i < N; i++) {
+      const r = rollSack('blast', legendaries, pity, rand)!;
+      if (r.tier === 'rare') rareN++;
+      pity = r.counters;
+    }
+    expect(rareN / N).toBeLessThan(0.25); // 8% plus the guarantee every 10: about 15%, not 100%
   });
 
   it('5. Golden Bells never open a sack, Wool Coins never buy an item, and nothing converts', () => {

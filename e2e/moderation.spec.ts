@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { runNumber } from './names';
 
-const run = String(Date.now() % 100000);
+const run = runNumber(['Pat', 'Coin']);
 
 test('a held message reaches the moderator screen and a person clears it', async ({ browser }) => {
   const name = `Pat${run}`;

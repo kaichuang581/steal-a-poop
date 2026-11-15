@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { runNumber } from './names';
 import type { Browser, Page } from '@playwright/test';
 
-const run = String(Date.now() % 100000);
+const run = runNumber(['Ana', 'Ben', 'Cy', 'Di']);
 const tag = (n: string) => `${n}${run}`;
 
 async function newPlayer(browser: Browser, name: string) {

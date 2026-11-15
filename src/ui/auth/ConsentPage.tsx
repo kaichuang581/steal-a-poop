@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api } from '../../auth/authStore';
 import { legalHref } from '../legal/legalLinks';
+import { GAME_TITLE, PAINTED_GAME_TITLE } from '../../config';
+import { isPaintedSkin } from '../../skin/flag';
+
+/** The game's name as the default look shows it: a parent opens this from an email and then sees the game. */
+const NAME = typeof location === 'undefined' || isPaintedSkin(new URLSearchParams(location.search)) ? PAINTED_GAME_TITLE : GAME_TITLE;
 
 type Info = { state: 'open' | 'expired' | 'granted' | 'refused' | 'withdrawn'; childNickname: string };
 
@@ -15,7 +20,7 @@ export default function ConsentPage({ token, manage }: { token: string; manage: 
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    document.title = 'Parental permission · Steal a Poop';
+    document.title = `Parental permission · ${NAME}`;
     if (manage) return; // the manage link has no preview; the button is all there is
     api<Info>('GET', `/api/consent/${encodeURIComponent(token)}`, null)
       .then(setInfo)
@@ -78,7 +83,7 @@ export default function ConsentPage({ token, manage }: { token: string; manage: 
   return (
     <main className={box}>
       <h1 className="text-2xl font-black text-amber-300">Permission for a child's account</h1>
-      <p className="mt-2">Your child asked to play <b>Steal a Poop</b> under the nickname <b>{info.childNickname}</b>.</p>
+      <p className="mt-2">Your child asked to play <b>{NAME}</b> under the nickname <b>{info.childNickname}</b>.</p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
         <li>It is a free word game. Players can join rooms with other people and use a chat.</li>
         <li>Every chat message is checked before anyone sees it, and messages that break the rules are held and reviewed by a person.</li>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { LEGAL_REVIEWED } from '../../config';
+import { GAME_TITLE, LEGAL_REVIEWED, PAINTED_GAME_TITLE } from '../../config';
+import { isPaintedSkin } from '../../skin/flag';
 import { LEGAL_DOCS, isLegalSlug, legalHref } from './legalDocs';
 import type { LegalSlug } from './legalDocs';
 import { countPlaceholders, renderMarkdown } from './markdown';
@@ -9,7 +10,9 @@ export default function LegalScreen({ slug }: { slug: string }) {
   const known = isLegalSlug(slug);
   const doc = known ? LEGAL_DOCS[slug] : null;
   useEffect(() => {
-    document.title = doc ? `${doc.title} · Steal a Poop` : 'Steal a Poop';
+    // The name of the look the player came from: these pages serve both.
+    const name = isPaintedSkin(new URLSearchParams(location.search)) ? PAINTED_GAME_TITLE : GAME_TITLE;
+    document.title = doc ? `${doc.title} · ${name}` : name;
   }, [doc]);
 
   const missing = doc ? countPlaceholders(doc.body) : 0;

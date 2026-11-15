@@ -12,11 +12,12 @@ const ADMIN_KEY = 'sap:admin';
 /** The admin panel's "unlimited Wool Coins" switch (src/skin/shop/store.ts), on this device only. */
 const COINS_KEY = 'sap:admin-coins';
 /**
- * SHA-256 of the admin password: a long random one, so the hash in the bundle cannot be guessed back. Never write the
- * password itself into the repo (not in tests either; they set their own hash). The old one leaked that way and was
- * changed on 2026-11-08.
+ * SHA-256 of the admin password. Never write the password itself into the repo (not in tests either; they set their own
+ * hash). This is the hash of a password that was once written into the repo, so it can be found in git history. It was
+ * replaced on 2026-11-08 and restored on 2026-11-15 at Kai's request. It is a convenience lock and unlocks nothing that
+ * reaches other players; change it to a long random one if that ever matters.
  */
-export const ADMIN_HASH = '5aef0cdc5d379d84e10c41d0ac7c5627622818b0ddae8cf90210ac2f50fe370c';
+export const ADMIN_HASH = '4303a4957aae4dbf0d0c392f5e0bb4690b8b8be1f032f07d5692b960c8248f90';
 let adminHash = ADMIN_HASH;
 /** Tests only: compare against the hash of a password the test makes up. */
 export const setAdminHashForTests = (hash: string) => { adminHash = hash; };

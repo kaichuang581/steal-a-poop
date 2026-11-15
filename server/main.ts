@@ -38,7 +38,10 @@ import { MemoryRankedStore, PostgresRankedStore } from './ranked/store';
 import { createRankedRoutes } from './routes/ranked';
 import { MemoryResultsStore, PostgresResultsStore } from './game/results';
 import { GameDataService } from './game/service';
-import { eraseFriendRows } from './social/friendRows';
+import { FriendsService, MemoryFriendStore, PostgresFriendStore } from './social/friends';
+import { GuestFriends } from './social/guestFriends';
+import { createFriendRoutes } from './routes/friends';
+import { createGuestFriendRoutes } from './routes/guestFriends';
 import { allRoutes } from './routes';
 import { ClaudeReviewer } from './review';
 import { guestUser } from './guest';
@@ -208,6 +211,18 @@ const ranked = new RankedService(pool ? new PostgresRankedStore(pool) : new Memo
   const p = await accountStore.getProfile(id);
   return p && p.deletedAt === null && p.leaderboardVisible && !chat.state(id).banned ? p.nickname : null;
 });
+// Who is connected, for the friends list's online dots (filled in once the game server is up).
+const presence = { online: (_id: string) => false, guests: (): Array<{ userId: string; name: string }> => [] };
+// Guests' friend codes come from their id and this secret. Set GUEST_CODE_SECRET in production; the fallback only keeps development working.
+const guestFriends = new GuestFriends({ secret: process.env.GUEST_CODE_SECRET || 'steal-a-poop-guest-friend-codes' });
+const friends = new FriendsService({
+  store: pool ? new PostgresFriendStore(pool) : new MemoryFriendStore(),
+  accounts: accountStore,
+  blocks,
+  now: Date.now,
+  online: (id) => presence.online(id),
+  cosmetics: (id) => economy.cachedCosmetics(id),
+});
 let notify: (userId: string, msg: object) => void = () => undefined;
 const gameData = new GameDataService({
   results: pool ? new PostgresResultsStore(pool) : new MemoryResultsStore(),
@@ -221,7 +236,7 @@ const gameData = new GameDataService({
 
 const accounts = new AccountService({
   standing: (id) => ({ suspendedUntil: chat.state(id).suspendedUntil, openItems: chat.status(id).openItems }),
-  erasers: [(id) => gameData.erase(id), (id) => eraseFriendRows(pool, id), (id) => barn.erase(id), (id) => ranked.erase(id)],
+  erasers: [(id) => gameData.erase(id), (id) => friends.erase(id), (id) => barn.erase(id), (id) => ranked.erase(id)],
   store: accountStore,
   now: Date.now,
   mailer,
@@ -269,6 +284,8 @@ const httpServer = createHttpServer({
   routes: [
     ...allRoutes,
     ...createModerationRoutes({ chat, reporting, economy: economyStore, audit, log: console.log }),
+    ...createFriendRoutes({ friends }),
+    ...createGuestFriendRoutes({ friends: guestFriends, online: () => presence.guests() }),
     ...createLeaderboardRoutes({ data: gameData, accounts }),
     ...createShopRoutes({ economy, store: economyStore }),
     ...createBarnRoutes({ barn }),
@@ -318,6 +335,8 @@ const server = await startServer({
   },
 });
 serverRef = server;
+presence.online = server.isOnline;
+presence.guests = server.onlineGuests;
 notify = server.notify;
 const alertUrl = process.env.ALERT_WEBHOOK_URL;
 const stopAlerts = alertUrl

@@ -116,13 +116,21 @@ describe('the leaderboards page', () => {
   });
 });
 
-// "remove friend feature" (Brian, 2026-11-14): the list, friend codes, requests, the online dots and room invites.
-describe('the friends list is gone', () => {
-  it('its files are deleted, in the game and on the server', () => {
+// "remove friend feature" (Brian, 2026-11-14), then "add back the friends thing ... the friend code on their profile instead of on a
+// separate tab/button" (Kai, 2026-11-14): friends are back for accounts and for guests, but only on the profile. The separate
+// Friends tab and button, and room invites, stay gone.
+describe('friends live on the profile', () => {
+  it('the server and the browser have friends again, and the old tab and invite toast stay deleted', () => {
     for (const f of [
-      'src/ui/social/FriendsTab.tsx', 'src/ui/social/InviteToast.tsx', 'src/state/guestSocial.ts', 'src/lib/guestFriends.ts',
+      'src/state/guestSocial.ts', 'src/lib/guestFriends.ts', 'src/skin/profile/FriendsSection.tsx',
       'server/routes/friends.ts', 'server/routes/guestFriends.ts', 'server/social/friends.ts', 'server/social/guestFriends.ts',
-    ]) expect(existsSync(f), f).toBe(false);
+    ]) expect(existsSync(f), f).toBe(true);
+    for (const f of ['src/ui/social/FriendsTab.tsx', 'src/ui/social/InviteToast.tsx']) expect(existsSync(f), f).toBe(false);
+  });
+
+  it('the friend code is on the profile page', () => {
+    expect(src('src/skin/profile/Profile.tsx')).toContain('<FriendsSection');
+    expect(src('src/skin/profile/FriendsSection.tsx')).toContain('Your friend code');
   });
 
   it('the start screen opens the leaderboards from the menu, under the Trading Post, and has no friends button', () => {
@@ -147,14 +155,17 @@ describe('the friends list is gone', () => {
     }
   });
 
-  it('the room connection and the server know no invite message', () => {
+  it('the room connection and the server still know no invite message', () => {
     expect(src('src/net/protocol.ts')).not.toMatch(/'invite'|'invited'|'inviteResult'/);
     expect(src('src/state/roomStore.ts')).not.toMatch(/invites|acceptInvite/);
-    expect(src('server/index.ts')).not.toMatch(/case 'invite'|areFriends|onlineGuests/);
-    expect(src('server/main.ts')).not.toMatch(/FriendsService|GuestFriends|createFriendRoutes|GUEST_CODE_SECRET/);
+    expect(src('server/index.ts')).not.toMatch(/case 'invite'|areFriends/);
   });
 
-  it('deleting an account still clears the friends tables that are left in the database', () => {
-    expect(src('server/main.ts')).toContain('eraseFriendRows(pool, id)');
+  it('the server wires the friends service and the guest mailbox, and deleting an account clears the friend rows', () => {
+    const main = src('server/main.ts');
+    expect(main).toMatch(/new FriendsService/);
+    expect(main).toMatch(/createFriendRoutes/);
+    expect(main).toMatch(/createGuestFriendRoutes/);
+    expect(main).toContain('friends.erase(id)');
   });
 });

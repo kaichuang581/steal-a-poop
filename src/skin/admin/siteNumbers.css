@@ -1,0 +1,9 @@
+/* The admin panel's numbers (SiteNumbers.tsx): a plain list on the panel's paper, nothing but text and rules. */
+.sk-nums { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.sk-nums dl { margin: 0; }
+.sk-nums-group { font-family: var(--skin-font-body); font-weight: 800; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); padding-bottom: 2px; border-bottom: 2px solid var(--paper-edge); }
+.sk-nums-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 2px 0; border-bottom: 1px solid color-mix(in srgb, var(--paper-edge) 60%, transparent); }
+.sk-nums-row dt { font-family: var(--skin-font-hand); font-size: 15px; color: var(--ink); }
+.sk-nums-row dd { margin: 0; font-family: var(--skin-font-display); font-weight: 800; font-size: 16px; color: var(--ink); text-align: right; overflow-wrap: anywhere; }
+.sk-nums-note { margin: 0; font-family: var(--skin-font-hand); font-size: 13px; line-height: 1.3; color: var(--ink-soft); }
+.sk-nums-link { margin-top: 6px; padding: 4px 0; background: none; border: 0; font-family: var(--skin-font-hand); font-size: 13px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; }

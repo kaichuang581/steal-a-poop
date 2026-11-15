@@ -24,6 +24,8 @@ import { createAccountRoutes } from './routes/accounts';
 import { createLeaderboardRoutes } from './routes/leaderboard';
 import { createShopRoutes } from './routes/shop';
 import { createOpsRoutes } from './routes/ops';
+import { createSiteRoutes, MIN_STATS_KEY } from './routes/siteStats';
+import { PostgresVisitStore, MemoryVisitStore, SiteStats } from './ops/siteStats';
 import { isInappropriateName } from '../src/lib/nickname';
 import { createFeedbackRoutes } from './routes/feedback';
 import { AlertMonitor, WebhookSender } from './ops/alerts';
@@ -257,6 +259,11 @@ chat.onChange((userId) => {
 setInterval(() => void accounts.purge().catch(() => undefined), 3_600_000).unref();
 
 // ---- watching the server -------------------------------------------------------------------------------
+// The admin panel's numbers (src/skin/components/AdminPanel.tsx): counters of visits only, nothing about a person. The panel's
+// numbers need ADMIN_STATS_KEY, a long secret of your own: `fly secrets set ADMIN_STATS_KEY=...`. Without it they are off.
+const siteStats = new SiteStats({ store: pool ? new PostgresVisitStore(pool) : new MemoryVisitStore(), log: console.log });
+const adminStatsKey = process.env.ADMIN_STATS_KEY;
+if (adminStatsKey && adminStatsKey.length < MIN_STATS_KEY) console.error(`ADMIN_STATS_KEY is shorter than ${MIN_STATS_KEY} characters, so the admin numbers are switched off.`);
 let serverRef: Awaited<ReturnType<typeof startServer>> | null = null;
 const maxConnections = envNumber('MAX_CONNECTIONS') ?? 2000;
 const takeSnapshot = async (): Promise<Snapshot> => {
@@ -291,6 +298,15 @@ const httpServer = createHttpServer({
     ...createBarnRoutes({ barn }),
     ...createRankedRoutes({ ranked }),
     ...createOpsRoutes({ snapshot: takeSnapshot }),
+    ...createSiteRoutes({
+      stats: siteStats,
+      accounts: accountStore,
+      key: adminStatsKey,
+      online: () => {
+        const rs = serverRef?.rooms.stats() ?? { rooms: 0, players: 0 };
+        return { connections: serverRef?.connections() ?? 0, guests: presence.guests().length, rooms: rs.rooms, playersInGames: rs.players };
+      },
+    }),
     ...createFeedbackRoutes({ token: process.env.GITHUB_FEEDBACK_TOKEN, repo: process.env.GITHUB_FEEDBACK_REPO || 'kaichuang581/steal-a-poop' }),
     ...createAccountRoutes({ service: accounts, captcha: turnstileSecret ? new TurnstileVerifier({ secret: turnstileSecret }) : new DevCaptcha() }),
   ],

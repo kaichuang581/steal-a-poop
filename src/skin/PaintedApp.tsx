@@ -28,6 +28,7 @@ const ThumbRender = DEV ? lazy(() => import('./shop/ThumbRender')) : null;
 const StallRender = DEV ? lazy(() => import('./shop/StallRender')) : null;
 const GuideRender = DEV ? lazy(() => import('./tour/GuideRender')) : null;
 import { OnboardingGate } from './onboarding/Onboarding';
+import { startVisitReports } from '../lib/visit';
 import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot, whenDoorsOpen, whenDoorsShut } from './components/BarnDoors';
 import { PreviewCanvas as WendigoPreviewCanvas } from './table/WendigoPreview';
 import './styles/skin.css';
@@ -71,6 +72,8 @@ export function PaintedApp() {
   // the doors and show the menu over an empty sky instead).
   useState(() => { if (!PREVIEW) shutDoorsAtBoot({ label: 'Opening up the barn' }); });
   useSkinFonts();
+  // Tell the game server this tab is open (numbers only, for the admin panel's visit counts): src/lib/visit.ts.
+  useEffect(() => startVisitReports(), []);
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
   useEffect(() => { useRoomStore.getState().sendAvatar(avatar); }, [avatar]);

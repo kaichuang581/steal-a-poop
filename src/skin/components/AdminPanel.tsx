@@ -9,6 +9,7 @@ import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
 import { Brass, Switch, Slider } from '../kit';
 import { GLARE, LENGTH, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
 import { previewEnd } from '../admin/endPreview';
+import { SiteNumbers } from '../admin/SiteNumbers';
 import type { EndPreview } from '../admin/endPreview';
 
 /**
@@ -41,7 +42,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[55] flex items-center justify-center p-4" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={onClose}>
-      <PaperPanel role="dialog" aria-modal="true" aria-label="Admin access" className="w-full max-w-xs p-4" onClick={(e) => e.stopPropagation()}>
+      <PaperPanel role="dialog" aria-modal="true" aria-label="Admin access" className="max-h-full w-full max-w-xs overflow-y-auto p-4" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="sk-display flex items-center gap-2 text-xl"><span className="kit-peg kit-peg--light kit-peg--sm" style={{ width: 30, height: 30, cursor: 'default' }}><LockIcon size={16} /></span> Admin access</h2>
           <Chip className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
@@ -64,6 +65,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
               </div>
             </section>
             <AdminCoins />
+            <SiteNumbers />
             <KaiyanSliders />
             {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
             <section className="sk-paper mt-3 p-2" aria-label="See the end screens">

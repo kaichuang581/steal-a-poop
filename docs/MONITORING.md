@@ -33,3 +33,11 @@ statistics: false positives, time to a person's decision, volume.
 - Disk or database size on Supabase, and Supabase's own outages: turn on Supabase's notifications.
 - Errors in players' browsers.
 - A webhook that stops working: the server keeps a failure count in memory but cannot alert about its own alerts. Test the webhook after setting it up.
+
+## The admin panel's numbers
+
+With the admin lock open, the padlock dialog shows who is on the site and in games right now, visits, new browsers and how many
+accounts there are. It is for looking, not for alerts. It needs `ADMIN_STATS_KEY` set on the server (`fly secrets set
+ADMIN_STATS_KEY=<a long random string>`, at least 16 characters; without it the numbers are off), and migration 107 applied. Visit
+counts are kept as one row of two numbers per UTC day (`site_visits`) and nothing else. See the "admin panel's numbers" note in
+`CLAUDE.md` for what is and is not counted.

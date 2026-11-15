@@ -1609,3 +1609,20 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   `eraseFriendRows` is replaced by `friends.erase` again. Room invites, the classic Friends tab, the Hub's friends and the
   top-bar buttons stay removed, and Home has no friends button. The guard tests in src/skin/boards/__tests__/boards.test.tsx
   were rewritten to say so.
+- The admin panel's numbers (requested by Kai, 2026-11-15): with the admin lock open, the padlock dialog has a "Numbers" section
+  (src/skin/admin/SiteNumbers.tsx): who is on the site now, who is connected to the game server (guests and signed in) and in
+  rooms, visits (today, yesterday, 7 and 30 days, all time), new browsers, and how many accounts there are (all, made today, made
+  in 7 days). It refreshes every 15 s. The numbers come from the game server (server/routes/siteStats.ts) and are only given to
+  someone with the stats key, the server's ADMIN_STATS_KEY (at least 16 characters; without one the route does not exist): the
+  admin lock on the page is client-only, so it is not what keeps them private. The key is typed in the panel once and kept on
+  the device (`sap:stats-key`); a wrong key is forgotten. Counting visits (src/lib/visit.ts, server/ops/siteStats.ts) stores only
+  numbers: one row per UTC day in `site_visits` (migration 107: `visits` and `new_browsers`), nothing about a person. A tab says
+  "opened" once (a code in sessionStorage, so a refresh is not a visit), a browser that has never been here says so (`sap:seen`,
+  how new browsers are counted), and while a tab is on screen it pings every 45 s with a random per-tab code that the server
+  holds in memory for 90 s to count who is on now and never writes down. The admin's own visits and automated browsers
+  (`navigator.webdriver`) are not counted. Not counted: a copy of the game with no server address, and the classic look.
+  To switch on: run migration 107 (the "Deploy server" workflow with migrations on), set the secret (`fly secrets set
+  ADMIN_STATS_KEY=<long random>`), deploy the server and the website. Known and told to Kai: the privacy policy does not yet
+  mention counting visits or the per-tab code, and a lawyer should read it before this goes to children (a random per-tab code
+  and a first-visit flag are the sort of thing the policy should name); "on the site now" counts open, visible tabs, so one
+  person with three tabs is three, and a tab that is open but hidden is not counted.

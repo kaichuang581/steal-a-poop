@@ -77,6 +77,9 @@ export interface AccountStore {
   removeRestriction(hash: string): Promise<void>;
   purgeRestrictions(now: number): Promise<number>;
 
+  /** How many live accounts there are, and how many were made since each of these times. Numbers only. */
+  profileCounts(since: number[]): Promise<{ total: number; since: number[] }>;
+
   revokeSession(sessionId: string, userId: string, now: number, expiresAt: number): Promise<void>;
   isSessionRevoked(sessionId: string): Promise<boolean>;
   purgeRevokedSessions(now: number): Promise<number>;
@@ -103,6 +106,10 @@ export class MemoryAccountStore implements AccountStore {
   async updateProfile(userId: string, patch: Partial<Omit<Profile, 'userId'>>) {
     const cur = this.profiles.get(userId);
     if (cur) this.profiles.set(userId, { ...cur, ...patch });
+  }
+  async profileCounts(since: number[]) {
+    const live = [...this.profiles.values()].filter((p) => p.deletedAt === null);
+    return { total: live.length, since: since.map((s) => live.filter((p) => p.createdAt >= s).length) };
   }
   async nicknameTaken(nickname: string) {
     const n = nickname.toLowerCase();
@@ -225,6 +232,13 @@ export class PostgresAccountStore implements AccountStore {
     if (!sets.length) return;
     values.push(userId);
     await this.pool.query(`update profiles set ${sets.join(', ')} where user_id = $${values.length}`, values);
+  }
+  async profileCounts(since: number[]) {
+    const { rows } = await this.pool.query(
+      `select count(*)::int as total${since.map((_, i) => `, count(*) filter (where created_at >= $${i + 1})::int as s${i}`).join('')} from profiles where deleted_at is null`,
+      since,
+    );
+    return { total: rows[0].total as number, since: since.map((_, i) => rows[0][`s${i}`] as number) };
   }
   async nicknameTaken(nickname: string) {
     const { rows } = await this.pool.query('select 1 from profiles where lower(nickname) = lower($1) and deleted_at is null limit 1', [nickname]);

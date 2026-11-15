@@ -415,7 +415,8 @@ export function PaintedGame() {
                     )}
                     <div className="sk-plate">
                       <span className="sk-plate-who">{p.name}</span>
-                      {p.difficulty && <span className="sk-plate-badge" role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
+                      {/* Online, a filled seat is not marked (Brian, 2026-11-14: "dont say they are bots"); offline you chose the bots. */}
+                      {p.difficulty && !room && <span className="sk-plate-badge" role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
                       <Lives lives={p.lives} max={maxLives} size={speaking ? 14 : 12} />
                       {p.isYou && <span className="sk-plate-you">you</span>}
                       {p.frozen && <Ice className="sk-plate-ice" />}

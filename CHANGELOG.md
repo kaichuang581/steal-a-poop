@@ -2,6 +2,12 @@
 
 All user-visible changes, newest first.
 
+## 0.7.3
+
+- Empty seats fill by themselves. In the casual queue and in a lobby you make, if nobody new comes in for 15 seconds, players sit down one at a time, a few seconds apart, until the table has four; anyone who comes in after that takes one of those seats. A full queue table starts by itself after a 5 second countdown; a lobby still waits for its host to open the gate.
+- Create lobby no longer has Add a bot or a bot level: invite friends with the party code, and the empty seats fill as above.
+- Name tags over the animals in the lobby's pen no longer sit on top of each other.
+
 ## 0.7.2
 
 - One green Queue button at the top of the menu, where Quick play was; Quick play and Play are gone. Queue searches for a game with real people: pick Casual or Ranked and the game finds you one. Create lobby, right under it, makes a lobby of your own.

@@ -31,6 +31,17 @@ export const RANKED_WAIT_MS = 20_000;
 /** A full ranked table starts this soon. */
 export const RANKED_FULL_WAIT_MS = 4_000;
 
+/**
+ * Empty seats in the casual queue and in a lobby (Brian, 2026-11-14: "only make it do bots if after 10 seconds nobody
+ * joins. and make it gradual", then "remove the option to add bots. just add in the bots after the 15 sec thing").
+ * After QUEUE_QUIET_MS with no new person, bots sit down one at a time, QUEUE_BOT_GAP_MS apart (a gap picked from the
+ * range for each), until the table holds MIN_TABLE. A person who comes in takes a bot's seat and the quiet starts over.
+ * A queue table of MIN_TABLE or more starts itself QUEUE_FULL_WAIT_MS later; a lobby waits for its host.
+ */
+export const QUEUE_QUIET_MS = 15_000;
+export const QUEUE_BOT_GAP_MS: readonly [number, number] = [1_500, 4_000];
+export const QUEUE_FULL_WAIT_MS = 5_000;
+
 export type Visibility = 'public' | 'private';
 export type RoomPhase = 'lobby' | 'playing' | 'finished';
 
@@ -81,6 +92,12 @@ export interface Room {
   leftAt: Record<string, number>;
   /** Ranked, once the game is over and the ratings are in: each player's change. */
   rated: Record<string, { before: number; after: number; delta: number; place: number }> | null;
+  /** The casual queue: the bots seated so far, by name (player-like names, src/lib/playerNames.ts). Empty elsewhere. */
+  botNames: string[];
+  /** The casual queue: when a person last came in (or the room opened); bots wait QUEUE_QUIET_MS after it. */
+  quietSince: number;
+  /** The casual queue: when the next bot sits down, or null while none is due. */
+  botAt: number | null;
 }
 
 export type RoomError =

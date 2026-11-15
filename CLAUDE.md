@@ -1565,3 +1565,38 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   .sk-menu-item` (48 px) is heavier; a heavier copy now sets 38 px rows (35 px at 740 and under) so the caption clears
   the bottom bar at 1280 x 720. Measured at 1280x720, 1366x768, 1280x800, 1440x900, 1920x1080; a phone's menu
   scrolls in its own panel, as before.
+- The casual queue's bots (Brian, 2026-11-14: "for casual qeuue whether it fills with farm sheep, only make it do bots if
+  after 10 seconds nobody joins. and make it gradual. also, instead of making it farm sheep now, make it look like actual
+  player generated names ... a cool and sleak 4 letter name like kxln or something like bignatefan27"). This supersedes
+  "farm sheep fill the table to four" for the casual queue (a lobby someone made keeps its host's number; ranked has none).
+  - Server (server/rooms.ts, constants in server/types.ts): a queue room keeps `botNames`, `quietSince` and `botAt`. After
+    QUEUE_QUIET_MS (10 s) with no new person, `seatQueueBot` seats one bot, then the next QUEUE_BOT_GAP_MS (1.5 to 4 s,
+    random) later, until people and bots make MIN_TABLE (4). A person who joins resets the quiet and, at a full table,
+    takes a bot's seat. `armQueue`: a table of four or more starts itself QUEUE_FULL_WAIT_MS (5 s) later (`startAt`, as
+    ranked); the first one in can still open the gate early with whoever is there. `botsFor` counts only seated bots in
+    the queue, and `begin` hands their names to the engine (`GameSetup.botNames`, a small engine addition).
+  - Names: src/lib/playerNames.ts (`playerName`), from a short look at how players name themselves: numbers on the end
+    (often a birth year, two digits or four), short "OG" consonant names (kxln), fan names (bigmayafan18), its/lil/the
+    prefixes, word_word, CamelCase pairs. At most 12 characters (the room's limit), checked with `isInappropriateName`,
+    no 69/420/666, never a name already at the table.
+  - Kept on purpose: the BOT tag on each bot's line in the lobby and "bot" under its name on the scoreboard (the earlier
+    rule "keep them unmistakably not people", and his own 2026-11-14 "make it more clear that farm sheep are bots"). He
+    asked for the names, not for the tags to go; if he asks for that, it is his call to make.
+  - Tests: server/queueBots.test.ts. Played on a private server: alone 10 s, then libo, owen2008, realfrog about 4 s
+    apart, "The gate opens in 5 seconds", the game with their names.
+- No bot option, unmarked fill-ins, 15 s (Brian, 2026-11-14, after the bullet above: "dont say they are bots. ykw, remove
+  the option to add bots. just add in the bots after the 15 sec thing i stated"). This supersedes, for online play, the
+  BOT tag and "bot" label kept in the bullet above, "keep them unmistakably not people" (2026-11-07) and the host's
+  farm sheep in a lobby ("A shorter menu", 2026-11-14).
+  - QUEUE_QUIET_MS is 15 s. Lobbies fill too (`fillsSeats` in server/rooms.ts: every non-ranked room): the same gradual
+    seats to four, a person who joins takes one; a lobby never starts itself (only the queue's `armQueue` sets
+    `startAt`). `botsFor` counts only those seats; `settings.bots` from an older client is stored and does nothing.
+  - Create lobby sends no bots; the lobby has no Add a bot, take-out cross or Bot level; rooms/lobbyBots.ts (and
+    `playAlone`, the lobby's solo deal) is deleted. A filled seat is shown exactly like a person: a sheep, a name, a
+    name tag in the pen, counted in "N players". Online, the scoreboard and the table's name plates do not mark bots
+    (`markBot` in Ledger.tsx, `!room` in PaintedGame). Practice, the tutorial and the offline table still say bot.
+  - The pen's name tags are kept apart by `Unstack` (PenStage.tsx: the CSS `translate` property, eased; ScreenAnchor
+    owns `transform`).
+  - My reading of "the option to add bots" was the lobby's controls, and of "add in the bots after the 15 sec thing"
+    that a lobby fills like the queue. If he meant lobbies to be people only, take `fillsSeats` back to the queue.
+

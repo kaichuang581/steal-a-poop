@@ -52,7 +52,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
               <h3>Casual</h3>
               <p className="sk-play-line">We find you an open barn with real people. Nothing rides on it.</p>
               <ul className="sk-play-facts">
-                <li>Any number of players; farm sheep take the empty seats</li>
+                <li>Any number of players</li>
                 <li>No account needed</li>
               </ul>
               <ClothButton ref={first} className="sk-play-go" disabled={busy} onClick={onCasual}>Find a game</ClothButton>
@@ -64,7 +64,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
               <h3>Ranked</h3>
               <p className="sk-play-line">People only, the same rules for everyone. Finish higher, gain points, rank up.</p>
               <ul className="sk-play-facts">
-                <li>{RANKED_MIN_PLAYERS} to {RANKED_MAX_PLAYERS} players, no farm sheep</li>
+                <li>{RANKED_MIN_PLAYERS} to {RANKED_MAX_PLAYERS} players</li>
                 <li>Leaving a game counts as a loss</li>
               </ul>
               <div className="sk-play-ladder" aria-label={`The ranks, lowest first: ${TIERS.map((t) => t.name).join(', ')}`}>

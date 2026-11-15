@@ -2,7 +2,8 @@ import { advance, apply, createGame, dailySetup, replaceWithBot } from '../src/e
 import type { ActionResult, EngineContext } from '../src/engine';
 import type { GameResult } from './contracts';
 import { CODE_PATTERN, generateCode, normalizeCode } from './codes';
-import { DEFAULT_ROOM_SETTINGS, MAX_BOTS, MAX_ROOM_SIZE, MIN_TABLE, MIN_TO_START, RANKED_FULL_WAIT_MS, RANKED_MAX_PLAYERS, RANKED_MIN_PLAYERS, RANKED_WAIT_MS } from './types';
+import { DEFAULT_ROOM_SETTINGS, MAX_BOTS, MAX_ROOM_SIZE, MIN_TABLE, MIN_TO_START, QUEUE_BOT_GAP_MS, QUEUE_FULL_WAIT_MS, QUEUE_QUIET_MS, RANKED_FULL_WAIT_MS, RANKED_MAX_PLAYERS, RANKED_MIN_PLAYERS, RANKED_WAIT_MS } from './types';
+import { playerName } from '../src/lib/playerNames';
 import type { Member, PublicRoomInfo, Result, Room, RoomSettings, Visibility } from './types';
 
 /** What a client may send during a game. The server fills in the seat from who is asking. */
@@ -27,6 +28,8 @@ export interface RoomView {
   queue: boolean;
   settings: RoomSettings;
   members: { userId: string; name: string }[];
+  /** The casual queue's bots seated so far, by name, in seat order after the people. */
+  botNames: string[];
   phase: Room['phase'];
   min: number;
   max: number;
@@ -41,7 +44,7 @@ export interface RoomView {
 }
 
 /** The parts of a room every new room starts with (not ranked, nothing rated). */
-const FRESH = { ranked: false, startAt: null, ratedSeats: [], leftAt: {}, rated: null } as const;
+const FRESH = { ranked: false, startAt: null, ratedSeats: [], leftAt: {}, rated: null, botAt: null } as const;
 
 const NAME_MAX = 12;
 const ROOM_NAME_MAX = 24;
@@ -90,7 +93,7 @@ export class RoomManager {
       mutedIds: [],
       kicked: [],
       finishedAt: null,
-      ...FRESH, ratedSeats: [], leftAt: {},
+      ...FRESH, ratedSeats: [], leftAt: {}, botNames: [], quietSince: this.deps.now(),
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -111,6 +114,13 @@ export class RoomManager {
     if (room.members.length >= MAX_ROOM_SIZE) return { ok: false, error: 'room_full' };
     room.members.push({ userId, name: this.uniqueName(room, name), joinedAt: this.deps.now() });
     this.roomOfUser.set(userId, code);
+    if (fillsSeats(room)) {
+      // A person takes a bot's seat once the table is full, and the bots wait for another quiet spell.
+      if (room.members.length + room.botNames.length > MIN_TABLE && room.botNames.length > 0) room.botNames.pop();
+      room.quietSince = this.deps.now();
+      room.botAt = null;
+      this.armQueue(room);
+    }
     return { ok: true, code };
   }
 
@@ -162,6 +172,28 @@ export class RoomManager {
     room.queue = true;
     room.ranked = true;
     return { ...made, created: true };
+  }
+
+  /** The casual queue: a table of MIN_TABLE or more starts itself QUEUE_FULL_WAIT_MS on; a smaller one waits. */
+  private armQueue(room: Room): void {
+    if (!isCasualQueue(room) || room.phase !== 'lobby') return;
+    if (room.members.length + room.botNames.length >= MIN_TABLE) room.startAt ??= this.deps.now() + QUEUE_FULL_WAIT_MS;
+    else room.startAt = null;
+  }
+
+  /** Empty seats: after a quiet spell, one bot sits down, then the next a gap later. True if one did. */
+  private seatQueueBot(room: Room, now: number): boolean {
+    if (!fillsSeats(room) || room.phase !== 'lobby' || room.members.length === 0) return false;
+    if (room.members.length + room.botNames.length >= MIN_TABLE) return false;
+    if (now - room.quietSince < QUEUE_QUIET_MS) return false;
+    room.botAt ??= now; // the first one sits down as the quiet spell ends
+    if (now < room.botAt) return false;
+    const taken = new Set([...room.members.map((m) => m.name), ...room.botNames].map((n) => n.toLowerCase()));
+    room.botNames.push(playerName(`${room.code}:${room.botNames.length}:${this.deps.randomInt(1_000_000_000)}`, taken));
+    const [lo, hi] = QUEUE_BOT_GAP_MS;
+    room.botAt = now + lo + this.deps.randomInt(hi - lo + 1);
+    this.armQueue(room);
+    return true;
   }
 
   /** Sets, moves up or clears a waiting ranked table's start, after someone sat down or left. */
@@ -251,7 +283,7 @@ export class RoomManager {
     }
     const roomClosed = room.members.length === 0;
     if (roomClosed) this.close(room.code);
-    else this.armRanked(room);
+    else { this.armRanked(room); this.armQueue(room); }
     return { newHostId, botSeat, roomClosed };
   }
 
@@ -327,7 +359,7 @@ export class RoomManager {
       mutedIds: [],
       kicked: [],
       finishedAt: null,
-      ...FRESH, ratedSeats: [], leftAt: {},
+      ...FRESH, ratedSeats: [], leftAt: {}, botNames: [], quietSince: this.deps.now(),
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -341,9 +373,9 @@ export class RoomManager {
     if (room.ranked) return { ok: false, error: 'ranked_room' }; // a ranked table starts itself (tick)
     if (room.hostId !== userId) return { ok: false, error: 'not_host' };
     if (room.phase !== 'lobby') return { ok: false, error: 'room_started' };
-    // A game needs two at the table. Where the host has chosen the farm sheep they count, so one person and a bot is
-    // a game; under the old fill rule (bots: null) two people are still needed.
-    const enough = room.settings.bots === null ? room.members.length >= MIN_TO_START : room.members.length + botsFor(room) >= 2;
+    // A game needs two at the table, counting the seats filled after a quiet spell. The host no longer chooses bots:
+    // an older client may still send `bots`, which is stored and has no effect.
+    const enough = room.members.length + room.botNames.length >= 2;
     if (!enough) return { ok: false, error: 'not_enough_players' };
     this.begin(room);
     return { ok: true, code: room.code };
@@ -362,6 +394,7 @@ export class RoomManager {
           }
         : {
             seed: `room:${room.code}:${now}`, now, humans: seated.map((m) => m.name), playerCount: seated.length + botsFor(room), minPlayers: 2, difficulty: room.settings.botLevel,
+            botNames: room.botNames,
             settings: { turnsPerRound: room.settings.turnsPerRound, lives: room.settings.lives, twists: room.settings.twists, timeCarry: 'more' },
           },
       this.deps.ctx.dict,
@@ -395,6 +428,15 @@ export class RoomManager {
       if (room.ranked && room.phase === 'lobby' && room.startAt !== null && now >= room.startAt && room.members.length >= RANKED_MIN_PLAYERS) {
         this.begin(room);
         changed.push(room.code);
+        continue;
+      }
+      // The casual queue and lobbies: bots sit down after a quiet spell, one at a time; a full queue table starts itself.
+      if (fillsSeats(room) && room.phase === 'lobby') {
+        if (this.seatQueueBot(room, now)) changed.push(room.code);
+        if (isCasualQueue(room) && room.startAt !== null && now >= room.startAt) {
+          this.begin(room);
+          if (!changed.includes(room.code)) changed.push(room.code);
+        }
         continue;
       }
       if (room.phase !== 'playing' || !room.game) continue;
@@ -456,6 +498,7 @@ export class RoomManager {
     return {
       code: r.code, name: r.name, visibility: r.visibility, hostId: r.hostId, queue: r.queue, settings: { ...r.settings },
       members: r.members.map((m: Member) => ({ userId: m.userId, name: m.name })),
+      botNames: [...r.botNames],
       phase: r.phase, min: r.ranked ? RANKED_MIN_PLAYERS : MIN_TO_START, max: r.ranked ? RANKED_MAX_PLAYERS : MAX_ROOM_SIZE,
       seatOf: { ...r.seatOf }, game: r.game, chatMuted: r.chatMuted, mutedIds: [...r.mutedIds],
       ranked: r.ranked, startAt: r.startAt, rated: r.rated,
@@ -514,8 +557,10 @@ export function toGameResult(room: Room, finishedAt: number): GameResult {
  * How many farm sheep sit down with a room's people. The host's number where one was chosen (never more than the table
  * holds); otherwise the old rule: enough to fill the table to MIN_TABLE.
  */
-export function botsFor(room: Pick<Room, 'settings' | 'members'>): number {
+export function botsFor(room: Pick<Room, 'settings' | 'members'> & Partial<Pick<Room, 'queue' | 'ranked' | 'botNames'>>): number {
   const people = room.members.length;
+  // Only the bots that sat down after a quiet spell (the host no longer chooses any; a ranked table has none).
+  if (!room.ranked) return Math.min(room.botNames?.length ?? 0, Math.max(0, MAX_ROOM_SIZE - people));
   if (room.settings.bots === null) return Math.max(0, MIN_TABLE - people);
   return Math.max(0, Math.min(room.settings.bots, MAX_ROOM_SIZE - people));
 }
@@ -540,4 +585,14 @@ export function rankedPlaces(room: Room): { userId: string; place: number }[] {
     if (!prev || prev.out !== r.out || prev.lives !== r.lives) place = i + 1;
     return { userId: r.userId, place };
   });
+}
+
+/** A room opened by the casual queue (Queue, then Casual): not ranked, and not someone's own lobby. */
+export function isCasualQueue(room: Pick<Room, 'queue' | 'ranked' | 'kind'>): boolean {
+  return room.kind === 'room' && room.queue && !room.ranked;
+}
+
+/** A room whose empty seats fill after a quiet spell: the casual queue and every lobby. Never ranked, never the daily. */
+export function fillsSeats(room: Pick<Room, 'ranked' | 'kind'>): boolean {
+  return room.kind === 'room' && !room.ranked;
 }

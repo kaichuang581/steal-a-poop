@@ -1,0 +1,26 @@
+name: Smoke check
+
+# Checks the live game server and website from outside, after every server deploy and whenever it is run by hand.
+# Read-only: it creates nothing, and it needs no secrets.
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Deploy server']
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      # A fresh deploy can take a moment to answer.
+      - run: for i in 1 2 3 4 5 6 7 8 9 10 11 12; do curl -fsS https://steal-a-poop-server.fly.dev/healthz && exit 0; sleep 10; done; exit 1
+      - run: node scripts/smoke.mjs https://steal-a-poop-server.fly.dev https://kaichuang581.github.io https://kaichuang581.github.io/steal-a-poop/

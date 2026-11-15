@@ -1679,6 +1679,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
       the old look keeps GAME_TITLE. public/og.png, the link preview picture, said "STEAL ... Build the pile. Don't get
       stolen from."; it is now the game's own farm (the home tour's wide shot) with its title board, captured from the
       built game. The legal documents in docs/legal still name the service "Steal a Poop": that is for whoever reviews them.
+  (j) scripts/smoke.mjs expected the friends addresses to be gone (they are back) and checks the live site too; the new
+      "Smoke check" workflow (.github/workflows/smoke.yml) runs it from GitHub after every server deploy and on demand, with
+      no secrets. It says whether the admin numbers are on (ADMIN_STATS_KEY set) and that a %00 path is refused.
   (i) The end-to-end tests built player names from the clock, and about one run in sixty made a name the game rightly
       refuses ("Ana1..." reads as a rude word): e2e/names.ts picks a run number that keeps every name acceptable.
   Checked and fine: the chat filter

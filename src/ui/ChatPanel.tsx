@@ -101,7 +101,7 @@ export function ChatPanel({ height = 'h-64', compact = false }: { height?: strin
           <p className="p-2 text-sm text-white/50">No messages yet. Say hi.</p>
         ) : (
           chat.map((m) => (
-            <div key={m.id} className="group flex items-start gap-2 rounded-lg px-2 py-1 text-sm hover:bg-white/5">
+            <div key={m.id} data-me={m.userId === me || undefined} className="group flex items-start gap-2 rounded-lg px-2 py-1 text-sm hover:bg-white/5">
               <div className="min-w-0 flex-1 break-words">
                 {room?.members.find((x) => x.userId === m.userId)?.cosmetics
                   ? <NameTag name={m.name} cosmetics={room.members.find((x) => x.userId === m.userId)!.cosmetics} />

@@ -24,7 +24,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'welcome', target: null, kind: 'info', pause: true,
     title: 'Welcome',
-    body: () => 'A one-minute tour. You will play a word and see how wool balls, traps and twists work. Nobody loses wool in the tour, so relax.',
+    body: () => 'A one-minute tour. You will play a word and see how wool balls and twists work. Nobody loses wool in the tour, so relax.',
   },
   {
     id: 'chain', target: 'chain', kind: 'info', pause: true,
@@ -43,11 +43,6 @@ export const TOUR_STEPS: TourStep[] = [
       ? `Type a real word (3+ letters) starting with ${letter(c)} and press Enter. Stuck? Tap Hint. A word that doesn't work just bounces back, so try another. A clear typo gets a suggested fix: press Enter again to accept it.`
       : 'Your turn starts in a moment…',
     done: (c) => c.game.history.some((h) => h.kind === 'play' && h.seat === 0),
-  },
-  {
-    id: 'traps', target: null, kind: 'info', pause: true,
-    title: 'Traps',
-    body: () => 'End a word on X, Z, Q or J to set a trap. If the next sheep runs out of time, you get a wool ball.',
   },
   {
     id: 'modifier', target: 'modifier', kind: 'info', pause: true,

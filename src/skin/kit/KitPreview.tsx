@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Lever, Panel, PanelRow, Paper, Patch, Peg, RopeSlider, Slate, Tag, Tally, Tile, WoodButton } from '.';
+import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Switch, Panel, PanelRow, Paper, Patch, Peg, Slider, Slate, Tag, Tally, Tile, WoodButton } from '.';
 import { CloseIcon, GearIcon, HelpIcon, LockIcon, PinIcon, ShareIcon, SpeakerIcon } from '../components/Icons';
 
 /** ?preview=kit (V6 Part 4.13): every material in every size, tone and state, on paper, on barn wood and on the dream's violet. */
@@ -34,9 +34,9 @@ export default function KitPreview() {
             <div style={{ marginTop: 44 }}><Board size="heading" hang="ropes" swing id={`${name}-e`}>Round 2</Board></div>
           </Row>
           <Row label="Paper">
-            <Paper kind="slip" pin="top" seed={1}>A slip of paper</Paper>
-            <Paper kind="note" pin="corner" seed={2} tilt style={{ maxWidth: 220 }}>A note: a few lines in the farmer's hand.</Paper>
-            <Paper kind="ticket" seed={3}><PinIcon size={16} /> Quick game</Paper>
+            <Paper kind="slip">A slip of paper</Paper>
+            <Paper kind="note" style={{ maxWidth: 220 }}>A note: a few lines in the farmer's hand.</Paper>
+            <Paper kind="slip"><PinIcon size={16} /> Quick game</Paper>
             <Tag tone="gold">New</Tag><Tag tone="green">Farm sheep</Tag><Tag tone="gray">Soon</Tag><Tag tone="flame">Best</Tag>
             <button className="kit-paper kit-paper--slip kit-paper--lift" data-seed="0">Lifting paper</button>
           </Row>
@@ -82,9 +82,9 @@ export default function KitPreview() {
           </Row>
           <Row label="Controls">
             <Panel style={{ width: 300 }}>
-              <PanelRow label="Sound"><Lever checked={on} onChange={setOn} label="Sound" /></PanelRow>
-              <PanelRow label="Volume"><RopeSlider min={0} max={100} value={vol} onChange={(e) => setVol(+e.target.value)} aria-label="Volume" /></PanelRow>
-              <PanelRow label="Hints"><Lever checked={!on} onChange={(v) => setOn(!v)} label="Hints" /></PanelRow>
+              <PanelRow label="Sound"><Switch checked={on} onChange={setOn} label="Sound" /></PanelRow>
+              <PanelRow label="Volume"><Slider min={0} max={100} value={vol} onChange={(e) => setVol(+e.target.value)} aria-label="Volume" /></PanelRow>
+              <PanelRow label="Hints"><Switch checked={!on} onChange={(v) => setOn(!v)} label="Hints" /></PanelRow>
             </Panel>
             <Ice style={{ padding: '10px 16px', fontFamily: 'var(--skin-font-display)', fontWeight: 800 }}>Frozen: -1 wool</Ice>
           </Row>

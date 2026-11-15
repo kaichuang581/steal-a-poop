@@ -2,6 +2,7 @@ import type { Route } from '../contracts';
 import type { BarnService } from '../barn/service';
 import { readGameId, readReward } from '../barn/service';
 import { RateLimiter } from '../ratelimit';
+import { limitKey } from '../address';
 import { isSackId } from '../../src/skin/shop/sacks';
 
 const bad = (error: string, status = 400) => ({ status, json: { error } });
@@ -15,6 +16,7 @@ export function createBarnRoutes(deps: { barn: BarnService; now?: () => number }
   const read = new RateLimiter(60, 60_000);
   const write = new RateLimiter(30, 60_000);
   const claims = new RateLimiter(20, 60_000);
+  const byIp = new RateLimiter(60, 60_000);
   const body = (b: unknown) => (b && typeof b === 'object' ? (b as Record<string, unknown>) : {});
   const ok = (json: object) => ({ status: 200, json });
   return [
@@ -26,6 +28,12 @@ export function createBarnRoutes(deps: { barn: BarnService; now?: () => number }
       // The profile's board: the top 100 players by XP, and where the asker stands. No account ids in it.
       method: 'GET', path: '/api/barn/top', auth: 'user',
       handler: async (req) => (read.allow(req.user!.userId, now()) ? ok(await deps.barn.board(req.user!.userId)) : bad('rate_limited', 429)),
+    },
+    {
+      // The same board for the leaderboards page, signed in or not: names, levels and XP, nobody's own place. Public
+      // like the game leaderboards, naming only the players those would; the list is the service's one-a-minute copy.
+      method: 'GET', path: '/api/barn/board', auth: 'none',
+      handler: async (req) => (byIp.allow(limitKey(req.ip), now()) ? ok(await deps.barn.board('')) : bad('rate_limited', 429)),
     },
     {
       method: 'POST', path: '/api/barn/claim', auth: 'user',

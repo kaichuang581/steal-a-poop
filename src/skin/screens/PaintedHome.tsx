@@ -18,6 +18,10 @@ import { farmSheepLine } from '../../lib/record';
 import { getServerUrl } from '../../net/config';
 import { useRoomStore } from '../../state/roomStore';
 import type { Intent } from '../../state/roomStore';
+import { PlayChooser } from '../ranked/PlayChooser';
+import { enterOnline, hasAccount } from '../rooms/enterOnline';
+import { lobbyBots } from '../rooms/lobbyBots';
+import { levelOf } from '../shop/economy';
 import '../rooms/rooms.css';
 import { useSocial } from '../../state/socialStore';
 import { useStore, tableFor } from '../../state/store';
@@ -27,15 +31,14 @@ import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
-import { Hub } from '../../ui/social/Hub';
-import type { HubTab } from '../../ui/social/Hub';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, FlameIcon, FriendsIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, FlameIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
 import { FeedbackDialog } from '../components/FeedbackDialog';
 import { Bazaar } from '../shop/Bazaar';
 import { Profile } from '../profile/Profile';
+import { Leaderboards } from '../boards/Leaderboards';
 import { useWallet } from '../shop/store';
 import { CoinArt } from '../shop/art';
 import { formatCoins } from '../shop/format';
@@ -69,10 +72,12 @@ const DIFFS: { id: Difficulty; icon: ReactNode }[] = [
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
+/** What Quick play and Play say in a copy of the game that has no server to reach. */
+const NO_SERVER = 'Real people need the game server, and this copy of the game has none. Custom game plays the farm sheep.';
+
 const TIPS = [
   'Every word must start with the last letter of the one before it.',
   'Run out of time and you lose a wool ball. Lose them all and you freeze solid.',
-  'End a word on X, Z, Q or J: if the next sheep runs out of time, you get a wool ball.',
   'A bad word just bounces, so try another before your timer runs out.',
   'Turns get faster every round: 16, 12, 9, 7, then 5 seconds. The alarm calls each change.',
   'Last sheep standing wins.',
@@ -100,7 +105,8 @@ export function PaintedHome() {
   const [pickAvatar, setPickAvatar] = useState(false);
   const [bazaar, setBazaar] = useState(false);
   const [profile, setProfile] = useState(false);
-  const wool = useWallet().coins;
+  const wallet = useWallet();
+  const wool = wallet.coins;
   const device = useDevice();
   const [feedback, setFeedback] = useState(false);
   const [legal, setLegal] = useState<LegalSlug | null>(null);
@@ -109,9 +115,11 @@ export function PaintedHome() {
   const avatar = useAvatar();
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
+  // Play opens two cards, Casual and Ranked, over the menu.
+  const [chooser, setChooser] = useState(false);
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
-  const [hub, setHub] = useState<HubTab | null>(null);
+  const [boards, setBoards] = useState(false);
   const [heroYaw, setHeroYaw] = useState(0);
   const [hopKey, setHopKey] = useState(0);
   const [tip, setTip] = useState(() => Math.floor(Math.random() * TIPS.length));
@@ -160,15 +168,7 @@ export function PaintedHome() {
   // Real people are the default once a game server is configured: Quick play lands in an open barn, Play opens a lobby
   // of your own, and a party code joins a friend's. Signed in, the account's name is used; signed out, a guest plays
   // under the name on the plate (no account needed; progress stays in this browser).
-  const online = (intent: Intent) => {
-    if (authEnabled() && authStatus === 'ready') {
-      return useRoomStore.getState().enter(useAuth.getState().profile?.nickname ?? '', intent);
-    }
-    const nick = checkNickname(settings.name);
-    if (!nick.ok) return setError(nick.message);
-    setError('');
-    useRoomStore.getState().enter(nick.name, intent);
-  };
+  const online = (intent: Intent) => setError(enterOnline(intent) ?? '');
   // Game length (plan V3.3 Part 2.6): a preset sets every rule; touching a rule makes it Custom. Saved with the other settings.
   const rules = table.game;
   const preset = presetOf(rules);
@@ -198,18 +198,22 @@ export function PaintedHome() {
   };
 
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Quick play and Play are for real people, always (Brian, 2026-11-13: "quick play and play should not bring you into
+  // bot lobbies"). The farm sheep are behind Custom game, Practice and the Tutorial, and nowhere else. A copy of the game
+  // with no server to reach (local development without one) still shows both: they say why they cannot be used.
   const items: MenuItem[] = [
+    { id: 'start', label: 'Quick play', caption: rooms ? 'Join the queue: straight into an open barn with real people.' : NO_SERVER, disabled: entering, onSelect: () => online({ t: 'quick' }) },
+    { id: 'play', label: 'Play', caption: rooms ? 'Casual or ranked, with real people. Pick one.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : online({ t: 'quick' })) },
+    // One lobby for every table you set yourself (Brian, 2026-11-14: "make custom game and create lobby the same thing ...
+    // only with bots, only players, or bots and players"): inside it the host adds farm sheep, invites friends, or both.
+    // It opens with the farm sheep the host had last time. With no server there is no lobby to open, so the same item
+    // sets a table of farm sheep on this device.
     rooms
-      ? { id: 'start', label: 'Quick play', caption: 'Join the queue: straight into an open barn with real people.', disabled: entering, onSelect: () => online({ t: 'quick' }) }
-      : { id: 'start', label: ready ? 'Quick play' : 'Loading…', caption: table.first ? 'Easy table for your first games. No setup.' : 'Straight into a game at the table you last set. No setup.', disabled: !ready, onSelect: () => go('quick') },
+      ? { id: 'lobby', label: 'Create lobby', caption: 'Your own barn: add farm sheep (bots), invite friends with the party code, or both.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private', ...lobbyBots() }) }
+      : { id: 'lobby', label: ready ? 'Create lobby' : 'Loading…', caption: 'Set a table of farm sheep (bots), then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     ...(rooms ? [
-      { id: 'lobby', label: 'Create lobby', caption: 'Open your own barn, send the party code, and set the game inside.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private' }) },
       { id: 'join', label: 'Join party', caption: 'Got a party code from a friend? Type it in.', onSelect: () => { setPartyCode(''); setStep('join'); } },
     ] satisfies MenuItem[] : []),
-    {
-      id: 'play', label: ready ? (rooms ? 'Custom game' : 'Play') : 'Loading…', disabled: !ready, onSelect: () => setStep('setup'),
-      caption: rooms ? 'You against the farm sheep (bots). Set the table, then sit down.' : 'You and the bots in the barn. Set the table, then sit down.',
-    },
     // Admin plays tonight's dream as often as it likes; everyone else gets the one attempt, then the share.
     admin
       ? {
@@ -243,26 +247,27 @@ export function PaintedHome() {
       id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${formatCoins(wool)} Wool Coins`}><CoinArt size={11} />{formatCoins(wool, true)}</MenuTag>,
       caption: 'Feed Sacks of bomb skins, bursts and fuse sounds, missions, and your collection.', onSelect: () => setBazaar(true),
     },
-    { id: 'profile', label: 'Profile', caption: 'Your stats and standing, your name and your avatar.', onSelect: () => setProfile(true) },
   ];
   // The name plate opens the profile, where the name, the avatar and the stats live.
   const shownName = (signedIn ? accountName : settings.name) || '';
-  const nameField = (
+  // The box with your name IS the profile (Brian, 2026-11-14: "make the profile thing not a button below the quickplay
+  // but that box in the top left, just embed it in there"): the whole box is one button, and it says so under the name.
+  const profilePlate = (avatarSize: number, className: string, extra?: ReactNode) => (
     <button
-      type="button" className="sk-plate-name sk-plate-open" onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
-      aria-label={`Your profile${shownName ? `: ${shownName}` : ''}`} title="Your profile, stats and name"
+      type="button" className={`sk-plate sk-plate-open kit-plank kit-plank--label ${className}`} onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
+      aria-label={`Your profile${shownName ? `: ${shownName}` : ''}, level ${levelOf(wallet.xp).level}`} title="Your profile: stats, rank, name and avatar" data-profile
     >
-      {shownName || <span style={{ opacity: 0.75 }}>Your name</span>}
+      <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={avatarSize} /> : <SheepIcon size={avatarSize} />}</span>
+      <span className="sk-plate-id">
+        <span className="sk-plate-name">{shownName || <span style={{ opacity: 0.75 }}>Your name</span>}</span>
+        <span className="sk-plate-sub">Level {levelOf(wallet.xp).level} · Profile</span>
+      </span>
+      {extra}
     </button>
   );
   const tables = (
     <div className="flex flex-col gap-3" key="tables">
-      {mobile && (
-        <div className="sk-plate kit-plank kit-plank--label self-center" aria-label="Player">
-          <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={22} /> : <SheepIcon size={22} />}</span>
-          {nameField}
-        </div>
-      )}
+      {mobile && profilePlate(22, 'self-center')}
       <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
       {dictStatus === 'error' && (
         <PaperPanel role="alert" className="p-3 text-center">
@@ -398,33 +403,24 @@ export function PaintedHome() {
 
   return (
     <main className={`sk-home relative h-full overflow-hidden`} onPointerMove={onPointerMove} onKeyDown={onKey}>
-      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} paused={bazaar} /></div>
+      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} paused={bazaar || boards} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 p-3 sm:p-4 [&>*]:pointer-events-auto">
-        {!mobile && (
-          <div className="sk-plate kit-plank kit-plank--label mr-auto" aria-label="Player">
-            <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={24} /> : <SheepIcon size={24} />}</span>
-            {nameField}
+        {!mobile && profilePlate(24, 'mr-auto', (
+          <>
             {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinArt size={14} /></span>}
-          </div>
-        )}
+          </>
+        ))}
         {authEnabled() && (authStatus === 'ready' ? (
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Account</button>
         ) : (
           <button className="sk-icon-btn" onClick={openSignInForm} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Log in</button>
         ))}
-        {/* Friends and the leaderboards. A phone's bar is already full, so there it is one button for the same panel. */}
-        {rooms && (mobile ? (
-          <button className="sk-icon-btn" onClick={() => setHub('friends')} aria-label="Friends and leaderboards" title="Friends and leaderboards"><FriendsIcon size={20} /></button>
-        ) : (
-          <>
-            <button className="sk-icon-btn" onClick={() => setHub('friends')} aria-label="Friends" title="Friends"><FriendsIcon size={20} /></button>
-            <button className="sk-icon-btn" onClick={() => setHub('boards')} aria-label="Leaderboards" title="Leaderboards"><TrophyIcon size={20} /></button>
-          </>
-        ))}
+        {/* The leaderboards (they are read from the game server, so there is no button without one). */}
+        {rooms && <button className="sk-icon-btn" onClick={() => setBoards(true)} aria-label="Leaderboards" title="Leaderboards" data-boards><TrophyIcon size={20} /></button>}
         <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${formatCoins(wool)} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{formatCoins(wool, true)}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
@@ -475,8 +471,17 @@ export function PaintedHome() {
         </>
       )}
 
+      {chooser && (
+        <PlayChooser
+          rank={hasAccount() ? 'play' : 'signin'} busy={entering} error={error || roomNotice || undefined}
+          onClose={() => setChooser(false)}
+          onCasual={() => online({ t: 'quick' })}
+          onRanked={() => online({ t: 'ranked' })}
+          onSignIn={() => { setChooser(false); setSignIn(true); }}
+        />
+      )}
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}
-      {hub && <Hub initial={hub} tabs={['friends', 'boards']} guest={!signedIn} guestName={settings.name} onClose={() => setHub(null)} />}
+      {boards && <Leaderboards onClose={() => setBoards(false)} />}
       {help && <PaintedGuide onClose={() => setHelp(false)} />}
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
       {legal && <LegalDialog initial={legal} onClose={() => setLegal(null)} />}

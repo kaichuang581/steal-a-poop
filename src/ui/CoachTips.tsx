@@ -13,14 +13,6 @@ const TIPS: Tip[] = [
     when: (g) => g.phase === 'playing' && g.modifier !== 'none',
   },
   {
-    id: 'trap', title: 'Trap letter',
-    text: (g) => {
-      const t = g.trap!;
-      return `${g.players[t.trapperSeat].name} ended on “${t.letter.toUpperCase()}”. If ${g.players[t.victimSeat].name} runs out of time, ${g.players[t.trapperSeat].name} gets a wool ball.`;
-    },
-    when: (g) => g.trap !== null,
-  },
-  {
     id: 'wool', title: 'Wool balls',
     text: () => 'Running out of time costs a wool ball. Lose them all and that sheep freezes solid. Last sheep standing wins.',
     when: (g) => g.events.some((e) => e.kind === 'lifeLost'),

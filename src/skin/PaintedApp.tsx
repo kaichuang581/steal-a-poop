@@ -6,7 +6,6 @@ import { burstExplodes, TICK_VOICE } from './shop/catalog';
 import { grantStreak, useWallet } from './shop/store';
 import { useAvatar } from './avatars/store';
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Garland } from './components/Garland';
 import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
 import { useAuth } from '../auth/authStore';
@@ -19,10 +18,15 @@ import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
 import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
-// Dev only: bakes the loading screen's doors (tools/renderDoors.mjs). Loaded only when asked for.
-const DoorsRender = lazy(() => import('./loading/DoorsRender'));
-const ThumbRender = lazy(() => import('./shop/ThumbRender'));
-const StallRender = lazy(() => import('./shop/StallRender'));
+// Developer pages (?preview=), for the tools that bake the game's pictures and strips (tools/renderDoors.mjs,
+// renderThumbs.mjs, renderStall.mjs, renderGuide.mjs, animalStrips.mjs), which all run against `npm run dev`. They are
+// not in the build players load: there `import.meta.env.DEV` is false, so PREVIEW is null and all of this falls away.
+// (Taken out of the build on 2026-11-14 to make room for the leaderboards' sky; no player ever opened them.)
+const DEV = import.meta.env.DEV;
+const DoorsRender = DEV ? lazy(() => import('./loading/DoorsRender')) : null;
+const ThumbRender = DEV ? lazy(() => import('./shop/ThumbRender')) : null;
+const StallRender = DEV ? lazy(() => import('./shop/StallRender')) : null;
+const GuideRender = DEV ? lazy(() => import('./tour/GuideRender')) : null;
 import { OnboardingGate } from './onboarding/Onboarding';
 import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot, whenDoorsOpen, whenDoorsShut } from './components/BarnDoors';
 import { PreviewCanvas as WendigoPreviewCanvas } from './table/WendigoPreview';
@@ -42,24 +46,13 @@ function useSkinFonts() {
   }, []);
 }
 
-/** ?preview=sheep opens the model preview (plan V3 Milestone 1). */
-const PREVIEW = new URLSearchParams(location.search).get('preview');
+/** ?preview=sheep opens the model preview (plan V3 Milestone 1). Development only (see DEV above). */
+const PREVIEW = DEV ? new URLSearchParams(location.search).get('preview') : null;
 
 /**
  * The painted skin's screen switch, mirroring App's: game, room, lobby, home. The Rooms lobby and waiting room keep
  * the classic screens until the game server is live (plan Milestone 7).
  */
-/** True the first time the game loads in this tab; a refresh (or coming back to it) is not a first load. */
-function firstLoadThisTab(): boolean {
-  try {
-    const seen = sessionStorage.getItem('sap:booted');
-    sessionStorage.setItem('sap:booted', '1');
-    return !seen;
-  } catch {
-    return true;
-  }
-}
-
 /** What the loading slip says on the way into each screen. */
 function loadingLine(to: 'dream' | 'game'): string {
   if (to === 'dream') return 'Tucking the farmer in';
@@ -72,11 +65,11 @@ export function PaintedApp() {
   const inRoom = useRoomStore((s) => s.room !== null);
   const hour = useHour();
   const dreaming = useDreamUi((s) => s.open);
-  // The first load in a tab goes behind the doors from the first frame: Home's farm takes seconds to build, and shutting
-  // the doors only once its scene mounted showed Home first and then covered it. A refresh skips them (Brian: "if the
-  // game is already loaded ... from just refreshing the page then it shouldnt be spammed"): Home is there at once and
-  // its farm fades in when it is built (FarmBackdrop).
-  useState(() => { if (!PREVIEW && firstLoadThisTab()) shutDoorsAtBoot({ label: 'Opening up the barn' }); });
+  // Every page load starts behind the doors, and they stay shut until Home is ready: the page itself comes with them
+  // drawn shut (loading/bootDoors.ts), and the farm takes seconds to build, on a refresh as much as on a first visit
+  // (Brian, 2026-11-13: "why is the loading screen not what pops up when the game is loading?"; a refresh used to skip
+  // the doors and show the menu over an empty sky instead).
+  useState(() => { if (!PREVIEW) shutDoorsAtBoot({ label: 'Opening up the barn' }); });
   useSkinFonts();
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
@@ -139,9 +132,10 @@ export function PaintedApp() {
   if (PREVIEW === 'strips') return <StripsPreview />;
   if (PREVIEW === 'lineup') return <LineupPreview />;
   if (PREVIEW === 'kit') return <KitPreview />;
-  if (PREVIEW === 'doors') return <Suspense fallback={null}><DoorsRender /></Suspense>;
-  if (PREVIEW === 'thumb') return <Suspense fallback={null}><ThumbRender /></Suspense>;
-  if (PREVIEW === 'stall') return <Suspense fallback={null}><StallRender /></Suspense>;
+  if (PREVIEW === 'doors' && DoorsRender) return <Suspense fallback={null}><DoorsRender /></Suspense>;
+  if (PREVIEW === 'thumb' && ThumbRender) return <Suspense fallback={null}><ThumbRender /></Suspense>;
+  if (PREVIEW === 'stall' && StallRender) return <Suspense fallback={null}><StallRender /></Suspense>;
+  if (PREVIEW === 'guide' && GuideRender) return <Suspense fallback={null}><GuideRender /></Suspense>;
   if (PREVIEW === 'wendigo') return <div style={{ position: 'fixed', inset: 0 }}><WendigoPreviewCanvas /></div>;
   // A ?join=CODE address joins that room once the player is signed in and online.
   // The start screen is always the first thing: nothing to get through before it. The name is picked there, and signing
@@ -152,5 +146,5 @@ export function PaintedApp() {
     : inRoom ? <PaintedRoom />
     : home;
   // The first-visit form: every new player says how they play, their country and age, and a parent agrees if needed.
-  return <><JoinLink />{screen}{!dreaming && !inGame && inRoom && <Garland />}<OnboardingGate /><BarnDoors /></>;
+  return <><JoinLink />{screen}<OnboardingGate /><BarnDoors /></>;
 }

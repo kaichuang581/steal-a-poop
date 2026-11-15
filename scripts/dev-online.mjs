@@ -19,7 +19,9 @@ const run = (args, env) => {
   children.push(child);
   child.on('exit', (code) => { for (const c of children) if (c !== child) c.kill(); process.exit(code ?? 0); });
 };
-if (!fly) run(['run', 'server'], { ALLOW_DEV_AUTH: '1', PORT: port });
+// The server's API answers a browser only from the origins it is told about (the socket takes anyone when none are
+// named, the API takes no one), so the profile's board, your rank and the leaderboards need the local site named here.
+if (!fly) run(['run', 'server'], { ALLOW_DEV_AUTH: '1', PORT: port, ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173' });
 run(['run', 'dev'], { VITE_SERVER_URL: serverUrl });
 console.log(`\n  multiplayer: the site talks to ${serverUrl}\n`);
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { for (const c of children) c.kill(); process.exit(0); });

@@ -6,7 +6,7 @@ import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
 import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
-import { Brass, Lever, RopeSlider } from '../kit';
+import { Brass, Switch, Slider } from '../kit';
 import { GLARE, LENGTH, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
 import { previewEnd } from '../admin/endPreview';
 import type { EndPreview } from '../admin/endPreview';
@@ -105,7 +105,7 @@ function KaiyanSliders() {
   const row = (label: string, value: number, r: { min: number; max: number; step: number }, set: (v: number) => void) => (
     <label className="mt-1 flex items-center gap-2">
       <span className="sk-hand w-20 shrink-0 text-sm" style={{ color: 'var(--ink-soft)' }}>{label}</span>
-      <RopeSlider className="min-w-0 flex-1" min={r.min} max={r.max} step={r.step} value={value} onChange={(e) => set(Number(e.target.value))} aria-label={label} />
+      <Slider className="min-w-0 flex-1" min={r.min} max={r.max} step={r.step} value={value} onChange={(e) => set(Number(e.target.value))} aria-label={label} />
       <span className="sk-hand w-10 shrink-0 text-right text-sm">×{value.toFixed(1)}</span>
     </label>
   );
@@ -133,7 +133,7 @@ function AdminCoins() {
           {coins ? 'On: Feed Sacks cost nothing here. Your real coins come back when you turn it off.' : 'Off. This browser only, never the account’s wallet.'}
         </p>
       </div>
-      <Lever checked={coins} onChange={setCoins} label="Unlimited Wool Coins" />
+      <Switch checked={coins} onChange={setCoins} label="Unlimited Wool Coins" />
     </section>
   );
 }

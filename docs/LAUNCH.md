@@ -38,9 +38,9 @@ Fly.io, the real Claude API, a real phone, or a real child's parent.** The publi
 
 ## 3. Can wait until after launch
 
-- Leaderboard seasons or resets; "friends only" boards.
+- Leaderboard seasons or resets.
 - Chat in more languages (`LANGUAGE_PACKS` is the place).
-- More shop items; a way to see friends' rooms.
+- More shop items.
 - Retention jobs (after #20).
 - Two server machines (needs shared state: rooms, rate limits and chat in a shared store).
 
@@ -50,7 +50,7 @@ Fly.io, the real Claude API, a real phone, or a real child's parent.** The publi
 2. Sign up a child under 13 with a parent's address you own: the parent's email arrives; "I agree" works; the child can then chat; "Withdraw" works from the confirmation email.
 3. Sign in with Google and with Meta.
 4. Two phones in one room with a third and fourth browser: play a whole game; chat; send a message that breaks the rules and see the hold, the moderator screen, the appeal, the decision.
-5. Friend codes both ways; an invite to a room; a block; a kick.
+5. A room joined by its code and by its link; a block; a kick.
 6. Finish a game: coins arrive, the leaderboard shows the player, the shop sells an item and it shows beside the name.
 7. Log out on all devices and see the second device lose its connection. Delete the account and check what is gone and what stays (`docs/legal/data-retention.md`).
 8. Stop the database for a minute: the alert fires. Restart the server during a game: players see the "restarting" message and reconnect.
@@ -61,7 +61,7 @@ Fly.io, the real Claude API, a real phone, or a real child's parent.** The publi
 
 - Game, practice, Daily Table, tour; rooms of 4 to 10; chat with pre-moderation, reports, blocks, mutes, kicks, appeals, a moderator screen and coin support tool.
 - Accounts: email, Google, Meta; date of birth and country; parental permission flow; log out everywhere; delete account.
-- Stored results, leaderboards, friends and invites, coins and a cosmetic shop.
+- Stored results, leaderboards, coins and a cosmetic shop.
 - Database schema with row-level security everywhere, an audited migration runner, and CI that runs 540+ tests against a real Postgres and 32 browser tests.
 - A production build of the server, Dockerfile, Fly settings, a manual deploy workflow, alerts, and a smoke test.
 - Drafts of every legal document, shown in the app marked DRAFT.

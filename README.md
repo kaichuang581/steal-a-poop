@@ -1,7 +1,7 @@
 # Steal a Poop
 
 A free browser word-chain game: solo against 3–7 bots, in rooms of 4–10 people, or the Daily Table.
-Playing alone needs nothing. Multiplayer, accounts, friends, leaderboards and the coin shop need the game server and a Supabase project
+Playing alone needs nothing. Multiplayer, accounts, leaderboards and the coin shop need the game server and a Supabase project
 (not live yet; the public site hides them until it is configured). Read `docs/LAUNCH.md` for what is left before real players.
 The title lives in one constant: `src/config.ts` (`GAME_TITLE`).
 
@@ -37,7 +37,7 @@ The default look is a painted, storybook barn. The classic screens are still ava
 - **Avatars.** The Avatar button on the home screen opens a picker with 15 characters across five animals.
   The choice is saved in this browser and is free to change. Only your own player card wears it.
 - **Pixel icons.** The painted screens use small grid-drawn pixel icons instead of emoji, including the
-  icon-only controls for rules, scores, chain, chat, sound, hints, settings, coins, shop, friends and streaks.
+  icon-only controls for rules, scores, chain, chat, sound, hints, settings, coins, shop and streaks.
 - **Steal feedback.** A steal jolts the table and flashes the screen edge red, with a message naming the
   thief, the player stolen from, and the wool ball taken. Results include a best-steal line.
 - **Share card.** Finished games and Counting Sheep runs can be shared as a picture where the browser
@@ -112,7 +112,7 @@ interface. Note `apply` already rejects actions from non-human seats.
 | `server/` | Multiplayer game server (not deployed; the app only offers it when built with `VITE_SERVER_URL`). See `docs/SERVER.md` |
 | `src/net/`, `src/state/roomStore.ts` | The app's side of multiplayer: socket client, room and chat state |
 | `server/auth`, `server/routes` | Sign-in checks, profiles, parental consent, account endpoints |
-| `server/game`, `server/economy`, `server/social` | Stored results and leaderboards, coins and the shop, friends |
+| `server/game`, `server/economy`, `server/barn`, `server/ranked` | Stored results and leaderboards, coins and the shop, the Trading Post's wallet, ranked ratings |
 | `server/moderation`, `server/chat.ts`, `server/filter.ts` | Chat filter, review queue, audit log, child-safety reporting |
 | `server/db` | The migration runner |
 | `db/migrations` | The database schema, forward-only |

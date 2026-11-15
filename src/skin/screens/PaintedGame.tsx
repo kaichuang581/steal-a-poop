@@ -28,7 +28,10 @@ import { ChainList, RulesCard } from '../components/RulesCard';
 import { CoachTips } from '../../ui/CoachTips';
 import { useGameLoop, useIsMobile } from '../../ui/hooks';
 import { RewardBanner } from '../../ui/social/RewardBanner';
-import { Tour } from '../../ui/Tour';
+import { PaintedTour } from '../tour/PaintedTour';
+import { RatedSlip } from '../ranked/RatedSlip';
+import '../ranked/ranked.css';
+import { TourMarks } from '../tour/TourMarks';
 import { useGameSounds } from '../../ui/useGameSounds';
 import { InputStrip } from '../components/InputStrip';
 import { Ledger } from '../components/Ledger';
@@ -91,6 +94,8 @@ export function PaintedGame() {
   const game = useStore((s) => s.game)!;
   const mySeat = useStore((s) => s.mySeat);
   const storeMode = useStore((s) => s.mode);
+  // Walking out of a ranked game is a loss; the leave dialog says so.
+  const rankedRoom = useRoomStore((s) => !!s.room?.ranked);
   const quit = useStore((s) => s.quit);
   const dict = useStore((s) => s.dict);
   const now = useStore((s) => s.now);
@@ -305,7 +310,7 @@ export function PaintedGame() {
         setMoments((m) => ({ ...m, gust: { key: k(), at: rel(Number(e.playerId)) } }));
         flash(
           <Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!"
-            sub={`${name(e.playerId)} lost a wool ball${e.trapperId ? ` · ${name(e.trapperId)}’s trap wins one` : ''}`} />,
+            sub={`${name(e.playerId)} lost a wool ball`} />,
           1500,
         );
         break;
@@ -422,6 +427,7 @@ export function PaintedGame() {
           })}
         >
           <PlaceExtras mode={view.mode} reduced={reduced} streak={view.streakDays} />
+          {storeMode === 'tour' && <TourMarks speaker={speaker} n={n} />}
         </Stage>
       </div>
 
@@ -455,11 +461,11 @@ export function PaintedGame() {
       </header>
 
       {practice ? (
-        // The fight card: two paper slips pinned up either side of a carved VS.
+        // The fight card: the two names either side of a carved VS.
         <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-16' : 'top-3'}`} aria-label="Who is playing">
-          <Paper kind="slip" pin="top" seed={0} tilt className="sk-vs-slip">{game.players[0].name}</Paper>
+          <Paper kind="slip" className="sk-vs-slip">{game.players[0].name}</Paper>
           <span className="sk-vs">VS</span>
-          <Paper kind="slip" pin="top" seed={1} tilt className="sk-vs-slip">{game.players[1].name}<span className="sk-vs-farm">farm sheep · {game.settings.botDifficulty}</span></Paper>
+          <Paper kind="slip" className="sk-vs-slip">{game.players[1].name}<span className="sk-vs-farm">farm sheep · {game.settings.botDifficulty}</span></Paper>
         </div>
       ) : (
         <Ledger players={ranked} turnId={view.currentPlayerId} maxLives={maxLives} compact={mobile}
@@ -511,7 +517,7 @@ export function PaintedGame() {
       )}
 
       {/* Coach tips only while a turn is running: never over the round tally or the end board. */}
-      {storeMode === 'tour' ? <Tour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><CoachTips /></div>}
+      {storeMode === 'tour' ? <PaintedTour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><CoachTips /></div>}
       {game.phase === 'gameOver' && (practice ? !watchingAct && <RunOver /> : finale === 'results' && (
         <Results players={ranked} podium={ranked.map((p, i) => ({ key: p.id, name: p.name, place: i + 1, avatar: avatarOf(p), level: coatLevel(Math.max(p.lives, 1), maxLives), isYou: p.isYou }))} />
       ))}
@@ -525,7 +531,7 @@ export function PaintedGame() {
       {sheet === 'leave' && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center p-4" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={() => setSheet(null)}>
           <Clipboard aria-label="Leave game" title="Leave this table?" className="sk-leave" onClick={(e) => e.stopPropagation()}>
-            <p>{storeMode === 'daily' ? 'Your daily attempt is used.' : 'This game will end.'}</p>
+            <p>{storeMode === 'daily' ? 'Your daily attempt is used.' : rankedRoom ? 'Leaving a ranked game counts as a loss: you are placed as if you had just frozen. A farm sheep takes your seat.' : 'This game will end.'}</p>
             <div className="mt-3 flex gap-3">
               <WoodButton autoFocus onClick={() => setSheet(null)} className="flex-1">Stay</WoodButton>
               <Brass barn onClick={quit} className="flex-1">Leave</Brass>
@@ -670,6 +676,7 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
               {players.map((p, i) => <LedgerRow key={p.id} player={p} place={i + 1} maxLives={startingWool(game.settings)} ringed={game.winners?.map(String).includes(p.id)} />)}
             </ol>
             <p className="sk-final-note">{place === 1 ? 'You outlasted everyone. The knitted scarf is yours.' : `You lasted to #${place} of ${game.players.length}. The last sheep standing gets the knitted scarf.`}</p>
+            {mode === 'room' && <RatedSlip />}
             {dreamWaiting && <p className="sk-final-note">{DREAM_LINE}</p>}
             <div className="sk-final-stats">
               {tiles.map(([key, v, best, beat]) => (

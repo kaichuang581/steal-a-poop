@@ -39,18 +39,13 @@ interface RoomStore {
   rulesAccepted: boolean;
   notice: string | null;
 
-  /** Friends who invited you to a room. Each lasts a minute. */
-  invites: Invite[];
   /** What the last finished game paid, for the end screen. */
   lastReward: Reward | null;
-  /** Opens the connection without showing the lobby (signed-in players stay connected so friends can invite them). */
+  /** Opens the connection without showing the lobby (a signed-in player stays connected, so entering a room is quick). */
   connect(): void;
   disconnect(): void;
-  invite(userId: string): void;
   /** Tells the server which avatar you picked (null: the default sheep). Quiet if offline. */
   sendAvatar(id: string | null): void;
-  acceptInvite(code: string): void;
-  dismissInvite(code: string): void;
   /** Starts today's server-run Daily Table. */
   startDaily(): void;
   openLobby(name: string): void;
@@ -83,13 +78,8 @@ interface RoomStore {
   clearNotice(): void;
 }
 
-export type Intent = { t: 'quick' } | ({ t: 'create'; visibility: 'public' | 'private' } & Partial<RoomSettingsDTO>) | { t: 'join'; code: string };
+export type Intent = { t: 'quick' } | { t: 'ranked' } | ({ t: 'create'; visibility: 'public' | 'private' } & Partial<RoomSettingsDTO>) | { t: 'join'; code: string };
 
-export interface Invite {
-  code: string;
-  roomName: string;
-  from: { userId: string; name: string };
-}
 export interface Reward {
   coins: number;
   parts: { label: string; coins: number }[];
@@ -170,15 +160,6 @@ export const useRoomStore = create<RoomStore>((set, get) => {
         break;
       case 'blocks':
         set((s) => ({ blocked: msg.list, chat: s.chat.filter((m) => !msg.list.includes(m.userId)) }));
-        break;
-      case 'invited': {
-        const inv: Invite = { code: msg.code, roomName: msg.roomName, from: msg.from };
-        set((st) => ({ invites: [...st.invites.filter((i) => i.code !== inv.code || i.from.userId !== inv.from.userId), inv] }));
-        setTimeout(() => get().dismissInvite(inv.code), 60_000);
-        break;
-      }
-      case 'inviteResult':
-        set({ notice: msg.ok ? 'Invite sent.' : msg.reason === 'offline' ? 'That friend is not online.' : msg.reason === 'busy' ? 'That friend is already in a room.' : msg.reason === 'already_invited' ? 'You just invited them.' : msg.reason === 'not_in_lobby' ? 'You can invite friends before the game starts.' : 'You can only invite friends.' });
         break;
       case 'reward':
         set({ lastReward: { coins: msg.coins, parts: msg.parts, balance: msg.balance } });
@@ -281,7 +262,6 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     chatNotice: null,
     moderation: null,
     blocked: [],
-    invites: [],
     lastReward: null,
     rulesAccepted: load<boolean>(RULES_KEY, false),
     notice: null,
@@ -303,7 +283,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       pending = [];
       dailyWhenOnline = false;
       pendingIntent = null;
-      set({ open: false, entering: false, status: 'off', user: null, publicRooms: [], room: null, notice: null, invites: [], lastReward: null });
+      set({ open: false, entering: false, status: 'off', user: null, publicRooms: [], room: null, notice: null, lastReward: null });
     },
     openLobby(name) {
       const url = getServerUrl();
@@ -341,20 +321,14 @@ export const useRoomStore = create<RoomStore>((set, get) => {
     },
     closeLobby() {
       if (get().room) get().leave();
-      // A signed-in player stays connected, so a friend's invite still reaches them.
+      // A signed-in player stays connected.
       if (authEnabled()) return set({ open: false, notice: null });
       net?.close();
       net = null;
       pending = [];
       set({ open: false, status: 'off', user: null, publicRooms: [], notice: null });
     },
-    invite: (userId) => send({ t: 'invite', userId }),
     sendAvatar: (id) => { net?.send({ t: 'avatar', id }); },
-    acceptInvite(code) {
-      set((st) => ({ invites: st.invites.filter((i) => i.code !== code), open: true }));
-      send({ t: 'join', code });
-    },
-    dismissInvite: (code) => set((st) => ({ invites: st.invites.filter((i) => i.code !== code) })),
     startDaily() {
       if (!getServerUrl()) return;
       get().connect();

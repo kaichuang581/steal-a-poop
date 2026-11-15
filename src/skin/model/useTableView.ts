@@ -1,4 +1,4 @@
-import { TRAP_LETTERS, utcDateKey } from '../../engine';
+import { utcDateKey } from '../../engine';
 import type { GameState, RoundModifier } from '../../engine';
 import { getDaily, getStreak } from '../../lib/daily';
 import { useMemo } from 'react';
@@ -90,7 +90,8 @@ export function toTableView(
     twist: TWIST_OF[game.modifier],
     pile: game.pile,
     letter: game.chainLetter,
-    isTrapLetter: TRAP_LETTERS.has(game.chainLetter),
+    // No letter is a trap any more (see the engine's reducer), so the board is never the trap's block of ice.
+    isTrapLetter: false,
     players,
     currentPlayerId: turn && lit ? String(turn.seat) : '',
     nextPlayerId: turn ? String(turn.seat) : '',

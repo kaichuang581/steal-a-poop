@@ -1,5 +1,5 @@
 import {
-  ALL_MODIFIERS, EXTRA_WOOL_CAP, LAST_ROUND_TURN_MS, LIVES_PER_GAME, TURN_MS_BY_ROUND,
+  ALL_MODIFIERS, LAST_ROUND_TURN_MS, LIVES_PER_GAME, TURN_MS_BY_ROUND,
 } from '../engine';
 import { MODIFIER_INFO } from '../lib/modifiers';
 
@@ -36,12 +36,6 @@ export function ScoringTable() {
         </ul>
       </Section>
 
-      <Section title="Traps">
-        <ul className="space-y-1">
-          <Rule icon="•">End a word on <b>X, Z, Q or J</b>. If the next sheep runs out of time, you get a wool ball.</Rule>
-        </ul>
-      </Section>
-
       <Section title="Rounds">
         <ul className="space-y-1">
           <Rule icon="•">
@@ -58,7 +52,7 @@ export function ScoringTable() {
       <Section title="Winning">
         <ul className="space-y-1">
           <Rule icon="•"><b>Last sheep standing wins.</b> The game ends when only one sheep isn’t frozen.</Rule>
-          <Rule icon="•">Everyone starts with {LIVES_PER_GAME} wool balls (unless the table says otherwise) and can hold up to {EXTRA_WOOL_CAP} extra.</Rule>
+          <Rule icon="•">Everyone starts with {LIVES_PER_GAME} wool balls (unless the table says otherwise). Wool is never won back.</Rule>
           <Rule icon="•">Practice: a 1v1 speed run against one bot on one life. Each word you play scores a point.</Rule>
         </ul>
       </Section>

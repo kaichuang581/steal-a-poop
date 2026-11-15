@@ -474,7 +474,8 @@ describe('room options', () => {
   it('the host sets the game length and it reaches the game; farm sheep fill the table to four', () => {
     const { m } = manager();
     const code = lobby(m, 2, 'private');
-    expect(m.view(code)!.settings).toEqual({ turnsPerRound: 2, lives: 3, twists: true });
+    // The game length, and (since 2026-11-14) the farm sheep: none chosen yet, so the old fill rule, at medium.
+    expect(m.view(code)!.settings).toEqual({ turnsPerRound: 2, lives: 3, twists: true, bots: null, botLevel: 'medium' });
     expect(m.setOptions('u1', { lives: 5 })).toEqual({ ok: false, error: 'not_host' });
     expect(m.setOptions('u0', { lives: 4 })).toEqual({ ok: false, error: 'bad_settings' });
     expect(m.setOptions('u0', { turnsPerRound: 'x' })).toEqual({ ok: false, error: 'bad_settings' });

@@ -48,9 +48,12 @@ const C = (h: string) => lin(h);
 const TRIM = ['#E8B23A', '#C9CED6', '#C07A3E'];
 const TRIM_DARK = ['#A8761E', '#8E949E', '#86512A'];
 
-/** The block: barn planks with dark seams, a metal band round the top for the top three, a cloth top (straw on a crate). */
-function blockGeometry(place: number): BufferGeometry {
-  const top3 = place <= 3, w = Math.round((top3 ? STEP.w : 1.1) / S), d = Math.round((top3 ? STEP.d : 0.9) / S), h = Math.round(heightOf(place) / S);
+/**
+ * The block: barn planks with dark seams, a metal band round the top for the top three, a cloth top (straw on a crate).
+ * `lift` makes it that much taller (the leaderboards' pedestals in the sky, src/skin/boards/BoardStage.tsx).
+ */
+export function blockGeometry(place: number, lift = 0): BufferGeometry {
+  const top3 = place <= 3, w = Math.round((top3 ? STEP.w : 1.1) / S), d = Math.round((top3 ? STEP.d : 0.9) / S), h = Math.round((heightOf(place) + lift) / S);
   const plank = [C('#8C5A2E'), C('#7A4B26'), C('#94633A'), C('#83532B')], seam = C('#4A2E16');
   const trim = top3 ? C(TRIM[place - 1]) : C('#6B4423'), trimDark = top3 ? C(TRIM_DARK[place - 1]) : C('#4A2E16');
   const cloth = [C('#A8322C'), C('#8A2722')], straw = [C('#D9B66A'), C('#C9A253')];
@@ -72,7 +75,7 @@ function blockGeometry(place: number): BufferGeometry {
 const boardHeight = (place: number) => Math.min(heightOf(place) - 0.14, place <= 3 ? 0.66 : 0.4);
 /** The place, carved into a front board and gilded in the groove: Fraunces digits on a 0.03 m grid. */
 const P = 0.03;
-function carvedGeometry(place: number): BufferGeometry {
+export function carvedGeometry(place: number): BufferGeometry {
   const top3 = place <= 3, w = Math.round(((top3 ? STEP.w : 1.1) - 0.2) / P), h = Math.round(boardHeight(place) / P), digitH = Math.round(h * 0.86);
   const masks = String(place).split('').map((ch) => letterMask(ch, digitH));
   const width = masks.reduce((n, m) => n + (m[0]?.length ?? 0), 0) + (masks.length - 1) * 2;

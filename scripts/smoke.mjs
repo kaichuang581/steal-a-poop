@@ -18,11 +18,20 @@ const check = (name, ok, detail = '') => {
 const status = async (path, init) => (await fetch(base + path, init)).status;
 
 check('health check answers', (await status('/healthz')) === 200);
-for (const path of ['/api/account/me', '/api/shop', '/api/friends', '/api/wallet', '/api/me/stats']) {
+for (const path of ['/api/account/me', '/api/shop', '/api/wallet', '/api/me/stats', '/api/ranked/top', '/api/barn/top']) {
   check(`${path} needs a login`, (await status(path, { headers: { origin: goodOrigin } })) === 401);
 }
 for (const path of ['/api/ops/status', '/api/mod/queue']) {
   check(`${path} needs a moderator`, (await status(path, { headers: { origin: goodOrigin, authorization: 'Bearer not-a-real-token' } })) === 401);
+}
+// The friends list was removed (2026-11-14): its addresses must not answer at all.
+for (const path of ['/api/friends', '/api/friends/code', '/api/guest/friends']) {
+  check(`${path} is gone`, (await status(path, { headers: { origin: goodOrigin } })) === 404);
+}
+// The leaderboards page reads these two without a login.
+for (const path of ['/api/ranked/board', '/api/barn/board']) {
+  const r = await fetch(base + path, { headers: { origin: goodOrigin } });
+  check(`${path} is public and well-formed`, r.status === 200 && Array.isArray((await r.json()).top));
 }
 const board = await fetch(`${base}/api/leaderboard/all?metric=wins`, { headers: { origin: goodOrigin } });
 check('leaderboard is public and well-formed', board.status === 200 && Array.isArray((await board.json()).rows));

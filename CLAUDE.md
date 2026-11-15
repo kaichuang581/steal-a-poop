@@ -1599,4 +1599,22 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
     owns `transform`).
   - My reading of "the option to add bots" was the lobby's controls, and of "add in the bots after the 15 sec thing"
     that a lobby fills like the queue. If he meant lobbies to be people only, take `fillsSeats` back to the queue.
+- How ranks work (Brian, 2026-11-14: "in profile, ranked section, u see the empty white space? put a button there that
+  explains the ranked system, all the ranks consecutively"). A WoodButton on the right of the profile's ranked card
+  (ProfileRank.tsx; on a phone it runs full width under the badge and text) opens src/skin/ranked/RankGuide.tsx: the
+  leaderboards' board (`rm-panel kit-wall`) with a dark wool ladder of all eight ranks, lowest first, numbered, each
+  with its TierBadge, points range, divisions I II III (the top rank says "Top rank") and, for the first three, what a
+  loss costs; your rank ringed in amber with "you"; four rule slates beside it (Climbing, Points, Easy at the start,
+  The games). Every number is read from src/lib/ranked.ts. It is a portal beside the profile and catches Esc first,
+  so Esc or a click outside closes it alone and focus goes back to the button. "under Play" is "under Queue" on the
+  card and the leaderboards. Tests: src/skin/ranked/__tests__/rankGuide.test.tsx. Checked at 1440, 820, 390 and 320 px.
+- The ranks are Wood, Stone, Iron, Gold, Crystal, Titan, Eclipse, Zenith (Brian, 2026-11-14, after seven rounds; this
+  supersedes Lamb ... Golden Fleece). His words on the way, the rules for naming here: the farm set "i dont like that,
+  make them more unique"; Fluff/Sprout/Frost... "doesnt sound cool at all"; sky, beast and forge sets "none of these are
+  good, i like the themed aspect but we're TOO themed"; plain game ranks "too plain"; all-ice sets "why are they all ice
+  related"; "Absolute Legend" "so forced". He chose the materials climb with "Zenith" on top and said "replace frostfire
+  with titan". Only names, ids and badge colours changed (`TIERS` in src/lib/ranked.ts; LOOKS in ranked/badge.ts, each
+  badge in its material's colours); ratings are numbers, so nobody's rank moved. Zenith's aura is two sets of pixel
+  rays drawn past the badge's box that pulse in turn (`.sk-zenith-rays`; a blurred glow breaks the kit audit's
+  shadow rule). The explainer lists the ranks highest first ("make it show highest to lowest in descending order").
 

@@ -213,7 +213,7 @@ export function Leaderboards({ onClose }: { onClose: () => void }) {
       : mine.place <= 3 ? `You are on the podium, ${(n(lines[0]) - n(mine)).toLocaleString()} ${unit} behind first.`
       : `${Math.max(0, n(third) - n(mine)).toLocaleString()} ${unit} to the podium, ${Math.max(0, n(above) - n(mine)).toLocaleString()} behind ${above?.name}.`
     : sheet === 'off' ? 'This board opens here once the server has it.' : sheet === 'error' ? 'Try again in a moment.'
-    : tab === 'ranked' ? (signedIn || !authEnabled() ? 'Choose Ranked under Play to get a place.' : 'Log in, then choose Ranked under Play.')
+    : tab === 'ranked' ? (signedIn || !authEnabled() ? 'Choose Ranked under Queue to get a place.' : 'Log in, then choose Ranked under Queue.')
     : tab === 'wins' ? (authEnabled() && !signedIn ? 'Online wins count on an account. Log in to keep yours.' : stats ? `In ${many(stats.gamesPlayed, 'online game')}, all time.` : 'Win a game from the queue or in a lobby.')
     : authEnabled() && !signedIn ? `${wallet.xp.toLocaleString()} XP in this browser. Log in to get a place.` : `${wallet.xp.toLocaleString()} XP. Finish a game to get a place.`;
   const canShow = signedIn && profile.consentStatus === 'not_required';

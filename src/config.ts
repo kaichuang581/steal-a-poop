@@ -1,7 +1,7 @@
 /** Rename the game here. Everything user-facing reads from this file. */
 export const GAME_TITLE = 'Steal a Poop';
 /** The name the default (painted) look shows; the old look (?skin=classic) keeps GAME_TITLE. */
-export const PAINTED_GAME_TITLE = 'Barnstorm';
+export const PAINTED_GAME_TITLE = 'Fleeced';
 export const GAME_TAGLINE = 'Chain words. Keep your wool. Be the last sheep standing.';
 /** This version's name, shown beside its number. */
 export const UPDATE_NAME = 'Fleece Navidad';

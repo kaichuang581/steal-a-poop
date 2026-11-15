@@ -132,7 +132,7 @@
 .sk-nail-r { right: 11px; top: 50%; transform: translateY(-30%); }
 .sk-title-tiles { display: flex; gap: calc(var(--title-tile) * 0.12); padding: calc(var(--title-tile) * 0.32) calc(var(--title-tile) * 0.25) 0; }
 .sk-title-compact .sk-title-tiles { padding-left: 0; padding-right: 0; }
-/* A one-word title of six or more letters (Barnstorm): the tiles shrink until the row fits the screen. */
+/* A one-word title of six or more letters (Fleeced): the tiles shrink until the row fits the screen. */
 .sk-title-compact.sk-title-long { --title-tile: min(52px, calc((100vw - 32px) / 10.6)); }
 .sk-title-tile {
   --tile-w: var(--title-tile); width: var(--title-tile); height: calc(var(--title-tile) * 1.08); font-size: calc(var(--title-tile) * 0.7);

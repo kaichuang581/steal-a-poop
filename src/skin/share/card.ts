@@ -136,7 +136,7 @@ export async function shareCard(card: CardInput, text: string): Promise<'shared'
   const canvas = drawCard(card);
   const blob = canvas ? await blobOf(canvas) : null;
   if (blob && typeof File !== 'undefined') {
-    const file = new File([blob], 'barnstorm.png', { type: 'image/png' });
+    const file = new File([blob], 'fleeced.png', { type: 'image/png' });
     try {
       if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text }); return 'shared'; }
     } catch { /* cancelled or refused: fall through */ }
@@ -144,7 +144,7 @@ export async function shareCard(card: CardInput, text: string): Promise<'shared'
   try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); return 'copied'; }
   if (blob) {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'barnstorm.png';
+    a.href = URL.createObjectURL(blob); a.download = 'fleeced.png';
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     return 'saved';
   }

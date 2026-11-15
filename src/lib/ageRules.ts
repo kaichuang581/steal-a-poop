@@ -89,7 +89,7 @@ export const PARENT_DECLINE = 'I do not agree';
  * the agreement, as it does for the old email, so the record says what was shown.
  */
 export const PARENT_NOTICE: readonly string[] = [
-  'Barnstorm is a free word game. Your child can play alone, against computer players, and with other people online.',
+  'Fleeced is a free word game. Your child can play alone, against computer players, and with other people online.',
   'Online, your child can join rooms with other players, chat with them (every message is checked by a filter before anyone sees it) and appear on the public leaderboards under their nickname.',
   'With an account we keep the email address, the nickname, the country and age given here, and game results. As a guest, everything is kept in this browser only.',
   'You agree once. You can ask us to delete the account at any time from Settings.',

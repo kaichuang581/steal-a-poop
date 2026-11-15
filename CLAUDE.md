@@ -1679,7 +1679,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
       the old look keeps GAME_TITLE. public/og.png, the link preview picture, said "STEAL ... Build the pile. Don't get
       stolen from."; it is now the game's own farm (the home tour's wide shot) with its title board, captured from the
       built game. The legal documents in docs/legal still name the service "Steal a Poop": that is for whoever reviews them.
-  (k) The painted game is renamed Barnstorm (Kai, 2026-11-15: "change the name from finish the word to Barnstorm"). The name is
+  (k) The painted game was renamed Barnstorm, then Fleeced (Kai, 2026-11-15: "change the name from finish the word to Barnstorm"; then "scrap everything, change the name to Fleeced"). The name is
       `PAINTED_GAME_TITLE` in src/config.ts: the page title and link previews (index.html), the title board (one word, so the
       tiles shrink on a phone: `.sk-title-long`), the share text and card, the credits, the framed-page message, the parent's
       consent notice (src/lib/ageRules.ts, so records made from now on hash the new text), and the link preview picture

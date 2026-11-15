@@ -58,10 +58,10 @@ describe('what Play opens', () => {
     expect(html).toContain('play/ranked.webp');
   });
 
-  it('says plainly what each is: farm sheep fill a casual table, a ranked one is people only', () => {
+  it('says what each is, and never mentions bots', () => {
     const html = chooser('play');
-    expect(html).toMatch(/farm sheep take the empty seats/);
-    expect(html).toMatch(/2 to 4 players, no farm sheep/);
+    expect(html).not.toMatch(/\bbots?\b|farm sheep/i);
+    expect(html).toMatch(/2 to 4 players/);
     expect(html).toMatch(/Leaving a game counts as a loss/);
   });
 
@@ -96,12 +96,16 @@ describe('Queue is for real people', () => {
     expect(item('queue')).not.toMatch(/go\('quick'\)|setStep\('setup'\)|start\(/);
   });
 
-  it('the farm sheep are in the lobby you make: Custom game is no longer a menu item of its own', () => {
+  it('Create lobby makes a room to invite friends to, with no bots to choose; Custom game is not a menu item', () => {
     expect(home).not.toContain("id: 'custom'");
     expect(home).not.toContain("label: ready ? 'Custom game'");
-    const lobby = home.slice(home.indexOf("{ id: 'lobby', label: 'Create lobby'"), home.indexOf("{ id: 'lobby', label: 'Create lobby'") + 400);
-    expect(lobby).toMatch(/add farm sheep \(bots\), invite friends/);
-    expect(lobby).toContain("online({ t: 'create', visibility: 'private', ...lobbyBots() })");
+    const at = home.indexOf("{ id: 'lobby', label: 'Create lobby'");
+    const lobby = home.slice(at, home.indexOf('\n', at)); // the online item only: the offline one sets a table of bots
+    expect(lobby).toMatch(/invite friends with the party code/);
+    expect(lobby).not.toMatch(/bot|farm sheep/i);
+    expect(lobby).toContain("online({ t: 'create', visibility: 'private' })");
+    const room = readFileSync('src/skin/rooms/PaintedRoom.tsx', 'utf8');
+    expect(room).not.toMatch(/Add a bot|Bot level|Take out a bot/);
   });
 
   it('the profile is the box with your name, not a menu item', () => {

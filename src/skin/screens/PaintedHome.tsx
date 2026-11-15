@@ -20,7 +20,6 @@ import { useRoomStore } from '../../state/roomStore';
 import type { Intent } from '../../state/roomStore';
 import { PlayChooser } from '../ranked/PlayChooser';
 import { enterOnline, hasAccount } from '../rooms/enterOnline';
-import { lobbyBots } from '../rooms/lobbyBots';
 import { levelOf } from '../shop/economy';
 import '../rooms/rooms.css';
 import { useSocial } from '../../state/socialStore';
@@ -210,7 +209,7 @@ export function PaintedHome() {
     // It opens with the farm sheep the host had last time. With no server there is no lobby to open, so the same item
     // sets a table of farm sheep on this device.
     rooms
-      ? { id: 'lobby', label: 'Create lobby', caption: 'Make your own barn: add farm sheep (bots), invite friends with the party code, or both.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private', ...lobbyBots() }) }
+      ? { id: 'lobby', label: 'Create lobby', caption: 'Make your own barn and invite friends with the party code.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private' }) }
       : { id: 'lobby', label: ready ? 'Create lobby' : 'Loading…', caption: 'Set a table of farm sheep (bots), then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     ...(rooms ? [
       { id: 'join', label: 'Join party', caption: 'Got a party code from a friend? Type it in.', onSelect: () => { setPartyCode(''); setStep('join'); } },

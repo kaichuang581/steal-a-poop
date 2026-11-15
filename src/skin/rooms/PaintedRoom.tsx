@@ -11,14 +11,12 @@ import { inviteLink } from '../share/JoinLink';
 import { useIsMobile } from '../../ui/hooks';
 import { useMotionLevel } from '../hooks/useAmbient';
 import { PenStage } from './PenStage';
-import { MAX_BOTS, playAlone, rememberLobbyBots, tableFor, tableLine } from './lobbyBots';
 import { rankOf } from '../../lib/ranked';
 import { RankBadge } from '../ranked/RankBadge';
 import '../ranked/ranked.css';
 import './rooms.css';
 
 const FALLBACK: RoomSettingsDTO = { turnsPerRound: 2, lives: 3, twists: true };
-const LEVELS = ['easy', 'medium', 'hard'] as const;
 const PRESET_IDS = ['quick', 'standard', 'long'] as const;
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
@@ -108,30 +106,24 @@ export function PaintedRoom() {
   // A ranked table: people only, the standard rules, nobody hosting, and it starts itself.
   const ranked = !!room.ranked;
   const lobby = !queue && !ranked;
-  const startsIn = useStartsIn(ranked ? room.startAt : null);
-  // Who sits down: the people here, plus the farm sheep the host added (or, in the queue, enough to fill a table of four).
-  const table = tableFor(room.settings, people, room.max, room.min);
-  const enough = ranked ? people >= room.min : table.enough;
-  const seats = ranked ? people : table.seats;
-  const bots = seats - people;
-  const level = rules.botLevel ?? 'medium';
-  // The host adds or takes away farm sheep. Only in a lobby of their own, and only on a server that knows how.
-  const canSetBots = lobby && room.settings?.bots !== undefined;
-  const hostsBots = canSetBots && isHost;
-  const maxBots = Math.max(0, Math.min(MAX_BOTS, room.max - people));
-  const setBots = (n: number, botLevel: (typeof LEVELS)[number] = level) => {
-    const next = Math.max(0, Math.min(maxBots, n));
-    setOptions({ bots: next, botLevel });
-    rememberLobbyBots({ bots: next, botLevel });
-  };
-  // Alone with farm sheep it is a game against bots, dealt on this device (lobbyBots.ts); with anyone else here the server runs it.
-  const open = () => (people === 1 && table.chosen && bots >= 1 && lobby ? playAlone(rules, { bots, botLevel: level }) : start());
+  // The casual queue counts down once its table is full (server/rooms.ts armQueue).
+  const startsIn = useStartsIn(ranked || queue ? room.startAt : null);
+  // Seats the server filled after a quiet spell (Brian, 2026-11-14: "remove the option to add bots. just add in the bots
+  // after the 15 sec thing ... dont say they are bots"): shown like everyone else, a name and a sheep, with nothing
+  // marking them. Never at a ranked table. Absent from an older server.
+  const filled = ranked ? [] : (room.botNames ?? []);
+  const seats = people + filled.length;
+  const enough = ranked ? people >= room.min : seats >= 2;
+  const open = () => start();
   const full = { ...DEFAULT_SETTINGS, ...rules };
   const preset = presetOf(full);
-  const minutes = estimateMinutes({ ...full, botCount: seats - 1, botDifficulty: level });
+  const minutes = estimateMinutes({ ...full, botCount: Math.max(1, seats - 1), botDifficulty: rules.botLevel ?? 'medium' });
   const phone = useIsMobile();
   const reduced = useMotionLevel() === 'reduced';
-  const guests = room.members.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, you: m.userId === me, host: !ranked && m.userId === room.hostId }));
+  const guests = [
+    ...room.members.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, you: m.userId === me, host: !ranked && m.userId === room.hostId })),
+    ...filled.map((name, k) => ({ id: `seat-${k}`, name, you: false, host: false })),
+  ];
   const hostName = room.members.find((m) => m.userId === room.hostId)?.name ?? 'the host';
 
   const copy = (what: 'link' | 'code') => {
@@ -142,10 +134,10 @@ export function PaintedRoom() {
 
   // The line over the gate: who is at the table, or what it is waiting for.
   const caption = ranked ? (startsIn === null ? 'Waiting for one more player. A ranked game needs two.' : startsIn > 0 ? `The gate opens in ${startsIn} second${startsIn === 1 ? '' : 's'}.` : 'Opening the gate…')
+    : queue && startsIn !== null ? (startsIn > 0 ? `The gate opens in ${startsIn} second${startsIn === 1 ? '' : 's'}.` : 'Opening the gate…')
     : !isHost ? `Waiting for ${hostName} to open the gate.`
-    : !enough ? (queue ? 'Waiting for one more player.' : table.chosen ? 'Add a bot to play now, or invite a friend.' : 'You need one more in the pen. Send the party link.')
-    : queue ? 'You were first in: open the gate when the pen is full enough.'
-    : table.chosen ? `${tableLine(people, bots)}.`
+    : !enough ? (queue ? 'Finding players…' : 'Waiting for players. Send the party link.')
+    : queue ? 'It starts by itself with four, or open the gate now.'
     : 'Open the gate to start.';
 
   const copyLink = (
@@ -153,7 +145,7 @@ export function PaintedRoom() {
   );
   return (
     <main className="rm-screen">
-      <PenStage guests={guests} farmSheep={bots} reduced={reduced} phone={phone} shift={phone ? [0, -0.16] : [0, -0.2]} />
+      <PenStage guests={guests} farmSheep={0} reduced={reduced} phone={phone} shift={phone ? [0, -0.16] : [0, -0.2]} />
       <div className="rm-body">
         {/* The bar: a beam strapped with iron, snow on it, the lights hung under it. The way out, where you are, and
             how friends get in. */}
@@ -177,8 +169,8 @@ export function PaintedRoom() {
           ) : (
             <div className="rm-code" data-queue data-ranked={ranked || undefined}>
               <Slate size="mini" className="rm-code-plate">
-                <span className="rm-kicker">{ranked && startsIn !== null ? 'Starting soon' : <>Finding players<i className="rm-dots" /></>}</span>
-                <span className="rm-code-v rm-count" aria-live="polite" aria-label={`${people} of ${room.max} players`}>{people}<small>/{room.max}</small></span>
+                <span className="rm-kicker">{startsIn !== null ? 'Starting soon' : <>Finding players<i className="rm-dots" /></>}</span>
+                <span className="rm-code-v rm-count" aria-live="polite" aria-label={`${seats} of ${room.max} players`}>{seats}<small>/{room.max}</small></span>
               </Slate>
               {!ranked && copyLink}
             </div>
@@ -187,11 +179,10 @@ export function PaintedRoom() {
         </header>
 
         <div className="rm-dock">
-          {/* Who is at the table: a line each on the wool, people first, then the farm sheep. */}
-          <section className="rm-panel rm-players kit-wall kit-drift" aria-label="Players" data-bots={bots}>
+          {/* Who is at the table: a line each on the wool. */}
+          <section className="rm-panel rm-players kit-wall kit-drift" aria-label="Players">
             <Head title="Players">
-              <span>{people}{ranked ? ` of ${room.max}` : ''} {people === 1 && !ranked ? 'player' : 'players'}</span>
-              {!ranked && <span><span className="rm-stepper-n">{bots}</span> {bots === 1 ? 'bot' : 'bots'}</span>}
+              <span>{seats}{ranked ? ` of ${room.max}` : ''} {seats === 1 && !ranked ? 'player' : 'players'}</span>
             </Head>
             <Slate size="board" className="rm-wool">
               <ul className="rm-seats">
@@ -221,22 +212,13 @@ export function PaintedRoom() {
                     </li>
                   );
                 })}
-                {!ranked && Array.from({ length: bots }, (_, k) => (
-                  <li key={`bot-${k}`} className="rm-seat rm-seat--bot">
+                {filled.map((name, k) => (
+                  <li key={`seat-${k}`} className="rm-seat">
                     <AvatarIcon id="sheep" size={28} label="" />
-                    <Tag tone="gray">bot</Tag>
-                    <span className="rm-who">farm sheep</span>
-                    {hostsBots && (
-                      <button type="button" className="rm-x" onClick={() => setBots(bots - 1)} aria-label="Take out a bot" {...(k === bots - 1 ? { 'data-bots-less': '' } : {})}><i /></button>
-                    )}
+                    <span className="rm-who"><b>{name}</b></span>
                   </li>
                 ))}
               </ul>
-              {hostsBots && (
-                <div className="rm-seats-foot">
-                  <button type="button" className="rm-tab" onClick={() => setBots(bots + 1)} disabled={bots >= maxBots} data-bots-more><i className="rm-plus" />Add a bot</button>
-                </div>
-              )}
             </Slate>
           </section>
 
@@ -247,7 +229,6 @@ export function PaintedRoom() {
               {ranked ? null : !isHost ? (
                 <>
                   <Row label="Game length"><b className="rm-val">{cap(preset)}</b></Row>
-                  {canSetBots && bots > 0 && <Row label="Bot level"><b className="rm-val">{cap(level)}</b></Row>}
                   {lobby && <Row label="Who can join"><b className="rm-val">{room.visibility === 'public' ? 'Public' : 'Friends only'}</b></Row>}
                 </>
               ) : fine ? (
@@ -265,9 +246,6 @@ export function PaintedRoom() {
                       options={PRESET_IDS.map((id) => ({ value: id, label: cap(id) }))}
                     />
                   </Row>
-                  {hostsBots && (
-                    <Row label="Bot level"><Pick label="Bot level" value={bots > 0 ? level : null} off={bots === 0} onPick={(lv) => setBots(bots, lv)} options={LEVELS.map((lv) => ({ value: lv, label: cap(lv) }))} /></Row>
-                  )}
                   {lobby && (
                     <Row label="Who can join">
                       <Pick

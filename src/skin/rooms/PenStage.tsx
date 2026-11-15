@@ -49,6 +49,7 @@ export function PenStage({ guests, farmSheep, reduced, phone, shift }: { guests:
         {guests.map((g, i) => <Animal key={g.id} id={g.id} index={i} guest={g} reduced={reduced} flock={flock} plate={plateOf(g.id)} />)}
         {Array.from({ length: farmSheep }, (_, k) => <Animal key={`farm-${k}`} id={`farm-${k}`} index={9 - k} reduced={reduced} flock={flock} />)}
         <Effects />
+        <Unstack plates={plates} />
       </AdaptiveCanvas>
       <div className="rm-plates" aria-hidden="true">
         {guests.map((g) => (
@@ -60,6 +61,44 @@ export function PenStage({ guests, farmSheep, reduced, phone, shift }: { guests:
       </div>
     </div>
   );
+}
+
+/**
+ * Name tags never sit on top of each other. When animals stand close, the tag further back on screen (the one whose
+ * animal stands higher in the picture) is lifted until it clears the tags in front of it. The lift goes in the CSS
+ * `translate` property, which ScreenAnchor's `transform` leaves alone, and eases toward its target so tags glide
+ * instead of jumping while the animals wander.
+ */
+export function Unstack({ plates }: { plates: Map<string, RefObject<HTMLDivElement | null>> }) {
+  const lift = useRef(new Map<string, number>()).current;
+  useFrame((_, dt) => {
+    const items: { id: string; node: HTMLDivElement; l: number; r: number; t: number; b: number }[] = [];
+    for (const [id, ref] of plates) {
+      const node = ref.current;
+      if (!node || node.style.display === 'none' || !node.isConnected) continue;
+      const box = node.getBoundingClientRect();
+      if (box.width === 0) continue;
+      const now = lift.get(id) ?? 0; // undo this frame's lift, to work from where the anchor put it
+      items.push({ id, node, l: box.left, r: box.right, t: box.top + now, b: box.bottom + now });
+    }
+    // Front first: the lowest tag on screen keeps its place.
+    items.sort((a, b) => b.b - a.b);
+    const placed: { l: number; r: number; t: number; b: number }[] = [];
+    for (const it of items) {
+      let up = 0;
+      for (let pass = 0; pass < items.length; pass++) {
+        const hit = placed.find((p) => it.l < p.r - 2 && it.r > p.l + 2 && it.t - up < p.b && it.b - up > p.t);
+        if (!hit) break;
+        up = it.b - hit.t + 3;
+      }
+      placed.push({ l: it.l, r: it.r, t: it.t - up, b: it.b - up });
+      const was = lift.get(it.id) ?? 0;
+      const next = was + (up - was) * Math.min(1, dt * 12);
+      lift.set(it.id, Math.abs(next - up) < 0.5 ? up : next);
+      it.node.style.translate = `0 ${(-(lift.get(it.id) ?? 0)).toFixed(1)}px`;
+    }
+  });
+  return null;
 }
 
 /** Holds the shot and slides the picture by `shift`, so the pen sits in the part of the screen the panels leave free. */

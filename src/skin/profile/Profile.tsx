@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { api, ApiError, useAuth } from '../../auth/authStore';
-import { authEnabled } from '../../auth/config';
+import { apiBase, authEnabled } from '../../auth/config';
 import { getDreamBest, getDreamStreak, loadStreak } from '../../dream/daily';
 import type { Difficulty } from '../../engine';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
@@ -20,6 +20,7 @@ import { usePageHistory } from '../hooks/usePageHistory';
 import { useToday } from '../hooks/useToday';
 import { Board as Sign, Knit, Paper, Patch, Peg, Slate } from '../kit';
 import { ProfileRank } from '../ranked/ProfileRank';
+import { FriendsSection } from './FriendsSection';
 import { levelOf, titleFor } from '../shop/economy';
 import { online, useWallet } from '../shop/store';
 
@@ -171,6 +172,9 @@ export function Profile({ onClose }: { onClose: () => void }) {
                   ))}
                 </div>
               </section>
+
+              {/* The friend code is here, on the profile, not on a tab of its own. Needs the game server to swap requests. */}
+              {apiBase() && (!authEnabled() || authStatus !== 'loading') && <FriendsSection account={account} guestName={settings.name} />}
 
               <ProfileRank />
 

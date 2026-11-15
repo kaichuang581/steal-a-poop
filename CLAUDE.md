@@ -1547,3 +1547,12 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   keeps its AuthDialog. Home's Log in opens the same form (`openSignInForm`). Guests and accounts whose parent agreed can chat
   and show themselves on the leaderboards (the friends list was removed the same day). Known and told to Kai: a click on the child's own screen is not verified
   parental consent (COPPA's list of methods does not include it), and anyone can choose an older age.
+- Friends are back, on the profile (requested by Kai, 2026-11-14, a day after Brian's "remove friend feature" in 0.7.1; Brian has not
+  been asked, so this is Kai's call to confirm with him): the friend code, a box to add one, the requests waiting and the friends
+  with online dots are a section of the profile page (src/skin/profile/FriendsSection.tsx), not a tab or a button of their own. A
+  signed-in player's list is on the server again (server/social/friends.ts, routes/friends.ts, the `friend_codes` and `friendships`
+  tables that 0.7.1 left in place; no migration); a guest's is in the browser with the server's in-memory mailbox
+  (server/social/guestFriends.ts, src/state/guestSocial.ts), as built on 2026-11-13. Both are restored as they were before 0.7.1;
+  `eraseFriendRows` is replaced by `friends.erase` again. Room invites, the classic Friends tab, the Hub's friends and the
+  top-bar buttons stay removed, and Home has no friends button. The guard tests in src/skin/boards/__tests__/boards.test.tsx
+  were rewritten to say so.

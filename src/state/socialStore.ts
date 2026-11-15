@@ -2,6 +2,17 @@ import { create } from 'zustand';
 import { ApiError, api, useAuth } from '../auth/authStore';
 import type { Cosmetics } from '../net/protocol';
 
+export interface FriendSummary {
+  userId: string;
+  name: string;
+  online: boolean;
+  cosmetics?: Cosmetics;
+}
+export interface FriendsView {
+  friends: FriendSummary[];
+  incoming: FriendSummary[];
+  outgoing: FriendSummary[];
+}
 export interface ShopItem {
   id: string;
   slot: 'color' | 'title' | 'badge' | 'theme';
@@ -38,6 +49,8 @@ export type Metric = 'wins' | 'points';
 
 interface SocialState {
   balance: number | null;
+  friends: FriendsView | null;
+  code: string | null;
   shop: ShopItem[] | null;
   board: { period: Period; metric: Metric; rows: BoardRow[] } | null;
   daily: { date: string; rows: DailyRow[] } | null;
@@ -47,6 +60,12 @@ interface SocialState {
   setBalance(n: number): void;
   clear(): void;
   refreshBalance(): Promise<void>;
+  loadFriends(): Promise<void>;
+  loadCode(): Promise<void>;
+  resetCode(): Promise<void>;
+  request(code: string): Promise<void>;
+  accept(id: string): Promise<void>;
+  remove(id: string): Promise<void>;
   loadShop(): Promise<void>;
   buy(itemId: string): Promise<void>;
   equip(slot: string, itemId: string | null): Promise<void>;
@@ -60,6 +79,12 @@ interface SocialState {
 export function describeSocialError(code: string): string {
   switch (code) {
     case 'not_allowed': return 'Finish setting up your account first: give your country and age.';
+    case 'unknown_code': return 'No player has that code. Check it and try again.';
+    case 'self': return 'That is your own code.';
+    case 'already_friends': return 'You are already friends.';
+    case 'already_requested': return 'You already asked this player.';
+    case 'blocked_by_you': return 'You blocked this player. Unblock them first.';
+    case 'limit': return 'Your friends list is full.';
     case 'insufficient': return 'Not enough coins yet. Play a few more games.';
     case 'owned': return 'You already have this.';
     case 'not_owned': return 'Buy it first.';
@@ -85,13 +110,39 @@ export const useSocial = create<SocialState>((set, get) => {
   const post = <T,>(path: string, body?: unknown) => api<T>('POST', path, token(), body ?? {});
 
   return {
-    balance: null, shop: null, board: null, daily: null, stats: null, error: '', notice: '',
+    balance: null, friends: null, code: null, shop: null, board: null, daily: null, stats: null, error: '', notice: '',
     setBalance: (balance) => set({ balance }),
-    clear: () => set({ balance: null, shop: null, board: null, daily: null, stats: null, error: '', notice: '' }),
+    clear: () => set({ balance: null, friends: null, code: null, shop: null, board: null, daily: null, stats: null, error: '', notice: '' }),
 
     async refreshBalance() {
       const r = await run(() => get_<{ balance: number }>('/api/wallet'));
       if (r) set({ balance: r.balance });
+    },
+    async loadFriends() {
+      const r = await run(() => get_<FriendsView>('/api/friends'));
+      if (r) set({ friends: r });
+    },
+    async loadCode() {
+      const r = await run(() => get_<{ code: string }>('/api/friends/code'));
+      if (r) set({ code: r.code });
+    },
+    async resetCode() {
+      const r = await run(() => post<{ code: string }>('/api/friends/code/reset'));
+      if (r) set({ code: r.code, notice: 'Your old code no longer works.' });
+    },
+    async request(code) {
+      set({ notice: '' });
+      const r = await run(() => post<{ state: 'sent' | 'accepted' }>('/api/friends/request', { code }));
+      if (r) {
+        set({ notice: r.state === 'accepted' ? 'You are friends now.' : 'Request sent. They can accept it on their profile.' });
+        await get().loadFriends();
+      }
+    },
+    async accept(id) {
+      if (await run(() => post(`/api/friends/${encodeURIComponent(id)}/accept`))) await get().loadFriends();
+    },
+    async remove(id) {
+      if (await run(() => post(`/api/friends/${encodeURIComponent(id)}/remove`))) await get().loadFriends();
     },
     async loadShop() {
       const r = await run(() => get_<{ balance: number; items: ShopItem[] }>('/api/shop'));

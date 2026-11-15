@@ -14,6 +14,8 @@ import { MemoryEconomyStore } from '../economy/store';
 import { MemoryResultsStore } from '../game/results';
 import { GameDataService } from '../game/service';
 import { createHttpServer } from '../http';
+import { FriendsService, MemoryFriendStore } from '../social/friends';
+import { createFriendRoutes } from './friends';
 import { createLeaderboardRoutes } from './leaderboard';
 import { createShopRoutes } from './shop';
 
@@ -31,13 +33,14 @@ async function boot(ids = ['a', 'b', 'kid']) {
   const blocks = new BlockList();
   const economyStore = new MemoryEconomyStore();
   const economy = new EconomyService(economyStore, () => NOW);
+  const friends = new FriendsService({ store: new MemoryFriendStore(), accounts, blocks, now: () => NOW, online: (id) => id === 'b' });
   const results = new MemoryResultsStore();
   const data = new GameDataService({ results, accounts, economy, isBanned: () => false, now: () => NOW });
   const acct = new AccountService({
     store: accounts, now: () => NOW, mailer: new MemoryMailer(), agePolicy: DEFAULT_AGE_POLICY, nicknameAllowed: () => true, blocks, bus: new RevocationBus(), appUrl: 'https://x/',
   });
   server = createHttpServer({
-    routes: [...createLeaderboardRoutes({ data, accounts: acct, now: () => NOW }), ...createShopRoutes({ economy, store: economyStore, now: () => NOW })],
+    routes: [...createFriendRoutes({ friends, now: () => NOW }), ...createLeaderboardRoutes({ data, accounts: acct, now: () => NOW }), ...createShopRoutes({ economy, store: economyStore, now: () => NOW })],
     verifyToken: async (t): Promise<AuthUser | null> => {
       const id = t.replace('tok-', '');
       return ids.includes(id) ? { userId: id, name: id.toUpperCase(), chatAllowed: id !== 'kid', isModerator: false } : null;
@@ -52,14 +55,40 @@ async function boot(ids = ['a', 'b', 'kid']) {
   return { call, economyStore, data, results };
 }
 
-describe('the friends routes', () => {
-  // The friends list was removed (Brian, 2026-11-14). These addresses must not answer, signed in or not.
-  it('are gone', async () => {
+describe('friends routes', () => {
+  it('need a login', async () => {
     const { call } = await boot();
-    for (const [m, p] of [['GET', '/api/friends'], ['GET', '/api/friends/code'], ['POST', '/api/friends/request'], ['GET', '/api/guest/friends']] as const) {
-      expect((await call(m, p, 'a', m === 'POST' ? { code: 'ABCDEFGH' } : undefined)).status).toBe(404);
-      expect((await call(m, p)).status).toBe(404);
-    }
+    for (const [m, p] of [['GET', '/api/friends'], ['GET', '/api/friends/code'], ['POST', '/api/friends/request']] as const) expect((await call(m, p)).status).toBe(401);
+  });
+  it('code, request, accept, list, remove', async () => {
+    const { call } = await boot();
+    const codeB = (await call('GET', '/api/friends/code', 'b')).json.code as string;
+    expect(codeB).toMatch(/^[A-Z2-9]{8}$/);
+    expect((await call('POST', '/api/friends/request', 'a', { code: codeB })).json).toEqual({ state: 'sent' });
+    expect((await call('GET', '/api/friends', 'b')).json.incoming.map((f: any) => f.userId)).toEqual(['a']); // eslint-disable-line @typescript-eslint/no-explicit-any
+    expect((await call('POST', '/api/friends/a/accept', 'b')).status).toBe(200);
+    const list = (await call('GET', '/api/friends', 'a')).json;
+    expect(list.friends).toEqual([{ userId: 'b', name: 'B', online: true }]);
+    expect((await call('POST', '/api/friends/b/remove', 'a')).status).toBe(200);
+    expect((await call('GET', '/api/friends', 'a')).json.friends).toEqual([]);
+  });
+  it('a child waiting for consent cannot use friends at all', async () => {
+    const { call } = await boot();
+    expect((await call('GET', '/api/friends', 'kid')).status).toBe(403);
+    expect((await call('GET', '/api/friends/code', 'kid')).status).toBe(403);
+    expect((await call('POST', '/api/friends/request', 'kid', { code: 'ABCDEFGH' })).status).toBe(403);
+  });
+  it('bad requests and unknown codes get clear errors, and wrong codes are rate limited', async () => {
+    const { call } = await boot();
+    expect((await call('POST', '/api/friends/request', 'a', {})).json.error).toBe('bad_request');
+    expect((await call('POST', '/api/friends/request', 'a', { code: 'NOSUCH12' })).status).toBe(404);
+    let last = 0;
+    for (let i = 0; i < 12; i++) last = (await call('POST', '/api/friends/request', 'a', { code: `WRONG${i}XX` })).status;
+    expect(last).toBe(429);
+  });
+  it('accepting something that was never sent is a 404', async () => {
+    const { call } = await boot();
+    expect((await call('POST', '/api/friends/b/accept', 'a')).status).toBe(404);
   });
 });
 

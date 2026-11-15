@@ -98,7 +98,7 @@ export function PaintedTour() {
   const layout = useLayout(step.targets, card);
   const shownAt = useRef(0);
   const next = () => setI((n) => Math.min(n + 1, TOUR_STEPS.length - 1));
-  // The game after the tutorial is a real one: straight into the Quick play queue with real people, never a table of
+  // The game after the tutorial is a real one: straight into the casual queue with real people, never a table of
   // farm sheep (Brian, 2026-11-13: "make the 'after tutorial first game thing' queue them into a real game not a bot
   // lobby"). If that cannot be done (no name on the plate yet), the menu says why.
   const real = onlinePlay();

@@ -50,7 +50,7 @@ interface RoomStore {
   startDaily(): void;
   openLobby(name: string): void;
   /**
-   * Connects if need be, then does one thing: quick play, a new lobby, or a party code. No lobby screen in between;
+   * Connects if need be, then does one thing: the casual queue, a new lobby, or a party code. No lobby screen in between;
    * the room appears when the server answers. `entering` is true until it does.
    */
   enter(name: string, intent: Intent): void;

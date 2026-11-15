@@ -13,7 +13,7 @@ import { useStore } from '../../state/store';
  */
 /** The most farm sheep a host can add (server/types.ts MAX_BOTS; a test keeps the two the same). */
 export const MAX_BOTS = 7;
-/** The old rule, for a room with no number chosen (the Quick play queue, an older server): farm sheep fill a table of four. */
+/** The old rule, for a room with no number chosen (the casual queue, an older server): farm sheep fill a table of four. */
 const FILL_TO = 4;
 
 export interface BotChoice { bots: number; botLevel: Difficulty }

@@ -81,7 +81,8 @@ const TABS: { id: BoardTab; label: string; title: string; hint: string; first: s
   { id: 'wins', label: 'Wins', title: 'Most wins', hint: 'online games won', first: 'Win an online game to be first.', cols: ['Games', 'Wins'], unit: 'wins' },
   { id: 'level', label: 'Level', title: 'Highest level', hint: 'by XP from games', first: 'Finish a game to be first.', cols: ['Level', 'XP'], unit: 'XP' },
 ];
-const PERIODS: [Period, string][] = [['day', 'Today'], ['week', 'This week'], ['all', 'All time']];
+// No Today (Brian, 2026-11-14: "remove the today option from the leaderboards"): the server still answers /day.
+const PERIODS: [Period, string][] = [['week', 'This week'], ['all', 'All time']];
 const MEDAL = [['gold', '1st'], ['gray', '2nd'], ['flame', '3rd']] as const;
 /** With fewer lines than this, the rest of the wool says the places after them are open (it has room on any screen). */
 const ROOM = 20;
@@ -213,7 +214,7 @@ export function Leaderboards({ onClose }: { onClose: () => void }) {
       : `${Math.max(0, n(third) - n(mine)).toLocaleString()} ${unit} to the podium, ${Math.max(0, n(above) - n(mine)).toLocaleString()} behind ${above?.name}.`
     : sheet === 'off' ? 'This board opens here once the server has it.' : sheet === 'error' ? 'Try again in a moment.'
     : tab === 'ranked' ? (signedIn || !authEnabled() ? 'Choose Ranked under Play to get a place.' : 'Log in, then choose Ranked under Play.')
-    : tab === 'wins' ? (authEnabled() && !signedIn ? 'Online wins count on an account. Log in to keep yours.' : stats ? `In ${many(stats.gamesPlayed, 'online game')}, all time.` : 'Win a game in a lobby or in Quick play.')
+    : tab === 'wins' ? (authEnabled() && !signedIn ? 'Online wins count on an account. Log in to keep yours.' : stats ? `In ${many(stats.gamesPlayed, 'online game')}, all time.` : 'Win a game from the queue or in a lobby.')
     : authEnabled() && !signedIn ? `${wallet.xp.toLocaleString()} XP in this browser. Log in to get a place.` : `${wallet.xp.toLocaleString()} XP. Finish a game to get a place.`;
   const canShow = signedIn && profile.consentStatus === 'not_required';
   const fine = signedIn ? "Players who needed a parent's permission are never shown on the leaderboards."

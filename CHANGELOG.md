@@ -2,6 +2,12 @@
 
 All user-visible changes, newest first.
 
+## 0.7.2
+
+- One green Queue button at the top of the menu, where Quick play was; Quick play and Play are gone. Queue searches for a game with real people: pick Casual or Ranked and the game finds you one. Create lobby, right under it, makes a lobby of your own.
+- The leaderboards are on the menu now, under the Trading Post (they were a trophy button in the top corner). The Wins board shows This week and All time; Today is gone.
+- On a shorter laptop screen (720 to 800 pixels tall) the menu rows sit a little closer, so the line under the menu no longer runs into the bar at the bottom.
+
 ## 0.7.1
 
 - Ranked play. Press Play and two cards come up: Casual and Ranked. A ranked game is people only (2 to 4, no farm sheep) on the standard rules; it starts by itself a few seconds after a second player joins the queue, and leaving one counts as a loss. Finishing ahead of other players earns points and finishing behind loses them, more when the other player was ranked above you. There are eight ranks, from Lamb to Golden Fleece, the first seven in divisions I, II and III of 100 points each; everyone starts at Lamb I, and losses are softened in the bottom three ranks. Your rank is on your profile and on the results of every ranked game. Ranked needs an account.

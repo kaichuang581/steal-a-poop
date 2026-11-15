@@ -1547,6 +1547,24 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   keeps its AuthDialog. Home's Log in opens the same form (`openSignInForm`). Guests and accounts whose parent agreed can chat
   and show themselves on the leaderboards (the friends list was removed the same day). Known and told to Kai: a click on the child's own screen is not verified
   parental consent (COPPA's list of methods does not include it), and anyone can choose an older age.
+- Queue, not Quick play (Brian, 2026-11-14: "remove quickplay firstly. jsut make the green button 'Queue', taking the play
+  button right below it and replacing it with there. also, remmemeber that queue is what brings you into searching for a
+  lobby, like brawl stars, or how roblox finds you a server or just any game really, and create lobby is creating a lobby
+  yourself"). The words mean: **Queue** = matchmaking, the game searches and puts you in a game (Casual or Ranked);
+  **Create lobby** = you make a lobby yourself and others join with its code. Never use "queue" for a lobby someone made,
+  or "lobby" for what matchmaking finds. Home's menu is now Queue (first, green: GameMenu makes item 0 the primary),
+  Create lobby, Join party, Counting Sheep, Practice, Tutorial, Trading Post. Queue opens PlayChooser (aria "Queue");
+  Casual's "Find a game" is the old quick-play intent (`{ t: 'quick' }`), whose room reads "Casual, in queue". PlayChooser
+  gives focus back to Queue when it shuts, or the menu dropped Queue's highlight and it shifted 6 px.
+- Leaderboards on the menu, no Today (Brian, 2026-11-14: "can you remove the today option from the leaderboars option?",
+  then, shown popup mockups A and B, "keep the full page but put it below the trading post button, like an addition to
+  that (in the same area though so the font and everything should match)"). The page stays a full screen. It opens
+  from a menu item `boards` under `bazaar` in PaintedHome (only with a game server, like Queue); the trophy button in
+  the top bar is gone. The Wins board's "when" tabs are This week and All time (the server still answers /day).
+  Eight menu rows: the short-window rule in skin.css (max-height 800) never applied, because `.sk-home .sk-menu-board
+  .sk-menu-item` (48 px) is heavier; a heavier copy now sets 38 px rows (35 px at 740 and under) so the caption clears
+  the bottom bar at 1280 x 720. Measured at 1280x720, 1366x768, 1280x800, 1440x900, 1920x1080; a phone's menu
+  scrolls in its own panel, as before.
 - Friends are back, on the profile (requested by Kai, 2026-11-14, a day after Brian's "remove friend feature" in 0.7.1; Brian has not
   been asked, so this is Kai's call to confirm with him): the friend code, a box to add one, the requests waiting and the friends
   with online dots are a section of the profile page (src/skin/profile/FriendsSection.tsx), not a tab or a button of their own. A

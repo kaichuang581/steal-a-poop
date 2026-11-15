@@ -21,7 +21,7 @@ describe('who sits down at a lobby table', () => {
     expect(t(7, 8)).toMatchObject({ bots: 2, seats: MAX_ROOM_SIZE });
   });
 
-  it('with no number chosen (the Quick play queue, an older server) farm sheep fill a table of four and two people are needed', () => {
+  it('with no number chosen (the casual queue, an older server) farm sheep fill a table of four and two people are needed', () => {
     for (const none of [null, undefined]) {
       expect(t(none, 1)).toEqual({ chosen: false, bots: MIN_TABLE - 1, seats: MIN_TABLE, enough: false });
       expect(t(none, 2)).toEqual({ chosen: false, bots: 2, seats: 4, enough: true });

@@ -133,11 +133,19 @@ describe('friends live on the profile', () => {
     expect(src('src/skin/profile/FriendsSection.tsx')).toContain('Your friend code');
   });
 
-  it('the start screen opens the leaderboards from the top bar and has no friends button', () => {
+  it('the start screen opens the leaderboards from the menu, under the Trading Post, and has no friends button', () => {
     const home = src('src/skin/screens/PaintedHome.tsx');
     expect(home).toContain('<Leaderboards onClose=');
-    expect(home).toContain('aria-label="Leaderboards"');
+    expect(home).toContain("id: 'boards', label: 'Leaderboards'");
+    expect(home.indexOf("id: 'boards'")).toBeGreaterThan(home.indexOf("id: 'bazaar'"));
+    expect(home).not.toContain('data-boards');
     expect(home).not.toMatch(/FriendsIcon|aria-label="Friends|social\/Hub/);
+  });
+
+  it('the Wins board offers This week and All time, no Today', () => {
+    const lb = src('src/skin/boards/Leaderboards.tsx');
+    expect(lb).toContain("const PERIODS: [Period, string][] = [['week', 'This week'], ['all', 'All time']];");
+    expect(lb).not.toContain("'Today'");
   });
 
   it('a lobby is reached by its code or link: there is no friends list to invite from, in either look', () => {

@@ -33,7 +33,7 @@ export interface RoomViewDTO {
   name: string;
   visibility: 'public' | 'private';
   hostId: string;
-  /** Opened by Quick play: shown as a queue, not as someone's lobby. */
+  /** Opened by the casual queue (Queue, then Casual): shown as a queue, not as someone's lobby. */
   queue?: boolean;
   /** Game length, picked by the host in the lobby. Absent from an older server. */
   settings?: RoomSettingsDTO;

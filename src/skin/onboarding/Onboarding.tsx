@@ -38,6 +38,9 @@ export function OnboardingGate() {
 }
 
 type Way = 'choose' | 'guest' | 'email' | 'details' | 'parent' | 'declined';
+
+/** Server answers that mean "something you typed needs changing": the form returns to the questions. */
+const BACK_TO_DETAILS = new Set(['nickname_taken', 'bad_nickname', 'bad_age', 'bad_dob', 'bad_country', 'country_not_supported', 'captcha_failed']);
 interface Answers { country: string; age: number | null; nickname: string }
 
 function Onboarding({ gate, blocking, onDone }: { gate: GateStep | null; blocking: boolean; onDone: () => void }) {
@@ -65,6 +68,8 @@ function Onboarding({ gate, blocking, onDone }: { gate: GateStep | null; blockin
     return () => window.removeEventListener('keydown', onKey);
   }, [blocking, onDone]);
 
+  // A guest's questions are the `guest` step; an account's are `details`.
+  const guestFlow = !account;
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     setError('');
@@ -74,7 +79,12 @@ function Onboarding({ gate, blocking, onDone }: { gate: GateStep | null; blockin
       const code = e instanceof ApiError ? e.code : 'other';
       // The server's rules can be stricter than this page's (a country raised on the server): ask the parent then.
       if (code === 'parent_consent_required') setWay('parent');
-      else setError(describeAuthError(code));
+      else {
+        setError(describeAuthError(code));
+        // A problem with what was typed (a taken name, a country the game is not in) goes back to the questions, which is
+        // where it is fixed. The parent's screen has nothing to fix. The bot check is used up once sent: it asks again.
+        if (BACK_TO_DETAILS.has(code)) { setWay(guestFlow ? 'guest' : 'details'); setCaptcha(null); }
+      }
     } finally {
       setBusy(false);
     }
@@ -136,6 +146,7 @@ function Onboarding({ gate, blocking, onDone }: { gate: GateStep | null; blockin
   } else if (step === 'guest' || step === 'details') {
     const newAccount = step === 'details' && gate === 'profile';
     const nameProblem = newAccount ? usernameProblem(answers.nickname) : null;
+    const nameTaken = newAccount && error === describeAuthError('nickname_taken');
     const ready = !!answers.country && answers.age !== null && !nameProblem && (!newAccount || !captchaAvailable() || !!captcha);
     body = (
       <form className="sk-onb-stack" onSubmit={(e) => { e.preventDefault(); if (ready) answered(); }}>
@@ -144,14 +155,14 @@ function Onboarding({ gate, blocking, onDone }: { gate: GateStep | null; blockin
           <label className="sk-onb-field">
             <span>Username</span>
             <input className="sk-onb-input" aria-label="Username" maxLength={MAX_NICKNAME} value={answers.nickname} autoComplete="nickname"
-              onChange={(e) => setAnswers({ ...answers, nickname: e.target.value })} aria-invalid={!!(answers.nickname && nameProblem)} />
+              onChange={(e) => setAnswers({ ...answers, nickname: e.target.value })} aria-invalid={!!(answers.nickname && nameProblem) || nameTaken} />
             <small className="sk-onb-help" data-bad={!!(answers.nickname && nameProblem) || undefined}>{(answers.nickname && nameProblem) || 'Other players will see this.'}</small>
           </label>
         )}
         <CountryAndAge answers={answers} onChange={setAnswers} />
         {newAccount && <Captcha onToken={setCaptcha} />}
         <WoodButton className="sk-onb-btn" disabled={busy || !ready}>Continue</WoodButton>
-        {step === 'guest' && <button type="button" className="sk-onb-link" onClick={() => setWay('choose')}>Back</button>}
+        {step === 'guest' && <button type="button" className="sk-onb-link" onClick={() => { setError(''); setWay('choose'); }}>Back</button>}
         {step === 'details' && <button type="button" className="sk-onb-link" onClick={() => void a.signOut()}>Sign out</button>}
       </form>
     );
@@ -167,13 +178,16 @@ function Onboarding({ gate, blocking, onDone }: { gate: GateStep | null; blockin
         </p>
         <WoodButton className="sk-onb-btn sk-onb-agree" disabled={busy} onClick={() => void finish(true)}>{PARENT_AGREE}</WoodButton>
         <ClothButton className="sk-onb-btn" disabled={busy} onClick={() => setWay('declined')}>{PARENT_DECLINE}</ClothButton>
+        <button type="button" className="sk-onb-link" disabled={busy} onClick={() => { setError(''); setWay(account ? 'details' : 'guest'); }}>
+          ← Change my {account && gate === 'profile' ? 'username, country or age' : 'country or age'}
+        </button>
       </div>
     );
   } else {
     body = (
       <div className="sk-onb-stack">
         <p className="sk-onb-text">Without a parent's OK this player can't play yet. Come back with a parent or guardian.</p>
-        <WoodButton className="sk-onb-btn" onClick={() => setWay(account ? 'details' : 'choose')}>Back</WoodButton>
+        <WoodButton className="sk-onb-btn" onClick={() => { setError(''); setWay(account ? 'details' : 'guest'); }}>Back</WoodButton>
       </div>
     );
   }

@@ -992,3 +992,543 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   production). Guests and account players are not friends with each other, a guest has no room invites, and a guest is not on the leaderboards
   (the boards are public to read; their stats are the browser's own). The red Friends / Boards / Shop row on Home is gone: Friends and Boards are
   buttons in the top bar (one Community button on a phone, where the bar is full), and the Shop tab is not offered there.
+- The profile, refined (requested by Brian, 2026-11-13: "refine profile. for practice best, show multiple views or make something
+  that differentiates the difficulties ... practice best could mean easy mode, medium, or hard mode, so its less rewarding to those
+  who do well in hard mode. take in account the time as well. also refine the design here as well").
+  - Practice bests: the one "Practice best" (the most words at any setting) is gone. `getPracticeSheet` in src/lib/practice.ts sets
+    out the best for every bot (easy, medium, hard) and starting clock (15, 10, 5 s), read from the same `sap:practice-best`
+    store as before, so nothing was migrated. Each best is rated: words, times 1.5 for the medium bot or a 10 s clock, times 2
+    for the hard bot or a 5 s clock (`PRACTICE_WEIGHT`, `practiceRating`). The best-rated run is the "Practice rating": 12 words
+    against the hard bot from 10 s (36) beats 31 against the easy bot from 15 (31); a tie goes to the harder bot, then the
+    shorter clock. The weights are a judgement of mine, not something Brian chose or anything measured: change them there.
+    Home's Practice tag and the setup's "Best here" already showed the best for the chosen setting, and still do.
+  - The page: it is in the Trading Post's room now (`sk-room kit-wall`: the plank wall, the hung sign, the peg), not a cream
+    `.sk-guide` panel. Who you are is a card pinned to the wall; your standing is chalked on a slate; your numbers are always
+    six slips (Online wins says how to fill it when there is no account), three across on a desktop and two on a phone, so no
+    row has a hole; practice is the rating on a card beside a chalk table, the best-rated cell ringed; the top 100 is on a
+    sheet. A long longest word is set smaller to stay on one line. The `.sk-post-*` helper styles, used only by the old
+    profile, are deleted.
+  - Tests: src/skin/profile/__tests__/profile.test.ts (the sheet, the rating, ties, a damaged store) and
+    practiceBests.test.tsx (what the page shows). Looked at from 320 to 1920 px wide, empty, with one run and with many.
+    The signed-in parts (the board, Online wins) still cannot be opened in a browser on this machine: no sign-in here.
+- The loading screen, plain and in the page (requested by Brian, 2026-11-13: "why is the loading screen not what pops up when
+  the game is loading? also can u make it not a barn door and a little more plain i dont want any weird opening animation").
+  SUPERSEDED the same day by "Back to the barn doors" at the end of this list: everything in this bullet is history,
+  its "do not bring back doors" included.
+  This replaces the barn doors and overrides two earlier notes above: the doors themselves (2026-11-08) and "not on a
+  refresh" (2026-11-08). Do not bring back doors, a swing, a zoom or any other opening animation.
+  - Why it was not what popped up, measured: (1) the loading screen was part of the game's code (2.2 MB, 660 KB gzipped), so
+    until that had arrived the page was blank: about 3 s of empty purple on the live site at 4 Mbit/s; (2) a refresh skipped
+    it on purpose and showed the menu over an empty sky for the 4 to 5 s the farm takes to build; (3) going into a game
+    showed a dark blank, and the doors only after 0.8 s.
+  - What it is: the night (#12152A), a few flakes, a small wood-framed window where the pixel sheep runs and leaps the snowy
+    fence, and one line under it saying what is being got ready. No doors, beam, ropes, sign drop, door sounds or sway. It
+    comes up with a 180 ms fade and goes with a 220 ms fade.
+  - Where it lives: it is an element in the page itself. vite.config.ts (`withLoadingScreen`) writes src/skin/loading/
+    markup.ts (plain text, no React) and loading.css into index.html at `<!--loading-screen-->`, in dev and in the build, so
+    it is drawn with the page's first frame. No inline script: the built page's policy forbids one. loading.css must stand
+    alone (no skin tokens but the ones it sets, nothing fetched, only transform and opacity animated); its tests check that.
+    src/skin/components/LoadingScreen.tsx draws nothing: it drives that one element (`data-phase` in/up/out, `data-bare`,
+    `hidden`, the line's text), so the sheep's run is never restarted when the game takes over.
+  - When it shows: on every page load, first visit or refresh, until Home's farm has drawn (`showLoadingAtBoot`). Going into
+    a game, practice, the tutorial, the dream or the results (`showLoading({ quick: true })`) it is the dark alone at first
+    (`data-bare`), and the sheep and the line fade in if the wait passes GRACE_MS (500), then stay REVEAL_HOLD_MS (600) so
+    they never flash. Pages that are not the painted game (the old look, ?preview=, #/legal, #/mod, a framed page) drop it
+    as soon as the code runs (`dropLoadingUnlessShown` in src/main.tsx). The line never goes back: once a hold ("Building the
+    farm") has shown, its line stays until the screen lifts.
+  - Renamed: BarnDoors.tsx is LoadingScreen.tsx; playBarnDoors, shutDoorsAtBoot, whenDoorsShut, whenDoorsOpen, doorsShut are
+    showLoading, showLoadingAtBoot, whenLoadingUp, whenLoadingLifts, loadingUp. `useLoadingHold`, `keysBlocked` and
+    DRAWN_ATTR keep their names. Deleted: the voxel doors (doorsModel.ts, doorBoxes.ts, DoorsRender.tsx, ?preview=doors,
+    tools/renderDoors.mjs, public/loading/doors-*.webp and their preloads), every `.sk-doors`, `.sk-door` and `.sk-load` rule,
+    the audit's `.sk-door` allowance, the doorShut and doorOpen sounds, and sessionStorage sap:booted. pixelRuns.ts holds the
+    run-length step that pixels.tsx and markup.ts share. tsconfig allows `.ts` in import paths because vite.config.ts and
+    markup.ts need them (Vite's config loader warns without).
+  - Left as it is: before the game's fonts arrive the line is in the fallback hand font and changes when Patrick Hand is in
+    (the doors' sign did the same); the page cannot ask for the font itself without contacting Google Fonts on the old look.
+    Still check typing at the table in a browser after touching this file (done: it types).
+- Plain cards, no paper craft (requested by Brian, 2026-11-13: "fix all the obviously ai generated things throughout the
+  site. ex) those stupid papers held up by pins"; he had said it before, 2026-11-09: "longest word should not be on a pin").
+  I shot every screen at 1440 x 900 and 390 x 844 and took out the one family that read as machine-made: paper dressed up
+  as a craft table. Do not bring any of it back, and do not add new fake fasteners or fake wear to flat interface panels.
+  - `Paper` (src/skin/kit/index.tsx) is a plain card: flat, square, a clean edge, a 2 px corner. Its `pin`, `tilt` and
+    `seed` props and the `ticket` kind are gone, with `.kit-pin`, `.kit-paper--tilt-*`, the torn bottom edge (`::after`)
+    and `.kit-ticket`. That changed, at once: the missions, the profile card and its number slips, the practice fight
+    card's two names, the message card over the input, the tutorial's word ideas, the dream's word slip, the Bell Shelf's
+    "More soon" slips (also untilted) and the stall's price tags.
+  - Missions (Bazaar.tsx): the cork notice board is gone (`.kit-cork`, `.sk-noticeboard*`); a heading with its hint beside
+    it and one card each (`.sk-mission-list/-head/-cards`), like the profile's sections. A finished mission has a plain
+    green "Done" label, not a tilted red rubber stamp (`.sk-stamp`).
+  - The stall's tags (FeedSacks.tsx) no longer hang from a nail on a string or tilt; they are cards on the stall's front, in
+    the same place (`.sk-stall-hang` keeps its 12 px so nothing moved).
+  - Controls: `Lever` is `Switch` (`.kit-switch`: an ordinary switch, green and to the right when on) and `RopeSlider` is
+    `Slider` (`.kit-slider`: a plain track, a square handle). The lever with its lamp and the rope with its bead are gone
+    from Settings, the sound menu and the admin panel.
+  - Left alone on purpose, and told to Brian so he can say if they should go too: wooden signs with their nails, ropes and
+    snow (the title, the room signs, Quick play), the hang tags on the menu (DAILY, BEST 31), the knitted panels and
+    stitched chips, the title's tilted update plate and Word of the day, the machine's tilted "New!" badge, and all the
+    wording. The old look (?skin=classic) and the standalone #/legal and #/mod pages were not touched either.
+  - To look at every screen again: my tour script is in the session scratchpad only (tour.mjs: home, each dialog, the
+    Trading Post's tabs, the profile, a game, practice, the dream, the tutorial, at both sizes).
+- Back to the barn doors (requested by Brian, 2026-11-13, after five rounds of loading-screen mockups: "nvm ykw lets just go
+  back to barn doors"). This supersedes "The loading screen, plain and in the page" above. The plain screen and its files
+  are gone (LoadingScreen.tsx, loading/markup.ts, loading.css, pixelRuns.ts), and the doors are back as 0.7.0 shipped them,
+  restored from git, names included: BarnDoors.tsx (playBarnDoors, shutDoorsAtBoot, whenDoorsShut, whenDoorsOpen, doorsShut),
+  the voxel doors and their pictures, the sign on its ropes, the swing shut and open, the door sounds, `.sk-doors` /
+  `.sk-load` in skin.css, the audit's `.sk-door` allowance, ?preview=doors and tools/renderDoors.mjs, and their tests.
+  - One thing is kept from the plain screen, because it answered his other question that day ("why is the loading screen
+    not what pops up when the game is loading?"): the page itself comes with the doors drawn shut, so they are up before
+    the game's code has arrived. vite.config.ts (`withBootDoors`) writes src/skin/loading/bootDoors.ts's markup into
+    index.html at `<!--boot-doors-->`, and into the head the rules of skin.css between its `boot-doors:start` and
+    `boot-doors:end` marks: the shut leaves, the beam, the drift and the snow, and nothing else. Those rules must stand
+    alone (no tokens, no kit classes, no phase rules); src/skin/loading/__tests__/bootDoors.test.ts checks it. No inline
+    script: the built page's policy forbids one. Measured on the built site at 4 Mbit/s: the beam and bare wood at once,
+    the doors' picture at 0.7 s, the sign when the code is in at 1.8 s. The live 0.7.0 site is blank for about 3 s there.
+  - The handover: BarnDoors' first pair (already shut) is the same picture from the same numbers, classes and snowflakes
+    (`doorArt` and `FLAKES` in bootDoors.ts, used by both). On mount it sets each of its flakes to where its twin on the
+    page's doors had got to, then removes `#boot-doors`, so nothing on screen moves; the sign dropping in is all anyone
+    sees. Pages that are not the painted game (the old look, ?preview=, #/legal, #/mod, a framed page) take the page's
+    doors away as soon as the code runs (`dropBootDoorsUnlessShut` in src/main.tsx).
+  - So the doors are up on EVERY page load, a refresh included; `firstLoadThisTab` and sessionStorage sap:booted stay
+    gone. The page cannot tell a refresh from a first visit without a script, and skipping the doors on a refresh showed
+    the menu over an empty sky for the 4 to 5 s the farm takes to build. This still goes against his 2026-11-08 "not on a
+    refresh"; he was told, and it is his to overrule (the way back: drop the page's doors at once on a refresh).
+  - Everything else is the old behaviour: going into a game, practice, the tutorial, the dream or the results is the 180 ms
+    dark fade, with the doors only if the wait passes GRACE_MS (800).
+  - Not built: the mockups he looked at in between (the farm as a picture with snow, a title whose blanks fill in, a 1 to
+    100% bar). Don't redesign the loading screen again unless he asks.
+  - Checked in a browser at 1440 x 900 and 390 x 844, dev and the built site: the page's doors before the code, the
+    handover (a flake at the same pixel before and after), the sign, the swing open, a refresh, the quick fade into
+    practice, typing at the table, and the three kinds of page that drop the doors. tsconfig keeps `.ts` in import paths
+    (vite.config.ts reads bootDoors.ts, which reads doorBoxes.ts).
+- The doors are up only while something is loading (asked by Brian, 2026-11-13: "did u make sure that the loading screen
+  genuinely only pops up when the game is actually loading? that seems to be a recurring problem ... make sure ... it isnt
+  just blocking the website for no reason"). Measured on the built site, the doors' phases against the page's long tasks:
+  - A page load: the doors cover about 4.4 s on Brian's Mac and the page is frozen building for 4.1 to 4.2 s of it (a
+    profile: the barn and yard 1.3 s, the farmstead 1.2 s, the countryside 0.9 s, the rest three.js and React); they
+    start to open 30 to 70 ms after the last of that work, and the menu takes clicks while they swing (1.15 s). So they
+    hide real work and nothing else; the cost is the farm's build, on every load. Panels (Trading Post, profile) never
+    bring them up. Into a game is the dark fade alone, 0.45 s; into practice 0.9 s.
+  - One real fault, fixed. Building a 3D screen freezes the page, so the "has the wait passed GRACE_MS?" check could only
+    run once the freeze was over: on a slower device (CPU slowed 4x) going into practice, the scene was ready at 2.4 s,
+    the doors came down at 2.5 s, were held 0.7 s for their sign, and were off screen at 4.3 s. Now the wait counts only
+    time the page was awake for (`waitedFor`, `FROZEN_MS` in BarnDoors.tsx: a frame gap counts for 100 ms at most), so
+    a freeze that has ended never brings the doors down (the same run: clear at 2.7 s), and doors that do come down
+    late are held only until they have faded in (REVEAL_HOLD_MS 240, was 700). They still come down for a wait the
+    page is awake through (checked by holding a scene's `data-drawn` back: down 0.8 s in, open 30 ms after it drew).
+    Tests: src/skin/components/__tests__/barnDoorsWait.test.ts.
+  - Known and told to Brian: on a slow device the first run into practice is a dark, frozen screen for the 2 to 3 s the
+    ice takes to build (no doors can be drawn in a freeze unless they are up before it starts); the page load is long
+    on slow machines because the farm's build is (17 s with the CPU slowed 4x at desktop detail). Not measured: a real
+    phone, the results screen after a full game, rooms. When touching the doors again, measure like this, do not
+    reason about it: long tasks and `data-drawn` against the doors' `data-phase`, at 1x and with the CPU throttled.
+- The tutorial, rebuilt for the painted game (requested by Brian, 2026-11-13: "refurbish the tutorial now, its very outdated
+  both ui-wise and all around"). Skin only: no engine file changed, and the old look keeps its own (src/ui/Tour.tsx,
+  tourSteps.ts, untouched; the e2e suite runs that one).
+  - What was wrong with the old one in this skin, seen by walking it: it was the old look's card with `!important` paint on
+    it, over a 72% black-out of the table; "The chain letter" and "Rounds and twists" pointed at elements this skin does
+    not draw, so they ringed nothing; it spoke of a timer ring, a Hint button and an "even faster round" twist that do
+    not exist; its hint book offered BEVOR, BRINERS and JOSHER; and the Enter that played your word also pressed Next on
+    the card it brought up, so Traps was never seen.
+  - What it is now: src/skin/tour. `steps.ts` is the script, ten steps: welcome, the letter, play a word, watch the chain
+    (your word's last letter, the next sheep by name), the bomb is the clock, wool balls are lives, traps, faster rounds
+    and twists, play once more, done. Every number and name in it is read from the engine (TRAP_LETTERS,
+    TURN_MS_BY_ROUND, MIN_WORD_LENGTH, TWIST_TEXT, the player's lives), and a test fails if it mentions a ring, the pile,
+    banking, steals, points or a Hint button. `info` steps stop the clock (the store's existing `pause`/`resume`) and
+    wait for Next; `wait` steps let the table run until `done`, then `linger` a moment.
+  - `PaintedTour.tsx` is the guide: one card in the kit's paper with the sheepdog on it, a step count and pips, a wood
+    Next, and plain "Skip this step" / "Skip tutorial" links. It docks under the scoreboard where that is a board at the
+    side (computer, tablet) and across the top under the bar where it is a row of names (phone); there, to point at
+    your name in that row, the card steps down under it. An amber ring goes round what the card is about. While a card is
+    read the rest of the screen dims by 36%, no more; on a step where you play nothing dims. Enter moves a card on, is
+    taken before the word bar sees it, and is ignored for ENTER_GUARD_MS (350) after a card comes up and when held.
+  - The ring's targets are the things themselves. The word bar, the round tab and your name are page elements
+    (selectors in steps.ts; a test checks each still exists in the source). The letter board and the bomb are voxels, so
+    `TourMarks.tsx`, mounted inside the barn's scene only during the tutorial, projects their boxes to the page every
+    frame into `marks.ts`, which the guide reads. A step lists targets in order of preference and the first one the card
+    is not lying over (under 40% covered) gets the ring; with none, no ring.
+  - `ideas.ts`: the hint book's words must be ON the frequency list and in its first 8,000 (EVERYDAY_RANK), 4 to 7
+    letters, and valid right now; `useWordInput` uses it and falls back to the engine's `suggestWords` until the list is
+    in. The engine's picker treats a word the list has never heard of as common by its letters, which is where BEVOR
+    came from; that function is unchanged.
+  - The picture of the dog is the game's own voxel sheepdog, whole and sitting (a close-up of its head is a black
+    block): `node tools/renderGuide.mjs` (dev server up) photographs ?preview=guide (tour/GuideRender.tsx) into
+    public/tour/sheepdog.webp. Re-run after changing the dog. It has no Santa hat, on purpose, so it need not be re-baked
+    when the season comes down.
+  - Checked by walking all ten steps with Playwright at 1440 x 900, 1180 x 700, 820 x 1180, 390 x 844 and 320 x 568, by
+    mouse and by Enter alone, plus the three ways out (Skip tutorial, Menu, Play a real game), the leave dialog over the
+    card, and reduced motion. Tests: src/skin/tour/__tests__/tour.test.ts.
+  - Not done, and told to Brian: the tutorial still cannot SHOW a bomb going off or a trap paying, because in the
+    engine's tour mode bots never run out of time and nobody loses wool; that would be an engine change. The "How to
+    play" text (src/ui/guideContent.ts, outside the skin) is also behind: its twist list names three of the eight, it
+    says there are no accounts, and it describes a Daily Table the painted game replaced with Counting Sheep. On a
+    320 px wide phone the wool-balls card has no ring (no room to step down).
+- No traps (Brian, 2026-11-13, reading the new tutorial's Traps card: "idk why it says that getting someone killed will 'give
+  you a wool ball' because that is not how the game works? if that is how the game works for some odd reason fix it
+  immediately"). It was how the game worked, so it is an approved engine change: `setTrap` and `resolveTrap` are gone
+  from reducer.ts, nobody ever gains wool (`gainWool`, `woolCap`, EXTRA_WOOL_CAP and TRAP_PAYOUT removed), and
+  `GameState.trap` is always null; the field, the `trapSprung` event kind and TRAP_LETTERS stay so saved games and an
+  older server's states still read. This supersedes "Traps pay a wool ball" and "won only from traps" in the bullets
+  above. The engine tests that pinned the rule were rewritten to pin its absence. Every text that taught it is gone or
+  corrected: the painted tutorial's Traps card (it has nine steps now), the old look's tour step and rules table, How
+  to play (basics, glossary, questions), the rules card, the coach tip, the menu tip, and "X's trap wins one" under the
+  time-out notice. The letter board is never the trap's block of ice (`isTrapLetter` is always false). Rooms run the
+  engine on the server, so multiplayer keeps paying traps until the server is deployed with this change.
+- Real people by default, the Play chooser, and the game after the tutorial (Brian, 2026-11-13: "quick play and play should
+  not bring you into bot lobbies ... when u press play, it gives u two options that pop up on ur screen, casual and
+  ranked ... make the 'after tutorial first game thing' queue them into a real game not a bot lobby").
+  - Home's menu: Quick play (the casual queue) and Play (opens the chooser) are always online. Custom game (id `custom`)
+    is the bot table; with Practice and the Tutorial it is the only way to play farm sheep. In a copy of the game with no
+    server address (plain `npm run dev`), Quick play and Play stay on the menu and say why they cannot be used
+    (`NO_SERVER`); they never fall back to a bot game. `enterOnline` (src/skin/rooms/enterOnline.ts) is the one way
+    into the server for the menu, the chooser and the tutorial.
+  - The chooser is src/skin/ranked/PlayChooser.tsx: two cards over the menu. Casual is cream paper with the farm by day
+    (public/play/casual.webp, the home tour's sheep-at-the-barn shot); Ranked is slate edged in gold with the practice
+    duel on the ice at night (public/play/ranked.webp), the ladder of eight badges, your rank, and a red button. With
+    real sign-in and nobody signed in, the Ranked card's button is "Sign in to play ranked". Both pictures are captures
+    of the game's own scenes; re-capture them if those scenes change much.
+  - The tutorial's last card: "Play a real game" ends the tour and calls `enterOnline({ t: 'quick' })`; so does the
+    first-run "Skip, find a game". With no server the card has only "Back to the menu".
+- Ranked (Brian, 2026-11-13: "make a ranked gamemode ... give the ranked system an elo system in which people can rankup,
+  make 8 divisions of ranks for now, copying the valorant/brawl stars ranking system to an extent (different names
+  obviously just the structure)").
+  - The ladder and the maths are one file, src/lib/ranked.ts, read by the server and the game. Eight ranks: Lamb,
+    Yearling, Shearling, Ram, Bellwether, Shepherd, Blue Ribbon, Golden Fleece. The first seven have divisions I, II,
+    III of 100 points; Golden Fleece starts at 2,100 and is open-ended. A rating is the points: it starts at 0, never
+    goes below 0, and moves by Elo after each ranked game (K 32, scale 400), every player compared with every other by
+    finishing place and the sum shared over the opponents, so a table of four moves a player about as much as a duel.
+    Added to plain Elo, as those ladders do, so that playing moves a newcomer up: a loss costs nothing in Lamb, half in
+    Yearling, three quarters in Shearling (`lossShare`), and coming first alone always gains at least a point. All of
+    these numbers are MY first guess, not Brian's: he asked for the structure. Tune them in that file.
+  - Server: `rankedJoin` in server/rooms.ts is the ranked queue (message `{ t: 'ranked' }`). A ranked room seats 2 to 4
+    people and no farm sheep (the engine's `GameSetup.minPlayers`, a small engine addition: default 4, ranked passes
+    2), plays DEFAULT_ROOM_SETTINGS, and starts itself in `tick`: RANKED_WAIT_MS (20 s) after its second player sits
+    down, RANKED_FULL_WAIT_MS (4 s) after its fourth; the count stops if it drops to one. Nobody hosts it: start,
+    options, kick and mute answer `ranked_room`; it cannot be joined by code, by Quick play or from the public list.
+    Guests and players whose results are not kept are refused (`account_required`). When it ends, `rankedPlaces`
+    orders everyone who sat down (last standing first, then by who was out later; walking out counts from that moment,
+    whatever the farm sheep that takes the seat does) and server/ranked/service.ts reads the stored ratings, applies
+    `ratingChanges`, stores them (Memory or Postgres store, db/migrations/106_ranked.sql) and the room view carries
+    `rated` to the table. GET /api/ranked is your rating; GET /api/ranked/top the best 100 by name with your place
+    (built, not yet shown anywhere in the game). A browser never sends a rating or a result: the server rates only games
+    it ran.
+  - Game: `RankBadge` / `TierBadge` (src/skin/ranked, art in badge.ts: a rosette that grows with the rank, each rank its
+    own shape and colours, a test checks no two are alike), `useRanked` (your rating), `RatedSlip` on the results board
+    (+16 points, rated 1st of 2, the new rank, "ranked up!"), `ProfileRank` on the profile, and PaintedRoom's ranked
+    queue (no gate button, a countdown against the server's clock, each player's rank by their name, no host tag).
+    The leave dialog in a ranked game says leaving is a loss.
+  - To go live it needs BOTH: migration 106 run on the database, and the game server deployed (the "Deploy server"
+    workflow is manual and has not been run since before 0.7.0). Until then the live site's Ranked card answers
+    "Ranked is not switched on for this server yet".
+  - `npm run dev:online` now gives the local server ALLOWED_ORIGINS for http://localhost:5173, because the server's API
+    answers a browser only from named origins: without it the profile's board, your rank and friends could not be read
+    locally. Dev sign-in tokens count as accounts, so ranked can be played locally between two windows.
+  - Checked by playing: two Playwright windows through the chooser into the ranked queue, the countdown, a two-seat
+    table, to the results and the new rating (winner +16, loser +0 in Lamb); one leaving mid-game (rated last, the
+    stayer first); leaving the queue (the count stops); the chooser and profile afterwards; the casual queue unchanged;
+    the tutorial's last card landing in the casual queue. Desktop and phone. Tests: src/lib/__tests__/ranked.test.ts,
+    server/ranked/ranked.test.ts, src/skin/ranked/__tests__/ranked.test.tsx.
+  - Not done, and told to Brian: no matching by rank (the queue seats whoever is waiting, so a Lamb can meet anyone);
+    the top-100 ranked board has no screen yet; no seasons, placement games or decay; a casual Quick play queue still
+    needs its first player to press "Open the gate". The bundle is 3.5 kB under its size limit after this.
+- A shorter menu: the profile is the name box, and Create lobby is also Custom game (Brian, 2026-11-14: "theres way too many
+  buttons now. make the profile thing not a button below the quickplay but that box in the top left, just embed it in
+  there. make custom game and create lobby the same thing. in create lobby they can choose whether to ADD bots. so they
+  can play only with bots, only players, or bots and players, like super smash bros"). Home's menu is eight items:
+  Quick play, Play, Create lobby, Join party, Counting Sheep, Practice, Tutorial, Trading Post. Don't add a ninth
+  without asking.
+  - The profile: the plank with your name (top left on a computer, over the menu on a phone) is one button now
+    (`profilePlate` in PaintedHome.tsx, `data-profile`): avatar, name, and "Level N · Profile" under it. The Profile
+    menu item is gone.
+  - Farm sheep in a lobby. `RoomSettings.bots` (server/types.ts) is the host's number, 0 to MAX_BOTS (7), with
+    `botLevel` easy/medium/hard; `setOptions` takes both, `botsFor` says how many sit down (never past the table's ten
+    seats), and a game needs two at the table counting them. So: bots only (one person, farm sheep added), people only
+    (0 farm sheep; two people are a table of two), or both. `bots: null` is the old rule, kept for the Quick play queue
+    and an untouched lobby: farm sheep fill the table to four and two people are needed. This supersedes "farm sheep
+    fill the table to 4" (2026-11-11) for a lobby whose host has chosen; a ranked table still never has any.
+  - The lobby screen (PaintedRoom.tsx, helpers in rooms/lobbyBots.ts): a "Farm sheep" section with one fewer / how
+    many / one more and, with any, the level; everyone else sees it as a line. The gate's caption says what the table
+    is ("You and 3 farm sheep", "2 players, no farm sheep", "2 players and 1 farm sheep") and, alone with none, "Add a
+    farm sheep to play now, or send the party link and wait for a friend." A first lobby opens with three medium farm
+    sheep (a table of four, one press from a game); after that it opens the way this device's host last left it
+    (`sap:lobby-bots`, sent with `create`). An older server sends no `bots`: the section is hidden and the old caption shows.
+  - Alone with farm sheep, the game is dealt ON THIS DEVICE (`playAlone`): the lobby is left and the same solo game
+    Custom game used to deal starts (`store.start('quick', rules, level)` with `playerCount` and the new
+    `minPlayers: 2`). That is deliberate: it starts at once, and it keeps paying Wool Coins and XP and counting on the
+    profile exactly as Custom game did, which a room game does not. It must be dealt a tick AFTER the room is gone:
+    the handler for the server's `left` clears the table right after clearing the room. With anyone else in the lobby
+    the server runs the game as before.
+  - With no game server, Create lobby opens the old "set the table" panel for a bot game on this device (there is no
+    lobby to open). The panel and its "Sit down" stay for that.
+  - Checked by playing all three on a private server (bots only: three seats, two of them farm sheep at hard; people
+    only: two seats; both: two people and one farm sheep), the remembered choice, the friend's view, and the menu and
+    profile box at 1440 x 900 and 390 x 844. Tests: server/lobbyBots.test.ts, src/skin/rooms/__tests__/lobbyBots.test.ts,
+    and the menu checks in src/skin/ranked/__tests__/ranked.test.tsx. Like ranked, the lobby's farm sheep need the game
+    server deployed; until then the live lobby keeps the old fill-to-four rule and has no bots control.
+
+- The lobby: a beam on top, three boards of the Trading Post's wall along the bottom (Brian, 2026-11-14). It took
+  nine rounds, and his words on each are the rules for this screen:
+  1. "clean up the ui for the create lobby/room thing". I regrouped the cream card and swapped its chips for flat
+     joined buttons: "this still looks horrendous wtf? what is this ui? what did u even change".
+  2. I rebuilt it as text and signs laid loose on the scene (room name on a hung plank, the code as tiles on strings,
+     options as carved rows on the wash, roster and chat as dark plates in two corners): "the formatting is just plain
+     terrible. chat is just randomly placed in the corner, you used a sign for the room name for some reason? the code
+     is also weirdly placed and unncessiarly terrible looking. everything is unclear".
+  3. I drew three layouts over the real lobby and asked; he chose "layout 1 but make sure the ui isnt just full black.
+     that doesnt mean reuse the previous christmas pattern thing btw".
+  4. to 9. Then the material, six more rounds: CSS wood ("it looks like slabs of cardboard, theres zero texture or
+     depth"), wood baked from voxels ("go bac kto the grey thing just make it better"), slate baked from voxels ("no
+     remove this ugly blocky thing bro ... 5 mockups firstly"), five smooth grey styles ("5 more unique mockups doesnt
+     have to be gray"), five in other colours ("none of the given mockups are coherent with theme and aesthetically
+     pleasing"). What worked was to stop inventing: three mock-ups made only of the Trading Post's and the profile's
+     own pieces, of which he chose the one with dark stitched plates ("do something similar to B"), with notes.
+  What is built (PaintedRoom.tsx, rooms.css; everything is the game's existing kit):
+  - Boards: `kit-wall` (the Trading Post's plank wall) with a dark edge, a title on a small wooden sign
+    (`kit-plank--label sk-room-heading`, the profile's section heads) and beside it a hint in the hint's hand.
+  - `.rm-bar`: a beam (`kit-beam`: horizontal grain, iron straps at its ends), snow on it, the lights hung under it.
+    Leave is a wooden tab; the room's name is plain lettering (never a sign); the party code is on a small wool
+    plate (press it to copy the code) beside a lit "Copy invite link" tab. A queue shows its count on that plate.
+  - `.rm-dock`: three boards of one height. Players: a line each on the wool (`Slate`), two abreast, ruled like the
+    ledger, a cross to take a farm sheep out, "Add a farm sheep" and (signed in) "Invite a friend" as the last
+    lines. Game: carved labels with `Pick` tabs (`.rm-tab`, lit gold with `kit-lit` when chosen); "Change" turns the
+    rows to Turns a round / Wool balls / Round twists. Chat: the classic ChatPanel on the wool.
+  - His notes on B, each a rule now:
+    - "make the chat a little better, i dont like how crammed and hard to see it is. the name and text should be
+      clearly differentiated": the rules banner is two small lines, the log takes the height left, a message has
+      space round it, the speaker's name is a coloured tag (gold for you: `data-me` on the row in ChatPanel; blue for
+      others) and the words are plain beside it; Report / Block / Mute / Kick show when the line is pointed at.
+    - "make the nametags different too, dont make them wood. make them the nametags that are used in the gameplay":
+      the signs over the animals in the pen are the table's `.sk-plate` (PenStage), not planks.
+    - "change the font for the line 2 turns a round.... and 3 players and 3 farm sheep, or at least change how it is
+      placed. rn it just looks like floating text on the wood": no loose text on the wall. The rules are on a wool
+      plate with a "Rules" label; the table's count is written on the gate sign under "Open the gate" (guests read
+      "Waiting for ..." on a plate). Body face, not the hand.
+    - "make sure the snow actually looks proper ... it just looks like a long horizontal slightly wiggly line":
+      `kit-drift` (kit.css) is mounds with a blue shade and drips, drawn at its own size and repeated, never
+      stretched. Do not put the stretched `SnowCap` on anything wide.
+    - "on the top, the little lights are horrendous": `Garland` is a wire in swags with glass bulbs hung under the
+      beam (it was a straight wire of squares across the top of the screen, over a layer of falling dots, which is
+      gone: the pen has its own snowfall).
+    - "make that top bar ... all better. it still has the problem of just looking like a plain wooden slab": the
+      beam, straps, plate and tabs above.
+  - Then the formatting (10th message: "fix the formatting issues, everything looks great. though. for example, the
+    +add a farm sheep, the way the game length, farm sheep are easy medium hard, text being squished and stop using
+    the . thing to seperate text. also, refine how you are placing players, game, and chat. take screenshots as you
+    go and see if anything is weird, ex) something moves if you press a button"):
+    - No middle dot (·) between phrases, here or in anything new. Phrases that belong side by side are separate tags
+      (the rules plate's `rm-rule-tags`), or parted by a thin rule (the Players hint), or are a sentence.
+    - "Add a farm sheep" and "Invite a friend" are buttons on a foot under the list (`rm-seats-foot`), not lines of it.
+    - Game rows are a grid: a label column, then tabs of equal width, in line down the rows. The Farm sheep row is
+      always there; with no farm sheep its tabs are dimmed, so nothing shifts when the first one is added.
+    - The three plates start and end on the same lines; the columns are 1.2 / 1.1 / 0.95 (names need the room).
+    - Nothing moves when something is pressed. Tabs brighten and darken, they do not nudge. A label that changes for
+      a moment ("Copied!") is laid over the usual one (`Swap`); Mute/Unmute and Kick/Sure? have the width of the longer
+      word; the gate has one height whatever it says. On a phone the players' wool has one height and its list scrolls
+      inside, and the beam has no straps (the copy button had run off the screen's edge, and pressing it slid the page
+      sideways).
+    - How it was checked, and should be again after any change here: a script that presses every button in turn,
+      screenshots each step and compares where the boards, plates, rows, tabs and gate are before and after
+      (scratchpad `lobby/steps.mjs`, desktop and phone, against a private server).
+  - Do not offer again: paper cards here, flat black, the knitted or fair-isle pattern, voxel-baked (blocky) panels,
+    or a style not made of the kit. For any new screen, start from the Trading Post and the profile.
+  - A phone: the bar, the pen showing under it, then Game (so the gate is reachable), Players, Chat, scrolling as one
+    page. `.rm-plates` has `z-index: 0` so the name tags stay under the boards.
+  - Hooks unchanged (`data-room-code` is now on the code button, `data-bots-less` on the last farm sheep's cross,
+    `.rm-stepper-n` is the count in the Players title); behaviour unchanged.
+  - For the next screen he calls ugly: every group in a titled container, on one grid, nothing loose in a corner; and
+    when a first attempt misses, show two or three layouts drawn over the real screen and let him pick before building.
+    Make every mock-up out of pieces the Trading Post and the profile already use, and say which.
+  - Opening the lobby builds the pen's scene on the main thread: measured about 1 s on this machine (the lobby's
+    panels are up first). Trees are not refined and the fine ground is only round the pen for that reason; refining
+    the eight tall pines made it nearly 2 s.
+- The lobby's pen: a pen in a mountain meadow, alive (Brian, 2026-11-14, in two messages: "make the scenery for the
+  pen thing bigger and better. make all the sheep be walking around instead of just starting at the ground, make them
+  eat grass from the ground occasionally, make the scenery in the back better, etc. also make it look more like an
+  actual pen", and then, when I had put a barn and a silo behind it: "i said to make the pen better, higher quality
+  firstly no house, just make it more natural scenery everything needs to be better").
+  - No buildings, and nothing made by hand outside the fence. Do not add a barn, house, silo or snowman back.
+  - `src/skin/scene/pen.ts`: the pen is 10 x 6 m with a low three-rail fence (snow on the back and side rails, the
+    front rail bare so it does not hide the animals), a shut braced gate with a lantern on its post, a hay rack and an
+    iced trough on the back rail, a straw-bedded floor (white sheep show against it) and ten tufts of grass
+    (`PEN.grass`). Round it: tall pines framing the sides, young ones in the meadow, boulders, low bushes, dead grass
+    through the snow, the ground rising (`hill`) to a wooded ridge, a mountain range 300 m off, and a low moon over a
+    saddle in it (PenStage; the sky's own moon is too high for this shot).
+  - `penShot` stands at 2.7 m, nearly level, 19 m back: lower and the fence hid the animals, higher and there was no
+    country in the picture, only ground. The fog is thin (0.0042) so the mountains show. `shift` in PaintedRoom lifts
+    the picture clear of the panels.
+  - `src/skin/rooms/penWander.ts` (`roam`, tested): each animal stands, walks to a place (of four tries, the one with
+    most room), stands again, and about half the time walks to a free tuft and grazes 4 to 9 s. They keep 1.3 m apart
+    and inside `PEN_WALK` (clear of the rack and trough). `PenStage`'s `Animal` moves players' animals and farm sheep
+    alike; a player's still hops on arriving and looks at you when it stands. Reduced motion: nobody walks.
+  - `Sheep` has a `walk` state (an amble, `WALK_HALF_STEP`), timed to `WALK_SPEED`.
+  - This file ships to every player and the bundle size check has 0.02 kB of headroom left (`npm run size`). Only what
+    the shot can see is built; to add anything, take something out, or raise the budget deliberately (Brian's or
+    Kai's call, in scripts/check-bundle-size.mjs).
+- The lobby calls a bot a bot, and the rules have room (Brian, 2026-11-14: "can you make it more clear that farm sheep
+  are bots? also, the stuff 'two turns a round, 3 wool balls, twists on' is really cramped in ther"). This supersedes
+  the lobby wording in the two bullets above ("Add a farm sheep", "3 farm sheep", "You and 3 farm sheep").
+  - Every place the lobby counts, lists, adds or sets them says "bot": the Players hint ("3 players | 3 bots"), the
+    button ("Add a bot"), the Game row ("Bot level"), the gate's caption (`tableLine` in rooms/lobbyBots.ts: "You and
+    3 bots", "2 players, no bots", "2 players and 1 bot") and "Add a bot to play now, or invite a friend." A bot's
+    line in the list is the sheep's head, a grey BOT tag (`Tag tone="gray"`), then "farm sheep" in a smaller hand: the
+    tag comes first and is never cut. The small " bot" after "Farm sheep" that this replaces was too quiet to notice.
+    Where a column is too narrow for the words they step out whole (a container query on the line), because cut
+    short they read "Farm she...". The table itself still tags them "farm sheep" in its scoreboard; he has not asked
+    for that to change.
+  - The rules: my first answer was three cells, a figure over what it counts, with "Change" at the plate's end. He
+    looked: "bruh the formatting is still trash, the text is squished still '2 turns,' that row". Two causes. (1) A
+    bug of mine: the kit's own rule for a small plate (`:root[data-skin="painted"] .kit-slate--mini .kit-slate-face`,
+    padding 3px 12px) out-ranks a three-class selector, so the padding this file gave the plate never applied and
+    its text had 3 px over and under it, in that round and the one before. The plate's rule is now five classes
+    long (`.rm-screen .rm-game .rm-rules.kit-slate .kit-slate-face`); check a plate's COMPUTED padding, not the file.
+    (2) Three facts and a button do not fit one strip of a 350 px board. I drew three layouts on the real lobby
+    (one line with bigger words; three big tiles; three lines) and he chose the one line.
+  - What is built: one line on the wool, "2 turns a round | 3 wool balls | Twists on", 14 to 15 px with the figures in
+    gold, a dashed rule between, about 10 px over and under. The host's button is "Change rules" / "Back" in the
+    Game board's head, beside "about 8 min" (one width for both words, so the minutes do not move); "Change" on a
+    phone 380 px wide or less, where each option's label also goes over its buttons. On a plate under 318 px wide
+    " a round" steps out so it stays one line. Ranked's extra facts are a sentence under the plate. Do not put the
+    button back on the plate, and do not shrink this text.
+  - The Game board had no height to spare: the gate was already 6 to 12 px into the board's bottom padding. The
+    notices' empty box no longer costs its 8 px gap (`.rm-start > div:empty`), and the boards are at least 366 px
+    tall (326 in a short window).
+  - The Players list is ONE column under about 1340 px wide on a computer and under 540 px on a phone: in two
+    columns the host saw "W..." for Wolfgang beside Mute and Kick. Past six or so it scrolls inside its plate.
+  - Found by measuring every window size, not the two I had been shooting (1440 x 900 and 390 x 844), and fixed:
+    the gate's caption was squashed in a short window (the gate is 62 px there now); "Standard" and "Medium" ran out
+    of their buttons between 900 and 1300 px wide (the Game board is the widest of the three there); on a 320 px
+    phone the option buttons ran into each other. After changing this screen run the widths script as well as the
+    press-every-button one: both are in the session scratchpad only (lobby/widths.mjs, lobby/steps.mjs). The widths
+    script reports, for 33 window sizes as host and as guest: anything cut, the gate against the board's padding,
+    and the space over and under the rules.
+  - The copy buttons hold their width in the stylesheet now (`min-width` on the tab and the code), not with a
+    wrapper component: it paid for this change in the bundle, which has 0.05 kB of headroom.
+- No friends list (Brian, 2026-11-14: "remove friend feature"). This supersedes "Guests, lobbies and friends without an
+  account" (Kai, 2026-11-13) for everything about friends; guests still play, make lobbies and join them. Removed, in the
+  game and on the server: the list, friend codes, requests, the online dots, room invites (the `invite` / `invited` /
+  `inviteResult` messages), the Friends button on Home, "Invite a friend" in the lobby, the old look's Friends tab and
+  "Invite friends", `/api/friends*` and `/api/guest/friends*`, `GUEST_CODE_SECRET`. Do not rebuild any of it unprompted.
+  - A room is reached by its code or its `?join=CODE` link. "Friends only" is still the name of a private lobby and the
+    menu still says "invite friends with the party code": that is the code, not a list.
+  - Left on purpose, and told to Brian: (1) the two tables of migration 103 (`friend_codes`, `friendships`) stay in the
+    database with what players stored; nothing reads them, and deleting an account still clears that person's rows
+    (`server/social/friendRows.ts`, the one thing left of the feature). Dropping them deletes those lists for good:
+    his call, a new migration. (2) A signed-in browser still keeps its connection to the game server open in the
+    background (it used to carry invites); it was not touched because real sign-in cannot be opened on this machine
+    to check. (3) `sap:guest-friends` may sit in old browsers; harmless.
+  - The old look's community window (src/ui/social/Hub.tsx) is Boards and Shop; the e2e specs (community, a11y,
+    security) and the server tests that covered friends now pin their absence. scripts/smoke.mjs checks the friends
+    addresses answer 404 and the two public boards answer.
+  - Like every server change since 0.7.0, the removal reaches players only when the game server is deployed; until
+    then the live server still has the friend routes, and the new game simply never calls them.
+- The leaderboards page (Brian, 2026-11-14: "refine the leaderboards"): src/skin/boards (Leaderboards.tsx, boards.css),
+  opened by the trophy button in Home's top bar (`data-boards`; there is no button without a game server). It replaces
+  the old look's "Community" window in the painted game.
+  - A full page in the Trading Post's and the profile's room (`sk-room kit-wall`, the hung sign, the peg, the wooden
+    tabs with the picked one lit, label signs with a gold hint): nothing invented. Three boards: Ranked (GET
+    /api/ranked/top: rating, the rank it earns, a badge on every line), Wins (GET /api/leaderboard/:period, metric
+    wins; "when" buttons Today / This week / All time) and Level (GET /api/barn/top). No Daily Table board and no
+    Points board: the painted game has no Daily Table and no points, so both would be empty for good.
+  - The top three are always three cards (`kit-paper`) with a gold, grey or flame hang tag ("1st", "2nd", "3rd"), the
+    winner's a little taller with a gold edge; a place nobody holds says "Open". Everyone after them is a ruled line
+    on the wool (`Slate`), your own line lit with a "You" tag. A card beside the list (above it in a narrow room)
+    says where you stand on this board or how to get a place, and holds "Show me on the leaderboards" for an account
+    that may be listed (the old window's switch; it is the only place to hide).
+  - Nothing moves when a tab or a "when" button is pressed, at any size: the room has one height (88vh), the head row
+    one height (on a narrow room the hint and the "when" buttons share one 44 px row), the three cards and the card
+    about you one height each whatever they hold. On a phone the three cards stack, one line each.
+  - Read without a login: the server has two new public addresses, GET /api/ranked/board and /api/barn/board (limited
+    per address; names and scores of the players the other boards would name, no ids, nobody's own place). Signed
+    in, the page asks the old addresses, which also say where you stand. A server from before this page answers 404,
+    and the board says "This board is not switched on for this server yet" (so on the live site, until the server is
+    deployed: Wins works for everyone, Level for signed-in players, Ranked for nobody).
+  - Checked by scripts in the session scratchpad only (boards/moves.mjs: every tab and button at sixteen window sizes,
+    anything that moves or is cut; boards/shots.mjs: full made-up boards and the computed padding of each piece;
+    boards/real.mjs: a real ranked game on a private server, then the winner's, the loser's and a stranger's page).
+    Tests: src/skin/boards/__tests__/boards.test.tsx, server/routes/boards.test.ts.
+  - Not done, and told to Brian: the Wins board cannot say where you stand unless you are on the list (the server
+    gives no place for it); the profile still has its own top-100 by XP; nobody has looked at it signed in with a real
+    account (no sign-in on this machine).
+- The leaderboards' stage (Brian, 2026-11-14, of the page above: "make the leaderboards more glorified and unique while
+  still staying in the farm-ish style. it should feel like 'wow i wanna be up there someday, those guys are so cool'").
+  The head of every board is the game's own victory podium, live: src/skin/boards/BoardStage.tsx mounts
+  table/Podium.tsx (the stage he art-directed on 2026-11-08) with the board's first three on its gold, silver and
+  bronze timber. Each has its own dance, the first holds the golden trophy up, the lantern beams sweep, straw and
+  confetti drift. It is the very place a player stands when they win a game, so nothing in it is invented.
+  - A place nobody holds is a block standing empty (`PodiumEntry.vacant`): an empty board is an empty podium waiting.
+  - The server's boards carry names and nothing else, so everyone on the stage is the sheep; only you, if you are up
+    there, wear your own avatar. (Showing other players' animals would need the server to keep avatars; it does not.)
+  - Podium.tsx gained three OPTIONS and nothing else: `shot` (a fixed camera; the stage's is close and level, fov 24),
+    `plates={false}` (no nameplates: at this size three plates run into each other, so the names are on the cards
+    under the stage) and `memory` (its own remembered resolution). Without them it is the victory screen exactly as
+    before; a test pins the defaults, and a real ranked game was played to the victory screen to check it.
+  - Layout: the stage with the three name cards under it as its base, in the order they stand (2nd, 1st, 3rd; the
+    champion's card carries the cup); the card about you beside the stage on a computer (between the cards and the
+    list in a narrow room); the list from fourth place under them. One grid (`.sk-lb-cols`, three areas).
+  - The stage is its own lazy piece: the page is up first (about half a second), the stage about a second later
+    (the box says "Setting the stage..." meanwhile), then 60 frames a second at a computer's and a phone's size on
+    this Mac. Home's farm stops drawing behind the page (`paused`, as behind the Trading Post). Nothing moves when a
+    tab or a "when" button is pressed, at fifteen window sizes; under reduced motion the animals stand still.
+  - Keep `useIsMobile` / `useMotionLevel` out of Leaderboards.tsx (they are in BoardStage.tsx): they need a browser,
+    and the page's test renders it without one.
+  - Not measured: a real phone. The bundle has 0.68 kB of headroom after this.
+- The leaderboards in the sky (Brian, 2026-11-14, third round: "formatting is bad, take screenshots as u go and assess the
+  issues. also, dont make the scenery for this one a barn, maybe place them up on pedastals on the sky with nonchalant
+  poses, like 3rd place sleeping on his belly with his legs dangling off the pedastal ... what i mean by formatting issues
+  is empty space, generic white cardboard looking like pieces, etc, find them all and redo"). This supersedes the layout,
+  the stage and the cards of the two bullets above; their boards, addresses and data stay.
+  - How it was found: the old page was shot at seven sizes and every state (scratchpad audit/), five reviewers with
+    different lenses listed 76 problems (51 after merging, every one upheld by three skeptics), five readers mapped the
+    code, three designs were written and judged, and the build followed the winning one ("a place, as the lobby is").
+  - It is a place, not a dialog: `.rm-screen.sk-lb`, fixed over Home. The sky is the whole screen; a strapped beam
+    (`kit-beam kit-drift`, the Garland under it over the sky only) carries the three boards' tabs (`rm-tab`, lit
+    `kit-lit`), the page's name in plain lettering and the close peg; one plank board (`rm-panel kit-wall kit-drift`) on
+    the right holds the label sign with a short hint (or, on Wins, the Today / This week / All time tabs), the list on
+    dark stitched wool (`Slate` `rm-wool`) with a column head, and your plate at its foot (`Slate` with the ledger's
+    amber ring). No `kit-paper` anywhere (a test checks the markup, source and stylesheet).
+  - The sky (src/skin/boards/BoardStage.tsx, lazy): the farm's day dome pressed flat (`Dome`, now exported from Sky.tsx;
+    no snowfall), the podium's own blocks a metre taller (`blockGeometry(place, lift)` and `carvedGeometry`, the only
+    change to Podium.tsx: two exports and the lift) each on a dream island (`island('windmill', ...)`), the dream's cloud
+    sea far below, four drifting snow-cloud puffs, the trophy standing on first's pedestal. The dream's cloud is lilac;
+    here `whiten` keeps a quarter of its tint and a soft sky-blue glow (`cloudMaterial`) lifts the shadowed steps, or
+    it read as grey stone. The camera is solved from the free part of the screen (`.sk-lb-window`) so the three fill it
+    at any size, and the names hang on their pedestals by `ScreenAnchor`.
+  - The poses are three new Sheep states (Sheep.tsx: `flop`, `perch`, `lounge`), held to the same checks as every other
+    pose for all six animals (src/skin/table/__tests__/loungePose.test.ts, a copy of animalPose.test.ts with its own
+    list). Third: `flop`, asleep on its belly along the front edge, its near legs hanging down the front, head lolled
+    over the corner, slow breath, legs swinging, "z" letters (`.sk-lb-z`). Second: `perch`, sat on the front edge,
+    legs dangling, heels kicking, chewing, looking off. First: `lounge`, leaning back three-quarters to us with the cup
+    beside it, chin up, a slow blink, drawn a size up (1.22) at the front of a taller pedestal (2.9 m, `lift` 1.4) so it
+    is the biggest and highest of the three (second, on the very edge and nearer the camera, drew bigger before). First
+    side-on was tried and hid its face and the cup: do not turn it away.
+    Everyone up there is the sheep at coat 2 (coat 3 and 4 hide the legs), except you, in your own avatar.
+  - Names: the table's own name tag (`.sk-plate`; the champion's in the speaker's berry) with the figure on a small wool
+    plate of the same width under it, hung in the middle of the timber between the numeral and the island. Never wider
+    than the pedestal, never narrower than 124 px; a name of ten letters or more is set smaller. An open place hangs the
+    same tag reading "Open" and a plate "Could be you". On a phone (560 px and under) the tags only.
+  - The list: from 4th (the three are on the pedestals), from 1st with medal tags on a phone. It scrolls in whole lines:
+    the page measures the wool and stretches each line a little so a whole number fills it (`--lb-row`, an effect in
+    Leaderboards.tsx); no line is ever cut at the top or the foot. Under the last line the rest of the wool is one message
+    under a cup ("From 3rd place on, every place is open. Play to take one.", "Every place is open.", "Asking the
+    barn..."), never ruled empty rows (they read as a broken spreadsheet). An empty board, or a board not switched on,
+    says it once on a wool plate at the foot of the sky (on a narrow screen, on the list's wool instead, or it lay over
+    the pedestals' tags). Every board has the same four columns (place, name, a small fact in words: the rank, "107
+    games", "Level 41"; the big figure), so nothing moves sideways between tabs; the head is set in the lines' own size
+    and keeps their scrollbar gutter, so its words sit over their columns. The small fact steps out where the wool is
+    under 440 px (a container query; the rank keeps its badge), and so does the YOU tag (the amber ring stays).
+  - Your plate: your head, your standing ("#12 of 2,431", "No rank yet"), your figure with its unit, how far you are
+    ("855 points to the podium, 99 behind Pip", "You hold first place."), then the show-me switch or one line of small
+    print (dropped on a phone, where the switch stays).
+  - Nothing moves when a tab or a "when" button is pressed, at fourteen sizes from 320 x 568 to 1920 x 1080 (scratchpad
+    boards/moves2.mjs); no real name (12 letters at most) is cut at any of them. On a phone the board's head row stays on
+    every board (the sign; on Wins the "when" tabs in its place), or the list jumped between Wins and the others.
+  - kit.css is loaded after boards.css (PaintedApp imports PaintedHome before skin.css), so `.kit-beam`'s
+    `position: relative` beat the beam's `position: absolute` and pushed it off the right edge: the beam's rule is
+    `.sk-lb .sk-lb-bar`. Check computed styles, not the file, after touching a kit piece here.
+  - A second review of the finished pages (four reviewers, three skeptics) upheld 24 findings; all were fixed but these,
+    left on purpose: the silver and bronze bands stay the podium's own (approved) colours; the unlit tabs stay the
+    lobby's and the close peg the Trading Post's (both approved); Wins shows "107 games" in words, not a win-rate bar. The page is up in about 0.4 s, the sky
+    about a second after, then 60 frames a second at a computer's and a phone's size on this Mac (not a real phone).
+  - The bundle: the page went 2.3 kB over the limit, so the developer preview pages (`?preview=sheep`, `thumb`, `stall`,
+    `doors`, `guide`, `kit`, `lineup`, `strips`, `wendigo`) are now in development builds only (`import.meta.env.DEV` in
+    PaintedApp.tsx): their chunks are gone from the build players load, and there is 13.9 kB of headroom. The bake
+    tools all run against `npm run dev`, where they still work (checked). The budget itself was not raised.

@@ -1,7 +1,7 @@
 # Deploying the game server
 
 The website deploys by itself from `main` (GitHub Pages). The **game server** is separate and is deployed by hand. Nothing in the
-multiplayer, sign-in, friends, boards or shop works for players until this is done.
+multiplayer, sign-in, boards or shop works for players until this is done.
 
 Everything below is written but **has not been run** (no Fly.io account or Docker was available when it was written). Expect to fix small
 things on the first real deploy, and write them down here.
@@ -48,7 +48,8 @@ fly secrets set \
 node scripts/smoke.mjs https://<app>.fly.dev https://your-site-origin
 ```
 
-    It confirms: the health check answers; account, shop, friends, wallet and moderator routes refuse strangers; the leaderboard is public and
+    It confirms: the health check answers; account, shop, wallet and moderator routes refuse strangers; the removed friends routes do not
+    answer; the game leaderboard, the ranked ladder and the level board are public and
     sane; a foreign website is refused by both the API and the game connection; and the development sign-in does not work. All lines must say `ok`.
     (It was run against the production build with a real, freshly migrated Postgres and passed all 13 checks; it has not been run against Fly.io.)
 11. Smoke test on a real phone and a real laptop: sign up, verify the email, finish the profile, make a room, play a game, check the coins arrive.

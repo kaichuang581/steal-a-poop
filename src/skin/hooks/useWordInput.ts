@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { rejectMessage } from '../../lib/messages';
 import { useStore } from '../../state/store';
 import type { MessageView } from '../model/types';
+import { everydayIdeas } from '../tour/ideas';
 
 /**
  * The classic InputBar's behaviour, kept as local state the same way: typed text, the typo fix (submit the same text
@@ -14,6 +15,7 @@ export function useWordInput() {
   const mySeat = useStore((s) => s.mySeat);
   const now = useStore((s) => s.now);
   const suggest = useStore((s) => s.suggest);
+  const dict = useStore((s) => s.dict);
   const [typed, setTyped] = useState('');
   const [hint, setHint] = useState('');
   const [ideas, setIdeas] = useState<string[]>([]);
@@ -66,7 +68,8 @@ export function useWordInput() {
 
   return {
     game, typed, onChange, submit, message, ideas, learning, myTurn, acceptKey,
-    hintIdeas: () => setIdeas(suggest(3)),
+    // Everyday words when the tutorial has its list in (tour/ideas.ts); the engine's picker until then.
+    hintIdeas: () => setIdeas((dict && everydayIdeas(dict, game, 3)) || suggest(3)),
     useIdea: (w: string) => setTyped(w),
   };
 }

@@ -271,17 +271,6 @@ export const FlameIcon = ({ size = 16 }: P) => (
 ..........`, 'var(--flame-light)')}
   </svg>
 );
-export const FriendsIcon = (p: P) => <Pixel {...p} rows={`
-..........
-.##....##.
-.##....##.
-..........
-####..####
-####..####
-####..####
-..........
-..........
-..........`} />;
 export const TrophyIcon = (p: P) => <Pixel {...p} rows={`
 .########.
 ##.####.##

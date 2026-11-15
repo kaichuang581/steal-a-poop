@@ -1,8 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import { loadEnv } from 'vite';
 import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+// With its extension: Vite's own loader for this file, and Node's, resolve it only that way.
+import { bootDoorsCss, bootDoorsMarkup } from './src/skin/loading/bootDoors.ts';
 
 /**
  * Adds a Content-Security-Policy to the BUILT page (not the dev server, which needs inline scripts). It limits where the page may load
@@ -51,10 +54,23 @@ const csp = (mode: string): Plugin => ({
   },
 });
 
+const BASE = '/steal-a-poop/'; // GitHub Pages serves this repo there
+const DOORS_SLOT = '<!--boot-doors-->';
+/**
+ * Writes the loading screen's barn doors into the page itself, shut: their element where index.html marks the place, and
+ * in the head the few rules of skin.css that draw them. The game's code is a few megabytes and the doors are part of it,
+ * so until it had all arrived the page was blank. Written in, the doors show with the first frame, and BarnDoors takes
+ * over from them when it arrives. Plain markup and a style block only: the built page's policy (above) allows no inline script.
+ */
+export function withBootDoors(html: string, skinCss: string = readFileSync('src/skin/styles/skin.css', 'utf8'), base: string = BASE): string {
+  if (!html.includes(DOORS_SLOT) || !html.includes('</head>')) throw new Error(`index.html has lost ${DOORS_SLOT} or its head: the barn doors have nowhere to go`);
+  return html.replace(DOORS_SLOT, bootDoorsMarkup(base)).replace('</head>', `  <style id="boot-doors-style">${bootDoorsCss(skinCss)}</style>\n  </head>`);
+}
+const bootDoors = (): Plugin => ({ name: 'boot-doors', transformIndexHtml: (html) => withBootDoors(html) });
+
 export default defineConfig(({ mode }) => ({
-  // GitHub Pages serves this repo at /steal-a-poop/
-  base: '/steal-a-poop/',
-  plugins: [react(), tailwindcss(), csp(mode)],
+  base: BASE,
+  plugins: [react(), tailwindcss(), csp(mode), bootDoors()],
   test: {
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}', 'server/**/*.test.ts'],

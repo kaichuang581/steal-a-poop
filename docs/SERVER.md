@@ -70,7 +70,7 @@ the server's time (the server sends its clock with every update).
 - **Persistence.** Rooms, suspensions, bans and review items are in memory and vanish on restart.
 - **A public server URL.** Nothing is deployed, so there is nothing for the live site to connect to.
 - **Deployment, TLS, scaling.** One process, one machine.
-- **Spectating, replays, friends, leaderboards.**
+- **Spectating and replays.** (Leaderboards are in `docs/COMMUNITY.md`; the friends list was built and then removed.)
 
 ## Finished games and the server-run Daily Table
 

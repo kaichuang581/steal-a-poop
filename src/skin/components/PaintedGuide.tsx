@@ -15,7 +15,6 @@ type Tab = (typeof TABS)[number];
 const ART: ReactNode[] = [
   <span key="chain" className="flex items-center gap-1"><MiniTile ch="c" /><MiniTile ch="a" /><MiniTile ch="t" hot /></span>,
   <span key="wool" className="flex gap-0.5"><WoolBall full size={22} /><WoolBall full size={22} /><WoolBall full size={22} /></span>,
-  <span key="trap" className="flex gap-0.5"><MiniTile ch="x" /><MiniTile ch="z" /><MiniTile ch="q" /><MiniTile ch="j" /></span>,
   <ClockIcon key="clock" size={30} />,
   <TrophyIcon key="win" size={30} />,
 ];

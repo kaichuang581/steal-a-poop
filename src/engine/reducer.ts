@@ -1,14 +1,13 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  AFTERMATH_MS, BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, EXTRA_WOOL_CAP, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_BOT_MS,
-  PRACTICE_TURN_MS, SOFT_GAME_PRESSURE, TRAP_LETTERS, TURN_MS_BY_ROUND,
+  AFTERMATH_MS, BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_BOT_MS,
+  PRACTICE_TURN_MS, SOFT_GAME_PRESSURE, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
 import { modifierForRound } from './game';
 import { drawInt, drawPick, drawRandom } from './rng';
 import { computeWinners } from './standings';
 import { carriedTurnMs, practiceTurnMs, roundTurnMs, turnDurationMs, wordShiftMs } from './timer';
-import { startingWool } from './settings';
 import type { Action, ActionResult, Difficulty, EventKind, GameState, Round } from './types';
 import { suggestCorrection } from './typos';
 import { hasPlayableWord, validateWord } from './validation';
@@ -87,11 +86,6 @@ function concludeTurn(s: GameState, t: number, wait = 0) {
   startTurn(s, next, t, wait);
 }
 
-/** Most wool a sheep can hold: what it started with plus a little from traps. */
-function woolCap(s: GameState): number {
-  return startingWool(s.settings) + EXTRA_WOOL_CAP;
-}
-
 /** Wool can't go below zero or above the cap; at zero the sheep freezes. Returns true if it froze. */
 function loseWool(s: GameState, seat: number, t: number, why: string): boolean {
   const p = s.players[seat];
@@ -104,11 +98,6 @@ function loseWool(s: GameState, seat: number, t: number, why: string): boolean {
   emit(s, t, 'frozen', seat, `${p.name} is frozen solid`);
   checkLastSheep(s, t);
   return true;
-}
-
-function gainWool(s: GameState, seat: number): void {
-  const p = s.players[seat];
-  p.lives = Math.min(woolCap(s), p.lives + 1);
 }
 
 /** The game ends the moment one sheep (or none) is left unfrozen: last sheep standing wins. */
@@ -138,26 +127,11 @@ function endRound(s: GameState, t: number) {
   emit(s, t, 'roundStart', null, `Round ${s.round}`);
 }
 
-/** Clears a trap aimed at `seat`. If that seat failed, the trapper gets a wool ball. */
-function resolveTrap(s: GameState, seat: number, failed: boolean, t: number) {
-  const trap = s.trap;
-  if (!trap || trap.victimSeat !== seat) return;
-  s.trap = null;
-  if (!failed || s.players[trap.trapperSeat].frozen) return;
-  gainWool(s, trap.trapperSeat);
-  emit(s, t, 'trapSprung', seat, `TRAP! ${s.players[seat].name} failed`, 1);
-}
-
-/**
- * A word ending in X/Z/Q/J traps whoever owns the next turn. Nobody can trap themselves: when the next turn is the
- * trapper's own (they are the last unfrozen player) no trap is set.
- */
-function setTrap(s: GameState, word: string, trapperSeat: number, turnSeat: number) {
-  if (s.mode === 'practice') return;
-  const letter = word[word.length - 1];
-  const victimSeat = nextSeat(s, turnSeat);
-  s.trap = TRAP_LETTERS.has(letter) && victimSeat !== null && victimSeat !== trapperSeat ? { trapperSeat, victimSeat, letter } : null;
-}
+// There are no traps (Brian, 2026-11-13: "idk why it says that getting someone killed will 'give you a wool ball' because
+// that is not how the game works? if that is how the game works for some odd reason fix it immediately"). A word ending
+// in X, Z, Q or J used to trap the next sheep: if it ran out of time, the sheep that set the trap gained a wool ball.
+// Now nothing is ever gained. Wool is only lost, by running out of time, and `GameState.trap` is always null (the field
+// and the `trapSprung` event kind stay in the types so saved games and an older server's states still read).
 
 function recordWord(s: GameState, seat: number, word: string, points: number) {
   const p = s.players[seat];
@@ -175,8 +149,6 @@ function playTurn(s: GameState, seat: number, word: string, t: number) {
   recordWord(s, seat, word, word.length);
   s.history.push({ round: s.round, seat, kind: 'play', word, points: 0 });
   emit(s, t, 'play', seat, `${s.players[seat].name}: ${word.toUpperCase()}`, 0, word);
-  resolveTrap(s, seat, false, t);
-  setTrap(s, word, seat, seat);
   concludeTurn(s, t);
 }
 
@@ -193,7 +165,6 @@ function failTurn(s: GameState, seat: number, t: number) {
   s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: 0 });
   s.carryMs = 0;
   emit(s, t, 'timeout', seat, `Time's up for ${p.name}`, 0);
-  resolveTrap(s, seat, true, t);
   if (woolAtStake(s, seat)) loseWool(s, seat, t, '');
   // The bomb has gone off: the table takes a beat before the next fuse is lit.
   concludeTurn(s, t, AFTERMATH_MS);

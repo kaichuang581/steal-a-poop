@@ -40,7 +40,7 @@ export function Sky({ hour, reduced, blizzard, palette = 'hour' }: SkyProps) {
   );
 }
 
-function Dome({ hour, palette = 'hour' }: { hour: Hour; palette?: SkyPalette }) {
+export function Dome({ hour, palette = 'hour' }: { hour: Hour; palette?: SkyPalette }) {
   const R = DISTANCE.skyRadius;
   const geo = useMemo(() => {
     const g = new SphereGeometry(R, 48, 24);

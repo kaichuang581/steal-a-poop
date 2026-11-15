@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { create } from 'zustand';
 import { playSound } from '../../audio/sound';
@@ -6,15 +6,16 @@ import { useMotionLevel } from '../hooks/useAmbient';
 import { Nails } from '../kit';
 import { pixelRects } from './pixels';
 import { SnowCap } from './SnowCap';
-import { DOOR_BOXES, LINTEL_BEAM, LINTEL_SNOW } from '../loading/doorBoxes';
+import { BOOT_DOORS_ID, FLAKES, doorArt } from '../loading/bootDoors';
 
 /**
  * The loading screen: barn doors over the whole screen, with a slip pinned between them where a sheep hops a fence and
  * the slip says what is being got ready. It is the one loading screen for the whole painted skin: the first load, a game,
  * practice, the dream. Going somewhere new, the doors swing shut over the screen being left and meet with a thud; only
  * then does the new screen start building behind them (`whenDoorsShut`), so the swing never stutters. They stay shut
- * until it is ready, then unlatch and swing in onto it (`whenDoorsOpen`: a game's clock starts there). The very first
- * load starts with them already shut. Never a blank frame, never a half-built scene.
+ * until it is ready, then unlatch and swing in onto it (`whenDoorsOpen`: a game's clock starts there). A page load
+ * starts with them already shut: the page itself comes with shut doors drawn in (loading/bootDoors.ts), so they are up
+ * before this code has arrived, and the first pair here takes over from those. Never a blank frame, never a half-built scene.
  *
  * Ready means: nothing is holding the doors (`useLoadingHold`), and, when the load has a 3D scene, every three.js
  * canvas on the page has drawn a few frames (`MarkDrawn` sets DRAWN_ATTR) and at least one of them is new.
@@ -77,8 +78,22 @@ const CLOSE_MS = 620; // the swing shut (skin.css sk-door-close-*); the doors me
 const CLOSE_REDUCED_MS = 220; // reduced motion: a fade in instead
 const HOLD_MS = 350; // once shut, the doors are seen shut at least this long
 const VEIL_MS = 180; // a quick change: the dark fade, before the new screen mounts
-const GRACE_MS = 800; // and how long the new screen has to be ready before the doors come down after all
-const REVEAL_HOLD_MS = 700; // doors that come down late stay shut until their sign has dropped in (620 ms)
+export const GRACE_MS = 800; // and how long the new screen has to be ready before the doors come down after all
+// Doors that come down late stay shut only until they have finished fading in (skin.css sk-veil-in, 240 ms). It was
+// 700, to let the sign finish dropping, which kept a screen that was ready covered for most of a second.
+export const REVEAL_HOLD_MS = 240;
+/**
+ * The longest gap between two frames that counts, whole, as time spent waiting. Building a 3D screen freezes the page:
+ * no frame is drawn until it is done, so the wait cannot be noticed until it is over. Counting that freeze as waiting
+ * brought the doors down at the very moment the new screen was ready, and then kept them shut over it (measured on a
+ * slow device going into practice: ready at 2.4 s, the doors up from 2.5 s, open at 3.2 s, off screen at 4.3 s;
+ * Brian, 2026-11-13: "make sure ... it isnt just blocking the website for no reason"). So a freeze counts as one
+ * short moment, and the doors come down only for a wait the page is awake through: something still being fetched, or
+ * a build that goes on in steps.
+ */
+export const FROZEN_MS = 100;
+/** The waiting so far, after one more frame that came `dt` ms after the last. */
+export const waitedFor = (waited: number, dt: number) => waited + Math.min(Math.max(dt, 0), FROZEN_MS);
 const GIVE_UP_MS = 15000; // a scene that never draws (no WebGL, something stuck): open anyway this long after it mounted
 const GIVE_UP_TOTAL_MS = 30000; // and never stay shut longer than this, even while the scene is still being built
 /** Whether doors are on screen and not yet opening, so a hold joins them instead of shutting a second pair. */
@@ -86,19 +101,19 @@ export const doorsShut = () => liveKey !== -1;
 let liveKey = -1;
 
 // The baked images, preloaded from index.html so they are in before the doors first draw, and the numbers that lay them
-// out at one voxel size: as big as covers the screen with the doors and the beam above them.
-const art = (part: string) => `url("${import.meta.env.BASE_URL}loading/doors-${part}.webp")`;
-const ART = {
-  '--doors-leaves': art('leaves'), '--doors-lintel': art('lintel'), '--doors-sill': art('sill'),
-  '--vox-cols': DOOR_BOXES.leaves.w, '--leaf-rows': DOOR_BOXES.leaves.h,
-  '--lintel-rows': DOOR_BOXES.lintel.h, '--lintel-above': LINTEL_BEAM + LINTEL_SNOW, '--sill-rows': DOOR_BOXES.sill.h,
-} as CSSProperties;
+// out at one voxel size: as big as covers the screen with the doors and the beam above them. The page's own doors
+// (loading/bootDoors.ts) are laid out from the same ones.
+const ART = doorArt(import.meta.env.BASE_URL) as CSSProperties;
 
-/** A few flakes drifting down in front of the doors: placed by a fixed hash, so every load looks the same. */
-const FLAKES: CSSProperties[] = Array.from({ length: 22 }, (_, i) => {
-  const r = (k: number) => ((Math.sin(i * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
-  return { left: `${(r(1) * 100).toFixed(1)}%`, width: `${4 + Math.round(r(2) * 4)}px`, animationDuration: `${7 + r(3) * 7}s`, animationDelay: `${-r(4) * 14}s`, ['--drift' as string]: `${Math.round((r(5) - 0.5) * 80)}px` } as CSSProperties;
-});
+/** The doors the page came with (index.html), while they are still there. */
+const bootDoors = () => (typeof document === 'undefined' ? null : document.getElementById(BOOT_DOORS_ID));
+
+/** The page comes with shut doors already drawn, whatever it turns out to be. The painted game keeps them
+ *  (`shutDoorsAtBoot`: its first pair takes over from them); anything else that opens here (the old look, a preview, the
+ *  rules pages) is ready at once and calls this to take them away. */
+export function dropBootDoorsUnlessShut() {
+  if (useDoors.getState().key === 0) bootDoors()?.remove();
+}
 
 const LINES = ['Counting the sheep', 'Fluffing the hay', 'Lighting the lanterns', 'Shooing the hens', 'Sweeping the snow off the step'];
 
@@ -139,6 +154,19 @@ function Doors({ id }: { id: number }) {
     before.current = new Set(document.querySelectorAll(`canvas[${DRAWN_ATTR}]`));
     return () => { if (liveKey === id) liveKey = -1; };
   }, [id]);
+  // Taking over from the doors the page came with: these are the same picture in the same place, so the only thing that
+  // could show is the snow starting over. Each flake here picks up where its twin there had got to; then those doors go.
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const boot = bootDoors();
+    if (!boot) return;
+    const theirs = boot.querySelectorAll('.sk-doors-snow i');
+    root.current?.querySelectorAll('.sk-doors-snow i').forEach((flake, i) => {
+      const from = theirs[i]?.getAnimations?.()[0], to = flake.getAnimations?.()[0];
+      if (from && to && from.currentTime !== null) to.currentTime = from.currentTime;
+    });
+    boot.remove();
+  }, []);
   // A quick change: the fade, then the screen behind can mount.
   useEffect(() => {
     if (phase !== 'veiling') return;
@@ -162,16 +190,19 @@ function Doors({ id }: { id: number }) {
     let doorsAt = veilRef.current ? 0 : t0; // when the doors themselves came into view
     let revealed = false;
     let raf = 0;
+    let last = t0, waited = 0; // waiting the page was awake for (see FROZEN_MS)
     const tick = () => {
       const now = performance.now();
       const age = now - t0;
+      waited = waitedFor(waited, now - last);
+      last = now;
       const { holds: h, canvas } = useDoors.getState();
       const scenes = [...document.querySelectorAll('canvas[data-engine]')];
       if (!sceneAt && scenes.some((c) => !before.current!.has(c))) sceneAt = now;
       const drawn = !canvas || (scenes.some((c) => c.hasAttribute(DRAWN_ATTR) && !before.current!.has(c)) && scenes.every((c) => c.hasAttribute(DRAWN_ATTR)));
       const ready = drawn && Object.keys(h).length === 0;
-      // Behind the fade, ready means open straight away; slower than GRACE_MS, and it is a real load: the doors.
-      if (veilRef.current && !ready && age > GRACE_MS) { setVeil(false); doorsAt = now; revealed = true; }
+      // Behind the fade, ready means open straight away; still waiting after GRACE_MS awake, and it is a real load: the doors.
+      if (veilRef.current && !ready && waited > GRACE_MS) { setVeil(false); doorsAt = now; revealed = true; }
       const stuck = (canvas ? sceneAt > 0 && now - sceneAt > GIVE_UP_MS : age > GIVE_UP_MS) || age > GIVE_UP_TOTAL_MS;
       if ((ready && (veilRef.current || now - doorsAt > (revealed ? REVEAL_HOLD_MS : HOLD_MS))) || stuck) return setPhase('open');
       raf = requestAnimationFrame(tick);
@@ -207,7 +238,7 @@ function Doors({ id }: { id: number }) {
   }, [phase, label]);
   if (phase === 'gone') return null;
   return (
-    <div className="sk-doors" data-phase={phase} data-veil={veil || undefined} data-revealed={(quick && !veil) || undefined} role="status" aria-live="polite" aria-label={phase === 'open' ? undefined : 'Loading'} style={ART}>
+    <div ref={root} className="sk-doors" data-phase={phase} data-veil={veil || undefined} data-revealed={(quick && !veil) || undefined} role="status" aria-live="polite" aria-label={phase === 'open' ? undefined : 'Loading'} style={ART}>
       <div className="sk-doors-spill" />
       {/* The doors are voxels baked to images (src/skin/loading, tools/renderDoors.mjs), each leaf showing its half. */}
       <div className="sk-doors-frame">
@@ -218,7 +249,7 @@ function Doors({ id }: { id: number }) {
       <div className="sk-doors-sky" />
       <div className="sk-doors-lintel" />
       <div className="sk-doors-sill" />
-      <div className="sk-doors-snow" aria-hidden="true">{FLAKES.map((f, i) => <i key={i} style={f} />)}</div>
+      <div className="sk-doors-snow" aria-hidden="true">{FLAKES.map((f, i) => <i key={i} style={f as CSSProperties} />)}</div>
       {/* A sign hung from the beam on two ropes once the doors meet: a little moonlit window where a sheep runs and leaps
           a snowy fence, and under it what is being got ready. Only transform and opacity move, so it keeps going while
           the page is busy building a scene. */}

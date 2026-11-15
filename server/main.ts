@@ -21,7 +21,6 @@ import { AccountService, SupabaseAuthAdmin } from './auth/service';
 import { MemoryAccountStore, PostgresAccountStore } from './auth/store';
 import { TokenVerifier } from './auth/tokens';
 import { createAccountRoutes } from './routes/accounts';
-import { createFriendRoutes } from './routes/friends';
 import { createLeaderboardRoutes } from './routes/leaderboard';
 import { createShopRoutes } from './routes/shop';
 import { createOpsRoutes } from './routes/ops';
@@ -34,15 +33,15 @@ import { MemoryEconomyStore, PostgresEconomyStore } from './economy/store';
 import { BarnService } from './barn/service';
 import { MemoryBarnStore, PostgresBarnStore } from './barn/store';
 import { createBarnRoutes } from './routes/barn';
+import { RankedService } from './ranked/service';
+import { MemoryRankedStore, PostgresRankedStore } from './ranked/store';
+import { createRankedRoutes } from './routes/ranked';
 import { MemoryResultsStore, PostgresResultsStore } from './game/results';
 import { GameDataService } from './game/service';
-import { FriendsService } from './social/friends';
-import { MemoryFriendStore, PostgresFriendStore } from './social/friends';
+import { eraseFriendRows } from './social/friendRows';
 import { allRoutes } from './routes';
 import { ClaudeReviewer } from './review';
 import { guestUser } from './guest';
-import { GuestFriends } from './social/guestFriends';
-import { createGuestFriendRoutes } from './routes/guestFriends';
 
 /**
  * Starts the game server.
@@ -166,7 +165,7 @@ if (supabaseUrl) {
     // "dev:<name>" or "dev:<name>#<device id>": the id keeps two people who typed the same name apart.
     const name = token.slice(4).split('#')[0].slice(0, 12).trim();
     if (!name || token.length > 64) return null;
-    // Development players get a profile at once so friends, leaderboards and coins can be tried locally.
+    // Development players get a profile at once so leaderboards and coins can be tried locally.
     const now = Date.now();
     await accountStore.createProfile({
       userId: token, nickname: name, emailHash: '', dateOfBirth: '1990-01-01', country: 'CA', consentStatus: 'not_required', leaderboardVisible: true,
@@ -193,7 +192,7 @@ const mailer: Mailer | null =
   process.env.SMTP_URL && process.env.MAIL_FROM ? new SmtpMailer({ url: process.env.SMTP_URL, from: process.env.MAIL_FROM }) : isProduction ? null : new ConsoleMailer();
 if (!mailer) console.warn('No mail sender is configured (SMTP_URL and MAIL_FROM): sign-ups that need a parent\'s consent will be refused.');
 
-// ---- game data: results, coins, friends ---------------------------------------------------------------
+// ---- game data: results and coins ---------------------------------------------------------------------
 const economyStore = pool ? new PostgresEconomyStore(pool) : new MemoryEconomyStore();
 const economy = new EconomyService(economyStore);
 // The profile's top-100 board names a player only as the game leaderboards would: a live, visible account that is not banned.
@@ -201,18 +200,12 @@ const barn = new BarnService(pool ? new PostgresBarnStore(pool) : new MemoryBarn
   const p = await accountStore.getProfile(id);
   return p && p.deletedAt === null && p.leaderboardVisible && !chat.state(id).banned ? p.nickname : null;
 });
-const presence = { online: (_id: string) => false, guests: (): Array<{ userId: string; name: string }> => [] };
-// Guests' friend codes come from their id and this secret. Set GUEST_CODE_SECRET in production; the fallback only keeps development working.
-const guestFriends = new GuestFriends({ secret: process.env.GUEST_CODE_SECRET || 'steal-a-poop-guest-friend-codes' });
-let notify: (userId: string, msg: object) => void = () => undefined;
-const friends = new FriendsService({
-  store: pool ? new PostgresFriendStore(pool) : new MemoryFriendStore(),
-  accounts: accountStore,
-  blocks,
-  now: Date.now,
-  online: (id) => presence.online(id),
-  cosmetics: (id) => economy.cachedCosmetics(id),
+// Ranked ratings. Its board names a player only as the other boards would.
+const ranked = new RankedService(pool ? new PostgresRankedStore(pool) : new MemoryRankedStore(), Date.now, async (id) => {
+  const p = await accountStore.getProfile(id);
+  return p && p.deletedAt === null && p.leaderboardVisible && !chat.state(id).banned ? p.nickname : null;
 });
+let notify: (userId: string, msg: object) => void = () => undefined;
 const gameData = new GameDataService({
   results: pool ? new PostgresResultsStore(pool) : new MemoryResultsStore(),
   accounts: accountStore,
@@ -225,7 +218,7 @@ const gameData = new GameDataService({
 
 const accounts = new AccountService({
   standing: (id) => ({ suspendedUntil: chat.state(id).suspendedUntil, openItems: chat.status(id).openItems }),
-  erasers: [(id) => gameData.erase(id), (id) => friends.erase(id), (id) => barn.erase(id)],
+  erasers: [(id) => gameData.erase(id), (id) => eraseFriendRows(pool, id), (id) => barn.erase(id), (id) => ranked.erase(id)],
   store: accountStore,
   now: Date.now,
   mailer,
@@ -273,11 +266,10 @@ const httpServer = createHttpServer({
   routes: [
     ...allRoutes,
     ...createModerationRoutes({ chat, reporting, economy: economyStore, audit, log: console.log }),
-    ...createFriendRoutes({ friends }),
-    ...createGuestFriendRoutes({ friends: guestFriends, online: () => presence.guests() }),
     ...createLeaderboardRoutes({ data: gameData, accounts }),
     ...createShopRoutes({ economy, store: economyStore }),
     ...createBarnRoutes({ barn }),
+    ...createRankedRoutes({ ranked }),
     ...createOpsRoutes({ snapshot: takeSnapshot }),
     ...createFeedbackRoutes({ token: process.env.GITHUB_FEEDBACK_TOKEN, repo: process.env.GITHUB_FEEDBACK_REPO || 'kaichuang581/steal-a-poop' }),
     ...createAccountRoutes({ service: accounts, captcha: turnstileSecret ? new TurnstileVerifier({ secret: turnstileSecret }) : new DevCaptcha() }),
@@ -300,8 +292,8 @@ process.on('unhandledRejection', (reason) => {
 const server = await startServer({
   onGameFinished: (result) => gameData.record(result),
   dailyGate: { reserve: (userId, date) => gameData.claimDaily(userId, date) },
-  friends,
   cosmetics: economy,
+  ranked,
   blocks,
   revocations: bus,
   audit,
@@ -323,8 +315,6 @@ const server = await startServer({
   },
 });
 serverRef = server;
-presence.online = server.isOnline;
-presence.guests = server.onlineGuests;
 notify = server.notify;
 const alertUrl = process.env.ALERT_WEBHOOK_URL;
 const stopAlerts = alertUrl

@@ -11,8 +11,25 @@ export interface RoomSettings {
   turnsPerRound: 2 | 3 | 5;
   lives: 1 | 2 | 3 | 5;
   twists: boolean;
+  /**
+   * How many farm sheep (bots) the host has put at the table, 0 to MAX_BOTS: none for people only, some for a mixed
+   * table, and with nobody else in the lobby a game against bots alone. Null is the old rule, kept for the Quick play
+   * queue and for a lobby whose host never chose: farm sheep fill the table to MIN_TABLE and two people are needed.
+   */
+  bots: number | null;
+  /** How good the farm sheep are. */
+  botLevel: 'easy' | 'medium' | 'hard';
 }
-export const DEFAULT_ROOM_SETTINGS: RoomSettings = { turnsPerRound: 2, lives: 3, twists: true };
+/** The most farm sheep a host can add. The table never seats more than MAX_ROOM_SIZE, people and bots together. */
+export const MAX_BOTS = 7;
+export const DEFAULT_ROOM_SETTINGS: RoomSettings = { turnsPerRound: 2, lives: 3, twists: true, bots: null, botLevel: 'medium' };
+
+/** Ranked tables (src/lib/ranked.ts has the ladder): people only, started by the server itself. */
+export { RANKED_MAX_PLAYERS, RANKED_MIN_PLAYERS } from '../src/lib/ranked';
+/** A ranked table starts this long after its second player sits down, so a third and fourth can still make it. */
+export const RANKED_WAIT_MS = 20_000;
+/** A full ranked table starts this soon. */
+export const RANKED_FULL_WAIT_MS = 4_000;
 
 export type Visibility = 'public' | 'private';
 export type RoomPhase = 'lobby' | 'playing' | 'finished';
@@ -54,6 +71,16 @@ export interface Room {
   kicked: string[];
   /** When the game ended, for clean-up. */
   finishedAt: number | null;
+  /** A ranked table: opened by the ranked queue, accounts only, no farm sheep, fixed rules, and it starts itself. */
+  ranked: boolean;
+  /** Ranked, in the lobby: when the game will start (server time), or null while it still waits for a second player. */
+  startAt: number | null;
+  /** Ranked: who sat where when the game began. `seatOf` loses a player who leaves; this keeps them, to be placed. */
+  ratedSeats: { userId: string; seat: number }[];
+  /** Ranked: when each player who walked out of the running game did so. */
+  leftAt: Record<string, number>;
+  /** Ranked, once the game is over and the ratings are in: each player's change. */
+  rated: Record<string, { before: number; after: number; delta: number; place: number }> | null;
 }
 
 export type RoomError =
@@ -71,7 +98,9 @@ export type RoomError =
   | 'kicked'
   | 'cannot_target'
   | 'daily_used'
-  | 'daily_unavailable';
+  | 'daily_unavailable'
+  | 'account_required'
+  | 'ranked_room';
 
 export type Ok<T = object> = { ok: true } & T;
 export type Err = { ok: false; error: RoomError };

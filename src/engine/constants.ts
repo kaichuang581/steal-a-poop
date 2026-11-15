@@ -44,14 +44,11 @@ export const CORNER_LETTERS = new Set(['x', 'z', 'q', 'j', 'y', 'k']);
 export const FAIL_PENALTY = 5;
 /** Wool balls each sheep starts with (normal games). */
 export const LIVES_PER_GAME = 3;
-/** A sheep can hold this many wool balls more than it started with (from traps). */
-export const EXTRA_WOOL_CAP = 2;
 /** A bot's chance of fumbling grows as turns get shorter, up to this much on top of its base. */
 export const BOT_PRESSURE_FAIL = 0.25;
 /** A soft game (see GameSettings.softGame) adds this share of BOT_PRESSURE_FAIL to every bot's chance of fumbling. */
 export const SOFT_GAME_PRESSURE = 0.5;
-export const TRAP_PAYOUT = 5;
-
+/** The four hardest letters to start a word with. They once set a trap (see reducer.ts); now they are only hard. */
 export const TRAP_LETTERS = new Set(['x', 'z', 'q', 'j']);
 export const LETTER_BONUS: Record<string, number> = {
   x: 3, z: 3, q: 3, j: 3,

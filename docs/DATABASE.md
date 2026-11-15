@@ -58,7 +58,7 @@ why the backup must be tested before launch.
 - A backup you have never restored is a hope, not a backup. **Restore drill** (do it once on staging before launch, and after any major change):
   1. In the dashboard, restore to a point in time (or from a daily backup) into a **new** project, never over the live one.
   2. Run `DATABASE_URL=<new project> npm run migrate -- --dry-run`: it should say there is nothing to apply.
-  3. Point a local copy of the server at it and sign in; check that profiles, a stored game, a wallet balance and a friend link are present.
+  3. Point a local copy of the server at it and sign in; check that profiles, a stored game and a wallet balance are present.
   4. Write down how long it took and what was missing.
 - Moderation evidence and child-safety reports are **kept for legal reasons**. They must be in every backup, and backups must not be deleted
   early because someone asked for deletion: tell your lawyer how long backups are kept (`docs/legal/data-retention.md`).

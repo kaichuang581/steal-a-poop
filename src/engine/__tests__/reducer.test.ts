@@ -81,19 +81,20 @@ describe('players', () => {
   });
 });
 
-describe('letter trap', () => {
-  it('gives the trapper a wool ball when the next player times out', () => {
+describe('no traps', () => {
+  // Ending on X, Z, Q or J used to pay a wool ball when the next sheep ran out of time. Brian, 2026-11-13: "that is not
+  // how the game works ... fix it immediately". Nobody gains wool from anybody's time-out.
+  it('a word ending in X sets nothing, and the next player timing out pays nobody', () => {
     const r = apply(humanTurn('t'), ctx, { type: 'play', seat: 0, word: 'tax' }, start + 100);
-    expect(r.state.trap).toMatchObject({ trapperSeat: 0, victimSeat: 1, letter: 'x' });
+    expect(r.state.trap).toBeNull();
     const s = freezeBots(r.state);
     const out = advance(s, ctx, s.turn!.endsAt);
-    expect(out.players[0].lives).toBe(4);
+    expect(out.players[0].lives).toBe(3);
     expect(out.players[1].lives).toBe(2);
-    expect(out.players[0].banked).toBe(0);
     expect(out.trap).toBeNull();
-    expect(out.events.find((e) => e.kind === 'trapSprung')).toMatchObject({ seat: 1, amount: 1 });
+    expect(out.events.some((e) => e.kind === 'trapSprung')).toBe(false);
   });
-  it('no payout when the next player answers', () => {
+  it('and nothing happens when the next player answers', () => {
     const r = apply(humanTurn('t'), ctx, { type: 'play', seat: 0, word: 'tax' }, start + 100);
     const s = freezeBots(r.state);
     s.players[1].isHuman = true; // let the test drive seat 1

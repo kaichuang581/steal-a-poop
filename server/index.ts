@@ -6,7 +6,7 @@ import { utcDateKey } from '../src/engine';
 import type { EngineContext } from '../src/engine';
 import { ChatService } from './chat';
 import { RateLimiter } from './ratelimit';
-import { RoomManager, toGameResult } from './rooms';
+import { RoomManager, rankedPlaces, toGameResult } from './rooms';
 import type { ClientAction } from './rooms';
 import type { RoomError, Visibility } from './types';
 import { BlockList } from './blocks';
@@ -15,6 +15,8 @@ import type { RevocationBus } from './auth/revocations';
 import type { Cosmetics } from '../src/net/protocol';
 import { ADMIN_AVATAR_ID, isAvatarId } from '../src/avatars/ids';
 import { clientAddress, limitKey } from './address';
+import { isGuestId } from './guest';
+import type { RatingChange } from '../src/lib/ranked';
 
 export type { AuthUser, VerifyToken } from './contracts';
 
@@ -35,8 +37,6 @@ export interface ServerOptions {
   audit?: AuditLog;
   /** Told when a login ends or an account changes, so open connections can be closed or refreshed. */
   revocations?: RevocationBus;
-  /** Friends, for invites. Without it invites are refused. */
-  friends?: { areFriends(a: string, b: string): Promise<boolean> };
   /** Cosmetics shown beside names in rooms. */
   cosmetics?: { cosmetics(userId: string): Promise<Cosmetics>; cachedCosmetics(userId: string): Cosmetics | undefined; onCosmetics(l: (userId: string, c: Cosmetics) => void): () => void };
   randomInt: (n: number) => number;
@@ -50,6 +50,14 @@ export interface ServerOptions {
   nameAllowed?: (name: string) => boolean;
   /** Accounts allowed to wear the admin avatar (Brian's photo), besides moderators. */
   adminUserIds?: readonly string[];
+  /** Ranked ratings. Without it there is no ranked queue: `ranked` is refused. */
+  ranked?: {
+    /** Reads a player's rating so their name can carry it at the table. */
+    load(userId: string): Promise<number>;
+    cached(userId: string): number | undefined;
+    /** A ranked game is over: rates everyone by where they finished and stores it. */
+    finish(places: readonly { userId: string; place: number }[]): Promise<Record<string, RatingChange>>;
+  };
 }
 
 export interface ConnectionLimits {
@@ -85,6 +93,7 @@ export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> =
   create: [10, 60_000],
   join: [30, 60_000],
   quick: [30, 60_000],
+  ranked: [30, 60_000],
   options: [60, 60_000],
   leave: [10, 60_000],
   start: [10, 60_000],
@@ -98,17 +107,17 @@ export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> =
   mute: [30, 60_000],
   kick: [20, 60_000],
   auth: [10, 60_000],
-  invite: [20, 60_000],
   avatar: [10, 60_000],
 };
 
 type ClientMsg =
   | { t: 'hello'; token: string }
   | { t: 'rooms' }
-  | { t: 'create'; visibility: Visibility; roomName?: string; turnsPerRound?: unknown; lives?: unknown; twists?: unknown }
+  | { t: 'create'; visibility: Visibility; roomName?: string; turnsPerRound?: unknown; lives?: unknown; twists?: unknown; bots?: unknown; botLevel?: unknown }
   | { t: 'join'; code: string }
   | { t: 'quick' }
-  | { t: 'options'; turnsPerRound?: unknown; lives?: unknown; twists?: unknown; visibility?: unknown }
+  | { t: 'ranked' }
+  | { t: 'options'; turnsPerRound?: unknown; lives?: unknown; twists?: unknown; visibility?: unknown; bots?: unknown; botLevel?: unknown }
   | { t: 'leave' }
   | { t: 'start' }
   | { t: 'daily' }
@@ -121,7 +130,6 @@ type ClientMsg =
   | { t: 'mute'; on: boolean; userId?: string }
   | { t: 'kick'; userId: string }
   | { t: 'auth'; token: string }
-  | { t: 'invite'; userId: string }
   | { t: 'avatar'; id: string | null };
 
 const MAX_PAYLOAD = 4096;
@@ -140,6 +148,17 @@ export async function startServer(opts: ServerOptions) {
         void Promise.resolve(opts.onGameFinished?.(toGameResult(room, now()))).catch(() => undefined);
       } catch {
         /* ignored on purpose */
+      }
+      // A ranked game: rate everyone who sat down, then show the table what changed.
+      if (room.ranked && opts.ranked) {
+        try {
+          void opts.ranked.finish(rankedPlaces(room)).then((rated) => {
+            room.rated = rated;
+            broadcastRoom(room.code);
+          }).catch(() => undefined);
+        } catch {
+          /* ignored on purpose */
+        }
       }
     },
   });
@@ -180,18 +199,17 @@ export async function startServer(opts: ServerOptions) {
     const view = rooms.view(code);
     if (!view) return;
     const serverNow = now(); // timers in the game state are in server time; clients correct for the difference
-    const dressed = { ...view, members: view.members.map((m) => ({ ...m, cosmetics: opts.cosmetics?.cachedCosmetics(m.userId), avatar: avatars.get(m.userId) })) };
+    const dressed = { ...view, members: view.members.map((m) => ({ ...m, cosmetics: opts.cosmetics?.cachedCosmetics(m.userId), avatar: avatars.get(m.userId), rating: view.ranked ? opts.ranked?.cached(m.userId) : undefined })) };
     for (const m of view.members) sendTo(m.userId, { t: 'room', view: dressed, serverNow, you: { userId: m.userId, seat: view.seatOf[m.userId] ?? null } });
   };
   /** The avatar each connected player picked: a validated id from a fixed list, never text. */
   const avatars = new Map<string, string>();
   const blocks = opts.blocks ?? new BlockList();
-  const recentInvites = new Map<string, number>();
   const sendBlocks = (userId: string) => sendTo(userId, { t: 'blocks', list: blocks.list(userId) });
   const hostAction = (hostId: string, action: 'host_kick' | 'host_mute' | 'host_unmute', roomCode: string, target: string | null) => {
     void opts.audit?.record({ at: now(), actor: hostId, action, userId: target ?? undefined, details: { roomCode } }).catch(() => {});
   };
-  const fail = (ws: WebSocket, error: RoomError | 'bad_message' | 'rate_limited' | 'not_signed_in') => send(ws, { t: 'error', error });
+  const fail = (ws: WebSocket, error: RoomError | 'bad_message' | 'rate_limited' | 'not_signed_in' | 'ranked_unavailable') => send(ws, { t: 'error', error });
 
   async function handle(ws: WebSocket, userRef: { user: AuthUser | null }, msg: ClientMsg) {
     if (msg.t === 'hello') {
@@ -240,22 +258,6 @@ export async function startServer(opts: ServerOptions) {
         if (here) broadcastRoom(here.code);
         return;
       }
-      case 'invite': {
-        const target = String(msg.userId ?? '');
-        const reply = (ok: boolean, reason: string | null = null) => send(ws, { t: 'inviteResult', ok, reason });
-        const room = rooms.roomFor(userId);
-        if (!room || room.kind !== 'room' || room.phase !== 'lobby') return reply(false, 'not_in_lobby');
-        if (!user.chatAllowed || !opts.friends || !(await opts.friends.areFriends(userId, target))) return reply(false, 'friends_only');
-        if (blocks.isBlocked(userId, target) || blocks.isBlocked(target, userId)) return reply(false, 'friends_only'); // never says which way
-        if (rooms.roomFor(target)) return reply(false, 'busy');
-        const targetSocket = sockets.get(target);
-        if (!targetSocket) return reply(false, 'offline');
-        const key = `${userId}|${target}|${room.code}`;
-        if (now() - (recentInvites.get(key) ?? -Infinity) < 30_000) return reply(false, 'already_invited');
-        recentInvites.set(key, now());
-        send(targetSocket, { t: 'invited', from: { userId, name }, code: room.code, roomName: room.name });
-        return reply(true);
-      }
       case 'auth': {
         // A fresh token for the same login before the old one expires. Anything else ends the connection.
         const fresh = typeof msg.token === 'string' ? await opts.verifyToken(msg.token).catch(() => null) : null;
@@ -274,6 +276,8 @@ export async function startServer(opts: ServerOptions) {
         if (!r.ok) return fail(ws, r.error);
         // The game length picked on the way in. A value that is not on the list leaves the room on the standard game.
         rooms.setOptions(userId, { turnsPerRound: msg.turnsPerRound, lives: msg.lives, twists: msg.twists });
+        // And the farm sheep, sent apart so that a bad number there cannot cost the lobby its game length.
+        rooms.setOptions(userId, { bots: msg.bots, botLevel: msg.botLevel });
         return broadcastRoom(r.code);
       }
       case 'join': {
@@ -288,8 +292,19 @@ export async function startServer(opts: ServerOptions) {
         if (!r.ok) return fail(ws, r.error);
         return broadcastRoom(r.code);
       }
+      case 'ranked': {
+        if (!opts.ranked) return fail(ws, 'ranked_unavailable');
+        // Ranked is for accounts: a guest has nothing to be rated on, and neither has a player whose results are not kept.
+        if (isGuestId(userId) || user.resultsAllowed === false) return fail(ws, 'account_required');
+        if (!joinLimit.allow(userId, now())) return fail(ws, 'rate_limited');
+        await opts.ranked.load(userId).catch(() => undefined); // so the table shows their rank from the first view
+        if (ws.readyState !== ws.OPEN) return;
+        const r = rooms.rankedJoin(userId, name);
+        if (!r.ok) return fail(ws, r.error);
+        return broadcastRoom(r.code);
+      }
       case 'options': {
-        const r = rooms.setOptions(userId, { turnsPerRound: msg.turnsPerRound, lives: msg.lives, twists: msg.twists, visibility: msg.visibility });
+        const r = rooms.setOptions(userId, { turnsPerRound: msg.turnsPerRound, lives: msg.lives, twists: msg.twists, visibility: msg.visibility, bots: msg.bots, botLevel: msg.botLevel });
         if (!r.ok) return fail(ws, r.error);
         return broadcastRoom(r.code);
       }
@@ -540,7 +555,6 @@ export async function startServer(opts: ServerOptions) {
     for (const l of limiters.values()) l.prune(at);
     for (const l of [createLimit, joinLimit, blockLimit, abuse]) l.prune(at);
     opts.chat.prune();
-    for (const [k, t] of recentInvites) if (at - t > 60_000) recentInvites.delete(k);
     for (const id of [...names.keys()]) if (!sockets.has(id) && !rooms.roomFor(id)) names.delete(id);
   }, Math.min(30_000, Math.max(1000, finishedTtl / 4)));
 
@@ -551,8 +565,6 @@ export async function startServer(opts: ServerOptions) {
     /** Open sockets, for monitoring. */
     connections: () => total,
     isOnline: (userId: string) => sockets.get(userId)?.readyState === 1,
-    /** Guests connected now (id and name): the guest friends list's online dots. */
-    onlineGuests: (): Array<{ userId: string; name: string }> => [...sockets].filter(([id, ws]) => id.startsWith('guest:') && ws.readyState === 1).map(([id]) => ({ userId: id, name: names.get(id) ?? '' })),
     /** Sends a message to one signed-in player, if they are connected. */
     notify: (userId: string, msg: object) => sendTo(userId, msg),
     async close() {

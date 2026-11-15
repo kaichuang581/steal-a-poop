@@ -11,7 +11,6 @@ import { EconomyService } from './economy/service';
 import { MemoryEconomyStore } from './economy/store';
 import { MemoryResultsStore } from './game/results';
 import { GameDataService } from './game/service';
-import { FriendsService, MemoryFriendStore } from './social/friends';
 
 // The real server with the real game-data services (in-memory stores), the way main.ts wires them. Time is ours to move,
 // so a whole Daily Table can be played in a moment.
@@ -37,10 +36,9 @@ async function boot() {
     results, accounts, economy, isBanned: (id) => chat.state(id).banned, now: () => clock,
     onAward: (id, r) => notify(id, { t: 'reward', coins: r.coins, parts: r.parts, balance: r.balance }),
   });
-  const friends = new FriendsService({ store: new MemoryFriendStore(), accounts, blocks, now: () => clock, online: () => true });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 20, reviewEveryMs: 60_000, now: () => clock,
-    limits: { shutdownGraceMs: 0 }, blocks, friends, cosmetics: economy,
+    limits: { shutdownGraceMs: 0 }, blocks, cosmetics: economy,
     onGameFinished: (r) => data.record(r),
     dailyGate: { reserve: (u, d) => data.claimDaily(u, d) },
     verifyToken: async (t) => {

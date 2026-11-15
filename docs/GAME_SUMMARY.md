@@ -13,7 +13,7 @@ Live site: https://kaichuang581.github.io/steal-a-poop/ (GitHub Pages, deployed 
 - **Tutorial.** A real game with scripted bots that guides a first game and explains the rules. Reachable from the home screen and Settings.
 - **Counting Sheep.** A nightly dream mode in the painted look: an endless runner where the sheep jumps fences by typing words that match each fence's letters. One dream per night for everyone (same fences). Dreams reset at local midnight. Has streaks, a results board and a share card.
 - **Word of the day.** A dictionary-style word on the home screen, with pronunciation, part of speech and a short meaning. Written for the game. Changes at midnight.
-- **Rooms and friends (server features).** Groups of 4 to 10 players with chat, invites and leaderboards. These need the game server and a Supabase project. They are built but not switched on for the public site until the server is deployed (see `docs/LAUNCH.md`).
+- **Rooms (server features).** Groups of 2 to 10 players with chat and leaderboards, joined by a party code or link. These need the game server and a Supabase project. They are built but not switched on for the public site until the server is deployed (see `docs/LAUNCH.md`).
 - **Hunt.** Removed in 0.5.0.
 
 ## Core rules (quick and room games)
@@ -47,7 +47,7 @@ Each turn the timer is an ice bomb that sits on the floor beside the sheep whose
 ## Accounts and safety
 - Sign-in is optional for solo play. Guests choose a username and play on one device; their progress is kept in that browser only.
 - Accounts (email and password, or Google) need Supabase and the game server. Not live on the public site yet.
-- A username-only account never gives its age, so it can't chat, use friends or appear on public boards.
+- A username-only account never gives its age, so it can't chat or appear on public boards.
 - Players under the age of digital consent need a parent's permission for chat and saved results. Consent emails link to a parent page.
 - Names are checked against a filter (rude, sexual and hateful words, including look-alike spellings). Chat is filtered and reviewed. Players can report messages. Moderators have a review queue.
 - Legal pages (privacy, terms, child safety) are drafts marked "not reviewed by a lawyer" until a lawyer finishes them.
@@ -56,7 +56,7 @@ Each turn the timer is an ice bomb that sits on the floor beside the sheep whose
 - Vite, React, TypeScript, Tailwind, Zustand, Framer Motion, three.js for the 3D scenes. Web Audio for sound (no audio files; music is made live in the browser).
 - The game engine (`src/engine/`) is pure TypeScript with no React. It is deterministic: the same seed and the same actions replay exactly. The UI only passes timestamps.
 - The UI reads the store; the store talks to the engine through a client interface that a server can replace.
-- The server (`server/`) is a Node WebSocket and HTTP server with Postgres (Supabase) for accounts, results, friends and moderation.
+- The server (`server/`) is a Node WebSocket and HTTP server with Postgres (Supabase) for accounts, results and moderation.
 - Tests: Vitest for unit tests, Playwright for browser tests (run on the classic look), an accessibility scan with axe, a bundle size check, and a bot-vs-bot balance simulator (`npm run simulate`).
 
 ## Where things are

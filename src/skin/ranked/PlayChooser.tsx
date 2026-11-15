@@ -9,7 +9,7 @@ import './ranked.css';
 const ART = (name: 'casual' | 'ranked') => `${import.meta.env.BASE_URL}play/${name}.webp`;
 
 /**
- * What Play opens (Brian, 2026-11-13: "when u press play, it gives u two options that pop up on ur screen, casual and
+ * What Queue opens (Brian, 2026-11-13: "when u press play, it gives u two options that pop up on ur screen, casual and
  * ranked. make the casual side popup be a relaxed sort of sheep icon background/scenery and the ranked look more like
  * a competitive thing"). Two cards, both for games with real people. Casual is the farm by day on cream paper;
  * Ranked is the face-off on the ice at night on slate, with your rank and the ladder you climb.
@@ -23,7 +23,13 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
 }) {
   const me = useRanked((s) => s.me);
   const first = useRef<HTMLButtonElement>(null);
-  useEffect(() => { first.current?.focus({ preventScroll: true }); }, []);
+  // Focus goes to the first card's button, and back to whatever opened the chooser (Queue) when it shuts, so the menu
+  // keeps Queue lit instead of dropping its highlight (and its slight shift) when the chooser closes.
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    first.current?.focus({ preventScroll: true });
+    return () => { if (opener?.isConnected) opener.focus({ preventScroll: true }); };
+  }, []);
   useEffect(() => { if (rank === 'play') void useRanked.getState().load(); }, [rank]);
   useEffect(() => {
     const on = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
@@ -32,7 +38,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
   }, [onClose]);
   const mine = me ? rankOf(me.rating) : null;
   return (
-    <div className="sk-play" role="dialog" aria-modal="true" aria-label="Play" onClick={onClose}>
+    <div className="sk-play" role="dialog" aria-modal="true" aria-label="Queue" onClick={onClose}>
       <div className="sk-play-box" onClick={(e) => e.stopPropagation()}>
         <div className="sk-play-head">
           <h2>Play with real people</h2>
@@ -44,7 +50,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
             <img className="sk-play-art" src={ART('casual')} alt="" width={800} height={500} />
             <div className="sk-play-body">
               <h3>Casual</h3>
-              <p className="sk-play-line">Wander into an open barn and play whoever is there. Nothing rides on it.</p>
+              <p className="sk-play-line">We find you an open barn with real people. Nothing rides on it.</p>
               <ul className="sk-play-facts">
                 <li>Any number of players; farm sheep take the empty seats</li>
                 <li>No account needed</li>

@@ -161,7 +161,7 @@ export function PaintedRoom() {
           <i className="kit-beam-strap" /><i className="kit-beam-strap" />
           <button className="rm-tab rm-back" onClick={leave}>← {lobby ? 'Leave' : 'Leave queue'}</button>
           <div className="rm-title">
-            <h1 className="rm-name">{ranked ? 'Ranked' : queue ? 'Quick play' : room.name}</h1>
+            <h1 className="rm-name">{ranked ? 'Ranked' : queue ? 'Casual' : room.name}</h1>
             <Tag tone={ranked ? 'flame' : room.visibility === 'public' ? 'green' : 'gold'}>{ranked ? 'ranked queue' : queue ? 'in queue' : room.visibility === 'public' ? 'public' : 'friends only'}</Tag>
           </div>
           {lobby ? (

@@ -31,7 +31,7 @@ import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, FlameIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, FlameIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
@@ -72,7 +72,7 @@ const DIFFS: { id: Difficulty; icon: ReactNode }[] = [
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
-/** What Quick play and Play say in a copy of the game that has no server to reach. */
+/** What Queue says in a copy of the game that has no server to reach. */
 const NO_SERVER = 'Real people need the game server, and this copy of the game has none. Custom game plays the farm sheep.';
 
 const TIPS = [
@@ -115,7 +115,7 @@ export function PaintedHome() {
   const avatar = useAvatar();
   const [gear, setGear] = useState(false);
   const [error, setError] = useState('');
-  // Play opens two cards, Casual and Ranked, over the menu.
+  // Queue opens two cards, Casual and Ranked, over the menu.
   const [chooser, setChooser] = useState(false);
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
@@ -165,8 +165,8 @@ export function PaintedHome() {
     setCopiedDream(true);
     setTimeout(() => setCopiedDream(false), 2000);
   };
-  // Real people are the default once a game server is configured: Quick play lands in an open barn, Play opens a lobby
-  // of your own, and a party code joins a friend's. Signed in, the account's name is used; signed out, a guest plays
+  // Real people are the default once a game server is configured: Queue searches for a game (Casual or Ranked), Create lobby
+  // makes one of your own, and a party code joins a friend's. Signed in, the account's name is used; signed out, a guest plays
   // under the name on the plate (no account needed; progress stays in this browser).
   const online = (intent: Intent) => setError(enterOnline(intent) ?? '');
   // Game length (plan V3.3 Part 2.6): a preset sets every rule; touching a rule makes it Custom. Saved with the other settings.
@@ -198,18 +198,19 @@ export function PaintedHome() {
   };
 
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  // Quick play and Play are for real people, always (Brian, 2026-11-13: "quick play and play should not bring you into
-  // bot lobbies"). The farm sheep are behind Custom game, Practice and the Tutorial, and nowhere else. A copy of the game
-  // with no server to reach (local development without one) still shows both: they say why they cannot be used.
+  // Queue and Create lobby are the two ways into a game with people (Brian, 2026-11-14: "remove quickplay ... make the green
+  // button 'Queue' ... queue is what brings you into searching for a lobby ... create lobby is creating a lobby yourself").
+  // Queue is matchmaking: it opens Casual or Ranked and the server finds the game. Create lobby makes a room of your own.
+  // The queue is for real people, always (Brian, 2026-11-13: "quick play and play should not bring you into bot lobbies").
+  // A copy of the game with no server to reach (local development without one) still shows Queue: it says why it cannot be used.
   const items: MenuItem[] = [
-    { id: 'start', label: 'Quick play', caption: rooms ? 'Join the queue: straight into an open barn with real people.' : NO_SERVER, disabled: entering, onSelect: () => online({ t: 'quick' }) },
-    { id: 'play', label: 'Play', caption: rooms ? 'Casual or ranked, with real people. Pick one.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : online({ t: 'quick' })) },
+    { id: 'queue', label: 'Queue', caption: rooms ? 'Search for a game with real people: casual or ranked.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : online({ t: 'quick' })) },
     // One lobby for every table you set yourself (Brian, 2026-11-14: "make custom game and create lobby the same thing ...
     // only with bots, only players, or bots and players"): inside it the host adds farm sheep, invites friends, or both.
     // It opens with the farm sheep the host had last time. With no server there is no lobby to open, so the same item
     // sets a table of farm sheep on this device.
     rooms
-      ? { id: 'lobby', label: 'Create lobby', caption: 'Your own barn: add farm sheep (bots), invite friends with the party code, or both.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private', ...lobbyBots() }) }
+      ? { id: 'lobby', label: 'Create lobby', caption: 'Make your own barn: add farm sheep (bots), invite friends with the party code, or both.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private', ...lobbyBots() }) }
       : { id: 'lobby', label: ready ? 'Create lobby' : 'Loading…', caption: 'Set a table of farm sheep (bots), then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     ...(rooms ? [
       { id: 'join', label: 'Join party', caption: 'Got a party code from a friend? Type it in.', onSelect: () => { setPartyCode(''); setStep('join'); } },
@@ -247,6 +248,10 @@ export function PaintedHome() {
       id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${formatCoins(wool)} Wool Coins`}><CoinArt size={11} />{formatCoins(wool, true)}</MenuTag>,
       caption: 'Feed Sacks of bomb skins, bursts and fuse sounds, missions, and your collection.', onSelect: () => setBazaar(true),
     },
+    // The leaderboards sit under the Trading Post in the menu (Brian, 2026-11-14: "keep the full page but put it below the
+    // trading post button ... in the same area though so the font and everything should match"). It was a trophy button
+    // in the top bar. They need the game server, like the queue.
+    ...(rooms ? [{ id: 'boards', label: 'Leaderboards', caption: 'The best players: Ranked, Wins and Level, and where you stand.', onSelect: () => setBoards(true) }] satisfies MenuItem[] : []),
   ];
   // The name plate opens the profile, where the name, the avatar and the stats live.
   const shownName = (signedIn ? accountName : settings.name) || '';
@@ -420,7 +425,6 @@ export function PaintedHome() {
           <button className="sk-icon-btn" onClick={openSignInForm} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Log in</button>
         ))}
         {/* The leaderboards (they are read from the game server, so there is no button without one). */}
-        {rooms && <button className="sk-icon-btn" onClick={() => setBoards(true)} aria-label="Leaderboards" title="Leaderboards" data-boards><TrophyIcon size={20} /></button>}
         <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${formatCoins(wool)} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{formatCoins(wool, true)}</span></button>
         <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
         <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>

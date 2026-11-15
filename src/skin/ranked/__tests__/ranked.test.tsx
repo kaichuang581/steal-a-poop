@@ -83,15 +83,17 @@ describe('what Play opens', () => {
   });
 });
 
-describe('Quick play and Play are for real people', () => {
+describe('Queue is for real people', () => {
   const home = readFileSync('src/skin/screens/PaintedHome.tsx', 'utf8');
   const item = (id: string) => home.slice(home.indexOf(`{ id: '${id}'`), home.indexOf('\n', home.indexOf(`{ id: '${id}'`)));
 
-  it('neither menu item can start a table of farm sheep', () => {
-    expect(item('start')).toContain("online({ t: 'quick' })");
-    expect(item('start')).not.toMatch(/go\('quick'\)|start\(/);
-    expect(item('play')).toContain('setChooser(true)');
-    expect(item('play')).not.toMatch(/go\('quick'\)|setStep\('setup'\)/);
+  it('Queue is the first (green) item, opens Casual or Ranked, and cannot start a table of farm sheep', () => {
+    expect(home).not.toContain("label: 'Quick play'");
+    expect(home).not.toContain("{ id: 'play'");
+    expect(home.indexOf("{ id: 'queue', label: 'Queue'")).toBeGreaterThan(-1);
+    expect(home.indexOf("{ id: 'queue'")).toBeLessThan(home.indexOf("{ id: 'lobby'"));
+    expect(item('queue')).toContain('setChooser(true)');
+    expect(item('queue')).not.toMatch(/go\('quick'\)|setStep\('setup'\)|start\(/);
   });
 
   it('the farm sheep are in the lobby you make: Custom game is no longer a menu item of its own', () => {

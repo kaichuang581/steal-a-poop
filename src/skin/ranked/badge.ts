@@ -1,10 +1,11 @@
 import { TIERS } from '../../lib/ranked';
 
 /**
- * The badge of each rank, as pixel art: a fair-day rosette that grows with the rank, and no two are the same badge in
- * another paint. Lamb is the bare rosette; Yearling has short ribbon tails; Shearling long ones; Ram grows a pair of
- * horns; Bellwether has a star in the middle instead; Shepherd adds laurel leaves either side; Blue Ribbon a second
- * pair of tails in gold behind the first; Golden Fleece wears a crown over all of it. Drawn as rows of characters, like every other pixel icon (components/pixels.tsx).
+ * The badge of each rank, as pixel art: a rosette that grows with the rank, painted in the rank's own material, and no
+ * two are the same badge in another paint. Wood is the bare rosette; Stone has short ribbon tails; Iron long ones; Gold
+ * grows two flared points at the top; Crystal has a star in the middle instead; Titan adds metal wings either side;
+ * Eclipse is a dark disc with a burning gold rim of second tails; Zenith wears a crown over all of it, radiant, with pulsing
+ * pixel rays round it (RankBadge.tsx, `.sk-zenith-rays` in ranked.css). Drawn as rows of characters, like every other pixel icon (components/pixels.tsx).
  */
 export const BADGE_W = 23;
 export const BADGE_H = 25;
@@ -16,14 +17,22 @@ const paint = (ring: string, shade: string, centre: string, shine: string, tail:
   ({ K: INK, R: ring, r: shade, C: centre, c: shine, T: tail, t: tailShade, S: '#FFF6D0', L: '#7FA65A', l: '#4F7A3A', ...extra });
 
 const LOOKS: Look[] = [
-  { tails: 0, star: false, wings: false, crown: false, colors: paint('#F4ECDD', '#D8CBB3', '#FFFDF6', '#FFFFFF', '#D8CBB3', '#BFAF93') },
-  { tails: 6, star: false, wings: false, crown: false, colors: paint('#9BCB7C', '#6FA354', '#F4ECDD', '#FFFFFF', '#6FA354', '#4F7F3A') },
-  { tails: 9, star: false, wings: false, crown: false, colors: paint('#8FD3E8', '#5AA9C7', '#F2FBFF', '#FFFFFF', '#5AA9C7', '#3D86A3') },
-  { tails: 9, star: false, wings: false, crown: false, horns: true, colors: paint('#D08A4C', '#A5622B', '#F6D7A8', '#FFEFD2', '#A5622B', '#7E461A', { H: '#F3E2C0', h: '#C9B08A' }) },
-  { tails: 9, star: true, wings: false, crown: false, colors: paint('#E9C46A', '#C49A2E', '#8A5A1F', '#A8742C', '#C49A2E', '#9A7418', { S: '#FFF1C2' }) },
-  { tails: 9, star: true, wings: true, crown: false, colors: paint('#B58BD6', '#8559AD', '#4A2F6B', '#62408A', '#8559AD', '#643F88', { S: '#F5E9FF' }) },
-  { tails: 10, star: true, wings: true, crown: false, double: true, colors: paint('#4F7FD9', '#2F54A8', '#F2C14E', '#FFE08A', '#2F54A8', '#1F3A7A', { S: '#1F3A7A', L: '#C9A227', l: '#96741A', G: '#F2C14E', g: '#C9952A' }) },
-  { tails: 10, star: true, wings: true, crown: true, double: true, colors: paint('#FFD766', '#E0A82E', '#B8362E', '#D4524A', '#B8362E', '#8C231D', { S: '#FFF6D0', L: '#FFD766', l: '#C9952A', G: '#FFD766', g: '#C9952A' }) },
+  // Wood: warm brown timber.
+  { tails: 0, star: false, wings: false, crown: false, colors: paint('#B9814D', '#8A5A2F', '#EBCB9C', '#F7E3C1', '#8A5A2F', '#633F1E') },
+  // Stone: grey.
+  { tails: 6, star: false, wings: false, crown: false, colors: paint('#A9ABAF', '#7D8085', '#DCDDDF', '#F2F2F2', '#7D8085', '#5B5E63') },
+  // Iron: blue-grey steel.
+  { tails: 9, star: false, wings: false, crown: false, colors: paint('#7F97AB', '#566E82', '#CAD6DF', '#EEF3F7', '#566E82', '#3C5062') },
+  // Gold.
+  { tails: 9, star: false, wings: false, crown: false, horns: true, colors: paint('#EBC45A', '#C4962A', '#FFF0BF', '#FFFFFF', '#C4962A', '#97711A', { H: '#FFE38A', h: '#C4962A' }) },
+  // Crystal: cyan, a white star in a deep teal middle.
+  { tails: 9, star: true, wings: false, crown: false, colors: paint('#7FE1EE', '#3BB4CB', '#1F8098', '#2F9AB3', '#3BB4CB', '#25869C', { S: '#F2FDFF' }) },
+  // Titan: crimson with gunmetal wings.
+  { tails: 9, star: true, wings: true, crown: false, colors: paint('#C9503C', '#93321F', '#3B2626', '#553A36', '#93321F', '#6B2416', { S: '#FFD7A8', L: '#A3ACB6', l: '#6C747E' }) },
+  // Eclipse: a near-black violet disc, its gold corona behind, violet light at the edges.
+  { tails: 10, star: true, wings: true, crown: false, double: true, colors: paint('#4A3970', '#2D2147', '#130E1E', '#241B36', '#2D2147', '#1B1430', { S: '#F7C65E', L: '#B89DFF', l: '#7B61CB', G: '#F7C65E', g: '#C98F2E' }) },
+  // Zenith: radiant white gold, crowned.
+  { tails: 10, star: true, wings: true, crown: true, double: true, colors: paint('#FFF1B8', '#F2C94C', '#F2B829', '#FFDB6E', '#F2C94C', '#C9952A', { S: '#FFFFFF', L: '#FFF1B8', l: '#E2B33C', G: '#FFFFFF', g: '#F2C94C' }) },
 ];
 
 const STAR = ['..S..', '.SSS.', 'SSSSS', '.SSS.', '..S..'];
@@ -70,7 +79,7 @@ function build(look: Look): string[] {
     if (r <= 4.3) put(x, y, dx + dy < -3 ? 'c' : 'C');
     else put(x, y, dx + dy > 3 ? 'r' : 'R');
   }
-  // A ram's horns, curling out from the top of the rosette on each side.
+  // Gold's two flared points, curling out from the top of the rosette on each side.
   if (look.horns) {
     for (const side of [-1, 1]) {
       for (const [dx, dy, ch] of [[6, -7, 'H'], [7, -7, 'H'], [8, -6, 'H'], [9, -5, 'H'], [9, -4, 'h'], [8, -3, 'h'], [8, -6, 'H'], [7, -6, 'h']] as const) put(CX + side * dx, CY + dy, ch);

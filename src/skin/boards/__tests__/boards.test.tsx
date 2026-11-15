@@ -12,8 +12,8 @@ describe('a board, as the page lists it', () => {
       you: { place: 2, of: 1204 },
     });
     expect(s.lines).toEqual([
-      { place: 1, name: 'Ann', score: '1,310', note: 'Bellwether II', rating: 1310, you: false },
-      { place: 2, name: 'Bo', score: '240', note: 'Lamb III', rating: 240, you: true },
+      { place: 1, name: 'Ann', score: '1,310', note: 'Crystal II', rating: 1310, you: false },
+      { place: 2, name: 'Bo', score: '240', note: 'Wood III', rating: 240, you: true },
     ]);
     expect(s.standing).toBe('#2 of 1,204');
     expect(rankedSheet({ top: [], you: null })).toEqual({ lines: [], standing: null });

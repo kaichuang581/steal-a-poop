@@ -25,7 +25,8 @@ export interface ConsentRecord {
   manageTokenHash: string | null;
   policyVersion: string;
   noticeHash: string;
-  method: 'email_link';
+  /** email_link: the parent answered an email. on_screen: the parent pressed the agree button on the child's screen. */
+  method: 'email_link' | 'on_screen';
   requestedAt: number;
   expiresAt: number;
   decidedAt: number | null;
@@ -186,7 +187,7 @@ const consentFrom = (r: Record<string, unknown>): ConsentRecord => ({
   manageTokenHash: (r.manage_token_hash as string | null) ?? null,
   policyVersion: r.policy_version as string,
   noticeHash: r.notice_hash as string,
-  method: r.method as 'email_link',
+  method: r.method as ConsentRecord['method'],
   requestedAt: Number(r.requested_at),
   expiresAt: Number(r.expires_at),
   decidedAt: num(r.decided_at),

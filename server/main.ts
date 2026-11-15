@@ -42,6 +42,7 @@ import { eraseFriendRows } from './social/friendRows';
 import { allRoutes } from './routes';
 import { ClaudeReviewer } from './review';
 import { guestUser } from './guest';
+import { consentAgeTable } from '../src/lib/ageRules';
 
 /**
  * Starts the game server.
@@ -124,6 +125,7 @@ const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, '');
 const accountStore = pool ? new PostgresAccountStore(pool) : new MemoryAccountStore();
 const bus = new RevocationBus();
 const csv = (name: string) => (process.env[name] ?? '').split(',').map((x) => x.trim().toUpperCase()).filter(Boolean);
+const CONSENT_TABLE = consentAgeTable();
 const ageByCountry = (() => {
   try {
     return JSON.parse(process.env.AGE_OF_CONSENT_BY_COUNTRY ?? '{}') as Record<string, number>;
@@ -134,7 +136,8 @@ const ageByCountry = (() => {
 })();
 const agePolicy = {
   ...DEFAULT_AGE_POLICY,
-  byCountry: ageByCountry,
+  // The shared table (src/lib/ageRules.ts), raised where AGE_OF_CONSENT_BY_COUNTRY says so; never lowered.
+  byCountry: Object.fromEntries([...new Set([...Object.keys(CONSENT_TABLE), ...Object.keys(ageByCountry)])].map((c) => [c, Math.max(CONSENT_TABLE[c] ?? 0, ageByCountry[c] ?? 0)])),
   allowedCountries: csv('ALLOWED_COUNTRIES').length ? csv('ALLOWED_COUNTRIES') : undefined,
   blockedCountries: csv('BLOCKED_COUNTRIES'),
 };

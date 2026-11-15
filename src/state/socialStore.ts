@@ -59,7 +59,7 @@ interface SocialState {
 /** Plain words for what the social, shop and board endpoints can answer. */
 export function describeSocialError(code: string): string {
   switch (code) {
-    case 'not_allowed': return 'The shop and chat unlock once a parent has said yes.';
+    case 'not_allowed': return 'Finish setting up your account first: give your country and age.';
     case 'insufficient': return 'Not enough coins yet. Play a few more games.';
     case 'owned': return 'You already have this.';
     case 'not_owned': return 'Buy it first.';

@@ -20,7 +20,8 @@ export function BoardTab() {
   }, [period, metric, loadBoard, loadDaily]);
 
   const tab = (on: boolean) => `min-h-11 flex-1 rounded-lg px-2 text-sm font-bold ${on ? 'bg-amber-400 text-amber-950' : 'bg-white/10'}`;
-  const canShow = profile?.consentStatus === 'not_required';
+  // Old enough, or a parent agreed at sign-up: either way the player decides.
+  const canShow = profile?.consentStatus === 'not_required' || profile?.consentStatus === 'granted';
 
   return (
     <div className="space-y-3">
@@ -72,7 +73,7 @@ export function BoardTab() {
             Show me on the leaderboards
           </label>
         ) : (
-          <p className="mt-2 text-xs text-white/60">Players who needed a parent's permission are never shown on the leaderboards.</p>
+          <p className="mt-2 text-xs text-white/60">Finish setting up your account (country and age) to appear on the leaderboards.</p>
         )}
       </section>
     </div>

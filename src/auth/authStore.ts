@@ -44,7 +44,10 @@ interface AuthState {
   signInWith(provider: 'google' | 'facebook'): Promise<void>;
   requestReset(email: string, captchaToken?: string): Promise<void>;
   setNewPassword(password: string): Promise<void>;
-  finishProfile(input: { nickname: string; dateOfBirth: string; country: string; parentEmail?: string; captchaToken?: string }): Promise<{ parentMailed: boolean }>;
+  /** `age` and `parentConsent` are the sign-up form's (2026-11-14); `dateOfBirth` and `parentEmail` the older email path's. */
+  finishProfile(input: { nickname: string; dateOfBirth?: string; age?: number; country: string; parentEmail?: string; parentConsent?: boolean; captchaToken?: string }): Promise<{ parentMailed: boolean }>;
+  /** Country and age for an account made before the form asked for them; `parentConsent` when a parent pressed the button. */
+  confirmAge(input: { age: number; country: string; parentConsent: boolean }): Promise<void>;
   /** Changes a signed-in player's nickname (the profile page). Throws ApiError: bad_nickname, nickname_taken, rate_limited. */
   rename(nickname: string): Promise<void>;
   /** The simple sign-up step: a username and nothing else. */
@@ -97,6 +100,9 @@ export function describeAuthError(code: string): string {
     case 'bad_country': return 'Choose your country.';
     case 'country_not_supported': return 'Sorry, the game is not available in your country yet.';
     case 'cannot_create_account': return 'We could not create this account.';
+    case 'parent_consent_required': return 'Because of your age, a parent needs to agree first.';
+    case 'bad_age': return 'Choose your age.';
+    case 'parent_refused': return 'A parent said no for this account, so it cannot be used. You can still play as a guest.';
     case 'parent_email_required': return 'Because of your age, a parent or guardian must agree first. Enter their email address.';
     case 'parent_email_invalid': return 'That parent email address does not look right.';
     case 'parent_email_same': return 'The parent email must be a different address from yours.';
@@ -186,6 +192,11 @@ export const useAuth = create<AuthState>((set, get) => {
       const out = await api<{ profile: Profile; parentMailed: boolean }>('POST', '/api/account/profile', token(), input);
       set({ profile: out.profile, status: 'ready' });
       return { parentMailed: out.parentMailed };
+    },
+
+    async confirmAge(input) {
+      const out = await api<{ profile: Profile }>('POST', '/api/account/age', token(), input);
+      set({ profile: out.profile, status: 'ready' });
     },
 
     async finishUsername(nickname, captchaToken) {

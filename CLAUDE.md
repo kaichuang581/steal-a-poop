@@ -1679,6 +1679,12 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
       the old look keeps GAME_TITLE. public/og.png, the link preview picture, said "STEAL ... Build the pile. Don't get
       stolen from."; it is now the game's own farm (the home tour's wide shot) with its title board, captured from the
       built game. The legal documents in docs/legal still name the service "Steal a Poop": that is for whoever reviews them.
+  (k) The painted game is renamed Barnstorm (Kai, 2026-11-15: "change the name from finish the word to Barnstorm"). The name is
+      `PAINTED_GAME_TITLE` in src/config.ts: the page title and link previews (index.html), the title board (one word, so the
+      tiles shrink on a phone: `.sk-title-long`), the share text and card, the credits, the framed-page message, the parent's
+      consent notice (src/lib/ageRules.ts, so records made from now on hash the new text), and the link preview picture
+      (public/og.png, from the title board). src/skin/__tests__/gameName.test.ts fails if the old name comes back in game code.
+      Still "Steal a Poop": the classic look (`GAME_TITLE`), and the legal documents' bodies in docs/legal (drafts for a lawyer).
   (j) scripts/smoke.mjs expected the friends addresses to be gone (they are back) and checks the live site too; the new
       "Smoke check" workflow (.github/workflows/smoke.yml) runs it from GitHub after every server deploy and on demand, with
       no secrets. It says whether the admin numbers are on (ADMIN_STATS_KEY set) and that a %00 path is refused.

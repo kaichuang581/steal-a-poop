@@ -12,7 +12,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
   const lead = words.join(' ');
   const letters = [...last.toUpperCase()];
   return (
-    <div className={`sk-title ${compact ? 'sk-title-compact' : ''}`}>
+    <div className={`sk-title ${compact ? 'sk-title-compact' : ''} ${letters.length > 5 ? 'sk-title-long' : ''}`}>
       <h1 className="sr-only">{title}</h1>
       {/* The plank and the hanging tiles form one sign, the plank centred over the tiles. */}
       <div className="sk-title-sign">

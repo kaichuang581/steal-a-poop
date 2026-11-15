@@ -4,6 +4,7 @@
  * knitted stitches and the spoiler-free glyph row as small painted squares. Type is the skin's own three faces, read
  * from the font tokens and loaded before drawing. Shared as a picture where the browser allows it.
  */
+import { PAINTED_GAME_TITLE } from '../../config';
 export interface CardInput {
   title: string;
   headline: string;
@@ -115,7 +116,7 @@ export function drawCard(card: CardInput): HTMLCanvasElement | null {
   // The footer on its own small plank along the bottom.
   plank(220, 500, 460, 46, '#6B4A32', 5);
   g.textAlign = 'center'; g.font = `800 20px ${f.body}`; g.fillStyle = '#FFF4DC';
-  g.fillText(card.footer ?? 'Finish the Word · kaichuang581.github.io/steal-a-poop', 450, 530);
+  g.fillText(card.footer ?? `${PAINTED_GAME_TITLE} · kaichuang581.github.io/steal-a-poop`, 450, 530);
   return c;
 }
 
@@ -135,7 +136,7 @@ export async function shareCard(card: CardInput, text: string): Promise<'shared'
   const canvas = drawCard(card);
   const blob = canvas ? await blobOf(canvas) : null;
   if (blob && typeof File !== 'undefined') {
-    const file = new File([blob], 'finish-the-word.png', { type: 'image/png' });
+    const file = new File([blob], 'barnstorm.png', { type: 'image/png' });
     try {
       if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text }); return 'shared'; }
     } catch { /* cancelled or refused: fall through */ }
@@ -143,7 +144,7 @@ export async function shareCard(card: CardInput, text: string): Promise<'shared'
   try { await navigator.clipboard.writeText(text); } catch { window.prompt('Copy your result:', text); return 'copied'; }
   if (blob) {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'finish-the-word.png';
+    a.href = URL.createObjectURL(blob); a.download = 'barnstorm.png';
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     return 'saved';
   }

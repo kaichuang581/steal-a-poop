@@ -9,6 +9,7 @@ import { useSocial } from './state/socialStore';
 import App from './ui/App';
 import { LegalPopupHost } from './skin/components/LegalPopupHost';
 import { dropBootDoorsUnlessShut } from './skin/components/BarnDoors';
+import { PAINTED_GAME_TITLE } from './config';
 
 installAudioUnlock();
 useAuth.getState().init(); // restores a saved login, if real sign-in is on
@@ -71,7 +72,7 @@ if (framedByAnotherSite()) dropBootDoorsUnlessShut();
 createRoot(document.getElementById('root')!).render(
   framedByAnotherSite() ? (
     <p style={{ padding: 24, font: '16px system-ui, sans-serif' }}>
-      <a href={window.location.href} target="_top" rel="noopener">Open Finish the Word in its own tab</a>
+      <a href={window.location.href} target="_top" rel="noopener">Open {PAINTED_GAME_TITLE} in its own tab</a>
     </p>
   ) : (
     <StrictMode>

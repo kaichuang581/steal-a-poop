@@ -60,6 +60,7 @@ import { DuelTable } from '../table/DuelTable';
 import { PlaceExtras } from '../table/places';
 import { coatLevel } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
+import { PAINTED_GAME_TITLE } from '../../config';
 
 interface Fx { id: number; node: ReactNode }
 /**
@@ -647,14 +648,14 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
   const place = players.findIndex((p) => p.isYou) + 1;
   const share = async () => {
     const text = [
-      `Finish the Word${mode === 'daily' && dailyDate ? ` · Daily ${dailyDate}` : ''}`,
+      `${PAINTED_GAME_TITLE}${mode === 'daily' && dailyDate ? ` · Daily ${dailyDate}` : ''}`,
       place === 1 ? `Last sheep standing out of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
       `Longest word: ${me.longestWord.length} letters`,
       mode === 'daily' && streak > 1 ? `${streak}-day streak` : '',
       `${location.origin}${import.meta.env.BASE_URL}`,
     ].filter(Boolean).join('\n');
     await shareCard({
-      title: 'Finish the Word',
+      title: PAINTED_GAME_TITLE,
       headline: place === 1 ? `Last sheep standing of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
       lines: [`Longest word: ${me.longestWord.length} letters`],
     }, text);

@@ -249,7 +249,7 @@ export const useStore = create<Store>((set, get) => ({
       const rules = chosen ?? (table.first ? table.game : undefined);
       setup = {
         seed: `quick:${Date.now()}:${Math.random()}`,
-        // As few seats as were asked for, two at least: a lobby can be you and one farm sheep (lobbyBots.ts).
+        // As few seats as were asked for, two at least: a lobby can be you and one farm sheep.
         now, humanName: nick.name, playerCount: settings.playerCount, minPlayers: 2, difficulty,
         settings: {
           timeCarry: 'more' as const, ...(rules ?? {}), ...(rules ? { botCount: settings.playerCount - 1, botDifficulty: difficulty } : {}),

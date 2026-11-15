@@ -471,7 +471,7 @@ describe('quick start', () => {
 });
 
 describe('room options', () => {
-  it('the host sets the game length and it reaches the game; farm sheep fill the table to four', () => {
+  it('the host sets the game length and it reaches the game; two people are a table of two', () => {
     const { m } = manager();
     const code = lobby(m, 2, 'private');
     // The game length, and (since 2026-11-14) the farm sheep: none chosen yet, so the old fill rule, at medium.
@@ -484,7 +484,7 @@ describe('room options', () => {
     expect(m.start('u0')).toEqual({ ok: true, code });
     const game = m.room(code)!.game!;
     expect(game.settings).toMatchObject({ lives: 5, turnsPerRound: 3, twists: false });
-    expect(game.players).toHaveLength(4);
+    expect(game.players).toHaveLength(2);
     expect(game.players.filter((p) => p.isHuman)).toHaveLength(2);
     expect(m.setOptions('u0', { lives: 1 })).toEqual({ ok: false, error: 'room_started' });
   });

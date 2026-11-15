@@ -42,6 +42,10 @@ interface RowProps {
 
 /** One chalk row of the barn ledger (V6 Part 6.3): the place, the portrait, the name, the wool as tally strokes. */
 export function LedgerRow({ player: p, place, maxLives, ringed, bomb, lastWord, marks, className }: RowProps) {
+  // Online, a seat filled after a quiet spell is not marked as a bot (Brian, 2026-11-14: "dont say they are bots").
+  // Offline (practice, a table of your own, the tutorial) you chose the bots, and they say so.
+  const online = useRoomStore((s) => !!s.room);
+  const markBot = p.isBot && !online;
   return (
     <li className={`kit-slate-row sk-ledger-row ${className ?? ""}`} data-dim={p.dimmed || undefined} data-seat={marks ? p.id : undefined} data-tour={marks && p.isYou ? 'me' : undefined}>
       <span className="sk-ledger-place">{place}</span>
@@ -49,10 +53,10 @@ export function LedgerRow({ player: p, place, maxLives, ringed, bomb, lastWord, 
       <span className="sk-ledger-who">
         <span className={`sk-ledger-name ${ringed ? 'kit-chalk-ring' : ''} ${p.frozen ? 'kit-chalk-strike' : ''}`} data-seat-name={marks ? p.id : undefined}>
           {p.name}{p.isYou ? ' (you)' : ''}
-          {p.difficulty && <span className="sk-ledger-badge" title={`${p.difficulty} bot`} role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
+          {p.difficulty && markBot && <span className="sk-ledger-badge" title={`${p.difficulty} bot`} role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
         </span>
         <span className="sk-ledger-sub">
-          {p.isBot && <span>farm sheep{lastWord !== undefined ? ' · ' : ''}</span>}
+          {markBot && <span>bot{lastWord !== undefined ? ' ' : ''}</span>}
           {lastWord !== undefined && <span className="sk-ledger-word" data-seat-word={marks ? p.id : undefined}>{lastWord ?? '—'}</span>}
         </span>
       </span>

@@ -23,6 +23,8 @@ export interface GameSetup {
   /** The fewest seats at the table, 2 at least. Left out, it is MIN_PLAYERS (4) and farm sheep fill the empty seats.
    *  A ranked game sets it to 2: only the people who queued sit down. */
   minPlayers?: number;
+  /** Names for the bots, in seat order; any left over take the usual names. The casual queue's bots carry these. */
+  botNames?: string[];
 }
 
 /**
@@ -62,7 +64,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
   const common = base.filter((l) => dict.startingWith(l).length >= MIN_START_WORDS);
   const chainLetter = drawPick(state, common.length ? common : base);
 
-  const names = shuffle(state, BOT_NAMES);
+  const names = [...(setup.botNames ?? []), ...shuffle(state, BOT_NAMES)];
   const pool = BOT_EMOJIS.map((emoji, i) => ({ emoji, color: BOT_COLORS[i] }));
   const looks = shuffle(state, room ? [...pool, EXTRA_LOOK] : pool);
 

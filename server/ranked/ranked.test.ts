@@ -96,14 +96,14 @@ describe('the ranked queue', () => {
     expect(sit(m, 'r')[0].code).toBe(a.code);
   });
 
-  it('an ordinary room is not ranked and still fills with farm sheep', () => {
+  it('an ordinary room is not ranked, and two people can start it as a table of two', () => {
     const { m } = manager();
     const made = m.createRoom('h', 'Host', { visibility: 'public' });
     if (!made.ok) throw new Error('create failed');
     m.join('g', 'Guest', made.code);
     expect(m.start('h').ok).toBe(true);
     expect(m.view(made.code)).toMatchObject({ ranked: false, startAt: null, rated: null });
-    expect(m.room(made.code)!.game!.players).toHaveLength(4);
+    expect(m.room(made.code)!.game!.players).toHaveLength(2);
   });
 });
 

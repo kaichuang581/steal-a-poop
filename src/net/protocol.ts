@@ -38,6 +38,8 @@ export interface RoomViewDTO {
   /** Game length, picked by the host in the lobby. Absent from an older server. */
   settings?: RoomSettingsDTO;
   members: { userId: string; name: string; cosmetics?: Cosmetics; /** The avatar they picked (an id from src/avatars/ids.ts). */ avatar?: string; /** At a ranked table: their rating (src/lib/ranked.ts). */ rating?: number }[];
+  /** The casual queue: the bots seated so far, by name (they come in after ten seconds with nobody new). Absent elsewhere and from an older server. */
+  botNames?: string[];
   phase: 'lobby' | 'playing' | 'finished';
   min: number;
   max: number;

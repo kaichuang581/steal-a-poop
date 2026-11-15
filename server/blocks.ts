@@ -1,5 +1,8 @@
 import type { Pool } from 'pg';
 
+/** Control characters (C0 and DEL). */
+const CONTROL = /[\u0000-\u001f\u007f]/;
+
 /** One player's personal block list: their chat never shows messages from anyone on it. */
 export interface BlockStore {
   load(): Promise<[blocker: string, blocked: string][]>;
@@ -68,7 +71,9 @@ export class BlockList {
   }
 
   block(blocker: string, blocked: string): 'ok' | 'self' | 'limit' | 'bad' {
-    if (!blocked || blocked.length > 100) return 'bad';
+    // No control characters: an id is never made of them, and the database refuses a NUL byte, which left the block
+    // held here but never written down.
+    if (!blocked || blocked.length > 100 || CONTROL.test(blocked)) return 'bad';
     if (blocker === blocked) return 'self';
     const set = this.by.get(blocker) ?? new Set<string>();
     if (!set.has(blocked) && set.size >= MAX_BLOCKS) return 'limit';

@@ -58,6 +58,15 @@ describe('http server', () => {
     expect((await f('/api/nope')).status).toBe(404);
     expect((await f('/api/open', { method: 'DELETE' })).status).toBe(405);
   });
+  it('turns away a control character in a path parameter, which the database would refuse as a server error', async () => {
+    const f = await boot();
+    for (const bad of ['%00', 'abc%00', 'a%0Ab', '%7F', '%1F']) {
+      const r = await f(`/api/things/${bad}`);
+      expect(r.status, bad).toBe(400);
+      expect(await r.json()).toEqual({ error: 'bad_path' });
+    }
+    expect((await f('/api/things/caf%C3%A9')).status).toBe(200); // other characters still pass
+  });
   it('requires sign-in for user routes and a moderator for moderator routes', async () => {
     const f = await boot();
     expect((await f('/api/me')).status).toBe(401);

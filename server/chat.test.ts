@@ -39,6 +39,24 @@ describe('delivering messages', () => {
   });
 });
 
+describe('control characters', () => {
+  it('are taken out before a message is checked, kept or stored, so the database never refuses a held one', () => {
+    const { svc } = service();
+    expect(say(svc, 'a', 'good\u0000 game\u0007')).toMatchObject({ delivered: true, message: { text: 'good game' } });
+    expect(say(svc, 'b', 'line\nbreak')).toMatchObject({ delivered: true, message: { text: 'line break' } });
+    expect(say(svc, 'c', '\u0000\u0001 ')).toMatchObject({ delivered: false, reason: 'empty' });
+    const held = say(svc, 'd', 'blorf\u0000');
+    expect(held).toMatchObject({ delivered: false, reason: 'blocked' });
+    expect(svc.queue().at(-1)?.text).toBe('blorf');
+  });
+  it('are taken out of an appeal note too', () => {
+    const { svc } = service();
+    say(svc, 'a', 'blorf');
+    expect(svc.appeal('a', 'please\u0000 look')).toEqual({ ok: true });
+    expect(svc.queue().find((i) => i.category === 'appeal')?.text).toBe('please look');
+  });
+});
+
 describe('a violation', () => {
   it('is held so nobody sees it, and the sender is suspended at once', () => {
     const { svc, clock } = service();

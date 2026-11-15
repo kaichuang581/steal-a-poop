@@ -1,4 +1,4 @@
-import { LIVES_PER_GAME } from '../engine';
+import { ALL_MODIFIERS, LIVES_PER_GAME } from '../engine';
 
 export const BASICS = [
   { art: 'C → A → T', title: 'Chain words', text: 'On your turn, type a real word (3+ letters) that starts with the last letter of the previous word. A word that doesn’t work just bounces, so try again while your timer runs.' },
@@ -13,7 +13,7 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: 'Running out of time', def: 'If your timer ends before you play a good word, you lose a wool ball and the turn moves on. Bad words on their own cost nothing.' },
   { term: 'Frozen', def: 'Out of wool. A frozen sheep gets no more turns.' },
   { term: 'Round', def: 'Every sheep takes 2 turns, then a new round starts with a shorter timer: 15 s, 10 s, then 5 s.' },
-  { term: 'Twist', def: 'A special rule for one round, called out by an alarm: no E, 6+ letters, or a double letter. The first round has none.' },
+  { term: 'Twist', def: `A special rule for one round, called out by an alarm. There are ${ALL_MODIFIERS.length}: no letter E, A or S, 6 letters or more, 5 letters or fewer, a double letter, an O, or a vowel at the end. The first round has none.` },
   { term: 'Practice', def: 'A 1v1 speed run against one bot on one life. Each word you play scores a point; choose your starting clock and bot, and beat your best.' },
   { term: 'Daily Table', def: 'One game per UTC day with the same starting letter, twists and bots for everyone.' },
 ];
@@ -26,6 +26,6 @@ export const FAQ: { q: string; a: string }[] = [
   { q: 'Can I win wool balls back?', a: 'No. You start with your wool and can only lose it. Leaving the next sheep a hard letter (X, Z, Q, J) makes their turn harder, but it pays you nothing.' },
   { q: 'Are there points?', a: 'No. There are no points, no pile and no banking. Wool balls are all that count.' },
   { q: 'How does practice work?', a: 'It is you against one bot, on one life. The first time your clock runs out the run ends, and your score is the words you played. No hints or twists. The Tutorial is the safe place to learn.' },
-  { q: 'Is my progress saved?', a: 'Only in this browser: your nickname, settings, whether you have seen the tutorial, tips, and your daily results. There are no accounts, so clearing site data erases it, and it does not follow you to another device.' },
+  { q: 'Is my progress saved?', a: 'In this browser: your name, settings, whether you have seen the tutorial, your bests and your daily results. Clearing site data erases them, and they do not follow you to another device. If you sign in, your account keeps your name and your online results.' },
   { q: 'Can I replay this tutorial?', a: 'Yes: Settings on the start screen, then Replay tutorial.' },
 ];

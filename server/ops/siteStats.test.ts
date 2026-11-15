@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { MAX_TABS, MemoryVisitStore, ON_SITE_FOR_MS, SiteStats, dayKey } from './siteStats';
+import { readFileSync } from 'node:fs';
+import { Pool } from 'pg';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { MAX_TABS, MemoryVisitStore, ON_SITE_FOR_MS, PostgresVisitStore, SiteStats, dayKey } from './siteStats';
+import type { VisitStore } from './siteStats';
 
 const DAY = 86_400_000;
 const T0 = Date.UTC(2026, 10, 15, 12, 0, 0);
@@ -92,4 +95,58 @@ describe('days', () => {
     expect(dayKey(Date.UTC(2026, 10, 15, 23, 59, 59))).toBe('2026-11-15');
     expect(dayKey(Date.UTC(2026, 10, 16, 0, 0, 0))).toBe('2026-11-16');
   });
+});
+
+/** The same behaviour for the memory store and the real database. */
+function behaves(make: () => Promise<VisitStore>) {
+  it('starts with no days', async () => {
+    expect(await (await make()).all()).toEqual([]);
+  });
+  it('adds to a day\'s two counts, as numbers, and lists the days in order', async () => {
+    const s = await make();
+    await s.add('2026-11-16', true);
+    await s.add('2026-11-15', false);
+    await s.add('2026-11-16', false);
+    await s.add('2026-11-16', true);
+    expect(await s.all()).toEqual([
+      { day: '2026-11-15', visits: 1, newBrowsers: 0 },
+      { day: '2026-11-16', visits: 3, newBrowsers: 2 },
+    ]);
+  });
+  it('gives the summary the admin panel reads', async () => {
+    const store = await make();
+    const stats = new SiteStats({ store, now: () => T0 });
+    await stats.ping('tab-aaaaaaaaaaaa', true, true);
+    await stats.ping('tab-bbbbbbbbbbbb', true, false);
+    expect(await stats.summary()).toEqual({ onSiteNow: 2, visits: { today: 2, yesterday: 0, last7: 2, last30: 2, total: 2 }, newBrowsers: { today: 1, last7: 1, total: 1 }, since: '2026-11-15' });
+  });
+}
+
+describe('MemoryVisitStore', () => {
+  behaves(async () => new MemoryVisitStore());
+});
+
+const url = process.env.TEST_DATABASE_URL;
+describe.skipIf(!url)('PostgresVisitStore against a real Postgres (set TEST_DATABASE_URL)', () => {
+  const pool = new Pool({ connectionString: url, options: '-c search_path=test_visits' });
+  const admin = new Pool({ connectionString: url });
+  const migration = readFileSync('db/migrations/107_site_visits.sql', 'utf8');
+  afterAll(async () => {
+    await pool.end();
+    await admin.end();
+  });
+  beforeEach(async () => {
+    await admin.query('drop schema if exists test_visits cascade');
+    await admin.query('create schema test_visits');
+    await pool.query(migration);
+  });
+  it('the migration can be run twice and turns on row-level security', async () => {
+    await expect(pool.query(migration)).resolves.toBeDefined();
+    const { rows } = await pool.query("select relrowsecurity from pg_class where relname = 'site_visits' and relnamespace = 'test_visits'::regnamespace");
+    expect(rows[0]?.relrowsecurity).toBe(true);
+  });
+  it('takes nothing but a date for a day', async () => {
+    await expect(new PostgresVisitStore(pool).add('someone@example.org', true)).rejects.toThrow();
+  });
+  behaves(async () => new PostgresVisitStore(pool));
 });

@@ -1644,3 +1644,31 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   mention counting visits or the per-tab code, and a lawyer should read it before this goes to children (a random per-tab code
   and a first-visit flag are the sort of thing the policy should name); "on the site now" counts open, visible tabs, so one
   person with three tabs is three, and a tab that is open but hidden is not counted.
+- Whole-site debug pass (requested by Kai, 2026-11-15: "go through the whole entire website and debug the whole thing"). What was
+  run: the type check, every unit test, both builds, the bundle size, the end-to-end suite, `npm run check:floating`, the engine
+  simulator (96 games), `npm audit`, the 72 database tests CI skips (it has no Postgres) against a local Postgres 16, every
+  migration applied twice to an empty database, about 44,000 malformed socket messages and 10,000 malformed API requests at the
+  server, and a browser walk of the painted game against a local server on Postgres: every Home panel, the admin lock and its
+  numbers, the profile, the Trading Post, the leaderboards, the first-visit age and parent form, Practice to its end board, the
+  tutorial, Counting Sheep to its results, a two-person lobby game to its end board, the casual queue, and a two-person ranked
+  game to its rating. Fixed:
+  (a) Counting Sheep ate the first letter of the first word: the key that started the night was thrown away, so a player who
+      did what the sign says ("Type a word ... press any key") always bounced (PART went in as ART). The starting letter now
+      counts (`begin` in DreamScreen.tsx moves `phaseRef` at once and says whether it began). There is no interactive test
+      harness for the painted screens; this was checked in the browser.
+  (b) A held chat message or an appeal holding a NUL byte could not be saved (Postgres refuses it), so the review queue kept it
+      in memory only and lost it on restart, child-safety holds included. `cleanText` in server/chat.ts takes out control
+      characters first (tabs and line breaks become spaces). Tests in server/chat.test.ts.
+  (c) A block with a control character in the target id was held in memory but never written down (server/blocks.ts refuses it).
+  (d) A control character in a URL path parameter (`%00`) reached the database and answered 500; the router answers 400
+      (server/http.ts).
+  (e) The admin dialog ignored Escape, unlike every other dialog on the start screen.
+  (f) How to play named three of the eight twists, said "There are no accounts", and in the painted game spoke of a Daily
+      Table; the classic tour still listed the removed "even faster round" twist. src/skin/__tests__/guideText.test.ts pins
+      the text to the engine.
+  New tests also cover the ranked and visit stores against Postgres and `profileCounts` (server/ranked/store.test.ts,
+  server/ops/siteStats.test.ts, server/auth/store.test.ts). Found and left for Brian and Kai: the page's own title and its
+  link preview (index.html), the legal pages and the parent's consent page say "Steal a Poop" while the game says "Finish
+  the Word"; the sack odds shown once a sack's guarantee is due (listed 2026-11-13). Checked and fine: the chat filter
+  already catches a blocked word split by zero-width, joiner, soft-hyphen or direction characters. Not checkable here: the
+  live site and server (this machine cannot reach them), real sign-in, real GPUs and phones, and how anything looks or sounds.

@@ -29,6 +29,12 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => { field.current?.focus(); }, []);
+  // Escape shuts it, as it does every other dialog on the start screen.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();

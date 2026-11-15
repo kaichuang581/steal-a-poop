@@ -8,6 +8,17 @@ import { Chip, ClothButton, WoodButton } from './Materials';
 import { MiniTile, RulesCard } from './RulesCard';
 import { SnowCap } from './SnowCap';
 
+/**
+ * The text is shared with the old look. Where this game differs, it says its own: Counting Sheep took the Daily
+ * Table's place, and there is a save code and a Trading Post to speak of.
+ */
+export const GUIDE_WORDS = GLOSSARY.map((g) => (g.term === 'Daily Table'
+  ? { term: 'Counting Sheep', def: 'One dream a night, new at midnight, with the same fences for everyone. Each fence shows the start of a word: type any real word that begins with those letters and the sheep jumps it. The first bump wakes the farmer.' }
+  : g));
+export const GUIDE_QUESTIONS = FAQ.map((f) => (f.q === 'Is my progress saved?'
+  ? { q: f.q, a: 'Your name, settings, bests and dream streak are kept in this browser, so clearing site data erases them. A save code (in Settings) carries them to another browser. If you sign in, your account keeps your name, Wool Coins, Trading Post items, rank and friends.' }
+  : f));
+
 const TABS = ['Basics', 'Rules', 'Words', 'Questions'] as const;
 type Tab = (typeof TABS)[number];
 
@@ -70,7 +81,7 @@ export function PaintedGuide({ onClose }: { onClose: () => void }) {
           {tab === 'Rules' && <RulesCard />}
           {tab === 'Words' && (
             <dl className="flex flex-col gap-2">
-              {GLOSSARY.map((g) => (
+              {GUIDE_WORDS.map((g) => (
                 <div key={g.term} className="sk-guide-basic block">
                   <dt>{g.term}</dt>
                   <dd>{g.def}</dd>
@@ -80,7 +91,7 @@ export function PaintedGuide({ onClose }: { onClose: () => void }) {
           )}
           {tab === 'Questions' && (
             <div className="flex flex-col gap-2">
-              {FAQ.map((f) => (
+              {GUIDE_QUESTIONS.map((f) => (
                 <details key={f.q} className="sk-guide-faq">
                   <summary>{f.q}</summary>
                   <p>{f.a}</p>

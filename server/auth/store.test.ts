@@ -28,6 +28,16 @@ function behaves(make: () => Promise<AccountStore>) {
     await s.updateProfile('u1', { consentStatus: 'granted', sessionsValidAfter: 5000, updatedAt: 2000 });
     expect(await s.getProfile('u1')).toMatchObject({ nickname: 'Ana', consentStatus: 'granted', sessionsValidAfter: 5000, updatedAt: 2000, dateOfBirth: '2016-05-05' });
   });
+  it('counts the accounts that are not deleted, and how many were made since each time asked about', async () => {
+    const s = await make();
+    expect(await s.profileCounts([0])).toEqual({ total: 0, since: [0] });
+    await s.createProfile(profile('u1', 'Ana', { createdAt: 1000 }));
+    await s.createProfile(profile('u2', 'Bea', { createdAt: 5000 }));
+    await s.createProfile(profile('u3', 'Cy', { createdAt: 9000 }));
+    await s.anonymizeProfile('u3', 9500);
+    expect(await s.profileCounts([5000, 6000])).toEqual({ total: 2, since: [1, 0] });
+    expect(await s.profileCounts([])).toEqual({ total: 2, since: [] });
+  });
   it('nicknames are unique regardless of case, until the account is deleted', async () => {
     const s = await make();
     await s.createProfile(profile('u1', 'Ana'));

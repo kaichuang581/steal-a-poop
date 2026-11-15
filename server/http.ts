@@ -98,6 +98,9 @@ export function createHttpServer(opts: HttpOptions): Server {
       } catch {
         return send(400, { error: 'bad_path' });
       }
+      // An id, a token or a date in a path never holds a control character, and one that does (%00) is refused by the
+      // database later, as a 500: turn it away here instead.
+      if (Object.values(params).some((v) => /[\u0000-\u001f\u007f]/.test(v))) return send(400, { error: 'bad_path' });
 
       let user = null;
       let session: SessionClaims | null = null;

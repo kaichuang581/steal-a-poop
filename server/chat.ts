@@ -82,6 +82,12 @@ export interface ChatDeps {
 }
 
 export const DEFAULT_SUSPEND_MS = 24 * 60 * 60 * 1000;
+/**
+ * Chat text and appeal notes lose their control characters before anything else looks at them. A NUL byte made the
+ * database refuse a held message, so it was kept in memory only and lost on the next restart; the others are never
+ * typed by a person. Tabs and line breaks become spaces.
+ */
+export const cleanText = (text: string): string => text.replace(/[\t\n\r]/g, ' ').replace(/[\u0000-\u001f\u007f-\u009f]/g, '');
 const HISTORY_PER_ROOM = 50;
 const CONTEXT_MESSAGES = 20;
 const SPELL_WINDOW_MS = 30_000;
@@ -199,7 +205,7 @@ export class ChatService {
   submit(input: { userId: string; name: string; roomCode: string; text: string }): SubmitResult {
     const now = this.deps.now();
     const { userId, roomCode } = input;
-    const text = input.text.trim();
+    const text = cleanText(input.text).trim();
     if (this.banned.has(userId)) return { delivered: false, reason: 'banned' };
     const until = this.suspended.get(userId);
     if (until && until > now) return { delivered: false, reason: 'suspended', until };
@@ -275,7 +281,7 @@ export class ChatService {
       return { ok: false, reason: 'appeal_already_open' };
     }
     this.addItem({
-      userId, roomCode: '', text: note.slice(0, 500), at: this.deps.now(), category: 'appeal', mustReport: false, status: 'human',
+      userId, roomCode: '', text: cleanText(note).slice(0, 500), at: this.deps.now(), category: 'appeal', mustReport: false, status: 'human',
     });
     this.record({ actor: userId, action: 'appeal_filed', userId, details: {} });
     this.changed(userId);

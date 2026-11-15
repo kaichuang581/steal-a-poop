@@ -47,7 +47,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'modifier', target: 'modifier', kind: 'info', pause: true,
     title: 'Rounds and twists',
-    body: () => 'Every sheep takes 2 turns a round, and each round the timer gets shorter. Rounds after the first add a twist, shown here: no E, 6+ letters, a double letter, or an even faster round.',
+    body: () => 'Every sheep takes 2 turns a round, and each round the timer gets shorter. Rounds after the first add a twist, shown here, such as no E, 6+ letters or a double letter.',
   },
   {
     id: 'winning', target: 'me', kind: 'info', pause: true,

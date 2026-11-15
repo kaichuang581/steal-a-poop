@@ -112,12 +112,15 @@ export function DreamScreen() {
   // The night has a shape; practice is the endless version ("How far can you run?").
   const length = practice ? null : DREAM_LENGTH;
 
-  const begin = useCallback(() => {
-    if (phaseRef.current !== 'ready' || !dict) return;
+  /** Starts the night; true when it did. The ref moves at once, so a letter typed in the same key press can land. */
+  const begin = useCallback((): boolean => {
+    if (phaseRef.current !== 'ready' || !dict) return false;
     if (!practice) markDreamStarted(night);
     live.current = freshLive(seed);
     setPhase('running');
+    phaseRef.current = 'running';
     ghost.current?.focus();
+    return true;
   }, [dict, practice, seed, night]);
 
   const record = useCallback(() => {
@@ -157,7 +160,9 @@ export function DreamScreen() {
   // ---------- typing ----------
   const active = () => activeFence(live.current);
   const typeLetter = (ch: string) => {
-    if (phaseRef.current === 'ready') { begin(); return; }
+    // The letter that starts the night is also the first letter of the word: the sign says "Type a word", and a
+    // player who did lost that letter, so their first word always bounced (PART went in as ART).
+    if (phaseRef.current === 'ready' && !begin()) return;
     if (phaseRef.current !== 'running') return;
     const L = live.current;
     if (L.typed.length >= MAX_TYPED) return;

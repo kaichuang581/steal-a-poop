@@ -22,6 +22,9 @@ describe('BlockList', () => {
     expect(b.block('a', 'a')).toBe('self');
     expect(b.block('a', '')).toBe('bad');
     expect(b.block('a', 'x'.repeat(101))).toBe('bad');
+    expect(b.block('a', 'u\u0000')).toBe('bad'); // the database refuses a NUL byte: the block would live in memory only
+    expect(b.block('a', 'line\nbreak')).toBe('bad');
+    expect(b.list('a')).toEqual([]);
     for (let i = 0; i < MAX_BLOCKS; i++) expect(b.block('a', `u${i}`)).toBe('ok');
     expect(b.block('a', 'one-too-many')).toBe('limit');
     expect(b.block('a', 'u0')).toBe('ok'); // already blocked is not "more"

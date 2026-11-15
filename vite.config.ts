@@ -54,7 +54,8 @@ const csp = (mode: string): Plugin => ({
   },
 });
 
-const BASE = '/steal-a-poop/'; // GitHub Pages serves this repo there
+// GitHub Pages serves this repo at /steal-a-poop/ by default. The deploy builds the root copy for fleeced.io with VITE_BASE=/.
+const BASE = process.env.VITE_BASE || '/steal-a-poop/';
 const DOORS_SLOT = '<!--boot-doors-->';
 /**
  * Writes the loading screen's barn doors into the page itself, shut: their element where index.html marks the place, and

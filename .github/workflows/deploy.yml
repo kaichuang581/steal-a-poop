@@ -38,7 +38,14 @@ jobs:
       - run: npm ci
       - run: npm test
       # Public settings for the website build (Settings, Secrets and variables, Actions, Variables). Empty means off.
-      - run: npm run build
+      # Two copies of the same site: the root for fleeced.io, and /steal-a-poop/ for the old GitHub address.
+      - run: VITE_BASE=/ npm run build
+        env:
+          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+      - run: npx vite build --outDir dist/steal-a-poop --emptyOutDir
         env:
           VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}

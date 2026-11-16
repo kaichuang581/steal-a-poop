@@ -1,3 +1,50 @@
+## The visual overhaul (Brian, 2026-11-16) — read this first
+Requested by Brian of the whole painted game: "especially the animal models good lord", "you can completely remake the
+scenery if needed", and, after a friend's report of about 10 fps, broken-looking assets and 35% of a battery in five
+minutes, "make sure everything is optimized". The plan is docs/visual-overhaul/ (00-README-SUMMARY.md first; the full
+text of this entry, the questions and the conflict register are in 19-decisions-and-conflicts.md).
+- READ THIS FILE TO ITS LAST LINE with the Read tool, in chunks. You are shown only its start; the newest rules are at the end.
+- Precedence: this file wins over the plan, except the points listed under "Supersedes". A disagreement not listed
+  there: stop and ask Brian. Do not choose.
+- Settled, do not reopen: the wendigo is not touched; Counting Sheep is seen side-on "like the dinosaur game"; the sack
+  opening keeps the fair machine; shadows and tone mapping change only where a before-and-after Brian has seen shows a
+  real improvement. No rule, timer, bot, score, word list, network message or saved-data format changes.
+- Supersedes, and nothing else: (a) "V5.1 is the final animal plan" and "Change an animal only when Brian names it"
+  (2026-11-07): animals change by plan file 03 (shape switch, then species changes Brian ticks); what he asked for by
+  name that day stays the default (2 x 2 eyes, the pig's plates, the cow second only to the horse with its eyes clear of
+  its spots, the chicken's head). (b) V4.1's dream camera, the 32 gates of tools/dreamGate.ts and the framing tests in
+  src/skin/dream/__tests__/stage.test.ts: the dream is side-on by plan file 09; everything else about the dream stands.
+  (c) How the farm, yard, barn floor, ice and dream scenery are laid out and dressed, inside plan files 04 and 18.
+  (d) "Never modify existing tests", for this work only, by the list below. (e) For the record: "no bloom" (line 36) is
+  stale; V3.1 approved ACES, one shadow-casting sun and bloom, and the game runs them.
+- Everything else in this file stands: every interface decision, the floating letters, name plates and bubble, Word of
+  the day, plain cards and switches, the loading doors, the fair machine, the bomb (icy, on the floor, digits, eight
+  models, red={false} at the barn), bursts as acts, the lobby and pen, leaderboards in the sky, the podium, the menu rows,
+  his avatar heads, the light limits (fill <= 0.58 by day, 0.62 at night, exposure 1), the snow's texture, and the
+  rounded-corner trial (ROUNDED_VOXELS stays a switch; every model must look right both ways).
+- Wendigo zone: no diff ever in src/skin/table/Wendigo.tsx, wendigoPose.ts, WendigoPreview.tsx, public/models/wendigo.glb.
+  WENDIGO_AT, POV_SHOTS.desktop[2] and POV_SHOTS.phone[2] stay. isClear reads a frozen copy of today's fourteen sight
+  lines. The 12 m stand is voxel-identical, the view cone from the paddock camera is hashed, sight rays stay 134/136/137
+  of 153, the magenta mask matches (IoU >= 0.98). On that shot light, fog, tilt-shift and tour are today's on every tier.
+- Approved changes outside src/skin, and only these: vite.config.ts (CSP: drop the two Google font hosts);
+  src/config.ts (one constant, FESTIVE, beside UPDATE_NAME); package.json (scripts and version); tools/ (new gate,
+  scene, wendigo and bake-stamp tools); e2e-painted/ (new); .github/workflows/ (new painted.yml; npm run size in
+  deploy.yml); public/fonts/, public/boot-check.js, public/wotd-notes.json (if question 9 is yes),
+  and re-baked pictures in public/shop, public/shop/stall, public/tour, public/play, public/og.png; docs/visual-overhaul/,
+  docs/skin/overhaul/; CHANGELOG.md. A new saved key, sap:gfx, is a device cache, not player data. Anything else: ask.
+- Tests that may be replaced, each only in its milestone: adaptiveDpr.test.ts (2); a ticked species' SHEET ranges in
+  src/skin/voxel/animals/measure.ts (6); stage.test.ts framing and the 32 dream gates (9); the meaning and example lines
+  of src/skin/wotd/__tests__/wotd.test.ts, only if question 9 is yes (1). Never replaced: anything under src/engine,
+  src/dream, src/state, src/lib, server, e2e; primitives.floating, refine, zfighting; connectivity, face-rule, root and
+  garment checks; animalPose, loungePose, legJoins; bombSkins, burstActs, sacks, tour, boards, festive, uiAudit,
+  kitContrast; any budget, except downward. The gate checks vitest's JSON: no other test may vanish, skip or be renamed.
+- How it runs: milestones 0 to 12, one branch and one pull request each, reviewed by Kai, changelog line and version
+  bump; never a push to main. Done means CI's gate and smoke checks are green (plan file 16).
+- Answers so far (file 19 section 2), each as Brian chose it on 2026-11-16 before milestone 0: question 11 (has Kai agreed
+  to the overhaul and to reviewing each milestone's pull request?) "Yes, Kai agreed"; question 9 (may the word of the
+  day's meanings and examples move to public/wotd-notes.json?) "Yes"; question 10 (replace exactly the tests listed
+  above, each only in its milestone, and no others?) "Approve the list".
+
 ## Painted redesign (visual layer only)
 
 The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCOVERY.md.

@@ -48,6 +48,10 @@ text of this entry, the questions and the conflict register are in 19-decisions-
   (GOAT_MOUTH, GOAT_HORNS, HORSE_NOSE, HORSE_EYES, HORSE_NECK, CHICKEN_TAIL, COW_NO_GLINT); pig no face change; the
   sheep's fleece and eyes "whatever the plan says", which is fleece A (today's) and 2 x 2 eyes (SHEEP_FLEECE and
   SHEEP_EYES stay false).
+- Bundle size, Brian on 2026-11-17 (during milestone 9): first "Slim framer-motion in src/ui"; that saved nothing
+  (LazyMotion needs domMax for the classic toasts' `layout`, +0.18 kB), and the 14.4 kB domAnimation version drops the
+  classic toasts' slide. Asked again, he chose "Raise the limit instead": src/ui stays fenced and untouched, and the
+  size limit (scripts/check-bundle-size.mjs) is raised when a milestone needs it, said in that pull request.
 - Changed by Brian on 2026-11-16, during milestone 0 ("close the stupid tests and all that, we can test it all at once
   at the end in that case. get done with the milestones"): the gate is not finished and is not a condition of any
   milestone. What was built stays in tools/gate, tools/scenes and e2e-painted, unverified as a whole (the gate has never

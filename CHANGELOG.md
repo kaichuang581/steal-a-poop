@@ -2,6 +2,14 @@
 
 All user-visible changes, newest first.
 
+## 0.7.7
+
+- The game draws at most 60 pictures a second (72 on a 144 Hz screen), nothing at all in a background tab, and nothing behind a screen that covers it: the same motion for less battery.
+- The farm on Home slows to 30 pictures a second after 20 seconds without a touch, or behind an open dialog.
+- One slow second no longer leaves the game blurry for good: the sharpness comes back once the device keeps up.
+- The table no longer redraws its whole interface every frame while you play.
+- The music sleeps while the game's tab is in the background.
+
 ## 0.7.6
 
 - If your device cannot draw the farm, you now get a card that says so, with Reload and "Copy device report", instead of a blank page. The menus still work.

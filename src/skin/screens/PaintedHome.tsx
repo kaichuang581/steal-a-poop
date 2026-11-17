@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
@@ -54,6 +54,7 @@ import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
+import { useHomeFps } from '../perf/governor';
 import { PaintedSettings } from './PaintedSettings';
 import { SoundMenu } from '../components/SoundMenu';
 
@@ -120,7 +121,9 @@ export function PaintedHome() {
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
   const [boards, setBoards] = useState(false);
-  const [heroYaw, setHeroYaw] = useState(0);
+  // Where the hero looks. A ref, not state (plan file 17, change 11): the sheep reads it as it is drawn, so moving the
+  // pointer over Home renders nothing.
+  const heroYaw = useRef(0);
   const [hopKey, setHopKey] = useState(0);
   const [tip, setTip] = useState(() => Math.floor(Math.random() * TIPS.length));
   const coins = useSocial((st) => st.balance);
@@ -194,7 +197,7 @@ export function PaintedHome() {
   // The hero looks toward the pointer: up to 0.3 rad either way across the width of the screen.
   const onPointerMove = (e: PointerEvent) => {
     if (mobile || reduced) return;
-    setHeroYaw(((e.clientX / window.innerWidth) * 2 - 1) * 0.3);
+    heroYaw.current = ((e.clientX / window.innerWidth) * 2 - 1) * 0.3;
   };
 
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -405,10 +408,12 @@ export function PaintedHome() {
       ))}
     </footer>
   );
+  // The farm rests (fewer pictures a second, the same motion) behind an open dialog and when Home is left alone.
+  const farmFps = useHomeFps(chooser || signIn || help || gear || legal !== null || feedback || profile || pickAvatar || adminOpen);
 
   return (
     <main className={`sk-home relative h-full overflow-hidden`} onPointerMove={onPointerMove} onKeyDown={onKey}>
-      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} paused={bazaar || boards} /></div>
+      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} paused={bazaar || boards} fps={farmFps} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}

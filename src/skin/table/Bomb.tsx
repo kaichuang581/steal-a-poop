@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, Group, Mesh, PerspectiveCamera, PointLight, PointsMaterial, Quaternion, Vector3 } from 'three';
+import { turnClockDrawn } from '../model/turnClock';
 import { HEAP, SPEAKER_CAMERA, seatPosition, speakerShot } from '../scene/layout';
 import { digitGeometry } from '../voxel/characters';
 import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S } from '../voxel/bomb';
@@ -49,7 +50,7 @@ interface Ring { mesh: Mesh | null; x: number; z: number; size: number; at: numb
  * its own way of sitting there (shop/bombAura.ts, BombAura.tsx), a coal shedding embers, a bell that rocks and rings.
  * Only how it looks.
  */
-export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft, size, power, spotAt = barnSpot }: { spotAt?: (index: number, n: number) => BombSpot; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
+export function Bomb({ speaker, n, red, reduced, boomKey, size, power, spotAt = barnSpot }: { spotAt?: (index: number, n: number) => BombSpot; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
   const body = useMemo(() => voxelMaterial({ emissive: '#3f97d6', emissiveIntensity: 0.1 }), []);
   // Trading Post cosmetics: the skin's own model, glow and way of sitting there, and the burst's colours. Only how it looks.
   const equipped = useWallet().equipped;
@@ -217,6 +218,9 @@ export function Bomb({ speaker, n, fraction, red, reduced, boomKey, secondsLeft,
     }
     g.scale.set(scale * sx, scale * sy, scale * sx);
 
+    // The clock, read from the store as the bomb is drawn (model/turnClock.ts): the screen above renders a few times a
+    // second, not every frame, so the `fraction` and `secondsLeft` it passes are only as fresh as its last render.
+    const { fraction, secondsLeft } = turnClockDrawn();
     // The seconds left, in glowing voxel digits on the bomb's face, turned to the camera so they read from any seat.
     if (label.current) {
       const text = secondsLeft === null ? '' : String(Math.max(0, Math.ceil(secondsLeft)));

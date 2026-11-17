@@ -62,6 +62,13 @@ export function setKaiyanLook(next: Partial<KaiyanLook> | null): void {
   subs.forEach((f) => f());
 }
 
+/**
+ * What the hook hands React: the look as last read, with no trip to storage. React asks for it on every render of the
+ * table, the ice and the dream, which was two storage reads a frame (plan file 17, change 11). It is read again when
+ * the sliders move it (setKaiyanLook drops the cache); `getKaiyanLook` itself still asks storage every time.
+ */
+const keptLook = (): KaiyanLook => cache?.look ?? getKaiyanLook();
+
 export function useKaiyanLook(): KaiyanLook {
-  return useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f); }; }, getKaiyanLook, () => DEFAULT_LOOK);
+  return useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f); }; }, keptLook, () => DEFAULT_LOOK);
 }

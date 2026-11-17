@@ -4,6 +4,7 @@ import { getDaily, getStreak } from '../../lib/daily';
 import { useMemo } from 'react';
 import { useStore } from '../../state/store';
 import type { Mode as StoreMode } from '../../state/store';
+import { clockBySeconds } from './turnClock';
 import type { CreatureId, Mode, PlayerView, TableView, TwistId } from './types';
 
 const CREATURES: CreatureId[] = ['moss', 'pip', 'willow', 'bramble', 'fern', 'quill', 'juniper'];
@@ -38,7 +39,7 @@ export function streakDays(today = new Date()): boolean[] {
   });
 }
 
-/** What the daily view needs from storage; read once per game (see useTableView), not every frame. */
+/** What the daily view needs from storage; read once per game (see useTableView), not on every render. */
 export interface DailyView {
   streakDays?: boolean[];
   dailyPlayedToday: boolean;
@@ -106,13 +107,18 @@ export function toTableView(
   };
 }
 
-/** The only place that knows the store's shape. Read-only. */
+/**
+ * The only place that knows the store's shape. Read-only. It renders when the game changes, when a fuse is lit and
+ * once a second while one burns, not every frame: `secondsLeft` here is the whole seconds left, rounded up. What is
+ * drawn between those (the fuse, the frost) reads the clock itself as it draws (turnClock.ts).
+ */
 export function useTableView(extra?: Parameters<typeof toTableView>[4]): TableView | null {
   const game = useStore((s) => s.game);
   const mode = useStore((s) => s.mode);
   const mySeat = useStore((s) => s.mySeat);
-  const now = useStore((s) => s.now);
-  // The view re-renders every frame; the daily record only changes when a game starts or ends.
+  // Not the store's `now`, which moves every frame: the clock as far as the view can tell it (see turnClock.ts).
+  const now = useStore(clockBySeconds);
+  // The daily record only changes when a game starts or ends: read from storage then, not on every render.
   const viewMode = MODE_OF[mode];
   const over = game?.phase === 'gameOver';
   const seed = game?.seed;

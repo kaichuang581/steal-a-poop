@@ -12,8 +12,8 @@ import { buzz } from '../hooks/buzz';
 import { Jumpscare, WordBlast } from '../components/Jumpscare';
 import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { previewBotTurn, rankPlayers, roundTurnMs, startingWool, utcDateKey } from '../../engine';
 import { getDream } from '../../dream/daily';
 import { getPracticeBest } from '../../lib/practice';
@@ -43,6 +43,7 @@ import { TwistSign } from '../components/TwistSign';
 import { LedgerRow } from '../components/Ledger';
 import { Podium } from '../table/Podium';
 import type { PodiumEntry } from '../table/Podium';
+import { useCoveredFps } from '../perf/governor';
 import { SoundMenu } from '../components/SoundMenu';
 import { Alarm, useAlarms } from '../components/Alarm';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
@@ -53,6 +54,7 @@ import { useVisualEvents } from '../model/events';
 import type { VisualEvent } from '../model/events';
 import { TWIST_TEXT } from '../model/types';
 import type { PlayerView } from '../model/types';
+import { turnClock } from '../model/turnClock';
 import { streakDays, useTableView } from '../model/useTableView';
 import { BarnTable } from '../table/BarnTable';
 import type { BarnMoments } from '../table/BarnTable';
@@ -100,7 +102,8 @@ export function PaintedGame() {
   const rankedRoom = useRoomStore((s) => !!s.room?.ranked);
   const quit = useStore((s) => s.quit);
   const dict = useStore((s) => s.dict);
-  const now = useStore((s) => s.now);
+  // The store's clock moves every frame and is never selected here (plan file 17, change 11): this screen renders when
+  // something it shows changes. What follows the clock frame by frame reads it as it draws (model/turnClock.ts).
   const mobile = usePhoneLayout();
   const reduced = useMotionLevel() === 'reduced';
   const deviceHour = useHour();
@@ -125,8 +128,8 @@ export function PaintedGame() {
   const name = (id: string) => game.players[Number(id)]?.name ?? '';
   const practice = storeMode === 'practice';
   // A practice run has its own place: the two of you, out on the ice.
-  const Stage = practice ? DuelTable : BarnTable;
-  // Read once a run: the table re-renders every frame and this reads storage.
+  const Stage = practice ? LiveDuel : BarnTable;
+  // Read once a run: the table renders often and this reads storage.
   const runBest = useMemo(() => (practice ? getPracticeBest(game.settings.practiceClock ?? 15, game.settings.botDifficulty) : 0), [practice, game.seed]); // eslint-disable-line react-hooks/exhaustive-deps
   const runWords = game.players[0].wordsPlayed;
   // Wool balls are lives: every sheep shows them, with an empty ring for each one lost.
@@ -182,6 +185,8 @@ export function PaintedGame() {
     return () => { clearTimeout(toWinner); clearTimeout(toResults); unhook(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [over, storeMode, reduced]);
+  // Under the results the podium covers the table whole: once the podium has drawn, the table stops drawing.
+  const tableFps = useCoveredFps(over && finale === 'results', 'podium');
   // The bomb swells with every word played since it last went off, more for a long word.
   const bombSz = useMemo(() => bombSize(wordsSinceBoom(game.history)), [game.history.length]); // eslint-disable-line react-hooks/exhaustive-deps
   /** A blast: the whole table jolts and a frosty edge flashes (neither under reduced motion). */
@@ -224,11 +229,16 @@ export function PaintedGame() {
   // off beside is dazed and the table watches it, then, PREROLL_MS before the fuse is lit, the table turns to the
   // sheep that is up next, so the camera has arrived and the turn has been called when its clock starts.
   const [boomSeat, setBoomSeat] = useState<number | null>(null);
-  const untilLit = game.turn && game.phase === 'playing' ? game.turn.startedAt - now : 0;
-  const dazedSeat = untilLit > PREROLL_MS && boomSeat !== null && !game.players[boomSeat]?.frozen ? boomSeat : null;
-  const upNextSeat = untilLit > 0 && untilLit <= PREROLL_MS ? game.turn!.seat : null;
+  // Which part of that beat the clock is in, and no more of the clock than that: 'dazed' until PREROLL_MS before the
+  // fuse is lit, then 'next', then 'lit' (and 'lit' whenever no fuse is waiting).
+  const beat = useStore((s) => {
+    const untilLit = s.game?.turn && s.game.phase === 'playing' ? s.game.turn.startedAt - s.now : 0;
+    return untilLit > PREROLL_MS ? 'dazed' : untilLit > 0 ? 'next' : 'lit';
+  });
+  const dazedSeat = beat === 'dazed' && boomSeat !== null && !game.players[boomSeat]?.frozen ? boomSeat : null;
+  const upNextSeat = beat === 'next' && game.turn ? game.turn.seat : null;
   // The seat whose fuse is lit: none in that beat, and none between rounds.
-  const litSeat = game.turn && game.phase === 'playing' && untilLit <= 0 ? game.turn.seat : undefined;
+  const litSeat = game.turn && game.phase === 'playing' && beat === 'lit' ? game.turn.seat : undefined;
 
   // Every change of the floor is called out: as the camera swings to the new speaker a board over the table names
   // whose turn it is (gold for yours), so the swing never leaves you guessing who is on. The tour has its own cards.
@@ -357,11 +367,19 @@ export function PaintedGame() {
     // One script per turn: the plan is taken when the turn starts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turn?.startedAt, turn?.seat, dict]);
-  const botElapsed = botScript && turn && !game.players[turn.seat].isHuman ? now - botScript.from : -1;
-  const botTyped = botElapsed >= 0 ? keystrokeAt(botScript!.script, botElapsed)?.text ?? '' : '';
+  // Where the script has got to is asked of the clock by two selectors: they answer every frame, and the screen
+  // renders only when an answer changes (a key, a wipe, the shake starting or stopping).
+  const typing = botScript && turn && !game.players[turn.seat].isHuman ? botScript : null;
+  const botTyped = useStore((s) => {
+    const botElapsed = typing ? s.now - typing.from : -1;
+    return botElapsed >= 0 ? keystrokeAt(typing!.script, botElapsed)?.text ?? '' : '';
+  });
   // A bounced try shakes the tag red for a beat, outliving the wipe that follows it.
-  const botRejectKey = botElapsed >= 0 ? lastRejectAt(botScript!.script, botElapsed) : null;
-  const botReject = !!botRejectKey && botElapsed - botRejectKey.at < 380;
+  const botReject = useStore((s) => {
+    const botElapsed = typing ? s.now - typing.from : -1;
+    const botRejectKey = botElapsed >= 0 ? lastRejectAt(typing!.script, botElapsed) : null;
+    return !!botRejectKey && botElapsed - botRejectKey.at < 380;
+  });
   const signState = game.phase === 'gameOver' ? 'raised' : game.phase === 'intro' ? 'lowering' : 'hung';
   const ranked = rankPlayers(game.players).map((p) => view.players[p.id]);
   const showTally = game.phase === 'intro' && game.round > 1 && storeMode !== 'tour';
@@ -377,18 +395,16 @@ export function PaintedGame() {
     <div ref={rootRef} className="sk-swoop-in relative flex h-full flex-col overflow-hidden">
       {boom > 0 && <div key={boom} className="sk-boom" aria-hidden="true"><i /><i /><i /></div>}
       {/* Frost creeps in from the screen's edges in the last three seconds of a turn (not on the ice, which has its own red edge). */}
-      {!practice && game.turn && game.phase === 'playing' && view.secondsLeft <= 3 && (
-        <div className="sk-frost" aria-hidden="true" style={{ '--frost': String(Math.min(1, Math.max(0, (3 - view.secondsLeft) / 3))) } as React.CSSProperties}>
-          <Ice className="sk-frost-t" /><Ice className="sk-frost-b" /><Ice className="sk-frost-l" /><Ice className="sk-frost-r" />
-        </div>
-      )}
+      {!practice && game.turn && game.phase === 'playing' && view.secondsLeft <= 3 && <Frost />}
       {blast && !reduced && <Jumpscare key={`j${blast.key}`} power={blast.power} glow={blast.glow} />}
       {blast && !reduced && <WordBlast key={`w${blast.key}`} words={blast.words} power={blast.power} />}
       {hit > 0 && <div key={hit} className="sk-hit-flash" aria-hidden="true" />}
       <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
         <Stage
+          fps={tableFps}
           bombSize={bombSz} pile={view.pile} speaker={speaker} dazed={dazedSeat === null ? null : rel(dazedSeat)}
           upNext={finale === 'winner' && game.winners?.length ? rel(game.winners[0]) : upNextSeat === null ? null : rel(upNextSeat)}
+          // The clock as of this render, to the whole second: the bomb reads the running clock itself as it draws.
           fraction={view.turnSeconds ? view.secondsLeft / view.turnSeconds : 0}
           secondsLeft={game.turn ? view.secondsLeft : null} letter={view.letter ?? ''} isTrap={view.isTrapLetter}
           hour={hour} reduced={reduced} phone={mobile} blizzard={view.twist === 'doublePointsShort'} moments={moments}
@@ -547,6 +563,36 @@ export function PaintedGame() {
   );
 }
 
+/** How far the frost has crept in, 0 to 1 as a CSS number: nothing with three seconds left, all the way at none. */
+const frostDepth = (secondsLeft: number) => String(Math.min(1, Math.max(0, (3 - secondsLeft) / 3)));
+
+/**
+ * The frost round the screen's edges. The table mounts it for a turn's last three seconds; how deep it lies follows
+ * the store's clock on every frame, written straight onto the element by a store listener, so nothing renders for it.
+ */
+function Frost() {
+  const el = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => useStore.subscribe(() => {
+    const { secondsLeft } = turnClock();
+    if (secondsLeft !== null) el.current?.style.setProperty('--frost', frostDepth(secondsLeft));
+  }), []);
+  return (
+    <div ref={el} className="sk-frost" aria-hidden="true" style={{ '--frost': frostDepth(turnClock().secondsLeft ?? 0) } as React.CSSProperties}>
+      <Ice className="sk-frost-t" /><Ice className="sk-frost-b" /><Ice className="sk-frost-l" /><Ice className="sk-frost-r" />
+    </div>
+  );
+}
+
+/**
+ * The ice under a practice run. Its camera, its lamp and its red edge follow the fraction of the turn left as props
+ * (table/DuelTable.tsx), so this small wrapper, and nothing above it, takes the clock and renders every frame.
+ */
+function LiveDuel(props: ComponentProps<typeof DuelTable>) {
+  useStore((s) => s.now);
+  const { secondsLeft, fraction } = turnClock();
+  return <DuelTable {...props} fraction={fraction} secondsLeft={secondsLeft} />;
+}
+
 /** A clipboard for the rules, the chain and the chat (V6 Part 6.2): paper under a brass clip on a light board. */
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
@@ -561,7 +607,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
 /** What the table shouts when your word lands. */
 const CHEERS = ['Nice one!', 'Ho ho ho!', 'Jolly good!', 'Fa la la la baa!', 'Merry and bright!'];
 const DREAM_LINE = 'Tonight’s dream is still waiting: Counting Sheep, on the farm.';
-/** Read once: the table re-renders every frame and this reads storage. */
+/** Read once: the table renders often and this reads storage. */
 const useDreamWaiting = () => useMemo(() => !getDream(localDateKey(new Date())), []);
 
 /** What a finished game earns in the Trading Post (shop/economy.ts): the same for the early payment and for the board that shows it. */
@@ -635,7 +681,7 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
   const [hidden, setHidden] = useState(false);
   const reducedMotion = useStore((s) => s.reduceMotion);
   const phone = usePhoneLayout();
-  // Read once: the table re-renders every frame and this reads storage.
+  // Read once: the table renders often and this reads storage.
   const days = useMemo(() => (mode === 'daily' ? streakDays(new Date(`${dailyDate ?? utcDateKey(new Date())}T12:00:00Z`)) : []), [mode, dailyDate]);
   const result = useStore((s) => s.gameResult);
   const dreamWaiting = useDreamWaiting();

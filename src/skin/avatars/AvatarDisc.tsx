@@ -18,8 +18,8 @@ interface Props {
   still?: boolean;
   dimmed?: boolean;
   speaking?: boolean;
-  /** The home hero follows the pointer a little (radians). */
-  yaw?: number;
+  /** The home hero follows the pointer a little (radians). A ref is read every frame, with no render. */
+  yaw?: number | { readonly current: number };
   /** Counting Sheep's pace, 0 to 1: the trot quickens with it. */
   pace?: number;
 }
@@ -123,7 +123,7 @@ export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false
     const moving = !still && !reduced;
     const p = discPose(state, t - anim.at, t, anim.phase, moving, speaking, pace);
     g.position.y = rest + p.lift;
-    g.rotation.set(p.rotX, p.rotY + yaw * 0.5, p.rotZ);
+    g.rotation.set(p.rotX, p.rotY + (typeof yaw === 'number' ? yaw : yaw.current) * 0.5, p.rotZ);
     const o = dimmed ? 0.5 : 1;
     for (const m of mats) m.opacity = o;
     const pulse = moving ? 0.5 + 0.5 * Math.sin(t * 3.2) * Math.sin(t * 1.3 + 0.7) : 0.5;

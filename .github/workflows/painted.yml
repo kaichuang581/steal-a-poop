@@ -3,10 +3,10 @@ name: Painted
 # The checks that open the painted game, the look players see (docs/visual-overhaul/16-qa-and-acceptance.md, 4.1).
 # Three jobs, and their names are the names branch protection asks for: smoke, gate, check-scenes.
 # Read-only, and it needs no secrets.
+# Run by hand only (Actions, "Run workflow"): Brian chose on 2026-11-16 to test the overhaul once, at the end, not on
+# every pull request. To make these required checks again, add `pull_request:` and `push: branches: [main]` here.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -44,6 +44,13 @@ text of this entry, the questions and the conflict register are in 19-decisions-
   to the overhaul and to reviewing each milestone's pull request?) "Yes, Kai agreed"; question 9 (may the word of the
   day's meanings and examples move to public/wotd-notes.json?) "Yes"; question 10 (replace exactly the tests listed
   above, each only in its milestone, and no others?) "Approve the list".
+- Changed by Brian on 2026-11-16, during milestone 0 ("close the stupid tests and all that, we can test it all at once
+  at the end in that case. get done with the milestones"): the gate is not finished and is not a condition of any
+  milestone. What was built stays in tools/gate, tools/scenes and e2e-painted, unverified as a whole (the gate has never
+  run green and docs/visual-overhaul/RATCHETS.json holds only the size limit), for one test pass at the end, in milestone
+  12. Until then a milestone is done when the type check, `npm test` and the build pass; the Painted workflow runs only
+  by hand; and work goes on to the next milestone without stopping, except where the plan needs a choice only Brian can
+  make. Still in force: skin-only, the fenced folders, no new dependencies, no banned names, never a push to main.
 
 ## Painted redesign (visual layer only)
 

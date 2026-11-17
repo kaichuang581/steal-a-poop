@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## 0.7.5
+
+- Nothing you can see yet: groundwork for the visual overhaul (its plan, and the checks it will be tested with at the end).
+
 ## 0.7.4
 
 - New rank names: Wood, Stone, Iron, Gold, Crystal, Titan, Eclipse and Zenith, each badge in its own colours, and Zenith with rays of light that pulse round it. Your points stay as they were.

@@ -58,15 +58,54 @@ export function* refineSteps(map: VoxelMap, grain = 0.04, only?: (v: Voxel) => b
 export const coarseDevice = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
 /**
+ * The detail a quality tier builds the world at (plan file 17, change 15, "World detail"): High builds today's detail
+ * for the device (the desktop's on a fine pointer), Medium and Low the touch detail on every device.
+ */
+export const coarseFor = (tier: 'low' | 'medium' | 'high'): boolean => tier !== 'high' || coarseDevice();
+
+/**
+ * The detail every `detailed` call is told to use while a build runs under `inDetail` / `withDetail` (it wins over the
+ * argument); null: the argument, by default the device's.
+ */
+let told: boolean | null = null;
+
+/** The detail a build running now is told to use (true: touch detail), or null when none is told. */
+export const toldDetail = (): boolean | null => told;
+
+/**
+ * Runs a builder in steps with every `detailed` inside it at one detail (`coarse`), whatever the device. Only its own
+ * steps are affected: the setting is put back between them, so a build queued beside it (scene/slices.ts) keeps its own.
+ */
+export function* inDetail<T, Part>(coarse: boolean, steps: Generator<Part | undefined, T, void>): Generator<Part | undefined, T, void> {
+  for (;;) {
+    const was = told;
+    told = coarse;
+    let r: IteratorResult<Part | undefined, T>;
+    try { r = steps.next(); } finally { told = was; }
+    if (r.done) return r.value;
+    yield r.value;
+  }
+}
+
+/** `inDetail` for a build that runs in one go. */
+export function withDetail<T>(coarse: boolean, build: () => T): T {
+  const was = told;
+  told = coarse;
+  try { return build(); } finally { told = was; }
+}
+
+/**
  * `refine`, unless `coarse` (by default: this device should stay coarse). Returns the voxels and the cell size to build
- * them at. A caller may ask for either detail on any device, to build the touch detail first and the finer one later.
+ * them at. A caller may ask for either detail on any device, to build the touch detail first and the finer one later;
+ * a build run under `inDetail` or `withDetail` is told which.
  */
 export function detailed(map: VoxelMap, size: number, grain?: number, only?: (v: Voxel) => boolean, coarse = coarseDevice()): { map: VoxelMap; size: number } {
-  return finish(detailedSteps(map, size, grain, only, coarse));
+  return finish(detailedSteps(map, size, grain, only, told ?? coarse));
 }
 
 /** `detailed` in steps (scene/slices.ts). */
-export function* detailedSteps(map: VoxelMap, size: number, grain?: number, only?: (v: Voxel) => boolean, coarse = coarseDevice()): Generator<undefined, { map: VoxelMap; size: number }, void> {
+export function* detailedSteps(map: VoxelMap, size: number, grain?: number, only?: (v: Voxel) => boolean, coarse = coarseDevice(), deaf = false): Generator<undefined, { map: VoxelMap; size: number }, void> {
+  if (told !== null && !deaf) coarse = told; // `deaf`: this one keeps `coarse` whatever the build is told
   if (!coarse) return { map: yield* refineSteps(map, grain, only), size: size / 2 };
   if (!only) return { map, size };
   return { map: new Map([...map].filter(([, v]) => only(v))), size };

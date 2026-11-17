@@ -2,7 +2,7 @@ import type { Shot } from './layout';
 import { buildGeometry, packGeometry } from '../voxel/mesher';
 import { ICE_CRACK, lin, pick, T } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
-import { detailed } from '../voxel/refine';
+import { coarseDevice, detailed, toldDetail } from '../voxel/refine';
 
 /**
  * The practice run's own place: a narrow spit of ice out on a black lake at night, with you and the bot face to face on
@@ -51,10 +51,13 @@ export function duelShot(speaker: number | null, pressure: number, phone: boolea
   return { position: [x, s.height, -d], target: [x, s.aimY, 0], fov: s.fov };
 }
 
-let built: ReturnType<typeof make> | null = null;
-/** The static place, built once. */
+/** The static place, built once per detail (a tier change can ask for the other one). */
+const built = new Map<boolean, ReturnType<typeof make>>();
 export function buildDuel() {
-  return (built ??= make());
+  const coarse = toldDetail() ?? coarseDevice();
+  let b = built.get(coarse);
+  if (!b) built.set(coarse, (b = make()));
+  return b;
 }
 
 function make() {

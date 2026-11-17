@@ -4,13 +4,13 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Sphere, Vector3 } from 'three';
 import type { BufferGeometry, DirectionalLight, Frustum, Mesh, PerspectiveCamera } from 'three';
 import type { Animal } from '../avatars/catalog';
-import { buildCountrysideSteps } from '../scene/countryside';
+import { buildCountrysideSteps, lowDrops } from '../scene/countryside';
 import type { Countryside, CountryPart } from '../scene/countryside';
 import { buildFarmFestive } from '../scene/festive';
 import { buildFarmsteadSteps } from '../scene/farmstead';
 import type { Farmstead as Built } from '../scene/farmstead';
 import { pinnedPov, POV_SHOTS } from '../scene/homePov';
-import { queueBuild, rush } from '../scene/slices';
+import { dropBuild, queueBuild, rush } from '../scene/slices';
 import type { Steps } from '../scene/slices';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
@@ -18,10 +18,18 @@ import { PADDOCK_SHOT, shadowSeen, shotAt, viewsOf } from '../voxel/unseen';
 import { Festive } from './Festive';
 import { Sheep } from './Sheep';
 import type { SheepState } from './Sheep';
+import { fineWorldReady, promoteWorld, retire, startFineWorld } from './BarnTable';
 import type { World } from './BarnTable';
+import { getTier, rememberedTier, subscribeTier, useTier } from '../perf/tier';
+import { coarseDevice, coarseFor, inDetail } from '../voxel/refine';
 import { holdDpr } from './Rendering';
 
 let built: Built | null = null;
+/** Whether `built` is the touch detail (voxel/refine.ts). */
+let builtCoarse = false;
+/** The farm at the desktop's detail, built in the background for High (plan file 17, change 15); see `swapFine`. */
+let fineFarm: Built | null = null;
+let fineSteps: Steps<Built> | null = null;
 let land: Countryside | null = null;
 /** What the opening shot needs of the land, built before the rest (see `startBuild`). */
 let landPart: CountryPart | null = null;
@@ -38,10 +46,55 @@ export const farmReady = () => !!built && !!land;
  */
 function startBuild(wanted?: (min: [number, number, number], max: [number, number, number]) => boolean) {
   if (landSteps || land) return;
-  if (!built) queueBuild(buildFarmsteadSteps(), (b) => { built = b; changed(); }, { around: holdDpr });
+  if (!built) {
+    const coarse = coarseFor(getTier());
+    queueBuild(inDetail(coarse, buildFarmsteadSteps()), (b) => { built = b; builtCoarse = coarse; changed(); }, { around: holdDpr });
+  }
   landSteps = buildCountrysideSteps(wanted);
-  queueBuild(landSteps, (c) => { land = c; changed(); }, { part: (p) => { landPart = p; changed(); }, around: holdDpr });
+  queueBuild(landSteps, (c) => {
+    land = c;
+    changed();
+    // The opening shot is whole: a device that earned High last time (or is on it now) builds the desktop's detail
+    // behind it, so it is ready for the dip where High is earned.
+    if (getTier() === 'high' || rememberedTier() === 'high') startFine();
+  }, { part: (p) => { landPart = p; changed(); }, around: holdDpr });
 }
+
+/** The desktop's detail of the farm and of the world, in the background slices, where this device has one and it is not on screen. */
+function startFine() {
+  startFineWorld();
+  if (!built || !builtCoarse || fineFarm || fineSteps || coarseDevice() || getTier() === 'low') return;
+  fineSteps = inDetail(false, buildFarmsteadSteps());
+  queueBuild(fineSteps, (b) => { fineSteps = null; fineFarm = b; }, { around: holdDpr });
+}
+
+/**
+ * Puts the desktop's detail on screen, the farm and the world together, once the tier is High and both are built.
+ * Called only in a dip (a cut of the tour, made in the dark), when the tier changes (which is only ever in a dip or at
+ * a scene change) and when Home mounts (a scene change), so no shot is seen changing or part-built.
+ */
+function swapFine(): boolean {
+  if (getTier() !== 'high' || !fineFarm || !fineWorldReady()) return false;
+  promoteWorld();
+  const old = built;
+  built = fineFarm;
+  builtCoarse = false;
+  fineFarm = null;
+  changed();
+  if (old) retire(old, built);
+  return true;
+}
+
+subscribeTier(() => {
+  const t = getTier();
+  if (t === 'high') { startFine(); swapFine(); }
+  if (t === 'low') {
+    if (fineSteps) dropBuild(fineSteps);
+    fineSteps = null;
+    if (fineFarm) retire(fineFarm, built);
+    fineFarm = null;
+  }
+});
 
 /** The sun's heading, read off the scene's shadow-casting light; null until it is there. */
 function sunOf(scene: { traverse: (f: (o: unknown) => void) => void }): Vector3 | null {
@@ -87,6 +140,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
   const open = useMemo(() => pinnedPov(location.search, shots.length) ?? 0, [shots]);
   useEffect(() => {
     listeners.add(bump);
+    swapFine(); // coming back to Home is a scene change
     if (!land) {
       // What the opening shot sees over its whole travel, or sees the shadow of, at a window a little wider than this one.
       const sun = sunOf(scene);
@@ -110,9 +164,12 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
   // and the trees round its view) is ever seen with a piece missing.
   const [whole, setWhole] = useState(() => !!land); // coming back to Home: all of it at once
   const seenOpen = useRef(false);
+  const lastShot = useRef(-2);
   useFrame(() => {
-    if (whole || !landPart) return;
     const now = shotAt(shots, camera.position.x, camera.position.y, camera.position.z);
+    // A cut to another shot is made in the dark: the one place the desktop's detail may come in on Home.
+    if (now !== lastShot.current) { if (lastShot.current !== -2 && now >= 0 && fineFarm) swapFine(); lastShot.current = now; }
+    if (whole || !landPart) return;
     if (now === open) { seenOpen.current = true; return; }
     if (!seenOpen.current || now < 0) return;
     if (!land && landSteps) rush(landSteps);
@@ -120,7 +177,25 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
   });
   useEffect(() => () => mat.dispose(), [mat]);
   const farm = built;
-  const country: CountryPart | null = whole ? land ?? landPart : landPart ?? land;
+  const landNow: CountryPart | null = whole ? land ?? landPart : landPart ?? land;
+  // Low leaves out the scrub and drifts far from the wendigo that its shot cannot see (countryside.ts, `lowDrops`).
+  const tier = useTier();
+  const size = useThree((s) => s.size);
+  const dropped = useMemo(() => {
+    const sun = tier === 'low' && landNow ? sunOf(scene) : null;
+    if (!sun || !landNow) return null;
+    const paddock = phone ? POV_SHOTS.phone[PADDOCK_SHOT] : POV_SHOTS.desktop[PADDOCK_SHOT];
+    // A window a little wider than this one, as for the opening shot: a resize never brings a dropped piece into view.
+    const { views, pad } = viewsOf(paddock, (size.width / Math.max(1, size.height)) * 1.3);
+    const ball = new Sphere();
+    return lowDrops(landNow, (c, r) => shadowSeen(ball.set(new Vector3(...c), r), sun, views, pad));
+  }, [tier, landNow, scene, phone, size.width, size.height]);
+  // A piece left out is a hole in its list, as a piece still to come is: the others keep their keys.
+  const country: CountryPart | null = useMemo(() => {
+    if (!landNow || !dropped?.size) return landNow;
+    const keep = (g: BufferGeometry | undefined) => (g && dropped.has(g) ? undefined : g);
+    return { ...landNow, scrub: landNow.scrub.map(keep), drifts: landNow.drifts.map(keep) };
+  }, [landNow, dropped]);
   // The first time Home opens, the loading screen stays up until the farm and the land its first shot needs are built,
   // so nothing pops in after the doors open. Both are kept for the session, so coming back to Home never waits.
   // Joins the first load's doors (never brings them down itself: a refresh has none, and the farm fades in instead).

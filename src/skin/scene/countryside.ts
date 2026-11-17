@@ -324,6 +324,32 @@ function tracks(g: Grid, points: [number, number][]) {
 }
 
 const TRACKS_LIFT = -0.16;
+const WALL: [number, number][] = [[-62, 21], [-48, 15], [-39, 13], [-29, 13.4], [-21, 12.6], [-20.4, 0], [-21, -15], [-30, -16]];
+const SCARECROW: [number, number] = [8.6, -21.4];
+
+/** Low leaves out scrub and drifts wholly more than this far from the wendigo (plan file 17, change 15, "World detail"). */
+export const LOW_DROP_M = 30;
+
+/**
+ * The scrub and drift pieces Low leaves out: each one wholly more than LOW_DROP_M from WENDIGO_AT along the ground
+ * that the paddock shot can neither see nor see the shadow of (`seen`, asked of the piece's bounding ball) and that
+ * holds none of the stone wall or the scarecrow. The voxels are built as always; the pieces are only not mounted, so
+ * nothing the wendigo's shot sees changes and the scene checker's countryside stays as pinned.
+ */
+export function lowDrops(c: CountryPart, seen: (center: [number, number, number], radius: number) => boolean): Set<BufferGeometry> {
+  const out = new Set<BufferGeometry>();
+  const consider = (g: BufferGeometry | undefined, fixed = false) => {
+    if (!g || fixed) return;
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    const { center, radius } = g.boundingSphere!;
+    if (Math.hypot(center.x - WENDIGO_AT[0], center.z - WENDIGO_AT[1]) - radius <= LOW_DROP_M) return;
+    if (seen([center.x, center.y, center.z], radius)) return;
+    out.add(g);
+  };
+  c.scrub.forEach((g, i) => consider(g, c.scrubFixed?.[i] ?? true));
+  for (const g of c.drifts) consider(g);
+  return out;
+}
 /** The wendigo's stand is the trees within 12 m of it; a chunk within a metre more of that is left exactly as built. */
 const STAND = 13;
 function inStand(chunk: Iterable<[string, { x: number; z: number }]>, size: number): boolean {
@@ -331,9 +357,11 @@ function inStand(chunk: Iterable<[string, { x: number; z: number }]>, size: numb
   return false;
 }
 
-export interface Countryside { woods: BufferGeometry[]; forest: BufferGeometry[]; scrub: BufferGeometry[]; drifts: BufferGeometry[]; tracks: BufferGeometry; triangles: number }
+export interface Countryside { woods: BufferGeometry[]; forest: BufferGeometry[]; scrub: BufferGeometry[]; drifts: BufferGeometry[]; tracks: BufferGeometry; triangles: number;
+  /** Which scrub pieces hold any of the stone wall or the scarecrow (Low keeps those: see `lowDrops`). */
+  scrubFixed: boolean[] }
 /** The countryside part built: the same lists, with a hole where a piece is still to come. */
-export interface CountryPart { woods: (BufferGeometry | undefined)[]; forest: (BufferGeometry | undefined)[]; scrub: (BufferGeometry | undefined)[]; drifts: (BufferGeometry | undefined)[]; tracks?: BufferGeometry }
+export interface CountryPart { woods: (BufferGeometry | undefined)[]; forest: (BufferGeometry | undefined)[]; scrub: (BufferGeometry | undefined)[]; drifts: (BufferGeometry | undefined)[]; tracks?: BufferGeometry; scrubFixed?: boolean[] }
 type Box = [number, number, number];
 
 let built: Countryside | null = null;
@@ -372,8 +400,8 @@ export function* buildCountrysideSteps(wanted?: (min: Box, max: Box) => boolean)
   yield;
   const small = new Grid(F);
   scrub(small);
-  wall(small, [[-62, 21], [-48, 15], [-39, 13], [-29, 13.4], [-21, 12.6], [-20.4, 0], [-21, -15], [-30, -16]]);
-  scarecrow(small, 8.6, -21.4);
+  wall(small, WALL);
+  scarecrow(small, ...SCARECROW);
   yield;
   const worn = new Grid(S);
   tracks(worn, [[-1.4, 12.6], [-6, 11.6], [-12, 10.4], [-12.2, 8.6]]);
@@ -386,7 +414,12 @@ export function* buildCountrysideSteps(wanted?: (min: Box, max: Box) => boolean)
     scrub: { maps: chunkMaps(small.map, F), size: F },
     drifts: { maps: chunkMaps(mounds.map, S), size: S, options: () => ({ unseen: home }) },
   };
-  const out: CountryPart = { woods: [], forest: [], scrub: [], drifts: [] };
+  // The wall and the scarecrow share the scrub's grid; their cells, on a grid of their own, mark the pieces Low keeps.
+  const fixedGrid = new Grid(F);
+  wall(fixedGrid, WALL);
+  scarecrow(fixedGrid, ...SCARECROW);
+  const scrubFixed = lists.scrub.maps.map((chunk) => { for (const key of chunk.keys()) if (fixedGrid.map.has(key)) return true; return false; });
+  const out: CountryPart = { woods: [], forest: [], scrub: [], drifts: [], scrubFixed };
   for (const k of LISTS) out[k] = lists[k].maps.map(() => undefined);
   const make = (k: (typeof LISTS)[number], i: number) => {
     const { maps, size, options } = lists[k];
@@ -403,10 +436,10 @@ export function* buildCountrysideSteps(wanted?: (min: Box, max: Box) => boolean)
   if (wanted) {
     for (const k of LISTS) for (let i = 0; i < lists[k].maps.length; i++) if (wanted(...boxOf(lists[k].maps[i].values(), lists[k].size, 0))) { make(k, i); yield; }
     if (wanted(...boxOf(worn.map.values(), S, TRACKS_LIFT))) makeTracks();
-    yield { woods: [...out.woods], forest: [...out.forest], scrub: [...out.scrub], drifts: [...out.drifts], tracks: out.tracks };
+    yield { woods: [...out.woods], forest: [...out.forest], scrub: [...out.scrub], drifts: [...out.drifts], tracks: out.tracks, scrubFixed };
   }
   for (const k of LISTS) for (let i = 0; i < lists[k].maps.length; i++) if (!out[k][i]) { make(k, i); yield; }
   if (!out.tracks) makeTracks();
   const parts = { woods: out.woods as BufferGeometry[], forest: out.forest as BufferGeometry[], scrub: out.scrub as BufferGeometry[], drifts: out.drifts as BufferGeometry[], tracks: out.tracks! };
-  return (built = { ...parts, triangles: [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts, parts.tracks].reduce((n, g) => n + triangles(g), 0) });
+  return (built = { ...parts, scrubFixed, triangles: [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts, parts.tracks].reduce((n, g) => n + triangles(g), 0) });
 }

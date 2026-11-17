@@ -16,7 +16,9 @@ import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYardSteps } from '../scene/yard';
 import type { Yard } from '../scene/yard';
-import { queueBuild } from '../scene/slices';
+import { dropBuild, queueBuild } from '../scene/slices';
+import { coarseDevice, coarseFor, inDetail } from '../voxel/refine';
+import { getTier, subscribeTier } from '../perf/tier';
 import type { Steps } from '../scene/slices';
 import { bonkStar } from '../dream/world';
 import { tuftGeometry } from '../voxel/characters';
@@ -102,41 +104,112 @@ export type { Props as BarnTableProps };
 /** World-static voxel content, built once per page and shared by the table and the Home backdrop. */
 export interface World {
   barn: Barn; yard: Yard; distance: Distance; festive: ReturnType<typeof buildFestive>;
+  /** Built at the touch detail (voxel/refine.ts): Medium and Low on every device, and every tier on a touch screen. */
+  coarse: boolean;
   /** From the start of the build to its end, in ms, the page's turns in between included. */
   ms: number;
 }
+/** The world on screen. */
 let world: World | null = null;
-function* buildWorldSteps(): Steps<World> {
+/**
+ * The world at the desktop's detail, built in the background slices while the session is not on High (plan file 17,
+ * change 15): shown from the next dip or scene change once the tier is High, never part-built.
+ */
+let fineWorld: World | null = null;
+let fineSteps: Steps<World> | null = null;
+/** Built at the detail it is told (run it under `inDetail`). */
+function* buildWorldSteps(coarse: boolean): Steps<World> {
   const t0 = performance.now();
   const barn = yield* buildBarnSteps();
   const yard = yield* buildYardSteps();
   const distance = yield* buildDistanceSteps();
   const festive = buildFestive();
-  return { barn, yard, distance, festive, ms: performance.now() - t0 };
+  return { barn, yard, distance, festive, coarse, ms: performance.now() - t0 };
 }
 
 /** Who is waiting for the world, and whether its build has been started. */
 const waiting = new Set<(w: World) => void>();
+/** Every mounted `useWorld`, told when the desktop's detail takes over. */
+const holders = new Set<(w: World) => void>();
 let started = false;
+
+/** Every geometry an object holds, however deep (a world or a farm). */
+export function geometriesOf(o: unknown, out = new Set<BufferGeometry>(), seen = new Set<object>()): Set<BufferGeometry> {
+  if (!o || typeof o !== 'object' || ArrayBuffer.isView(o) || seen.has(o)) return out;
+  seen.add(o);
+  if ((o as BufferGeometry).isBufferGeometry) { out.add(o as BufferGeometry); return out; }
+  for (const v of Object.values(o)) geometriesOf(v, out, seen);
+  return out;
+}
+/** Frees the graphics memory of what `old` had that `kept` does not, once the screen has let go of it. */
+export function retire(old: unknown, kept: unknown): void {
+  const keep = geometriesOf(kept);
+  const gone = [...geometriesOf(old)].filter((g) => !keep.has(g));
+  setTimeout(() => { for (const g of gone) g.dispose(); }, 1000);
+}
+
+/**
+ * Starts the desktop's detail of the world in the background slices, if this device has one and the world on screen
+ * is not it. Called when the tier becomes High, and early (after Home's opening shot is whole) on a device that
+ * earned High last time (`sap:gfx`).
+ */
+export function startFineWorld(): void {
+  if (!world || !world.coarse || fineWorld || fineSteps || coarseDevice() || getTier() === 'low') return;
+  fineSteps = inDetail(false, buildWorldSteps(false));
+  queueBuild(fineSteps, (w) => { fineSteps = null; fineWorld = w; }, { around: holdDpr });
+}
+/** Whether the world at the desktop's detail is on screen or ready to be. */
+export const fineWorldReady = (): boolean => !!fineWorld || (!!world && !world.coarse);
+/**
+ * Puts the desktop's detail on screen if the tier is High and it is built. Only in a dip or at a scene change: the
+ * tier itself only changes there, and Home and the screens that mount the world call it only there.
+ */
+export function promoteWorld(): boolean {
+  if (!fineWorld || getTier() !== 'high') return false;
+  const old = world, w = fineWorld;
+  fineWorld = null;
+  world = w;
+  for (const f of holders) f(w);
+  if (old) retire(old, w);
+  return true;
+}
+
+subscribeTier(() => {
+  const t = getTier();
+  if (t === 'high') startFineWorld();
+  if (t === 'low') {
+    // Low never goes back up this session: what was built ahead for High is let go.
+    if (fineSteps) dropBuild(fineSteps);
+    fineSteps = null;
+    if (fineWorld) retire(fineWorld, world);
+    fineWorld = null;
+  }
+});
 
 /**
  * The world, built after paint in slices (scene/slices.ts), so the page is never frozen while it builds. The build is
- * the page's, not the screen's: once started it runs to its end, whoever is still waiting for it.
+ * the page's, not the screen's: once started it runs to its end, whoever is still waiting for it. It is built at the
+ * session's tier's detail (Medium, the touch detail, unless `?gfx=high`); a screen mounting is a scene change, so the
+ * desktop's detail, once earned and built, is taken up there.
  */
 export function useWorld(): World | null {
   const [w, setW] = useState(world);
-  useEffect(() => {
-    if (world) { setW(world); return; }
+  useLayoutEffect(() => {
+    holders.add(setW);
+    promoteWorld();
+    if (world) { setW(world); return () => { holders.delete(setW); }; }
     waiting.add(setW);
     if (!started) {
       started = true;
-      queueBuild(buildWorldSteps(), (built) => {
+      const coarse = coarseFor(getTier());
+      queueBuild(inDetail(coarse, buildWorldSteps(coarse)), (built) => {
         world = built;
         for (const f of waiting) f(built);
         waiting.clear();
+        if (getTier() === 'high') startFineWorld();
       }, { around: holdDpr });
     }
-    return () => { waiting.delete(setW); };
+    return () => { waiting.delete(setW); holders.delete(setW); };
   }, []);
   return w;
 }

@@ -1,6 +1,6 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
-import { detailedSteps } from '../voxel/refine';
+import { coarseDevice, detailedSteps } from '../voxel/refine';
 import { finish } from './slices';
 import type { Steps } from './slices';
 import { lin, pick, T } from '../voxel/palette';
@@ -199,7 +199,9 @@ export function* buildDistanceSteps(): Steps<Distance> {
   const under = (axis: number, sign: number) => axis === 1 && sign < 0;
   // The near hills step in 0.5 m rather than in visible stairs. The range and the far hills are a shape in the haze.
   yield;
-  const back = yield* detailedSteps(backG.map, 1, 0);
+  // The back hills keep the device's detail on every tier (plan file 17, change 15): the wendigo stands on their step,
+  // and its shot, the paddock's, sees them; nothing that shot sees changes with the tier.
+  const back = yield* detailedSteps(backG.map, 1, 0, undefined, coarseDevice(), true);
   yield;
   // None of the three casts a shadow, so the faces no camera can be in front of are left out (voxel/unseen.ts): the
   // far sides of the hills, and whatever stands higher than any camera climbs. The range is drawn twice, the second

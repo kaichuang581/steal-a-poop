@@ -84,3 +84,9 @@ export function queueBuild<T, Part = never>(steps: Steps<T, Part>, done: (value:
   queue.push({ steps, done: done as (v: unknown) => void, part: options.part as ((p: unknown) => void) | undefined });
   timer ??= setTimeout(slice, 0);
 }
+
+/** Takes a queued build out of the queue, finished or not: what it built so far is let go. Nothing happens if it is not queued. */
+export function dropBuild(steps: Steps<unknown, unknown>): void {
+  const at = queue.findIndex((j) => j.steps === steps);
+  if (at >= 0) queue.splice(at, 1);
+}

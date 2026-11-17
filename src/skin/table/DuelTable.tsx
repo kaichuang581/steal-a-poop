@@ -8,6 +8,8 @@ import { AvatarDisc } from '../avatars/AvatarDisc';
 import { useKaiyanLook } from '../avatars/kaiyanLook';
 import { byId } from '../avatars/catalog';
 import { buildDuel, DUEL, duelSeat, duelShot } from '../scene/duel';
+import { getTier } from '../perf/tier';
+import { coarseFor, withDetail } from '../voxel/refine';
 import { buildDuelFestive } from '../scene/festive';
 import { SHEEP_SCALE } from '../scene/layout';
 import { Sky } from '../scene/Sky';
@@ -151,7 +153,8 @@ function Spotlight({ speaker, pressure, reduced }: { speaker: number | null; pre
 }
 
 function Place() {
-  const w = useMemo(() => buildDuel(), []);
+  // The ice's detail follows the tier (plan file 17, change 15): the touch detail unless the session is on High.
+  const w = useMemo(() => withDetail(coarseFor(getTier()), buildDuel), []);
   const mat = useMemo(() => voxelMaterial(), []);
   const glow = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 1.3 }), []);
   return (

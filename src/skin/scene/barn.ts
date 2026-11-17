@@ -1,5 +1,5 @@
 import type { BufferGeometry } from 'three';
-import { buildGeometry, triangles as tris } from '../voxel/mesher';
+import { buildGeometry, packGeometry, triangles as tris } from '../voxel/mesher';
 import { IRIS, lin, pick, T } from '../voxel/palette';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
@@ -510,6 +510,7 @@ export function buildBarn(): Barn {
   const tp = buildGeometry(tarp().map, S);
   const front = frontInside();
   const all = [...statics, ...leaves.map((l) => l.geo), lant, c.body, c.tail, rb, tp, front];
+  for (const g of all) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
   return {
     static: statics,
     doorLeaves: leaves,

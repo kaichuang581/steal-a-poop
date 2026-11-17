@@ -1,5 +1,5 @@
 import { BufferGeometry, Float32BufferAttribute } from 'three';
-import { buildGeometry, triangles } from '../voxel/mesher';
+import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
 import { detailed } from '../voxel/refine';
 import type { Voxel, VoxelMap } from '../voxel/mesher';
 import { lin, pick, SCARF, T } from '../voxel/palette';
@@ -44,7 +44,12 @@ const inBarn = (x: number, z: number) => x >= BARN.minX && x <= BARN.maxX && z >
 const underWalls = (x: number, z: number) => x >= BARN.minX - 0.2 && x <= BARN.maxX + 0.2 && z >= BARN.minZ && z <= BARN.maxZ + 0.2;
 const pondD = (x: number, z: number) => ((x - YARD.pond.x) / YARD.pond.rx) ** 2 + ((z - YARD.pond.z) / YARD.pond.rz) ** 2;
 
-export function buildYard(): { chunks: BufferGeometry[]; snowman: BufferGeometry; smokeFrom: [number, number, number]; triangles: number } {
+export function buildYard(): {
+  chunks: BufferGeometry[];
+  /** For each chunk, whether it can cast a shadow at all (see `castsShadow`). */
+  casts: boolean[];
+  snowman: BufferGeometry; smokeFrom: [number, number, number]; triangles: number;
+} {
   const g = new Grid(S);
   const set = (x: number, y: number, z: number, p: Paint) => {
     const c = p(x, y, z);
@@ -92,7 +97,20 @@ export function buildYard(): { chunks: BufferGeometry[]; snowman: BufferGeometry
   // The snowman is its own mesh with no corner shading: on a white ball the corner shading of every little step stacks
   // into dark stripes. It takes light and shadow like the snow around it, so it never looks glazed or out of place.
   const man2 = buildGeometry(man.map, S / 2, { ao: false });
-  return { chunks: geos, snowman: man2, smokeFrom, triangles: [...geos, man2].reduce((s, x) => s + triangles(x), 0) };
+  for (const g of [...geos, man2]) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
+  return { chunks: geos, casts: geos.map(castsShadow), snowman: man2, smokeFrom, triangles: [...geos, man2].reduce((s, x) => s + triangles(x), 0) };
+}
+
+/**
+ * Whether a mesh can cast a shadow. The shadow pass draws only the faces turned away from the light, and every light
+ * that casts is above the ground, so a mesh whose every face looks straight up (a flat piece of the yard's ground,
+ * with its undersides dropped) draws nothing into any shadow map: asking it to cast only costs its triangles again,
+ * every frame. A piece with a footprint, a track or an edge in it has faces that look sideways, and still casts.
+ */
+export function castsShadow(g: BufferGeometry): boolean {
+  const n = g.getAttribute('normal');
+  for (let i = 0; i < n.count; i++) if (n.getY(i) < 0.5) return true;
+  return false;
 }
 
 type Set = (x: number, y: number, z: number, p: Paint) => void;

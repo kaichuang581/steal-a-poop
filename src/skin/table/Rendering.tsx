@@ -1,6 +1,6 @@
-import { Canvas, addAfterEffect, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, addAfterEffect, invalidate, useFrame, useStore, useThree } from '@react-three/fiber';
 import type { CanvasProps } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Color, FogExp2, HalfFloatType, Vector2, WebGLRenderTarget } from 'three';
 import type { PointLight } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -8,7 +8,10 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { doorsShut } from '../components/BarnDoors';
 import type { Hour } from '../model/types';
+import { createPacer, newPace, noteSceneDrawn } from '../perf/governor';
+import type { Pace } from '../perf/governor';
 import { watchScene } from '../perf/report';
 import { BARN } from '../scene/layout';
 
@@ -158,14 +161,62 @@ export function yawToward(from: readonly number[], to: readonly number[]): numbe
   return Math.atan2(to[0] - from[0], to[2] - from[2]);
 }
 
-/** Marks the canvas once the scene has drawn a few frames, so the barn doors (BarnDoors) open onto a finished picture. */
+/**
+ * Marks the canvas once the scene has drawn a few frames, so the barn doors (BarnDoors) open onto a finished picture.
+ * The canvases draw on demand (see Governor), so until the mark is set each frame asks for the next one itself: a scene's
+ * first pictures never wait on a rate.
+ */
+const DRAWN_AFTER = 3;
 export function MarkDrawn() {
   const gl = useThree((s) => s.gl);
   const frames = useRef(0);
-  useFrame(() => {
-    if (++frames.current === 3) gl.domElement.setAttribute('data-drawn', '');
+  useFrame((state) => {
+    if (frames.current >= DRAWN_AFTER) return;
+    if (++frames.current === DRAWN_AFTER) gl.domElement.setAttribute('data-drawn', '');
+    else state.invalidate();
   });
   useEffect(() => () => gl.domElement.removeAttribute('data-drawn'), [gl]);
+  return null;
+}
+
+/**
+ * The frame governor's loop, one in each canvas (perf/governor.ts has the why and the arithmetic). The canvas draws on
+ * demand; this counts the screen's refreshes and asks for a picture on the ones that are due: at most 60 a second (72
+ * at 144 Hz), fewer where the scene's `fps` asks for fewer, none at 0 or in a hidden tab. A scene is never held back
+ * before its first pictures (`data-drawn`), which the loading doors wait for.
+ *
+ * It asks first and books its own next refresh after: the canvas library's loop, started by the asking, is then always
+ * ahead of this one in the browser's queue, so a picture asked for on one refresh is drawn on the next and one is asked
+ * for on every refresh that wants one. The other way round every second picture would be lost.
+ */
+function Governor({ pace, scene }: { pace: Pace; scene?: string }) {
+  const store = useStore();
+  useEffect(() => {
+    const pacer = createPacer();
+    let id = 0, marked = false, resting = false;
+    const draw = () => {
+      const state = store.getState();
+      // A scene that rested under its cover goes on from where it stopped: the rest is not one enormous step of time.
+      if (resting) { resting = false; state.clock.getDelta(); }
+      invalidate(state);
+    };
+    const refresh = (now: number) => {
+      const drawn = store.getState().gl.domElement.hasAttribute('data-drawn');
+      if (drawn !== marked) { marked = drawn; noteSceneDrawn(scene, drawn); }
+      const hidden = typeof document !== 'undefined' && document.hidden;
+      const fps = !drawn ? undefined : hidden ? 0 : pace.fps;
+      const due = pacer.step(now, fps);
+      pace.targetMs = pacer.targetMs;
+      pace.capMs = pacer.capMs;
+      if (due) draw();
+      else if (fps === 0 && !hidden) resting = true;
+      id = requestAnimationFrame(refresh);
+    };
+    // The cover is going (AdaptiveCanvas calls this as the rate changes): a picture now, not a refresh or two later.
+    pace.wake = () => { if (resting && pace.fps !== 0) draw(); };
+    id = requestAnimationFrame(refresh);
+    return () => { cancelAnimationFrame(id); pace.wake = null; noteSceneDrawn(scene, false); };
+  }, [store, pace, scene]);
   return null;
 }
 
@@ -181,19 +232,51 @@ export function MarkDrawn() {
  * says nothing about the steady cost). It used to look once a second and wait 3 s, so a short practice run (Brian,
  * 2026-11-09: "the bomb explosion for the practice gamemode is still super laggy") spent its whole life at the slow
  * resolution and only got smooth after the bang.
+ *
+ * Repaired (plan file 17, change 10; a friend's game was "broken-looking", one cause being a resolution stuck at 0.75x
+ * for good after one slow second). The figures above are now ratios of the governor's own target, so a scene asked for
+ * 30 pictures a second is not called slow for drawing 30: slow is over 1.25 times the target twice running, or over
+ * 1.65 times once; fast is under 1.05 times for sixteen looks, and only at the full rate (a scene keeping a slower pace
+ * shows nothing about what it could do). A level found too slow is no longer refused for good: it is tried again after
+ * RETRY_S of play, and twice as long after each time it fails again, so a device at its limit is not jolted every
+ * minute. Each look leaves out its one worst frame, so a single hitch (a piece of the scene being built, the garbage
+ * collector) is not taken for the steady cost. Nothing is judged while the loading doors are shut, during a hold (a
+ * burst, a dip of Home's camera), or for QUIET_S after the resolution, the rate or the canvas's size changed. Five
+ * frames running over 250 ms are no longer ignored as stalls: that is a device drawing under four pictures a second.
  */
 export const DPR_STEP = 0.25;
 /** How long each look at the frame rate averages over, and how many looks each way move the resolution. */
 export const DPR_WINDOW_S = 0.5;
-const SLOW_LOOKS = 2, FAST_LOOKS = 16, CLEARLY_SLOW_MS = 28;
-export function nextDpr(cur: number, avgMs: number, streak: { slow: number; fast: number; ceiling: number }, min: number, max: number): number {
-  if (avgMs > 21) {
+const SLOW_LOOKS = 2, FAST_LOOKS = 16;
+/** A look against the target interval: slow above SLOW_X of it, clearly slow above CLEARLY_SLOW_X, fast under FAST_X. */
+const SLOW_X = 1.25, CLEARLY_SLOW_X = 1.65, FAST_X = 1.05;
+/** Seconds of play before a refused level is tried again; doubled for each time in a row it was refused (to 2^7). */
+export const RETRY_S = 60;
+const retryAfter = (tries: number) => RETRY_S * 2 ** (Math.min(Math.max(tries, 1), 8) - 1);
+/** The judge's memory: looks in a row each way, the level found too slow, when (seconds of play), and how many times running. */
+export interface DprStreak { slow: number; fast: number; ceiling: number; refusedAt?: number; tries?: number }
+/** What a look is measured against: the governor's target interval, whether that is the full rate, and the time of play. */
+export interface DprLook { targetMs?: number; climb?: boolean; now?: number }
+/** The level `cur` was too slow: a step coarser, and `cur` is remembered as refused. */
+export function refuseDpr(cur: number, streak: DprStreak, min: number, now = 0): number {
+  if (cur <= min) return cur;
+  streak.tries = cur >= streak.ceiling ? (streak.tries ?? 1) + 1 : 1;
+  streak.slow = 0; streak.fast = 0; streak.ceiling = cur; streak.refusedAt = now;
+  return Math.max(min, cur - DPR_STEP);
+}
+export function nextDpr(cur: number, avgMs: number, streak: DprStreak, min: number, max: number, look: DprLook = {}): number {
+  const target = look.targetMs ?? 1000 / 60, now = look.now ?? 0;
+  if (avgMs > target * SLOW_X) {
     streak.slow++; streak.fast = 0;
-    if ((streak.slow >= SLOW_LOOKS || avgMs > CLEARLY_SLOW_MS) && cur > min) { streak.slow = 0; streak.ceiling = cur; return Math.max(min, cur - DPR_STEP); }
-  } else if (avgMs < 17.6) {
+    if (streak.slow >= SLOW_LOOKS || avgMs > target * CLEARLY_SLOW_X) return refuseDpr(cur, streak, min, now);
+  } else if (avgMs < target * FAST_X && look.climb !== false) {
     streak.fast++; streak.slow = 0;
-    const up = Math.min(max, cur + DPR_STEP);
-    if (streak.fast >= FAST_LOOKS && up > cur && up < streak.ceiling) { streak.fast = 0; return up; }
+    if (streak.fast >= FAST_LOOKS) {
+      // The refused level itself has held for sixteen looks: it is no longer refused.
+      if (cur >= streak.ceiling) { streak.ceiling = Infinity; streak.tries = 0; }
+      const up = Math.min(max, cur + DPR_STEP);
+      if (up > cur && (up < streak.ceiling || now - (streak.refusedAt ?? 0) >= retryAfter(streak.tries ?? 1))) { streak.fast = 0; return up; }
+    }
   } else { streak.slow = 0; streak.fast = 0; }
   return cur;
 }
@@ -204,47 +287,105 @@ export function nextDpr(cur: number, avgMs: number, streak: { slow: number; fast
 let holdUntil = 0;
 export function holdDpr(ms: number): void { holdUntil = Math.max(holdUntil, performance.now() + ms); }
 
+/** A frame longer than this is a stall, not a slow frame; this many running are a device that cannot draw the scene. */
+const STALL_S = 0.25, STALLS_SLOW = 5;
+/** How long the judge looks away after a scene comes up, and after its resolution, rate or size changes. */
+const QUIET_S = 1.5;
+
 /** The steady frame rate's judge, inside a canvas: it reports a new resolution, and the level it found too slow. */
-function AdaptiveDpr({ max, min, value, ceiling, onChange }: { max: number; min: number; value: number; ceiling: number; onChange: (dpr: number, ceiling: number) => void }) {
-  const st = useRef({ sum: 0, n: 0, age: 0, streak: { slow: 0, fast: 0, ceiling } });
-  useFrame((_, dt) => {
+function AdaptiveDpr({ max, min, value, kept, pace, onChange }: { max: number; min: number; value: number; kept: Settled; pace: Pace; onChange: (next: Settled) => void }) {
+  const st = useRef({ sum: 0, n: 0, worst: 0, stalls: 0, age: 0, quiet: QUIET_S, value, target: 0, w: 0, h: 0, streak: { slow: 0, fast: 0, ceiling: kept.ceiling, refusedAt: 0, tries: kept.tries } as DprStreak });
+  useFrame(({ size }, dt) => {
     const s = st.current;
-    s.age += dt;
-    if (s.age < 1.5 || dt > 0.25 || dt <= 0) return;
-    if (performance.now() < holdUntil) { s.sum = 0; s.n = 0; s.streak.slow = 0; return; }
+    if (dt <= 0) return;
+    // The judge's clock is time the scene was seen drawing: a hidden tab or a stall adds a quarter second at most.
+    s.age += Math.min(dt, STALL_S);
+    const restart = () => { s.sum = 0; s.n = 0; s.worst = 0; s.stalls = 0; s.streak.slow = 0; };
+    // A change of resolution, of the governor's rate or of the canvas's size reallocates or re-times the picture.
+    const target = pace.targetMs;
+    if (value !== s.value || Math.abs(target - s.target) > s.target * 0.1 || size.width !== s.w || size.height !== s.h) {
+      s.value = value; s.target = target; s.w = size.width; s.h = size.height;
+      s.quiet = Math.max(s.quiet, s.age + QUIET_S);
+      s.streak.fast = 0;
+      restart();
+      return;
+    }
+    if (s.age < s.quiet) return;
+    if (performance.now() < holdUntil || doorsShut()) { restart(); return; }
+    const report = (next: number) => {
+      s.quiet = s.age + QUIET_S;
+      restart();
+      if (next !== value) onChange({ dpr: next, ceiling: s.streak.ceiling, tries: s.streak.tries ?? 0 });
+    };
+    if (dt > STALL_S) {
+      if (++s.stalls >= STALLS_SLOW) report(refuseDpr(value, s.streak, min, s.age));
+      return;
+    }
+    s.stalls = 0;
     s.sum += dt; s.n++;
+    if (dt > s.worst) s.worst = dt;
     if (s.sum < DPR_WINDOW_S) return;
-    const avg = (s.sum / s.n) * 1000;
-    s.sum = 0; s.n = 0;
-    const next = nextDpr(value, avg, s.streak, min, max);
-    if (next !== value) onChange(next, s.streak.ceiling);
+    // The look's mean without its one worst frame.
+    const avg = (s.n > 2 ? (s.sum - s.worst) / (s.n - 1) : s.sum / s.n) * 1000;
+    s.sum = 0; s.n = 0; s.worst = 0;
+    const next = nextDpr(value, avg, s.streak, min, max, { targetMs: target, climb: target <= pace.capMs * 1.01, now: s.age });
+    if (next !== value) report(next);
+    // A refused level that has now held is kept as cleared, so the next visit does not doubt it again.
+    else if (s.streak.ceiling !== kept.ceiling && s.streak.ceiling === Infinity) onChange({ dpr: value, ceiling: Infinity, tries: 0 });
   });
   return null;
 }
 
-/** What a scene settled on, on this device: the next visit starts there instead of stepping down again. */
-interface Settled { dpr: number; ceiling: number }
+/**
+ * What a scene settled on, on this device: the next visit starts there instead of stepping down again. `ceiling` is the
+ * level found too slow (Infinity: none) and `tries` how many times running it was.
+ */
+export interface Settled { dpr: number; ceiling: number; tries: number }
 /**
  * Which way of drawing a kept level was measured under. A level settled on before the picture got cheaper (see
- * `samplesFor`) says a resolution is too slow that no longer is, so it is not believed: the scene finds its level again.
+ * `samplesFor`), or by the judge before its repair (which kept one slow second for good), says a resolution is too slow
+ * that no longer is, so it is not believed: the scene finds its level again.
  */
-const SETTLED_UNDER = 2;
+const SETTLED_UNDER = 3;
+/** A kept level is believed for this long. A device changes (a new driver, a charger, a cooler room). */
+export const SETTLED_DAYS = 7;
+/** A stored level as text, read back: null when it is not one, was measured another way, or is too old. */
+export function believeSettled(raw: string | null, now: number = Date.now()): Settled | null {
+  try {
+    const v = JSON.parse(raw ?? 'null') as { dpr?: unknown; ceiling?: unknown; tries?: unknown; v?: unknown; at?: unknown } | null;
+    if (!v || v.v !== SETTLED_UNDER || typeof v.dpr !== 'number' || !Number.isFinite(v.dpr) || typeof v.at !== 'number') return null;
+    if (!(Math.abs(now - v.at) <= SETTLED_DAYS * 86_400_000)) return null;
+    return { dpr: v.dpr, ceiling: typeof v.ceiling === 'number' && Number.isFinite(v.ceiling) ? v.ceiling : Infinity, tries: typeof v.tries === 'number' && v.tries > 0 ? Math.floor(v.tries) : 0 };
+  } catch { return null; }
+}
+/** A stored level as text, to keep. */
+export function keepSettled(v: Settled, now: number = Date.now()): string {
+  return JSON.stringify({ dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : null, tries: v.tries, v: SETTLED_UNDER, at: now });
+}
+const SETTLED_KEY = 'sap:dpr:';
+/** The scene's kept level. One that is no longer believed is dropped from storage, so the device report shows only live ones. */
 function readSettled(key: string | undefined): Settled | null {
   if (!key) return null;
   try {
-    const v = JSON.parse(localStorage.getItem(`sap:dpr:${key}`) ?? 'null') as (Settled & { v?: number }) | null;
-    return v && v.v === SETTLED_UNDER && Number.isFinite(v.dpr) ? { dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : Infinity } : null;
+    const raw = localStorage.getItem(SETTLED_KEY + key);
+    const v = believeSettled(raw);
+    if (!v && raw !== null) localStorage.removeItem(SETTLED_KEY + key);
+    return v;
   } catch { return null; }
 }
 /** The lowest resolution any scene settled on, on this device: a scene seen for the first time starts there, not at
- *  the screen's full density, since the same graphics chip draws them all. */
+ *  the screen's full density, since the same graphics chip draws them all. Only levels still believed count. */
 function deviceHint(): number | null {
   let low: number | null = null;
   try {
+    // The names first: reading one may drop it, which would shift the list under a loop over it.
+    const names: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (!k?.startsWith('sap:dpr:')) continue;
-      const v = readSettled(k.slice('sap:dpr:'.length));
+      if (k?.startsWith(SETTLED_KEY)) names.push(k.slice(SETTLED_KEY.length));
+    }
+    for (const name of names) {
+      const v = readSettled(name);
       if (v && (low === null || v.dpr < low)) low = v.dpr;
     }
   } catch { /* storage blocked */ }
@@ -252,7 +393,7 @@ function deviceHint(): number | null {
 }
 function writeSettled(key: string | undefined, v: Settled) {
   if (!key) return;
-  try { localStorage.setItem(`sap:dpr:${key}`, JSON.stringify({ dpr: v.dpr, ceiling: Number.isFinite(v.ceiling) ? v.ceiling : null, v: SETTLED_UNDER })); } catch { /* storage blocked */ }
+  try { localStorage.setItem(SETTLED_KEY + key, keepSettled(v)); } catch { /* storage blocked */ }
 }
 
 /**
@@ -264,37 +405,57 @@ function writeSettled(key: string | undefined, v: Settled) {
  *
  * The canvas is measured by its layout box (`resize: { offsetSize: true }`) unless the caller says otherwise, so a
  * transform on a parent (the swoop into a game scales the whole screen) cannot make it bigger than its box.
+ *
+ * It draws on demand, paced by its Governor: `fps` is how many pictures a second the scene asks for (none given: the
+ * full rate, at most 60 a second; 0: none, once the scene has drawn). `frameloop="never"` still stops it dead, as Home's
+ * farm does behind the Trading Post. And it asks for the device's default graphics chip, not its hungriest: on a
+ * laptop with two, the browser's choice is the one that spares the battery.
  */
-export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, children, ...given }: Omit<CanvasProps, 'dpr'> & { maxDpr: number; minDpr?: number; memory?: string }) {
-  const props = given.resize ? given : { ...given, resize: LAYOUT_SIZE };
+export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, fps, children, ...given }: Omit<CanvasProps, 'dpr'> & { maxDpr: number; minDpr?: number; memory?: string; fps?: number }) {
+  const frameloop = given.frameloop === 'never' ? 'never' as const : 'demand' as const;
+  const props = { ...given, resize: given.resize ?? LAYOUT_SIZE, frameloop, gl: easyOnPower(given.gl) };
   const [state, setState] = useState<Settled>(() => {
     const device = Math.max(minDpr, Math.min(maxDpr, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1));
     const kept = readSettled(memory);
-    if (kept) return { dpr: Math.max(minDpr, Math.min(device, kept.dpr)), ceiling: kept.ceiling };
+    if (kept) return { ...kept, dpr: Math.max(minDpr, Math.min(device, kept.dpr)) };
     const hint = memory ? deviceHint() : null;
-    return { dpr: hint === null ? device : Math.max(minDpr, Math.min(device, hint)), ceiling: Infinity };
+    return { dpr: hint === null ? device : Math.max(minDpr, Math.min(device, hint)), ceiling: Infinity, tries: 0 };
   });
-  const onChange = (dpr: number, ceiling: number) => {
-    const next = { dpr, ceiling };
+  const onChange = (next: Settled) => {
     setState(next);
     writeSettled(memory, next);
   };
+  // The rate goes to the governor through an object both sides hold, not through the scene's own tree: the tree inside
+  // a canvas is rendered a moment after the page's, and a scene coming out from under its cover must draw at once.
+  const [pace] = useState(() => newPace(fps));
+  useLayoutEffect(() => {
+    pace.fps = fps;
+    pace.wake?.();
+  }, [pace, fps]);
   // As each canvas gets its renderer the device report starts watching it (perf/report.ts): when it draws, what a frame
   // costs, and its WebGL context being taken away (asked back with preventDefault) or given back. What the player sees
   // then, "Redrawing the farm..." or the card, is SceneBoundary's, which stands round this canvas.
   const onCreated: CanvasProps['onCreated'] = (root) => {
     watchScene(memory, root.gl, addAfterEffect);
-    props.onCreated?.(root);
+    given.onCreated?.(root);
   };
   // `?dpr=1.5` pins the resolution, for measuring what a scene or an effect costs at one size (nothing adapts, nothing is kept).
-  if (PINNED_DPR) return <Canvas {...props} onCreated={onCreated} dpr={PINNED_DPR}>{children}</Canvas>;
+  if (PINNED_DPR) return <Canvas {...props} onCreated={onCreated} dpr={PINNED_DPR}><Governor pace={pace} scene={memory} />{children}</Canvas>;
   return (
     <Canvas {...props} onCreated={onCreated} dpr={state.dpr}>
-      <AdaptiveDpr max={maxDpr} min={minDpr} value={state.dpr} ceiling={state.ceiling} onChange={onChange} />
+      <Governor pace={pace} scene={memory} />
+      <AdaptiveDpr max={maxDpr} min={minDpr} value={state.dpr} kept={state} pace={pace} onChange={onChange} />
       {children}
     </Canvas>
   );
 }
+/** The canvas's renderer settings with the default graphics chip asked for, unless the caller chose or made its own. */
+function easyOnPower(gl: CanvasProps['gl']): CanvasProps['gl'] {
+  if (gl === undefined) return DEFAULT_CHIP;
+  if (typeof gl === 'function' || 'render' in gl) return gl;
+  return { powerPreference: 'default', ...gl };
+}
+const DEFAULT_CHIP = { powerPreference: 'default' } as const;
 const LAYOUT_SIZE = { offsetSize: true };
 const PINNED_DPR = (() => {
   if (typeof location === 'undefined') return 0;

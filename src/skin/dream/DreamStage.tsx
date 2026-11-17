@@ -72,6 +72,8 @@ interface Props {
   reduced: boolean;
   phone: boolean;
   landscapePhone?: boolean;
+  /** How many pictures a second the dream is drawn at (the frame governor): 0 once the bedroom covers it whole. */
+  fps?: number;
 }
 
 /**
@@ -82,7 +84,7 @@ export function DreamStage(props: Props) {
   const shot = dreamShot(props.phone, props.landscapePhone);
   return (
     <SceneBoundary scene="the dream">
-    <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="dream"
+    <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="dream" fps={props.fps}
       shadows={{ type: PCFShadowMap }}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
       camera={{ fov: shot.fov, position: [...shot.position], near: 0.1, far: 900 }}

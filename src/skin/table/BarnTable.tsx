@@ -87,6 +87,8 @@ interface Props {
   moments: BarnMoments;
   /** Extra 3D content for a mode's place (pen lanterns, the sheepdog). */
   children?: ReactNode;
+  /** How many pictures a second the table is drawn at (the frame governor): 0 once the podium covers it whole. */
+  fps?: number;
 }
 
 export type { Props as BarnTableProps };
@@ -134,7 +136,8 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
       <mesh geometry={barn.front} material={voxMat} receiveShadow />
       <Cat geo={barn.cat} reduced={reduced} mat={voxMat} />
       <Robin geo={barn.robin} reduced={reduced} mat={voxMat} />
-      {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
+      {/* A flat piece of ground cannot cast a shadow (see `castsShadow` in scene/yard.ts), so it is not asked to. */}
+      {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow={yard.casts[i]} receiveShadow />)}
       <mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />
       <ChimneySmoke from={yard.smokeFrom} />
       <mesh geometry={distance.hills} material={voxMat} receiveShadow />
@@ -157,7 +160,7 @@ export function BarnTable(props: Props) {
   return (
     <div className="relative size-full">
       <SceneBoundary scene="the table">
-      <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="table"
+      <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="table" fps={props.fps}
         shadows={{ type: PCFShadowMap }}
        
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
@@ -240,7 +243,7 @@ function Scene({ bombSize, seats, pile, speaker, dazed = null, upNext = null, fr
       <Lights hour={hour} phone={phone} viewYaw={0} lampRef={(i, l) => { lamps.current[i] = l; }} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
       <Farm world={w} reduced={reduced} />
-      <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
+      <Pile world={w} pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} />
       <Bomb speaker={speaker} n={n} fraction={fraction} red={false} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {seats.map((s) => {
@@ -378,7 +381,7 @@ function SeatGroup({ index, n, active, reduced, drawScale = 1, children }: { ind
  * The hero: the mound of wool on its wooden platform under its own spotlight, with the count on a paper tag anchored
  * above it (plan V3.2 Part 3). The spot brightens and the tag pops on an accepted word.
  */
-function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; reduced: boolean }) {
+function Pile({ world, pile, pulseKey, reduced }: { world: World; pile: number; pulseKey?: number; reduced: boolean }) {
   const mat = useMemo(() => voxelMaterial(), []);
   const platform = useMemo(() => platformGeometry(), []);
   const width = pileWidth(pile);
@@ -392,6 +395,7 @@ function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; re
     const e = performance.now() / 1000 - pulseAt.current;
     spot.current.intensity = 90 * (e < 0.4 && !reduced ? 1.25 : 1);
   });
+  useSpotCasters(spot, world);
   return (
     <group position={[HEAP[0], 0, HEAP[2]]}>
       <mesh geometry={platform} material={mat} castShadow receiveShadow />
@@ -400,6 +404,61 @@ function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; re
       <spotLight ref={spot} position={[0, 6.0, 0]} target={target} color="#FFD9A0" intensity={90} angle={0.42} penumbra={0.7} distance={9} decay={2} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} />
     </group>
   );
+}
+
+/** The layer the pile's spot draws its shadow map from (three's layer 1; nothing else in the game uses layers). */
+const SPOT_LAYER = 1;
+const spotClear = new WeakMap<BufferGeometry, boolean>();
+
+/**
+ * The pile's spot draws its own shadow map every frame, and three hands it everything that casts and comes near: the
+ * barn's walls, the bales, the door leaves, pieces of the yard, about 280,000 triangles, most of which its light can
+ * never touch. Its shadow camera is put on a layer of its own, and every thing in the scene is on that layer too
+ * except the still scenery that lies wholly outside the cone the spot lights (with half a metre to spare): that can
+ * shadow nothing the spot lights, so the picture is the same. Whatever moves or comes later (animals, the bomb, the
+ * board, a mode's own props) is put on the layer each frame before it is drawn, so it casts as it always did.
+ * (The plan asked for the pile and the animals alone. But the beam, the letter board and the straw on the floor stand
+ * in that cone too, and their shadows under the spot are part of the picture.)
+ */
+function useSpotCasters(spot: React.RefObject<SpotLight | null>, world: World) {
+  const scene = useThree((s) => s.scene);
+  const apart = useRef(new WeakSet<Object3D>());
+  useEffect(() => {
+    const light = spot.current;
+    if (!light) return;
+    scene.updateMatrixWorld();
+    const apex = light.getWorldPosition(new Vector3()), axis = light.target.getWorldPosition(new Vector3()).sub(apex).normalize();
+    // The shadow map is square: its corners reach further out than the cone it is drawn for.
+    const spread = Math.SQRT2 * Math.tan(light.angle), far = (light.distance || 500) + 0.5, ROOM = 0.5;
+    const p = new Vector3(), along = new Vector3();
+    const inLight = (x: number, y: number, z: number, r: number) => {
+      const d = p.set(x, y, z).sub(apex).dot(axis);
+      return d > -ROOM - r && d < far + r && p.sub(along.copy(axis).multiplyScalar(d)).length() <= spread * Math.max(0, d) + ROOM + r;
+    };
+    const still = new Set<BufferGeometry>([...world.barn.static, ...world.barn.doorLeaves.map((d) => d.geo), ...world.yard.chunks, world.yard.snowman]);
+    const set = new WeakSet<Object3D>();
+    const v = new Vector3();
+    scene.traverse((o) => {
+      const m = o as Mesh;
+      if (!m.isMesh || !still.has(m.geometry)) return;
+      let clear = spotClear.get(m.geometry);
+      if (clear === undefined) {
+        const ball = m.geometry.boundingSphere!, c = v.copy(ball.center).applyMatrix4(m.matrixWorld);
+        clear = !inLight(c.x, c.y, c.z, ball.radius);
+        if (!clear) {
+          // Its ball reaches the light: look at every corner (its faces are far smaller than the room left).
+          const pos = m.geometry.getAttribute('position');
+          clear = true;
+          for (let i = 0; i < pos.count && clear; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld); clear = !inLight(v.x, v.y, v.z, 0); }
+        }
+        spotClear.set(m.geometry, clear); // each of these is mounted in one place only
+      }
+      if (clear) { set.add(m); m.layers.disable(SPOT_LAYER); }
+    });
+    apart.current = set;
+    light.shadow.camera.layers.set(SPOT_LAYER);
+  }, [scene, spot, world]);
+  useFrame(() => { scene.traverse((o) => { if (!apart.current.has(o)) o.layers.enable(SPOT_LAYER); }); });
 }
 
 /**

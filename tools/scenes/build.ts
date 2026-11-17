@@ -632,7 +632,7 @@ async function putFarm(L: Layout, load: Load, shared: Shared) {
     '<mesh geometry={barn.lanterns} material={glowMat} />',
     '<mesh geometry={barn.tarp} material={voxMat} />',
     '<mesh geometry={barn.front} material={voxMat} receiveShadow />',
-    '{yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}',
+    '{yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow={yard.casts[i]} receiveShadow />)}',
     '<mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />',
     '<mesh geometry={distance.hills} material={voxMat} receiveShadow />',
     '<mesh geometry={distance.backHills} material={voxMat} receiveShadow />',

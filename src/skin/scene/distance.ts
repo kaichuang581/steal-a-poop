@@ -1,11 +1,11 @@
 import type { BufferGeometry } from 'three';
-import { buildGeometry, triangles } from '../voxel/mesher';
+import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
 import { detailed } from '../voxel/refine';
 import { lin, pick, T } from '../voxel/palette';
 import { Grid, hash3, rng } from '../voxel/primitives';
 import type { RGB } from '../voxel/primitives';
 import { DISTANCE, YARD } from './layout';
-import { dropFaces } from './yard';
+import { sunReaches, unseenFrom } from '../voxel/unseen';
 
 const smooth = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -184,11 +184,23 @@ export function buildDistance(): {
     }
 
   // Terrain has no overhangs, so no downward face is ever visible.
+  const under = (axis: number, sign: number) => axis === 1 && sign < 0;
   // The near hills step in 0.5 m rather than in visible stairs. The range and the far hills are a shape in the haze.
   const back = detailed(backG.map, 1, 0);
-  const hills = dropFaces(buildGeometry(hillsG.map, 1), (ny) => ny < 0);
-  const backHills = dropFaces(buildGeometry(back.map, back.size), (ny) => ny < 0);
-  const mountains = dropFaces(buildGeometry(mG.map, 3), (ny) => ny < 0);
+  // None of the three casts a shadow, so the faces no camera can be in front of are left out (voxel/unseen.ts): the
+  // far sides of the hills, and whatever stands higher than any camera climbs. The range is drawn twice, the second
+  // time turned half round behind the barn on the start screen (table/Farmstead.tsx), and keeps what either can see.
+  // What is left is mostly flat snow of one tone, drawn as rectangles (`merge`).
+  const farm = unseenFrom([{ screens: 'both' }]), range = unseenFrom([{ screens: 'both' }, { screens: 'home', turned: true }]);
+  // Merged only where the sun's shadows never fall (see `sunReaches`).
+  const lit = (x: number, _y: number, z: number) => !sunReaches(x, z, 'both');
+  const hills = buildGeometry(hillsG.map, 1, { unseen: (axis, sign, plane) => under(axis, sign) || farm(axis, sign, plane), merge: lit });
+  const backHills = buildGeometry(back.map, back.size, { unseen: (axis, sign, plane) => under(axis, sign) || farm(axis, sign, plane), merge: lit });
+  const mountains = buildGeometry(mG.map, 3, {
+    unseen: (axis, sign, plane) => under(axis, sign) || range(axis, sign, plane),
+    merge: (x, _y, z) => !sunReaches(x, z, 'both') && !sunReaches(x, z, 'home', true),
+  });
+  for (const g of [hills, backHills, mountains]) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
   const windmillBody = buildGeometry(bodyG.map, 1);
   return {
     hills, backHills, mountains, windmillBody, windmillBlades, bladesHub,

@@ -1,13 +1,18 @@
+import { useFrame, useThree } from '@react-three/fiber';
 import { useLoadingHold } from '../components/BarnDoors';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Sphere, Vector3 } from 'three';
+import type { BufferGeometry, DirectionalLight, Frustum, Mesh, PerspectiveCamera } from 'three';
 import type { Animal } from '../avatars/catalog';
 import { buildCountryside } from '../scene/countryside';
 import type { Countryside } from '../scene/countryside';
 import { buildFarmFestive } from '../scene/festive';
 import { buildFarmstead } from '../scene/farmstead';
 import type { Farmstead as Built } from '../scene/farmstead';
+import { POV_SHOTS } from '../scene/homePov';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
+import { PADDOCK_SHOT, shadowSeen, shotAt, viewsOf } from '../voxel/unseen';
 import { Festive } from './Festive';
 import { Sheep } from './Sheep';
 import type { SheepState } from './Sheep';
@@ -63,6 +68,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
   useEffect(() => { onReady?.(!!farm && !!country); }, [farm, country, onReady]);
   return (
     <>
+      <ShotCasters world={world} farm={farm} country={country} phone={phone} />
       {/* The range the yard looks at, turned round to stand behind the barn as well. */}
       <mesh geometry={world.distance.mountains} material={mat} rotation={[0, Math.PI, 0]} />
       {farm && (
@@ -89,4 +95,51 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
       ))}
     </>
   );
+}
+
+/**
+ * Each scene of the tour asks only the scenery whose shadow it can see to cast one (plan file 17, change 13, step 3).
+ * The sun's shadow map is drawn again every frame from everything that casts, and on a close scene most of that falls
+ * where the camera never looks. So when the camera arrives on a scene (the cut is made in the dark), every piece of
+ * the still scenery whose shadow cannot reach anything that scene sees, over its whole travel, stops casting until the
+ * next cut. What is seen is the same; the shadow map holds less. The scene is read from where the camera stands, so
+ * this cannot fall out of step with the tour. Animals, the season's decorations and the wendigo are never touched,
+ * and on the paddock scene, and wherever the camera is on no scene at all, everything casts as it always did.
+ */
+function ShotCasters({ world, farm, country, phone }: { world: World; farm: Built | null; country: Countryside | null; phone: boolean }) {
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const st = useRef({ meshes: [] as { mesh: Mesh; ball: Sphere }[], sun: null as Vector3 | null, shown: -2, aspect: 0 });
+  useEffect(() => {
+    const scenery = new Set<BufferGeometry>([
+      ...world.barn.static, ...world.barn.doorLeaves.map((d) => d.geo), ...world.yard.chunks, world.yard.snowman,
+      ...(farm ? [farm.shell, ...farm.props, ...farm.fine] : []), ...(country ? [...country.woods, ...country.scrub] : []),
+    ]);
+    const meshes: { mesh: Mesh; ball: Sphere }[] = [];
+    let sun: Vector3 | null = null;
+    scene.updateMatrixWorld();
+    scene.traverse((o) => {
+      const light = o as DirectionalLight;
+      if (light.isDirectionalLight && light.castShadow) sun = light.target.getWorldPosition(new Vector3()).sub(light.getWorldPosition(new Vector3())).normalize();
+      const mesh = o as Mesh;
+      // Marked the first time it is met, while it still casts: later it may be one this has switched off.
+      if (!mesh.isMesh || !scenery.has(mesh.geometry) || !(mesh.castShadow || mesh.userData.shotCaster)) return;
+      mesh.userData.shotCaster = true;
+      if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
+      meshes.push({ mesh, ball: new Sphere().copy(mesh.geometry.boundingSphere!).applyMatrix4(mesh.matrixWorld) });
+    });
+    st.current = { meshes, sun, shown: -2, aspect: 0 };
+    return () => { for (const { mesh } of meshes) mesh.castShadow = true; };
+  }, [scene, world, farm, country]);
+  useFrame(() => {
+    const s = st.current, shots = phone ? POV_SHOTS.phone : POV_SHOTS.desktop;
+    const now = shotAt(shots, camera.position.x, camera.position.y, camera.position.z);
+    if (now === s.shown && camera.aspect === s.aspect) return;
+    s.shown = now;
+    s.aspect = camera.aspect;
+    let views: Frustum[] | null = null, pad = 0;
+    if (now >= 0 && now !== PADDOCK_SHOT && s.sun) ({ views, pad } = viewsOf(shots[now], camera.aspect));
+    for (const { mesh, ball } of s.meshes) mesh.castShadow = !views || shadowSeen(ball, s.sun!, views, pad);
+  });
+  return null;
 }

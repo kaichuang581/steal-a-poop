@@ -18,6 +18,7 @@ import { PaintedGame } from './screens/PaintedGame';
 import { PaintedHome, PAINTED_TITLE, APP_VERSION } from './screens/PaintedHome';
 import { AppBoundary, reloadOnceForChunk } from './perf/AppBoundary';
 import { ReportCard } from './perf/ReportCard';
+import { installAudioSleep } from './perf/audioSleep';
 import { noteDoorsOpen, noteError, setReportVersion, startReport } from './perf/report';
 import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
@@ -83,6 +84,8 @@ export function PaintedApp() {
   const [report, setReport] = useState(REPORT);
   // Tell the game server this tab is open (numbers only, for the admin panel's visit counts): src/lib/visit.ts.
   useEffect(() => startVisitReports(), []);
+  // Sound sleeps while the tab is hidden and wakes with it (plan file 17, change 12): perf/audioSleep.ts.
+  useEffect(() => installAudioSleep(), []);
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
   useEffect(() => { useRoomStore.getState().sendAvatar(avatar); }, [avatar]);

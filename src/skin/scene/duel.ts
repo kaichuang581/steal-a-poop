@@ -1,5 +1,5 @@
 import type { Shot } from './layout';
-import { buildGeometry } from '../voxel/mesher';
+import { buildGeometry, packGeometry } from '../voxel/mesher';
 import { ICE_CRACK, lin, pick, T } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import { detailed } from '../voxel/refine';
@@ -58,7 +58,9 @@ export function buildDuel() {
 }
 
 function make() {
-  return { ice: spit(), water: water(), floes: floes(), shore: shore(), pines: pines(), ...lamps() };
+  const made = { ice: spit(), water: water(), floes: floes(), shore: shore(), pines: pines(), ...lamps() };
+  for (const g of Object.values(made)) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
+  return made;
 }
 
 /** The ice spit: ragged at the edge, snow in drifts, top surface at y = 0, with the crack across its middle. */

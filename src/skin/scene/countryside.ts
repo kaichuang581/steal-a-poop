@@ -1,5 +1,6 @@
 import type { BufferGeometry } from 'three';
-import { buildGeometry, triangles } from '../voxel/mesher';
+import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
+import { unseenFrom } from '../voxel/unseen';
 import { lin, pick, T } from '../voxel/palette';
 import { snowAt, snowPaint } from '../voxel/snow';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
@@ -318,13 +319,25 @@ function tracks(g: Grid, points: [number, number][]) {
   }
 }
 
+const TRACKS_LIFT = -0.16;
+/** The wendigo's stand is the trees within 12 m of it; a chunk within a metre more of that is left exactly as built. */
+const STAND = 13;
+function inStand(chunk: Iterable<[string, { x: number; z: number }]>, size: number): boolean {
+  for (const [, v] of chunk) if (Math.hypot((v.x + 0.5) * size - WENDIGO_AT[0], (v.z + 0.5) * size - WENDIGO_AT[1]) < STAND) return true;
+  return false;
+}
+
 export interface Countryside { woods: BufferGeometry[]; forest: BufferGeometry[]; scrub: BufferGeometry[]; drifts: BufferGeometry[]; tracks: BufferGeometry; triangles: number }
 
 let built: Countryside | null = null;
 export function buildCountryside(): Countryside {
   if (built) return built;
   const wood = woods();
-  const trees = chunks(wood.near.map, S), far = chunks(wood.far.map, FAR);
+  // The far forest, the drifts and the tracks cast no shadow and only the start screen draws them: faces none of its
+  // cameras can be in front of are left out (voxel/unseen.ts). A chunk with any tree of the wendigo's stand in it is
+  // built as it always was. (Their faces are not merged: trees and drifts have next to no flat runs of one tone.)
+  const home = unseenFrom([{ screens: 'home' }]);
+  const trees = chunks(wood.near.map, S), far = chunks(wood.far.map, FAR, (chunk) => (inStand(chunk, FAR) ? undefined : { unseen: home }));
   const mounds = new Grid(S);
   drifts(mounds);
   const small = new Grid(F);
@@ -335,8 +348,9 @@ export function buildCountryside(): Countryside {
   tracks(worn, [[-1.4, 12.6], [-6, 11.6], [-12, 10.4], [-12.2, 8.6]]);
   tracks(worn, [[-12, 10.4], [-20, 11], [-29, 11.8]]);
   tracks(worn, [[1.6, 12.4], [6, 12], [11, 11.2], [16.8, 8.2]]);
-  const flat = buildGeometry(worn.map, S);
-  flat.translate(0, -0.16, 0); // all but flush with the snow: a mark in it, not a slab on it
-  const parts = { woods: trees, forest: far, scrub: chunks(small.map, F), drifts: chunks(mounds.map, S), tracks: flat };
+  const flat = buildGeometry(worn.map, S, { unseen: unseenFrom([{ screens: 'home', lift: TRACKS_LIFT }]) });
+  flat.translate(0, TRACKS_LIFT, 0); // all but flush with the snow: a mark in it, not a slab on it
+  const parts = { woods: trees, forest: far, scrub: chunks(small.map, F), drifts: chunks(mounds.map, S, { unseen: home }), tracks: flat };
+  for (const g of [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts, flat]) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
   return (built = { ...parts, triangles: [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts, flat].reduce((n, g) => n + triangles(g), 0) });
 }

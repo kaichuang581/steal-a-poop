@@ -6,9 +6,12 @@
 
 /* The dream's canvas. It pops toward the last puff when the farmer wakes (V4.1 Part 7.4); it is only ever transformed
    after it has been measured, so the renderer's size is not disturbed. */
-.dr-stage { position: absolute; inset: 0; transform-origin: 27% 74%; }
+.dr-stage { position: absolute; inset: 0; transform-origin: var(--dr-pop-x, 22%) var(--dr-pop-y, 72%); }
 .dr-stage[data-pop] { animation: dr-pop-away 900ms ease-in-out forwards; }
 @keyframes dr-pop-away { to { transform: scale(1.04); filter: blur(10px) brightness(1.3) saturate(0.7); opacity: 0.8; } }
+/* The count over the sheep and the cleared words' slips, laid over the canvas and moved by the stage every frame. */
+.dr-tags { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.dr-tag { position: absolute; left: 0; top: 0; transform: translate3d(-9999px, 0, 0); }
 /* The waking clouds (WakeClouds.tsx): in from both sides over the blurring dream, a hold while the bedroom is built
    behind them, then they part like curtains. Each cloud stays opaque until it is nearly off the screen. */
 .dr-clouds { position: absolute; inset: 0; z-index: 45; overflow: hidden; pointer-events: none; }
@@ -33,14 +36,16 @@
 
 /* The farmer's bubble: its own canvas, masked to a cloud with a pale rim (V4.1 Part 7.1). */
 .dr-bubble { --cloud: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 100' preserveAspectRatio='none'%3E%3Cg fill='black'%3E%3Cellipse cx='75' cy='50' rx='62' ry='37'/%3E%3Ccircle cx='24' cy='34' r='16'/%3E%3Ccircle cx='52' cy='19' r='15'/%3E%3Ccircle cx='84' cy='15' r='15'/%3E%3Ccircle cx='114' cy='24' r='16'/%3E%3Ccircle cx='132' cy='50' r='15'/%3E%3Ccircle cx='116' cy='76' r='16'/%3E%3Ccircle cx='84' cy='85' r='14'/%3E%3Ccircle cx='50' cy='82' r='15'/%3E%3Ccircle cx='20' cy='64' r='16'/%3E%3C/g%3E%3C/svg%3E");
-  position: absolute; left: 2%; bottom: 2%; z-index: 12; width: min(26%, 420px); aspect-ratio: 3 / 2; pointer-events: none; transition: width 300ms ease-out; animation: dr-breathe 4s ease-in-out infinite; transform-origin: 0 100%; }
+  position: absolute; left: var(--dr-bub-l, 2%); top: var(--dr-bub-t, auto); bottom: auto; z-index: 12; width: var(--dr-bub-w, min(26%, 420px)); aspect-ratio: 3 / 2; pointer-events: none; visibility: var(--dr-bub-vis, visible); transition: width 300ms ease-out; }
+/* The breath is the rim's only: the bubble's canvas never sits inside a transformed element (CLAUDE.md, plan file 09, 4.5). */
+.dr-bubble-rim { animation: dr-breathe 4s ease-in-out infinite; transform-origin: 0 100%; }
 @keyframes dr-breathe { 50% { transform: scale(1.012); } }
 .dr-bubble-rim, .dr-bubble-view { position: absolute; -webkit-mask: var(--cloud) center / 100% 100% no-repeat; mask: var(--cloud) center / 100% 100% no-repeat; }
 .dr-bubble-rim { inset: -3px; background: #EDE8F9; opacity: 0.85; }
 .dr-bubble-view { inset: 0; overflow: hidden; }
 /* The dream is over: the bubble opens to the whole screen and is his bedroom (V6 Part 6.4). No transform here, ever:
    the canvas inside is measured. */
-.dr-bubble[data-room] { left: 0; top: 0; bottom: 0; width: 100%; height: 100%; aspect-ratio: auto; z-index: 30; animation: dr-room-in 400ms ease-out both; transition: none; }
+.dr-bubble[data-room] { left: 0; top: 0; bottom: 0; width: 100%; height: 100%; aspect-ratio: auto; z-index: 30; visibility: visible; animation: dr-room-in 400ms ease-out both; transition: none; }
 .dr-bubble[data-room] .dr-bubble-view { -webkit-mask: none; mask: none; }
 .dr-bubble[data-room] .dr-bubble-rim, .dr-bubble[data-room] .dr-bubble-zs, .dr-bubble[data-room] .dr-bubble-bang { display: none; }
 @keyframes dr-room-in { from { opacity: 0; } }
@@ -69,7 +74,7 @@
 .dr-root[data-pop] .dream-puff[data-i="0"] { transition-delay: 240ms; }
 
 /* Twenty cloud puffs burst from the trail as the dream pops: square tufts, like the voxel clouds. */
-.dr-burst { position: absolute; z-index: 11; pointer-events: none; left: 27%; top: 74%; width: 0; height: 0; }
+.dr-burst { position: absolute; z-index: 11; pointer-events: none; left: var(--dr-pop-x, 22%); top: var(--dr-pop-y, 72%); width: 0; height: 0; }
 .dr-burst i { position: absolute; width: 18px; height: 14px; border-radius: 3px; background: #EDE8F9; opacity: 0; animation: dr-burst 650ms ease-out forwards; }
 @keyframes dr-burst { 0% { opacity: 0.95; transform: translate(0, 0) scale(0.5); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.3); } }
 
@@ -135,7 +140,6 @@
 /* ---------- Phones ---------- */
 @media (max-width: 640px) {
   .dr-boards .sk-notice { max-width: 92%; }
-  .dr-bubble:not([data-room]) { width: min(42%, 240px); bottom: 150px; }
   .dream-z { font-size: 12px; } .dream-z[data-i="1"] { font-size: 15px; } .dream-z[data-i="2"] { font-size: 18px; }
   .dr-bubble-bang { font-size: 18px; }
   .dr-count-main { font-size: 24px; }
@@ -153,7 +157,7 @@
   .dr-results-rail > :first-child { flex-basis: 100%; }
   .dr-results-streak { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 4px 10px; }
 }
-:root.reduce-motion .dr-pop, :root.reduce-motion .dr-slip, :root.reduce-motion .dr-fence-tile, :root.reduce-motion .dr-typed, :root.reduce-motion .dr-blink, :root.reduce-motion .dr-bubble, :root.reduce-motion .dream-puff { animation: none; }
+:root.reduce-motion .dr-pop, :root.reduce-motion .dr-slip, :root.reduce-motion .dr-fence-tile, :root.reduce-motion .dr-typed, :root.reduce-motion .dr-blink, :root.reduce-motion .dr-bubble-rim, :root.reduce-motion .dream-puff { animation: none; }
 :root.reduce-motion .dream-z { animation: none; opacity: 0.9; }
 :root.reduce-motion .dream-z[data-i="1"] { transform: translate(6%, -22%); }
 :root.reduce-motion .dream-z[data-i="2"] { transform: translate(12%, -44%); }
@@ -162,7 +166,7 @@
 :root.reduce-motion .dr-bubble-zs { transition-duration: 300ms; }
 /* The same for a reduced-motion setting on the device: three still z's at fixed heights. */
 @media (prefers-reduced-motion: reduce) {
-  .dr-bubble, .dream-puff, .dr-blink, .dr-slip, .dr-typed { animation: none; }
+  .dr-bubble-rim, .dream-puff, .dr-blink, .dr-slip, .dr-typed { animation: none; }
   .dream-z, .dream-z[data-i="1"], .dream-z[data-i="2"] { animation: none; opacity: 0.9; }
   .dream-z[data-i="1"] { transform: translate(6%, -22%); }
   .dream-z[data-i="2"] { transform: translate(12%, -44%); }

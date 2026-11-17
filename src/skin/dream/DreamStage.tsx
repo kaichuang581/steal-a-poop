@@ -1,19 +1,19 @@
 import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
 import { SceneBoundary } from '../perf/SceneBoundary';
-import { Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MutableRefObject } from 'react';
+import { createRef, useEffect, useMemo, useRef, useState } from 'react';
+import type { MutableRefObject, RefObject } from 'react';
 import {
   ACESFilmicToneMapping, BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, FogExp2, Group, Mesh, MeshLambertMaterial,
-  Object3D, PCFShadowMap, PointLight, Points, PointsMaterial, SRGBColorSpace, Vector3,
+  PCFShadowMap, PointLight, Points, PointsMaterial, SRGBColorSpace,
 } from 'three';
-import type { PerspectiveCamera } from 'three';
-import { FIELD, JUMP_MS, jumpHeight, takeoffDistance } from '../../dream/dream';
+import type { OrthographicCamera } from 'three';
+import { FIELD, JUMP_MS, takeoffDistance } from '../../dream/dream';
 import type { Obstacle } from '../../dream/dream';
 import { DISTANCE } from '../scene/layout';
 import { Windmill } from '../scene/Sky';
 import { useWorld } from '../table/BarnTable';
+import { ScreenAnchor } from '../table/Anchors';
 import { DevStats, devOn } from '../table/DevStats';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { byId } from '../avatars/catalog';
@@ -26,9 +26,9 @@ import type { SheepState } from '../table/Sheep';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { DreamSky } from './DreamSky';
-import { atFrame, CHUNK, chunkPlacements, DESKTOP_SHOT, DREAM_FOG, dreamFrame, dreamShot, islandPlace, ISLANDS, islandX, LAYER, PHONE_SHOT, PX, scrollOf, WAKE, WISPS, worldX } from './stage';
-import { bonkStar, cloudSea, fenceSign, hills as hillsGeometry, HILLS, island as islandGeometry, lookOf, mountains as mountainsGeometry, MOUNTAINS, obstacle, raftChunk, SEA, shadowDisc, SIGN, signCap, signCell, wisp as wispGeometry } from './world';
-import { TYPE_X } from './run';
+import { ART, CAMERA_Z, CHUNK, chunkPlacements, DISC_MAX_H, DREAM_FOG, drawnLift, dreamView, frameToWorld, islandPlace, ISLANDS, islandX, LAYER, leapPitch, PX, RECOIL, scrollOf, SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, signScale, WAKE, WISPS, worldX } from './stage';
+import type { DreamView } from './stage';
+import { bonkStar, FAR_Z, fenceSign, hills as hillsLayer, HILLS, island as islandGeometry, lookOf, mountains as mountainsLayer, MOUNTAINS, obstacle, raftChunk, SEA, seaLayer, shadowDisc, SIGN, wisp as wispGeometry } from './world';
 import { Paper } from '../kit';
 import { CheckIcon } from '../components/Icons';
 
@@ -36,11 +36,6 @@ const SLOTS = 4;
 const LAND_MS = 200;
 const WOOD_TINT = '#FFD7A6';
 const SX = FIELD.sheepX, SW = FIELD.sheepW, FW = FIELD.fenceW;
-/** The sheep model is about 1.3 m long at scale 1; the logical sheep is 20 px = 0.72 m. */
-const SHEEP_SCALE = (FIELD.sheepW * PX) / 1.3;
-/** The admin's photo runs at the sheep's scale, as at the table, but never taller than this: a long forehead would
- *  leave the top of the frame on the leap. */
-const DISC_MAX_H = 1.9;
 /** The photo leans into the leap less than the sheep's nose rises: it is a tall flat picture pivoting at its foot. */
 const DISC_PITCH = 0.35;
 
@@ -71,7 +66,6 @@ interface Props {
   phase: Phase;
   reduced: boolean;
   phone: boolean;
-  landscapePhone?: boolean;
   /** How many pictures a second the dream is drawn at (the frame governor): 0 once the bedroom covers it whole. */
   fps?: number;
 }
@@ -81,25 +75,45 @@ interface Props {
  * jumps fences carrying the night's letters. The farmer is not in this scene: he sleeps in his own small canvas.
  */
 export function DreamStage(props: Props) {
-  const shot = dreamShot(props.phone, props.landscapePhone);
+  // Orthographic, looking along -z; DreamCamera sets its zoom and place from the stage's size (plan file 09, 4.2).
+  // The count over the sheep and the cleared words' slips are HTML laid over the canvas, pinned by ScreenAnchor: drei's
+  // Html unmounted its own roots while React was rendering and threw on leaving the dream.
+  const tags = useMemo<Tags>(() => ({ pop: createRef(), slips: Array.from({ length: SLOTS }, () => createRef<HTMLDivElement>()) }), []);
+  const slotViews = Array.from({ length: SLOTS }, (_, slot) => props.fences.find((v) => v.index % SLOTS === slot) ?? null);
   return (
+    <>
     <SceneBoundary scene="the dream">
     <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="dream" fps={props.fps}
       shadows={{ type: PCFShadowMap }}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
-      camera={{ fov: shot.fov, position: [...shot.position], near: 0.1, far: 900 }}
-      onCreated={({ camera }) => camera.lookAt(...shot.target)}
+      orthographic camera={{ position: [0, 0, CAMERA_Z], near: 0.1, far: 900, zoom: 100 }}
     >
-      <Scene {...props} />
+      <Scene {...props} tags={tags} />
       <MarkDrawn />
       <DevStats />
     </AdaptiveCanvas>
     </SceneBoundary>
+    <div className="dr-tags" aria-hidden="true">
+      <div ref={tags.pop} className="dr-tag">{props.pop && <span key={props.pop.key} className="dr-pop sk-display">{props.pop.n}</span>}</div>
+      {slotViews.map((f, slot) => {
+        const word = f?.locked ? f.word : '';
+        return (
+          <div key={slot} ref={tags.slips[slot]} className="dr-tag">
+            {word ? <Paper kind="slip" className="dr-slip" style={{ fontSize: word.length > 10 ? 12 : 16 }}><CheckIcon size={14} />{word.toUpperCase()}</Paper> : null}
+          </div>
+        );
+      })}
+    </div>
+    </>
   );
 }
 
-function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Props) {
+interface Tags { pop: RefObject<HTMLDivElement | null>; slips: RefObject<HTMLDivElement | null>[] }
+
+function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Tags }) {
   const scene = useThree((s) => s.scene);
+  const size = useThree((s) => s.size);
+  const view = useMemo(() => dreamView(Math.max(1, size.width), Math.max(1, size.height), phone), [size.width, size.height, phone]);
   const voxMat = useMemo(() => voxelMaterial(), []);
   const glowMat = useMemo(() => voxelMaterial({ emissive: T.lantern[0], emissiveIntensity: 1.2 }), []);
   // A little light of their own: the undersides face away from the moon but must stay pale against the hills.
@@ -108,15 +122,21 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
   const woodMat = useMemo(() => voxelMaterial({ color: WOOD_TINT, emissive: '#5A4230', emissiveIntensity: 0.55 }), []);
   const geo = useMemo(() => ({
     chunks: Array.from({ length: CHUNK.count }, (_, i) => raftChunk(i)),
-    islands: ISLANDS.map((it, i) => { const p = islandPlace(it, phone); return { ...p, ...islandGeometry(it.kind, p.across, p.tall, i + 1) }; }),
-    wisps: WISPS.map((w, i) => ({ geo: wispGeometry(i + 1), at: atFrame(phone ? PHONE_SHOT : DESKTOP_SHOT, phone ? 390 / 844 : 16 / 9, w.frame[0], w.frame[1], w.z) })),
-    sea: cloudSea(phone), hills: hillsGeometry(), mountains: mountainsGeometry(),
     shadow: shadowDisc(), star: bonkStar(),
-  }), [phone]);
+  }), []);
+  // The far layers are flat and sized to the frame (plan file 09, 4.4), so they follow its size too.
+  const far = useMemo(() => ({ sea: seaLayer(view), hills: hillsLayer(view), mountains: mountainsLayer(view) }), [view]);
+  useEffect(() => () => { far.sea.dispose(); far.hills.dispose(); far.mountains.dispose(); }, [far]);
+  // The islands and wisps are placed by shares of the frame, so they follow its size.
+  const sky = useMemo(() => ({
+    islands: ISLANDS.map((it, i) => { const p = islandPlace(it, phone, view); return { ...p, ...islandGeometry(it.kind, p.across, p.tall, i + 1) }; }),
+    wisps: WISPS.map((w, i) => ({ geo: wispGeometry(i + 1), at: [...frameToWorld(view, w.frame[0], w.frame[1]), w.z] as [number, number, number] })),
+  }), [view, phone]);
+  useEffect(() => () => sky.islands.forEach((p) => { p.body.dispose(); p.props?.dispose(); p.glow?.dispose(); }), [sky]);
   useEffect(() => {
-    scene.fog = new FogExp2(DREAM_FOG.color, phone ? DREAM_FOG.phoneDensity : DREAM_FOG.density);
+    scene.fog = new FogExp2(DREAM_FOG.color, DREAM_FOG.density);
     scene.background = new Color(DREAM_FOG.color);
-  }, [scene, phone]);
+  }, [scene]);
 
   // ---- the groups the frame loop moves
   const chunks = useRef<(Group | null)[]>([]);
@@ -133,9 +153,6 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
   const boards = useRef<(Group | null)[]>([]);
   const lamp = useRef<PointLight>(null);
   const hotSlot = useRef(-1);
-  const camera = useThree((s) => s.camera);
-  const size = useThree((s) => s.size);
-  const probe = useMemo(() => ({ a: new Vector3(), b: new Vector3(), shown: 0 }), []);
   const [sheepState, setSheepState] = useState<SheepState>('grazing');
   // The worn avatar runs the dream (V5.1 Part 6.7), drawn at its own scale. The admin's photo runs too (Brian,
   // 2026-11-09), trotting and leaping as a picture facing the camera (discPose's dream states).
@@ -144,9 +161,8 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
   const runner = !admin && byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined;
   const { length } = useKaiyanLook();
   const discScale = Math.min(SHEEP_SCALE, DISC_MAX_H / pictureHeight(length));
-  // The bonk stars circle the head and the count pops over it, so both rise with a tall picture.
-  const shotPos = dreamShot(phone, landscapePhone).position;
-  const discYaw = Math.atan2(shotPos[0], shotPos[2]);
+  // The bonk stars circle the head and the count pops over it, so both rise with a tall picture. The photo faces the
+  // camera, which looks straight across the lane.
   const headY = admin ? pictureHeight(length) * discScale + 0.08 : 0.95;
   const [stateKey, setStateKey] = useState(0);
   const [pace, setPace] = useState(0);
@@ -160,21 +176,21 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
     // The raft's ring.
     for (const p of chunkPlacements(scroll)) { const g = chunks.current[p.index]; if (g) g.position.x = p.x; }
     ISLANDS.forEach((it, i) => {
-      const g = islandRefs.current[i], p = geo.islands[i];
+      const g = islandRefs.current[i], p = sky.islands[i];
       if (!g) return;
-      g.position.x = islandX(it, scroll, p.x, p.across);
+      g.position.x = islandX(it, scroll, p.x, p.across, view);
       g.position.y = p.y + (reduced ? 0 : Math.sin((t / it.bob) * Math.PI * 2) * 0.06);
     });
-    WISPS.forEach((w, i) => { const g = wispRefs.current[i]; if (g) g.position.x = geo.wisps[i].at[0] - ((scroll * w.factor) % 40); });
+    WISPS.forEach((w, i) => { const g = wispRefs.current[i]; if (g) g.position.x = sky.wisps[i].at[0] - ((scroll * w.factor) % 40); });
     if (seaBank.current) {
-      seaBank.current.position.x = -((scroll * SEA.factor) % SEA.period) - 30;
+      seaBank.current.position.x = -((scroll * SEA.factor) % SEA.period);
       seaBank.current.position.y = reduced ? 0 : Math.sin((t / 9) * Math.PI * 2) * 0.05;
     }
     if (hillRange.current) hillRange.current.position.x = -((scroll * LAYER.hills) % HILLS.period);
     if (mountainRange.current) mountainRange.current.position.x = -((scroll * LAYER.mountains) % MOUNTAINS.period);
 
-    // The sheep: which state it is in, how high, and knocked back on the bonk.
-    const air = L.jumpAt === null ? 0 : jumpHeight(L.t - L.jumpAt) * PX;
+    // The sheep: which state it is in, how high (the rules' arc drawn ART times taller), and knocked back on the bonk.
+    const air = L.jumpAt === null ? 0 : drawnLift(L.t - L.jumpAt) * PX;
     const ahead = L.fences.find((fe) => !fe.passed && fe.x + FW > SX);
     const about = !!ahead && ahead.locked && !ahead.jumped && L.jumpAt === null && ahead.x - (SX + SW) <= takeoffDistance(L.speed) + L.speed * 0.08;
     let want: SheepState = 'run';
@@ -190,15 +206,15 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
     const p = Math.round(Math.min(1, Math.max(0, (L.speed - 58) / 42)) * 10) / 10;
     if (p !== paceRef.current) { paceRef.current = p; setPace(p); }
     if (sheep.current) {
-      const back = L.crashAt !== null ? -0.25 * Math.min(1, (L.t - L.crashAt) / 200) : stumbling ? -0.12 : 0;
-      sheep.current.position.set(back, air, 0);
+      const back = L.crashAt !== null ? -RECOIL.m * Math.min(1, (L.t - L.crashAt) / RECOIL.ms) : stumbling ? -0.12 : 0;
+      sheep.current.position.set(worldX(SHEEP_CENTRE) + back, air, 0);
       // The leap in the body: a crouch before take-off, the nose rising then falling along the arc, a stretch at the
       // push and the reach, and a squash that gives on the landing. The model's own legs do the rest.
       const j = L.jumpAt === null ? -1 : Math.min(1, (L.t - L.jumpAt) / JUMP_MS);
       let pitch = 0, tall = 1, long = 1;
       if (!reduced) {
         if (j >= 0) {
-          pitch = 0.46 * Math.cos(Math.PI * j);
+          pitch = leapPitch(j);
           const s = Math.abs(2 * j - 1);
           tall = 0.97 + 0.08 * s;
           long = 1.03 - 0.05 * s;
@@ -213,7 +229,7 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
       sheep.current.rotation.z = admin ? pitch * DISC_PITCH : pitch;
       sheep.current.scale.set(long, tall, 1);
     }
-    if (sheepShadow.current) { const k = 1 - 0.4 * Math.min(1, air / (28 * PX)); sheepShadow.current.scale.set(k, 1, k); }
+    if (sheepShadow.current) { const k = ART * (1 - 0.4 * Math.min(1, air / (ART * 28 * PX))); sheepShadow.current.scale.set(k, 1, k); }
     // Bonk stars orbit 0.25 m above the head from 350 ms.
     const since = L.crashAt !== null ? L.t - L.crashAt : -1;
     stars.current.forEach((m, i) => {
@@ -257,22 +273,6 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
       lamp.current.intensity = hg?.visible ? 0.8 : 0;
       if (hg) { const at = fenceSign(slotViews[hot]?.letters ?? ['']).lanternAt; const k = signScale(phone); lamp.current.position.set(hg.position.x + SIGN_AT[0] + at[0] * k, at[1] * k, SIGN_AT[2] + at[2] * k); }
     }
-    // The readability gate (V6 Part 7.5): the letters' cap height, projected, for a sign at TYPE_X and for the active one.
-    if (devOn() && t - probe.shown > 0.5) {
-      probe.shown = t;
-      const capPx = (x: number, n: number) => {
-        const k = signScale(phone), cap = signCap(n) * k, z = SIGN_AT[2] + (SIGN.boardZ + signCell(n)) * k;
-        probe.a.set(x, SIGN.centre * k + cap / 2, z).project(camera);
-        probe.b.set(x, SIGN.centre * k - cap / 2, z).project(camera);
-        return Math.abs(probe.a.y - probe.b.y) / 2 * size.height;
-      };
-      const n = slotViews[hot]?.letters.length ?? 3;
-      const typeX = capPx(worldX(TYPE_X) + (FW * PX) / 2 + SIGN_AT[0], n);
-      const active = hg?.visible ? capPx(hg.position.x + SIGN_AT[0], n) : 0;
-      Object.assign(window, { __signCap: { typeX, active, letters: n } });
-      document.getElementById('sk-dev')?.setAttribute('data-sign-cap', `${typeX.toFixed(1)} px at TYPE_X, ${active.toFixed(1)} px active`);
-    }
-
   });
 
   const slotViews = useMemo(() => Array.from({ length: SLOTS }, (_, slot) => fences.find((v) => v.index % SLOTS === slot) ?? null), [fences]);
@@ -280,22 +280,20 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
 
   return (
     <>
-      <DreamCamera phone={phone} landscapePhone={landscapePhone} reduced={reduced} live={live} />
+      <DreamCamera view={view} reduced={reduced} live={live} />
       {/* The plan's 1.4 and 0.5 assume the old light units, and its dark ground colour turns every shaded side navy; these
           land the layers on the value ladder. */}
       <hemisphereLight args={['#6E5FB5', '#A79BE6', 1.7]} />
       <directionalLight
-        position={phone ? [-6, 10, 8] : [5, 10, 7]} color="#EAE6FF" intensity={phone ? 4.8 : 4.5} castShadow
+        position={[5, 10, 7]} color="#EAE6FF" intensity={4.5} castShadow
         shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02}
         shadow-camera-left={-6} shadow-camera-right={11} shadow-camera-top={6} shadow-camera-bottom={-6} shadow-camera-near={1} shadow-camera-far={30}
       />
 
-      <DreamSky shot={dreamShot(phone, landscapePhone)} reduced={reduced} />
-      <group ref={seaBank}>
-        {[0, 1].map((i) => <mesh key={i} geometry={geo.sea} material={voxMat} position={[i * SEA.period, 0, 0]} />)}
-      </group>
+      <DreamSky view={view} reduced={reduced} />
+      <group ref={seaBank}><mesh geometry={far.sea} material={voxMat} position={[0, 0, FAR_Z.sea]} /></group>
       {ISLANDS.map((it, i) => {
-        const p = geo.islands[i];
+        const p = sky.islands[i];
         return (
           <group key={it.id} ref={(el) => { islandRefs.current[i] = el; }} position={[p.x, p.y, it.z]}>
             <mesh geometry={p.body} material={islandMat} />
@@ -306,9 +304,9 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
           </group>
         );
       })}
-      {geo.wisps.map((w, i) => <group key={i} ref={(el) => { wispRefs.current[i] = el; }} position={w.at}><mesh geometry={w.geo} material={voxMat} /></group>)}
-      <group ref={hillRange}><mesh geometry={geo.hills} material={voxMat} /></group>
-      <group ref={mountainRange}><mesh geometry={geo.mountains} material={voxMat} /></group>
+      {sky.wisps.map((w, i) => <group key={i} ref={(el) => { wispRefs.current[i] = el; }} position={w.at}><mesh geometry={w.geo} material={voxMat} /></group>)}
+      <group ref={hillRange}><mesh geometry={far.hills} material={voxMat} position={[0, 0, FAR_Z.hills]} /></group>
+      <group ref={mountainRange}><mesh geometry={far.mountains} material={voxMat} position={[0, 0, FAR_Z.mountains]} /></group>
 
       <group>
         {geo.chunks.map((g, i) => (
@@ -322,34 +320,37 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
         {/* The obstacles cross the lane; each one's sign stands just beyond it, on the far side. */}
         {slotViews.map((f, slot) => (
           <group key={slot} ref={(el) => { slots.current[slot] = el; }} position={[200, 0, 0]} visible={false}>
-            <group position={[0.215, 0, 0]}>
-              <group ref={(el) => { fenceMeshes.current[slot] = el; }}>
-                {f && <mesh geometry={obstacle(lookOf(f.kind, f.index))} material={woodMat} position={[-0.215, 0, 0]} castShadow receiveShadow />}
+            {/* Drawn ART times the rules' size about its centre and the ground line; it tips over about its +x edge. */}
+            <group scale={ART}>
+              <group position={[0.215, 0, 0]}>
+                <group ref={(el) => { fenceMeshes.current[slot] = el; }}>
+                  {f && <mesh geometry={obstacle(lookOf(f.kind, f.index))} material={woodMat} position={[-0.215, 0, 0]} castShadow receiveShadow />}
+                </group>
               </group>
             </group>
-            <Sign view={f} scale={signScale(phone)} boardRef={(el) => { boards.current[slot] = el; }} />
+            <Sign view={f} scale={signScale(phone)} boardRef={(el) => { boards.current[slot] = el; }} slip={tags.slips[slot]} />
           </group>
         ))}
 
-        {/* The sheep faces +x and runs on the spot; the world does the moving. */}
+        {/* The sheep faces +x and runs on the spot; the world does the moving. It stands on the rules' box centre, drawn
+            ART times its size about its feet, its own drawn middle on that centre (plan file 09, 4.2). */}
         <group ref={sheep}>
-          {admin ? (
-            // Turned to face the shot's camera: the phone looks along the lane from the side, where the flat picture
-            // would show almost edge on.
-            <group scale={discScale} rotation={[0, discYaw, 0]}>
-              <AvatarDisc state={sheepState} stateKey={stateKey} reduced={reduced} pace={pace} />
-            </group>
-          ) : (
-            <group rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner?.drawScale ?? 1)}>
-              <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} model={runner} contact={false} />
-            </group>
-          )}
-          {[0, 1, 2].map((i) => <mesh key={i} ref={(el) => { stars.current[i] = el; }} geometry={geo.star} material={glowMat} visible={false} />)}
-          <Html position={[0, headY + 0.45, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-            {pop && <span key={pop.key} className="dr-pop sk-display">{pop.n}</span>}
-          </Html>
+          <group scale={ART}>
+            {admin ? (
+              // Facing the camera, which looks straight across the lane.
+              <group scale={discScale}>
+                <AvatarDisc state={sheepState} stateKey={stateKey} reduced={reduced} pace={pace} />
+              </group>
+            ) : (
+              <group position={[-SHEEP_ART.mid * PX, 0, 0]} rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner?.drawScale ?? 1)}>
+                <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} model={runner} contact={false} />
+              </group>
+            )}
+            {[0, 1, 2].map((i) => <mesh key={i} ref={(el) => { stars.current[i] = el; }} geometry={geo.star} material={glowMat} visible={false} />)}
+          </group>
+          <ScreenAnchor el={tags.pop} position={[0, ART * headY + 0.45, 0]} cull={false} />
         </group>
-        <mesh ref={sheepShadow} geometry={geo.shadow} material={shadowMat} position={[0, 0.005, 0]} />
+        <mesh ref={sheepShadow} geometry={geo.shadow} material={shadowMat} position={[worldX(SHEEP_CENTRE), 0.005, 0]} />
         <SnowBursts anim={anim} />
       </group>
     </>
@@ -375,11 +376,6 @@ const shadowMat = new MeshLambertMaterial({ vertexColors: true, transparent: tru
 
 /** Where each sign stands against its obstacle: just past it, on the far side of the lane. */
 const SIGN_AT = [0.1, 0, -1.34] as const;
-/**
- * A phone looks down the lane from far off to one side, so a sign at TYPE_X is a long way away: there the whole sign is
- * drawn half as big again, which brings its letters to the readability gate's 16 px (V6 Part 7.5).
- */
-const signScale = (phone: boolean) => (phone ? 1.6 : 1);
 // The cut letters are painted cream, as on the table's letter board; warm on the active sign, green once cleared, red on a bounce.
 const INK = '#F3E7CC';
 
@@ -387,7 +383,7 @@ const INK = '#F3E7CC';
  * The fence sign (V6 Part 5.1): letters carved into a plank hung from a crossbar. The active one has its lantern lit
  * and its letters warm; a bounce reddens the cuts for a moment, a clear turns them green and pins the word on a slip.
  */
-function Sign({ view, scale, boardRef }: { view: FenceView | null; scale: number; boardRef: (g: Group | null) => void }) {
+function Sign({ view, scale, boardRef, slip }: { view: FenceView | null; scale: number; boardRef: (g: Group | null) => void; slip: RefObject<HTMLDivElement | null> }) {
   const key = view?.letters.join('') ?? '';
   const geo = useMemo(() => fenceSign(view?.letters ?? ['']), [key]); // eslint-disable-line react-hooks/exhaustive-deps
   const ink = useMemo(() => new MeshLambertMaterial({ color: INK }), []);
@@ -397,7 +393,6 @@ function Sign({ view, scale, boardRef }: { view: FenceView | null; scale: number
     ink.color.set(view?.locked ? '#9BD49F' : view?.wrong ? '#FF8F7A' : INK);
     ink.emissive.set(view?.hot && !view.wrong ? '#3A2A14' : '#000000');
   }, [view?.locked, view?.wrong, view?.hot, ink]);
-  const word = view?.locked ? view.word : '';
   return (
     <group position={[...SIGN_AT]} scale={scale}>
       <mesh geometry={geo.post} material={wood} castShadow />
@@ -406,36 +401,31 @@ function Sign({ view, scale, boardRef }: { view: FenceView | null; scale: number
         <mesh geometry={geo.board} material={wood} castShadow />
         <mesh geometry={geo.letters} material={ink} />
       </group>
-      <Html position={[SIGN.x, SIGN.pivot + 0.32, 0.1]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-        {word ? <Paper kind="slip" className="dr-slip" style={{ fontSize: word.length > 10 ? 12 : 16 }}><CheckIcon size={14} />{word.toUpperCase()}</Paper> : null}
-      </Html>
+      {/* The cleared word's slip (DreamStage's tags) is pinned here. */}
+      <ScreenAnchor el={slip} position={[SIGN.x, SIGN.pivot + 0.32, 0.1]} cull={false} />
     </group>
   );
 }
 
-/** The camera holds its shot; on the bump it shakes ±0.03 m for 300 ms (off under reduced motion). */
-function DreamCamera({ phone, landscapePhone, reduced, live }: { phone: boolean; landscapePhone?: boolean; reduced: boolean; live: MutableRefObject<StageLive> }) {
-  const camera = useThree((s) => s.camera) as PerspectiveCamera;
-  const shot = useMemo(() => dreamShot(phone, landscapePhone), [phone, landscapePhone]);
-  const target = useMemo(() => new Object3D(), []);
-  const size = useThree((s) => s.size);
+/**
+ * The side view (plan file 09, 4.2): an orthographic camera looking along -z, its zoom the stage's CSS px per metre and
+ * its place the frame's centre, from the stage's size. On the bump it shakes ±0.03 m for 300 ms (off under reduced
+ * motion).
+ */
+function DreamCamera({ view, reduced, live }: { view: DreamView; reduced: boolean; live: MutableRefObject<StageLive> }) {
+  const camera = useThree((s) => s.camera) as OrthographicCamera;
   useEffect(() => {
-    // A window narrower than the shot was framed for (a browser snapped to half the screen) widens the view, so the
-    // sheep on the left and the fence coming in on the right stay in frame: at least 4.2 m either side of the target.
-    const aspect = size.width / Math.max(1, size.height);
-    const dist = Math.hypot(...shot.position.map((v, i) => v - shot.target[i]));
-    camera.fov = phone ? shot.fov : Math.max(shot.fov, (2 * Math.atan(4.2 / (dist * aspect)) * 180) / Math.PI);
+    camera.zoom = view.zoom;
+    camera.position.set(view.camX, view.camY, CAMERA_Z);
+    camera.rotation.set(0, 0, 0);
     camera.updateProjectionMatrix();
-    // For the gate script on a phone: where each layer lands through this camera.
-    if (devOn()) Object.assign(window, { __dreamFrame: dreamFrame(shot, size.width / Math.max(1, size.height), phone), __dreamLive: live });
-  }, [camera, shot, size, phone, live]);
+    if (devOn()) Object.assign(window, { __dreamLive: live });
+  }, [camera, view, live]);
   useFrame(() => {
     const L = live.current;
     const since = L.crashAt !== null ? L.t - L.crashAt : 9999;
     const sh = !reduced && since < WAKE.shakeMs ? WAKE.shake : 0;
-    camera.position.set(shot.position[0] + (Math.random() - 0.5) * 2 * sh, shot.position[1] + (Math.random() - 0.5) * 2 * sh, shot.position[2]);
-    target.position.set(shot.target[0], shot.target[1], shot.target[2]);
-    camera.lookAt(target.position);
+    camera.position.set(view.camX + (Math.random() - 0.5) * 2 * sh, view.camY + (Math.random() - 0.5) * 2 * sh, CAMERA_Z);
   });
   return null;
 }

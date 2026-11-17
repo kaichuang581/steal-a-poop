@@ -88,7 +88,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
               model={byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined} />}
       </group>
       {/* A second sheep half inside the doorway, head down in the hay by the bales. */}
-      <group position={[2.6, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5}>
+      <group position={[2.2, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5}>
         <Sheep level={3} state={sleepy ? 'sleeping' : 'grazing'} reduced={reduced} />
       </group>
       <Effects tiltShift={0.15} />

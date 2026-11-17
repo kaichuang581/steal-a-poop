@@ -229,7 +229,7 @@ const SOUNDS: Record<string, () => Grid> = {
     }
     for (const x of [-2, 2]) for (const y of [2, 3]) { const z = front(g, x, y); if (z !== null) g.set(x, y, z, lin('#2b2420')); }
     for (const y of [0, 1]) { const z = front(g, 0, y); if (z !== null) { g.set(0, y, z, lin('#e08a2a')); if (y === 1) g.set(0, y, z + 1, lin('#e08a2a')); } }
-    for (const x of [-2, 2]) fill(g, x - 1, -8, 1, x, -8, 3, lin('#e08a2a'));
+    for (const x of [-2, 2]) fill(g, x - 1, -8, 1, x, -7, 3, lin('#e08a2a')); // up into the body's lowest row (-7), so they join it
     return g;
   },
   // Music box: the farmer's, lid open, with its crank.

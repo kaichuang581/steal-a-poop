@@ -788,9 +788,9 @@
       "width": 256,
       "height": 256,
       "alpha": true,
-      "modelHash": "41d1de67e94afacccb8aad1618426b464a18c3a808eac107d5929af74efc4d40",
+      "modelHash": "c21f7c9cfb77694c7369de2db18a928a48976a66c6b5e6e315afa5fc8d7ff3a0",
       "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "76e619a4119ac48a55385c12cfb6804566cc2542a1dc4931a4f3980dba8a9b8e"
+      "fileHash": "cbbd6567310c71627ac8c1646611bed504e080b96dd875f78086d90664d110dd"
     },
     {
       "id": "shop/tick-sleigh",
@@ -839,9 +839,9 @@
       "width": 256,
       "height": 256,
       "alpha": true,
-      "modelHash": "c3ebf7871e3cc418cbd306698703c657cd8250a304a9add2defcda844e350954",
+      "modelHash": "96d350e9e42f3179b2356bb0b9703b14c27e5fee259ae5d9b8576d658ec6ed26",
       "renderHash": "90fd0495aa88076573bbd7b546e4c332008eb3ae3b27bdc76333145e4128d47c",
-      "fileHash": "33617ec3adf810c19147246a52942e4852c2de71c3ab190afb912dbf508cef99"
+      "fileHash": "c6a0425f9515f26bfc35227f41e1f1c910247a244169be377e6a1d62d360fd44"
     }
   ]
 }

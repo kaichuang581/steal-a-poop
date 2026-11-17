@@ -211,12 +211,20 @@ export function buildFestive(): FestiveGeometry {
   d.present(-5.5, BARN.maxZ + 3.2, 0.6, 0.6, GOLD, T.collar[1]);
   // A small one in the corner of the barn for the table to see, clear of every seat.
   d.tree(4.5, BARN.maxZ - 1.6, 2.6);
-  d.present(3.5, BARN.maxZ - 1.2, 0.5, 0.4, T.collar[1], GOLD);
-  d.present(4.3, BARN.maxZ - 0.7, 0.6, 0.5, T.pine[1], T.snow[1]);
+  // The presents stand clear of the wheelbarrow and of the tree's lowest boughs, against the barrow's wheel and in front
+  // of it (they stood in the barrow's tray and under the tree, plan file 18, section 4.7; behind the tree there is no
+  // room between the back wall's post and the bales).
+  d.present(3.36, BARN.maxZ - 1.7, 0.5, 0.4, T.collar[1], GOLD);
+  d.present(2.9, BARN.maxZ - 2.25, 0.6, 0.5, T.pine[1], T.snow[1]);
   // Lights: along the cross beam over the table, up the gable over the doors, and along the yard fence.
-  d.strand([BARN.minX + 0.4, BARN.beamY - 0.1, 1.0], [-1.2, BARN.beamY - 0.1, 1.0], 0.45);
-  d.strand([1.2, BARN.beamY - 0.1, 1.0], [BARN.maxX - 0.4, BARN.beamY - 0.1, 1.0], 0.45);
-  const { minX, maxX, gateHalfWidth, z: fenceZ } = YARD.fence;
+  // The beam's wire runs against the beam's back face (z 1.2), behind the lanterns: at z 1.0 it ran inside the beam and
+  // through both lanterns, its faces on theirs. The fence's wire runs inside the posts (z 15.1), a cell clear of the
+  // posts' front plane (15.0), where its faces lay on the posts' and on their snow.
+  const beamZ = 1.2;
+  d.strand([BARN.minX + 0.4, BARN.beamY - 0.1, beamZ], [-1.2, BARN.beamY - 0.1, beamZ], 0.45);
+  d.strand([1.2, BARN.beamY - 0.1, beamZ], [BARN.maxX - 0.4, BARN.beamY - 0.1, beamZ], 0.45);
+  const { minX, maxX, gateHalfWidth } = YARD.fence;
+  const fenceZ = YARD.fence.z + 0.1;
   for (let x = minX; x < -gateHalfWidth; x += 3.6) d.strand([x, 1.45, fenceZ], [Math.min(x + 3.6, -gateHalfWidth), 1.45, fenceZ], 0.3);
   for (let x = gateHalfWidth; x < maxX; x += 3.6) d.strand([x, 1.45, fenceZ], [Math.min(x + 3.6, maxX), 1.45, fenceZ], 0.3);
   // A wreath over the doors, on the yard side and the table side.
@@ -274,10 +282,15 @@ export function buildFarmFestive(): FestiveGeometry {
   for (let i = 0; i < steps; i++) d.strand(wound(i), wound(i + 1), 0, 0.5);
   // The paddock: lights along its rails, on the hay rack and under the shed's eave.
   const rail = 1.25;
+  // The far side's lights (x = P.maxX) hang on the outer face of its rails, a cell clear of the posts' planes (inside
+  // the posts their bulbs' faces lay on the posts' and rails' faces). The other two sides stay as they were: the paddock
+  // camera (tour shot 2) sees the near rail at x = P.minX, and the shadow of the lights along z = P.maxZ, and nothing
+  // that shot shows may change.
+  const out = 0.2;
   d.swags([P.minX, rail, P.minZ], [P.minX, rail, P.maxZ], 3, 0.25);
   d.swags([P.minX, rail, P.maxZ], [15.4, rail, P.maxZ], 3, 0.25);
   d.swags([18.2, rail, P.maxZ], [P.maxX, rail, P.maxZ], 3, 0.25);
-  d.swags([P.maxX, rail, P.minZ], [P.maxX, rail, P.maxZ], 3, 0.25);
+  d.swags([P.maxX + out, rail, P.minZ], [P.maxX + out, rail, P.maxZ], 3, 0.25);
   d.strand([15, 1.6, -3], [18.2, 1.6, -3], 0.15, 0.4);
   // Up against the shed roof's underside, a cell in from its bevelled edge (at 2.6 it hung 0.1 m under the roof).
   d.swags([12.8, 2.7, -10.0], [20.6, 2.7, -10.0], 2.6, 0.18);

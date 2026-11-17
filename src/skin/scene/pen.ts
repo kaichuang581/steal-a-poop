@@ -125,7 +125,11 @@ function land() {
 type Tree = readonly [x: number, z: number, height: number];
 /** A pine: a trunk, and boughs in tiers that narrow to the top, each tier's edge ragged and its top laden with snow. */
 function pine(g: Grid, [x, z, h]: Tree, i: number) {
-  const s = g.size, y0 = hill(x, z);
+  // On the land's top (land(): whole metres, each 1 m cell at its own corner's height), on the highest cell under the
+  // trunk: at hill(x, z) itself a pine stood up to a metre over the snow or sank into it.
+  const s = g.size, lo = (v: number) => Math.floor(Math.round((v - s) / s) * s), hi = (v: number) => Math.ceil(Math.round((v + s) / s) * s) - 1;
+  let y0 = -Infinity;
+  for (let cx = lo(x); cx <= hi(x); cx++) for (let cz = lo(z); cz <= hi(z); cz++) y0 = Math.max(y0, Math.round(hill(cx, cz)));
   const bare = Math.max(s * 2, h * 0.14);
   box(g, [x - s, y0, z - s], [x + s, y0 + bare + s, z + s], (a, b, c) => pick(T.trunk, hash3(a, b, c, 18 + i)));
   for (let y = bare; y < h; y += s) {
@@ -270,7 +274,10 @@ function fence() {
   box(g, [lx - 0.1, 1.1, lz - 0.1], [lx + 0.1, ly + 0.5, lz + 0.1], dark);
   box(g, [lx - 0.1, ly + 0.4, lz - 0.8], [lx + 0.1, ly + 0.5, lz - 0.1], dark);
   box(g, [lx - 0.1, ly + 0.5, lz - 0.8], [lx + 0.1, ly + 0.6, lz + 0.1], snow);
-  box(g, [lx - 0.05, ly + 0.2, lz - 0.7], [lx + 0.05, ly + 0.4, lz - 0.6], iron);
+  // An iron lid on the glass, one cell thick and as wide as the glass, and the hanger on it. A hanger one cell thick
+  // reached down to the glass, but the finer detail takes the corners off its end, so the glass hung 0.05 m under it.
+  box(g, [lx - 0.15, ly + 0.2, lz - 0.8], [lx + 0.15, ly + 0.3, lz - 0.5], iron);
+  box(g, [lx - 0.05, ly + 0.3, lz - 0.7], [lx + 0.05, ly + 0.4, lz - 0.6], iron);
   box(glow, [lx - 0.15, ly - 0.15, lz - 0.8], [lx + 0.15, ly + 0.2, lz - 0.5], (a, b, c) => pick(T.lantern, hash3(a, b, c, 47)));
   // The gate lantern: sitting on the right-hand gate post.
   const [qx, qy, qz] = PEN.gateLamp;

@@ -15,7 +15,7 @@
 import { CANDLE, CLOCK, LAMP } from '../dream/bedroom';
 import { ISLANDS, islandPlace } from '../dream/stage';
 import { barnSpot } from '../table/Bomb';
-import { LIVESTOCK } from '../table/Farmstead';
+import { HEN_Y, LIVESTOCK } from '../table/Farmstead';
 import { BOMB_RADIUS } from '../voxel/bomb';
 import { BOARD } from '../voxel/table';
 import { CAT_SPOT, ROBIN_SPOT } from './barn';
@@ -163,8 +163,8 @@ function barn(scene: 'table' | 'farm'): Placed[] {
     copied: { file: 'src/skin/scene/festive.ts', text: 'd.tree(4.5, BARN.maxZ - 1.6, 2.6);' },
   });
   const presents: [x: number, z: number, w: number, h: number, text: string][] = [
-    [3.5, BARN.maxZ - 1.2, 0.5, 0.4, 'd.present(3.5, BARN.maxZ - 1.2, 0.5, 0.4, T.collar[1], GOLD);'],
-    [4.3, BARN.maxZ - 0.7, 0.6, 0.5, 'd.present(4.3, BARN.maxZ - 0.7, 0.6, 0.5, T.pine[1], T.snow[1]);'],
+    [3.36, BARN.maxZ - 1.7, 0.5, 0.4, 'd.present(3.36, BARN.maxZ - 1.7, 0.5, 0.4, T.collar[1], GOLD);'],
+    [2.9, BARN.maxZ - 2.25, 0.6, 0.5, 'd.present(2.9, BARN.maxZ - 2.25, 0.6, 0.5, T.pine[1], T.snow[1]);'],
   ];
   presents.forEach(([x, z, w, h, text], i) => out.push({
     id: `${scene}:barn present ${i + 1}`, scene, position: [x, 0, z], footprint: [w, w], height: h + CELL, support: 'floor', own: 'festive',
@@ -201,10 +201,10 @@ function table(): Placed[] {
   out.push(letterBoard('table', [HEAP[0], BARN.beamY - 0.15, 1.0], BARN.beamY, 'beam', 'the default hook of LetterBoard in table/BarnTable.tsx',
     { file: 'src/skin/table/BarnTable.tsx', text: 'export function LetterBoard({ letter, isTrap, reduced, beamY = BARN.beamY, hook = [HEAP[0], BARN.beamY - 0.15, 1.0] }: {' }));
   out.push({
-    id: 'table:sheepdog', scene: 'table', position: [2.6, 0, BARN.maxZ - 1.2], yaw: Math.PI + 0.6,
+    id: 'table:sheepdog', scene: 'table', position: [2.25, 0, BARN.maxZ - 1.2], yaw: Math.PI + 0.6,
     footprint: [SHEEPDOG_SITS.across, SHEEPDOG_SITS.along], height: SHEEPDOG_SITS.tall, support: 'floor',
     from: 'Sheepdog in table/places.tsx (the tutorial)',
-    copied: { file: 'src/skin/table/places.tsx', text: '<group ref={root} position={[2.6, 0, BARN.maxZ - 1.2]} rotation={[0, Math.PI + 0.6, 0]}>' },
+    copied: { file: 'src/skin/table/places.tsx', text: '<group ref={root} position={[2.25, 0, BARN.maxZ - 1.2]} rotation={[0, Math.PI + 0.6, 0]}>' },
   });
   // The ring, for every table size: each seat at rest, the same seat stepped in on its turn, and the bomb at its hooves.
   const sheep = stands('sheep', SHEEP_SCALE);
@@ -241,15 +241,15 @@ function farm(): Placed[] {
     copied: { file: 'src/skin/table/FarmBackdrop.tsx', text: 'const hero: [number, number, number] = [0, 0, BARN.maxZ + 1.2];' },
   });
   out.push({
-    id: 'farm:doorway sheep', scene: 'farm', position: [2.6, 0, BARN.maxZ - 1.4], yaw: Math.PI / 2, ...stands('sheep', 1.5, SHEEP_TALL_AT_3), support: 'floor',
+    id: 'farm:doorway sheep', scene: 'farm', position: [2.2, 0, BARN.maxZ - 1.4], yaw: Math.PI / 2, ...stands('sheep', 1.5, SHEEP_TALL_AT_3), support: 'floor',
     from: 'the second sheep of FarmBackdrop in table/FarmBackdrop.tsx (coat level 3)',
-    copied: { file: 'src/skin/table/FarmBackdrop.tsx', text: '<group position={[2.6, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5}>' },
+    copied: { file: 'src/skin/table/FarmBackdrop.tsx', text: '<group position={[2.2, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5}>' },
   });
-  // Who lives on the farm. The hens stand in the straw of their run; everyone else on the land.
+  // Who lives on the farm. The hens stand on the straw of their run (HEN_Y); everyone else on the land.
   LIVESTOCK.forEach(([animal, x, z, facing], i) => out.push({
-    id: `farm:livestock ${i} (${animal})`, scene: 'farm', position: [x, 0, z], yaw: facing, ...stands(animal as Species, 1.5), support: animal === 'chicken' ? 'bedding' : 'floor',
+    id: `farm:livestock ${i} (${animal})`, scene: 'farm', position: [x, animal === 'chicken' ? HEN_Y : 0, z], yaw: facing, ...stands(animal as Species, 1.5), support: animal === 'chicken' ? 'bedding' : 'floor',
     from: `LIVESTOCK[${i}] in table/Farmstead.tsx, drawn at 1.5`,
-    copied: { file: 'src/skin/table/Farmstead.tsx', text: '<group key={i} position={[x, 0, z]} rotation={[0, facing, 0]} scale={1.5}>' },
+    copied: { file: 'src/skin/table/Farmstead.tsx', text: '<group key={i} position={[x, animal === \'chicken\' ? HEN_Y : 0, z]} rotation={[0, facing, 0]} scale={1.5}>' },
   }));
   return out;
 }
@@ -295,14 +295,14 @@ function pen(): Placed[] {
       from: 'penSpot in scene/pen.ts, drawn at SHEEP_SCALE by Animal in rooms/PenStage.tsx',
     });
   }
-  // The tall lantern's glass hangs from its post's arm by an iron hanger one cell thick: what meets the support is the
-  // glass's top under that cell. The gate's lantern sits on the gate's right post.
+  // The tall lantern's glass hangs from its post's arm by an iron hanger one cell thick, on an iron lid as wide as the
+  // glass: what meets the support is the glass's top under the lid's middle cell. The gate's lantern sits on the gate's right post.
   const [lx, ly, lz] = PEN.lamp, [qx, qy, qz] = PEN.gateLamp;
   out.push({
     id: 'pen:tall lantern', scene: 'pen', position: [snap(lx - 0.05) + CELL / 2, snap(ly + 0.2), snap(lz - 0.7) + CELL / 2], footprint: [CELL, CELL],
     height: snap(ly + 0.2) - snap(ly - 0.15), support: 'post', hangs: true, own: 'pen.glow',
-    from: 'PEN.lamp in scene/pen.ts (the glass under its hanger)',
-    copied: { file: 'src/skin/scene/pen.ts', text: 'box(g, [lx - 0.05, ly + 0.2, lz - 0.7], [lx + 0.05, ly + 0.4, lz - 0.6], iron);' },
+    from: 'PEN.lamp in scene/pen.ts (the glass under its lid)',
+    copied: { file: 'src/skin/scene/pen.ts', text: 'box(g, [lx - 0.15, ly + 0.2, lz - 0.8], [lx + 0.15, ly + 0.3, lz - 0.5], iron);' },
   });
   out.push({
     id: 'pen:gate lantern', scene: 'pen', position: [qx, snap(qy - 0.15), qz], footprint: [0.2, 0.2], height: snap(qy + 0.1) - snap(qy - 0.15), support: 'post', own: 'pen.glow',
@@ -419,21 +419,12 @@ export const NOT_PLACED: Readonly<Record<PlacedScene, Readonly<Record<string, st
 };
 
 /**
- * The pairs of entries whose footprint boxes run into each other today: the wheelbarrow corner of the barn, which plan
- * file 18 (section 4.7, fix 3) moves apart in milestone 3. The integrity test wants exactly these and no other. This
- * list may only shrink: when a fix parts a pair the test fails until the pair is taken off here, and the test holds
- * its own copy of the list as it stood on 2026-11-16, so nothing can be added.
+ * The pairs of entries whose footprint boxes run into each other today. On 2026-11-16 these were the wheelbarrow corner
+ * of the barn (eight pairs); plan file 18 (section 4.7, fix 3) moved them apart in milestone 3, so none is left. The
+ * integrity test wants exactly these and no other. This list may only shrink, and the test holds its own copy of the
+ * list as it stood on 2026-11-16, so nothing can be added.
  */
-export const KNOWN_OVERLAPS: readonly (readonly [string, string])[] = [
-  ['table:wheelbarrow', 'table:barn present 1'],
-  ['table:wheelbarrow', 'table:sheepdog'],
-  ['table:barn tree', 'table:barn present 1'],
-  ['table:barn tree', 'table:barn present 2'],
-  ['farm:wheelbarrow', 'farm:barn present 1'],
-  ['farm:wheelbarrow', 'farm:doorway sheep'],
-  ['farm:barn tree', 'farm:barn present 1'],
-  ['farm:barn tree', 'farm:barn present 2'],
-];
+export const KNOWN_OVERLAPS: readonly (readonly [string, string])[] = [];
 
 /** True when two entries can be on screen at once: the same scene, the same arrangement, and turns that agree. */
 export function together(a: Placed, b: Placed): boolean {

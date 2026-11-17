@@ -375,8 +375,9 @@ export function iceBlock(size: V3): IceBlock {
       for (let y = 0; y <= top; y++) base.set(x, lo[1] + y, z, pick(T.snow, hash3(x, y, z, 87), [0.4, 0.95]));
     }
 
-  // The front face is at z = (hi + 1) voxels; glints and cracks sit one voxel proud of it.
-  const front = (hi[2] + 1) * s + s / 2;
+  // The front face is at z = (hi + 1) voxels; glints and cracks lie in the row of voxels just in front of it, on it
+  // (file 03, 4.3: at (hi + 1.5) voxels they landed a row further out and hovered).
+  const front = (hi[2] + 1) * s;
   const glints = new Grid(s);
   const glint = (x0: number, y0: number, len: number) => line(glints, [x0, y0, front], [x0 + len * 0.55, y0 + len, front], solid(lin(T.snow[0])));
   glint(-w / 2 + 0.1, h / 2 - 0.52, 0.36);
@@ -385,12 +386,17 @@ export function iceBlock(size: V3): IceBlock {
 
   // Two zigzag cracks (the classic comic crack), one each side of the face.
   const cracks = new Grid(s);
+  // Drawn for the sheep's block (1.1 x 1.2) and stretched with the block, so another animal's fitted block has them in
+  // the same corners (file 03, 4.2); on the sheep's own block they are where they always were.
+  const kx = w / 1.1, ky = h / 1.2;
   const crack = (pts: number[]) => {
-    for (let i = 0; i + 3 < pts.length; i += 2) line(cracks, [pts[i], pts[i + 1], front], [pts[i + 2], pts[i + 3], front], solid(lin(ICE_CRACK)));
+    for (let i = 0; i + 3 < pts.length; i += 2) line(cracks, [pts[i] * kx, pts[i + 1] * ky, front], [pts[i + 2] * kx, pts[i + 3] * ky, front], solid(lin(ICE_CRACK)));
   };
   // Short and near the corners, so they never cross the sheep.
   crack([-0.5, -0.2, -0.42, -0.3, -0.47, -0.38, -0.4, -0.5]);
   crack([0.5, 0.46, 0.43, 0.38, 0.47, 0.3, 0.42, 0.22]);
+  // Where a crack runs out over the chamfered edge there is no ice behind it to lie on: those cells are left out.
+  for (const g of [glints, cracks]) for (const [k, v] of [...g.map]) if (!slab.has(v.x, v.y, v.z - 1)) g.map.delete(k);
 
   // Icicles hang from just under the chamfered front top edge; snow lies on top in drifts with bare ice between.
   const ic = new Grid(s);
@@ -409,6 +415,7 @@ export function iceBlock(size: V3): IceBlock {
       if (!patch) continue;
       const inner = hash3((x >> 2) + 1, 0, z >> 2, 65) < 0.42 || hash3(x >> 2, 0, (z >> 2) + 1, 65) < 0.42;
       if (hash3(x, 1, z, 67) < (inner ? 0.12 : 0.3)) continue; // ragged edges
+      if (!slab.has(x, hi[1], z)) continue; // snow lies only on ice: none over the chamfered rim
       cap.set(x, top, z, pick(T.snow, hash3(x, 2, z, 69), [0.7, 0.95]));
       if (inner && hash3(x, 3, z, 71) < 0.08) cap.set(x, top + 1, z, lin(T.snow[0]));
     }

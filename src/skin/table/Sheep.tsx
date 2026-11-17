@@ -18,6 +18,7 @@ import type { V3 } from '../voxel/primitives';
 import { CREAM, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
 import type { Brows, Lids, Mouth, Part, SheepModel, WoolLevel } from '../voxel/sheep';
 import type { AnimalModel, SigPart } from '../voxel/animals/rig';
+import { anchorsOf, scarfCells } from '../voxel/animals/anchors';
 
 export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'dazed' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'run' | 'jump' | 'bonk' | 'land' | 'walk' | 'flop' | 'perch' | 'lounge';
 /** Every state of `SheepState`, in its order, for the checks that step through all of them (tools/scenes/models.ts). */
@@ -80,7 +81,26 @@ interface Props {
 
 /** The ears hang 20 degrees below level. */
 const DROOP = (20 * Math.PI) / 180;
+/** The sheep's ice block (it fits the sheep; file 03, 4.2 keeps it). */
 const BLOCK: [number, number, number] = [1.1, 1.2, 1.3];
+/** How much clear ice stands round an animal in its block, each side (file 03, 4.2). */
+const ICE_MARGIN = 0.12;
+/**
+ * The ice block for an animal, and where its middle stands (x and z; the block rests on the floor): the sheep's own
+ * block, or one fitted to the animal in its frozen pose, its hat included, with ICE_MARGIN of ice round it, each side a
+ * whole number of voxel pairs so the block stays centred on its grid. Cached by `iceBlock`, per size.
+ */
+function iceFit(m: SheepModel | AnimalModel): { size: [number, number, number]; x: number; z: number; sink: number } {
+  const species = (m as Partial<AnimalModel>).species ?? 'sheep';
+  if (species === 'sheep') return { size: BLOCK, x: 0, z: 0, sink: 0 };
+  const { min, max } = anchorsOf(m).frozen;
+  const pair = 0.08, up = (v: number) => Math.ceil(v / pair - 1e-6) * pair;
+  const w = up(max[0] - min[0] + 2 * ICE_MARGIN);
+  // Frozen, the animal leans back and its hooves sink under the floor; the tilted block's high side stands off it. The
+  // block goes down into the floor (where nothing of it shows) far enough to hold them on both sides.
+  const sink = Math.ceil((Math.max(0, -min[1]) + (w / 2) * Math.sin(TILT)) / 0.04 - 1e-6) * 0.04;
+  return { size: [w, up(max[1] + sink + ICE_MARGIN), up(max[2] - min[2] + 2 * ICE_MARGIN)], x: (min[0] + max[0]) / 2, z: (min[2] + max[2]) / 2, sink };
+}
 /** The block leans 4 degrees about z, as if the sheep was caught mid-run. */
 const TILT = (4 * Math.PI) / 180;
 const easeOut = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
@@ -151,6 +171,10 @@ const GRAZERS = new Set(['sheep', 'cow', 'goat', 'horse']);
 // sorted where the head alone was, and the head is joined last, so it shows over a horn's root as it did from any
 // side that root can be seen from.
 
+/** Whether the tail is shown at a coat level: the sheep's goes with its fleece; every other species keeps its own. */
+export const tailShown = (level: number, species: string): boolean => level > 0 || species !== 'sheep';
+/** Where the tail sits along z: the sheep's moves back as its fleece grows (LEVEL_K); another species' stays on its rump. */
+const tailZ = (m: SheepModel | AnimalModel, species: string, lvl: 1 | 2 | 3 | 4): number => m.tail.pivot[2] - (species === 'sheep' ? 0.4 * (LEVEL_K[lvl] - 1) : 0);
 /** Whether a geometry has anything to draw. */
 const drawn = (g: BufferGeometry): boolean => (g.index ? g.index.count : g.getAttribute('position')?.count ?? 0) > 0;
 /** A copy of `geo` moved by `by`: what a mesh at that position, with no turn, draws. The model's own geometry is not touched. */
@@ -190,6 +214,23 @@ function hatFit(parts: BufferGeometry[]): { at: V3; scale: number } {
   return { at: [c.x, top.max.y - 0.06, c.z - 0.02], scale: Math.min(1, Math.max(0.55, (top.max.x - top.min.x) / 0.6)) };
 }
 
+/** One part of a bundle: its own geometry, and where (and how big) the bundle puts it in the group the bundle is drawn in. */
+export interface BundleSource { geo: BufferGeometry; at: V3; scale: number }
+const atScale = (s: BundleSource): BufferGeometry => (s.scale === 1 ? placed(s.geo, s.at) : s.geo.clone().scale(s.scale, s.scale, s.scale).translate(s.at[0], s.at[1], s.at[2]));
+
+/** What the head's bundle is made of, in the head group's own space, in the order it is joined (the head last). */
+function headSources(m: SheepModel | AnimalModel): BundleSource[] {
+  const am = m as Partial<AnimalModel>;
+  // The hat sits on the measured crown (file 03, 4.7): the same place `hatFit` gave, read from the model's anchors.
+  const fit = anchorsOf(m).hat;
+  return [
+    ...(am.signature ?? []).filter((sp) => sp.where === 'head' && !sp.anim).map((sp) => ({ geo: sp.geo, at: relTo(sp, m.head), scale: 1 })),
+    ...(am.worn ? [{ geo: am.worn.geo, at: relTo(am.worn, m.head), scale: 1 }] : []),
+    { geo: santaHat(), at: fit.at, scale: fit.scale },
+    { geo: m.hood.geo, at: [0, 0, 0] as V3, scale: 1 }, { geo: m.head.geo, at: [0, 0, 0] as V3, scale: 1 },
+  ].filter((p) => drawn(p.geo));
+}
+
 const headBundles = new WeakMap<object, BufferGeometry | null>();
 /**
  * Everything that never moves against the head, as one geometry in the head group's own space: the signature parts
@@ -202,14 +243,7 @@ const headBundles = new WeakMap<object, BufferGeometry | null>();
 function headBundle(m: SheepModel | AnimalModel): BufferGeometry | null {
   const hit = headBundles.get(m);
   if (hit !== undefined) return hit;
-  const am = m as Partial<AnimalModel>;
-  const fit = hatFit([m.head.geo, m.hood.geo]);
-  const g = joined([
-    ...(am.signature ?? []).filter((sp) => sp.where === 'head' && !sp.anim).map((sp) => placed(sp.geo, relTo(sp, m.head))),
-    ...(am.worn ? [placed(am.worn.geo, relTo(am.worn, m.head))] : []),
-    santaHat().clone().scale(fit.scale, fit.scale, fit.scale).translate(fit.at[0], fit.at[1], fit.at[2]),
-    m.hood.geo, m.head.geo,
-  ]);
+  const g = joined(headSources(m).map(atScale));
   if (g) {
     const lead = drawn(m.hood.geo) ? m.hood.geo : m.head.geo;
     if (!lead.boundingSphere) lead.computeBoundingSphere();
@@ -230,7 +264,7 @@ function headBundle(m: SheepModel | AnimalModel): BufferGeometry | null {
  */
 const LEGS_APART = new Set<string>(['pig']);
 /** The legs' rest bundle: its geometry, and which of the four legs are in it. */
-interface Rest { geo: BufferGeometry; legs: boolean[] }
+interface Rest { geo: BufferGeometry; legs: boolean[]; sources: BundleSource[] }
 const restBundles = new WeakMap<object, Rest | null>();
 /**
  * The legs as they stand at rest (no swing, no lift) as one geometry in the body group's own space: each leg where its
@@ -250,18 +284,19 @@ function restBundle(m: SheepModel | AnimalModel): Rest | null {
   for (const l of [1, 2, 3, 4] as const) {
     facesOf(m.wools[l].geo, others);
     facesOf(m.frosts[l].geo, others);
-    facesOf(placed(m.tail.geo, [m.tail.pivot[0], m.tail.pivot[1], m.tail.pivot[2] - 0.4 * (LEVEL_K[l] - 1)]), others);
+    facesOf(placed(m.tail.geo, [m.tail.pivot[0], m.tail.pivot[1], tailZ(m, am.species ?? 'sheep', l)]), others);
   }
   for (const p of [m.sheared, m.collar, m.bell, ...(am.neck ? [am.neck] : []), ...(am.signature ?? []).filter((sp) => sp.where === 'body')]) facesOf(placed(p.geo, p.pivot), others);
   const legs = m.legs.map((leg) => placed(leg.geo, leg.pivot)), faces = legs.map((g) => facesOf(g));
   const free = legs.map((g, i) => drawn(g) && !sharesFace(faces[i], others) && !faces.some((f, j) => j !== i && drawn(legs[j]) && sharesFace(faces[i], f)));
   const geo = joined(legs.filter((_, i) => free[i]));
-  const rest = geo ? { geo, legs: free } : null;
+  const rest = geo ? { geo, legs: free, sources: m.legs.filter((_, i) => free[i]).map((leg) => ({ geo: leg.geo, at: leg.pivot, scale: 1 })) } : null;
   restBundles.set(m, rest);
   return rest;
 }
 
 const eyePairs = new WeakMap<object, BufferGeometry | null>();
+const eyeSources = (m: SheepModel | AnimalModel): BundleSource[] => m.eyes.map((e) => ({ geo: e.geo, at: relTo(e, m.head), scale: 1 }));
 /**
  * Both eyes as one geometry in the head group's own space, each where its own mesh puts it at its rest size. Shown
  * only while the eyes are exactly that size, in place of their two meshes. The face's parts (eyes, lids, brows,
@@ -584,7 +619,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const breathMat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 })), []);
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
-  const fx = useMemo(() => freezeFx(), []);
+  const fx = useMemo(() => freezeFx(m), [m]);
   const r = useRef<Record<string, Object3D | null>>({});
   const root = useRef<Group>(null);
   const set = (k: string) => (o: Object3D | null) => { r.current[k] = o; };
@@ -702,13 +737,14 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
       else if (sp.anim === 'comb') mesh.rotation.z = moving ? Math.sin(tp * 2.5) * 0.08 : 0;
     }
     const tail = o.tail as Mesh;
-    tail.visible = level > 0 && drawn(m.tail.geo);
+    // Only the sheep is shorn of its tail: it grows with the fleece. Every other species keeps its own (file 03, 4.1).
+    tail.visible = tailShown(level, species) && drawn(m.tail.geo);
     tail.rotation.y = c[CH.tail];
     // The tail lifts when proud (and the horse's when startled); the chicken's fan spreads 1.2 proud and happy, folds 0.9
     // cold, and breathes +-4% at rest (6.4, 6.3).
     tail.rotation.x = live === 'proud' || (species === 'horse' && live === 'startled') ? tailLift : 0;
     if (am.tailAnim === 'tailFan') tail.scale.x = live === 'proud' || live === 'happy' ? 1.2 : live === 'cold' ? 0.9 : 1 + (moving ? Math.sin(tp * 1.9) * 0.04 : 0);
-    tail.position.z = m.tail.pivot[2] - 0.4 * (LEVEL_K[lvl] - 1);
+    tail.position.z = tailZ(m, species, lvl);
     const fl = o.legFL as Mesh;
     // The trot pairs front-left with back-right; a jump sets the front and back pairs apart.
     fl.rotation.x = -c[CH.legSwing] - c[CH.legLift] * 5 + c[CH.legFront];
@@ -800,7 +836,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
           {headGeo ? <mesh geometry={headGeo} material={mat} castShadow /> : <>
             <mesh geometry={m.head.geo} material={mat} castShadow visible={drawn(m.head.geo)} />
             <mesh geometry={m.hood.geo} material={mat} castShadow visible={drawn(m.hood.geo)} />
-            <SantaHat parts={[m.head.geo, m.hood.geo]} material={mat} />
+            <mesh geometry={santaHat()} material={mat} position={anchorsOf(m).hat.at} scale={anchorsOf(m).hat.scale} castShadow />
           </>}
           <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={faceMat} visible={drawn(m.eyes[0].geo)} />
           <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={faceMat} visible={drawn(m.eyes[1].geo)} />
@@ -815,7 +851,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
         </group>
         </group>
         <mesh ref={set('breath')} geometry={m.breath.geo} position={m.breath.pivot} material={breathMat} />
-        {scarf && <Scarf />}
+        {scarf && <Scarf model={m} />}
       </group>
       <primitive object={fx.root} />
     </group>
@@ -828,11 +864,33 @@ export function SantaHat({ parts, material }: { parts: BufferGeometry[]; materia
   return <mesh geometry={santaHat()} material={material} position={fit.at} scale={fit.scale} castShadow />;
 }
 
-/** The winner's knitted scarf: a red voxel ring around the neck with a hanging end. */
-function Scarf() {
-  const geo = useMemo(() => scarfGeometry(), []);
+/**
+ * The winner's knitted scarf: a red voxel ring around the neck with a hanging end. The sheep wears the one made for it;
+ * every other species one tied round its own neck (`scarfCells`, file 03, 4.7: the sheep's hoop missed the goat and
+ * the hen entirely).
+ */
+function Scarf({ model }: { model: SheepModel | AnimalModel }) {
+  const own = useMemo(() => animalScarf(model), [model]);
+  const geo = useMemo(() => own ?? scarfGeometry(), [own]);
   const mat = useMemo(() => voxelMaterial(), []);
-  return <mesh geometry={geo} position={[0.02, 0.46, 0.5]} material={mat} castShadow />;
+  return <mesh geometry={geo} position={own ? [0, 0, 0] : [0.02, 0.46, 0.5]} material={mat} castShadow />;
+}
+
+const animalScarves = new WeakMap<object, BufferGeometry | null>();
+/** A species' own scarf, in model space; null for the sheep. */
+function animalScarf(m: SheepModel | AnimalModel): BufferGeometry | null {
+  const hit = animalScarves.get(m);
+  if (hit !== undefined) return hit;
+  const cells = scarfCells(m);
+  let geo: BufferGeometry | null = null;
+  if (cells.length) {
+    const g = new Grid(0.04);
+    const red = lin(SCARF), cream = lin(CREAM[0]);
+    for (const [x, y, z, stripe] of cells) g.set(x, y, z, stripe ? cream : red);
+    geo = buildGeometry(g.map, 0.04);
+  }
+  animalScarves.set(m, geo);
+  return geo;
 }
 
 let scarfGeo: BufferGeometry | null = null;
@@ -852,7 +910,7 @@ function scarfGeometry(): BufferGeometry {
 }
 
 /** Objects for the freeze sequence, created once per sheep and shown only while needed. */
-function freezeFx() {
+function freezeFx(m: SheepModel | AnimalModel) {
   const root = new Group();
   const streakMat = new MeshLambertMaterial({ color: '#D9EEF8', transparent: true, opacity: 0.6, blending: AdditiveBlending, depthWrite: false });
   const streaks = new InstancedMesh(new BoxGeometry(0.04, 0.04, 0.24), streakMat, 40);
@@ -874,7 +932,8 @@ function freezeFx() {
   const snow = new Points(snowGeo, new PointsMaterial({ color: '#FFFFFF', size: 0.05, transparent: true, opacity: 0.9 }));
   // The block (plan V3 Part 6): voxel ice, rendered double-sided so its far faces show through and it reads as a
   // solid slab rather than a pane of glass.
-  const parts = iceBlock(BLOCK);
+  const fit = iceFit(m), size = fit.size;
+  const parts = iceBlock(size);
   // A little cool self-light keeps the slab's inner faces (lit from below by the floor colour) reading as ice.
   const iceMat = new MeshPhongMaterial({ vertexColors: true, transparent: true, opacity: 0.42, shininess: 90, specular: '#FFFFFF', emissive: '#9ED2EE', emissiveIntensity: 0.3, depthWrite: false, side: DoubleSide });
   const opaque = voxelMaterial();
@@ -890,7 +949,7 @@ function freezeFx() {
   block.add(base, icicles, cap, glints, cracks, slab);
   block.rotation.z = TILT;
   // Rest the lowest corner of the tilted block on the floor.
-  block.position.set(0, (BLOCK[1] / 2) * Math.cos(TILT) + (BLOCK[0] / 2) * Math.sin(TILT), 0);
+  block.position.set(fit.x, (size[1] / 2) * Math.cos(TILT) + (size[0] / 2) * Math.sin(TILT) - fit.sink, fit.z);
   // Ten chunks for the thaw.
   const shardMat = new MeshPhongMaterial({ vertexColors: true, transparent: true, opacity: 0.75, shininess: 90, specular: '#FFFFFF', emissive: '#9ED2EE', emissiveIntensity: 0.3, depthWrite: false });
   const shards = Array.from({ length: 10 }, (_, i) => {
@@ -973,3 +1032,16 @@ export const Animal = Sheep;
 
 /** The pose machinery for tests (V5 Part 4.13 test 9): stepping every state for every species without a renderer. */
 export const __rig = { poseFor, restPose, face0, N, CH, RANGES, DURATION, DROOP } as const;
+
+/**
+ * For tools/scenes/models.ts: each geometry this component joins from several of a model's parts (milestone 2's
+ * bundles), and the parts it was joined from, where the bundle puts each one in the group it is drawn in.
+ */
+export function bundlesOf(m: SheepModel | AnimalModel): { geo: BufferGeometry; sources: BundleSource[] }[] {
+  const out: { geo: BufferGeometry; sources: BundleSource[] }[] = [];
+  const head = headBundle(m), rest = restBundle(m), eyes = eyePair(m);
+  if (head) out.push({ geo: head, sources: headSources(m) });
+  if (rest) out.push({ geo: rest.geo, sources: rest.sources });
+  if (eyes) out.push({ geo: eyes, sources: eyeSources(m) });
+  return out;
+}

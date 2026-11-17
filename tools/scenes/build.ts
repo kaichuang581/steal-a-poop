@@ -679,7 +679,7 @@ async function putFarm(L: Layout, load: Load, shared: Shared) {
 async function putLetterBoard(L: Layout, load: Load, beamY: number, hook: readonly [number, number, number]) {
   mirrors('src/skin/table/BarnTable.tsx', [
     'const geo = useMemo(() => letterBoardGeometry(letter, isTrap, beamY), [letter, isTrap, beamY, fontReady]);',
-    '<group ref={g} position={[hook[0], hook[1], hook[2]]}>',
+    '<group ref={g} position={start}>',
     '<mesh geometry={geo} material={boardMat} castShadow />',
   ]);
   const table = await load<typeof import('../../src/skin/voxel/table')>('src/skin/voxel/table.ts');
@@ -747,7 +747,7 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       '<mesh geometry={w.posts} material={mat} castShadow />',
       '<mesh geometry={w.glow} material={glow} />',
       '<Festive geo={buildDuelFestive()} reduced={reduced} />',
-      'const DUEL_BEAM = DUEL.hook[1] + 0.65;',
+      'const DUEL_BEAM = BOARD.bottom + BOARD.height + 0.35;',
       '<LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} beamY={DUEL_BEAM} hook={DUEL.hook} />',
     ]);
     const duel = await load<typeof import('../../src/skin/scene/duel')>('src/skin/scene/duel.ts');
@@ -761,7 +761,8 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     L.put(w.posts, 'duel.posts');
     L.put(w.glow, 'duel.glow');
     putFestive(L, festive.buildDuelFestive(), 'duelFestive');
-    await putLetterBoard(L, load, duel.DUEL.hook[1] + 0.65, duel.DUEL.hook);
+    const { BOARD } = await load<typeof import('../../src/skin/voxel/table')>('src/skin/voxel/table.ts');
+    await putLetterBoard(L, load, BOARD.bottom + BOARD.height + 0.35, duel.DUEL.hook);
   },
 
   /** The lobby's pen: `Place` in src/skin/rooms/PenStage.tsx. Every mesh is drawn where it was built. */

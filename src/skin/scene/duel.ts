@@ -23,9 +23,12 @@ export const DUEL = {
   /**
    * The letter's signpost (V6 Part 5.2 on the ice): a post frozen into the crack behind the two of them, an arm over the
    * crack, and the carved letter board hanging from the arm's end at `hook`, low enough to stay in the closest shot.
+   * The arm is at the hook's height. At 2.9 the arm's snow left the frame at full pressure and the board hung under the
+   * fight card; at 2.3 (on the post's 0.1 m grid) the whole sign clears the card at every pressure, computer or phone (plan file 08,
+   * section 4.1; src/skin/scene/__tests__/duel.test.ts).
    */
-  post: { z: 0.9, armY: 2.9 },
-  hook: [0, 2.9, 0] as const,
+  post: { z: 0.9, armY: 2.3 },
+  hook: [0, 2.3, 0] as const,
   /** Each name stake stands just behind its sheep's rump, tall enough for its plank to clear the sheep's back. */
   stake: { x: 2.35, z: 0.5, height: 26 },
 };
@@ -76,9 +79,10 @@ function spit() {
       if (u ** 4 + v ** 4 > 1 - hash3(x >> 2, 0, z >> 2, 7) * 0.3) continue;
       const crack = x === crackAt(z);
       const snow = hash3(x >> 2, 1, z >> 2, 9) > 0.62;
-      const r = hash3(x, 0, z, 11);
+      // The top's tone changes in broad patches (as the snow's do), not voxel by voxel: a per-voxel pick read as tiles.
+      const r = hash3(x, 0, z, 11), patch = hash3(x >> 2, 0, z >> 2, 11);
       for (let y = -6; y <= -1; y++) {
-        if (y === -1) g.set(x, y, z, crack ? lin(ICE_CRACK) : snow ? pick(T.snow, r) : pick(T.ice, r));
+        if (y === -1) g.set(x, y, z, crack ? lin(ICE_CRACK) : snow ? pick(T.snow, r) : pick(T.ice, patch));
         else g.set(x, y, z, pick(T.ice, r, [0.2, 0.5]));
       }
     }
@@ -108,37 +112,58 @@ function floes() {
   return buildGeometry(fine.map, fine.size);
 }
 
-/** The far shore: a low bank of dark snow rising to a wall of rock that shuts the lake in. */
+/** The far shore's bank: x and z are its 1 m cells; it is solid from y -2 up to and including the cell `top`. */
+const SHORE = { x0: -70, x1: 70, z0: 24, z1: 56 };
+function shoreTop(x: number, z: number): number | null {
+  if (x < SHORE.x0 || x > SHORE.x1 || z < SHORE.z0 || z > SHORE.z1) return null;
+  const rise = Math.max(0, z - 36) * 0.45;
+  return Math.round(1 + rise + hash3(x >> 2, 0, z >> 2, 41) * (2 + rise * 0.4));
+}
+/** Is the point (metres) inside the bank? */
+const inBank = (x: number, y: number, z: number) => {
+  const top = shoreTop(Math.floor(x), Math.floor(z));
+  return top !== null && y >= -2 && y < top + 1;
+};
+
+/**
+ * The far shore: a low bank of dark snow rising to a wall of rock that shuts the lake in. Built at its own 1 m grid:
+ * it stands far back in fog, where the refined bank (133 k triangles) read the same as this one.
+ */
 function shore() {
   const g = new Grid(1);
-  for (let x = -70; x <= 70; x++) {
-    for (let z = 24; z <= 56; z++) {
-      const rise = Math.max(0, z - 36) * 0.45;
-      const top = Math.round(1 + rise + hash3(x >> 2, 0, z >> 2, 41) * (2 + rise * 0.4));
+  for (let x = SHORE.x0; x <= SHORE.x1; x++) {
+    for (let z = SHORE.z0; z <= SHORE.z1; z++) {
       // Solid to the waterline: a shell shows the sky through the steps of the rock.
-      for (let y = -2; y <= top; y++) g.set(x, y, z, lin(hash3(x, y, z, 43) > 0.5 ? '#34465C' : '#2A3A4E'));
+      for (let y = -2, top = shoreTop(x, z)!; y <= top; y++) g.set(x, y, z, lin(hash3(x, y, z, 43) > 0.5 ? '#34465C' : '#2A3A4E'));
     }
   }
-  const fine = detailed(g.map, g.size);
-  return buildGeometry(fine.map, fine.size);
+  return buildGeometry(g.map, g.size);
 }
 
-/** Black pines along the bank, more a shape against the sky than trees. */
+/**
+ * Black pines along the bank, more a shape against the sky than trees, at their own 0.5 m grid. Each stands on a whole
+ * metre, so its 1 m trunk spans half of two bank cells and none of its sides lies on a bank cell's side; the trunk goes
+ * one cell into the bank, and nothing else of a pine is drawn inside it (the tiers' faces lay on the bank's, 4.4 m2).
+ */
 function pines() {
   const g = new Grid(0.5);
   const r = rng(51);
+  const dark = () => lin('#141C26');
+  const needles = (a: number, b: number, c: number) => (inBank(a * 0.5, b * 0.5, c * 0.5) ? null : lin(hash3(a, b, c, 53) > 0.5 ? '#16222C' : '#101A24'));
   for (let i = 0; i < 22; i++) {
-    const x = -44 + i * 4.2 + (r() - 0.5) * 2.4;
-    const z = 25 + r() * 9;
+    const x = Math.round(-44 + i * 4.2 + (r() - 0.5) * 2.4);
+    const z = Math.round(25 + r() * 9);
     const h = 7 + r() * 6;
-    box(g, [x - 0.5, 1, z - 0.5], [x + 0.5, 3, z + 0.5], () => lin('#141C26'));
+    // The bank's top under the trunk: the highest of the four cells it stands across.
+    let ground = -2;
+    for (const dx of [-1, 0]) for (const dz of [-1, 0]) ground = Math.max(ground, (shoreTop(x + dx, z + dz) ?? -3) + 1);
+    box(g, [x - 0.5, ground - 0.5, z - 0.5], [x + 0.5, Math.max(3, ground), z + 0.5], dark);
     for (let y = 3; y < h; y += 0.5) {
       const w = Math.max(0.5, (1 - (y - 3) / (h - 3)) * 2.6 * (0.75 + ((y * 2) % 3) * 0.12));
-      box(g, [x - w, y, z - w], [x + w, y + 0.5, z + w], (a, b, c) => lin(hash3(a, b, c, 53) > 0.5 ? '#16222C' : '#101A24'));
+      box(g, [x - w, y, z - w], [x + w, y + 0.5, z + w], needles);
     }
   }
-  const fine = detailed(g.map, g.size);
-  return buildGeometry(fine.map, fine.size);
+  return buildGeometry(g.map, g.size);
 }
 
 /** Two lantern posts on the ice: the posts are lit by the scene, the lanterns glow on their own. */

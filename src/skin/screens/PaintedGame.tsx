@@ -484,7 +484,7 @@ export function PaintedGame() {
         <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-16' : 'top-3'}`} aria-label="Who is playing">
           <Paper kind="slip" className="sk-vs-slip">{game.players[0].name}</Paper>
           <span className="sk-vs">VS</span>
-          <Paper kind="slip" className="sk-vs-slip">{game.players[1].name}<span className="sk-vs-farm">farm sheep · {game.settings.botDifficulty}</span></Paper>
+          <Paper kind="slip" className="sk-vs-slip">{game.players[1].name}<span className="sk-vs-tags"><span className="sk-vs-farm">farm sheep</span><span className="sk-vs-farm">{game.settings.botDifficulty}</span></span></Paper>
         </div>
       ) : (
         <Ledger players={ranked} turnId={view.currentPlayerId} maxLives={maxLives} compact={mobile}

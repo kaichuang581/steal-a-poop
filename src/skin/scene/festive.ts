@@ -52,6 +52,7 @@ class Dressing {
     // three at once left two cells touching at a corner only, and the sag between them hung in the air (Brian,
     // 2026-11-09: "a lot of them are floating").
     const wire = lin(T.face[2]), g = this.decor;
+    const cells: V3[] = [], mine = new Set<string>(), hangs: number[] = [];
     let prev: V3 | null = null;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
@@ -60,17 +61,36 @@ class Dressing {
       const cell: V3 = [g.i(x), g.i(y), g.i(z)];
       if (prev) {
         const at: V3 = [...prev];
-        for (const axis of [0, 2, 1] as const) while (at[axis] !== cell[axis]) { at[axis] += Math.sign(cell[axis] - at[axis]); g.set(at[0], at[1], at[2], wire); }
+        for (const axis of [0, 2, 1] as const) while (at[axis] !== cell[axis]) { at[axis] += Math.sign(cell[axis] - at[axis]); g.set(at[0], at[1], at[2], wire); mine.add(at.join()); }
       }
       g.set(cell[0], cell[1], cell[2], wire);
+      mine.add(cell.join());
+      cells.push(cell);
       prev = cell;
-      // The bulb hangs from the wire's own cell.
-      if (i % bulbEvery === bulbEvery >> 1) this.bulb((cell[0] + 0.5) * g.size, cell[1] * g.size - bulb / 2, (cell[2] + 0.5) * g.size, bulb);
+      if (i % bulbEvery === bulbEvery >> 1) hangs.push(i);
+    }
+    // The bulb hangs from the wire's own cell; where the sagging wire steps down through the bulb, their faces lay on one
+    // plane and flickered, so it hangs from the next cell along instead (or the one before).
+    const at = (c: V3): V3 => [(c[0] + 0.5) * g.size, c[1] * g.size - bulb / 2, (c[2] + 0.5) * g.size];
+    const span = (m: number) => {
+      const a = Math.round((m - bulb / 2) / g.size), far = Math.round((m + bulb / 2) / g.size) - 1;
+      return [a, far < a ? a + Math.round(bulb / g.size) - 1 : far];
+    };
+    const crosses = (c: V3) => {
+      const [[x0, x1], [y0, y1], [z0, z1]] = at(c).map(span);
+      for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) if (mine.has(`${x},${y},${z}`)) return true;
+      return false;
+    };
+    for (const i of hangs) {
+      const c = [cells[i], cells[i + 1], cells[i - 1]].find((k) => k && !crosses(k)) ?? cells[i];
+      this.bulb(...at(c), bulb);
     }
   }
 
-  /** A fir in tiers, snow on each tier's shelf, a spiral of baubles and a gold star. */
-  tree(x: number, z: number, height: number, topped = true, bauble = 0.2) {
+  /** When set, the baubles of the trees that follow (else a tree's own `bauble` and `clear`). */
+  baubles: { size: number; clear: boolean } | null = null;
+
+  /** A fir in tiers, snow on each tier's shelf, a spiral of baubles and a gold star. */  tree(x: number, z: number, height: number, topped = true, bauble = this.baubles?.size ?? 0.2, clear = this.baubles?.clear ?? false) {
     const g = this.decor;
     const trunk = height * 0.1;
     box(g, [x - 0.2, 0, z - 0.2], [x + 0.2, trunk + 0.2, z + 0.2], (a, b, c) => pick(T.trunk, hash3(a, b, c, 71)));
@@ -96,7 +116,14 @@ class Dressing {
     for (let i = 0, count = Math.round(height * 7); i < count; i++) {
       const y = trunk + 0.3 + (i / count) * (height - trunk - 0.7);
       const r = Math.max(0, radiusAt(y) - 0.05), a = i * 2.4; // set into the branches, not hung off their tips
-      this.bulb(x + Math.cos(a) * r, y, z + Math.sin(a) * r, bauble);
+      const at: V3 = [x + Math.cos(a) * r, y, z + Math.sin(a) * r];
+      // Set into the branches, a bauble's cells were the branch's own cells too, face on face with them (they flickered):
+      // with `clear` the branch gives the bauble its cells.
+      if (clear) {
+        const [lo, hi] = [at.map((m) => Math.round((m - bauble / 2) / g.size)), at.map((m) => Math.round((m + bauble / 2) / g.size) - 1)];
+        for (let u = lo[0]; u <= Math.max(lo[0], hi[0]); u++) for (let v = lo[1]; v <= Math.max(lo[1], hi[1]); v++) for (let w = lo[2]; w <= Math.max(lo[2], hi[2]); w++) g.del(u, v, w);
+      }
+      this.bulb(at[0], at[1], at[2], bauble);
     }
     if (topped) {
       // The star stands on the tree's own tip, on a short gold stem: placed at the drawn height it hung just over a tip
@@ -199,6 +226,9 @@ class Dressing {
   }
 }
 
+/** The barn tree's baubles, in metres (Brian's to choose at the milestone 7 pairs; it was 0.2). */
+export const BARN_BAUBLE = 0.1;
+
 let farm: FestiveGeometry | null = null;
 /** The farm's decorations, seen both from the table and from the start screen. */
 export function buildFestive(): FestiveGeometry {
@@ -209,8 +239,12 @@ export function buildFestive(): FestiveGeometry {
   d.present(-3.1, BARN.maxZ + 3.2, 0.7, 0.5, T.collar[1], GOLD);
   d.present(-4.4, BARN.maxZ + 3.8, 0.9, 0.7, T.pine[1], T.snow[1]);
   d.present(-5.5, BARN.maxZ + 3.2, 0.6, 0.6, GOLD, T.collar[1]);
-  // A small one in the corner of the barn for the table to see, clear of every seat.
+  // A small one in the corner of the barn for the table to see, clear of every seat. Its baubles are BARN_BAUBLE across
+  // (plan file 06, section 4.6): at 0.2 m they read as blocks at the table's distance.
+  // (The call's own line is pinned by the checker, src/skin/scene/placed.ts, so the baubles are set around it.)
+  d.baubles = { size: BARN_BAUBLE, clear: true };
   d.tree(4.5, BARN.maxZ - 1.6, 2.6);
+  d.baubles = null;
   // The presents stand clear of the wheelbarrow and of the tree's lowest boughs, against the barrow's wheel and in front
   // of it (they stood in the barrow's tray and under the tree, plan file 18, section 4.7; behind the tree there is no
   // room between the back wall's post and the bales).
@@ -321,14 +355,20 @@ export function buildBubbleFestive(): FestiveGeometry {
   return (bubble = d.build());
 }
 
+/** The ice's strand of lights: its wire is the row of cells z 1.3 to 1.4, one cell back from the lanterns' middle row. */
+const DUEL_STRAND_Z = 1.3;
+
 let duel: FestiveGeometry | null = null;
 /** The ice gets a little of it too: lights between the lanterns and a tree at the far end. */
 export function buildDuelFestive(): FestiveGeometry {
   if (duel) return duel;
   const d = new Dressing();
   const [left, right] = DUEL.lamps;
-  d.strand([left[0], left[1] - 0.3, left[2]], [right[0], right[1] - 0.3, right[2]], 0.5, 0.7);
-  d.tree(right[0] + 0.9, 0.4, 2.8);
+  // The wire runs one cell behind the lanterns and their posts (z 1.1 to 1.3), against their back faces: through them, its
+  // faces lay on theirs and flickered (plan file 08, section 4.5). The tree's baubles keep clear of its branches.
+  const behind = DUEL_STRAND_Z;
+  d.strand([left[0], left[1] - 0.3, behind], [right[0], right[1] - 0.3, behind], 0.5, 0.7);
+  d.tree(right[0] + 0.9, 0.4, 2.8, true, 0.2, true);
   d.present(right[0] + 0.5, -0.8, 0.6, 0.5, T.collar[1], GOLD);
   return (duel = d.build());
 }

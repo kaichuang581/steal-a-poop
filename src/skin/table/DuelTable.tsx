@@ -16,7 +16,7 @@ import { Sky } from '../scene/Sky';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
 import { BOARD } from '../voxel/table';
-import { LetterBoard, nameplateY } from './BarnTable';
+import { LetterBoard, platePoint } from './BarnTable';
 import { Bomb } from './Bomb';
 import type { BombSpot } from './Bomb';
 import type { BarnTableProps } from './BarnTable';
@@ -29,7 +29,7 @@ import { Sheep } from './Sheep';
 
 const DARK = '#14233C';
 /** The letter board hangs on short ropes from its signpost's arm: `letterBoardGeometry` measures them from this beam height. */
-const DUEL_BEAM = DUEL.hook[1] + 0.65;
+const DUEL_BEAM = BOARD.bottom + BOARD.height + 0.35;
 const BOARD_BOTTOM = DUEL.hook[1] + BOARD.bottom - (DUEL_BEAM - 0.15);
 const CALM = new Color('#FFD9A0');
 const DANGER = new Color('#FF5A3C');
@@ -97,13 +97,10 @@ function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone,
                 gustFrom={[0, 0.8, -6]} lookAt={[other.x, 0.85 * SHEEP_SCALE, other.z]} speaking={s.index === speaker} thinking={s.thinking}
                 model={model ? animalModel(model.animal) : undefined} />
             )}
+            {/* The name plate (and the speaker's speech bubble) stands over the head, so it follows the step (`platePoint`). */}
+            <ScreenAnchor el={slipRef(s.seat)} position={platePoint(s.avatar)} above />
           </Stand>
         );
-      })}
-      {/* Each sheep's name plate (and the speaker's speech bubble) stands just over its head. */}
-      {seats.map((s) => {
-        const at = duelSeat(s.seat);
-        return <ScreenAnchor key={`name-${s.seat}`} el={slipRef(s.seat)} position={[at.x, nameplateY(s.avatar), at.z]} above />;
       })}
       <Effects />
       <DevStats />

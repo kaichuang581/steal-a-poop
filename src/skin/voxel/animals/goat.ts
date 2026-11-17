@@ -78,7 +78,7 @@ export function goatModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalMo
 
   // ---- Horns: two curves 2 voxels thick from the crown's back corners, rising 0.12 then sweeping back and out.
   const crown = (HY + 6) * S; // the top of the crown's back (the bump is at the front)
-  const horns = ([-1, 1] as const).map((sx) => {
+  const hornGrids = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
     const dz = 0.48 - 0.46; // the sheet's head starts at z 0.46; ours at 0.48
     const pts: V3[] = [[0.06, -0.06, 0.56], [0.07, 0, 0.54], [0.09, 0.08, 0.50], [0.12, 0.12, 0.44], [0.16, 0.12, 0.36], [0.20, 0.10, 0.30]].map(([x, y, z]) => [sx * x + 0.02, crown + y, z + dz] as V3);
@@ -92,17 +92,23 @@ export function goatModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalMo
       const cells = [...g.map.values()];
       for (const v of cells) g.del(v.x, v.y, v.z);
       for (const v of cells) g.set(v.x, v.y, v.z - k, v.c);
-      // Behind the ears the crown falls away, so the moved root may meet the head on fewer than the four cells a root
-      // needs (animalsV51 rule 3): it sinks a voxel at a time until it does, at most two.
-      const meets = () => [...g.map.values()].filter((v) => headSolid.has(`${v.x},${v.y},${v.z}`) || [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(([a, b, c]) => headSolid.has(`${v.x + a},${v.y + b},${v.z + c}`))).length;
-      for (let i = 0; i < 2 && meets() < 4; i++) {
-        const now = [...g.map.values()];
-        for (const v of now) g.del(v.x, v.y, v.z);
-        for (const v of now) g.set(v.x, v.y - 1, v.z, v.c);
-      }
     }
-    return { ...part(g, HEAD), name: sx < 0 ? 'horn0' : 'horn1', where: 'head' as const, cells: g.map } as SigPart;
+    return g;
   });
+  // Behind the ears the crown falls away, so a moved root may meet the head on fewer than the four cells a root needs
+  // (animalsV51 rule 3). Both horns sink together, a voxel at a time and at most two, until each one does: the horns
+  // are not exact mirrors (their x is offset), so sinking each alone left one a voxel lower than the other.
+  if (hornsBack) {
+    const meets = (g: Grid, dy: number) => [...g.map.values()].filter((v) => [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(([a, b, c]) => headSolid.has(`${v.x + a},${v.y - dy + b},${v.z + c}`))).length;
+    let sink = 0;
+    while (sink < 2 && hornGrids.some((g) => meets(g, sink) < 4)) sink++;
+    if (sink) for (const g of hornGrids) {
+      const now = [...g.map.values()];
+      for (const v of now) g.del(v.x, v.y, v.z);
+      for (const v of now) g.set(v.x, v.y - sink, v.z, v.c);
+    }
+  }
+  const horns = hornGrids.map((g, i) => ({ ...part(g, HEAD), name: i === 0 ? 'horn0' : 'horn1', where: 'head' as const, cells: g.map }) as SigPart);
 
   // ---- Neck: rising 35 degrees from the chest (buried three voxels) into the head's back, sections 0.22 to 0.18.
   const NECK_BASE: V3 = [0.02, 0.76, 0.30];

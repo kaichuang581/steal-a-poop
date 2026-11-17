@@ -3,11 +3,12 @@ import { AFTERMATH_MS } from '../../engine/constants';
 import { useMemo, useRef } from 'react';
 import {
   AdditiveBlending, DoubleSide, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group,
-  InstancedMesh, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial, Vector3,
+  InstancedMesh, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial, Sphere, Vector3,
 } from 'three';
 import { withRoundedEdges } from '../voxel/rounded';
 import { Box3 } from 'three';
 import type { Material } from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { santaHat } from '../scene/festive';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
@@ -133,6 +134,152 @@ function clampPose(p: Float32Array, species: string) {
 }
 /** The grazers chew four frames every 12 s on their idle layer (6.5); the pig sniffs and the chicken bobs instead. */
 const GRAZERS = new Set(['sheep', 'cow', 'goat', 'horse']);
+
+// ---------- Fewer draws for the same picture (plan file 17, change 13, step 6) ----------
+// Each mesh is a draw call in colour and one more into every shadow map it casts into, and three.js issues the call
+// even for a mesh with nothing in it. So: a mesh with no triangles is never visible; parts that never move against
+// each other and are drawn alike (one material, the same casting and receiving) are one geometry (`headBundle`); and
+// the legs are one geometry while none of them is turned or lifted (`restBundle`). Nothing is rebuilt per frame: each
+// bundle is built once for its model and shared by every animal of that species. No voxel, colour, pivot or pose
+// changes; a part that moves is always drawn as its own mesh, with its own turn.
+//
+// What may go in a bundle is decided by where two parts put a face on the same plane (file 18's coincident faces). Of
+// two such faces three.js shows the one drawn later; it draws separate meshes nearest first, by the middle of each
+// one's geometry, and the triangles of one mesh in the order its parts were joined. So joining parts can change which
+// face shows there. A leg that shares a face with the body or with another leg therefore stays a mesh of its own, and
+// so do the tail (the fleece), the bell (the collar) and the neck (the coat), even at rest. The head's bundle is
+// sorted where the head alone was, and the head is joined last, so it shows over a horn's root as it did from any
+// side that root can be seen from.
+
+/** Whether a geometry has anything to draw. */
+const drawn = (g: BufferGeometry): boolean => (g.index ? g.index.count : g.getAttribute('position')?.count ?? 0) > 0;
+/** A copy of `geo` moved by `by`: what a mesh at that position, with no turn, draws. The model's own geometry is not touched. */
+const placed = (geo: BufferGeometry, by: V3): BufferGeometry => geo.clone().translate(by[0], by[1], by[2]);
+/** Several geometries as one, in their order. Nothing when fewer than two have anything in them, or they cannot be joined. */
+function joined(parts: BufferGeometry[]): BufferGeometry | null {
+  const some = parts.filter(drawn);
+  if (some.length < 2) return null;
+  try { return mergeGeometries(some, false); } catch { return null; }
+}
+const relTo = (p: Part, to: Part): V3 => [p.pivot[0] - to.pivot[0], p.pivot[1] - to.pivot[1], p.pivot[2] - to.pivot[2]];
+/**
+ * A geometry's faces, a string each: the way it looks and its box, to a tenth of a millimetre. The mesher writes every
+ * face as four vertices of its own; a geometry that is not made so answers with one face that matches anything asked.
+ */
+function facesOf(g: BufferGeometry, into = new Set<string>()): Set<string> {
+  const p = g.getAttribute('position'), n = g.getAttribute('normal');
+  if (!p || !n || p.count % 4) return into.add('?');
+  const r = (v: number) => Math.round(v * 1e4);
+  for (let i = 0; i < p.count; i += 4) {
+    const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+    for (let k = i; k < i + 4; k++) [p.getX(k), p.getY(k), p.getZ(k)].forEach((v, d) => { lo[d] = Math.min(lo[d], v); hi[d] = Math.max(hi[d], v); });
+    into.add([n.getX(i), n.getY(i), n.getZ(i), ...lo, ...hi].map(r).join());
+  }
+  return into;
+}
+const sharesFace = (mine: Set<string>, theirs: Set<string>) => mine.has('?') || theirs.has('?') || [...mine].some((f) => theirs.has(f));
+
+/** Where the hat sits on a head, and how big: on the top of `parts`' box, sized to its width. */
+function hatFit(parts: BufferGeometry[]): { at: V3; scale: number } {
+  const top = new Box3();
+  for (const g of parts) {
+    g.computeBoundingBox();
+    top.union(g.boundingBox!);
+  }
+  const c = top.getCenter(new Vector3());
+  return { at: [c.x, top.max.y - 0.06, c.z - 0.02], scale: Math.min(1, Math.max(0.55, (top.max.x - top.min.x) / 0.6)) };
+}
+
+const headBundles = new WeakMap<object, BufferGeometry | null>();
+/**
+ * Everything that never moves against the head, as one geometry in the head group's own space: the signature parts
+ * with no motion of their own (horns), a worn item, the hat where `SantaHat` puts it, the hood and, last, the head. All
+ * of them wear the body's material, cast and do not receive, so one mesh draws what the separate ones drew. Its
+ * bounding sphere is centred where the hood's was (the head's, for a species with no hood), so three.js sorts it for
+ * drawing exactly as it sorted that mesh. Null if they cannot be joined; the component then mounts them one by one,
+ * as it always did.
+ */
+function headBundle(m: SheepModel | AnimalModel): BufferGeometry | null {
+  const hit = headBundles.get(m);
+  if (hit !== undefined) return hit;
+  const am = m as Partial<AnimalModel>;
+  const fit = hatFit([m.head.geo, m.hood.geo]);
+  const g = joined([
+    ...(am.signature ?? []).filter((sp) => sp.where === 'head' && !sp.anim).map((sp) => placed(sp.geo, relTo(sp, m.head))),
+    ...(am.worn ? [placed(am.worn.geo, relTo(am.worn, m.head))] : []),
+    santaHat().clone().scale(fit.scale, fit.scale, fit.scale).translate(fit.at[0], fit.at[1], fit.at[2]),
+    m.hood.geo, m.head.geo,
+  ]);
+  if (g) {
+    const lead = drawn(m.hood.geo) ? m.hood.geo : m.head.geo;
+    if (!lead.boundingSphere) lead.computeBoundingSphere();
+    const c = lead.boundingSphere!.center.clone(), p = g.getAttribute('position'), v = new Vector3();
+    let far = 0;
+    for (let i = 0; i < p.count; i++) far = Math.max(far, c.distanceToSquared(v.fromBufferAttribute(p, i)));
+    g.boundingSphere = new Sphere(c, Math.sqrt(far));
+  }
+  headBundles.set(m, g);
+  return g;
+}
+
+/**
+ * Species whose legs are never joined. A joined leg's corners are worked out once, on the CPU, where its own mesh's
+ * are worked out by the GPU every frame, and the two can round apart by a ten-millionth of a metre. For the pig that
+ * was enough to move the edge of its front legs' shadow on the duel's ice by a row of the shadow map (four pixels, 40
+ * levels, measured 2026-11-16), so its legs stay four meshes.
+ */
+const LEGS_APART = new Set<string>(['pig']);
+/** The legs' rest bundle: its geometry, and which of the four legs are in it. */
+interface Rest { geo: BufferGeometry; legs: boolean[] }
+const restBundles = new WeakMap<object, Rest | null>();
+/**
+ * The legs as they stand at rest (no swing, no lift) as one geometry in the body group's own space: each leg where its
+ * own mesh puts it when it is not turned. They wear the body's material, cast and receive. Shown only while every leg
+ * is exactly at rest, in place of those legs' meshes; a leg that moves is drawn by its own mesh. A leg that shares a
+ * face with anything else the body group holds, or with another leg, is left out (the cow's and the horse's near
+ * pair, both of the chicken's). Null when fewer than two legs are left, or they cannot be joined; and for a species in
+ * `LEGS_APART`.
+ */
+function restBundle(m: SheepModel | AnimalModel): Rest | null {
+  const hit = restBundles.get(m);
+  if (hit !== undefined) return hit;
+  const am = m as Partial<AnimalModel>;
+  if (am.species && LEGS_APART.has(am.species)) { restBundles.set(m, null); return null; }
+  // Everything else in the body group, where it stands at rest: the coats and the tail at every coat level.
+  const others = new Set<string>();
+  for (const l of [1, 2, 3, 4] as const) {
+    facesOf(m.wools[l].geo, others);
+    facesOf(m.frosts[l].geo, others);
+    facesOf(placed(m.tail.geo, [m.tail.pivot[0], m.tail.pivot[1], m.tail.pivot[2] - 0.4 * (LEVEL_K[l] - 1)]), others);
+  }
+  for (const p of [m.sheared, m.collar, m.bell, ...(am.neck ? [am.neck] : []), ...(am.signature ?? []).filter((sp) => sp.where === 'body')]) facesOf(placed(p.geo, p.pivot), others);
+  const legs = m.legs.map((leg) => placed(leg.geo, leg.pivot)), faces = legs.map((g) => facesOf(g));
+  const free = legs.map((g, i) => drawn(g) && !sharesFace(faces[i], others) && !faces.some((f, j) => j !== i && drawn(legs[j]) && sharesFace(faces[i], f)));
+  const geo = joined(legs.filter((_, i) => free[i]));
+  const rest = geo ? { geo, legs: free } : null;
+  restBundles.set(m, rest);
+  return rest;
+}
+
+const eyePairs = new WeakMap<object, BufferGeometry | null>();
+/**
+ * Both eyes as one geometry in the head group's own space, each where its own mesh puts it at its rest size. Shown
+ * only while the eyes are exactly that size, in place of their two meshes. The face's parts (eyes, lids, brows,
+ * mouths) share a material, so three.js draws them together, nearest first; joining the eyes changes only where they
+ * fall in that run, which can show only where an eye puts a face on the same plane as another of the face's parts. So
+ * an eye that does, with the other eye or with any lid, brow or mouth, leaves both eyes apart.
+ */
+function eyePair(m: SheepModel | AnimalModel): BufferGeometry | null {
+  const hit = eyePairs.get(m);
+  if (hit !== undefined) return hit;
+  const eyes = m.eyes.map((e) => placed(e.geo, relTo(e, m.head))), faces = eyes.map((g) => facesOf(g));
+  const face = new Set<string>();
+  for (const g of [m.lids.closed.geo, m.lids.arc.geo, ...BROWS.map((b) => m.brows[b].geo), ...MOUTHS.map((k) => m.mouths[k].geo)]) facesOf(g, face);
+  const apart = sharesFace(faces[0], faces[1]) || faces.some((f) => sharesFace(f, face));
+  const g = apart || !eyes.every(drawn) ? null : joined(eyes);
+  eyePairs.set(m, g);
+  return g;
+}
 
 /**
  * The pose for a state at `e` seconds into it: V5.1 Part 6.2's base table for every species, then the species' deltas
@@ -451,6 +598,11 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const v = useMemo(() => new Vector3(), []);
   // "Tail up" turns the tail back, whichever way it grows: a hanging tail pitches +x, one that points up pitches -x.
   const tailLift = useMemo(() => tailLiftOf(m), [m]);
+  // Fewer draws, same picture: the head with everything fixed to it as one geometry, and the legs as one for as long
+  // as they stand still (the frame loop shows it then, and the legs' own meshes the moment one moves).
+  const headGeo = useMemo(() => headBundle(m), [m]);
+  const restOf = useMemo(() => restBundle(m), [m]);
+  const eyesGeo = useMemo(() => eyePair(m), [m]);
 
   useFrame(({ clock, camera }, dt) => {
     const t = clock.elapsedTime;
@@ -523,12 +675,12 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
       wool.geometry = m.wools[lvl].geo;
       (o.frost as Mesh).geometry = m.frosts[lvl].geo;
     }
-    wool.visible = level > 0;
+    wool.visible = level > 0 && drawn(wool.geometry);
     // Swell about the legs' tops, not the ground: scaled from y 0 the belly rose off the legs with every breath and puff.
     const ws = settle * c[CH.puff] * (1 + breathe);
     wool.scale.set(ws, ws, ws);
     wool.position.y = swellY(m.legs[0].pivot[1], ws);
-    (o.sheared as Mesh).visible = level === 0 || bodyAlways;
+    (o.sheared as Mesh).visible = (level === 0 || bodyAlways) && drawn(m.sheared.geo);
     // The species' own touches: the snout sniffs, wings flap, the beard wags, the comb wobbles.
     for (const sp of signature) {
       const mesh = o[`sig-${sp.name}`] as Mesh | undefined;
@@ -550,7 +702,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
       else if (sp.anim === 'comb') mesh.rotation.z = moving ? Math.sin(tp * 2.5) * 0.08 : 0;
     }
     const tail = o.tail as Mesh;
-    tail.visible = level > 0;
+    tail.visible = level > 0 && drawn(m.tail.geo);
     tail.rotation.y = c[CH.tail];
     // The tail lifts when proud (and the horse's when startled); the chicken's fan spreads 1.2 proud and happy, folds 0.9
     // cold, and breathes +-4% at rest (6.4, 6.3).
@@ -568,18 +720,36 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     const sq = Math.max(0.5, c[CH.squash] || 1);
     root.current.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
     // The `bell` tag (the sheep's and the cow's) swings about its top (6.4): +-0.3 rad dying away over 0.8 s on happy, jump and bonk; +-0.08 in the run.
-    (o.bell as Mesh).rotation.x = !moving ? 0
+    const bell = o.bell as Mesh;
+    bell.rotation.x = !moving ? 0
       : live === 'happy' || live === 'jump' || live === 'bonk' ? Math.sin(e * 24) * 0.3 * Math.max(0, 1 - e / 0.8)
       : live === 'run' ? Math.sin(tp * 12) * 0.08 : 0;
+    // Standing still (no swing, no lift), the legs are drawn as one mesh (`restBundle`): the same triangles in the same
+    // places with the same material and shadows, in one draw call. The moment a leg moves, each is drawn by its own
+    // mesh again.
+    const fr = o.legFR as Mesh, bl = o.legBL as Mesh, br = o.legBR as Mesh, restMesh = o.rest as Mesh | null | undefined;
+    const rest = restMesh && restOf && c[CH.legLift] === 0 && fl.rotation.x === 0 && fr.rotation.x === 0 && bl.rotation.x === 0 && br.rotation.x === 0 ? restOf.legs : null;
+    if (restMesh) restMesh.visible = !!rest;
+    fl.visible = !rest?.[0] && drawn(m.legs[0].geo);
+    fr.visible = !rest?.[1] && drawn(m.legs[1].geo);
+    bl.visible = !rest?.[2] && drawn(m.legs[2].geo);
+    br.visible = !rest?.[3] && drawn(m.legs[3].geo);
+    bell.visible = drawn(m.bell.geo);
     (o.eyeL as Mesh).scale.setScalar(c[CH.eye]);
     (o.eyeR as Mesh).scale.setScalar(c[CH.eye]);
+    // At their rest size the eyes are drawn as one mesh (`eyePair`); the moment they widen, each by its own again.
+    const eyesMesh = o.eyes as Mesh | null | undefined, paired = !!eyesMesh && c[CH.eye] === 1;
+    if (eyesMesh) eyesMesh.visible = paired;
+    (o.eyeL as Mesh).visible = !paired && drawn(m.eyes[0].geo);
+    (o.eyeR as Mesh).visible = !paired && drawn(m.eyes[1].geo);
     const iced = live === 'frozen' || live === 'freezing';
-    (o['lid-closed'] as Mesh).visible = f.lids === 'closed' && !iced;
-    (o['lid-arc'] as Mesh).visible = f.lids === 'arc' && !iced;
-    for (const b of BROWS) (o[`brow-${b}`] as Mesh).visible = b === f.brows;
-    for (const k of MOUTHS) (o[`mouth-${k}`] as Mesh).visible = k === f.mouth;
+    // A part with nothing in it (a species with no brow at rest, say) is never shown: an empty mesh is still a draw call.
+    (o['lid-closed'] as Mesh).visible = f.lids === 'closed' && !iced && drawn(m.lids.closed.geo);
+    (o['lid-arc'] as Mesh).visible = f.lids === 'arc' && !iced && drawn(m.lids.arc.geo);
+    for (const b of BROWS) (o[`brow-${b}`] as Mesh).visible = b === f.brows && drawn(m.brows[b].geo);
+    for (const k of MOUTHS) (o[`mouth-${k}`] as Mesh).visible = k === f.mouth && drawn(m.mouths[k].geo);
     const breath = o.breath as Mesh;
-    breath.visible = f.breath;
+    breath.visible = f.breath && drawn(m.breath.geo);
     if (f.breath) {
       const p = (tp % 1.6) / 1.6;
       breath.position.set(m.breath.pivot[0], m.breath.pivot[1] + p * 0.1, m.breath.pivot[2] + p * 0.25);
@@ -594,7 +764,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     if (dimmed) { mat.color.multiplyScalar(0.62); faceMat.color.multiplyScalar(0.62); }
 
     runFreezeFx(fx, live, e, reduced, gustFrom, state === 'thawing');
-    (o.frost as Mesh).visible = level > 0 && ((live === 'freezing' && e >= 0.8 && !reduced) || live === 'frozen');
+    (o.frost as Mesh).visible = level > 0 && ((live === 'freezing' && e >= 0.8 && !reduced) || live === 'frozen') && drawn((o.frost as Mesh).geometry);
     (o.frost as Mesh).scale.setScalar(live === 'freezing' ? clamp01((e - 0.8) / 0.8) : 1);
   });
 
@@ -617,25 +787,31 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
         {mesh('legFR', m.legs[1])}
         {mesh('legBL', m.legs[2])}
         {mesh('legBR', m.legs[3])}
+        {/* The legs at rest as one mesh; hidden until the frame loop finds them so. */}
+        {restOf && <mesh ref={set('rest')} geometry={restOf.geo} material={mat} castShadow receiveShadow visible={false} />}
 
-        {signature.filter((sp) => sp.where === 'body').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={sp.pivot} material={mat} castShadow />)}
-        <mesh geometry={m.collar.geo} position={m.collar.pivot} material={mat} />
+        {signature.filter((sp) => sp.where === 'body').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={sp.pivot} material={mat} castShadow visible={drawn(sp.geo)} />)}
+        <mesh geometry={m.collar.geo} position={m.collar.pivot} material={mat} visible={drawn(m.collar.geo)} />
         {mesh('bell', m.bell)}
         <group ref={set('neck')} position={nb}>
-        {am.neck && <mesh geometry={am.neck.geo} position={fromNeck(am.neck.pivot)} material={mat} castShadow receiveShadow />}
+        {am.neck && <mesh geometry={am.neck.geo} position={fromNeck(am.neck.pivot)} material={mat} castShadow receiveShadow visible={drawn(am.neck.geo)} />}
         <group ref={set('head')} position={fromNeck(m.head.pivot)}>
-          <mesh geometry={m.head.geo} material={mat} castShadow />
-          <mesh geometry={m.hood.geo} material={mat} castShadow />
-          <SantaHat parts={[m.head.geo, m.hood.geo]} material={mat} />
-          <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={faceMat} />
-          <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={faceMat} />
+          {/* One mesh for the head and all that is fixed to it (headBundle); the same parts one by one if they could not be joined. */}
+          {headGeo ? <mesh geometry={headGeo} material={mat} castShadow /> : <>
+            <mesh geometry={m.head.geo} material={mat} castShadow visible={drawn(m.head.geo)} />
+            <mesh geometry={m.hood.geo} material={mat} castShadow visible={drawn(m.hood.geo)} />
+            <SantaHat parts={[m.head.geo, m.hood.geo]} material={mat} />
+          </>}
+          <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={faceMat} visible={drawn(m.eyes[0].geo)} />
+          <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={faceMat} visible={drawn(m.eyes[1].geo)} />
+          {eyesGeo && <mesh ref={set('eyes')} geometry={eyesGeo} material={faceMat} visible={false} />}
           {(['closed', 'arc'] as Lids[]).map((k) => <mesh key={k} ref={set(`lid-${k}`)} geometry={m.lids[k].geo} material={faceMat} />)}
           {BROWS.map((b) => <mesh key={b} ref={set(`brow-${b}`)} geometry={m.brows[b].geo} material={faceMat} />)}
           {MOUTHS.map((k) => <mesh key={k} ref={set(`mouth-${k}`)} geometry={m.mouths[k].geo} material={faceMat} />)}
-          <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow />
-          <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow />
-          {signature.filter((sp) => sp.where === 'head').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={rel(sp)} material={mat} castShadow />)}
-          {am.worn && <mesh geometry={am.worn.geo} position={rel(am.worn)} material={mat} castShadow />}
+          <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow visible={drawn(m.ears[0].geo)} />
+          <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow visible={drawn(m.ears[1].geo)} />
+          {signature.filter((sp) => sp.where === 'head' && (sp.anim || !headGeo)).map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={rel(sp)} material={mat} castShadow visible={drawn(sp.geo)} />)}
+          {am.worn && !headGeo && <mesh geometry={am.worn.geo} position={rel(am.worn)} material={mat} castShadow visible={drawn(am.worn.geo)} />}
         </group>
         </group>
         <mesh ref={set('breath')} geometry={m.breath.geo} position={m.breath.pivot} material={breathMat} />
@@ -648,15 +824,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
 
 /** Everyone's dressed for the season: a hat on the top of the head, sized to whichever animal is wearing it. */
 export function SantaHat({ parts, material }: { parts: BufferGeometry[]; material: Material }) {
-  const fit = useMemo(() => {
-    const top = new Box3();
-    for (const g of parts) {
-      g.computeBoundingBox();
-      top.union(g.boundingBox!);
-    }
-    const c = top.getCenter(new Vector3());
-    return { at: [c.x, top.max.y - 0.06, c.z - 0.02] as [number, number, number], scale: Math.min(1, Math.max(0.55, (top.max.x - top.min.x) / 0.6)) };
-  }, [parts]);
+  const fit = useMemo(() => hatFit(parts), [parts]);
   return <mesh geometry={santaHat()} material={material} position={fit.at} scale={fit.scale} castShadow />;
 }
 

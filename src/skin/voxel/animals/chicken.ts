@@ -3,8 +3,10 @@ import { lin } from '../palette';
 import { ellipsoid, Grid, line } from '../primitives';
 import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { breathAt, bury, cellsOf, hollow, leg, mouths, none, part, S, segment, smallEyes, solidSet, statsOf, tones } from './rig';
+import { BODY_POWER, breathAt, bury, cellsOf, hollow, leg, mouths, none, part, S, segment, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart, Tones } from './rig';
+import { DEFAULT_FACES } from './faces';
+import type { Faces } from './faces';
 
 /**
  * The chicken (V5.1 Part 5.6, rebuilt): a horizontal, plump body whose breast sits low and forward and whose rump rises
@@ -20,15 +22,22 @@ import type { AnimalModel, CPart, SigPart, Tones } from './rig';
 const COMB = ['#C24E45', '#B5443C'] as const;
 const BEAK = ['#E8A43A', '#D4922E'] as const;
 const HC: V3 = [0.02, 0.58, 0.34]; // the head ball's centre, on a cell's centre so the ball is 7 across every way
-export function chickenModel(ch: Character): AnimalModel {
+/**
+ * Face switch (plan file 03, 4.11), off until Brian ticks the chicken's row on the face sheet: the tail as three flat
+ * feathers, each a blade two voxels wide and one thick drawn with joined lines (one piece by faces), fanned out from
+ * the rump, instead of five diagonal 2 x 2 rods. The head is unchanged.
+ */
+export const CHICKEN_TAIL = false;
+export function chickenModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
+  const flatTail = CHICKEN_TAIL || faces.has('chickenTail');
   const body = tones(ch.colors.body);
 
   // ---- Torso: three ellipsoids, the breast low and forward, the rump high and back; a top line sloping to the tail.
   const bg = new Grid(S);
   const paint = (_x: number, y: number) => lin(y >= 12 ? body[0] : y <= 6 ? body[2] : body[1]);
-  ellipsoid(bg, [0.02, 0.38, 0], [0.19, 0.16, 0.26], paint);
-  ellipsoid(bg, [0.02, 0.34, 0.16], [0.16, 0.14, 0.14], paint);
-  ellipsoid(bg, [0.02, 0.46, -0.16], [0.14, 0.10, 0.12], paint);
+  ellipsoid(bg, [0.02, 0.38, 0], [0.19, 0.16, 0.26], paint, 0, 1, BODY_POWER);
+  ellipsoid(bg, [0.02, 0.34, 0.16], [0.16, 0.14, 0.14], paint, 0, 1, BODY_POWER);
+  ellipsoid(bg, [0.02, 0.46, -0.16], [0.14, 0.10, 0.12], paint, 0, 1, BODY_POWER);
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -54,12 +63,20 @@ export function chickenModel(ch: Character): AnimalModel {
 
   // ---- Tail: five slabs 2 voxels wide from the rump up to (0.02, 0.84, -0.46), fanned +-0.26 rad; dark, light tips.
   const tailG = new Grid(S);
-  for (let i = 0; i < 5; i++) {
+  if (flatTail) for (const i of [-1, 0, 1]) {
+    // Root inside the rump, tip up and back; the side feathers splay 0.12 out and droop a little. Two voxels wide along
+    // x, one thick: the blade lies in the fan, so from behind it is a feather and from the side a thin quill.
+    const from: V3 = [0.02 + i * 0.02, 0.50, -0.24], to: V3 = [0.02 + i * 0.12, 0.84 - Math.abs(i) * 0.06, -0.46 + Math.abs(i) * 0.04];
+    const tipY = Math.round(to[1] / S) - 1;
+    for (const dx of [0, S]) line(tailG, [from[0] + dx - S / 2, from[1], from[2]], [to[0] + dx - S / 2, to[1], to[2]], (_x, y) => lin(y >= tipY ? body[0] : body[2]), true);
+  }
+  else for (let i = 0; i < 5; i++) {
     const a = ((i - 2) / 2) * 0.26;
     const from: V3 = [0.02 + Math.sin(a) * 0.04, 0.50, -0.24], to: V3 = [0.02 + Math.sin(a) * 0.22, 0.84 - Math.abs(a) * 0.12, -0.46 + Math.abs(a) * 0.06];
     const tipY = Math.round(to[1] / S);
     for (const dx of [0, S]) for (const dy of [0, S]) line(tailG, [from[0] + dx, from[1] + dy, from[2]], [to[0] + dx, to[1] + dy, to[2]], (_x, y) => lin(y >= tipY ? body[0] : body[2]));
   }
+  unshare(tailG, bodySolid);
   const tail = part(tailG, [0.02, 0.50, -0.24]);
 
   // ---- Head: a ball 7 across centred at (0.02, 0.58, 0.34), rows 11 to 17, resting on the breast with a short neck

@@ -4,9 +4,11 @@ import { lin, T } from '../palette';
 import { box, ellipsoid, Grid, line } from '../primitives';
 import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { barrel, breathAt, bury, cellsOf, hugCollar, hollow, leg, mask, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
+import { barrel, BODY_POWER, breathAt, bury, cellsOf, hugCollar, hollow, leg, mask, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import { HOOF } from './pig';
+import { DEFAULT_FACES } from './faces';
+import type { Faces } from './faces';
 
 /**
  * The cow (V5.1 Part 5.3): a long barrel with a round chest and a squarer rump, a shoulder rising to meet a short thick
@@ -18,7 +20,13 @@ import { HOOF } from './pig';
  * would cost half again the voxel budget (4.7), and these ratios already pass the sheet.
  */
 const HY = 13; // the head's bottom row (y 0.52)
-export function cowModel(ch: Character): AnimalModel {
+/**
+ * Face switch (plan file 03, 4.11), off: the cow keeps its white glint (Brian, 2026-11-07). On, the glint is dropped
+ * and the eyes are plain 2 x 2 dark squares.
+ */
+export const COW_NO_GLINT = false;
+export function cowModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
+  const glint = !(COW_NO_GLINT || faces.has('cowNoGlint'));
   // The coat a shade under the catalogue's white (Brian, 2026-11-07), so the eyes' white glints stand out against it.
   const body = tones(`#${new Color(ch.colors.body).multiplyScalar(0.8).getHexString()}`);
   const face = body;
@@ -30,7 +38,7 @@ export function cowModel(ch: Character): AnimalModel {
   const bg = new Grid(S);
   const paint = shaded(body, 21, 8);
   barrel(bg, [0.02, 0.60, 0], [0.56, 0.54, 0.92], 3, paint, [0.8, 0.5]);
-  ellipsoid(bg, [0.02, 0.70, 0.30], [0.24, 0.16, 0.16], paint);
+  ellipsoid(bg, [0.02, 0.70, 0.30], [0.24, 0.16, 0.16], paint, 0, 1, BODY_POWER);
   mask(bg, [{ c: [-0.22, 0.66, 0.26], r: [0.16, 0.14, 0.18] }], patch, lin(body[2]));
   mask(bg, [{ c: [0.24, 0.62, -0.30], r: [0.14, 0.13, 0.17] }], patch, lin(body[2]));
   mask(bg, [{ c: [0.10, 0.86, -0.04], r: [0.18, 0.06, 0.16] }], patch, lin(body[2]));
@@ -71,7 +79,7 @@ export function cowModel(ch: Character): AnimalModel {
   mask(hg, [{ c: [0.16, 0.80, 0.62], r: [0.08, 0.09, 0.10] }], patch, lin(body[2])); // a patch at the back of the head's right side
   // Eyes: beady (Brian, 2026-11-07), 2 x 2 dark with a white glint in the outer top corner, on the face's front either side
   // of the bridge; the coat is a shade under white so the glint shows against it.
-  const { eyes, lids, brows } = smallEyes(hg, HY + 4, zf, '#1E1A19', face, HEAD, { front: 2, glint: true });
+  const { eyes, lids, brows } = smallEyes(hg, HY + 4, zf, '#1E1A19', face, HEAD, { front: 2, glint });
 
   // The mouth on row 14 (the muzzle's second row), width 7; chewing on rows 13 and 14, all on the muzzle's front.
   // Each mouth cell one voxel in front of the muzzle's front at its own column and row (file 03, 4.4): the old rule put the

@@ -108,18 +108,22 @@ function sunOf(scene: { traverse: (f: (o: unknown) => void) => void }): Vector3 
 
 /** The hens stand on the straw of their run, whose top is 0.10 m up; at 0 their feet were in it. */
 export const HEN_Y = 0.1;
-/** Who lives on the farm: [animal, x, z, facing, state]. Phones keep the first few. */
+/**
+ * Who lives on the farm: [animal, x, z, facing, state]. Phones keep the first few. The paddock's animals stand where the
+ * paddock shot (POV_SHOTS.desktop[2], which never moves) frames each of them whole, right of the menu and clear of the
+ * wendigo (plan file 04, section 4.3; scene/__tests__/homePov.test.ts).
+ */
 export const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
-  ['cow', 15.2, 2.2, 2.4, 'grazing'],
-  ['horse', 19.4, -1.2, -1.9, 'idle'],
+  ['cow', 15.8, -1, 2.4, 'grazing'],
+  ['horse', 16.5, -4.2, -1.1, 'idle'],
   ['chicken', -12.6, 5.2, 0.5, 'grazing'],
   ['sheep', 14.2, -6.4, 0.9, 'grazing'],
-  ['cow', 18.8, 3.6, -2.6, 'idle'],
+  ['cow', 16.8, 1, -2.6, 'idle'],
   ['goat', 13.8, -1.8, 1.5, 'idle'],
   ['chicken', -10.6, 6.2, -0.9, 'idle'],
   ['chicken', -14.8, 6.4, 2.2, 'grazing'],
   ['pig', -15.6, -2.4, 1.1, 'grazing'],
-  ['sheep', 17.8, -7.4, -0.8, 'idle'],
+  ['sheep', 15.7, -7.9, -1.2, 'idle'],
   // A few of the flock let out on the open ground.
   ['sheep', -24, 19, 0.6, 'grazing'],
   ['sheep', -27.5, 21.5, 2.4, 'idle'],

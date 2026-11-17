@@ -10,7 +10,7 @@ import { SHEEP_SCALE } from '../scene/layout';
 import { buildPen, PEN, penShot, penSpot } from '../scene/pen';
 import { Sky } from '../scene/Sky';
 import { ScreenAnchor } from '../table/Anchors';
-import { nameplateY } from '../table/BarnTable';
+import { platePoint, seatScale } from '../table/BarnTable';
 import { AdaptiveCanvas, Effects, LANTERN_LIGHT } from '../table/Rendering';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { Sheep } from '../table/Sheep';
@@ -199,8 +199,15 @@ function Animal({ id, index, guest, reduced, flock, plate }: { id: string; index
         {admin
           ? <AvatarDisc state="idle" reduced={reduced} />
           : <Sheep level={2} state={pose === 'graze' ? 'grazing' : pose} reduced={reduced} lookAt={guest && pose === 'idle' ? 'camera' : undefined} model={model} />}
+        {/* The name plank over the head (`platePoint`), 0.1 m higher than the table's plate, in the scaled group's units. */}
+        {guest && plate && <ScreenAnchor el={plate} position={penPlate(guest.avatar)} above cull={false} />}
       </group>
-      {guest && plate && <ScreenAnchor el={plate} position={[0, nameplateY(guest.avatar) + 0.1, 0]} above cull={false} />}
     </group>
   );
+}
+
+/** The pen's name plank point: the table's plate point, 0.1 m higher, in the animal's scaled group. */
+function penPlate(avatar: string | null | undefined): [number, number, number] {
+  const p = platePoint(avatar);
+  return [p[0], p[1] + 0.1 / seatScale(avatar), p[2]];
 }

@@ -1,8 +1,12 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, Group, Mesh, PerspectiveCamera, PointLight, PointsMaterial, Quaternion, Vector3 } from 'three';
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, Group, Mesh, PointLight, PointsMaterial, Quaternion, Vector3 } from 'three';
+import type { PerspectiveCamera } from 'three';
 import { turnClockDrawn } from '../model/turnClock';
-import { HEAP, SPEAKER_CAMERA, seatPosition, speakerShot } from '../scene/layout';
+import { boardHang, FRAMING, HEAP, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, shotCamera, speakerShot, TABLE_SCREENS, tableFrame } from '../scene/layout';
+import type { ScreenBox, SpeakerBody } from '../scene/layout';
+import { anchorsOf } from '../voxel/animals/anchors';
+import { animalModel } from '../voxel/animals';
 import { digitGeometry } from '../voxel/characters';
 import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S } from '../voxel/bomb';
 import { bombLook } from '../voxel/bombSkins';
@@ -17,23 +21,80 @@ import { useWallet } from '../shop/store';
 export type BombSpot = (radius: number) => [number, number];
 
 /**
- * The barn's spot: on the floor by the speaker's front hooves, on whichever side of it the turn's camera sees clear
- * (the side nearer the middle of the shot), and far enough out that a swollen bomb doesn't sink into the fleece.
+ * The floating letters' box (`.sk-input-bar`), in pixels on the screens the table is solved for (TABLE_SCREENS), as the
+ * browser drew it at a six-seat table on your turn: left, top, right, bottom.
  */
-export function barnSpot(index: number, n: number): BombSpot {
+export const LETTERS_BOX = { desktop: { x0: 256, y0: 627, x1: 1024, y1: 788 }, phone: { x0: 8, y0: 689, x1: 382, y1: 832 } };
+/** The bomb's sizes (model/bombCharge.ts `bombSize`): fresh, and as swollen as it gets. */
+export const BOMB_SIZES = [1, 1.4, 1.8, 2.2, 2.6, 3.0, 3.2];
+/** How far from the frame's centre the bomb would rather rest: a share of the half-width. */
+export const BOMB_OFF_CENTRE = 0.25;
+
+const sheepBody = (): SpeakerBody => {
+  const m = animalModel('sheep'), a = anchorsOf(m);
+  return { min: a.bounds.min, max: a.bounds.max, plate: a.plate, scale: SHEEP_SCALE * m.drawScale, ratio: 1 };
+};
+
+/** The bomb's box on screen at its rest beside the holder: its body up to the neck the fuse leaves from (the fuse is a thin line that burns down). */
+export function bombBox(cam: PerspectiveCamera, x: number, z: number, size: number, W: number, H: number): ScreenBox {
+  const scale = 1.5 * size, r = BOMB_RADIUS * scale, top = r + BOMB_NECK_Y * scale;
+  const b = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+  const v = new Vector3();
+  for (const dx of [-r, r]) for (const y of [0, top]) for (const dz of [-r, r]) {
+    v.set(x + dx, y, z + dz).project(cam);
+    const px = ((v.x + 1) / 2) * W, py = ((1 - v.y) / 2) * H;
+    b.x0 = Math.min(b.x0, px); b.x1 = Math.max(b.x1, px); b.y0 = Math.min(b.y0, py); b.y1 = Math.max(b.y1, py);
+  }
+  return b;
+}
+
+const meets = (a: ScreenBox, b: ScreenBox) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+/**
+ * The barn's spot: on the floor by the speaker's front hooves, far enough out that a swollen bomb doesn't sink into the
+ * fleece (0.42 m plus its radius), on the side whose box stays in frame clear of the floating letters (`LETTERS_BOX`)
+ * and of the plate and bubble over the speaker, through the turn's real shot (the framing's camera and crop, on this
+ * kind of screen; plan files 06 4.3 and 07 4.2). A side is judged by how far up the bomb's sizes it stays clear, from a
+ * fresh bomb (`clearUpTo`): the side that stays clear the longest; of two equal ones the one whose centre is at least
+ * `BOMB_OFF_CENTRE` of the half-width from the frame's centre, then the one nearer the middle. Where neither side is
+ * clear even for a fresh bomb, today's choice: the side nearer the middle of the shot. Never lifted, never off the floor.
+ */
+export function barnSpot(index: number, n: number, phone = false, body: SpeakerBody = sheepBody()): BombSpot {
+  const side = barnSide(index, n, phone, body).side;
+  const { at } = besideHooves(index, n);
+  return (r) => at(side, r);
+}
+
+/** The point beside the speaker's front hooves, `side` 1 or -1, for a bomb of radius `r`. */
+function besideHooves(index: number, n: number) {
   const p = seatPosition(index, n);
   const dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;
   const fx = dx / len, fz = dz / len;
   const sx = p.x + fx * SPEAKER_CAMERA.step, sz = p.z + fz * SPEAKER_CAMERA.step;
-  const shot = speakerShot(index, n, false);
-  const cam = new PerspectiveCamera(shot.fov, 16 / 9, 0.1, 100);
-  cam.position.set(...shot.position);
-  cam.lookAt(...shot.target);
-  cam.updateMatrixWorld();
-  const at = (side: number, r: number): [number, number] => [sx - fx * 0.05 + fz * side * (0.42 + r), sz - fz * 0.05 - fx * side * (0.42 + r)];
-  const off = (side: number) => { const [x, z] = at(side, 0.3); return Math.abs(new Vector3(x, 0.3, z).project(cam).x); };
-  const side = off(1) <= off(-1) ? 1 : -1;
-  return (r) => at(side, r);
+  return { at: (side: number, r: number): [number, number] => [sx - fx * 0.05 + fz * side * (0.42 + r), sz - fz * 0.05 - fx * side * (0.42 + r)] };
+}
+
+/** How `barnSpot` chose: the side, today's side, and for each side (1, -1) how many of `BOMB_SIZES` it stays clear for. */
+export function barnSide(index: number, n: number, phone = false, body: SpeakerBody = sheepBody()): { side: number; today: number; clearUpTo: Record<number, number> } {
+  const { at } = besideHooves(index, n);
+  const { W, H } = phone ? TABLE_SCREENS.phone : TABLE_SCREENS.desktop;
+  const cam = shotCamera(speakerShot(index, n, phone, SPEAKER_CAMERA.headY * body.ratio), W, H);
+  const letters = phone ? LETTERS_BOX.phone : LETTERS_BOX.desktop;
+  const plate = tableFrame(FRAMING, index, n, phone, W, H, body, boardHang(index, n, phone, body)).plate;
+  const centreX = (side: number) => { const [x, z] = at(side, BOMB_RADIUS * 1.5); return new Vector3(x, BOMB_RADIUS * 1.5, z).project(cam).x; };
+  const clearAt = (side: number, size: number) => {
+    const [x, z] = at(side, BOMB_RADIUS * 1.5 * size);
+    const b = bombBox(cam, x, z, size, W, H);
+    const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+    return cx > 0 && cx < W && cy > 0 && cy < H && !meets(b, letters) && !meets(b, plate);
+  };
+  const upTo = (side: number) => { let k = 0; while (k < BOMB_SIZES.length && clearAt(side, BOMB_SIZES[k])) k++; return k; };
+  const clearUpTo: Record<number, number> = { 1: upTo(1), [-1]: upTo(-1) };
+  const today = Math.abs(centreX(1)) <= Math.abs(centreX(-1)) ? 1 : -1;
+  const best = Math.max(clearUpTo[1], clearUpTo[-1]);
+  if (!best) return { side: today, today, clearUpTo };
+  const ok = [today, -today].filter((s) => clearUpTo[s] === best);
+  return { side: ok.find((s) => Math.abs(centreX(s)) >= BOMB_OFF_CENTRE) ?? ok[0], today, clearUpTo };
 }
 
 const PUFF = 40;
@@ -50,7 +111,7 @@ interface Ring { mesh: Mesh | null; x: number; z: number; size: number; at: numb
  * its own way of sitting there (shop/bombAura.ts, BombAura.tsx), a coal shedding embers, a bell that rocks and rings.
  * Only how it looks.
  */
-export function Bomb({ speaker, n, red, reduced, boomKey, size, power, spotAt = barnSpot }: { spotAt?: (index: number, n: number) => BombSpot; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
+export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, power, spotAt = barnSpot }: { spotAt?: (index: number, n: number, phone: boolean) => BombSpot; phone?: boolean; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
   const body = useMemo(() => voxelMaterial({ emissive: '#3f97d6', emissiveIntensity: 0.1 }), []);
   // Trading Post cosmetics: the skin's own model, glow and way of sitting there, and the burst's colours. Only how it looks.
   const equipped = useWallet().equipped;
@@ -117,7 +178,7 @@ export function Bomb({ speaker, n, red, reduced, boomKey, size, power, spotAt = 
     const [x, z] = held(room);
     return beside.current.set(x, at.y, z);
   });
-  const spot = useMemo(() => (speaker === null ? null : spotAt(speaker, n)), [speaker, n, spotAt]);
+  const spot = useMemo(() => (speaker === null ? null : spotAt(speaker, n, phone)), [speaker, n, phone, spotAt]);
 
   // The puff where it lands: square bits of frost, drawn additive so they fade to nothing. (What comes off it while it
   // sits there, the ice bomb's cold vapour or a skin's own, is BombAura.)

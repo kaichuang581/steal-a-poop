@@ -2,6 +2,16 @@
 
 All user-visible changes, newest first.
 
+## 0.7.9
+
+- Shorn pigs, cows, horses, goats and chickens keep their tails.
+- Each animal fits wholly inside its ice block, and the ice's cracks and glints sit on the ice instead of in the air.
+- Name plates sit just above each animal's head or hat instead of floating high over the horse and cow or overlapping the sheep's hat.
+- The winner's scarf fits the goat and the chicken.
+- The barn's robin sits on its beam, the sheepdog and presents no longer stand in the wheelbarrow, and the hens stand on the straw.
+- The lobby pen's pines stand on the snow and its tall lantern hangs from its bracket.
+- The owl tick has feet and the sheepdog's nose is on its face.
+
 ## 0.7.8
 
 - The farm is lighter to draw: faces nobody can ever see are gone, flat ground is drawn in bigger pieces, and less scenery casts shadows it never shows. Home draws about a sixth fewer triangles and holds about 40% less in memory, with the same picture.

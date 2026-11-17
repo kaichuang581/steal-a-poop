@@ -1,11 +1,16 @@
 import type { BufferGeometry } from 'three';
-import { buildGeometry, triangles } from '../voxel/mesher';
+import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
+import type { BuildOptions } from '../voxel/mesher';
+import { unseenFrom } from '../voxel/unseen';
 import { lin, pick, T } from '../voxel/palette';
 import { snowAt, snowPaint } from '../voxel/snow';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, RGB } from '../voxel/primitives';
 import { backHillHeight } from './distance';
-import { chunks, FARM, landHeight } from './farmstead';
+import { chunkMaps, FARM, landHeight } from './farmstead';
+import { finish } from './slices';
+import type { Steps } from './slices';
+import type { ChunkMap } from './yard';
 import { BARN, YARD } from './layout';
 
 /**
@@ -318,25 +323,90 @@ function tracks(g: Grid, points: [number, number][]) {
   }
 }
 
+const TRACKS_LIFT = -0.16;
+/** The wendigo's stand is the trees within 12 m of it; a chunk within a metre more of that is left exactly as built. */
+const STAND = 13;
+function inStand(chunk: Iterable<[string, { x: number; z: number }]>, size: number): boolean {
+  for (const [, v] of chunk) if (Math.hypot((v.x + 0.5) * size - WENDIGO_AT[0], (v.z + 0.5) * size - WENDIGO_AT[1]) < STAND) return true;
+  return false;
+}
+
 export interface Countryside { woods: BufferGeometry[]; forest: BufferGeometry[]; scrub: BufferGeometry[]; drifts: BufferGeometry[]; tracks: BufferGeometry; triangles: number }
+/** The countryside part built: the same lists, with a hole where a piece is still to come. */
+export interface CountryPart { woods: (BufferGeometry | undefined)[]; forest: (BufferGeometry | undefined)[]; scrub: (BufferGeometry | undefined)[]; drifts: (BufferGeometry | undefined)[]; tracks?: BufferGeometry }
+type Box = [number, number, number];
 
 let built: Countryside | null = null;
 export function buildCountryside(): Countryside {
   if (built) return built;
+  return (built = finish(buildCountrysideSteps()));
+}
+
+const LISTS = ['woods', 'forest', 'scrub', 'drifts'] as const;
+/** The box a chunk's voxels fill, in metres. */
+function boxOf(chunk: Iterable<{ x: number; y: number; z: number }>, size: number, lift: number): [Box, Box] {
+  const min: Box = [Infinity, Infinity, Infinity], max: Box = [-Infinity, -Infinity, -Infinity];
+  for (const v of chunk) {
+    min[0] = Math.min(min[0], v.x * size); max[0] = Math.max(max[0], (v.x + 1) * size);
+    min[1] = Math.min(min[1], v.y * size + lift); max[1] = Math.max(max[1], (v.y + 1) * size + lift);
+    min[2] = Math.min(min[2], v.z * size); max[2] = Math.max(max[2], (v.z + 1) * size);
+  }
+  return [min, max];
+}
+
+/**
+ * The countryside in steps (scene/slices.ts). Given `wanted` (whether the screen's opening shot needs what fills a box,
+ * in metres, or its shadow), the pieces it wants are meshed first and yielded as a `CountryPart`, then the rest. Every
+ * piece is built exactly as it would be in one go; only the order of the work changes.
+ */
+export function* buildCountrysideSteps(wanted?: (min: Box, max: Box) => boolean): Steps<Countryside, CountryPart> {
+  if (built) return built;
   const wood = woods();
-  const trees = chunks(wood.near.map, S), far = chunks(wood.far.map, FAR);
+  yield;
+  // The far forest, the drifts and the tracks cast no shadow and only the start screen draws them: faces none of its
+  // cameras can be in front of are left out (voxel/unseen.ts). A chunk with any tree of the wendigo's stand in it is
+  // built as it always was. (Their faces are not merged: trees and drifts have next to no flat runs of one tone.)
+  const home = unseenFrom([{ screens: 'home' }]);
   const mounds = new Grid(S);
   drifts(mounds);
+  yield;
   const small = new Grid(F);
   scrub(small);
   wall(small, [[-62, 21], [-48, 15], [-39, 13], [-29, 13.4], [-21, 12.6], [-20.4, 0], [-21, -15], [-30, -16]]);
   scarecrow(small, 8.6, -21.4);
+  yield;
   const worn = new Grid(S);
   tracks(worn, [[-1.4, 12.6], [-6, 11.6], [-12, 10.4], [-12.2, 8.6]]);
   tracks(worn, [[-12, 10.4], [-20, 11], [-29, 11.8]]);
   tracks(worn, [[1.6, 12.4], [6, 12], [11, 11.2], [16.8, 8.2]]);
-  const flat = buildGeometry(worn.map, S);
-  flat.translate(0, -0.16, 0); // all but flush with the snow: a mark in it, not a slab on it
-  const parts = { woods: trees, forest: far, scrub: chunks(small.map, F), drifts: chunks(mounds.map, S), tracks: flat };
-  return (built = { ...parts, triangles: [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts, flat].reduce((n, g) => n + triangles(g), 0) });
+  yield;
+  const lists: Record<(typeof LISTS)[number], { maps: ChunkMap[]; size: number; options?: (chunk: ChunkMap) => BuildOptions | undefined }> = {
+    woods: { maps: chunkMaps(wood.near.map, S), size: S },
+    forest: { maps: chunkMaps(wood.far.map, FAR), size: FAR, options: (chunk) => (inStand(chunk, FAR) ? undefined : { unseen: home }) },
+    scrub: { maps: chunkMaps(small.map, F), size: F },
+    drifts: { maps: chunkMaps(mounds.map, S), size: S, options: () => ({ unseen: home }) },
+  };
+  const out: CountryPart = { woods: [], forest: [], scrub: [], drifts: [] };
+  for (const k of LISTS) out[k] = lists[k].maps.map(() => undefined);
+  const make = (k: (typeof LISTS)[number], i: number) => {
+    const { maps, size, options } = lists[k];
+    const g = buildGeometry(maps[i], size, options?.(maps[i]));
+    packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
+    out[k][i] = g;
+  };
+  const makeTracks = () => {
+    const flat = buildGeometry(worn.map, S, { unseen: unseenFrom([{ screens: 'home', lift: TRACKS_LIFT }]) });
+    flat.translate(0, TRACKS_LIFT, 0); // all but flush with the snow: a mark in it, not a slab on it
+    packGeometry(flat);
+    out.tracks = flat;
+  };
+  if (wanted) {
+    for (const k of LISTS) for (let i = 0; i < lists[k].maps.length; i++) if (wanted(...boxOf(lists[k].maps[i].values(), lists[k].size, 0))) { make(k, i); yield; }
+    if (wanted(...boxOf(worn.map.values(), S, TRACKS_LIFT))) makeTracks();
+    yield { woods: [...out.woods], forest: [...out.forest], scrub: [...out.scrub], drifts: [...out.drifts], tracks: out.tracks };
+  }
+  for (const k of LISTS) for (let i = 0; i < lists[k].maps.length; i++) if (!out[k][i]) { make(k, i); yield; }
+  if (!out.tracks) makeTracks();
+  const parts = { woods: out.woods as BufferGeometry[], forest: out.forest as BufferGeometry[], scrub: out.scrub as BufferGeometry[], drifts: out.drifts as BufferGeometry[], tracks: out.tracks! };
+  return (built = { ...parts, triangles: [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts, parts.tracks].reduce((n, g) => n + triangles(g), 0) });
 }

@@ -1,5 +1,5 @@
 import type { Shot } from './layout';
-import { buildGeometry } from '../voxel/mesher';
+import { buildGeometry, packGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import type { RGB } from '../voxel/primitives';
@@ -61,7 +61,9 @@ export function buildPen() {
 }
 
 function make() {
-  return { ground: ground(), land: land(), ...trees(), nature: nature(), mountains: mountains(), ...fence() };
+  const made = { ground: ground(), land: land(), ...trees(), nature: nature(), mountains: mountains(), ...fence() };
+  for (const g of Object.values(made)) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
+  return made;
 }
 
 /** The meadow is level round the pen; from ten metres behind it the ground climbs, in long swells, to the ridge. */

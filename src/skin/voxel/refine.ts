@@ -1,5 +1,6 @@
 import type { Voxel, VoxelMap } from './mesher';
 import { hash3 } from './primitives';
+import { finish } from '../scene/slices';
 
 const SIDES = [-1, 1];
 
@@ -10,12 +11,22 @@ const SIDES = [-1, 1];
  * whole. Build the result with half the size. `grain` is how far each small cell's brightness wanders from its parent's.
  */
 export function refine(map: VoxelMap, grain = 0.04, only?: (v: Voxel) => boolean): VoxelMap {
+  return finish(refineSteps(map, grain, only));
+}
+
+/** How many cells `refineSteps` takes between two yields (a few ms of work). */
+const REFINE_STEP = 8192;
+
+/** `refine` in steps, for a build in slices (scene/slices.ts): the same cells, in the same order. */
+export function* refineSteps(map: VoxelMap, grain = 0.04, only?: (v: Voxel) => boolean): Generator<undefined, VoxelMap, void> {
   const out: VoxelMap = new Map();
+  let n = 0;
   // Below y = 0 is the ground in every scene, whether or not it is in this map: a post or a tyre standing on it keeps
   // its foot. Taking the bottom corners off as if it stood in the air lifted every thin thing half a cell off the snow
   // (Brian, 2026-11-09: "a lot of them are floating").
   const has = (x: number, y: number, z: number) => y < 0 || map.has(`${x},${y},${z}`);
   for (const v of map.values()) {
+    if (++n % REFINE_STEP === 0) yield;
     if (only && !only(v)) continue; // left out of the result, but still solid to what stands on it
     const { x, y, z, c } = v;
     // Whether each side is open, looked up once for all eight small cells.
@@ -44,11 +55,19 @@ export function refine(map: VoxelMap, grain = 0.04, only?: (v: Voxel) => boolean
 }
 
 /** Touch screens skip the refinement: the same farm at the coarser grid, at a third of the triangles. */
-const coarse = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+export const coarseDevice = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
-/** `refine`, unless this device should stay coarse. Returns the voxels and the cell size to build them at. */
-export function detailed(map: VoxelMap, size: number, grain?: number, only?: (v: Voxel) => boolean): { map: VoxelMap; size: number } {
-  if (!coarse()) return { map: refine(map, grain, only), size: size / 2 };
+/**
+ * `refine`, unless `coarse` (by default: this device should stay coarse). Returns the voxels and the cell size to build
+ * them at. A caller may ask for either detail on any device, to build the touch detail first and the finer one later.
+ */
+export function detailed(map: VoxelMap, size: number, grain?: number, only?: (v: Voxel) => boolean, coarse = coarseDevice()): { map: VoxelMap; size: number } {
+  return finish(detailedSteps(map, size, grain, only, coarse));
+}
+
+/** `detailed` in steps (scene/slices.ts). */
+export function* detailedSteps(map: VoxelMap, size: number, grain?: number, only?: (v: Voxel) => boolean, coarse = coarseDevice()): Generator<undefined, { map: VoxelMap; size: number }, void> {
+  if (!coarse) return { map: yield* refineSteps(map, grain, only), size: size / 2 };
   if (!only) return { map, size };
   return { map: new Map([...map].filter(([, v]) => only(v))), size };
 }

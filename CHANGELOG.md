@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## 0.7.11
+
+- The pig, cow, horse, goat and chicken have fuller, smoother bodies, and their blankets and sweaters lie flat instead of stepping. Same sizes, same poses.
+
 ## 0.7.10
 
 - The game now picks a quality level for your device. It starts in the middle, moves up to full quality once your device shows it keeps up for ten seconds, and steps down on a device that cannot. Lower levels draw smaller shadows, less glow and simpler scenery; the paddock view always looks as it always has.

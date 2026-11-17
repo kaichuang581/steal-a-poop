@@ -125,8 +125,8 @@ export function sheepdogModel(): SheepdogModel {
   const headPivot: V3 = [0, 0.58, 0.1];
   const head = new Grid(s);
   ellipsoid(head, [0, 0.7, 0.12], [0.11, 0.1, 0.1], (x, y, z) => ((x === -1 || x === 0) && z * s > 0.14 ? white(x, y, z) : black(x, y, z)));
-  box(head, [-0.06, 0.6, 0.18], [0.06, 0.68, 0.32], white, 1); // muzzle
-  box(head, [-0.04, 0.66, 0.32], [0.04, 0.7, 0.34], tone(T.hoof, 41)); // nose
+  box(head, [-0.06, 0.6, 0.14], [0.06, 0.68, 0.32], white, 1); // muzzle, from z 0.14: the chamfer took its back row, which left it off the head
+  box(head, [-0.04, 0.66, 0.24], [0.04, 0.7, 0.34], tone(T.hoof, 41)); // nose, from z 0.24 (cell 6) so it sits on the muzzle's top
   onFront(head, head, [[1, 18], [-2, 18]], IRIS);
   head.set(1, 19, (frontZ(head, 1, 18) ?? 0) - 1, lin(PUPIL));
 

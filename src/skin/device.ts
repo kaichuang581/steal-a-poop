@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useMediaQuery } from '../ui/hooks';
 
 /** What kind of device the player is on: a phone (touch, narrow) or a computer. Tablets count as a computer. */
 export type Device = 'phone' | 'computer';
@@ -32,3 +33,12 @@ export function useDevice(): Device {
   }, [device]);
   return device;
 }
+
+/** The window sizes that get the phone layout: a narrow window, or a short touch screen (a phone held sideways). */
+export const PHONE_LAYOUT = '(max-width: 639px), (max-height: 500px) and (pointer: coarse)';
+
+/**
+ * Whether the table and Home lay themselves out for a phone. The classic `useIsMobile` only looks at the width, so a
+ * phone on its side got the computer's layout with the word bar below the screen. Follows the window as it changes.
+ */
+export const usePhoneLayout = (): boolean => useMediaQuery(PHONE_LAYOUT);

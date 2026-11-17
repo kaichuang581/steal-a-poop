@@ -11,6 +11,15 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
   const last = words.pop() ?? '';
   const lead = words.join(' ');
   const letters = [...last.toUpperCase()];
+  // The update, on a barn-red board nailed to the title (V6 6.1). On a computer it hangs off the sign's right edge, so
+  // it stands clear of the last tile however long the word is; on a phone it sits in the flow under the tagline.
+  const update = (
+    <p className="sk-update kit-plank kit-plank--barn" data-knot="3">
+      <SnowCap className="kit-snow" variant="small" />
+      <span className="kit-nail kit-nail--tl" /><span className="kit-nail kit-nail--tr" />
+      The {UPDATE_NAME} update
+    </p>
+  );
   return (
     <div className={`sk-title ${compact ? 'sk-title-compact' : ''} ${letters.length > 5 ? 'sk-title-long' : ''}`}>
       <h1 className="sr-only">{title}</h1>
@@ -36,6 +45,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
           </span>
         ))}
       </div>
+      {!compact && update}
       </div>
       {/* The tagline, hand-lettered under the tiles, its phrases strung on a line of yarn. */}
       <p className="sk-title-tagline" aria-label={tagline}>
@@ -46,12 +56,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
           </span>
         ))}
       </p>
-      {/* The update, on a barn-red board nailed to the title (V6 6.1). */}
-      <p className="sk-update kit-plank kit-plank--barn" data-knot="3">
-        <SnowCap className="kit-snow" variant="small" />
-        <span className="kit-nail kit-nail--tl" /><span className="kit-nail kit-nail--tr" />
-        The {UPDATE_NAME} update
-      </p>
+      {compact && update}
     </div>
   );
 }

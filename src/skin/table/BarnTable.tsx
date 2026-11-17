@@ -87,6 +87,8 @@ interface Props {
   moments: BarnMoments;
   /** Extra 3D content for a mode's place (pen lanterns, the sheepdog). */
   children?: ReactNode;
+  /** How many pictures a second the table is drawn at (the frame governor): 0 once the podium covers it whole. */
+  fps?: number;
 }
 
 export type { Props as BarnTableProps };
@@ -157,7 +159,7 @@ export function BarnTable(props: Props) {
   return (
     <div className="relative size-full">
       <SceneBoundary scene="the table">
-      <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="table"
+      <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="table" fps={props.fps}
         shadows={{ type: PCFShadowMap }}
        
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}

@@ -63,8 +63,8 @@ interface Props {
   gustFrom?: [number, number, number];
   /** Winner's scarf. */
   scarf?: boolean;
-  /** Where the head turns (radians about y, clamped to 0.6); Home's hero follows the pointer. */
-  headYaw?: number;
+  /** Where the head turns (radians about y, clamped to 0.6); Home's hero follows the pointer. A ref is read every frame, with no render. */
+  headYaw?: number | { readonly current: number };
   /** Attention (plan V3.3 Part 3.3): a world point to look at, or the camera. Wins over headYaw. */
   lookAt?: [number, number, number] | 'camera';
   /** The current speaker: chest up, tail wagging. */
@@ -493,7 +493,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
         const dx = v.x - m.head.pivot[0], dy = v.y - (m.head.pivot[1] + 0.14), dz = v.z - m.head.pivot[2];
         wantYaw = Math.atan2(dx, dz);
         wantPitch = -Math.atan2(dy, Math.hypot(dx, dz));
-      } else wantYaw = headYaw;
+      } else wantYaw = typeof headYaw === 'number' ? headYaw : headYaw.current;
     }
     wantYaw = clamp(wantYaw, -0.6, 0.6);
     wantPitch = clamp(wantPitch, -0.3, 0.2);

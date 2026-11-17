@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { rejectMessage } from '../../lib/messages';
 import { useStore } from '../../state/store';
 import type { MessageView } from '../model/types';
+import { fuseLit } from '../model/turnClock';
 import { everydayIdeas } from '../tour/ideas';
 
 /**
@@ -13,7 +14,8 @@ export function useWordInput() {
   const act = useStore((s) => s.act);
   const mode = useStore((s) => s.mode);
   const mySeat = useStore((s) => s.mySeat);
-  const now = useStore((s) => s.now);
+  // Whether the fuse is lit, not the clock itself: the clock moves every frame and would render the table every frame.
+  const lit = useStore(fuseLit);
   const suggest = useStore((s) => s.suggest);
   const dict = useStore((s) => s.dict);
   const [typed, setTyped] = useState('');
@@ -25,7 +27,7 @@ export function useWordInput() {
 
   const playing = game.phase === 'playing' && !!game.turn;
   // Yours once your fuse is lit: in the beat after a bomb has gone off a word can be typed ahead, not sent.
-  const myTurn = playing && game.turn!.seat === mySeat && now >= game.turn!.startedAt;
+  const myTurn = playing && game.turn!.seat === mySeat && lit;
   const learning = mode === 'tour';
 
   useEffect(() => setIdeas([]), [game.turn?.seat]);

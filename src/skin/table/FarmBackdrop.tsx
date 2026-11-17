@@ -13,7 +13,7 @@ import { DevStats } from './DevStats';
 import { Farmstead, farmReady } from './Farmstead';
 import { doorsShut } from '../components/BarnDoors';
 import { Wendigo } from './Wendigo';
-import { AdaptiveCanvas, Atmosphere, Effects, FOG, Lights, MarkDrawn, yawToward } from './Rendering';
+import { AdaptiveCanvas, Atmosphere, Effects, FOG, holdDpr, Lights, MarkDrawn, yawToward } from './Rendering';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -31,16 +31,18 @@ interface Props {
   /** The Daily Table is played for today: the sheep doze. */
   sleepy: boolean;
   phone: boolean;
-  /** Where the hero looks (radians, clamped by the sheep): follows the pointer on desktop. */
-  heroYaw?: number;
+  /** Where the hero looks (radians, clamped by the sheep): follows the pointer on desktop. A ref is read as the hero is drawn, with no render. */
+  heroYaw?: number | { readonly current: number };
   /** Bump to make the hero hop (the name field took focus). */
   hopKey?: number;
   /** A full page (the Trading Post) covers the farm: stop drawing it until the page closes. */
   paused?: boolean;
+  /** How many pictures a second the farm is drawn at (the frame governor); none given is the full rate. */
+  fps?: number;
 }
 
 /** Home's backdrop: the farm seen from the yard, the barn's open back doors glowing, the player's sheep in the doorway light. */
-export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey = 0, paused = false }: Props) {
+export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey = 0, paused = false, fps }: Props) {
   const w = useWorld();
   const avatar = useAvatar();
   const cam = phone ? HOME_CAMERA.phone : HOME_CAMERA.desktop;
@@ -64,7 +66,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
     {/* Round the fade as well as the canvas: a farm that cannot be drawn never becomes ready, and its card must show. */}
     <SceneBoundary scene="the farm" place={phone ? 'top' : 'center'}>
     <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined} data-instant={instant || undefined}>
-    <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm" frameloop={paused ? 'never' : 'always'}
+    <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm" frameloop={paused ? 'never' : 'demand'} fps={fps}
       shadows={{ type: PCFShadowMap }}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
@@ -132,6 +134,9 @@ function Drift({ shots, veil, spot, bounce, reduced, ready }: {
       }
     }
     if (veil.current) veil.current.style.opacity = String(pov.veil);
+    // In a dip the shot changes under the dark: its frames, and the first half second of the new shot's, say nothing
+    // about the steady cost (see the resolution judge in Rendering).
+    if (pov.veil > 0) holdDpr(500);
     const t = (clock.elapsedTime / 40) * Math.PI * 2;
     const dx = reduced ? 0 : Math.cos(t) * 0.25;
     const dy = reduced ? 0 : Math.sin(t) * 0.12;

@@ -24,7 +24,7 @@ const HY = 13; // the head's bottom row (y 0.52)
  * Face switch (plan file 03, 4.11), off: the cow keeps its white glint (Brian, 2026-11-07). On, the glint is dropped
  * and the eyes are plain 2 x 2 dark squares.
  */
-export const COW_NO_GLINT = false;
+export const COW_NO_GLINT = true; // ticked by Brian, 2026-11-17 (milestone 6)
 export function cowModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
   const glint = !(COW_NO_GLINT || faces.has('cowNoGlint'));
   // The coat a shade under the catalogue's white (Brian, 2026-11-07), so the eyes' white glints stand out against it.

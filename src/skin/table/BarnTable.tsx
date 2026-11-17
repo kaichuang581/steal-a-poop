@@ -500,7 +500,7 @@ function Pile({ world, pile, pulseKey, reduced }: { world: World; pile: number; 
   );
 }
 
-/** The layer the pile's spot draws its shadow map from (three's layer 1; nothing else in the game uses layers). */
+/** The layer the pile's spot draws its shadow map from (three's layer 1). The animals' shadow stand-ins (Sheep.tsx, PROXY_LAYER) are on it too, and the sun's and the duel's casting lights draw layers 0 and 1 (SHADOW_LAYERS in Rendering.tsx). */
 const SPOT_LAYER = 1;
 const spotClear = new WeakMap<BufferGeometry, boolean>();
 

@@ -22,7 +22,7 @@ import type { BombSpot } from './Bomb';
 import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
-import { AdaptiveCanvas, Effects, LANTERN_LIGHT, MarkDrawn } from './Rendering';
+import { AdaptiveCanvas, Effects, LANTERN_LIGHT, MarkDrawn, SHADOW_LAYERS } from './Rendering';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Sheep } from './Sheep';
@@ -120,7 +120,7 @@ function Night() {
       <hemisphereLight args={['#8FA6C8', '#2A3448', 1.1]} />
       {/* The moon stands behind the camera, so the two faces and the bomb read against the dark. */}
       <directionalLight
-        position={[-6, 12, -16]} color="#C9D8F0" intensity={2.2} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02}
+        position={[-6, 12, -16]} color="#C9D8F0" intensity={2.2} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-layers-mask={SHADOW_LAYERS}
         shadow-camera-left={-9} shadow-camera-right={9} shadow-camera-top={9} shadow-camera-bottom={-9} shadow-camera-near={1} shadow-camera-far={60}
       />
       {DUEL.lamps.map((p, i) => <pointLight key={i} position={[p[0], p[1], p[2]]} color={LANTERN_LIGHT.color} intensity={14} distance={9} decay={LANTERN_LIGHT.decay} />)}
@@ -144,7 +144,7 @@ function Spotlight({ speaker, pressure, reduced }: { speaker: number | null; pre
   return (
     <>
       <primitive object={target} position={[0, 0, 0]} />
-      <spotLight ref={spot} position={[0, 8, -0.6]} target={target} color="#FFD9A0" intensity={170} angle={0.3} penumbra={0.55} distance={14} decay={2} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} />
+      <spotLight ref={spot} position={[0, 8, -0.6]} target={target} color="#FFD9A0" intensity={170} angle={0.3} penumbra={0.55} distance={14} decay={2} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} shadow-camera-layers-mask={SHADOW_LAYERS} />
     </>
   );
 }

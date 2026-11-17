@@ -26,9 +26,9 @@ const HY = 26; // the head's bottom row (y 1.04)
  * HORSE_NECK: the neck's sections stepped two voxels at a time, so its top and throat climb in even two-voxel treads
  * instead of a ragged one-voxel stair.
  */
-export const HORSE_NOSE = false;
-export const HORSE_EYES = false;
-export const HORSE_NECK = false;
+export const HORSE_NOSE = true; // ticked by Brian, 2026-11-17 (milestone 6)
+export const HORSE_EYES = true; // ticked by Brian, 2026-11-17 (milestone 6)
+export const HORSE_NECK = true; // ticked by Brian, 2026-11-17 (milestone 6)
 export function horseModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
   const softNose = HORSE_NOSE || faces.has('horseNose');
   const flushEyes = HORSE_EYES || faces.has('horseEyes');

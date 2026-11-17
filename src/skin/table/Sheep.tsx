@@ -3,11 +3,11 @@ import { AFTERMATH_MS } from '../../engine/constants';
 import { useMemo, useRef } from 'react';
 import {
   AdditiveBlending, DoubleSide, BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group,
-  InstancedMesh, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial, Sphere, Vector3,
+  InstancedMesh, Matrix4, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, Points, PointsMaterial, Sphere, Vector3,
 } from 'three';
 import { withRoundedEdges } from '../voxel/rounded';
 import { Box3 } from 'three';
-import type { Material } from 'three';
+import type { Light, LightShadow, Material } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { santaHat } from '../scene/festive';
 import { voxelMaterial } from '../voxel/material';
@@ -226,6 +226,14 @@ function hatFit(parts: BufferGeometry[]): { at: V3; scale: number } {
 export interface BundleSource { geo: BufferGeometry; at: V3; scale: number }
 const atScale = (s: BundleSource): BufferGeometry => (s.scale === 1 ? placed(s.geo, s.at) : s.geo.clone().scale(s.scale, s.scale, s.scale).translate(s.at[0], s.at[1], s.at[2]));
 
+/**
+ * The season's hats (plan file 03, change 4.12; ruling M17): while on, the hat is joined into the head's geometry at
+ * build (the head's bundle, and the sheepdog's head through `withHat`); while off, no hat is built at all. This is to
+ * read `FESTIVE` in src/config.ts, which is not there yet (it is the one line file 01 adds beside UPDATE_NAME); until
+ * it is, the hats are on, as shipped.
+ */
+export const HATS = true;
+
 /** What the head's bundle is made of, in the head group's own space, in the order it is joined (the head last). */
 function headSources(m: SheepModel | AnimalModel): BundleSource[] {
   const am = m as Partial<AnimalModel>;
@@ -234,7 +242,7 @@ function headSources(m: SheepModel | AnimalModel): BundleSource[] {
   return [
     ...(am.signature ?? []).filter((sp) => sp.where === 'head' && !sp.anim).map((sp) => ({ geo: sp.geo, at: relTo(sp, m.head), scale: 1 })),
     ...(am.worn ? [{ geo: am.worn.geo, at: relTo(am.worn, m.head), scale: 1 }] : []),
-    { geo: santaHat(), at: fit.at, scale: fit.scale },
+    ...(HATS ? [{ geo: santaHat(), at: fit.at, scale: fit.scale }] : []),
     { geo: m.hood.geo, at: [0, 0, 0] as V3, scale: 1 }, { geo: m.head.geo, at: [0, 0, 0] as V3, scale: 1 },
   ].filter((p) => drawn(p.geo));
 }
@@ -322,6 +330,128 @@ function eyePair(m: SheepModel | AnimalModel): BufferGeometry | null {
   const g = apart || !eyes.every(drawn) ? null : joined(eyes);
   eyePairs.set(m, g);
   return g;
+}
+
+const hatted = new WeakMap<BufferGeometry, BufferGeometry>();
+/**
+ * A head with the season's hat on it, as one geometry (change 4.12): the hat where `SantaHat` puts it on that head,
+ * joined before the head as in the animals' head bundle. The head alone while `HATS` is off, or if the two cannot be
+ * joined. For a head drawn by a mesh of its own (the tutorial's sheepdog, table/places.tsx).
+ */
+export function withHat(head: BufferGeometry): BufferGeometry {
+  if (!HATS) return head;
+  let g = hatted.get(head);
+  if (!g) {
+    const fit = hatFit([head]);
+    g = joined([atScale({ geo: santaHat(), at: fit.at, scale: fit.scale }), head]) ?? head;
+    hatted.set(head, g);
+  }
+  return g;
+}
+
+// ---------- Two shadow draws per animal (plan file 03, change 4.13) ----------
+// Each mesh that casts is one more draw into every shadow map it falls in. So the animal's own meshes stop casting,
+// and two stand-ins cast for them: one in the body group (the coat, the legs, the tail, the bell, the neck and the
+// body's own touches) and one in the head group (the head's bundle, the ears and the head's moving touches). Each is
+// those parts' own cells, joined where the part stands at rest, in the group the part hangs in, so it moves with the
+// body, the neck, the head and the whole animal exactly as they do. A part that turns on its own pivot (a leg in a
+// stride, an ear in a twitch, the tail in a wag, a wing, the beard, the comb, the snout's sniff) is in its stand-in
+// only while it is exactly at rest; while it is not, the stand-in is drawn without it and the part casts by itself,
+// as every part did before. The coat's breath is the one motion carried by the whole body stand-in: it is drawn at
+// the coat's scale while that is within BREATH of 1 (the legs, tail and bell with it, by under a fifth of a voxel at
+// the 2.5% the coat breathes); past that (a puff) the coat casts by itself too.
+// The stand-ins are on PROXY_LAYER only, which no camera draws, so they never add a colour draw. They are used only
+// where every light that casts a shadow in the scene has that layer on its shadow camera (the table's sun and pile
+// spot, Home's sun, the duel's moon and spot); in any other scene, and on a canvas whose lights do not, the animal
+// casts as it always did. On the Low tier nothing casts (no change).
+
+/** The layer the shadow stand-ins are on. The pile's spot draws its map from this layer too (BarnTable.tsx). */
+export const PROXY_LAYER = 1;
+/** How far the coat's scale may stand from 1 while the body stand-in carries it. */
+const BREATH = 0.03;
+/** The movers of the body group and of the head group: a bit set is a part at rest, in its stand-in. */
+const B = { coat: 1, legs: 2, tail: 4, bell: 8, neck: 16, wings: 32 } as const;
+const H = { ears: 1, moving: 2 } as const;
+const ALL_B = 63, ALL_H = 3;
+/** Which mover each casting mesh of `Sheep` belongs to (its `userData.shadow`); 'body' and 'head' never move apart. */
+type ShadowRole = keyof typeof B | 'body' | 'head' | 'ears' | 'moving';
+const isWing = (sp: SigPart) => sp.anim === 'wingL' || sp.anim === 'wingR';
+
+/** `geo` through `m`, with nothing but its corners and its triangles: all a shadow map reads. */
+function bareAt(geo: BufferGeometry, m: Matrix4): BufferGeometry {
+  const b = new BufferGeometry();
+  b.setAttribute('position', geo.getAttribute('position').clone());
+  if (geo.index) b.setIndex(geo.index.clone());
+  return b.applyMatrix4(m);
+}
+const moveTo = (v: V3) => new Matrix4().makeTranslation(v[0], v[1], v[2]);
+/** Stand-in parts as one geometry: an empty one when there is nothing, null when they cannot be joined. */
+function standIn(parts: BufferGeometry[]): BufferGeometry | null {
+  if (parts.length === 0) return new BufferGeometry();
+  if (parts.length === 1) return parts[0];
+  try { return mergeGeometries(parts, false); } catch { return null; }
+}
+
+const standIns = new WeakMap<object, Map<string, BufferGeometry | null>>();
+function cachedStandIn(m: SheepModel | AnimalModel, key: string, make: () => BufferGeometry | null): BufferGeometry | null {
+  let all = standIns.get(m);
+  if (!all) standIns.set(m, (all = new Map()));
+  if (!all.has(key)) all.set(key, make());
+  return all.get(key)!;
+}
+
+/** The body group's stand-in at a coat level, with the movers in `mask` at rest, in the body group's own space. */
+function bodyStandIn(m: SheepModel | AnimalModel, level: number, mask: number): BufferGeometry | null {
+  return cachedStandIn(m, `b${level}:${mask}`, () => {
+    const am = m as Partial<AnimalModel>, species = am.species ?? 'sheep';
+    const lvl = Math.max(1, level) as 1 | 2 | 3 | 4;
+    const parts: BufferGeometry[] = [];
+    const put = (geo: BufferGeometry, at: V3) => { if (drawn(geo)) parts.push(bareAt(geo, moveTo(at))); };
+    if (mask & B.coat) {
+      if (level > 0) put(m.wools[lvl].geo, [0, 0, 0]);
+      if (level === 0 || am.bodyAlways) put(m.sheared.geo, m.sheared.pivot);
+    }
+    if (mask & B.legs) for (const leg of m.legs) put(leg.geo, leg.pivot);
+    if (mask & B.tail && tailShown(level, species)) put(m.tail.geo, [m.tail.pivot[0], m.tail.pivot[1], tailZ(m, species, lvl)]);
+    if (mask & B.bell) put(m.bell.geo, m.bell.pivot);
+    if (mask & B.neck && am.neck) put(am.neck.geo, am.neck.pivot);
+    for (const sp of am.signature ?? []) if (sp.where === 'body' && (!isWing(sp) || mask & B.wings)) put(sp.geo, sp.pivot);
+    return standIn(parts);
+  });
+}
+
+/** The head group's stand-in with the movers in `mask` at rest, in the head group's own space. */
+function headStandIn(m: SheepModel | AnimalModel, mask: number): BufferGeometry | null {
+  return cachedStandIn(m, `h${mask}`, () => {
+    const am = m as Partial<AnimalModel>;
+    const parts = headSources(m).map((s) => bareAt(s.geo, moveTo(s.at).multiply(new Matrix4().makeScale(s.scale, s.scale, s.scale))));
+    if (mask & H.ears) {
+      // As the frame loop stands them at rest: turned about z by DROOP, the right one the other way.
+      m.ears.forEach((ear, i) => { if (drawn(ear.geo)) parts.push(bareAt(ear.geo, moveTo(relTo(ear, m.head)).multiply(new Matrix4().makeRotationZ(i === 0 ? DROOP : -DROOP)))); });
+    }
+    if (mask & H.moving) for (const sp of am.signature ?? []) if (sp.where === 'head' && sp.anim && drawn(sp.geo)) parts.push(bareAt(sp.geo, moveTo(relTo(sp, m.head))));
+    return standIn(parts);
+  });
+}
+
+const sceneProxies = new WeakMap<object, { at: number; on: boolean }>();
+/**
+ * Whether the stand-ins are drawn in `scene`: every light there that casts has PROXY_LAYER on its shadow camera (and
+ * there is one). Looked at again each second, once for every animal in the scene.
+ */
+function proxiesOn(scene: Object3D, now: number): boolean {
+  const hit = sceneProxies.get(scene);
+  if (hit && now >= hit.at && now - hit.at < 1) return hit.on;
+  let any = false, all = true;
+  scene.traverse((o) => {
+    const l = o as Light & { shadow?: LightShadow };
+    if (!l.isLight || !l.castShadow || !l.shadow) return;
+    any = true;
+    if (!l.shadow.camera.layers.isEnabled(PROXY_LAYER)) all = false;
+  });
+  const on = any && all;
+  sceneProxies.set(scene, { at: now, on });
+  return on;
 }
 
 /**
@@ -651,7 +781,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const restOf = useMemo(() => restBundle(m), [m]);
   const eyesGeo = useMemo(() => eyePair(m), [m]);
 
-  useFrame(({ clock, camera }, dt) => {
+  useFrame(({ clock, camera, scene }, dt) => {
     const t = clock.elapsedTime;
     const a = anim;
     const o = r.current;
@@ -811,14 +941,57 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     faceMat.color.copy(white).lerp(frost, tint * 0.3);
     if (dimmed) { mat.color.multiplyScalar(0.62); faceMat.color.multiplyScalar(0.62); }
 
+    // Shadows (change 4.13): the two stand-ins cast for every part at rest; a part away from its rest casts by itself.
+    const pb = o.proxyBody as Mesh | null | undefined, ph = o.proxyHead as Mesh | null | undefined;
+    let bm = ALL_B, hm = ALL_H;
+    if (!(level === 0 || Math.abs(ws - 1) <= BREATH)) bm &= ~B.coat;
+    if (!(c[CH.legLift] === 0 && fl.rotation.x === 0 && fr.rotation.x === 0 && bl.rotation.x === 0 && br.rotation.x === 0)) bm &= ~B.legs;
+    if (!(tail.rotation.x === 0 && tail.rotation.y === 0 && tail.scale.x === 1)) bm &= ~B.tail;
+    if (bell.rotation.x !== 0) bm &= ~B.bell;
+    if (o.neck && (o.neck as Group).rotation.x !== 0) bm &= ~B.neck;
+    const earL = o.earL as Mesh, earR = o.earR as Mesh;
+    // A blend into the rest pose can land a rounding away from DROOP: a millionth of a radian is at rest.
+    if (!(earL.rotation.y === 0 && earR.rotation.y === 0 && Math.abs(earL.rotation.z - DROOP) < 1e-6 && Math.abs(earR.rotation.z + DROOP) < 1e-6)) hm &= ~H.ears;
+    for (const sp of signature) {
+      const sm = o[`sig-${sp.name}`] as Mesh | undefined;
+      if (!sm || !sp.anim) continue;
+      const atRest = sm.rotation.x === 0 && sm.rotation.y === 0 && sm.rotation.z === 0 && sm.scale.x === 1 && sm.scale.y === 1 && sm.scale.z === 1
+        && sm.position.z === (sp.where === 'head' ? sp.pivot[2] - m.head.pivot[2] : sp.pivot[2]);
+      if (!atRest) { if (isWing(sp)) bm &= ~B.wings; else hm &= ~H.moving; }
+    }
+    const bodyGeo = pb && ph && cast && proxiesOn(scene, t) ? bodyStandIn(m, level, bm) : null;
+    const headProxy = bodyGeo ? headStandIn(m, hm) : null;
+    const proxied = !!bodyGeo && !!headProxy;
+    if (pb && ph) {
+      // A stand-in with nothing left in it (every part it holds away from its rest) is not drawn: an empty mesh is a draw.
+      pb.visible = proxied && drawn(bodyGeo);
+      ph.visible = proxied && drawn(headProxy);
+      if (proxied) {
+        pb.geometry = bodyGeo;
+        ph.geometry = headProxy;
+        // The coat's breath, when the coat is in the stand-in.
+        if (bm & B.coat && level > 0) { pb.position.y = wool.position.y; pb.scale.copy(wool.scale); }
+        else { pb.position.y = 0; pb.scale.setScalar(1); }
+      }
+    }
+    const inStandIn = (role: ShadowRole): boolean => {
+      if (!proxied) return false;
+      if (role === 'body' || role === 'head') return true;
+      if (role === 'ears' || role === 'moving') return (hm & H[role]) !== 0;
+      return (bm & B[role]) !== 0;
+    };
+    body.traverse((x) => { const role = x.userData.shadow as ShadowRole | undefined; if (role) x.castShadow = cast && !inStandIn(role); });
+
     runFreezeFx(fx, live, e, reduced, gustFrom, state === 'thawing');
     (o.frost as Mesh).visible = level > 0 && ((live === 'freezing' && e >= 0.8 && !reduced) || live === 'frozen') && drawn((o.frost as Mesh).geometry);
     (o.frost as Mesh).scale.setScalar(live === 'freezing' ? clamp01((e - 0.8) / 0.8) : 1);
   });
 
-  const mesh = (key: string, p: Part, material = mat) => (
-    <mesh key={key} ref={set(key)} geometry={p.geo} position={p.pivot} material={material} castShadow={cast} receiveShadow />
+  const mesh = (key: string, p: Part, role: ShadowRole) => (
+    <mesh key={key} ref={set(key)} geometry={p.geo} position={p.pivot} material={mat} castShadow={cast} receiveShadow userData={{ shadow: role }} />
   );
+  /** A shadow stand-in: on PROXY_LAYER alone, so only a shadow map draws it; hidden until the frame loop gives it its geometry. */
+  const proxy = (key: string) => (o: Object3D | null) => { if (o) o.layers.set(PROXY_LAYER); set(key)(o); };
   const rel = (p: Part): V3 => [p.pivot[0] - m.head.pivot[0], p.pivot[1] - m.head.pivot[1], p.pivot[2] - m.head.pivot[2]];
   // The neck group turns about the neck's base and carries the neck and the head (V5.1 Part 4.6).
   const nb: V3 = am.neckBase ?? [0, 0, 0];
@@ -828,28 +1001,30 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     <>
     <group ref={root}>
       <group ref={set('body')}>
-        <mesh ref={set('wool')} geometry={m.wools[2].geo} material={mat} castShadow={cast} receiveShadow />
+        <mesh ref={set('wool')} geometry={m.wools[2].geo} material={mat} castShadow={cast} receiveShadow userData={{ shadow: 'coat' }} />
+        <mesh ref={proxy('proxyBody')} material={mat} castShadow visible={false} />
         <mesh ref={set('frost')} geometry={m.frosts[2].geo} material={mat} />
-        {mesh('sheared', m.sheared)}
-        {mesh('tail', m.tail)}
-        {mesh('legFL', m.legs[0])}
-        {mesh('legFR', m.legs[1])}
-        {mesh('legBL', m.legs[2])}
-        {mesh('legBR', m.legs[3])}
+        {mesh('sheared', m.sheared, 'coat')}
+        {mesh('tail', m.tail, 'tail')}
+        {mesh('legFL', m.legs[0], 'legs')}
+        {mesh('legFR', m.legs[1], 'legs')}
+        {mesh('legBL', m.legs[2], 'legs')}
+        {mesh('legBR', m.legs[3], 'legs')}
         {/* The legs at rest as one mesh; hidden until the frame loop finds them so. */}
-        {restOf && <mesh ref={set('rest')} geometry={restOf.geo} material={mat} castShadow={cast} receiveShadow visible={false} />}
+        {restOf && <mesh ref={set('rest')} geometry={restOf.geo} material={mat} castShadow={cast} receiveShadow visible={false} userData={{ shadow: 'legs' }} />}
 
-        {signature.filter((sp) => sp.where === 'body').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={sp.pivot} material={mat} castShadow={cast} visible={drawn(sp.geo)} />)}
+        {signature.filter((sp) => sp.where === 'body').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={sp.pivot} material={mat} castShadow={cast} visible={drawn(sp.geo)} userData={{ shadow: isWing(sp) ? 'wings' : 'body' }} />)}
         <mesh geometry={m.collar.geo} position={m.collar.pivot} material={mat} visible={drawn(m.collar.geo)} />
-        {mesh('bell', m.bell)}
+        {mesh('bell', m.bell, 'bell')}
         <group ref={set('neck')} position={nb}>
-        {am.neck && <mesh geometry={am.neck.geo} position={fromNeck(am.neck.pivot)} material={mat} castShadow={cast} receiveShadow visible={drawn(am.neck.geo)} />}
+        {am.neck && <mesh geometry={am.neck.geo} position={fromNeck(am.neck.pivot)} material={mat} castShadow={cast} receiveShadow visible={drawn(am.neck.geo)} userData={{ shadow: 'neck' }} />}
         <group ref={set('head')} position={fromNeck(m.head.pivot)}>
           {/* One mesh for the head and all that is fixed to it (headBundle); the same parts one by one if they could not be joined. */}
-          {headGeo ? <mesh geometry={headGeo} material={mat} castShadow={cast} /> : <>
-            <mesh geometry={m.head.geo} material={mat} castShadow={cast} visible={drawn(m.head.geo)} />
-            <mesh geometry={m.hood.geo} material={mat} castShadow={cast} visible={drawn(m.hood.geo)} />
-            <mesh geometry={santaHat()} material={mat} position={anchorsOf(m).hat.at} scale={anchorsOf(m).hat.scale} castShadow={cast} />
+          <mesh ref={proxy('proxyHead')} material={mat} castShadow visible={false} />
+          {headGeo ? <mesh geometry={headGeo} material={mat} castShadow={cast} userData={{ shadow: 'head' }} /> : <>
+            <mesh geometry={m.head.geo} material={mat} castShadow={cast} visible={drawn(m.head.geo)} userData={{ shadow: 'head' }} />
+            <mesh geometry={m.hood.geo} material={mat} castShadow={cast} visible={drawn(m.hood.geo)} userData={{ shadow: 'head' }} />
+            {HATS && <mesh geometry={santaHat()} material={mat} position={anchorsOf(m).hat.at} scale={anchorsOf(m).hat.scale} castShadow={cast} userData={{ shadow: 'head' }} />}
           </>}
           <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={faceMat} visible={drawn(m.eyes[0].geo)} />
           <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={faceMat} visible={drawn(m.eyes[1].geo)} />
@@ -857,10 +1032,10 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
           {(['closed', 'arc'] as Lids[]).map((k) => <mesh key={k} ref={set(`lid-${k}`)} geometry={m.lids[k].geo} material={faceMat} />)}
           {BROWS.map((b) => <mesh key={b} ref={set(`brow-${b}`)} geometry={m.brows[b].geo} material={faceMat} />)}
           {MOUTHS.map((k) => <mesh key={k} ref={set(`mouth-${k}`)} geometry={m.mouths[k].geo} material={faceMat} />)}
-          <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow={cast} visible={drawn(m.ears[0].geo)} />
-          <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow={cast} visible={drawn(m.ears[1].geo)} />
-          {signature.filter((sp) => sp.where === 'head' && (sp.anim || !headGeo)).map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={rel(sp)} material={mat} castShadow={cast} visible={drawn(sp.geo)} />)}
-          {am.worn && !headGeo && <mesh geometry={am.worn.geo} position={rel(am.worn)} material={mat} castShadow={cast} visible={drawn(am.worn.geo)} />}
+          <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow={cast} visible={drawn(m.ears[0].geo)} userData={{ shadow: 'ears' }} />
+          <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow={cast} visible={drawn(m.ears[1].geo)} userData={{ shadow: 'ears' }} />
+          {signature.filter((sp) => sp.where === 'head' && (sp.anim || !headGeo)).map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={rel(sp)} material={mat} castShadow={cast} visible={drawn(sp.geo)} userData={{ shadow: sp.anim ? 'moving' : 'head' }} />)}
+          {am.worn && !headGeo && <mesh geometry={am.worn.geo} position={rel(am.worn)} material={mat} castShadow={cast} visible={drawn(am.worn.geo)} userData={{ shadow: 'head' }} />}
         </group>
         </group>
         <mesh ref={set('breath')} geometry={m.breath.geo} position={m.breath.pivot} material={breathMat} />

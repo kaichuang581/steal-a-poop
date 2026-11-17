@@ -2,6 +2,14 @@
 
 All user-visible changes, newest first.
 
+## 0.7.10
+
+- The game now picks a quality level for your device. It starts in the middle, moves up to full quality once your device shows it keeps up for ten seconds, and steps down on a device that cannot. Lower levels draw smaller shadows, less glow and simpler scenery; the paddock view always looks as it always has.
+- On the lowest level each animal stands on a small dark patch instead of casting a moving shadow.
+- Dawn is a little pinker and dusk a little more amber.
+- Nothing is drawn behind the barn doors while the farm loads, so loading has the computer to itself.
+- If a device is still too slow to draw on the lowest level, it shows a card saying so instead of a stuttering farm.
+
 ## 0.7.9
 
 - Shorn pigs, cows, horses, goats and chickens keep their tails.

@@ -20,7 +20,7 @@ import { AppBoundary, reloadOnceForChunk } from './perf/AppBoundary';
 import { ReportCard } from './perf/ReportCard';
 import { installAudioSleep } from './perf/audioSleep';
 import { noteDoorsOpen, noteError, setReportVersion, startReport } from './perf/report';
-import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
+import { FacesPreview, LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
 // Developer pages (?preview=), for the tools that bake the game's pictures and strips (tools/renderDoors.mjs,
 // renderThumbs.mjs, renderStall.mjs, renderGuide.mjs, animalStrips.mjs), which all run against `npm run dev`. They are
@@ -146,6 +146,7 @@ export function PaintedApp() {
   if (PREVIEW === 'sheep') return <SheepPreview />;
   if (PREVIEW === 'strips') return <StripsPreview />;
   if (PREVIEW === 'lineup') return <LineupPreview />;
+  if (PREVIEW === 'faces') return <FacesPreview />;
   if (PREVIEW === 'kit') return <KitPreview />;
   if (PREVIEW === 'doors' && DoorsRender) return <Suspense fallback={null}><DoorsRender /></Suspense>;
   if (PREVIEW === 'thumb' && ThumbRender) return <Suspense fallback={null}><ThumbRender /></Suspense>;

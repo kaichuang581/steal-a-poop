@@ -42,14 +42,20 @@ export class Grid {
   }
 }
 
-/** Solid ellipsoid; `noise` (0..1 of the radius) roughens the surface. */
-export function ellipsoid(g: Grid, c: V3, r: V3, paint: Paint, noise = 0, seed = 1) {
+/**
+ * Solid ellipsoid; `noise` (0..1 of the radius) roughens the surface. `power` is the exponent of the inside test,
+ * |dx/rx|^p + |dy/ry|^p + |dz/rz|^p <= 1: 2 is the round ellipsoid, higher powers fill out towards a rounded box
+ * (a superellipsoid), whose flatter sides step in fewer, longer terraces (plan file 03, change 4.8).
+ */
+export function ellipsoid(g: Grid, c: V3, r: V3, paint: Paint, noise = 0, seed = 1, power = 2) {
   const [cx, cy, cz] = c.map((v) => v / g.size);
   const [rx, ry, rz] = r.map((v) => v / g.size);
   for (let x = Math.floor(cx - rx - 1); x <= Math.ceil(cx + rx + 1); x++)
     for (let y = Math.floor(cy - ry - 1); y <= Math.ceil(cy + ry + 1); y++)
       for (let z = Math.floor(cz - rz - 1); z <= Math.ceil(cz + rz + 1); z++) {
-        const d = ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 + ((z + 0.5 - cz) / rz) ** 2;
+        const d = power === 2
+          ? ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 + ((z + 0.5 - cz) / rz) ** 2
+          : Math.abs((x + 0.5 - cx) / rx) ** power + Math.abs((y + 0.5 - cy) / ry) ** power + Math.abs((z + 0.5 - cz) / rz) ** power;
         const limit = 1 + (noise ? (hash3(x >> 1, y >> 1, z >> 1, seed) - 0.5) * 2 * noise : 0);
         if (d <= limit) {
           const col = paint(x, y, z);

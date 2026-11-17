@@ -1,13 +1,16 @@
 import { advance, Canvas, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace } from 'three';
+import { ACESFilmicToneMapping, OrthographicCamera, PCFShadowMap, SRGBColorSpace, Vector3 } from 'three';
 import { Chip, PaperPanel } from '../components/Materials';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
 import { pick, T } from '../voxel/palette';
 import { Grid, hash3 } from '../voxel/primitives';
 import { ANIMAL_AVATAR_IDS } from '../../avatars/ids';
-import { animalModel, heightRatio } from '../voxel/animals';
+import { animalModel, animalModelWith, heightRatio } from '../voxel/animals';
+import { anchorsOf } from '../voxel/animals/anchors';
+import { NO_FACES, SPECIES_FACES } from '../voxel/animals/faces';
+import type { FaceSwitch, Faces } from '../voxel/animals/faces';
 import type { Animal } from '../voxel/animals';
 import { HEAP, SHEEP_SCALE, seatPosition, speakerShot } from '../scene/layout';
 import { DevLine, DevStats } from './DevStats';
@@ -218,6 +221,171 @@ function StripDriver({ list, set, onLog }: { list: Animal[]; set: { current: (v:
       }
       window.__strips = out;
       window.__stripsDone = true;
+      onLog('done');
+    })();
+    return () => { alive = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+/** One picture on a sheet: which model, how it is seen, how big, and where it goes. */
+interface Shot { animal: Animal; faces: Faces; level: WoolLevel; view: 'front' | 'three' | 'side'; ppv: number; col: number; row: number }
+interface SheetPlan { title: string; rows: string[]; cols: string[]; groups: { label: string; from: number; to: number }[]; shots: Shot[] }
+declare global { interface Window { __faces?: string; __facesDone?: boolean } }
+
+/** Pixels per voxel: the speaker shot's size (9 to 12, plan file 03, 4.10) and Home's (3 to 4), at their low ends. */
+const SPEAKER_PPV = 9, HOME_PPV = 3;
+const VIEWS = { front: [0, 0.18, 1], three: [0.72, 0.3, 0.72], side: [1, 0.18, 0] } as const;
+const VIEW_NAME = { front: 'front', three: 'three-quarter', side: 'side' } as const;
+const LABEL: Record<FaceSwitch, string> = {
+  sheepFleece: 'fleece at power 4', sheepEyes: 'eyes 3 x 3', cowNoGlint: 'no glint', goatMouth: 'mouth 3 wide, flush',
+  goatHorns: 'horns behind the ears', horseNose: 'soft nostrils', horseEyes: 'eyes flush', horseNeck: 'neck in 2-voxel treads',
+  chickenTail: 'tail as 3 flat feathers',
+};
+
+/** The face sheet (4.10): six rows, today and the proposal (every switch of that species on), two sizes, two views; the sheep's eyes apart. */
+function facesPlan(): SheetPlan {
+  const shots: Shot[] = [];
+  const species = [...ANIMAL_AVATAR_IDS] as Animal[];
+  species.forEach((animal, row) => {
+    const on = new Set<FaceSwitch>(SPECIES_FACES[animal as keyof typeof SPECIES_FACES] ?? []);
+    let col = 0;
+    for (const ppv of [SPEAKER_PPV, HOME_PPV]) for (const faces of [NO_FACES, on]) for (const view of ['front', 'three'] as const) shots.push({ animal, faces, level: 2, view, ppv, col: col++, row });
+    if (animal === 'sheep') for (const ppv of [SPEAKER_PPV, HOME_PPV]) for (const faces of [NO_FACES, new Set<FaceSwitch>(['sheepEyes'])]) shots.push({ animal, faces, level: 2, view: 'front', ppv, col: col++, row });
+  });
+  const rows = species.map((a) => {
+    const on = (SPECIES_FACES[a as keyof typeof SPECIES_FACES] ?? []) as readonly FaceSwitch[];
+    return `${a}|proposal: ${on.length ? on.map((f) => LABEL[f]).join(', ') : 'no face change (shape switch only)'}`;
+  });
+  const half = ['today front', 'today 3/4', 'proposal front', 'proposal 3/4'];
+  return {
+    title: 'Face sheet (plan 03, 4.10): tick the rows to change. Coat level 2, still, eyes open, hat on.',
+    rows, cols: [...half, ...half, 'eyes 2 x 2', 'eyes 3 x 3', 'eyes 2 x 2', 'eyes 3 x 3'],
+    groups: [{ label: `Speaker shot size (1 voxel = ${SPEAKER_PPV} px)`, from: 0, to: 3 }, { label: `Home size (1 voxel = ${HOME_PPV} px)`, from: 4, to: 7 }, { label: 'Sheep only: eyes, speaker and Home size', from: 8, to: 11 }],
+    shots,
+  };
+}
+
+/** The fleece pair (4.9): the sheep at levels 0, 1 and 2, A today and B power 4 with its noise kept. */
+function fleecePlan(): SheetPlan {
+  const shots: Shot[] = [];
+  [NO_FACES, new Set<FaceSwitch>(['sheepFleece'])].forEach((faces, row) => {
+    let col = 0;
+    for (const view of ['three', 'side'] as const) for (const level of [0, 1, 2] as WoolLevel[]) shots.push({ animal: 'sheep', faces, level, view, ppv: SPEAKER_PPV, col: col++, row });
+  });
+  const cols = (['three', 'side'] as const).flatMap((v) => [0, 1, 2].map((l) => `level ${l} ${VIEW_NAME[v]}`));
+  return {
+    title: `Sheep fleece pair (plan 03, 4.9): pick A or B. Still, 1 voxel = ${SPEAKER_PPV} px.`,
+    rows: ['A|today', 'B|lobes and shorn body at power 4, noise kept'], cols, groups: [], shots,
+  };
+}
+
+/**
+ * ?skin=painted&preview=faces (plan file 03, 4.10; development only): the face sheet, drawn shot by shot on one canvas
+ * whose clock is stepped by hand (frameloop "never"), each animal still under reduced motion (no blink, no breath), the
+ * hat as shipped, seen by an orthographic camera framed on `anchorsOf(model).bounds` plus 10% at a fixed size per voxel.
+ * The sheet is left on `window.__faces` (a PNG data URL). &sheet=fleece draws the fleece pair (4.9) instead.
+ */
+export function FacesPreview() {
+  const q = new URLSearchParams(location.search);
+  const plan = useMemo(() => (q.get('sheet') === 'fleece' ? fleecePlan() : facesPlan()), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [cur, setCur] = useState<Shot>(plan.shots[0]);
+  const [log, setLog] = useState('');
+  const set = useRef(setCur);
+  set.current = setCur;
+  const m = animalModelWith(cur.animal, cur.faces);
+  return (
+    <div className="p-4" style={{ background: '#273B66', color: '#fff', minHeight: '100%' }}>
+      <div style={{ width: 200, height: 200, overflow: 'hidden' }}>
+        <Canvas frameloop="never" shadows={{ type: PCFShadowMap }} dpr={1} gl={{ preserveDrawingBuffer: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }}>
+          <color attach="background" args={['#3A4E78']} />
+          <hemisphereLight args={['#DCE6F2', '#8E3A31', 0.9]} />
+          <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
+          <Sheep key={`${cur.animal}|${[...cur.faces].sort().join()}|${cur.level}`} level={cur.level} state="idle" still reduced model={m} />
+          <FacesDriver plan={plan} set={set} onLog={setLog} />
+        </Canvas>
+      </div>
+      <p className="mt-2 text-xs">{log}</p>
+    </div>
+  );
+}
+
+/** The size of a shot's tile, and the camera that frames it: the bounds' corners projected on the view, plus 10%. */
+function frame(shot: Shot) {
+  const b = anchorsOf(animalModelWith(shot.animal, shot.faces)).bounds;
+  const dir = new Vector3(...VIEWS[shot.view]).normalize();
+  const cam = new OrthographicCamera();
+  const c = new Vector3((b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2);
+  cam.position.copy(c).addScaledVector(dir, 6);
+  cam.lookAt(c);
+  cam.updateMatrixWorld();
+  const right = new Vector3().setFromMatrixColumn(cam.matrixWorld, 0), up = new Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+  let w = 0, h = 0;
+  for (const x of [b.min[0], b.max[0]]) for (const y of [b.min[1], b.max[1]]) for (const z of [b.min[2], b.max[2]]) {
+    const d = new Vector3(x, y, z).sub(c);
+    w = Math.max(w, Math.abs(d.dot(right))); h = Math.max(h, Math.abs(d.dot(up)));
+  }
+  w *= 1.1; h *= 1.1;
+  const px = shot.ppv / 0.04; // pixels per metre at scale 1
+  const W = Math.ceil(2 * w * px), H = Math.ceil(2 * h * px);
+  cam.left = -W / 2 / px; cam.right = W / 2 / px; cam.top = H / 2 / px; cam.bottom = -H / 2 / px;
+  cam.near = 0.1; cam.far = 20;
+  cam.updateProjectionMatrix();
+  return { cam, W, H };
+}
+
+function FacesDriver({ plan, set, onLog }: { plan: SheetPlan; set: { current: (s: Shot) => void }; onLog: (s: string) => void }) {
+  const { gl, scene } = useThree();
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const frames = plan.shots.map(frame);
+      const colW = plan.cols.map((_, c) => Math.max(...plan.shots.map((s, i) => (s.col === c ? frames[i].W : 0))));
+      const rowH = plan.rows.map((_, r) => Math.max(...plan.shots.map((s, i) => (s.row === r ? frames[i].H : 0))));
+      const PAD = 10, LEFT = 210, TOP = plan.groups.length ? 96 : 70;
+      const colX: number[] = [];
+      let x = LEFT;
+      for (const w of colW) { colX.push(x); x += w + PAD; }
+      const rowY: number[] = [];
+      let y = TOP;
+      for (const h of rowH) { rowY.push(y); y += h + PAD; }
+      const sheet = document.createElement('canvas');
+      sheet.width = x; sheet.height = y;
+      const ctx = sheet.getContext('2d')!;
+      ctx.fillStyle = '#1E2A47'; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 20px sans-serif'; ctx.fillText(plan.title, 12, 28);
+      ctx.font = '14px sans-serif';
+      for (const g of plan.groups) {
+        const x0 = colX[g.from], x1 = colX[g.to] + colW[g.to];
+        ctx.fillStyle = '#E8C46A'; ctx.fillRect(x0, 50, x1 - x0, 2); ctx.fillText(g.label, x0, 44);
+      }
+      ctx.fillStyle = '#fff';
+      plan.cols.forEach((label, c) => ctx.fillText(label, colX[c], TOP - 12));
+      plan.rows.forEach((label, r) => {
+        const [name, what] = label.split('|');
+        ctx.font = 'bold 18px sans-serif'; ctx.fillText(`[  ] ${name}`, 12, rowY[r] + 24);
+        ctx.font = '13px sans-serif';
+        // The proposal's switches, wrapped to the label column.
+        let line = '', ly = rowY[r] + 46;
+        for (const word of what.split(' ')) {
+          if (ctx.measureText(`${line} ${word}`).width > LEFT - 24) { ctx.fillText(line, 12, ly); ly += 17; line = word; } else line = line ? `${line} ${word}` : word;
+        }
+        ctx.fillText(line, 12, ly);
+      });
+      let t = 1;
+      for (const [i, shot] of plan.shots.entries()) {
+        if (!alive) return;
+        onLog(`${shot.animal} ${shot.view} ${shot.ppv}px`);
+        set.current(shot);
+        await new Promise<void>((r) => setTimeout(r, 40));
+        for (let k = 0; k < 4; k++) { advance(t); t += 0.25; }
+        const { cam, W, H } = frames[i];
+        gl.setSize(W, H, false);
+        gl.render(scene, cam);
+        ctx.drawImage(gl.domElement, 0, 0, W, H, colX[shot.col] + (colW[shot.col] - W) / 2, rowY[shot.row] + (rowH[shot.row] - H) / 2, W, H);
+      }
+      window.__faces = sheet.toDataURL('image/png');
+      window.__facesDone = true;
       onLog('done');
     })();
     return () => { alive = false; };

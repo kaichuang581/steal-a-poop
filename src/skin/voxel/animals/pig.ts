@@ -3,7 +3,7 @@ import { lin, T } from '../palette';
 import { box, ellipsoid, Grid, helix } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { breathAt, cellsOf, hugCollar, eyePlate, frontEye, hollow, leg, lidsAndBrows, mask, mouths, part, S, shaded, sockets, solidSet, statsOf, tones } from './rig';
+import { breathAt, cellsOf, hugCollar, eyePlate, frontEye, hollow, leg, lidsAndBrows, mask, mouths, part, PIG_POWER, S, shaded, sockets, solidSet, statsOf, tones } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 
 /**
@@ -28,9 +28,9 @@ export function pigModel(ch: Character): AnimalModel {
   // ---- Torso: an ellipsoid 0.58 x 0.54 x 0.80, a shoulder and a hip bulge, a lighter belly.
   const bg = new Grid(S);
   const paint = shaded(body, 18, 5);
-  ellipsoid(bg, [0, 0.48, 0.02], [0.29, 0.28, 0.38], paint);
-  ellipsoid(bg, [0, 0.50, 0.30], [0.26, 0.22, 0.18], paint);
-  ellipsoid(bg, [0, 0.52, -0.26], [0.25, 0.22, 0.10], paint);
+  ellipsoid(bg, [0, 0.48, 0.02], [0.29, 0.28, 0.38], paint, 0, 1, PIG_POWER);
+  ellipsoid(bg, [0, 0.50, 0.30], [0.26, 0.22, 0.18], paint, 0, 1, PIG_POWER);
+  ellipsoid(bg, [0, 0.52, -0.26], [0.25, 0.22, 0.10], paint, 0, 1, PIG_POWER);
   mask(bg, [{ c: [0, 0.30, 0], r: [0.22, 0.12, 0.30] }], lin(body[0]), lin(body[1]));
   const legSpots = [[-0.12, 0.2], [0.12, 0.2], [-0.12, -0.2], [0.12, -0.2]] as const;
   sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })), 8, 7); // shoulders and hips over the legs (4.2.3)

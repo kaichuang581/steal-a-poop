@@ -3,9 +3,11 @@ import { lin } from '../palette';
 import { box, Grid, line } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { barrel, breathAt, bury, cellsOf, hugCollar, hollow, leg, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
+import { barrel, breathAt, bury, cellsOf, hugCollar, hollow, leg, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import { HOOF } from './pig';
+import { DEFAULT_FACES } from './faces';
+import type { Faces } from './faces';
 
 /**
  * The horse (V5.1 Part 5.4): the tallest animal; a long barrel, a neck rising at 49 degrees from the shoulders with a
@@ -17,7 +19,20 @@ import { HOOF } from './pig';
  */
 const TY = 11; // the torso's bottom row (y 0.44)
 const HY = 26; // the head's bottom row (y 1.04)
-export function horseModel(ch: Character): AnimalModel {
+/**
+ * Face switches (plan file 03, 4.11), off until Brian ticks the horse's row on the face sheet. HORSE_NOSE: the two
+ * nostrils, one voxel each, in a tone halfway between the muzzle's and its dark (today's dark pair reads as a second
+ * pair of eyes). HORSE_EYES: the eyes flush in the head's sides (`proud: false`) instead of one voxel out.
+ * HORSE_NECK: the neck's sections stepped two voxels at a time, so its top and throat climb in even two-voxel treads
+ * instead of a ragged one-voxel stair.
+ */
+export const HORSE_NOSE = false;
+export const HORSE_EYES = false;
+export const HORSE_NECK = false;
+export function horseModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
+  const softNose = HORSE_NOSE || faces.has('horseNose');
+  const flushEyes = HORSE_EYES || faces.has('horseEyes');
+  const treads = HORSE_NECK || faces.has('horseNeck');
   const body = tones(ch.colors.body);
   const mane = tones(ch.colors.pop);
   const nose = tones(ch.colors.soft);
@@ -43,10 +58,11 @@ export function horseModel(ch: Character): AnimalModel {
     return shaded(body, HY + 7, HY)(x, y, z);
   };
   wedge(hg, HEAD, 0.52, 0.28, 0.20, 0.32, paint);
-  for (const x of [-1, 1]) hg.set(x, HY + 2, zf, lin(nose[2])); // nostrils
+  const nostril = softNose ? lin(nose[1]).map((c, i) => (c + lin(nose[2])[i]) / 2) as ReturnType<typeof lin> : lin(nose[2]);
+  for (const x of [-1, 1]) hg.set(x, HY + 2, zf, nostril); // nostrils
   // Eyes: beady (Brian, 2026-11-07), small 2 x 2 dark eyes with a glint on the sides of the long head, one voxel proud
   // so they show from in front.
-  const { eyes, lids, brows } = smallEyes(hg, HY + 4, zb + 6, ch.colors.dark, body, HEAD, { proud: true });
+  const { eyes, lids, brows } = smallEyes(hg, HY + 4, zb + 6, ch.colors.dark, body, HEAD, { proud: !flushEyes });
   // The mouth on row 27 (the second from the bottom), width 5, on the wedge's front with its corners knocked off.
   const frontAt = (x: number, y: number) => { for (let k = zf; k >= zf - 4; k--) if (hg.has(x, y, k)) return k; return zf; };
   const mouthParts = mouths([-2, HY, zf], 5, 'z', nose[2], HEAD, { front: frontAt });
@@ -58,10 +74,13 @@ export function horseModel(ch: Character): AnimalModel {
   const NECK_BASE: V3 = [0.02, 0.90, 0.40];
   const NECK_TOP: V3 = [0.02, 1.18, 0.68];
   const ng = new Grid(S);
-  segment(ng, NECK_BASE, NECK_TOP, 0.28, 0.20, shaded(body, 30, 22));
+  if (treads) steppedSegment(ng, NECK_BASE, NECK_TOP, 0.28, 0.20, shaded(body, 30, 22));
+  else segment(ng, NECK_BASE, NECK_TOP, 0.28, 0.20, shaded(body, 30, 22));
   const neckSolid = solidSet(ng);
   hollow(ng);
   bury(ng, bodySolid, headSolid);
+  // Stepped, the sections' sides fall on the chest's planes where the neck leaves it: those cells give way to the chest.
+  if (treads) unshare(ng, bodySolid);
   const neck = part(ng, [0, 0, 0]);
 
   // ---- Mane: a ridge 2 wide x 3 tall along the neck's top from the withers to the poll, and a forelock 3 x 2 x 2.
@@ -90,6 +109,7 @@ export function horseModel(ch: Character): AnimalModel {
     leg(g, cx, cz, 3, 13, body, HOOF, { knee: true, oneTone: true, sock: i === 0 || i === 3 ? body[0] : undefined });
     hollow(g);
     bury(g, bodySolid);
+    unshare(g, bodySolid);
     return part(g, [cx, 0.50, cz]);
   }) as unknown as [CPart, CPart, CPart, CPart];
 
@@ -98,6 +118,7 @@ export function horseModel(ch: Character): AnimalModel {
   box(tg, [-0.02, 0.86, -0.50], [0.06, 0.94, -0.42], () => lin(mane[1])); // the root, inside the rump
   for (const dx of [0, 0.04]) for (const dy of [0, 0.04]) line(tg, [dx, 0.92 + dy, -0.50], [dx, 0.56 + dy, -0.62], () => lin(mane[1]));
   box(tg, [-0.04, 0.46, -0.66], [0.08, 0.58, -0.58], () => lin(mane[2])); // the flare, solid so every voxel joins
+  unshare(tg, bodySolid);
   const tail = part(tg, [0.02, 0.92, -0.50]);
 
   // ---- Collar (4.2.6): a ring round the neck's section one voxel in front of the chest.
@@ -120,4 +141,19 @@ export function horseModel(ch: Character): AnimalModel {
     cells: cellsOf({ body: bodyPart, neck, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar, mane: maneSig as CPart, blaze: blazeSig as CPart, sock0: sock(legs[0]), sock1: sock(legs[3]) }),
     stats: statsOf(parts, []),
   };
+}
+
+/**
+ * HORSE_NECK: `segment`'s chamfered sections, each centre snapped to every other cell in y and z (from the base), so
+ * the neck climbs in steps two voxels long and two high; the base and the top land where `segment` puts them.
+ */
+function steppedSegment(g: Grid, from: V3, to: V3, sFrom: number, sTo: number, paint: Paint) {
+  const d = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
+  const n = Math.max(2, Math.ceil(d / S));
+  const snap = (v: number, o: number) => o + Math.round((v - o) / (2 * S)) * 2 * S;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, sec = sFrom + (sTo - sFrom) * t;
+    const c: V3 = [from[0] + (to[0] - from[0]) * t, snap(from[1] + (to[1] - from[1]) * t, from[1]), snap(from[2] + (to[2] - from[2]) * t, from[2])];
+    box(g, [c[0] - sec / 2, c[1] - sec / 2, c[2] - sec / 2], [c[0] + sec / 2, c[1] + sec / 2, c[2] + sec / 2], paint, 1);
+  }
 }

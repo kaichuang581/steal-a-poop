@@ -28,23 +28,60 @@ export interface FestiveGeometry {
   bulbs: BufferGeometry[];
   /** Gold stars, which hold steady. */
   star: BufferGeometry;
+  /** Every decoration's voxel box, in metres, as drawn (the scale chart, plan file 04, section 4.4, measures these). */
+  parts: FestivePart[];
+}
+
+export type FestiveKind = 'tree' | 'star' | 'bulb' | 'strand' | 'post' | 'stocking' | 'present' | 'cane' | 'wreath' | 'hat';
+export interface FestivePart { kind: FestiveKind; min: V3; max: V3 }
+
+/** A grid that tells its dressing which cells are set, so each decoration's box is the voxels it really drew. */
+class Tracked extends Grid {
+  constructor(size: number, private readonly note: (x: number, y: number, z: number) => void) { super(size); }
+  override set(x: number, y: number, z: number, c: [number, number, number]) {
+    super.set(x, y, z, c);
+    this.note(x, y, z);
+  }
 }
 
 class Dressing {
-  readonly decor = new Grid(0.1);
-  readonly glow = Array.from({ length: GLOW.length * BULB_GROUPS }, () => new Grid(0.1));
-  readonly stars = new Grid(0.1);
+  private readonly open: { kind: FestiveKind; lo: number[]; hi: number[] }[] = [];
+  private readonly note = (x: number, y: number, z: number) => {
+    for (const o of this.open) [x, y, z].forEach((v, k) => { o.lo[k] = Math.min(o.lo[k], v); o.hi[k] = Math.max(o.hi[k], v); });
+  };
+  readonly parts: FestivePart[] = [];
+  readonly decor = new Tracked(0.1, this.note);
+  readonly glow = Array.from({ length: GLOW.length * BULB_GROUPS }, () => new Tracked(0.1, this.note));
+  readonly stars = new Tracked(0.1, this.note);
   private n = 0;
+
+  /** Draws one decoration and keeps the box of the cells it set (all grids are 0.1 m). */
+  private item<R>(kind: FestiveKind, draw: () => R): R {
+    const o = { kind, lo: [Infinity, Infinity, Infinity], hi: [-Infinity, -Infinity, -Infinity] };
+    this.open.push(o);
+    try {
+      return draw();
+    } finally {
+      this.open.pop();
+      if (o.lo[0] <= o.hi[0]) this.parts.push({ kind, min: o.lo.map((v) => v * 0.1) as unknown as V3, max: o.hi.map((v) => (v + 1) * 0.1) as unknown as V3 });
+    }
+  }
 
   /** A bulb in the next colour, 0.2 m across unless it is for something the camera gets close to. */
   bulb(x: number, y: number, z: number, size = 0.2) {
-    const i = this.n++ % GLOW.length, r = size / 2;
-    const group = Math.floor(hash3(Math.round(x * 10), Math.round(y * 10), Math.round(z * 10), 97) * BULB_GROUPS);
-    box(this.glow[i * BULB_GROUPS + group], [x - r, y - r, z - r], [x + r, y + r, z + r], () => lin(GLOW[i]));
+    this.item('bulb', () => {
+      const i = this.n++ % GLOW.length, r = size / 2;
+      const group = Math.floor(hash3(Math.round(x * 10), Math.round(y * 10), Math.round(z * 10), 97) * BULB_GROUPS);
+      box(this.glow[i * BULB_GROUPS + group], [x - r, y - r, z - r], [x + r, y + r, z + r], () => lin(GLOW[i]));
+    });
   }
 
   /** A wire hung from `a` to `b`, sagging `droop` metres in the middle, with a bulb every `every` metres. */
   strand(a: V3, b: V3, droop: number, every = 0.6, bulb = 0.2) {
+    this.item('strand', () => this.wire(a, b, droop, every, bulb));
+  }
+
+  private wire(a: V3, b: V3, droop: number, every: number, bulb: number) {
     const length = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
     const steps = Math.max(1, Math.round(length / 0.1));
     const bulbEvery = Math.max(1, Math.round(every / 0.1));
@@ -91,6 +128,11 @@ class Dressing {
   baubles: { size: number; clear: boolean } | null = null;
 
   /** A fir in tiers, snow on each tier's shelf, a spiral of baubles and a gold star. */  tree(x: number, z: number, height: number, topped = true, bauble = this.baubles?.size ?? 0.2, clear = this.baubles?.clear ?? false) {
+    this.item('tree', () => this.fir(x, z, height, bauble, clear));
+    if (topped) this.item('star', () => this.topper(x, z));
+  }
+
+  private fir(x: number, z: number, height: number, bauble: number, clear: boolean) {
     const g = this.decor;
     const trunk = height * 0.1;
     box(g, [x - 0.2, 0, z - 0.2], [x + 0.2, trunk + 0.2, z + 0.2], (a, b, c) => pick(T.trunk, hash3(a, b, c, 71)));
@@ -125,17 +167,19 @@ class Dressing {
       }
       this.bulb(at[0], at[1], at[2], bauble);
     }
-    if (topped) {
-      // The star stands on the tree's own tip, on a short gold stem: placed at the drawn height it hung just over a tip
-      // that tapers away below it.
-      const cx = g.i(x), cz = g.i(z);
-      let top: { x: number; y: number; z: number } | null = null;
-      for (const v of g.map.values()) if (Math.abs(v.x - cx) <= 1 && Math.abs(v.z - cz) <= 1 && (!top || v.y > top.y)) top = v;
-      if (top) {
-        // A stem up from the tip's own cell to the star's middle row (STAR row 5 is the first with a middle cell).
-        for (let k = 1; k <= 4; k++) this.stars.set(top.x, top.y + k, top.z, lin(GOLD));
-        this.star(top.x * g.size, (top.y + 1) * g.size, top.z * g.size);
-      }
+  }
+
+  /** The star stands on the tree's own tip, on a short gold stem: placed at the drawn height it hung just over a tip
+   * that tapers away below it. */
+  private topper(x: number, z: number) {
+    const g = this.decor;
+    const cx = g.i(x), cz = g.i(z);
+    let top: { x: number; y: number; z: number } | null = null;
+    for (const v of g.map.values()) if (Math.abs(v.x - cx) <= 1 && Math.abs(v.z - cz) <= 1 && (!top || v.y > top.y)) top = v;
+    if (top) {
+      // A stem up from the tip's own cell to the star's middle row (STAR row 5 is the first with a middle cell).
+      for (let k = 1; k <= 4; k++) this.stars.set(top.x, top.y + k, top.z, lin(GOLD));
+      this.star(top.x * g.size, (top.y + 1) * g.size, top.z * g.size);
     }
   }
 
@@ -160,67 +204,81 @@ class Dressing {
 
   /** A plain post for lights to hang from. */
   post(x: number, z: number, height: number) {
-    box(this.decor, [x - 0.1, 0, z - 0.1], [x + 0.1, height, z + 0.1], (a, b, c) => pick(T.beam, hash3(a, b, c, 83)));
+    this.item('post', () => {
+      box(this.decor, [x - 0.1, 0, z - 0.1], [x + 0.1, height, z + 0.1], (a, b, c) => pick(T.beam, hash3(a, b, c, 83)));
+    });
   }
 
   /** A red stocking with a white cuff, its toe pointing along x. */
   stocking(x: number, y: number, z: number, toe: number) {
-    const g = this.decor;
-    box(g, [x - 0.1, y, z], [x + 0.2, y + 0.5, z + 0.1], () => lin(RED));
-    box(g, [x - 0.1 + toe * 0.1, y, z], [x + 0.2 + toe * 0.2, y + 0.2, z + 0.1], () => lin(RED));
-    box(g, [x - 0.2, y + 0.5, z], [x + 0.3, y + 0.7, z + 0.1], () => lin(T.snow[1]));
+    this.item('stocking', () => {
+      const g = this.decor;
+      box(g, [x - 0.1, y, z], [x + 0.2, y + 0.5, z + 0.1], () => lin(RED));
+      box(g, [x - 0.1 + toe * 0.1, y, z], [x + 0.2 + toe * 0.2, y + 0.2, z + 0.1], () => lin(RED));
+      box(g, [x - 0.2, y + 0.5, z], [x + 0.3, y + 0.7, z + 0.1], () => lin(T.snow[1]));
+    });
   }
 
   /** A wrapped box with a ribbon each way and a knot on top. */
   present(x: number, z: number, w: number, h: number, wrap: string, ribbon: string, base = 0) {
-    const g = this.decor;
-    const cx = Math.round(x / 0.1), cz = Math.round(z / 0.1);
-    box(g, [x - w / 2, base, z - w / 2], [x + w / 2, base + h, z + w / 2], (a, _, c) => lin(a === cx || c === cz ? ribbon : wrap));
-    box(g, [x - 0.1, base + h, z - 0.1], [x + 0.2, base + h + 0.1, z + 0.2], () => lin(ribbon));
+    this.item('present', () => {
+      const g = this.decor;
+      const cx = Math.round(x / 0.1), cz = Math.round(z / 0.1);
+      box(g, [x - w / 2, base, z - w / 2], [x + w / 2, base + h, z + w / 2], (a, _, c) => lin(a === cx || c === cz ? ribbon : wrap));
+      box(g, [x - 0.1, base + h, z - 0.1], [x + 0.2, base + h + 0.1, z + 0.2], () => lin(ribbon));
+    });
   }
 
   /** A candy cane stuck in the snow, its hook turned along x. */
   cane(x: number, z: number, side: number) {
-    const stripe = (i: number) => lin(i % 4 < 2 ? RED : T.snow[1]);
-    const g = this.decor;
-    const top = 11;
-    for (let i = 0; i <= top; i++) box(g, [x, i * 0.1, z], [x + 0.2, i * 0.1 + 0.1, z + 0.2], () => stripe(i));
-    [[1, 1], [2, 2], [3, 2], [4, 1], [4, 0]].forEach(([dx, dy], k) => {
-      const hx = x + side * dx * 0.1, hy = (top + dy) * 0.1;
-      box(g, [hx, hy, z], [hx + 0.2, hy + 0.1, z + 0.2], () => stripe(top + k + 1));
+    this.item('cane', () => {
+      const stripe = (i: number) => lin(i % 4 < 2 ? RED : T.snow[1]);
+      const g = this.decor;
+      const top = 11;
+      for (let i = 0; i <= top; i++) box(g, [x, i * 0.1, z], [x + 0.2, i * 0.1 + 0.1, z + 0.2], () => stripe(i));
+      [[1, 1], [2, 2], [3, 2], [4, 1], [4, 0]].forEach(([dx, dy], k) => {
+        const hx = x + side * dx * 0.1, hy = (top + dy) * 0.1;
+        box(g, [hx, hy, z], [hx + 0.2, hy + 0.1, z + 0.2], () => stripe(top + k + 1));
+      });
     });
   }
 
   /** A ring of pine with berries and a red bow, facing along z. */
   wreath(x: number, y: number, z: number) {
-    const g = this.decor;
-    // Whole cells round the centre: stepping in metres let the rounding open gaps, and the ring came apart in arcs.
-    const cx = g.i(x), cy = g.i(y), cz = g.i(z);
-    for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) {
-      const d = Math.hypot(i, j) * g.size;
-      if (d < 0.3 || d > 0.62) continue;
-      for (const k of [0, 1]) {
-        const [a, b, c] = [cx + i, cy + j, cz + k];
-        g.set(a, b, c, hash3(a, b, c, 79) > 0.86 ? lin(RED) : pick(T.pine, hash3(a, b, c, 81)));
+    this.item('wreath', () => {
+      const g = this.decor;
+      // Whole cells round the centre: stepping in metres let the rounding open gaps, and the ring came apart in arcs.
+      const cx = g.i(x), cy = g.i(y), cz = g.i(z);
+      for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) {
+        const d = Math.hypot(i, j) * g.size;
+        if (d < 0.3 || d > 0.62) continue;
+        for (const k of [0, 1]) {
+          const [a, b, c] = [cx + i, cy + j, cz + k];
+          g.set(a, b, c, hash3(a, b, c, 79) > 0.86 ? lin(RED) : pick(T.pine, hash3(a, b, c, 81)));
+        }
       }
-    }
-    box(g, [x - 0.3, y - 0.7, z - 0.1], [x + 0.4, y - 0.5, z + 0.3], () => lin(RED));
-    box(g, [x - 0.1, y - 0.9, z - 0.1], [x + 0.2, y - 0.7, z + 0.3], () => lin(RED));
+      box(g, [x - 0.3, y - 0.7, z - 0.1], [x + 0.4, y - 0.5, z + 0.3], () => lin(RED));
+      box(g, [x - 0.1, y - 0.9, z - 0.1], [x + 0.2, y - 0.7, z + 0.3], () => lin(RED));
+    });
   }
 
-  /** The red hat with a white brim and bobble, for a head whose top is at `y`. */
-  hat(x: number, y: number, z: number) {
-    const g = this.decor;
-    box(g, [x - 0.4, y, z - 0.4], [x + 0.4, y + 0.2, z + 0.4], () => lin(T.snow[1]));
-    for (let i = 0; i < 6; i++) {
-      const r = 0.32 - i * 0.05, lean = i * 0.04;
-      box(g, [x + lean - r, y + 0.2 + i * 0.1, z - r], [x + lean + r, y + 0.3 + i * 0.1, z + r], () => lin(RED));
-    }
-    box(g, [x + 0.1, y + 0.8, z - 0.2], [x + 0.5, y + 1.1, z + 0.2], () => lin(T.snow[0]));
+  /** The red hat with a white brim and bobble, for a head whose top is at `y`, drawn at `scale` of its first size. */
+  hat(x: number, y: number, z: number, scale = 1) {
+    this.item('hat', () => {
+      const g = this.decor, s = (m: number) => m * scale;
+      const brim = Math.max(0.1, Math.round(s(0.2) * 10) / 10), tiers = Math.round(6 * scale);
+      box(g, [x - s(0.4), y, z - s(0.4)], [x + s(0.4), y + brim, z + s(0.4)], () => lin(T.snow[1]));
+      for (let i = 0; i < tiers; i++) {
+        const r = s(0.32) - i * s(0.3) / tiers, lean = i * s(0.24) / tiers;
+        box(g, [x + lean - r, y + brim + i * 0.1, z - r], [x + lean + r, y + brim + 0.1 + i * 0.1, z + r], () => lin(RED));
+      }
+      const tip = y + brim + tiers * 0.1;
+      box(g, [x + s(0.1), tip, z - s(0.2)], [x + s(0.5), tip + s(0.3), z + s(0.2)], () => lin(T.snow[0]));
+    });
   }
 
   build(): FestiveGeometry {
-    const made = { decor: buildGeometry(this.decor.map, 0.1), bulbs: this.glow.map((g) => buildGeometry(g.map, 0.1)), star: buildGeometry(this.stars.map, 0.1) };
+    const made = { decor: buildGeometry(this.decor.map, 0.1), bulbs: this.glow.map((g) => buildGeometry(g.map, 0.1)), star: buildGeometry(this.stars.map, 0.1), parts: this.parts };
     for (const g of [made.decor, made.star, ...made.bulbs]) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
     return made;
   }
@@ -234,11 +292,14 @@ let farm: FestiveGeometry | null = null;
 export function buildFestive(): FestiveGeometry {
   if (farm) return farm;
   const d = new Dressing();
-  // The big tree by the doors, with the presents heaped under it.
-  d.tree(-4.2, BARN.maxZ + 2.2, 5);
+  // The big tree by the doors, with the presents heaped under it. To the game's scale (plan file 04, section 4.4): its
+  // boughs top out at 4.2 m (they were 4.8, under a 1.5 m hero), the star above them, and no present over 0.6 m with
+  // its knot.
+  // Its baubles take their cells from the boughs (`clear`), as the barn tree's do: set into them they lay face on face.
+  d.tree(-4.2, BARN.maxZ + 2.2, 4.4, true, 0.2, true);
   d.present(-3.1, BARN.maxZ + 3.2, 0.7, 0.5, T.collar[1], GOLD);
-  d.present(-4.4, BARN.maxZ + 3.8, 0.9, 0.7, T.pine[1], T.snow[1]);
-  d.present(-5.5, BARN.maxZ + 3.2, 0.6, 0.6, GOLD, T.collar[1]);
+  d.present(-4.4, BARN.maxZ + 3.8, 0.8, 0.5, T.pine[1], T.snow[1]);
+  d.present(-5.5, BARN.maxZ + 3.2, 0.6, 0.4, GOLD, T.collar[1]);
   // A small one in the corner of the barn for the table to see, clear of every seat. Its baubles are BARN_BAUBLE across
   // (plan file 06, section 4.6): at 0.2 m they read as blocks at the table's distance.
   // (The call's own line is pinned by the checker, src/skin/scene/placed.ts, so the baubles are set around it.)
@@ -268,7 +329,8 @@ export function buildFestive(): FestiveGeometry {
     d.cane(-YARD.path.halfWidth - 1.4, z, 1); // set back: the tour's path shot looks straight down this side
     d.cane(YARD.path.halfWidth + 0.3, z, -1);
   }
-  d.hat(YARD.snowman.x, 2.92, YARD.snowman.z); // on the head's crown (the ball tops out at 2.96)
+  // On the head's crown, which tops out at 2.96 m x scale; the hat shrinks with the snowman (plan file 04, section 4.4).
+  d.hat(YARD.snowman.x, 2.92 * YARD.snowman.scale, YARD.snowman.z, YARD.snowman.scale);
   // Round the barn walls, for the table's camera: swags down both sides and stockings either side of the doors.
   for (const side of [-1, 1]) {
     d.swags([side * (BARN.maxX - 0.25), 3.6, -3.4], [side * (BARN.maxX - 0.25), 3.6, BARN.maxZ - 0.6], 3.2, 0.4);
@@ -331,11 +393,12 @@ export function buildFarmFestive(): FestiveGeometry {
   // The coop: lights along both eaves.
   // Under the eaves' own cells (2.0 to 2.2 m up, z -0.2 to 0 and 3.0 to 3.2): they hung past the eaves' ends in the air.
   for (const z of [coop.z + 1.52, coop.z - 1.62]) d.strand([coop.x - 2.2, 1.9, z], [coop.x + 2.2, 1.9, z], 0.16, 0.4);
-  // The tractor: lights down both sides of the hood, and presents waiting to be loaded.
+  // The tractor: lights down both sides of the hood, and presents waiting to be loaded, stacked behind its back wheels and out past the edge of its shot:
+  // in front of it they stood between the tractor's shot (tour shot 5) and the tractor (plan file 04, section 4.4).
   for (const side of [-0.5, 0.5]) d.strand([tractor.x - 1.9, 1.5, tractor.z + side], [tractor.x + 0.6, 1.5, tractor.z + side], 0.02, 0.3, 0.1);
-  d.present(tractor.x - 1.2, tractor.z + 2.1, 0.7, 0.6, T.collar[1], GOLD);
-  d.present(tractor.x - 0.2, tractor.z + 2.4, 0.5, 0.4, T.pine[1], T.snow[1]);
-  d.present(tractor.x + 0.6, tractor.z + 2.1, 0.6, 0.7, GOLD, T.collar[1]);
+  d.present(tractor.x + 3.65, tractor.z + 0.4, 0.6, 0.5, T.collar[1], GOLD);
+  d.present(tractor.x + 3.70, tractor.z + 1.15, 0.5, 0.4, T.pine[1], T.snow[1]);
+  d.present(tractor.x + 4.40, tractor.z + 0.75, 0.6, 0.5, GOLD, T.collar[1]);
   // The orchard: the odd bauble left hanging on a branch.
   // Each hangs from its tip's own cell (the orchard's 0.2 m grid), overlapping the cell's lower half: hung 0.2 m under
   // the tip's point, a bauble often missed the branch and floated.

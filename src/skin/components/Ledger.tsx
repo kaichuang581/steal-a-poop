@@ -56,7 +56,7 @@ export function LedgerRow({ player: p, place, maxLives, ringed, bomb, lastWord, 
           {p.difficulty && markBot && <span className="sk-ledger-badge" title={`${p.difficulty} bot`} role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
         </span>
         <span className="sk-ledger-sub">
-          {markBot && <span>bot{lastWord !== undefined ? ' ' : ''}</span>}
+          {markBot && <span>bot</span>}
           {lastWord !== undefined && <span className="sk-ledger-word" data-seat-word={marks ? p.id : undefined}>{lastWord ?? '—'}</span>}
         </span>
       </span>

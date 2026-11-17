@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 /**
  * A sheep's lives, as small balls of wool: one per wool ball it has, wound tight, with an empty dashed ring for each
@@ -27,6 +27,9 @@ export function Lives({ lives, max = 3, size = 14 }: { lives: number; max?: numb
 
 /** One ball of yarn: a cream ball with wound strands and a loose end, or an empty ring once it is gone. */
 export function WoolBall({ full, size = 14, anim = null }: { full: boolean; size?: number; anim?: 'lost' | 'gained' | null }) {
+  // Each ball owns its gradient and clip: a shared id pointed every ball at the first one on the page, and when that
+  // one sat on a hidden name plate the others lost their fill.
+  const id = `wool${useId().replace(/[^A-Za-z0-9_-]/g, '')}`;
   if (!full && anim !== 'lost') {
     return (
       <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true">
@@ -38,17 +41,17 @@ export function WoolBall({ full, size = 14, anim = null }: { full: boolean; size
     <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true" style={{ overflow: 'visible' }}
       className={anim === 'lost' ? 'sk-wool-lost' : anim === 'gained' ? 'sk-wool-gained' : undefined}>
       <defs>
-        <radialGradient id="sk-wool-shade" cx="0.36" cy="0.3" r="0.85">
+        <radialGradient id={`${id}-shade`} cx="0.36" cy="0.3" r="0.85">
           <stop offset="0" stopColor="#FFFDF7" />
           <stop offset="0.5" stopColor="#F6E6C8" />
           <stop offset="1" stopColor="#D8B486" />
         </radialGradient>
-        <clipPath id="sk-wool-clip"><circle cx="8" cy="8" r="6.4" /></clipPath>
+        <clipPath id={`${id}-clip`}><circle cx="8" cy="8" r="6.4" /></clipPath>
       </defs>
       <ellipse cx="8.3" cy="14.6" rx="5.6" ry="1.3" fill="rgba(59,40,20,0.28)" />
-      <circle cx="8" cy="8" r="6.6" fill="url(#sk-wool-shade)" />
+      <circle cx="8" cy="8" r="6.6" fill={`url(#${id}-shade)`} />
       {/* Two crossing bands of wound yarn, clipped to the ball, then the outline over them. */}
-      <g clipPath="url(#sk-wool-clip)" fill="none" strokeLinecap="round">
+      <g clipPath={`url(#${id}-clip)`} fill="none" strokeLinecap="round">
         <g stroke="#C08A55" strokeWidth="0.95">
           <path d="M-1 5.6 Q8 1.8 17 6.2" /><path d="M-1 8.2 Q8 4.4 17 8.8" /><path d="M-1 10.8 Q8 7 17 11.4" />
         </g>

@@ -54,7 +54,7 @@ export function PaintedCredits({ onClose }: { onClose: () => void }) {
           </section>
           <section>
             <h3>Fonts and sound</h3>
-            <p className="text-sm">Fraunces, Nunito, Patrick Hand and DotGothic16 from Google Fonts (SIL Open Font License), and Helvetiker from three.js (MIT).
+            <p className="text-sm">Fraunces, Nunito and Patrick Hand (SIL Open Font License), which come with the game, and Helvetiker from three.js (MIT).
               All sounds are made in your browser; there are no audio files.</p>
           </section>
         </div>

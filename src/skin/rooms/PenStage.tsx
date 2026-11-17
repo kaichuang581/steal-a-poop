@@ -12,6 +12,7 @@ import { Sky } from '../scene/Sky';
 import { ScreenAnchor } from '../table/Anchors';
 import { nameplateY } from '../table/BarnTable';
 import { AdaptiveCanvas, Effects, LANTERN_LIGHT } from '../table/Rendering';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { Sheep } from '../table/Sheep';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
@@ -37,6 +38,7 @@ export function PenStage({ guests, farmSheep, reduced, phone, shift }: { guests:
   const flock = useRef(new Map<string, Roamer>()).current;
   return (
     <div className="absolute inset-0" style={{ background: NIGHT }}>
+      <SceneBoundary scene="the pen">
       <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="pen" resize={{ offsetSize: true }} shadows={{ type: PCFShadowMap }}
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false }}
         camera={{ fov: shot.fov, position: shot.position, near: 0.1, far: 600 }}
@@ -51,6 +53,7 @@ export function PenStage({ guests, farmSheep, reduced, phone, shift }: { guests:
         <Effects />
         <Unstack plates={plates} />
       </AdaptiveCanvas>
+      </SceneBoundary>
       <div className="rm-plates" aria-hidden="true">
         {guests.map((g) => (
           // The table's own name tag (PaintedGame's `.sk-plate`): dark stitched wool, the name, and "you" as it says there.

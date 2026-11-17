@@ -26,7 +26,8 @@ import { AcornIcon, BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, LeafIcon
 import { Notice } from '../components/Notice';
 import { ChainList, RulesCard } from '../components/RulesCard';
 import { CoachTips } from '../../ui/CoachTips';
-import { useGameLoop, useIsMobile } from '../../ui/hooks';
+import { useGameLoop } from '../../ui/hooks';
+import { usePhoneLayout } from '../device';
 import { RewardBanner } from '../../ui/social/RewardBanner';
 import { PaintedTour } from '../tour/PaintedTour';
 import { RatedSlip } from '../ranked/RatedSlip';
@@ -100,7 +101,7 @@ export function PaintedGame() {
   const quit = useStore((s) => s.quit);
   const dict = useStore((s) => s.dict);
   const now = useStore((s) => s.now);
-  const mobile = useIsMobile();
+  const mobile = usePhoneLayout();
   const reduced = useMotionLevel() === 'reduced';
   const deviceHour = useHour();
   const [moods, setMoods] = useState<Record<number, Mood>>({});
@@ -633,7 +634,7 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
   const stats = true;
   const [hidden, setHidden] = useState(false);
   const reducedMotion = useStore((s) => s.reduceMotion);
-  const phone = useIsMobile();
+  const phone = usePhoneLayout();
   // Read once: the table re-renders every frame and this reads storage.
   const days = useMemo(() => (mode === 'daily' ? streakDays(new Date(`${dailyDate ?? utcDateKey(new Date())}T12:00:00Z`)) : []), [mode, dailyDate]);
   const result = useStore((s) => s.gameResult);

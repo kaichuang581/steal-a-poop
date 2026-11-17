@@ -152,9 +152,12 @@
   animation: sk-title-fade 500ms 600ms var(--ease-out) both;
 }
 .sk-title-holly { position: absolute; top: -8px; left: -14px; z-index: 2; width: 58px; height: auto; filter: drop-shadow(0 2px 2px rgba(30, 18, 8, 0.6)); }
-/* The update's name on a red ribbon, under the tagline. */
+/* The update's name on a red board. On a computer TitleBoard puts it inside the sign, and it hangs just past the sign's
+   right edge: clear of the last tile whatever the title's length (a fixed 342px lay over the D of a seven-letter word),
+   and out of the column's flow, so the menu under the title does not move. */
+.sk-title-sign { position: relative; }
 .sk-update {
-  position: absolute; top: 8px; left: 342px; width: 150px; padding: 8px 10px 5px; text-align: center; transform: rotate(4deg);
+  position: absolute; top: 8px; left: calc(100% + 8px); width: 150px; padding: 8px 10px 5px; text-align: center; transform: rotate(4deg);
   font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; line-height: 1.3; color: var(--button-text);
 }
 .sk-title-compact .sk-update { position: static; display: block; width: fit-content; margin: 4px auto 0; font-size: 15px; transform: rotate(-1.5deg); }
@@ -439,7 +442,10 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @media (max-width: 640px) { .sk-tally-actions > * { padding: 0 10px; font-size: 15px; } }
 
 /* The barn ledger: a chalk slate hung on two ropes at the top right, a row per sheep in standings order. */
-.sk-ledger { position: relative; z-index: 30; width: 236px; margin: 70px 10px 0 auto; }
+/* In a short window with many seats it gives up height and scrolls inside itself, so the column (top bar, board, word
+   bar) never grows past the screen and pushes the round tab and pegs off the top. It stays in the flow, exactly where
+   it was. The 3 px foot keeps the slate's own shadow inside the scrolling box. */
+.sk-ledger { position: relative; z-index: 30; width: 236px; margin: 70px 10px 0 auto; min-height: 0; padding-bottom: 3px; overflow: hidden auto; scrollbar-width: thin; }
 .sk-ledger .kit-slate { display: flex; width: 100%; }
 .sk-ledger-row { position: relative; gap: 6px; padding: 4px 2px; line-height: 1.1; color: var(--chalk); transition: opacity var(--t-feedback) var(--ease-out); }
 .sk-ledger-row[data-dim] { opacity: 0.5; }
@@ -447,7 +453,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-ledger-who { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; }
 .sk-ledger-name { display: inline-flex; max-width: 100%; align-items: center; gap: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 3px; font-size: 18px; }
 .sk-ledger-badge { display: inline-flex; color: var(--chalk); opacity: 0.85; }
-.sk-ledger-sub { display: flex; max-width: 100%; overflow: hidden; white-space: nowrap; padding-left: 3px; font-size: 13px; opacity: 0.7; }
+.sk-ledger-sub { display: flex; gap: 5px; max-width: 100%; overflow: hidden; white-space: nowrap; padding-left: 3px; font-size: 13px; opacity: 0.7; }
 .sk-ledger-word { text-transform: uppercase; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; }
 .sk-ledger-ice { display: inline-flex; color: var(--ice-mid); }
 .sk-ledger-wool { margin-left: auto; display: inline-flex; }
@@ -699,7 +705,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   70% { filter: brightness(1.25) sepia(0.2); opacity: 1; }
   100% { transform: scale(2.6); filter: brightness(1.9) sepia(0.45); opacity: 0.15; }
 }
-.sk-swoop-in { animation: sk-swoop-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: 50% 55%; }
+.sk-swoop-in { animation: sk-swoop-in 900ms cubic-bezier(0.16, 1, 0.3, 1) backwards; transform-origin: 50% 55%; }
 @keyframes sk-swoop-in {
   0% { transform: scale(1.35); filter: brightness(1.8) sepia(0.4); opacity: 0; }
   35% { opacity: 1; }
@@ -993,6 +999,13 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @media (max-height: 740px) and (min-width: 641px) {
   .sk-home .sk-menu-board .sk-menu-row .sk-menu-item:not(.sk-menu-primary) { min-height: 35px; font-size: 21px; }
   .sk-home .sk-menu-board .sk-menu-row .sk-menu-primary { min-height: 64px; }
+}
+/* A phone on its side gets the phone layout (usePhoneLayout in device.ts) in a window wider than 640 px. The row of
+   names runs five across there, so ten seats are two rows and the word bar stays on screen; and the menu's rows keep a
+   finger's height (the two short-window rules above are for a computer's menu and would shrink them). */
+@media (max-height: 500px) and (pointer: coarse) and (min-width: 641px) {
+  .sk-ledger-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sk-home .sk-menu-compact .sk-menu-board .sk-menu-row .sk-menu-item:not(.sk-menu-primary) { min-height: 46px; font-size: 21px; }
 }
 
 /* ---------- Rooms and the lobby (classic components, V6 6.5): a panel of planks, paper fields, brass and wood buttons ---------- */

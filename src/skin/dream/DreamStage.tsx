@@ -1,4 +1,5 @@
 import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -80,6 +81,7 @@ interface Props {
 export function DreamStage(props: Props) {
   const shot = dreamShot(props.phone, props.landscapePhone);
   return (
+    <SceneBoundary scene="the dream">
     <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="dream"
       shadows={{ type: PCFShadowMap }}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
@@ -90,6 +92,7 @@ export function DreamStage(props: Props) {
       <MarkDrawn />
       <DevStats />
     </AdaptiveCanvas>
+    </SceneBoundary>
   );
 }
 

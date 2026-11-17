@@ -1,4 +1,5 @@
 import { AdaptiveCanvas, MarkDrawn } from './Rendering';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -385,6 +386,7 @@ export function Podium({ entries, reduced, phone, aside = false }: { entries: Po
   const anchors = useSlipRefs();
   return (
     <div className="sk-podium" aria-label="The podium">
+      <SceneBoundary scene="the podium">
       <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="podium"
         shadows={{ type: PCFShadowMap }}
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, antialias: true }}
@@ -394,6 +396,7 @@ export function Podium({ entries, reduced, phone, aside = false }: { entries: Po
         <Scene entries={entries} reduced={reduced} anchors={anchors} />
         <MarkDrawn />
       </AdaptiveCanvas>
+      </SceneBoundary>
       <SlipLayer refFor={anchors} seats={entries.map((e) => ({
         seat: e.place,
         label: <span className="sk-pod-name" data-place={e.place}>{e.name}{e.isYou ? ' (you)' : ''}</span>,

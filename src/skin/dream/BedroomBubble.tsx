@@ -1,4 +1,5 @@
 import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
@@ -46,6 +47,7 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
     <div className="dr-bubble" data-woke={woke || undefined} data-room={room || undefined}>
       <div className="dr-bubble-rim" />
       <div className="dr-bubble-view">
+        <SceneBoundary scene="the bedroom" size="note">
         <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="bedroom"
           flat={false}
           gl={{ antialias: true, alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1 }}
@@ -55,6 +57,7 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
           <Room live={live} phase={phase} reduced={reduced} phone={phone} blankets={blankets} anchors={anchors} />
           <MarkDrawn />
         </AdaptiveCanvas>
+        </SceneBoundary>
       </div>
       <span className="dr-bubble-zs" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="dream-z" data-i={i}>z</span>)}</span>
       <span className="dr-bubble-bang" aria-hidden="true">hm?</span>

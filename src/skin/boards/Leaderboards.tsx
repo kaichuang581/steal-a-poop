@@ -9,6 +9,7 @@ import { useAvatar } from '../avatars/store';
 import { Garland } from '../components/Garland';
 import { ArrowUpIcon, CloseIcon, TrophyIcon } from '../components/Icons';
 import { usePageHistory } from '../hooks/usePageHistory';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { Peg, Slate, Switch, Tag } from '../kit';
 import { standingLine } from '../profile/Profile';
 import type { Board as LevelBoard } from '../profile/Profile';
@@ -250,9 +251,12 @@ export function Leaderboards({ onClose }: { onClose: () => void }) {
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Leaderboards" className="rm-screen sk-lb" data-busy={busy || undefined}>
+      {/* Round the lazy stage: its code failing to load (a tab open across a new version) or its sky failing to draw. */}
+      <SceneBoundary scene="the leaderboards' sky">
       <Suspense fallback={null}>
         <BoardStage seats={MEDAL.map((_, i) => ({ place: (i + 1) as 1 | 2 | 3, you: !!lines[i]?.you, avatar: lines[i]?.you ? avatar : null, taken: !!lines[i] }))} plaques={plaques} windowEl={win} />
       </Suspense>
+      </SceneBoundary>
       <div className="sk-lb-body">
         <header className="sk-lb-bar kit-beam kit-drift">
           <i className="kit-beam-strap" />

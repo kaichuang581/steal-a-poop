@@ -14,6 +14,7 @@ import { Farmstead, farmReady } from './Farmstead';
 import { doorsShut } from '../components/BarnDoors';
 import { Wendigo } from './Wendigo';
 import { AdaptiveCanvas, Atmosphere, Effects, FOG, Lights, MarkDrawn, yawToward } from './Rendering';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
@@ -60,6 +61,8 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
   return (
     <>
     {sky}
+    {/* Round the fade as well as the canvas: a farm that cannot be drawn never becomes ready, and its card must show. */}
+    <SceneBoundary scene="the farm" place={phone ? 'top' : 'center'}>
     <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined} data-instant={instant || undefined}>
     <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm" frameloop={paused ? 'never' : 'always'}
       shadows={{ type: PCFShadowMap }}
@@ -90,6 +93,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <DevStats />
     </AdaptiveCanvas>
     </div>
+    </SceneBoundary>
     <div ref={veil} className="pointer-events-none absolute inset-0 bg-[#0b0806] opacity-0" />
     </>
   );

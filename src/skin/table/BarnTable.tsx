@@ -1,6 +1,6 @@
 import { Bomb } from './Bomb';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
@@ -9,7 +9,7 @@ import type { Hour } from '../model/types';
 import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
 import { buildDistance } from '../scene/distance';
 import { buildFestive } from '../scene/festive';
-import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, speakerShot } from '../scene/layout';
+import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, speakerShot, swoopCrop } from '../scene/layout';
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYard } from '../scene/yard';
@@ -22,6 +22,7 @@ import { DevStats } from './DevStats';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Festive } from './Festive';
 import { AdaptiveCanvas, Atmosphere, Effects, LANTERN_LIGHT, lanternIntensity, Lights, MarkDrawn } from './Rendering';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
@@ -150,9 +151,12 @@ export function BarnTable(props: Props) {
   const w = useWorld();
   const slipRef = useSlipRefs();
   const fadeEl = useRef<HTMLDivElement>(null);
+  // Whether the game swooped in is settled when the table comes up: changing the motion setting mid-game must not reframe it.
+  const [swooped] = useState(!props.reduced);
   if (!w) return <Building />;
   return (
     <div className="relative size-full">
+      <SceneBoundary scene="the table">
       <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="table"
         shadows={{ type: PCFShadowMap }}
        
@@ -161,8 +165,10 @@ export function BarnTable(props: Props) {
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >
         <MarkDrawn />
+        <SwoopCrop ran={swooped} />
         <Scene {...props} world={w} anchors={{ fade: fadeEl, slip: slipRef }} />
       </AdaptiveCanvas>
+      </SceneBoundary>
       {/* Reduced motion: the camera cuts between speakers behind a 150 ms fade. */}
       <div ref={fadeEl} className="pointer-events-none absolute inset-0 z-[4]" style={{ background: 'var(--ink)', opacity: 0 }} aria-hidden="true" />
       <SlipLayer seats={props.seats} refFor={slipRef} />
@@ -171,6 +177,21 @@ export function BarnTable(props: Props) {
 }
 
 type Anchors = { fade: React.RefObject<HTMLDivElement | null>; slip: (seat: number) => React.RefObject<HTMLDivElement | null> };
+
+/**
+ * Keeps the table's picture as it was while its canvas was measured too big (see `SWOOP_CROP` in scene/layout.ts): the
+ * camera's view is offset to the same top-left part of each shot, again at every new canvas size. The name plates are
+ * placed through this camera (`ScreenAnchor`), so they stay over their heads. The ice and the pen never had the fault.
+ */
+function SwoopCrop({ ran }: { ran: boolean }) {
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const size = useThree((s) => s.size);
+  useLayoutEffect(() => {
+    swoopCrop(camera, size.width, size.height, ran);
+    return () => camera.clearViewOffset();
+  }, [camera, size.width, size.height, ran]);
+  return null;
+}
 
 export function Building() {
   return (

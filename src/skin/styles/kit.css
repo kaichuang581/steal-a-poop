@@ -264,12 +264,14 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
   box-shadow: inset 0 0 0 3px var(--wood-ink), inset 0 2px 0 4px rgba(255, 220, 170, 0.18), 0 4px 0 rgba(40, 24, 10, 0.45);
   transition: transform var(--t-fast) var(--ease-out), filter var(--t-fast);
 }
-.kit-peg:hover, .sk-icon-btn:hover { filter: brightness(1.12); }
-.kit-peg:active, .sk-icon-btn:active { transform: translateY(2px); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
+.kit-peg:hover:not(:disabled), .sk-icon-btn:hover:not(:disabled) { filter: brightness(1.12); }
+.kit-peg:active:not(:disabled), .sk-icon-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 2px 0 rgba(40, 24, 10, 0.45); }
 .kit-peg[aria-pressed="true"], .sk-icon-btn[aria-pressed="true"] { filter: brightness(0.85); }
 .kit-peg--light, .sk-home .sk-icon-btn, .sk-icon-chip { color: var(--wood-ink); background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(40, 24, 10, 0.12) 35% 37%, transparent 38%), radial-gradient(circle at 40% 35%, #F0CC96 0%, var(--tile) 75%); }
 .kit-peg--sm { width: 36px; height: 36px; }
 .kit-peg[data-admin], .sk-icon-btn[data-admin] { color: var(--glow); box-shadow: inset 0 0 0 3px var(--wood-ink), 0 0 0 3px var(--amber), 0 4px 0 rgba(40, 24, 10, 0.45); }
+/* A peg that cannot be pressed looks it (the tutorial's Hint off your turn): faded like a disabled button, no glow. */
+.kit-peg:disabled, .sk-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
 
 /* ---------- Clipboard, panel, lever, rope slider ---------- */
 /* Every dialog that is not yet a <Clipboard>: paper held in a light board's frame by a brass clip. */

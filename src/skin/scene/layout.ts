@@ -117,3 +117,20 @@ export function speakerShot(index: number, n: number, phone: boolean, headY = SP
     fov: phone ? c.phoneFov : c.fov,
   };
 }
+
+/**
+ * How much of the table's picture the frame shows when the game swooped in. The table's canvas used to be measured
+ * while the swoop still had it scaled up, 1.21 to 1.35 times its box each way, so the screen showed the top-left part of
+ * every shot, magnified. The canvas now fits its box, and this (the middle of that range) keeps the same picture.
+ */
+export const SWOOP_CROP = 1.275;
+
+/**
+ * Makes a camera draw that same picture into a canvas of `width` by `height`: the top-left corner of a view
+ * `SWOOP_CROP` times as big each way. With `ran` false (reduced motion: no swoop, so the canvas was always right) the
+ * whole shot is drawn. No camera moves and no lens changes.
+ */
+export function swoopCrop(camera: { setViewOffset(fullWidth: number, fullHeight: number, x: number, y: number, width: number, height: number): void; clearViewOffset(): void }, width: number, height: number, ran: boolean): void {
+  if (ran && width > 0 && height > 0) camera.setViewOffset(SWOOP_CROP * width, SWOOP_CROP * height, 0, 0, width, height);
+  else camera.clearViewOffset();
+}

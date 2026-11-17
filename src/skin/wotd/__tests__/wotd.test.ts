@@ -4,6 +4,8 @@ import { levelFor, wordOfDay } from '../pick';
 import { WOTD } from '../words';
 
 const DICT = new Set(readFileSync('public/words.txt', 'utf8').split('\n').map((w) => w.trim()).filter(Boolean));
+/** The meanings and examples, which no screen shows: kept out of the game's code, in public/wotd-notes.json. */
+const NOTES: Record<string, { meaning?: string; example?: string }> = JSON.parse(readFileSync('public/wotd-notes.json', 'utf8'));
 
 /** Every date key of a year, in order. */
 function yearOfDates(year: number): string[] {
@@ -18,9 +20,9 @@ describe('the word list', () => {
     expect(new Set(WOTD.map((w) => w.word)).size).toBe(365);
     for (const w of WOTD) {
       expect(w.word.trim(), w.word).not.toBe('');
-      expect(w.meaning.trim(), w.word).not.toBe('');
-      expect(w.example.trim(), w.word).not.toBe('');
-      expect(w.meaning.length, w.word).toBeLessThanOrEqual(90);
+      expect(NOTES[w.word]?.meaning?.trim() ?? '', w.word).not.toBe('');
+      expect(NOTES[w.word]?.example?.trim() ?? '', w.word).not.toBe('');
+      expect(NOTES[w.word]?.meaning?.length ?? 0, w.word).toBeLessThanOrEqual(90);
       expect(w.short.trim(), w.word).not.toBe('');
       expect(w.short.length, w.word).toBeLessThanOrEqual(32);
       expect([1, 2, 3]).toContain(w.level);

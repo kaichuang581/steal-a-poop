@@ -2,6 +2,11 @@
 
 All user-visible changes, newest first.
 
+## 0.7.13
+
+- New faces: the goat's mouth sits flush in its muzzle and its horns rise behind the ears; the horse's nostrils no longer read as eyes, its eyes sit flush and its neck climbs in even steps; the chicken has a tail of three flat feathers; the cow's eyes lose their glint.
+- Each animal's shadow costs two draws instead of up to ten, for the same shadows.
+
 ## 0.7.12
 
 - The letter board is now wholly in the picture on every turn at the table; it slides along the beam when it needs to.

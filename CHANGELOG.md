@@ -2,6 +2,19 @@
 
 All user-visible changes, newest first.
 
+## 0.7.15
+
+- Counting Sheep is seen exactly from the side on every device, like the dinosaur game. Every screen sees the next fence earlier than before (at top speed on a computer 0.61 s instead of 0.33 s), and the sheep is as big as before on a computer.
+- The fences fill their space, so a jump visibly clears them and a bump visibly hits.
+- The sky behind the run is flatter and lighter to draw.
+- Leaving Counting Sheep no longer throws an error.
+
+## 0.7.14
+
+- The farm tour's cameras no longer start pressed against a fence post or a tree, and the tractor and hens' run are framed whole.
+- The farm is at the animals' scale: a smaller snowman and Christmas tree by the doors, smaller presents, none in front of the tractor.
+- The animals in the paddock have new spots.
+
 ## 0.7.13
 
 - New faces: the goat's mouth sits flush in its muzzle and its horns rise behind the ears; the horse's nostrils no longer read as eyes, its eyes sit flush and its neck climbs in even steps; the chicken has a tail of three flat feathers; the cow's eyes lose their glint.

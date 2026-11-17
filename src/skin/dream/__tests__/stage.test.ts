@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { FIELD } from '../../../dream/dream';
-import { atFrame, CHUNK, chunkPlacements, DESKTOP_SHOT, frameOf, islandPlace, ISLANDS, islandX, PHONE_SHOT, PUFFS, PX, scrollOf, worldX } from '../stage';
-import { cloudSea, FENCE_LOOKS, hillHeight, hills, island, lookOf, mountainHeight, mountains, obstacle, raftChunk, raftRise } from '../world';
+import { CHUNK, chunkPlacements, dreamView, frameMetres, islandPlace, ISLANDS, islandX, PX, screenY, scrollOf, worldX } from '../stage';
+import { cloudSea, farCells, FENCE_LOOKS, hillHeight, hills, island, lookOf, mountainHeight, mountains, obstacle, raftChunk, raftRise } from '../world';
+
+/** The gate's sizes (plan file 09, 4.7); narrower than 640 is a phone held upright. */
+const SIZES = [[1280, 800], [1920, 1080], [1024, 768], [844, 390], [390, 844], [390, 450]] as const;
+const viewAt = (w: number, h: number) => dreamView(w, h, w < 640);
 
 describe('the dream stage (V4 Part 4)', () => {
   it('maps logical pixels to metres: the sheep at 0, the spawn and type windows ahead', () => {
@@ -22,23 +26,6 @@ describe('the dream stage (V4 Part 4)', () => {
     }
     for (const p of chunkPlacements(span)) expect(p.gen).toBe(1);
   });
-  it('frames the plan\'s positions: horizon, sheep, first fence and raft edges (V4.1 Part 3)', () => {
-    const at = (p: readonly [number, number, number]) => frameOf(DESKTOP_SHOT, 16 / 9, p);
-    expect(at([0, 0, 0])[0]).toBeCloseTo(22.5, 0);
-    expect(at([5.4, 0, 0])[0]).toBeCloseTo(82, 0);
-    expect(at([0, 0, 0])[1]).toBeGreaterThan(64);
-    expect(at([0, 0, 2])[1]).toBeCloseTo(75, 0);
-    expect(at([0, 0, -3])[1]).toBeCloseTo(58, 0);
-    expect(at([2.5, 1.6, -5000])[1]).toBeCloseTo(34.7, 0);
-    expect(DESKTOP_SHOT.fov).toBe(32);
-    expect(PHONE_SHOT.fov).toBe(44);
-  });
-  it('puts the phone\'s sheep at (30, 58) with the first fence in view', () => {
-    const at = (p: readonly [number, number, number]) => frameOf(PHONE_SHOT, 390 / 844, p);
-    expect(at([0, 0, 0])[0]).toBeCloseTo(30, 0);
-    expect(at([0, 0, 0])[1]).toBeCloseTo(58, 0);
-    expect(at([5.4, 0, 0])[0]).toBeLessThan(92);
-  });
   it('keeps the islands to the plan\'s rules: in frame with a margin, clear of the lane, none too wide', () => {
     for (const it of ISLANDS) {
       const [x0, x1, y0, y1] = it.box;
@@ -49,8 +36,12 @@ describe('the dream stage (V4 Part 4)', () => {
       expect(y1).toBeLessThan(58);
       expect(it.z).toBeLessThanOrEqual(-10);
       const p = islandPlace(it);
-      expect(frameOf(DESKTOP_SHOT, 16 / 9, [p.x, p.y, it.z])[1]).toBeCloseTo(y0, 3);
       expect(islandX(it, 0, p.x, p.across)).toBeCloseTo(p.x, 6);
+    }
+    // Round trip: at every size the island's top lands at its box's top edge in the frame.
+    for (const [w, h] of SIZES) for (const it of ISLANDS) {
+      const v = viewAt(w, h), p = islandPlace(it, v.phone, v);
+      expect((screenY(v, p.y / PX) / h) * 100).toBeCloseTo((v.phone ? it.phoneBox : it.box)[2], 6);
     }
   });
   it('sends an island off the left and back in on the right, at its own pace', () => {
@@ -58,18 +49,6 @@ describe('the dream stage (V4 Part 4)', () => {
     let wrapped = false;
     for (let s = 0; s < 800; s += 2) if (islandX(it, s + 2, p.x, p.across) > islandX(it, s, p.x, p.across)) wrapped = true;
     expect(wrapped).toBe(true);
-  });
-  it('keeps the thought trail off the sheep and ends it on the near ridge', () => {
-    const [hooves] = [frameOf(DESKTOP_SHOT, 16 / 9, [0, 0, 0])];
-    for (const [x, y, w] of PUFFS) expect(y > hooves[1] + 2 || x - w / 2 > hooves[0] + 6).toBe(true);
-    expect(PUFFS[2][1]).toBeGreaterThanOrEqual(73);
-  });
-  it('turns a frame position back into a world point', () => {
-    const p = atFrame(DESKTOP_SHOT, 16 / 9, 88, 10, -150);
-    const [x, y] = frameOf(DESKTOP_SHOT, 16 / 9, p);
-    expect(x).toBeCloseTo(88, 4);
-    expect(y).toBeCloseTo(10, 4);
-    expect(p[2]).toBe(-150);
   });
 });
 
@@ -99,9 +78,10 @@ describe('the dream\'s world (V4.1 Parts 5 and 6)', () => {
     expect(new Set(Array.from({ length: 30 }, (_, i) => lookOf('fence', i))).size).toBe(4);
   });
   it('holds the far voxels under 1.6% of the frame\'s height (Part 5.3)', () => {
-    const frameHeight = (z: number) => 2 * Math.tan((16 * Math.PI) / 180) * (DESKTOP_SHOT.position[2] - z);
-    expect(0.5 / frameHeight(-50)).toBeLessThanOrEqual(0.016);
-    expect(1 / frameHeight(-100)).toBeLessThanOrEqual(0.0161);
+    for (const [w, h] of SIZES) {
+      const v = viewAt(w, h), tall = frameMetres(v)[1];
+      for (const cell of Object.values(farCells(v))) expect(cell / tall).toBeLessThan(0.016);
+    }
   });
   it('shapes the ranges inside the plan\'s heights, repeating without a seam', () => {
     for (let x = -80; x < 80; x += 0.5) {

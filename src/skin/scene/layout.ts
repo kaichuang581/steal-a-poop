@@ -65,7 +65,8 @@ export const YARD = {
   fence: { z: 15, minX: -16, maxX: 16, gateHalfWidth: 1.6 },
   farmhouse: { x: -9, z: 30 },
   pond: { x: 10, z: 24, rx: 4.5, rz: 3 },
-  snowman: { x: 4.5, z: 11 },
+  /** `scale` sizes the snowman against the 1.5 m hero (plan file 04, section 4.4): its head tops out at 2.96 m x scale. */
+  snowman: { x: 4.5, z: 11, scale: 0.72 },
   pines: [[-14, 20], [-17, 26], [13, 33], [17, 19], [-6, 40], [7, 42], [-22, 34], [22, 30], [-9.8, 12.7], [-10.9, 16.8]] as const,
 };
 

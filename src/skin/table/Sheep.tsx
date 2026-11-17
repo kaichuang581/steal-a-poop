@@ -946,6 +946,8 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     let bm = ALL_B, hm = ALL_H;
     if (!(level === 0 || Math.abs(ws - 1) <= BREATH)) bm &= ~B.coat;
     if (!(c[CH.legLift] === 0 && fl.rotation.x === 0 && fr.rotation.x === 0 && bl.rotation.x === 0 && br.rotation.x === 0)) bm &= ~B.legs;
+    // Joined on the CPU, the pig's legs round apart from the GPU's and move its shadow a row (LEGS_APART): they cast alone.
+    if (LEGS_APART.has(species)) bm &= ~B.legs;
     if (!(tail.rotation.x === 0 && tail.rotation.y === 0 && tail.scale.x === 1)) bm &= ~B.tail;
     if (bell.rotation.x !== 0) bm &= ~B.bell;
     if (o.neck && (o.neck as Group).rotation.x !== 0) bm &= ~B.neck;

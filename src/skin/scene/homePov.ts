@@ -41,7 +41,11 @@ export const HOME_CAMERA = {
 
 /**
  * The start screen's tour of the farm, turn and turn about between the avatar and the rest of the place. Every scene
- * travels. On desktop the menu covers the left of the frame, so each one keeps its subject right of centre.
+ * travels. On desktop the menu covers the left of the frame, so each one keeps its subject right of centre. Each lens
+ * keeps 1.0 m clear of every voxel in view over its push and drift, and each computer subject sits inside the frame's
+ * clear part (plan file 04, section 4.3; scene/__tests__/homePov.test.ts). Exceptions, listed in that test: computer 2
+ * (the wendigo's shot, frozen) and 3 (kept by the plan) look past nearer scenery, and no phone subject fits the strip
+ * the title and name plate leave free (a question for Brian). Index 2 of either list, the wendigo's shot, never moves.
  */
 export const POV_SHOTS: { desktop: PovShot[]; phone: PovShot[] } = {
   desktop: [
@@ -52,22 +56,22 @@ export const POV_SHOTS: { desktop: PovShot[]; phone: PovShot[] } = {
     // Along the paddock fence, the animals with the silo behind them.
     { position: [21.2, 2.3, 6.2], target: [12.5, 0.9, -2.5], fov: 38, push: [-1.8, -0.2, 0.5], spill: 0.4 },
     // Over the avatar's shoulder from inside the barn, out at the yard.
-    { position: [0.2, 1.1, 2.6], target: [1.5, 1.7, 8.2], fov: 44, push: [0, 0.1, 1], spill: 0.5 },
+    { position: [0.2, 1.1, 2.6], target: [1.07, 1.12, 8.2], fov: 44, push: [0, 0.1, 1], spill: 0.5 },
     // The hens' run.
-    { position: [-6.2, 2.9, 12.2], target: [-15.4, 0.7, 3.2], fov: 30, push: [-1.6, -0.2, -0.4], spill: 0.4 },
+    { position: [-5.9, 2.9, 12.3], target: [-16.7, 0.4, 4.5], fov: 34.5, push: [-0.8, -0.1, -0.2], spill: 0.4 },
     // The tractor, parked up by the barn.
-    { position: [6, 1.2, 14.4], target: [7.4, 1.7, 7.4], fov: 36, push: [1.3, 0.1, -0.3], spill: 0.4 },
+    { position: [6, 2.6, 16.6], target: [8.3, 1.5, 7.4], fov: 36, push: [1.3, 0.1, -0.1], spill: 0.4 },
     // Down the path to the avatar, a little off its nose.
-    { position: [-1.6, 0.95, 15], target: [-1.5, 1.25, 8.2], fov: 26, push: [0.3, 0.05, -1.1], spill: 0.45 },
+    { position: [-0.1, 1.4, 14], target: [-0.9, 0.8, 8.2], fov: 30, push: [0.2, 0.05, -0.5], spill: 0.45 },
     // Across the frozen pond, back toward the barn and the silo.
-    { position: [14.8, 3.4, 31], target: [3.6, 2.2, 10], fov: 36, push: [-1.8, -0.2, -0.4], spill: 0.4 },
+    { position: [15.2, 3.4, 30.6], target: [0, 2.2, 11.2], fov: 36, push: [-1.2, -0.2, -0.4], spill: 0.4 },
   ],
   // On a phone the only clear strip is under the title, so these stand back and aim low to land the subject in it.
   phone: [
     { ...HOME_CAMERA.phone, push: [0.8, -0.2, -0.8], spill: 0.55 },
     { position: [-38, 26, 42], target: [-4, -9, 9], fov: 46, push: [3, -0.6, -1], spill: 0.4 },
     { position: [21.2, 3.4, 7.8], target: [15, -3, -1.5], fov: 52, push: [-1, -0.1, 0.3], spill: 0.4 },
-    { position: [0.2, 1.6, -3.2], target: [0, -1.1, 8.2], fov: 50, push: [0, 0, 0.6], spill: 0.5, bounce: [0.4, 1.9, 5.8] },
+    { position: [0.2, 1.6, -2.95], target: [0, -1.1, 8.2], fov: 50, push: [0, 0, 0.6], spill: 0.5, bounce: [0.4, 1.9, 5.8] },
     { position: [-6.5, 4.2, 13], target: [-12.2, -2.6, 3.8], fov: 50, push: [-0.8, -0.1, -0.2], spill: 0.4 },
     { position: [0.3, 1.1, 22], target: [0, -1, 8.2], fov: 40, push: [0, 0, -0.8], spill: 0.45 },
   ],

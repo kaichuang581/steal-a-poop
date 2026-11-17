@@ -102,8 +102,7 @@ export function* buildYardSteps(): Steps<Yard> {
   const standing = (v: Voxel) => v.y >= 0;
   const fine = yield* detailedSteps(g.map, S, 0.04, standing);
   yield;
-  const man = new Grid(S / 2);
-  snowman(man);
+  const man = snowmanGrid();
   const geos = [
     ...(yield* inChunks(g.map, S, (v) => !standing(v), (ny, y) => ny < 0 && y < 0)),
     ...(yield* inChunks(fine.map, fine.size, () => true, (ny, y) => ny < 0 && y <= 0)),
@@ -307,8 +306,10 @@ export function pine(g: Grid, set: Set, wx: number, wz: number, seed: number, he
  * ball it sits on, so it stays on the surface.
  */
 function snowman(g: Grid) {
-  const { x, z } = YARD.snowman;
-  const balls = [{ y: 0.72, r: 0.78 }, { y: 1.74, r: 0.56 }, { y: 2.56, r: 0.42 }];
+  // Everything in metres is `k` of the first snowman's, which stood 2.96 m to the crown over a 1.5 m hero; the
+  // features (eyes, buttons, carrot, scarf and stick thickness) keep their cell sizes so they still read.
+  const { x, z, scale: k } = YARD.snowman;
+  const balls = [{ y: 0.72 * k, r: 0.78 * k }, { y: 1.74 * k, r: 0.56 * k }, { y: 2.56 * k, r: 0.42 * k }];
   const white: Paint = (a, b, c) => pick(T.snow, hash3(a >> 1, b >> 1, c >> 1, 44), [0.55, 1.01]);
   for (const b of balls) ellipsoid(g, [x, b.y, z], [b.r, b.r * 0.96, b.r], white);
   // Facing: toward the home camera, which looks at the yard from the -x, +z side.
@@ -320,25 +321,33 @@ function snowman(g: Grid) {
     box(g, [px - 0.05, y - 0.05, pz - 0.05], [px + 0.05, y + 0.05, pz + 0.05], () => lin(colour));
   };
   const head = balls[2], body = balls[1];
-  for (const side of [-0.13, 0.13]) dot(2.64, head, side * 0.85, T.face[2], 0.0);
-  line(g, [x + fx * 0.4, 2.54, z + fz * 0.4], [x + fx * 0.68, 2.5, z + fz * 0.68], () => lin(CARROT));
-  for (const y of [1.48, 1.74, 2.0]) dot(y, body, 0, T.face[2], 0.0);
+  for (const side of [-0.13, 0.13]) dot(2.64 * k, head, side * 0.85 * k, T.face[2], 0.0);
+  line(g, [x + fx * 0.4 * k, 2.54 * k, z + fz * 0.4 * k], [x + fx * 0.68 * k, 2.5 * k, z + fz * 0.68 * k], () => lin(CARROT));
+  for (const y of [1.48, 1.74, 2.0]) dot(y * k, body, 0, T.face[2], 0.0);
   // The scarf: a snug band where head meets body, and a tail hanging down over the chest.
   const red: Paint = (a, b, c) => lin(hash3(a, b, c, 41) > 0.7 ? T.collar[2] : SCARF);
-  const neck = 2.2;
-  for (const [y, r] of [[neck - 0.05, 0.36], [neck + 0.05, 0.33]] as const) ring(g, [x, y, z], r, r, 0.1, red);
-  for (const [y, r] of [[neck - 0.05, 0.3], [neck + 0.05, 0.28]] as const) ring(g, [x, y, z], r, r, 0.1, red);
-  const tail = (t: number): V3 => [x + fx * (0.36 + t * 0.2) + sx * 0.14, neck - 0.05 - t * 0.5, z + fz * (0.36 + t * 0.2) + sz * 0.14];
+  const neck = 2.2 * k;
+  for (const [y, r] of [[neck - 0.05, 0.36 * k], [neck + 0.05, 0.33 * k]] as const) ring(g, [x, y, z], r, r, 0.1, red);
+  for (const [y, r] of [[neck - 0.05, 0.3 * k], [neck + 0.05, 0.28 * k]] as const) ring(g, [x, y, z], r, r, 0.1, red);
+  const tail = (t: number): V3 => [x + fx * (0.36 + t * 0.2) * k + sx * 0.14 * k, neck - 0.05 - t * 0.5 * k, z + fz * (0.36 + t * 0.2) * k + sz * 0.14 * k];
   line(g, tail(0), tail(1), red);
   line(g, [tail(0)[0] + sx * 0.1, tail(0)[1], tail(0)[2] + sz * 0.1], [tail(1)[0] + sx * 0.1, tail(1)[1], tail(1)[2] + sz * 0.1], red);
   // Stick arms out of the sides of the body, one raised, with a twig each.
   const stick = tone(T.trunk, 43);
   for (const [side, rise] of [[1, 0.45], [-1, 0.15]] as const) {
-    const from: V3 = [x + sx * side * 0.5, 1.86, z + sz * side * 0.5];
-    const to: V3 = [x + sx * side * 1.25, 1.86 + rise, z + sz * side * 1.25];
-    line(g, from, to, stick);
-    line(g, [(from[0] + to[0] * 2) / 3, (from[1] + to[1] * 2) / 3, (from[2] + to[2] * 2) / 3], [to[0] + sx * side * 0.05, to[1] + 0.3, to[2] + sz * side * 0.05], stick);
+    const from: V3 = [x + sx * side * 0.5 * k, 1.86 * k, z + sz * side * 0.5 * k];
+    const to: V3 = [x + sx * side * 1.25 * k, (1.86 + rise) * k, z + sz * side * 1.25 * k];
+    // Joined (one axis at a time): at this size a diagonal step left the lower arm touching its body at a corner only.
+    line(g, from, to, stick, true);
+    line(g, [(from[0] + to[0] * 2) / 3, (from[1] + to[1] * 2) / 3, (from[2] + to[2] * 2) / 3], [to[0] + sx * side * 0.05 * k, to[1] + 0.3 * k, to[2] + sz * side * 0.05 * k], stick, true);
   }
+}
+
+/** The snowman alone, on its own 0.1 m grid, as the yard draws it (the scale chart measures this). */
+export function snowmanGrid(): Grid {
+  const g = new Grid(S / 2);
+  snowman(g);
+  return g;
 }
 
 function sled(set: Set, boxI: BoxI, cap: Cap) {

@@ -2,6 +2,14 @@
 
 All user-visible changes, newest first.
 
+## 0.7.12
+
+- The letter board is now wholly in the picture on every turn at the table; it slides along the beam when it needs to.
+- Name plates follow each animal's head as it steps forward on its turn.
+- The barn floor is calmer: level hay round the seats, the loose straw kept to the walls.
+- The tree's baubles are smaller and sit in its branches.
+- Practice on the ice: smoother ice, the sign hangs lower so it never sits under the fight card, and the card shows its two tags without a dot.
+
 ## 0.7.11
 
 - The pig, cow, horse, goat and chicken have fuller, smoother bodies, and their blankets and sweaters lie flat instead of stepping. Same sizes, same poses.

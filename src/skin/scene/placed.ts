@@ -256,7 +256,7 @@ function farm(): Placed[] {
 
 function duel(): Placed[] {
   const out: Placed[] = [letterBoard('duel', DUEL.hook, DUEL.hook[1] + 0.65, 'post', 'DUEL.hook in scene/duel.ts',
-    { file: 'src/skin/table/DuelTable.tsx', text: 'const DUEL_BEAM = DUEL.hook[1] + 0.65;' })];
+    { file: 'src/skin/table/DuelTable.tsx', text: 'const DUEL_BEAM = BOARD.bottom + BOARD.height + 0.35;' })];
   const sheep = stands('sheep', SHEEP_SCALE);
   for (const i of [0, 1]) {
     const p = duelSeat(i), toward = -Math.sign(p.x);

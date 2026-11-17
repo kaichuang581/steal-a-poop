@@ -510,6 +510,8 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 
 /* The duel's fight card: two pinned slips and a carved VS. */
 .sk-vs-slip { flex-direction: column; gap: 0; padding: 6px 14px; font-family: var(--skin-font-display); font-weight: 700; font-size: 18px; }
+/* "farm sheep" and the bot's level: two tags side by side, a gap between them and no dot. */
+.sk-vs-tags { display: flex; gap: 8px; }
 .sk-vs-farm { font-family: var(--skin-font-hand); font-weight: 400; font-size: 13px; color: var(--ink-soft); text-transform: capitalize; }
 .sk-vs { font-family: var(--skin-font-display); font-weight: 800; font-size: 34px; color: var(--glow); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.8), 0 2px 0 rgba(40, 24, 10, 0.6); }
 .sk-run-plaque .kit-slate-face { min-height: 0; padding: 2px 12px; font-size: 24px; }

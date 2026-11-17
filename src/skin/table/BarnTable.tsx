@@ -11,7 +11,8 @@ import type { Barn } from '../scene/barn';
 import { buildDistanceSteps } from '../scene/distance';
 import type { Distance } from '../scene/distance';
 import { buildFestive } from '../scene/festive';
-import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, speakerShot, swoopCrop } from '../scene/layout';
+import { BARN, boardHang, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, speakerShot, swoopCrop } from '../scene/layout';
+import type { SpeakerBody } from '../scene/layout';
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
 import { buildYardSteps } from '../scene/yard';
@@ -325,6 +326,9 @@ function Scene({ bombSize, seats, pile, speaker, dazed = null, upNext = null, fr
     return SPEAKER_CAMERA.headY * (c ? heightRatio(c.animal) : 1);
   }, [seats, focus]);
 
+  // The letter board hangs where this turn's shot sees all of it, clear of the speaker and its plate (`boardHang`).
+  const hang = useMemo(() => boardHang(focus, n, phone, speakerBody(seats.find((s) => s.index === focus)?.avatar)), [focus, n, phone, seats]);
+
   // Attention (plan V3.3 Part 3.3): every sheep looks at the speaker's head; the speaker looks at the camera.
   const speakerHead = useMemo((): [number, number, number] | undefined => {
     if (focus === null) return undefined;
@@ -341,8 +345,8 @@ function Scene({ bombSize, seats, pile, speaker, dazed = null, upNext = null, fr
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
       <Farm world={w} reduced={reduced} />
       <Pile world={w} pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
-      <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} />
-      <Bomb speaker={speaker} n={n} fraction={fraction} red={false} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
+      <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} beamY={BARN.beamY + hang.drop} hook={hang.at} />
+      <Bomb speaker={speaker} n={n} phone={phone} fraction={fraction} red={false} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {seats.map((s) => {
         return (
           <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === focus || s.index === dazed} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(s.avatar)?.animal ?? 'sheep').drawScale}>
@@ -353,16 +357,13 @@ function Scene({ bombSize, seats, pile, speaker, dazed = null, upNext = null, fr
                 gustFrom={[0, 0.8, -6]} lookAt={s.index === focus ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking}
                 model={byId(s.avatar) ? animalModel(byId(s.avatar)!.animal) : undefined} />
             )}
+            {/* The name plate (and the speaker's speech bubble) stands over the head, so it follows the step and the scale. */}
+            <ScreenAnchor el={anchors.slip(s.seat)} position={platePoint(s.avatar)} above />
+            {!reduced && <DazeStars on={s.index === dazed} at={platePoint(s.avatar)} scale={seatScale(s.avatar)} />}
           </SeatGroup>
         );
       })}
-      {/* Each seat's name plate (and the speaker's speech bubble) stands just over its animal's head. */}
-      {seats.map((s) => {
-        const p = seatPosition(s.index, n);
-        return <ScreenAnchor key={`name-${s.seat}`} el={anchors.slip(s.seat)} position={[p.x, nameplateY(s.avatar), p.z]} above />;
-      })}
       <Moments moments={moments} n={n} />
-      {!reduced && <DazeStars seat={dazed} n={n} y={nameplateY(seats.find((s) => s.index === dazed)?.avatar)} />}
       {children}
       <Effects />
       <DevStats />
@@ -428,30 +429,26 @@ function SpeakerCamera({ speaker, n, phone, reduced, moments, fade, headY }: { s
 
 /**
  * The stars round a dazed animal's head: three of them circling just over it, bobbing, for as long as it is dazed. The
- * dream's own bonk stars (dream/world.ts), with the lanterns' glow. Always in the scene (hidden), so the first bang
- * builds nothing.
+ * dream's own bonk stars (dream/world.ts), with the lanterns' glow. Mounted in every seat (hidden), so the first bang
+ * builds nothing. Inside the seat's group, at its plate point (`platePoint`, model units), so they follow the step;
+ * `scale` is the group's, so the circle and the stars keep their size in metres.
  */
-function DazeStars({ seat, n, y }: { seat: number | null; n: number; /** Where that animal's name plate stands: just over its own head, a hen's low, a horse's high. */ y: number }) {
+function DazeStars({ on, at, scale }: { on: boolean; at: readonly [number, number, number]; scale: number }) {
   const geo = useMemo(() => bonkStar(), []);
   const mat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2 }), []);
   const stars = useRef<(Mesh | null)[]>([]);
-  const at = useMemo(() => {
-    if (seat === null) return null;
-    const p = seatPosition(seat, n), dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;
-    return [p.x + (dx / len) * 0.5, p.z + (dz / len) * 0.5] as const;
-  }, [seat, n]);
   const since = useRef(0);
   useFrame(({ clock }, dt) => {
-    since.current = at ? since.current + dt : 0;
-    const t = clock.elapsedTime, grow = Math.min(1, since.current / 0.25);
+    since.current = on ? since.current + dt : 0;
+    const t = clock.elapsedTime, grow = Math.min(1, since.current / 0.25), k = 1 / scale;
     stars.current.forEach((m, i) => {
       if (!m) return;
-      m.visible = !!at;
-      if (!at) return;
+      m.visible = on;
+      if (!on) return;
       const a = (t / 1.1) * Math.PI * 2 + (i / 3) * Math.PI * 2;
-      m.position.set(at[0] + Math.cos(a) * 0.42, y + Math.sin(a * 2) * 0.05, at[1] + Math.sin(a) * 0.42);
+      m.position.set(at[0] + Math.cos(a) * 0.42 * k, at[1] + Math.sin(a * 2) * 0.05 * k, at[2] + Math.sin(a) * 0.42 * k);
       m.rotation.y = -a;
-      m.scale.setScalar(1.6 * grow);
+      m.scale.setScalar(1.6 * grow * k);
     });
   });
   return <>{[0, 1, 2].map((i) => <mesh key={i} ref={(el) => { stars.current[i] = el; }} geometry={geo} material={mat} visible={false} />)}</>;
@@ -579,13 +576,20 @@ export function LetterBoard({ letter, isTrap, reduced, beamY = BARN.beamY, hook 
   useFrame(({ clock, camera }, dt) => {
     if (!g.current) return;
     g.current.rotation.z = reduced ? 0 : (Math.sin(clock.elapsedTime * 0.7) * 1.5 * Math.PI) / 180;
+    // A new hook along the beam (`boardHang`): the board slides there as the camera swings to the turn.
+    const ease = reduced ? 1 : 1 - Math.exp(-dt * 6);
+    g.current.position.x += (hook[0] - g.current.position.x) * ease;
+    g.current.position.y = hook[1];
+    g.current.position.z += (hook[2] - g.current.position.z) * ease;
     const want = Math.atan2(-(camera.position.x - hook[0]), -(camera.position.z - hook[2]));
     const d = Math.atan2(Math.sin(want - g.current.rotation.y), Math.cos(want - g.current.rotation.y));
     g.current.rotation.y += d * (reduced ? 1 : 1 - Math.exp(-dt * 6));
   });
   const boardMid = BOARD.bottom + BOARD.height / 2 - (beamY - 0.15);
+  // Where it first hangs; after that the frame loop moves it to each new hook.
+  const [start] = useState<[number, number, number]>(() => [hook[0], hook[1], hook[2]]);
   return (
-    <group ref={g} position={[hook[0], hook[1], hook[2]]}>
+    <group ref={g} position={start}>
       <mesh geometry={geo} material={boardMat} castShadow />
       {isTrap && <mesh geometry={iceGeo} material={iceMat} position={[0, boardMid, 0]} />}
     </group>
@@ -670,4 +674,27 @@ export function nameplateY(avatar: string | null | undefined): number {
   if (avatar === ADMIN_AVATAR_ID) return (Math.min(pictureHeight(getKaiyanLook().length), pictureHeight(1)) + 0.14) * SHEEP_SCALE;
   const m = animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep');
   return anchorsOf(m).plate[1] * SHEEP_SCALE * m.drawScale;
+}
+
+/** How the table scales a seat's group: the sheep's scale times the animal's own (the admin's picture at 1). */
+export function seatScale(avatar: string | null | undefined): number {
+  return SHEEP_SCALE * (avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep').drawScale);
+}
+
+/**
+ * Where a seat's name plate stands in its group's own space (plan file 06, 4.7): the measured plate point over the
+ * head's centre (`anchorsOf(...).plate`), so a plate placed inside the group follows the step toward the pile and the
+ * group's scale. The admin's picture has no head to measure: over its middle, at the height `nameplateY` gives it.
+ */
+export function platePoint(avatar: string | null | undefined): [number, number, number] {
+  if (avatar === ADMIN_AVATAR_ID) return [0, nameplateY(avatar) / seatScale(avatar), 0];
+  const p = anchorsOf(animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep')).plate;
+  return [p[0], p[1], p[2]];
+}
+
+/** The speaker's measured body for the board's search (`boardHang`): the admin's picture is searched as the sheep. */
+function speakerBody(avatar: string | null | undefined): SpeakerBody {
+  const m = animalModel(avatar === ADMIN_AVATAR_ID ? 'sheep' : byId(avatar ?? undefined)?.animal ?? 'sheep');
+  const a = anchorsOf(m);
+  return { min: a.bounds.min, max: a.bounds.max, plate: a.plate, scale: SHEEP_SCALE * m.drawScale, ratio: heightRatio(m.species ?? 'sheep') };
 }

@@ -265,8 +265,45 @@ function props(): Grid {
   return g;
 }
 
+/**
+ * The floor's calm zone round the seats (plan file 06, section 4.5): every seat of every table size (2 to 10), at rest
+ * and stepped `SPEAKER_CAMERA.step` (0.35 m) toward the pile. `FLOOR_CALM.foot` is the biggest animal's footprint at
+ * the table (the cow, 0.56 x 0.72 m at SHEEP_SCALE 1.3 times its drawScale 1.2), so any avatar's hooves are inside it.
+ */
+export const FLOOR_CALM = { foot: [0.56 * 1.56, 0.72 * 1.56] as const, step: 0.35, clear: 0.6, straws: 120, wall: 1.0 };
+const SEATS_AND_STEPS = (() => {
+  const out: { x: number; z: number; yaw: number }[] = [];
+  for (let n = 2; n <= 10; n++)
+    for (let i = 0; i < n; i++) {
+      const p = seatPosition(i, n), dx = HEAP[0] - p.x, dz = HEAP[2] - p.z, len = Math.hypot(dx, dz) || 1;
+      out.push(p, { x: p.x + (dx / len) * FLOOR_CALM.step, z: p.z + (dz / len) * FLOOR_CALM.step, yaw: p.yaw });
+    }
+  return out;
+})();
+/** How far (m) a floor point is from the nearest seat's footprint, at rest or stepped in: 0 under one. */
+export function seatDistance(mx: number, mz: number): number {
+  const [w, d] = FLOOR_CALM.foot;
+  let best = Infinity;
+  for (const s of SEATS_AND_STEPS) {
+    const px = mx - s.x, pz = mz - s.z, c = Math.cos(s.yaw), sn = Math.sin(s.yaw);
+    const u = Math.abs(px * c - pz * sn) - w / 2, v = Math.abs(px * sn + pz * c) - d / 2; // across, along the model
+    best = Math.min(best, Math.hypot(Math.max(u, 0), Math.max(v, 0)));
+    if (best === 0) break;
+  }
+  return best;
+}
+
 function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
   const g = new Grid(S);
+  // Each cell's distance from the seats, once: under a seat the hay is level (one layer, y 0), within `clear` of one
+  // there is no tuft and no loose straw, so every hoof stands 0.00 to 0.10 m over the planks' top.
+  const near = new Map<number, number>();
+  const seatGap = (x: number, z: number) => {
+    const k = (x + 60) * 1000 + (z + 40);
+    let v = near.get(k);
+    if (v === undefined) near.set(k, (v = seatDistance((x + 0.5) * S, (z + 0.5) * S)));
+    return v;
+  };
   const plankTone = (x: number, z: number) => pick(T.beam, hash3(Math.floor((x + 60) / 3), 0, Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25), 51), [0.5, 0.95]);
   const rr = (SEAT_RING.rx + SEAT_RING.rz) / 2;
   for (let x = -60; x <= 59; x++)
@@ -276,6 +313,11 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
       const mx = (x + 0.5) * S, mz = (z + 0.5) * S;
       const h = hash3(x, 0, z, 53), h2 = hash3(x >> 1, 0, z >> 1, 54);
       if (Math.hypot(mx - HEAP[0], mz - HEAP[2]) < 1.45 + (h2 - 0.5) * 0.2) continue; // bare boards under the platform
+      const seatAt = seatGap(x, z);
+      if (seatAt === 0) {
+        g.set(x, 0, z, pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // hay under every hoof, trampled
+        continue;
+      }
       const e = Math.hypot((mx - SEAT_RING.cx) / SEAT_RING.rx, (mz - SEAT_RING.cz) / SEAT_RING.rz);
       if (Math.abs(e - 1) * rr < 0.4) {
         if (h < 0.7) g.set(x, 0, z, h < 0.08 ? lin(T.beam[0]) : pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // trampled, darker
@@ -283,7 +325,7 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
       }
       // Broad hay is one tone with the occasional lighter patch: the texture comes from the straws, not from noise.
       if (h < 0.92) g.set(x, 0, z, pick(T.hay, hash3(x >> 3, 0, z >> 3, 56) < 0.12 ? 0.1 : 0.7));
-      if (h2 < 0.09 && h < 0.5 && !blocked(x, 1, z)) g.set(x, 1, z, pick(T.hay, h * 1.6)); // tufts
+      if (h2 < 0.09 && h < 0.5 && seatAt > FLOOR_CALM.clear && !blocked(x, 1, z)) g.set(x, 1, z, pick(T.hay, h * 1.6)); // tufts
     }
 
   // snow drifts blown in through the back doorway
@@ -306,17 +348,21 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
         g.set(x, Math.max(0, y - 1), z, pressed);
       }
   }
-  // loose straws on top of the floor, following its surface
+  // Loose straws on top of the floor, following its surface: a few, swept to the walls and into the corners, none near a
+  // seat (they were 300 over the whole floor, the noisiest thing behind every turn).
   const r = rng(57);
-  for (let n = 0; n < 300; ) {
+  const wall = FLOOR_CALM.wall / S;
+  const byWall = (x: number, z: number) => Math.min(x + 60, 59 - x, z + 40, 69 - z) < wall;
+  for (let n = 0, tries = 0; n < FLOOR_CALM.straws && tries < 5000; tries++) {
     const x0 = -58 + r() * 116, z0 = -38 + r() * 106;
     const a = r() * Math.PI * 2, len = 4 + Math.floor(r() * 5);
     const c = lin(r() < 0.6 ? T.hay[0] : T.hay[2]);
-    if (Math.hypot(x0 * S - HEAP[0], z0 * S - HEAP[2]) < 1.3) continue;
+    if (Math.hypot(x0 * S - HEAP[0], z0 * S - HEAP[2]) < 1.3 || !byWall(x0, z0)) continue;
+    const cells: [number, number][] = [];
+    for (let k = 0; k < len; k++) cells.push([Math.round(x0 + Math.cos(a) * k), Math.round(z0 + Math.sin(a) * k)]);
+    if (cells.some(([x, z]) => x < -60 || x > 59 || z < -40 || z > 69 || seatGap(x, z) <= FLOOR_CALM.clear)) continue;
     n++;
-    for (let k = 0; k < len; k++) {
-      const x = Math.round(x0 + Math.cos(a) * k), z = Math.round(z0 + Math.sin(a) * k);
-      if (x < -60 || x > 59 || z < -40 || z > 69) break;
+    for (const [x, z] of cells) {
       const y = topY(x, z) + 1;
       if (!blocked(x, y, z)) g.set(x, y, z, c);
     }

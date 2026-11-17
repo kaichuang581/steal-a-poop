@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { isLegalSlug } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
+import { AppBoundary } from '../perf/AppBoundary';
 
 const LegalDialog = lazy(() => import('./LegalDialog').then((m) => ({ default: m.LegalDialog })));
 
@@ -26,5 +27,7 @@ export function LegalPopupHost() {
     return () => document.removeEventListener('click', onClick, true);
   }, []);
   if (!slug) return null;
-  return <Suspense fallback={null}><LegalDialog initial={slug} onClose={() => setSlug(null)} /></Suspense>;
+  // The dialog's code is fetched when first asked for. If it cannot be had (a tab open across a new version), the page
+  // reloads once; after that a card says so, with Close, and the screen behind is kept.
+  return <AppBoundary where="legal page" onClose={() => setSlug(null)}><Suspense fallback={null}><LegalDialog initial={slug} onClose={() => setSlug(null)} /></Suspense></AppBoundary>;
 }

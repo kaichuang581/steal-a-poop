@@ -15,7 +15,10 @@ import { useHour } from './hooks/useAmbient';
 import { DreamScreen } from './dream/DreamScreen';
 import { useDreamUi } from './dream/dreamStore';
 import { PaintedGame } from './screens/PaintedGame';
-import { PaintedHome, PAINTED_TITLE } from './screens/PaintedHome';
+import { PaintedHome, PAINTED_TITLE, APP_VERSION } from './screens/PaintedHome';
+import { AppBoundary, reloadOnceForChunk } from './perf/AppBoundary';
+import { ReportCard } from './perf/ReportCard';
+import { noteDoorsOpen, noteError, setReportVersion, startReport } from './perf/report';
 import { LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
 // Developer pages (?preview=), for the tools that bake the game's pictures and strips (tools/renderDoors.mjs,
@@ -31,24 +34,28 @@ import { OnboardingGate } from './onboarding/Onboarding';
 import { startVisitReports } from '../lib/visit';
 import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot, whenDoorsOpen, whenDoorsShut } from './components/BarnDoors';
 import { PreviewCanvas as WendigoPreviewCanvas } from './table/WendigoPreview';
+// The painted game's three faces ship with the game (public/fonts, declared in styles/fonts.css): nothing is asked of
+// another site.
+import './styles/fonts.css';
 import './styles/skin.css';
-
-/** The painted skin's fonts; loaded only when the skin is on, so the classic look never contacts Google Fonts. */
-const FONTS_HREF =
-  'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Nunito:wght@400;600;700;800;900&family=Patrick+Hand&family=DotGothic16&display=swap';
-
-function useSkinFonts() {
-  useEffect(() => {
-    if (document.querySelector(`link[href="${FONTS_HREF}"]`)) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = FONTS_HREF;
-    document.head.appendChild(link);
-  }, []);
-}
 
 /** ?preview=sheep opens the model preview (plan V3 Milestone 1). Development only (see DEV above). */
 const PREVIEW = DEV ? new URLSearchParams(location.search).get('preview') : null;
+
+// Fail soft (plan file 17, changes 2, 4 and 8; the pieces are in ./perf). From the moment this file is read the device
+// report keeps the last errors, long tasks and files that failed, and `?report=1` shows it on a card over the game.
+setReportVersion(APP_VERSION);
+startReport();
+const REPORT = typeof location !== 'undefined' && new URLSearchParams(location.search).get('report') === '1';
+// A tab left open across a new version asks for pieces of the game that are no longer there. Vite says so with this
+// event before the import fails: the page reloads for it once, marked in sessionStorage under sap:chunk-reload so it
+// can never loop; the second time, the error goes on to the nearest boundary, which shows its card.
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', (e) => {
+    noteError((e as Event & { payload?: unknown }).payload ?? 'a piece of the game did not load', 'missing file');
+    reloadOnceForChunk();
+  });
+}
 
 /**
  * The painted skin's screen switch, mirroring App's: game, room, lobby, home. The Rooms lobby and waiting room keep
@@ -71,7 +78,9 @@ export function PaintedApp() {
   // (Brian, 2026-11-13: "why is the loading screen not what pops up when the game is loading?"; a refresh used to skip
   // the doors and show the menu over an empty sky instead).
   useState(() => { if (!PREVIEW) shutDoorsAtBoot({ label: 'Opening up the barn' }); });
-  useSkinFonts();
+  // For the device report: how long the first load took, and whether the doors opened on a drawn scene or gave up.
+  useEffect(() => whenDoorsOpen(noteDoorsOpen), []);
+  const [report, setReport] = useState(REPORT);
   // Tell the game server this tab is open (numbers only, for the admin panel's visit counts): src/lib/visit.ts.
   useEffect(() => startVisitReports(), []);
   // Keep the server told which avatar you picked, so the others in a room see it.
@@ -149,5 +158,7 @@ export function PaintedApp() {
     : inRoom ? <PaintedRoom />
     : home;
   // The first-visit form: every new player says how they play, their country and age, and a parent agrees if needed.
-  return <><JoinLink />{screen}<OnboardingGate /><BarnDoors /></>;
+  // AppBoundary: whatever the screen throws ends on a card with Reload and "Copy device report", never an empty page.
+  // The doors and the report card stay outside it, so they outlive a screen that failed.
+  return <><AppBoundary><JoinLink />{screen}<OnboardingGate /></AppBoundary><BarnDoors />{report && <ReportCard onClose={() => setReport(false)} />}</>;
 }

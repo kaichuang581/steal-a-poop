@@ -2,10 +2,10 @@
 // one thing a real device breaks and asks for the plan's end state: readable text on screen, and #root not empty (or,
 // when the main script never arrives, a message from the page itself). Never a blank page.
 //
-// The game has no fail-soft yet (plan file 17, changes 2 to 5, are milestone 1's work), so three of the six end on a
-// blank page or on doors shut for ever today. Those three carry the expected-to-fail mark, each with what was measured
-// on 2026-11-16; milestone 1 takes every mark off, and a marked case that passes fails the run until its mark is gone.
-// The other three already reach the end state today and carry no mark.
+// Before milestone 1 the game had no fail-soft (plan file 17, changes 2 to 5), and three of the six ended on a blank
+// page or on doors shut for ever; each carried the expected-to-fail mark with what was measured on 2026-11-16.
+// Milestone 1 takes each mark off as its change lands, and says so where the mark was; a marked case that passes
+// fails the run until its mark is gone. The other three reached the end state already and never carried one.
 //
 // What a case breaks on purpose it names (`watch.fault`), so the broken request itself is not held against it. A page
 // error is held against every case, marked or not.
@@ -17,7 +17,10 @@ import {
 const NOT_FOUND = { status: 404, contentType: 'text/plain', body: 'Not found' };
 
 test('no WebGL: every WebGL context is refused', async ({ page }) => {
-  test.fail(true, 'Today (2026-11-16): three.js throws "Error creating WebGL context", nothing catches it, and by 12 s #root is empty with no text on the page. Milestone 1 (plan file 17, change 2) shows a card and takes this mark off.');
+  // No mark since milestone 1 (plan file 17, change 2): SceneBoundary catches three.js's "Error creating WebGL context"
+  // and shows a card over the farm's box, and the doors open on it. Before, by 12 s #root was empty with no text.
+  // The mark came off with the change, by design: this suite has not been run since (Brian, 2026-11-16: one test pass
+  // at the end).
   await page.addInitScript(() => {
     window.__fault = { hits: 0 };
     for (const kind of [window.HTMLCanvasElement, window.OffscreenCanvas]) {
@@ -70,7 +73,9 @@ test('lost context on Home: lost, then given back after 4 s', async ({ page }) =
 });
 
 test('a lazy piece answers 404: assets/PreviewStage-*.js', async ({ page, watch }) => {
-  test.fail(true, 'Today (2026-11-16): the import fails with a page error ("Failed to fetch dynamically imported module"), nothing catches it, and within a second #root is empty: a blank page. Milestone 1 (plan file 17, change 4) reloads once, then shows a card, and takes this mark off.');
+  // No mark since milestone 1 (plan file 17, change 4): the page reloads once for the missing piece (sessionStorage
+  // sap:chunk-reload), and a second failure shows a card in the closer look's frame. Before, the failed import blanked
+  // the page within a second. The mark came off with the change, by design: this suite has not been run since.
   const piece = /\/assets\/PreviewStage-[^/]*\.js(\?|$)/;
   watch.fault(piece);
   await page.route(piece, (route) => route.fulfill(NOT_FOUND));

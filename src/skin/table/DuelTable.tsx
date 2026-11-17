@@ -21,6 +21,7 @@ import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
 import { AdaptiveCanvas, Effects, LANTERN_LIGHT, MarkDrawn } from './Rendering';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Sheep } from './Sheep';
 
@@ -44,6 +45,7 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
   const slipRef = useSlipRefs();
   return (
     <div className="relative size-full" style={{ background: DARK }}>
+      <SceneBoundary scene="the ice">
       <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="ice"
         // Measured without transforms: the game screen zooms in as it opens, which would size the canvas too big for good.
         resize={{ offsetSize: true }}
@@ -59,6 +61,7 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         {/* The moon is behind the board's back: a warm lamp in front of it keeps the carved letter readable at night. */}
         <pointLight position={[0, BOARD_BOTTOM + 0.3, -1.1]} color={LANTERN_LIGHT.color} intensity={7} distance={3} decay={2} />
       </AdaptiveCanvas>
+      </SceneBoundary>
       {/* The edges of the screen close in red over the last half of your clock. */}
       <div className="pointer-events-none absolute inset-0 z-[4]" style={{ opacity: heat, background: 'radial-gradient(ellipse at center, transparent 42%, rgba(170, 24, 14, 0.8) 100%)' }} aria-hidden="true" />
       <SlipLayer seats={seats} refFor={slipRef} />

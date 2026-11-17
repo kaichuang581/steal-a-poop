@@ -3,7 +3,7 @@ import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
 import { authEnabled } from '../../auth/config';
-import { useDevice } from '../device';
+import { useDevice, usePhoneLayout } from '../device';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { dreamSeed, dreamShareText } from '../../dream/dream';
@@ -26,7 +26,6 @@ import { useSocial } from '../../state/socialStore';
 import { useStore, tableFor } from '../../state/store';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { openSignInForm } from '../onboarding/Onboarding';
-import { useIsMobile } from '../../ui/hooks';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
@@ -59,6 +58,8 @@ import { PaintedSettings } from './PaintedSettings';
 import { SoundMenu } from '../components/SoundMenu';
 
 export const PAINTED_TITLE = PAINTED_GAME_TITLE;
+/** The game's version, as the footer shows it: the device report (perf/report.ts) reads it from here. */
+export const APP_VERSION: string = pkg.version;
 /** What each bot level means in a practice run, where it can't beat you: only the letters it leaves you differ. */
 const DRILL_BOTS: Record<Difficulty, string> = {
   easy: 'Plays short, common words.',
@@ -128,7 +129,7 @@ export function PaintedHome() {
   const accountName = useAuth((st) => st.profile?.nickname ?? '');
   const hour = useHour();
   const reduced = useMotionLevel() === 'reduced';
-  const mobile = useIsMobile();
+  const mobile = usePhoneLayout();
   const today = useToday();
   const dream = getDream(today);
   const streak = getDreamStreak(today);
@@ -433,12 +434,15 @@ export function PaintedHome() {
       </div>
 
       {mobile ? (
-        <>
-          <div className="absolute inset-x-0 top-16 flex flex-col items-center">
+        // One column under the top bar: the title block, then the menu's panel at the foot. The panel takes the height
+        // the title leaves and scrolls inside itself, so on a small or sideways phone the two never lie over each
+        // other. Its old cap (64% of the screen: this box is 72 px shorter than the screen) still holds on a tall one.
+        <div className="pointer-events-none absolute inset-x-0 bottom-2 top-16 flex flex-col [&>*]:pointer-events-auto">
+          <div className="flex flex-none flex-col items-center">
             <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
             <WordOfDay className="sk-wotd--compact" />
           </div>
-          <div className="absolute inset-x-3 bottom-2 max-h-[64%] overflow-y-auto">
+          <div className="mx-3 mt-auto min-h-0 overflow-y-auto" style={{ maxHeight: 'calc(64% + 46px)' }}>
             {step === 'tables' ? (
               <>
                 {tables}
@@ -446,7 +450,7 @@ export function PaintedHome() {
               </>
             ) : panel}
           </div>
-        </>
+        </div>
       ) : (
         <>
           {/* Left column: the title board, then the menu, like a console title screen. */}

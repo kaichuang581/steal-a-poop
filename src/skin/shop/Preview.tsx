@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { playSound } from '../../audio/sound';
 import { CloseIcon } from '../components/Icons';
 import { useMotionLevel } from '../hooks/useAmbient';
+import { SceneBoundary } from '../perf/SceneBoundary';
 import { Patch, Peg } from '../kit';
 import { ItemArt } from './art';
 import { ACTS } from '../table/burstActs';
@@ -69,7 +70,7 @@ export function Preview({ item, wallet, onClose, onNote }: { item: Item; wallet:
         <Peg ref={close} small light className="sk-room-close" onClick={onClose} aria-label="Close"><CloseIcon size={18} /></Peg>
         <div className={`sk-preview-stage kit-pic kit-pic--${frameOf(item)}`} data-burst={burst || item.kind === 'bomb' || undefined}>
           <div className="kit-pic-mat sk-preview-mat">
-            {reduced ? still : <Suspense fallback={still}><PreviewStage item={item} playKey={playKey} wornBomb={wallet.equipped.bomb} still={false} /></Suspense>}
+            {reduced ? still : <SceneBoundary scene="this item"><Suspense fallback={still}><PreviewStage item={item} playKey={playKey} wornBomb={wallet.equipped.bomb} still={false} /></Suspense></SceneBoundary>}
           </div>
         </div>
         <div className="sk-preview-text kit-paper kit-paper--sheet">

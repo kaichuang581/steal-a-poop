@@ -2,6 +2,19 @@
 
 All user-visible changes, newest first.
 
+## 0.7.6
+
+- If your device cannot draw the farm, you now get a card that says so, with Reload and "Copy device report", instead of a blank page. The menus still work.
+- A browser too old for the game says so instead of leaving the barn doors shut for ever.
+- A tab left open while the game updates reloads itself once instead of going blank.
+- The fonts come with the game now, so nothing is fetched from Google.
+- The table is drawn at its real size, which is less work for your computer.
+- The update sign no longer covers the D of FLEECED.
+- The scoreboard reads "bot WHEEL", not "botWHEEL".
+- A button you cannot press looks faded.
+- Wool balls on name plates no longer turn hollow.
+- A phone held sideways gets the phone layout, and a long scoreboard in a short window scrolls instead of pushing the buttons off screen.
+
 ## 0.7.5
 
 - Nothing you can see yet: groundwork for the visual overhaul (its plan, and the checks it will be tested with at the end).

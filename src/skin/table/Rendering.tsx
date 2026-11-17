@@ -1,4 +1,4 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, addAfterEffect, useFrame, useThree } from '@react-three/fiber';
 import type { CanvasProps } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Color, FogExp2, HalfFloatType, Vector2, WebGLRenderTarget } from 'three';
@@ -9,6 +9,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import type { Hour } from '../model/types';
+import { watchScene } from '../perf/report';
 import { BARN } from '../scene/layout';
 
 /** The look, applied once and globally (plan V3.1 Part 1.3). */
@@ -260,8 +261,12 @@ function writeSettled(key: string | undefined, v: Settled) {
  * resolution set from inside the scene was put straight back (and each round trip reallocated the buffers, a 120 ms
  * hitch every two seconds). `memory` names the scene, so the level it settles on is kept per device and the next visit
  * starts there: each change of resolution reallocates the buffers, a short hitch best paid once.
+ *
+ * The canvas is measured by its layout box (`resize: { offsetSize: true }`) unless the caller says otherwise, so a
+ * transform on a parent (the swoop into a game scales the whole screen) cannot make it bigger than its box.
  */
-export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, children, ...props }: Omit<CanvasProps, 'dpr'> & { maxDpr: number; minDpr?: number; memory?: string }) {
+export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, children, ...given }: Omit<CanvasProps, 'dpr'> & { maxDpr: number; minDpr?: number; memory?: string }) {
+  const props = given.resize ? given : { ...given, resize: LAYOUT_SIZE };
   const [state, setState] = useState<Settled>(() => {
     const device = Math.max(minDpr, Math.min(maxDpr, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1));
     const kept = readSettled(memory);
@@ -274,15 +279,23 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, children, ...pro
     setState(next);
     writeSettled(memory, next);
   };
+  // As each canvas gets its renderer the device report starts watching it (perf/report.ts): when it draws, what a frame
+  // costs, and its WebGL context being taken away (asked back with preventDefault) or given back. What the player sees
+  // then, "Redrawing the farm..." or the card, is SceneBoundary's, which stands round this canvas.
+  const onCreated: CanvasProps['onCreated'] = (root) => {
+    watchScene(memory, root.gl, addAfterEffect);
+    props.onCreated?.(root);
+  };
   // `?dpr=1.5` pins the resolution, for measuring what a scene or an effect costs at one size (nothing adapts, nothing is kept).
-  if (PINNED_DPR) return <Canvas {...props} dpr={PINNED_DPR}>{children}</Canvas>;
+  if (PINNED_DPR) return <Canvas {...props} onCreated={onCreated} dpr={PINNED_DPR}>{children}</Canvas>;
   return (
-    <Canvas {...props} dpr={state.dpr}>
+    <Canvas {...props} onCreated={onCreated} dpr={state.dpr}>
       <AdaptiveDpr max={maxDpr} min={minDpr} value={state.dpr} ceiling={state.ceiling} onChange={onChange} />
       {children}
     </Canvas>
   );
 }
+const LAYOUT_SIZE = { offsetSize: true };
 const PINNED_DPR = (() => {
   if (typeof location === 'undefined') return 0;
   const v = Number(new URLSearchParams(location.search).get('dpr'));

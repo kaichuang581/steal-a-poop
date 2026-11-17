@@ -485,7 +485,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   the word and its `short` gist (32 characters at most) float in white over a dark outline and glow, readable over day
   snow and night sky alike. On a computer it stands alone on the right, level with the title (`.sk-wotd--side`), and
   gives way to the right-hand panel when one opens; on a phone it is two small lines in the 34 px strip above the name
-  plate. It takes no clicks; the longer meaning and example stay in words.ts. Brian has not reviewed the 365 words yet.
+  plate. It takes no clicks; the longer meaning and example live in public/wotd-notes.json (moved out of words.ts in overhaul milestone 1; the game never fetches them). Brian has not reviewed the 365 words yet.
   Set like a dictionary entry (Brian, 2026-11-08: "more like an actual word of the day"): "Word of the day!", the word,
   a small pronunciation (`say`, a plain respelling with the stressed syllable in capitals, written for the game, never a
   dictionary's symbols) and the part of speech (`pos`), a strand of yarn, then the gist; tilted -3° and swaying like the

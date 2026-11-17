@@ -1,0 +1,847 @@
+{
+  "about": [
+    "The bake manifest (plan file 18, section 4.5): one entry for every picture the game ships that is a photograph of one of its own voxel models.",
+    "Written by tools/bakeStamp.ts, which the four bake tools (tools/renderThumbs.mjs, renderStall.mjs, renderDoors.mjs, renderGuide.mjs) run at their end. Never edit it by hand.",
+    "modelHash is the SHA-256 of the model's voxels as the mesher was given them: each cell (x, y, z) with its colour at 16 bits, sorted. renderHash is the SHA-256 of the page that draws the picture, the tool that photographs it and the value of ROUNDED_VOXELS. fileHash is the SHA-256 of the picture itself. tools/bake/stale.ts works all three out.",
+    "A model or render hash that no longer matches means the picture is stale: bake it again with its tool and arguments, the dev server up (npm run dev). A file hash that no longer matches means the picture changed without a stamp.",
+    "checked says where a picture's model hash is worked out again: \"npm test\" (src/skin/__tests__/baked.test.ts) or \"check:scenes\" (tools/scenes/baked.ts). Every picture's file, size and render hash are checked in npm test.",
+    "A picture with no tool is a capture taken by hand: when it is stale, capture it again as its entry says, then stamp it (npx vite-node tools/bakeStamp.ts -- --only <id>).",
+    "The first stamp, in milestone 0 of the visual overhaul (2026-11-16), recorded the models and the files as they were that day. It proves nothing about whether a picture matched its model before then: no picture was baked again to find out.",
+    "knownStale marks a picture that is known to be older than what makes it today, and says how that is known. It is a known failure: every check names it, and the number of them is a ratchet in docs/visual-overhaul/RATCHETS.json that may only fall. Only a bake that changes the file takes the mark away."
+  ],
+  "images": [
+    {
+      "id": "loading/doors-leaves",
+      "file": "public/loading/doors-leaves.webp",
+      "tool": "tools/renderDoors.mjs",
+      "args": [],
+      "page": "src/skin/loading/DoorsRender.tsx",
+      "model": "the loading doors' leaves (DOOR_PARTS.leaves in src/skin/loading/doorsModel.ts)",
+      "checked": "check:scenes",
+      "knownStale": "Baked once, on 2026-11-08 (commit 7e951fd), and never since. The next day the rounded voxel corners came in (ROUNDED_VOXELS, commit 4a8765e of 2026-11-09) and src/skin/loading/DoorsRender.tsx changed its shadow type (commit 73677a3), so the picture has sharp corners where the page that bakes it now draws rounded ones. Read from the repo's history in milestone 0; no picture was baked to see how much it shows.",
+      "width": 2048,
+      "height": 1109,
+      "alpha": false,
+      "modelHash": "ae94dfdccc5f5a2298a1e95cee0fc07e211c274dd37f8a8ed2ce801912968aad",
+      "renderHash": "9699f599f4f19873934ae0dd555647601762670aa37feeee63ba653cfdd6a7b7",
+      "fileHash": "488410246d327bcce1d38d7e96b09a0a203a4e3bc7b9b0801a08b1ee5712ea7c"
+    },
+    {
+      "id": "loading/doors-lintel",
+      "file": "public/loading/doors-lintel.webp",
+      "tool": "tools/renderDoors.mjs",
+      "args": [],
+      "page": "src/skin/loading/DoorsRender.tsx",
+      "model": "the loading doors' lintel (DOOR_PARTS.lintel in src/skin/loading/doorsModel.ts)",
+      "checked": "check:scenes",
+      "knownStale": "Baked once, on 2026-11-08 (commit 7e951fd), and never since. The next day the rounded voxel corners came in (ROUNDED_VOXELS, commit 4a8765e of 2026-11-09) and src/skin/loading/DoorsRender.tsx changed its shadow type (commit 73677a3), so the picture has sharp corners where the page that bakes it now draws rounded ones. Read from the repo's history in milestone 0; no picture was baked to see how much it shows.",
+      "width": 2048,
+      "height": 277,
+      "alpha": true,
+      "modelHash": "2ec639bb192adabfb42decbbde691f46dea3e3a521adb937b7ad523e4a30724b",
+      "renderHash": "9699f599f4f19873934ae0dd555647601762670aa37feeee63ba653cfdd6a7b7",
+      "fileHash": "2492ee7136b44235cd19a95e5b84679140bed702cf51c602d185dad09a2c5f35"
+    },
+    {
+      "id": "loading/doors-sill",
+      "file": "public/loading/doors-sill.webp",
+      "tool": "tools/renderDoors.mjs",
+      "args": [],
+      "page": "src/skin/loading/DoorsRender.tsx",
+      "model": "the loading doors' sill (DOOR_PARTS.sill in src/skin/loading/doorsModel.ts)",
+      "checked": "check:scenes",
+      "knownStale": "Baked once, on 2026-11-08 (commit 7e951fd), and never since. The next day the rounded voxel corners came in (ROUNDED_VOXELS, commit 4a8765e of 2026-11-09) and src/skin/loading/DoorsRender.tsx changed its shadow type (commit 73677a3), so the picture has sharp corners where the page that bakes it now draws rounded ones. Read from the repo's history in milestone 0; no picture was baked to see how much it shows.",
+      "width": 2048,
+      "height": 149,
+      "alpha": true,
+      "modelHash": "add9b4ec41b65c5effefc49730b611ffa74385bb8a5582978095699eabba816f",
+      "renderHash": "9699f599f4f19873934ae0dd555647601762670aa37feeee63ba653cfdd6a7b7",
+      "fileHash": "d4292bb5b938269cb4fe4b8534afc78ffccf148fa3d9dfa20865cc242b848680"
+    },
+    {
+      "id": "play/casual",
+      "file": "public/play/casual.webp",
+      "tool": null,
+      "args": [],
+      "page": null,
+      "model": "the Home farm as the scene checker builds it for a computer (scene \"farm\", fine), with the sheep and its hat (models animal:sheep, hat)",
+      "checked": "check:scenes",
+      "capture": "the Home tour's shot of the sheep at the barn, by day, 800 x 500 (CLAUDE.md: \"the home tour's sheep-at-the-barn shot\")",
+      "width": 800,
+      "height": 500,
+      "alpha": false,
+      "modelHash": "2080fa3c23d0d9c3921de16459df88dbec3059c1ea6ad42a0445339cea97eac7",
+      "renderHash": "f0cc7563d7d4b94152ac519f14e7f3267b449a7887b876656be6cfe450a9ad5b",
+      "fileHash": "7eec3c7dc42ed123270cc30702a1dc79838fd9792749c4b0934ef6817d48b6d5"
+    },
+    {
+      "id": "play/ranked",
+      "file": "public/play/ranked.webp",
+      "tool": null,
+      "args": [],
+      "page": null,
+      "model": "the practice ice as the scene checker builds it for a computer (scene \"duel\", fine), with the sheep, its hat and the ice bomb (models animal:sheep, hat, bomb:bomb-ice)",
+      "checked": "check:scenes",
+      "capture": "the practice duel on the ice at night, both sheep, the bomb and the letter board in the picture, 800 x 500 (CLAUDE.md: \"the practice duel on the ice at night\")",
+      "width": 800,
+      "height": 500,
+      "alpha": false,
+      "modelHash": "187cdaa188b9660938c3c8ab9ffce0ed3faee3cb5f131e56c3d7eabd7b0f1533",
+      "renderHash": "f0cc7563d7d4b94152ac519f14e7f3267b449a7887b876656be6cfe450a9ad5b",
+      "fileHash": "2f58278dbdf8767d55103210433f7d0e952090db8d6011518be4bee4880b164f"
+    },
+    {
+      "id": "shop/blast-bubblegum",
+      "file": "public/shop/blast-bubblegum.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-bubblegum"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-bubblegum's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "beaf30c6eb1d9aca40866fbc7c878540b5b59b6c8720dfc2e83d34ef53b978b0",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "0137c5d8aba644eafa3f2e46c372b6c4e40cddd9260755d5ffe4642cb6f790ca"
+    },
+    {
+      "id": "shop/blast-confetti",
+      "file": "public/shop/blast-confetti.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-confetti"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-confetti's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "7a796011e2edd9133b08164df8ad6781204fd0e7cf367d5ed867bc884e7f3454",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "85e8173f0a7e4a8766536a1ca17590612b25a46848bbfb7454d7853d085a1318"
+    },
+    {
+      "id": "shop/blast-ember",
+      "file": "public/shop/blast-ember.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-ember"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-ember's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "58ea1da06bfaa67033e62b2279e3fc0ae9c954248c5ffd6966a8d059f98cab44",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "54faeb18420ae3c5fcfcf4474bb3fbd435dc90b7dafbe0760ee8b107e4121d83"
+    },
+    {
+      "id": "shop/blast-frost",
+      "file": "public/shop/blast-frost.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-frost"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-frost's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "f2440efefb037a5e9c9bfc2614e00c604f46ee88b3f4ea0b221caba6216a5b9a",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "5d52fb5f4b872e9d675fa81fb699aca03682dac55ffa8915d16ef4b009a28854"
+    },
+    {
+      "id": "shop/blast-hay",
+      "file": "public/shop/blast-hay.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-hay"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-hay's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "9d8ccd4d1f55a224adb42ff13cd7592373c39c592d657f714bd2b70400c497f5",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "c62628e90820f19a87d5550f07830cd3d609593ef977572b3d8e62b84e393f93"
+    },
+    {
+      "id": "shop/blast-lantern",
+      "file": "public/shop/blast-lantern.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-lantern"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-lantern's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "b1a7184b47f8338cdb87f1a6555f9dbb12754fd13997d194254a1e72e43ac326",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "b3fbe39ac43c644a38a304e9bbf21b61723dcc112faa9824791f28f0475816b4"
+    },
+    {
+      "id": "shop/blast-northern",
+      "file": "public/shop/blast-northern.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-northern"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-northern's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "5958813750875660e1a3a217d8693fc19acdd2eb61f010ce8d6947e9b2f98e2a",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "c7a4c5315f0be086a06b4fa7d118f3f9751320402a8f06dd1f0f66689fdd8a61"
+    },
+    {
+      "id": "shop/blast-snowfall",
+      "file": "public/shop/blast-snowfall.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-snowfall"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-snowfall's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "a94318c2f044988a1a609670bf1e1d5bcc12732cabb598c245ad7d63d8b8f0b2",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "b3bbe9b4448ed981212a81ffa0c37930f8699867e472931ff5b6a43639162b12"
+    },
+    {
+      "id": "shop/blast-solstice",
+      "file": "public/shop/blast-solstice.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-solstice"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-solstice's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "ee80b5b4b76e0a995677e388cd3ddbd4e5c8843faeadb8dd7122da6d5d3f5105",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "d687eec25de8d8125d0dffc17b79f11abbcaa26b6f369e626313c7048b39cdfd"
+    },
+    {
+      "id": "shop/blast-starlight",
+      "file": "public/shop/blast-starlight.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "blast-starlight"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the burst blast-starlight's picture (burstGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "310d615bdafe6f7e5c7b13c50fbda190a4c6a951fa8481fae5ab60bbcb52846d",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "26542df057ba8f5afdae77b144e1dc07e6aba6968839ca07193a065c14173977"
+    },
+    {
+      "id": "shop/bomb-aurora",
+      "file": "public/shop/bomb-aurora.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "bomb-aurora"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the bomb skin bomb-aurora as ?preview=thumb draws it: its body, its glowing parts, its fuse and spark (bombLook in src/skin/voxel/bombSkins.ts), and the glint of a skin that glints all the time (glintGeometry)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "96e9aaee0ff10a745eea549fdfbedc26782e4a339ccebb66f5bf4044061a2f86",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "3f1879102bb0ea9eb9ee782c549294bcb3ab6048f69d3f5ba037ce684403a1ce"
+    },
+    {
+      "id": "shop/bomb-brass",
+      "file": "public/shop/bomb-brass.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "bomb-brass"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the bomb skin bomb-brass as ?preview=thumb draws it: its body, its glowing parts, its fuse and spark (bombLook in src/skin/voxel/bombSkins.ts), and the glint of a skin that glints all the time (glintGeometry)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "ca39f1449668c21952bf318b64d9839d563da4f068453b67a8f308255b3e1bc1",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "166b4bf2b40c572c888e8515bfad82718122d02ebb960f6ba82fca95586a10d2"
+    },
+    {
+      "id": "shop/bomb-diamond",
+      "file": "public/shop/bomb-diamond.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "bomb-diamond"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the bomb skin bomb-diamond as ?preview=thumb draws it: its body, its glowing parts, its fuse and spark (bombLook in src/skin/voxel/bombSkins.ts), and the glint of a skin that glints all the time (glintGeometry)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "a587dca34a60ff2bb7ec63143aab7aceb6a5e8fe7e8d3d53777745546e6e23e2",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "8aaac638897a8c929e98e111ff6960ebdffb03bb717c3e095b5363ce467d2918"
+    },
+    {
+      "id": "shop/bomb-ember",
+      "file": "public/shop/bomb-ember.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "bomb-ember"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the bomb skin bomb-ember as ?preview=thumb draws it: its body, its glowing parts, its fuse and spark (bombLook in src/skin/voxel/bombSkins.ts), and the glint of a skin that glints all the time (glintGeometry)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "6f8011086bfd32e6b3d79c337c6f4a778c8c98e82a936af34e524772aec82f1e",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "a959160d008fc5e351161946c6b346a0134b8e5a88665985df200d537f508639"
+    },
+    {
+      "id": "shop/bomb-gold",
+      "file": "public/shop/bomb-gold.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "bomb-gold"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the bomb skin bomb-gold as ?preview=thumb draws it: its body, its glowing parts, its fuse and spark (bombLook in src/skin/voxel/bombSkins.ts), and the glint of a skin that glints all the time (glintGeometry)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "28d0fd75f77391c2e3e959298c7b50b3c5ef11d44d0f30ef4b2e0e73252169b0",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "004b01aa5d2677756b18865162cbcaf2920e277bfd29a9165f131ecb8075ad24"
+    },
+    {
+      "id": "shop/bomb-ice",
+      "file": "public/shop/bomb-ice.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "bomb-ice"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the bomb skin bomb-ice as ?preview=thumb draws it: its body, its glowing parts, its fuse and spark (bombLook in src/skin/voxel/bombSkins.ts), and the glint of a skin that glints all the time (glintGeometry)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "4d52831e7f3ada544fb031a4b99adef6ec230bb2da9b7e08adf3613e0504de79",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "1f77aec704da7f97c69302560e66383b71ce4d3c65f29ad494706b4e0d6e144b"
+    },
+    {
+      "id": "shop/bomb-mint",
+      "file": "public/shop/bomb-mint.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "bomb-mint"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the bomb skin bomb-mint as ?preview=thumb draws it: its body, its glowing parts, its fuse and spark (bombLook in src/skin/voxel/bombSkins.ts), and the glint of a skin that glints all the time (glintGeometry)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "b6a8491684ce51b60c2b03d9e50122d31a324af6cb625a7aa3a8868650e4f52c",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "1504291910d8bfe97f9e365f02400454ed2dfd92cb9892fee44b300a612e6c26"
+    },
+    {
+      "id": "shop/bomb-plum",
+      "file": "public/shop/bomb-plum.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "bomb-plum"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the bomb skin bomb-plum as ?preview=thumb draws it: its body, its glowing parts, its fuse and spark (bombLook in src/skin/voxel/bombSkins.ts), and the glint of a skin that glints all the time (glintGeometry)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "f81a63b97ba5a3c668aef9e3e3c64af21a0b21355a4ce087094bc2d97c1359c5",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "9f501ac4189afb53166242af380e134a0883b2b5b92e180c129763afbffe9000"
+    },
+    {
+      "id": "shop/stall/crate-blast",
+      "file": "public/shop/stall/crate-blast.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "crate-blast"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the blast sack's crate with its grain (crateGrid)",
+      "checked": "check:scenes",
+      "width": 560,
+      "height": 480,
+      "alpha": true,
+      "modelHash": "7b16cdc7f070e3bbe172c9db30b731649d4aaea403e99c2a2f779edafad1026f",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "53fb4564b74a40c11365a9ebd2c5f8dfe29f9b36922454b6c9912bbd9a8188e1"
+    },
+    {
+      "id": "shop/stall/crate-bomb",
+      "file": "public/shop/stall/crate-bomb.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "crate-bomb"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the bomb sack's crate with its grain (crateGrid)",
+      "checked": "check:scenes",
+      "width": 560,
+      "height": 480,
+      "alpha": true,
+      "modelHash": "686eda24afe6ce52944dbe1a0edbf4e252eb3cfbb52316cf2c1818ef177123e8",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "2262ab7c6c368c8b91b49628a9d614acb32ce3b24543b75566383853139516a1"
+    },
+    {
+      "id": "shop/stall/crate-tick",
+      "file": "public/shop/stall/crate-tick.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "crate-tick"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the tick sack's crate with its grain (crateGrid)",
+      "checked": "check:scenes",
+      "width": 560,
+      "height": 480,
+      "alpha": true,
+      "modelHash": "ce8eb9988419846987a42bfaa1f608979d84b5b2819f26def6c8b03a4c3d0251",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "d611f8f7b860daad1b29892b723cf53297a9d3554ca70fb2ccf4dc0ac2f07ef7"
+    },
+    {
+      "id": "shop/stall/lantern",
+      "file": "public/shop/stall/lantern.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "lantern"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the stall's lantern (stallLanternGrid)",
+      "checked": "check:scenes",
+      "width": 160,
+      "height": 160,
+      "alpha": true,
+      "modelHash": "77980f1b31a988b44bfd3e3e4aba7a7004d0d58327d0fcaf1c5e11558b255294",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "b6ac9c1984e8f377a1fa41cc376f6ce40538fff5ba7edccc57d5298976b26796"
+    },
+    {
+      "id": "shop/stall/low-valance",
+      "file": "public/shop/stall/low-valance.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "low-valance"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the low stall's awning edge (valanceGrid)",
+      "checked": "check:scenes",
+      "width": 2176,
+      "height": 67,
+      "alpha": true,
+      "modelHash": "12a11bc6141f8e40db2a93997f9f448ae726eb6c10c873ac9106709be4636f9d",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "5d2e519550686e55478c8cfd35933010ced5b8c4a08e237077617e05d1fe774c"
+    },
+    {
+      "id": "shop/stall/low",
+      "file": "public/shop/stall/low.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "low"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the low stall, everything that stands still (stallGrid)",
+      "checked": "check:scenes",
+      "width": 2176,
+      "height": 645,
+      "alpha": true,
+      "modelHash": "5b73b8f51537af13c5a362585bc461caf7c286b1c3f0697b5f2c4f4c13a6f911",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "b7948ab84cf927fd158dc2259e0f8ecc848799a15a5c02c89410d503ae86146d"
+    },
+    {
+      "id": "shop/stall/mid-valance",
+      "file": "public/shop/stall/mid-valance.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "mid-valance"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the mid stall's awning edge (valanceGrid)",
+      "checked": "check:scenes",
+      "width": 1480,
+      "height": 82,
+      "alpha": true,
+      "modelHash": "2bb91cd0127addd043eb06f713a7f8eee0f3e4c059cc4fe6d62d73a7064bbda8",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "e2e21f9e3b392b954fbfbc1788a7600cab5ff14ad65ed913e0fa8ac0fa39d5ff"
+    },
+    {
+      "id": "shop/stall/mid",
+      "file": "public/shop/stall/mid.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "mid"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the mid stall, everything that stands still (stallGrid)",
+      "checked": "check:scenes",
+      "width": 1480,
+      "height": 789,
+      "alpha": true,
+      "modelHash": "52efabd4b9644dce69b57a4236fab7b8977b75879eb1471d6e5e9f97667deb2b",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "b47f217b9be1a15b375516bebe88e41202fc747663aa0641f02ab535ca7ef466"
+    },
+    {
+      "id": "shop/stall/narrow-valance",
+      "file": "public/shop/stall/narrow-valance.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "narrow-valance"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the narrow stall's awning edge (valanceGrid)",
+      "checked": "check:scenes",
+      "width": 920,
+      "height": 64,
+      "alpha": true,
+      "modelHash": "1e320a7d72835fa95bc0974256251d006cb923448e3e45017cf817bd6e17f6fa",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "6dd915ff563627d8ef362271daf0a93936f03a935c32f4f881b6a8e3d4753d60"
+    },
+    {
+      "id": "shop/stall/narrow",
+      "file": "public/shop/stall/narrow.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "narrow"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the narrow stall, everything that stands still (stallGrid)",
+      "checked": "check:scenes",
+      "width": 920,
+      "height": 633,
+      "alpha": true,
+      "modelHash": "da42e0af6a4966a6fbc141b73f048719b6263fa526b0a5b687e86f4bfa8559e3",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "b711ab7474100ed45896a165ed3994b05480699810d7b80d386748459c4a0038"
+    },
+    {
+      "id": "shop/stall/sack-blast",
+      "file": "public/shop/stall/sack-blast.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "sack-blast"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the blast sack as it stands in its crate, and the crate that stands in front of it (sackInCrate, crateGrid)",
+      "checked": "check:scenes",
+      "width": 560,
+      "height": 480,
+      "alpha": true,
+      "modelHash": "ac93218750d016b1e8b09c155267b588accdbefdc01a1168e656a3286ad2c2d9",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "b8046d520422305efdbd59e55ff910168c473e2e96d75833fd4bc8139df0050a"
+    },
+    {
+      "id": "shop/stall/sack-bomb",
+      "file": "public/shop/stall/sack-bomb.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "sack-bomb"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the bomb sack as it stands in its crate, and the crate that stands in front of it (sackInCrate, crateGrid)",
+      "checked": "check:scenes",
+      "width": 560,
+      "height": 480,
+      "alpha": true,
+      "modelHash": "f33328fb1efea0fb1f8f9f8c0788d2b285c9e1a0c0bbf4dbc7fa05c15d8dc591",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "fd04add2657a202bb51895974b85a693e6f093f756c368cd62ac79b9d2476530"
+    },
+    {
+      "id": "shop/stall/sack-tick",
+      "file": "public/shop/stall/sack-tick.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "sack-tick"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the tick sack as it stands in its crate, and the crate that stands in front of it (sackInCrate, crateGrid)",
+      "checked": "check:scenes",
+      "width": 560,
+      "height": 480,
+      "alpha": true,
+      "modelHash": "0e8bc3ae526c459575f3329a10bb81d8fa1ffc3248fb78008ddab9db75be4b6f",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "5d48db382a54d7454c36d95a08086a3136df75d43524637a794c0f423c9c11fc"
+    },
+    {
+      "id": "shop/stall/wide-valance",
+      "file": "public/shop/stall/wide-valance.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "wide-valance"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the wide stall's awning edge (valanceGrid)",
+      "checked": "check:scenes",
+      "width": 2176,
+      "height": 82,
+      "alpha": true,
+      "modelHash": "efa2e7efce1f97fa4d5a7f9d0be18fb1b0f9a161067f479bbe37e0fb49e01958",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "6f4a4b546344088bdd10bb29dc76f19168042afca3acebf8307e488868b8d574"
+    },
+    {
+      "id": "shop/stall/wide",
+      "file": "public/shop/stall/wide.webp",
+      "tool": "tools/renderStall.mjs",
+      "args": [
+        "--only",
+        "wide"
+      ],
+      "page": "src/skin/shop/StallRender.tsx",
+      "model": "the wide stall, everything that stands still (stallGrid)",
+      "checked": "check:scenes",
+      "width": 2176,
+      "height": 736,
+      "alpha": true,
+      "modelHash": "ac9ec7cafccc58afb25d8bf73cfe0432a73666916f8693cfaffe11b33549c9ed",
+      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "fileHash": "42edb61bfddd8ff78e60ec4fbfa1ada20edb167d6020d0a2f5a40725c5b4cc11"
+    },
+    {
+      "id": "shop/tick-8bit",
+      "file": "public/shop/tick-8bit.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "tick-8bit"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the fuse sound tick-8bit's object (soundGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "bf80e3e56ef2bcf459acce34b88bfa692eeb7d2e910a475e3e244f6aad4c2915",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "d3df19f7e0ce06d4512dc5cad2aea00150ddd27d232fbba587b491cf82d7ea52"
+    },
+    {
+      "id": "shop/tick-chime",
+      "file": "public/shop/tick-chime.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "tick-chime"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the fuse sound tick-chime's object (soundGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "d9b8a13cb04ba101a9d8aa07ebd182d9df32e6c76d997e97cbda0df8d2428a85",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "6bc6890a8fdc91a6e57098d54d5fe3c792ec67adf358472fb15d520ef3945154"
+    },
+    {
+      "id": "shop/tick-cowbell",
+      "file": "public/shop/tick-cowbell.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "tick-cowbell"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the fuse sound tick-cowbell's object (soundGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "8fa9074ac73789c1dd07e7f9203f3c60e0e859ee83b7502efca9653920831216",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "f57fff9cdf355cfafd43aac950e65bc99e46a11194b3018a1c24263a3326a428"
+    },
+    {
+      "id": "shop/tick-lullaby",
+      "file": "public/shop/tick-lullaby.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "tick-lullaby"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the fuse sound tick-lullaby's object (soundGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "08a73e3dd0ebc77cdb251733f930395d6781b6e4a272fa8ecf18800272842830",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "13d9aedab0ec92583cdd74b7ef3131cd429b5b00993a8d9fb7c2912b74fc39cc"
+    },
+    {
+      "id": "shop/tick-musicbox",
+      "file": "public/shop/tick-musicbox.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "tick-musicbox"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the fuse sound tick-musicbox's object (soundGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "1653777008bfd962189eb8486c3f6ed00545d814e66c4f299fa3ba5351a20f8d",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "d2ad2e9983bf853d8d707faeb124752e1a4d6ed3fdba36209db81e98b2ef9921"
+    },
+    {
+      "id": "shop/tick-owl",
+      "file": "public/shop/tick-owl.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "tick-owl"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the fuse sound tick-owl's object (soundGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "41d1de67e94afacccb8aad1618426b464a18c3a808eac107d5929af74efc4d40",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "76e619a4119ac48a55385c12cfb6804566cc2542a1dc4931a4f3980dba8a9b8e"
+    },
+    {
+      "id": "shop/tick-sleigh",
+      "file": "public/shop/tick-sleigh.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "tick-sleigh"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the fuse sound tick-sleigh's object (soundGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "1074bdb8826664b7ffbe5a347e64da24249adb8b58a13ee98a4a1e568a6d91df",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "5416be94885b7429fd5704318d42cb89ab57e699bb3de775e236e362664b5930"
+    },
+    {
+      "id": "shop/tick-wood",
+      "file": "public/shop/tick-wood.webp",
+      "tool": "tools/renderThumbs.mjs",
+      "args": [
+        "--only",
+        "tick-wood"
+      ],
+      "page": "src/skin/shop/ThumbRender.tsx",
+      "model": "the fuse sound tick-wood's object (soundGrid in src/skin/shop/thumbModels.ts)",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "edd75c1c363cd618020e04bfeb33dd1485ee741139f420a3debdbb08b360ac98",
+      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "fileHash": "7313fa66771366802f2f6f027689076a9d63e883890323ee001b95b7e57394af"
+    },
+    {
+      "id": "tour/sheepdog",
+      "file": "public/tour/sheepdog.webp",
+      "tool": "tools/renderGuide.mjs",
+      "args": [],
+      "page": "src/skin/tour/GuideRender.tsx",
+      "model": "the sheepdog, whole and sitting (sheepdogModel in src/skin/voxel/characters.ts): body, head, two ears, tail, four legs",
+      "checked": "npm test",
+      "width": 256,
+      "height": 256,
+      "alpha": true,
+      "modelHash": "c3ebf7871e3cc418cbd306698703c657cd8250a304a9add2defcda844e350954",
+      "renderHash": "90fd0495aa88076573bbd7b546e4c332008eb3ae3b27bdc76333145e4128d47c",
+      "fileHash": "33617ec3adf810c19147246a52942e4852c2de71c3ab190afb912dbf508cef99"
+    }
+  ]
+}

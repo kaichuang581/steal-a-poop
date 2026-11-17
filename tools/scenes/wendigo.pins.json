@@ -1,0 +1,80 @@
+{
+  "about": [
+    "The wendigo's voxels, pinned (plan file 04, section 4.1, steps 4 to 6; file 16, section 5). npm run check:scenes measures them again on Home's farm at both detail levels (tools/scenes/wendigo.ts) and fails on any difference, whichever way a number moved.",
+    "countryside: every voxel src/skin/scene/countryside.ts builds. stand: the countryside's voxels whose middle is within 12 m of WENDIGO_AT along the ground. standOfEveryKind: every voxel of the farm there. cone: every voxel any part of which the paddock camera sees within 8% of the frame of the wendigo's box at 1280 x 800, at 0, 0.5 and 1 of its push, the three together (ofThePlansSixSets leaves out the far hills, as the plan's own figure does). rays: how many of 153 sight lines from that camera to the wendigo's box are clear at each of the three places.",
+    "A hash is SHA-256 over the voxels sorted, each as its corner and size in tenths of a millimetre and its colour in 16 bits a channel: voxels, never bytes. camera, wendigo and measure say what the numbers were measured with, and are compared too.",
+    "The wendigo zone is frozen (CLAUDE.md, The visual overhaul, Wendigo zone). These numbers change only with Brian's dated words, quoted in the pull request that changes them. A run writes what it measured to the gate's cache as scenes/wendigo/measured.json, in this file's shape."
+  ],
+  "pinned": {
+    "on": "2026-11-16",
+    "from": "commit 6edc7fe (v0.7.4), and the same tree with isClear reading CLEAR_SIGHT_LINES: measured on both, and the two agree in every number and hash"
+  },
+  "camera": {
+    "position": [21.2, 2.3, 6.2],
+    "target": [12.5, 0.9, -2.5],
+    "fov": 38,
+    "push": [-1.8, -0.2, 0.5],
+    "frame": [1280, 800],
+    "travel": [0, 0.5, 1]
+  },
+  "wendigo": {
+    "at": [-9.6, -36.1],
+    "ground": 9,
+    "sunk": 0.05,
+    "height": 3.4,
+    "halfWidth": 0.8
+  },
+  "measure": {
+    "standMetres": 12,
+    "coneMargin": 0.08,
+    "grid": [9, 17],
+    "rayFrom": 0.3,
+    "rayStep": 0.05
+  },
+  "fine": {
+    "countryside": {
+      "voxels": 487002,
+      "hash": "5c9fda308ea6eed68284faf187665fe690f7856e3c028291f10efb6a18bda8f7"
+    },
+    "stand": {
+      "voxels": 80760,
+      "hash": "bdcf22a0552dbfb1cc1eebc7785e5a955fc98426301c51b70762efc67a361fe7"
+    },
+    "standOfEveryKind": {
+      "voxels": 87124,
+      "hash": "8dc021dd2f34e71931269149eaa9fce74719a33b5c56d6e87c9be36fbdeb8c54"
+    },
+    "cone": {
+      "voxels": 89907,
+      "hash": "a1ef5934d9fbf66bf008697f2159963805adee8f356c47267c8e5e9cddbfe538",
+      "ofThePlansSixSets": 76449
+    },
+    "rays": {
+      "clear": [134, 136, 137],
+      "of": 153
+    }
+  },
+  "coarse": {
+    "countryside": {
+      "voxels": 487002,
+      "hash": "5c9fda308ea6eed68284faf187665fe690f7856e3c028291f10efb6a18bda8f7"
+    },
+    "stand": {
+      "voxels": 80760,
+      "hash": "bdcf22a0552dbfb1cc1eebc7785e5a955fc98426301c51b70762efc67a361fe7"
+    },
+    "standOfEveryKind": {
+      "voxels": 81795,
+      "hash": "4efe54d31b3e12cbf55fbb37b1c5d37d6925fb36c00d00834f3ee48fbb91363f"
+    },
+    "cone": {
+      "voxels": 78779,
+      "hash": "e08ece2fb7b6255e72ca7c55601001346111fd967af226233e2dd0d2579a1877",
+      "ofThePlansSixSets": 76449
+    },
+    "rays": {
+      "clear": [134, 136, 137],
+      "of": 153
+    }
+  }
+}

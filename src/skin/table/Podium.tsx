@@ -100,7 +100,7 @@ export function carvedGeometry(place: number): BufferGeometry {
 }
 
 /** The barn's back wall: red boards with dark seams. */
-function wallGeometry(): BufferGeometry {
+export function wallGeometry(): BufferGeometry {
   const W = 0.25, g = new Grid(W);
   const red = [C('#7E2A1E'), C('#6E2419'), C('#88301F')], seam = C('#3A140E');
   for (let x = -44; x < 44; x++) for (let y = 0; y < 28; y++) g.set(x, y, 0, x % 4 === 0 ? seam : red[Math.floor(hash3(x >> 2, y >> 3, 0, 4) * 3)]);
@@ -109,7 +109,7 @@ function wallGeometry(): BufferGeometry {
 
 /** The big barn doors on the back wall: red boards in a white frame with the white cross on each, a white header over
  *  them, and a wreath hung on the right-hand door. On a finer grid so the cross runs clean. */
-function doorsGeometry(): BufferGeometry {
+export function doorsGeometry(): BufferGeometry {
   const D = 0.125, g = new Grid(D);
   const red = [C('#8A2E20'), C('#7A2719'), C('#933522')], white = C('#EAE1D0'), seam = C('#4A1A10');
   const leafW = 26, h = 30; // each door, in cells; the two meet at x = 0
@@ -132,7 +132,7 @@ function doorsGeometry(): BufferGeometry {
 }
 
 /** A straw floor: loose gold straw in four tones with darker patches, and stray tufts lying on top. */
-function floorGeometry(): BufferGeometry {
+export function floorGeometry(): BufferGeometry {
   const g = new Grid(S), straw = [C('#D9B66A'), C('#C9A253'), C('#E4C47E'), C('#B88F44')], dirt = C('#8A6A3A');
   for (let x = -90; x < 90; x++) for (let z = -32; z < 40; z++) {
     g.set(x, 0, z, hash3(x >> 1, 0, z >> 1, 11) < 0.06 ? dirt : straw[Math.floor(hash3(x, 0, z, 12) * straw.length)]);
@@ -142,7 +142,7 @@ function floorGeometry(): BufferGeometry {
 }
 
 /** A hay bale: straw packed tight with two twine bands. */
-function baleGeometry(): BufferGeometry {
+export function baleGeometry(): BufferGeometry {
   const g = new Grid(S), straw = [C('#D9B66A'), C('#C9A253'), C('#E4C47E')], twine = C('#7A5A30');
   for (let x = 0; x < 10; x++) for (let y = 0; y < 5; y++) for (let z = 0; z < 6; z++) {
     g.set(x, y, z, x === 2 || x === 7 ? twine : straw[Math.floor(hash3(x, y, z, 21) * straw.length)]);

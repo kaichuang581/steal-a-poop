@@ -1,0 +1,166 @@
+{
+  "about": [
+    "The gate's picture noise (plan file 16, section 4.1 d): how much two photographs of the same shot of the same build differ, measured by shooting each shot in separate browser contexts and comparing every pair.",
+    "Written by node tools/gate/pictures.mjs --noise --write and read by tools/gate/pictures.mjs. A shot's tolerance is 4 times its noise, never looser than the plan's figures: at most 0.5 % of pixels more than 24 of 255 apart (share, 0 to 1) and no tile's mean more than 3 apart, under both readings of \"16 x 9 tile\" (tileMean: a 16 x 9 grid of tiles; patchMean: tiles of 16 x 9 pixels).",
+    "noise: the largest figure seen over all pairs. pixelsOver24, pixelsDifferingAtAll (by any amount) and largestStep (the largest gap on one channel of one pixel, of 255) are there for a reader; the gate uses share, tileMean and patchMean. distinctPictures is how many different files the runs gave; clockMs is the reading of the page's pinned clock at the shot.",
+    "A noise of 0 gives a tolerance of 0: the head must then match the base in every tile mean, which is to say pixel for pixel.",
+    "wobbles: true where the noise is over the plan's own figures, so that no tolerance the plan allows covers it. That is a known failure of the game's picture, not of the gate: it is counted in the ratchet pictures.wobblingShots, which may only fall, and named in every report. states is how many runs gave each of its pictures; steadyNoise is the noise between runs of one state, and the tolerance is 4 times that. The gate photographs such a shot picturesABuild times at the base and up to as often at the head, and calls it the same only when one of the head's pictures matches one of the base's.",
+    "wendigo: the magenta mask of the paddock shot under ?wendigoDebug. maskPixels is the mask's size in each run; lowestIoU the worst overlap between two runs. The gate asks for an overlap of at least atLeast with the base's, whatever the noise.",
+    "Raising a figure here loosens the gate. This file is under tools/gate/**, so the gate prints every change to it as a decision for Brian, and the loosest tolerance of all is a ratchet (pictures.loosestTolerance in RATCHETS.json)."
+  ],
+  "measured": {
+    "on": "2026-11-16",
+    "runs": 10,
+    "browsers": 2,
+    "atOnce": 4,
+    "browser": "Chromium 158.0.8127.18, headless, drawing in software (--use-angle=swiftshader --use-gl=angle --enable-unsafe-swiftshader)",
+    "machine": "darwin arm64, Apple M4, 10 cores",
+    "node": "v22.23.4",
+    "tree": "12917b90aaa1e068b5460bd7efe975ee9b33e6b0-885de89b0684"
+  },
+  "times": 4,
+  "plan": { "share": 0.005, "tileMean": 3, "threshold": 24 },
+  "shots": {
+    "home-pov0-day": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 1536 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "home-pov1-day": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 1536 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "home-pov3-night": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 1536 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "home-pov0-day@390x844": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 29,
+      "distinctPictures": 4,
+      "clockMs": [ 1536 ],
+      "noise": {
+        "share": 0,
+        "tileMean": 0.004032258064516129,
+        "patchMean": 0.041666666666666664,
+        "pixelsOver24": 0,
+        "pixelsDifferingAtAll": 215,
+        "largestStep": 1
+      },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0.016129032258064516, "patchMean": 0.16666666666666666 }
+    },
+    "table-turn": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 6384 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "table-turn@390x844": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 6384, 6400 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "table-results": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 9,
+      "distinctPictures": 2,
+      "clockMs": [ 288634 ],
+      "noise": {
+        "share": 0.0038720703125,
+        "tileMean": 0.4077247191011236,
+        "patchMean": 13.819444444444445,
+        "pixelsOver24": 3965,
+        "pixelsDifferingAtAll": 6550,
+        "largestStep": 223
+      },
+      "wobbles": true,
+      "states": [ 9, 1 ],
+      "steadyNoise": { "share": 0, "tileMean": 0, "patchMean": 0 },
+      "picturesABuild": 5,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "duel-start": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 6384 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "dream-ready": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 2644 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "dream-ready@390x844": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 2644 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "bazaar-sacks": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 2068, 2084 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    },
+    "profile": {
+      "runs": 10,
+      "pairs": 45,
+      "pairsDiffering": 0,
+      "distinctPictures": 1,
+      "clockMs": [ 2036 ],
+      "noise": { "share": 0, "tileMean": 0, "patchMean": 0, "pixelsOver24": 0, "pixelsDifferingAtAll": 0, "largestStep": 0 },
+      "wobbles": false,
+      "tolerance": { "share": 0, "tileMean": 0, "patchMean": 0 }
+    }
+  },
+  "wendigo": {
+    "wendigo-mask-day": { "runs": 10, "pairs": 45, "maskPixels": [ 693 ], "lowestIoU": 1, "atLeast": 0.98 },
+    "wendigo-mask-night": { "runs": 10, "pairs": 45, "maskPixels": [ 864 ], "lowestIoU": 1, "atLeast": 0.98 }
+  }
+}

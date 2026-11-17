@@ -19,7 +19,7 @@ let land: Countryside | null = null;
 export const farmReady = () => !!built && !!land;
 
 /** Who lives on the farm: [animal, x, z, facing, state]. Phones keep the first few. */
-const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
+export const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
   ['cow', 15.2, 2.2, 2.4, 'grazing'],
   ['horse', 19.4, -1.2, -1.9, 'idle'],
   ['chicken', -12.6, 5.2, 0.5, 'grazing'],

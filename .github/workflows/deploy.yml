@@ -45,6 +45,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+      - run: npm run size
       - run: npx vite build --outDir dist/steal-a-poop --emptyOutDir
         env:
           VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}

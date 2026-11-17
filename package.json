@@ -1,7 +1,7 @@
 {
   "name": "steal-a-poop",
   "private": true,
-  "version": "0.7.4",
+  "version": "0.7.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,7 +21,10 @@
     "migrate": "vite-node scripts/migrate.ts --",
     "build:server": "vite build --config vite.server.config.ts",
     "start": "node dist-server/main.mjs",
-    "check:floating": "vite-node tools/floatingVoxels.ts -- --props --strict"
+    "check:floating": "vite-node tools/scenes/check.ts -- --only connect",
+    "check:scenes": "vite-node tools/scenes/check.ts --",
+    "gate": "node tools/gate/gate.mjs",
+    "test:painted": "playwright test -c e2e-painted/playwright.painted.config.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

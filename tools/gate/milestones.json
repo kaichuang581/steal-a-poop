@@ -1,0 +1,303 @@
+{
+  "about": [
+    "The milestone table of the visual overhaul, read by tools/gate/gate.mjs (each module gets its milestone's entry as ctx.plan).",
+    "Taken from docs/visual-overhaul: the run order in 00-README-SUMMARY.md, the fixed shot ids in 16-qa-and-acceptance.md section 4.1 d, the replaceable tests in 19-decisions-and-conflicts.md section 1, and the HUMAN lines of files 02 to 18.",
+    "name: the branch is overhaul/mNN-<name>. files: the plan files the README's run order lists. alsoIn: other plan files that give this milestone work, which the README's column leaves out.",
+    "shots: the picture ids this milestone may change. The rule (file 16, section 4.1 d): a change in any other shot fails; a declared shot must change, and its pair goes to a person. The wendigo mask pair is never listed: it may not change in any milestone.",
+    "A shot is listed only where a plan file says that screen's picture changes at that size (shotsFrom quotes where). Where the plan names no shot, shots is empty and undeclared says what is missing, so that nobody guesses: Brian or Kai fills it in, and the gate prints the change to this file.",
+    "replaceable: what file 19 section 1 lets this milestone replace, and nothing else. scope says how much of the file; test: false marks a file that is not a vitest file.",
+    "stops: true where the README marks a stop for Brian. human: the human checks this milestone depends on; a result goes in docs/visual-overhaul/human/mNN.md on a line that starts with the check's id. questions: the numbers of file 19 section 2 asked at this milestone.",
+    "Changing this file changes what the gate allows: it is under tools/gate/**, so every change is printed as a decision for Brian."
+  ],
+  "shots": [
+    "home-pov0-day",
+    "home-pov1-day",
+    "home-pov3-night",
+    "home-pov0-day@390x844",
+    "table-turn",
+    "table-turn@390x844",
+    "table-results",
+    "duel-start",
+    "dream-ready",
+    "dream-ready@390x844",
+    "bazaar-sacks",
+    "profile"
+  ],
+  "answered": {
+    "9": "Yes (Brian, 2026-11-16)",
+    "10": "Approve the list (Brian, 2026-11-16)",
+    "11": "Yes, Kai agreed (Brian, 2026-11-16)"
+  },
+  "milestones": [
+    {
+      "milestone": 0,
+      "name": "safety-net",
+      "title": "Safety net",
+      "files": ["16-qa-and-acceptance.md", "18-asset-integrity.md", "19-decisions-and-conflicts.md"],
+      "alsoIn": ["04-farm-scenery.md section 4.1 (the wendigo guard)", "17-performance-and-stability.md section 4 change 1 (the count gate)"],
+      "visible": "No",
+      "shots": [],
+      "shotsFrom": "README run order: nothing a player sees changes.",
+      "undeclared": [],
+      "replaceable": [],
+      "stops": true,
+      "human": [
+        { "id": "m00-branch-protection", "what": "A direct push to main is refused: Brian has turned on the ruleset (pull request, one approval, the required checks CI test, Quality unit and size, Painted smoke, gate and check-scenes).", "from": "file 16, section 4.1 b; README, known points (check-scenes is a required check)" },
+        { "id": "m00-exemptions", "what": "Brian has answered the pending exemptions: the far hills and mountains, and the bedroom's clock, ring and window view.", "from": "file 18, sections 7 and 8" },
+        { "id": "m00-green-twice", "what": "The gate and the smoke suite were green on main twice running before milestone 1 started.", "from": "file 16, section 4.1" }
+      ],
+      "questions": [11]
+    },
+    {
+      "milestone": 1,
+      "name": "stability",
+      "title": "Stability",
+      "files": ["17-performance-and-stability.md", "05-home-screen.md", "13-typography-and-hud-rules.md", "14-phone-layout.md"],
+      "alsoIn": ["06-table-scene.md section 4.1 (the canvas fix)", "11-menus-and-dialogs.md change 1 (a disabled look for pegs)"],
+      "visible": "Only the defects",
+      "shots": ["home-pov0-day", "home-pov1-day", "home-pov3-night"],
+      "shotsFrom": "File 05, change 1: on a computer the update sign moves from over the title's last tile to under the tagline (\"HUMAN: Brian sees the title at 1280 x 800 before and after\"); the phone rule stays as it is. The title is on Home whatever the shot.",
+      "undeclared": [
+        "Milestone 1, home-pov0-day@390x844: file 14 change 3 puts a phone's Home in one column and does not say whether the picture at 390 x 844 moves.",
+        "Milestone 1, the table shots: file 13 changes 1 and 2 (the gap after \"bot\" on the scoreboard, the wool balls), file 14 change 2 (the scoreboard out of the flow: \"none at 1280 x 800 with six seats\") and file 11 change 1 (disabled pegs) name no shot. File 06 section 4.1 says the table's pictures are unchanged by the canvas fix.",
+        "Milestone 1, every shot: file 17 change 6 ships the fonts with the game (\"the same faces\") and does not say the pictures stay inside tolerance."
+      ],
+      "replaceable": [
+        { "file": "src/skin/wotd/__tests__/wotd.test.ts", "scope": "only the lines that check meaning and example; every test keeps its name and place", "condition": "question 9 is yes (answered yes on 2026-11-16)", "test": true }
+      ],
+      "stops": true,
+      "human": [
+        { "id": "m01-friends-test", "what": "The five-minute friends' test has at least one result from a school Chromebook or a Windows laptop with Intel graphics (device A1 or A2).", "from": "file 16, section 7" },
+        { "id": "m01-title-pair", "what": "Brian has seen the title at 1280 x 800 before and after.", "from": "file 05, section 7" }
+      ],
+      "questions": [9, 16, 20, 22]
+    },
+    {
+      "milestone": 2,
+      "name": "performance",
+      "title": "Performance, picture unchanged",
+      "files": ["17-performance-and-stability.md", "02-lighting-and-rendering.md"],
+      "alsoIn": ["04-farm-scenery.md sections 4.1 and 4.2 (the frozen sight lines, the unseen-triangle cuts)"],
+      "visible": "No (within the gate's tolerance)",
+      "shots": [],
+      "shotsFrom": "File 04, section 4.2: \"the head-against-base picture gate unchanged\"; file 17, change 13: \"pictures within tolerance\", and a step outside tolerance moves to milestone 4 as a pair.",
+      "undeclared": [],
+      "replaceable": [
+        { "file": "src/skin/table/__tests__/adaptiveDpr.test.ts", "scope": "the whole file (file 17, change 10 rewrites the resolution judge)", "condition": "question 10 (answered: approve the list, 2026-11-16)", "test": true }
+      ],
+      "stops": false,
+      "human": [],
+      "questions": [10, 17, 18, 21]
+    },
+    {
+      "milestone": 3,
+      "name": "integrity",
+      "title": "Integrity fixes",
+      "files": ["18-asset-integrity.md", "03-animal-models.md"],
+      "alsoIn": ["06-table-scene.md sections 4.4, 4.6 and 4.7 (the scoreboard join, festive coplanar faces, plates from measured anchors)", "04-farm-scenery.md section 3 (problems 4 and 7, fixed by file 18)"],
+      "visible": "Small fixes only",
+      "shots": [],
+      "shotsFrom": "",
+      "undeclared": [
+        "Milestone 3: file 18 section 4.7 says only \"gate pictures change only there\" for its seven scene fixes (the robin, the pen's pines, the wheelbarrow corner, festive strands, the hens, the farm lights, the scoreboard gap), and file 03 sections 4.1 to 4.7 with file 06 sections 4.6 and 4.7 move tails, ice blocks, hats, scarves and name plates. No shot id is named. A reading, not the plan's words: the table and duel shots (plates) and the home shots (doorway sheep, hens, lights) would change."
+      ],
+      "replaceable": [],
+      "stops": false,
+      "human": [],
+      "questions": []
+    },
+    {
+      "milestone": 4,
+      "name": "tiers-and-light",
+      "title": "Quality tiers and hour grades",
+      "files": ["17-performance-and-stability.md", "02-lighting-and-rendering.md"],
+      "alsoIn": [],
+      "visible": "Lower tiers only; High unchanged",
+      "shots": [],
+      "shotsFrom": "README run order: High unchanged. File 02, section 4.3: \"High keeps today's picture within the gate's tolerance\". The hour grades change dawn and dusk; the gate shoots day and night.",
+      "undeclared": [
+        "Milestone 4: file 02 section 4.3 lets a reduction whose High shots leave tolerance go ahead as a pair for Brian; which shots such a row changes is not named.",
+        "Milestone 4: file 17 change 15 opens every session on Medium from here on. The plan does not say which tier the gate's pictures are taken on: unless they pin High (?gfx=high), every shot changes."
+      ],
+      "replaceable": [],
+      "stops": true,
+      "human": [
+        { "id": "m04-hour-pair", "what": "Brian has seen Home shots 0 and 1 at all four hours, today beside proposed, and approved the hour pair.", "from": "file 02, sections 4.2 and 7" },
+        { "id": "m04-reduction-pairs", "what": "Brian has approved each reduction pair that is outside tolerance.", "from": "file 02, sections 4.3 and 7" },
+        { "id": "m04-low-patch", "what": "Brian has seen the ground-contact patch as a pair on Low, at the table and in the pen.", "from": "file 02, section 4.5" },
+        { "id": "m04-tier-pairs", "what": "Brian has seen the tier pairs and the failure card.", "from": "file 17, section 7" },
+        { "id": "m04-device-reports", "what": "A Chromebook-class device and a phone have sent their device reports back.", "from": "file 17, section 7" }
+      ],
+      "questions": [15, 19]
+    },
+    {
+      "milestone": 5,
+      "name": "animals-1",
+      "title": "Animals I",
+      "files": ["03-animal-models.md"],
+      "alsoIn": [],
+      "visible": "Yes",
+      "shots": [],
+      "shotsFrom": "",
+      "undeclared": [
+        "Milestone 5: file 03 section 4.8 smooths five species and every garment, and section 4.9's fleece pair may change the sheep; section 7 says only \"gate pictures inside tolerance, or each change shown as a pair\". No shot id is named. A reading, not the plan's words: every shot with an animal in it may change."
+      ],
+      "replaceable": [],
+      "stops": true,
+      "human": [
+        { "id": "m05-fleece-pair", "what": "Brian has picked the sheep's fleece, A (today) or B.", "from": "file 03, section 4.9" },
+        { "id": "m05-face-sheet", "what": "Brian has ticked the rows of the face sheet (docs/visual-overhaul/m5/faces.png).", "from": "file 03, section 4.10" }
+      ],
+      "questions": [1, 2]
+    },
+    {
+      "milestone": 6,
+      "name": "animals-2",
+      "title": "Animals II",
+      "files": ["03-animal-models.md", "07-bomb-and-blasts.md"],
+      "alsoIn": ["10-trading-post-and-items.md change 2 and 12-online-lobby-and-leaderboards.md change 1 (re-bake or re-capture a picture in the milestone that changes its model)"],
+      "visible": "Yes",
+      "shots": [],
+      "shotsFrom": "",
+      "undeclared": [
+        "Milestone 6: file 03 sections 4.11 to 4.13 (the species Brian ticks, the hat merged into the head, fewer draws: \"shadows inside the gate's tolerance, else a pair\") name no shot id. A reading, not the plan's words: every shot with an animal in it may change."
+      ],
+      "replaceable": [
+        { "file": "src/skin/voxel/animals/measure.ts", "scope": "the SHEET ranges of a species Brian ticked, each named in its row; this is the data the animal tests read, and no test file is replaced", "condition": "question 10 (answered: approve the list, 2026-11-16) and Brian's tick for that species", "test": false }
+      ],
+      "stops": true,
+      "human": [
+        { "id": "m06-stop", "what": "Brian has seen the ticked species, the merged hat and the re-baked pictures at the milestone 6 stop.", "from": "README run order; file 03, sections 4.11 to 4.14" }
+      ],
+      "questions": [3]
+    },
+    {
+      "milestone": 7,
+      "name": "table-and-duel",
+      "title": "Table and duel",
+      "files": ["06-table-scene.md", "08-practice-duel.md", "07-bomb-and-blasts.md"],
+      "alsoIn": [],
+      "visible": "Yes",
+      "shots": ["table-turn", "table-turn@390x844", "duel-start"],
+      "shotsFrom": "File 06, section 4.2 (the whole letter board in frame, tested at 1280 x 800 and 390 x 844) and section 4.5 (the calmer floor, \"the noisiest surface behind every turn\", a pair at the stop). File 08, section 4.2 (ice toned by patch, a pair at the stop) and section 4.4 (the fight card's two tags).",
+      "undeclared": [
+        "Milestone 7, table-results and the home shots: file 06 section 4.5 changes the barn's floor and file 06 section 4.3 with file 07 section 4.2 move the bomb; whether the results or Home's doorway shots show either is not named.",
+        "Milestone 7, table-turn@390x844: on a phone the letter board is cut in 19 of 54 shots today, not in all. If this shot does not change, the gate fails it as declared and unchanged."
+      ],
+      "replaceable": [],
+      "stops": true,
+      "human": [
+        { "id": "m07-framing", "what": "Brian has picked a table framing from the three pairs (crop, composed, re-solved).", "from": "file 06, sections 4.2 and 7" },
+        { "id": "m07-floor-pair", "what": "Brian has seen the calmer floor as a pair.", "from": "file 06, section 4.5" },
+        { "id": "m07-ice-pair", "what": "Brian has seen the ice and shore pair.", "from": "file 08, sections 4.2 and 7" }
+      ],
+      "questions": [4, 5, 14]
+    },
+    {
+      "milestone": 8,
+      "name": "farm",
+      "title": "Farm",
+      "files": ["04-farm-scenery.md"],
+      "alsoIn": [],
+      "visible": "Yes",
+      "shots": ["home-pov0-day", "home-pov1-day", "home-pov3-night", "home-pov0-day@390x844"],
+      "shotsFrom": "File 04, sections 4.3 and 7: Brian sees 12 before-and-after pairs, every tour shot but the two paddock shots. Computer shots 0, 1 and 3 and phone shot 0 are the gate's four home shots.",
+      "undeclared": [
+        "Milestone 8, the table shots: file 04 section 4.4 resizes the tree by the doors, the snowman and the presents; whether the table's view of the yard shows them is not named.",
+        "Milestone 8, home-pov3-night: file 04 section 4.3 says \"Keep\" for computer shot 3, so it changes only through section 4.4's decorations. If it does not change, the gate fails it as declared and unchanged."
+      ],
+      "replaceable": [],
+      "stops": true,
+      "human": [
+        { "id": "m08-twelve-pairs", "what": "Brian has approved the 12 before-and-after pairs of the tour shots (both paddock shots are unchanged).", "from": "file 04, sections 4.3 and 7" }
+      ],
+      "questions": [7, 8]
+    },
+    {
+      "milestone": 9,
+      "name": "counting-sheep",
+      "title": "Counting Sheep side-on",
+      "files": ["09-counting-sheep.md"],
+      "alsoIn": [],
+      "visible": "Yes",
+      "shots": ["dream-ready", "dream-ready@390x844"],
+      "shotsFrom": "File 09, section 4.2: \"one orthographic side view on every device\"; section 7: Brian sees before and after at the milestone 9 stops.",
+      "undeclared": [],
+      "replaceable": [
+        { "file": "src/skin/dream/__tests__/stage.test.ts", "scope": "the framing cases only; the obstacle case stays (file 09, section 4.4), and so does every case that is not about framing", "condition": "question 10 (answered: approve the list, 2026-11-16)", "test": true },
+        { "file": "tools/dreamGate.ts", "scope": "the 32 dream gates, replaced by the unit tests and pixel gates of file 09, section 4.7", "condition": "question 10 (answered: approve the list, 2026-11-16)", "test": false }
+      ],
+      "stops": true,
+      "human": [
+        { "id": "m09-before-after", "what": "Brian has seen Counting Sheep before and after, at both milestone 9 stops.", "from": "file 09, section 7" },
+        { "id": "m09-phone-span", "what": "Brian has seen the phone SPAN pair (240 against 220).", "from": "file 09, sections 7 and 8" }
+      ],
+      "questions": [24, 25]
+    },
+    {
+      "milestone": 10,
+      "name": "interface",
+      "title": "Interface",
+      "files": ["05-home-screen.md", "10-trading-post-and-items.md", "11-menus-and-dialogs.md", "12-online-lobby-and-leaderboards.md", "13-typography-and-hud-rules.md"],
+      "alsoIn": [],
+      "visible": "Small",
+      "shots": [],
+      "shotsFrom": "",
+      "undeclared": [
+        "Milestone 10, profile: file 11 change 2 rewrites a new player's notes and adds a line above the slips (\"HUMAN: Brian sees a new player's profile, before and after\"), and the gate's profile shot is a new player's; it is not named as a shot, and what the shot's saved data shows is the pictures module's.",
+        "Milestone 10, the home shots: file 05 change 2 raises the footer from 11 px to 12 px and lets the tip wrap. Not named as a shot.",
+        "Milestone 10, bazaar-sacks: file 10 change 1 wraps text on the Barn Book and Missions tabs. Not named; the Feed Sacks tab is not spoken for.",
+        "Milestone 10: files 11 and 13 say that with FESTIVE on the head-against-base pictures are unchanged by the season work."
+      ],
+      "replaceable": [],
+      "stops": false,
+      "human": [
+        { "id": "m10-sack", "what": "Brian has opened one sack and seen no change.", "from": "file 10, section 7" },
+        { "id": "m10-profile", "what": "Brian has seen a new player's profile, before and after.", "from": "file 11, section 7" },
+        { "id": "m10-season-off-band", "what": "Brian has seen the season-off pair of the kit panels, before FESTIVE is ever set false.", "from": "file 11, change 3" },
+        { "id": "m10-season-off-words", "what": "Brian has read the season-off words, before FESTIVE is ever set false.", "from": "file 13, section 7" }
+      ],
+      "questions": [6, 12, 23]
+    },
+    {
+      "milestone": 11,
+      "name": "phones-and-motion",
+      "title": "Phones and motion",
+      "files": ["14-phone-layout.md", "15-motion-and-feel.md"],
+      "alsoIn": [],
+      "visible": "Small",
+      "shots": [],
+      "shotsFrom": "File 14, change 5: pictures unchanged on computer sizes. File 15, section 5: pictures with motion reduced must not change.",
+      "undeclared": [
+        "Milestone 11, home-pov0-day@390x844: file 14 change 5 raises the phone's word-of-the-day pronunciation from 10 px to 11 px. Not named as a shot.",
+        "Milestone 11, table-turn@390x844 and dream-ready@390x844: file 14 says only that computer sizes are unchanged; the phone shots are not spoken for."
+      ],
+      "replaceable": [],
+      "stops": false,
+      "human": [
+        { "id": "m11-real-phone", "what": "The friends' check has been done on a real phone, upright and sideways.", "from": "file 14, section 7" },
+        { "id": "m11-notch", "what": "One notched phone has been looked at in landscape.", "from": "file 14, change 5" },
+        { "id": "m11-title-alarm", "what": "Brian has seen Home's title and an alarm before and after.", "from": "file 15, sections 4 and 7" }
+      ],
+      "questions": []
+    },
+    {
+      "milestone": 12,
+      "name": "release",
+      "title": "Release",
+      "files": ["16-qa-and-acceptance.md"],
+      "alsoIn": ["12-online-lobby-and-leaderboards.md change 1 (the play chooser's pictures, once more at milestone 12)"],
+      "visible": "No",
+      "shots": [],
+      "shotsFrom": "README run order: no visible change. The re-captured play cards and the link picture are files in public/, not gate shots.",
+      "undeclared": [],
+      "replaceable": [],
+      "stops": true,
+      "human": [
+        { "id": "m12-full-tour", "what": "The full tour has been walked on the devices of file 16's table, and every earlier human check has a result (a missing one blocks this milestone).", "from": "README run order; file 16, section 7" },
+        { "id": "m12-play-cards", "what": "Brian has seen the re-captured play cards and link picture, old beside new.", "from": "file 12, change 1" }
+      ],
+      "questions": [13]
+    }
+  ]
+}

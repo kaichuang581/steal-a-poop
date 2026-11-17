@@ -19,6 +19,11 @@ import type { Brows, Lids, Mouth, Part, SheepModel, WoolLevel } from '../voxel/s
 import type { AnimalModel, SigPart } from '../voxel/animals/rig';
 
 export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'dazed' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'run' | 'jump' | 'bonk' | 'land' | 'walk' | 'flop' | 'perch' | 'lounge';
+/** Every state of `SheepState`, in its order, for the checks that step through all of them (tools/scenes/models.ts). */
+export const ALL_STATES = ['idle', 'proud', 'happy', 'startled', 'cold', 'dazed', 'freezing', 'frozen', 'thawing', 'sleeping', 'grazing', 'thinking', 'run', 'jump', 'bonk', 'land', 'walk', 'flop', 'perch', 'lounge'] as const satisfies readonly SheepState[];
+/** Types only, no code: this stops compiling when a state is added to `SheepState` and left out of `ALL_STATES`. */
+export type EveryStateListed = Nothing<Exclude<SheepState, (typeof ALL_STATES)[number]>>;
+type Nothing<T extends never> = T;
 export type { WoolLevel };
 
 /**

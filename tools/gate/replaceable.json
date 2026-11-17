@@ -1,0 +1,67 @@
+{
+  "about": [
+    "The tests the visual overhaul may replace, each only in its milestone, and nothing else (docs/visual-overhaul/19-decisions-and-conflicts.md, section 1: the sentence that starts \"Tests that may be replaced\"; the same sentence stands in the entry at the top of CLAUDE.md).",
+    "Three places hold this list and must agree: this file, the replaceable entries of tools/gate/milestones.json, and that sentence. src/skin/__tests__/fences.test.ts fails when they stop agreeing on which files and which milestones; `node tools/gate/fences.mjs` says the same without vitest.",
+    "milestone, file, scope, condition and test are the milestone table's own words. named is how the sentence names the file: its path, its file name, or (for the dream gates) the words that stand for it.",
+    "ledger is what tools/gate/ledger.mjs lets through for that file in that milestone, and only when the milestone table lists the file too. null: nothing (the file is not a vitest file, so no test name and no test file is excused). bytes: the test file may differ from the base's. tests \"kept\": every test in it keeps its name and passes. tests \"replaced\": its tests may go or be renamed, each one named in the report; a name under stay may not go.",
+    "The plan does not say which cases of stage.test.ts are \"the framing cases\". Until Brian or Kai names them here, the ledger holds the one case the plan says stays and names every other test that goes as a decision for the reviewer.",
+    "never is the sentence's \"Never replaced\" list. Nothing under the folders in under, and no test file named in tests (<name>.test.ts or .tsx), may be listed above. checks are the ones the sentence names by subject: they live inside test files that are not listed, so the ledger holds them (a test that is not listed may not go, and a test file that is not listed may not change, which is also what keeps a budget written in a test from being raised).",
+    "Changing this file changes what the gate allows. It is under tools/gate/**, so every change is printed as a decision for Brian."
+  ],
+  "replaceable": [
+    {
+      "milestone": 1,
+      "file": "src/skin/wotd/__tests__/wotd.test.ts",
+      "scope": "only the lines that check meaning and example; every test keeps its name and place",
+      "condition": "question 9 is yes (answered yes on 2026-11-16)",
+      "test": true,
+      "named": "src/skin/wotd/__tests__/wotd.test.ts",
+      "ledger": { "bytes": true, "tests": "kept" }
+    },
+    {
+      "milestone": 2,
+      "file": "src/skin/table/__tests__/adaptiveDpr.test.ts",
+      "scope": "the whole file (file 17, change 10 rewrites the resolution judge)",
+      "condition": "question 10 (answered: approve the list, 2026-11-16)",
+      "test": true,
+      "named": "adaptiveDpr.test.ts",
+      "ledger": { "bytes": true, "tests": "replaced" }
+    },
+    {
+      "milestone": 6,
+      "file": "src/skin/voxel/animals/measure.ts",
+      "scope": "the SHEET ranges of a species Brian ticked, each named in its row; this is the data the animal tests read, and no test file is replaced",
+      "condition": "question 10 (answered: approve the list, 2026-11-16) and Brian's tick for that species",
+      "test": false,
+      "named": "src/skin/voxel/animals/measure.ts",
+      "ledger": null
+    },
+    {
+      "milestone": 9,
+      "file": "src/skin/dream/__tests__/stage.test.ts",
+      "scope": "the framing cases only; the obstacle case stays (file 09, section 4.4), and so does every case that is not about framing",
+      "condition": "question 10 (answered: approve the list, 2026-11-16)",
+      "test": true,
+      "named": "stage.test.ts",
+      "ledger": {
+        "bytes": true,
+        "tests": "replaced",
+        "stay": ["the dream's world (V4.1 Parts 5 and 6) builds every obstacle across the whole lane, none taller than the jump clears"]
+      }
+    },
+    {
+      "milestone": 9,
+      "file": "tools/dreamGate.ts",
+      "scope": "the 32 dream gates, replaced by the unit tests and pixel gates of file 09, section 4.7",
+      "condition": "question 10 (answered: approve the list, 2026-11-16)",
+      "test": false,
+      "named": "the 32 dream gates",
+      "ledger": null
+    }
+  ],
+  "never": {
+    "under": ["src/engine", "src/dream", "src/state", "src/lib", "server", "e2e"],
+    "tests": ["primitives.floating", "refine", "zfighting", "animalPose", "loungePose", "legJoins", "bombSkins", "burstActs", "sacks", "tour", "boards", "festive", "uiAudit", "kitContrast"],
+    "checks": ["connectivity", "face-rule", "root and garment checks", "any budget, except downward"]
+  }
+}

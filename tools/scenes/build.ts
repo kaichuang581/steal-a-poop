@@ -841,39 +841,42 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
    */
   async dream(L, load, shared, detail) {
     mirrors('src/skin/dream/DreamStage.tsx', [
+      'const view = useMemo(() => dreamView(Math.max(1, size.width), Math.max(1, size.height), phone), [size.width, size.height, phone]);',
       'chunks: Array.from({ length: CHUNK.count }, (_, i) => raftChunk(i)),',
-      'islands: ISLANDS.map((it, i) => { const p = islandPlace(it, phone); return { ...p, ...islandGeometry(it.kind, p.across, p.tall, i + 1) }; }),',
-      "wisps: WISPS.map((w, i) => ({ geo: wispGeometry(i + 1), at: atFrame(phone ? PHONE_SHOT : DESKTOP_SHOT, phone ? 390 / 844 : 16 / 9, w.frame[0], w.frame[1], w.z) })),",
-      'sea: cloudSea(phone), hills: hillsGeometry(), mountains: mountainsGeometry(),',
+      'const far = useMemo(() => ({ sea: seaLayer(view), hills: hillsLayer(view), mountains: mountainsLayer(view) }), [view]);',
+      'islands: ISLANDS.map((it, i) => { const p = islandPlace(it, phone, view); return { ...p, ...islandGeometry(it.kind, p.across, p.tall, i + 1) }; }),',
+      'wisps: WISPS.map((w, i) => ({ geo: wispGeometry(i + 1), at: [...frameToWorld(view, w.frame[0], w.frame[1]), w.z] as [number, number, number] })),',
       'for (const p of chunkPlacements(scroll)) { const g = chunks.current[p.index]; if (g) g.position.x = p.x; }',
-      'g.position.x = islandX(it, scroll, p.x, p.across);',
-      'seaBank.current.position.x = -((scroll * SEA.factor) % SEA.period) - 30;',
-      '{[0, 1].map((i) => <mesh key={i} geometry={geo.sea} material={voxMat} position={[i * SEA.period, 0, 0]} />)}',
+      'g.position.x = islandX(it, scroll, p.x, p.across, view);',
+      'seaBank.current.position.x = -((scroll * SEA.factor) % SEA.period);',
+      '<group ref={seaBank}><mesh geometry={far.sea} material={voxMat} position={[0, 0, FAR_Z.sea]} /></group>',
       '<group key={it.id} ref={(el) => { islandRefs.current[i] = el; }} position={[p.x, p.y, it.z]}>',
       '<mesh geometry={p.body} material={islandMat} />',
       '{p.props && <mesh geometry={p.props} material={voxMat} />}',
       '{p.glow && <mesh geometry={p.glow} material={glowMat} />}',
       "{it.kind === 'windmill' && <IslandWindmill />}",
-      '{geo.wisps.map((w, i) => <group key={i} ref={(el) => { wispRefs.current[i] = el; }} position={w.at}><mesh geometry={w.geo} material={voxMat} /></group>)}',
-      '<group ref={hillRange}><mesh geometry={geo.hills} material={voxMat} /></group>',
-      '<group ref={mountainRange}><mesh geometry={geo.mountains} material={voxMat} /></group>',
+      '{sky.wisps.map((w, i) => <group key={i} ref={(el) => { wispRefs.current[i] = el; }} position={w.at}><mesh geometry={w.geo} material={voxMat} /></group>)}',
+      '<group ref={hillRange}><mesh geometry={far.hills} material={voxMat} position={[0, 0, FAR_Z.hills]} /></group>',
+      '<group ref={mountainRange}><mesh geometry={far.mountains} material={voxMat} position={[0, 0, FAR_Z.mountains]} /></group>',
       '<mesh geometry={g} material={voxMat} receiveShadow />',
       'return { body: w.distance.windmillBody.clone().translate(-x - 0.5, -baseY, -z - 0.5), blades: w.distance.windmillBlades, hub: [0, 9.5, h[2] - z - 0.5] as [number, number, number] };',
       'return <group rotation={[0, Math.PI, 0]} scale={0.062}><Windmill body={parts.body} blades={parts.blades} hub={parts.hub} /></group>;',
     ]);
     const phone = detail === 'coarse';
     const stage = await load<typeof import('../../src/skin/dream/stage')>('src/skin/dream/stage.ts');
+    // The side view's frame (plan file 09): the far layers, the islands and the wisps are built and placed for it.
+    const view = phone ? stage.dreamView(390, 844, true) : stage.dreamView(1920, 1080, false);
     const world = await load<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts');
     const distanceM = await load<Distance>('src/skin/scene/distance.ts');
     const { DISTANCE } = await load<typeof import('../../src/skin/scene/layout')>('src/skin/scene/layout.ts');
-    const { CHUNK, ISLANDS, WISPS, DESKTOP_SHOT, PHONE_SHOT } = stage;
+    const { CHUNK, ISLANDS, WISPS } = stage;
     const raft = Array.from({ length: CHUNK.count }, (_, i) => world.raftChunk(i));
     L.thing('raft', { moves: 'the lane scrolls under the sheep, chunk by chunk round a ring' }, (t) => {
       for (const p of stage.chunkPlacements(0)) t.put(raft[p.index], `raft.chunk[${p.index}]`, { at: [p.x, 0, 0] });
     });
-    const sea = world.cloudSea(phone);
-    L.thing('cloud sea', { at: [-30, 0, 0], moves: 'it scrolls slower than the lane and rises and falls' }, (t) => {
-      for (const i of [0, 1]) t.put(sea, `sea[${i}]`, { at: [i * world.SEA.period, 0, 0] });
+    const sea = world.seaLayer(view);
+    L.thing('cloud sea', { at: [0, 0, 0], moves: 'it scrolls slower than the lane and rises and falls' }, (t) => {
+      t.put(sea, 'sea', { at: [0, 0, world.FAR_Z.sea] });
     });
     // The dream draws the table world's windmill on island B. In a run that builds the table that world is there
     // already (the page builds it once, too); a run of the dream alone builds the distance for the windmill only.
@@ -883,8 +886,8 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       L.skip(distance.windmillBody, 'distance.windmillBody', 'the dream draws a moved copy of it, laid out with island B');
     }
     ISLANDS.forEach((it, i) => {
-      const p = stage.islandPlace(it, phone), g = world.island(it.kind, p.across, p.tall, i + 1);
-      const at: V3 = [stage.islandX(it, 0, p.x, p.across), p.y, it.z];
+      const p = stage.islandPlace(it, phone, view), g = world.island(it.kind, p.across, p.tall, i + 1);
+      const at: V3 = [stage.islandX(it, 0, p.x, p.across, view), p.y, it.z];
       L.thing(`island ${it.id}`, { at, moves: 'it drifts past and bobs' }, (t) => {
         t.put(g.body, `island[${it.id}].body`);
         if (g.props) t.put(g.props, `island[${it.id}].props`);
@@ -900,12 +903,12 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       }
     });
     WISPS.forEach((w, i) => {
-      const at = stage.atFrame(phone ? PHONE_SHOT : DESKTOP_SHOT, phone ? 390 / 844 : 16 / 9, w.frame[0], w.frame[1], w.z);
+      const at: V3 = [...stage.frameToWorld(view, w.frame[0], w.frame[1]), w.z];
       L.put(world.wisp(i + 1), `wisp[${i}]`, { at, moves: 'it drifts across the sky' });
     });
-    L.put(world.hills(), 'dream.hills', { moves: 'the range scrolls slower than the lane' });
-    L.put(world.mountains(), 'dream.mountains', { moves: 'the range scrolls slower than the lane' });
-    L.notes.push(`built for ${phone ? 'a narrow screen (phone = true): the phone\'s sea and island boxes' : 'a computer (phone = false)'}`);
+    L.put(world.hills(view), 'dream.hills', { at: [0, 0, world.FAR_Z.hills], moves: 'the range scrolls slower than the lane' });
+    L.put(world.mountains(view), 'dream.mountains', { at: [0, 0, world.FAR_Z.mountains], moves: 'the range scrolls slower than the lane' });
+    L.notes.push(`built for ${phone ? 'a narrow screen (phone = true): a 390 x 844 frame and the phone\'s island boxes' : 'a computer (phone = false): a 1920 x 1080 frame'}`);
     L.notes.push('the fences, bales and signs come and go with the night: they are models (fence:rail, bale, sign post...)');
     L.notes.push('the sheep, its shadow disc, the bonk stars and the dust are not laid out');
   },

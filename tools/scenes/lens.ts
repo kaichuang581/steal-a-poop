@@ -18,8 +18,9 @@
  *            moves between them, and the shake of the last moments.
  *   pen      penShot (src/skin/scene/pen.ts), with the slide the room gives the picture.
  *   podium   the rig in src/skin/table/Podium.tsx, from the middle to where it rests beside the scoreboard.
- *   dream    dreamShot (src/skin/dream/stage.ts): a computer and a phone on its side at the fine level, a phone
- *            upright at the coarse one (which is the build the game makes for it), each with the 0.03 m shake.
+ *   dream    the side view, dreamView (src/skin/dream/stage.ts): an orthographic camera looking along -z. A computer
+ *            and a phone on its side at the fine level, a phone upright at the coarse one (which is the build the game
+ *            makes for it), each with the 0.03 m shake.
  *   bedroom  the bubble's shot and its way down to the results shot (src/skin/dream/BedroomBubble.tsx).
  *
  * How a camera moves along a path, and the podium's and the bedroom's shots themselves, are written in components,
@@ -78,11 +79,17 @@ type V = readonly [number, number, number];
 // The camera
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** One place of a camera: where it stands, what it looks at, its lens, the picture's shape, and the slide of the picture if any. */
-export interface View { position: V; target: V; fov: number; aspect: number; shift?: readonly [number, number] }
+/**
+ * One place of a camera: where it stands, what it looks at, its lens, the picture's shape, and the slide of the picture
+ * if any. `ortho` is an orthographic camera's picture in metres (width, height); its `fov` is not read.
+ */
+export interface View { position: V; target: V; fov: number; aspect: number; shift?: readonly [number, number]; ortho?: readonly [number, number] }
 
-/** A view worked out: the lens, its three axes, and the tangents of the picture's four sides. */
-export interface Eye { p: Vec; f: Vec; r: Vec; u: Vec; left: number; right: number; bottom: number; top: number }
+/**
+ * A view worked out: the lens, its three axes, and the tangents of the picture's four sides; for an orthographic
+ * camera (`ortho`), the sides' offsets from the lens in metres.
+ */
+export interface Eye { p: Vec; f: Vec; r: Vec; u: Vec; left: number; right: number; bottom: number; top: number; ortho?: boolean }
 
 const sub = (a: V, b: V): Vec => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const dot = (a: V, b: V) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -95,6 +102,10 @@ const unit = (a: V): Vec => { const l = Math.hypot(a[0], a[1], a[2]) || 1; retur
  */
 export function eyeOf(view: View): Eye {
   const f = unit(sub(view.target, view.position)), r = unit(cross(f, [0, 1, 0])), u = cross(r, f);
+  if (view.ortho) {
+    const [w, h] = view.ortho;
+    return { p: [view.position[0], view.position[1], view.position[2]], f, r, u, left: -w / 2, right: w / 2, bottom: -h / 2, top: h / 2, ortho: true };
+  }
   const t = Math.tan((view.fov * Math.PI) / 360), w = t * view.aspect;
   const sx = view.shift?.[0] ?? 0, sy = view.shift?.[1] ?? 0;
   const left = -w * (1 + 2 * sx), top = t * (1 + 2 * sy);
@@ -104,6 +115,7 @@ export function eyeOf(view: View): Eye {
 /** Where a point lands in the picture: x and y from -1 to 1 across it (left to right, bottom to top), and its depth in metres. */
 export function project(eye: Eye, point: V): Vec {
   const d = sub(point, eye.p), z = dot(d, eye.f);
+  if (eye.ortho) return [((dot(d, eye.r) - eye.left) / (eye.right - eye.left)) * 2 - 1, ((dot(d, eye.u) - eye.bottom) / (eye.top - eye.bottom)) * 2 - 1, z];
   return [((dot(d, eye.r) / z - eye.left) / (eye.right - eye.left)) * 2 - 1, ((dot(d, eye.u) / z - eye.bottom) / (eye.top - eye.bottom)) * 2 - 1, z];
 }
 
@@ -111,8 +123,13 @@ export function project(eye: Eye, point: V): Vec {
 // How near a voxel is, inside the view
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** An eye in the frame of the body it is asked about: the lens, and the inward normals of the picture's four sides. */
-interface LocalEye { x: number; y: number; z: number; n: Float64Array; fx: number; fy: number; fz: number }
+/**
+ * An eye in the frame of the body it is asked about: the lens, and the inward normals of the picture's sides, each with
+ * its offset from the lens (`o`, in the body's units). A perspective view has four sides through the lens; an
+ * orthographic one has four parallel to its line of sight and a fifth, the lens's own plane, so only what is in front
+ * counts. `sides` says how many.
+ */
+interface LocalEye { x: number; y: number; z: number; n: Float64Array; o: Float64Array; sides: number; fx: number; fy: number; fz: number }
 
 function localEye(eye: Eye, into: Matrix4 | null): LocalEye {
   const turn = (v: V): Vec => {
@@ -122,27 +139,35 @@ function localEye(eye: Eye, into: Matrix4 | null): LocalEye {
   };
   const p = into ? new Vector3(eye.p[0], eye.p[1], eye.p[2]).applyMatrix4(into) : null;
   const f = turn(eye.f), r = turn(eye.r), u = turn(eye.u);
-  const n = new Float64Array(12);
-  for (let k = 0; k < 3; k++) {
-    n[k] = r[k] - eye.left * f[k];
-    n[3 + k] = eye.right * f[k] - r[k];
-    n[6 + k] = u[k] - eye.bottom * f[k];
-    n[9 + k] = eye.top * f[k] - u[k];
+  const n = new Float64Array(15), o = new Float64Array(5);
+  if (eye.ortho) {
+    // The picture's sides in the body's units: its frame scales the world's metres by one factor.
+    const k0 = into ? Math.cbrt(Math.abs(into.determinant())) : 1;
+    for (let k = 0; k < 3; k++) { n[k] = r[k]; n[3 + k] = -r[k]; n[6 + k] = u[k]; n[9 + k] = -u[k]; n[12 + k] = f[k]; }
+    o[0] = eye.left * k0; o[1] = -eye.right * k0; o[2] = eye.bottom * k0; o[3] = -eye.top * k0; o[4] = 0;
+  } else {
+    for (let k = 0; k < 3; k++) {
+      n[k] = r[k] - eye.left * f[k];
+      n[3 + k] = eye.right * f[k] - r[k];
+      n[6 + k] = u[k] - eye.bottom * f[k];
+      n[9 + k] = eye.top * f[k] - u[k];
+    }
   }
-  return p ? { x: p.x, y: p.y, z: p.z, n, fx: f[0], fy: f[1], fz: f[2] } : { x: eye.p[0], y: eye.p[1], z: eye.p[2], n, fx: f[0], fy: f[1], fz: f[2] };
+  const sides = eye.ortho ? 5 : 4;
+  return p ? { x: p.x, y: p.y, z: p.z, n, o, sides, fx: f[0], fy: f[1], fz: f[2] } : { x: eye.p[0], y: eye.p[1], z: eye.p[2], n, o, sides, fx: f[0], fy: f[1], fz: f[2] };
 }
 
 const POLY_A = new Float64Array(48), POLY_B = new Float64Array(48);
 
 /** Cuts a polygon by one side of the picture (Sutherland and Hodgman): what is left of `src` on the inner side goes to `dst`. */
 function clip(src: Float64Array, count: number, dst: Float64Array, e: LocalEye, k: number): number {
-  const nx = e.n[k * 3], ny = e.n[k * 3 + 1], nz = e.n[k * 3 + 2];
+  const nx = e.n[k * 3], ny = e.n[k * 3 + 1], nz = e.n[k * 3 + 2], ok = e.o[k];
   let m = 0;
   let ax = src[(count - 1) * 3], ay = src[(count - 1) * 3 + 1], az = src[(count - 1) * 3 + 2];
-  let da = nx * (ax - e.x) + ny * (ay - e.y) + nz * (az - e.z);
+  let da = nx * (ax - e.x) + ny * (ay - e.y) + nz * (az - e.z) - ok;
   for (let i = 0; i < count; i++) {
     const bx = src[i * 3], by = src[i * 3 + 1], bz = src[i * 3 + 2];
-    const db = nx * (bx - e.x) + ny * (by - e.y) + nz * (bz - e.z);
+    const db = nx * (bx - e.x) + ny * (by - e.y) + nz * (bz - e.z) - ok;
     if ((da >= 0) !== (db >= 0)) {
       const t = da / (da - db);
       dst[m * 3] = ax + (bx - ax) * t; dst[m * 3 + 1] = ay + (by - ay) * t; dst[m * 3 + 2] = az + (bz - az) * t;
@@ -187,13 +212,13 @@ function inView(e: LocalEye, B: Float64Array, i: number, limit: number, faces: n
       POLY_A[k * 3 + a2] = B[i + a2 + (k >= 2 ? 3 : 0)];
     }
     let P = POLY_A, Q = POLY_B, count = 4;
-    for (let k = 0; k < 4 && count > 0; k++) { count = clip(P, count, Q, e, k); [P, Q] = [Q, P]; }
+    for (let k = 0; k < e.sides && count > 0; k++) { count = clip(P, count, Q, e, k); [P, Q] = [Q, P]; }
     if (count === 0) continue;
     // Straight in front of the face: the foot of the lens on its plane, if that is on what is left of the face.
     const foot: Vec = [e.x, e.y, e.z];
     foot[axis] = c;
     let on = foot[a1] >= B[i + a1] && foot[a1] <= B[i + 3 + a1] && foot[a2] >= B[i + a2] && foot[a2] <= B[i + 3 + a2];
-    for (let k = 0; k < 4 && on; k++) on = e.n[k * 3] * (foot[0] - e.x) + e.n[k * 3 + 1] * (foot[1] - e.y) + e.n[k * 3 + 2] * (foot[2] - e.z) >= 0;
+    for (let k = 0; k < e.sides && on; k++) on = e.n[k * 3] * (foot[0] - e.x) + e.n[k * 3 + 1] * (foot[1] - e.y) + e.n[k * 3 + 2] * (foot[2] - e.z) - e.o[k] >= 0;
     if (on) { best = off; continue; }
     for (let k = 0; k < count; k++) {
       const d = toStretch(e.x, e.y, e.z, P, k, (k + 1) % count);
@@ -415,10 +440,13 @@ const PINS: Record<string, string[]> = {
     'camera={{ fov: phone ? 58 : 40, position: phone ? [0, 3.4, 14.5] : [0, 3.0, 11.8], near: 0.1, far: 60 }}',
   ],
   'src/skin/dream/DreamStage.tsx': [
-    'const shot = dreamShot(props.phone, props.landscapePhone);',
-    'camera.fov = phone ? shot.fov : Math.max(shot.fov, (2 * Math.atan(4.2 / (dist * aspect)) * 180) / Math.PI);',
+    'orthographic camera={{ position: [0, 0, CAMERA_Z], near: 0.1, far: 900, zoom: 100 }}',
+    'const view = useMemo(() => dreamView(Math.max(1, size.width), Math.max(1, size.height), phone), [size.width, size.height, phone]);',
+    'camera.zoom = view.zoom;',
+    'camera.position.set(view.camX, view.camY, CAMERA_Z);',
+    'camera.rotation.set(0, 0, 0);',
     'const sh = !reduced && since < WAKE.shakeMs ? WAKE.shake : 0;',
-    'camera.position.set(shot.position[0] + (Math.random() - 0.5) * 2 * sh, shot.position[1] + (Math.random() - 0.5) * 2 * sh, shot.position[2]);',
+    'camera.position.set(view.camX + (Math.random() - 0.5) * 2 * sh, view.camY + (Math.random() - 0.5) * 2 * sh, CAMERA_Z);',
   ],
   'src/skin/dream/BedroomBubble.tsx': [
     'const CAMERA = { position: [2.3, 1.4, 1.05] as const, target: [0.35, 1.0, -0.4] as const, fov: 29 };',
@@ -429,7 +457,7 @@ const PINS: Record<string, string[]> = {
     'if (camera.fov !== shot.fov) { camera.fov = CAMERA.fov + (shot.fov - CAMERA.fov) * k; camera.updateProjectionMatrix(); }',
   ],
   'src/skin/dream/dream.css': [
-    'width: min(26%, 420px); aspect-ratio: 3 / 2;',
+    'width: var(--dr-bub-w, min(26%, 420px)); aspect-ratio: 3 / 2;',
   ],
 };
 
@@ -564,19 +592,23 @@ function pathsOf(game: Game): Path[] {
     paths.push({ scene: 'podium', details: BOTH, device, key: 'podium', name: `${device}, from the middle to beside the scoreboard`, places });
   }
 
-  // Counting Sheep: `DreamCamera` in src/skin/dream/DreamStage.tsx. The fine level is the build for a wide screen and
-  // the coarse one the build for a phone upright (tools/scenes/build.ts), so each shot is judged in its own build.
-  const { dreamShot, WAKE } = game.stage;
-  const shaken = (shot: { position: V; target: V; fov: number }, fov: number, aspect: number): Place[] => [
-    { view: { ...shot, fov, aspect }, note: 'where it holds', stop: true },
-    ...[[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([sx, sy]): Place => ({ view: { position: [shot.position[0] + sx * WAKE.shake, shot.position[1] + sy * WAKE.shake, shot.position[2]], target: shot.target, fov, aspect }, note: 'shaken by a bump', stop: false })),
-  ];
-  const wide = dreamShot(false), widened = (aspect: number) => Math.max(wide.fov, (2 * Math.atan(4.2 / (far(wide.position, wide.target) * aspect)) * 180) / Math.PI);
-  paths.push({ scene: 'dream', details: ['fine'], device: 'computer', key: 'computer', name: 'a computer', places: shaken(wide, widened(ASPECT.computer), ASPECT.computer) });
-  const side = dreamShot(false, true);
-  paths.push({ scene: 'dream', details: ['fine'], device: 'phone', key: 'sideways', name: 'a phone on its side', places: shaken(side, Math.max(side.fov, (2 * Math.atan(4.2 / (far(side.position, side.target) * (1 / ASPECT.phone))) * 180) / Math.PI), 1 / ASPECT.phone) });
-  const tall = dreamShot(true);
-  paths.push({ scene: 'dream', details: ['coarse'], device: 'phone', key: 'upright', name: 'a phone upright', places: shaken(tall, tall.fov, ASPECT.phone) });
+  // Counting Sheep: `DreamCamera` in src/skin/dream/DreamStage.tsx, the side view: an orthographic camera at CAMERA_Z
+  // looking along -z, its picture the frame in metres (dreamView), shaken sideways and up on a bump. The fine level is
+  // the build for a wide screen and the coarse one the build for a phone upright (tools/scenes/build.ts), so each shot
+  // is judged in its own build. The sizes are the plan's: 1920 x 1080, a phone on its side at 844 x 390 (wider than 640,
+  // so the game draws it as a computer), and a phone upright at 390 x 844.
+  const { dreamView, CAMERA_Z, WAKE } = game.stage;
+  const shaken = (w: number, h: number, phone: boolean): Place[] => {
+    const v = dreamView(w, h, phone), ortho: [number, number] = [w / v.zoom, h / v.zoom];
+    const at = (dx: number, dy: number): View => ({ position: [v.camX + dx, v.camY + dy, CAMERA_Z], target: [v.camX + dx, v.camY + dy, CAMERA_Z - 1], fov: 0, aspect: w / h, ortho });
+    return [
+      { view: at(0, 0), note: 'where it holds', stop: true },
+      ...[[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([sx, sy]): Place => ({ view: at(sx * WAKE.shake, sy * WAKE.shake), note: 'shaken by a bump', stop: false })),
+    ];
+  };
+  paths.push({ scene: 'dream', details: ['fine'], device: 'computer', key: 'computer', name: 'a computer', places: shaken(1920, 1080, false) });
+  paths.push({ scene: 'dream', details: ['fine'], device: 'phone', key: 'sideways', name: 'a phone on its side', places: shaken(844, 390, false) });
+  paths.push({ scene: 'dream', details: ['coarse'], device: 'phone', key: 'upright', name: 'a phone upright', places: shaken(390, 844, true) });
 
   // The farmer's bedroom: the bubble (3 by 2), and its way down to the results shot once the night is over.
   const BUBBLE = { position: [2.3, 1.4, 1.05], target: [0.35, 1.0, -0.4], fov: 29 } as const;

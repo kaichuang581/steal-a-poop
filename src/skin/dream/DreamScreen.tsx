@@ -25,7 +25,7 @@ import type { FenceView, Phase } from './DreamStage';
 import { dreamLink, useDreamUi } from './dreamStore';
 import { activeFence, freshLive, MAX_TYPED, TYPE_X, update } from './run';
 import type { Live } from './run';
-import { DRIFT, PUFFS, WAKE } from './stage';
+import { DRIFT, dreamLayout, dreamView, WAKE } from './stage';
 import { CLOUD_MS, WakeClouds } from './WakeClouds';
 import type { CloudState } from './WakeClouds';
 import './dream.css';
@@ -63,6 +63,20 @@ function useViewportHeight(): number | null {
   return h;
 }
 
+/** The dream's own size in CSS px: the side view and the HTML over it are laid out from it. */
+function useBoxSize(el: HTMLElement | null): { w: number; h: number } {
+  const [size, setSize] = useState(() => ({ w: typeof window === 'undefined' ? 1280 : window.innerWidth, h: typeof window === 'undefined' ? 800 : window.innerHeight }));
+  useEffect(() => {
+    if (!el) return;
+    const on = () => setSize((was) => (was.w === el.clientWidth && was.h === el.clientHeight ? was : { w: el.clientWidth, h: el.clientHeight }));
+    on();
+    const ro = new ResizeObserver(on);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [el]);
+  return size;
+}
+
 /** The night as saved: what the home screen's ticket and its share read back. */
 function recordOf(L: Live, night: string, repaired: boolean) {
   return { date: night, status: 'done' as const, count: L.count, longest: L.longest, repaired: repaired ? true : undefined, reached: L.reached, bumps: L.bumps, asleep: L.asleepAt !== null };
@@ -78,7 +92,8 @@ export function DreamScreen() {
   const reduced = useMotionLevel() === 'reduced';
   const mobile = useIsMobile();
   const vh = useViewportHeight();
-  const landscapePhone = typeof window !== 'undefined' && window.innerWidth > window.innerHeight && Math.min(window.innerWidth, window.innerHeight) < 500;
+  const [root, setRoot] = useState<HTMLElement | null>(null);
+  const box = useBoxSize(root);
   // The night this dream belongs to, fixed when the screen opens: a dream begun before midnight is still that night's.
   const [today] = useState(() => localDateKey(new Date()));
   const night = repair ?? today;
@@ -333,14 +348,22 @@ export function DreamScreen() {
   const tonight = row.filter((st) => st !== 'empty').length - 1;
   const days = row.map((st, i) => (i === tonight && st === 'played' ? 'today' as const : st));
   const fenceNow = length ? Math.min(reached + 1, length.fences) : 0;
+  // The HTML over the side view (plan file 09, 4.6): the bubble clear of the play strip, the thought trail from it to
+  // the near ridge under the sheep, and the point the dream pops toward.
+  const lay = dreamLayout(dreamView(Math.max(1, box.w), Math.max(1, box.h), mobile));
+  const px = (v: number) => `${Math.round(v)}px`;
+  const layVars = {
+    '--dr-bub-l': px(lay.bubble.x), '--dr-bub-t': px(lay.bubble.y), '--dr-bub-w': px(lay.bubble.w), '--dr-bub-vis': lay.bubble.shown ? 'visible' : 'hidden',
+    '--dr-pop-x': px(lay.pop[0]), '--dr-pop-y': px(lay.pop[1]),
+  } as React.CSSProperties;
 
   return (
-    <main className="dr-root" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} onPointerDown={focus} style={mobile && vh ? { height: vh } : undefined}>
+    <main ref={setRoot} className="dr-root" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} onPointerDown={focus} style={{ ...layVars, ...(mobile && vh ? { height: vh } : {}) }}>
       <div className="dr-stage" data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} data-reduced={reduced || undefined}>
-        <DreamStage live={live} fences={fences} pop={counted} phase={phase} reduced={reduced} phone={mobile} landscapePhone={landscapePhone} fps={stageFps} />
+        <DreamStage live={live} fences={fences} pop={counted} phase={phase} reduced={reduced} phone={mobile} fps={stageFps} />
       </div>
-      {PUFFS.map(([x, y, w], i) => (
-        <span key={i} className="dream-puff" data-i={i} aria-hidden="true" style={{ left: `${x - w / 2}%`, top: `${y}%`, width: `${w}%` }}>
+      {lay.bubble.shown && lay.puffs.map((p, i) => (
+        <span key={i} className="dream-puff" data-i={i} aria-hidden="true" style={{ left: px(p.x), top: px(p.y), width: px(p.w) }}>
           <svg viewBox="0 0 150 100"><g fill="#EDE8F9"><ellipse cx="75" cy="55" rx="55" ry="30" /><circle cx="35" cy="48" r="26" /><circle cx="72" cy="32" r="30" /><circle cx="112" cy="46" r="26" /></g></svg>
         </span>
       ))}

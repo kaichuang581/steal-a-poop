@@ -6,8 +6,8 @@ import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { letterMask } from '../voxel/table';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { dropFaces } from '../scene/yard';
-import { CHUNK, FAR, ISLAND_TONES, RAFT, RAFT_TONES } from './stage';
-import type { IslandKind } from './stage';
+import { CHUNK, dreamView, FAR, frameMetres, ISLAND_TONES, RAFT, RAFT_TONES } from './stage';
+import type { DreamView, IslandKind } from './stage';
 
 /**
  * The dream's world, built once (V4.1 Parts 5 and 6). Every object is axis-aligned voxels on the plan's grids.
@@ -39,16 +39,6 @@ function ridgeLobes(): Lobe[] {
   }
   return out;
 }
-/** The far edge's smaller lobes. */
-function farLobes(): Lobe[] {
-  const r = rng(301), out: Lobe[] = [];
-  for (let x = 0; x < RING; ) {
-    const rad = 0.3 + r() * 0.2;
-    out.push({ x, y: -0.7 - r() * 0.15, z: RAFT.farZ - 0.2, r: rad });
-    x += rad * 1.4;
-  }
-  return out;
-}
 /** Paints a set of lobes into a chunk, wrapping round the ring, and keeps them below the snow. */
 function stampLobes(g: Grid, lobes: Lobe[], gx: number, top: RGB) {
   const x0 = 0, x1 = Math.round(CHUNK.size / g.size);
@@ -58,7 +48,7 @@ function stampLobes(g: Grid, lobes: Lobe[], gx: number, top: RGB) {
     ellipsoid(g, [cx, l.y, l.z], [l.r, l.r * 0.82, l.r * 0.95], (x, y) => (x >= x0 && x < x1 && y < 0 ? top : null));
   }
 }
-const ridge = ridgeLobes(), farEdge = farLobes();
+const ridge = ridgeLobes();
 
 /**
  * One 4 m chunk of the raft (V4.1 Part 5.1), about x = 0..4: a snow top in one tone, the near ridge of cloud along the
@@ -76,29 +66,24 @@ export function raftChunk(index: number): BufferGeometry {
       g.set(x, -2, z, snow);
       if (z < laneFar || z >= laneNear) g.set(x, -1, z, snow); // the lane's 0.10 m top sits in the gap
     }
-    // The one-voxel lip where the snow meets the ridge, and a curtain of cloud behind the lobes.
+    // The one-voxel lip where the snow meets the ridge, and a curtain of cloud behind the lobes. (The far edge's drop
+    // went with the old camera: side on, this curtain hides it.)
     g.set(x, -1, zNear, lip);
     for (let y = -10; y < -1; y++) g.set(x, y, zNear - 1, cloud);
-    // The far edge drops 0.6 m over two voxels.
-    g.set(x, -2, zFar - 1, snow); g.set(x, -3, zFar - 1, snow); g.set(x, -3, zFar - 2, lip); g.set(x, -4, zFar - 2, lip);
   }
   // The lobes are on the 0.10 m grid, not the plan's 0.20 m: this close to the camera a 0.20 m voxel is 55 px, and a
   // lobe of radius 0.6 m reads as a flight of stairs.
   const lobes = new Grid(F);
+  // The far edge's lobes went with the old camera: side on, the near ridge's curtain hides them (plan file 09).
   stampLobes(lobes, ridge, gx, cloud);
-  stampLobes(lobes, farEdge, gx, cloud);
   // Creases: a cloud voxel with another above it and beside it takes the side tone, so the lobes read without noise.
   for (const v of lobes.map.values()) if (lobes.has(v.x, v.y + 2, v.z) && lobes.has(v.x, v.y - 1, v.z) && !lobes.has(v.x, v.y, v.z + 1)) v.c = crease;
 
-  // ---- the 0.10 m mesh: the lane, its prints, and the far strip's details
-  const lane = lin(RAFT_TONES.lane), pit = lin(RAFT_TONES.pit);
+  // ---- the 0.10 m mesh: the lane and the far strip's details. The lane's top is edge-on in the side view (plan file
+  // 09), so its hoofprints went with the old camera.
+  const lane = lin(RAFT_TONES.lane);
   const n = Math.round(CHUNK.size / F), lNear = Math.round(RAFT.laneNear / F), lFar = Math.round(RAFT.laneFar / F);
   for (let x = 0; x < n; x++) for (let z = lFar; z < lNear; z++) { f.set(x, -1, z, lane); f.set(x, -2, z, lane); }
-  for (let x = 0, k = 0; x < n; x += 4, k++) { // a hoofprint every 0.4 m along the sheep's line
-    const z = k % 2 ? 1 : -2;
-    f.del(x, -1, z);
-    f.set(x, -2, z, pit);
-  }
   // The drifts on the far strip, one tone, stepping a voxel at a time.
   for (let x = 0; x < n; x++) for (let z = Math.round(RAFT.farZ / F); z < lFar; z++) {
     const h = raftRise(gx + (x + 0.5) * F, (z + 0.5) * F);
@@ -305,47 +290,91 @@ export function wisp(seed: number): BufferGeometry {
   return buildGeometry(g.map, F);
 }
 
-// ---------- the far ranges (V4.1 Part 5.4) ----------
+// ---------- the far layers, seen straight across (plan file 09, 4.4) ----------
 const TAU = Math.PI * 2;
-/** The hills: 0.5 m voxels, one period of `HILLS.period` metres, so the strip can wrap without a seam. */
-export const HILLS = { near: -50, far: -58, period: 160, cap: 6.2 } as const;
+/**
+ * The hills' crest line, one period of `HILLS.period` metres so the layer can wrap without a seam. Seen side on the frame
+ * is only 9 to 12 m wide, so the old 160 m period is pressed into 40 m: a few crests in every frame, not one long swell.
+ */
+export const HILLS = { period: 40 } as const;
 export function hillHeight(x: number): number {
   const p = HILLS.period;
   return 5.5 + 0.8 * Math.sin((TAU * 13 * x) / p + 0.3) + 0.5 * Math.sin((TAU * 37 * x) / p + 4.1) + 0.25 * Math.sin((TAU * 76 * x) / p);
 }
-/** The mountains: 1 m voxels on the same plan. */
-export const MOUNTAINS = { near: -100, far: -120, period: 200, cap: 16.6 } as const;
+/** The mountains' crest line, on the same plan (the old 200 m period pressed into 40 m). */
+export const MOUNTAINS = { period: 40 } as const;
 export function mountainHeight(x: number): number {
   const p = MOUNTAINS.period;
   return 16.2 + 1.6 * Math.sin((TAU * 5 * x) / p + 1.4) + 1.1 * Math.sin((TAU * 11 * x) / p + 2) + 0.5 * Math.sin((TAU * 25 * x) / p);
 }
+/** Where each flat layer stands: the fog lies on it by its distance, more on each one further back. */
+export const FAR_Z = { sea: -16, hills: -35, mountains: -55 } as const;
+/** The sky's horizon, a share of the way from the frame's top to the ground line (SKY_STOPS' 0.51 in stage.ts). */
+const HORIZON = 0.51;
+/** A layer's voxel is this share of the height from the ground line to the frame's top, so every device sees the
+ *  same steps: under 1.6% of the frame's height everywhere (the sea and the mountains a step coarser, FAR_COARSE times). */
+const FAR_CELL = 1 / 48, FAR_COARSE = 1.1;
+const LAID_OUT = dreamView(1920, 1080, false);
+/** Each far layer's voxel, metres, in the side view `view`: its share of the sky, fitted a whole number of times into
+ *  its period so the layer wraps without a seam. */
+export function farCells(view: DreamView): { sea: number; hills: number; mountains: number } {
+  const { sky } = reach(view), fit = (period: number, cell: number) => period / Math.round(period / cell);
+  return { sea: fit(SEA.period, sky * FAR_CELL * FAR_COARSE), hills: fit(HILLS.period, sky * FAR_CELL), mountains: fit(MOUNTAINS.period, sky * FAR_CELL * FAR_COARSE) };
+}
 
 /**
- * A closed range: each row toward the camera a little lower than the one behind, so the front climbs in terraces and
- * the crest stays on the back row. Its base sits below the cloud sea. `span` is how far it runs either side of x = 0.
+ * One flat layer: a slab of voxels one deep per row (row 0 in front), seen only from the camera's side, so it keeps only
+ * the faces that look at it, merged where they are flat. It spans the frame and one period more, so moving it back by a
+ * period lands on the same picture. `rows` give each column's paint, by height above the lane.
  */
-function range(size: number, near: number, far: number, span: number, base: number, h: (x: number) => number, paint: (y: number, top: number) => RGB, drop: number) {
-  const g = new Grid(size);
-  const rows = Math.round((near - far) / size);
-  for (let xi = Math.round(-span / size); xi < Math.round(span / size); xi++) {
-    const crest = h((xi + 0.5) * size);
-    for (let row = 0; row < rows; row++) {
-      const zi = Math.round(far / size) + row;
-      const t = row / Math.max(1, rows - 1);
-      const top = Math.round((crest - t * drop * crest) / size);
-      const below = row === 0 ? Math.round(base / size) : Math.round((crest - (t - 1 / rows) * drop * crest - size * 2) / size) - 2;
-      for (let y = Math.min(below, top - 1); y < top; y++) g.set(xi, y, zi, paint(y * size, top * size));
-    }
+function flatLayer(view: DreamView, period: number, cell: number, lo: number, hi: number, rows: ((x: number) => (y: number) => RGB | null)[]): BufferGeometry {
+  const size = period / Math.round(period / cell), g = new Grid(size), half = frameMetres(view)[0] / 2;
+  const x0 = Math.floor((view.camX - half) / size) - 1, x1 = Math.ceil((view.camX + half + period) / size) + 1;
+  const y0 = Math.floor(lo / size), y1 = Math.ceil(hi / size);
+  for (let i = x0; i <= x1; i++) {
+    const x = ((((i + 0.5) * size) % period) + period) % period;
+    rows.forEach((row, k) => {
+      const paint = row(x);
+      for (let j = y0; j <= y1; j++) { const c = paint((j + 0.5) * size); if (c) g.set(i, j, -k, c); }
+    });
   }
-  return dropFaces(buildGeometry(g.map, size), (ny) => ny < 0);
+  return buildGeometry(g.map, size, { unseen: (axis, sign) => axis !== 2 || sign < 0, merge: true });
+}
+/** The frame in metres: from the lane up to the frame's top, down to its bottom, and the horizon's height. */
+function reach(view: DreamView) {
+  const sky = view.ground / view.zoom;
+  return { sky, below: (view.h - view.ground) / view.zoom, horizon: (1 - HORIZON) * sky };
 }
 
-export function hills(): BufferGeometry {
-  return range(0.5, HILLS.near, HILLS.far, 120, -3, hillHeight, (y) => lin(y >= HILLS.cap ? FAR.hillCap : FAR.hillSide), 0.3);
+/**
+ * The cloud sea, side on: three rows of scalloped cloud stepping up from behind the raft to the horizon, a lit rim along
+ * each; the front row fills to the frame's bottom, under the raft. Scrolls at `SEA.factor`.
+ */
+export function seaLayer(view: DreamView = LAID_OUT): BufferGeometry {
+  const { sky, below, horizon } = reach(view), top = lin(RAFT_TONES.sea), side = lin(RAFT_TONES.seaSide);
+  const puff = (x: number, n: number, k: number) => Math.sqrt(Math.abs(Math.sin((TAU * x * n) / SEA.period + k)));
+  const rows = [0.42, 0.72, 1].map((k, i) => (x: number) => {
+    const crest = k * horizon - sky * (0.1 - 0.06 * puff(x, 40 + 7 * i, i) - 0.04 * puff(x, 17 + 5 * i, 0));
+    const floor = i ? (k - 0.3) * horizon - sky * 0.12 : -below - 0.2;
+    return (y: number) => (y > crest || y < floor ? null : y > crest - sky * 0.035 ? top : side);
+  });
+  return flatLayer(view, SEA.period, farCells(view).sea, -below - 0.2, horizon + sky * 0.06, rows);
 }
-export function mountains(): BufferGeometry {
-  return range(1, MOUNTAINS.near, MOUNTAINS.far, 170, -3, mountainHeight, (y) => lin(y >= MOUNTAINS.cap ? FAR.mountainCap : FAR.mountain), 0.25);
+
+/** A range of `cell` metre voxels: its crest line `h` (between `lo` and `hi`) drawn from `lift` to `lift + rise` shares of the sky over the
+ *  horizon, snow above the old cap line `snowAt`. */
+function range(view: DreamView, period: number, cell: number, h: (x: number) => number, lo: number, hi: number, lift: number, rise: number, snowAt: number, side: string, cap: string): BufferGeometry {
+  const { sky, horizon } = reach(view), sideC = lin(side), capC = lin(cap);
+  const at = (v: number) => horizon + sky * (lift + rise * (v - lo) / (hi - lo));
+  return flatLayer(view, period, cell, horizon - sky * 0.12, at(hi), [(x) => {
+    const crest = at(h(x)), snow = at(snowAt);
+    return (y) => (y > crest ? null : y >= snow ? capC : sideC);
+  }]);
 }
+/** The hills: a low crest just over the sea's horizon, snow on the highest. Scrolls at `LAYER.hills`. */
+export const hills = (view: DreamView = LAID_OUT) => range(view, HILLS.period, farCells(view).hills, hillHeight, 3.95, 7.05, 0.05, 0.1, 6.2, FAR.hillSide, FAR.hillCap);
+/** The mountains: a taller range behind, snow-capped above their old cap line. Scrolls at `LAYER.mountains`. */
+export const mountains = (view: DreamView = LAID_OUT) => range(view, MOUNTAINS.period, farCells(view).mountains, mountainHeight, 13, 19.4, 0.06, 0.22, 16.6, FAR.mountain, FAR.mountainCap);
 
 // ---------- fences and signs (Part 7.3), on the 0.10 m grid ----------
 const wood: Paint = (x, y, z) => pick(T.beam, hash3(x, y, z, 17), [0.45, 0.85]);
@@ -358,80 +387,88 @@ export function lookOf(kind: 'fence' | 'bale', index: number): ObstacleLook {
 }
 const HALF = 1.1; // every obstacle crosses the whole lane
 const zs = (g: Grid) => [Math.round(-HALF / g.size), Math.round(HALF / g.size)] as const;
+/**
+ * Seen side on, every obstacle fills the rules' box (plan file 09, 4.4): eight 0.05 m cells across about x = 0 and ten
+ * up, snow on top, 0.40 x 0.55 m against the box's 0.432 x 0.576, within a voxel and never over its top.
+ */
+const BOX = { x0: -4, x1: 3, top: 9 } as const;
+const across = (f: (x: number) => void) => { for (let x = BOX.x0; x <= BOX.x1; x++) f(x); };
 
-/** A split-rail fence across the lane: rough posts, three rails each its own tone, snow along the tops. */
+/** A split-rail fence across the lane: a pair of rough posts at each end and the middle, three rails between each pair
+ *  (the top one a candy cane, v0.3.0) and along both sides, snow along the tops. */
 function railFence(): BufferGeometry {
   const g = new Grid(D), [z0, z1] = zs(g), tones = T.beam.map(lin), snow = lin(T.snow[0]);
-  for (const z of [z0, 0, z1 - 1]) for (let x = -1; x <= 1; x++) for (let dz = 0; dz < 2; dz++) for (let y = 0; y < 12; y++) g.set(x, y, z + dz, tones[hash3(x, y >> 1, z, 4) > 0.5 ? 1 : 2]);
-  [[3, 4], [6, 7], [9, 10]].forEach(([a, b], k) => {
-    for (let z = z0; z < z1; z++) {
-      const sag = Math.abs(((z - z0) % 22) - 11) < 4 && k === 1 ? -1 : 0;
-      // The top rail is a candy cane, for the season (v0.3.0).
-      const cane = k === 2 ? lin((z >> 2) % 2 ? T.collar[0] : T.snow[1]) : null;
-      for (const y of [a, b]) for (const x of [-2, 2]) g.set(x, y + sag, z, cane ?? tones[(z >> 3) % 2 ? 0 : 1]);
+  const cane = (n: number) => lin((n >> 1) % 2 ? T.collar[0] : T.snow[1]);
+  const posts = [z0, -1, z1 - 2];
+  for (const z of posts) for (const x of [BOX.x0, BOX.x0 + 1, BOX.x1 - 1, BOX.x1]) for (let dz = 0; dz < 2; dz++) for (let y = 0; y <= BOX.top; y++) g.set(x, y, z + dz, tones[hash3(x, y >> 1, z, 4) > 0.5 ? 1 : 2]);
+  [[1, 2], [4, 5], [7, 8]].forEach(([a, b], k) => {
+    for (const y of [a, b]) {
+      for (let z = z0; z < z1; z++) for (const x of [BOX.x0 + 1, BOX.x1 - 1]) g.set(x, y, z, tones[0]);
+      for (const z of posts) for (let x = BOX.x0 + 2; x <= BOX.x1 - 2; x++) g.set(x, y, z + 1, k === 2 ? cane(x) : tones[k % 2]);
     }
   });
   capSnow(g, snow, 0.85);
   return buildGeometry(g.map, D);
 }
-/** A white picket fence, pointed tops, two stringers behind. */
+/** A white picket fence: panels of three dog-eared pickets across the lane, two stringers behind each, joined along
+ *  both sides. */
 function picketFence(): BufferGeometry {
   const g = new Grid(D), [z0, z1] = zs(g), paint = [lin('#EFE8DA'), lin('#E2DAC9')], rail = lin(T.beam[1]), snow = lin(T.snow[0]);
-  for (let z = z0; z < z1; z++) for (const y of [3, 8]) g.set(-1, y, z, rail);
-  for (let z = z0, k = 0; z < z1; z += 3, k++) {
-    const h = 10 + (k % 2);
-    for (let dz = 0; dz < 2; dz++) for (let y = 0; y < h; y++) g.set(0, y, z + dz, paint[(k + dz) % 2]);
-    g.set(0, h, z, paint[0]);
+  for (let z = z0; z < z1; z++) for (const y of [2, 6]) for (const x of [BOX.x0, BOX.x1]) g.set(x, y, z, rail);
+  for (const z of [z0 + 1, -7, 7, z1 - 1]) {
+    across((x) => { for (const y of [2, 6]) g.set(x, y, z - 1, rail); });
+    [BOX.x0, BOX.x0 + 3, BOX.x1 - 1].forEach((x, k) => {
+      for (let dx = 0; dx < 2; dx++) for (let y = 0; y < BOX.top; y++) g.set(x + dx, y, z, paint[(k + dx) % 2]);
+      g.set(x, BOX.top, z, paint[0]);
+    });
   }
   capSnow(g, snow, 0.8);
   return buildGeometry(g.map, D);
 }
-/** A dry stone wall: three courses of rounded stones, gaps in the joints, snow on the top. */
+/** A dry stone wall: three courses, two stones across each, the joints staggered and the stones' top corners worn off
+ *  at the ends (the only joints the side view shows), snow on the top. */
 function stoneWall(): BufferGeometry {
   const g = new Grid(D), [z0, z1] = zs(g), tones = T.stone.map(lin), snow = lin(T.snow[0]);
-  for (let course = 0; course < 3; course++) {
-    for (let z = z0 - (course % 2) * 3, k = 0; z < z1; k++) {
-      const len = 5 + Math.floor(hash3(k, course, 1, 3) * 4), h = 3 + (hash3(k, course, 2, 3) > 0.5 ? 1 : 0), c = tones[Math.floor(hash3(k, course, 3, 3) * 2.99)];
-      for (let dz = 0; dz < len - 1; dz++) for (let y = 0; y < h; y++) for (let x = -2; x <= 2; x++) {
-        const corner = (dz === 0 || dz === len - 2) && (y === h - 1 || Math.abs(x) === 2);
-        if (corner || z + dz < z0 || z + dz >= z1) continue;
-        g.set(x, course * 4 + y, z + dz, c);
-      }
-      z += len;
-    }
-  }
+  [[0, 3], [3, 3], [6, 4]].forEach(([y0, h], course) => {
+    const split = course % 2 ? -1 : 1;
+    for (let z = z0; z < z1; z++) for (let y = y0; y < y0 + h; y++) across((x) => {
+      const left = x < split;
+      if ((z === z0 || z === z1 - 1) && y === y0 + h - 1 && (x === BOX.x0 || x === BOX.x1 || x === split - 1 || x === split)) return;
+      g.set(x, y, z, tones[Math.floor(hash3(z >> 3, course, left ? 3 : 4, 3) * 2.99)]);
+    });
+  });
   capSnow(g, snow, 0.8);
   return buildGeometry(g.map, D);
 }
-/** A round section along z: bark or straw round the outside, and its end facing the camera. */
-function roundAlongZ(g: Grid, r: number, z0: number, z1: number, side: (a: number, y: number, z: number) => RGB, end: (d: number, a: number) => RGB) {
-  for (let x = -r - 1; x <= r + 1; x++) for (let y = 0; y <= r * 2 + 1; y++) {
-    const d = Math.hypot(x + 0.5 - 0.5, y + 0.5 - r - 0.5);
-    if (d > r + 0.3) continue;
-    const a = Math.atan2(y - r, x);
-    for (let z = z0; z < z1; z++) g.set(x, y, z, z === z1 - 1 || z === z0 ? end(d, a) : side(a, y, z));
-  }
-}
-/** A fallen log across the lane, its cut end ringed, snow along its back. */
+/** A fallen log across the lane, its cut end ringed toward the camera, snow along its back and a broken branch. */
 function fallenLog(): BufferGeometry {
   const g = new Grid(D), [z0, z1] = zs(g), bark = T.trunk.map(lin), cut = [lin('#D8B98A'), lin('#B9925F')], snow = lin(T.snow[0]);
-  roundAlongZ(g, 5, z0, z1, (a, y, z) => bark[Math.floor(hash3(Math.round(a * 3), y >> 2, z >> 2, 8) * 2.99)], (d) => cut[Math.floor(d) % 2]);
-  for (let z = -6; z < -2; z++) for (let y = 7; y < 12; y++) g.set(-6 - (y - 7), y, z, bark[1]); // a broken branch
+  for (let x = BOX.x0; x <= BOX.x1; x++) for (let y = 0; y < 8; y++) {
+    const d = Math.hypot(x + 0.5, y - 3.5);
+    if (d > 4.1) continue;
+    for (let z = z0; z < z1; z++) g.set(x, y, z, z === z0 || z === z1 - 1 ? cut[Math.floor(d) % 2] : bark[Math.floor(hash3(x, y >> 2, z >> 2, 8) * 2.99)]);
+  }
+  for (let z = -6; z < -3; z++) for (const x of [-1, 0]) for (const y of [8, BOX.top]) g.set(x, y, z, bark[1]);
   capSnow(g, snow, 0.9);
   return buildGeometry(g.map, D);
 }
-/** Two round hay bales end to end across the lane, the spiral of the roll on the end, twine round the middle. */
-function roundBales(): BufferGeometry {
-  const g = new Grid(D), hay = T.hay.map(lin), twine = lin(T.hay[2]), snow = lin(T.snow[0]);
-  for (const [z0, z1] of [[-22, -1], [1, 22]]) {
-    roundAlongZ(g, 5, z0, z1, (a, y, z) => ((z - z0) % 7 === 3 ? twine : hay[Math.floor(hash3(Math.round(a * 4), y, z >> 2, 6) * 2.2)]), (d, a) => hay[(Math.floor(d + a / (Math.PI * 2) * 2) + 3) % 2 ? 0 : 2]);
+/** Square hay bales across the lane, two layers with the joints staggered, the twine looping over each bale's ends. */
+function hayBales(): BufferGeometry {
+  const g = new Grid(D), [z0, z1] = zs(g), hay = T.hay.map(lin), twine = lin(T.hay[2]), snow = lin(T.snow[0]);
+  for (const [y0, from] of [[0, z0], [5, z0 - 7]]) for (let zb = from; zb < z1; zb += 15) {
+    for (let z = Math.max(z0, zb); z < Math.min(z1, zb + 15); z++) for (let y = y0; y < y0 + 5; y++) across((x) => {
+      const endFace = z === zb || z === zb + 14, edge = (x === BOX.x0 || x === BOX.x1) && (y === y0 || y === y0 + 4);
+      if (endFace && edge) return; // the bale's corners, rounded off
+      const tied = (x === -2 || x === 1) && (endFace || y === y0 + 4 || y === y0);
+      g.set(x, y, z, tied ? twine : hay[Math.floor(hash3(x, y, z >> 2, 6) * 2.2)]);
+    });
   }
   capSnow(g, snow, 0.75);
   return buildGeometry(g.map, D);
 }
 const OBSTACLES: Partial<Record<ObstacleLook, BufferGeometry>> = {};
 export function obstacle(look: ObstacleLook): BufferGeometry {
-  return (OBSTACLES[look] ??= look === 'rail' ? railFence() : look === 'picket' ? picketFence() : look === 'wall' ? stoneWall() : look === 'log' ? fallenLog() : roundBales());
+  return (OBSTACLES[look] ??= look === 'rail' ? railFence() : look === 'picket' ? picketFence() : look === 'wall' ? stoneWall() : look === 'log' ? fallenLog() : hayBales());
 }
 // ---------- the fence sign (V6 Part 5.1): letters carved into a plank hung on ropes from a post and crossbar ----------
 /**

@@ -16,6 +16,9 @@
     <link rel="preload" as="image" type="image/webp" href="loading/doors-leaves.webp" />
     <link rel="preload" as="image" type="image/webp" href="loading/doors-lintel.webp" />
     <link rel="preload" as="image" type="image/webp" href="loading/doors-sill.webp" />
+    <!-- The two faces the first screen is set in (the doors' sign, the title and the menu); the rest are in src/skin/styles/fonts.css. -->
+    <link rel="preload" as="font" type="font/woff2" href="fonts/patrick-hand-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="fonts/fraunces-latin.woff2" crossorigin />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Fleeced" />
     <meta property="og:description" content="Chain words. Keep your wool. Be the last sheep standing." />
@@ -32,6 +35,9 @@
     <!-- The barn doors, shut, are written in here by vite.config.ts (src/skin/loading/bootDoors.ts), so they are on
          screen with the page's first frame, before the game's code has arrived. -->
     <!--boot-doors-->
+    <!-- Before the game's code, a small plain script any browser can read (public/boot-check.js): a browser too old for
+         the game is told so, and so is a page that never starts, instead of the doors staying shut for ever. -->
+    <script src="/boot-check.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

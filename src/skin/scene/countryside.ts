@@ -6,7 +6,6 @@ import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, RGB } from '../voxel/primitives';
 import { backHillHeight } from './distance';
 import { chunks, FARM, landHeight } from './farmstead';
-import { POV_SHOTS } from './homePov';
 import { BARN, YARD } from './layout';
 
 /**
@@ -40,11 +39,37 @@ function fromSightLine(x: number, z: number, from: readonly number[], to: readon
   return Math.hypot(x - (from[0] + (dx / length) * t), z - (from[2] + (dz / length) * t));
 }
 
+type V3 = readonly [number, number, number];
+/**
+ * The fourteen sight lines `isClear` keeps the land out of: where each camera of the start screen's tour stood and what
+ * it looked at on 2026-11-16 (POV_SHOTS in homePov.ts at commit 6edc7fe), the eight computer shots, then the six phone
+ * shots. FROZEN: a copy on purpose, never read from POV_SHOTS again. Every builder below asks `isClear` while drawing
+ * from shared random streams, so a tour camera moved a few metres used to re-plant the scrub and the woods round the
+ * wendigo. A camera may move in homePov.ts; these numbers may not (plan file 04, section 4.1), and
+ * __tests__/wendigoFence.test.ts holds them.
+ */
+export const CLEAR_SIGHT_LINES: readonly (readonly [position: V3, target: V3])[] = [
+  [[-12.5, 7, 23], [0.6, 1.6, 4.5]], // computer 0, the avatar in the doorway
+  [[-40, 21, 40], [-8, 1, 1]], // computer 1, the whole farm
+  [[21.2, 2.3, 6.2], [12.5, 0.9, -2.5]], // computer 2, the paddock
+  [[0.2, 1.1, 2.6], [1.5, 1.7, 8.2]], // computer 3, over the avatar's shoulder
+  [[-6.2, 2.9, 12.2], [-15.4, 0.7, 3.2]], // computer 4, the hens' run
+  [[6, 1.2, 14.4], [7.4, 1.7, 7.4]], // computer 5, the tractor
+  [[-1.6, 0.95, 15], [-1.5, 1.25, 8.2]], // computer 6, down the path
+  [[14.8, 3.4, 31], [3.6, 2.2, 10]], // computer 7, across the pond
+  [[-6.5, 4.6, 21], [0, -0.9, 8.2]], // phone 0, the avatar in the doorway
+  [[-38, 26, 42], [-4, -9, 9]], // phone 1, the whole farm
+  [[21.2, 3.4, 7.8], [15, -3, -1.5]], // phone 2, the paddock
+  [[0.2, 1.6, -3.2], [0, -1.1, 8.2]], // phone 3, through the barn
+  [[-6.5, 4.2, 13], [-12.2, -2.6, 3.8]], // phone 4, the hens' run
+  [[0.3, 1.1, 22], [0, -1, 8.2]], // phone 5, down the path
+];
+
 /** Somewhere open: off the farm, off the yard's pines, and not in front of any camera on the tour. */
 export function isClear(x: number, z: number): boolean {
   if (RECTS.some(([x0, x1, z0, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1)) return false;
   if (YARD.pines.some(([px, pz]) => Math.hypot(x - px, z - pz) < 3)) return false;
-  return [...POV_SHOTS.desktop, ...POV_SHOTS.phone].every((s) => fromSightLine(x, z, s.position, s.target) > 3);
+  return CLEAR_SIGHT_LINES.every(([position, target]) => fromSightLine(x, z, position, target) > 3);
 }
 
 /** Clumps of woodland: [x, z, radius, trees]. Uneven on purpose, with gaps between them to see through. The land behind

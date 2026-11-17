@@ -22,6 +22,7 @@ export default function PreviewStage({ item, playKey, wornBomb, still }: { item:
   const burst = item.kind === 'blast';
   return (
     <Canvas
+      resize={{ offsetSize: true }}
       dpr={[1, 2]} gl={{ antialias: true, alpha: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1 }}
       camera={burst ? { position: [0, 5, 24], fov: 38, near: 0.1, far: 200 } : { position: [0, 0.35, 3.1], fov: 26, near: 0.1, far: 50 }}
     >

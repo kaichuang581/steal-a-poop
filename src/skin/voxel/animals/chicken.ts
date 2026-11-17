@@ -27,7 +27,7 @@ const HC: V3 = [0.02, 0.58, 0.34]; // the head ball's centre, on a cell's centre
  * feathers, each a blade two voxels wide and one thick drawn with joined lines (one piece by faces), fanned out from
  * the rump, instead of five diagonal 2 x 2 rods. The head is unchanged.
  */
-export const CHICKEN_TAIL = false;
+export const CHICKEN_TAIL = true; // ticked by Brian, 2026-11-17 (milestone 6)
 export function chickenModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
   const flatTail = CHICKEN_TAIL || faces.has('chickenTail');
   const body = tones(ch.colors.body);

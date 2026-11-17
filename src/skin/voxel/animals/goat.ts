@@ -27,8 +27,8 @@ const HY = 21; // the head's bottom row (y 0.84)
  * near-black bar 5 wide standing one voxel proud. GOAT_HORNS: the horns drawn one row behind the ears, so their roots
  * no longer interleave with the ears' columns.
  */
-export const GOAT_MOUTH = false;
-export const GOAT_HORNS = false;
+export const GOAT_MOUTH = true; // ticked by Brian, 2026-11-17 (milestone 6)
+export const GOAT_HORNS = true; // ticked by Brian, 2026-11-17 (milestone 6)
 export function goatModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
   const flushMouth = GOAT_MOUTH || faces.has('goatMouth');
   const hornsBack = GOAT_HORNS || faces.has('goatHorns');
@@ -92,6 +92,14 @@ export function goatModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalMo
       const cells = [...g.map.values()];
       for (const v of cells) g.del(v.x, v.y, v.z);
       for (const v of cells) g.set(v.x, v.y, v.z - k, v.c);
+      // Behind the ears the crown falls away, so the moved root may meet the head on fewer than the four cells a root
+      // needs (animalsV51 rule 3): it sinks a voxel at a time until it does, at most two.
+      const meets = () => [...g.map.values()].filter((v) => headSolid.has(`${v.x},${v.y},${v.z}`) || [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(([a, b, c]) => headSolid.has(`${v.x + a},${v.y + b},${v.z + c}`))).length;
+      for (let i = 0; i < 2 && meets() < 4; i++) {
+        const now = [...g.map.values()];
+        for (const v of now) g.del(v.x, v.y, v.z);
+        for (const v of now) g.set(v.x, v.y - 1, v.z, v.c);
+      }
     }
     return { ...part(g, HEAD), name: sx < 0 ? 'horn0' : 'horn1', where: 'head' as const, cells: g.map } as SigPart;
   });

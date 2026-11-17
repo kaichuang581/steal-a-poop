@@ -44,6 +44,10 @@ text of this entry, the questions and the conflict register are in 19-decisions-
   to the overhaul and to reviewing each milestone's pull request?) "Yes, Kai agreed"; question 9 (may the word of the
   day's meanings and examples move to public/wotd-notes.json?) "Yes"; question 10 (replace exactly the tests listed
   above, each only in its milestone, and no others?) "Approve the list".
+- Face sheet (plan file 03, 4.11), Brian's ticks on 2026-11-17: goat, horse, chicken and "cow: drop glint" ON
+  (GOAT_MOUTH, GOAT_HORNS, HORSE_NOSE, HORSE_EYES, HORSE_NECK, CHICKEN_TAIL, COW_NO_GLINT); pig no face change; the
+  sheep's fleece and eyes "whatever the plan says", which is fleece A (today's) and 2 x 2 eyes (SHEEP_FLEECE and
+  SHEEP_EYES stay false).
 - Changed by Brian on 2026-11-16, during milestone 0 ("close the stupid tests and all that, we can test it all at once
   at the end in that case. get done with the milestones"): the gate is not finished and is not a condition of any
   milestone. What was built stays in tools/gate, tools/scenes and e2e-painted, unverified as a whole (the gate has never

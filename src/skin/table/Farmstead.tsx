@@ -53,6 +53,8 @@ function sunOf(scene: { traverse: (f: (o: unknown) => void) => void }): Vector3 
   return sun;
 }
 
+/** The hens stand on the straw of their run, whose top is 0.10 m up; at 0 their feet were in it. */
+export const HEN_Y = 0.1;
 /** Who lives on the farm: [animal, x, z, facing, state]. Phones keep the first few. */
 export const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
   ['cow', 15.2, 2.2, 2.4, 'grazing'],
@@ -148,7 +150,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
         </>
       )}
       {(phone ? LIVESTOCK.slice(0, 3) : LIVESTOCK).map(([animal, x, z, facing, state], i) => (
-        <group key={i} position={[x, 0, z]} rotation={[0, facing, 0]} scale={1.5}>
+        <group key={i} position={[x, animal === 'chicken' ? HEN_Y : 0, z]} rotation={[0, facing, 0]} scale={1.5}>
           <Sheep level={2} state={state} reduced={reduced} model={animal === 'sheep' ? undefined : animalModel(animal)} />
         </group>
       ))}

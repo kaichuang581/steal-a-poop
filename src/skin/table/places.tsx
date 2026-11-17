@@ -62,7 +62,7 @@ function Sheepdog({ reduced }: { reduced: boolean }) {
     if (head.current) head.current.rotation.x = 0.15 + Math.sin(t * 0.7) * 0.05;
   });
   return (
-    <group ref={root} position={[2.6, 0, BARN.maxZ - 1.2]} rotation={[0, Math.PI + 0.6, 0]}>
+    <group ref={root} position={[2.25, 0, BARN.maxZ - 1.2]} rotation={[0, Math.PI + 0.6, 0]}>
       <mesh geometry={m.body.geo} position={m.body.pivot} material={mat} castShadow />
       <mesh ref={head} geometry={m.head.geo} position={m.head.pivot} material={mat} castShadow><SantaHat parts={[m.head.geo]} material={mat} /></mesh>
       <mesh ref={tail} geometry={m.tail.geo} position={m.tail.pivot} material={mat} castShadow />

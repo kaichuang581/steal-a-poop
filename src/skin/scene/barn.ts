@@ -18,7 +18,7 @@ const C = 0.04;
 
 /** Cat lies on the top bale of the back-left stack; robin sits on top of the cross beam. Both are world positions. */
 export const CAT_SPOT: V3 = [-4.9, 1.5, 6.1];
-export const ROBIN_SPOT: V3 = [1.2, 4.1, 2.05];
+export const ROBIN_SPOT: V3 = [1.2, 4.6, 1.05]; // on the cross beam's top (y 4.6), over its middle (z 0.9 to 1.2)
 
 const tone = (t: Tone, seed: number, w?: readonly [number, number]): Paint => (x, y, z) => pick(t, hash3(x, y, z, seed), w);
 const I = (m: number) => Math.round(m / S);

@@ -33,9 +33,9 @@ export function contentSecurityPolicy(env: Record<string, string | undefined>): 
     "default-src 'self'",
     `script-src 'self' ${turnstile.join(' ')}`.trim(),
     `connect-src ${connect.join(' ')}`,
-    // The interface sets many inline style attributes. The painted skin's fonts come from Google Fonts (only when that skin is on).
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
+    // The interface sets many inline style attributes. The fonts ship with the game (public/fonts), so no other site is named.
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
     "img-src 'self' data: blob:",
     "media-src 'self'",
     `frame-src ${turnstile.join(' ') || "'none'"}`,

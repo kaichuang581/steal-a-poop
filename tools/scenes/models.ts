@@ -11,6 +11,11 @@
  * runs see the same frames. Each state is mounted fresh, from rest, and its frames are 0.05 s apart for the first
  * second, then 0.25 s apart to the state's end (6 s for the ones that do not end); `run` is run at pace 0 and at 1.
  *
+ * Where `Sheep` draws one geometry joined from several of the model's parts (milestone 2's bundles: the head with all
+ * that is fixed to it, the legs at rest, the eyes at rest; `bundlesOf` in table/Sheep.tsx), the bundle is one draw and
+ * is counted as one; its voxels are judged as the parts it was joined from, each where the bundle puts it, by every
+ * check that reads voxels, exactly as when each part was a mesh of its own.
+ *
  * What is judged, for six species at coat levels 0 to 4:
  *
  *   pieces      At rest, every part where it is mounted and no part turned: one piece by face and edge.
@@ -230,6 +235,14 @@ interface Item {
   parts: Part[];
   /** True for a mesh of the freeze effects, false for one of the animal. */
   fx: boolean;
+  /**
+   * A mesh `Sheep` draws one geometry joined from several of the model's parts (the head with all that is fixed to it,
+   * the legs at rest, the eyes at rest: `bundlesOf` in table/Sheep.tsx). It is one draw, and counted as one; its voxels
+   * are judged as the parts it was joined from, each an item of its own (`virtual`), where the bundle puts it.
+   */
+  bundle?: boolean;
+  /** One part of a bundle: a stand-in mesh hung under the bundle's mesh where the bundle puts that part. Never a draw. */
+  virtual?: boolean;
 }
 
 const drawable = (o: Object3D): o is Drawable => { const d = o as Drawable; return !!(d.isMesh || d.isPoints || d.isLine) && !!d.geometry; };
@@ -560,6 +573,12 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
 
   const bench = await openBench(world, root, () => createElement(Sheep, { level: 2, state: 'idle', model: model('sheep') }));
 
+  // The bundles `Sheep` joins, built here (outside any capture) so that every species' are made the same way, and
+  // judged as the parts they join (`read`).
+  if (typeof sheepMod.bundlesOf !== 'function') throw new NotRun('src/skin/table/Sheep.tsx does not export bundlesOf: the meshes it joins cannot be told apart');
+  const bundles = new Map<BufferGeometry, { geo: BufferGeometry; at: number[]; scale: number }[]>();
+  for (const sp of SPECIES) for (const b of sheepMod.bundlesOf(model(sp))) bundles.set(b.geo, b.sources as never);
+
   // ---- Which voxels each mounted geometry is made of: every level of every species is mounted once while the world
   // listens, so that what the component builds for itself (the winner's scarf, the ice block) is caught as well.
   const drawn = {} as Record<Species, Model>;
@@ -612,9 +631,38 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
     const blocks = fxRoot.children.filter((c) => (c as { isGroup?: boolean }).isGroup);
     const block = blocks.length === 1 ? blocks[0] : null;
     const iceNames = ['ice.base', 'ice.icicles', 'ice.cap', 'ice.glints', 'ice.cracks', 'ice.slab'];
-    const items: Item[] = [];
+    const items: Item[] = [], virtual: Item[] = [];
     let n = 0;
     const walk = (o: Object3D, above: Object3D[], fx: boolean) => {
+      const sources = drawable(o) && !fx ? bundles.get(o.geometry) : undefined;
+      if (sources) {
+        // A bundle: one draw, judged as the parts it joins. Each part is a stand-in mesh hung under it where the bundle
+        // puts it, so the scene graph carries it with the bundle as the frame loop moves it.
+        const bundleMesh = o as Drawable;
+        items.push({ mesh: bundleMesh, above, name: `bundle ${n}`, parts: [], fx, bundle: true });
+        n++;
+        let stand = bundleMesh.userData.standIns as Drawable[] | undefined;
+        if (!stand) {
+          stand = sources.map((src) => {
+            const mm = new THREE.Mesh(src.geo) as unknown as Drawable;
+            mm.position.set(src.at[0], src.at[1], src.at[2]);
+            mm.scale.setScalar(src.scale);
+            mm.userData.source = src;
+            return mm;
+          });
+          bundleMesh.userData.standIns = stand;
+          bundleMesh.add(...(stand as unknown as Object3D[]));
+          bundleMesh.updateMatrixWorld(true);
+        }
+        for (const mm of stand) {
+          const geo = mm.geometry, name = names.get(geo);
+          if (!name) throw new NotRun(`${what}: a bundle joins a geometry that is no part of the ${sp}'s model this stage knows`);
+          const parts = geo === hatGeometry ? world.model('hat').partsOf(geo) : world.model(`animal:${sp}`).partsOf(geo);
+          if (!parts.length) throw new NotRun(`${what}: "${name}" in a bundle is not made of voxels the mesher was given`);
+          virtual.push({ mesh: mm, above: [bundleMesh, ...above], name, parts, fx, virtual: true });
+        }
+        return;
+      }
       if (drawable(o)) {
         const parts = drawn[sp].partsOf(o.geometry);
         const k = block ? block.children.indexOf(o) : -1;
@@ -625,7 +673,9 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
       for (const c of o.children) walk(c, [o, ...above], fx || c === fxRoot);
     };
     walk(holder, [], false);
-    return { items, block };
+    // The stand-ins first: where a part is also mounted as its own mesh (a leg, an eye, shown while it moves), that mesh
+    // is the one found by its name.
+    return { items: [...virtual, ...items], block };
   };
 
   const fail = (sp: Species, check: string, part: string, where: string, what: string) => {
@@ -679,7 +729,7 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
     const m = model(sp);
     const animalParts = (items: Item[]) => items.filter((it) => !it.fx && it.parts.length > 0 && isShown(it));
     const strange = (items: Item[], where: string) => {
-      const odd = items.find((it) => !it.fx && isShown(it) && it.parts.length === 0 && trianglesOf(it.mesh) > 0);
+      const odd = items.find((it) => !it.fx && !it.bundle && isShown(it) && it.parts.length === 0 && trianglesOf(it.mesh) > 0);
       if (odd) throw new NotRun(`${sp} ${where}: "${odd.name}" is drawn and is not made of voxels the mesher was given, so it cannot be judged`);
     };
 
@@ -750,7 +800,7 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
         for (const t of [0, 0.001, 0.002]) bench.frame(t);
         const { items } = read(holder, sp, `${sp} ${at}`);
         strange(items, at);
-        const shown = items.filter(isShown);
+        const shown = items.filter((it) => isShown(it) && !it.virtual);
         joints = layOut(items, level);
 
         // Draws: every visible mesh is one draw in colour (three.js draws an empty one too), and one more into the
@@ -951,7 +1001,7 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
           const p = new Vector3(), rel = new Matrix4(), inv = new Matrix4();
           for (const t of times) {
             bench.frame(t);
-            for (const it of items) if (trianglesOf(it.mesh) === 0 && isShown(it)) emptySeen.add(it.name);
+            for (const it of items) if (!it.virtual && trianglesOf(it.mesh) === 0 && isShown(it)) emptySeen.add(it.name);
             for (const j of rooted) {
               if (!j.children.every((c) => isShown(c.it)) || !j.parents.every(isShown)) continue;
               // A part that lies on nothing that moves without it is no rider.

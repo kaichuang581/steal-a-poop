@@ -74,7 +74,10 @@ export function cowModel(ch: Character): AnimalModel {
   const { eyes, lids, brows } = smallEyes(hg, HY + 4, zf, '#1E1A19', face, HEAD, { front: 2, glint: true });
 
   // The mouth on row 14 (the muzzle's second row), width 7; chewing on rows 13 and 14, all on the muzzle's front.
-  const mouthParts = mouths([-3, HY, zf + 1], 7, 'z', muzzle[2], HEAD, { front: (x) => (Math.abs(x) === 3 ? zf : zf + 1) });
+  // Each mouth cell one voxel in front of the muzzle's front at its own column and row (file 03, 4.4): the old rule put the
+  // end cells at zf + 1, inside the muzzle on the rows its corners are not knocked off.
+  const frontAt = (x: number, y: number) => { for (let k = zf + 1; k >= zf - 4; k--) if (hg.has(x, y, k)) return k; return zf + 1; };
+  const mouthParts = mouths([-3, HY, zf + 1], 7, 'z', muzzle[2], HEAD, { front: frontAt });
   const headSolid = solidSet(hg);
   hollow(hg);
   const headPart = part(hg, HEAD);

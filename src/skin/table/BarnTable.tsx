@@ -32,6 +32,7 @@ import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
 import { animalModel, heightRatio } from '../voxel/animals';
+import { anchorsOf } from '../voxel/animals/anchors';
 import { getKaiyanLook, pictureHeight, useKaiyanLook } from '../avatars/kaiyanLook';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
@@ -586,11 +587,14 @@ function Moments({ moments, n }: { moments: BarnMoments; n: number }) {
   );
 }
 
-/** Where a seat's name plate stands: just over the hat of the animal it wears (a hen's low, a horse's high). */
+/**
+ * Where a seat's name plate stands: just over the hat of the animal it wears (a hen's low, a horse's high), measured
+ * from the model (`anchorsOf(...).plate`, file 03, 4.7), at the scale the table draws it. The daze stars circle here too.
+ */
 export function nameplateY(avatar: string | null | undefined): number {
   // Over the photo's top, but never higher than the head stood on 2026-11-08: a forehead stretched far up would carry the
   // plate and the speech bubble off the screen.
   if (avatar === ADMIN_AVATAR_ID) return (Math.min(pictureHeight(getKaiyanLook().length), pictureHeight(1)) + 0.14) * SHEEP_SCALE;
-  const c = byId(avatar ?? undefined);
-  return 1.26 * SHEEP_SCALE * (c ? heightRatio(c.animal) * animalModel(c.animal).drawScale : 1);
+  const m = animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep');
+  return anchorsOf(m).plate[1] * SHEEP_SCALE * m.drawScale;
 }

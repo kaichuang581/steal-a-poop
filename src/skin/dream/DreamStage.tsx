@@ -341,7 +341,7 @@ function Scene({ live, fences, pop, phase, reduced, phone, landscapePhone }: Pro
             </group>
           ) : (
             <group rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner?.drawScale ?? 1)}>
-              <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} model={runner} />
+              <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} model={runner} contact={false} />
             </group>
           )}
           {[0, 1, 2].map((i) => <mesh key={i} ref={(el) => { stars.current[i] = el; }} geometry={geo.star} material={glowMat} visible={false} />)}

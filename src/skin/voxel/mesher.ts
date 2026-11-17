@@ -252,12 +252,20 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
   return g;
 }
 
+/** Whether `packGeometry` packs colour to 16 bits (see there); false keeps it a 32-bit float. */
+export const PACK_COLOR = true;
+/** A packed colour holds 0..COLOR_RANGE: it is stored at 1 / COLOR_RANGE of its value and multiplied back in the shader. */
+export const COLOR_RANGE = 2;
+
 /**
- * Repacks a built geometry in place to little more than half the bytes (plan file 17, change 13, step 4): 32 a vertex
- * with rounded corners, 28 without, against 56 and 44. Nothing a shader reads changes by one bit, so the picture is
- * the same and any material draws it:
- * - positions and colours stay 32-bit floats. (The plan packed colour to 16 bits at half value, 28 bytes a vertex: that
- *   moved about 2,000 pixels of a picture by one step and needed a material of its own, so it is left for a later look.)
+ * Repacks a built geometry in place to half the bytes (plan file 17, change 13, step 4; the colour in milestone 4):
+ * 28 a vertex with rounded corners, 24 without, against 56 and 44.
+ * - positions stay 32-bit floats;
+ * - colours go to 16-bit whole numbers read as 0..1 (normalized), at HALF their value, since snow's glints are brighter
+ *   than white (1.15, voxel/snow.ts). They are padded to four with a 1 in the fourth, which is what tells three to
+ *   compile the colour-with-alpha variant of a material; `voxelMaterial` doubles the colour back in that variant
+ *   (voxel/material.ts). So a packed geometry must be drawn with `voxelMaterial` (every one is): any other
+ *   vertex-coloured material would draw it at half brightness. The doubled colour is within 1/65,535 of the float;
  * - normals, which are only ever -1, 0 or 1, go to signed bytes, which hold those exactly;
  * - the rounded-corner marks (0, 1 and a mask to 15) go to bytes;
  * - `uv` goes: no material that draws voxels has a texture.
@@ -267,8 +275,16 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
  */
 export function packGeometry(g: BufferGeometry): BufferGeometry {
   if (g.userData.packed) return g;
-  const n = g.getAttribute('normal'), b = g.getAttribute('bevel');
+  const n = g.getAttribute('normal'), b = g.getAttribute('bevel'), c = g.getAttribute('color');
   const count = n.count;
+  if (PACK_COLOR && c && c.itemSize === 3) {
+    const C = new Uint16Array(count * 4);
+    for (let i = 0; i < count; i++) {
+      for (let k = 0; k < 3; k++) C[i * 4 + k] = Math.round(Math.min(1, Math.max(0, (c.array[i * 3 + k] as number) / COLOR_RANGE)) * 65535);
+      C[i * 4 + 3] = 65535;
+    }
+    g.setAttribute('color', new BufferAttribute(C, 4, true));
+  }
   const N = new Int8Array(count * 4);
   for (let i = 0; i < count; i++) for (let k = 0; k < 3; k++) N[i * 4 + k] = Math.round((n.array[i * 3 + k] as number) * 127);
   g.setAttribute('normal', new BufferAttribute(N, 4, true));

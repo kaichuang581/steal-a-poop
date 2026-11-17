@@ -19,6 +19,8 @@ import { CREAM, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
 import type { Brows, Lids, Mouth, Part, SheepModel, WoolLevel } from '../voxel/sheep';
 import type { AnimalModel, SigPart } from '../voxel/animals/rig';
 import { anchorsOf, scarfCells } from '../voxel/animals/anchors';
+import { contactPatch } from '../voxel/contactPatch';
+import { useTier } from '../perf/tier';
 
 export type SheepState = 'idle' | 'proud' | 'happy' | 'startled' | 'cold' | 'dazed' | 'freezing' | 'frozen' | 'thawing' | 'sleeping' | 'grazing' | 'thinking' | 'run' | 'jump' | 'bonk' | 'land' | 'walk' | 'flop' | 'perch' | 'lounge';
 /** Every state of `SheepState`, in its order, for the checks that step through all of them (tools/scenes/models.ts). */
@@ -73,6 +75,12 @@ interface Props {
   speaking?: boolean;
   /** A bot on its turn: whenever the sheep has nothing else to do it thinks (head tilt, one ear up). */
   thinking?: boolean;
+  /**
+   * The ground-contact patch under the hooves on the Low tier, where animals cast no shadow (plan file 02, change 5).
+   * On unless a scene gives the animal ground contact of its own: the dream's runner has its shadow disc, and leaps
+   * with its whole group, which would lift the patch off the lane with it.
+   */
+  contact?: boolean;
   /** The dream's run: 0 at the slowest trot, 1 at full pace (V4 Part 7.2). */
   pace?: number;
   /** Another animal built to the shared rig (src/skin/voxel/animals): the avatar a player wears. Default: the sheep. */
@@ -607,8 +615,12 @@ function flavour(p: Float32Array, f: Face, species: string, live: SheepState, e:
  * model; only level, state and seat differ. Each coat level is its own fleece built to fit the head and legs, so
  * growing or losing wool swaps the fleece rather than scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model }: Props) {
+export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model, contact = true }: Props) {
   const m = model ?? sheepModel();
+  // Low tier: no animal casts a shadow; it stands on its contact patch instead (plan file 02, change 5).
+  const low = useTier() === 'low';
+  const cast = !low;
+  const patchMat = useMemo(() => voxelMaterial(), []);
   const am = m as Partial<AnimalModel>;
   const species = am.species ?? 'sheep';
   const bodyAlways = am.bodyAlways ?? false;
@@ -805,7 +817,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   });
 
   const mesh = (key: string, p: Part, material = mat) => (
-    <mesh key={key} ref={set(key)} geometry={p.geo} position={p.pivot} material={material} castShadow receiveShadow />
+    <mesh key={key} ref={set(key)} geometry={p.geo} position={p.pivot} material={material} castShadow={cast} receiveShadow />
   );
   const rel = (p: Part): V3 => [p.pivot[0] - m.head.pivot[0], p.pivot[1] - m.head.pivot[1], p.pivot[2] - m.head.pivot[2]];
   // The neck group turns about the neck's base and carries the neck and the head (V5.1 Part 4.6).
@@ -813,9 +825,10 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const fromNeck = (q: V3): V3 => [q[0] - nb[0], q[1] - nb[1], q[2] - nb[2]];
 
   return (
+    <>
     <group ref={root}>
       <group ref={set('body')}>
-        <mesh ref={set('wool')} geometry={m.wools[2].geo} material={mat} castShadow receiveShadow />
+        <mesh ref={set('wool')} geometry={m.wools[2].geo} material={mat} castShadow={cast} receiveShadow />
         <mesh ref={set('frost')} geometry={m.frosts[2].geo} material={mat} />
         {mesh('sheared', m.sheared)}
         {mesh('tail', m.tail)}
@@ -824,19 +837,19 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
         {mesh('legBL', m.legs[2])}
         {mesh('legBR', m.legs[3])}
         {/* The legs at rest as one mesh; hidden until the frame loop finds them so. */}
-        {restOf && <mesh ref={set('rest')} geometry={restOf.geo} material={mat} castShadow receiveShadow visible={false} />}
+        {restOf && <mesh ref={set('rest')} geometry={restOf.geo} material={mat} castShadow={cast} receiveShadow visible={false} />}
 
-        {signature.filter((sp) => sp.where === 'body').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={sp.pivot} material={mat} castShadow visible={drawn(sp.geo)} />)}
+        {signature.filter((sp) => sp.where === 'body').map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={sp.pivot} material={mat} castShadow={cast} visible={drawn(sp.geo)} />)}
         <mesh geometry={m.collar.geo} position={m.collar.pivot} material={mat} visible={drawn(m.collar.geo)} />
         {mesh('bell', m.bell)}
         <group ref={set('neck')} position={nb}>
-        {am.neck && <mesh geometry={am.neck.geo} position={fromNeck(am.neck.pivot)} material={mat} castShadow receiveShadow visible={drawn(am.neck.geo)} />}
+        {am.neck && <mesh geometry={am.neck.geo} position={fromNeck(am.neck.pivot)} material={mat} castShadow={cast} receiveShadow visible={drawn(am.neck.geo)} />}
         <group ref={set('head')} position={fromNeck(m.head.pivot)}>
           {/* One mesh for the head and all that is fixed to it (headBundle); the same parts one by one if they could not be joined. */}
-          {headGeo ? <mesh geometry={headGeo} material={mat} castShadow /> : <>
-            <mesh geometry={m.head.geo} material={mat} castShadow visible={drawn(m.head.geo)} />
-            <mesh geometry={m.hood.geo} material={mat} castShadow visible={drawn(m.hood.geo)} />
-            <mesh geometry={santaHat()} material={mat} position={anchorsOf(m).hat.at} scale={anchorsOf(m).hat.scale} castShadow />
+          {headGeo ? <mesh geometry={headGeo} material={mat} castShadow={cast} /> : <>
+            <mesh geometry={m.head.geo} material={mat} castShadow={cast} visible={drawn(m.head.geo)} />
+            <mesh geometry={m.hood.geo} material={mat} castShadow={cast} visible={drawn(m.hood.geo)} />
+            <mesh geometry={santaHat()} material={mat} position={anchorsOf(m).hat.at} scale={anchorsOf(m).hat.scale} castShadow={cast} />
           </>}
           <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={faceMat} visible={drawn(m.eyes[0].geo)} />
           <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={faceMat} visible={drawn(m.eyes[1].geo)} />
@@ -844,17 +857,20 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
           {(['closed', 'arc'] as Lids[]).map((k) => <mesh key={k} ref={set(`lid-${k}`)} geometry={m.lids[k].geo} material={faceMat} />)}
           {BROWS.map((b) => <mesh key={b} ref={set(`brow-${b}`)} geometry={m.brows[b].geo} material={faceMat} />)}
           {MOUTHS.map((k) => <mesh key={k} ref={set(`mouth-${k}`)} geometry={m.mouths[k].geo} material={faceMat} />)}
-          <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow visible={drawn(m.ears[0].geo)} />
-          <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow visible={drawn(m.ears[1].geo)} />
-          {signature.filter((sp) => sp.where === 'head' && (sp.anim || !headGeo)).map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={rel(sp)} material={mat} castShadow visible={drawn(sp.geo)} />)}
-          {am.worn && !headGeo && <mesh geometry={am.worn.geo} position={rel(am.worn)} material={mat} castShadow visible={drawn(am.worn.geo)} />}
+          <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow={cast} visible={drawn(m.ears[0].geo)} />
+          <mesh ref={set('earR')} geometry={m.ears[1].geo} position={rel(m.ears[1])} material={mat} castShadow={cast} visible={drawn(m.ears[1].geo)} />
+          {signature.filter((sp) => sp.where === 'head' && (sp.anim || !headGeo)).map((sp) => <mesh key={sp.name} ref={set(`sig-${sp.name}`)} geometry={sp.geo} position={rel(sp)} material={mat} castShadow={cast} visible={drawn(sp.geo)} />)}
+          {am.worn && !headGeo && <mesh geometry={am.worn.geo} position={rel(am.worn)} material={mat} castShadow={cast} visible={drawn(am.worn.geo)} />}
         </group>
         </group>
         <mesh ref={set('breath')} geometry={m.breath.geo} position={m.breath.pivot} material={breathMat} />
-        {scarf && <Scarf model={m} />}
+        {scarf && <Scarf model={m} cast={cast} />}
       </group>
       <primitive object={fx.root} />
     </group>
+    {/* Outside `root`, so a squash or a stretch never lifts it off the ground. One draw, its geometry shared per model. */}
+    {low && contact && <mesh geometry={contactPatch(m)} material={patchMat} receiveShadow />}
+    </>
   );
 }
 
@@ -869,11 +885,11 @@ export function SantaHat({ parts, material }: { parts: BufferGeometry[]; materia
  * every other species one tied round its own neck (`scarfCells`, file 03, 4.7: the sheep's hoop missed the goat and
  * the hen entirely).
  */
-function Scarf({ model }: { model: SheepModel | AnimalModel }) {
+function Scarf({ model, cast }: { model: SheepModel | AnimalModel; cast: boolean }) {
   const own = useMemo(() => animalScarf(model), [model]);
   const geo = useMemo(() => own ?? scarfGeometry(), [own]);
   const mat = useMemo(() => voxelMaterial(), []);
-  return <mesh geometry={geo} position={own ? [0, 0, 0] : [0.02, 0.46, 0.5]} material={mat} castShadow />;
+  return <mesh geometry={geo} position={own ? [0, 0, 0] : [0.02, 0.46, 0.5]} material={mat} castShadow={cast} />;
 }
 
 const animalScarves = new WeakMap<object, BufferGeometry | null>();

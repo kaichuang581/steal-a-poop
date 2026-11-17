@@ -2,6 +2,12 @@
 
 All user-visible changes, newest first.
 
+## 0.7.14
+
+- The farm tour's cameras no longer start pressed against a fence post or a tree, and the tractor and hens' run are framed whole.
+- The farm is at the animals' scale: a smaller snowman and Christmas tree by the doors, smaller presents, none in front of the tractor.
+- The animals in the paddock have new spots.
+
 ## 0.7.13
 
 - New faces: the goat's mouth sits flush in its muzzle and its horns rise behind the ears; the horse's nostrils no longer read as eyes, its eyes sit flush and its neck climbs in even steps; the chicken has a tail of three flat feathers; the cow's eyes lose their glint.

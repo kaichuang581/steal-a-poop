@@ -1,0 +1,27 @@
+{
+  "about": [
+    "The one place a check of the scene checker (npm run check:scenes; plan file 18, section 4.6) may be excused.",
+    "Each entry names one check (a stage id), one scene, one match and a reason, and holds Brian's dated words.",
+    "match is text that must be in the piece's name exactly as the report prints it: what the game calls the mesh, a colon, the code that built it; for a piece inside something a mesh sets down, thing \"name\": goes in front.",
+    "An entry excuses nothing it does not match, and what it excuses is still listed by name and counted: the count is a ratchet (scenes.connect.excused in RATCHETS.json) that may only fall, so an entry can never come to cover a new piece.",
+    "status \"pending\" marks an entry Brian has not answered: its date and words are null. The two below are the old tool's two exemptions (tools/floatingVoxels.ts), moved here in milestone 0. No pending entry may be added later; a new entry needs Brian's words in the pull request, and the number of entries (scenes.exemptions in RATCHETS.json) may only fall."
+  ],
+  "exemptions": [
+    {
+      "check": "connect",
+      "scene": "table",
+      "match": "buildDistance",
+      "reason": "The low hills behind the barn and the far mountain range stand apart from the yard's ground: there is open air between the yard and the hills, and between the far hills and the range. The old tool excused everything built by buildDistance.",
+      "status": "pending",
+      "brian": { "date": null, "words": null }
+    },
+    {
+      "check": "connect",
+      "scene": "bedroom",
+      "match": "thing \"clock\"",
+      "reason": "The alarm clock on the nightstand is set down by its mesh, and is not one piece: its face stands one cell in front of its drum, its two feet touch the drum only at a corner, and the ring lines it throws when it goes off hang in the air beside it. The old tool excused every bedroom part placed by a mesh.",
+      "status": "pending",
+      "brian": { "date": null, "words": null }
+    }
+  ]
+}

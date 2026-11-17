@@ -36,3 +36,14 @@ try {
 } finally {
   await browser.close();
 }
+
+// The bake manifest (plan file 18, section 4.5), the one step added to this tool: what was just baked is stamped, so
+// `npm test` and `npm run check:scenes` know these are the pictures today's model, page and tool make.
+// A bake that failed never gets here, and a stamp that is refused ends this tool with its error.
+{
+  const baked = ['leaves', 'lintel', 'sill'].map((part) => `loading/doors-${part}`);
+  // The arguments this run was given, but for where the dev server is: they are what bakes these pictures again.
+  const typed = process.argv.slice(2).filter((a, i, all) => a !== '--base' && all[i - 1] !== '--base');
+  const { execFileSync } = await import('node:child_process');
+  execFileSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['vite-node', 'tools/bakeStamp.ts', '--', '--only', baked.join(','), '--args', JSON.stringify(typed)], { stdio: 'inherit' });
+}

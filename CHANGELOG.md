@@ -2,6 +2,12 @@
 
 All user-visible changes, newest first.
 
+## 0.7.8
+
+- The farm is lighter to draw: faces nobody can ever see are gone, flat ground is drawn in bigger pieces, and less scenery casts shadows it never shows. Home draws about a sixth fewer triangles and holds about 40% less in memory, with the same picture.
+- The animals are drawn in fewer pieces: a full table of 10 needs about a fifth fewer draws a frame.
+- The farm is built in small slices while the barn doors are shut, so the page no longer freezes for over a second while it loads.
+
 ## 0.7.7
 
 - The game draws at most 60 pictures a second (72 on a 144 Hz screen), nothing at all in a background tab, and nothing behind a screen that covers it: the same motion for less battery.

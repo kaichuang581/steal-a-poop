@@ -79,11 +79,14 @@ const PINS: Record<string, string[]> = {
     'for (let t = 0; t < idx.count; t += 3) if (nor.getZ(idx.getX(t)) > 0.5) keep.push(idx.getX(t), idx.getX(t + 1), idx.getX(t + 2));',
     'const front = frontInside();',
   ],
-  'src/skin/scene/farmstead.ts': ['const geo = dropFaces(buildGeometry(land.map, land.size), (ny) => ny < 0);'],
+  // Since milestone 2 the undersides are left out by the mesher's `unseen`, with the faces no camera can be in front of
+  // (src/skin/voxel/unseen.ts). Those depend on where the face is, so they are not copied: they count as drawn.
+  'src/skin/scene/farmstead.ts': ["const geo = buildGeometry(land.map, land.size, { unseen: (axis, sign, plane) => (axis === 1 && sign < 0) || home(axis, sign, plane), merge: (x, _y, z) => !sunReaches(x, z, 'home') });"],
   'src/skin/scene/distance.ts': [
-    'const hills = dropFaces(buildGeometry(hillsG.map, 1), (ny) => ny < 0);',
-    'const backHills = dropFaces(buildGeometry(back.map, back.size), (ny) => ny < 0);',
-    'const mountains = dropFaces(buildGeometry(mG.map, 3), (ny) => ny < 0);',
+    'const under = (axis: number, sign: number) => axis === 1 && sign < 0;',
+    'const hills = buildGeometry(hillsG.map, 1, { unseen: (axis, sign, plane) => under(axis, sign) || farm(axis, sign, plane), merge: lit });',
+    'const backHills = buildGeometry(back.map, back.size, { unseen: (axis, sign, plane) => under(axis, sign) || farm(axis, sign, plane), merge: lit });',
+    'unseen: (axis, sign, plane) => under(axis, sign) || range(axis, sign, plane),',
   ],
   'src/skin/voxel/mesher.ts': ['if (has(outside)) continue;'],
 };

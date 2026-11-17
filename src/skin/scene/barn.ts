@@ -1,5 +1,7 @@
 import type { BufferGeometry } from 'three';
-import { buildGeometry, triangles as tris } from '../voxel/mesher';
+import { buildGeometry, packGeometry, triangles as tris } from '../voxel/mesher';
+import { each, finish } from './slices';
+import type { Steps } from './slices';
 import { IRIS, lin, pick, T } from '../voxel/palette';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
@@ -488,8 +490,16 @@ export interface Barn {
   triangles: number;
 }
 
+/** The barn, built in steps (scene/slices.ts). */
 export function buildBarn(): Barn {
-  const b = beams(), bl = new Grid(S), p = props();
+  return finish(buildBarnSteps());
+}
+
+export function* buildBarnSteps(): Steps<Barn> {
+  const b = beams();
+  yield;
+  const bl = new Grid(S), p = props();
+  yield;
   const blockedByBeamsProps = (x: number, y: number, z: number) => b.has(x, y, z) || p.has(x, y, z);
   const stacks: [number, number, number, number, number, number][] = [
     [-57, -48, 0, 4, 61, 66], [-47, -38, 0, 4, 61, 66], [-57, -48, 0, 4, 55, 60], [-55, -46, 5, 9, 58, 63], [-54, -45, 10, 14, 58, 63],
@@ -498,8 +508,11 @@ export function buildBarn(): Barn {
   stacks.forEach((s, i) => bale(bl, ...s, 200 + i, blockedByBeamsProps));
   const blocked = (x: number, y: number, z: number) => blockedByBeamsProps(x, y, z) || bl.has(x, y, z);
   const f = floor(blocked);
-  const statics = [walls(), b, f, bl, p].map((g) => buildGeometry(g.map, S));
-  const leaves = ([-1, 1] as const).map((side) => ({
+  yield;
+  const w = walls();
+  yield;
+  const statics = yield* each([w, b, f, bl, p], (g) => buildGeometry(g.map, S));
+  const leaves = yield* each([-1, 1] as const, (side) => ({
     geo: leaf(side),
     hinge: [side * BARN.backDoor.maxX, 0, BARN.maxZ + 0.25] as [number, number, number],
     openYaw: side * 1.75,
@@ -508,8 +521,11 @@ export function buildBarn(): Barn {
   const c = cat();
   const rb = robin();
   const tp = buildGeometry(tarp().map, S);
+  yield;
   const front = frontInside();
+  yield;
   const all = [...statics, ...leaves.map((l) => l.geo), lant, c.body, c.tail, rb, tp, front];
+  for (const g of all) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
   return {
     static: statics,
     doorLeaves: leaves,

@@ -1,6 +1,10 @@
 import type { BufferGeometry } from 'three';
-import { buildGeometry, triangles } from '../voxel/mesher';
-import { detailed } from '../voxel/refine';
+import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
+import type { BuildOptions } from '../voxel/mesher';
+import { sunReaches, unseenFrom } from '../voxel/unseen';
+import { detailedSteps } from '../voxel/refine';
+import { each, finish } from './slices';
+import type { Steps } from './slices';
 import { lin, pick, T } from '../voxel/palette';
 import { snowAt, snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
@@ -8,7 +12,7 @@ import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, V3 } from '../voxel/primitives';
 import { backHillHeight } from './distance';
 import { BARN, YARD } from './layout';
-import { ChunkMap, dropFaces } from './yard';
+import { ChunkMap } from './yard';
 
 /**
  * The working farm around the barn, seen only from the start screen. The barn itself is a stage set for the game's
@@ -481,7 +485,8 @@ export function landHeight(x: number, z: number): number {
   return Math.max(back, rise);
 }
 
-function terrain(): BufferGeometry {
+const TERRAIN_LIFT = -0.05;
+function* terrainSteps(): Steps<BufferGeometry> {
   const g = new Grid(1);
   const yardCovers = (x: number, z: number) => {
     if (x < YARD.minX + 1 || x >= YARD.maxX - 1 || z < -7 + 1 || z >= YARD.maxZ) return false;
@@ -498,13 +503,31 @@ function terrain(): BufferGeometry {
       for (let y = Math.max(-1, top - 3); y < top; y++) g.set(x, y, z, paint(x, y, z));
       if (top <= 0) g.set(x, -1, z, paint(x, -1, z));
     }
-  const land = detailed(g.map, 1, 0);
-  const geo = dropFaces(buildGeometry(land.map, land.size), (ny) => ny < 0);
-  geo.translate(0, -0.05, 0); // just under the yard's snow, so the two never share a plane
+  yield;
+  const land = yield* detailedSteps(g.map, 1, 0);
+  yield;
+  // It casts no shadow and only the start screen draws it: faces none of that screen's cameras can be in front of are left out.
+  // Nor is any face that looks down: the land has no overhangs.
+  const home = unseenFrom([{ screens: 'home', lift: TERRAIN_LIFT }]);
+  const geo = buildGeometry(land.map, land.size, { unseen: (axis, sign, plane) => (axis === 1 && sign < 0) || home(axis, sign, plane), merge: (x, _y, z) => !sunReaches(x, z, 'home') });
+  geo.translate(0, TERRAIN_LIFT, 0); // just under the yard's snow, so the two never share a plane
   return geo;
 }
 
-export function chunks(map: Grid['map'], size: number): BufferGeometry[] {
+type ChunkOptions = BuildOptions | ((chunk: ChunkMap) => BuildOptions | undefined);
+
+/** A model cut into 8 m chunks, one mesh each. `options` are the mesher's, for all of them or chosen chunk by chunk. */
+export function chunks(map: Grid['map'], size: number, options?: ChunkOptions): BufferGeometry[] {
+  return finish(chunksSteps(map, size, options));
+}
+
+/** `chunks`, a mesh a step. */
+export function* chunksSteps(map: Grid['map'], size: number, options?: ChunkOptions): Steps<BufferGeometry[]> {
+  return yield* each(chunkMaps(map, size), (m) => buildGeometry(m, size, typeof options === 'function' ? options(m) : options));
+}
+
+/** The 8 m chunks of a model, before they are meshed. */
+export function chunkMaps(map: Grid['map'], size: number): ChunkMap[] {
   const byChunk = new Map<string, ChunkMap>();
   for (const [k, v] of map) {
     const ck = `${Math.floor((v.x * size) / CHUNK)},${Math.floor((v.z * size) / CHUNK)}`;
@@ -512,31 +535,49 @@ export function chunks(map: Grid['map'], size: number): BufferGeometry[] {
     if (!m) byChunk.set(ck, (m = new ChunkMap(map)));
     Map.prototype.set.call(m, k, v);
   }
-  return [...byChunk.values()].map((m) => buildGeometry(m, size));
+  return [...byChunk.values()];
 }
 
 export interface Farmstead { fine: BufferGeometry[]; props: BufferGeometry[]; shell: BufferGeometry; terrain: BufferGeometry; triangles: number }
 
+/** The farm round the barn, built in steps (scene/slices.ts). */
 export function buildFarmstead(): Farmstead {
+  return finish(buildFarmsteadSteps());
+}
+
+export function* buildFarmsteadSteps(): Steps<Farmstead> {
   const shell = barnShell();
+  yield;
   const big = new Builder(new Grid(S));
   barnRoof(big);
+  yield;
   silo(big);
+  yield;
   paddock(big);
+  yield;
   coop(big);
+  yield;
   orchard(big);
+  yield;
   // What the tour gets close to is refined to the barn's 0.1 m, and the tractor, seen closest of all, to 0.05 m. The field
   // and the trees past it stay on their 0.2 m grid: the camera never comes near them and the fog takes the rest.
-  const near = detailed(big.g.map, S);
+  const near = yield* detailedSteps(big.g.map, S);
+  yield;
   const far = new Builder(new Grid(S));
   fieldAndTrees(far);
-  const props = [...chunks(near.map, near.size), ...chunks(far.g.map, S)];
+  yield;
+  const props = [...(yield* chunksSteps(near.map, near.size)), ...(yield* chunksSteps(far.g.map, S))];
   const small = new Builder(new Grid(F));
   tractor(small);
-  const close = detailed(small.g.map, F, 0.03);
+  yield;
+  const close = yield* detailedSteps(small.g.map, F, 0.03);
+  yield;
   const litter = new Builder(new Grid(F));
   henYard(litter);
-  const fine = [...chunks(close.map, close.size), ...chunks(litter.g.map, F)];
-  const land = terrain();
+  yield;
+  const fine = [...(yield* chunksSteps(close.map, close.size)), ...(yield* chunksSteps(litter.g.map, F))];
+  const land = yield* terrainSteps();
+  yield;
+  yield* each([shell, land, ...props, ...fine], packGeometry); // half the bytes, the same picture (voxel/mesher.ts)
   return { fine, props, shell, terrain: land, triangles: [shell, land, ...props, ...fine].reduce((n, g) => n + triangles(g), 0) };
 }

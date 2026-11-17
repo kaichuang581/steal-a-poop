@@ -626,13 +626,13 @@ function putFestive(L: Layout, geo: FestiveGeo, name: string) {
 /** The barn, the yard, the distance and the season: `Farm` in src/skin/table/BarnTable.tsx, built in `buildWorld`'s order. */
 async function putFarm(L: Layout, load: Load, shared: Shared) {
   mirrors('src/skin/table/BarnTable.tsx', [
-    'const barn = buildBarn(); const yard = buildYard(); const distance = buildDistance(); const festive = buildFestive();',
+    'const barn = yield* buildBarnSteps(); const yard = yield* buildYardSteps(); const distance = yield* buildDistanceSteps(); const festive = buildFestive();',
     '{barn.static.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}',
     '{barn.doorLeaves.map((d, i) => <mesh key={i} geometry={d.geo} material={voxMat} position={d.hinge} rotation={[0, d.openYaw, 0]} castShadow receiveShadow />)}',
     '<mesh geometry={barn.lanterns} material={glowMat} />',
     '<mesh geometry={barn.tarp} material={voxMat} />',
     '<mesh geometry={barn.front} material={voxMat} receiveShadow />',
-    '{yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}',
+    '{yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow={yard.casts[i]} receiveShadow />)}',
     '<mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />',
     '<mesh geometry={distance.hills} material={voxMat} receiveShadow />',
     '<mesh geometry={distance.backHills} material={voxMat} receiveShadow />',
@@ -712,10 +712,10 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       '{farm.fine.map((g, i) => <mesh key={`f${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
       '<mesh geometry={farm.terrain} material={mat} receiveShadow />',
       '<Festive geo={buildFarmFestive()} reduced={reduced} />',
-      '{[...country.woods, ...country.scrub].map((g, i) => <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
-      '{country.forest.map((g, i) => <mesh key={`w${i}`} geometry={g} material={mat} receiveShadow />)}',
-      '{country.drifts.map((g, i) => <mesh key={`d${i}`} geometry={g} material={mat} receiveShadow />)}',
-      '<mesh geometry={country.tracks} material={mat} receiveShadow />',
+      '{[...country.woods, ...country.scrub].map((g, i) => g && <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
+      '{country.forest.map((g, i) => g && <mesh key={`w${i}`} geometry={g} material={mat} receiveShadow />)}',
+      '{country.drifts.map((g, i) => g && <mesh key={`d${i}`} geometry={g} material={mat} receiveShadow />)}',
+      '{country.tracks && <mesh geometry={country.tracks} material={mat} receiveShadow />}',
     ]);
     const farmstead = await load<typeof import('../../src/skin/scene/farmstead')>('src/skin/scene/farmstead.ts');
     const festive = await load<Festive>('src/skin/scene/festive.ts');
@@ -1113,7 +1113,7 @@ export async function buildWorld(options: BuildOptions = {}): Promise<World> {
   if ((globalThis as { __voxelHook?: unknown }).__voxelHook && !tap.installed) throw new Error('tools/scenes/build.ts: something else has set __voxelHook');
   for (const file of ['src/skin/voxel/mesher.ts', 'src/skin/voxel/refine.ts']) if (!existsSync(resolve(ROOT, file))) throw new Error(`tools/scenes/build.ts: ${file} is gone`);
   mirrors('src/skin/voxel/mesher.ts', ['(globalThis as { __voxelHook?: (vox: VoxelMap, size: number) => void }).__voxelHook?.(vox, size);', 'g.computeBoundingSphere();']);
-  mirrors('src/skin/voxel/refine.ts', ["const coarse = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;"]);
+  mirrors('src/skin/voxel/refine.ts', ["export const coarseDevice = () => typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;", 'coarse = coarseDevice()']);
   mirrors('src/skin/scene/yard.ts', ['out.computeBoundingSphere(); g.dispose(); return out;']);
   install();
 

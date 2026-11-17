@@ -1,6 +1,8 @@
 import { BufferGeometry, Float32BufferAttribute } from 'three';
-import { buildGeometry, triangles } from '../voxel/mesher';
-import { detailed } from '../voxel/refine';
+import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
+import { detailedSteps } from '../voxel/refine';
+import { each, finish } from './slices';
+import type { Steps } from './slices';
 import type { Voxel, VoxelMap } from '../voxel/mesher';
 import { lin, pick, SCARF, T } from '../voxel/palette';
 import { snowPaint } from '../voxel/snow';
@@ -44,7 +46,19 @@ const inBarn = (x: number, z: number) => x >= BARN.minX && x <= BARN.maxX && z >
 const underWalls = (x: number, z: number) => x >= BARN.minX - 0.2 && x <= BARN.maxX + 0.2 && z >= BARN.minZ && z <= BARN.maxZ + 0.2;
 const pondD = (x: number, z: number) => ((x - YARD.pond.x) / YARD.pond.rx) ** 2 + ((z - YARD.pond.z) / YARD.pond.rz) ** 2;
 
-export function buildYard(): { chunks: BufferGeometry[]; snowman: BufferGeometry; smokeFrom: [number, number, number]; triangles: number } {
+export interface Yard {
+  chunks: BufferGeometry[];
+  /** For each chunk, whether it can cast a shadow at all (see `castsShadow`). */
+  casts: boolean[];
+  snowman: BufferGeometry; smokeFrom: [number, number, number]; triangles: number;
+}
+
+/** The yard, built in steps (scene/slices.ts). */
+export function buildYard(): Yard {
+  return finish(buildYardSteps());
+}
+
+export function* buildYardSteps(): Steps<Yard> {
   const g = new Grid(S);
   const set = (x: number, y: number, z: number, p: Paint) => {
     const c = p(x, y, z);
@@ -59,18 +73,22 @@ export function buildYard(): { chunks: BufferGeometry[]; snowman: BufferGeometry
   };
 
   ground(g, set);
+  yield;
   fence(g, set, boxI, capAt);
+  yield;
   YARD.pines.forEach(([x, z], i) => pine(g, set, x, z, i + 1));
+  yield;
   sled(set, boxI, capAt);
   woodpile(set, boxI, capAt);
   feeder(set, boxI, capAt);
   trough(boxI);
   cattails(set);
   const smokeFrom = farmhouse(g, set, boxI, capAt);
+  yield;
 
   // Split into 8 m chunks in x/z; each chunk's faces still cull against its neighbours. The ground stays as it is, and
   // everything standing on it is refined to the barn's 0.1 m, so the yard and the barn read as one place.
-  const inChunks = (map: VoxelMap, size: number, keep: (v: Voxel) => boolean, drop: (ny: number, y: number) => boolean) => {
+  function* inChunks(map: VoxelMap, size: number, keep: (v: Voxel) => boolean, drop: (ny: number, y: number) => boolean) {
     const chunks = new Map<string, ChunkMap>();
     for (const [k, v] of map) {
       if (!keep(v)) continue;
@@ -79,20 +97,34 @@ export function buildYard(): { chunks: BufferGeometry[]; snowman: BufferGeometry
       if (!m) chunks.set(ck, (m = new ChunkMap(map)));
       Map.prototype.set.call(m, k, v);
     }
-    return [...chunks.values()].map((m) => dropFaces(buildGeometry(m, size), drop));
-  };
+    return yield* each([...chunks.values()], (m) => dropFaces(buildGeometry(m, size), drop));
+  }
   const standing = (v: Voxel) => v.y >= 0;
-  const fine = detailed(g.map, S, 0.04, standing);
+  const fine = yield* detailedSteps(g.map, S, 0.04, standing);
+  yield;
   const man = new Grid(S / 2);
   snowman(man);
   const geos = [
-    ...inChunks(g.map, S, (v) => !standing(v), (ny, y) => ny < 0 && y < 0),
-    ...inChunks(fine.map, fine.size, () => true, (ny, y) => ny < 0 && y <= 0),
+    ...(yield* inChunks(g.map, S, (v) => !standing(v), (ny, y) => ny < 0 && y < 0)),
+    ...(yield* inChunks(fine.map, fine.size, () => true, (ny, y) => ny < 0 && y <= 0)),
   ];
   // The snowman is its own mesh with no corner shading: on a white ball the corner shading of every little step stacks
   // into dark stripes. It takes light and shadow like the snow around it, so it never looks glazed or out of place.
   const man2 = buildGeometry(man.map, S / 2, { ao: false });
-  return { chunks: geos, snowman: man2, smokeFrom, triangles: [...geos, man2].reduce((s, x) => s + triangles(x), 0) };
+  for (const g of [...geos, man2]) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
+  return { chunks: geos, casts: geos.map(castsShadow), snowman: man2, smokeFrom, triangles: [...geos, man2].reduce((s, x) => s + triangles(x), 0) };
+}
+
+/**
+ * Whether a mesh can cast a shadow. The shadow pass draws only the faces turned away from the light, and every light
+ * that casts is above the ground, so a mesh whose every face looks straight up (a flat piece of the yard's ground,
+ * with its undersides dropped) draws nothing into any shadow map: asking it to cast only costs its triangles again,
+ * every frame. A piece with a footprint, a track or an edge in it has faces that look sideways, and still casts.
+ */
+export function castsShadow(g: BufferGeometry): boolean {
+  const n = g.getAttribute('normal');
+  for (let i = 0; i < n.count; i++) if (n.getY(i) < 0.5) return true;
+  return false;
 }
 
 type Set = (x: number, y: number, z: number, p: Paint) => void;

@@ -6,13 +6,18 @@ import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, M
 import type { PerspectiveCamera } from 'three';
 import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
-import { buildBarn, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
-import { buildDistance } from '../scene/distance';
+import { buildBarnSteps, CAT_SPOT, ROBIN_SPOT } from '../scene/barn';
+import type { Barn } from '../scene/barn';
+import { buildDistanceSteps } from '../scene/distance';
+import type { Distance } from '../scene/distance';
 import { buildFestive } from '../scene/festive';
 import { BARN, CAMERA, HEAP, homeShot, SEAT_RING, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, speakerShot, swoopCrop } from '../scene/layout';
 import type { Shot } from '../scene/layout';
 import { ChimneySmoke, Sky, Windmill } from '../scene/Sky';
-import { buildYard } from '../scene/yard';
+import { buildYardSteps } from '../scene/yard';
+import type { Yard } from '../scene/yard';
+import { queueBuild } from '../scene/slices';
+import type { Steps } from '../scene/slices';
 import { bonkStar } from '../dream/world';
 import { tuftGeometry } from '../voxel/characters';
 import { voxelMaterial } from '../voxel/material';
@@ -21,7 +26,7 @@ import { BOARD, boardFontReady, letterBoardGeometry, pileGeometry, pileWidth, PL
 import { DevStats } from './DevStats';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Festive } from './Festive';
-import { AdaptiveCanvas, Atmosphere, Effects, LANTERN_LIGHT, lanternIntensity, Lights, MarkDrawn } from './Rendering';
+import { AdaptiveCanvas, Atmosphere, Effects, holdDpr, LANTERN_LIGHT, lanternIntensity, Lights, MarkDrawn } from './Rendering';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -94,25 +99,43 @@ interface Props {
 export type { Props as BarnTableProps };
 
 /** World-static voxel content, built once per page and shared by the table and the Home backdrop. */
-export type World = ReturnType<typeof buildWorld>;
+export interface World {
+  barn: Barn; yard: Yard; distance: Distance; festive: ReturnType<typeof buildFestive>;
+  /** From the start of the build to its end, in ms, the page's turns in between included. */
+  ms: number;
+}
 let world: World | null = null;
-function buildWorld() {
+function* buildWorldSteps(): Steps<World> {
   const t0 = performance.now();
-  const barn = buildBarn();
-  const yard = buildYard();
-  const distance = buildDistance();
+  const barn = yield* buildBarnSteps();
+  const yard = yield* buildYardSteps();
+  const distance = yield* buildDistanceSteps();
   const festive = buildFestive();
-  const ms = performance.now() - t0;
-  return { barn, yard, distance, festive, ms };
+  return { barn, yard, distance, festive, ms: performance.now() - t0 };
 }
 
-/** The world, built on the first call after paint so the page is not blank-blocked while it builds. */
+/** Who is waiting for the world, and whether its build has been started. */
+const waiting = new Set<(w: World) => void>();
+let started = false;
+
+/**
+ * The world, built after paint in slices (scene/slices.ts), so the page is never frozen while it builds. The build is
+ * the page's, not the screen's: once started it runs to its end, whoever is still waiting for it.
+ */
 export function useWorld(): World | null {
   const [w, setW] = useState(world);
   useEffect(() => {
-    if (world) return;
-    const id = setTimeout(() => { world ??= buildWorld(); setW(world); }, 0);
-    return () => clearTimeout(id);
+    if (world) { setW(world); return; }
+    waiting.add(setW);
+    if (!started) {
+      started = true;
+      queueBuild(buildWorldSteps(), (built) => {
+        world = built;
+        for (const f of waiting) f(built);
+        waiting.clear();
+      }, { around: holdDpr });
+    }
+    return () => { waiting.delete(setW); };
   }, []);
   return w;
 }
@@ -136,7 +159,8 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
       <mesh geometry={barn.front} material={voxMat} receiveShadow />
       <Cat geo={barn.cat} reduced={reduced} mat={voxMat} />
       <Robin geo={barn.robin} reduced={reduced} mat={voxMat} />
-      {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
+      {/* A flat piece of ground cannot cast a shadow (see `castsShadow` in scene/yard.ts), so it is not asked to. */}
+      {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow={yard.casts[i]} receiveShadow />)}
       <mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />
       <ChimneySmoke from={yard.smokeFrom} />
       <mesh geometry={distance.hills} material={voxMat} receiveShadow />
@@ -242,7 +266,7 @@ function Scene({ bombSize, seats, pile, speaker, dazed = null, upNext = null, fr
       <Lights hour={hour} phone={phone} viewYaw={0} lampRef={(i, l) => { lamps.current[i] = l; }} />
       <Sky hour={hour} reduced={reduced} blizzard={blizzard} />
       <Farm world={w} reduced={reduced} />
-      <Pile pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
+      <Pile world={w} pile={pile} pulseKey={moments.tuftIn?.key} reduced={reduced} />
       <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} />
       <Bomb speaker={speaker} n={n} fraction={fraction} red={false} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {seats.map((s) => {
@@ -380,7 +404,7 @@ function SeatGroup({ index, n, active, reduced, drawScale = 1, children }: { ind
  * The hero: the mound of wool on its wooden platform under its own spotlight, with the count on a paper tag anchored
  * above it (plan V3.2 Part 3). The spot brightens and the tag pops on an accepted word.
  */
-function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; reduced: boolean }) {
+function Pile({ world, pile, pulseKey, reduced }: { world: World; pile: number; pulseKey?: number; reduced: boolean }) {
   const mat = useMemo(() => voxelMaterial(), []);
   const platform = useMemo(() => platformGeometry(), []);
   const width = pileWidth(pile);
@@ -394,6 +418,7 @@ function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; re
     const e = performance.now() / 1000 - pulseAt.current;
     spot.current.intensity = 90 * (e < 0.4 && !reduced ? 1.25 : 1);
   });
+  useSpotCasters(spot, world);
   return (
     <group position={[HEAP[0], 0, HEAP[2]]}>
       <mesh geometry={platform} material={mat} castShadow receiveShadow />
@@ -402,6 +427,61 @@ function Pile({ pile, pulseKey, reduced }: { pile: number; pulseKey?: number; re
       <spotLight ref={spot} position={[0, 6.0, 0]} target={target} color="#FFD9A0" intensity={90} angle={0.42} penumbra={0.7} distance={9} decay={2} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} />
     </group>
   );
+}
+
+/** The layer the pile's spot draws its shadow map from (three's layer 1; nothing else in the game uses layers). */
+const SPOT_LAYER = 1;
+const spotClear = new WeakMap<BufferGeometry, boolean>();
+
+/**
+ * The pile's spot draws its own shadow map every frame, and three hands it everything that casts and comes near: the
+ * barn's walls, the bales, the door leaves, pieces of the yard, about 280,000 triangles, most of which its light can
+ * never touch. Its shadow camera is put on a layer of its own, and every thing in the scene is on that layer too
+ * except the still scenery that lies wholly outside the cone the spot lights (with half a metre to spare): that can
+ * shadow nothing the spot lights, so the picture is the same. Whatever moves or comes later (animals, the bomb, the
+ * board, a mode's own props) is put on the layer each frame before it is drawn, so it casts as it always did.
+ * (The plan asked for the pile and the animals alone. But the beam, the letter board and the straw on the floor stand
+ * in that cone too, and their shadows under the spot are part of the picture.)
+ */
+function useSpotCasters(spot: React.RefObject<SpotLight | null>, world: World) {
+  const scene = useThree((s) => s.scene);
+  const apart = useRef(new WeakSet<Object3D>());
+  useEffect(() => {
+    const light = spot.current;
+    if (!light) return;
+    scene.updateMatrixWorld();
+    const apex = light.getWorldPosition(new Vector3()), axis = light.target.getWorldPosition(new Vector3()).sub(apex).normalize();
+    // The shadow map is square: its corners reach further out than the cone it is drawn for.
+    const spread = Math.SQRT2 * Math.tan(light.angle), far = (light.distance || 500) + 0.5, ROOM = 0.5;
+    const p = new Vector3(), along = new Vector3();
+    const inLight = (x: number, y: number, z: number, r: number) => {
+      const d = p.set(x, y, z).sub(apex).dot(axis);
+      return d > -ROOM - r && d < far + r && p.sub(along.copy(axis).multiplyScalar(d)).length() <= spread * Math.max(0, d) + ROOM + r;
+    };
+    const still = new Set<BufferGeometry>([...world.barn.static, ...world.barn.doorLeaves.map((d) => d.geo), ...world.yard.chunks, world.yard.snowman]);
+    const set = new WeakSet<Object3D>();
+    const v = new Vector3();
+    scene.traverse((o) => {
+      const m = o as Mesh;
+      if (!m.isMesh || !still.has(m.geometry)) return;
+      let clear = spotClear.get(m.geometry);
+      if (clear === undefined) {
+        const ball = m.geometry.boundingSphere!, c = v.copy(ball.center).applyMatrix4(m.matrixWorld);
+        clear = !inLight(c.x, c.y, c.z, ball.radius);
+        if (!clear) {
+          // Its ball reaches the light: look at every corner (its faces are far smaller than the room left).
+          const pos = m.geometry.getAttribute('position');
+          clear = true;
+          for (let i = 0; i < pos.count && clear; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld); clear = !inLight(v.x, v.y, v.z, 0); }
+        }
+        spotClear.set(m.geometry, clear); // each of these is mounted in one place only
+      }
+      if (clear) { set.add(m); m.layers.disable(SPOT_LAYER); }
+    });
+    apart.current = set;
+    light.shadow.camera.layers.set(SPOT_LAYER);
+  }, [scene, spot, world]);
+  useFrame(() => { scene.traverse((o) => { if (!apart.current.has(o)) o.layers.enable(SPOT_LAYER); }); });
 }
 
 /**

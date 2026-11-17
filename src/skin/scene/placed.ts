@@ -385,7 +385,7 @@ export const ALSO_COPIED: readonly Copied[] = [
   { file: 'src/skin/table/BarnTable.tsx', text: 'return <group ref={g} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={SHEEP_SCALE * drawScale}>{children}</group>;' },
   { file: 'src/skin/table/Bomb.tsx', text: '<group ref={group} scale={1.5}>' },
   { file: 'src/skin/table/DuelTable.tsx', text: 'const fwd = -Math.sign(p.x);' },
-  { file: 'src/skin/scene/barn.ts', text: 'const statics = [walls(), b, f, bl, p].map((g) => buildGeometry(g.map, S));' },
+  { file: 'src/skin/scene/barn.ts', text: 'const statics = yield* each([w, b, f, bl, p], (g) => buildGeometry(g.map, S));' },
   { file: 'src/skin/voxel/table.ts', text: 'const rx = Math.round((sx * 0.35) / s);' },
   { file: 'src/skin/voxel/primitives.ts', text: 'const a = min.map((v) => Math.round(v / g.size));' },
 ];

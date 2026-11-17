@@ -1,5 +1,5 @@
 import type { BufferGeometry } from 'three';
-import { buildGeometry } from '../voxel/mesher';
+import { buildGeometry, packGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
 import { box, Grid, hash3 } from '../voxel/primitives';
 import type { V3 } from '../voxel/primitives';
@@ -193,7 +193,9 @@ class Dressing {
   }
 
   build(): FestiveGeometry {
-    return { decor: buildGeometry(this.decor.map, 0.1), bulbs: this.glow.map((g) => buildGeometry(g.map, 0.1)), star: buildGeometry(this.stars.map, 0.1) };
+    const made = { decor: buildGeometry(this.decor.map, 0.1), bulbs: this.glow.map((g) => buildGeometry(g.map, 0.1)), star: buildGeometry(this.stars.map, 0.1) };
+    for (const g of [made.decor, made.star, ...made.bulbs]) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
+    return made;
   }
 }
 

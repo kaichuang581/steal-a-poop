@@ -59,7 +59,7 @@
  *
  * Flags: `--show=<text>` lists every failing item whose name holds the text (`--show=horse`, `--show="roots: head"`).
  */
-import { createElement } from 'react';
+import { createElement, Fragment } from 'react';
 import type { ReactElement } from 'react';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -187,7 +187,11 @@ async function openBench(world: World, root: string, probe: () => ReactElement):
           const store = flush(() => r3f.render(null));
           const state = (live.state = store.getState());
           for (let i = 0; i < 200 && (state.scene.children.length > 0 || state.internal.subscribers.length > 0); i++) await tick();
-          flush(() => r3f.render(createElement('group', { ref: (o: Object3D | null) => { if (o) holder = o; } }, element)));
+          // Beside it, a light that casts with layer 1 on its shadow camera, as every casting light where animals stand
+          // has (SHADOW_LAYERS in table/Rendering.tsx): with it, `Sheep` casts through its two shadow stand-ins.
+          flush(() => r3f.render(createElement(Fragment, null,
+            createElement('directionalLight', { castShadow: true, 'shadow-camera-layers-mask': 0b11 }),
+            createElement('group', { ref: (o: Object3D | null) => { if (o) holder = o; } }, element))));
           for (let i = 0; i < 200 && !holder; i++) await tick();
           // Effects (a component's `useFrame` is one, outside a browser) may run after the commit: give them their turn.
           for (let i = 0; i < 3; i++) await tick();
@@ -619,7 +623,7 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
   };
 
   /** What is mounted under `holder`, as items. The animal's root holds its body group and, beside it, its freeze effects. */
-  const read = (holder: Object3D, sp: Species, what: string): { items: Item[]; block: Object3D | null } => {
+  const read = (holder: Object3D, sp: Species, what: string): { items: Item[]; block: Object3D | null; shadowOnly: Item[] } => {
     const sheepRoot = holder.children[0];
     const m = model(sp), names = namesOf(m);
     const bodyGeos = new Set<BufferGeometry>([m.sheared.geo, ...([1, 2, 3, 4] as const).map((l) => m.wools[l].geo)]);
@@ -631,9 +635,12 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
     const blocks = fxRoot.children.filter((c) => (c as { isGroup?: boolean }).isGroup);
     const block = blocks.length === 1 ? blocks[0] : null;
     const iceNames = ['ice.base', 'ice.icicles', 'ice.cap', 'ice.glints', 'ice.cracks', 'ice.slab'];
-    const items: Item[] = [], virtual: Item[] = [];
+    const items: Item[] = [], virtual: Item[] = [], shadowOnly: Item[] = [];
     let n = 0;
     const walk = (o: Object3D, above: Object3D[], fx: boolean) => {
+      // A shadow stand-in (change 4.13): on no layer a camera draws, so it is drawn into the shadow map alone. It is
+      // the same cells as the parts it stands in for, so it is judged as nothing but a draw into the shadow map.
+      if (drawable(o) && !o.layers.test(new THREE.Layers())) { shadowOnly.push({ mesh: o, above, name: `shadow stand-in ${shadowOnly.length}`, parts: [], fx }); return; }
       const sources = drawable(o) && !fx ? bundles.get(o.geometry) : undefined;
       if (sources) {
         // A bundle: one draw, judged as the parts it joins. Each part is a stand-in mesh hung under it where the bundle
@@ -675,7 +682,7 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
     walk(holder, [], false);
     // The stand-ins first: where a part is also mounted as its own mesh (a leg, an eye, shown while it moves), that mesh
     // is the one found by its name.
-    return { items: [...virtual, ...items], block };
+    return { items: [...virtual, ...items], block, shadowOnly };
   };
 
   const fail = (sp: Species, check: string, part: string, where: string, what: string) => {
@@ -803,18 +810,6 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
         const shown = items.filter((it) => isShown(it) && !it.virtual);
         joints = layOut(items, level);
 
-        // Draws: every visible mesh is one draw in colour (three.js draws an empty one too), and one more into the
-        // shadow map if it casts.
-        const colour = shown.filter((it) => it.mesh.layers.test(new THREE.Layers())).length, shadow = shown.filter((it) => it.mesh.castShadow).length;
-        const emptyNow = shown.filter((it) => trianglesOf(it.mesh) === 0).length, emptyShadow = shown.filter((it) => trianglesOf(it.mesh) === 0 && it.mesh.castShadow).length;
-        per.draws[sp].push({ colour, shadow, empty: emptyNow, emptyShadow });
-        measured.draws.colour[sp] = Math.max(measured.draws.colour[sp], colour);
-        measured.draws.shadow[sp] = Math.max(measured.draws.shadow[sp], shadow);
-        if (colour > LIMIT.colour || shadow > LIMIT.shadow) {
-          measured.draws.over[sp]++;
-          fail(sp, 'draws', 'the whole animal', `${at}, idle`, `${colour} meshes drawn in colour (the limit is ${LIMIT.colour}) and ${shadow} into the shadow map (the limit is ${LIMIT.shadow}); ${emptyNow} of the ${colour} have no triangles`);
-        }
-
         // Tail at level 0.
         if (level === 0) {
           const tail = items.find((it) => it.name === 'tail');
@@ -899,6 +894,28 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
           per.insideRest[sp].push(r.inside / r.all);
           if (level === 2) { const h = ice.share(animalParts(items).filter((it) => OWN(it) || it.name === 'hat')); per.hatAtRest[sp] = h.inside / h.all; }
         }
+      }
+
+      // ============ Draws at idle, once the state has settled: the 200 ms blend from the rest pose it is mounted in is
+      // over, so every part stands where idle holds it (the ears drooped) and the shadow stand-ins carry them.
+      {
+        const holder = await bench.show(createElement(Sheep, { level, state: 'idle', still: true, model: m }));
+        for (const t of [0, 0.001, 0.002, 0.4]) bench.frame(t);
+        const { items, shadowOnly } = read(holder, sp, `${sp} ${at} settled`);
+        const shown = items.filter((it) => isShown(it) && !it.virtual);
+        // Draws: every visible mesh is one draw in colour (three.js draws an empty one too), and one more into the
+        // shadow map if it casts.
+        // The shadow stand-ins are counted with the meshes that cast (change 4.13).
+        const colour = shown.filter((it) => it.mesh.layers.test(new THREE.Layers())).length, shadow = [...shown, ...shadowOnly.filter(isShown)].filter((it) => it.mesh.castShadow).length;
+        const emptyNow = shown.filter((it) => trianglesOf(it.mesh) === 0).length, emptyShadow = shown.filter((it) => trianglesOf(it.mesh) === 0 && it.mesh.castShadow).length;
+        per.draws[sp].push({ colour, shadow, empty: emptyNow, emptyShadow });
+        measured.draws.colour[sp] = Math.max(measured.draws.colour[sp], colour);
+        measured.draws.shadow[sp] = Math.max(measured.draws.shadow[sp], shadow);
+        if (colour > LIMIT.colour || shadow > LIMIT.shadow) {
+          measured.draws.over[sp]++;
+          fail(sp, 'draws', 'the whole animal', `${at}, idle`, `${colour} meshes drawn in colour (the limit is ${LIMIT.colour}) and ${shadow} into the shadow map (the limit is ${LIMIT.shadow}); ${emptyNow} of the ${colour} have no triangles`);
+        }
+
       }
 
       // ============ The winner's scarf.
@@ -1276,7 +1293,8 @@ async function props(world: World, options: StageOptions, bench: Bench, measured
 
   out.push('', '  the sheepdog, the trophy, the hat, the ice');
   // The sheepdog wears the hat on its head, as `Sheepdog` in table/places.tsx mounts it.
-  pinned(root, 'src/skin/table/places.tsx', ['<mesh ref={head} geometry={m.head.geo} position={m.head.pivot} material={mat} castShadow><SantaHat parts={[m.head.geo]} material={mat} /></mesh>']);
+  // (Its head and hat are one geometry, `withHat` in table/Sheep.tsx, with the hat where `SantaHat` puts it.)
+  pinned(root, 'src/skin/table/places.tsx', ['<mesh ref={head} geometry={withHat(m.head.geo)} position={m.head.pivot} material={mat} castShadow />']);
   const dog = world.model('sheepdog'), hat = world.model('hat');
   const dogBuilt = dog.built as import('../../src/skin/voxel/characters').SheepdogModel;
   const holder = await bench.show(createElement('group', { position: dogBuilt.head.pivot }, createElement(needs.SantaHat, { parts: [dogBuilt.head.geo], material: new THREE.MeshBasicMaterial() })));

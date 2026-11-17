@@ -9,7 +9,7 @@ import { sheepdogModel } from '../voxel/characters';
 import { buildGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
 import { box, Grid, hash3 } from '../voxel/primitives';
-import { SantaHat } from './Sheep';
+import { withHat } from './Sheep';
 
 /**
  * What each mode adds to the barn (plan V3 Milestone 6): the Daily Table's streak lanterns on the fence posts behind the
@@ -64,7 +64,7 @@ function Sheepdog({ reduced }: { reduced: boolean }) {
   return (
     <group ref={root} position={[2.25, 0, BARN.maxZ - 1.2]} rotation={[0, Math.PI + 0.6, 0]}>
       <mesh geometry={m.body.geo} position={m.body.pivot} material={mat} castShadow />
-      <mesh ref={head} geometry={m.head.geo} position={m.head.pivot} material={mat} castShadow><SantaHat parts={[m.head.geo]} material={mat} /></mesh>
+      <mesh ref={head} geometry={withHat(m.head.geo)} position={m.head.pivot} material={mat} castShadow />
       <mesh ref={tail} geometry={m.tail.geo} position={m.tail.pivot} material={mat} castShadow />
       {m.ears.map((p, i) => <mesh key={i} geometry={p.geo} position={p.pivot} material={mat} />)}
       {m.legs.map((p, i) => <mesh key={i} geometry={p.geo} position={p.pivot} material={mat} castShadow />)}

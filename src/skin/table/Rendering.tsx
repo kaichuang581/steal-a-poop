@@ -71,6 +71,12 @@ export function Atmosphere({ hour }: { hour: Hour }) {
  * The wendigo's shot (`exempt`) is today's on every tier.
  */
 export const SUN_CLOCK_MS = 100;
+/**
+ * What a casting light's shadow camera draws: layer 0, and layer 1, where each animal's two shadow stand-ins are
+ * (PROXY_LAYER in table/Sheep.tsx, plan file 03, change 4.13). An animal casts through its stand-ins only where every
+ * casting light in its scene has layer 1 on.
+ */
+export const SHADOW_LAYERS = 0b11;
 export type SunPlace = 'home' | 'table';
 export function sunPlan(tier: Tier, phone: boolean, exempt: boolean, place: SunPlace): { size: number; redraw: 'frame' | 'clock' | 'shot' } {
   const today = phone ? 2048 : 4096;
@@ -132,7 +138,7 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
       <hemisphereLight args={[LIGHT_BOUNDS.fillSky, LIGHT_BOUNDS.fillGround, hour === 'night' ? LIGHT_BOUNDS.fillNight : LIGHT_BOUNDS.fillDay]} />
       <directionalLight
         ref={light} position={pos} color={sun.color} intensity={sun.intensity} castShadow
-        shadow-bias={-0.0004} shadow-normalBias={0.02}
+        shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-layers-mask={SHADOW_LAYERS}
         shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20} shadow-camera-near={1} shadow-camera-far={160}
       />
       {BARN.lanterns.map((p, i) => (

@@ -1,4 +1,5 @@
 import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
+import { BUBBLE_FPS } from '../perf/governor';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
@@ -49,6 +50,9 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
       <div className="dr-bubble-view">
         <SceneBoundary scene="the bedroom" size="note">
         <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="bedroom"
+          // A man asleep in a small cloud: BUBBLE_FPS pictures a second. The full rate as he is woken (the alarm clock
+          // rattles thirty times a second, which a slow rate would show standing still) and once the bubble is the room.
+          fps={phase === 'crashed' || room ? undefined : BUBBLE_FPS}
           flat={false}
           gl={{ antialias: true, alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1 }}
           camera={{ fov: CAMERA.fov, position: [...CAMERA.position], near: 0.05, far: 20 }}

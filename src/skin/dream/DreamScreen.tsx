@@ -17,6 +17,7 @@ import { useMotionLevel } from '../hooks/useAmbient';
 import { PAINTED_TITLE } from '../screens/PaintedHome';
 import { shareCard } from '../share/card';
 import { DevLine } from '../table/DevStats';
+import { useCoveredFps } from '../perf/governor';
 import { BedroomBubble } from './BedroomBubble';
 import type { RoomAnchors } from './BedroomBubble';
 import { DreamStage } from './DreamStage';
@@ -87,6 +88,8 @@ export function DreamScreen() {
     return practice ? `practice:${fixed ?? Date.now()}` : dreamSeed(night);
   });
   const [phase, setPhase] = useState<Phase>('ready');
+  // Over the results the bedroom covers the dream whole: once it has faded in, the dream stops drawing.
+  const stageFps = useCoveredFps(phase === 'results', 'bedroom');
   const [count, setCount] = useState(0);
   const [best, setBest] = useState(() => getDreamBest());
   const [streak, setStreak] = useState(0);
@@ -334,7 +337,7 @@ export function DreamScreen() {
   return (
     <main className="dr-root" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} onPointerDown={focus} style={mobile && vh ? { height: vh } : undefined}>
       <div className="dr-stage" data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} data-reduced={reduced || undefined}>
-        <DreamStage live={live} fences={fences} pop={counted} phase={phase} reduced={reduced} phone={mobile} landscapePhone={landscapePhone} />
+        <DreamStage live={live} fences={fences} pop={counted} phase={phase} reduced={reduced} phone={mobile} landscapePhone={landscapePhone} fps={stageFps} />
       </div>
       {PUFFS.map(([x, y, w], i) => (
         <span key={i} className="dream-puff" data-i={i} aria-hidden="true" style={{ left: `${x - w / 2}%`, top: `${y}%`, width: `${w}%` }}>

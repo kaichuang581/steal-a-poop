@@ -1,3 +1,4 @@
+import { FESTIVE } from '../../config';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useLoadingHold } from '../components/BarnDoors';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
@@ -216,7 +217,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
           {farm.props.map((g, i) => <mesh key={`p${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
           {farm.fine.map((g, i) => <mesh key={`f${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
           <mesh geometry={farm.terrain} material={mat} receiveShadow />
-          <Festive geo={buildFarmFestive()} reduced={reduced} />
+          {FESTIVE && <Festive geo={buildFarmFestive()} reduced={reduced} />}
           {country && (
             <>
               {/* A piece still to come is a hole in its list: the others keep their keys when it arrives. */}

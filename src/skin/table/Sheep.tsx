@@ -1,3 +1,4 @@
+import { FESTIVE } from '../../config';
 import { useFrame } from '@react-three/fiber';
 import { AFTERMATH_MS } from '../../engine/constants';
 import { useMemo, useRef } from 'react';
@@ -228,11 +229,10 @@ const atScale = (s: BundleSource): BufferGeometry => (s.scale === 1 ? placed(s.g
 
 /**
  * The season's hats (plan file 03, change 4.12; ruling M17): while on, the hat is joined into the head's geometry at
- * build (the head's bundle, and the sheepdog's head through `withHat`); while off, no hat is built at all. This is to
- * read `FESTIVE` in src/config.ts, which is not there yet (it is the one line file 01 adds beside UPDATE_NAME); until
- * it is, the hats are on, as shipped.
+ * build (the head's bundle, and the sheepdog's head through `withHat`); while off, no hat is built at all. They follow
+ * `FESTIVE` in src/config.ts.
  */
-export const HATS = true;
+export const HATS = FESTIVE;
 
 /** What the head's bundle is made of, in the head group's own space, in the order it is joined (the head last). */
 function headSources(m: SheepModel | AnimalModel): BundleSource[] {

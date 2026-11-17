@@ -14,6 +14,7 @@ import { useToday } from '../hooks/useToday';
 import { checkNickname } from '../../lib/nickname';
 import { getPracticeBest } from '../../lib/practice';
 import { PAINTED_GAME_TITLE, UPDATE_NAME } from '../../config';
+import { SEASON_TIPS } from '../season';
 import { farmSheepLine } from '../../lib/record';
 import { getServerUrl } from '../../net/config';
 import { useRoomStore } from '../../state/roomStore';
@@ -82,9 +83,7 @@ const TIPS = [
   'A bad word just bounces, so try another before your timer runs out.',
   'Turns get faster every round: 16, 12, 9, 7, then 5 seconds. The alarm calls each change.',
   'Last sheep standing wins.',
-  'Fleece Navidad: the whole farm is dressed for the season, hats and all.',
-  'Have yourself a merry little word chain.',
-  'Deck the stalls with bows of holly. Fa la la la baa.',
+  ...SEASON_TIPS,
 ];
 
 const RULES: { key: keyof GameSettings; label: string; values: (number | string | boolean)[]; show?: (v: number | string | boolean) => string }[] = [

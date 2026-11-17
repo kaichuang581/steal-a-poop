@@ -5,6 +5,7 @@ export const PAINTED_GAME_TITLE = 'Fleeced';
 export const GAME_TAGLINE = 'Chain words. Keep your wool. Be the last sheep standing.';
 /** This version's name, shown beside its number. */
 export const UPDATE_NAME = 'Fleece Navidad';
+export const FESTIVE = true; // The season's dress in the painted game: its seasonal words, hats and decorations (src/skin/season.ts).
 
 /**
  * Set to true only after a lawyer has reviewed docs/legal/privacy-policy.md, terms-of-service.md and

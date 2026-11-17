@@ -1,3 +1,5 @@
+import { FESTIVE } from '../../config';
+
 const SAG = 15;
 const AT = [0.1, 0.3, 0.5, 0.7, 0.9];
 
@@ -10,6 +12,7 @@ const AT = [0.1, 0.3, 0.5, 0.7, 0.9];
  * own snowfall, and the second one fell across the panels and their text.
  */
 export function Garland({ swags = 7 }: { swags?: number }) {
+  if (!FESTIVE) return null; // the season's lights (plan file 13, change 7)
   return (
     <div className="sk-garland" aria-hidden="true">
       {Array.from({ length: swags }, (_, s) => (

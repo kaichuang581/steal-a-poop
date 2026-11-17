@@ -1,3 +1,4 @@
+import { FESTIVE } from '../../config';
 import { Bomb } from './Bomb';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -242,7 +243,7 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
       <mesh geometry={distance.backHills} material={voxMat} receiveShadow />
       <mesh geometry={distance.mountains} material={voxMat} />
       <Windmill body={distance.windmillBody} blades={distance.windmillBlades} hub={distance.bladesHub} />
-      <Festive geo={festive} reduced={reduced} />
+      {FESTIVE && <Festive geo={festive} reduced={reduced} />}
     </>
   );
 }

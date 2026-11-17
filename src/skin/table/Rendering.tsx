@@ -1,8 +1,8 @@
 import { Canvas, addAfterEffect, invalidate, useFrame, useStore, useThree } from '@react-three/fiber';
 import type { CanvasProps } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Color, FogExp2, HalfFloatType, Vector2, WebGLRenderTarget } from 'three';
-import type { PointLight } from 'three';
+import { Color, FogExp2, HalfFloatType, PCFShadowMap, Vector2, WebGLRenderTarget } from 'three';
+import type { DirectionalLight, PointLight } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -12,19 +12,26 @@ import { doorsShut } from '../components/BarnDoors';
 import type { Hour } from '../model/types';
 import { createPacer, newPace, noteSceneDrawn } from '../perf/governor';
 import type { Pace } from '../perf/governor';
+import { FailCard } from '../perf/ReportCard';
 import { watchScene } from '../perf/report';
+import { applyPendingTier, createSlowWatch, createTierJudge, exemptShot, getTier, proposeTier } from '../perf/tier';
+import type { Tier } from '../perf/tier';
 import { BARN } from '../scene/layout';
 
 /** The look, applied once and globally (plan V3.1 Part 1.3). */
 // A warm white Christmas that is still winter (Brian, 2026-11-08: "warmer and more welcoming ... it looks a little dark"):
 // the day's haze is a warm white rather than icy blue, and the night's a softer navy.
 export const FOG: Record<Hour, string> = { dawn: '#F3CDB9', day: '#CED6DF', dusk: '#D49AA8', night: '#323E68' };
-const SUN: Record<Hour, { color: string; intensity: number }> = {
-  dawn: { color: '#FFD3A8', intensity: 1.55 },
+// The hours by key colour (plan file 02, change 2): dawn pink and cool, dusk amber and warm, where both were #FFD3A8.
+// Colour only: the strengths, the angle, the fill and the exposure are as they were.
+export const SUN: Record<Hour, { color: string; intensity: number }> = {
+  dawn: { color: '#FFD6C4', intensity: 1.55 },
   day: { color: '#FFE8C8', intensity: 1.85 },
-  dusk: { color: '#FFD3A8', intensity: 1.7 },
+  dusk: { color: '#FFC08A', intensity: 1.7 },
   night: { color: '#C6CDE4', intensity: 1.15 }, // moonlight, less blue than it was; the lanterns carry the barn
 };
+/** The key colours before the hour grades, kept for the wendigo's shot, which draws today's light on every tier. */
+export const TODAY_SUN: Record<Hour, string> = { dawn: '#FFD3A8', day: '#FFE8C8', dusk: '#FFD3A8', night: '#C6CDE4' };
 // Physical falloff (decay 2) needs candela-scale intensity; 40 here lands where the plan's nominal 2.0 reads on screen.
 export const LANTERN_LIGHT = { color: '#FFB862', intensity: 40, distance: 14, decay: 2 };
 /**
@@ -33,6 +40,16 @@ export const LANTERN_LIGHT = { color: '#FFB862', intensity: 40, distance: 14, de
  * The fill stays modest: a strong one flattens the snow (see Lights).
  */
 const NIGHT = { lantern: 1.5, reach: 19, fill: 0.62 };
+/**
+ * Brian's light limits as one tested set (plan file 02, change 1; src/skin/table/__tests__/lightBounds.test.ts): the
+ * sky fill's two colours and strengths, exposure, the moon, the night lanterns, the sun's angle and the shadow type.
+ * Lights reads them from here, so a change to one is a change the test sees.
+ */
+export const LIGHT_BOUNDS = {
+  fillSky: '#AEBEDA', fillGround: '#655F5C', fillDay: 0.58, fillNight: NIGHT.fill,
+  exposure: 1, moon: SUN.night.intensity, nightLantern: NIGHT.lantern, nightReach: NIGHT.reach,
+  sunElevationDeg: 20, sunAzimuthOffsetDeg: 35, shadowType: PCFShadowMap,
+} as const;
 /** How bright a lantern burns at this hour. */
 export const lanternIntensity = (hour: Hour) => LANTERN_LIGHT.intensity * (hour === 'night' ? NIGHT.lantern : 1);
 
@@ -47,26 +64,79 @@ export function Atmosphere({ hour }: { hour: Hour }) {
 }
 
 /**
- * One warm sun 20 degrees up and 35 degrees to the side of the camera (`viewYaw` is the camera's horizontal heading,
- * so shadows fall across the view), a cool sky fill, and the two lantern point lights.
+ * How the sun's shadow map is drawn (plan file 02, change 3; file 17, change 15). `redraw`: 'frame' every picture (as
+ * it always was), 'clock' on SUN_CLOCK_MS and at once when the shot changes or a caster jumps, 'shot' once a shot.
+ * Home redraws on the clock on High and Medium; the table keeps every picture on every tier, because the bomb is lobbed
+ * through the air and the animals move all the time there, and a shadow a tenth of a second behind its bomb shows.
+ * The wendigo's shot (`exempt`) is today's on every tier.
  */
-export function Lights({ hour, phone, viewYaw, lampRef }: { hour: Hour; phone: boolean; viewYaw: number; lampRef?: (i: number, l: PointLight | null) => void }) {
+export const SUN_CLOCK_MS = 100;
+export type SunPlace = 'home' | 'table';
+export function sunPlan(tier: Tier, phone: boolean, exempt: boolean, place: SunPlace): { size: number; redraw: 'frame' | 'clock' | 'shot' } {
+  const today = phone ? 2048 : 4096;
+  if (exempt) return { size: today, redraw: 'frame' };
+  const size = tier === 'high' ? today : tier === 'medium' ? Math.min(today, 2048) : 1024;
+  if (place === 'table') return { size, redraw: 'frame' };
+  return { size, redraw: tier === 'low' ? 'shot' : 'clock' };
+}
+/** A low tier's map is drawn when the shot changes and once more this long after (pieces that mount a frame late). */
+const SHOT_AGAIN_MS = 1000;
+/** Home's shot changed (Drift, in the dip): the sun's map is drawn again at once. */
+let shotSeq = 0;
+export function noteNewShot(): void { shotSeq++; }
+/** Something that casts moves a lot for a while (the hero's hop): the map is drawn every picture until then. */
+let sunBusyUntil = 0;
+export function sunEveryFrameFor(ms: number): void { sunBusyUntil = Math.max(sunBusyUntil, performance.now() + ms); }
+/**
+ * The gate's picture helper steps frames with WebGL's draws switched off (tools/gate/lib/determinism.js) and draws only
+ * the last ones: a map redrawn in a skipped frame is never really drawn, so the redraw waits for a frame that is.
+ */
+const drawsSkipped = () => (globalThis as { __gate?: { drawing?: boolean } }).__gate?.drawing === false;
+
+/**
+ * One warm sun 20 degrees up and 35 degrees to the side of the camera (`viewYaw` is the camera's horizontal heading,
+ * so shadows fall across the view), a cool sky fill, and the two lantern point lights. The set of lights never changes
+ * with the tier: only the sun's map size, how often it is drawn and, on the wendigo's shot, its colour.
+ */
+export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hour: Hour; phone: boolean; viewYaw: number; lampRef?: (i: number, l: PointLight | null) => void; place?: SunPlace }) {
   const sun = SUN[hour];
-  const az = viewYaw + Math.PI + (35 * Math.PI) / 180;
-  const el = (20 * Math.PI) / 180;
+  const az = viewYaw + Math.PI + (LIGHT_BOUNDS.sunAzimuthOffsetDeg * Math.PI) / 180;
+  const el = (LIGHT_BOUNDS.sunElevationDeg * Math.PI) / 180;
   const pos: [number, number, number] = [Math.sin(az) * Math.cos(el) * 60, Math.sin(el) * 60, Math.cos(az) * Math.cos(el) * 60];
+  const light = useRef<DirectionalLight>(null);
+  const st = useRef({ colour: '', seq: -1, last: -Infinity, again: 0, owed: true });
+  // Before the first picture: the map's size, and nothing drawn on a stale plan.
+  useFrame(() => {
+    const l = light.current;
+    if (!l) return;
+    const s = st.current, now = performance.now();
+    const exempt = place === 'home' && exemptShot();
+    const colour = exempt ? TODAY_SUN[hour] : sun.color;
+    if (hour + colour !== s.colour) { s.colour = hour + colour; l.color.set(colour); }
+    const plan = sunPlan(getTier(), phone, exempt, place);
+    let due = false;
+    if (l.shadow.mapSize.x !== plan.size) { l.shadow.mapSize.set(plan.size, plan.size); due = true; }
+    if (s.seq !== shotSeq) { s.seq = shotSeq; due = true; s.again = now + SHOT_AGAIN_MS; }
+    const every = plan.redraw === 'frame' || now < sunBusyUntil;
+    l.shadow.autoUpdate = every && !drawsSkipped();
+    if (every) { s.last = now; return; }
+    if (plan.redraw === 'clock' && now - s.last >= SUN_CLOCK_MS) due = true;
+    if (plan.redraw === 'shot' && s.again && now >= s.again) { s.again = 0; due = true; }
+    if (due) s.owed = true;
+    if (s.owed && !drawsSkipped()) { l.shadow.needsUpdate = true; s.owed = false; s.last = now; }
+  });
   return (
     <>
       {/* Sky fill and a faint bounce from below. Kept low, so the sun or moon on the tops against the shaded sides is what
           gives the snow its shape: a strong fill here flattened every drift to one grey. */}
-      <hemisphereLight args={['#AEBEDA', '#655F5C', hour === 'night' ? NIGHT.fill : 0.58]} />
+      <hemisphereLight args={[LIGHT_BOUNDS.fillSky, LIGHT_BOUNDS.fillGround, hour === 'night' ? LIGHT_BOUNDS.fillNight : LIGHT_BOUNDS.fillDay]} />
       <directionalLight
-        position={pos} color={sun.color} intensity={sun.intensity} castShadow
-        shadow-mapSize={phone ? [2048, 2048] : [4096, 4096]} shadow-bias={-0.0004} shadow-normalBias={0.02}
+        ref={light} position={pos} color={sun.color} intensity={sun.intensity} castShadow
+        shadow-bias={-0.0004} shadow-normalBias={0.02}
         shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20} shadow-camera-near={1} shadow-camera-far={160}
       />
       {BARN.lanterns.map((p, i) => (
-        <pointLight key={i} ref={(l) => lampRef?.(i, l)} position={[p[0], p[1] - 0.3, p[2]]} color={LANTERN_LIGHT.color} intensity={lanternIntensity(hour)} distance={hour === 'night' ? NIGHT.reach : LANTERN_LIGHT.distance} decay={LANTERN_LIGHT.decay} />
+        <pointLight key={i} ref={(l) => lampRef?.(i, l)} position={[p[0], p[1] - 0.3, p[2]]} color={LANTERN_LIGHT.color} intensity={lanternIntensity(hour)} distance={hour === 'night' ? LIGHT_BOUNDS.nightReach : LANTERN_LIGHT.distance} decay={LANTERN_LIGHT.decay} />
       ))}
     </>
   );
@@ -102,12 +172,21 @@ const TiltShiftShader = {
  */
 const samplesFor = (pixelRatio: number) => (pixelRatio > 1.4 ? 0 : pixelRatio > 1.1 ? 2 : 4);
 const BLOOM_MAX_W = 720;
+/**
+ * The composer by tier (plan file 02, change 3): High today's; Medium the bloom on a picture at most 480 px across;
+ * Low no bloom, and no tilt-shift except on the wendigo's shot, which is today's on every tier (change 4). Passes are
+ * switched, never added or taken out, so nothing recompiles.
+ */
+export function effectsPlan(tier: Tier, exempt: boolean): { bloomMaxW: number; tiltShift: boolean } {
+  if (exempt || tier === 'high') return { bloomMaxW: BLOOM_MAX_W, tiltShift: true };
+  return tier === 'medium' ? { bloomMaxW: 480, tiltShift: true } : { bloomMaxW: 0, tiltShift: false };
+}
 
 /**
  * The composer: the scene into a multisampled half-float target, bloom for the lanterns and windows only
  * (threshold 0.85), the optional tilt-shift, then tone mapping and sRGB in the output pass.
  */
-export function Effects({ tiltShift = 0 }: { tiltShift?: number }) {
+export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; home?: boolean }) {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera);
@@ -131,17 +210,27 @@ export function Effects({ tiltShift = 0 }: { tiltShift?: number }) {
     // The size is applied by the effect below; recreating on every resize would drop frames.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gl, scene, camera, tiltShift]);
+  // What the tier asks of the composer, applied in the frame that first draws under it (a tier changes in a dip).
+  const plan = useRef('');
+  const fit = (maxW: number, tilt: boolean) => {
+    const ratio = gl.getPixelRatio();
+    for (const p of composer.passes) {
+      if (p instanceof ShaderPass && p.uniforms.texelY) p.enabled = tilt;
+      // The bloom works at half of whatever size it is given: give it no more than its width across.
+      if (p instanceof UnrealBloomPass) {
+        p.enabled = maxW > 0;
+        if (maxW > 0) { const w = size.width * ratio, k = Math.min(1, (maxW * 2) / w); p.setSize(w * k, size.height * ratio * k); }
+      }
+    }
+  };
   useEffect(() => {
     const ratio = gl.getPixelRatio(), samples = samplesFor(ratio);
     // Fewer samples at a finer resolution: changing the count means new buffers, which setSize alone would not make.
     for (const t of [composer.renderTarget1, composer.renderTarget2]) if (t.samples !== samples) { t.samples = samples; t.dispose(); }
     composer.setPixelRatio(ratio);
     composer.setSize(size.width, size.height);
-    for (const p of composer.passes) {
-      if (p instanceof ShaderPass && p.uniforms.texelY) p.uniforms.texelY.value = 1 / size.height;
-      // The bloom works at half of whatever size it is given: give it no more than BLOOM_MAX_W across.
-      if (p instanceof UnrealBloomPass) { const w = size.width * ratio, k = Math.min(1, (BLOOM_MAX_W * 2) / w); p.setSize(w * k, size.height * ratio * k); }
-    }
+    for (const p of composer.passes) if (p instanceof ShaderPass && p.uniforms.texelY) p.uniforms.texelY.value = 1 / size.height;
+    plan.current = ''; // setSize gave the bloom the whole picture: the frame below fits it again
   }, [composer, gl, size, dpr]);
   useEffect(() => () => composer.dispose(), [composer]);
   // The composer is several draws; counting across all of them keeps the dev overlay's triangle count honest.
@@ -150,6 +239,9 @@ export function Effects({ tiltShift = 0 }: { tiltShift?: number }) {
     return () => { gl.info.autoReset = true; };
   }, [gl]);
   useFrame(() => {
+    const want = effectsPlan(getTier(), home && exemptShot());
+    const key = `${want.bloomMaxW}|${want.tiltShift}`;
+    if (key !== plan.current) { plan.current = key; fit(want.bloomMaxW, want.tiltShift); }
     gl.info.reset();
     composer.render();
   }, 1);
@@ -179,6 +271,9 @@ export function MarkDrawn() {
   return null;
 }
 
+/** The loading doors (or their quick dark fade) are up and fully shut: the page itself shows none of any scene. */
+const behindShutDoors = () => typeof document !== 'undefined' && (document.querySelector('.sk-doors[data-phase="shut"]') !== null || document.getElementById('boot-doors') !== null);
+
 /**
  * The frame governor's loop, one in each canvas (perf/governor.ts has the why and the arithmetic). The canvas draws on
  * demand; this counts the screen's refreshes and asks for a picture on the ones that are due: at most 60 a second (72
@@ -204,7 +299,9 @@ function Governor({ pace, scene }: { pace: Pace; scene?: string }) {
       const drawn = store.getState().gl.domElement.hasAttribute('data-drawn');
       if (drawn !== marked) { marked = drawn; noteSceneDrawn(scene, drawn); }
       const hidden = typeof document !== 'undefined' && document.hidden;
-      const fps = !drawn ? undefined : hidden ? 0 : pace.fps;
+      // Behind doors that are fully shut nobody sees the scene: once it has its first pictures (the doors wait for
+      // them) it draws nothing more until they open, and the build going on behind them has the page to itself.
+      const fps = !drawn ? undefined : hidden || behindShutDoors() ? 0 : pace.fps;
       const due = pacer.step(now, fps);
       pace.targetMs = pacer.targetMs;
       pace.capMs = pacer.capMs;
@@ -337,6 +434,32 @@ function AdaptiveDpr({ max, min, value, kept, pace, onChange }: { max: number; m
 }
 
 /**
+ * The tier's eyes (perf/tier.ts has the rules): every picture a canvas draws, against the governor's target. With
+ * `judge` (Home's farm, once it is built and shown) the frames are fed to the tier rules, and what they earn waits for
+ * Home's dip. On Low, every canvas watches for a device still under 10 pictures a second after 10 s: `onSlow`, and the
+ * canvas gives way to the failure card. Frames behind shut doors, in a hold (a dip, a burst, a build slice) and in the
+ * first QUIET_S are left out, as the resolution judge leaves them out.
+ */
+function TierWatch({ judge, pace, dpr, max, min, onSlow }: { judge: boolean; pace: Pace; dpr: number; max: number; min: number; onSlow: () => void }) {
+  const st = useRef({ judge: createTierJudge(), slow: createSlowWatch(), age: 0, failed: false });
+  useFrame((_, dt) => {
+    const s = st.current, ms = dt * 1000;
+    if (!(ms > 0)) return;
+    s.age += Math.min(dt, STALL_S);
+    if (s.age < QUIET_S || doorsShut() || performance.now() < holdUntil) { s.judge.reset(); return; }
+    const tier = getTier();
+    if (tier === 'low' && !s.failed && !PINNED_DPR && s.slow.frame(ms)) { s.failed = true; onSlow(); }
+    if (!judge) return;
+    const earned = s.judge.frame({ ms, targetMs: pace.targetMs, atMax: dpr >= max, atMin: dpr <= min }, tier);
+    if (earned) proposeTier(earned);
+  });
+  return null;
+}
+
+/** What each scene is called on the failure card. */
+const SCENE_WORDS: Record<string, string> = { farm: 'the farm', table: 'the table', ice: 'the ice', pen: 'the pen', podium: 'the podium', dream: 'the dream', bedroom: 'the bedroom' };
+
+/**
  * What a scene settled on, on this device: the next visit starts there instead of stepping down again. `ceiling` is the
  * level found too slow (Infinity: none) and `tries` how many times running it was.
  */
@@ -411,7 +534,7 @@ function writeSettled(key: string | undefined, v: Settled) {
  * farm does behind the Trading Post. And it asks for the device's default graphics chip, not its hungriest: on a
  * laptop with two, the browser's choice is the one that spares the battery.
  */
-export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, fps, children, ...given }: Omit<CanvasProps, 'dpr'> & { maxDpr: number; minDpr?: number; memory?: string; fps?: number }) {
+export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, fps, judgeTier = false, children, ...given }: Omit<CanvasProps, 'dpr'> & { maxDpr: number; minDpr?: number; memory?: string; fps?: number; judgeTier?: boolean }) {
   const frameloop = given.frameloop === 'never' ? 'never' as const : 'demand' as const;
   const props = { ...given, resize: given.resize ?? LAYOUT_SIZE, frameloop, gl: easyOnPower(given.gl) };
   const [state, setState] = useState<Settled>(() => {
@@ -425,6 +548,11 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, fps, children, .
     setState(next);
     writeSettled(memory, next);
   };
+  // A scene change is one of the two places a tier earned elsewhere may come in (Home's dip is the other).
+  useLayoutEffect(() => { applyPendingTier(); }, []);
+  // Low and still under 10 pictures a second: the card in the canvas's place (plan file 17, change 15).
+  const [slow, setSlow] = useState(false);
+  const top = Math.max(minDpr, Math.min(maxDpr, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1));
   // The rate goes to the governor through an object both sides hold, not through the scene's own tree: the tree inside
   // a canvas is rendered a moment after the page's, and a scene coming out from under its cover must draw at once.
   const [pace] = useState(() => newPace(fps));
@@ -440,10 +568,12 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, fps, children, .
     given.onCreated?.(root);
   };
   // `?dpr=1.5` pins the resolution, for measuring what a scene or an effect costs at one size (nothing adapts, nothing is kept).
-  if (PINNED_DPR) return <Canvas {...props} onCreated={onCreated} dpr={PINNED_DPR}><Governor pace={pace} scene={memory} />{children}</Canvas>;
+  if (slow) return <FailCard title={`This device is too slow to draw ${SCENE_WORDS[memory ?? ''] ?? 'this scene'}.`} note="Closing other tabs and apps, or plugging in, can help. Then reload." />;
+  if (PINNED_DPR) return <Canvas {...props} onCreated={onCreated} dpr={PINNED_DPR}><Governor pace={pace} scene={memory} /><TierWatch judge={judgeTier} pace={pace} dpr={PINNED_DPR} max={top} min={minDpr} onSlow={() => setSlow(true)} />{children}</Canvas>;
   return (
     <Canvas {...props} onCreated={onCreated} dpr={state.dpr}>
       <Governor pace={pace} scene={memory} />
+      <TierWatch judge={judgeTier} pace={pace} dpr={state.dpr} max={top} min={minDpr} onSlow={() => setSlow(true)} />
       <AdaptiveDpr max={maxDpr} min={minDpr} value={state.dpr} kept={state} pace={pace} onChange={onChange} />
       {children}
     </Canvas>

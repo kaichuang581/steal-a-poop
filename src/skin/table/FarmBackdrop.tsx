@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { ACESFilmicToneMapping, Object3D, PCFShadowMap, SRGBColorSpace } from 'three';
 import type { PerspectiveCamera, PointLight, SpotLight } from 'three';
@@ -13,7 +13,9 @@ import { DevStats } from './DevStats';
 import { Farmstead, farmReady } from './Farmstead';
 import { doorsShut } from '../components/BarnDoors';
 import { Wendigo } from './Wendigo';
-import { AdaptiveCanvas, Atmosphere, Effects, FOG, holdDpr, Lights, MarkDrawn, yawToward } from './Rendering';
+import { AdaptiveCanvas, Atmosphere, Effects, FOG, holdDpr, Lights, MarkDrawn, noteNewShot, sunEveryFrameFor, yawToward } from './Rendering';
+import { applyPendingTier, setExemptShot } from '../perf/tier';
+import { PADDOCK_SHOT } from '../voxel/unseen';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -55,6 +57,10 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
   // Behind the doors (a first load) the farm is shown at once, so they open onto it, not onto a fade still under way.
   const [instant, setInstant] = useState(farmReady);
   const onReady = useCallback((r: boolean) => { if (r) setInstant(doorsShut()); setReady(r); }, []);
+  // The hop throws the hero's shadow about: the sun's map follows it every picture while it lasts, not ten times a second.
+  useEffect(() => { if (hopKey > 0) sunEveryFrameFor(1500); }, [hopKey]);
+  // Leaving Home: the next Home starts outside the paddock's exemption until its own first shot says otherwise.
+  useEffect(() => () => setExemptShot(false), []);
   const sky = <div className="absolute inset-0" style={{ background: `linear-gradient(${FOG[hour]}, #DCE6F2)` }} />;
   if (!w) return sky;
   // The hero stands 1.2 m in front of the doors and faces the camera.
@@ -66,7 +72,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
     {/* Round the fade as well as the canvas: a farm that cannot be drawn never becomes ready, and its card must show. */}
     <SceneBoundary scene="the farm" place={phone ? 'top' : 'center'}>
     <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined} data-instant={instant || undefined}>
-    <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm" frameloop={paused ? 'never' : 'demand'} fps={fps}
+    <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm" frameloop={paused ? 'never' : 'demand'} fps={fps} judgeTier={ready}
       shadows={{ type: PCFShadowMap }}
       gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
@@ -75,7 +81,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} />
       <Atmosphere hour={hour} />
       <MarkDrawn />
-      <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} lampRef={lowerLamp} />
+      <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} lampRef={lowerLamp} place="home" />
       <DoorSpill spot={spot} bounce={bounce} />
       <Sky hour={hour} reduced={reduced} blizzard={false} />
       <Farm world={w} reduced={reduced} />
@@ -91,7 +97,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <group position={[2.2, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5}>
         <Sheep level={3} state={sleepy ? 'sleeping' : 'grazing'} reduced={reduced} />
       </group>
-      <Effects tiltShift={0.15} />
+      <Effects tiltShift={0.15} home />
       <DevStats />
     </AdaptiveCanvas>
     </div>
@@ -124,6 +130,12 @@ function Drift({ shots, veil, spot, bounce, reduced, ready }: {
     const shot = shots[pov.index];
     if (pov.index !== shown.current) {
       shown.current = pov.index;
+      // The cut is made in the dark of the dip: a tier the frames earned comes in here, the paddock's exemption (the
+      // wendigo's shot is today's light, fog, shadows, bloom and tilt-shift on every tier) begins or ends, and the
+      // sun's map is drawn again for the new shot.
+      applyPendingTier();
+      setExemptShot(pov.index === PADDOCK_SHOT);
+      noteNewShot();
       camera.fov = shot.fov;
       camera.updateProjectionMatrix();
       const spill = shot.spill ?? 1;

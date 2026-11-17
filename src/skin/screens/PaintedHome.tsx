@@ -399,7 +399,7 @@ export function PaintedHome() {
   const panel = step === 'practice' ? drillSetup : step === 'join' ? joinParty : setup;
 
   const footer = (
-    <footer className="flex flex-wrap items-center gap-x-3 text-[11px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>
+    <footer className="flex flex-wrap items-center gap-x-3 text-[12px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>
       <span>v{pkg.version}{mobile ? '' : ` · ${UPDATE_NAME}`}</span>
       <button className="min-h-8 content-center underline" onClick={() => setFeedback(true)}>Feedback</button>
       <span className="text-xs" style={{ color: 'var(--button-text)' }} data-device-label>{device === 'phone' ? 'Phone layout' : 'Computer layout'}</span>
@@ -475,8 +475,9 @@ export function PaintedHome() {
               <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Enter</span> Select</span>
               {step !== 'tables' && <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Esc</span> Back</span>}
             </div>
-            <p key={tip} className="sk-tip sk-hand flex min-w-0 flex-1 items-center justify-center gap-2 text-lg" style={{ color: 'var(--glow)' }} aria-live="off"><span className="truncate">{TIPS[tip]}</span></p>
-            <div className="flex shrink-0 flex-col items-end gap-1">
+            <p key={tip} className="sk-tip sk-hand flex min-w-0 flex-1 items-center justify-center gap-2 text-lg" style={{ color: 'var(--glow)' }} aria-live="off"><span className="line-clamp-2 text-center leading-[20px]">{TIPS[tip]}</span></p>
+            {/* Under 1280 px the small print wraps to two lines at the right, so the tip keeps room for its two lines. */}
+            <div className="flex shrink-0 flex-col items-end gap-1 max-xl:max-w-[320px] max-xl:[&>footer]:justify-end">
               {footer}
             </div>
           </div>

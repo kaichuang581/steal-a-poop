@@ -2,7 +2,7 @@ import type { VoxelMap } from '../mesher';
 import { lin } from '../palette';
 import { Grid } from '../primitives';
 import type { V3 } from '../primitives';
-import { addCavity, cavityOf, frostOf, hollow, part, S } from './rig';
+import { addCavity, cavityOf, frostOf, hollow, part, S, SMOOTH_BODIES } from './rig';
 import type { AnimalModel, Part } from './rig';
 
 /**
@@ -22,6 +22,16 @@ export const KNIT: Record<string, Knit> = {
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 
 const N6: [number, number, number][] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+/** Every neighbour, by face, edge and corner. */
+const N26: [number, number, number][] = [];
+for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) if (dx || dy || dz) N26.push([dx, dy, dz]);
+/**
+ * What a garment grows over (plan file 03, change 4.8). By faces alone, a chamfer n steps deep on the body becomes one
+ * n + 1 deep on the knit; by edges and corners too, the knit fills the step and lies as a plain slab. Either way a
+ * cell grows only from body cells inside z0 to z1, so the knit stays inside z0 - 1 to z1 + 1, and never below the
+ * belly line. `SMOOTH_BODIES` false grows by faces, as before.
+ */
+const GROW = SMOOTH_BODIES ? N26 : N6;
 /**
  * Grows a shell one voxel proud of `body` over every exposed face of its cells inside the z range (V5.1 Part 4.5: the
  * sides, the top, the ends where the body curves, and the undersides above the cut), never below `bellyY`, so the
@@ -31,7 +41,7 @@ function shell(g: Grid, body: VoxelMap, zFrom: number, zTo: number, bellyY: numb
   const z0 = Math.round(zFrom / S), z1 = Math.round(zTo / S), yb = Math.round(bellyY / S);
   for (const v of body.values()) {
     if (v.z < z0 || v.z > z1 || v.y < yb) continue;
-    for (const [dx, dy, dz] of N6) {
+    for (const [dx, dy, dz] of GROW) {
       const x = v.x + dx, y = v.y + dy, z = v.z + dz;
       if (y < yb || body.has(key(x, y, z))) continue;
       // Plain knit with a ribbed hem: stripes everywhere would cost faces the mesher cannot merge.
@@ -71,7 +81,7 @@ export function blanket(body: VoxelMap, zFrom: number, zTo: number, bellyY: numb
     if (v.z < z0 || v.z > z1 || v.y < yb) continue;
     // A saddle pad is rounded at its corners.
     if (shape === 'saddle' && Math.abs(v.z - zc) > zh - 2 && v.y < yb + 4) continue;
-    for (const [dx, dy, dz] of N6) {
+    for (const [dx, dy, dz] of GROW) {
       const x = v.x + dx, y = v.y + dy, z = v.z + dz;
       if (y < yb || body.has(key(x, y, z))) continue;
       // The fringe: one row of the second tone along the hem and the two ends.

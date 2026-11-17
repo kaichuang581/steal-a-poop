@@ -82,14 +82,29 @@ export function shaded(t: Tones, yTop: number, yBottom: number): Paint {
 }
 
 // ---------- shapes ----------
+/**
+ * The shape switch (plan file 03, change 4.8): torsos built from superellipsoids instead of round ones, so their sides
+ * step in fewer, longer terraces, and garments grown over every neighbour of the body (faces, edges and corners), so a
+ * blanket is a plain slab instead of a chamfer one voxel deeper. Sizes and pivots are unchanged. One constant, like
+ * `ROUNDED_VOXELS`: false puts every torso and garment back exactly as they were. The sheep's fleece and shorn body,
+ * the chicken's head and every scene keep the round ellipsoid (the primitive's default power, 2).
+ */
+export const SMOOTH_BODIES = true;
+/** The torsos' power: the barrel ends (cow, horse, goat), the cow's shoulder rise and the chicken's three ellipsoids. */
+export const BODY_POWER = SMOOTH_BODIES ? 4 : 2;
+/** The pig's: at 4 its flop and perch in `loungePose` break, so it stays at 3. */
+export const PIG_POWER = SMOOTH_BODIES ? 3 : 2;
+
 /** A chamfered box blended with an ellipsoid at each end along z: a smooth barrel (Part 4.5). */
 export function barrel(g: Grid, centre: V3, size: V3, chamfer: number, paint: Paint, rounder: number | [number, number] = 1) {
   const [w, h, l] = size;
   // One rounder for both ends, or [chest, rump] (V5.1: the cow's chest 0.8, its rump 0.5).
   const [rf, rb] = typeof rounder === 'number' ? [rounder, rounder] : rounder;
-  box(g, [centre[0] - w / 2, centre[1] - h / 2, centre[2] - l / 2 + (w / 4) * rb], [centre[0] + w / 2, centre[1] + h / 2, centre[2] + l / 2 - (w / 4) * rf], paint, chamfer);
-  ellipsoid(g, [centre[0], centre[1], centre[2] + l / 2 - (w / 4) * rf], [w / 2, h / 2, (w / 4) * rf + S], paint);
-  ellipsoid(g, [centre[0], centre[1], centre[2] - l / 2 + (w / 4) * rb], [w / 2, h / 2, (w / 4) * rb + S], paint);
+  // With the switch on, the box's chamfer is held to 2: the superellipsoid ends are fuller, and a deeper chamfer between
+  // them reads as a groove.
+  box(g, [centre[0] - w / 2, centre[1] - h / 2, centre[2] - l / 2 + (w / 4) * rb], [centre[0] + w / 2, centre[1] + h / 2, centre[2] + l / 2 - (w / 4) * rf], paint, SMOOTH_BODIES ? Math.min(chamfer, 2) : chamfer);
+  ellipsoid(g, [centre[0], centre[1], centre[2] + l / 2 - (w / 4) * rf], [w / 2, h / 2, (w / 4) * rf + S], paint, 0, 1, BODY_POWER);
+  ellipsoid(g, [centre[0], centre[1], centre[2] - l / 2 + (w / 4) * rb], [w / 2, h / 2, (w / 4) * rb + S], paint, 0, 1, BODY_POWER);
 }
 
 /**
@@ -486,6 +501,32 @@ export function bury(g: Grid, ...solids: Set<string>[]) {
   const N = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const;
   const drop = [...g.map.values()].filter((v) => inside(v.x, v.y, v.z) && N.every(([dx, dy, dz]) => inside(v.x + dx, v.y + dy, v.z + dz)));
   for (const v of drop) g.del(v.x, v.y, v.z);
+}
+
+/**
+ * Clears the faces `g` would draw on the same plane, facing the same way, as its parent's (`solid`, the parent before
+ * hollowing): where a cell of both has a face open in both. They are the root's first layer where it lies in the
+ * parent's surface. `drop` takes such cells out, so the parent's own face shows there; `cap` (for a root too small to
+ * lose a cell, which must keep four cells of contact) adds the cell just outside, the root's colour, so the shared face
+ * is covered. With the shape switch on (`SMOOTH_BODIES`) the fuller torsos reach further over the tails' and hips'
+ * roots; off, this does nothing. Repeated until nothing changes, since a dropped cell can open its neighbour's face.
+ */
+export function unshare(g: Grid, solid: Set<string>, how: 'drop' | 'cap' = 'drop') {
+  if (!SMOOTH_BODIES) return;
+  const N = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const;
+  for (let pass = 0; pass < 8; pass++) {
+    let changed = false;
+    for (const v of [...g.map.values()]) {
+      if (!solid.has(`${v.x},${v.y},${v.z}`)) continue;
+      for (const [dx, dy, dz] of N) {
+        const x = v.x + dx, y = v.y + dy, z = v.z + dz, k = `${x},${y},${z}`;
+        if (solid.has(k) || g.map.has(k) || !g.map.has(`${v.x},${v.y},${v.z}`)) continue;
+        if (how === 'drop') g.del(v.x, v.y, v.z); else g.set(x, y, z, v.c);
+        changed = true;
+      }
+    }
+    if (!changed) return;
+  }
 }
 
 /** The widest x of a grid's cells inside a z range: where a side-face eye must sit to touch the head. */

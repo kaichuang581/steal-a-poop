@@ -2,6 +2,13 @@
 
 All user-visible changes, newest first.
 
+## 0.7.17
+
+- On a phone, a sheet (How to play, the chain, chat) stays above the keyboard, and the top bars keep clear of a notch.
+- Counting Sheep on a phone held sideways keeps the word off the sheep and the fences.
+- Your device's own "reduce motion" setting now calms the game just like the game's own switch.
+- Home's menu no longer replays its entrance when you close a panel, and Home's title rests while a full page covers it.
+
 ## 0.7.16
 
 - Home's footer tips wrap to a second line instead of being cut off.

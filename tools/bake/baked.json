@@ -66,13 +66,13 @@
       "page": null,
       "model": "the Home farm as the scene checker builds it for a computer (scene \"farm\", fine), with the sheep and its hat (models animal:sheep, hat)",
       "checked": "check:scenes",
-      "capture": "the Home tour's shot of the sheep at the barn, by day, 800 x 500 (CLAUDE.md: \"the home tour's sheep-at-the-barn shot\")",
+      "capture": "the Home tour's shot of the sheep at the barn, by day, 800 x 500 (CLAUDE.md: \"the home tour's sheep-at-the-barn shot\"): home(browser, { pov: 6, hour: 'day', extraQuery: { gfx: 'high' }, viewport 1280 x 800 }), so ?pov=6&hour=day&gfx=high&dpr=1 (POV_SHOTS.desktop[6]), no interface, the whole canvas scaled to 800 x 500",
       "width": 800,
       "height": 500,
       "alpha": false,
-      "modelHash": "2080fa3c23d0d9c3921de16459df88dbec3059c1ea6ad42a0445339cea97eac7",
+      "modelHash": "975910d89a7ac7e58ed7bdb21bfdddd2e549ea7de6898335b040609525b673c0",
       "renderHash": "f0cc7563d7d4b94152ac519f14e7f3267b449a7887b876656be6cfe450a9ad5b",
-      "fileHash": "7eec3c7dc42ed123270cc30702a1dc79838fd9792749c4b0934ef6817d48b6d5"
+      "fileHash": "58a2071e4e10e62cad2036e3876c16cf9e1c8c5a8b0226c3b33ad06754bce04e"
     },
     {
       "id": "play/ranked",
@@ -82,13 +82,13 @@
       "page": null,
       "model": "the practice ice as the scene checker builds it for a computer (scene \"duel\", fine), with the sheep, its hat and the ice bomb (models animal:sheep, hat, bomb:bomb-ice)",
       "checked": "check:scenes",
-      "capture": "the practice duel on the ice at night, both sheep, the bomb and the letter board in the picture, 800 x 500 (CLAUDE.md: \"the practice duel on the ice at night\")",
+      "capture": "the practice duel on the ice at night, both sheep, the bomb and the letter board in the picture, 800 x 500 (CLAUDE.md: \"the practice duel on the ice at night\"): duel(browser, { query: { gfx: 'high' }, viewport 1280 x 800 }), the game's own clock and bot, your turn 2 s in, no interface, the canvas's 1067 x 667 window at (132, 75) scaled to 800 x 500",
       "width": 800,
       "height": 500,
       "alpha": false,
-      "modelHash": "187cdaa188b9660938c3c8ab9ffce0ed3faee3cb5f131e56c3d7eabd7b0f1533",
+      "modelHash": "432509c36fe170d2a68b3dcd91973ce37283133ab1d456ba387e40493c7e7f99",
       "renderHash": "f0cc7563d7d4b94152ac519f14e7f3267b449a7887b876656be6cfe450a9ad5b",
-      "fileHash": "2f58278dbdf8767d55103210433f7d0e952090db8d6011518be4bee4880b164f"
+      "fileHash": "23709519a322c6109fcb1c129d40195e4ede3468c7d357d674291c497d468152"
     },
     {
       "id": "shop/blast-bubblegum",

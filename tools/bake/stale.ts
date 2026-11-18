@@ -426,6 +426,10 @@ const guidePlan = (): Plan => ({
  * of the game's own scenes, taken by hand, 800 x 500. CLAUDE.md, "Real people by default, the Play chooser", is all
  * that is written down about how: "the home tour's sheep-at-the-barn shot" by day, and "the practice duel on the ice
  * at night". Their model is that scene as the scene checker builds it for a computer, and the models that stand in it.
+ * The `capture` text is the recipe, as last taken (2026-11-17, overhaul milestone 12): a production build (npx vite build
+ * --outDir <dir>) served by serve() and opened by home() / duel() of tools/gate/lib/painted.mjs (pinned clock and seed,
+ * reduced motion, ?dpr=1), every page element but the canvas hidden (visibility), the picture cut from a page screenshot,
+ * scaled to 800 x 500 on a page canvas and encoded there with toDataURL('image/webp', 0.85).
  */
 function playPlan(name: 'casual' | 'ranked'): Plan {
   const casual = name === 'casual';
@@ -436,8 +440,8 @@ function playPlan(name: 'casual' | 'ranked'): Plan {
       : 'the practice ice as the scene checker builds it for a computer (scene "duel", fine), with the sheep, its hat and the ice bomb (models animal:sheep, hat, bomb:bomb-ice)',
     checked: 'check:scenes', alpha: false,
     capture: casual
-      ? "the Home tour's shot of the sheep at the barn, by day, 800 x 500 (CLAUDE.md: \"the home tour's sheep-at-the-barn shot\")"
-      : 'the practice duel on the ice at night, both sheep, the bomb and the letter board in the picture, 800 x 500 (CLAUDE.md: "the practice duel on the ice at night")',
+      ? "the Home tour's shot of the sheep at the barn, by day, 800 x 500 (CLAUDE.md: \"the home tour's sheep-at-the-barn shot\"): home(browser, { pov: 6, hour: 'day', extraQuery: { gfx: 'high' }, viewport 1280 x 800 }), so ?pov=6&hour=day&gfx=high&dpr=1 (POV_SHOTS.desktop[6]), no interface, the whole canvas scaled to 800 x 500"
+      : `the practice duel on the ice at night, both sheep, the bomb and the letter board in the picture, 800 x 500 (CLAUDE.md: "the practice duel on the ice at night"): duel(browser, { query: { gfx: 'high' }, viewport 1280 x 800 }), the game's own clock and bot, your turn 2 s in, no interface, the canvas's 1067 x 667 window at (132, 75) scaled to 800 x 500`,
     size: async () => [800, 500],
     mirrors: [['src/skin/ranked/PlayChooser.tsx', ["const ART = (name: 'casual' | 'ranked') => `${import.meta.env.BASE_URL}play/${name}.webp`;"]]],
     scene: casual ? { name: 'farm', models: ['animal:sheep', 'hat'] } : { name: 'duel', models: ['animal:sheep', 'hat', 'bomb:bomb-ice'] },

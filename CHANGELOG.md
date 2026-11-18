@@ -2,6 +2,12 @@
 
 All user-visible changes, newest first.
 
+## 0.8.0
+
+The visual overhaul is complete (milestones 0 to 12).
+
+- The Play chooser's two pictures show today's farm and duel.
+
 ## 0.7.17
 
 - On a phone, a sheet (How to play, the chain, chat) stays above the keyboard, and the top bars keep clear of a notch.

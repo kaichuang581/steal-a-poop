@@ -41,8 +41,8 @@
 @keyframes sk-happy { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
 @keyframes sk-startle { 40% { transform: translateY(-14px) scale(1.06); } }
 @keyframes sk-swing { 50% { transform: rotate(1.6deg); } }
-@keyframes sk-halo { 50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--coral) 35%, transparent), inset 0 3px 0 var(--coral); } }
-@keyframes sk-caret { 50% { border-color: transparent; } }
+/* Endless animations move only transform and opacity (plan file 15, change 2): a glow is a layer that fades in. */
+@keyframes sk-halo { 50% { opacity: 1; } }
 @keyframes sk-dash {
   0% { transform: translateX(-16vw); }
   45% { transform: translateX(44vw) translateY(-14px); }
@@ -70,21 +70,22 @@
 .sk-mood-happy { animation: sk-happy 0.8s var(--ease-out) 2; }
 .sk-mood-startled { animation: sk-startle 0.6s var(--ease-out); }
 .sk-swing { transform-origin: 50% 0; animation: sk-swing 5s ease-in-out infinite; }
-.sk-halo { animation: sk-halo 0.9s ease-in-out infinite; }
+.sk-halo { position: relative; }
+.sk-halo::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: 0 0 0 10px color-mix(in srgb, var(--coral) 35%, transparent), inset 0 3px 0 var(--coral); opacity: 0; animation: sk-halo 0.9s ease-in-out infinite; }
 .sk-rise { animation: sk-rise 0.9s var(--ease-out) forwards; }
 .sk-fall { animation: sk-fall 0.7s var(--ease-out) forwards; }
 .sk-pop { animation: sk-pop var(--t-feedback) var(--ease-out) both; }
 
 :root[data-skin="painted"].reduce-motion .sk-bob,
 :root[data-skin="painted"].reduce-motion .sk-swing,
-:root[data-skin="painted"].reduce-motion .sk-halo,
+:root[data-skin="painted"].reduce-motion .sk-halo::after,
 :root[data-skin="painted"].reduce-motion .sk-mood-happy,
 :root[data-skin="painted"].reduce-motion .sk-mood-startled { animation: none; }
 :root[data-skin="painted"].reduce-motion .sk-rise,
 :root[data-skin="painted"].reduce-motion .sk-fall,
 :root[data-skin="painted"].reduce-motion .sk-pop { animation-duration: 0.01ms; }
 @media (prefers-reduced-motion: reduce) {
-  .sk-bob, .sk-swing, .sk-halo, .sk-mood-happy, .sk-mood-startled { animation: none; }
+  .sk-bob, .sk-swing, .sk-halo::after, .sk-mood-happy, .sk-mood-startled { animation: none; }
   .sk-rise, .sk-fall, .sk-pop { animation-duration: 0.01ms; }
 }
 
@@ -112,7 +113,7 @@
 /* A bot's thought (V6 Part 5.3): three small wool tufts rising from behind its stake, faded in and out by the sheep. */
 
 /* The caret after a bot's half-typed word on its tag. */
-.sk-caret { display: inline-block; width: 0; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; border-left: 2px solid var(--ink); animation: sk-caret 1s steps(1) infinite; }
+.sk-caret { display: inline-block; width: 0; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; border-left: 2px solid var(--ink); animation: sk-blink 1s steps(1) infinite; }
 
 /* ---------- Title screen (the start screen as a game screen) ---------- */
 
@@ -142,7 +143,12 @@
 .sk-title-rope { left: 50%; top: calc(var(--title-tile) * -0.34); width: 3px; height: calc(var(--title-tile) * 0.34); transform: translateX(-50%); }
 .sk-title-cap { position: absolute; left: -3px; right: -3px; top: -7px; width: calc(100% + 6px); height: 15px; overflow: visible; pointer-events: none; }
 /* The chain letter: the one the next word must start with. */
-.sk-title-tile-next { animation: sk-title-hang 700ms var(--ease-spring) both, sk-title-sway 4.6s ease-in-out infinite, sk-title-glow 2.2s ease-in-out infinite; }
+/* Its glow: a colour-dodge layer over the tile that brightens what is under it by 12% (the old
+   brightness(1.12) filter, which repainted every frame) as it fades in. The swaying tile isolates it from the scene. */
+.sk-title-tile-next::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: color-mix(in srgb, #FFF 10.6%, #000); mix-blend-mode: color-dodge;
+  opacity: 0; animation: sk-title-glow 2.2s ease-in-out infinite; animation-delay: inherit;
+}
 .sk-title-tagline {
   /* Hand-lettered under the tiles, each phrase strung on with a little ball of yarn; a soft dark glow keeps it
      readable over the snow without a banner behind it. */
@@ -167,7 +173,7 @@
 @keyframes sk-title-drop { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes sk-title-hang { from { transform: translateY(-60px) rotate(-12deg); opacity: 0; } to { opacity: 1; } }
 @keyframes sk-title-sway { 0%, 100% { rotate: -2.2deg; } 50% { rotate: 2.2deg; } }
-@keyframes sk-title-glow { 50% { filter: brightness(1.12); } }
+@keyframes sk-title-glow { 50% { opacity: 1; } }
 @keyframes sk-title-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* Menu: carved labels on a dark wash, a lantern beside the one in focus. */
@@ -228,9 +234,10 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-plate { display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 10px; font-family: var(--skin-font-body); font-weight: 800; }
 
 :root[data-skin="painted"].reduce-motion :is(.sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip),
-:root[data-skin="painted"].reduce-motion .sk-menu-item[data-active] .sk-menu-lantern svg { animation: none; }
+:root[data-skin="painted"].reduce-motion .sk-menu-item[data-active] .sk-menu-lantern svg,
+:root[data-skin="painted"].reduce-motion .sk-title-tile-next::after { animation: none; }
 @media (prefers-reduced-motion: reduce) {
-  .sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip, .sk-menu-item[data-active] .sk-menu-lantern svg { animation: none; }
+  .sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip, .sk-menu-item[data-active] .sk-menu-lantern svg, .sk-title-tile-next::after { animation: none; }
 }
 
 /* ---------- Cursors: the usual arrow and pointing hand, drawn as pixel art in the skin's palette ----------
@@ -253,6 +260,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @keyframes sk-wool-lost { 0% { transform: scale(1); opacity: 1; } 40% { transform: scale(1.25) rotate(40deg); } 100% { transform: scale(0.2) rotate(220deg) translateY(6px); opacity: 0; } }
 @keyframes sk-wool-gained { 0% { transform: scale(0); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
 :root.reduce-motion .sk-wool-lost, :root.reduce-motion .sk-wool-gained { animation-duration: 1ms; }
+@media (prefers-reduced-motion: reduce) { .sk-wool-lost, .sk-wool-gained { animation-duration: 1ms; } }
 
 /* ---------- The word bar (in a game) ---------- */
 .sk-input-prompt {
@@ -301,6 +309,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @keyframes sk-burst-tuft { 0% { transform: translate(0, 0) scale(0.4); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; } }
 @keyframes sk-burst-life { 0%, 70% { transform: none; opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
 :root.reduce-motion .sk-word-burst, :root.reduce-motion .sk-word-burst *, :root.reduce-motion .sk-input-bar { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+@media (prefers-reduced-motion: reduce) { .sk-word-burst, .sk-word-burst *, .sk-input-bar { animation-duration: 1ms !important; animation-iteration-count: 1 !important; } }
 
 
 
@@ -332,10 +341,12 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   100% { opacity: 0; transform: translateY(-8px) scale(0.98); }
 }
 :root.reduce-motion .sk-turn-call { animation: sk-turn-call-still 1200ms linear forwards; }
+@media (prefers-reduced-motion: reduce) { .sk-turn-call { animation: sk-turn-call-still 1200ms linear forwards; } }
 @keyframes sk-turn-call-still { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 .sk-notice-gold .sk-notice-sub, .sk-notice-gold .sk-notice-icon { color: var(--wood-ink); text-shadow: none; }
 @keyframes sk-notice-in { 0% { transform: translateY(-26px) rotate(-3deg); opacity: 0; } 60% { transform: translateY(3px) rotate(1deg); opacity: 1; } 100% { transform: none; } }
 :root.reduce-motion .sk-notice { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-notice { animation: none; } }
 
 /* ---------- Rules card, chain list, mini tiles ---------- */
 .sk-mini-tile {
@@ -389,8 +400,9 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-garland-wire i:nth-of-type(4) { animation-delay: -0.3s; animation-duration: 3.4s; }
 .sk-garland-wire i:nth-of-type(5) { animation-delay: -2.4s; animation-duration: 2.3s; }
 .sk-garland-wire:nth-child(even) i { animation-direction: reverse; }
-@keyframes sk-garland-blink { 50% { opacity: 0.5; filter: brightness(0.8); } }
+@keyframes sk-garland-blink { 50% { opacity: 0.5; } }
 @media (prefers-reduced-motion: reduce) { .sk-garland-wire i { animation: none; } }
+:root.reduce-motion .sk-garland-wire i { animation: none; }
 .sk-sheet-head {
   position: relative;
   display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 10px 18px;
@@ -413,6 +425,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-input-hint { flex: none; }
 @keyframes sk-tile-drop { 0% { transform: translateY(-14px) scale(0.6); opacity: 0; } 70% { transform: translateY(2px) scale(1.06); opacity: 1; } 100% { transform: none; } }
 :root.reduce-motion .sk-type-tile { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-type-tile { animation: none; } }
 
 /* ---------- The table in the kit (V6 Part 6.3) ---------- */
 /* The tally, the end board and the run's board: a Board panel on ropes with snow, the standings chalked on a slate set
@@ -460,7 +473,9 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-ledger-wool .kit-tally { margin-left: 0; }
 /* A phone: a strip of mini slates across the top. */
 /* Phones: a compact three-column grid (up to six sheep in two rows), not a squashed scroll row. */
-.sk-ledger-strip { position: relative; z-index: 30; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 6px; margin-top: 58px; padding: 0 8px 6px; }
+/* The row of names sits under the top bar and clears a notch at its sides as the bar does (plan file 14, change 5). */
+.sk-ledger-strip { position: relative; z-index: 30; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 6px; margin-top: 58px;
+  padding: 0 max(8px, env(safe-area-inset-right, 0px)) 6px max(8px, env(safe-area-inset-left, 0px)); }
 .sk-ledger-strip > li { min-width: 0; transition: opacity var(--t-feedback) var(--ease-out); }
 .sk-ledger-strip > li[data-dim] { opacity: 0.5; }
 .sk-ledger-strip .kit-slate-face { display: flex; align-items: center; gap: 4px; padding: 2px 6px; min-width: 0; font-family: var(--skin-font-hand); font-weight: 400; font-size: 15px; white-space: nowrap; }
@@ -506,6 +521,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @keyframes sk-say-in { from { opacity: 0; transform: translateY(8px) scale(0.85); } }
 @keyframes sk-say-shake { 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
 :root.reduce-motion .sk-say { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-say { animation: none; } }
 @media (max-width: 640px) { .sk-say { font-size: 22px; min-height: 38px; padding: 5px 12px 6px; } .sk-say-ph { font-size: 18px; } .sk-plate-who { font-size: 13px; } }
 
 /* The duel's fight card: two pinned slips and a carved VS. */
@@ -530,8 +546,11 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-hud-twist[data-compact] b { font-size: 15px; }
 @keyframes sk-twist-in { from { opacity: 0; transform: translateY(-10px); } }
 :root.reduce-motion .sk-hud-twist { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-hud-twist { animation: none; } }
 /* The leave dialog and the sheets are clipboards; the chat keeps its ink card, squared. */
-.sk-table-sheet .kit-clipboard-sheet { max-height: min(64vh, 560px); }
+/* With the keyboard up the sheet fits what can be seen (--vvh, the visual viewport): 120 px is the clipboard's frame
+   and title (plan file 14, change 4). */
+.sk-table-sheet .kit-clipboard-sheet { max-height: min(64vh, 560px, calc(var(--vvh, 100dvh) - 120px)); }
 .sk-chat-card { padding: 8px; border-radius: 3px; background: var(--ink); color: var(--button-text); }
 .sk-leave { max-width: 360px; }
 
@@ -686,6 +705,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 }
 :root.reduce-motion .sk-alarm-shake { animation: none; }
 :root.reduce-motion .sk-alarm-flash { animation: none; opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) { .sk-alarm-shake { animation: none; } .sk-alarm-flash { animation: none; opacity: 0.6; } }
 
 /* A bot's bounced try: the tag shakes and goes red for a beat. */
 .sk-tag-reject { color: var(--coral-dark) !important; animation: sk-tag-reject 360ms var(--ease-out) both; }
@@ -699,6 +719,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-hit-flash { position: absolute; inset: 0; z-index: 40; pointer-events: none; box-shadow: inset 0 0 90px 24px rgba(120, 200, 255, 0.7); animation: sk-hit-flash 520ms ease-out forwards; }
 @keyframes sk-hit-flash { from { opacity: 1; } to { opacity: 0; } }
 :root.reduce-motion .sk-hit-flash { display: none; }
+@media (prefers-reduced-motion: reduce) { .sk-hit-flash { display: none; } }
 
 /* Start now: swoop into the barn. The home zooms toward the door and washes to lantern light; the game then eases in from the same glow. */
 .sk-swoop-out { animation: sk-swoop-out 650ms cubic-bezier(0.55, 0, 0.9, 0.4) forwards; transform-origin: 30% 62%; pointer-events: none; }
@@ -781,7 +802,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-doors[data-revealed][data-phase="shut"] :is(.sk-load-board, .sk-load-rope) { animation: sk-load-drop-late 620ms cubic-bezier(0.3, 0.8, 0.4, 1) both; }
 @keyframes sk-load-drop-late { 0% { transform: translateY(-80vh); } 70% { transform: translateY(8px); } 85% { transform: translateY(-3px); } 100% { transform: none; } }
 :root.reduce-motion .sk-doors:is([data-phase="veiling"], [data-revealed]) :is(.sk-load-board, .sk-load-rope) { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-doors[data-revealed] :is(.sk-load-board, .sk-load-rope) { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sk-doors:is([data-phase="veiling"], [data-revealed]) :is(.sk-load-board, .sk-load-rope) { animation: none; } }
 /* Swinging shut over the screen being left (BarnDoors CLOSE_MS, 620 ms): the doors come round from inside the barn,
    edge on, gathering speed, and meet at 80% with a thud that jolts the frame and squeezes the lantern light in the crack
    down to nothing. The lintel settles in as they come, and the slip is pinned up only once they are shut. */
@@ -922,6 +943,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @keyframes sk-photo-spin { 0%, 74% { transform: rotateY(0); } 100% { transform: rotateY(360deg); } }
 @keyframes sk-photo-spin-once { from { transform: rotateY(0); } to { transform: rotateY(360deg); } }
 :root.reduce-motion .sk-photo-jump, :root.reduce-motion .sk-photo-wiggle, :root.reduce-motion .sk-photo-spin { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .sk-photo-jump, .sk-photo-wiggle, .sk-photo-spin { animation: none !important; } }
 
 /* The ice bomb: the sheep on turn has a lit one by its name, and a timeout bursts it in rings of frost. */
 .sk-letter-card-bomb { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 2px; }
@@ -1119,6 +1141,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   .sk-pod-name { font-size: 13px; padding: 4px 9px; }
 }
 :root.reduce-motion .sk-podium, :root.reduce-motion .sk-final { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-podium, .sk-final { animation: none; } }
 
 /* The word of the day (src/skin/wotd/WordOfDay.tsx), set like a dictionary entry and floating in the scene: no paper.
    White on a dark outline and glow, like the table's floating letters, so it reads over snow, sky and barn alike. The
@@ -1152,6 +1175,9 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-wotd--compact .sk-wotd-short { flex-basis: 100%; font-size: 13px; line-height: 0.95; }
 :root.reduce-motion .sk-wotd { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-wotd { animation: none; } }
+/* Under a full page (the Trading Post, the leaderboards, the profile) Home's title and word of the day hold still. */
+.sk-home[data-covered] :is(.sk-title, .sk-wotd), .sk-home[data-covered] :is(.sk-title, .sk-wotd) *, .sk-home[data-covered] :is(.sk-title, .sk-wotd) ::before,
+.sk-home[data-covered] :is(.sk-title, .sk-wotd) ::after { animation-play-state: paused; }
 
 /* Home's farm (FarmBackdrop): over a soft sky until the farm and the land round it are built, then it fades in. */
 .sk-farm-fade { opacity: 0; transition: opacity 700ms ease-out; }
@@ -1235,8 +1261,9 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-card-speaker { position: absolute; left: 12px; top: 12px; display: inline-flex; padding: 5px; background: rgba(20, 12, 6, 0.62); cursor: pointer; }
 .sk-card-speaker:hover { background: rgba(20, 12, 6, 0.85); }
 /* While its sample plays, the speaker is ringed in amber and the ring beats. */
-.sk-card-speaker[data-on] { background: rgba(20, 12, 6, 0.9); box-shadow: 0 0 0 2px var(--amber); animation: sk-speaker 600ms steps(1) infinite; }
-@keyframes sk-speaker { 0%, 100% { box-shadow: 0 0 0 2px var(--amber); } 50% { box-shadow: 0 0 0 4px var(--amber); } }
+.sk-card-speaker[data-on] { background: rgba(20, 12, 6, 0.9); box-shadow: 0 0 0 2px var(--amber); }
+.sk-card-speaker[data-on]::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: 0 0 0 4px var(--amber); opacity: 0; animation: sk-speaker 600ms steps(1) infinite; }
+@keyframes sk-speaker { 50% { opacity: 1; } }
 .sk-card-label { display: flex; flex-direction: column; gap: 3px; flex: 1 0 auto; min-height: 112px; margin-top: 6px; padding: 7px 9px 8px; color: var(--ink); background: var(--kit-paper-tex), var(--paper); box-shadow: 2px 2px 0 rgba(20, 12, 6, 0.45); }
 .sk-card-label h4 { font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; line-height: 1.1; color: var(--wood-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Two lines, then clamped (plan file 10, change 1): a description is never cut short on one line. */
@@ -1469,8 +1496,8 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @keyframes sk-rays { to { transform: rotate(360deg); } }
 @keyframes sk-confetti { from { transform: translateY(0) rotate(0); opacity: 1; } 85% { opacity: 1; } to { transform: translateY(560px) rotate(700deg); opacity: 0; } }
 @keyframes sk-shake { 0%, 100% { transform: translate(0); } 15% { transform: translate(-6px, 2px); } 30% { transform: translate(6px, -2px); } 45% { transform: translate(-5px, -1px); } 60% { transform: translate(4px, 2px); } 80% { transform: translate(-2px, 0); } }
-:root[data-skin="painted"].reduce-motion :is(.sk-room-tab, .sk-card, .sk-card-speaker, .sk-stall-art, .sk-stall-burlap, .sk-stall-lantern, .sk-stall-lantern > span, .sk-stall-valance > i, .sk-stall-tag, .sk-room-lights i, .sk-bulbs i, .sk-lever-knob, .sk-prize-rays) { animation: none !important; transition: none; }
-@media (prefers-reduced-motion: reduce) { .sk-room-tab, .sk-card, .sk-card-speaker, .sk-stall-art, .sk-stall-burlap, .sk-stall-lantern, .sk-stall-lantern > span, .sk-stall-valance > i, .sk-stall-tag, .sk-room-lights i, .sk-bulbs i, .sk-lever-knob, .sk-prize-rays { animation: none !important; transition: none; } }
+:root[data-skin="painted"].reduce-motion :is(.sk-room-tab, .sk-card, .sk-card-speaker, .sk-stall-art, .sk-stall-burlap, .sk-stall-lantern, .sk-stall-lantern > span, .sk-stall-valance > i, .sk-stall-tag, .sk-room-lights i, .sk-bulbs i, .sk-lever-knob, .sk-prize-rays), :root[data-skin="painted"].reduce-motion .sk-card-speaker::after { animation: none !important; transition: none; }
+@media (prefers-reduced-motion: reduce) { .sk-room-tab, .sk-card, .sk-card-speaker, .sk-stall-art, .sk-stall-burlap, .sk-stall-lantern, .sk-stall-lantern > span, .sk-stall-valance > i, .sk-stall-tag, .sk-room-lights i, .sk-bulbs i, .sk-lever-knob, .sk-prize-rays, .sk-card-speaker::after { animation: none !important; transition: none; } }
 
 /* A shorter window (a laptop): a smaller sign. The stall is drawn smaller there by itself (stallPlan.ts `low`), so the
    cards and the odds are in view without scrolling far. */

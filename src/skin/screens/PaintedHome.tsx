@@ -411,12 +411,14 @@ export function PaintedHome() {
   const farmFps = useHomeFps(chooser || signIn || help || gear || legal !== null || feedback || profile || pickAvatar || adminOpen);
 
   return (
-    <main className={`sk-home relative h-full overflow-hidden`} onPointerMove={onPointerMove} onKeyDown={onKey}>
+    // data-covered: a full page lies over Home, so its title and word of the day hold still (skin.css).
+    <main className={`sk-home relative h-full overflow-hidden`} data-covered={bazaar || boards || profile || undefined} onPointerMove={onPointerMove} onKeyDown={onKey}>
       <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} paused={bazaar || boards} fps={farmFps} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 p-3 sm:p-4 [&>*]:pointer-events-auto">
+      {/* Clear of a notch (plan file 14, change 5): every inset is 0 on a computer, so nothing moves there. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 p-3 pt-[max(12px,env(safe-area-inset-top))] pr-[max(12px,env(safe-area-inset-right))] pl-[max(12px,env(safe-area-inset-left))] sm:p-4 sm:pt-[max(16px,env(safe-area-inset-top))] sm:pr-[max(16px,env(safe-area-inset-right))] sm:pl-[max(16px,env(safe-area-inset-left))] [&>*]:pointer-events-auto">
         {!mobile && profilePlate(24, 'mr-auto', (
           <>
             {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
@@ -441,7 +443,8 @@ export function PaintedHome() {
         // One column under the top bar: the title block, then the menu's panel at the foot. The panel takes the height
         // the title leaves and scrolls inside itself, so on a small or sideways phone the two never lie over each
         // other. Its old cap (64% of the screen: this box is 72 px shorter than the screen) still holds on a tall one.
-        <div className="pointer-events-none absolute inset-x-0 bottom-2 top-16 flex flex-col [&>*]:pointer-events-auto">
+        // The column starts under the top bar and keeps off a notch at the sides (plan file 14, change 5).
+        <div className="pointer-events-none absolute inset-x-0 bottom-2 top-[max(4rem,calc(env(safe-area-inset-top)+52px))] flex flex-col pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] [&>*]:pointer-events-auto">
           <div className="flex flex-none flex-col items-center">
             <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
             <WordOfDay className="sk-wotd--compact" />
@@ -461,7 +464,8 @@ export function PaintedHome() {
           {/* "safe": on a short window the column starts under the name plate instead of riding up over it. */}
           <div className="absolute bottom-14 left-10 top-20 flex w-[27rem] flex-col gap-3" style={{ justifyContent: 'safe center' }}>
             <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
-            {step === 'tables' ? tables : <div className="pointer-events-none opacity-40" inert>{tables}</div>}
+            {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
+            <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
           </div>
           {/* The word of the day stands on its own on the right; a panel opening there takes its place. */}
           {step === 'tables' ? <WordOfDay className="sk-wotd--side" /> : (

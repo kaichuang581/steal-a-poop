@@ -1,4 +1,4 @@
-import { UPDATE_NAME } from '../../config';
+import { FESTIVE, UPDATE_NAME } from '../../config';
 import { SnowCap } from './SnowCap';
 
 /**
@@ -27,7 +27,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
       <div className="sk-title-sign">
       <div className="sk-title-plank kit-plank" data-knot="2" aria-hidden="true">
         <SnowCap className="sk-title-snow" />
-        <Holly />
+        {FESTIVE && <Holly />}
         <span className="sk-nail sk-nail-l" />
         <span className="sk-nail sk-nail-r" />
         <span className="sk-title-lead">{lead.toUpperCase()}</span>

@@ -2,6 +2,13 @@
 
 All user-visible changes, newest first.
 
+## 0.7.16
+
+- Home's footer tips wrap to a second line instead of being cut off.
+- Item descriptions and mission goals in the Trading Post get two lines.
+- A new player's profile says how to fill each number.
+- The word of the day's pronunciation is a little larger on phones.
+
 ## 0.7.15
 
 - Counting Sheep is seen exactly from the side on every device, like the dinosaur game. Every screen sees the next fence earlier than before (at top speed on a computer 0.61 s instead of 0.33 s), and the sheep is as big as before on a computer.

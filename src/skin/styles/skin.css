@@ -1147,7 +1147,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-wotd--compact { margin-top: 0; max-width: calc(100vw - 32px); flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 6px; row-gap: 0; text-align: center; rotate: -1deg; animation: none; transform-origin: 50% 50%; }
 .sk-wotd--compact .sk-wotd-label { font-size: 12px; }
 .sk-wotd--compact .sk-wotd-word { font-size: 16px; line-height: 1; letter-spacing: 0.01em; text-shadow: 0 2px 0 #5B3A1E, 1px 1px 0 var(--wotd-edge), -1px 1px 0 var(--wotd-edge), 1px -1px 0 var(--wotd-edge), -1px -1px 0 var(--wotd-edge), 0 0 10px rgba(30, 16, 6, 0.9); }
-.sk-wotd--compact .sk-wotd-say { font-size: 10px; gap: 4px; }
+.sk-wotd--compact .sk-wotd-say { font-size: 11px; gap: 4px; }
 .sk-wotd--compact .sk-wotd-pos, .sk-wotd--compact .sk-wotd-yarn { display: none; }
 .sk-wotd--compact .sk-wotd-short { flex-basis: 100%; font-size: 13px; line-height: 0.95; }
 :root.reduce-motion .sk-wotd { animation: none; }
@@ -1237,15 +1237,16 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 /* While its sample plays, the speaker is ringed in amber and the ring beats. */
 .sk-card-speaker[data-on] { background: rgba(20, 12, 6, 0.9); box-shadow: 0 0 0 2px var(--amber); animation: sk-speaker 600ms steps(1) infinite; }
 @keyframes sk-speaker { 0%, 100% { box-shadow: 0 0 0 2px var(--amber); } 50% { box-shadow: 0 0 0 4px var(--amber); } }
-.sk-card-label { display: flex; flex-direction: column; gap: 3px; height: 112px; margin-top: 6px; padding: 7px 9px 8px; color: var(--ink); background: var(--kit-paper-tex), var(--paper); box-shadow: 2px 2px 0 rgba(20, 12, 6, 0.45); }
+.sk-card-label { display: flex; flex-direction: column; gap: 3px; flex: 1 0 auto; min-height: 112px; margin-top: 6px; padding: 7px 9px 8px; color: var(--ink); background: var(--kit-paper-tex), var(--paper); box-shadow: 2px 2px 0 rgba(20, 12, 6, 0.45); }
 .sk-card-label h4 { font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; line-height: 1.1; color: var(--wood-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sk-card-label p { font-size: 16px; line-height: 1.15; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Two lines, then clamped (plan file 10, change 1): a description is never cut short on one line. */
+.sk-card-label p { font-size: 16px; line-height: 1.15; color: var(--ink-soft); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sk-card-act { margin-top: auto; display: flex; align-items: center; min-height: 26px; }
 .sk-card-missing { font-family: var(--skin-font-body); font-weight: 800; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); }
 .sk-card[data-state="locked"] h4 { color: var(--ink-soft); }
 /* In the Barn Book the cards sit straight on the page. */
 .sk-grid--page { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.sk-grid--page .sk-card-label { background: none; box-shadow: none; padding: 4px 2px 0; height: 104px; }
+.sk-grid--page .sk-card-label { background: none; box-shadow: none; padding: 4px 2px 0; min-height: 104px; }
 
 /* Feed Sacks: the market stall, then what is inside and the odds slate. The stall is one baked voxel picture
    (public/shop/stall, drawn by shop/stallModels.ts); the crates, the tags, the lantern, the awning's edge and the chalk
@@ -1356,7 +1357,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-miles h3 { font-family: var(--skin-font-display); font-weight: 800; font-size: 22px; line-height: 30px; color: var(--wood-ink); }
 .sk-miles-sub { height: 14px; font-size: 16px; line-height: 14px; color: var(--ink-soft); }
 .sk-miles li { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 110px auto; align-items: center; gap: 14px; height: 44px; font-size: 18px; }
-.sk-miles-goal { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sk-miles-goal { line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sk-miles-count { text-align: right; font-family: var(--skin-font-display); font-weight: 800; font-size: 16px; color: var(--wood-ink); }
 .sk-miles-pay { display: inline-flex; gap: 6px; }
 .sk-pay { display: inline-flex; align-items: center; gap: 4px; min-width: 62px; padding: 1px 8px; font-family: var(--skin-font-display); font-weight: 800; font-size: 15px; color: var(--wood-ink); background: var(--glow); box-shadow: 1px 1px 0 rgba(59, 48, 40, 0.4); }
@@ -1514,7 +1515,8 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   .sk-tier { min-width: 520px; }
   .sk-mission-cards { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .sk-miles { padding: 12px 12px 4px; }
-  .sk-miles li { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 22px 22px; gap: 0 10px; font-size: 16px; }
+  /* A goal that takes two lines makes its row taller instead of being cut (plan file 10, change 1). */
+  .sk-miles li { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(22px, auto) 22px; gap: 0 10px; height: auto; min-height: 44px; font-size: 16px; }
   .sk-miles li .sk-band { grid-column: 1; grid-row: 2; }
   .sk-miles-count { grid-column: 2; grid-row: 1; font-size: 14px; }
   .sk-miles-pay { grid-column: 2; grid-row: 2; }
@@ -1547,6 +1549,8 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 /* A section's label on its board, and a line beside it saying what the numbers are. */
 .sk-prof-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; }
 .sk-prof-head .sk-room-hint { margin: 0; flex: 1; min-width: 12em; }
+/* A new player's line under the heading, in the hand face (plan file 11, change 2). */
+.sk-prof-empty { margin: 0; font-family: var(--skin-font-hand); }
 .sk-prof-top { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; align-items: stretch; margin-top: 6px; }
 /* The card. */
 .sk-prof-card { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; }

@@ -1,3 +1,4 @@
+import { FESTIVE } from '../../config';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
@@ -83,7 +84,7 @@ function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone,
       <Spotlight speaker={speaker} pressure={pressure} reduced={reduced} />
       <Sky hour="night" reduced={reduced} blizzard={false} />
       <Place />
-      <Festive geo={buildDuelFestive()} reduced={reduced} />
+      {FESTIVE && <Festive geo={buildDuelFestive()} reduced={reduced} />}
       <Bomb speaker={speaker} n={2} fraction={fraction} red={pressure > 0.7} reduced={reduced} boomKey={boomKey} secondsLeft={secondsLeft} size={Math.min(bombSize ?? 1, DUEL.maxBomb)} power={power ?? 1} spotAt={duelSpot} />
       {seats.map((s) => {
         const other = duelSeat(s.seat === 0 ? 1 : 0);

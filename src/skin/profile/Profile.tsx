@@ -55,7 +55,31 @@ const RENAME_ERR: Record<string, string> = {
 };
 
 /** A number on the profile: what it is, the number, and a line under it. `long` is a word that may need smaller letters. */
-interface Stat { label: string; value: ReactNode; note: string; long?: boolean; none?: boolean }
+export interface Stat { label: string; value: ReactNode; note: string; long?: boolean; none?: boolean }
+
+/** The five numbers this device keeps (the sixth slip, Online wins, is the account's). */
+export interface LocalNumbers { words: number; wins: number; longest: string; dreamBest: number; streak: number; bestStreak: number }
+
+/** The line under "Your numbers" while all five of this device's numbers are still 0 (plan file 11, change 2). */
+export const EMPTY_LINE = 'Play a game and these fill in.';
+export const nothingPlayed = (n: LocalNumbers): boolean => !n.words && !n.wins && !n.longest && !n.dreamBest && !n.streak;
+
+/**
+ * Always six slips, so they fill their rows: three across on a desktop, two on a phone. A slip still at 0 says how to
+ * fill it, not what it records (plan file 11, change 2). No middle dot between phrases (Brian, 2026-11-14).
+ */
+export function numberSlips(n: LocalNumbers, rooms: Stat): Stat[] {
+  const { longest } = n;
+  return [
+    { label: 'Different words', value: n.words.toLocaleString(), note: n.words ? 'played at the table' : 'play a game to start' },
+    { label: 'Wins', value: n.wins.toLocaleString(), note: n.wins ? 'Quick Games won' : 'win a Quick Game' },
+    { label: 'Longest word', long: longest.length > 6, value: longest ? longest.toUpperCase() : '–', none: !longest, note: longest ? `${longest.length} letters` : 'play a game' },
+    { label: 'Counting Sheep best', value: n.dreamBest.toLocaleString(), note: n.dreamBest ? 'sheep in one night' : 'count sheep tonight' },
+    // A broken streak with a best behind it keeps the best; only a player who never had one is invited.
+    { label: 'Night streak', value: n.streak.toLocaleString(), note: n.streak || n.bestStreak ? `nights in a row, best ${n.bestStreak}` : 'come back tomorrow night' },
+    rooms,
+  ];
+}
 
 /**
  * The profile: a page of its own over Home, in the same room as the Trading Post (a plank wall, a hung sign, paper,
@@ -104,15 +128,8 @@ export function Profile({ onClose }: { onClose: () => void }) {
     : typeof onlineStats === 'object'
       ? { label: 'Online wins', value: onlineStats.wins.toLocaleString(), note: `of ${onlineStats.gamesPlayed.toLocaleString()} room game${onlineStats.gamesPlayed === 1 ? '' : 's'}` }
       : { label: 'Online wins', value: onlineStats === 'loading' ? '...' : '–', none: true, note: onlineStats === 'loading' ? 'asking the barn' : 'the barn could not be reached' };
-  // Always six, so the slips fill their rows: three across on a desktop, two on a phone.
-  const stats: Stat[] = [
-    { label: 'Different words', value: wallet.words.length.toLocaleString(), note: 'played at the table' },
-    { label: 'Wins', value: record.wins.toLocaleString(), note: 'Quick Games won' },
-    { label: 'Longest word', long: longest.length > 6, value: longest ? longest.toUpperCase() : '–', none: !longest, note: longest ? `${longest.length} letters` : 'play a game' },
-    { label: 'Counting Sheep best', value: getDreamBest().toLocaleString(), note: 'sheep in one night' },
-    { label: 'Night streak', value: streak.toLocaleString(), note: `nights in a row · best ${bestStreak}` },
-    rooms,
-  ];
+  const mine: LocalNumbers = { words: wallet.words.length, wins: record.wins, longest, dreamBest: getDreamBest(), streak, bestStreak };
+  const stats = numberSlips(mine, rooms);
 
   return (
     <>
@@ -162,6 +179,7 @@ export function Profile({ onClose }: { onClose: () => void }) {
                   <Sign size="label" tone="wood" className="sk-room-heading"><h3 id="prof-stats">Your numbers</h3></Sign>
                   <p className="sk-room-hint">{account ? 'Words, level and XP follow your account. Games and bests are from this device.' : 'Kept in this browser.'}</p>
                 </div>
+                {nothingPlayed(mine) && <p className="sk-room-hint sk-prof-empty">{EMPTY_LINE}</p>}
                 <div className="sk-prof-grid">
                   {stats.map((s) => (
                     <Paper key={s.label} kind="note" className="sk-prof-stat">

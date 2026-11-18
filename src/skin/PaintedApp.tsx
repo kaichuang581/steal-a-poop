@@ -10,6 +10,7 @@ import { useRoomStore } from '../state/roomStore';
 import { useStore } from '../state/store';
 import { useAuth } from '../auth/authStore';
 import { authEnabled } from '../auth/config';
+import { FESTIVE } from '../config';
 import { PaintedRoom } from './rooms/PaintedRoom';
 import { useHour } from './hooks/useAmbient';
 import { DreamScreen } from './dream/DreamScreen';
@@ -79,6 +80,8 @@ export function PaintedApp() {
   // (Brian, 2026-11-13: "why is the loading screen not what pops up when the game is loading?"; a refresh used to skip
   // the doors and show the menu over an empty sky instead).
   useState(() => { if (!PREVIEW) shutDoorsAtBoot({ label: 'Opening up the barn' }); });
+  // The season, mirrored once onto the page for the styles that follow it (plan file 13, change 7): <html data-festive>.
+  useState(() => { document.documentElement.toggleAttribute('data-festive', FESTIVE); });
   // For the device report: how long the first load took, and whether the doors opened on a drawn scene or gave up.
   useEffect(() => whenDoorsOpen(noteDoorsOpen), []);
   const [report, setReport] = useState(REPORT);

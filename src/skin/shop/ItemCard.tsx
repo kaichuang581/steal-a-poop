@@ -60,7 +60,8 @@ export function ItemFrame({ item, size = 96, locked, lit, className = '', childr
 /**
  * The one item card, used in the sacks, on the Bell Shelf's labels and in the Barn Book (docs/PLAN_TRADING_POST_REFINE.md
  * Part 3). Three states only: not found (dimmed art, a padlock, where it comes from), owned (full colour, a Wear patch),
- * wearing (lit frame, a WEARING tag in place of the button). Fixed height; the description is one line, whole on hover.
+ * wearing (lit frame, a WEARING tag in place of the button). The description takes two lines when it needs them, and a
+ * row of cards grows to its tallest label (plan file 10, change 1); whole on hover.
  * The picture opens the closer look (Preview); a fuse sound also has a small Listen button on its corner, found or not.
  */
 export function ItemCard({ item, wallet, onNote, fresh, onView }: { item: Item; wallet: Wallet; onNote: (s: string) => void; fresh?: boolean; onView?: (item: Item) => void }) {

@@ -1,4 +1,5 @@
 import { MiniBomb } from '../components/BombClock';
+import { CHEERS, RUN_OVER_TITLE } from '../season';
 import { BOMB_TOSS_S } from '../voxel/bomb';
 import { BLAST_PALETTE, burstExplodes } from '../shop/catalog';
 import { payEarly, PayoutLines, usePayout } from '../shop/Payout';
@@ -604,8 +605,6 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-/** What the table shouts when your word lands. */
-const CHEERS = ['Nice one!', 'Ho ho ho!', 'Jolly good!', 'Fa la la la baa!', 'Merry and bright!'];
 const DREAM_LINE = 'Tonight’s dream is still waiting: Counting Sheep, on the farm.';
 /** Read once: the table renders often and this reads storage. */
 const useDreamWaiting = () => useMemo(() => !getDream(localDateKey(new Date())), []);
@@ -636,7 +635,7 @@ function RunOver() {
       <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto p-3 pt-16 sm:items-center sm:p-6">
         {/* The run's board (V6 Part 6.3): the score chalked big on a slate, the clock, the bot and the best on three small ones. */}
         <Board size="panel" hang="ropes" snow id="run-over" role="dialog" aria-label="Run over" className="sk-tally w-full max-w-sm">
-          <h2 className="sk-tally-title">{run?.isNew ? 'New best!' : 'Baa humbug!'}</h2>
+          <h2 className="sk-tally-title">{run?.isNew ? 'New best!' : RUN_OVER_TITLE}</h2>
           <div className="mt-2 flex justify-center">
             <Slate size="plaque" tone={run?.isNew ? 'amber' : 'chalk'} className="sk-score-plaque">
               {score}<span className="kit-chalk-hand">word{score === 1 ? '' : 's'} before the clock ran out</span>

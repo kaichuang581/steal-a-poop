@@ -1,5 +1,965 @@
 {
+  "baked": {
+    "knownStale": 3,
+    "noTool": 2
+  },
+  "banned": {
+    "cssColours": 267,
+    "row01_kitPinCork": 0,
+    "row02_leverRopeSlider": 0,
+    "row03_hangNails": 3,
+    "row03_skNail": 26,
+    "row04_paperProps": 0,
+    "row05_steal": 4,
+    "row06_middleDots": 50,
+    "row07_menuIds": 0,
+    "row08_pcfSoftShadowMap": 0,
+    "row09_standardMaterials": 0,
+    "row10_exposure": 0,
+    "row12_stakes": 0,
+    "row13_googleFonts": 0,
+    "row14_wordOfDayClicks": 0,
+    "row15_names": 0,
+    "row17_testFail": 0
+  },
+  "fences": {
+    "auditAllow": 17,
+    "auditBudget": {
+      "emoji": 0,
+      "font": 0,
+      "gradient": 4,
+      "radius": 5,
+      "shadow": 0,
+      "utility": 1
+    }
+  },
+  "scenes": {
+    "baked": {
+      "excused": 0,
+      "knownStale": 3
+    },
+    "connect": {
+      "excused": {
+        "bedroom": {
+          "coarse": 7,
+          "fine": 7
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 2,
+          "fine": 2
+        }
+      },
+      "loose": {
+        "bedroom": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 1321,
+          "fine": 1321
+        },
+        "pen": {
+          "coarse": 66,
+          "fine": 66
+        },
+        "podium": {
+          "coarse": 3,
+          "fine": 3
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "props": {
+        "bale": 0,
+        "bomb": 4,
+        "fence:log": 0,
+        "fence:picket": 0,
+        "fence:rail": 0,
+        "fence:wall": 0,
+        "sign post": 0,
+        "trophy": 0
+      },
+      "things": {
+        "bedroom": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      }
+    },
+    "coplanar": {
+      "area": {
+        "bedroom": {
+          "coarse": 0.06,
+          "fine": 0.06
+        },
+        "dream": {
+          "coarse": 14.885,
+          "fine": 14.885
+        },
+        "duel": {
+          "coarse": 6.4,
+          "fine": 6.4
+        },
+        "farm": {
+          "coarse": 833.59,
+          "fine": 766.58
+        },
+        "pen": {
+          "coarse": 54.645,
+          "fine": 54.685
+        },
+        "podium": {
+          "coarse": 1.15,
+          "fine": 1.15
+        },
+        "table": {
+          "coarse": 1.755,
+          "fine": 1.865
+        }
+      },
+      "excused": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "seen": {
+        "bedroom": {
+          "coarse": 0.06,
+          "fine": 0.06
+        },
+        "dream": {
+          "coarse": 9.8725,
+          "fine": 9.8725
+        },
+        "duel": {
+          "coarse": 6.4,
+          "fine": 6.4
+        },
+        "farm": {
+          "coarse": 278.09,
+          "fine": 252.805
+        },
+        "pen": {
+          "coarse": 54.62,
+          "fine": 54.635
+        },
+        "podium": {
+          "coarse": 0.85,
+          "fine": 0.85
+        },
+        "table": {
+          "coarse": 1.23,
+          "fine": 1.25
+        }
+      }
+    },
+    "exemptions": 2,
+    "lens": {
+      "excused": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "inside": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 18,
+          "fine": 18
+        }
+      },
+      "short": {
+        "bedroom": {
+          "coarse": {
+            "computer": {
+              "bubble": 0,
+              "results": 26
+            },
+            "phone": {
+              "bubble": 0,
+              "results": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "bubble": 0,
+              "results": 26
+            },
+            "phone": {
+              "bubble": 0,
+              "results": 0
+            }
+          }
+        },
+        "dream": {
+          "coarse": {
+            "phone": {
+              "upright": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "computer": 0
+            },
+            "phone": {
+              "sideways": 0
+            }
+          }
+        },
+        "duel": {
+          "coarse": {
+            "computer": {
+              "bot": 0,
+              "open": 0,
+              "you": 0
+            },
+            "phone": {
+              "bot": 0,
+              "open": 0,
+              "you": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "bot": 0,
+              "open": 0,
+              "you": 0
+            },
+            "phone": {
+              "bot": 0,
+              "open": 0,
+              "you": 0
+            }
+          }
+        },
+        "farm": {
+          "coarse": {
+            "computer": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0
+            },
+            "phone": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0
+            },
+            "phone": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0
+            }
+          }
+        },
+        "pen": {
+          "coarse": {
+            "computer": {
+              "pen": 0
+            },
+            "phone": {
+              "pen": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "pen": 0
+            },
+            "phone": {
+              "pen": 0
+            }
+          }
+        },
+        "podium": {
+          "coarse": {
+            "computer": {
+              "podium": 0
+            },
+            "phone": {
+              "podium": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "podium": 0
+            },
+            "phone": {
+              "podium": 0
+            }
+          }
+        },
+        "table": {
+          "coarse": {
+            "computer": {
+              "home": 0,
+              "n10": 0,
+              "n2": 0,
+              "n3": 0,
+              "n4": 0,
+              "n5": 0,
+              "n6": 0,
+              "n7": 0,
+              "n8": 0,
+              "n9": 0
+            },
+            "phone": {
+              "home": 0,
+              "n10": 0,
+              "n2": 0,
+              "n3": 0,
+              "n4": 0,
+              "n5": 0,
+              "n6": 0,
+              "n7": 0,
+              "n8": 0,
+              "n9": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "home": 0,
+              "n10": 0,
+              "n2": 0,
+              "n3": 0,
+              "n4": 0,
+              "n5": 0,
+              "n6": 0,
+              "n7": 0,
+              "n8": 0,
+              "n9": 0
+            },
+            "phone": {
+              "home": 0,
+              "n10": 0,
+              "n2": 0,
+              "n3": 0,
+              "n4": 0,
+              "n5": 0,
+              "n6": 0,
+              "n7": 0,
+              "n8": 0,
+              "n9": 0
+            }
+          }
+        }
+      },
+      "swings": {
+        "table": {
+          "coarse": {
+            "computer": {
+              "n10": 10,
+              "n2": 2,
+              "n3": 4,
+              "n4": 6,
+              "n5": 6,
+              "n6": 6,
+              "n7": 8,
+              "n8": 10,
+              "n9": 10
+            },
+            "phone": {
+              "n10": 12,
+              "n2": 2,
+              "n3": 4,
+              "n4": 6,
+              "n5": 6,
+              "n6": 6,
+              "n7": 10,
+              "n8": 10,
+              "n9": 10
+            }
+          },
+          "fine": {
+            "computer": {
+              "n10": 10,
+              "n2": 2,
+              "n3": 4,
+              "n4": 6,
+              "n5": 6,
+              "n6": 6,
+              "n7": 8,
+              "n8": 10,
+              "n9": 10
+            },
+            "phone": {
+              "n10": 12,
+              "n2": 2,
+              "n3": 4,
+              "n4": 6,
+              "n5": 6,
+              "n6": 6,
+              "n7": 10,
+              "n8": 10,
+              "n9": 10
+            }
+          }
+        }
+      }
+    },
+    "lights": {
+      "excused": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "far": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 2,
+          "fine": 2
+        },
+        "pen": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "fill": 10,
+      "unlisted": 0,
+      "unseen": 7
+    },
+    "models": {
+      "coincident": {
+        "chicken": 25,
+        "cow": 62,
+        "goat": 38,
+        "horse": 130,
+        "pig": 61,
+        "sheep": 70
+      },
+      "draws": {
+        "colour": {
+          "chicken": 10,
+          "cow": 13,
+          "goat": 11,
+          "horse": 11,
+          "pig": 13,
+          "sheep": 10
+        },
+        "over": {
+          "chicken": 0,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 5,
+          "sheep": 0
+        },
+        "shadow": {
+          "chicken": 2,
+          "cow": 2,
+          "goat": 2,
+          "horse": 2,
+          "pig": 6,
+          "sheep": 2
+        }
+      },
+      "empty": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "hat": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "ice": {
+        "loose": {
+          "chicken": 0,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 0,
+          "sheep": 0
+        },
+        "outside": {
+          "chicken": 0,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 0,
+          "sheep": 1
+        }
+      },
+      "pieces": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "plate": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "props": {
+        "bomb:bomb-aurora": 4,
+        "bomb:bomb-brass": 8,
+        "bomb:bomb-diamond": 12,
+        "bomb:bomb-ember": 2,
+        "bomb:bomb-gold": 17,
+        "bomb:bomb-ice": 5,
+        "bomb:bomb-mint": 29,
+        "bomb:bomb-plum": 3,
+        "burst:blast-bubblegum": 0,
+        "burst:blast-confetti": 0,
+        "burst:blast-ember": 0,
+        "burst:blast-frost": 0,
+        "burst:blast-hay": 0,
+        "burst:blast-lantern": 0,
+        "burst:blast-northern": 0,
+        "burst:blast-snowfall": 0,
+        "burst:blast-solstice": 0,
+        "burst:blast-starlight": 0,
+        "hat": 0,
+        "ice": 0,
+        "sack:blast": 0,
+        "sack:bomb": 0,
+        "sack:tick": 0,
+        "sheepdog": 0,
+        "tick:tick-8bit": 0,
+        "tick:tick-chime": 0,
+        "tick:tick-cowbell": 0,
+        "tick:tick-lullaby": 2,
+        "tick:tick-musicbox": 0,
+        "tick:tick-owl": 0,
+        "tick:tick-sleigh": 0,
+        "tick:tick-wood": 0,
+        "trophy": 0
+      },
+      "riders": {
+        "chicken": 0,
+        "cow": 4,
+        "goat": 4,
+        "horse": 17,
+        "pig": 18,
+        "sheep": 0
+      },
+      "roots": {
+        "leave": {
+          "chicken": 15,
+          "cow": 85,
+          "goat": 63,
+          "horse": 68,
+          "pig": 99,
+          "sheep": 27
+        },
+        "lost": {
+          "chicken": 0,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 19,
+          "sheep": 20
+        }
+      },
+      "scarf": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "tails": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "terraces": {
+        "head": {
+          "chicken": 5,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 0,
+          "sheep": 10
+        },
+        "torso": {
+          "chicken": {
+            "0": 0,
+            "1": 7,
+            "2": 0,
+            "3": 7,
+            "4": 7
+          },
+          "cow": {
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0
+          },
+          "goat": {
+            "0": 0,
+            "1": 3,
+            "2": 8,
+            "3": 11,
+            "4": 11
+          },
+          "horse": {
+            "0": 0,
+            "1": 3,
+            "2": 0,
+            "3": 3,
+            "4": 3
+          },
+          "pig": {
+            "0": 0,
+            "1": 2,
+            "2": 4,
+            "3": 6,
+            "4": 6
+          },
+          "sheep": {
+            "0": 18,
+            "1": 18,
+            "2": 34,
+            "3": 61,
+            "4": 84
+          }
+        }
+      }
+    },
+    "place": {
+      "excused": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "gap": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "farm": {
+          "coarse": 16,
+          "fine": 16
+        },
+        "pen": {
+          "coarse": 1,
+          "fine": 2
+        },
+        "podium": {
+          "coarse": 17,
+          "fine": 17
+        },
+        "table": {
+          "coarse": 170,
+          "fine": 170
+        }
+      },
+      "inside": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 8,
+          "fine": 8
+        },
+        "pen": {
+          "coarse": 5,
+          "fine": 5
+        },
+        "podium": {
+          "coarse": 15,
+          "fine": 15
+        },
+        "table": {
+          "coarse": 169,
+          "fine": 169
+        }
+      },
+      "unplaced": {
+        "bedroom": {
+          "coarse": 2,
+          "fine": 2
+        },
+        "dream": {
+          "coarse": 10,
+          "fine": 10
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 1,
+          "fine": 1
+        }
+      }
+    },
+    "wendigo": {
+      "differences": 0
+    }
+  },
   "size": {
     "gzipBytes": 763400
+  },
+  "smoke": {
+    "cases": {
+      "min": 12
+    },
+    "expectedToFail": 0,
+    "knownToday": 1
   }
 }

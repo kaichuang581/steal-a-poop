@@ -65,6 +65,14 @@ export const WENDIGO_MASKS = Object.freeze([
 /** Every picture a run takes of one build: the twelve, then the wendigo's pair. */
 export const ALL = Object.freeze([...SHOTS, ...WENDIGO_MASKS]);
 
+/**
+ * The quality tier every shot is taken at (milestone 4, src/skin/perf/tier.ts: `?gfx=low|medium|high` pins one). The
+ * base 6edc7fe has no tiers: its one picture is today's, which is what High is (plan file 16), and it ignores the
+ * switch. So the head is pinned to High and each of the twelve pairs compares like with like, whatever tier the
+ * machine taking them would be given. The base gets the same address, where the switch does nothing.
+ */
+export const GFX = 'high';
+
 /** A shot's file name in the cache. */
 export const fileOf = (id) => `${id}.png`;
 
@@ -77,5 +85,5 @@ export function openShot(browser, s, { url, ...more } = {}) {
   if (!open) throw new Error(`shot ${s.id} names a place lib/painted.mjs does not have: ${s.place}`);
   const args = { ...s.args };
   if (args.extraQuery) args.extraQuery = { ...args.extraQuery };
-  return open(browser, { ...more, ...args, url, viewport: { ...s.viewport }, touch: s.touch });
+  return open(browser, { ...more, ...args, query: { gfx: GFX, ...(more.query ?? {}) }, url, viewport: { ...s.viewport }, touch: s.touch });
 }

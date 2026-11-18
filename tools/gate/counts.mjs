@@ -30,8 +30,9 @@
 // Numbers known not to repeat are never handed in: they go into the report's data with their spread (the table's
 // canvas with motion on, oscillators a second in a hidden tab).
 //
-// Tiers. There is one today. Milestone 4 brings ?gfx=low|medium|high; the plan's High is today's picture, so today's
-// numbers are stored under `high` and may only fall. Milestone 4 gives that tier its query and adds the other two.
+// Tiers. Since milestone 4 the game has three (src/skin/perf/tier.ts), and every session opens on Medium unless
+// `?gfx=low|medium|high` pins one. Each tier is counted pinned, under its own name: `high` is the plan's High, which
+// is the base's one picture (the base has no tiers), then `medium` and `low`.
 //
 // It can be run by hand, which is also how its own proofs are made (nothing is written into the repo):
 //   node tools/gate/counts.mjs                              every state, three times, as the gate runs it
@@ -77,10 +78,30 @@ const REAL_TOLERANCE = 0.02;
 const MUSIC_LISTEN_S = 6.4;
 
 /**
- * The graphics tiers. One today: the game has no ?gfx= yet. The plan's High is today's picture on the device, so
- * today's numbers are High's. Milestone 4: give `high` the query { gfx: 'high' } and add medium and low after it.
+ * The graphics tiers, each pinned by its `?gfx=` (milestone 4, src/skin/perf/tier.ts). Unpinned, a session opens on
+ * Medium, so a tier without its query would count Medium under another name. High first: the probe's own check
+ * (`--real`) and the plan's figures for today are read from the first.
  */
-const TIERS = [{ id: 'high', query: {} }];
+const TIERS = [
+  { id: 'high', query: { gfx: 'high' } },
+  { id: 'medium', query: { gfx: 'medium' } },
+  { id: 'low', query: { gfx: 'low' } },
+];
+
+/**
+ * How far apart the runs of a per-second mean (`trianglesMean`, `drawsMean`) may be and still count as the same:
+ * a part of the larger, with a floor for small means. A mean over one second of a held state is not exact from run
+ * to run: which frames fall inside that second can move by one, and a frame or two that drew a few more triangles
+ * moves the mean (seen: a phone's six-seat table at 760,045, 760,047 and 760,045 triangles). Every other ratchet,
+ * the worst frame included, must still be exactly the same in every run, and what is handed in is still the
+ * largest of the runs.
+ */
+const MEAN_REPEAT = { share: 0.0001, floor: 0.02 };
+const isMean = (key) => /Mean$/.test(key);
+const sameMean = (values) => {
+  const most = Math.max(...values), least = Math.min(...values);
+  return most - least <= Math.max(MEAN_REPEAT.floor, MEAN_REPEAT.share * Math.max(Math.abs(most), Math.abs(least)));
+};
 
 /** The two sizes the plan names. `shots` is how many scenes Home's tour has there (src/skin/scene/homePov.ts). */
 const DEVICES = [
@@ -598,7 +619,8 @@ function collect(tasks, results, { runs }) {
         for (const key of Object.keys(first).sort()) {
           const values = g.results.map((r) => r.handed[key]);
           handed[key] = Math.max(...values);
-          if (values.some((v) => v !== values[0])) problems.push(`${name}: ${key} was not the same in every run (${values.map(n).join(', ')}): a ratchet has to repeat`);
+          const same = isMean(key) ? sameMean(values) : values.every((v) => v === values[0]);
+          if (!same) problems.push(`${name}: ${key} was not the same in every run (${values.map(n).join(', ')}${isMean(key) ? `; a mean may differ by ${MEAN_REPEAT.share * 100} % of itself, at least ${MEAN_REPEAT.floor}` : ''}): a ratchet has to repeat`);
         }
         ((measured[tier.id] ??= {})[device.id] ??= {})[s.id] = handed;
         ((data.tiers[tier.id] ??= {})[device.id] ??= {})[s.id] = { what: s.st.what, ...g.results[0].data };
@@ -648,7 +670,8 @@ const DECISIONS = [
   'Oscillators a second in a hidden tab is measured in real time and comes in whole bars of music, so it is not the same three times running: it is in the report\'s data with its spread and is not a ratchet. When milestone 2 has made it 0 every time, it can be handed in.',
   'The table\'s canvas against its box is 1 under reduced motion, which is how every ratchet here is counted. With motion on it follows a CSS animation that runs on real time and is different from run to run: that reading is in the data with its spread and is not a ratchet (milestone 1 fixes the canvas; the reduced-motion ratchet then guards it).',
   'Every state is counted under reduced motion, as the gate\'s pictures are taken (the closer look excepted: its 3D only exists with motion on). The worst frame is the worst of one second of a held state, not of a whole session: the figures taken over a whole game are the results state\'s "worst frame of the whole game" and "once in play", a frame every 250 ms of a game nobody types in.',
-  'Today\'s one tier is stored as "high" (the plan\'s High is today\'s picture). Milestone 4 gives it ?gfx=high and adds medium and low; that is a change to tools/gate/counts.mjs, and new numbers to store.',
+  'Every state is counted at each of the three tiers, pinned by ?gfx=high, medium and low (milestone 4): an unpinned session opens on Medium. "high" is the plan\'s High, the base\'s one picture. Medium and low are new names with nothing stored yet.',
+  'A per-second mean (trianglesMean, drawsMean) counts as repeated when its runs are within 0.01 % of it (at least 0.02): which frames fall inside the counted second can move by one. Every other ratchet must be exactly the same in every run.',
 ];
 
 export async function run(ctx) {
@@ -668,7 +691,7 @@ export async function run(ctx) {
     ok: problems.length === 0,
     summary: problems.length
       ? `${problems.length} problem${problems.length === 1 ? '' : 's'}: ${problems[0]}${problems.length > 1 ? ` (and ${problems.length - 1} more)` : ''}`
-      : `${states} states counted ${data.runs} times each, every ratchet the same each time`,
+      : `${states} states counted ${data.runs} times each, every ratchet the same each time (a per-second mean within ${MEAN_REPEAT.share * 100} %)`,
     lines: [...problems.map((p) => `PROBLEM: ${p}`), ...lines],
     data,
     measured,

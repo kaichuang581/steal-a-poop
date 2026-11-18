@@ -166,10 +166,26 @@
 :root.reduce-motion .dr-bubble-zs { transition-duration: 300ms; }
 /* The same for a reduced-motion setting on the device: three still z's at fixed heights. */
 @media (prefers-reduced-motion: reduce) {
-  .dr-bubble-rim, .dream-puff, .dr-blink, .dr-slip, .dr-typed { animation: none; }
-  .dream-z, .dream-z[data-i="1"], .dream-z[data-i="2"] { animation: none; opacity: 0.9; }
+  .dr-pop, .dr-slip, .dr-fence-tile, .dr-typed, .dr-blink, .dr-bubble-rim, .dream-puff { animation: none; }
+  .dream-z { animation: none; opacity: 0.9; }
   .dream-z[data-i="1"] { transform: translate(6%, -22%); }
   .dream-z[data-i="2"] { transform: translate(12%, -44%); }
   .dr-burst { display: none; }
   .dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm-fade 400ms ease-in-out both; }
+  .dr-bubble-zs { transition-duration: 300ms; }
+}
+
+/* A short wide screen (a phone on its side, 844 x 390): the side view's ground line is at 68%, 265 px down, and the
+   fence, its sign and the sheep all stand above it. The floating letters keep their order (what the word needs, the
+   word, the dotted line, Enter's key) and are set smaller and closer, so the whole bar fits under the ground line,
+   over the lane's lower band only (plan file 09, 4.6; milestone 11). 15 px caption, 24 px letters, 27 px word.
+   `.kit-float[data-scene="dream"]` in kit.css sets the letters' size at three classes' weight, so these are heavier. */
+@media (max-height: 500px) and (min-width: 640px) {
+  .dr-bar { padding-top: 0; }
+  .dr-bar .sk-input-prompt { min-height: 0; margin: 0; font-size: 15px; line-height: 1.05; }
+  .dr-bar .kit-float { gap: 2px; padding-bottom: 0; }
+  .dr-bar .kit-float[data-scene="dream"] .kit-float-need { min-height: 24px; font-size: 24px; }
+  .dr-bar .kit-float-word { font-size: min(27px, calc(min(92vw, 760px) * 1.45 / var(--len, 6))); }
+  .dr-bar .kit-float[data-scene="dream"] .kit-float-ph { font-size: 20px; }
+  .dr-bar .kit-float-go { min-height: 24px; font-size: 18px; }
 }

@@ -345,8 +345,11 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
   border-image: repeating-linear-gradient(135deg, var(--alarm) 0 16px, #140C07 16px 32px) 12;
   background: var(--kit-grain), #241710;
   box-shadow: inset 0 3px 0 rgba(255, 220, 170, 0.12), inset 0 -4px 0 #140C07, 0 0 0 3px rgba(0, 0, 0, 0.55), 0 8px 0 rgba(0, 0, 0, 0.45), 0 18px 48px rgba(0, 0, 0, 0.6);
-  animation: kit-alarm-in 480ms var(--ease-spring) both, kit-alarm-throb 0.5s 480ms steps(1) infinite;
+  animation: kit-alarm-in 480ms var(--ease-spring) both;
 }
+/* The throb: the lit ring and glow on a layer over the board's own shadow, blinked by opacity (no repaint). */
+.kit-alarm::after { content: ''; position: absolute; inset: -12px 0; pointer-events: none; box-shadow: 0 0 0 3px var(--alarm), 0 0 60px var(--alarm-glow); opacity: 0; animation: kit-alarm-throb 0.5s 480ms steps(1) infinite; }
+.kit-alarm-compact::after { inset: -8px 0; }
 .kit-alarm-lamp { display: grid; place-items: center; flex: none; color: var(--alarm); filter: drop-shadow(0 0 14px var(--alarm-glow)) drop-shadow(0 0 4px var(--alarm)); animation: kit-alarm-blink 0.36s steps(1) infinite; }
 .kit-alarm-lamp svg { width: 44px; height: 44px; }
 .kit-alarm-lamp-r { animation-delay: 0.18s; }
@@ -361,9 +364,10 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
 .kit-alarm-compact .kit-alarm-lamp svg { width: 26px; height: 26px; }
 .kit-alarm-compact .kit-alarm-title { font-size: 30px; } .kit-alarm-compact .kit-alarm-sub { font-size: 15px; } .kit-alarm-compact .kit-alarm-label { font-size: 11px; letter-spacing: 0.2em; }
 @keyframes kit-alarm-in { 0% { transform: translateY(-60px) scaleY(0.6); opacity: 0; } 55% { transform: translateY(8px) scaleY(1.04); opacity: 1; } 100% { transform: none; } }
-@keyframes kit-alarm-throb { 50% { box-shadow: inset 0 3px 0 rgba(255, 220, 170, 0.12), inset 0 -4px 0 #140C07, 0 0 0 3px var(--alarm), 0 0 60px var(--alarm-glow), 0 8px 0 rgba(0, 0, 0, 0.45), 0 18px 48px rgba(0, 0, 0, 0.6); } }
+@keyframes kit-alarm-throb { 50% { opacity: 1; } }
 @keyframes kit-alarm-blink { 50% { opacity: 0.25; } }
-:root.reduce-motion :is(.kit-alarm, .kit-alarm-lamp) { animation: none; }
+:root.reduce-motion :is(.kit-alarm, .kit-alarm-lamp), :root.reduce-motion .kit-alarm::after { animation: none; }
+@media (prefers-reduced-motion: reduce) { .kit-alarm, .kit-alarm-lamp, .kit-alarm::after { animation: none; } }
 
 /* ---------- Ice ---------- */
 .kit-ice {
@@ -381,6 +385,7 @@ button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { t
   .kit-paper--lift, .kit-btn, .kit-peg, .kit-switch, .kit-switch-knob { transition: none; }
 }
 :root[data-skin="painted"].reduce-motion :is(.kit-plank--hung, .kit-plank--sway, .kit-tile--hung) { animation: sk-title-fade 200ms both; }
+:root[data-skin="painted"].reduce-motion :is(.kit-paper--lift, .kit-btn, .kit-peg, .kit-switch, .kit-switch-knob) { transition: none; }
 
 /* ---------- Wool: knitted panels for every dialog and board you read (replaces the wooden frames) ----------
    A cream knitted blanket with a Fair Isle band along the top and a ribbed hem, the stitches drawn as pixels so they sit

@@ -454,8 +454,9 @@ export function PaintedGame() {
       {/* A soft vignette holds the eye on the pile (plan V3.2 Part 2). */}
       <div className="pointer-events-none absolute inset-0 z-[5]" style={{ background: 'radial-gradient(ellipse at center, transparent 58%, rgba(59, 48, 40, 0.28) 100%)' }} aria-hidden="true" />
 
-      {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. */}
-      <header className="pointer-events-none relative z-40 flex items-start justify-between gap-2 p-2">
+      {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. Clear of a notch
+          (plan file 14, change 5): every inset is 0 on a computer, so nothing moves there. */}
+      <header className="pointer-events-none relative z-40 flex items-start justify-between gap-2 p-2 pt-[max(8px,env(safe-area-inset-top))] pr-[max(8px,env(safe-area-inset-right))] pl-[max(8px,env(safe-area-inset-left))]">
         <div className="flex flex-col items-start gap-1">
           {practice ? (
             <Slate size="plaque" tone={runWords > runBest && runBest > 0 ? 'amber' : 'chalk'} className="sk-run-plaque">
@@ -482,7 +483,7 @@ export function PaintedGame() {
 
       {practice ? (
         // The fight card: the two names either side of a carved VS.
-        <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-16' : 'top-3'}`} aria-label="Who is playing">
+        <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-[max(4rem,calc(env(safe-area-inset-top)+56px))]' : 'top-3'}`} aria-label="Who is playing">
           <Paper kind="slip" className="sk-vs-slip">{game.players[0].name}</Paper>
           <span className="sk-vs">VS</span>
           <Paper kind="slip" className="sk-vs-slip">{game.players[1].name}<span className="sk-vs-tags"><span className="sk-vs-farm">farm sheep</span><span className="sk-vs-farm">{game.settings.botDifficulty}</span></span></Paper>
@@ -597,7 +598,9 @@ function LiveDuel(props: ComponentProps<typeof DuelTable>) {
 /** A clipboard for the rules, the chain and the chat (V6 Part 6.2): paper under a brass clip on a light board. */
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center" style={{ background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
+    // Laid over the part of the screen that can be seen (--vvtop, --vvh: the visual viewport, which the keyboard
+    // shortens), so with the keyboard up the sheet stands above it, not behind it (plan file 14, change 4).
+    <div className="fixed inset-x-0 z-50 flex items-end justify-center p-3 sm:items-center" style={{ top: 'var(--vvtop, 0px)', height: 'var(--vvh, 100dvh)', background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
       <Clipboard aria-label={title} title={title} onClose={onClose} className="sk-table-sheet" onClick={(e) => e.stopPropagation()}>
         {children}
       </Clipboard>

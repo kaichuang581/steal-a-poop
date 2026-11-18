@@ -379,7 +379,7 @@ export function DreamScreen() {
       <DevLine />
 
       {phase !== 'results' && (
-        <header className="dr-hud sk-swoop-in pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2">
+        <header className="dr-hud sk-swoop-in pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2 pt-[max(8px,env(safe-area-inset-top))] pr-[max(8px,env(safe-area-inset-right))] pl-[max(8px,env(safe-area-inset-left))]">
           <Patch icon={<MoonIcon size={18} />} className="dr-night-patch">{practice ? 'Practice dream' : repair ? `Last night's dream · ${shortDate(night)}` : `Tonight's dream · ${shortDate(night)}`}</Patch>
           <div className="pointer-events-auto flex items-start gap-2">
             {/* The count in chalk on a slate: sheep counted, the best, and how far into the night with the bumps left. */}
@@ -408,7 +408,7 @@ export function DreamScreen() {
       </div>
 
       {phase !== 'results' && (
-        <div className={`dr-hud relative z-20 mt-auto px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4 ${mobile ? 'dr-bar-phone' : ''}`}>
+        <div className={`dr-hud dr-bar relative z-20 mt-auto px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4 ${mobile ? 'dr-bar-phone' : ''}`}>
           <div className={mobile ? 'mx-auto' : 'mx-auto max-w-3xl'}>
             {caption && <p className="sk-input-prompt" data-mode={mode}>{caption}</p>}
             {/* The word bar: floating letters (chosen from the mockups, 2026-11-07). The letters the word starts with above, side

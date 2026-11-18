@@ -11,7 +11,10 @@
 
 /* Everything laid over the pen. A phone: the bar, the pen showing under it, then the boards one under another, the
    whole screen scrolling. A computer (below): the bar pinned to the top, the boards pinned to the bottom. */
-.rm-body { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 26px; overflow: hidden auto; padding: 30px 12px 18px; }
+/* The beam and the boards clear a notch (plan file 14, change 5): every inset is 0 on a computer, and from 900 px up
+   the body has no padding at all, so nothing moves there. */
+.rm-body { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 26px; overflow: hidden auto;
+  padding: max(30px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 18px max(12px, env(safe-area-inset-left, 0px)); }
 .rm-dock { display: flex; flex-direction: column; gap: 30px; margin-top: 30vh; }
 
 /* A wooden tab, the Trading Post's: pale wood to press, lit gold (`kit-lit`) when it is the one chosen. */

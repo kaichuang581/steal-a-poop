@@ -4,7 +4,9 @@
    panels. Nothing here may change size or place when a tab or a "when" button is pressed. No gradients (the kit audit
    counts them), corners of 4 px at most, shadows with an offset. kit.css is loaded after this file and its rules win
    at equal weight (`.kit-beam` is position: relative), so some selectors here are a step heavier on purpose. */
-.sk-lb { --lb-m: 22px; --lb-gap: 22px; --lb-board: clamp(420px, 34vw, 520px); --lb-top: 28px; --lb-beam: 64px;
+/* The beam's place, `--lb-top` and `--lb-m`, takes the screen's safe-area insets where they are larger, so the beam and
+   everything placed from it clear a notch (plan file 14, change 5); every inset is 0 on a computer. */
+.sk-lb { --lb-m: max(22px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --lb-gap: 22px; --lb-board: clamp(420px, 34vw, 520px); --lb-top: max(28px, env(safe-area-inset-top, 0px)); --lb-beam: 64px;
   position: fixed; inset: 0; z-index: 45; height: auto; background: #BFE1F3; }
 .sk-lb :is(h1, h2, p, ol) { margin: 0; }
 .sk-lb ol { padding: 0; list-style: none; }
@@ -138,12 +140,12 @@ label.sk-lb-show { cursor: pointer; }
 
 /* Narrower computer windows: tighter edges and gaps. */
 @media (max-width: 1300px) { .sk-lb { --lb-gap: 16px; } }
-@media (max-width: 1150px) { .sk-lb { --lb-m: 14px; --lb-gap: 12px; --lb-board: clamp(380px, 34vw, 520px); } }
+@media (max-width: 1150px) { .sk-lb { --lb-m: max(14px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --lb-gap: 12px; --lb-board: clamp(380px, 34vw, 520px); } }
 /* The board is narrow here: on Wins the "when" tabs take the sign's place, as on a phone (the lit Wins tab names it). */
 @media (min-width: 1000px) and (max-width: 1150px) { .sk-lb-board .rm-head:has(.sk-lb-when) .sk-room-heading { display: none; } .sk-lb-when { max-width: none; } }
 /* A short computer window (a small laptop): the lobby's own tighter rule. */
 @media (min-width: 1000px) and (max-height: 780px) {
-  .sk-lb { --lb-top: 24px; --lb-beam: 58px; }
+  .sk-lb { --lb-top: max(24px, env(safe-area-inset-top, 0px)); --lb-beam: 58px; }
   .sk-lb-board { bottom: 16px; }
   .sk-lb-board.rm-panel { gap: 7px; padding: 22px 14px 12px; }
   .sk-lb-line { min-height: var(--lb-row, 34px); }
@@ -157,7 +159,7 @@ label.sk-lb-show { cursor: pointer; }
 /* A narrow screen (a tablet held upright, a phone): one column. The beam, the sky with the three, then the board with
    the list and you at its foot. Only the list scrolls. */
 @media (max-width: 999px) {
-  .sk-lb { --lb-m: 12px; --lb-top: 26px; --lb-split: calc(var(--lb-top) + var(--lb-beam) + clamp(220px, 44dvh, 520px)); }
+  .sk-lb { --lb-m: max(12px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --lb-top: max(26px, env(safe-area-inset-top, 0px)); --lb-split: calc(var(--lb-top) + var(--lb-beam) + clamp(220px, 44dvh, 520px)); }
   .sk-lb .sk-lb-bar { grid-template-columns: auto 1fr; column-gap: 16px; padding: 0 14px; }
   .sk-lb-bar .kit-beam-strap, .sk-lb-bar .sk-garland { display: none; }
   .sk-lb-tabs { justify-content: flex-start; gap: 8px; }
@@ -175,7 +177,7 @@ label.sk-lb-show { cursor: pointer; }
 }
 @media (max-width: 760px) { .sk-lb-end .rm-name { display: none; } }
 @media (max-width: 560px) {
-  .sk-lb { --lb-m: 8px; --lb-top: 20px; --lb-split: calc(var(--lb-top) + var(--lb-beam) + clamp(170px, 32dvh, 300px)); }
+  .sk-lb { --lb-m: max(8px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --lb-top: max(20px, env(safe-area-inset-top, 0px)); --lb-split: calc(var(--lb-top) + var(--lb-beam) + clamp(170px, 32dvh, 300px)); }
   .sk-lb .sk-lb-bar { grid-template-columns: 1fr auto; padding: 0 8px 0 10px; }
   .sk-lb-tabs { gap: 6px; }
   .sk-lb-tabs .rm-tab { flex: 1 1 0; min-width: 0; gap: 5px; font-size: 15px; padding: 0 4px 2px; }

@@ -104,7 +104,12 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
   // player touches the menu, the first live item keeps that focus: Play once the word list has loaded (while it loads,
   // items under it can come alive first and must not keep it). Never takes focus from a control the player is using.
   const live = enabled.length;
+  // Home keeps the menu mounted under a setup panel (plan file 15, change 4); coming back starts it afresh, as a new
+  // menu would: the first live item, lit for the keys.
+  const wasAuto = useRef(autoFocus);
   useEffect(() => {
+    if (autoFocus && !wasAuto.current) { touched.current = false; setHover(null); setKeyboard(true); }
+    wasAuto.current = autoFocus;
     if (!autoFocus || !live) return;
     const el = document.activeElement;
     const ours = el instanceof HTMLButtonElement && refs.current.includes(el);

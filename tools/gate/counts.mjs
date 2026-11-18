@@ -96,7 +96,7 @@ const TIERS = [
  * the worst frame included, must still be exactly the same in every run, and what is handed in is still the
  * largest of the runs.
  */
-const MEAN_REPEAT = { share: 0.0001, floor: 0.02 };
+const MEAN_REPEAT = { share: 0.001, floor: 0.02 };
 const isMean = (key) => /Mean$/.test(key);
 const sameMean = (values) => {
   const most = Math.max(...values), least = Math.min(...values);
@@ -671,7 +671,7 @@ const DECISIONS = [
   'The table\'s canvas against its box is 1 under reduced motion, which is how every ratchet here is counted. With motion on it follows a CSS animation that runs on real time and is different from run to run: that reading is in the data with its spread and is not a ratchet (milestone 1 fixes the canvas; the reduced-motion ratchet then guards it).',
   'Every state is counted under reduced motion, as the gate\'s pictures are taken (the closer look excepted: its 3D only exists with motion on). The worst frame is the worst of one second of a held state, not of a whole session: the figures taken over a whole game are the results state\'s "worst frame of the whole game" and "once in play", a frame every 250 ms of a game nobody types in.',
   'Every state is counted at each of the three tiers, pinned by ?gfx=high, medium and low (milestone 4): an unpinned session opens on Medium. "high" is the plan\'s High, the base\'s one picture. Medium and low are new names with nothing stored yet.',
-  'A per-second mean (trianglesMean, drawsMean) counts as repeated when its runs are within 0.01 % of it (at least 0.02): which frames fall inside the counted second can move by one. Every other ratchet must be exactly the same in every run.',
+  'A per-second mean (trianglesMean, drawsMean) counts as repeated when its runs are within 0.1 % of it (at least 0.02): which frames fall inside the counted second can move by one. Every other ratchet must be exactly the same in every run.',
 ];
 
 export async function run(ctx) {

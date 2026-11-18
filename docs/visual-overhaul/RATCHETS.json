@@ -1,5 +1,2293 @@
 {
+  "baked": {
+    "knownStale": 3,
+    "noTool": 2
+  },
+  "banned": {
+    "cssColours": 267,
+    "row01_kitPinCork": 0,
+    "row02_leverRopeSlider": 0,
+    "row03_hangNails": 3,
+    "row03_skNail": 26,
+    "row04_paperProps": 0,
+    "row05_steal": 4,
+    "row06_middleDots": 50,
+    "row07_menuIds": 0,
+    "row08_pcfSoftShadowMap": 0,
+    "row09_standardMaterials": 0,
+    "row10_exposure": 0,
+    "row12_stakes": 0,
+    "row13_googleFonts": 0,
+    "row14_wordOfDayClicks": 0,
+    "row15_names": 0,
+    "row17_testFail": 0
+  },
+  "counts": {
+    "high": {
+      "computer-1280x720": {
+        "closer-look": {
+          "bufferBytes": 140995116,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 3,
+          "drawsMean": 7,
+          "drawsWorst": 7,
+          "hiddenDrawCalls": 0,
+          "programs": 24,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 144,
+          "trianglesMean": 2914,
+          "trianglesWorst": 2914
+        },
+        "counting-sheep": {
+          "bufferBytes": 30625640,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 48.06,
+          "drawsWorst": 54,
+          "hiddenDrawCalls": 0,
+          "programs": 18,
+          "rendersPerSecond": 78,
+          "rendersPerSecondAt144": 87,
+          "trianglesMean": 138448,
+          "trianglesWorst": 202808
+        },
+        "counting-sheep-running": {
+          "bufferBytes": 34924104,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 52.16,
+          "drawsWorst": 61,
+          "programs": 18,
+          "trianglesMean": 161025,
+          "trianglesWorst": 237992
+        },
+        "home-idle": {
+          "bufferBytes": 131716032,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 136,
+          "drawsWorst": 272,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 30,
+          "trianglesMean": 824898,
+          "trianglesWorst": 1649795
+        },
+        "home-pov0": {
+          "bufferBytes": 131716032,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 272,
+          "drawsWorst": 272,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 1649795,
+          "trianglesWorst": 1649795
+        },
+        "home-pov1": {
+          "bufferBytes": 174275548,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 513,
+          "drawsWorst": 513,
+          "programs": 20,
+          "trianglesMean": 2385197,
+          "trianglesWorst": 2385197
+        },
+        "home-pov2": {
+          "bufferBytes": 154722030,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 298,
+          "drawsWorst": 298,
+          "programs": 24,
+          "trianglesMean": 1718574,
+          "trianglesWorst": 1718574
+        },
+        "home-pov3": {
+          "bufferBytes": 103962512,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 184,
+          "drawsWorst": 184,
+          "programs": 21,
+          "trianglesMean": 1439183,
+          "trianglesWorst": 1439183
+        },
+        "home-pov4": {
+          "bufferBytes": 96517640,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 198,
+          "drawsWorst": 198,
+          "programs": 20,
+          "trianglesMean": 1014699,
+          "trianglesWorst": 1014699
+        },
+        "home-pov5": {
+          "bufferBytes": 136280544,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 269,
+          "drawsWorst": 269,
+          "programs": 20,
+          "trianglesMean": 1577827,
+          "trianglesWorst": 1577827
+        },
+        "home-pov6": {
+          "bufferBytes": 123981884,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 198,
+          "drawsWorst": 198,
+          "programs": 20,
+          "trianglesMean": 1478605,
+          "trianglesWorst": 1478605
+        },
+        "home-pov7": {
+          "bufferBytes": 148486368,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 333,
+          "drawsWorst": 333,
+          "programs": 20,
+          "trianglesMean": 1939931,
+          "trianglesWorst": 1939931
+        },
+        "home-profile": {
+          "bufferBytes": 131716032,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 136,
+          "drawsWorst": 272,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 29,
+          "trianglesMean": 824898,
+          "trianglesWorst": 1649795
+        },
+        "practice": {
+          "bufferBytes": 14067500,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 84,
+          "drawsWorst": 84,
+          "hiddenDrawCalls": 0,
+          "programs": 22,
+          "reactCommitsPerSecond": 62,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 143,
+          "trianglesMean": 257206,
+          "trianglesWorst": 257206
+        },
+        "results": {
+          "bufferBytes": 130112332,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 180.9,
+          "drawsWorst": 297,
+          "gameDrawsWorst": 472,
+          "gameTrianglesWorst": 1953027,
+          "hiddenDrawCalls": 0,
+          "playDrawsWorst": 272,
+          "playTrianglesWorst": 1649795,
+          "programs": 31,
+          "reactCommitsPerSecond": 2,
+          "rendersPerSecond": 64,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 249143,
+          "trianglesWorst": 1099086
+        },
+        "table-4-seats": {
+          "bufferBytes": 77022624,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 137,
+          "drawsWorst": 137,
+          "hiddenDrawCalls": 0,
+          "programs": 19,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 1123189,
+          "trianglesWorst": 1123194
+        },
+        "table-6-seats": {
+          "bufferBytes": 77131424,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 143,
+          "drawsWorst": 143,
+          "hiddenDrawCalls": 0,
+          "programs": 19,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 1132473,
+          "trianglesWorst": 1132478
+        },
+        "trading-post": {
+          "bufferBytes": 131716032,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 0,
+          "drawsWorst": 0,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 0,
+          "rendersPerSecondAt144": 0,
+          "trianglesMean": 0,
+          "trianglesWorst": 0
+        }
+      },
+      "phone-390x844": {
+        "closer-look": {
+          "bufferBytes": 66746368,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 3,
+          "drawsMean": 7,
+          "drawsWorst": 7,
+          "hiddenDrawCalls": 0,
+          "programs": 24,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 144,
+          "trianglesMean": 2914,
+          "trianglesWorst": 2914
+        },
+        "counting-sheep": {
+          "bufferBytes": 29563988,
+          "canvasBoxRatio": 1.003,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 48.06,
+          "drawsWorst": 54,
+          "hiddenDrawCalls": 0,
+          "programs": 18,
+          "rendersPerSecond": 78,
+          "rendersPerSecondAt144": 87,
+          "trianglesMean": 125922,
+          "trianglesWorst": 190282
+        },
+        "counting-sheep-running": {
+          "bufferBytes": 33862452,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 50.98,
+          "drawsWorst": 57,
+          "programs": 18,
+          "trianglesMean": 136225,
+          "trianglesWorst": 201222
+        },
+        "home-idle": {
+          "bufferBytes": 62410856,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 69,
+          "drawsWorst": 138,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 30,
+          "trianglesMean": 408723,
+          "trianglesWorst": 817445
+        },
+        "home-pov0": {
+          "bufferBytes": 62410856,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 138,
+          "drawsWorst": 138,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 817445,
+          "trianglesWorst": 817445
+        },
+        "home-pov1": {
+          "bufferBytes": 84259028,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 249,
+          "drawsWorst": 249,
+          "programs": 20,
+          "trianglesMean": 1042939,
+          "trianglesWorst": 1042939
+        },
+        "home-pov2": {
+          "bufferBytes": 74696344,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 107,
+          "drawsWorst": 107,
+          "programs": 20,
+          "trianglesMean": 510289,
+          "trianglesWorst": 510289
+        },
+        "home-pov3": {
+          "bufferBytes": 55187892,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 127,
+          "drawsWorst": 127,
+          "programs": 20,
+          "trianglesMean": 771479,
+          "trianglesWorst": 771479
+        },
+        "home-pov4": {
+          "bufferBytes": 54512580,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 100,
+          "drawsWorst": 100,
+          "programs": 20,
+          "trianglesMean": 436091,
+          "trianglesWorst": 436091
+        },
+        "home-pov5": {
+          "bufferBytes": 69656796,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 147,
+          "drawsWorst": 147,
+          "programs": 20,
+          "trianglesMean": 941183,
+          "trianglesWorst": 941183
+        },
+        "home-profile": {
+          "bufferBytes": 62410856,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 69,
+          "drawsWorst": 138,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 29,
+          "trianglesMean": 408723,
+          "trianglesWorst": 817445
+        },
+        "practice": {
+          "bufferBytes": 12041844,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 78,
+          "drawsWorst": 78,
+          "hiddenDrawCalls": 0,
+          "programs": 22,
+          "reactCommitsPerSecond": 62,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 143,
+          "trianglesMean": 228066,
+          "trianglesWorst": 228066
+        },
+        "results": {
+          "bufferBytes": 78315656,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 160.39,
+          "drawsWorst": 249,
+          "gameDrawsWorst": 188,
+          "gameTrianglesWorst": 884873,
+          "hiddenDrawCalls": 0,
+          "playDrawsWorst": 138,
+          "playTrianglesWorst": 817445,
+          "programs": 32,
+          "reactCommitsPerSecond": 2,
+          "rendersPerSecond": 64,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 231462,
+          "trianglesWorst": 911260
+        },
+        "table-4-seats": {
+          "bufferBytes": 46756192,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 110,
+          "drawsWorst": 110,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 746955,
+          "trianglesWorst": 746958
+        },
+        "table-6-seats": {
+          "bufferBytes": 46810592,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 120,
+          "drawsWorst": 120,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 760045,
+          "trianglesWorst": 760050
+        },
+        "trading-post": {
+          "bufferBytes": 62410856,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 0,
+          "drawsWorst": 0,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 0,
+          "rendersPerSecondAt144": 0,
+          "trianglesMean": 0,
+          "trianglesWorst": 0
+        }
+      }
+    },
+    "low": {
+      "computer-1280x720": {
+        "closer-look": {
+          "bufferBytes": 97247364,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 3,
+          "drawsMean": 7,
+          "drawsWorst": 7,
+          "hiddenDrawCalls": 0,
+          "programs": 15,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 144,
+          "trianglesMean": 2914,
+          "trianglesWorst": 2914
+        },
+        "counting-sheep": {
+          "bufferBytes": 30625640,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 41.06,
+          "drawsWorst": 47,
+          "hiddenDrawCalls": 0,
+          "programs": 17,
+          "rendersPerSecond": 78,
+          "rendersPerSecondAt144": 87,
+          "trianglesMean": 131908,
+          "trianglesWorst": 196268
+        },
+        "counting-sheep-running": {
+          "bufferBytes": 34924104,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 45.16,
+          "drawsWorst": 54,
+          "programs": 18,
+          "trianglesMean": 154485,
+          "trianglesWorst": 231452
+        },
+        "home-idle": {
+          "bufferBytes": 89192616,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 124.5,
+          "drawsWorst": 249,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 30,
+          "trianglesMean": 577515,
+          "trianglesWorst": 1155029
+        },
+        "home-pov0": {
+          "bufferBytes": 89192616,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 249,
+          "drawsWorst": 249,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 1155029,
+          "trianglesWorst": 1155029
+        },
+        "home-pov1": {
+          "bufferBytes": 121618284,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 471,
+          "drawsWorst": 471,
+          "programs": 11,
+          "trianglesMean": 1665603,
+          "trianglesWorst": 1665603
+        },
+        "home-pov2": {
+          "bufferBytes": 107423198,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 305,
+          "drawsWorst": 305,
+          "programs": 24,
+          "trianglesMean": 1362124,
+          "trianglesWorst": 1362124
+        },
+        "home-pov3": {
+          "bufferBytes": 64882868,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 145,
+          "drawsWorst": 145,
+          "programs": 12,
+          "trianglesMean": 964111,
+          "trianglesWorst": 964111
+        },
+        "home-pov4": {
+          "bufferBytes": 68209308,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 188,
+          "drawsWorst": 188,
+          "programs": 11,
+          "trianglesMean": 754559,
+          "trianglesWorst": 754559
+        },
+        "home-pov5": {
+          "bufferBytes": 97406944,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 249,
+          "drawsWorst": 249,
+          "programs": 11,
+          "trianglesMean": 1218653,
+          "trianglesWorst": 1218653
+        },
+        "home-pov6": {
+          "bufferBytes": 86922340,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 186,
+          "drawsWorst": 186,
+          "programs": 11,
+          "trianglesMean": 1200961,
+          "trianglesWorst": 1200961
+        },
+        "home-pov7": {
+          "bufferBytes": 102383556,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 325,
+          "drawsWorst": 325,
+          "programs": 11,
+          "trianglesMean": 1440941,
+          "trianglesWorst": 1440941
+        },
+        "home-profile": {
+          "bufferBytes": 89192616,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 124.5,
+          "drawsWorst": 249,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 29,
+          "trianglesMean": 577515,
+          "trianglesWorst": 1155029
+        },
+        "practice": {
+          "bufferBytes": 11921464,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 67,
+          "drawsWorst": 67,
+          "hiddenDrawCalls": 0,
+          "programs": 14,
+          "reactCommitsPerSecond": 62,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 143,
+          "trianglesMean": 209953,
+          "trianglesWorst": 209953
+        },
+        "results": {
+          "bufferBytes": 109965532,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 143,
+          "drawsWorst": 238,
+          "gameDrawsWorst": 449,
+          "gameTrianglesWorst": 1458261,
+          "hiddenDrawCalls": 0,
+          "playDrawsWorst": 249,
+          "playTrianglesWorst": 1155029,
+          "programs": 23,
+          "reactCommitsPerSecond": 2,
+          "rendersPerSecond": 64,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 214300,
+          "trianglesWorst": 1047505
+        },
+        "table-4-seats": {
+          "bufferBytes": 57265456,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 122,
+          "drawsWorst": 122,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 912246,
+          "trianglesWorst": 912251
+        },
+        "table-6-seats": {
+          "bufferBytes": 57374256,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 126,
+          "drawsWorst": 126,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 914990,
+          "trianglesWorst": 914995
+        },
+        "trading-post": {
+          "bufferBytes": 89192616,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 0,
+          "drawsWorst": 0,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "rendersPerSecond": 0,
+          "rendersPerSecondAt144": 0,
+          "trianglesMean": 0,
+          "trianglesWorst": 0
+        }
+      },
+      "phone-390x844": {
+        "closer-look": {
+          "bufferBytes": 65537352,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 3,
+          "drawsMean": 7,
+          "drawsWorst": 7,
+          "hiddenDrawCalls": 0,
+          "programs": 15,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 144,
+          "trianglesMean": 2914,
+          "trianglesWorst": 2914
+        },
+        "counting-sheep": {
+          "bufferBytes": 29563988,
+          "canvasBoxRatio": 1.003,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 41.06,
+          "drawsWorst": 47,
+          "hiddenDrawCalls": 0,
+          "programs": 17,
+          "rendersPerSecond": 78,
+          "rendersPerSecondAt144": 87,
+          "trianglesMean": 119382,
+          "trianglesWorst": 183742
+        },
+        "counting-sheep-running": {
+          "bufferBytes": 33862452,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 43.98,
+          "drawsWorst": 50,
+          "programs": 18,
+          "trianglesMean": 129685,
+          "trianglesWorst": 194682
+        },
+        "home-idle": {
+          "bufferBytes": 61184300,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 63,
+          "drawsWorst": 126,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 30,
+          "trianglesMean": 409150,
+          "trianglesWorst": 818299
+        },
+        "home-pov0": {
+          "bufferBytes": 61184300,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 126,
+          "drawsWorst": 126,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 818299,
+          "trianglesWorst": 818299
+        },
+        "home-pov1": {
+          "bufferBytes": 80222044,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 214,
+          "drawsWorst": 214,
+          "programs": 11,
+          "trianglesMean": 1001385,
+          "trianglesWorst": 1001385
+        },
+        "home-pov2": {
+          "bufferBytes": 73801180,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 109,
+          "drawsWorst": 109,
+          "programs": 20,
+          "trianglesMean": 511275,
+          "trianglesWorst": 511275
+        },
+        "home-pov3": {
+          "bufferBytes": 53631620,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 107,
+          "drawsWorst": 107,
+          "programs": 11,
+          "trianglesMean": 763377,
+          "trianglesWorst": 763377
+        },
+        "home-pov4": {
+          "bufferBytes": 53360652,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 87,
+          "drawsWorst": 87,
+          "programs": 11,
+          "trianglesMean": 436311,
+          "trianglesWorst": 436311
+        },
+        "home-pov5": {
+          "bufferBytes": 68430240,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 135,
+          "drawsWorst": 135,
+          "programs": 11,
+          "trianglesMean": 942037,
+          "trianglesWorst": 942037
+        },
+        "home-profile": {
+          "bufferBytes": 61184300,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 63,
+          "drawsWorst": 126,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 29,
+          "trianglesMean": 409150,
+          "trianglesWorst": 818299
+        },
+        "practice": {
+          "bufferBytes": 11889968,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 61,
+          "drawsWorst": 61,
+          "hiddenDrawCalls": 0,
+          "programs": 14,
+          "reactCommitsPerSecond": 62,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 143,
+          "trianglesMean": 209301,
+          "trianglesWorst": 209301
+        },
+        "results": {
+          "bufferBytes": 77798168,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 121.39,
+          "drawsWorst": 187,
+          "gameDrawsWorst": 176,
+          "gameTrianglesWorst": 885727,
+          "hiddenDrawCalls": 0,
+          "playDrawsWorst": 126,
+          "playTrianglesWorst": 818299,
+          "programs": 24,
+          "reactCommitsPerSecond": 2,
+          "rendersPerSecond": 64,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 196141,
+          "trianglesWorst": 861515
+        },
+        "table-4-seats": {
+          "bufferBytes": 46604316,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 94,
+          "drawsWorst": 94,
+          "hiddenDrawCalls": 0,
+          "programs": 12,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 734294,
+          "trianglesWorst": 734299
+        },
+        "table-6-seats": {
+          "bufferBytes": 46658716,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 103,
+          "drawsWorst": 103,
+          "hiddenDrawCalls": 0,
+          "programs": 12,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 741280,
+          "trianglesWorst": 741285
+        },
+        "trading-post": {
+          "bufferBytes": 61184300,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 0,
+          "drawsWorst": 0,
+          "hiddenDrawCalls": 0,
+          "programs": 11,
+          "rendersPerSecond": 0,
+          "rendersPerSecondAt144": 0,
+          "trianglesMean": 0,
+          "trianglesWorst": 0
+        }
+      }
+    },
+    "medium": {
+      "computer-1280x720": {
+        "closer-look": {
+          "bufferBytes": 101051700,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 3,
+          "drawsMean": 7,
+          "drawsWorst": 7,
+          "hiddenDrawCalls": 0,
+          "programs": 24,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 144,
+          "trianglesMean": 2914,
+          "trianglesWorst": 2914
+        },
+        "counting-sheep": {
+          "bufferBytes": 30625640,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 48.06,
+          "drawsWorst": 54,
+          "hiddenDrawCalls": 0,
+          "programs": 18,
+          "rendersPerSecond": 78,
+          "rendersPerSecondAt144": 87,
+          "trianglesMean": 138448,
+          "trianglesWorst": 202808
+        },
+        "counting-sheep-running": {
+          "bufferBytes": 34924104,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 52.16,
+          "drawsWorst": 61,
+          "programs": 18,
+          "trianglesMean": 161025,
+          "trianglesWorst": 237992
+        },
+        "home-idle": {
+          "bufferBytes": 92678312,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 136,
+          "drawsWorst": 272,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 30,
+          "trianglesMean": 588304,
+          "trianglesWorst": 1176607
+        },
+        "home-pov0": {
+          "bufferBytes": 92678312,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 272,
+          "drawsWorst": 272,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 1176607,
+          "trianglesWorst": 1176607
+        },
+        "home-pov1": {
+          "bufferBytes": 127024068,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 513,
+          "drawsWorst": 513,
+          "programs": 20,
+          "trianglesMean": 1715375,
+          "trianglesWorst": 1715375
+        },
+        "home-pov2": {
+          "bufferBytes": 108847074,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 298,
+          "drawsWorst": 298,
+          "programs": 24,
+          "trianglesMean": 1359024,
+          "trianglesWorst": 1359024
+        },
+        "home-pov3": {
+          "bufferBytes": 68787376,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 185,
+          "drawsWorst": 185,
+          "programs": 21,
+          "trianglesMean": 998739,
+          "trianglesWorst": 998739
+        },
+        "home-pov4": {
+          "bufferBytes": 69787084,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 198,
+          "drawsWorst": 198,
+          "programs": 20,
+          "trianglesMean": 753515,
+          "trianglesWorst": 753515
+        },
+        "home-pov5": {
+          "bufferBytes": 100009388,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 269,
+          "drawsWorst": 269,
+          "programs": 20,
+          "trianglesMean": 1230057,
+          "trianglesWorst": 1230057
+        },
+        "home-pov6": {
+          "bufferBytes": 88626964,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 198,
+          "drawsWorst": 198,
+          "programs": 20,
+          "trianglesMean": 1200107,
+          "trianglesWorst": 1200107
+        },
+        "home-pov7": {
+          "bufferBytes": 104285536,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 333,
+          "drawsWorst": 333,
+          "programs": 20,
+          "trianglesMean": 1439029,
+          "trianglesWorst": 1439029
+        },
+        "home-profile": {
+          "bufferBytes": 92678312,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 136,
+          "drawsWorst": 272,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 29,
+          "trianglesMean": 588304,
+          "trianglesWorst": 1176607
+        },
+        "practice": {
+          "bufferBytes": 12073340,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 84,
+          "drawsWorst": 84,
+          "hiddenDrawCalls": 0,
+          "programs": 22,
+          "reactCommitsPerSecond": 62,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 143,
+          "trianglesMean": 228718,
+          "trianglesWorst": 228718
+        },
+        "results": {
+          "bufferBytes": 110491044,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 180.9,
+          "drawsWorst": 297,
+          "gameDrawsWorst": 472,
+          "gameTrianglesWorst": 1479839,
+          "hiddenDrawCalls": 0,
+          "playDrawsWorst": 272,
+          "playTrianglesWorst": 1176607,
+          "programs": 31,
+          "reactCommitsPerSecond": 2,
+          "rendersPerSecond": 64,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 248978,
+          "trianglesWorst": 1093958
+        },
+        "table-4-seats": {
+          "bufferBytes": 57417332,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 137,
+          "drawsWorst": 137,
+          "hiddenDrawCalls": 0,
+          "programs": 19,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 924471,
+          "trianglesWorst": 924476
+        },
+        "table-6-seats": {
+          "bufferBytes": 57526132,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 143,
+          "drawsWorst": 143,
+          "hiddenDrawCalls": 0,
+          "programs": 19,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 933755,
+          "trianglesWorst": 933760
+        },
+        "trading-post": {
+          "bufferBytes": 92678312,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 0,
+          "drawsWorst": 0,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 0,
+          "rendersPerSecondAt144": 0,
+          "trianglesMean": 0,
+          "trianglesWorst": 0
+        }
+      },
+      "phone-390x844": {
+        "closer-look": {
+          "bufferBytes": 66746368,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 3,
+          "drawsMean": 7,
+          "drawsWorst": 7,
+          "hiddenDrawCalls": 0,
+          "programs": 24,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 144,
+          "trianglesMean": 2914,
+          "trianglesWorst": 2914
+        },
+        "counting-sheep": {
+          "bufferBytes": 29563988,
+          "canvasBoxRatio": 1.003,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 48.06,
+          "drawsWorst": 54,
+          "hiddenDrawCalls": 0,
+          "programs": 18,
+          "rendersPerSecond": 78,
+          "rendersPerSecondAt144": 87,
+          "trianglesMean": 125922,
+          "trianglesWorst": 190282
+        },
+        "counting-sheep-running": {
+          "bufferBytes": 33862452,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 50.98,
+          "drawsWorst": 57,
+          "programs": 18,
+          "trianglesMean": 136225,
+          "trianglesWorst": 201222
+        },
+        "home-idle": {
+          "bufferBytes": 62410856,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 69,
+          "drawsWorst": 138,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 30,
+          "trianglesMean": 408723,
+          "trianglesWorst": 817445
+        },
+        "home-pov0": {
+          "bufferBytes": 62410856,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 138,
+          "drawsWorst": 138,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 817445,
+          "trianglesWorst": 817445
+        },
+        "home-pov1": {
+          "bufferBytes": 84259028,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 249,
+          "drawsWorst": 249,
+          "programs": 20,
+          "trianglesMean": 1042939,
+          "trianglesWorst": 1042939
+        },
+        "home-pov2": {
+          "bufferBytes": 74696344,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 107,
+          "drawsWorst": 107,
+          "programs": 20,
+          "trianglesMean": 510289,
+          "trianglesWorst": 510289
+        },
+        "home-pov3": {
+          "bufferBytes": 55187892,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 127,
+          "drawsWorst": 127,
+          "programs": 20,
+          "trianglesMean": 771479,
+          "trianglesWorst": 771479
+        },
+        "home-pov4": {
+          "bufferBytes": 54512580,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 100,
+          "drawsWorst": 100,
+          "programs": 20,
+          "trianglesMean": 436091,
+          "trianglesWorst": 436091
+        },
+        "home-pov5": {
+          "bufferBytes": 69656796,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 147,
+          "drawsWorst": 147,
+          "programs": 20,
+          "trianglesMean": 941183,
+          "trianglesWorst": 941183
+        },
+        "home-profile": {
+          "bufferBytes": 62410856,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 69,
+          "drawsWorst": 138,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 31,
+          "rendersPerSecondAt144": 29,
+          "trianglesMean": 408723,
+          "trianglesWorst": 817445
+        },
+        "practice": {
+          "bufferBytes": 12041844,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 78,
+          "drawsWorst": 78,
+          "hiddenDrawCalls": 0,
+          "programs": 22,
+          "reactCommitsPerSecond": 62,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 143,
+          "trianglesMean": 228066,
+          "trianglesWorst": 228066
+        },
+        "results": {
+          "bufferBytes": 78315656,
+          "canvasBoxRatio": 1,
+          "contexts": 2,
+          "contextsMade": 4,
+          "drawsMean": 160.39,
+          "drawsWorst": 249,
+          "gameDrawsWorst": 188,
+          "gameTrianglesWorst": 884873,
+          "hiddenDrawCalls": 0,
+          "playDrawsWorst": 138,
+          "playTrianglesWorst": 817445,
+          "programs": 32,
+          "reactCommitsPerSecond": 2,
+          "rendersPerSecond": 64,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 231462,
+          "trianglesWorst": 911260
+        },
+        "table-4-seats": {
+          "bufferBytes": 46756192,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 110,
+          "drawsWorst": 110,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 746953,
+          "trianglesWorst": 746958
+        },
+        "table-6-seats": {
+          "bufferBytes": 46810592,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 3,
+          "drawsMean": 120,
+          "drawsWorst": 120,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "reactCommitsPerSecond": 1,
+          "rendersPerSecond": 62,
+          "rendersPerSecondAt144": 72,
+          "trianglesMean": 760045,
+          "trianglesWorst": 760050
+        },
+        "trading-post": {
+          "bufferBytes": 62410856,
+          "canvasBoxRatio": 1,
+          "contexts": 1,
+          "contextsMade": 2,
+          "drawsMean": 0,
+          "drawsWorst": 0,
+          "hiddenDrawCalls": 0,
+          "programs": 20,
+          "rendersPerSecond": 0,
+          "rendersPerSecondAt144": 0,
+          "trianglesMean": 0,
+          "trianglesWorst": 0
+        }
+      }
+    }
+  },
+  "fences": {
+    "auditAllow": 17,
+    "auditBudget": {
+      "emoji": 0,
+      "font": 0,
+      "gradient": 4,
+      "radius": 5,
+      "shadow": 0,
+      "utility": 1
+    }
+  },
+  "scenes": {
+    "baked": {
+      "excused": 0,
+      "knownStale": 3
+    },
+    "connect": {
+      "excused": {
+        "bedroom": {
+          "coarse": 7,
+          "fine": 7
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 2,
+          "fine": 2
+        }
+      },
+      "loose": {
+        "bedroom": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 1321,
+          "fine": 1321
+        },
+        "pen": {
+          "coarse": 66,
+          "fine": 66
+        },
+        "podium": {
+          "coarse": 3,
+          "fine": 3
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "props": {
+        "bale": 0,
+        "bomb": 4,
+        "fence:log": 0,
+        "fence:picket": 0,
+        "fence:rail": 0,
+        "fence:wall": 0,
+        "sign post": 0,
+        "trophy": 0
+      },
+      "things": {
+        "bedroom": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      }
+    },
+    "coplanar": {
+      "area": {
+        "bedroom": {
+          "coarse": 0.06,
+          "fine": 0.06
+        },
+        "dream": {
+          "coarse": 14.885,
+          "fine": 14.885
+        },
+        "duel": {
+          "coarse": 6.4,
+          "fine": 6.4
+        },
+        "farm": {
+          "coarse": 833.59,
+          "fine": 766.58
+        },
+        "pen": {
+          "coarse": 54.645,
+          "fine": 54.685
+        },
+        "podium": {
+          "coarse": 1.15,
+          "fine": 1.15
+        },
+        "table": {
+          "coarse": 1.755,
+          "fine": 1.865
+        }
+      },
+      "excused": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "seen": {
+        "bedroom": {
+          "coarse": 0.06,
+          "fine": 0.06
+        },
+        "dream": {
+          "coarse": 9.8725,
+          "fine": 9.8725
+        },
+        "duel": {
+          "coarse": 6.4,
+          "fine": 6.4
+        },
+        "farm": {
+          "coarse": 278.09,
+          "fine": 252.805
+        },
+        "pen": {
+          "coarse": 54.62,
+          "fine": 54.635
+        },
+        "podium": {
+          "coarse": 0.85,
+          "fine": 0.85
+        },
+        "table": {
+          "coarse": 1.23,
+          "fine": 1.25
+        }
+      }
+    },
+    "exemptions": 2,
+    "lens": {
+      "excused": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "inside": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 18,
+          "fine": 18
+        }
+      },
+      "short": {
+        "bedroom": {
+          "coarse": {
+            "computer": {
+              "bubble": 0,
+              "results": 26
+            },
+            "phone": {
+              "bubble": 0,
+              "results": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "bubble": 0,
+              "results": 26
+            },
+            "phone": {
+              "bubble": 0,
+              "results": 0
+            }
+          }
+        },
+        "dream": {
+          "coarse": {
+            "phone": {
+              "upright": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "computer": 0
+            },
+            "phone": {
+              "sideways": 0
+            }
+          }
+        },
+        "duel": {
+          "coarse": {
+            "computer": {
+              "bot": 0,
+              "open": 0,
+              "you": 0
+            },
+            "phone": {
+              "bot": 0,
+              "open": 0,
+              "you": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "bot": 0,
+              "open": 0,
+              "you": 0
+            },
+            "phone": {
+              "bot": 0,
+              "open": 0,
+              "you": 0
+            }
+          }
+        },
+        "farm": {
+          "coarse": {
+            "computer": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0
+            },
+            "phone": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0
+            },
+            "phone": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0
+            }
+          }
+        },
+        "pen": {
+          "coarse": {
+            "computer": {
+              "pen": 0
+            },
+            "phone": {
+              "pen": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "pen": 0
+            },
+            "phone": {
+              "pen": 0
+            }
+          }
+        },
+        "podium": {
+          "coarse": {
+            "computer": {
+              "podium": 0
+            },
+            "phone": {
+              "podium": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "podium": 0
+            },
+            "phone": {
+              "podium": 0
+            }
+          }
+        },
+        "table": {
+          "coarse": {
+            "computer": {
+              "home": 0,
+              "n10": 0,
+              "n2": 0,
+              "n3": 0,
+              "n4": 0,
+              "n5": 0,
+              "n6": 0,
+              "n7": 0,
+              "n8": 0,
+              "n9": 0
+            },
+            "phone": {
+              "home": 0,
+              "n10": 0,
+              "n2": 0,
+              "n3": 0,
+              "n4": 0,
+              "n5": 0,
+              "n6": 0,
+              "n7": 0,
+              "n8": 0,
+              "n9": 0
+            }
+          },
+          "fine": {
+            "computer": {
+              "home": 0,
+              "n10": 0,
+              "n2": 0,
+              "n3": 0,
+              "n4": 0,
+              "n5": 0,
+              "n6": 0,
+              "n7": 0,
+              "n8": 0,
+              "n9": 0
+            },
+            "phone": {
+              "home": 0,
+              "n10": 0,
+              "n2": 0,
+              "n3": 0,
+              "n4": 0,
+              "n5": 0,
+              "n6": 0,
+              "n7": 0,
+              "n8": 0,
+              "n9": 0
+            }
+          }
+        }
+      },
+      "swings": {
+        "table": {
+          "coarse": {
+            "computer": {
+              "n10": 10,
+              "n2": 2,
+              "n3": 4,
+              "n4": 6,
+              "n5": 6,
+              "n6": 6,
+              "n7": 8,
+              "n8": 10,
+              "n9": 10
+            },
+            "phone": {
+              "n10": 12,
+              "n2": 2,
+              "n3": 4,
+              "n4": 6,
+              "n5": 6,
+              "n6": 6,
+              "n7": 10,
+              "n8": 10,
+              "n9": 10
+            }
+          },
+          "fine": {
+            "computer": {
+              "n10": 10,
+              "n2": 2,
+              "n3": 4,
+              "n4": 6,
+              "n5": 6,
+              "n6": 6,
+              "n7": 8,
+              "n8": 10,
+              "n9": 10
+            },
+            "phone": {
+              "n10": 12,
+              "n2": 2,
+              "n3": 4,
+              "n4": 6,
+              "n5": 6,
+              "n6": 6,
+              "n7": 10,
+              "n8": 10,
+              "n9": 10
+            }
+          }
+        }
+      }
+    },
+    "lights": {
+      "excused": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "far": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 2,
+          "fine": 2
+        },
+        "pen": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "fill": 10,
+      "unlisted": 0,
+      "unseen": 7
+    },
+    "models": {
+      "coincident": {
+        "chicken": 25,
+        "cow": 62,
+        "goat": 38,
+        "horse": 130,
+        "pig": 61,
+        "sheep": 70
+      },
+      "draws": {
+        "colour": {
+          "chicken": 10,
+          "cow": 13,
+          "goat": 11,
+          "horse": 11,
+          "pig": 13,
+          "sheep": 10
+        },
+        "over": {
+          "chicken": 0,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 5,
+          "sheep": 0
+        },
+        "shadow": {
+          "chicken": 2,
+          "cow": 2,
+          "goat": 2,
+          "horse": 2,
+          "pig": 6,
+          "sheep": 2
+        }
+      },
+      "empty": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "hat": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "ice": {
+        "loose": {
+          "chicken": 0,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 0,
+          "sheep": 0
+        },
+        "outside": {
+          "chicken": 0,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 0,
+          "sheep": 1
+        }
+      },
+      "pieces": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "plate": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "props": {
+        "bomb:bomb-aurora": 4,
+        "bomb:bomb-brass": 8,
+        "bomb:bomb-diamond": 12,
+        "bomb:bomb-ember": 2,
+        "bomb:bomb-gold": 17,
+        "bomb:bomb-ice": 5,
+        "bomb:bomb-mint": 29,
+        "bomb:bomb-plum": 3,
+        "burst:blast-bubblegum": 0,
+        "burst:blast-confetti": 0,
+        "burst:blast-ember": 0,
+        "burst:blast-frost": 0,
+        "burst:blast-hay": 0,
+        "burst:blast-lantern": 0,
+        "burst:blast-northern": 0,
+        "burst:blast-snowfall": 0,
+        "burst:blast-solstice": 0,
+        "burst:blast-starlight": 0,
+        "hat": 0,
+        "ice": 0,
+        "sack:blast": 0,
+        "sack:bomb": 0,
+        "sack:tick": 0,
+        "sheepdog": 0,
+        "tick:tick-8bit": 0,
+        "tick:tick-chime": 0,
+        "tick:tick-cowbell": 0,
+        "tick:tick-lullaby": 2,
+        "tick:tick-musicbox": 0,
+        "tick:tick-owl": 0,
+        "tick:tick-sleigh": 0,
+        "tick:tick-wood": 0,
+        "trophy": 0
+      },
+      "riders": {
+        "chicken": 0,
+        "cow": 4,
+        "goat": 4,
+        "horse": 17,
+        "pig": 18,
+        "sheep": 0
+      },
+      "roots": {
+        "leave": {
+          "chicken": 15,
+          "cow": 85,
+          "goat": 63,
+          "horse": 68,
+          "pig": 99,
+          "sheep": 27
+        },
+        "lost": {
+          "chicken": 0,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 19,
+          "sheep": 20
+        }
+      },
+      "scarf": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "tails": {
+        "chicken": 0,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
+        "sheep": 0
+      },
+      "terraces": {
+        "head": {
+          "chicken": 5,
+          "cow": 0,
+          "goat": 0,
+          "horse": 0,
+          "pig": 0,
+          "sheep": 10
+        },
+        "torso": {
+          "chicken": {
+            "0": 0,
+            "1": 7,
+            "2": 0,
+            "3": 7,
+            "4": 7
+          },
+          "cow": {
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0
+          },
+          "goat": {
+            "0": 0,
+            "1": 3,
+            "2": 8,
+            "3": 11,
+            "4": 11
+          },
+          "horse": {
+            "0": 0,
+            "1": 3,
+            "2": 0,
+            "3": 3,
+            "4": 3
+          },
+          "pig": {
+            "0": 0,
+            "1": 2,
+            "2": 4,
+            "3": 6,
+            "4": 6
+          },
+          "sheep": {
+            "0": 18,
+            "1": 18,
+            "2": 34,
+            "3": 61,
+            "4": 84
+          }
+        }
+      }
+    },
+    "place": {
+      "excused": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 0,
+          "fine": 0
+        }
+      },
+      "gap": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "farm": {
+          "coarse": 16,
+          "fine": 16
+        },
+        "pen": {
+          "coarse": 1,
+          "fine": 2
+        },
+        "podium": {
+          "coarse": 17,
+          "fine": 17
+        },
+        "table": {
+          "coarse": 170,
+          "fine": 170
+        }
+      },
+      "inside": {
+        "bedroom": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "dream": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 8,
+          "fine": 8
+        },
+        "pen": {
+          "coarse": 5,
+          "fine": 5
+        },
+        "podium": {
+          "coarse": 15,
+          "fine": 15
+        },
+        "table": {
+          "coarse": 169,
+          "fine": 169
+        }
+      },
+      "unplaced": {
+        "bedroom": {
+          "coarse": 2,
+          "fine": 2
+        },
+        "dream": {
+          "coarse": 10,
+          "fine": 10
+        },
+        "duel": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "farm": {
+          "coarse": 1,
+          "fine": 1
+        },
+        "pen": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "podium": {
+          "coarse": 0,
+          "fine": 0
+        },
+        "table": {
+          "coarse": 1,
+          "fine": 1
+        }
+      }
+    },
+    "wendigo": {
+      "differences": 0
+    }
+  },
   "size": {
-    "gzipBytes": 751265
+    "gzipBytes": 767800
+  },
+  "smoke": {
+    "cases": {
+      "min": 12
+    },
+    "expectedToFail": 0,
+    "knownToday": 1
   }
 }

@@ -103,7 +103,8 @@ test.describe('fonts', () => {
 });
 
 test('the main script answers 404: assets/index-*.js', async ({ page, watch }) => {
-  test.fail(true, 'Today (2026-11-16): nothing on the page runs, so the doors the page came with stay shut for ever over an empty #root, with no text. Milestone 1 (plan file 17, change 5: public/boot-check.js) shows a card from the page itself and takes this mark off.');
+  // No mark since milestone 1 (plan file 17, change 5: public/boot-check.js, 543c159): the page itself shows a card
+  // when its main script never runs. The mark came off in milestone 12's test pass, which found the case passing.
   const main = /\/assets\/index-[^/]*\.js(\?|$)/;
   watch.fault(main);
   await page.route(main, (route) => route.fulfill(NOT_FOUND));

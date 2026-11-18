@@ -13,7 +13,9 @@
 //
 // The only way past 1 and 3 is a file this milestone may replace: one that the milestone table lists for it
 // (ctx.plan.replaceable) and tools/gate/replaceable.json lists too, within what that file's `ledger` entry lets
-// through. Every test that goes that way is named in the report. src/skin/__tests__/fences.json is the one file under
+// through. Every test that goes that way is named in the report. A run with no milestone (--milestone none, the whole
+// overhaul against its base) has every milestone between the base and the head, each file under its own milestone's
+// rule, and every test replaced that way is a decision of its own. src/skin/__tests__/fences.json is the one file under
 // a `__tests__` folder that 3 leaves alone: pinning it again is how a change to a fenced file is said, and the fences
 // module and the runner both put that change in front of Brian.
 //
@@ -34,6 +36,7 @@ export const id = 'ledger';
 export const modes = ['quick', 'milestone', 'baseline'];
 
 const REPLACEABLE = 'tools/gate/replaceable.json';
+const MILESTONES = 'tools/gate/milestones.json';
 /** As long as the runner gives the head's tests. */
 const TESTS_TIMEOUT_MS = 45 * 60_000;
 /** How many times more a test that failed at base is run there. */
@@ -213,29 +216,72 @@ async function baseOf(ctx) {
 }
 
 /**
- * What this milestone may replace: the files the milestone table lists for it that tools/gate/replaceable.json lists
- * for it too, in the same words, with what the ledger lets through. Returns { files: Map(file -> { tests, stay,
- * scope }), notes }.
+ * What this run may replace: the files the milestone table lists for a milestone that tools/gate/replaceable.json
+ * lists for it too, in the same words, with what the ledger lets through. Returns { files: Map(file -> { tests, stay,
+ * scope, milestone }), notes }.
+ *
+ * A milestone run (ctx.milestone a number) gets its own milestone's entries and nothing else. A run with no milestone
+ * (--milestone none: the whole overhaul against its base) gets the entries of every milestone whose work lies between
+ * the base and the head: its branch, overhaul/mNN-<name> (local, else origin's), is in the head's history and not in
+ * the base's. Each file keeps its own milestone's rule; nothing else is let through.
  */
-function allowances(ctx) {
+async function allowances(ctx) {
   const files = new Map();
   const notes = [];
-  const listed = (ctx.plan?.replaceable ?? []).filter((p) => p && p.test === true);
-  if (ctx.milestone === null || !listed.length) return { files, notes };
+  let table = null;
+  if (ctx.milestone === null) {
+    try { table = JSON.parse(readFileSync(join(ctx.root, MILESTONES), 'utf8')); } catch (e) {
+      notes.push(`${MILESTONES} could not be read (${firstLine(e?.message ?? e)}): nothing is let through`);
+      return { files, notes };
+    }
+  }
+  // [{ milestone, listed }]: the milestones whose replaceable entries this run reads.
+  const plans = [];
+  if (ctx.milestone !== null) plans.push({ milestone: ctx.milestone, listed: ctx.plan?.replaceable ?? [] });
+  else {
+    for (const m of Array.isArray(table?.milestones) ? table.milestones : []) {
+      if (!(m?.replaceable ?? []).some((p) => p && p.test === true)) continue;
+      const where = await branchOf(ctx, m);
+      if (!where.ref) { notes.push(`milestone ${m.milestone} may replace tests, and ${where.why}: nothing is let through for it`); continue; }
+      if (!where.between) { notes.push(`milestone ${m.milestone} may replace tests, and its branch ${where.ref} ${where.why}: nothing is let through for it`); continue; }
+      plans.push({ milestone: m.milestone, listed: m.replaceable });
+    }
+  }
+  const wanted = plans.map((pl) => ({ ...pl, listed: pl.listed.filter((p) => p && p.test === true) })).filter((pl) => pl.listed.length);
+  if (!wanted.length) return { files, notes };
   let mine;
   try { mine = JSON.parse(readFileSync(join(ctx.root, REPLACEABLE), 'utf8')); } catch (e) {
-    notes.push(`${REPLACEABLE} could not be read (${firstLine(e?.message ?? e)}): nothing is let through for milestone ${ctx.milestone}`);
+    notes.push(`${REPLACEABLE} could not be read (${firstLine(e?.message ?? e)}): nothing is let through for milestone ${wanted.map((pl) => pl.milestone).join(', ')}`);
     return { files, notes };
   }
-  for (const p of listed) {
-    const e = (Array.isArray(mine?.replaceable) ? mine.replaceable : []).find((x) => x && x.milestone === ctx.milestone && x.file === p.file);
-    const never = neverReplaced(p.file, mine?.never);
-    if (!e || e.scope !== p.scope || e.condition !== p.condition || e.test !== p.test) notes.push(`the milestone table lets milestone ${ctx.milestone} replace ${p.file}, and ${REPLACEABLE} does not say the same: nothing is let through for it`);
-    else if (never) notes.push(`${p.file} is listed for milestone ${ctx.milestone} and is never replaced (${never}): nothing is let through for it`);
-    else if (!e.ledger || e.ledger.bytes !== true || !['kept', 'replaced'].includes(e.ledger.tests)) notes.push(`${REPLACEABLE} gives no ledger entry the ledger reads for ${p.file}: nothing is let through for it`);
-    else files.set(p.file, { tests: e.ledger.tests, stay: Array.isArray(e.ledger.stay) ? e.ledger.stay : [], scope: String(p.scope ?? '') });
+  for (const { milestone, listed } of wanted) {
+    for (const p of listed) {
+      const e = (Array.isArray(mine?.replaceable) ? mine.replaceable : []).find((x) => x && x.milestone === milestone && x.file === p.file);
+      const never = neverReplaced(p.file, mine?.never);
+      if (!e || e.scope !== p.scope || e.condition !== p.condition || e.test !== p.test) notes.push(`the milestone table lets milestone ${milestone} replace ${p.file}, and ${REPLACEABLE} does not say the same: nothing is let through for it`);
+      else if (never) notes.push(`${p.file} is listed for milestone ${milestone} and is never replaced (${never}): nothing is let through for it`);
+      else if (!e.ledger || e.ledger.bytes !== true || !['kept', 'replaced'].includes(e.ledger.tests)) notes.push(`${REPLACEABLE} gives no ledger entry the ledger reads for ${p.file}: nothing is let through for it`);
+      else if (files.has(p.file)) notes.push(`${p.file} is listed for milestones ${files.get(p.file).milestone} and ${milestone}: only milestone ${files.get(p.file).milestone}'s rule is applied`);
+      else files.set(p.file, { tests: e.ledger.tests, stay: Array.isArray(e.ledger.stay) ? e.ledger.stay : [], scope: String(p.scope ?? ''), milestone });
+    }
   }
   return { files, notes };
+}
+
+/**
+ * Where a milestone's branch is, and whether its work lies between the base and the head:
+ * { ref, between, why }. ref is null when no branch of that name is found.
+ */
+async function branchOf(ctx, m) {
+  const name = `overhaul/m${String(m.milestone).padStart(2, '0')}-${m.name}`;
+  let ref = null;
+  for (const r of [`refs/heads/${name}`, `refs/remotes/origin/${name}`]) {
+    if ((await ctx.sh(`git rev-parse --verify --quiet ${quote(`${r}^{commit}`)}`)).code === 0) { ref = r; break; }
+  }
+  if (!ref) return { ref: null, between: false, why: `no branch ${name} is here (local or origin's)` };
+  const inHead = (await ctx.sh(`git merge-base --is-ancestor ${quote(ref)} ${quote(ctx.head)}`)).code === 0;
+  const inBase = (await ctx.sh(`git merge-base --is-ancestor ${quote(ref)} ${quote(ctx.base)}`)).code === 0;
+  return { ref, between: inHead && !inBase, why: !inHead ? 'is not in the head\'s history' : inBase ? 'is already in the base\'s history' : '' };
 }
 
 /** The test files of the base that differ at head or are gone: [{ file, how: 'changed' | 'deleted' }]. Null when git could not say. */
@@ -273,7 +319,7 @@ export async function run(ctx) {
   const changedFiles = await changedTestFiles(ctx);
   if (changedFiles === null) return { ok: false, summary: 'NOT RUN: git could not compare the test files with the base\'s', lines: [], data: {} };
 
-  const allow = allowances(ctx);
+  const allow = await allowances(ctx);
   const lines = [];
   const decisions = [];
   const short = ctx.base.slice(0, 7);
@@ -361,13 +407,27 @@ export async function run(ctx) {
   for (const p of base.problems) problems.push(p);
 
   // What was let through, by name, and what the reviewer should know.
-  list(`replaced in milestone ${ctx.milestone}, as plan file 19, section 1, allows`, replaced, said);
-  list(`test files changed in milestone ${ctx.milestone}, as plan file 19, section 1, allows`, filesAllowed, (f) => `${f.file} (${f.how}): ${allow.files.get(f.file).scope}`);
+  const whose = (file) => allow.files.get(file).milestone;
+  if (ctx.milestone !== null) {
+    list(`replaced in milestone ${ctx.milestone}, as plan file 19, section 1, allows`, replaced, said);
+    list(`test files changed in milestone ${ctx.milestone}, as plan file 19, section 1, allows`, filesAllowed, (f) => `${f.file} (${f.how}): ${allow.files.get(f.file).scope}`);
+  } else {
+    list('replaced in the milestones between the base and the head, as plan file 19, section 1, allows', replaced, (t) => `milestone ${whose(t.file)}: ${said(t)}`);
+    list('test files changed in the milestones between the base and the head, as plan file 19, section 1, allows', filesAllowed, (f) => `milestone ${whose(f.file)}: ${f.file} (${f.how}): ${allow.files.get(f.file).scope}`);
+  }
   for (const note of allow.notes) lines.push(note);
-  if (replaced.length) decisions.push(`Milestone ${ctx.milestone} replaced ${plural(replaced.length, 'test')} under plan file 19, section 1 (${[...new Set(replaced.map((t) => t.file))].join(', ')}). Each is named in the ledger's section: check that each is within "${[...new Set(replaced.map((t) => allow.files.get(t.file).scope))].join('" / "')}".`);
+  if (ctx.milestone !== null) {
+    if (replaced.length) decisions.push(`Milestone ${ctx.milestone} replaced ${plural(replaced.length, 'test')} under plan file 19, section 1 (${[...new Set(replaced.map((t) => t.file))].join(', ')}). Each is named in the ledger's section: check that each is within "${[...new Set(replaced.map((t) => allow.files.get(t.file).scope))].join('" / "')}".`);
+  } else {
+    // No milestone: one decision per replaced test, each with its own milestone and scope.
+    for (const t of replaced) decisions.push(`Milestone ${whose(t.file)} replaced ${said(t)} under plan file 19, section 1: check that it is within "${allow.files.get(t.file).scope}".`);
+  }
   // A file that changed and lost no test: said too, so that a person reads the change against its scope.
   const quiet = filesAllowed.filter((f) => f.how === 'changed' && ![...gone, ...replaced].some((t) => t.file === f.file));
-  if (quiet.length) decisions.push(`Milestone ${ctx.milestone} changed ${quiet.map((f) => f.file).join(', ')} under plan file 19, section 1, and every test in ${quiet.length === 1 ? 'it' : 'them'} kept its name: check that the change is within "${[...new Set(quiet.map((f) => allow.files.get(f.file).scope))].join('" / "')}".`);
+  for (const m of [...new Set(quiet.map((f) => whose(f.file)))]) {
+    const mine = quiet.filter((f) => whose(f.file) === m);
+    decisions.push(`Milestone ${m} changed ${mine.map((f) => f.file).join(', ')} under plan file 19, section 1, and every test in ${mine.length === 1 ? 'it' : 'them'} kept its name: check that the change is within "${[...new Set(mine.map((f) => allow.files.get(f.file).scope))].join('" / "')}".`);
+  }
   for (const t of baseFailed) {
     const line = `${t.kind === 'flaky' ? 'FLAKY' : t.kind === 'broken' ? 'BROKEN' : 'FAILED'} at base ${short}: ${said(t)} failed ${t.fails} of ${t.of} ${t.of === 1 ? 'run' : 'runs'} there${t.kind === 'not run again' ? ' (it could not be run again)' : ''}. It must pass at head like any other test.`;
     lines.push(line);
@@ -385,7 +445,7 @@ export async function run(ctx) {
   const held = baseTally.total - replaced.length;
   return {
     ok: problems.length === 0,
-    summary: problems.length ? problems.join('; ') : `${count(passed)} tests passed at head; all ${count(held)} of the base's tests are there${headTally.skipped ? `, ${count(headTally.skipped)} skipped at head` : ''}; no existing test file changed${filesAllowed.length ? ` but the ${plural(filesAllowed.length, 'file')} this milestone may replace` : ''}`,
+    summary: problems.length ? problems.join('; ') : `${count(passed)} tests passed at head; all ${count(held)} of the base's tests are there${headTally.skipped ? `, ${count(headTally.skipped)} skipped at head` : ''}; no existing test file changed${filesAllowed.length ? ` but the ${plural(filesAllowed.length, 'file')} ${ctx.milestone === null ? 'the replaceable list allows' : 'this milestone may replace'}` : ''}`,
     lines,
     data: {
       base: { files: base.report.files.size, ...baseTally, made: base.made, failed: baseFailed, fileNotes: base.fileNotes },

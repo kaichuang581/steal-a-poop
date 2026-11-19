@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { POV_SHOTS } from '../homePov';
 import type { PovShot } from '../homePov';
-import { BARN } from '../layout';
+import { BARN, YARD } from '../layout';
 import { FARM, buildFarmstead } from '../farmstead';
 import { WENDIGO_AT, groundAt } from '../countryside';
 import { buildBarn } from '../barn';
@@ -57,8 +57,8 @@ const corners = (b: Box3): P3[] => [0, 1, 2, 3, 4, 5, 6, 7].map((c) => [c & 1 ? 
 const HERO = corners({ min: [-0.84, 0, BARN.maxZ + 1.2 - 0.84], max: [0.84, 1.65, BARN.maxZ + 1.2 + 0.84] });
 /** The barn's red: walls, roof and ridge. */
 const BARN_RED = corners({ min: [BARN.minX - 0.2, 0, BARN.minZ - 0.45], max: [BARN.maxX + 0.2, 6.8, BARN.maxZ + 0.2] });
-/** The tractor's voxels (`tractor` in scene/farmstead.ts). */
-const TRACTOR = corners({ min: [FARM.tractor.x - 2.0, 0, FARM.tractor.z - 1.25], max: [FARM.tractor.x + 1.7, 2.6, FARM.tractor.z + 1.25] });
+/** The farmhouse: its walls and its roof to the ridge (`farmhouse` in scene/yard.ts). */
+const FARMHOUSE = corners({ min: [YARD.farmhouse.x - 3.6, 0, YARD.farmhouse.z - 3], max: [YARD.farmhouse.x + 3.6, 5.8, YARD.farmhouse.z + 3] });
 const HENS = LIVESTOCK.filter(([a, x, z]) => a === 'chicken' && x >= FARM.run.minX && x <= FARM.run.maxX && z >= FARM.run.minZ && z <= FARM.run.maxZ);
 const inPaddock = ([, x, z]: (typeof LIVESTOCK)[number]) => x >= FARM.paddock.minX && x <= FARM.paddock.maxX && z >= FARM.paddock.minZ && z <= FARM.paddock.maxZ;
 /** What the phone draws: the first three of LIVESTOCK (Farmstead.tsx). */
@@ -72,7 +72,7 @@ const SUBJECTS: { desktop: { name: string; corners: P3[] }[]; phone: { name: str
     { name: 'the paddock animals (judged one by one)', corners: LIVESTOCK.filter(inPaddock).flatMap(animalCorners) },
     { name: 'the avatar, over its shoulder', corners: HERO },
     { name: 'the hens', corners: HENS.flatMap(animalCorners) },
-    { name: 'the tractor', corners: TRACTOR },
+    { name: 'the farmhouse', corners: FARMHOUSE },
     { name: 'the avatar, down the path', corners: HERO },
     { name: 'the barn, across the pond', corners: BARN_RED },
   ],

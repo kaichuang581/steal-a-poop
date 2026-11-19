@@ -1,5 +1,6 @@
 import { lin, paintingAsBefore } from './palette';
 import { hash3 } from './primitives';
+import { banded, patches } from './texture';
 import type { Paint, RGB } from './primitives';
 
 /**
@@ -28,13 +29,17 @@ function vnoise(x: number, z: number, seed: number) {
 }
 
 /**
- * Snow is one flat colour now (Brian, 2026-11-18: "remove all glitchy/static textures"): the shape of the land, its
- * drifts and steps, and the light give it its form (docs/diorama/PLAN.md 3.2, question 2). The textured snow below is
- * kept, under its own name, only for the wendigo's zone (scene/countryside.ts), whose every voxel is pinned.
+ * Snow: three near-whites laid in broad, soft drifts a few metres across (Brian, 2026-11-19: flat is not what he
+ * wants either: "everything is without texture"; 2026-11-18: no static). No grain, no ripples, no sparkles: the drifts'
+ * edges step with the voxels, and the land's own steps and the light do the rest. In metres, so every grid gets the
+ * same drifts at the same size. The textured snow of 2026-11-08 below is kept, under its own name, only for the
+ * wendigo's zone (`asBefore` in palette.ts), whose every voxel is pinned.
  */
-export const SNOW = lin('#F1F2EE');
+export const SNOW = lin('#F3F4F1');
+const SNOW_TONES = [lin('#E7ECF1'), SNOW, lin('#FBFBF9')] as const; // the hollows a little cool, the crests a little bright
 export function snowAt(x: number, y: number, z: number, cell: number, seed = 0): RGB {
-  return paintingAsBefore() ? snowAtTextured(x, y, z, cell, seed) : SNOW;
+  if (paintingAsBefore()) return snowAtTextured(x, y, z, cell, seed);
+  return banded(SNOW_TONES, patches(x * cell, z * cell, 3.4, seed + 40), [0.4, 0.62]);
 }
 export const snowPaint = (cell: number, seed = 0): Paint => (x, y, z) => snowAt(x, y, z, cell, seed);
 

@@ -62,12 +62,25 @@ export const YARD = {
   /** Snow ground covers this rectangle; the barn floor sits on top of it. */
   minX: -40, maxX: 40, minZ: -14, maxZ: 46,
   path: { fromZ: 7, toZ: 34, halfWidth: 1.2 },
-  fence: { z: 15, minX: -16, maxX: 16, gateHalfWidth: 1.6 },
+  /**
+   * The forecourt's fence: one line from the hen run's outer corner to the paddock's (FARM.run.minX, FARM.paddock.maxX in
+   * scene/farmstead.ts), with a side at each end running back to those pens, so the pens, the barn and this fence close
+   * one yard (Brian, 2026-11-19: "intentionally placed and well put together instead of a bunch of randomly assorted
+   * buildings").
+   */
+  fence: { z: 15, minX: -19, maxX: 22, gateHalfWidth: 1.6, sidesTo: [8.2, 7.2] as const },
   farmhouse: { x: -9, z: 30 },
   pond: { x: 10, z: 24, rx: 4.5, rz: 3 },
   /** `scale` sizes the snowman against the 1.5 m hero (plan file 04, section 4.4): its head tops out at 2.96 m x scale. */
   snowman: { x: 4.5, z: 11, scale: 0.72 },
-  pines: [[-14, 20], [-17, 26], [13, 33], [17, 19], [-6, 40], [7, 42], [-22, 34], [22, 30], [-9.8, 12.7], [-10.9, 16.8]] as const,
+  /** Pines, each [x, z, height in metres], in groves: never singles dotted over the snow. */
+  pines: [
+    [-14, 20, 8.4], // at the opening shot's shoulder: the dark the menu is read against
+    [-16.2, 27.6, 9], [-18.6, 31.4, 7], [-15.4, 35.2, 6.2], [-10.2, 36.6, 7.6], // the grove behind the farmhouse
+    [16.4, 26.2, 8.6], [19.2, 29.4, 6.6], [14.6, 30.8, 5.4], // the grove behind the pond
+    [-6, 40, 7.5], [7, 42, 8.2], // either side of the view out through the barn doors
+    [-9.8, 12.7, 6], [-10.9, 16.8, 7.4], // by the hens' run
+  ] as const,
 };
 
 export const DISTANCE = {

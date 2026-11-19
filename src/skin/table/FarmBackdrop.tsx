@@ -80,6 +80,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
       <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} />
+      <DoorGain hour={hour} />
       <Atmosphere hour={hour} />
       <MarkDrawn />
       <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} lampRef={lowerLamp} place="home" />
@@ -128,7 +129,7 @@ function Drift({ shots, veil, spot, bounce, reduced, ready }: {
     if (startedAt.current !== null && clock.elapsedTime < startedAt.current) { startedAt.current = clock.elapsedTime; }
     const still = reduced || pinned !== null || startedAt.current === null;
     const pov = still ? { index: pinned ?? 0, progress: 0, veil: 0 } : povAt(clock.elapsedTime - startedAt.current!, shots.length);
-    const shot = shots[pov.index];
+    const shot = DEV_CAM ?? shots[pov.index];
     if (pov.index !== shown.current) {
       shown.current = pov.index;
       // The cut is made in the dark of the dip: a tier the frames earned comes in here, the paddock's exemption (the
@@ -140,9 +141,9 @@ function Drift({ shots, veil, spot, bounce, reduced, ready }: {
       camera.fov = shot.fov;
       camera.updateProjectionMatrix();
       const spill = shot.spill ?? 1;
-      if (spot.current) spot.current.intensity = DOOR_LIGHT.spot * spill;
+      if (spot.current) spot.current.intensity = DOOR_LIGHT.spot * spill * DOOR_GAIN.now;
       if (bounce.current) {
-        bounce.current.intensity = DOOR_LIGHT.bounce * spill;
+        bounce.current.intensity = DOOR_LIGHT.bounce * spill * DOOR_GAIN.now;
         bounce.current.position.set(...(shot.bounce ?? DOOR_LIGHT.bounceAt));
       }
     }
@@ -160,17 +161,38 @@ function Drift({ shots, veil, spot, bounce, reduced, ready }: {
   return null;
 }
 
+/**
+ * A camera for looking round the farm on a development server: ?cam=x,y,z,tx,ty,tz[,fov] stands the Home camera there,
+ * still, in place of the tour's shot. Never in a build players load.
+ */
+const DEV_CAM: PovShot | null = (() => {
+  if (!import.meta.env.DEV || typeof location === 'undefined') return null;
+  const v = new URLSearchParams(location.search).get('cam')?.split(',').map(Number);
+  if (!v || v.length < 6 || v.some((n) => !Number.isFinite(n))) return null;
+  return { position: [v[0], v[1], v[2]], target: [v[3], v[4], v[5]], fov: v[6] ?? 40, push: [0, 0, 0], spill: 0.4 };
+})();
 const DOOR_LIGHT = { spot: 120, bounce: 14, bounceAt: [-1.5, 1.6, BARN.maxZ + 3.6] as const };
+/**
+ * How much of the doorway's lamp light shows at each hour: under the diorama's daylight (table/Rendering.tsx) the full
+ * lamp burned the snow and the avatar out, so by day it is a warm hint and only at night the pool it was.
+ */
+const DOOR_GAIN = { dawn: 0.45, day: 0.22, dusk: 0.55, night: 1, now: 0.22 };
 
 /** Warm light from inside the doorway, pointed down the path, so it lies on the snow in front of the doors. */
+/** Sets the doorway lamp's share for the hour (read where the tour sets the lamp for each shot). */
+function DoorGain({ hour }: { hour: Hour }) {
+  DOOR_GAIN.now = DOOR_GAIN[hour];
+  return null;
+}
+
 function DoorSpill({ spot, bounce }: { spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null> }) {
   const target = useMemo(() => new Object3D(), []);
   return (
     <>
       <primitive object={target} position={[0, 0, BARN.maxZ + 7]} />
-      <spotLight ref={spot} position={[0, 3.2, BARN.maxZ - 0.4]} target={target} color="#FFC278" intensity={DOOR_LIGHT.spot} angle={0.55} penumbra={0.6} distance={16} decay={2} />
+      <spotLight ref={spot} position={[0, 3.2, BARN.maxZ - 0.4]} target={target} color="#FFC278" intensity={DOOR_LIGHT.spot * DOOR_GAIN.now} angle={0.55} penumbra={0.6} distance={16} decay={2} />
       {/* A little of that light bounced back off the snow, so the hero's face is not a silhouette. */}
-      <pointLight ref={bounce} position={[...DOOR_LIGHT.bounceAt]} color="#FFC278" intensity={DOOR_LIGHT.bounce} distance={7} decay={2} />
+      <pointLight ref={bounce} position={[...DOOR_LIGHT.bounceAt]} color="#FFC278" intensity={DOOR_LIGHT.bounce * DOOR_GAIN.now} distance={7} decay={2} />
     </>
   );
 }

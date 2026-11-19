@@ -6,6 +6,7 @@ import type { Steps } from './slices';
 import type { Voxel, VoxelMap } from '../voxel/mesher';
 import { lin, pick, pickBy, SCARF, T } from '../voxel/palette';
 import { snowPaint } from '../voxel/snow';
+import { banded, course, patches } from '../voxel/texture';
 import { tieredPine } from './style/pine';
 import type { Tone } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, line, ring, rng } from '../voxel/primitives';
@@ -21,7 +22,8 @@ const snow = snowPaint(S, 3);
 const groundSnow = snowPaint(S, 2);
 const CARROT = '#E8873A';
 const SKATE = '#EEF8FC';
-const WINDOW_FRAME = '#EDE6D6';
+/** The pale ends of split logs, a value step apart log to log. */
+const CUT_ENDS = ['#D8B581', '#CBA672', '#BD9865'] as const;
 
 /** A chunk's own voxels, but face culling and AO look at the whole yard so chunk borders stay seamless. */
 export class ChunkMap extends Map<string, Voxel> {
@@ -35,7 +37,7 @@ export class ChunkMap extends Map<string, Voxel> {
 
 const smooth = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
 /** Path centre line: straight from the back door through the gate, then a bend to the farmhouse steps. */
-const PATH_END = 24.6;
+const PATH_END = 25.6;
 const pathX = (z: number) => YARD.farmhouse.x * smooth((z - YARD.fence.z) / 8);
 const onPath = (x: number, z: number) => z >= YARD.path.fromZ && z <= PATH_END + 0.2 && Math.abs(x - pathX(z)) <= YARD.path.halfWidth;
 const inBarn = (x: number, z: number) => x >= BARN.minX && x <= BARN.maxX && z >= BARN.minZ && z <= BARN.maxZ;
@@ -51,7 +53,10 @@ export interface Yard {
   chunks: BufferGeometry[];
   /** For each chunk, whether it can cast a shadow at all (see `castsShadow`). */
   casts: boolean[];
-  snowman: BufferGeometry; smokeFrom: [number, number, number]; triangles: number;
+  snowman: BufferGeometry;
+  /** The farmhouse's window panes: their own mesh, which `Farm` draws lit from inside. */
+  panes: BufferGeometry;
+  smokeFrom: [number, number, number]; triangles: number;
 }
 
 /** The yard, built in steps (scene/slices.ts). */
@@ -77,14 +82,15 @@ export function* buildYardSteps(): Steps<Yard> {
   yield;
   fence(g, set, boxI, capAt);
   yield;
-  YARD.pines.forEach(([x, z], i) => pine(g, set, x, z, i + 1));
+  YARD.pines.forEach(([x, z, h], i) => pine(g, set, x, z, i + 1, h));
   yield;
   sled(set, boxI, capAt);
   woodpile(set, boxI, capAt);
   feeder(set, boxI, capAt);
   trough(boxI);
-  cattails(set);
-  const smokeFrom = farmhouse(g, set, boxI, capAt);
+  baleStack(boxI, capAt);
+  const panes = new Grid(S);
+  const smokeFrom = farmhouse(g, panes, set, boxI, capAt);
   yield;
 
   // Split into 8 m chunks in x/z; each chunk's faces still cull against its neighbours. The ground stays as it is, and
@@ -111,8 +117,9 @@ export function* buildYardSteps(): Steps<Yard> {
   // The snowman is its own mesh with no corner shading: on a white ball the corner shading of every little step stacks
   // into dark stripes. It takes light and shadow like the snow around it, so it never looks glazed or out of place.
   const man2 = buildGeometry(man.map, S / 2, { ao: false });
-  for (const g of [...geos, man2]) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
-  return { chunks: geos, casts: geos.map(castsShadow), snowman: man2, smokeFrom, triangles: [...geos, man2].reduce((s, x) => s + triangles(x), 0) };
+  const glass = buildGeometry(panes.map, S, { ao: false });
+  for (const g of [...geos, man2, glass]) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
+  return { chunks: geos, casts: geos.map(castsShadow), snowman: man2, panes: glass, smokeFrom, triangles: [...geos, man2, glass].reduce((s, x) => s + triangles(x), 0) };
 }
 
 /**
@@ -132,7 +139,9 @@ type BoxI = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: num
 type Cap = (x: number, y: number, z: number) => void;
 
 function ground(_g: Grid, set: Set) {
-  const pathTone = tone(T.path, 5, [0.5, 0.85]);
+  // The path: packed snow, a step cooler than the yard's, in broad soft patches of two close tones.
+  const PACKED = [lin(T.path[0]), lin(T.path[1])] as const;
+  const pathTone: Paint = (xi, _y, zi) => banded(PACKED, patches(xi * S, zi * S, 2.2, 5), [0.55]);
   const ice = tone(T.ice, 6, [0.5, 0.85]);
   const skate = lin(SKATE);
   const skateMark = (x: number, z: number) => {
@@ -157,6 +166,9 @@ function ground(_g: Grid, set: Set) {
       // Snow with soft drifts, ripples and grain (voxel/snow.ts), never the square patches it used to have.
       set(xi, -1, zi, path ? pathTone : groundSnow);
       if (path) continue;
+      // A low bank of shovelled snow along each side of the path, so it reads as a path and not as a shadow.
+      const offPath = Math.abs(x - pathX(z)) - YARD.path.halfWidth;
+      if (z >= YARD.path.fromZ + 0.6 && z <= PATH_END - 0.4 && offPath > 0 && offPath <= 0.4 && !underWalls(x, z)) { set(xi, 0, zi, snow); continue; }
       // 0.2 m drifts against the fence, the barn's walls and round the pond: even bands, one step high, clean edges.
       const fenceD = Math.abs(z - YARD.fence.z - 0.1);
       const byFence = x >= YARD.fence.minX && x <= YARD.fence.maxX && Math.abs(x) > YARD.fence.gateHalfWidth + 0.4 && fenceD < 0.5;
@@ -170,27 +182,31 @@ function ground(_g: Grid, set: Set) {
 
 function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
   const wood = tone(T.beam, 11, [0.45, 0.85]);
+  const F = YARD.fence;
+  const zf = ix(F.z); // the rails' row of cells; the gate posts stand on zf and zf + 1
+  const gate = ix(F.gateHalfWidth + 0.2); // gate posts at x = ±(1.6..2.0)
   const nail = () => lin(T.stone[2]);
-  const zf = ix(YARD.fence.z); // posts occupy zf..zf+1, rails sit on the near face at zf-1
-  const gate = ix(YARD.fence.gateHalfWidth + 0.2); // gate posts at x = ±(1.6..2.0)
-  const posts: number[] = [];
-  for (let x = 4; x <= YARD.fence.maxX; x += 2) posts.push(ix(x) - 1, -ix(x) - 1);
-  for (const px of posts) {
-    boxI(px, px + 1, 0, 6, zf, zf + 1, wood);
-    for (let dx = 0; dx < 2; dx++) for (let dz = 0; dz < 2; dz++) cap(px + dx, 6, zf + dz);
-    if (hash3(px, 0, 0, 4) > 0.4) set(px + (px > 0 ? 1 : 0), 8, zf, snow);
-  }
-  // Two rails, each 1 voxel thick, nailed to every post; snow along their tops.
-  const rails = (a: number, b: number) => {
-    for (const y of [2, 5])
-      for (let x = a; x <= b; x++) {
-        const onPost = posts.includes(x) || posts.includes(x - 1);
-        set(x, y, zf - 1, onPost && posts.includes(x) ? nail : wood);
-        if (hash3(x, y, 1, 8) > 0.3) cap(x, y, zf - 1);
+  /**
+   * A run of rail fence from one cell to another, in the make of the pens' fences (`fenceRun` in farmstead.ts): two
+   * rails with an even line of snow on the upper, a post every 2 m counted back from where it ends, a cap of snow on each.
+   */
+  const run = (x0: number, z0: number, x1: number, z1: number, endPost = true) => {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(z1 - z0)), sx = Math.sign(x1 - x0), sz = Math.sign(z1 - z0);
+    for (let i = 0; i <= n; i++) {
+      const x = x0 + sx * i, z = z0 + sz * i;
+      for (const y of [2, 4]) set(x, y, z, wood);
+      cap(x, 4, z);
+      if ((n - i) % 10 === 0 && (i > 3 || n < 4) && (endPost || i < n)) {
+        boxI(x, x, 0, 5, z, z, wood);
+        cap(x, 5, z);
       }
+    }
   };
-  rails(ix(YARD.fence.minX) - 1, -gate - 1);
-  rails(gate, ix(YARD.fence.maxX));
+  // Along the front, out from each gate post to the forecourt's corners; then back from each corner to the pens.
+  run(-gate - 1, zf, ix(F.minX), zf);
+  run(gate, zf, ix(F.maxX), zf);
+  run(ix(F.minX), zf - 1, ix(F.minX), ix(F.sidesTo[0]), false);
+  run(ix(F.maxX), zf - 1, ix(F.maxX), ix(F.sidesTo[1]), false);
   // Gate posts (taller), the gate leaf swung open into the yard, hinges, latch.
   const lp = -gate, rp = gate - 2;
   boxI(lp, lp + 1, 0, 7, zf, zf + 1, wood);
@@ -198,14 +214,14 @@ function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
   for (let dz = 0; dz < 2; dz++) cap(lp, 7, zf + dz), cap(lp + 1, 7, zf + dz);
   const leafX = lp + 2, len = ix(YARD.fence.gateHalfWidth * 2 - 0.4);
   for (let dz = 0; dz < len; dz++) {
-    for (const y of [2, 5]) {
+    for (const y of [2, 4]) {
       set(leafX, y, zf + 1 + dz, wood);
-      if (hash3(dz, y, 3, 8) > 0.35) cap(leafX, y, zf + 1 + dz);
+      if (y === 4) cap(leafX, y, zf + 1 + dz);
     }
-    if (dz === 0 || dz === len - 1 || dz === len >> 1) boxI(leafX, leafX, 1, 6, zf + 1 + dz, zf + 1 + dz, wood);
+    if (dz === 0 || dz === len - 1 || dz === len >> 1) boxI(leafX, leafX, 1, 5, zf + 1 + dz, zf + 1 + dz, wood);
   }
-  line(g, [(leafX + 0.5) * S, 2.5 * S, (zf + 1.5) * S], [(leafX + 0.5) * S, 5.5 * S, (zf + len - 0.5) * S], wood);
-  for (const y of [2, 5]) set(leafX, y, zf, nail); // hinges
+  line(g, [(leafX + 0.5) * S, 2.5 * S, (zf + 1.5) * S], [(leafX + 0.5) * S, 4.5 * S, (zf + len - 0.5) * S], wood);
+  for (const y of [2, 4]) set(leafX, y, zf, nail); // hinges
   set(rp - 1, 4, zf + 1, () => lin(T.brass[1])); // latch
   set(rp - 1, 4, zf, () => lin(T.brass[2]));
   // A small lantern on the right gate post: dark base, glow in three tones, dark hood, a pinch of snow.
@@ -217,7 +233,7 @@ function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
   set(rp, 12, zf, dark);
   cap(rp, 12, zf);
   // Mailbox by the gate: post, grey box, red flag, snow on top.
-  const mx = ix(2.8), mz = zf - 4;
+  const mx = ix(2.8), mz = zf + 7; // outside the gate, where the post would be left
   boxI(mx, mx, 0, 4, mz, mz, wood);
   boxI(mx - 1, mx + 1, 5, 6, mz - 2, mz + 1, tone(T.stone, 13));
   set(mx, 5, mz - 3, () => lin(T.stone[2]));
@@ -299,8 +315,9 @@ function sled(set: Set, boxI: BoxI, cap: Cap) {
 }
 
 function woodpile(set: Set, boxI: BoxI, cap: Cap) {
-  // Lean-to beside the path past the gate: two tall back posts, two short front posts, a sloped plank roof with snow.
-  const x0 = ix(2.2), x1 = ix(5.0), zf = ix(19.0), zb = ix(20.6);
+  // A lean-to against the farmhouse's end wall, the logs within reach of its door: two tall back posts, two short front
+  // posts, a sloped plank roof with snow.
+  const x0 = ix(YARD.farmhouse.x + 4.2), x1 = ix(YARD.farmhouse.x + 7.0), zf = ix(YARD.farmhouse.z - 1.0), zb = ix(YARD.farmhouse.z + 0.6);
   const post = tone(T.beam, 61);
   for (const x of [x0, x1]) {
     boxI(x, x, 0, 8, zf, zf, post);
@@ -320,12 +337,14 @@ function woodpile(set: Set, boxI: BoxI, cap: Cap) {
       const lx = x0 + 1 + row + k * 2, ly = row * 2;
       if (lx + 1 >= x1) continue;
       boxI(lx, lx + 1, ly, ly + 1, zf + 1, zb - 1, bark);
-      for (let dx = 0; dx < 2; dx++) for (let dy = 0; dy < 2; dy++) set(lx + dx, ly + dy, zf + 1, () => lin(dx + dy === 1 ? T.hay[2] : T.beam[0]));
+      const end = lin(CUT_ENDS[Math.floor(hash3(row, k, 0, 65) * CUT_ENDS.length) % CUT_ENDS.length]); // one tone a log
+      for (let dx = 0; dx < 2; dx++) for (let dy = 0; dy < 2; dy++) set(lx + dx, ly + dy, zf + 1, () => end);
     }
 }
 
 function feeder(set: Set, boxI: BoxI, cap: Cap) {
-  const fx = ix(-2.8), fz = ix(12.4);
+  // In the farmhouse's front garden, under its window (it stood in the forecourt, in front of the avatar in Home's opening shot).
+  const fx = ix(YARD.farmhouse.x - 4.6), fz = ix(YARD.farmhouse.z - 5.2);
   const wood = tone(T.beam, 71);
   boxI(fx, fx, 0, 6, fz, fz, wood);
   boxI(fx - 1, fx + 1, 7, 7, fz - 1, fz + 1, wood);
@@ -335,6 +354,24 @@ function feeder(set: Set, boxI: BoxI, cap: Cap) {
   boxI(fx - 2, fx + 2, 9, 9, fz - 1, fz + 1, tone(T.roof, 72));
   boxI(fx - 1, fx + 1, 10, 10, fz - 1, fz + 1, tone(T.roof, 73));
   for (let x = fx - 2; x <= fx + 2; x++) for (let z = fz - 1; z <= fz + 1; z++) cap(x, Math.abs(x - fx) <= 1 ? 10 : 9, z);
+}
+
+/**
+ * Square bales stacked in the forecourt, as in Brian's farm picture: three in a row and two behind them, two across
+ * those, one on top. Each bale is one tone of straw with its two twine bands a step darker; snow on the ones open to
+ * the sky.
+ */
+function baleStack(boxI: BoxI, cap: Cap) {
+  const x0 = ix(8.2), z0 = ix(10.4), L = 5, W = 3, H = 3; // a bale: 1.0 x 0.6 x 0.6 m, its length along x
+  const bale = (bx: number, by: number, bz: number, n: number) => {
+    const straw = pickBy(T.hay, hash3(n, 0, 0, 87)), twine = lin(T.hay[2]);
+    boxI(bx, bx + L - 1, by, by + H - 1, bz, bz + W - 1, (x) => (x === bx + 1 || x === bx + L - 2 ? twine : straw));
+    for (let x = bx; x < bx + L; x++) for (let z = bz; z < bz + W; z++) cap(x, by + H - 1, z); // a bale set on top takes its place
+  };
+  for (let i = 0; i < 3; i++) bale(x0 + i * L, 0, z0 + W, i);
+  for (let i = 0; i < 2; i++) bale(x0 + i * L, 0, z0, 3 + i);
+  bale(x0, H, z0 + 1, 5), bale(x0 + L, H, z0 + 1, 6);
+  bale(x0 + 2, H * 2, z0 + 1, 7);
 }
 
 function trough(boxI: BoxI) {
@@ -348,26 +385,22 @@ function trough(boxI: BoxI) {
   boxI(x0, x1, 4, 4, z0, z0, snow);
 }
 
-function cattails(set: Set) {
-  const stem: Paint = (x, y, z) => pick(['#7C8A55', '#6B7848', '#5A663C'], hash3(x, y, z, 91));
-  const head: Paint = (x, y, z) => pick(T.trunk, hash3(x, y, z, 92), [0.3, 0.8]);
-  const r = rng(93);
-  for (let k = 0; k < 14; k++) {
-    const a = Math.PI * (0.15 + r() * 0.7) + (k % 3 === 0 ? Math.PI : 0); // mostly on the far bank
-    const x = ix(YARD.pond.x + Math.cos(a) * YARD.pond.rx * 1.02), z = ix(YARD.pond.z + Math.sin(a) * YARD.pond.rz * 1.02);
-    const h = 4 + Math.floor(r() * 3);
-    for (let y = 0; y < h; y++) set(x, y, z, stem);
-    set(x, h, z, head), set(x, h + 1, z, head);
-    set(x, h + 2, z, stem);
-  }
-}
+/**
+ * The farmhouse's own paint (Brian's farm picture, docs/diorama/reference/farm-34.png): warm clapboard a value step
+ * apart board to board, dark timber at the corners and round every opening, panes lit from inside.
+ */
+const HOUSE = { board: ['#DCC299', '#CFB389'], timber: '#6B4832', pane: ['#FFE28C', '#FFCB5C'], door: ['#8C4A3A', '#7B3F32'] } as const;
 
-/** Farmhouse with shingled roof, windows, chimney, porch and bench. Returns the chimney top (smoke origin). */
-function farmhouse(g: Grid, set: Set, boxI: BoxI, cap: Cap): [number, number, number] {
+/**
+ * The farmhouse: a stone footing, clapboard walls with timber corners, lit windows on all four sides, a plank door on a
+ * stone step, a shingled roof under one blanket of snow, a stone chimney. Returns the chimney top (smoke origin).
+ */
+function farmhouse(g: Grid, panes: Grid, set: Set, boxI: BoxI, cap: Cap): [number, number, number] {
   const X0 = ix(YARD.farmhouse.x - 3.6), X1 = ix(YARD.farmhouse.x + 3.6) - 1;
   const Z0 = ix(YARD.farmhouse.z - 3), Z1 = ix(YARD.farmhouse.z + 3) - 1;
   const WH = 16, zc = (Z0 + Z1 + 1) / 2, half = (Z1 - Z0 + 1) / 2, pitch = 0.8;
-  const wall: Paint = (x, y, z) => (y % 3 === 2 ? lin(T.house[2]) : pick(T.house, hash3(x >> 2, y >> 2, z >> 2, 101), [0.55, 1]));
+  const timber: Paint = () => lin(HOUSE.timber);
+  const wall: Paint = (_x, y) => (y < 2 ? lin(T.stone[1]) : lin(HOUSE.board[(y >> 1) & 1]));
   // Walls (one voxel shell) and the gable ends.
   for (let x = X0; x <= X1; x++)
     for (let z = Z0; z <= Z1; z++) {
@@ -379,7 +412,8 @@ function farmhouse(g: Grid, set: Set, boxI: BoxI, cap: Cap): [number, number, nu
         for (let y = WH; y < top; y++) set(x, y, z, wall);
       }
     }
-  // Roof: alternating shingle rows down the slope, staggered seams, patchy snow; 2-voxel overhang.
+  for (const x of [X0, X1]) for (const z of [Z0, Z1]) boxI(x, x, 2, WH - 1, z, z, timber);
+  // Roof: alternating shingle rows down the slope, staggered seams, a blanket of snow; 2-voxel overhang.
   for (let x = X0 - 2; x <= X1 + 2; x++)
     for (let z = Z0 - 2; z <= Z1 + 2; z++) {
       const d = Math.abs(z + 0.5 - zc);
@@ -387,60 +421,55 @@ function farmhouse(g: Grid, set: Set, boxI: BoxI, cap: Cap): [number, number, nu
       const row = Math.floor(d / 2);
       const seam = (x + (row % 2) * 2) % 4 === 0;
       set(x, y, z, () => lin(seam ? T.roof[2] : row % 2 ? T.roof[1] : T.roof[0]));
-      if (d < 2 || (d < half - 1 && hash3(x, y, z, 102) > 0.4)) cap(x, y, z);
+      if (d < half - 1) cap(x, y, z); // one blanket of snow, the roof showing along the eaves
     }
-  // Front windows: frame, mullion cross, red curtains at the sides, warm interior gradient, sill with snow.
-  const glow = [T.lantern[0], T.lantern[0], T.lantern[1], T.lantern[1], T.lantern[2]];
-  for (const wx of [ix(YARD.farmhouse.x - 2.3) - 3, ix(YARD.farmhouse.x + 2.3) - 4]) {
-    const wy = 7;
-    for (let dx = 0; dx < 7; dx++)
-      for (let dy = 0; dy < 7; dy++) {
-        const frame = dx === 0 || dx === 6 || dy === 0 || dy === 6 || dx === 3 || dy === 3;
-        const curtain = (dx === 1 || dx === 5) && dy >= 2;
-        const c = frame ? WINDOW_FRAME : curtain ? (dy % 2 ? T.collar[0] : T.collar[1]) : glow[dy - 1];
-        g.set(wx + dx, wy + dy, Z0, lin(c));
+  /**
+   * A lit window in a wall: a timber frame and cross, warm panes (brighter at the top), a timber sill.
+   * `at(i, j, out)` gives the cell `i` along the wall, `j` up and `out` cells proud of it.
+   */
+  const lit = (at: (i: number, j: number, out: number) => [number, number, number], w: number, h: number) => {
+    for (let i = 0; i < w; i++)
+      for (let j = 0; j < h; j++) {
+        const frame = i === 0 || i === w - 1 || j === 0 || j === h - 1 || (w > 4 && i === w >> 1) || (h > 4 && j === h >> 1);
+        const [x, y, z] = at(i, j, 0);
+        if (frame) { g.set(x, y, z, lin(HOUSE.timber)); continue; }
+        // A pane is taken out of the wall and set in the panes' own grid, which is drawn glowing.
+        g.del(x, y, z);
+        panes.set(x, y, z, lin(HOUSE.pane[j > h >> 1 ? 0 : 1]));
       }
-    for (let dx = -1; dx < 8; dx++) set(wx + dx, wy - 1, Z0 - 1, () => lin(WINDOW_FRAME)), cap(wx + dx, wy - 1, Z0 - 1);
+    for (let i = -1; i <= w; i++) set(...at(i, -1, 1), timber); // the sill
+  };
+  const wl = X0 + 4, wr = X1 - 10, wy = 6, gz = Math.round(zc) - 3;
+  for (const wx of [wl, wr]) {
+    lit((i, j, out) => [wx + i, wy + j, Z0 - out], 7, 7); // the front
+    lit((i, j, out) => [wx + i, wy + j, Z1 + out], 7, 7); // the back
   }
-  // Door with a brass knob.
+  for (const [x, out] of [[X0, -1], [X1, 1]] as const) {
+    lit((i, j, o) => [x + out * o, wy + j, gz + i], 7, 7); // each gable end
+    lit((i, j, o) => [x + out * o, 19 + j, gz + 2 + i], 3, 3); // and the loft's small window over it
+  }
+  // The door: planks in a timber frame, a brass knob, on a stone step with a lower one in front.
   const dx0 = ix(YARD.farmhouse.x) - 2;
-  boxI(dx0, dx0 + 3, 3, 12, Z0, Z0, (x) => lin((x - dx0) % 2 ? T.roof[1] : T.roof[2]));
+  boxI(dx0 - 1, dx0 + 4, 2, 13, Z0, Z0, timber);
+  boxI(dx0, dx0 + 3, 2, 12, Z0, Z0, (x) => lin(HOUSE.door[(x - dx0) >> 1 & 1]));
   set(dx0 + 3, 7, Z0 - 1, () => lin(T.brass[0]));
-  // Chimney in stone with mortar courses and a wider crown.
+  const flag: Paint = (x, y, z) => lin(T.stone[course(x, z, 4, 3, 2, 104 + y)]);
+  boxI(dx0 - 2, dx0 + 5, 0, 1, Z0 - 5, Z0 - 1, flag);
+  boxI(dx0 - 1, dx0 + 4, 0, 0, Z0 - 7, Z0 - 6, flag);
+  // Chimney in stone with mortar courses and a wider crown, snow on the crown.
   const cx = ix(YARD.farmhouse.x - 2.3) - 1, cz = Math.round(zc) + 1, top = 33;
   for (let y = WH - 2; y <= top; y++)
     for (let dx = -1; dx <= 1; dx++)
       for (let dz = -1; dz <= 1; dz++) {
         if (y === top && dx === 0 && dz === 0) continue;
-        set(cx + dx, y, cz + dz, (a, b, c) => (b % 3 === 0 ? lin(T.stone[0]) : pick(T.stone, hash3(a, b, c, 103), [0.3, 0.8])));
+        set(cx + dx, y, cz + dz, (_a, b) => lin(b % 3 === 0 ? T.stone[0] : T.stone[1]));
       }
-  for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.abs(dx) === 2 || Math.abs(dz) === 2) set(cx + dx, top, cz + dz, () => lin(T.stone[2]));
-  // Porch deck (0.6 m) with two steps, a railing and a snow-covered bench.
-  const px0 = ix(YARD.farmhouse.x - 2), px1 = ix(YARD.farmhouse.x + 2) - 1, pz0 = Z0 - 8;
-  const plank: Paint = (x, y, z) => ((x - px0) % 3 === 2 ? lin(T.beam[2]) : pick(T.beam, hash3(x, y, z, 104), [0.5, 0.95]));
-  boxI(px0, px1, 0, 2, pz0, Z0 - 1, plank);
-  const sx0 = ix(YARD.farmhouse.x - 1), sx1 = ix(YARD.farmhouse.x + 1) - 1;
-  boxI(sx0, sx1, 0, 1, pz0 - 2, pz0 - 1, plank);
-  boxI(sx0, sx1, 0, 0, pz0 - 4, pz0 - 3, plank);
-  const rail = tone(T.beam, 105);
-  for (let x = px0; x <= px1; x++) {
-    const gap = x >= sx0 && x <= sx1;
-    if (!gap && ((x - px0) % 3 === 0 || x === px1 || x === sx0 - 1 || x === sx1 + 1)) boxI(x, x, 3, 6, pz0, pz0, rail);
-    if (!gap) set(x, 7, pz0, rail), hash3(x, 7, 0, 106) > 0.3 && cap(x, 7, pz0);
-  }
-  for (const x of [px0, px1])
-    for (let z = pz0; z < Z0; z++) {
-      if ((z - pz0) % 3 === 0) boxI(x, x, 3, 6, z, z, rail);
-      set(x, 7, z, rail);
-      if (hash3(x, 7, z, 107) > 0.3) cap(x, 7, z);
-    }
-  const bx0 = px1 - 7, bx1 = px1 - 2;
-  boxI(bx0, bx1, 5, 5, Z0 - 3, Z0 - 2, rail);
-  for (const x of [bx0, bx1]) boxI(x, x, 3, 4, Z0 - 3, Z0 - 2, rail);
-  boxI(bx0, bx1, 6, 7, Z0 - 1, Z0 - 1, rail);
-  for (let x = bx0; x <= bx1; x++) {
-    cap(x, 5, Z0 - 3), cap(x, 5, Z0 - 2), cap(x, 7, Z0 - 1);
-  }
+  for (let dx = -2; dx <= 2; dx++)
+    for (let dz = -2; dz <= 2; dz++)
+      if (Math.abs(dx) === 2 || Math.abs(dz) === 2) {
+        set(cx + dx, top, cz + dz, () => lin(T.stone[2]));
+        cap(cx + dx, top, cz + dz);
+      }
   return [(cx + 0.5) * S, (top + 1) * S, (cz + 0.5) * S];
 }
 

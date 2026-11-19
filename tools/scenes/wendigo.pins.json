@@ -10,8 +10,8 @@
     "from": "commit 6edc7fe (v0.7.4), and the same tree with isClear reading CLEAR_SIGHT_LINES: measured on both, and the two agree in every number and hash",
     "again": {
       "on": "2026-11-19",
-      "what": "the countryside's total only (fine and coarse): 487,002 voxels to 451,526. The stand, the stand of every kind, the cone and the rays are the numbers of 2026-11-16, unchanged, and measured equal on this day.",
-      "why": "Brian, 2026-11-19, asked whether the background pines and the worn tracks of scene/countryside.ts may change: \"yes, remodel\". Outside the wendigo's zone (scene/wendigoZone.ts: 17 m round it, and 20 degrees round the paddock camera's line to it) the forest's pines are the diorama's tiered pines, colours are flat and the tracks are gone; inside it every voxel is built as it was."
+      "what": "the countryside's total only (fine and coarse): 487,002 voxels to 451,526. The stand, the stand of every kind, the cone and the rays are the numbers of 2026-11-16, unchanged, and measured equal on this day. Recorded once more the same day: 451,526 voxels to 424,915, again the countryside's total only, with the stand, the stand of every kind, the cone and the rays measured equal to 2026-11-16's.",
+      "why": "Brian, 2026-11-19, asked whether the background pines and the worn tracks of scene/countryside.ts may change: \"yes, remodel\". Outside the wendigo's zone (scene/wendigoZone.ts: 17 m round it, and 20 degrees round the paddock camera's line to it) the forest's pines are the diorama's tiered pines, colours are flat and the tracks are gone; inside it every voxel is built as it was. Later that day he lifted every other limit (\"disregard all prior limits besides what i said about touching the wendigo. dont touch the wendigo unless i explicitly say to. continue remodeling\"): outside the zone the open ground lost its drifts, bare twigs and dead grass, and its bushes and rocks give way to the forecourt, the tractor's new place and the groves; snow is whiter. isClear's own answers are still those of the freeze (wendigoFence.test.ts)."
     }
   },
   "camera": {
@@ -38,8 +38,8 @@
   },
   "fine": {
     "countryside": {
-      "voxels": 451526,
-      "hash": "6d80705b947e5c2899e07b882ef4bfa259767fbe33cfad58da2037a13c487c49"
+      "voxels": 424915,
+      "hash": "ed208cecf5ffadfdb7940caa59b8ac00b2b124a330100b013ba62042f55fbc3d"
     },
     "stand": {
       "voxels": 80760,
@@ -61,8 +61,8 @@
   },
   "coarse": {
     "countryside": {
-      "voxels": 451526,
-      "hash": "6d80705b947e5c2899e07b882ef4bfa259767fbe33cfad58da2037a13c487c49"
+      "voxels": 424915,
+      "hash": "ed208cecf5ffadfdb7940caa59b8ac00b2b124a330100b013ba62042f55fbc3d"
     },
     "stand": {
       "voxels": 80760,

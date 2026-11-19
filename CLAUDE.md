@@ -83,6 +83,46 @@ for detail, soft light. No interface, behaviour or animal changes.
   paddock camera's line to it) every voxel is built as before, through `asBefore` (voxel/palette.ts). The pins'
   countryside total was recorded again on that day (tools/scenes/wendigo.pins.json, `pinned.again`); the stand, the
   cone and the rays are the numbers of 2026-11-16 and must stay so. The paddock shot keeps its fog and tilt-shift.
+- Every limit but the wendigo's is lifted (Brian, 2026-11-19: "disregard all prior limits besides what i said about
+  touching the wendigo. dont touch the wendigo unless i explicitly say to. continue remodeling"). So the light limits,
+  "never modify existing tests" (but the wendigo's own: wendigoFence.test.ts, the pins' stand, cone and rays), the
+  tour's cameras (but index 2) and where things stand are his to have changed; the wendigo zone rules above all stand.
+  Built that day (0.8.2), from his words in the same message:
+  - "the sheep are glowing. either match the scenery to that glow or tone down the sheep glow": one soft shading for
+    every voxel, scenery and animals alike (`STUDIO` in voxel/material.ts: wrapped light and a little fill), and no lit
+    voxel is ever brighter than white (`SHOULDER`, under `BLOOM_THRESHOLD` in table/Rendering.tsx), so only what glows
+    of itself blooms (lanterns, bulbs, the farmhouse's panes). The light is `DIORAMA` (Rendering.tsx): a bright key, a
+    strong sky fill, white snow, Neutral tone mapping (look.ts); the barn's inside at the table takes `INDOOR_FILL` of
+    the fill so the lanterns still shape it; the doorway lamp is cut by day (`DOOR_GAIN` in FarmBackdrop.tsx). The
+    paddock shot is drawn as it always was: `exemptShot()` switches the light, fog, tone mapping, bloom threshold and
+    plain Lambert (`scene.userData.plainLight`) for that shot alone.
+  - "everything is without texture ... the ground of the barn is literally just... a flat yellow rectangle": texture
+    comes from what a thing is made of, in shapes far larger than a voxel, never voxel by voxel (voxel/texture.ts:
+    `patches`, `banded`, `course`): straw and planks on the barn floor, drifts in the snow, packed snow on the path,
+    drilled rows in the field, boards and courses on walls. Still no speckle.
+  - "everything should feel more intentionally placed and well put together instead of a bunch of randomly assorted
+    buildings": the forecourt's fence runs from the hen run's outer corner to the paddock's and back to both pens
+    (`YARD.fence`), in the pens' own make; a path with low banks runs from the doors through the gate to the
+    farmhouse step; pines stand in groves (`YARD.pines`, each with its height); the woodpile leans on the farmhouse,
+    the bird table is in its garden, a bale stack is in the forecourt, the tractor is parked at the back where the
+    barn hides it from the paddock camera (`FARM.tractor`); the farmhouse is rebuilt (clapboard, timber, stone, panes
+    in their own glowing mesh, `yard.panes`). One string of lights a building, none on fences, pond, silo or tractor.
+    Outside the wendigo's zone the open ground has no drifts, twigs or dead grass, and roofs carry one even blanket.
+  - `isClear` (countryside.ts) answers as it did at the freeze and reads the yard of that day (`FROZEN`); what the
+    yard has taken since, and the moved cameras' sight lines, are `taken`, which only leaves a bush or a rock unbuilt.
+    Never make isClear follow the yard again: the land's random streams, the wendigo's among them, run through it.
+  - "change the perspectives of the pov shifting lobby screen ... seeing a tractor isnt very pretty": computer shots 1,
+    5 and 7 are the whole farm as a diorama, the farmhouse from the path, and the barn across the ice; each is aimed to
+    the left of its subject because the menu has the frame's left half (homePovFrame.test.ts holds the subject to
+    x 40 to 97%). Eight computer and six phone shots as before; index 2 untouched.
+  - "fix the ui in the lobby screen ... 'fleeced' in all those letter blocks things doesnt fit ... the font for queue
+    doesnt match ... i dont want to see random shapes or clunky blocks anywhere": Home's title is one Fraunces
+    wordmark, Queue and the rows are one type (Fraunces 800 with its optical size pinned, which is why Queue had not
+    matched), and the tiles, frames, snow caps, hang tags, tilted boards and middle dots are gone. `?title=b` (gold
+    capitals) and `?title=c` (one carved board) are alternates he has not chosen between; their CSS ships until he does.
+  - Development only: `?cam=x,y,z,tx,ty,tz[,fov]` stands Home's camera anywhere (FarmBackdrop.tsx); `?preview=pen`
+    shows the lobby's pen with no server.
+  - Not done, and told to him: the dream's small props and the ice's black shore pines keep their own make.
 
 ## Painted redesign (visual layer only)
 

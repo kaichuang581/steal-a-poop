@@ -227,6 +227,8 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
   const voxMat = useMemo(() => voxelMaterial(), []);
   // Bright enough to pass the bloom threshold, so only the lanterns glow.
   const glowMat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2 }), []);
+  // The farmhouse's windows, lit from inside: warm by day, the brightest thing in the yard at night.
+  const paneMat = useMemo(() => voxelMaterial({ emissive: '#FFB84A', emissiveIntensity: 0.85 }), []);
   return (
     <>
       {barn.static.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
@@ -239,6 +241,7 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
       {/* A flat piece of ground cannot cast a shadow (see `castsShadow` in scene/yard.ts), so it is not asked to. */}
       {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow={yard.casts[i]} receiveShadow />)}
       <mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />
+      <mesh geometry={yard.panes} material={paneMat} />
       <ChimneySmoke from={yard.smokeFrom} />
       <mesh geometry={distance.hills} material={voxMat} receiveShadow />
       <mesh geometry={distance.backHills} material={voxMat} receiveShadow />

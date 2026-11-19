@@ -6,7 +6,7 @@ import { detailedSteps } from '../voxel/refine';
 import { each, finish } from './slices';
 import type { Steps } from './slices';
 import { asBefore, lin, pick, pickBy, T } from '../voxel/palette';
-import { inWendigoZone } from './wendigoZone';
+import { inWendigoZone, nearWendigo } from './wendigoZone';
 import { snowAt, snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
@@ -29,7 +29,11 @@ const CHUNK = 8;
 export const FARM = {
   silo: { x: 9.7, z: -0.8, r: 1.9, h: 10.5 },
   coop: { x: -12, z: 1.5 },
-  tractor: { x: 9.6, z: 8.6 },
+  /**
+   * Parked at the back between the hens' run and the field, where the barn hides it from the paddock camera (Brian,
+   * 2026-11-19: "seeing a tractor isnt very pretty"; it stood by the barn doors, in the middle of the forecourt).
+   */
+  tractor: { x: -8, z: -10.5 },
   paddock: { minX: 12, maxX: 22, minZ: -14, maxZ: 7 },
   run: { minX: -19, maxX: -8.6, minZ: -5, maxZ: 8 },
   orchard: { minX: -36, minZ: -13, cols: 3, rows: 5, gap: 5.5 },
@@ -277,7 +281,7 @@ function fenceRun(b: Builder, a: [number, number], c: [number, number], skip?: (
     if (skip?.(x * S, z * S)) continue;
     for (const y of [2, 4]) {
       b.set(x, y, z, wood);
-      if (hash3(x, y, z, 32) > 0.3) b.cap(x, y, z);
+      if (y === 4) b.cap(x, y, z); // an even line of snow along the top rail
     }
     if (i % 10 === 0) {
       b.box(x, x, 0, 5, z, z, wood);
@@ -304,7 +308,7 @@ function paddock(b: Builder) {
     const y = 12 + Math.round(((z - z0) / (z1 - z0)) * 2);
     for (let x = x0 - 2; x <= x1 + 2; x++) {
       b.set(x, y, z, () => lin(T.shingle[(x & 1) + 1]));
-      if (hash3(x, y, z, 35) > 0.1) b.cap(x, y, z);
+      b.cap(x, y, z); // one blanket of snow
     }
   }
   // Hay rack in the middle of the paddock.
@@ -334,7 +338,7 @@ function coop(b: Builder) {
       const y = y0 + W + 1 + Math.floor((half + 1 - d) * 0.75);
       b.set(px, y, pz, () => lin(T.tractor[((px >> 1) + (pz >> 1)) & 1 ? 1 : 2]));
       if (px >= x0 && px <= x1) for (let f = y0 + W + 1; f < y; f++) if (px === x0 || px === x1) b.set(px, f, pz, wall);
-      if (hash3(px, y, pz, 43) > 0.12) b.cap(px, y, pz);
+      if (Math.abs(pz + 0.5 - zc) < half) b.cap(px, y, pz); // one blanket of snow, the roof showing along the eaves
     }
   // Pop door and ramp on the side toward the barn path, a little window, and a nest box on the end.
   const dz = z1;
@@ -431,10 +435,19 @@ function fieldAndTrees(b: Builder) {
   const stalk = tone(T.hay, 51, [0.5, 1]);
   for (let z = b.ix(P.minZ); z < b.ix(P.maxZ); z += 4)
     for (let x = b.ix(P.minX); x < b.ix(P.maxX); x++) {
-      const h = hash3(x, 0, z, 52);
-      if (h < 0.5) continue;
+      if (nearWendigo(x * S, z * S)) {
+        // By the wendigo the stubble is the scatter it always was (its stand is pinned, voxel for voxel).
+        const h = hash3(x, 0, z, 52);
+        if (h < 0.5) continue;
+        b.set(x, 0, z, stalk);
+        if (h > 0.82) b.set(x, 1, z, stalk);
+        continue;
+      }
+      // Drilled rows: two stalks and a gap, every sixth stalk left a little taller, each row set off from the last.
+      const along = (((x + (z >> 2) * 2) % 6) + 6) % 6;
+      if (along % 3 === 2) continue;
       b.set(x, 0, z, stalk);
-      if (h > 0.82) b.set(x, 1, z, stalk);
+      if (along === 0) b.set(x, 1, z, stalk);
     }
   fenceRun(b, [P.minX - 1, P.maxZ + 1], [P.maxX + 1, P.maxZ + 1], (x) => x > -2 && x < 2);
   [[-14, -21], [-8, -24], [-3, -19.5], [6, -23], [13, -20], [21, -24.5]].forEach(([x, z], i) => roundBale(b, x, z, 60 + i));

@@ -30,7 +30,47 @@ const snow: Paint = snowPaint(S, 201);
  * line to it) it is built exactly as it always was, voxel for voxel: that zone is pinned (tools/scenes/wendigo.pins.json).
  * Everywhere else it takes the flat colours of 2026-11-18 (Brian, 2026-11-19, of changing this land: "yes, remodel").
  */
-const stands = <V>(x: number, z: number, build: () => V): V => (standsInWendigoZone(x, z) ? asBefore(build) : build());
+const stands = (x: number, z: number, build: () => void): void => {
+  if (standsInWendigoZone(x, z)) asBefore(build);
+  else if (!taken(x, z)) build();
+};
+/** Ground the yard has taken since isClear was frozen: the forecourt out to its fence, the tractor's place, the groves. */
+const TAKEN: [number, number, number, number][] = [
+  [YARD.fence.minX - 1, YARD.fence.maxX + 1, BARN.maxZ, YARD.fence.z + 1],
+  [FARM.tractor.x - 3.5, FARM.tractor.x + 3.5, FARM.tractor.z - 2.8, FARM.tractor.z + 2.8],
+];
+/**
+ * The tour cameras that have moved since the freeze (computer 1, 5 and 7 in the tour's shot list), as [position, target]:
+ * their first stretch is kept open as CLEAR_SIGHT_LINES keeps the others'. Written out, because this file may never
+ * read the live tour (wendigoFence.test.ts); countryside.test.ts holds them to it.
+ */
+const LATER_SIGHT_LINES: [number[], number[]][] = [
+  [[-32, 17.5, 43], [-7, 0.5, 3.5]],
+  [[0.3, 2.1, 16.4], [-5.85, 3.7, 30.4]],
+  [[11.5, 1.7, 30.0], [-1.4, 2.8, 9.6]],
+];
+const taken = (x: number, z: number) => TAKEN.some(([x0, x1, z0, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1)
+  || YARD.pines.some(([px, pz]) => Math.hypot(x - px, z - pz) < 3)
+  || LATER_SIGHT_LINES.some(([position, target]) => fromSightLine(x, z, position, target) <= 3);
+/** Whether the open ground's bushes and rocks may be built at (x, z) today: clear at the freeze, and not taken since. */
+export const isOpen = (x: number, z: number) => isClear(x, z) && !taken(x, z);
+/**
+ * Litter the open ground no longer has (Brian, 2026-11-19: no "random shapes"; everything "intentionally placed"): built
+ * only in the wendigo's zone, where it stands as it always did. Its random draws are still taken, so what is kept
+ * (bushes, rocks) stands where it stood.
+ */
+const kept = (x: number, z: number, build: () => void): void => { if (standsInWendigoZone(x, z)) asBefore(build); };
+
+/**
+ * The yard as `isClear` knew it on 2026-11-16. isClear's answers are frozen with the wendigo's zone (the land is planted
+ * through it from shared random streams: scene/__tests__/wendigoFence.test.ts), so it never follows the yard's later
+ * moves. What the yard has taken since then is `taken`, which only leaves a thing unbuilt.
+ */
+const FROZEN = {
+  fence: { z: 15, minX: -16, maxX: 16 },
+  tractor: { x: 9.6, z: 8.6 },
+  pines: [[-14, 20], [-17, 26], [13, 33], [17, 19], [-6, 40], [7, 42], [-22, 34], [22, 30], [-9.8, 12.7], [-10.9, 16.8]],
+} as const;
 
 const RECTS: [number, number, number, number][] = [
   [BARN.minX - 2, BARN.maxX + 2, BARN.minZ - 2, BARN.maxZ + 3],
@@ -38,11 +78,11 @@ const RECTS: [number, number, number, number][] = [
   [FARM.run.minX - 1, FARM.run.maxX + 1, FARM.run.minZ - 1, FARM.run.maxZ + 1],
   [FARM.field.minX - 1, FARM.field.maxX + 1, FARM.field.minZ - 1, FARM.field.maxZ + 2],
   [FARM.orchard.minX - 3, -21, FARM.orchard.minZ - 3, 12],
-  [FARM.tractor.x - 3, FARM.tractor.x + 5, FARM.tractor.z - 3, FARM.tractor.z + 4],
+  [FROZEN.tractor.x - 3, FROZEN.tractor.x + 5, FROZEN.tractor.z - 3, FROZEN.tractor.z + 4],
   [YARD.farmhouse.x - 6, YARD.farmhouse.x + 7, YARD.farmhouse.z - 6, YARD.farmhouse.z + 5],
   [YARD.pond.x - YARD.pond.rx - 3, YARD.pond.x + YARD.pond.rx + 3, YARD.pond.z - YARD.pond.rz - 3, YARD.pond.z + YARD.pond.rz + 3],
   [-3, 3, BARN.maxZ, 26], // the path
-  [YARD.fence.minX - 1, YARD.fence.maxX + 1, YARD.fence.z - 1, YARD.fence.z + 1],
+  [FROZEN.fence.minX - 1, FROZEN.fence.maxX + 1, FROZEN.fence.z - 1, FROZEN.fence.z + 1],
 ];
 
 /** How far a point is from the first stretch of a camera's line of sight. */
@@ -81,7 +121,7 @@ export const CLEAR_SIGHT_LINES: readonly (readonly [position: V3, target: V3])[]
 /** Somewhere open: off the farm, off the yard's pines, and not in front of any camera on the tour. */
 export function isClear(x: number, z: number): boolean {
   if (RECTS.some(([x0, x1, z0, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1)) return false;
-  if (YARD.pines.some(([px, pz]) => Math.hypot(x - px, z - pz) < 3)) return false;
+  if (FROZEN.pines.some(([px, pz]) => Math.hypot(x - px, z - pz) < 3)) return false;
   return CLEAR_SIGHT_LINES.every(([position, target]) => fromSightLine(x, z, position, target) > 3);
 }
 
@@ -241,7 +281,8 @@ function drifts(g: Grid) {
     const long = 2.2 + r() * 3.6;
     const wide = r() > 0.5;
     const high = 0.3 + r() * 0.35;
-    stands(x, z, () => ellipsoid(g, [x, -0.1, z], [wide ? long : long * 0.55, high, wide ? long * 0.55 : long], (a, b, c) => (b < 0 ? null : snow(a, b, c)), 0.12, i));
+    // Outside the wendigo's zone there are none: a low mound on the 0.2 m grid is a flat plate lying on the snow.
+    kept(x, z, () => ellipsoid(g, [x, -0.1, z], [wide ? long : long * 0.55, high, wide ? long * 0.55 : long], (a, b, c) => (b < 0 ? null : snow(a, b, c)), 0.12, i));
   }
 }
 
@@ -273,7 +314,7 @@ function scrub(g: Grid) {
     const [x, z] = at;
     for (let k = 0, n = 4 + Math.floor(r() * 3); k < n; k++) {
       const a = r() * Math.PI * 2, lean = 0.25 + r() * 0.45, h = 0.6 + r() * 0.7;
-      stands(x, z, () => line(g, [x, 0, z], [x + Math.cos(a) * lean, h, z + Math.sin(a) * lean], twig, true));
+      kept(x, z, () => line(g, [x, 0, z], [x + Math.cos(a) * lean, h, z + Math.sin(a) * lean], twig, true)); // bare twigs: scratches on the snow
     }
   }
   for (let i = 0; i < 12; i++) {
@@ -294,7 +335,7 @@ function scrub(g: Grid) {
     for (let k = 0, n = 5 + Math.floor(r() * 7); k < n; k++) {
       const x = Math.round((at[0] + (r() - 0.5) * 1.2) / F), z = Math.round((at[1] + (r() - 0.5) * 1.2) / F);
       const h = 2 + Math.floor(r() * 3);
-      stands(x * F, z * F, () => { for (let y = 0; y < h; y++) { const c = grass(x, y, z); if (c) g.set(x, y, z, c); } });
+      kept(x * F, z * F, () => { for (let y = 0; y < h; y++) { const c = grass(x, y, z); if (c) g.set(x, y, z, c); } }); // dead grass: specks
     }
   }
 }

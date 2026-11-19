@@ -2,6 +2,19 @@
 
 All user-visible changes, newest first.
 
+## 0.8.2
+
+- The farm is laid out as one yard: a single fence joins the hen run, the barn and the paddock, with a shovelled path from the barn doors through the gate to the farmhouse.
+- The farmhouse is rebuilt: clapboard walls, timber corners, a stone step and chimney, and windows that glow on all four sides.
+- Pines stand in groves, a stack of hay bales sits in the yard, the woodpile leans against the farmhouse, and the tractor is parked out back by the field.
+- Sheep no longer glow: animals and scenery share one soft light, and nothing lit is brighter than white. Only lamps, bulbs and windows glow.
+- Brighter, clearer days with white snow; pink dusks; blue moonlit nights. The barn's inside keeps its lantern light.
+- Surfaces have texture again without speckle: straw and planks on the barn floor, soft drifts in the snow, packed snow on the path, drilled rows in the field.
+- One string of lights a building, and none on fences, the pond, the silo or the tractor. The Christmas tree is a tiered pine with baubles.
+- The open ground is cleared of drifts, twigs and dead grass; the pond has no reeds; roofs carry one even blanket of snow.
+- Home's tour has three new stops in place of the old wide shot, the tractor and the pond: the whole farm as a diorama, the farmhouse with its lit windows, and the barn across the ice.
+- Home's menu is redrawn: "Fleeced" is one wordmark instead of seven letter tiles, Queue is in the same type as the rows, and the wooden frames, snow caps, hang tags and tilted boards are gone.
+
 ## 0.8.1
 
 - The six animals are rebuilt to match Brian's six-view sheets one to one: sheep, pig, cow, goat, horse and chicken.

@@ -5,6 +5,7 @@ import { finish } from './slices';
 import type { Steps } from './slices';
 import { asBefore, lin, pick, T } from '../voxel/palette';
 import { inWendigoZone } from './wendigoZone';
+import { SNOW } from '../voxel/snow';
 import { Grid, hash3, rng } from '../voxel/primitives';
 import type { RGB } from '../voxel/primitives';
 import { DISTANCE, YARD } from './layout';
@@ -95,7 +96,10 @@ export function* buildDistanceSteps(): Steps<Distance> {
         if (Math.hypot(x - V.x, z - V.z) < 12 || Math.hypot(x - M.x, z - M.z) < 7) continue;
         const top = Math.max(1, Math.round(hillH(x, z)));
         hillsG.set(x, top, z, pineDark);
-        if (hash3(x, 1, z, 15) > 0.6) hillsG.set(x, top + 1, z, pineMid);
+        const tall = hash3(x, 1, z, 15) > 0.6;
+        if (tall) hillsG.set(x, top + 1, z, pineMid);
+        // Snow on each: a line of dark cubes on a white hill read as stray blocks, a line of snowy tops as trees.
+        hillsG.set(x, top + (tall ? 2 : 1), z, SNOW);
       }
     }
   // Village: four tiny houses with lit windows, snowy roof ridges and a chimney each.
@@ -197,7 +201,9 @@ export function* buildDistanceSteps(): Steps<Distance> {
       if (line === 0 && x > -60 && x < 34) continue; // the forest behind the field stands there now (countryside.ts)
       const z = Math.floor(-52 - line * 26 + Math.sin(x / 19 + line) * 6);
       if (hash3(x, line, z, 64) < 0.45) continue;
-      backG.set(x, Math.max(1, Math.round(backH(x, z))), z, pineDark);
+      const top = Math.max(1, Math.round(backH(x, z)));
+      backG.set(x, top, z, pineDark);
+      if (!inWendigoZone(x, z)) backG.set(x, top + 1, z, SNOW); // snow on each, but where the wendigo's zone keeps them as they were
     }
 
   // Terrain has no overhangs, so no downward face is ever visible.

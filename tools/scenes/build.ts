@@ -656,6 +656,7 @@ async function putFarm(L: Layout, load: Load, shared: Shared) {
     '<mesh geometry={barn.front} material={voxMat} receiveShadow />',
     '{yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow={yard.casts[i]} receiveShadow />)}',
     '<mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />',
+    '<mesh geometry={yard.panes} material={paneMat} />',
     '<mesh geometry={distance.hills} material={voxMat} receiveShadow />',
     '<mesh geometry={distance.backHills} material={voxMat} receiveShadow />',
     '<mesh geometry={distance.mountains} material={voxMat} />',
@@ -689,6 +690,7 @@ async function putFarm(L: Layout, load: Load, shared: Shared) {
   L.put(barn.robin, 'barn.robin', { at: ROBIN_SPOT, moves: 'it hops along its beam' });
   yard.chunks.forEach((g, i) => L.put(g, `yard.chunks[${i}]`));
   L.put(yard.snowman, 'yard.snowman');
+  L.put(yard.panes, 'yard.panes');
   L.put(distance.hills, 'distance.hills');
   L.put(distance.backHills, 'distance.backHills');
   L.put(distance.mountains, 'distance.mountains');

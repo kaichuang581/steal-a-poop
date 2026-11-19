@@ -3,6 +3,7 @@ import { buildGeometry, packGeometry, triangles as tris } from '../voxel/mesher'
 import { each, finish } from './slices';
 import type { Steps } from './slices';
 import { IRIS, lin, pick, pickBy, T } from '../voxel/palette';
+import { banded, patches } from '../voxel/texture';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
@@ -304,8 +305,17 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
     if (v === undefined) near.set(k, (v = seatDistance((x + 0.5) * S, (z + 0.5) * S)));
     return v;
   };
-  const plankTone = (x: number, z: number) => pickBy(T.beam, hash3(Math.floor((x + 60) / 3), 0, Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25), 51), [0.5, 0.95]); // one tone a plank
-  const rr = (SEAT_RING.rx + SEAT_RING.rz) / 2;
+  // Planks: 0.3 m wide along the barn, their ends staggered, a value step or two between neighbours (one tone a plank).
+  const plankTone = (x: number, z: number) => pickBy(T.beam, hash3(Math.floor((x + 60) / 3), 0, Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25), 51), [0.5, 0.95]);
+  // The straw: one mat over the middle of the floor, under every seat and out a metre past them, its edge wandering a
+  // little; the planks show round it, along the walls and in the corners. Its colour lies in broad soft patches (fresh
+  // straw, bedded straw, trodden straw), each far larger than a voxel: texture, not static (Brian, 2026-11-19: "the
+  // ground of the barn is literally just... a flat yellow rectangle").
+  const STRAW = [lin(T.hay[2]), lin(T.hay[1]), lin(T.hay[0])] as const;
+  const matEdge = (mx: number, mz: number) => {
+    const dx = mx - SEAT_RING.cx, dz = mz - SEAT_RING.cz, a = Math.atan2(dz, dx);
+    return 5.05 + 0.3 * Math.sin(a * 3 + 1) + 0.2 * Math.sin(a * 7 + 2.3) - Math.hypot(dx, dz); // metres inside the mat's edge
+  };
   for (let x = -60; x <= 59; x++)
     for (let z = -40; z <= 69; z++) {
       g.set(x, -1, z, plankTone(x, z));
@@ -313,19 +323,12 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
       const mx = (x + 0.5) * S, mz = (z + 0.5) * S;
       const h2 = hash3(x >> 1, 0, z >> 1, 54);
       if (Math.hypot(mx - HEAP[0], mz - HEAP[2]) < 1.45 + (h2 - 0.5) * 0.2) continue; // bare boards under the platform
-      const seatAt = seatGap(x, z);
-      if (seatAt === 0) {
-        g.set(x, 0, z, pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // hay under every hoof, trampled
-        continue;
-      }
+      const seatAt = seatGap(x, z), inside = matEdge(mx, mz);
+      if (inside < 0 && seatAt > 0.3) continue; // bare planks
+      // Trodden (darker) where the animals stand and walk round the ring; fresh (lighter) in patches elsewhere.
       const e = Math.hypot((mx - SEAT_RING.cx) / SEAT_RING.rx, (mz - SEAT_RING.cz) / SEAT_RING.rz);
-      if (Math.abs(e - 1) * rr < 0.4) {
-        g.set(x, 0, z, pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // trampled: one even layer
-        continue;
-      }
-      // Broad hay is one even layer of one tone: no holes and no tufts (Brian, 2026-11-18: "remove all glitchy/static
-      // textures"); the straws along the walls are what is left of the texture.
-      g.set(x, 0, z, pick(T.hay, 0.7));
+      const trodden = Math.max(0, 1 - Math.abs(e - 1) * 2.2);
+      g.set(x, 0, z, banded(STRAW, patches(mx, mz, 1.5, 56) - trodden * 0.3 + (inside < 0.25 ? -0.2 : 0), [0.34, 0.6]));
     }
 
   // snow drifts blown in through the back doorway

@@ -1411,8 +1411,8 @@
           "fine": 0
         },
         "farm": {
-          "coarse": 1321,
-          "fine": 1321
+          "coarse": 1305,
+          "fine": 1305
         },
         "pen": {
           "coarse": 47,
@@ -1483,8 +1483,8 @@
           "fine": 6.4
         },
         "farm": {
-          "coarse": 832.605,
-          "fine": 762.82
+          "coarse": 794.285,
+          "fine": 726.595
         },
         "pen": {
           "coarse": 54.645,
@@ -1495,8 +1495,8 @@
           "fine": 1.15
         },
         "table": {
-          "coarse": 1.615,
-          "fine": 1.785
+          "coarse": 1.105,
+          "fine": 1.065
         }
       },
       "excused": {
@@ -1543,8 +1543,8 @@
           "fine": 6.4
         },
         "farm": {
-          "coarse": 275.595,
-          "fine": 247.575
+          "coarse": 257.835,
+          "fine": 231.62
         },
         "pen": {
           "coarse": 54.62,
@@ -1555,8 +1555,8 @@
           "fine": 0.85
         },
         "table": {
-          "coarse": 1.15,
-          "fine": 1.18
+          "coarse": 0.9,
+          "fine": 0.88
         }
       }
     },
@@ -2199,8 +2199,8 @@
           "fine": 1
         },
         "farm": {
-          "coarse": 15,
-          "fine": 15
+          "coarse": 13,
+          "fine": 13
         },
         "pen": {
           "coarse": 1,
@@ -2211,8 +2211,8 @@
           "fine": 17
         },
         "table": {
-          "coarse": 170,
-          "fine": 170
+          "coarse": 169,
+          "fine": 169
         }
       },
       "inside": {
@@ -2229,8 +2229,8 @@
           "fine": 0
         },
         "farm": {
-          "coarse": 7,
-          "fine": 7
+          "coarse": 6,
+          "fine": 6
         },
         "pen": {
           "coarse": 6,
@@ -2241,8 +2241,8 @@
           "fine": 15
         },
         "table": {
-          "coarse": 169,
-          "fine": 169
+          "coarse": 168,
+          "fine": 168
         }
       },
       "unplaced": {

@@ -8,9 +8,10 @@ const SIDES = [-1, 1];
  * Halves a voxel model's cell size, so scenery built on a coarse grid sits at the detail of everything around it. Each
  * cell becomes eight, and the shape gets finer rather than just cut up: a cell's outermost corners are taken off, and
  * so are the edges where a solid mass turns a corner, which softens stairsteps and leaves one-cell rails and branches
- * whole. Build the result with half the size. `grain` is how far each small cell's brightness wanders from its parent's.
+ * whole. Build the result with half the size. `grain` is how far each small cell's brightness wanders from its parent's:
+ * none by default (Brian, 2026-11-18: "remove all glitchy/static textures").
  */
-export function refine(map: VoxelMap, grain = 0.04, only?: (v: Voxel) => boolean): VoxelMap {
+export function refine(map: VoxelMap, grain = 0, only?: (v: Voxel) => boolean): VoxelMap {
   return finish(refineSteps(map, grain, only));
 }
 
@@ -18,7 +19,7 @@ export function refine(map: VoxelMap, grain = 0.04, only?: (v: Voxel) => boolean
 const REFINE_STEP = 8192;
 
 /** `refine` in steps, for a build in slices (scene/slices.ts): the same cells, in the same order. */
-export function* refineSteps(map: VoxelMap, grain = 0.04, only?: (v: Voxel) => boolean): Generator<undefined, VoxelMap, void> {
+export function* refineSteps(map: VoxelMap, grain = 0, only?: (v: Voxel) => boolean): Generator<undefined, VoxelMap, void> {
   const out: VoxelMap = new Map();
   let n = 0;
   // Below y = 0 is the ground in every scene, whether or not it is in this map: a post or a tyre standing on it keeps

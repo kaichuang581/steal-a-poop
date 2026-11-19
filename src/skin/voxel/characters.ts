@@ -1,6 +1,6 @@
 import { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
-import { lin, pick, IRIS, PUPIL, T, WHITE, WOLF_EYE } from './palette';
+import { lin, pickBy as pick, IRIS, PUPIL, T, WHITE, WOLF_EYE } from './palette'; // the characters are not scenery: unchanged
 import type { Tone } from './palette';
 import { box, ellipsoid, Grid, hash3, helix, line, norm, ring, rng, taperedBox } from './primitives';
 import type { Paint, V3 } from './primitives';

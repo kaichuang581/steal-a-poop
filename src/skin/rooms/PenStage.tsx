@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { ACESFilmicToneMapping, Color, FogExp2, PCFShadowMap, SRGBColorSpace } from 'three';
+import { Color, FogExp2, PCFShadowMap, SRGBColorSpace } from 'three';
 import type { Group, PerspectiveCamera } from 'three';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -19,6 +19,7 @@ import { voxelMaterial } from '../voxel/material';
 import { rng } from '../voxel/primitives';
 import { arrive, roam } from './penWander';
 import type { RoamMode, Roamer } from './penWander';
+import { LOOK } from '../look';
 
 const NIGHT = '#1B2C4A';
 
@@ -40,7 +41,7 @@ export function PenStage({ guests, farmSheep, reduced, phone, shift }: { guests:
     <div className="absolute inset-0" style={{ background: NIGHT }}>
       <SceneBoundary scene="the pen">
       <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="pen" resize={{ offsetSize: true }} shadows={{ type: PCFShadowMap }}
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false }}
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1, antialias: false }}
         camera={{ fov: shot.fov, position: shot.position, near: 0.1, far: 600 }}
         onCreated={({ camera }) => camera.lookAt(shot.target[0], shot.target[1], shot.target[2])}
       >
@@ -195,7 +196,7 @@ function Animal({ id, index, guest, reduced, flock, plate }: { id: string; index
   const start = penSpot(index);
   return (
     <group ref={group} position={[start.x, 0, start.z]} rotation={[0, start.yaw, 0]}>
-      <group scale={SHEEP_SCALE * (admin ? 1 : (model?.drawScale ?? 1))}>
+      <group scale={SHEEP_SCALE * (admin ? 1 : (model ?? animalModel('sheep')).drawScale)}>
         {admin
           ? <AvatarDisc state="idle" reduced={reduced} />
           : <Sheep level={2} state={pose === 'graze' ? 'grazing' : pose} reduced={reduced} lookAt={guest && pose === 'idle' ? 'camera' : undefined} model={model} />}

@@ -2,7 +2,7 @@ import { FESTIVE } from '../../config';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { ACESFilmicToneMapping, Color, FogExp2, Group, Object3D, PCFShadowMap, SpotLight, SRGBColorSpace, Vector3 } from 'three';
+import { Color, FogExp2, Group, Object3D, PCFShadowMap, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
@@ -27,6 +27,7 @@ import { AdaptiveCanvas, Effects, LANTERN_LIGHT, MarkDrawn, SHADOW_LAYERS } from
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Sheep } from './Sheep';
+import { LOOK } from '../look';
 
 const DARK = '#14233C';
 /** The letter board hangs on short ropes from its signpost's arm: `letterBoardGeometry` measures them from this beam height. */
@@ -54,7 +55,7 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         resize={{ offsetSize: true }}
         shadows={{ type: PCFShadowMap }}
        
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
         camera={{ fov: open.fov, position: open.position, near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(open.target[0], open.target[1], open.target[2])}
       >

@@ -2,6 +2,18 @@
 
 All user-visible changes, newest first.
 
+## 0.8.1
+
+- The six animals are rebuilt to match Brian's six-view sheets one to one: sheep, pig, cow, goat, horse and chicken.
+- Every animal is drawn at its lineup size (sheep 1, chicken 0.66, pig 0.86, cow 1.14, goat 1.15, horse 1.54), scaled evenly so its proportions never change, on the farm too.
+- The horse's neck is one flat leaning block with a stepped mane, and its snout sits flush with the bottom of its head.
+- A frozen sheep in its thickest coat is fully inside its ice, and its tail stays on at every coat level.
+- The sheep is rebuilt cell for cell from Brian's sheet: a small face set into its wool, one-cell eyes, small ears, a cloud of a body on short legs.
+- Scenery colours are flat: no speckle, no grain, plain snow. Pines are tiered with snow on each tier. The air is clearer and Home is no longer blurred.
+- No footprints, sled ruts or worn tracks pressed into the ground.
+- The forest behind the farm is tiered pines too, and the barn has a rounded roof under one blanket of snow.
+- Home's two close shots of the sheep stand further back.
+
 ## 0.8.0
 
 The visual overhaul is complete (milestones 0 to 12).

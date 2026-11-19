@@ -60,6 +60,30 @@ text of this entry, the questions and the conflict register are in 19-decisions-
   by hand; and work goes on to the next milestone without stopping, except where the plan needs a choice only Brian can
   make. Still in force: skin-only, the fenced folders, no new dependencies, no banned names, never a push to main.
 
+## The diorama scenery (Brian, 2026-11-18) — plan: docs/diorama/PLAN.md
+Requested by Brian: the game's scenery should look like his reference sheet (docs/diorama/reference/): clean
+micro-voxel models, flat matte colours, no texture or outlines, chunky blocks for structure and tiny blocks
+for detail, soft light. No interface, behaviour or animal changes.
+- Supersedes for scenery only: "One level of detail for the scenery" (2026-11-07: the refine step); V3 Part 4.1's
+  grid table (replaced by the plan's size ladder); per-voxel tone picks for scenery. If question 2 is yes, also
+  "Snow with a little texture" (2026-11-08).
+- Everything else stands, the wendigo zone above all.
+- Milestone D0's pieces: the palette and ladder (src/skin/scene/style/palette.ts), the kit and recipe format
+  (style/kit.ts, style/recipes/), the style lint (scene/__tests__/style.test.ts), the pages ?preview=prop, props and
+  palette (style/PropPreview.tsx, development only), and tools/propMatch.mjs (proven on a throwaway recipe: 100% against
+  its own renders, and it fails a changed shape and colour). The baseline is docs/diorama/BASELINE.md.
+- Brian's farm picture (docs/diorama/reference/farm-34.png, farm-views.jpg; 2026-11-18: "the scenery should look more
+  like this") is the look. Done toward it so far, ahead of the plan's order because he asked: flat colours everywhere
+  (no per-voxel `pick`, no refine grain, plain snow, even snow caps; `pickBy` only for a whole board, plank or bale);
+  the tiered pine (scene/style/pine.ts) in the yard, the pen and the forest; fog 0.006 and no tilt-shift (look.ts); the
+  barn's rounded gambrel roof with one blanket of snow (farmstead.ts); Home's two sheep shots (computer 3 and 6) pulled
+  back (2026-11-19: "why did u zoom so much in on the sheep ... its a little unsettling").
+- The wendigo's zone and this work (Brian, 2026-11-19, asked whether scene/countryside.ts may change: "yes, remodel"):
+  outside the zone the countryside is remodelled; inside it (scene/wendigoZone.ts: 17 m round the wendigo, and the
+  paddock camera's line to it) every voxel is built as before, through `asBefore` (voxel/palette.ts). The pins'
+  countryside total was recorded again on that day (tools/scenes/wendigo.pins.json, `pinned.again`); the stand, the
+  cone and the rays are the numbers of 2026-11-16 and must stay so. The paddock shot keeps its fog and tilt-shift.
+
 ## Painted redesign (visual layer only)
 
 The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCOVERY.md.
@@ -1755,3 +1779,35 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Checked and fine: the chat filter
   already catches a blocked word split by zero-width, joiner, soft-hyphen or direction characters. Not checkable here: the
   live site and server (this machine cannot reach them), real sign-in, real GPUs and phones, and how anything looks or sounds.
+- The animals are Brian's six-view sheets, one to one (Brian, 2026-11-18: "completely change them to be one-to-one,
+  disregard all old rules about the animal modeling. i want it to look like the reference"). This supersedes every
+  animal-modelling rule above: V5 and V5.1 (the proportion sheet, signature features, the eye standard, collars and
+  bells, the palette's 55% saturation cap), the 2026-11-07 requests (the cow's eyes clear of its spots, its bell and
+  drawScale, the chicken's head, the pig's plates), the face switches, and "Supersedes (a)" in the overhaul's entry.
+  - The reference is the sheets Brian sent on 2026-11-18 (sheep, chicken, horse, cow, pig, goat: front, back, left,
+    right, top, bottom) and his lineup picture for their sizes against each other (as drawn: sheep 1, cow 1.14, horse 1.54,
+    goat 1.15, pig 0.86, chicken 0.66; the picture measures 1, 1.17, 1.60,
+    1.15, 0.89, 0.64). Each species is built in cells at its sheet's proportions (src/skin/voxel/sheep.ts and
+    src/skin/voxel/animals/*.ts) and drawn to size by one uniform `drawScale` everywhere it stands (Home's farm too),
+    so its proportions never change with its size. The sheep too (2026-11-19): it is built at its sheet's own 17 cells
+    and drawn at SHEEP_DRAW (1.47), so it stands 1 m at the crown as before; whoever draws a sheep scales it by
+    `animalModel('sheep').drawScale`, as for any animal.
+  - Compare against the sheets with Blender, not by eye in the game: `npx vite-node tools/blender/dumpAnimals.ts --
+    --out <json>`, then `/Applications/Blender.app/Contents/MacOS/Blender -b --python tools/blender/lineup.py -- <json>
+    <out.png> <species> 24 sheet` and `node tools/blender/sheet.mjs <out> <sheet.png> <TITLE>` for the six views, or
+    `... <json> <out.png> all 64` for the lineup.
+  - Kept, because the game needs them, at a cell or less from the sheets: the pig's and the hen's heads are the top or
+    front of their box and only nod and turn a little (RANGES in table/Sheep.tsx), so the face never sinks into the
+    body; the pig's front legs and the goat's neck sit a cell off the sheet so the winner's scarf has its two clear
+    slices; horns, ears, tails and combs are rooted a cell
+    into their parent. Tests in src/skin/voxel/__tests__ (animals, animalsV51, voxel) and measure.ts (SHEET, sheepHead,
+    chickenOrientation, ROOTS) now pin the sheets instead of V5.1; the pose, leg-join, framing, scarf, garment,
+    contact-patch and face-rule tests are unchanged and pass.
+  - The sheep, rebuilt again on 2026-11-19 (Brian: "that doent look like a sheep at all, or the reference image i gave
+    you"): its face is a plate 7 x 5 set one cell proud of the wool round it, with one-cell eyes and a 5 x 3 muzzle; the
+    wool round the face, the cap and the crown turn with the head; the body is lobes of one white (voxel/sheep.ts). Its
+    scarf, its ice, its place in Counting Sheep (SHEEP_ART in dream/stage.ts: 19.0 long, its nose where the old one's
+    was) and the sizes in scene/placed.ts were measured again from it.
+- No footprints, hoof dents or sled ruts in the ground (Brian, 2026-11-19: "weird random square holes in the ground ...
+  just reads as a bug"): gone from the yard's path and the barn's floor, and the worn tracks of scene/countryside.ts
+  are deleted.

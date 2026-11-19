@@ -1,7 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { buildGeometry } from '../voxel/mesher';
-import { lin, pick, T } from '../voxel/palette';
+import { lin, pick, pickBy, T } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3 } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { CHAR } from '../voxel/sheep';
@@ -198,7 +198,7 @@ export function bedroomGeometry(): BedroomGeo {
   for (let x = i(SIDE_X); x < i(ROOM_X1); x++) for (let z = i(BACK_Z); z < i(ROOM_Z1); z++) {
     const row = Math.floor(z / 3), off = mod(row * 17, 40);
     const seam = mod(z, 3) === 0 || mod(x + off, 40) === 0;
-    g.set(x, -1, z, seam ? lin(FLOOR[2]) : pick(FLOOR, hash3(Math.floor((x + off) / 40), row, 0, 7), [0.5, 0.95]));
+    g.set(x, -1, z, seam ? lin(FLOOR[2]) : pickBy(FLOOR, hash3(Math.floor((x + off) / 40), row, 0, 7), [0.5, 0.95]));
   }
   for (let x = Math.round(SIDE_X / B) - 1; x < Math.round(ROOM_X1 / B); x++) for (let z = Math.round(BACK_Z / B) - 1; z < Math.round(ROOM_Z1 / B); z++) {
     big.set(x, Math.round(ROOM_H / B), z, lin(PINE[mod(z, 3) === 0 ? 2 : 1]));
@@ -331,7 +331,7 @@ export function bedroomGeometry(): BedroomGeo {
     if (d > 1) continue;
     const band = Math.min(4, Math.floor(d * 5));
     const tone = ['#C24E45', '#E3D8C0', '#4F7A55', '#D9A84A', '#3D5A8A'][band];
-    g.set(x, 0, z, lin(mod(x + z, 2) && hash3(x, 0, z, 79) < 0.35 ? TRIM[2] : tone));
+    g.set(x, 0, z, lin(tone));
   }
   for (const sx of [0.78, 0.94]) {
     const x0 = Math.round(sx / S), z0 = Math.round(0.62 / S);

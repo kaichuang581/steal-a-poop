@@ -148,9 +148,8 @@ class Dressing {
         for (let dz = -r; dz <= r; dz += 0.1) {
           const d = Math.hypot(dx, dz);
           if (d > r || (d < r - 0.5 && r > 0.5)) continue; // a shell: nothing sees the middle
-          box(g, [x + dx, y, z + dz], [x + dx + 0.1, y + 0.1, z + dz + 0.1], (a, b, c) => {
-            const snowy = shelf && d > r - 0.4 && hash3(a, 0, c, 73) > 0.35;
-            return snowy ? pick(T.snow, hash3(a, b, c, 75)) : pick(T.pine, hash3(a, b, c, 77));
+          box(g, [x + dx, y, z + dz], [x + dx + 0.1, y + 0.1, z + dz + 0.1], () => {
+            return shelf && d > r - 0.4 ? pick(T.snow, 0) : pick(T.pine, 0); // snow along each shelf's rim, no speckle
           });
         }
       }
@@ -254,7 +253,7 @@ class Dressing {
         if (d < 0.3 || d > 0.62) continue;
         for (const k of [0, 1]) {
           const [a, b, c] = [cx + i, cy + j, cz + k];
-          g.set(a, b, c, hash3(a, b, c, 79) > 0.86 ? lin(RED) : pick(T.pine, hash3(a, b, c, 81)));
+          g.set(a, b, c, k === 1 && (i + 6 * j + 60) % 7 === 0 ? lin(RED) : pick(T.pine, 0)); // berries in a set pattern
         }
       }
       box(g, [x - 0.3, y - 0.7, z - 0.1], [x + 0.4, y - 0.5, z + 0.3], () => lin(RED));

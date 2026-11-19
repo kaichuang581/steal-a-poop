@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { ACESFilmicToneMapping, Object3D, PCFShadowMap, SRGBColorSpace } from 'three';
+import { Object3D, PCFShadowMap, SRGBColorSpace } from 'three';
 import type { PerspectiveCamera, PointLight, SpotLight } from 'three';
 import type { Hour } from '../model/types';
 import { HOME_CAMERA, pinnedPov, POV_SHOTS, povAt } from '../scene/homePov';
@@ -23,6 +23,7 @@ import { byId } from '../avatars/catalog';
 import { animalModel } from '../voxel/animals';
 import { useAvatar } from '../avatars/store';
 import { Sheep } from './Sheep';
+import { LOOK } from '../look';
 
 /** With the roof on, lanterns at their full height shine out through the shingles, so here they hang lower. */
 const lowerLamp = (_: number, lamp: PointLight | null) => { if (lamp) lamp.position.y = 2.5; };
@@ -74,7 +75,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
     <div className="sk-farm-fade absolute inset-0" data-ready={ready || undefined} data-instant={instant || undefined}>
     <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="farm" frameloop={paused ? 'never' : 'demand'} fps={fps} judgeTier={ready}
       shadows={{ type: PCFShadowMap }}
-      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
+      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
@@ -87,14 +88,14 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Farm world={w} reduced={reduced} />
       <Farmstead world={w} reduced={reduced} phone={phone} onReady={onReady} />
       <Wendigo reduced={reduced} />
-      <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5}>
+      <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5 * (avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(avatar)?.animal ?? 'sheep').drawScale)}>
         {avatar === ADMIN_AVATAR_ID
           ? <AvatarDisc state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} />
           : <Sheep level={2} state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} headYaw={sleepy ? 0 : heroYaw}
               model={byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined} />}
       </group>
       {/* A second sheep half inside the doorway, head down in the hay by the bales. */}
-      <group position={[2.2, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5}>
+      <group position={[1.9, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5 * animalModel('sheep').drawScale}>
         <Sheep level={3} state={sleepy ? 'sleeping' : 'grazing'} reduced={reduced} />
       </group>
       <Effects tiltShift={0.15} home />

@@ -12,6 +12,9 @@ import { buildBarn } from '../barn';
 import { buildYard } from '../yard';
 import { buildFarmFestive, buildFestive } from '../festive';
 import { HEN_Y, LIVESTOCK } from '../../table/Farmstead';
+import { animalModel } from '../../voxel/animals';
+import { anchorsOf } from '../../voxel/animals/anchors';
+import type { Animal } from '../../avatars/catalog';
 import type { BufferGeometry } from 'three';
 
 type P3 = readonly [number, number, number];
@@ -37,13 +40,14 @@ const PHONE_ASPECT = 390 / 844;
 const DRIFT = [[0, 0], [0.25, 0], [-0.25, 0], [0, 0.12], [0, -0.12], [0.18, 0.085], [-0.18, -0.085], [0.18, -0.085], [-0.18, 0.085]] as const;
 
 /** Each animal's box at scale 1 (measured from animalModel's geometry: half its width, its back and front, its height). */
-const ANIMAL_BOX: Record<string, { w: number; z: [number, number]; h: number }> = {
-  sheep: { w: 0.5, z: [-0.56, 0.6], h: 1.0 }, pig: { w: 0.32, z: [-0.36, 0.64], h: 0.84 }, cow: { w: 0.36, z: [-0.48, 0.68], h: 1.08 },
-  goat: { w: 0.32, z: [-0.4, 0.64], h: 1.2 }, horse: { w: 0.32, z: [-0.52, 0.88], h: 1.5 }, chicken: { w: 0.24, z: [-0.28, 0.36], h: 0.86 },
+/** Each farm animal's box as its model measures it (bounds, in model metres), and the uniform scale it is drawn at. */
+const ANIMAL_BOX = (animal: string) => {
+  const m = animalModel(animal as Animal), { min, max } = anchorsOf(m).bounds;
+  return { w: Math.max(-min[0], max[0]), z: [min[2], max[2]] as const, h: m.height, s: 1.5 * m.drawScale };
 };
-/** The eight corners of a farm animal as Farmstead stands it (scale 1.5, turned by its facing), with 0.15 m for the hat. */
+/** The eight corners of a farm animal as Farmstead stands it (1.5 times its drawScale, turned by its facing), with 0.15 m for the hat. */
 function animalCorners([animal, x, z, facing]: (typeof LIVESTOCK)[number]): P3[] {
-  const b = ANIMAL_BOX[animal], s = 1.5, y0 = animal === 'chicken' ? HEN_Y : 0, c = Math.cos(facing), n = Math.sin(facing);
+  const b = ANIMAL_BOX(animal), s = b.s, y0 = animal === 'chicken' ? HEN_Y : 0, c = Math.cos(facing), n = Math.sin(facing);
   const out: P3[] = [];
   for (const lx of [-b.w, b.w]) for (const lz of b.z) for (const ly of [0, b.h + 0.1]) out.push([x + (lx * c + lz * n) * s, y0 + ly * s, z + (-lx * n + lz * c) * s]);
   return out;

@@ -16,6 +16,7 @@ import { CANDLE, CLOCK, LAMP } from '../dream/bedroom';
 import { ISLANDS, islandPlace } from '../dream/stage';
 import { barnSpot } from '../table/Bomb';
 import { HEN_Y, LIVESTOCK } from '../table/Farmstead';
+import { animalModel } from '../voxel/animals';
 import { BOMB_RADIUS } from '../voxel/bomb';
 import { BOARD } from '../voxel/table';
 import { CAT_SPOT, ROBIN_SPOT } from './barn';
@@ -82,23 +83,24 @@ export interface Placed {
  * same on z, `tall` the top of `wools.2`. tools/scenes/place.ts measures them again and stops if a model has changed.
  */
 export const FEET = {
-  sheep: { across: 0.56, along: 0.48, tall: 0.8 },
-  pig: { across: 0.4, along: 0.56, tall: 0.8 },
-  cow: { across: 0.56, along: 0.72, tall: 0.92 },
-  goat: { across: 0.48, along: 0.56, tall: 1.04 },
-  horse: { across: 0.56, along: 0.64, tall: 1.04 },
-  chicken: { across: 0.32, along: 0.32, tall: 0.72 },
+  sheep: { across: 0.32, along: 0.48, tall: 0.64 },
+  pig: { across: 0.4, along: 0.56, tall: 0.6 },
+  cow: { across: 0.48, along: 0.64, tall: 0.76 },
+  goat: { across: 0.4, along: 0.56, tall: 0.84 },
+  horse: { across: 0.48, along: 0.8, tall: 0.76 },
+  chicken: { across: 0.32, along: 0.24, tall: 0.52 },
 } as const;
 export type Species = keyof typeof FEET;
 /** The sheepdog sits: the rectangle round its body and paws, and the top of its body (`sheepdogModel()`), measured the same day. */
 export const SHEEPDOG_SITS = { across: 0.32, along: 0.64, tall: 0.64 } as const;
 /** The sheep at coat level 3 (Home's doorway sheep): the top of `wools.3`. Its hooves are the same. */
-export const SHEEP_TALL_AT_3 = 0.84;
+export const SHEEP_TALL_AT_3 = 0.68;
 
-const stands = (species: Species, scale: number, tall: number = FEET[species].tall) => ({
-  footprint: [FEET[species].across * scale, FEET[species].along * scale] as const,
-  height: tall * scale,
-});
+/** An animal's footprint and height where it is drawn at `scale` times its own drawScale. */
+const stands = (species: Species, scale: number, tall: number = FEET[species].tall) => {
+  const k = scale * animalModel(species).drawScale;
+  return { footprint: [FEET[species].across * k, FEET[species].along * k] as const, height: tall * k };
+};
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The barn: the table, and the same barn on Home's farm
@@ -241,15 +243,16 @@ function farm(): Placed[] {
     copied: { file: 'src/skin/table/FarmBackdrop.tsx', text: 'const hero: [number, number, number] = [0, 0, BARN.maxZ + 1.2];' },
   });
   out.push({
-    id: 'farm:doorway sheep', scene: 'farm', position: [2.2, 0, BARN.maxZ - 1.4], yaw: Math.PI / 2, ...stands('sheep', 1.5, SHEEP_TALL_AT_3), support: 'floor',
+    // At x 1.9, clear of the wheelbarrow now the sheep is longer (Brian's sheet, 2026-11-18).
+    id: 'farm:doorway sheep', scene: 'farm', position: [1.9, 0, BARN.maxZ - 1.4], yaw: Math.PI / 2, ...stands('sheep', 1.5, SHEEP_TALL_AT_3), support: 'floor',
     from: 'the second sheep of FarmBackdrop in table/FarmBackdrop.tsx (coat level 3)',
-    copied: { file: 'src/skin/table/FarmBackdrop.tsx', text: '<group position={[2.2, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5}>' },
+    copied: { file: 'src/skin/table/FarmBackdrop.tsx', text: '<group position={[1.9, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5 * animalModel(\'sheep\').drawScale}>' },
   });
   // Who lives on the farm. The hens stand on the straw of their run (HEN_Y); everyone else on the land.
   LIVESTOCK.forEach(([animal, x, z, facing], i) => out.push({
     id: `farm:livestock ${i} (${animal})`, scene: 'farm', position: [x, animal === 'chicken' ? HEN_Y : 0, z], yaw: facing, ...stands(animal as Species, 1.5), support: animal === 'chicken' ? 'bedding' : 'floor',
-    from: `LIVESTOCK[${i}] in table/Farmstead.tsx, drawn at 1.5`,
-    copied: { file: 'src/skin/table/Farmstead.tsx', text: '<group key={i} position={[x, animal === \'chicken\' ? HEN_Y : 0, z]} rotation={[0, facing, 0]} scale={1.5}>' },
+    from: `LIVESTOCK[${i}] in table/Farmstead.tsx, drawn at 1.5 times its drawScale`,
+    copied: { file: 'src/skin/table/Farmstead.tsx', text: 'rotation={[0, facing, 0]} scale={1.5 * animalModel(animal).drawScale}>' },
   }));
   return out;
 }

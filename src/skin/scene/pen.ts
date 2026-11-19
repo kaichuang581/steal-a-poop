@@ -4,6 +4,7 @@ import { lin, pick, T } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import type { RGB } from '../voxel/primitives';
 import { detailed } from '../voxel/refine';
+import { tieredPine } from './style/pine';
 
 /**
  * The lobby is a sheep pen in a mountain meadow on a winter night: a three-rail fence with a shut gate, a hay rack and
@@ -89,10 +90,10 @@ function ground() {
       if (inside) {
         // Bedded with straw, trodden, with snow lying in it here and there: a floor a white sheep shows against.
         const patch = hash3(gx >> 2, 1, gz >> 2, 5);
-        c = hash3(gx, 2, gz, 6) > 0.3 + patch * 0.35 ? mix(pick(STRAW, hash3(gx, 3, gz, 7)), lin(EARTH[1]), 0.25 + patch * 0.3) : lin(patch > 0.5 ? '#DCE4EE' : '#C6D0DE');
+        c = patch > 0.35 ? mix(lin(STRAW[0]), lin(EARTH[1]), 0.3) : lin('#DCE4EE'); // whole patches, one colour each
         // Worn to earth by hooves: at the gate, along the trough and under the rack.
         const worn = near(x, z, 0, -PEN.halfZ + 0.4, 1.3) || near(x, z, PEN.trough[0], PEN.trough[2] - 0.7, 1.3) || near(x, z, PEN.rack[0], PEN.rack[2] - 0.8, 1.5);
-        if (worn && hash3(gx, 4, gz, 8) > 0.42) c = mix(pick(EARTH, hash3(gx, 5, gz, 9)), lin('#C6D0DE'), 0.25);
+        if (worn) c = mix(lin(EARTH[0]), lin('#C6D0DE'), 0.25);
       }
       g.set(gx, -1, gz, c);
     }
@@ -123,27 +124,19 @@ function land() {
 }
 
 type Tree = readonly [x: number, z: number, height: number];
-/** A pine: a trunk, and boughs in tiers that narrow to the top, each tier's edge ragged and its top laden with snow. */
-function pine(g: Grid, [x, z, h]: Tree, i: number) {
+/** The pines round the pen, near enough to be drawn fine. */
+const NEAR_PINES: readonly Tree[] = [[-11.5, 7, 9], [12.5, 8, 9.5], [-9.2, 4.6, 3.4], [9.8, 5.4, 3.8],
+  [-5.2, 7.2, 2.6], [3.2, 11.2, 3], [-2.6, 16, 3.4], [-12, 17, 4.6], [11.5, 19, 4.4]];
+/** A pine: the diorama's tiered pine (style/pine.ts), on the highest land under its trunk. */
+function pine(g: Grid, [x, z, h]: Tree, _i: number) {
   // On the land's top (land(): whole metres, each 1 m cell at its own corner's height), on the highest cell under the
   // trunk: at hill(x, z) itself a pine stood up to a metre over the snow or sank into it.
   const s = g.size, lo = (v: number) => Math.floor(Math.round((v - s) / s) * s), hi = (v: number) => Math.ceil(Math.round((v + s) / s) * s) - 1;
   let y0 = -Infinity;
   for (let cx = lo(x); cx <= hi(x); cx++) for (let cz = lo(z); cz <= hi(z); cz++) y0 = Math.max(y0, Math.round(hill(cx, cz)));
-  const bare = Math.max(s * 2, h * 0.14);
-  box(g, [x - s, y0, z - s], [x + s, y0 + bare + s, z + s], (a, b, c) => pick(T.trunk, hash3(a, b, c, 18 + i)));
-  for (let y = bare; y < h; y += s) {
-    const k = (y - bare) / (h - bare);
-    // Three or four voxels to a tier: widest at its foot, drawn in under the tier above.
-    const tier = ((y - bare) / s) % 4;
-    const w = Math.max(s, (1 - k) * h * 0.24 * (1 - tier * 0.16));
-    box(g, [x - w, y0 + y, z - w], [x + w, y0 + y + s, z + w], (a, b, c) => {
-      const edge = Math.max(Math.abs(a * s - x), Math.abs(c * s - z)) > w - s * 1.5;
-      if (edge && hash3(a, b, c, 19 + i) > 0.62) return null;
-      return (tier === 0 || edge) && hash3(a, b, c, 20 + i) > 0.45 - k * 0.2 ? pick(T.snow, hash3(a, 0, c, 21)) : pick(T.pine, hash3(a, b, c, 23), [0.4, 0.8]);
-    });
-  }
+  tieredPine((a, b, c, col) => g.set(a, b, c, col), (a, b, c) => g.has(a, b, c), Math.round(x / s), Math.round(z / s), Math.round(y0 / s), h, s);
 }
+
 /**
  * The trees. Close by, drawn fine: tall pines either side of the pen that frame the picture and young ones in the
  * meadow behind. Far off, drawn coarse: the wood along the ridge.
@@ -151,8 +144,7 @@ function pine(g: Grid, [x, z, h]: Tree, i: number) {
 function trees() {
   const near = new Grid(0.25), far = new Grid(0.5);
   const r = rng(17);
-  ([[-11.5, 7, 9], [12.5, 8, 9.5], [-9.2, 4.6, 3.4], [9.8, 5.4, 3.8],
-    [-5.2, 7.2, 2.6], [3.2, 11.2, 3], [-2.6, 16, 3.4], [-12, 17, 4.6], [11.5, 19, 4.4]] as Tree[]).forEach((t, i) => pine(near, t, i));
+  NEAR_PINES.forEach((t, i) => pine(near, t, i));
   for (let i = 0; i < 64; i++) {
     const x = (r() * 2 - 1) * 78, z = 34 + r() * 56;
     pine(far, [x, z, 3.8 + r() * 2.6], 40 + i);
@@ -181,6 +173,7 @@ function nature() {
     // Behind the pen and out to its sides only: in front of it, this close, a blade of grass is a plank.
     const cx = (hash3(k, 4, 0, 70) * 2 - 1) * 18, cz = -2 + hash3(k, 5, 0, 71) * 24;
     if (Math.abs(cx) < 6.2 && cz < 3.7) continue;
+    if (NEAR_PINES.some(([px, pz, h]) => Math.hypot(cx - px, cz - pz) < h * 0.3 + 0.4)) continue; // not into a pine's boughs
     for (let b = 0; b < 4; b++) blade(cx + (hash3(k, b, 1, 72) - 0.5) * 0.5, cz + (hash3(k, b, 2, 73) - 0.5) * 0.5, 0.15 + hash3(k, b, 3, 74) * 0.3, 75);
   }
   return buildGeometry(g.map, g.size);

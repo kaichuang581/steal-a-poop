@@ -1,128 +1,90 @@
 import type { Character } from '../../avatars/catalog';
-import { lin, T } from '../palette';
-import { box, ellipsoid, Grid, helix } from '../primitives';
-import type { Paint, V3 } from '../primitives';
+import { lin } from '../palette';
+import { Grid } from '../primitives';
+import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { breathAt, cellsOf, hugCollar, eyePlate, frontEye, hollow, leg, lidsAndBrows, mask, mouths, part, PIG_POWER, S, shaded, sockets, solidSet, statsOf, tones } from './rig';
+import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 
-/**
- * The pig (V5.1 Part 5.2): a low oval barrel with a shoulder and a hip bulge, a square block head whose back sits in
- * the shoulder bulge, a snout disc, floppy ears folding forward beside the eyes, and a curly tail. Faces +z; the
- * centre column is x = 0.
- *
- * Where this differs from the sheet's letter: the torso is one row taller and the head two rows higher (rows 8 to 18):
- * with the sheet's torso the bulges make it 1.69 long for its height (the sheet asks 1.40 to 1.55), and at rows 6 to 16
- * the head's top is 0.94 of the back line (the sheet asks 0.95 or more); the legs stand a voxel nearer the middle, where the belly
- * is low enough to leave the visible leg inside the sheet's 0.30 to 0.45; and there is no separate neck wedge, because
- * at the sheet's z the head and the shoulder bulge already overlap by four voxels, so a wedge between them is hidden.
- */
+/** Hooves for the species that keep a dark hoof (kept for any importer). */
 export const HOOF = tones('#4A3A3A');
-const Y0 = 8; // the head's bottom row
-export function pigModel(ch: Character): AnimalModel {
-  const body = tones(ch.colors.body);
-  const nose = tones(ch.colors.shade); // the snout is the darker pink
-  const face = body;
-  const cheek = lin(T.pink[1]);
+const PINK = ['#F2AFAE', '#E9A0A2', '#D98890', '#B5646F'] as const;
 
-  // ---- Torso: an ellipsoid 0.58 x 0.54 x 0.80, a shoulder and a hip bulge, a lighter belly.
+/**
+ * The pig, after Brian's six-view sheet (2026-11-18): one long pink box on four stubby legs (its front four slices
+ * are the head, flush with the body, so the box reads whole at rest); a snout block with two darker nostrils, one-cell
+ * black eyes either side above it, ears lying flat on the crown's front corners and folding down its sides, and a
+ * little curl of a tail. Grid cells (0.04 m), drawn at 1.43 (`drawScale`). Faces +z.
+ */
+export function pigModel(_ch: Character): AnimalModel {
+  const pink = lin(PINK[0]);
+  const face = tones(PINK[0]);
+
+  // ---- Body: the back thirteen slices of an 11 x 10 x 17 box.
   const bg = new Grid(S);
-  const paint = shaded(body, 18, 5);
-  ellipsoid(bg, [0, 0.48, 0.02], [0.29, 0.28, 0.38], paint, 0, 1, PIG_POWER);
-  ellipsoid(bg, [0, 0.50, 0.30], [0.26, 0.22, 0.18], paint, 0, 1, PIG_POWER);
-  ellipsoid(bg, [0, 0.52, -0.26], [0.25, 0.22, 0.10], paint, 0, 1, PIG_POWER);
-  mask(bg, [{ c: [0, 0.30, 0], r: [0.22, 0.12, 0.30] }], lin(body[0]), lin(body[1]));
-  const legSpots = [[-0.12, 0.2], [0.12, 0.2], [-0.12, -0.2], [0.12, -0.2]] as const;
-  sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })), 8, 7); // shoulders and hips over the legs (4.2.3)
+  cube(bg, [-5, 4, -8], [5, 13, 4], () => pink);
+  const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
 
-  // ---- Head: a box 11 x 11 x 9, chamfer 2, rows 8 to 18, z 8 to 16; the back 0.16 inside the shoulder bulge.
-  const HEAD: V3 = [0, Y0 * S + 0.2, 0.34]; // the neck joint: the head's back, at its middle
+  // ---- Head: the box's front four slices, pivoting at their middle.
+  const HEAD: V3 = [0.02, 9 * S, 6.5 * S];
   const hg = new Grid(S);
-  box(hg, [-0.22, Y0 * S, 0.30], [0.22, (Y0 + 11) * S, 0.66], shaded(face, Y0 + 10, Y0), 2);
-  const zf = 16; // the front face's voxel column (0.64..0.68)
-  // Eyes: 4 x 4 front plates, rows 14 to 17, columns -5..-2 and 2..5.
-  const places = [frontEye([-5, Y0 + 6, zf + 1], 4), frontEye([2, Y0 + 6, zf + 1], 4)];
-  const eyes = places.map((place, i) => {
-    const g = new Grid(S);
-    eyePlate(g, place, 4, ch.colors.dark);
-    return part(g, [((i === 0 ? -5 : 2) + 2) * S, (Y0 + 8) * S, (zf + 1.5) * S]);
-  }) as unknown as [CPart, CPart];
-  const { lids, brows } = lidsAndBrows(places.map((place) => ({ place, n: 4 })), face, HEAD, hg);
-  // Snout: a disc 6 wide x 4 tall x 2 proud at rows 10 to 13, x -3..2, its corners knocked off; nostrils at row 12.
+  cube(hg, [-5, 4, 5], [5, 13, 8], () => pink);
   const sg = new Grid(S);
-  const snoutPaint: Paint = (x, y, z) => ((x === -3 || x === 2) && (y === Y0 + 2 || y === Y0 + 5) ? null : lin(z === zf + 2 && (x === -2 || x === 1) && y === Y0 + 4 ? nose[2] : nose[1]));
-  box(sg, [-3 * S, (Y0 + 2) * S, (zf + 1) * S], [3 * S, (Y0 + 6) * S, (zf + 3) * S], snoutPaint);
+  cube(sg, [-2, 6, 9], [2, 9, 10], (x, y, z) => lin(z === 10 && y === 8 && Math.abs(x) === 1 ? PINK[3] : PINK[1]));
   const snout: SigPart = { ...part(sg, HEAD), name: 'snout', where: 'head', anim: 'snout', cells: sg.map };
-  // Cheeks: 2 x 2 under the outer eye columns at rows 12 and 13, painted on the face.
-  for (const x of [-5, -4, 4, 5]) for (const y of [Y0 + 4, Y0 + 5]) if (hg.has(x, y, zf)) hg.set(x, y, zf, cheek);
-  // The mouth on row 9 (the second from the bottom), width 5, under the snout, on the chamfered chin's own front.
-  const frontAt = (x: number, y: number) => { let z = -99; for (let k = zf; k >= zf - 4; k--) if (hg.has(x, y, k)) { z = k; break; } return z === -99 ? zf : z; };
-  const mouthParts = mouths([-2, Y0, zf], 5, 'z', nose[2], HEAD, { front: frontAt });
+  const { eyes, lids, brows } = smallEyes(hg, 10, 8, '#1E1A19', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
+  const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   const headSolid = solidSet(hg);
   hollow(hg);
   const headPart = part(hg, HEAD);
 
-  // ---- Ears: triangles 5 wide at the root tapering to 1, one thick, rooted in the head's top corners (x 3..7,
-  // rows 17 and 18, z 10 and 11), folding forward and down so the tips hang at row 14 just ahead of the face, outside
-  // the eyes; the middle of each flap pink.
+  // ---- Ears: a slab 4 wide, 1 tall, 3 deep on the crown's front corner, overhanging the side a cell, and a flap
+  // down that side 4 rows.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
-    for (const y of [Y0 + 9, Y0 + 10]) for (let x = 3; x <= 6; x++) for (const z of [10, 11]) g.set(sx * x, y, z, lin(body[1]));
-    let zPrev = 11;
-    for (let k = 1; k <= 4; k++) {
-      const w = 5 - k, y = Y0 + 10 - k, xc = 5 + k * 0.5;
-      const z = 11 + Math.round(k * 1.5);
-      for (let i = 0; i < w; i++) {
-        const x = Math.round(xc - w / 2 + i + 0.5);
-        const inner = i > 0 && i < w - 1;
-        for (let zz = zPrev; zz <= z; zz++) g.set(sx * x, y, zz, lin(inner ? T.pink[1] : body[1]));
-      }
-      zPrev = z;
-    }
-    return part(g, [sx * 4 * S, (Y0 + 10) * S, 10.5 * S]);
+    const [x0, x1] = sx < 0 ? [-6, -3] : [3, 6];
+    cube(g, [x0, 14, 6], [x1, 14, 8], () => lin(PINK[1]));
+    cube(g, [sx * 6, 10, 6], [sx * 6, 13, 7], () => lin(PINK[2]));
+    return part(g, [sx * 4.5 * S + 0.02, 14 * S, 7 * S]);
   }) as unknown as [CPart, CPart];
 
-  // ---- Legs: four, 3 x 3 x 8 with splayed hooves, their tops inside the belly.
-  const legs = legSpots.map(([cx, cz]) => {
+  // ---- Legs: 3 x 3 stubs under the body, two rows inside the belly, the bottom row darker.
+  const legSpots = [[-4, 1], [2, 1], [-4, -7], [2, -7]] as const; // the front pair a cell clear of where the head meets the body (the winner's scarf ties there)
+  const legs = legSpots.map(([x0, z0]) => {
     const g = new Grid(S);
-    leg(g, cx, cz, 3, 8, body, HOOF, { splay: 1 });
-    return part(g, [cx, 0.30, cz]);
+    cube(g, [x0, 0, z0], [x0 + 2, 5, z0 + 2], (_x, y) => lin(y === 0 ? PINK[3] : PINK[1]));
+    unshare(g, bodySolid);
+    return part(g, [(x0 + 1.5) * S, 4 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];
 
-  // ---- Tail: a curl two voxels thick at the rump, pointing up and back.
+  // ---- Tail: a little curl, 2 x 2 x 2 off the top of the rump with a cell over, rooted a cell in.
   const tg = new Grid(S);
-  box(tg, [-0.04, 0.48, -0.40], [0.04, 0.56, -0.32], () => lin(body[2])); // the root, inside the rump
-  helix(tg, [0, 0.56, -0.38], [0, 0.6, -0.8], () => lin(body[2]), 0.03, 0.02, 1.5);
-  helix(tg, [0.04, 0.56, -0.38], [0, 0.6, -0.8], () => lin(body[2]), 0.03, 0.02, 1.5);
-  const tail = part(tg, [0, 0.56, -0.38]);
+  cube(tg, [0, 11, -9], [1, 12, -8], () => lin(PINK[2]));
+  cube(tg, [0, 11, -10], [1, 11, -10], () => lin(PINK[2]));
+  tg.set(0, 12, -10, lin(PINK[1]));
+  tg.set(1, 12, -10, lin(PINK[1]));
+  const tail = part(tg, [0.04, 0.46, -0.34]);
 
-  // ---- Collar: one voxel round the head's back where it leaves the shoulder bulge (4.2.6).
-  // It runs over the top and down the sides to the jaw: the head's underside is the chin, not a neck.
-  const collar = hugCollar(headSolid, 13, '#C24E45', (_x, y) => y >= Y0 + 3);
-
-  // ---- Warmth layers (4.5): a sweater from behind the shoulders to before the hips, a band at the neck.
   const coats = coatsFor({
-    // The belly line at 0.40, not the sheet's 0.34: 4.5 leaves a third of the torso bare, and 0.34 leaves 0.29.
-    body: bg.map, torso: { zFrom: -0.22, zTo: 0.22, bellyY: 0.40 }, kind: 'sweater', knit: KNIT.pig,
-    // The sheet's neck centre (0, 0.56, 0.36) lies inside the head, so the band, the collar and the scarf ring the
-    // head's back in that order, one slice apart, where it leaves the shoulder bulge.
-    neck: { centre: [0, Y0 * S + 0.22, 0.58], rx: 0.27, ry: 0.26, tails: [0, Y0 * S - 0.02, 0.64], solid: headSolid },
-    band: { centre: [0, Y0 * S + 0.22, 0.46], rx: 0.27, ry: 0.25, solid: headSolid },
-    avoid: [hg.map, ...ears.map((e) => e.cells)],
-    legs: legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })),
+    body: bg.map, torso: { zFrom: -0.24, zTo: 0.08, bellyY: 0.32 }, kind: 'sweater', knit: KNIT.pig,
+    neck: { centre: [0.02, 0.36, 6 * S + 0.001], rx: 0.24, ry: 0.24, tails: [0.02, 0.2, 0.12], solid: headSolid },
+    band: { centre: [0.02, 0.36, 5 * S + 0.001], rx: 0.24, ry: 0.24, solid: headSolid },
+    avoid: [hg.map, sg.map, ...ears.map((e) => e.cells)],
+    legs: legSpots.map(([x0, z0]) => ({ cx: (x0 + 1.5) * S, cz: (z0 + 1.5) * S, w: 3 })),
   });
-
-  const breath = breathAt([0, Y0 * S + 0.16, 0.74]);
-  const signature = [snout];
-  const parts = [coats.wools[2], headPart, ...eyes, ...ears, ...legs, tail, collar, snout];
+  const breath = breathAt([0.02, 7 * S, 11 * S]);
+  const parts = [coats.wools[2], headPart, ...eyes, ...ears, ...legs, tail, snout];
+  const { height, length } = extentOf([bodyPart, headPart, snout, ...ears, ...legs, tail]);
   return {
-    species: 'pig', bodyAlways: false, signature, height: 0.78, length: 1.06, drawScale: 1, headPitch: 0.14,
+    species: 'pig', bodyAlways: false, signature: [snout], height, length, drawScale: 1.43,
     wools: coats.wools, frosts: coats.frosts, coatCells: coats.coatCells, garment: coats.garment,
-    head: headPart, hood: part(new Grid(S), HEAD), tail, eyes, lids, brows, mouths: mouthParts, ears, legs, collar, bell: part(new Grid(S), [0, 0.44, 0.56]), sheared: bodyPart, breath,
+    head: headPart, hood: none(HEAD), tail, eyes, lids, brows, mouths: mouthParts, ears, legs, collar: none(), bell: none([0, 0.44, 0.56]), sheared: bodyPart, breath,
     lobes: { body: 1, hood: 0, tail: 1 }, woolTones: 3, voxels: parts.reduce((n, p) => n + p.voxels, 0),
-    cells: cellsOf({ body: bodyPart, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar, snout }),
+    // No neck part: the slices either side of where the head meets the body stand in for it, so the winner's scarf
+    // (anchors.ts) ties there.
+    cells: cellsOf({ body: bodyPart, neck: { ...headPart, cells: new Map([...hg.map, ...bg.map].filter(([, v]) => v.z === 4 || v.z === 5)) }, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar: none(), snout }),
     stats: statsOf(parts, []),
   };
 }

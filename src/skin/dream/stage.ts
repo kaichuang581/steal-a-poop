@@ -87,10 +87,14 @@ export const frameMetres = (v: DreamView): [number, number] => [v.w / v.zoom, v.
 export const SHEEP_SCALE = (FIELD.sheepW * PX) / 1.3;
 /**
  * The drawn sheep at art 1, logical px about the rules' box centre: its length, and its height with the hat
- * (measured from the model: it spans 70.0 to 87.2 behind today's box, 78 to 98, so it is drawn centred on it now).
- * Its height without the hat is measured from the model itself (anchorsOf, sideOn.test.ts).
+ * (measured from the model: Brian's sheet sheep of 2026-11-19, at its normal coat, is 19.0 long, from 8.1 behind its
+ * origin to 10.9 ahead of it). It is longer than the sheep the plan measured (17.2), so it is not drawn centred: its
+ * nose stays where that sheep's was, `nose` ahead of the box's centre, so a bump still meets the rail and the
+ * knock-back still clears it; the extra length is all tail (`tail` behind the centre). `mid` is the model's point
+ * that stands on the centre. Its height without the hat is measured from the model itself (anchorsOf,
+ * sideOn.test.ts); with the hat it stands 19.5, under the 21.3 the plan's table allows it.
  */
-export const SHEEP_ART = { length: 17.2, mid: 78.6 - FIELD.sheepX, hat: 21.3 } as const;
+export const SHEEP_ART = { length: 19.0, nose: 8.6, tail: 10.4, mid: 10.86 - 8.6, hat: 21.3 } as const;
 /** The drawn lift: the rules' arc, drawn ART times taller, so the drawn sheep clears the drawn fence. */
 export const drawnLift = (ms: number): number => ART * jumpHeight(ms);
 /** The leap's pitch, radians nose up, `j` of the way through the jump (0 to 1). */
@@ -119,8 +123,8 @@ export function jumpClearance(speed: number, pitched: boolean): number {
   for (let ms = 0; ms <= JUMP_MS; ms += 1) {
     const j = ms / JUMP_MS, c = fx0 - (speed * ms) / 1000;
     const th = pitched ? leapPitch(j) : 0, long = pitched ? 1.03 - 0.05 * Math.abs(2 * j - 1) : 1;
-    const half = ((ART * SHEEP_ART.length) / 2) * long;
-    for (let u = -half; u <= half; u += 0.1) {
+    const aft = ART * SHEEP_ART.tail * long, fore = ART * SHEEP_ART.nose * long;
+    for (let u = -aft; u <= fore; u += 0.1) {
       const x = SHEEP_CENTRE + u * Math.cos(th), y = drawnLift(ms) + u * Math.sin(th);
       if (Math.abs(x - c) < fhalf) gap = Math.min(gap, y - ftop);
     }
@@ -142,7 +146,7 @@ export const RECOIL = { m: 0.25, ms: 200 } as const;
  */
 export function bumpOverlap(ms: number): number {
   const face = FIELD.sheepX + FIELD.sheepW - 3 + FIELD.fenceW / 2 - (ART * FIELD.fenceW) / 2;
-  const nose = SHEEP_CENTRE + (ART * SHEEP_ART.length) / 2 - (RECOIL.m / PX) * Math.min(1, ms / RECOIL.ms);
+  const nose = SHEEP_CENTRE + ART * SHEEP_ART.nose - (RECOIL.m / PX) * Math.min(1, ms / RECOIL.ms);
   return Math.max(0, nose - face);
 }
 
@@ -218,7 +222,7 @@ export function dreamLayout(v: DreamView): DreamLayout {
   const { w, h, s, ground } = v;
   const stripTop = ground - STRIP.over * s, stripBottom = ground + STRIP.under * s;
   const sw = ART * SHEEP_ART.length * s, sh = ART * SHEEP_ART.hat * s;
-  const sheep = { x: screenX(v, SHEEP_CENTRE) - sw / 2, y: ground - sh, w: sw, h: sh };
+  const sheep = { x: screenX(v, SHEEP_CENTRE) - ART * SHEEP_ART.tail * s, y: ground - sh, w: sw, h: sh };
   let bw: number, bh: number, by: number, below = true;
   if (v.phone) {
     bw = Math.min(0.42 * w, 240);

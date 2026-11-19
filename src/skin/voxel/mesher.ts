@@ -1,5 +1,6 @@
 import { BufferAttribute, BufferGeometry, Float32BufferAttribute } from 'three';
 import { EDGE, ROUND } from './rounded';
+import { LOOK } from '../look';
 
 export type Voxel = { x: number; y: number; z: number; c: [number, number, number] }; // colour as linear RGB 0..1
 export type VoxelMap = Map<string, Voxel>; // key "x,y,z"
@@ -14,7 +15,7 @@ const FACES: { axis: 0 | 1 | 2; sign: 1 | -1; t1: 0 | 1 | 2; t2: 0 | 1 | 2 }[] =
 const FACE_SHADE = (axis: number, sign: number) =>
   axis === 1 ? (sign > 0 ? 1.0 : 0.78) : axis === 0 ? (sign > 0 ? 0.93 : 0.88) : sign > 0 ? 0.91 : 0.86;
 /** How much each occluded corner darkens (0..3 corners). */
-const AO_STEP = 0.2;
+const AO_STEP = LOOK.ao ?? 0.2; // ?ao= on a development server (look.ts), for the diorama's pairs
 
 const cellKey = (x: number, y: number, z: number) => (x + 8192) * 268435456 + (y + 8192) * 16384 + (z + 8192);
 const solids = new WeakMap<object, Set<number>>();

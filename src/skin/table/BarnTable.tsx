@@ -3,7 +3,7 @@ import { Bomb } from './Bomb';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
+import { BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
@@ -40,6 +40,7 @@ import { anchorsOf } from '../voxel/animals/anchors';
 import { getKaiyanLook, pictureHeight, useKaiyanLook } from '../avatars/kaiyanLook';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
+import { LOOK } from '../look';
 
 export interface BarnSeat {
   seat: number;
@@ -262,7 +263,7 @@ export function BarnTable(props: Props) {
       <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="table" fps={props.fps}
         shadows={{ type: PCFShadowMap }}
        
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
         camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >

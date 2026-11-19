@@ -7,7 +7,12 @@
   ],
   "pinned": {
     "on": "2026-11-16",
-    "from": "commit 6edc7fe (v0.7.4), and the same tree with isClear reading CLEAR_SIGHT_LINES: measured on both, and the two agree in every number and hash"
+    "from": "commit 6edc7fe (v0.7.4), and the same tree with isClear reading CLEAR_SIGHT_LINES: measured on both, and the two agree in every number and hash",
+    "again": {
+      "on": "2026-11-19",
+      "what": "the countryside's total only (fine and coarse): 487,002 voxels to 451,526. The stand, the stand of every kind, the cone and the rays are the numbers of 2026-11-16, unchanged, and measured equal on this day.",
+      "why": "Brian, 2026-11-19, asked whether the background pines and the worn tracks of scene/countryside.ts may change: \"yes, remodel\". Outside the wendigo's zone (scene/wendigoZone.ts: 17 m round it, and 20 degrees round the paddock camera's line to it) the forest's pines are the diorama's tiered pines, colours are flat and the tracks are gone; inside it every voxel is built as it was."
+    }
   },
   "camera": {
     "position": [21.2, 2.3, 6.2],
@@ -33,8 +38,8 @@
   },
   "fine": {
     "countryside": {
-      "voxels": 487002,
-      "hash": "5c9fda308ea6eed68284faf187665fe690f7856e3c028291f10efb6a18bda8f7"
+      "voxels": 451526,
+      "hash": "6d80705b947e5c2899e07b882ef4bfa259767fbe33cfad58da2037a13c487c49"
     },
     "stand": {
       "voxels": 80760,
@@ -56,8 +61,8 @@
   },
   "coarse": {
     "countryside": {
-      "voxels": 487002,
-      "hash": "5c9fda308ea6eed68284faf187665fe690f7856e3c028291f10efb6a18bda8f7"
+      "voxels": 451526,
+      "hash": "6d80705b947e5c2899e07b882ef4bfa259767fbe33cfad58da2037a13c487c49"
     },
     "stand": {
       "voxels": 80760,

@@ -55,14 +55,17 @@ export const POV_SHOTS: { desktop: PovShot[]; phone: PovShot[] } = {
     { position: [-40, 21, 40], target: [-8, 1, 1], fov: 38, push: [6, -1, -2], spill: 0.4 },
     // Along the paddock fence, the animals with the silo behind them.
     { position: [21.2, 2.3, 6.2], target: [12.5, 0.9, -2.5], fov: 38, push: [-1.8, -0.2, 0.5], spill: 0.4 },
-    // Over the avatar's shoulder from inside the barn, out at the yard.
-    { position: [0.2, 1.1, 2.6], target: [1.07, 1.12, 8.2], fov: 44, push: [0, 0.1, 1], spill: 0.5 },
+    // Out through the barn at the avatar in its doorway and the yard beyond, from over the pile: far enough back that
+    // neither sheep fills the frame (2026-11-19: from 5 m the avatar's back and the doorway sheep's flank were most of it).
+    { position: [-0.9, 2.3, -1.2], target: [1.2, 0.9, 8.2], fov: 44, push: [0, 0.05, 0.8], spill: 0.5 },
     // The hens' run.
     { position: [-5.9, 2.9, 12.3], target: [-16.7, 0.4, 4.5], fov: 34.5, push: [-0.8, -0.1, -0.2], spill: 0.4 },
     // The tractor, parked up by the barn.
     { position: [6, 2.6, 16.6], target: [8.3, 1.5, 7.4], fov: 36, push: [1.3, 0.1, -0.1], spill: 0.4 },
-    // Down the path to the avatar, a little off its nose.
-    { position: [-0.1, 1.4, 14], target: [-0.9, 0.8, 8.2], fov: 30, push: [0.2, 0.05, -0.5], spill: 0.45 },
+    // Down the path to the avatar, from just inside the gate, through a wide lens: the avatar a third of the frame's
+    // height with the doors and the yard round it (Brian, 2026-11-19, of the old long lens at 6 m: "why did u zoom so
+    // much in on the sheep ... its a little unsettling").
+    { position: [-0.6, 1.9, 14.2], target: [-1.3, 1.1, 8.2], fov: 48, push: [0.2, 0.05, -0.4], spill: 0.45 },
     // Across the frozen pond, back toward the barn and the silo.
     { position: [15.2, 3.4, 30.6], target: [0, 2.2, 11.2], fov: 36, push: [-1.2, -0.2, -0.4], spill: 0.4 },
   ],

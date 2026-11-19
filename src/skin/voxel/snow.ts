@@ -1,4 +1,4 @@
-import { lin } from './palette';
+import { lin, paintingAsBefore } from './palette';
 import { hash3 } from './primitives';
 import type { Paint, RGB } from './primitives';
 
@@ -27,8 +27,19 @@ function vnoise(x: number, z: number, seed: number) {
   return top + (bottom - top) * w;
 }
 
-/** The snow's colour at a voxel of a grid with `cell`-metre voxels. */
+/**
+ * Snow is one flat colour now (Brian, 2026-11-18: "remove all glitchy/static textures"): the shape of the land, its
+ * drifts and steps, and the light give it its form (docs/diorama/PLAN.md 3.2, question 2). The textured snow below is
+ * kept, under its own name, only for the wendigo's zone (scene/countryside.ts), whose every voxel is pinned.
+ */
+export const SNOW = lin('#F1F2EE');
 export function snowAt(x: number, y: number, z: number, cell: number, seed = 0): RGB {
+  return paintingAsBefore() ? snowAtTextured(x, y, z, cell, seed) : SNOW;
+}
+export const snowPaint = (cell: number, seed = 0): Paint => (x, y, z) => snowAt(x, y, z, cell, seed);
+
+/** The snow's textured colour at a voxel of a grid with `cell`-metre voxels (the wendigo's zone only). */
+export function snowAtTextured(x: number, y: number, z: number, cell: number, seed = 0): RGB {
   if (hash3(x, y, z, seed + 9) > 0.99) return SPARKLE; // a glint
   const mx = x * cell, mz = z * cell;
   // On a coarse grid (the far land is 1 m voxels) the marks are stretched wider and softened, or each big voxel would
@@ -42,5 +53,5 @@ export function snowAt(x: number, y: number, z: number, cell: number, seed = 0):
   return [(WHITE[0] + (COOL[0] - WHITE[0]) * cool) * k, (WHITE[1] + (COOL[1] - WHITE[1]) * cool) * k, (WHITE[2] + (COOL[2] - WHITE[2]) * cool) * k];
 }
 
-/** A paint for snow on a grid of `cell`-metre voxels. */
-export const snowPaint = (cell: number, seed = 0): Paint => (x, y, z) => snowAt(x, y, z, cell, seed);
+/** A paint for textured snow on a grid of `cell`-metre voxels (the wendigo's zone only). */
+export const snowPaintTextured = (cell: number, seed = 0): Paint => (x, y, z) => snowAtTextured(x, y, z, cell, seed);

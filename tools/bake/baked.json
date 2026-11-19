@@ -70,9 +70,9 @@
       "width": 800,
       "height": 500,
       "alpha": false,
-      "modelHash": "975910d89a7ac7e58ed7bdb21bfdddd2e549ea7de6898335b040609525b673c0",
+      "modelHash": "56b8dd512f3e202f413d32e899c5f131fe8ff7480d6da2bd42d0c95e9d68e8e0",
       "renderHash": "f0cc7563d7d4b94152ac519f14e7f3267b449a7887b876656be6cfe450a9ad5b",
-      "fileHash": "58a2071e4e10e62cad2036e3876c16cf9e1c8c5a8b0226c3b33ad06754bce04e"
+      "fileHash": "e0f95f07ef1a880798c16f2845cb017666594e57292f4b4e03cff6f4de8eef88"
     },
     {
       "id": "play/ranked",
@@ -86,9 +86,9 @@
       "width": 800,
       "height": 500,
       "alpha": false,
-      "modelHash": "432509c36fe170d2a68b3dcd91973ce37283133ab1d456ba387e40493c7e7f99",
+      "modelHash": "7caf25074a22d569e7dc7d8f38ac6d8b4dfee594b42da1b3e0d3eccf2c8974a2",
       "renderHash": "f0cc7563d7d4b94152ac519f14e7f3267b449a7887b876656be6cfe450a9ad5b",
-      "fileHash": "23709519a322c6109fcb1c129d40195e4ede3468c7d357d674291c497d468152"
+      "fileHash": "e8a4db36594b4d97796614f5974a5680058626fa6914a6c99b891df0cd36b182"
     },
     {
       "id": "shop/blast-bubblegum",

@@ -116,15 +116,15 @@ export const HEN_Y = 0.1;
  */
 export const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
   ['cow', 15.8, -1, 2.4, 'grazing'],
-  ['horse', 16.5, -4.2, -1.1, 'idle'],
+  ['horse', 13.5, -8.2, -1.1, 'idle'],
   ['chicken', -12.6, 5.2, 0.5, 'grazing'],
   ['sheep', 14.2, -6.4, 0.9, 'grazing'],
-  ['cow', 16.8, 1, -2.6, 'idle'],
+  ['cow', 14.6, -3.9, -0.8, 'idle'],
   ['goat', 13.8, -1.8, 1.5, 'idle'],
   ['chicken', -10.6, 6.2, -0.9, 'idle'],
   ['chicken', -14.8, 6.4, 2.2, 'grazing'],
   ['pig', -15.6, -2.4, 1.1, 'grazing'],
-  ['sheep', 15.7, -7.9, -1.2, 'idle'],
+  ['sheep', 15.5, -7.6, -1.2, 'idle'],
   // A few of the flock let out on the open ground.
   ['sheep', -24, 19, 0.6, 'grazing'],
   ['sheep', -27.5, 21.5, 2.4, 'idle'],
@@ -224,13 +224,12 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
               {[...country.woods, ...country.scrub].map((g, i) => g && <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
               {country.forest.map((g, i) => g && <mesh key={`w${i}`} geometry={g} material={mat} receiveShadow />)}
               {country.drifts.map((g, i) => g && <mesh key={`d${i}`} geometry={g} material={mat} receiveShadow />)}
-              {country.tracks && <mesh geometry={country.tracks} material={mat} receiveShadow />}
             </>
           )}
         </>
       )}
       {(phone ? LIVESTOCK.slice(0, 3) : LIVESTOCK).map(([animal, x, z, facing, state], i) => (
-        <group key={i} position={[x, animal === 'chicken' ? HEN_Y : 0, z]} rotation={[0, facing, 0]} scale={1.5}>
+        <group key={i} position={[x, animal === 'chicken' ? HEN_Y : 0, z]} rotation={[0, facing, 0]} scale={1.5 * animalModel(animal).drawScale}> {/* one uniform scale: each species at its lineup size */}
           <Sheep level={2} state={state} reduced={reduced} model={animal === 'sheep' ? undefined : animalModel(animal)} />
         </group>
       ))}

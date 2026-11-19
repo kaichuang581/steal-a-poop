@@ -17,6 +17,7 @@ import { watchScene } from '../perf/report';
 import { applyPendingTier, createSlowWatch, createTierJudge, exemptShot, getTier, proposeTier } from '../perf/tier';
 import type { Tier } from '../perf/tier';
 import { BARN } from '../scene/layout';
+import { LOOK, PADDOCK_FOG, WARM_DAY_SKY } from '../look';
 
 /** The look, applied once and globally (plan V3.1 Part 1.3). */
 // A warm white Christmas that is still winter (Brian, 2026-11-08: "warmer and more welcoming ... it looks a little dark"):
@@ -57,9 +58,15 @@ export const lanternIntensity = (hour: Hour) => LANTERN_LIGHT.intensity * (hour 
 export function Atmosphere({ hour }: { hour: Hour }) {
   const scene = useThree((s) => s.scene);
   useEffect(() => {
-    scene.fog = new FogExp2(FOG[hour], 0.012);
-    scene.background = new Color(FOG[hour]);
+    const fog = hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY[1] : FOG[hour];
+    scene.fog = new FogExp2(fog, LOOK.fog);
+    scene.background = new Color(fog);
   }, [scene, hour]);
+  // The wendigo's paddock shot keeps today's fog (look.ts); every other shot the lighter one.
+  useFrame(() => {
+    const f = scene.fog as FogExp2 | null;
+    if (f) f.density = exemptShot() ? PADDOCK_FOG : LOOK.fog;
+  });
   return null;
 }
 
@@ -137,7 +144,7 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
           gives the snow its shape: a strong fill here flattened every drift to one grey. */}
       <hemisphereLight args={[LIGHT_BOUNDS.fillSky, LIGHT_BOUNDS.fillGround, hour === 'night' ? LIGHT_BOUNDS.fillNight : LIGHT_BOUNDS.fillDay]} />
       <directionalLight
-        ref={light} position={pos} color={sun.color} intensity={sun.intensity} castShadow
+        ref={light} position={pos} color={sun.color} intensity={sun.intensity} castShadow {...(LOOK.shadowRadius !== null ? { 'shadow-radius': LOOK.shadowRadius } : {})}
         shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-layers-mask={SHADOW_LAYERS}
         shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20} shadow-camera-near={1} shadow-camera-far={160}
       />
@@ -245,7 +252,9 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
     return () => { gl.info.autoReset = true; };
   }, [gl]);
   useFrame(() => {
-    const want = effectsPlan(getTier(), home && exemptShot());
+    const exempt = home && exemptShot();
+    const want = effectsPlan(getTier(), exempt);
+    if (home && !exempt && !LOOK.tilt) want.tiltShift = false; // ?tilt=0 (look.ts): off but on the wendigo's shot
     const key = `${want.bloomMaxW}|${want.tiltShift}`;
     if (key !== plan.current) { plan.current = key; fit(want.bloomMaxW, want.tiltShift); }
     gl.info.reset();

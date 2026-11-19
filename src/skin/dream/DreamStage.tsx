@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { createRef, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject, RefObject } from 'react';
 import {
-  ACESFilmicToneMapping, BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, FogExp2, Group, Mesh, MeshLambertMaterial,
+  BufferAttribute, BufferGeometry, Color, Float32BufferAttribute, FogExp2, Group, Mesh, MeshLambertMaterial,
   PCFShadowMap, PointLight, Points, PointsMaterial, SRGBColorSpace,
 } from 'three';
 import type { OrthographicCamera } from 'three';
@@ -31,6 +31,7 @@ import type { DreamView } from './stage';
 import { bonkStar, FAR_Z, fenceSign, hills as hillsLayer, HILLS, island as islandGeometry, lookOf, mountains as mountainsLayer, MOUNTAINS, obstacle, raftChunk, SEA, seaLayer, shadowDisc, SIGN, wisp as wispGeometry } from './world';
 import { Paper } from '../kit';
 import { CheckIcon } from '../components/Icons';
+import { LOOK } from '../look';
 
 const SLOTS = 4;
 const LAND_MS = 200;
@@ -85,7 +86,7 @@ export function DreamStage(props: Props) {
     <SceneBoundary scene="the dream">
     <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="dream" fps={props.fps}
       shadows={{ type: PCFShadowMap }}
-      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: true }}
+      gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1, antialias: true }}
       orthographic camera={{ position: [0, 0, CAMERA_Z], near: 0.1, far: 900, zoom: 100 }}
     >
       <Scene {...props} tags={tags} />
@@ -342,7 +343,7 @@ function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Ta
                 <AvatarDisc state={sheepState} stateKey={stateKey} reduced={reduced} pace={pace} />
               </group>
             ) : (
-              <group position={[-SHEEP_ART.mid * PX, 0, 0]} rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner?.drawScale ?? 1)}>
+              <group position={[-SHEEP_ART.mid * PX, 0, 0]} rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner ?? animalModel('sheep')).drawScale}>
                 <Sheep level={2} state={sheepState} stateKey={stateKey} reduced={reduced} gustFrom={[0, 0.8, -4]} pace={pace} model={runner} contact={false} />
               </group>
             )}

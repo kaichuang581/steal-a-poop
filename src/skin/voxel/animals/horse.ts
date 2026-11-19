@@ -1,159 +1,120 @@
 import type { Character } from '../../avatars/catalog';
 import { lin } from '../palette';
-import { box, Grid, line } from '../primitives';
+import { Grid } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { barrel, breathAt, bury, cellsOf, hugCollar, hollow, leg, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge, unshare } from './rig';
+import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
-import { HOOF } from './pig';
-import { DEFAULT_FACES } from './faces';
 import type { Faces } from './faces';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+
+const COAT = ['#B0663A', '#A0582A', '#864822'] as [string, string, string]; // the sheet's brown
+const DARK = ['#3A281D', '#2B1D15', '#1F1410'] as const;
 
 /**
- * The horse (V5.1 Part 5.4): the tallest animal; a long barrel, a neck rising at 49 degrees from the shoulders with a
- * mane ridge along its top and a forelock, a long level wedge head with a blaze, small upright ears, long legs with
- * socks on two diagonal legs, and a long tail in the mane's colour.
- *
- * The sheet's numbers miss its own ratio table (the wedge's widths are odd, so a 6-wide head is 7): solved for the
- * table, the head is 7 wide, 8 tall and 13 long and the torso 13 wide, 14 tall and 26 long (0.52 x 0.56 x 1.04 m with its rounded ends).
+ * The horse, after Brian's six-view sheet (2026-11-18): the tallest animal. A long brown box on four square legs with
+ * dark hooves a cell wider than the leg; a flat neck leaning forward off the shoulders; a head box held a little
+ * nose-down with a narrower snout whose front and underside are dark; one-cell eyes on the head's sides; two small
+ * upright ears; a dark mane over the crown that steps down the back of the neck to the withers; a dark tail off the top
+ * of the rump that steps down and back. Grid cells (0.04 m), drawn at 1.24 (`drawScale`). Faces +z.
  */
-const TY = 11; // the torso's bottom row (y 0.44)
-const HY = 26; // the head's bottom row (y 1.04)
-/**
- * Face switches (plan file 03, 4.11), off until Brian ticks the horse's row on the face sheet. HORSE_NOSE: the two
- * nostrils, one voxel each, in a tone halfway between the muzzle's and its dark (today's dark pair reads as a second
- * pair of eyes). HORSE_EYES: the eyes flush in the head's sides (`proud: false`) instead of one voxel out.
- * HORSE_NECK: the neck's sections stepped two voxels at a time, so its top and throat climb in even two-voxel treads
- * instead of a ragged one-voxel stair.
- */
-export const HORSE_NOSE = true; // ticked by Brian, 2026-11-17 (milestone 6)
-export const HORSE_EYES = true; // ticked by Brian, 2026-11-17 (milestone 6)
-export const HORSE_NECK = true; // ticked by Brian, 2026-11-17 (milestone 6)
-export function horseModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
-  const softNose = HORSE_NOSE || faces.has('horseNose');
-  const flushEyes = HORSE_EYES || faces.has('horseEyes');
-  const treads = HORSE_NECK || faces.has('horseNeck');
-  const body = tones(ch.colors.body);
-  const mane = tones(ch.colors.pop);
-  const nose = tones(ch.colors.soft);
-  const blaze = lin(body[0]);
+export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
+  const coat = lin(COAT[1]);
+  const dark = lin(DARK[1]);
 
-  // ---- Torso: a barrel 0.52 x 0.56 x 0.96 (1.04 with its rounded ends), chamfer 3, rounder 1, rows 11 to 24.
+  // ---- Body: 11 wide, 9 tall, 20 long.
   const bg = new Grid(S);
-  barrel(bg, [0.02, (TY + 7) * S, 0], [0.52, 0.56, 0.96], 3, shaded(body, TY + 13, TY), 1);
-  const legSpots = [[-0.15, 0.24], [0.19, 0.24], [-0.15, -0.24], [0.19, -0.24]] as const;
-  sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })), 13, 12); // shoulders and hips over the legs (4.2.3)
+  cube(bg, [-5, 9, -10], [5, 17, 9], () => coat);
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
 
-  // ---- Head: a wedge 13 long, 7 wide at the back to 5 at the muzzle, 8 tall (rows 26 to 33), level.
-  const HEAD: V3 = [0, HY * S, 0.62];
+  // ---- Head: 7 wide, 6 tall, 6 long; the snout 5 wide, 4 tall, 5 long, its bottom flush with the head's, dark over its
+  // front two slices and along its underside; the mane's top two rows over the crown (they turn with the head).
+  const HEAD: V3 = [0.02, 22 * S, 8 * S];
   const hg = new Grid(S);
-  const zb = Math.round(0.62 / S), zf = zb + 12;
-  // The blaze: two columns down the front face's upper half; the muzzle: the front three slices in the nose tone.
-  const paint: Paint = (x, y, z) => {
-    if (z >= zf - 2 && y <= HY + 3) return lin(nose[1]);
-    if (z === zf && (x === 0 || x === -1) && y > HY + 3) return blaze;
-    return shaded(body, HY + 7, HY)(x, y, z);
-  };
-  wedge(hg, HEAD, 0.52, 0.28, 0.20, 0.32, paint);
-  const nostril = softNose ? lin(nose[1]).map((c, i) => (c + lin(nose[2])[i]) / 2) as ReturnType<typeof lin> : lin(nose[2]);
-  for (const x of [-1, 1]) hg.set(x, HY + 2, zf, nostril); // nostrils
-  // Eyes: beady (Brian, 2026-11-07), small 2 x 2 dark eyes with a glint on the sides of the long head, one voxel proud
-  // so they show from in front.
-  const { eyes, lids, brows } = smallEyes(hg, HY + 4, zb + 6, ch.colors.dark, body, HEAD, { proud: !flushEyes });
-  // The mouth on row 27 (the second from the bottom), width 5, on the wedge's front with its corners knocked off.
-  const frontAt = (x: number, y: number) => { for (let k = zf; k >= zf - 4; k--) if (hg.has(x, y, k)) return k; return zf; };
-  const mouthParts = mouths([-2, HY, zf], 5, 'z', nose[2], HEAD, { front: frontAt });
+  cube(hg, [-3, 22, 8], [3, 27, 13], () => coat);
+  const snoutPaint: Paint = (x, y, z) => (z >= 17 || (z >= 15 && y <= 22) ? (z === 18 && y === 24 && Math.abs(x) === 1 ? lin(DARK[2]) : lin(DARK[0])) : coat);
+  cube(hg, [-2, 22, 14], [2, 25, 18], snoutPaint);
+  cube(hg, [-1, 28, 7], [1, 29, 13], () => dark); // the forelock, the crown's whole length
+  cube(hg, [-1, 24, 7], [1, 27, 7], () => dark); // the mane over the back of the head, down to the neck's
+  const { eyes, lids, brows } = smallEyes(hg, 25, 11, '#1E1A19', COAT, HEAD, { rows: 1, cols: 1, glint: false });
+  const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   const headSolid = solidSet(hg);
   hollow(hg);
   const headPart = part(hg, HEAD);
 
-  // ---- Neck: rising 49 degrees from the chest (buried three voxels) into the head's back, sections 0.28 to 0.20.
-  const NECK_BASE: V3 = [0.02, 0.90, 0.40];
-  const NECK_TOP: V3 = [0.02, 1.18, 0.68];
+  // ---- Neck: one straight block, 5 wide and 6 deep, leaning forward (TILT) from inside the shoulders to under the head.
+  // Built upright about the neck's foot and the finished mesh turned, so its faces stay flat (the sheet's flat
+  // rectangle). `cells` holds the turned block snapped back to the grid, for the checks and the scarf.
+  const NECK_BASE: V3 = [0.02, 17 * S, 7 * S];
+  const NECK_FOOT: V3 = [0, 14 * S, 6 * S];
+  const TILT = 0.3;
   const ng = new Grid(S);
-  if (treads) steppedSegment(ng, NECK_BASE, NECK_TOP, 0.28, 0.20, shaded(body, 30, 22));
-  else segment(ng, NECK_BASE, NECK_TOP, 0.28, 0.20, shaded(body, 30, 22));
-  const neckSolid = solidSet(ng);
-  hollow(ng);
-  bury(ng, bodySolid, headSolid);
-  // Stepped, the sections' sides fall on the chest's planes where the neck leaves it: those cells give way to the chest.
-  if (treads) unshare(ng, bodySolid);
-  const neck = part(ng, [0, 0, 0]);
-
-  // ---- Mane: a ridge 2 wide x 3 tall along the neck's top from the withers to the poll, and a forelock 3 x 2 x 2.
+  cube(ng, [-2, 14, 3], [2, 24, 8], () => coat); // its top runs up inside the head
+  // Its cells: every grid cell whose centre, turned back upright, falls inside the block (a solid, face-connected set).
+  const neckCells = new Grid(S);
+  const [cy, cz, cos, sin] = [NECK_FOOT[1] / S, NECK_FOOT[2] / S, Math.cos(TILT), Math.sin(TILT)];
+  for (let y = 12; y <= 27; y++) for (let z = 1; z <= 14; z++) {
+    const ry = y + 0.5 - cy, rz = z + 0.5 - cz;
+    const uy = cy + ry * cos + rz * sin, uz = cz - ry * sin + rz * cos;
+    if (uy >= 14 && uy < 25 && uz >= 3 && uz < 9) for (let x = -2; x <= 2; x++) neckCells.set(x, y, z, coat);
+  }
+  const neckGeo = part(ng, NECK_FOOT).geo;
+  neckGeo.rotateX(TILT);
+  // Mane: 3 wide, standing two cells proud of the neck's back face on every row from the withers to behind the ears,
+  // so it steps back a cell every two or three rows as the sheet's does (square to the world, not the neck). One colour.
   const mg = new Grid(S);
-  const ridgeFrom: V3 = [0, NECK_BASE[1] + 0.12, NECK_BASE[2] - 0.08], ridgeTo: V3 = [0, NECK_TOP[1] + 0.10, NECK_TOP[2] - 0.04];
-  for (const dx of [0, S]) for (const dy of [0, S, 2 * S]) line(mg, [ridgeFrom[0] + dx, ridgeFrom[1] + dy, ridgeFrom[2]], [ridgeTo[0] + dx, ridgeTo[1] + dy, ridgeTo[2]], () => lin(dy === 2 * S ? mane[2] : mane[1]));
-  box(mg, [-0.04, (HY + 7) * S, (zb + 4) * S], [0.08, (HY + 9) * S, (zb + 6) * S], () => lin(mane[1])); // the forelock
-  for (const v of [...mg.map.values()]) if (bodySolid.has(`${v.x},${v.y},${v.z}`) || headSolid.has(`${v.x},${v.y},${v.z}`)) mg.del(v.x, v.y, v.z);
-  const maneSig: SigPart = { ...part(mg, [0, 0, 0]), name: 'mane', where: 'body', cells: mg.map };
+  for (let y = 17; y <= 27; y++) {
+    const zb = Math.floor(cz - 3 * cos + (y + 0.5 - cy - 3 * sin) * (sin / cos)); // the back face's z at this row
+    cube(mg, [-1, y, zb - 2], [1, y, zb], () => dark);
+  }
+  const neck = { geo: mergeGeometries([neckGeo, part(mg, NECK_FOOT).geo], false)!, pivot: NECK_FOOT, voxels: ng.count + mg.count, cells: new Map([...neckCells.map, ...mg.map]) };
+  const neckSolid = new Set(neckCells.map.keys());
+  const maneSig: SigPart = { ...part(new Grid(S), [0, 0, 0]), name: 'mane', where: 'body', cells: mg.map }; // drawn with the neck
 
-  // ---- Ears: 3 wide x 4 tall x 1, upright at the crown's back corners, one pink inner column.
-  const top = HY + 8;
+  // ---- Ears: 2 wide, 3 tall, 1 deep, upright on the crown's back corners, rooted a row into it.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
-    for (let k = -1; k < 4; k++) {
-      const w = k < 1 ? 3 : k < 3 ? 2 : 1;
-      for (let i = 0; i < w; i++) for (const dz of k < 1 ? [0, 1] : [0]) g.set(sx * (1 + i), top + k, zb + 2 + dz, lin(i === 1 && k >= 0 && k < 3 && dz === 0 ? nose[1] : body[2]));
-    }
-    return part(g, [sx * 2 * S, top * S, (zb + 2.5) * S]);
+    cube(g, [sx < 0 ? -3 : 2, 27, 10], [sx < 0 ? -2 : 3, 30, 10], (_x, y) => lin(y === 30 ? COAT[2] : COAT[1]));
+    return part(g, [sx * 2.5 * S + 0.02, 28 * S, 10.5 * S]);
   }) as unknown as [CPart, CPart];
 
-  // ---- Legs: 3 x 3 x 13, a knee notch, light socks above the hoof on the front-left and back-right, hooves.
-  // At the sheet's z (0.34) the barrel's chamfered ends lift the belly over the leg and it shows too long.
-  const legs = legSpots.map(([cx, cz], i) => {
+  // ---- Legs: 3 x 3, a row up inside the belly; the hoof two rows tall, a cell wider out to the side and forward.
+  const legSpots = [[-4, 6], [2, 6], [-4, -9], [2, -9]] as const; // each pair a cell in from its end of the body
+  const legs = legSpots.map(([x0, z0]) => {
     const g = new Grid(S);
-    leg(g, cx, cz, 3, 13, body, HOOF, { knee: true, oneTone: true, sock: i === 0 || i === 3 ? body[0] : undefined });
-    hollow(g);
-    bury(g, bodySolid);
+    const out = x0 < 0 ? -1 : 0;
+    cube(g, [x0, 2, z0], [x0 + 2, 9, z0 + 2], () => coat);
+    cube(g, [x0 + out, 0, z0], [x0 + 3 + out, 1, z0 + 3], () => lin(DARK[1]));
     unshare(g, bodySolid);
-    return part(g, [cx, 0.50, cz]);
+    return part(g, [(x0 + 1.5) * S, 9 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];
 
-  // ---- Tail: two voxels thick from the rump, 0.40 long, flaring three voxels at the end, in the mane's colour.
+  // ---- Tail: 3 wide, off the top of the rump, stepping down and back.
   const tg = new Grid(S);
-  box(tg, [-0.02, 0.86, -0.50], [0.06, 0.94, -0.42], () => lin(mane[1])); // the root, inside the rump
-  for (const dx of [0, 0.04]) for (const dy of [0, 0.04]) line(tg, [dx, 0.92 + dy, -0.50], [dx, 0.56 + dy, -0.62], () => lin(mane[1]));
-  box(tg, [-0.04, 0.46, -0.66], [0.08, 0.58, -0.58], () => lin(mane[2])); // the flare, solid so every voxel joins
-  unshare(tg, bodySolid);
-  const tail = part(tg, [0.02, 0.92, -0.50]);
+  cube(tg, [-1, 17, -11], [1, 19, -9], () => dark);
+  cube(tg, [-1, 14, -12], [1, 16, -10], () => dark);
+  cube(tg, [-1, 11, -13], [1, 13, -11], () => dark);
+  cube(tg, [-1, 8, -14], [1, 10, -12], () => dark);
+  for (const v of [...tg.map.values()]) if (bodySolid.has(`${v.x},${v.y},${v.z}`) && v.z > -10) tg.del(v.x, v.y, v.z);
+  const tail = part(tg, [0.02, 0.72, -0.4]);
 
-  // ---- Collar (4.2.6): a ring round the neck's section one voxel in front of the chest.
-  const collar = hugCollar(neckSolid, Math.round(0.58 / S), '#C24E45');
   const coats = coatsFor({
-    body: bg.map, torso: { zFrom: -0.30, zTo: 0.26, bellyY: 0.60 }, kind: 'blanket-saddle', knit: KNIT.horse,
-    neck: { centre: [0.02, 1.02, 0.52], rx: 0.17, ry: 0.21, tails: [0.02, 0.84, 0.60], solid: neckSolid },
-    avoid: [hg.map, ...ears.map((e) => e.cells)],
-    legs: legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })),
+    body: bg.map, torso: { zFrom: -0.28, zTo: 0.12, bellyY: 0.48 }, kind: 'blanket-saddle', knit: KNIT.horse,
+    neck: { centre: [0.02, 1.0, 8 * S + 0.001], rx: 0.16, ry: 0.18, tails: [0.02, 0.8, 0.32], solid: new Set([...headSolid, ...neckSolid]) },
+    avoid: [hg.map, neck.cells, tg.map, ...ears.map((e) => e.cells)],
+    legs: legSpots.map(([x0, z0]) => ({ cx: (x0 + 1.5) * S, cz: (z0 + 1.5) * S, w: 3 })),
   });
-  const blazeSig: SigPart = { ...part(new Grid(S), HEAD), name: 'blaze', where: 'head', cells: new Map([...hg.map].filter(([, v]) => v.c === blaze)) };
-  const breath = breathAt([0.02, (HY + 1) * S, (zf + 1) * S]);
-  const parts = [coats.wools[2], neck, maneSig, headPart, ...eyes, ...ears, ...legs, tail, collar];
-  const sock = (l: CPart) => ({ ...l, cells: new Map([...l.cells].filter(([, v]) => v.y >= 2 && v.y < 5)) }) as CPart;
+  const breath = breathAt([0.02, 22 * S, 19 * S]);
+  const parts = [coats.wools[2], neck, maneSig, headPart, ...eyes, ...ears, ...legs, tail];
+  const { height, length } = extentOf([bodyPart, neck, maneSig, headPart, ...ears, ...legs, tail]);
   return {
-    species: 'horse', bodyAlways: false, signature: [maneSig, blazeSig], height: 1.5, length: 1.5, drawScale: 1,
+    species: 'horse', bodyAlways: false, signature: [maneSig], height, length, drawScale: 1.24, headPitch: 0.15,
     wools: coats.wools, frosts: coats.frosts, coatCells: coats.coatCells, garment: coats.garment, neck, neckBase: NECK_BASE,
-    head: headPart, hood: part(new Grid(S), HEAD), tail, eyes, lids, brows, mouths: mouthParts, ears, legs, collar, bell: part(new Grid(S), [0, 0.8, 0.4]), sheared: bodyPart, breath,
+    head: headPart, hood: none(HEAD), tail, eyes, lids, brows, mouths: mouthParts, ears, legs, collar: none(), bell: none([0, 0.8, 0.4]), sheared: bodyPart, breath,
     lobes: { body: 1, hood: 0, tail: 1 }, woolTones: 3, voxels: parts.reduce((n, p) => n + p.voxels, 0),
-    cells: cellsOf({ body: bodyPart, neck, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar, mane: maneSig as CPart, blaze: blazeSig as CPart, sock0: sock(legs[0]), sock1: sock(legs[3]) }),
+    cells: cellsOf({ body: bodyPart, neck, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar: none(), mane: maneSig as CPart }),
     stats: statsOf(parts, []),
   };
-}
-
-/**
- * HORSE_NECK: `segment`'s chamfered sections, each centre snapped to every other cell in y and z (from the base), so
- * the neck climbs in steps two voxels long and two high; the base and the top land where `segment` puts them.
- */
-function steppedSegment(g: Grid, from: V3, to: V3, sFrom: number, sTo: number, paint: Paint) {
-  const d = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
-  const n = Math.max(2, Math.ceil(d / S));
-  const snap = (v: number, o: number) => o + Math.round((v - o) / (2 * S)) * 2 * S;
-  for (let i = 0; i <= n; i++) {
-    const t = i / n, sec = sFrom + (sTo - sFrom) * t;
-    const c: V3 = [from[0] + (to[0] - from[0]) * t, snap(from[1] + (to[1] - from[1]) * t, from[1]), snap(from[2] + (to[2] - from[2]) * t, from[2])];
-    box(g, [c[0] - sec / 2, c[1] - sec / 2, c[2] - sec / 2], [c[0] + sec / 2, c[1] + sec / 2, c[2] + sec / 2], paint, 1);
-  }
 }

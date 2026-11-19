@@ -118,7 +118,8 @@ export function scarf(centre: V3, rx: number, ry: number, knit: Knit, tails: V3,
     const bottom = cells.filter((v) => v.y === low).sort((p, q) => p.x - q.x);
     const tz = bottom[0].z;
     const ends = [bottom[0].x, bottom[bottom.length - 1].x - 1];
-    for (const x0 of ends) for (let k = 1; k <= 6; k++) for (const w of [0, 1]) g.set(x0 + w, low - k, tz, lin(k % 2 ? knit.b : knit.a));
+    // Down to a cell above the ground at most: a head carried low (the pig's) would hang them through the floor.
+    for (const x0 of ends) for (let k = 1; k <= 6 && low - k >= 1; k++) for (const w of [0, 1]) g.set(x0 + w, low - k, tz, lin(k % 2 ? knit.b : knit.a));
     void tails;
     return g;
   }

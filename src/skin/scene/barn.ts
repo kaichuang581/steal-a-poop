@@ -2,7 +2,7 @@ import type { BufferGeometry } from 'three';
 import { buildGeometry, packGeometry, triangles as tris } from '../voxel/mesher';
 import { each, finish } from './slices';
 import type { Steps } from './slices';
-import { IRIS, lin, pick, T } from '../voxel/palette';
+import { IRIS, lin, pick, pickBy, T } from '../voxel/palette';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
@@ -49,7 +49,7 @@ function walls(): Grid {
   const g = new Grid(S);
   const knot = lin(T.beam[2]), nail = lin(T.stone[2]), seam = lin(T.barn[2]);
   // One tone per board: coplanar faces of a plank share a colour, so a wall is a wall, not a grid of tiles.
-  const board = (b: number, seed: number): Paint => () => pick(T.barn, hash3(b, seed, 7, 41));
+  const board = (b: number, seed: number): Paint => () => pickBy(T.barn, hash3(b, seed, 7, 41)); // one tone a board
   const r = rng(101);
   let next = 2;
   const knotAt = (pts: [number, number, number][]) => {
@@ -108,7 +108,7 @@ function walls(): Grid {
 function frontInside(): BufferGeometry {
   const g = new Grid(S);
   for (let b = 0, xa = -62; xa <= 61; b++, xa += 3) {
-    const c = pick(T.barn, hash3(b, 4, 7, 41));
+    const c = pickBy(T.barn, hash3(b, 4, 7, 41));
     for (let x = xa; x <= Math.min(61, xa + 2); x++) for (let y = 0; y < 42; y++) for (const z of [-42, -41]) g.set(x, y, z, x === xa + 2 ? lin(T.barn[2]) : c);
   }
   const geo = buildGeometry(g.map, S);
@@ -182,7 +182,7 @@ function bale(g: Grid, x0: number, x1: number, y0: number, y1: number, z0: numbe
     let x = end ? (dir < 0 ? x0 - 1 : x1 + 1) : x0 + 1 + Math.floor(r() * (len - 2));
     let y = y0 + Math.floor(r() * (y1 - y0 + 1));
     let z = end ? z0 + 1 + Math.floor(r() * (z1 - z0 - 1)) : z0 - 1;
-    const c = pick(T.hay, r() * 0.5);
+    const c = pickBy(T.hay, r() * 0.5); // one tone a bale
     for (let k = 0, n = 2 + Math.floor(r() * 2); k < n; k++) {
       if (!blocked(x, y, z)) g.set(x, y, z, c);
       if (end) x += dir;
@@ -304,14 +304,14 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
     if (v === undefined) near.set(k, (v = seatDistance((x + 0.5) * S, (z + 0.5) * S)));
     return v;
   };
-  const plankTone = (x: number, z: number) => pick(T.beam, hash3(Math.floor((x + 60) / 3), 0, Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25), 51), [0.5, 0.95]);
+  const plankTone = (x: number, z: number) => pickBy(T.beam, hash3(Math.floor((x + 60) / 3), 0, Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25), 51), [0.5, 0.95]); // one tone a plank
   const rr = (SEAT_RING.rx + SEAT_RING.rz) / 2;
   for (let x = -60; x <= 59; x++)
     for (let z = -40; z <= 69; z++) {
       g.set(x, -1, z, plankTone(x, z));
       if (blocked(x, 0, z)) continue;
       const mx = (x + 0.5) * S, mz = (z + 0.5) * S;
-      const h = hash3(x, 0, z, 53), h2 = hash3(x >> 1, 0, z >> 1, 54);
+      const h2 = hash3(x >> 1, 0, z >> 1, 54);
       if (Math.hypot(mx - HEAP[0], mz - HEAP[2]) < 1.45 + (h2 - 0.5) * 0.2) continue; // bare boards under the platform
       const seatAt = seatGap(x, z);
       if (seatAt === 0) {
@@ -320,12 +320,12 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
       }
       const e = Math.hypot((mx - SEAT_RING.cx) / SEAT_RING.rx, (mz - SEAT_RING.cz) / SEAT_RING.rz);
       if (Math.abs(e - 1) * rr < 0.4) {
-        if (h < 0.7) g.set(x, 0, z, h < 0.08 ? lin(T.beam[0]) : pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // trampled, darker
+        g.set(x, 0, z, pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // trampled: one even layer
         continue;
       }
-      // Broad hay is one tone with the occasional lighter patch: the texture comes from the straws, not from noise.
-      if (h < 0.92) g.set(x, 0, z, pick(T.hay, hash3(x >> 3, 0, z >> 3, 56) < 0.12 ? 0.1 : 0.7));
-      if (h2 < 0.09 && h < 0.5 && seatAt > FLOOR_CALM.clear && !blocked(x, 1, z)) g.set(x, 1, z, pick(T.hay, h * 1.6)); // tufts
+      // Broad hay is one even layer of one tone: no holes and no tufts (Brian, 2026-11-18: "remove all glitchy/static
+      // textures"); the straws along the walls are what is left of the texture.
+      g.set(x, 0, z, pick(T.hay, 0.7));
     }
 
   // snow drifts blown in through the back doorway
@@ -336,18 +336,6 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
     for (let y = 4; y >= -1; y--) if (g.has(x, y, z)) return y;
     return -1;
   };
-  // two-toe sheep footprints from the door to seat 0
-  const seat = seatPosition(0, 6);
-  const pressed = lin(T.path[2]);
-  for (let i = 0, zf = 6.8; zf > seat.z + 0.4; i++, zf -= 0.3) {
-    const xc = I(seat.x + (i % 2 ? 0.15 : -0.15)), zc = I(zf);
-    for (const dx of [-1, 1])
-      for (const dz of [0, 1]) {
-        const x = xc + dx, z = zc + dz, y = topY(x, z);
-        if (y > 0) g.del(x, y, z);
-        g.set(x, Math.max(0, y - 1), z, pressed);
-      }
-  }
   // Loose straws on top of the floor, following its surface: a few, swept to the walls and into the corners, none near a
   // seat (they were 300 over the whole floor, the noisiest thing behind every turn).
   const r = rng(57);
@@ -397,7 +385,7 @@ function leaf(side: -1 | 1): BufferGeometry {
   const seam = lin(T.barn[2]), brace = tone(T.beam, 61), iron = lin(T.stone[2]), snowC = tone(T.snow, 63, [0.5, 0.85]);
   for (let i = 0; i < w; i++)
     for (let y = 0; y < h; y++)
-      for (const z of [0, 1]) g.set(X(i), y, z, i % 3 === 2 ? seam : pick(T.barn, hash3(Math.floor(i / 3), side, 0, 65)));
+      for (const z of [0, 1]) g.set(X(i), y, z, i % 3 === 2 ? seam : pickBy(T.barn, hash3(Math.floor(i / 3), side, 0, 65)));
   // Z brace on the inner face
   for (const y0 of [3, h - 5]) for (let i = 1; i < w - 1; i++) for (const y of [y0, y0 + 1]) g.set(X(i), y, -1, brace(i, y, -1)!);
   for (let t = 0; t <= 40; t++) {
@@ -441,7 +429,7 @@ function tarp(): Grid {
     for (let y = torn; y <= SD.y1; y++) {
       const h = hash3(z, y, 0, 73);
       if (h < 0.025 && y < SD.y1 - 2) continue; // small holes
-      g.set(-61, y, z, fold ? lin(T.beam[2]) : h < 0.3 ? lin(T.stone[2]) : pick(T.stone, 0.3 + h * 0.7));
+      g.set(-61, y, z, fold ? lin(T.beam[2]) : lin(T.stone[1]));
     }
   }
   return g;
@@ -451,7 +439,7 @@ function tarp(): Grid {
 function cat(): { body: BufferGeometry; tail: BufferGeometry; tailPivot: V3 } {
   const g = new Grid(C);
   const stripe = lin(T.stone[2]);
-  const fur: Paint = (x, y, z) => (((x % 3) + 3) % 3 === 0 && hash3(x, y, z, 81) < 0.85 ? stripe : pick(T.stone, hash3(x, y, z, 82) * 0.85));
+  const fur: Paint = (x, y, z) => (((x % 3) + 3) % 3 === 0 && hash3(x, y, z, 81) < 0.85 ? stripe : pickBy(T.stone, hash3(x, y, z, 82) * 0.85)); // the cat is an animal: unchanged
   const up = (p: Paint): Paint => (x, y, z) => (y < 0 ? null : p(x, y, z));
   ellipsoid(g, [0, 0.09, 0], [0.2, 0.09, 0.12], up(fur), 0.05, 83);
   ellipsoid(g, [-0.1, 0.1, 0.03], [0.1, 0.09, 0.1], up(fur), 0.05, 84);
@@ -480,7 +468,7 @@ function cat(): { body: BufferGeometry; tail: BufferGeometry; tailPivot: V3 } {
     for (let i = 0; i < n; i++, k++) {
       const f = i / n;
       const x = Math.round((a[0] + (b[0] - a[0]) * f) / C), y = Math.round((a[1] + (b[1] - a[1]) * f) / C), z = Math.round((a[2] + (b[2] - a[2]) * f) / C);
-      const c = Math.floor(k / 2) % 3 === 0 || (s === path.length - 2 && f > 0.6) ? stripe : pick(T.stone, hash3(x, y, z, 86) * 0.85);
+      const c = Math.floor(k / 2) % 3 === 0 || (s === path.length - 2 && f > 0.6) ? stripe : pickBy(T.stone, hash3(x, y, z, 86) * 0.85);
       for (const [dx, dz] of [[0, 0], [1, 0], [0, 1], [1, 1]]) if (!t.has(x + dx, y, z + dz)) t.set(x + dx, y, z + dz, c);
     }
   }

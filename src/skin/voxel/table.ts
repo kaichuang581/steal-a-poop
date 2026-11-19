@@ -1,6 +1,6 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
-import { lin, pick, T } from './palette';
+import { lin, pick, pickBy, T } from './palette';
 import { ellipsoid, Grid, hash3, helix, norm, rng } from './primitives';
 import type { Paint, RGB, V3 } from './primitives';
 
@@ -21,7 +21,7 @@ export function platformGeometry(): BufferGeometry {
       if ((x + 0.5) ** 2 + (z + 0.5) ** 2 > R * R) continue;
       const board = Math.floor((z + 100) / 5); // boards four voxels wide along x, one voxel gap between them
       const gap = ((z + 100) % 5) === 4;
-      const tone = pick(T.beam, hash3(board, 0, 0, 3), [0.1, 0.45]); // dark wood, one tone per board
+      const tone = pickBy(T.beam, hash3(board, 0, 0, 3), [0.1, 0.45]); // dark wood, one tone per board
       for (let y = 0; y < H; y++) {
         if (gap && y === H - 1) continue; // the gap only shows on top; the rim stays solid
         g.set(x, y, z, y === H - 1 ? tone : lin(T.beam[2]));

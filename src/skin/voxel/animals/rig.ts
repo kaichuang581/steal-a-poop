@@ -129,6 +129,20 @@ export function wedge(g: Grid, back: V3, length: number, wBack: number, wFront: 
   }
 }
 
+/** A solid block of cells from `a` to `b` inclusive, in grid cells (the blocky rebuild, 2026-11-18). */
+export function cube(g: Grid, a: V3, b: V3, paint: Paint) {
+  for (let x = a[0]; x <= b[0]; x++) for (let y = a[1]; y <= b[1]; y++) for (let z = a[2]; z <= b[2]; z++) { const c = paint(x, y, z); if (c) g.set(x, y, z, c); }
+}
+/** Whether a cell lies in any of the blocks [a, b] (inclusive): for patches painted as rectangles. */
+export const inBlocks = (blocks: readonly (readonly [V3, V3])[], x: number, y: number, z: number) =>
+  blocks.some(([a, b]) => x >= a[0] && x <= b[0] && y >= a[1] && y <= b[1] && z >= a[2] && z <= b[2]);
+/** The model's top and its length over every part's cells, in metres. */
+export function extentOf(parts: (Part | undefined)[]): { height: number; length: number } {
+  let y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const p of parts) for (const v of p?.cells?.values() ?? []) { y1 = Math.max(y1, v.y); z0 = Math.min(z0, v.z); z1 = Math.max(z1, v.z); }
+  return { height: (y1 + 1) * S, length: (z1 - z0 + 1) * S };
+}
+
 /** A neck or limb as square sections stepped along a segment from `from` to `to`, the section shrinking from sFrom to sTo. */
 export function segment(g: Grid, from: V3, to: V3, sFrom: number, sTo: number, paint: Paint) {
   const d = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
@@ -387,6 +401,15 @@ export function mouths(origin: V3, width: number, facing: 'z' | 'x', tone: strin
     out[kind] = part(g, pivot);
   }
   return out;
+}
+
+/**
+ * No mouth at all: every frame empty (Brian's sheets, 2026-11-18, draw no mouths; the sheep's T is painted on its
+ * face). The face system still asks for a mouth each frame, and gets nothing to draw.
+ */
+export function noMouths(pivot: V3): Record<Mouth, Part> {
+  const e = () => part(new Grid(S), pivot);
+  return { flat: e(), smile: e(), o: e(), chewL: e(), chewDown: e(), chewR: e() };
 }
 
 // ---------- frost, breath, collar ----------

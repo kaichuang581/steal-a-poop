@@ -4,8 +4,9 @@ import { detailedSteps } from '../voxel/refine';
 import { each, finish } from './slices';
 import type { Steps } from './slices';
 import type { Voxel, VoxelMap } from '../voxel/mesher';
-import { lin, pick, SCARF, T } from '../voxel/palette';
+import { lin, pick, pickBy, SCARF, T } from '../voxel/palette';
 import { snowPaint } from '../voxel/snow';
+import { tieredPine } from './style/pine';
 import type { Tone } from '../voxel/palette';
 import { box, ellipsoid, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, V3 } from '../voxel/primitives';
@@ -100,7 +101,7 @@ export function* buildYardSteps(): Steps<Yard> {
     return yield* each([...chunks.values()], (m) => dropFaces(buildGeometry(m, size), drop));
   }
   const standing = (v: Voxel) => v.y >= 0;
-  const fine = yield* detailedSteps(g.map, S, 0.04, standing);
+  const fine = yield* detailedSteps(g.map, S, 0, standing);
   yield;
   const man = snowmanGrid();
   const geos = [
@@ -130,7 +131,7 @@ type Set = (x: number, y: number, z: number, p: Paint) => void;
 type BoxI = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, p: Paint) => void;
 type Cap = (x: number, y: number, z: number) => void;
 
-function ground(g: Grid, set: Set) {
+function ground(_g: Grid, set: Set) {
   const pathTone = tone(T.path, 5, [0.5, 0.85]);
   const ice = tone(T.ice, 6, [0.5, 0.85]);
   const skate = lin(SKATE);
@@ -156,30 +157,15 @@ function ground(g: Grid, set: Set) {
       // Snow with soft drifts, ripples and grain (voxel/snow.ts), never the square patches it used to have.
       set(xi, -1, zi, path ? pathTone : groundSnow);
       if (path) continue;
-      // 0.2 m drifts against the fence, the barn's walls and around the pond rim.
-      const r = hash3(xi, 0, zi, 9);
+      // 0.2 m drifts against the fence, the barn's walls and round the pond: even bands, one step high, clean edges.
       const fenceD = Math.abs(z - YARD.fence.z - 0.1);
-      const byFence = x >= YARD.fence.minX && x <= YARD.fence.maxX && Math.abs(x) > YARD.fence.gateHalfWidth + 0.4 && (fenceD < 0.3 || (fenceD < 0.8 && r > 0.45));
-      const byBarnBack = near(z, BARN.maxZ + 0.3, 0.3 + r * 0.4) && x >= BARN.minX - 0.6 && x <= BARN.maxX + 0.6;
-      const byBarnSide = (near(x, BARN.minX - 0.3, 0.3 + r * 0.4) || near(x, BARN.maxX + 0.3, 0.3 + r * 0.4)) && z >= BARN.minZ && z <= BARN.maxZ + 0.6;
-      const byPond = pd < 1.3 && r > 0.35;
+      const byFence = x >= YARD.fence.minX && x <= YARD.fence.maxX && Math.abs(x) > YARD.fence.gateHalfWidth + 0.4 && fenceD < 0.5;
+      const byBarnBack = near(z, BARN.maxZ + 0.3, 0.5) && x >= BARN.minX - 0.6 && x <= BARN.maxX + 0.6;
+      const byBarnSide = (near(x, BARN.minX - 0.3, 0.5) || near(x, BARN.maxX + 0.3, 0.5)) && z >= BARN.minZ && z <= BARN.maxZ + 0.6;
+      const byPond = pd < 1.25;
       if ((byFence || byBarnBack || byBarnSide || byPond) && !underWalls(x, z)) set(xi, 0, zi, snow);
     }
-  // Footprints (alternating hoof dents) and two sled tracks pressed into the path.
-  const dent = (xi: number, zi: number) => {
-    if (!g.has(xi, -1, zi)) return;
-    g.del(xi, -1, zi);
-    g.set(xi, -2, zi, lin(T.path[2]));
-  };
-  for (let z = YARD.path.fromZ + 0.5, k = 0; z < PATH_END - 0.3; z += 0.45, k++) {
-    const x = pathX(z) - 0.35 + (k % 2 ? 0.2 : -0.2);
-    dent(ix(x - 0.1), ix(z - 0.1));
-  }
-  for (let z = YARD.path.fromZ + 0.2; z < 13.0; z += 0.1) {
-    const cx = 0.6 + 1.6 * smooth((z - 9) / 4);
-    dent(ix(cx - 0.3), ix(z - 0.1));
-    dent(ix(cx + 0.1), ix(z - 0.1));
-  }
+  // No hoof dents or sled ruts in the path: square holes in the ground read as a fault (Brian, 2026-11-19).
 }
 
 function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
@@ -239,64 +225,11 @@ function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
   for (let x = mx - 1; x <= mx + 1; x++) for (let z = mz - 2; z <= mz + 1; z++) cap(x, 6, z);
 }
 
+/** A yard pine: the diorama's tiered pine (style/pine.ts), 5 to 9 m tall unless `height` says. */
 export function pine(g: Grid, set: Set, wx: number, wz: number, seed: number, height?: number) {
   const r = rng(seed * 97);
   const drawn = 5 + r() * 4;
-  const H = height ?? drawn;
-  const hv = ix(H), tx = ix(wx) - 1, tz = ix(wz) - 1;
-  const bark = tone(T.trunk, seed, [0.4, 0.85]);
-  const ridge = () => lin(T.trunk[2]);
-  const needles = tone(T.pine, seed + 50, [0.45, 0.85]);
-  const trunkTop = hv - 2;
-  for (let y = 0; y < trunkTop; y++) for (let dx = 0; dx < 2; dx++) for (let dz = 0; dz < 2; dz++) set(tx + dx, y, tz + dz, bark);
-  // Bark ridges: vertical runs of 2 voxels standing out from the trunk on every side.
-  const around: [number, number][] = [[-1, 0], [-1, 1], [2, 0], [2, 1], [0, -1], [1, -1], [0, 2], [1, 2]];
-  const y0 = ix(1.4);
-  around.forEach(([dx, dz], k) => {
-    for (let y = 0; y < y0 + 2; y += 3) if (hash3(k, y, seed, 21) > 0.45) set(tx + dx, y, tz + dz, ridge), set(tx + dx, y + 1, tz + dz, ridge);
-  });
-  // Bare lower branches below the needle rows.
-  for (let k = 0; k < 3; k++) {
-    const a = r() * Math.PI * 2, y = 3 + k * 2, L = 3 + Math.floor(r() * 2);
-    // From the trunk's face out (starting two cells off the trunk's middle left a branch pointing along an axis a cell
-    // clear of the bark, in the air), the tip turned up on top of its last cell rather than beside it.
-    for (let i = 1; i <= L; i++) {
-      const x = Math.round(tx + 1 + Math.cos(a) * i), z = Math.round(tz + 1 + Math.sin(a) * i);
-      set(x, y, z, ridge);
-      if (i === L) set(x, y + 1, z, ridge);
-    }
-  }
-  // Layered rows: 1-voxel radial branches, a 1-voxel gap above the snow, slight droop at the tips.
-  const rMax = (H * 0.27) / S;
-  const branch: V3[] = [];
-  for (let y = y0, tier = 0; y < hv - 1; y += 3, tier++) {
-    const t = (y - y0) / (hv - y0);
-    const R = Math.max(1.5, (1 - t) * rMax + 1);
-    const dirs = Math.max(5, Math.round(R * 1.4));
-    const off = tier * 2.399 + r();
-    for (let d = 0; d < dirs; d++) {
-      const a = off + (d / dirs) * Math.PI * 2;
-      const L = R * (0.8 + hash3(d, tier, seed, 31) * 0.3);
-      const bare = tier === 0 && hash3(d, 0, seed, 33) < 0.2;
-      let drooped = false;
-      for (let i = 1; i <= L; i += 0.6) {
-        const x = Math.round(tx + 0.5 + Math.cos(a) * i), z = Math.round(tz + 0.5 + Math.sin(a) * i);
-        const droop = i > L * 0.7;
-        // Where the tip first drops a row it keeps a cell on the branch's own row too: dropping while stepping out
-        // diagonally left the tip touching the branch at a corner only, and it hung in the air.
-        const cells: V3[] = droop && !drooped ? [[x, y, z], [x, y - 1, z]] : [[x, droop ? y - 1 : y, z]];
-        drooped ||= droop;
-        for (const c of cells) if (bare) set(c[0], c[1], c[2], ridge); else branch.push(c);
-      }
-    }
-  }
-  for (const [x, y, z] of branch) set(x, y, z, needles);
-  for (const [x, y, z] of branch) if (!g.has(x, y + 1, z)) set(x, y + 1, z, snow);
-  // Leader at the top with a snow tip, standing on the trunk (which stops at hv - 3).
-  set(tx, hv - 2, tz, needles);
-  set(tx, hv - 1, tz, needles);
-  set(tx, hv, tz, needles);
-  set(tx, hv + 1, tz, snow);
+  tieredPine((x, y, z, c) => set(x, y, z, () => c), (x, y, z) => g.has(x, y, z), ix(wx), ix(wz), 0, height ?? drawn, S);
 }
 
 
@@ -325,7 +258,7 @@ function snowman(g: Grid) {
   line(g, [x + fx * 0.4 * k, 2.54 * k, z + fz * 0.4 * k], [x + fx * 0.68 * k, 2.5 * k, z + fz * 0.68 * k], () => lin(CARROT));
   for (const y of [1.48, 1.74, 2.0]) dot(y * k, body, 0, T.face[2], 0.0);
   // The scarf: a snug band where head meets body, and a tail hanging down over the chest.
-  const red: Paint = (a, b, c) => lin(hash3(a, b, c, 41) > 0.7 ? T.collar[2] : SCARF);
+  const red: Paint = () => lin(SCARF);
   const neck = 2.2 * k;
   for (const [y, r] of [[neck - 0.05, 0.36 * k], [neck + 0.05, 0.33 * k]] as const) ring(g, [x, y, z], r, r, 0.1, red);
   for (const [y, r] of [[neck - 0.05, 0.3 * k], [neck + 0.05, 0.28 * k]] as const) ring(g, [x, y, z], r, r, 0.1, red);
@@ -376,8 +309,8 @@ function woodpile(set: Set, boxI: BoxI, cap: Cap) {
   for (let z = zf - 1; z <= zb + 1; z++) {
     const y = 9 + Math.round(((z - zf) / (zb - zf)) * 2);
     for (let x = x0 - 1; x <= x1 + 1; x++) {
-      set(x, y, z, (a, b, c) => pick(T.roof, ((a & 1) ? 0.7 : 0.2) + hash3(a, b, c, 62) * 0.25));
-      if (hash3(x, y, z, 63) > 0.15) cap(x, y, z);
+      set(x, y, z, (a) => pickBy(T.roof, (a & 1) ? 0.7 : 0.2)); // alternate courses, a value step apart
+      cap(x, y, z); // an even cap of snow
     }
   }
   // Logs stacked in a pyramid with their cut ends toward the barn.

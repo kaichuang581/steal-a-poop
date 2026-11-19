@@ -3,7 +3,7 @@ import { SceneBoundary } from '../perf/SceneBoundary';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ACESFilmicToneMapping, AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Group, InstancedMesh,
+  AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Group, InstancedMesh,
   MeshBasicMaterial, MeshLambertMaterial, Object3D, PCFShadowMap, Points, PointsMaterial, SRGBColorSpace, Vector3,
 } from 'three';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
@@ -20,6 +20,7 @@ import { trophyGeometry } from '../voxel/trophy';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
+import { LOOK } from '../look';
 
 /**
  * The victory screen (Brian, 2026-11-08): the barn turned into a stage. Everyone stands on a block of barn timber with
@@ -389,7 +390,7 @@ export function Podium({ entries, reduced, phone, aside = false }: { entries: Po
       <SceneBoundary scene="the podium">
       <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="podium"
         shadows={{ type: PCFShadowMap }}
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, antialias: true }}
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, antialias: true }}
         camera={{ fov: phone ? 58 : 40, position: phone ? [0, 3.4, 14.5] : [0, 3.0, 11.8], near: 0.1, far: 60 }}
       >
         <Rig phone={phone} aside={aside} />

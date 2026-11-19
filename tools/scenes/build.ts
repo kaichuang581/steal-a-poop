@@ -472,7 +472,29 @@ function held(s: Session, geometry: BufferGeometry, name: string): Entry[] {
   return out;
 }
 
-/** The move in a matrix that is nothing but a move; throws for anything else (no builder turns a geometry today). */
+const isMove = (m: Matrix4) => m.elements.slice(0, 12).every((v, i) => Math.abs(v - [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0][i]) < 1e-9);
+/**
+ * A model part whose geometry the builder turned (the horse's neck leans as one flat block): its voxels, each centre
+ * carried by the turn and snapped back to the cell it lands in, as the model's own `cells` are. The cells are counted
+ * from the matrix's move rounded to whole cells (`offset`), so they share a grid with the parts merged beside them.
+ */
+const snaps = new Map<Entry, { capture: Capture; offset: V3 }>();
+function snapped(e: Entry): { capture: Capture; offset: V3 } {
+  const hit = snaps.get(e);
+  if (hit) return hit;
+  const { capture: c, m } = e, out = new Int32Array(c.cells.length), p = new Vector3();
+  const t = new Vector3().setFromMatrixPosition(m).divideScalar(c.size).round().multiplyScalar(c.size);
+  for (let i = 0; i < c.cells.length; i += 3) {
+    p.set((c.cells[i] + 0.5) * c.size, (c.cells[i + 1] + 0.5) * c.size, (c.cells[i + 2] + 0.5) * c.size).applyMatrix4(m).sub(t);
+    out[i] = Math.floor(p.x / c.size); out[i + 1] = Math.floor(p.y / c.size); out[i + 2] = Math.floor(p.z / c.size);
+  }
+  c.uses++; // the original is laid out, as this copy
+  const done = { capture: { ...c, cells: out, uses: 0 }, offset: [t.x, t.y, t.z] as V3 };
+  snaps.set(e, done);
+  return done;
+}
+
+/** The move in a matrix that is nothing but a move; throws for anything else (scenery never turns a geometry). */
 function moveOf(m: Matrix4, name: string): V3 {
   const e = m.elements, id = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
   for (let i = 0; i < 12; i++) if (Math.abs(e[i] - id[i]) > 1e-9) throw new Error(`tools/scenes/build.ts: the builder of "${name}" turned or scaled its geometry; only moves can be laid out`);
@@ -715,7 +737,6 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       '{[...country.woods, ...country.scrub].map((g, i) => g && <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
       '{country.forest.map((g, i) => g && <mesh key={`w${i}`} geometry={g} material={mat} receiveShadow />)}',
       '{country.drifts.map((g, i) => g && <mesh key={`d${i}`} geometry={g} material={mat} receiveShadow />)}',
-      '{country.tracks && <mesh geometry={country.tracks} material={mat} receiveShadow />}',
     ]);
     const farmstead = await load<typeof import('../../src/skin/scene/farmstead')>('src/skin/scene/farmstead.ts');
     const festive = await load<Festive>('src/skin/scene/festive.ts');
@@ -732,7 +753,6 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     country.scrub.forEach((g, i) => L.put(g, `countryside.scrub[${i}]`));
     country.forest.forEach((g, i) => L.put(g, `countryside.forest[${i}]`));
     country.drifts.forEach((g, i) => L.put(g, `countryside.drifts[${i}]`));
-    L.put(country.tracks, 'countryside.tracks');
     L.notes.push('the wendigo is not voxels and is not laid out; the livestock, the hero and the doorway sheep are models');
   },
 
@@ -1004,7 +1024,7 @@ function adopt(s: Session, id: string, kind: string, built: unknown): Model {
       try { entries = held(s, value, `${id} ${path}`); } catch { return; } // not the mesher's: a three.js shape
       s.fresh.delete(value);
       const mesh = s.meshes++;
-      byGeometry.set(value, entries.map((e) => add(e.capture, path, moveOf(e.m, `${id} ${path}`), pivot ?? MODEL_AT[id]?.(path, built) ?? [0, 0, 0], mesh)));
+      byGeometry.set(value, entries.map((e) => (isMove(e.m) ? add(e.capture, path, moveOf(e.m, `${id} ${path}`), pivot ?? MODEL_AT[id]?.(path, built) ?? [0, 0, 0], mesh) : add(snapped(e).capture, path, snapped(e).offset, pivot ?? MODEL_AT[id]?.(path, built) ?? [0, 0, 0], mesh))));
       return;
     }
     if (value instanceof Map || value instanceof Set || ArrayBuffer.isView(value)) return;
@@ -1055,10 +1075,10 @@ async function modelSpecs(load: Load): Promise<ModelSpec[]> {
   specs.push({ id: 'hat', kind: 'prop', build: async (l) => (await l<Festive>('src/skin/scene/festive.ts')).santaHat() });
   specs.push({
     id: 'ice', kind: 'prop', build: async (l) => {
-      // The block's size is a constant of Sheep.tsx that is not exported: read from its text, so it cannot drift.
-      const size = /const BLOCK: \[number, number, number\] = \[([\d.]+), ([\d.]+), ([\d.]+)\];/.exec(readFileSync(resolve(ROOT, 'src/skin/table/Sheep.tsx'), 'utf8'));
-      if (!size) throw new Error('tools/scenes/build.ts: cannot find the ice block\'s size (const BLOCK) in src/skin/table/Sheep.tsx');
-      return (await l<typeof import('../../src/skin/voxel/sheep')>('src/skin/voxel/sheep.ts')).iceBlock([+size[1], +size[2], +size[3]]);
+      // The sheep's block, fitted to it frozen as `Sheep` fits it (iceFit in table/Sheep.tsx).
+      const { iceFit } = await l<typeof import('../../src/skin/table/Sheep')>('src/skin/table/Sheep.tsx');
+      const { animalModel } = await l<typeof import('../../src/skin/voxel/animals')>('src/skin/voxel/animals/index.ts');
+      return (await l<typeof import('../../src/skin/voxel/sheep')>('src/skin/voxel/sheep.ts')).iceBlock(iceFit(animalModel('sheep')).size);
     },
   });
   // The old tool's own props (tools/floatingVoxels.ts --props), under the names it gave them.

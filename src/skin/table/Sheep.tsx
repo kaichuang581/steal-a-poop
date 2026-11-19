@@ -11,12 +11,12 @@ import { Box3 } from 'three';
 import type { Light, LightShadow, Material } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { santaHat } from '../scene/festive';
-import { voxelMaterial } from '../voxel/material';
+import { animalMaterial, voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
 import { FROST, lin, SCARF } from '../voxel/palette';
 import { Grid } from '../voxel/primitives';
 import type { V3 } from '../voxel/primitives';
-import { CREAM, iceBlock, LEVEL_K, sheepModel, windCurl } from '../voxel/sheep';
+import { CREAM, iceBlock, sheepModel, TAIL_BACK, windCurl } from '../voxel/sheep';
 import type { Brows, Lids, Mouth, Part, SheepModel, WoolLevel } from '../voxel/sheep';
 import type { AnimalModel, SigPart } from '../voxel/animals/rig';
 import { anchorsOf, scarfCells } from '../voxel/animals/anchors';
@@ -89,19 +89,17 @@ interface Props {
 }
 
 /** The ears hang 20 degrees below level. */
-const DROOP = (20 * Math.PI) / 180;
-/** The sheep's ice block (it fits the sheep; file 03, 4.2 keeps it). */
-const BLOCK: [number, number, number] = [1.1, 1.2, 1.3];
+// The ears' rest turn: none, so each animal's ears stand as built, as Brian's sheets draw them (2026-11-18; it was a
+// 20 degree droop for the old floppy ears). Poses move them from there.
+const DROOP = 0;
 /** How much clear ice stands round an animal in its block, each side (file 03, 4.2). */
 const ICE_MARGIN = 0.12;
 /**
- * The ice block for an animal, and where its middle stands (x and z; the block rests on the floor): the sheep's own
- * block, or one fitted to the animal in its frozen pose, its hat included, with ICE_MARGIN of ice round it, each side a
+ * The ice block for an animal, and where its middle stands (x and z; the block rests on the floor): one fitted to
+ * the animal in its frozen pose (the sheep's too, so its thickest coat stays inside), its hat included, with ICE_MARGIN of ice round it, each side a
  * whole number of voxel pairs so the block stays centred on its grid. Cached by `iceBlock`, per size.
  */
-function iceFit(m: SheepModel | AnimalModel): { size: [number, number, number]; x: number; z: number; sink: number } {
-  const species = (m as Partial<AnimalModel>).species ?? 'sheep';
-  if (species === 'sheep') return { size: BLOCK, x: 0, z: 0, sink: 0 };
+export function iceFit(m: SheepModel | AnimalModel): { size: [number, number, number]; x: number; z: number; sink: number } {
   const { min, max } = anchorsOf(m).frozen;
   const pair = 0.08, up = (v: number) => Math.ceil(v / pair - 1e-6) * pair;
   const w = up(max[0] - min[0] + 2 * ICE_MARGIN);
@@ -143,11 +141,12 @@ type Range = [number, number];
 interface Ranges { headX: Range; neckX: Range; headY: number; headZ: number; bodyY: Range; squash: Range; legSwing: number; ears: Range }
 const RANGES: Record<string, Ranges> = {
   sheep: { headX: [-0.35, 0.6], neckX: [0, 0], headY: 0.6, headZ: 0.2, bodyY: [0, 0.18], squash: [0.9, 1.06], legSwing: 0.49, ears: [DROOP - 0.3, DROOP + 0.4] },
-  pig: { headX: [-0.35, 0.45], neckX: [0, 0], headY: 0.6, headZ: 0.2, bodyY: [0, 0.18], squash: [0.9, 1.06], legSwing: 0.49, ears: [-0.5, 0.5] },
+  // The pig's and the hen's heads are flush with their bodies (Brian's sheets, 2026-11-18): small nods and turns only.
+  pig: { headX: [-0.08, 0.12], neckX: [0, 0], headY: 0.15, headZ: 0.06, bodyY: [0, 0.18], squash: [0.9, 1.06], legSwing: 0.49, ears: [-0.5, 0.5] },
   cow: { headX: [-0.3, 0.35], neckX: [-0.15, 0.4], headY: 0.6, headZ: 0.2, bodyY: [0, 0.14], squash: [0.92, 1.05], legSwing: 0.45, ears: [-0.4, 0.4] },
   horse: { headX: [-0.3, 0.25], neckX: [-0.25, 0.6], headY: 0.6, headZ: 0.2, bodyY: [0, 0.16], squash: [0.92, 1.05], legSwing: 0.49, ears: [-0.4, 0.4] },
   goat: { headX: [-0.3, 0.35], neckX: [-0.2, 0.35], headY: 0.6, headZ: 0.25, bodyY: [0, 0.2], squash: [0.9, 1.06], legSwing: 0.49, ears: [-0.5, 0.5] },
-  chicken: { headX: [-0.25, 0.5], neckX: [-0.15, 0.45], headY: 0.8, headZ: 0.25, bodyY: [0, 0.16], squash: [0.88, 1.08], legSwing: 0.35, ears: [0, 0] },
+  chicken: { headX: [-0.25, 0.03], neckX: [-0.15, 0.45], headY: 0.5, headZ: 0.03, bodyY: [0, 0.16], squash: [0.88, 1.08], legSwing: 0.35, ears: [0, 0] },
 };
 function clampPose(p: Float32Array, species: string) {
   const r = RANGES[species] ?? RANGES.sheep;
@@ -182,8 +181,8 @@ const GRAZERS = new Set(['sheep', 'cow', 'goat', 'horse']);
 
 /** Whether the tail is shown at a coat level: the sheep's goes with its fleece; every other species keeps its own. */
 export const tailShown = (level: number, species: string): boolean => level > 0 || species !== 'sheep';
-/** Where the tail sits along z: the sheep's moves back as its fleece grows (LEVEL_K); another species' stays on its rump. */
-const tailZ = (m: SheepModel | AnimalModel, species: string, lvl: 1 | 2 | 3 | 4): number => m.tail.pivot[2] - (species === 'sheep' ? 0.4 * (LEVEL_K[lvl] - 1) : 0);
+/** Where the tail sits along z: the sheep's moves back with its fleece's back (TAIL_BACK); another species' stays on its rump. */
+const tailZ = (m: SheepModel | AnimalModel, species: string, lvl: 1 | 2 | 3 | 4): number => m.tail.pivot[2] - (species === 'sheep' ? TAIL_BACK[lvl] : 0);
 /** Whether a geometry has anything to draw. */
 const drawn = (g: BufferGeometry): boolean => (g.index ? g.index.count : g.getAttribute('position')?.count ?? 0) > 0;
 /** A copy of `geo` moved by `by`: what a mesh at that position, with no turn, draws. The model's own geometry is not touched. */
@@ -232,7 +231,8 @@ const atScale = (s: BundleSource): BufferGeometry => (s.scale === 1 ? placed(s.g
  * build (the head's bundle, and the sheepdog's head through `withHat`); while off, no hat is built at all. They follow
  * `FESTIVE` in src/config.ts.
  */
-export const HATS = FESTIVE;
+// `?hats=0` on a development preview page draws the animals bare, to compare them with Brian's sheets.
+export const HATS = FESTIVE && !(import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).get('hats') === '0');
 
 /** What the head's bundle is made of, in the head group's own space, in the order it is joined (the head last). */
 function headSources(m: SheepModel | AnimalModel): BundleSource[] {
@@ -686,6 +686,9 @@ function flavour(p: Float32Array, f: Face, species: string, live: SheepState, e:
   const calm = live === 'idle' || live === 'thinking' || live === 'proud';
   const pulse = (period: number, len: number) => (moving && t % period < len ? Math.sin(((t % period) / len) * Math.PI) : 0);
   switch (species) {
+    case 'sheep':
+      if (live === 'frozen') p[CH.legLift] = 0.05; // a short leg lifts less, or its hoof rises past the belly
+      break;
     case 'pig':
       if (calm && moving) { p[CH.earL] += Math.sin(t * 1.9) * 0.1; p[CH.earR] += Math.sin(t * 1.9 + 0.4) * 0.1; } // ears flop with the breath
       if (live === 'grazing') { p[CH.headX] = 0.35; p[CH.headZ] = 0; f.mouth = 'flat'; } // rooting: the snout nudges (6.4)
@@ -726,7 +729,7 @@ function flavour(p: Float32Array, f: Face, species: string, live: SheepState, e:
         p[CH.neckX] = 0.4 * peck; p[CH.headX] = 0.45 * peck; f.mouth = 'flat';
       }
       if (live === 'proud') p[CH.puff] = 1.08;
-      if (live === 'frozen') p[CH.legLift] = 0.04; // a short leg lifts less, or its foot rises past the belly
+      if (live === 'frozen') p[CH.legLift] = 0.03; // a short leg lifts less, or its foot rises past the belly
       if (live === 'startled') p[CH.puff] = 1.1;
       if (live === 'cold') p[CH.puff] = 1.12;
       if (live === 'sleeping') { p[CH.neckX] = 0.35; p[CH.headX] = 0.2; } // the head tucked
@@ -750,14 +753,14 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   // Low tier: no animal casts a shadow; it stands on its contact patch instead (plan file 02, change 5).
   const low = useTier() === 'low';
   const cast = !low;
-  const patchMat = useMemo(() => voxelMaterial(), []);
+  const patchMat = useMemo(() => animalMaterial(), []);
   const am = m as Partial<AnimalModel>;
   const species = am.species ?? 'sheep';
   const bodyAlways = am.bodyAlways ?? false;
   const signature: SigPart[] = am.signature ?? [];
-  const mat = useMemo(() => voxelMaterial(), []);
+  const mat = useMemo(() => animalMaterial(), []);
   // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice.
-  const faceMat = useMemo(() => voxelMaterial(), []);
+  const faceMat = useMemo(() => animalMaterial(), []);
   const breathMat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 })), []);
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
@@ -1066,7 +1069,7 @@ function Scarf({ model, cast }: { model: SheepModel | AnimalModel; cast: boolean
   const own = useMemo(() => animalScarf(model), [model]);
   const geo = useMemo(() => own ?? scarfGeometry(), [own]);
   const mat = useMemo(() => voxelMaterial(), []);
-  return <mesh geometry={geo} position={own ? [0, 0, 0] : [0.02, 0.46, 0.5]} material={mat} castShadow={cast} />;
+  return <mesh geometry={geo} material={mat} castShadow={cast} />;
 }
 
 const animalScarves = new WeakMap<object, BufferGeometry | null>();
@@ -1087,17 +1090,20 @@ function animalScarf(m: SheepModel | AnimalModel): BufferGeometry | null {
 }
 
 let scarfGeo: BufferGeometry | null = null;
+/**
+ * The sheep's own scarf, in its model's cells (voxel/sheep.ts): a knit band tied under the chin, round the foot of the
+ * head's wool, up each side of the neck behind the ears to the cap, and a striped end hanging down the chest.
+ */
 function scarfGeometry(): BufferGeometry {
   if (scarfGeo) return scarfGeo;
-  // A knit band around the neck and a striped hanging end, on the 0.04 m grid.
   const g = new Grid(0.04);
   const red = lin(SCARF), cream = lin(CREAM[0]);
-  for (let i = 0; i < 64; i++) {
-    const a = (i / 64) * Math.PI * 2;
-    const x = Math.round(Math.cos(a) * 7), y = Math.round(Math.sin(a) * 4);
-    for (const z of [0, 1]) g.set(x, y, z, Math.floor(i / 4) % 3 === 2 ? cream : red);
+  for (const sx of [-1, 1]) {
+    for (let y = 6; y <= 12; y++) g.set(sx * 5, y, 5, y % 3 === 2 ? cream : red); // up the side of the neck
+    for (let z = 6; z <= 8; z++) g.set(sx * 4, 6, z, red); // round the foot of the head's wool
   }
-  for (let y = 0; y < 7; y++) for (const x of [4, 5]) g.set(x, -4 - y, 2, y % 3 === 2 ? cream : red);
+  for (let x = -3; x <= 3; x++) g.set(x, 6, 8, red); // under the chin
+  for (let y = 3; y <= 5; y++) for (const x of [2, 3]) g.set(x, y, 8, y === 4 ? cream : red); // the hanging end
   scarfGeo = buildGeometry(g.map, 0.04);
   return scarfGeo;
 }

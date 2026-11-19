@@ -5,7 +5,8 @@ import { sunReaches, unseenFrom } from '../voxel/unseen';
 import { detailedSteps } from '../voxel/refine';
 import { each, finish } from './slices';
 import type { Steps } from './slices';
-import { lin, pick, T } from '../voxel/palette';
+import { asBefore, lin, pick, pickBy, T } from '../voxel/palette';
+import { inWendigoZone } from './wendigoZone';
 import { snowAt, snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
@@ -41,13 +42,30 @@ const white = tone(T.trim, 5, [0.6, 0.95]);
 
 /** Top of the barn's own roof boards at column x (0.1 m index), as in barn.ts. */
 const barnRoofY = (x: number) => 42 + Math.floor(22 * Math.max(0, 1 - Math.abs(x + 0.5) / 60));
+/**
+ * The barn's outer roof, a rounded gambrel as Brian's farm picture draws it (2026-11-19): steep from the eaves, easing
+ * over two breaks to the ridge. Its underside's height in metres at `ax` metres from the ridge line; it stands over the
+ * barn's own roof boards everywhere.
+ */
+const GAMBREL: readonly (readonly [number, number])[] = [[6.8, 4.05], [6.2, 4.2], [5.2, 6.0], [2.8, 7.1], [0, 7.6]]; // its eaves where the old roof's were: the lights hang from them
+function gambrel(ax: number): number {
+  for (let i = 0; i + 1 < GAMBREL.length; i++) {
+    const [a0, h0] = GAMBREL[i], [a1, h1] = GAMBREL[i + 1];
+    if (ax >= a1) return h0 + ((h1 - h0) * (a0 - Math.min(a0, ax))) / (a0 - a1);
+  }
+  return GAMBREL[GAMBREL.length - 1][1];
+}
+/** The outer roof's lowest row on the 0.2 m grid at column `xi`, and the same line on the walls' 0.1 m grid at column `x`. */
+const roofRow = (xi: number) => Math.ceil(gambrel(Math.abs((xi + 0.5) * S)) / S);
+const roofY = (x: number) => 2 * roofRow(Math.floor(x / 2));
 
 class Builder {
   constructor(readonly g: Grid) {}
   ix = (m: number) => Math.round(m / this.g.size);
   set(x: number, y: number, z: number, p: Paint) {
     // Snow takes this builder's own cell size, so the roof's 0.2 m grid and the yard's 0.1 m grid get the same marks.
-    const c = p === snow ? snowAt(x, y, z, this.g.size, 3) : p(x, y, z);
+    const paint = () => (p === snow ? snowAt(x, y, z, this.g.size, 3) : p(x, y, z));
+    const c = inWendigoZone(x * this.g.size, z * this.g.size) ? asBefore(paint) : paint(); // the wendigo's zone keeps its colours
     if (c) this.g.set(x, y, z, c);
   }
   /** An inclusive box of cells, by index. */
@@ -64,7 +82,9 @@ class Builder {
       for (let z = z0; z <= z1; z++)
         for (let y = y1; y >= 0; y--)
           if (this.g.has(x, y, z)) {
-            if (hash3(x, y, z, 9) < chance) this.cap(x, y, z);
+            // An even cap of snow: gaps scattered through it read as static (Brian, 2026-11-18). In the wendigo's
+            // zone it keeps the gaps it had (`chance`), voxel for voxel.
+            if (!inWendigoZone(x * this.g.size, z * this.g.size) || hash3(x, y, z, 9) < chance) this.cap(x, y, z);
             break;
           }
   }
@@ -74,7 +94,7 @@ class Builder {
 function barnShell(): BufferGeometry {
   const b = new Builder(new Grid(F));
   const seam = lin(T.barn[2]);
-  const board = (i: number, seed: number): Paint => () => pick(T.barn, hash3(i, seed, 7, 41));
+  const board = (i: number, seed: number): Paint => () => pickBy(T.barn, hash3(i, seed, 7, 41)); // one tone a board
   const stone: Paint = (x, y, z) => pick(T.stone, hash3(x >> 1, y >> 1, z >> 1, 51), [0.3, 0.8]);
 
   // The gaps between the back boards, closed from just inside the outer face.
@@ -90,8 +110,12 @@ function barnShell(): BufferGeometry {
   // Front wall: the side walls' boards, up into the gable, with big closed doors in the middle.
   for (let i = 0, xa = -62; xa <= 61; i++, xa += 3) {
     for (let x = xa; x <= Math.min(61, xa + 2); x++)
-      for (let y = 0; y < barnRoofY(x) + 2; y++)
+      for (let y = 0; y < roofY(x); y++)
         for (const z of [-44, -43]) b.set(x, y, z, x === xa + 2 ? () => seam : board(i, 8));
+    // The back gable, from over the barn's own roof boards (two cells thick) up to the outer roof.
+    for (let x = xa; x <= Math.min(61, xa + 2); x++)
+      for (let y = barnRoofY(x) + 2; y < roofY(x); y++)
+        for (const z of [70, 71]) b.set(x, y, z, x === xa + 2 ? () => seam : board(i, 9));
   }
   const frame = (x0: number, x1: number, y0: number, y1: number, z: number, w = 2) => {
     b.box(x0, x1, y0, y0 + w - 1, z, z, white);
@@ -140,7 +164,7 @@ function barnShell(): BufferGeometry {
   for (const z of [-45, 72]) {
     b.box(-62, -60, 4, 42, z, z, white);
     b.box(59, 61, 4, 42, z, z, white);
-    for (let x = -62; x <= 61; x++) for (let k = 0; k < 3; k++) b.set(x, barnRoofY(x) - k, z, white);
+    for (let x = -62; x <= 61; x++) for (let k = 1; k <= 3; k++) b.set(x, roofY(x) - k, z, white); // the rake, under the roof's line
   }
   b.box(-20, -19, 0, 35, 72, 72, white);
   b.box(18, 19, 0, 35, 72, 72, white);
@@ -156,7 +180,7 @@ function barnShell(): BufferGeometry {
   // Round vent high on the front gable.
   for (let x = -6; x <= 6; x++) for (let y = -6; y <= 6; y++) {
     const r = Math.hypot(x, y);
-    if (r <= 6.4) b.set(x, 50 + y, -45, () => lin(r > 4.6 ? T.trim[0] : T.barn[2]));
+    if (r <= 6.4) b.set(x, 58 + y, -45, () => lin(r > 4.6 ? T.trim[0] : T.barn[2]));
   }
   return buildGeometry(b.g.map, F);
 }
@@ -169,36 +193,33 @@ function frame2z(b: Builder, x: number, z0: number, z1: number, y0: number, y1: 
   b.box(x, x, y0, y1, z1 - 1, z1, white);
 }
 
-/** The whole roof on the 0.20 m grid, over the barn's own, with eaves, snow, icicles and a cupola. */
+/**
+ * The whole roof on the 0.20 m grid, over the barn's own: a rounded gambrel of one grey, a white fascia under its edges,
+ * and one thick blanket of snow from the ridge down to a metre short of the eaves, where the grey roof shows, with a
+ * raised rib of snow every 1.2 m, as Brian's farm picture draws it. No thinning, no icicles: nothing scattered.
+ */
 function barnRoof(b: Builder) {
   const X0 = b.ix(-6.8), X1 = b.ix(6.8) - 1, Z0 = b.ix(-4.8), Z1 = b.ix(7.8) - 1;
-  const rise = (xi: number) => {
-    const ax = Math.abs((xi + 0.5) * S);
-    return Math.ceil((4.42 + 2.2 * (1 - ax / 6)) / S);
-  };
-  const ice = tone(T.ice, 7);
+  const rise = roofRow;
+  const roofing = lin(T.shingle[1]);
   for (let x = X0; x <= X1; x++) {
-    const y = rise(x);
+    const y = rise(x), ax = Math.abs((x + 0.5) * S);
+    // Down to the row under its lower neighbour's top, so the steep part shows no gap between one step and the next.
+    const lower = Math.min(rise(x - 1), rise(x + 1), y);
     for (let z = Z0; z <= Z1; z++) {
-      const course = lin(T.shingle[(y + (((z >> 1) + y) & 1)) % 3]);
-      b.set(x, y, z, () => course);
-      b.set(x, y + 1, z, () => course);
+      for (let yy = Math.min(y, lower + 1); yy <= y + 1; yy++) b.set(x, yy, z, () => roofing);
       const end = z === Z0 || z === Z1;
       const eave = x <= X0 + 3 || x >= X1 - 3;
-      if (end || eave) b.set(x, y - 1, z, white); // fascia and soffit, so nothing shows under the roof
-      // One unbroken blanket of snow, thinning only along the eaves, where the roof has shed it.
-      const edge = Math.min(x - X0, X1 - x, z - Z0, Z1 - z);
-      if (edge >= 3 || hash3(x, y, z >> 1, 11) < 0.25 + edge * 0.22) b.set(x, y + 2, z, snow);
+      // A soffit under the roof's edges, so nothing shows under it: white along the eaves, the roof's own grey at the
+      // gable ends, where a white one striped the rake (white trim, grey roof, white snow is all the picture shows).
+      if (end || eave) b.set(x, Math.min(y, lower + 1) - 1, z, eave ? white : () => roofing);
+      if (ax > 5.8) continue; // the grey roof shows along the eaves
+      const rib = (((z - Z0) % 6) + 6) % 6 < 2;
+      for (let k = 2; k <= (rib ? 4 : 3); k++) b.set(x, y + k, z, snow);
     }
   }
-  for (let z = Z0; z <= Z1; z++)
-    for (const x of [X0, X1]) {
-      const n = hash3(x, 0, z, 13);
-      if (n < 0.68) continue;
-      for (let k = 2; k < 2 + Math.round((n - 0.68) * 9) + 1; k++) b.set(x, rise(x) - k, z, ice);
-    }
   // Cupola on the ridge: white louvred box, little pitched roof, weathervane.
-  const zc = b.ix(1.4), base = rise(0) + 2, h = 6;
+  const zc = b.ix(1.4), base = rise(0) + 2, h = 7;
   for (let y = base; y < base + h; y++)
     for (let x = -4; x <= 3; x++)
       for (let z = zc - 4; z <= zc + 3; z++) {
@@ -350,7 +371,7 @@ function henYard(b: Builder) {
   b.box(tx - 1, tx + 16, 3, 3, tz - 1, tz + 2, wood);
   for (const side of [tz - 2, tz + 3]) b.box(tx - 1, tx + 16, 3, 4, side, side, wood);
   for (const end of [tx - 2, tx + 17]) b.box(end, end, 3, 4, tz - 2, tz + 3, wood);
-  b.box(tx - 1, tx + 16, 4, 4, tz - 1, tz + 2, (x, y, z) => lin(hash3(x, y, z, 50) > 0.5 ? T.lantern[1] : T.hay[2]));
+  b.box(tx - 1, tx + 16, 4, 4, tz - 1, tz + 2, () => lin(T.hay[1]));
   // The water pan: a low dark rim round a frozen middle.
   const wx = b.ix(cx + 2.2), wz = b.ix(cz + 0.6);
   for (let dx = -4; dx <= 4; dx++)
@@ -494,7 +515,7 @@ function* terrainSteps(): Steps<BufferGeometry> {
     if (z < BARN.minZ && Math.abs(x) >= 13) return false;
     return true;
   };
-  const paint = (x: number, y: number, z: number) => snowAt(x, y, z, 1, 71); // smooth drifts and grain (voxel/snow.ts): tones in squares drew squares on the land
+  const paint = (x: number, y: number, z: number) => (inWendigoZone(x, z) ? asBefore(() => snowAt(x, y, z, 1, 71)) : snowAt(x, y, z, 1, 71)); // smooth drifts and grain (voxel/snow.ts): tones in squares drew squares on the land
   for (let x = -150; x < 150; x++)
     for (let z = -60; z < YARD.maxZ; z++) {
       if (yardCovers(x, z)) continue;
@@ -570,7 +591,7 @@ export function* buildFarmsteadSteps(): Steps<Farmstead> {
   const small = new Builder(new Grid(F));
   tractor(small);
   yield;
-  const close = yield* detailedSteps(small.g.map, F, 0.03);
+  const close = yield* detailedSteps(small.g.map, F, 0);
   yield;
   const litter = new Builder(new Grid(F));
   henYard(litter);

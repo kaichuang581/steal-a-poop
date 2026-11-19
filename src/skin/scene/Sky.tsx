@@ -6,9 +6,10 @@ import {
 } from 'three';
 import { withRoundedEdges } from '../voxel/rounded';
 import { buildGeometry } from '../voxel/mesher';
-import { lin, T } from '../voxel/palette';
-import { ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
+import { lin } from '../voxel/palette';
+import { ellipsoid, Grid, rng } from '../voxel/primitives';
 import { DISTANCE } from './layout';
+import { LOOK, WARM_DAY_SKY } from '../look';
 
 export type Hour = 'dawn' | 'day' | 'dusk' | 'night';
 
@@ -50,7 +51,8 @@ export function Dome({ hour, palette = 'hour' }: { hour: Hour; palette?: SkyPale
   const mat = useMemo(() => new MeshBasicMaterial({ vertexColors: true, side: BackSide, fog: false, depthWrite: false }), []);
   useEffect(() => {
     const dream = palette === 'dream';
-    const top = new Color(dream ? DREAM_PALETTE.top : SKY[hour][0]), bottom = new Color(dream ? DREAM_PALETTE.horizon : SKY[hour][1]), mid = new Color(DREAM_PALETTE.middle), c = new Color();
+    const sky = !dream && hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY : SKY[hour];
+    const top = new Color(dream ? DREAM_PALETTE.top : sky[0]), bottom = new Color(dream ? DREAM_PALETTE.horizon : sky[1]), mid = new Color(DREAM_PALETTE.middle), c = new Color();
     const pos = geo.getAttribute('position'), col = geo.getAttribute('color') as BufferAttribute;
     for (let i = 0; i < pos.count; i++) {
       const t = Math.min(1, Math.max(0, pos.getY(i) / (R * 0.55)));
@@ -163,7 +165,7 @@ export function ChimneySmoke({ from }: { from: [number, number, number] }) {
   const refs = useRef<(Mesh | null)[]>([]);
   const { geo, mats } = useMemo(() => {
     const g = new Grid(0.2);
-    ellipsoid(g, [0, 0, 0], [0.3, 0.25, 0.3], (x, y, z) => lin(hash3(x, y, z, 5) > 0.5 ? '#E9ECF2' : T.stone[0]));
+    ellipsoid(g, [0, 0, 0], [0.3, 0.25, 0.3], () => lin('#E9ECF2'));
     const geo = buildGeometry(g.map, 0.2);
     geo.center();
     const mats = Array.from({ length: PUFFS }, () => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, depthWrite: false })));

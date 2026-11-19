@@ -58,7 +58,7 @@ const HERO = corners({ min: [-0.84, 0, BARN.maxZ + 1.2 - 0.84], max: [0.84, 1.65
 /** The barn's red: walls, roof and ridge. */
 const BARN_RED = corners({ min: [BARN.minX - 0.2, 0, BARN.minZ - 0.45], max: [BARN.maxX + 0.2, 6.8, BARN.maxZ + 0.2] });
 /** The farmhouse: its walls and its roof to the ridge (`farmhouse` in scene/yard.ts). */
-const FARMHOUSE = corners({ min: [YARD.farmhouse.x - 3.6, 0, YARD.farmhouse.z - 3], max: [YARD.farmhouse.x + 3.6, 5.8, YARD.farmhouse.z + 3] });
+const FARMHOUSE = corners({ min: [YARD.farmhouse.x - YARD.farmhouse.halfX, 0, YARD.farmhouse.z - YARD.farmhouse.halfZ], max: [YARD.farmhouse.x + YARD.farmhouse.halfX + YARD.farmhouse.porch, 6.4, YARD.farmhouse.z + YARD.farmhouse.halfZ] });
 const HENS = LIVESTOCK.filter(([a, x, z]) => a === 'chicken' && x >= FARM.run.minX && x <= FARM.run.maxX && z >= FARM.run.minZ && z <= FARM.run.maxZ);
 const inPaddock = ([, x, z]: (typeof LIVESTOCK)[number]) => x >= FARM.paddock.minX && x <= FARM.paddock.maxX && z >= FARM.paddock.minZ && z <= FARM.paddock.maxZ;
 /** What the phone draws: the first three of LIVESTOCK (Farmstead.tsx). */

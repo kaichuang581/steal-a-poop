@@ -7,13 +7,15 @@ import { each, finish } from './slices';
 import type { Steps } from './slices';
 import { asBefore, lin, pick, pickBy, T } from '../voxel/palette';
 import { inWendigoZone, nearWendigo } from './wendigoZone';
-import { snowAt, snowPaint } from '../voxel/snow';
+import { blanket, SNOW, snowAt, snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
+import { soft } from '../voxel/texture';
+import { tieredPine } from './style/pine';
 import type { Paint, V3 } from '../voxel/primitives';
 import { backHillHeight } from './distance';
 import { BARN, YARD } from './layout';
-import { ChunkMap } from './yard';
+import { ChunkMap, plain } from './yard';
 
 /**
  * The working farm around the barn, seen only from the start screen. The barn itself is a stage set for the game's
@@ -27,17 +29,31 @@ const CHUNK = 8;
 
 /** Where everything stands, in metres. The shot list in FarmBackdrop frames these. */
 export const FARM = {
+  /** Against the barn's east wall, joined to it by its feed room. */
   silo: { x: 9.7, z: -0.8, r: 1.9, h: 10.5 },
-  coop: { x: -12, z: 1.5 },
+  /** On the court's west side, its pop door into the run. */
+  coop: { x: -13, z: 8.4 },
   /**
-   * Parked at the back between the hens' run and the field, where the barn hides it from the paddock camera (Brian,
+   * Parked at the back between the pens and the field, where the barn hides it from the paddock camera (Brian,
    * 2026-11-19: "seeing a tractor isnt very pretty"; it stood by the barn doors, in the middle of the forecourt).
    */
   tractor: { x: -8, z: -10.5 },
   paddock: { minX: 12, maxX: 22, minZ: -14, maxZ: 7 },
-  run: { minX: -19, maxX: -8.6, minZ: -5, maxZ: 8 },
-  orchard: { minX: -36, minZ: -13, cols: 3, rows: 5, gap: 5.5 },
+  /** The hens' run, from the coop down to the court's fence; the pig's sty shares its north side. */
+  run: { minX: -17.4, maxX: -9.8, minZ: 6.6, maxZ: 15 },
+  sty: { minZ: 0.4 },
+  /** Behind the hens, north-west of the house. */
+  orchard: { minX: -29.5, minZ: -7, cols: 2, rows: 4, gap: 5.2 },
   field: { minX: -26, maxX: 30, minZ: -27, maxZ: -16 },
+  /**
+   * The windbreak: two staggered rows of pines down the farm's west side, the side the winter wind comes from, turning
+   * the corner at the north end. Each [x, z, height in metres].
+   */
+  windbreak: [
+    ...[-12, -7.5, -3, 1.5, 6, 10.5, 15, 19.5, 24, 28.5, 33].map((z, i) => [-35, z, [8.6, 7.4, 9.2, 8, 7, 9, 8.2, 7.6, 9.4, 8, 6.8][i]] as const),
+    ...[-9.8, -5.2, -0.8, 3.8, 8.2, 12.8, 17.2, 21.8, 26.2, 30.8].map((z, i) => [-38.8, z, [7, 8.8, 7.8, 9.4, 8.2, 7.2, 8.8, 9, 7.4, 8.4][i]] as const),
+    [-31, -12.6, 7.8], [-27, -12, 6.6],
+  ] as [number, number, number][],
 };
 
 const tone = (t: Tone, seed: number, w?: [number, number]): Paint => (x, y, z) => pick(t, hash3(x, y, z, seed), w);
@@ -64,7 +80,13 @@ const roofRow = (xi: number) => Math.ceil(gambrel(Math.abs((xi + 0.5) * S)) / S)
 const roofY = (x: number) => 2 * roofRow(Math.floor(x / 2));
 
 class Builder {
-  constructor(readonly g: Grid) {}
+  /** The roofs' snow, kept apart: it is meshed with no corner shading, so a blanket's steps do not stripe it. */
+  readonly caps: Grid;
+  constructor(readonly g: Grid) { this.caps = new Grid(g.size); }
+  /** A blanket of snow over a roof's top cells (voxel/snow.ts). */
+  blanket(tops: readonly (readonly [number, number, number])[], thick: number | ((x: number) => number) = 2) {
+    blanket(tops, (x, y, z) => { if (!this.g.has(x, y, z)) this.caps.set(x, y, z, SNOW); }, thick);
+  }
   ix = (m: number) => Math.round(m / this.g.size);
   set(x: number, y: number, z: number, p: Paint) {
     // Snow takes this builder's own cell size, so the roof's 0.2 m grid and the yard's 0.1 m grid get the same marks.
@@ -199,15 +221,16 @@ function frame2z(b: Builder, x: number, z0: number, z1: number, y0: number, y1: 
 
 /**
  * The whole roof on the 0.20 m grid, over the barn's own: a rounded gambrel of one grey, a white fascia under its edges,
- * and one thick blanket of snow from the ridge down to a metre short of the eaves, where the grey roof shows, with a
- * raised rib of snow every 1.2 m, as Brian's farm picture draws it. No thinning, no icicles: nothing scattered.
+ * and its snow as a gambrel holds it (`blanket` in voxel/snow.ts): a blanket over the shallow upper slopes, thinner on
+ * the windward side, none on the steep lower slope, which sheds it, and a strip caught on the flare at the eaves.
  */
 function barnRoof(b: Builder) {
   const X0 = b.ix(-6.8), X1 = b.ix(6.8) - 1, Z0 = b.ix(-4.8), Z1 = b.ix(7.8) - 1;
   const rise = roofRow;
   const roofing = lin(T.shingle[1]);
+  const tops: [number, number, number][] = [];
   for (let x = X0; x <= X1; x++) {
-    const y = rise(x), ax = Math.abs((x + 0.5) * S);
+    const y = rise(x);
     // Down to the row under its lower neighbour's top, so the steep part shows no gap between one step and the next.
     const lower = Math.min(rise(x - 1), rise(x + 1), y);
     for (let z = Z0; z <= Z1; z++) {
@@ -217,11 +240,10 @@ function barnRoof(b: Builder) {
       // A soffit under the roof's edges, so nothing shows under it: white along the eaves, the roof's own grey at the
       // gable ends, where a white one striped the rake (white trim, grey roof, white snow is all the picture shows).
       if (end || eave) b.set(x, Math.min(y, lower + 1) - 1, z, eave ? white : () => roofing);
-      if (ax > 5.8) continue; // the grey roof shows along the eaves
-      const rib = (((z - Z0) % 6) + 6) % 6 < 2;
-      for (let k = 2; k <= (rib ? 4 : 3); k++) b.set(x, y + k, z, snow);
+      tops.push([x, y + 1, z]);
     }
   }
+  b.blanket(tops, (x) => (x < 0 ? 1 : 2)); // less on the windward slope
   // Cupola on the ridge: white louvred box, little pitched roof, weathervane.
   const zc = b.ix(1.4), base = rise(0) + 2, h = 7;
   for (let y = base; y < base + h; y++)
@@ -249,6 +271,14 @@ function barnRoof(b: Builder) {
 function silo(b: Builder) {
   const { x, z, r, h } = FARM.silo;
   const cx = b.ix(x), cz = b.ix(z), R = Math.round(r / S), H = b.ix(h);
+  // The feed room that joins it to the barn: plank walls, a roof sloping away from the barn's eave.
+  const link: [number, number, number][] = [];
+  b.box(32, cx - 5, 0, 11, cz - 4, cz + 6, (_x, _y, pz) => pickBy(T.barn, hash3(0, 3, pz >> 1, 33)));
+  for (let px = 32; px <= cx - 5; px++)
+    for (let pz = cz - 5; pz <= cz + 7; pz++) {
+      b.set(px, 12, pz, () => lin(T.shingle[1]));
+      link.push([px, 12, pz]);
+    }
   for (let dx = -R - 1; dx <= R + 1; dx++)
     for (let dz = -R - 1; dz <= R + 1; dz++) {
       const d = Math.hypot(dx + 0.5, dz + 0.5);
@@ -261,6 +291,7 @@ function silo(b: Builder) {
     }
   ellipsoid(b.g, [x + S / 2, h, z + S / 2], [r + 0.1, r * 0.8, r + 0.1], (px, py, pz) => (py < H ? null : pick(T.stone, hash3(px, py, pz, 21), [0.25, 0.7])));
   b.capAll(cx - R - 2, cx + R + 2, H + 12, cz - R - 2, cz + R + 2, 0.95);
+  b.blanket(link, 1);
   // Ladder and chute down the side that faces the yard.
   const iron = () => lin(T.stone[2]);
   const lz = cz + R + 1;
@@ -304,13 +335,15 @@ function paddock(b: Builder) {
   b.box(x1, x1, 0, 13, z0, z1, plank);
   b.box(x0, x0, 0, 13, z1, z1, tone(T.beam, 34));
   b.box(x1, x1, 0, 13, z1, z1, tone(T.beam, 34));
+  const shed: [number, number, number][] = [];
   for (let z = z0 - 2; z <= z1 + 2; z++) {
     const y = 12 + Math.round(((z - z0) / (z1 - z0)) * 2);
     for (let x = x0 - 2; x <= x1 + 2; x++) {
       b.set(x, y, z, () => lin(T.shingle[(x & 1) + 1]));
-      b.cap(x, y, z); // one blanket of snow
+      shed.push([x, y, z]);
     }
   }
+  b.blanket(shed);
   // Hay rack in the middle of the paddock.
   const rx = b.ix(16.6), rz = b.ix(-3.4), wood = tone(T.beam, 36);
   b.box(rx - 7, rx + 7, 3, 3, rz - 2, rz + 2, wood);
@@ -332,26 +365,44 @@ function coop(b: Builder) {
       b.box(px, px, y0 + 1, y0 + W, pz, pz, wall);
     }
   const zc = (z0 + z1 + 1) / 2, half = (z1 - z0 + 1) / 2;
+  const roof: [number, number, number][] = [];
   for (let px = x0 - 2; px <= x1 + 2; px++)
     for (let pz = z0 - 2; pz <= z1 + 2; pz++) {
       const d = Math.abs(pz + 0.5 - zc);
       const y = y0 + W + 1 + Math.floor((half + 1 - d) * 0.75);
       b.set(px, y, pz, () => lin(T.tractor[((px >> 1) + (pz >> 1)) & 1 ? 1 : 2]));
       if (px >= x0 && px <= x1) for (let f = y0 + W + 1; f < y; f++) if (px === x0 || px === x1) b.set(px, f, pz, wall);
-      if (Math.abs(pz + 0.5 - zc) < half) b.cap(px, y, pz); // one blanket of snow, the roof showing along the eaves
+      roof.push([px, y, pz]);
     }
+  b.blanket(roof, 1);
   // Pop door and ramp on the side toward the barn path, a little window, and a nest box on the end.
   const dz = z1;
   b.box(x0 + 3, x0 + 5, y0 + 1, y0 + 4, dz + 1, dz + 1, () => lin(T.roof[2]));
   for (let k = 0; k < 4; k++) b.box(x0 + 3, x0 + 5, y0 - k, y0 - k, dz + 1 + k, dz + 1 + k, tone(T.beam, 44));
   b.box(x1 - 6, x1 - 3, y0 + 4, y0 + 6, dz + 1, dz + 1, () => lin(T.trim[0]));
   b.box(x1 - 5, x1 - 4, y0 + 5, y0 + 5, dz + 1, dz + 1, () => lin(T.lantern[1]));
-  // The chicken run in low fence.
-  const R = FARM.run;
-  fenceRun(b, [R.minX, R.minZ], [R.maxX, R.minZ]);
+  // The hens' run, fenced round from corner to corner, its gate toward the court; and the pig's sty on its north side,
+  // with a low shelter in the corner out of the wind: plank walls on three sides, open to the south.
+  const R = FARM.run, sz = FARM.sty.minZ;
   fenceRun(b, [R.minX, R.minZ], [R.minX, R.maxZ]);
-  fenceRun(b, [R.minX, R.maxZ], [R.maxX, R.maxZ], (px) => px > -13 && px < -11);
-  fenceRun(b, [R.maxX, R.minZ], [R.maxX, R.maxZ]);
+  fenceRun(b, [R.minX, R.maxZ], [R.maxX, R.maxZ]);
+  fenceRun(b, [R.maxX, R.maxZ], [R.maxX, R.minZ], (_x, pz) => pz > 9.9 && pz < 11.3);
+  fenceRun(b, [R.maxX, R.minZ], [R.minX, R.minZ]);
+  fenceRun(b, [R.minX, R.minZ], [R.minX, sz]);
+  fenceRun(b, [R.minX, sz], [R.maxX, sz]);
+  fenceRun(b, [R.maxX, sz], [R.maxX, R.minZ]);
+  const sx0 = b.ix(R.minX + 0.6), sx1 = b.ix(R.minX + 3.4), sz0 = b.ix(sz + 0.6), sz1 = b.ix(sz + 2.6);
+  const plank: Paint = (px, _y, pz) => lin(T.beam[((px + pz) >> 1) & 1]);
+  b.box(sx0, sx1, 0, 5, sz0, sz0, plank);
+  for (const px of [sx0, sx1]) b.box(px, px, 0, 6, sz0, sz1, plank);
+  const sty: [number, number, number][] = [];
+  for (let pz = sz0 - 1; pz <= sz1 + 1; pz++)
+    for (let px = sx0 - 1; px <= sx1 + 1; px++) {
+      const y = 6 + Math.round((pz - sz0) / (sz1 - sz0));
+      b.set(px, y, pz, () => lin(T.roof[px & 1]));
+      sty.push([px, y, pz]);
+    }
+  b.blanket(sty);
 }
 
 /**
@@ -362,15 +413,15 @@ function henYard(b: Builder) {
   // One flat layer: stacked bits shade each other dark, and this is meant to read as a clean, pale bed.
   const straw: Paint = (x, y, z) => pick(T.hay, hash3(x >> 1, y, z, 46), [0.55, 1.01]);
   const cx = FARM.coop.x, cz = FARM.coop.z + 3.1;
-  for (let px = b.ix(cx - 5.4); px <= b.ix(cx + 3.2); px++)
+  for (let px = b.ix(cx - 4.2); px <= b.ix(cx + 3); px++)
     for (let pz = b.ix(cz - 1.7); pz <= b.ix(cz + 2.6); pz++) {
-      const d = Math.hypot((px * F - cx + 1) / 4.2, (pz * F - cz - 0.4) / 2.1);
+      const d = Math.hypot((px * F - cx + 0.6) / 3, (pz * F - cz - 0.4) / 2.1);
       const wisps = hash3(px, 0, pz >> 1, 47);
       if (d > 1.15 || wisps < (d - 0.72) * 2.4) continue;
       b.set(px, 0, pz, straw);
     }
   // The feed trough: a long open box on two trestles, heaped with grain.
-  const tx = b.ix(cx - 3.8), tz = b.ix(cz + 0.5), wood = tone(T.beam, 49);
+  const tx = b.ix(cx - 3.6), tz = b.ix(cz + 0.5), wood = tone(T.beam, 49);
   for (const leg of [tx, tx + 15]) b.box(leg, leg + 1, 0, 2, tz - 2, tz + 3, wood);
   b.box(tx - 1, tx + 16, 3, 3, tz - 1, tz + 2, wood);
   for (const side of [tz - 2, tz + 3]) b.box(tx - 1, tx + 16, 3, 4, side, side, wood);
@@ -386,7 +437,7 @@ function henYard(b: Builder) {
       b.set(wx + dx, 1, wz + dz, r > 3.2 ? () => lin(T.stone[1]) : tone(T.ice, 52));
     }
   // A perch: two posts and a rail, at hen height.
-  const hx = b.ix(cx - 5.4), hz = b.ix(cz + 2.0);
+  const hx = b.ix(cx - 3.8), hz = b.ix(cz + 2.0);
   for (const leg of [hx, hx + 18]) b.box(leg, leg, 0, 5, hz, hz, wood);
   b.box(hx, hx + 18, 6, 6, hz, hz, tone(T.trunk, 53));
 }
@@ -451,7 +502,24 @@ function fieldAndTrees(b: Builder) {
     }
   fenceRun(b, [P.minX - 1, P.maxZ + 1], [P.maxX + 1, P.maxZ + 1], (x) => x > -2 && x < 2);
   [[-14, -21], [-8, -24], [-3, -19.5], [6, -23], [13, -20], [21, -24.5]].forEach(([x, z], i) => roundBale(b, x, z, 60 + i));
-  roundBale(b, 24.6, 3, 70), roundBale(b, 24.8, 5.6, 71);
+  // The windbreak, on this coarser grid: the tour only ever sees it from across the farm.
+  for (const [x, z, h] of FARM.windbreak) tieredPine((px, py, pz, c) => b.g.set(px, py, pz, c), (px, py, pz) => b.g.has(px, py, pz), b.ix(x), b.ix(z), 0, h, S);
+}
+
+/**
+ * Where the snow has gathered, one step high with a soft uneven edge: the berm of what slid off the barn's and the
+ * farmhouse's windward eaves, standing clear of the wall, and the long drifts in the lee of the windbreak and of the
+ * pines by the pond. Open rail fences gather none. They go with the roofs' snow, in the mesh that is not refined (a low
+ * slab with its edges taken off reads as two stacked planks).
+ */
+function drifts(b: Builder) {
+  const H = YARD.farmhouse;
+  for (const [cx, cz, rx, rz] of [[-7.5, 1.5, 0.5, 5], [H.x - H.halfX - 1.1, H.z, 0.5, 4.2], [-31.6, 9, 1.4, 20], [30.6, 29.6, 1.5, 3.4]])
+    for (let x = b.ix(cx - rx - 0.6); x <= b.ix(cx + rx + 0.6); x++)
+      for (let z = b.ix(cz - rz - 0.6); z <= b.ix(cz + rz + 0.6); z++) {
+        const mx = (x + 0.5) * S, mz = (z + 0.5) * S;
+        if (((mx - cx) / rx) ** 2 + ((mz - cz) / rz) ** 2 < 0.6 + 0.6 * soft(mx / 2.2, mz / 2.2, 23)) b.caps.set(x, 0, z, SNOW);
+      }
 }
 
 /** The orchard's bare trees, right under the tour's wide shot. */
@@ -593,6 +661,7 @@ export function* buildFarmsteadSteps(): Steps<Farmstead> {
   yield;
   orchard(big);
   yield;
+  drifts(big);
   // What the tour gets close to is refined to the barn's 0.1 m, and the tractor, seen closest of all, to 0.05 m. The field
   // and the trees past it stay on their 0.2 m grid: the camera never comes near them and the fog takes the rest.
   const near = yield* detailedSteps(big.g.map, S);
@@ -600,7 +669,7 @@ export function* buildFarmsteadSteps(): Steps<Farmstead> {
   const far = new Builder(new Grid(S));
   fieldAndTrees(far);
   yield;
-  const props = [...(yield* chunksSteps(near.map, near.size)), ...(yield* chunksSteps(far.g.map, S))];
+  const props = [...(yield* chunksSteps(near.map, near.size)), ...(yield* chunksSteps(far.g.map, S)), ...(yield* chunksSteps(big.caps.map, S, { ao: false })).map(plain)];
   const small = new Builder(new Grid(F));
   tractor(small);
   yield;

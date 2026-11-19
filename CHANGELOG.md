@@ -2,6 +2,17 @@
 
 All user-visible changes, newest first.
 
+## 0.8.3
+
+- The farm is laid out as a farmstead: the farmhouse, the hens' run and the barn stand round one court, and a lane runs in from the road past the house to the court's gate.
+- The farmhouse is larger: a storey and a half, with a porch facing the court, and a kitchen door and woodshed on the end nearest the barn.
+- The pond lies out in the pasture with an uneven shore, and part of the flock grazes by the trough there.
+- Pines stand as a windbreak in two rows down the west side, and in small groups by the house, at the lane's end and behind the pond. The orchard is behind the hens.
+- The silo is joined to the barn by a feed room, the pig has its own sty, and the hay bales are stacked against the barn beside its doors.
+- Snow lies as snow does: one thick, even blanket on each roof that curls over the eaves, thinner on the windward side, none on the barn roof's steep lower slope or round the farmhouse's warm chimney. Pines carry snow only on top of each tier.
+- The lane has wheel ruts, and no bushes or rocks sit on the farm's own ground.
+- Home's tour has four stops re-aimed for the new layout: the whole farmstead from the south, the hens over their fence, the farmhouse's porch, and the barn across the pond.
+
 ## 0.8.2
 
 - The farm is laid out as one yard: a single fence joins the hen run, the barn and the paddock, with a shovelled path from the barn doors through the gate to the farmhouse.

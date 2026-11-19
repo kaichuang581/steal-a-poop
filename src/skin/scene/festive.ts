@@ -322,9 +322,10 @@ export function buildFestive(): FestiveGeometry {
   }
   // Out in the yard: the farmhouse lit up. There is one Christmas tree on this farm, by the barn doors, and one in the
   // barn. The pines are just pines; more trees would only be noise.
-  const { x: hx, z: hz } = YARD.farmhouse;
-  d.swags([hx - 4, 3.05, hz - 3.5], [hx + 4, 3.05, hz - 3.5], 2.7, 0.22);
-  d.wreath(hx, 2.1, hz - 3.3);
+  // Lights along the porch's beam, and a wreath on the gable end toward the road, between its two windows.
+  const { x: hx, z: hz, halfX, halfZ, porch } = YARD.farmhouse;
+  d.swags([hx + halfX + porch, 2.2, hz - 4.2], [hx + halfX + porch, 2.2, hz + 4.2], 2.8, 0.2); // against the beam's face
+  d.wreath(hx, 3.75, hz + halfZ);
   return (farm = d.build());
 }
 

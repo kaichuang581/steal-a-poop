@@ -108,6 +108,8 @@ for detail, soft light. No interface, behaviour or animal changes.
     barn hides it from the paddock camera (`FARM.tractor`); the farmhouse is rebuilt (clapboard, timber, stone, panes
     in their own glowing mesh, `yard.panes`). One string of lights a building, none on fences, pond, silo or tractor.
     Outside the wendigo's zone the open ground has no drifts, twigs or dead grass, and roofs carry one even blanket.
+    (The fence, the path, the groves and where the farmhouse, the pond and the bales stand were laid out again later
+    that day: the next bullet. What is said here of their make still holds.)
   - `isClear` (countryside.ts) answers as it did at the freeze and reads the yard of that day (`FROZEN`); what the
     yard has taken since, and the moved cameras' sight lines, are `taken`, which only leaves a bush or a rock unbuilt.
     Never make isClear follow the yard again: the land's random streams, the wendigo's among them, run through it.
@@ -123,6 +125,40 @@ for detail, soft light. No interface, behaviour or animal changes.
   - Development only: `?cam=x,y,z,tx,ty,tz[,fov]` stands Home's camera anywhere (FarmBackdrop.tsx); `?preview=pen`
     shows the lobby's pen with no server.
   - Not done, and told to him: the dream's small props and the ice's black shore pines keep their own make.
+- The farmstead's layout and its snow (Brian, 2026-11-19, later: "naturalize the layout of the farm, i dont like where
+  and how everything is, a lot of stuff feels out of place ... u can restructure the placement of basically everything
+  in the world. also, make the natural elements more sensical, the snow on the roof for example. do some research for
+  elements in general and how stuff should be shaped structurally"). Built as 0.8.3 from farm-planning and
+  building-science sources (extension circulars on farmstead layout, snow-drift digests). The rules, for anything added:
+  - One cluster round one court. The barn's doors, the hens' gate and the farmhouse's porch face it. The lane runs in
+    from the road (+z), past the house, through the court's gate, to the barn's doors (`YARD.path`, straight on x = 0).
+    The winter wind is from the west (-x): the house is upwind of the barn; the windbreak (`FARM.windbreak`, two
+    staggered rows, on farmstead.ts's coarse grid) runs down the west side and turns the corner at the north.
+  - Every fence starts and ends at a building's corner or a gatepost and encloses a named thing: the court
+    (`YARD.fence`, run to gate to paddock), the lane's side of the pasture, the hens' run with the pig's sty on its
+    north side (`FARM.run`, `FARM.sty`), the paddock. No fence stands alone.
+  - Things stand where they are used: the silo against the barn, joined by its feed room; bales against the barn's wall
+    by the doors; the woodshed on the farmhouse's kitchen end; the trough in the pasture at the court's fence; the
+    mailbox where the lane's fence ends; the orchard (`FARM.orchard`) behind the hens; the pond (`YARD.pond`, an
+    uneven shore: `pondD` in yard.ts) out in the pasture. Paths are packed snow worn straight from door to door
+    (`WALKS` in yard.ts); the lane has two ruts. Pines only in the windbreak and in loose groups (`YARD.pines`).
+  - The farmhouse (yard.ts): a storey and a half, ridge along z, five bays under a porch on its east side, a kitchen
+    door on the gable toward the barn, a stone chimney through the ridge. `YARD.farmhouse` holds its middle and half
+    sizes; festive.ts and homePovFrame.test.ts read them.
+  - Roof snow is `blanket` (voxel/snow.ts): one even layer on every part of a roof flat enough to hold it, none where
+    the roof drops two cells or more to the next (the gambrel's lower slope), a lip one cell out and one down over
+    each edge, thinner on the windward (west) slope, none within reach of the farmhouse's chimney or under an eave.
+    It goes into its own grid (`caps`), meshed with no corner shading and no edge rounding (`plain` in yard.ts), or its
+    steps stripe it like ribbed metal. Low banks and drifts (the pond's shore, the eaves' berms, the lee of the
+    windbreak) go there too: the refine step takes a low slab's edges off and it reads as two stacked planks. No
+    banks along the lane for the same reason.
+  - A pine carries snow only on the shelf each tier leaves open (style/pine.ts), never on a tier's side.
+  - `TAKEN` in countryside.ts is the whole farmstead's ground: no bush, rock or forest pine of the open land stands on
+    it (outside the wendigo's zone). isClear's rectangles are written out as numbers and never read the layout.
+  - Computer shots 1, 4, 5 and 7 and phone shot 4 were re-aimed; index 2 untouched. The countryside total was recorded
+    a third time (pins, `pinned.again`); the stand, the cone and the rays measured equal to 2026-11-16's.
+  - Not done: no hand pump, kitchen garden or machine shed (the tractor is still parked out back); the far hills keep
+    their terraces; the dream's props and the ice's shore pines as before.
 
 ## Painted redesign (visual layer only)
 

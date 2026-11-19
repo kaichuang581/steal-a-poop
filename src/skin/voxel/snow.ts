@@ -60,3 +60,25 @@ export function snowAtTextured(x: number, y: number, z: number, cell: number, se
 
 /** A paint for textured snow on a grid of `cell`-metre voxels (the wendigo's zone only). */
 export const snowPaintTextured = (cell: number, seed = 0): Paint => (x, y, z) => snowAtTextured(x, y, z, cell, seed);
+
+/**
+ * A roof's blanket of snow, as snow lies (Brian, 2026-11-19: "make the natural elements more sensical, the snow on the
+ * roof for example"): one even layer `thick` cells deep on every part of the roof flat enough to hold it, none where
+ * the roof drops two cells or more to the next (a gambrel's lower slope sheds it), and a lip that curls one cell out
+ * and one down over every edge it reaches. `thick` may vary across the roof (by x: the windward slope carries less
+ * than the lee). `tops` are the roof's top cells; `put` sets a cell of snow.
+ */
+export function blanket(tops: readonly (readonly [number, number, number])[], put: (x: number, y: number, z: number) => void, thick: number | ((x: number) => number) = 2): void {
+  const at = new Map(tops.map(([x, y, z]) => [`${x},${z}`, y]));
+  const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
+  const drop = (x: number, y: number, z: number) => Math.max(...SIDES.map(([dx, dz]) => y - (at.get(`${x + dx},${z + dz}`) ?? y)));
+  for (const [x, y, z] of tops) {
+    if (drop(x, y, z) >= 2) continue;
+    const deep = typeof thick === 'number' ? thick : thick(x);
+    for (let k = 1; k <= deep; k++) put(x, y + k, z);
+    for (const [dx, dz] of SIDES) {
+      const n = at.get(`${x + dx},${z + dz}`);
+      if (n === undefined || (n < y && drop(x + dx, n, z + dz) >= 2)) for (let k = 0; k < deep; k++) put(x + dx, y + k, z + dz);
+    }
+  }
+}

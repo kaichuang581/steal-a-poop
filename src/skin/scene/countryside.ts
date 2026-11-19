@@ -9,11 +9,11 @@ import { standsInWendigoZone } from './wendigoZone';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, RGB } from '../voxel/primitives';
 import { backHillHeight } from './distance';
-import { chunkMaps, FARM, landHeight } from './farmstead';
+import { chunkMaps, landHeight } from './farmstead';
 import { finish } from './slices';
 import type { Steps } from './slices';
 import type { ChunkMap } from './yard';
-import { BARN, YARD } from './layout';
+import { YARD } from './layout';
 
 /**
  * The land around the farm, seen only from the start screen, so it reads as a place rather than a flat white board:
@@ -34,23 +34,18 @@ const stands = (x: number, z: number, build: () => void): void => {
   if (standsInWendigoZone(x, z)) asBefore(build);
   else if (!taken(x, z)) build();
 };
-/** Ground the yard has taken since isClear was frozen: the forecourt out to its fence, the tractor's place, the groves. */
-const TAKEN: [number, number, number, number][] = [
-  [YARD.fence.minX - 1, YARD.fence.maxX + 1, BARN.maxZ, YARD.fence.z + 1],
-  [FARM.tractor.x - 3.5, FARM.tractor.x + 3.5, FARM.tractor.z - 2.8, FARM.tractor.z + 2.8],
-];
 /**
- * The tour cameras that have moved since the freeze (computer 1, 5 and 7 in the tour's shot list), as [position, target]:
- * their first stretch is kept open as CLEAR_SIGHT_LINES keeps the others'. Written out, because this file may never
- * read the live tour (wendigoFence.test.ts); countryside.test.ts holds them to it.
+ * Ground the farm has taken since isClear was frozen: the whole farmstead, from the windbreak to the pasture's far side
+ * and from the field's fence to the road. Nothing of the open land's (no bush, rock or forest pine) stands on it.
  */
-const LATER_SIGHT_LINES: [number[], number[]][] = [
-  [[-32, 17.5, 43], [-7, 0.5, 3.5]],
-  [[0.3, 2.1, 16.4], [-5.85, 3.7, 30.4]],
-  [[11.5, 1.7, 30.0], [-1.4, 2.8, 9.6]],
-];
+const TAKEN: [number, number, number, number][] = [[-41, 32, -15, YARD.maxZ]];
+/**
+ * The tour camera that has moved since the freeze to stand off the farm's own ground (computer 1 in the tour's shot
+ * list), as [position, target]: its first stretch is kept open as CLEAR_SIGHT_LINES keeps the others'. Written out,
+ * because this file may never read the live tour (wendigoFence.test.ts); countryside.test.ts holds it to it.
+ */
+const LATER_SIGHT_LINES: [number[], number[]][] = [[[12, 22, 52], [-10, 0.5, 8]]];
 const taken = (x: number, z: number) => TAKEN.some(([x0, x1, z0, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1)
-  || YARD.pines.some(([px, pz]) => Math.hypot(x - px, z - pz) < 3)
   || LATER_SIGHT_LINES.some(([position, target]) => fromSightLine(x, z, position, target) <= 3);
 /** Whether the open ground's bushes and rocks may be built at (x, z) today: clear at the freeze, and not taken since. */
 export const isOpen = (x: number, z: number) => isClear(x, z) && !taken(x, z);
@@ -72,16 +67,17 @@ const FROZEN = {
   pines: [[-14, 20], [-17, 26], [13, 33], [17, 19], [-6, 40], [7, 42], [-22, 34], [22, 30], [-9.8, 12.7], [-10.9, 16.8]],
 } as const;
 
+/** Written out, not read from the layout: the barn, the paddock, the run, the field, the orchard, the tractor, the farmhouse, the pond, the path, the fence. */
 const RECTS: [number, number, number, number][] = [
-  [BARN.minX - 2, BARN.maxX + 2, BARN.minZ - 2, BARN.maxZ + 3],
-  [FARM.paddock.minX - 1, FARM.paddock.maxX + 1, FARM.paddock.minZ - 1, FARM.paddock.maxZ + 1],
-  [FARM.run.minX - 1, FARM.run.maxX + 1, FARM.run.minZ - 1, FARM.run.maxZ + 1],
-  [FARM.field.minX - 1, FARM.field.maxX + 1, FARM.field.minZ - 1, FARM.field.maxZ + 2],
-  [FARM.orchard.minX - 3, -21, FARM.orchard.minZ - 3, 12],
+  [-8, 8, -6, 10],
+  [11, 23, -15, 8],
+  [-20, -7.6, -6, 9],
+  [-27, 31, -28, -14],
+  [-39, -21, -16, 12],
   [FROZEN.tractor.x - 3, FROZEN.tractor.x + 5, FROZEN.tractor.z - 3, FROZEN.tractor.z + 4],
-  [YARD.farmhouse.x - 6, YARD.farmhouse.x + 7, YARD.farmhouse.z - 6, YARD.farmhouse.z + 5],
-  [YARD.pond.x - YARD.pond.rx - 3, YARD.pond.x + YARD.pond.rx + 3, YARD.pond.z - YARD.pond.rz - 3, YARD.pond.z + YARD.pond.rz + 3],
-  [-3, 3, BARN.maxZ, 26], // the path
+  [-15, -2, 24, 35],
+  [2.5, 17.5, 18, 30],
+  [-3, 3, 7, 26],
   [FROZEN.fence.minX - 1, FROZEN.fence.maxX + 1, FROZEN.fence.z - 1, FROZEN.fence.z + 1],
 ];
 
@@ -153,6 +149,7 @@ const steep = (x: number, z: number) => Math.max(...[[0.5, 0], [-0.5, 0], [0, 0.
 function forestPine(g: Grid, wx: number, wz: number, H: number, seed: number, ground: number) {
   // Outside the wendigo's zone: the diorama's tiered pine (style/pine.ts), as Brian's farm picture draws them.
   if (!standsInWendigoZone(wx, wz)) {
+    if (taken(wx, wz)) return;
     const k = g.size;
     tieredPine((x, y, z, c) => g.set(x, y, z, c), (x, y, z) => g.has(x, y, z), Math.round(wx / k), Math.round(wz / k), Math.round(ground / k), H, k);
     return;

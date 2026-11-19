@@ -57,29 +57,36 @@ export function seatPosition(index: number, n: number): { x: number; z: number; 
   return { x, z, yaw };
 }
 
-/** The yard and the far layers, all beyond the back wall. */
+/**
+ * The yard and the far layers, all beyond the back wall. The farm is laid out as a farmstead is (Brian, 2026-11-19:
+ * "naturalize the layout of the farm ... a lot of stuff feels out of place"; the rules are in CLAUDE.md, the diorama
+ * scenery): one cluster round one court, which the barn's doors, the hens' gate and the farmhouse's porch all face; the
+ * lane runs in from the road past the house and ends in the court; every fence starts and ends at a building's corner or
+ * a gatepost and encloses a named thing; the pond lies out in the pasture; the pines stand as a windbreak on the west,
+ * the side the winter wind comes from (-x), and in loose groups, never dotted about.
+ */
 export const YARD = {
   /** Snow ground covers this rectangle; the barn floor sits on top of it. */
   minX: -40, maxX: 40, minZ: -14, maxZ: 46,
-  path: { fromZ: 7, toZ: 34, halfWidth: 1.2 },
+  /** The lane: straight out from the barn's doors, through the court's gate and on south to the road. */
+  path: { fromZ: 7, toZ: 46, halfWidth: 1.5 },
   /**
-   * The forecourt's fence: one line from the hen run's outer corner to the paddock's (FARM.run.minX, FARM.paddock.maxX in
-   * scene/farmstead.ts), with a side at each end running back to those pens, so the pens, the barn and this fence close
-   * one yard (Brian, 2026-11-19: "intentionally placed and well put together instead of a bunch of randomly assorted
-   * buildings").
+   * The court's fence: from the hens' run (FARM.run in scene/farmstead.ts) across the lane, with the gate in it, to
+   * `maxX`, and back from there to the paddock's corner (`sideTo`). The lane's own fence runs south from the gate along
+   * the pasture's side, as far as `laneTo`.
    */
-  fence: { z: 15, minX: -19, maxX: 22, gateHalfWidth: 1.6, sidesTo: [8.2, 7.2] as const },
-  farmhouse: { x: -9, z: 30 },
-  pond: { x: 10, z: 24, rx: 4.5, rz: 3 },
+  fence: { z: 15, minX: -9.8, maxX: 12, gateHalfWidth: 1.6, sideTo: 7.2, laneTo: 37 },
+  /** The farmhouse's middle. Its ridge runs along z; the porch is on its east side, toward the lane and the court. */
+  farmhouse: { x: -18.2, z: 21.2, halfX: 3.2, halfZ: 4.6, porch: 1.6 },
+  /** Out in the pasture, clear of the court's runoff. Its shore is not an ellipse: see `pondD` in scene/yard.ts. */
+  pond: { x: 18, z: 29, rx: 6, rz: 4.2 },
   /** `scale` sizes the snowman against the 1.5 m hero (plan file 04, section 4.4): its head tops out at 2.96 m x scale. */
   snowman: { x: 4.5, z: 11, scale: 0.72 },
-  /** Pines, each [x, z, height in metres], in groves: never singles dotted over the snow. */
+  /** Pines, each [x, z, height in metres], in loose groups: by the house, at the lane's end, on the pond's far bank. */
   pines: [
-    [-14, 20, 8.4], // at the opening shot's shoulder: the dark the menu is read against
-    [-16.2, 27.6, 9], [-18.6, 31.4, 7], [-15.4, 35.2, 6.2], [-10.2, 36.6, 7.6], // the grove behind the farmhouse
-    [16.4, 26.2, 8.6], [19.2, 29.4, 6.6], [14.6, 30.8, 5.4], // the grove behind the pond
-    [-6, 40, 7.5], [7, 42, 8.2], // either side of the view out through the barn doors
-    [-9.8, 12.7, 6], [-10.9, 16.8, 7.4], // by the hens' run
+    [-19.6, 29.6, 9.2], [-23.4, 27.4, 6.4], // by the farmhouse
+    [-4.8, 40.6, 7.8], [-8.2, 43.2, 6], [5.4, 42.4, 8.4], // either side of the lane where it leaves, as the barn's doors frame it
+    [25.6, 27.2, 8.4], [28.2, 30.8, 6.6], [24.4, 33.6, 7.2], // the pond's far bank
   ] as const,
 };
 

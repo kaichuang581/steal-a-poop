@@ -1,7 +1,7 @@
 /**
  * The diorama pine (Brian's farm picture, docs/diorama/reference/farm-34.png): a short brown trunk under six round tiers
  * that narrow to the top, each tier's top laid with snow, a snow tip. Flat colours: the needles one green, the underside
- * of each tier a step darker, the snow one white. No random branches, gaps or speckle.
+ * of each tier a step darker, the snow one white. No random branches, gaps or speckle, and no snow on a tier's side.
  */
 import { lin, T } from '../../voxel/palette';
 import { SNOW } from '../../voxel/snow';
@@ -32,24 +32,27 @@ export function tieredPine(put: (x: number, y: number, z: number, c: RGB) => voi
   const from = cell >= 0.3 ? 0 : -1;
   for (let y = 0; y < bare + 2; y++) for (let dx = from; dx <= 0; dx++) for (let dz = from; dz <= 0; dz++) put(cx + dx, y0 + y, cz + dz, trunk);
   const needleCells: [number, number, number][] = [];
-  const disc = (y: number, r: number, c: RGB) => {
+  const disc = (y: number, r: number, c: RGB, shelf = false) => {
     const m = Math.ceil(r);
     for (let x = -m; x < m; x++) for (let z = -m; z < m; z++) {
       if (Math.hypot(x + 0.5, z + 0.5) > r) continue;
       put(cx + x, y, cz + z, c);
-      needleCells.push([cx + x, y, cz + z]);
+      if (shelf) needleCells.push([cx + x, y, cz + z]);
     }
   };
   for (let k = 0; k < n; k++) {
     // A tier: a green side `th - 1` rows tall at its full width (its bottom row a step darker), then its core, narrower
     // than the next tier's skirt, so the next tier sits on it and this tier's top shows as a ring of snow.
     const yb = y0 + bare + k * th;
-    for (let j = 0; j < th - 1; j++) disc(yb + j, radius(k) - j * 0.25, j === 0 ? under : needles);
+    // The dark underside row and the row on it are one width (a row stepped in over the underside left the underside's
+    // rim bare to the sky); the rows above those step in.
+    for (let j = 0; j < th - 1; j++) disc(yb + j, radius(k) - Math.max(0, j - 1) * 0.25, j === 0 ? under : needles, j === th - 2);
     disc(yb + th - 1, Math.max(0.8, radius(k + 1) * 0.55), needles);
   }
   const top = y0 + bare + n * th;
   for (let dy = 0; dy < 2; dy++) for (let dx = -1; dx <= 0; dx++) for (let dz = -1; dz <= 0; dz++) put(cx + dx, top + dy, cz + dz, dy ? SNOW : needles);
   put(cx - 1, top + 2, cz - 1, SNOW);
-  // Snow on every needle top nothing covers: a white rim on each tier.
+  // Snow lies on the shelf each tier leaves open to the sky, a white ring, and nowhere on a tier's side (it showed as
+  // stray white blocks where one row stepped in from the next).
   for (const [x, y, z] of needleCells) if (!has(x, y + 1, z)) put(x, y + 1, z, SNOW);
 }

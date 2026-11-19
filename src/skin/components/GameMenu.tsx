@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { playTick } from '../../audio/sound';
-import { SnowCap } from './SnowCap';
 
 export interface MenuItem {
   id: string;
@@ -22,9 +21,10 @@ function focusVisible(el: Element): boolean {
 }
 
 /**
- * A console-style title menu: big carved labels, the first one (Play) largest, and a lantern that moves to whichever
- * item is focused or hovered. Arrow keys (and W/S) move, Enter or Space picks, Home/End jump. The focused item's
- * caption shows below, so the labels can stay short.
+ * A console-style title menu: the first item (Queue) is the one green button, the rest are plain labels, and the item
+ * focused or hovered is lit (skin.css: a brighter face for the button, gold letters and a bar for a label; nothing
+ * moves). Arrow keys (and W/S) move, Enter or Space picks, Home/End jump. The focused item's caption shows below, so
+ * the labels can stay short.
  *
  * A row is lit only while the pointer is over it, or while the keyboard is driving the menu: once the pointer leaves,
  * nothing stays highlighted. The active index (for the keys and the caption) is remembered either way.
@@ -128,7 +128,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
     <li key={it.id} className="sk-menu-row" style={{ animationDelay: `${300 + i * 70}ms` }}>
       <button
         ref={(el) => { refs.current[i] = el; }}
-        className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : 'kit-patch-row'}`}
+        className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : ''}`.trim()}
         data-active={lit(i) || undefined}
         disabled={it.disabled}
         onClick={it.onSelect}
@@ -147,15 +147,13 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
         onPointerLeave={() => setHover((h) => (h === i ? null : h))}
         aria-describedby={i === active ? 'sk-menu-caption' : undefined}
       >
-        {i === 0 && <><SnowCap className="sk-menu-snow" /><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" /><span className="sk-nail sk-nail-bl" /><span className="sk-nail sk-nail-br" /></>}
-        {i === 0 ? <svg className="sk-menu-play-icon kit-peg kit-peg--light" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 4.8 C7 3.6 8.3 2.9 9.3 3.6 L20 10.8 C20.9 11.4 20.9 12.6 20 13.2 L9.3 20.4 C8.3 21.1 7 20.4 7 19.2 Z" fill="currentColor" /></svg> : null}
+        {i === 0 && <svg className="sk-menu-play-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 4.8 C7 3.6 8.3 2.9 9.3 3.6 L20 10.8 C20.9 11.4 20.9 12.6 20 13.2 L9.3 20.4 C8.3 21.1 7 20.4 7 19.2 Z" fill="currentColor" /></svg>}
         <span className="sk-menu-label">{it.label}</span>
         {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
       </button>
     </li>
   );
-  // Play is the big sign on its own; everything else sits on a dark wooden board under it, with the caption for the
-  // item in focus along the board's foot.
+  // The green button on its own, then the other labels, then the caption for the item in focus.
   return (
     <nav aria-label={label} className={`sk-menu ${compact ? 'sk-menu-compact' : ''}`} onKeyDown={keys ? undefined : (e) => { onKey(e); }}>
       <ul className="flex flex-col">{items.slice(0, 1).map((it) => item(it, 0))}</ul>

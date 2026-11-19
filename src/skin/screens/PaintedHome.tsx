@@ -233,7 +233,7 @@ export function PaintedHome() {
       }
       : {
         id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</MenuTag> : <MenuTag tone="gold">daily</MenuTag>, disabled: !ready,
-        caption: <>{covered ? `A Warm Blanket kept your streak warm · ${streak} nights. ` : ''}Keep the farmer asleep: type words with each fence's letters so the sheep clears it. One dream a night.{nights}</>,
+        caption: <>{covered ? `A Warm Blanket kept your streak warm: ${streak} nights. ` : ''}Keep the farmer asleep: type words with each fence's letters so the sheep clears it. One dream a night.{nights}</>,
         onSelect: () => useDreamUi.getState().openDream(false),
       },
     ...(repair && !admin ? [{
@@ -247,7 +247,7 @@ export function PaintedHome() {
     },
     { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
     {
-      id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${formatCoins(wool)} Wool Coins`}><CoinArt size={11} />{formatCoins(wool, true)}</MenuTag>,
+      id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${formatCoins(wool)} Wool Coins`}><CoinArt size={13} />{formatCoins(wool, true)}</MenuTag>,
       caption: 'Feed Sacks of bomb skins, bursts and fuse sounds, missions, and your collection.', onSelect: () => setBazaar(true),
     },
     // The leaderboards sit under the Trading Post in the menu (Brian, 2026-11-14: "keep the full page but put it below the
@@ -259,31 +259,39 @@ export function PaintedHome() {
   const shownName = (signedIn ? accountName : settings.name) || '';
   // The box with your name IS the profile (Brian, 2026-11-14: "make the profile thing not a button below the quickplay
   // but that box in the top left, just embed it in there"): the whole box is one button, and it says so under the name.
+  // No board behind it: the avatar's peg, like the round buttons across the bar, and the name floating beside it.
   const profilePlate = (avatarSize: number, className: string, extra?: ReactNode) => (
     <button
-      type="button" className={`sk-plate sk-plate-open kit-plank kit-plank--label ${className}`} onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
+      type="button" className={`sk-plate sk-plate-open ${className}`} onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
       aria-label={`Your profile${shownName ? `: ${shownName}` : ''}, level ${levelOf(wallet.xp).level}`} title="Your profile: stats, rank, name and avatar" data-profile
     >
       <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={avatarSize} /> : <SheepIcon size={avatarSize} />}</span>
       <span className="sk-plate-id">
         <span className="sk-plate-name">{shownName || <span style={{ opacity: 0.75 }}>Your name</span>}</span>
-        <span className="sk-plate-sub">Level {levelOf(wallet.xp).level} · Profile</span>
+        <span className="sk-plate-sub"><span>Level {levelOf(wallet.xp).level}</span><span>Profile</span></span>
       </span>
       {extra}
     </button>
   );
-  const tables = (
-    <div className="flex flex-col gap-3" key="tables">
-      {mobile && profilePlate(22, 'self-center')}
-      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
+  // What went wrong never moves the menu (Brian: nothing shifts when a button is pressed). It is laid out of the
+  // flow: under the caption on a computer, just above the menu's panel on a phone, in the caption's own type.
+  const notes = dictStatus === 'error' || error || (roomNotice && step !== 'join') ? (
+    <>
       {dictStatus === 'error' && (
         <PaperPanel role="alert" className="p-3 text-center">
           <p className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>The word list did not load. Check your connection, then try again.</p>
           <WoodButton onClick={() => void retryDictionary()} className="mt-2">Retry</WoodButton>
         </PaperPanel>
       )}
-      {error && <p role="alert" className="kit-paper kit-paper--note" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
-      {roomNotice && step !== 'join' && <p role="status" className="kit-paper kit-paper--note text-center">{roomNotice}</p>}
+      {error && <p role="alert" className="sk-home-note">{error}</p>}
+      {roomNotice && step !== 'join' && <p role="status" className="sk-home-note">{roomNotice}</p>}
+    </>
+  ) : null;
+  const tables = (
+    <div className="relative flex flex-col gap-3" key="tables">
+      {mobile && profilePlate(26, 'self-start')}
+      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
+      {!mobile && notes && <div className="absolute inset-x-0 top-full mt-2 flex flex-col gap-2">{notes}</div>}
     </div>
   );
 
@@ -398,12 +406,12 @@ export function PaintedHome() {
   const panel = step === 'practice' ? drillSetup : step === 'join' ? joinParty : setup;
 
   const footer = (
-    <footer className="flex flex-wrap items-center gap-x-3 text-[12px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>
-      <span>v{pkg.version}{mobile ? '' : ` · ${UPDATE_NAME}`}</span>
-      <button className="min-h-8 content-center underline" onClick={() => setFeedback(true)}>Feedback</button>
-      <span className="text-xs" style={{ color: 'var(--button-text)' }} data-device-label>{device === 'phone' ? 'Phone layout' : 'Computer layout'}</span>
+    <footer className="sk-small flex flex-wrap items-center gap-x-4">
+      <span>{mobile ? '' : `${UPDATE_NAME} `}v{pkg.version}</span>
+      <button className="min-h-8 content-center" onClick={() => setFeedback(true)}>Feedback</button>
+      <span data-device-label>{device === 'phone' ? 'Phone layout' : 'Computer layout'}</span>
       {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
-        <button key={slug} className="min-h-8 content-center underline" onClick={() => setLegal(slug)}>{LEGAL_TITLES[slug]}</button>
+        <button key={slug} className="min-h-8 content-center" onClick={() => setLegal(slug)}>{LEGAL_TITLES[slug]}</button>
       ))}
     </footer>
   );
@@ -418,8 +426,12 @@ export function PaintedHome() {
 
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
       {/* Clear of a notch (plan file 14, change 5): every inset is 0 on a computer, so nothing moves there. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 p-3 pt-[max(12px,env(safe-area-inset-top))] pr-[max(12px,env(safe-area-inset-right))] pl-[max(12px,env(safe-area-inset-left))] sm:p-4 sm:pt-[max(16px,env(safe-area-inset-top))] sm:pr-[max(16px,env(safe-area-inset-right))] sm:pl-[max(16px,env(safe-area-inset-left))] [&>*]:pointer-events-auto">
-        {!mobile && profilePlate(24, 'mr-auto', (
+      {/* A computer keeps one 40 px frame: the plate, the title, the menu and the small print share its left edge, the
+          round buttons, the word of the day and the small print its right. */}
+      <div className={`pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 [&>*]:pointer-events-auto ${mobile
+        ? 'p-3 pt-[max(12px,env(safe-area-inset-top))] pr-[max(12px,env(safe-area-inset-right))] pl-[max(12px,env(safe-area-inset-left))]'
+        : 'pb-4 pt-[max(20px,env(safe-area-inset-top))] pr-[max(40px,env(safe-area-inset-right))] pl-[max(40px,env(safe-area-inset-left))]'}`}>
+        {!mobile && profilePlate(26, 'mr-auto', (
           <>
             {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinArt size={14} /></span>}
@@ -449,36 +461,43 @@ export function PaintedHome() {
             <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
             <WordOfDay className="sk-wotd--compact" />
           </div>
-          <div className="mx-3 mt-auto min-h-0 overflow-y-auto" style={{ maxHeight: 'calc(64% + 46px)' }}>
-            {step === 'tables' ? (
-              <>
-                {tables}
-                <div className="mt-1 flex justify-center">{footer}</div>
-              </>
-            ) : panel}
+          <div className="relative mt-auto flex min-h-0 flex-col" style={{ maxHeight: 'calc(64% + 46px)' }}>
+            {notes && step === 'tables' && <div className="absolute inset-x-4 bottom-full mb-2 flex flex-col gap-2">{notes}</div>}
+            <div className="min-h-0 overflow-y-auto px-4">
+              {step === 'tables' ? (
+                <>
+                  {tables}
+                  <div className="mt-1">{footer}</div>
+                </>
+              ) : panel}
+            </div>
           </div>
         </div>
       ) : (
         <>
-          {/* Left column: the title board, then the menu, like a console title screen. */}
-          {/* "safe": on a short window the column starts under the name plate instead of riding up over it. */}
-          <div className="absolute bottom-14 left-10 top-20 flex w-[27rem] flex-col gap-3" style={{ justifyContent: 'safe center' }}>
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
-            {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
-            <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
-          </div>
-          {/* The word of the day stands on its own on the right; a panel opening there takes its place. */}
-          {step === 'tables' ? <WordOfDay className="sk-wotd--side" /> : (
-            <div className="absolute right-12 top-1/2 max-h-[86%] w-[380px] -translate-y-1/2 overflow-y-auto">{panel}</div>
-          )}
-          {/* Bottom bar: button prompts, a rotating tip, the streak and the small print. */}
-          <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3 text-sm font-bold" style={{ color: 'var(--button-text)', textShadow: '0 1px 2px rgba(30, 18, 8, 0.8)' }}>
-            <div className="flex shrink-0 items-center gap-4">
-              <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key"><ArrowUpIcon size={12} /></span><span className="sk-key kit-tile kit-tile--key"><ArrowDownIcon size={12} /></span> Choose</span>
-              <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Enter</span> Select</span>
-              {step !== 'tables' && <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Esc</span> Back</span>}
+          {/* The title and the menu on the left, like a console title screen; the word of the day on the right, its top
+              level with the title's. "safe": on a short window they start under the name plate instead of riding up
+              over it. */}
+          <div className="pointer-events-none absolute bottom-14 left-10 right-10 top-20 flex flex-col" style={{ justifyContent: 'safe center' }}>
+            <div className="flex items-start justify-between gap-10">
+              <div className="pointer-events-auto flex w-[27rem] flex-none flex-col gap-4">
+                <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
+                {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
+                <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
+              </div>
+              {step === 'tables' && <WordOfDay className="sk-wotd--side" />}
             </div>
-            <p key={tip} className="sk-tip sk-hand flex min-w-0 flex-1 items-center justify-center gap-2 text-lg" style={{ color: 'var(--glow)' }} aria-live="off"><span className="line-clamp-2 text-center leading-[20px]">{TIPS[tip]}</span></p>
+          </div>
+          {/* A panel opening on the right takes the word of the day's place. */}
+          {step !== 'tables' && <div className="absolute right-10 top-1/2 max-h-[86%] w-[380px] -translate-y-1/2 overflow-y-auto">{panel}</div>}
+          {/* Bottom bar: what the keys do, a rotating tip, and the small print. */}
+          <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3">
+            <div className="sk-small flex min-h-8 shrink-0 items-center gap-4">
+              <span className="sk-prompt"><b><ArrowUpIcon size={12} /><ArrowDownIcon size={12} /></b> Choose</span>
+              <span className="sk-prompt"><b>Enter</b> Select</span>
+              {step !== 'tables' && <span className="sk-prompt"><b>Esc</b> Back</span>}
+            </div>
+            <p key={tip} className="sk-tip flex min-w-0 flex-1 items-center justify-center" aria-live="off"><span className="line-clamp-2 text-center">{TIPS[tip]}</span></p>
             {/* Under 1280 px the small print wraps to two lines at the right, so the tip keeps room for its two lines. */}
             <div className="flex shrink-0 flex-col items-end gap-1 max-xl:max-w-[320px] max-xl:[&>footer]:justify-end">
               {footer}

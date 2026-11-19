@@ -12,11 +12,13 @@ import { describe, expect, it } from 'vitest';
  *  (10 and 9 px) and kit.css's stitch label (9 px). */
 const SMALL_TEXT_LIMIT = 3;
 /** Distinct colours among the hex, rgb() and rgba() literals of src/skin/**\/*.css, counted as the plan counted its 267
- *  (and as tools/gate/banned.mjs does): the alpha left out, a hex and an rgb() of one colour counted once. */
-const CSS_COLOUR_LIMIT = 267;
+ *  (and as tools/gate/banned.mjs does): the alpha left out, a hex and an rgb() of one colour counted once. 264 once
+ *  Home's title tiles, update board and menu patch went (2026-11-19). */
+const CSS_COLOUR_LIMIT = 264;
 /** Lines of player-facing code in src/skin with a middle dot in them (comments and dev-only pages left out). 39 at the
- *  plan's count; 34 by this rule at milestone 10. No new one: "No middle dot between phrases" (Brian, 2026-11-14). */
-const MIDDLE_DOT_LIMIT = 33;
+ *  plan's count; 34 by this rule at milestone 10; 30 once Home's name plate, version line and blanket caption lost
+ *  theirs (2026-11-19). No new one: "No middle dot between phrases" (Brian, 2026-11-14). */
+const MIDDLE_DOT_LIMIT = 30;
 
 /** Dev-only pages: never shown to a player. */
 const DEV_ONLY = new Set(['src/skin/table/DevStats.tsx', 'src/skin/table/SheepPreview.tsx', 'src/skin/kit/KitPreview.tsx']);

@@ -197,13 +197,6 @@ button.kit-sign:disabled { opacity: 0.5; cursor: not-allowed; }
 button.kit-patch, button.sk-chip { cursor: pointer; transition: transform var(--t-fast) var(--ease-out); }
 button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { transform: translateY(1px); }
 
-/* A menu row in focus: a cream patch stitched over the scene. */
-.kit-patch-row[data-active] {
-  background: repeating-linear-gradient(45deg, rgba(59, 48, 40, 0.06) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.2) 0 1px, transparent 1px 3px), #F3E7CC;
-  outline: 2px dashed #7A6A58; outline-offset: -6px; border-radius: 0;
-  box-shadow: 1px 2px 0 rgba(59, 48, 40, 0.3), 0 6px 0 -2px rgba(30, 18, 8, 0.25);
-}
-
 /* ---------- Knit ---------- */
 .kit-knit {
   --a: var(--amber); --b: #F3E7CC; height: var(--knit-h, 14px); border-radius: 0;

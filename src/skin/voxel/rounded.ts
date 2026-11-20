@@ -6,13 +6,17 @@ import type { Material } from 'three';
  * `ROUNDED_VOXELS` to false: the mesher then emits no `bevel` attribute and the materials compile exactly as before.
  * `?voxels=sharp` or `?voxels=round` on the URL overrides it for a side-by-side look.
  *
+ * Off by default since 2026-11-20: the painted-miniature plan's cubes have crisp edges (docs/miniature/03, section 5,
+ * its decision 3, run on the plan's default; Brian's answer to the pair is recorded in CLAUDE.md when he gives it). His
+ * trial of 2026-11-09 is restored by setting it back to true.
+ *
  * How it works: nothing about the geometry's shape changes (still axis-aligned voxels, same triangles, same
  * silhouettes). The mesher marks, per face, which of its four edges is an outer corner: no voxel beside it in that
  * direction and none diagonally out, so a flat wall of many voxels stays one smooth surface and only real edges round.
  * The voxel materials then bend the lighting normal toward that edge over the last `BEVEL.width` of the face, so both
  * faces meeting at a corner shade into each other like a small bevel.
  */
-export const ROUNDED_VOXELS = true;
+export const ROUNDED_VOXELS = false;
 
 /** How far in from an edge the rounding starts (share of the voxel) and how far the normal bends at the very edge. */
 export const BEVEL = { width: 0.16, strength: 1 } as const;

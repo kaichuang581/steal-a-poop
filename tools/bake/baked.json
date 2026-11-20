@@ -18,13 +18,12 @@
       "page": "src/skin/loading/DoorsRender.tsx",
       "model": "the loading doors' leaves (DOOR_PARTS.leaves in src/skin/loading/doorsModel.ts)",
       "checked": "check:scenes",
-      "knownStale": "Baked once, on 2026-11-08 (commit 7e951fd), and never since. The next day the rounded voxel corners came in (ROUNDED_VOXELS, commit 4a8765e of 2026-11-09) and src/skin/loading/DoorsRender.tsx changed its shadow type (commit 73677a3), so the picture has sharp corners where the page that bakes it now draws rounded ones. Read from the repo's history in milestone 0; no picture was baked to see how much it shows.",
       "width": 2048,
       "height": 1109,
       "alpha": false,
       "modelHash": "ae94dfdccc5f5a2298a1e95cee0fc07e211c274dd37f8a8ed2ce801912968aad",
-      "renderHash": "9699f599f4f19873934ae0dd555647601762670aa37feeee63ba653cfdd6a7b7",
-      "fileHash": "488410246d327bcce1d38d7e96b09a0a203a4e3bc7b9b0801a08b1ee5712ea7c"
+      "renderHash": "d15cbc7a0a88a4f6d089efea89949c89613d6abe201025964e97af6091bf249a",
+      "fileHash": "8aa6e15bb09cd5b0a6b069f8b28352bf78dda880ed7af63bd2401339f39b340d"
     },
     {
       "id": "loading/doors-lintel",
@@ -34,13 +33,12 @@
       "page": "src/skin/loading/DoorsRender.tsx",
       "model": "the loading doors' lintel (DOOR_PARTS.lintel in src/skin/loading/doorsModel.ts)",
       "checked": "check:scenes",
-      "knownStale": "Baked once, on 2026-11-08 (commit 7e951fd), and never since. The next day the rounded voxel corners came in (ROUNDED_VOXELS, commit 4a8765e of 2026-11-09) and src/skin/loading/DoorsRender.tsx changed its shadow type (commit 73677a3), so the picture has sharp corners where the page that bakes it now draws rounded ones. Read from the repo's history in milestone 0; no picture was baked to see how much it shows.",
       "width": 2048,
       "height": 277,
       "alpha": true,
       "modelHash": "2ec639bb192adabfb42decbbde691f46dea3e3a521adb937b7ad523e4a30724b",
-      "renderHash": "9699f599f4f19873934ae0dd555647601762670aa37feeee63ba653cfdd6a7b7",
-      "fileHash": "2492ee7136b44235cd19a95e5b84679140bed702cf51c602d185dad09a2c5f35"
+      "renderHash": "d15cbc7a0a88a4f6d089efea89949c89613d6abe201025964e97af6091bf249a",
+      "fileHash": "801e4925d46e3a54ffcfccb2a62fa96b5c4095ba834ce96253257e4c55b9d2e3"
     },
     {
       "id": "loading/doors-sill",
@@ -50,13 +48,12 @@
       "page": "src/skin/loading/DoorsRender.tsx",
       "model": "the loading doors' sill (DOOR_PARTS.sill in src/skin/loading/doorsModel.ts)",
       "checked": "check:scenes",
-      "knownStale": "Baked once, on 2026-11-08 (commit 7e951fd), and never since. The next day the rounded voxel corners came in (ROUNDED_VOXELS, commit 4a8765e of 2026-11-09) and src/skin/loading/DoorsRender.tsx changed its shadow type (commit 73677a3), so the picture has sharp corners where the page that bakes it now draws rounded ones. Read from the repo's history in milestone 0; no picture was baked to see how much it shows.",
       "width": 2048,
       "height": 149,
       "alpha": true,
       "modelHash": "add9b4ec41b65c5effefc49730b611ffa74385bb8a5582978095699eabba816f",
-      "renderHash": "9699f599f4f19873934ae0dd555647601762670aa37feeee63ba653cfdd6a7b7",
-      "fileHash": "d4292bb5b938269cb4fe4b8534afc78ffccf148fa3d9dfa20865cc242b848680"
+      "renderHash": "d15cbc7a0a88a4f6d089efea89949c89613d6abe201025964e97af6091bf249a",
+      "fileHash": "0ab20816e9eab2e41a0b0bfb479eb7f1717b100b601c21b8f630d3d3c4a5b37f"
     },
     {
       "id": "play/casual",
@@ -70,9 +67,9 @@
       "width": 800,
       "height": 500,
       "alpha": false,
-      "modelHash": "0dbd6c774b582c91ede82ab9e2458ab88a6e1561aea4878c459c98034dd6f4cb",
-      "renderHash": "f0cc7563d7d4b94152ac519f14e7f3267b449a7887b876656be6cfe450a9ad5b",
-      "fileHash": "bb247eb43003aa601a3675748b7ce0a70d5a8cd354224e60064d8ab75bbc3399"
+      "modelHash": "1ab5e4a96151d883759e6e97c1f59ce16a8cc0fbd95427be05f6ed3416db708d",
+      "renderHash": "aba8eb50bb036d5c3d2767c5c400da3b9dc875ca1227e40587fc52d28851d332",
+      "fileHash": "498f987681333df7aa57c7d9b5f7cf4a591f99c903a58f4057eac7625a4153a3"
     },
     {
       "id": "play/ranked",
@@ -86,9 +83,9 @@
       "width": 800,
       "height": 500,
       "alpha": false,
-      "modelHash": "fb18e0683ca92d62191e60b6809dd7615e02f300b998d4c6429857e5eceddbb1",
-      "renderHash": "f0cc7563d7d4b94152ac519f14e7f3267b449a7887b876656be6cfe450a9ad5b",
-      "fileHash": "d3f561c69e13aa31fa7e3f9db799c54c57274d422da99f1ac403f2b367971ec2"
+      "modelHash": "b735d8310f0f3d86b0bbf934f0ae420da4df7fe8371ce2065b812c6392f7e8a2",
+      "renderHash": "aba8eb50bb036d5c3d2767c5c400da3b9dc875ca1227e40587fc52d28851d332",
+      "fileHash": "77a047ac12e3b1ea640edb24d11c7cb56b118ffaa72bc3c195edc6439812ef13"
     },
     {
       "id": "shop/blast-bubblegum",
@@ -105,8 +102,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "beaf30c6eb1d9aca40866fbc7c878540b5b59b6c8720dfc2e83d34ef53b978b0",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "0137c5d8aba644eafa3f2e46c372b6c4e40cddd9260755d5ffe4642cb6f790ca"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "ff24513cf1c0cb652f518aafe5dd6aaec1731f1be5a0abb2290cc940811d4283"
     },
     {
       "id": "shop/blast-confetti",
@@ -123,7 +120,7 @@
       "height": 256,
       "alpha": true,
       "modelHash": "7a796011e2edd9133b08164df8ad6781204fd0e7cf367d5ed867bc884e7f3454",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
       "fileHash": "85e8173f0a7e4a8766536a1ca17590612b25a46848bbfb7454d7853d085a1318"
     },
     {
@@ -141,8 +138,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "58ea1da06bfaa67033e62b2279e3fc0ae9c954248c5ffd6966a8d059f98cab44",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "54faeb18420ae3c5fcfcf4474bb3fbd435dc90b7dafbe0760ee8b107e4121d83"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "dda1df51d24406a5978e68b764c97fcc03c5210b28dac59ef5d32d97490e0b3e"
     },
     {
       "id": "shop/blast-frost",
@@ -159,7 +156,7 @@
       "height": 256,
       "alpha": true,
       "modelHash": "f2440efefb037a5e9c9bfc2614e00c604f46ee88b3f4ea0b221caba6216a5b9a",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
       "fileHash": "5d52fb5f4b872e9d675fa81fb699aca03682dac55ffa8915d16ef4b009a28854"
     },
     {
@@ -177,8 +174,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "9d8ccd4d1f55a224adb42ff13cd7592373c39c592d657f714bd2b70400c497f5",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "c62628e90820f19a87d5550f07830cd3d609593ef977572b3d8e62b84e393f93"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "ee682029348a786fbeb1cdc50a61ccb4ecdcfea1f18548cab97ad4f869d53f46"
     },
     {
       "id": "shop/blast-lantern",
@@ -195,7 +192,7 @@
       "height": 256,
       "alpha": true,
       "modelHash": "b1a7184b47f8338cdb87f1a6555f9dbb12754fd13997d194254a1e72e43ac326",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
       "fileHash": "b3fbe39ac43c644a38a304e9bbf21b61723dcc112faa9824791f28f0475816b4"
     },
     {
@@ -213,7 +210,7 @@
       "height": 256,
       "alpha": true,
       "modelHash": "5958813750875660e1a3a217d8693fc19acdd2eb61f010ce8d6947e9b2f98e2a",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
       "fileHash": "c7a4c5315f0be086a06b4fa7d118f3f9751320402a8f06dd1f0f66689fdd8a61"
     },
     {
@@ -231,7 +228,7 @@
       "height": 256,
       "alpha": true,
       "modelHash": "a94318c2f044988a1a609670bf1e1d5bcc12732cabb598c245ad7d63d8b8f0b2",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
       "fileHash": "b3bbe9b4448ed981212a81ffa0c37930f8699867e472931ff5b6a43639162b12"
     },
     {
@@ -249,7 +246,7 @@
       "height": 256,
       "alpha": true,
       "modelHash": "ee80b5b4b76e0a995677e388cd3ddbd4e5c8843faeadb8dd7122da6d5d3f5105",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
       "fileHash": "d687eec25de8d8125d0dffc17b79f11abbcaa26b6f369e626313c7048b39cdfd"
     },
     {
@@ -267,7 +264,7 @@
       "height": 256,
       "alpha": true,
       "modelHash": "310d615bdafe6f7e5c7b13c50fbda190a4c6a951fa8481fae5ab60bbcb52846d",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
       "fileHash": "26542df057ba8f5afdae77b144e1dc07e6aba6968839ca07193a065c14173977"
     },
     {
@@ -285,8 +282,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "96e9aaee0ff10a745eea549fdfbedc26782e4a339ccebb66f5bf4044061a2f86",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "3f1879102bb0ea9eb9ee782c549294bcb3ab6048f69d3f5ba037ce684403a1ce"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "1ccd43117e2f7300d604801cfc87c3e835fb4d6fb822b08fac7592e939c203b3"
     },
     {
       "id": "shop/bomb-brass",
@@ -303,8 +300,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "ca39f1449668c21952bf318b64d9839d563da4f068453b67a8f308255b3e1bc1",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "166b4bf2b40c572c888e8515bfad82718122d02ebb960f6ba82fca95586a10d2"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "dd02053eff4fca3233124ad0cdc795aa2912c8edca2e5cb7e55c6203d99834f8"
     },
     {
       "id": "shop/bomb-diamond",
@@ -321,8 +318,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "a587dca34a60ff2bb7ec63143aab7aceb6a5e8fe7e8d3d53777745546e6e23e2",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "8aaac638897a8c929e98e111ff6960ebdffb03bb717c3e095b5363ce467d2918"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "5eb752f945c71998ab7cbf56a53927f375ee68e70f9d766bcbef30456762541f"
     },
     {
       "id": "shop/bomb-ember",
@@ -339,8 +336,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "6f8011086bfd32e6b3d79c337c6f4a778c8c98e82a936af34e524772aec82f1e",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "a959160d008fc5e351161946c6b346a0134b8e5a88665985df200d537f508639"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "92cddf1cc0463621b4ae3e9d4f28831922a4b93fb567d2c4e7eec721839af2f6"
     },
     {
       "id": "shop/bomb-gold",
@@ -357,8 +354,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "28d0fd75f77391c2e3e959298c7b50b3c5ef11d44d0f30ef4b2e0e73252169b0",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "004b01aa5d2677756b18865162cbcaf2920e277bfd29a9165f131ecb8075ad24"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "42cdae3b36206510f19092fc86922ae55ad76c0359066bc88c113f7b7f804338"
     },
     {
       "id": "shop/bomb-ice",
@@ -375,8 +372,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "4d52831e7f3ada544fb031a4b99adef6ec230bb2da9b7e08adf3613e0504de79",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "1f77aec704da7f97c69302560e66383b71ce4d3c65f29ad494706b4e0d6e144b"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "9c8a7aaffa0e90a4b6b3fd825814fe12e031a986bc45a77357aeebb957969b6d"
     },
     {
       "id": "shop/bomb-mint",
@@ -393,8 +390,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "b6a8491684ce51b60c2b03d9e50122d31a324af6cb625a7aa3a8868650e4f52c",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "1504291910d8bfe97f9e365f02400454ed2dfd92cb9892fee44b300a612e6c26"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "8d1d61853b2daee52eba58fe38d53354ff9c226b6276ab2147007b18da1c079c"
     },
     {
       "id": "shop/bomb-plum",
@@ -411,8 +408,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "f81a63b97ba5a3c668aef9e3e3c64af21a0b21355a4ce087094bc2d97c1359c5",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "9f501ac4189afb53166242af380e134a0883b2b5b92e180c129763afbffe9000"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "a62482aa7081db41ed9c6e39fe4534b540c5fc4b8a39633d5af74257c4f6e36b"
     },
     {
       "id": "shop/stall/crate-blast",
@@ -429,8 +426,8 @@
       "height": 480,
       "alpha": true,
       "modelHash": "7b16cdc7f070e3bbe172c9db30b731649d4aaea403e99c2a2f779edafad1026f",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "53fb4564b74a40c11365a9ebd2c5f8dfe29f9b36922454b6c9912bbd9a8188e1"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "18aa383c15c258e66cd6c6910fe25c8f079a532f36f30ec8be9f9e772f97cf79"
     },
     {
       "id": "shop/stall/crate-bomb",
@@ -447,8 +444,8 @@
       "height": 480,
       "alpha": true,
       "modelHash": "686eda24afe6ce52944dbe1a0edbf4e252eb3cfbb52316cf2c1818ef177123e8",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "2262ab7c6c368c8b91b49628a9d614acb32ce3b24543b75566383853139516a1"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "5429ad4750f4c24991e4f68e670c14a00acf2c60fa58567767901a2eacbec44d"
     },
     {
       "id": "shop/stall/crate-tick",
@@ -465,8 +462,8 @@
       "height": 480,
       "alpha": true,
       "modelHash": "ce8eb9988419846987a42bfaa1f608979d84b5b2819f26def6c8b03a4c3d0251",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "d611f8f7b860daad1b29892b723cf53297a9d3554ca70fb2ccf4dc0ac2f07ef7"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "6a71b2f30c47c174a4c2e7362e7b00ac274a7ec4720e091735540da685a36840"
     },
     {
       "id": "shop/stall/lantern",
@@ -483,7 +480,7 @@
       "height": 160,
       "alpha": true,
       "modelHash": "77980f1b31a988b44bfd3e3e4aba7a7004d0d58327d0fcaf1c5e11558b255294",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
       "fileHash": "b6ac9c1984e8f377a1fa41cc376f6ce40538fff5ba7edccc57d5298976b26796"
     },
     {
@@ -501,8 +498,8 @@
       "height": 67,
       "alpha": true,
       "modelHash": "12a11bc6141f8e40db2a93997f9f448ae726eb6c10c873ac9106709be4636f9d",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "5d2e519550686e55478c8cfd35933010ced5b8c4a08e237077617e05d1fe774c"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "07bd94697b7be41fd3274ed7f8b1fe9aa7e25db261ec6806b692faf431e21002"
     },
     {
       "id": "shop/stall/low",
@@ -519,8 +516,8 @@
       "height": 645,
       "alpha": true,
       "modelHash": "5b73b8f51537af13c5a362585bc461caf7c286b1c3f0697b5f2c4f4c13a6f911",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "b7948ab84cf927fd158dc2259e0f8ecc848799a15a5c02c89410d503ae86146d"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "2bbeda28b4b31114732a4b751e9e8074a32d168ee69a39c13ba8cd2310ea7be9"
     },
     {
       "id": "shop/stall/mid-valance",
@@ -537,8 +534,8 @@
       "height": 82,
       "alpha": true,
       "modelHash": "2bb91cd0127addd043eb06f713a7f8eee0f3e4c059cc4fe6d62d73a7064bbda8",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "e2e21f9e3b392b954fbfbc1788a7600cab5ff14ad65ed913e0fa8ac0fa39d5ff"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "0dabff04a76b3844039f7084650724a3d05e76f5e1559e632a032ce4d2299d4f"
     },
     {
       "id": "shop/stall/mid",
@@ -555,8 +552,8 @@
       "height": 789,
       "alpha": true,
       "modelHash": "52efabd4b9644dce69b57a4236fab7b8977b75879eb1471d6e5e9f97667deb2b",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "b47f217b9be1a15b375516bebe88e41202fc747663aa0641f02ab535ca7ef466"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "5429c1b65bd0d47f0acd53aebdfeb4c389b45111c3e12b5bfd018fc1f06bbccc"
     },
     {
       "id": "shop/stall/narrow-valance",
@@ -573,8 +570,8 @@
       "height": 64,
       "alpha": true,
       "modelHash": "1e320a7d72835fa95bc0974256251d006cb923448e3e45017cf817bd6e17f6fa",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "6dd915ff563627d8ef362271daf0a93936f03a935c32f4f881b6a8e3d4753d60"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "32e6dff5eefe1479d863476b8f1ee4fa43ef563a3515f6f7875d6a06a5138f3d"
     },
     {
       "id": "shop/stall/narrow",
@@ -591,8 +588,8 @@
       "height": 633,
       "alpha": true,
       "modelHash": "da42e0af6a4966a6fbc141b73f048719b6263fa526b0a5b687e86f4bfa8559e3",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "b711ab7474100ed45896a165ed3994b05480699810d7b80d386748459c4a0038"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "55f81c52060384177b25ca750fca31866da85cf12a0886d27680707b49007064"
     },
     {
       "id": "shop/stall/sack-blast",
@@ -609,8 +606,8 @@
       "height": 480,
       "alpha": true,
       "modelHash": "ac93218750d016b1e8b09c155267b588accdbefdc01a1168e656a3286ad2c2d9",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "b8046d520422305efdbd59e55ff910168c473e2e96d75833fd4bc8139df0050a"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "7740e710bc7815ac383e5da8d50e9d18392734abe255b719ddbff841dd8aa446"
     },
     {
       "id": "shop/stall/sack-bomb",
@@ -627,8 +624,8 @@
       "height": 480,
       "alpha": true,
       "modelHash": "f33328fb1efea0fb1f8f9f8c0788d2b285c9e1a0c0bbf4dbc7fa05c15d8dc591",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "fd04add2657a202bb51895974b85a693e6f093f756c368cd62ac79b9d2476530"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "76096b48bdd152b143fdfad37a204bf1a10c5997426cb6f744de6a10b65c8cc3"
     },
     {
       "id": "shop/stall/sack-tick",
@@ -645,8 +642,8 @@
       "height": 480,
       "alpha": true,
       "modelHash": "0e8bc3ae526c459575f3329a10bb81d8fa1ffc3248fb78008ddab9db75be4b6f",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "5d48db382a54d7454c36d95a08086a3136df75d43524637a794c0f423c9c11fc"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "2d2d429c967cc05d3ba89173dde2ea16e232157e9203dc01f3a7a7705392ae15"
     },
     {
       "id": "shop/stall/wide-valance",
@@ -663,8 +660,8 @@
       "height": 82,
       "alpha": true,
       "modelHash": "efa2e7efce1f97fa4d5a7f9d0be18fb1b0f9a161067f479bbe37e0fb49e01958",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "6f4a4b546344088bdd10bb29dc76f19168042afca3acebf8307e488868b8d574"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "6073de07e880ff5c59fd22688cdfe2d23c44795b2d62ace5d58cdb1a0d659103"
     },
     {
       "id": "shop/stall/wide",
@@ -681,8 +678,8 @@
       "height": 736,
       "alpha": true,
       "modelHash": "ac9ec7cafccc58afb25d8bf73cfe0432a73666916f8693cfaffe11b33549c9ed",
-      "renderHash": "53e42a8e3aecf0c083f63e5dd59be9227319e6bbdcefe287931014ecd8505558",
-      "fileHash": "42edb61bfddd8ff78e60ec4fbfa1ada20edb167d6020d0a2f5a40725c5b4cc11"
+      "renderHash": "939154f355b2b4c8b43de931395269e3608175e16f99a6b98aee0acf374e11d9",
+      "fileHash": "6dbaa4dbf6c18085a61199c216d810f2b6139d468892033b64a58cb257ba45c2"
     },
     {
       "id": "shop/tick-8bit",
@@ -699,8 +696,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "bf80e3e56ef2bcf459acce34b88bfa692eeb7d2e910a475e3e244f6aad4c2915",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "d3df19f7e0ce06d4512dc5cad2aea00150ddd27d232fbba587b491cf82d7ea52"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "716c2915b0e444dd8f1293d626399447869c673933b9806c651e03d720ceee38"
     },
     {
       "id": "shop/tick-chime",
@@ -717,8 +714,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "d9b8a13cb04ba101a9d8aa07ebd182d9df32e6c76d997e97cbda0df8d2428a85",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "6bc6890a8fdc91a6e57098d54d5fe3c792ec67adf358472fb15d520ef3945154"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "88a3c21017fd5822677801a714ee1d5d1116b1e9691d59230309bbb7b4a29ab1"
     },
     {
       "id": "shop/tick-cowbell",
@@ -735,8 +732,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "8fa9074ac73789c1dd07e7f9203f3c60e0e859ee83b7502efca9653920831216",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "f57fff9cdf355cfafd43aac950e65bc99e46a11194b3018a1c24263a3326a428"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "11e7ac6198cdf0b4dd0b496a700e0919e19e88eb157ce6d4279a38f3526711f7"
     },
     {
       "id": "shop/tick-lullaby",
@@ -753,8 +750,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "08a73e3dd0ebc77cdb251733f930395d6781b6e4a272fa8ecf18800272842830",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "13d9aedab0ec92583cdd74b7ef3131cd429b5b00993a8d9fb7c2912b74fc39cc"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "64bb93526dcc04638ecf08c6db907c7f914e2bc2efe31be6b1a2b863b4afa1da"
     },
     {
       "id": "shop/tick-musicbox",
@@ -771,8 +768,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "1653777008bfd962189eb8486c3f6ed00545d814e66c4f299fa3ba5351a20f8d",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "d2ad2e9983bf853d8d707faeb124752e1a4d6ed3fdba36209db81e98b2ef9921"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "5527e42817c6a75865109012b51177016fd4cb774e35d02b8ac529a95f4c4802"
     },
     {
       "id": "shop/tick-owl",
@@ -789,8 +786,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "c21f7c9cfb77694c7369de2db18a928a48976a66c6b5e6e315afa5fc8d7ff3a0",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "cbbd6567310c71627ac8c1646611bed504e080b96dd875f78086d90664d110dd"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "535e997925e1daa82ac93f3ad1c823fa7d664fc6d553a08792d21a92a0199545"
     },
     {
       "id": "shop/tick-sleigh",
@@ -807,8 +804,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "1074bdb8826664b7ffbe5a347e64da24249adb8b58a13ee98a4a1e568a6d91df",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "5416be94885b7429fd5704318d42cb89ab57e699bb3de775e236e362664b5930"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "81890dbe89057af50d2b9028966d27a36e0eff890b9d08f0174dc7420c5ff977"
     },
     {
       "id": "shop/tick-wood",
@@ -825,8 +822,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "edd75c1c363cd618020e04bfeb33dd1485ee741139f420a3debdbb08b360ac98",
-      "renderHash": "ec02a156ad95ddab1417b2b1e108317e3401710f3ed31ddbbf493282ba49f7d3",
-      "fileHash": "7313fa66771366802f2f6f027689076a9d63e883890323ee001b95b7e57394af"
+      "renderHash": "7f92eb9cfc11833231fc7491bc73b2525b0498ee290cd6011fc10794e455e1fd",
+      "fileHash": "8c91e4d3d5d1b33293c2339c547a16e43f510df8fa565b6d792091f532c51e52"
     },
     {
       "id": "tour/sheepdog",
@@ -840,8 +837,8 @@
       "height": 256,
       "alpha": true,
       "modelHash": "96d350e9e42f3179b2356bb0b9703b14c27e5fee259ae5d9b8576d658ec6ed26",
-      "renderHash": "90fd0495aa88076573bbd7b546e4c332008eb3ae3b27bdc76333145e4128d47c",
-      "fileHash": "c6a0425f9515f26bfc35227f41e1f1c910247a244169be377e6a1d62d360fd44"
+      "renderHash": "638c1d65e7549cc34bcfec407f6d291f2ffe3a1484573b6bc1d68cdfa2ead82b",
+      "fileHash": "2eec81828a27e691af46c8b4f0e79d76865e909422ca22aa649f5b2d170f6135"
     }
   ]
 }

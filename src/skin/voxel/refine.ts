@@ -111,3 +111,17 @@ export function* detailedSteps(map: VoxelMap, size: number, grain?: number, only
   if (!only) return { map, size };
   return { map: new Map([...map].filter(([, v]) => only(v))), size };
 }
+
+/**
+ * Structure is shown as authored, never smoothed (docs/miniature/03, section 4; Brian's decision 2 of that plan):
+ * walls, roofs, trees and fences are their own 0.2 m blocks on every device and tier. False restores the smoothing,
+ * with no grain.
+ */
+export const CHUNKY = true;
+/**
+ * `detailedSteps` for the farm's own models (the near farm, the tractor, what stands in the yard). Not for the land or
+ * the back hills, whose smoothing stays exactly as it is: their cubes near the wendigo are pinned.
+ */
+export function* structureSteps(map: VoxelMap, size: number, only?: (v: Voxel) => boolean): Generator<undefined, { map: VoxelMap; size: number }, void> {
+  return yield* (CHUNKY ? detailedSteps(map, size, 0, only, true, true) : detailedSteps(map, size, 0, only));
+}

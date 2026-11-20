@@ -68,7 +68,9 @@ export const POV_SHOTS: { desktop: PovShot[]; phone: PovShot[] } = {
     // Down the path to the avatar, from just inside the gate, through a wide lens: the avatar a third of the frame's
     // height with the doors and the yard round it (Brian, 2026-11-19, of the old long lens at 6 m: "why did u zoom so
     // much in on the sheep ... its a little unsettling").
-    { position: [-0.6, 1.9, 14.2], target: [-1.3, 1.1, 8.2], fov: 48, push: [0.2, 0.05, -0.4], spill: 0.45 },
+    // 6 cm east of where it stood: unsmoothed (docs/miniature/03, section 4), the gate post's snow cap keeps its corner,
+    // which came 0.976 m from the lens.
+    { position: [-0.54, 1.9, 14.2], target: [-1.3, 1.1, 8.2], fov: 48, push: [0.2, 0.05, -0.4], spill: 0.45 },
     // Low over the frozen pond from its far bank: the ice in front, the flock by the pasture's trough, the court's
     // fence, the barn and the silo against the mountains; sliding out over the ice.
     { position: [20.5, 1.8, 35.2], target: [2, 2.6, 12], fov: 40, push: [-0.5, 0.1, -1.1], spill: 0.4 },

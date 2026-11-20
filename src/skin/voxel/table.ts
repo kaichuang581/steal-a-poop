@@ -221,11 +221,8 @@ export function letterBoardGeometry(letter: string, trap: boolean, beamY: number
         const plank = Math.floor(y / seamEvery);
         const isSeam = y > 0 && y % seamEvery === 0;
         const rim = x === 0 || x === W - 1 || y === 0 || fromTop === 0 || fromTop + Math.min(x, W - 1 - x) === 2;
-        // Grain runs along each plank: one warm tone per plank, each row a few percent lighter or darker, so it reads as
-        // wood grain and not as stripes.
-        const base = PLANK_TONES[plank % PLANK_TONES.length];
-        const f = 0.94 + 0.1 * (hash3(y, plank, Math.floor(x / 9), 31) % 1);
-        const grain: RGB = [base[0] * f, base[1] * f, base[2] * f];
+        // One warm tone a plank and nothing within it (docs/miniature/01, rule R3: no grain).
+        const grain: RGB = PLANK_TONES[plank % PLANK_TONES.length];
         for (let z = 0; z < D; z++) {
           if (isSeam && z === 0) continue; // the seam is a groove between planks
           g.set(x0 + x, y0 + y, z0 + z, isSeam ? seam : rim && z === 0 ? dark : grain);

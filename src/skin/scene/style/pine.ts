@@ -5,7 +5,20 @@
  */
 import { lin, T } from '../../voxel/palette';
 import { SNOW } from '../../voxel/snow';
+import { solid, SOLID_SNOW } from '../../voxel/paint';
 import type { RGB } from '../../voxel/primitives';
+
+/** A pine's own paint, when it is not the diorama's: its trunk, each tier's side and underside (tier `k` of `n`), its snow. */
+export interface PinePaint { trunk: RGB; needles: (k: number, n: number) => RGB; under: (k: number, n: number) => RGB; snow: RGB }
+
+/**
+ * A pine's paint (docs/miniature/01, section 5): needles by tier, the lowest third a step down, the top third a step up,
+ * the whole tree a step darker for one tree in three; each tier's underside a step under its side; trunk and snow.
+ */
+export const pinePaint = (tree: number): PinePaint => {
+  const shift = tree % 3 === 0 ? -1 : 0, tier = (k: number, n: number) => (k / n < 0.34 ? -1 : k / n < 0.67 ? 0 : 1) + shift;
+  return { trunk: solid('darkWood', 0), needles: (k: number, n: number) => solid('pine', tier(k, n)), under: (k: number, n: number) => solid('pine', tier(k, n) - 1), snow: SOLID_SNOW ? solid('snow', 1) : SNOW };
+};
 
 /** How a pine of `height` metres is laid out on a grid of `cell` metres: its rows, its bare trunk, its tiers. */
 export function pineShape(height: number, cell: number, tiers = 6) {
@@ -25,8 +38,9 @@ export function pineShape(height: number, cell: number, tiers = 6) {
  * cells), standing on row `y0`, `height` metres tall. `put` sets a voxel, `has` says whether one is there.
  */
 export function tieredPine(put: (x: number, y: number, z: number, c: RGB) => void, has: (x: number, y: number, z: number) => boolean,
-  cx: number, cz: number, y0: number, height: number, cell: number, tiers = 6): void {
-  const trunk = lin(T.trunk[1]), needles = lin(T.pine[1]), under = lin(T.pine[2]);
+  cx: number, cz: number, y0: number, height: number, cell: number, tiers = 6, paint?: PinePaint): void {
+  const trunk = paint?.trunk ?? lin(T.trunk[1]), snow = paint?.snow ?? SNOW;
+  const needlesOf = (k: number, n: number) => paint?.needles(k, n) ?? lin(T.pine[1]), underOf = (k: number, n: number) => paint?.under(k, n) ?? lin(T.pine[2]);
   const { bare, th, n, radius } = pineShape(height, cell, tiers);
   // The trunk: two cells square, or one on a coarse grid (the far forest's 0.4 m), where two would be a pillar.
   const from = cell >= 0.3 ? 0 : -1;
@@ -43,16 +57,16 @@ export function tieredPine(put: (x: number, y: number, z: number, c: RGB) => voi
   for (let k = 0; k < n; k++) {
     // A tier: a green side `th - 1` rows tall at its full width (its bottom row a step darker), then its core, narrower
     // than the next tier's skirt, so the next tier sits on it and this tier's top shows as a ring of snow.
-    const yb = y0 + bare + k * th;
+    const yb = y0 + bare + k * th, needles = needlesOf(k, n), under = underOf(k, n);
     // The dark underside row and the row on it are one width (a row stepped in over the underside left the underside's
     // rim bare to the sky); the rows above those step in.
     for (let j = 0; j < th - 1; j++) disc(yb + j, radius(k) - Math.max(0, j - 1) * 0.25, j === 0 ? under : needles, j === th - 2);
     disc(yb + th - 1, Math.max(0.8, radius(k + 1) * 0.55), needles);
   }
   const top = y0 + bare + n * th;
-  for (let dy = 0; dy < 2; dy++) for (let dx = -1; dx <= 0; dx++) for (let dz = -1; dz <= 0; dz++) put(cx + dx, top + dy, cz + dz, dy ? SNOW : needles);
-  put(cx - 1, top + 2, cz - 1, SNOW);
+  for (let dy = 0; dy < 2; dy++) for (let dx = -1; dx <= 0; dx++) for (let dz = -1; dz <= 0; dz++) put(cx + dx, top + dy, cz + dz, dy ? snow : needlesOf(n, n));
+  put(cx - 1, top + 2, cz - 1, snow);
   // Snow lies on the shelf each tier leaves open to the sky, a white ring, and nowhere on a tier's side (it showed as
   // stray white blocks where one row stepped in from the next).
-  for (const [x, y, z] of needleCells) if (!has(x, y + 1, z)) put(x, y + 1, z, SNOW);
+  for (const [x, y, z] of needleCells) if (!has(x, y + 1, z)) put(x, y + 1, z, snow);
 }

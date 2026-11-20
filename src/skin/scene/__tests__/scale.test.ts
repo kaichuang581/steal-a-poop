@@ -128,7 +128,7 @@ describe('the season tidied, inside today\'s amount', () => {
   });
 
   it('leaves the tractor undressed: no presents on it or beside it (Brian, 2026-11-19: everything "intentionally placed")', () => {
-    const tractor = boxIn(farm, [FARM.tractor.x - 3, FARM.tractor.x + 3], [FARM.tractor.z - 2, FARM.tractor.z + 2], (_, size) => size === 0.05);
+    const tractor = boxIn(farm, [FARM.tractor.x - 3, FARM.tractor.x + 3], [FARM.tractor.z - 2, FARM.tractor.z + 2], (_, size) => size === 0.1); // its own 0.1 m cubes: no longer smoothed to 0.05 (CHUNKY)
     expect(tractor).not.toBeNull();
     const presents = parts(farmFestive, 'present');
     expect(presents).toHaveLength(0);

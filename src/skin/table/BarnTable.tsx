@@ -114,6 +114,10 @@ export interface World {
 }
 /** The world on screen. */
 let world: World | null = null;
+// The world is built once a page and held here. A hot update on a development server runs this file again with no
+// world and lets the screen keep waiting for the old one: only the sky showed, the tour dipping over it (Brian,
+// 2026-11-20: "the transition is transitioning from a white screen to a white screen"). Reload the page instead.
+if (import.meta.hot) import.meta.hot.on('vite:beforeUpdate', ({ updates }) => { if (updates.some((u) => u.type === 'js-update')) location.reload(); });
 /**
  * The world at the desktop's detail, built in the background slices while the session is not on High (plan file 17,
  * change 15): shown from the next dip or scene change once the tier is High, never part-built.

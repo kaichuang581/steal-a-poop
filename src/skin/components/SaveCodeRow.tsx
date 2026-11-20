@@ -35,7 +35,7 @@ export function SaveCodeRow() {
       <div className="sk-save-head">
         <span className="sk-save-label">Save code</span>
         <span className="flex gap-2">
-          <ClothButton className="kit-btn--sm" onClick={copy}>{copied ? 'Copied' : 'Copy'}</ClothButton>
+          <WoodButton className="kit-btn--sm min-w-[5.6em]" onClick={copy}>{copied ? 'Copied' : 'Copy'}</WoodButton>
           <WoodButton className="kit-btn--sm" onClick={() => { setPasting((p) => !p); setPlan(null); setDone(''); }} aria-expanded={pasting}>Paste</WoodButton>
         </span>
       </div>

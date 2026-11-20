@@ -37,11 +37,11 @@ export function ProfileRank() {
           ) : (
             <>
               <b>{rank.label}</b>
-              <span>{me.rating.toLocaleString()} points{rank.toNext !== null ? ` · ${rank.toNext} to ${rank.next}` : ''}</span>
+              <span>{me.rating.toLocaleString()} points{rank.toNext !== null ? `, ${rank.toNext} to ${rank.next}` : ''}</span>
               {rank.toNext !== null && (
                 <span className="sk-prof-ranked-bar" role="img" aria-label={`${rank.points} of ${DIVISION_POINTS} points into ${rank.label}`}><i style={{ width: `${Math.round((rank.points / DIVISION_POINTS) * 100)}%` }} /></span>
               )}
-              <span>{me.wins} win{me.wins === 1 ? '' : 's'} in {me.games} ranked game{me.games === 1 ? '' : 's'} · best: {rankOf(me.peak).label}</span>
+              <span>{me.wins} win{me.wins === 1 ? '' : 's'} in {me.games} ranked game{me.games === 1 ? '' : 's'}, best {rankOf(me.peak).label}</span>
             </>
           )}
         </div>

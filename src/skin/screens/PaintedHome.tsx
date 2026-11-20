@@ -75,13 +75,13 @@ const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => M
 const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
 /** What Queue says in a copy of the game that has no server to reach. */
-const NO_SERVER = 'Real people need the game server, and this copy of the game has none. Custom game plays the farm sheep.';
+const NO_SERVER = 'Real people need the game server, and this copy of the game has none. Create lobby plays the farm sheep.';
 
 const TIPS = [
   'Every word must start with the last letter of the one before it.',
   'Run out of time and you lose a wool ball. Lose them all and you freeze solid.',
   'A bad word just bounces, so try another before your timer runs out.',
-  'Turns get faster every round: 16, 12, 9, 7, then 5 seconds. The alarm calls each change.',
+  'Turns get faster every round: 15, 10, then 5 seconds. The alarm calls each change.',
   'Last sheep standing wins.',
   ...SEASON_TIPS,
 ];
@@ -208,7 +208,7 @@ export function PaintedHome() {
   // The queue is for real people, always (Brian, 2026-11-13: "quick play and play should not bring you into bot lobbies").
   // A copy of the game with no server to reach (local development without one) still shows Queue: it says why it cannot be used.
   const items: MenuItem[] = [
-    { id: 'queue', label: 'Queue', caption: rooms ? 'Search for a game with real people: casual or ranked.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : online({ t: 'quick' })) },
+    { id: 'queue', label: 'Queue', caption: rooms ? 'Search for a game with real people: casual or ranked.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : undefined) }, // with no server its caption already says why
     // One lobby for every table you set yourself (Brian, 2026-11-14: "make custom game and create lobby the same thing ...
     // only with bots, only players, or bots and players"): inside it the host adds farm sheep, invites friends, or both.
     // It opens with the farm sheep the host had last time. With no server there is no lobby to open, so the same item

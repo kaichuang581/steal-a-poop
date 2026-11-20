@@ -338,8 +338,8 @@ export function PaintedGame() {
       case 'roundStart':
         // The round's alarms, one after the other: faster turns (every round until the floor), then the twist.
         if (e.round > 1 && storeMode !== 'tour') {
-          if (e.faster) pushAlarm({ tone: 'speed', label: `Round ${e.round} · faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on' });
-          if (e.twist && e.twist !== 'vowelDouble') pushAlarm({ tone: 'twist', label: `Round ${e.round} · new rule`, title: TWIST_TEXT[e.twist], sub: 'for this round only' });
+          if (e.faster) pushAlarm({ tone: 'speed', label: `Round ${e.round}: faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on' });
+          if (e.twist && e.twist !== 'vowelDouble') pushAlarm({ tone: 'twist', label: `Round ${e.round}: new rule`, title: TWIST_TEXT[e.twist], sub: 'for this round only' });
         }
         break;
       case 'gameEnd':
@@ -461,13 +461,13 @@ export function PaintedGame() {
           {practice ? (
             <Slate size="plaque" tone={runWords > runBest && runBest > 0 ? 'amber' : 'chalk'} className="sk-run-plaque">
               <span>{runWords}<span className="kit-chalk-hand"> word{runWords === 1 ? '' : 's'}</span></span>
-              <span className="kit-chalk-hand">best {Math.max(runBest, runWords)}{game.turn ? ` · ${Math.round(game.turn.durationMs / 1000)}s turn` : ''}</span>
+              <span className="kit-chalk-hand">best {Math.max(runBest, runWords)}{game.turn ? `, ${Math.round(game.turn.durationMs / 1000)}s turns` : ''}</span>
             </Slate>
           ) : (
             <div className="sk-hud-tab">
               <span className="sk-hud-round">{game.phase === 'gameOver'
-                ? `Game over · ${view.round} round${view.round === 1 ? '' : 's'}`
-                : `Round ${view.round} · ${game.players.filter((p) => !p.frozen).length} sheep left${mobile ? '' : game.turn ? ` · ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turn` : view.turnSeconds ? ` · ${Math.round(view.turnSeconds)}s turns` : ''}`}</span>
+                ? `Game over after ${view.round} round${view.round === 1 ? '' : 's'}`
+                : `Round ${view.round}, ${game.players.filter((p) => !p.frozen).length} sheep left${mobile ? '' : game.turn ? `, ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turns` : view.turnSeconds ? `, ${Math.round(view.turnSeconds)}s turns` : ''}`}</span>
               <TwistSign twist={view.twist} state={signState} compact={mobile} />
             </div>
           )}
@@ -697,7 +697,7 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
   const place = players.findIndex((p) => p.isYou) + 1;
   const share = async () => {
     const text = [
-      `${PAINTED_GAME_TITLE}${mode === 'daily' && dailyDate ? ` · Daily ${dailyDate}` : ''}`,
+      `${PAINTED_GAME_TITLE}${mode === 'daily' && dailyDate ? `: Daily ${dailyDate}` : ''}`,
       place === 1 ? `Last sheep standing out of ${game.players.length}!` : `Lasted to #${place} of ${game.players.length}`,
       `Longest word: ${me.longestWord.length} letters`,
       mode === 'daily' && streak > 1 ? `${streak}-day streak` : '',
@@ -732,12 +732,12 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
             <div className="sk-final-stats">
               {tiles.map(([key, v, best, beat]) => (
                 <div key={key} className="sk-final-stat" data-beat={beat || undefined}>
-                  <b>{v}</b><span>{key}{best !== undefined ? ` · ${beat ? 'new best!' : `best ${best}`}` : ''}</span>
+                  <b>{v}</b><span>{key}{best !== undefined ? `, ${beat ? 'new best!' : `best ${best}`}` : ''}</span>
                 </div>
               ))}
               <div className="sk-final-stat" data-beat={result?.beat.longest || undefined}>
                 <b>{me.longestWord ? me.longestWord.toUpperCase() : '—'}</b>
-                <span>Longest word{result?.bests.longest ? ` · ${result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}` : ''}</span>
+                <span>Longest word{result?.bests.longest ? `, ${result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}` : ''}</span>
               </div>
             </div>
             {payout && <PayoutLines payout={payout} className="sk-final-note" />}

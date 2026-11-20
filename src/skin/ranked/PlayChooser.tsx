@@ -73,7 +73,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
               {rank === 'play' && (
                 <p className="sk-play-rank" aria-live="polite">
                   {me && mine ? (
-                    <><RankBadge rating={me.rating} size={34} /><span><b>{mine.label}</b><small>{me.games > 0 ? `${me.rating} points · ${me.wins} win${me.wins === 1 ? '' : 's'} in ${me.games}` : 'Your first ranked game starts the climb.'}</small></span></>
+                    <><RankBadge rating={me.rating} size={34} /><span><b>{mine.label}</b><small>{me.games > 0 ? `${me.rating} points, ${me.wins} win${me.wins === 1 ? '' : 's'} in ${me.games}` : 'Your first ranked game starts the climb.'}</small></span></>
                   ) : <span><b>Unranked</b><small>Everyone starts at {TIERS[0].name} I.</small></span>}
                 </p>
               )}

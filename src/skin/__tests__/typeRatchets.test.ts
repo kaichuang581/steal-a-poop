@@ -17,8 +17,9 @@ const SMALL_TEXT_LIMIT = 3;
 const CSS_COLOUR_LIMIT = 264;
 /** Lines of player-facing code in src/skin with a middle dot in them (comments and dev-only pages left out). 39 at the
  *  plan's count; 34 by this rule at milestone 10; 30 once Home's name plate, version line and blanket caption lost
- *  theirs (2026-11-19). No new one: "No middle dot between phrases" (Brian, 2026-11-14). */
-const MIDDLE_DOT_LIMIT = 30;
+ *  theirs (2026-11-19); 0 once the rest went in the polish of 2026-11-20. No new one: "No middle dot between phrases"
+ *  (Brian, 2026-11-14). */
+const MIDDLE_DOT_LIMIT = 0;
 
 /** Dev-only pages: never shown to a player. */
 const DEV_ONLY = new Set(['src/skin/table/DevStats.tsx', 'src/skin/table/SheepPreview.tsx', 'src/skin/kit/KitPreview.tsx']);

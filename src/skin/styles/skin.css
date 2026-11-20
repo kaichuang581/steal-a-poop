@@ -214,6 +214,8 @@
 .sk-prompt { display: inline-flex; align-items: center; gap: 6px; }
 .sk-prompt b { display: inline-flex; gap: 2px; font-weight: 900; color: var(--glow); }
 .sk-tip { font: 400 18px/20px var(--skin-font-hand); color: var(--glow); text-shadow: var(--home-float); animation: sk-title-fade 500ms var(--ease-out) both; }
+/* Lines of a heading or a tip share the words evenly: no single word left on a line of its own (2026-11-20). */
+:root[data-skin="painted"] :is(h1, h2, h3, .sk-tip > span, .sk-notice-title, .sk-notice-sub) { text-wrap: balance; }
 
 /* Your name, top left: the avatar on a peg like the round buttons across the bar, and the name floating beside it; the
    whole thing is the button into your profile. (It also carries the table's .sk-plate by name; that knitted plate is
@@ -566,6 +568,8 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 }
 .sk-guide-tabs button[aria-selected="true"] { color: var(--ink); background: var(--paper); translate: 0 3px; box-shadow: 2px -2px 0 rgba(59, 48, 40, 0.18); }
 .sk-guide-body { min-height: 0; flex: 1; overflow-y: auto; padding: 14px 16px 18px; }
+.sk-settings { max-width: 24rem; }
+.sk-settings-rows { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 6px 4px; }
 .sk-guide-basic { display: flex; align-items: center; gap: 14px; padding: 10px 4px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
 .sk-guide-basic h3, .sk-guide-basic dt { font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; color: var(--wood-ink); }
 .sk-guide-basic p, .sk-guide-basic dd { font-size: 15px; line-height: 1.4; color: var(--ink); }

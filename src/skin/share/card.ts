@@ -116,7 +116,7 @@ export function drawCard(card: CardInput): HTMLCanvasElement | null {
   // The footer on its own small plank along the bottom.
   plank(220, 500, 460, 46, '#6B4A32', 5);
   g.textAlign = 'center'; g.font = `800 20px ${f.body}`; g.fillStyle = '#FFF4DC';
-  g.fillText(card.footer ?? `${PAINTED_GAME_TITLE} · kaichuang581.github.io/steal-a-poop`, 450, 530);
+  g.fillText(card.footer ?? `Play ${PAINTED_GAME_TITLE} at kaichuang581.github.io/steal-a-poop`, 450, 530);
   return c;
 }
 

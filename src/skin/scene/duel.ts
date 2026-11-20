@@ -1,7 +1,7 @@
 import type { Shot } from './layout';
 import { buildGeometry, packGeometry } from '../voxel/mesher';
 import { ICE_CRACK, lin, pick, T } from '../voxel/palette';
-import { meanOf } from '../voxel/paint';
+import { meanOf, meanTone } from '../voxel/paint';
 import { box, ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import { coarseDevice, detailed, toldDetail } from '../voxel/refine';
 
@@ -70,7 +70,9 @@ function make() {
   return made;
 }
 
-/** The ice spit: ragged at the edge, snow in drifts, top surface at y = 0, with the crack across its middle. */
+/** The spit's colours: each the average of the tones its cubes were picked from (docs/miniature/07, treatment B). */
+const SPIT = { top: meanTone(T.ice, [0.33, 0.67]), side: meanTone(T.ice, [0.2, 0.5]), snow: meanTone(T.snow, [0.33, 0.67]) };
+/** The ice spit: ragged at the edge, snow drifted round its rim, top surface at y = 0, with the crack across its middle. */
 function spit() {
   const g = new Grid(0.1);
   const crackAt = (z: number) => Math.round(Math.sin(z * 0.45) * 2 + (hash3(0, 0, z >> 1, 3) - 0.5) * 3);
@@ -79,12 +81,12 @@ function spit() {
       const u = Math.abs(x * g.size) / DUEL.halfX, v = Math.abs(z * g.size) / DUEL.halfZ;
       if (u ** 4 + v ** 4 > 1 - hash3(x >> 2, 0, z >> 2, 7) * 0.3) continue;
       const crack = x === crackAt(z);
-      const snow = hash3(x >> 2, 1, z >> 2, 9) > 0.62;
-      // The top's tone changes in broad patches (as the snow's do), not voxel by voxel: a per-voxel pick read as tiles.
-      const r = hash3(x, 0, z, 11), patch = hash3(x >> 2, 0, z >> 2, 11);
+      // Snow lies along the spit's rim, where it drifts, and the ice is bare in the middle. One colour each: squares of
+      // snow and of three ice tones over the whole top read as a checkerboard (Brian, 2026-11-20: "glitchy textures").
+      const snow = u ** 4 + v ** 4 > 0.62 - hash3(x >> 2, 1, z >> 2, 9) * 0.1;
       for (let y = -6; y <= -1; y++) {
-        if (y === -1) g.set(x, y, z, crack ? lin(ICE_CRACK) : snow ? pick(T.snow, r) : pick(T.ice, patch));
-        else g.set(x, y, z, pick(T.ice, r, [0.2, 0.5]));
+        if (y === -1) g.set(x, y, z, crack ? lin(ICE_CRACK) : snow ? SPIT.snow : SPIT.top);
+        else g.set(x, y, z, SPIT.side);
       }
     }
   }

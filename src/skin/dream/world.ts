@@ -91,9 +91,11 @@ export function raftChunk(index: number): BufferGeometry {
     for (let y = 0; y < h; y++) f.set(x, y, z, snow);
   }
   const scenery = scatter(index, gx);
-  for (const [k, v] of lobes.map) if (!f.map.has(k)) f.map.set(k, v);
-  // Every part goes through dropFaces so their attributes match, or the merge returns nothing.
-  return mergeGeometries([dropFaces(buildGeometry(g.map, S), (ny, y) => ny < 0 && y > -1), dropFaces(buildGeometry(f.map, F), () => false), dropFaces(buildGeometry(scenery.map, D), () => false)], false)!;
+  for (const k of f.map.keys()) lobes.map.delete(k); // where the lane or a drift is, it stays
+  // Every part goes through dropFaces so their attributes match, or the merge returns nothing. The lobes take no corner
+  // shade: on hundreds of small steps it read as a speckle along the bottom of the frame (Brian, 2026-11-20: "glitchy
+  // textures"); the crease tone shapes them.
+  return mergeGeometries([dropFaces(buildGeometry(g.map, S), (ny, y) => ny < 0 && y > -1), dropFaces(buildGeometry(f.map, F), () => false), dropFaces(buildGeometry(lobes.map, F, { ao: false }), () => false), dropFaces(buildGeometry(scenery.map, D), () => false)], false)!;
 }
 
 const D = 0.05;

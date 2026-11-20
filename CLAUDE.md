@@ -1762,3 +1762,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   at the table. Equipped and unequipped only from the admin panel's "Second admin avatar" card, taken off by Lock, never in the picker or
   a save code. Changes outside src/skin: the id and `isAdminAvatar` in src/avatars/ids.ts, the server's admin check, the save code's
   filter, one assertion in avatars.test.ts and a server test; the fence pins in fences.json were re-pinned on purpose.
+- Admin avatars show to the room (requested by Brian, 2026-11-20: "im an admin and i want other people to see my avatar"). Before, the
+  server showed an admin avatar only for a moderator or an account in ADMIN_USER_IDS, so an admin who was neither (a guest, or an
+  account not on the list) wore it on their own screen and everyone else saw the sheep. Now a browser that unlocked admin keeps the
+  password it typed (`sap:admin-proof`, cleared by Lock; `adminProof` in src/lib/admin.ts) and sends it as `proof` beside an admin
+  avatar (`avatarMessage` in roomStore.ts); the server checks it against the admin hash (`isAdminProof` in server/adminProof.ts; the
+  hash moved to src/lib/adminHash.ts so the server can read it; `adminHash` in the server's options for tests). The hash itself is no
+  proof (it is in the bundle). Still refused quietly otherwise. A device that was unlocked before this has no proof until it is locked
+  and unlocked once. Weakness, told to Brian: the password was once written into the repo (see adminHash.ts), so anyone who finds it in
+  git history can wear the admin avatars; change the password's hash to a long random one to close that. This supersedes "the server
+  alone decides ... (moderators and ADMIN_USER_IDS)" in the security pass: the server still alone decides, by the list or the password.

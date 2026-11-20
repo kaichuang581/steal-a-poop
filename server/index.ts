@@ -14,6 +14,8 @@ import type { AuditLog } from './moderation/audit';
 import type { RevocationBus } from './auth/revocations';
 import type { Cosmetics } from '../src/net/protocol';
 import { isAdminAvatar, isAvatarId } from '../src/avatars/ids';
+import { ADMIN_HASH } from '../src/lib/adminHash';
+import { isAdminProof } from './adminProof';
 import { clientAddress, limitKey } from './address';
 import { isGuestId } from './guest';
 import type { RatingChange } from '../src/lib/ranked';
@@ -50,6 +52,8 @@ export interface ServerOptions {
   nameAllowed?: (name: string) => boolean;
   /** Accounts allowed to wear the admin avatar (Brian's photo), besides moderators. */
   adminUserIds?: readonly string[];
+  /** SHA-256 of the admin password; a browser that sends the password beside an admin avatar may wear it. Unset: the game's own. */
+  adminHash?: string;
   /** Ranked ratings. Without it there is no ranked queue: `ranked` is refused. */
   ranked?: {
     /** Reads a player's rating so their name can carry it at the table. */
@@ -130,7 +134,7 @@ type ClientMsg =
   | { t: 'mute'; on: boolean; userId?: string }
   | { t: 'kick'; userId: string }
   | { t: 'auth'; token: string }
-  | { t: 'avatar'; id: string | null };
+  | { t: 'avatar'; id: string | null; proof?: string };
 
 const MAX_PAYLOAD = 4096;
 
@@ -244,11 +248,12 @@ export async function startServer(opts: ServerOptions) {
     switch (msg.t) {
       case 'avatar': {
         if (msg.id !== null && !isAvatarId(msg.id)) return fail(ws, 'bad_message');
-        // The admin avatar is Brian's photo: the client's admin lock is only a convenience, so the server decides who
-        // may wear it in front of other players.
+        // The admin avatars are Brian's photos: the client's admin lock is only a convenience, so the server decides who
+        // may wear them in front of other players: a moderator, an account on the admin list, or whoever sends the admin
+        // password with it (never the hash, which anyone can read).
         // Refused quietly (the others just see the plain sheep): the client resends its avatar on every connect, and an
         // error here would show "Something went wrong" each time.
-        if (isAdminAvatar(msg.id) && !user.isModerator && !(opts.adminUserIds ?? []).includes(userId)) {
+        if (isAdminAvatar(msg.id) && !user.isModerator && !(opts.adminUserIds ?? []).includes(userId) && !isAdminProof(msg.proof, opts.adminHash ?? ADMIN_HASH)) {
           if (avatars.delete(userId)) { const here = rooms.roomFor(userId); if (here) broadcastRoom(here.code); }
           return;
         }

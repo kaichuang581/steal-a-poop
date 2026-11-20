@@ -129,8 +129,8 @@ export type ClientMsg =
   | { t: 'kick'; userId: string }
   /** A fresh login token for the same account, sent when the server asks with 'reauth'. */
   | { t: 'auth'; token: string }
-  /** The avatar you picked, or null for the default sheep. Cosmetic only. */
-  | { t: 'avatar'; id: string | null };
+  /** The avatar you picked, or null for the default sheep. Cosmetic only. `proof` is the admin password, sent only with an admin avatar. */
+  | { t: 'avatar'; id: string | null; proof?: string };
 
 /** Human-readable text for a server error code. */
 export function describeError(code: string): string {

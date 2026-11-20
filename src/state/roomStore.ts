@@ -1,3 +1,5 @@
+import { isAdminAvatar } from '../avatars/ids';
+import { adminProof } from '../lib/admin';
 import { getAvatar } from '../skin/avatars/store';
 import { create } from 'zustand';
 import type { Action, ActionResult } from '../engine';
@@ -12,6 +14,12 @@ import { guestToken } from '../auth/guest';
 import { bridge } from './bridge';
 import { useSocial } from './socialStore';
 import { useStore } from './store';
+
+/** The avatar message: an admin avatar carries the admin password (while admin is unlocked), so the server can tell it is allowed. */
+function avatarMessage(id: string | null): { t: 'avatar'; id: string | null; proof?: string } {
+  const proof = isAdminAvatar(id) ? adminProof() : null;
+  return proof ? { t: 'avatar', id, proof } : { t: 'avatar', id };
+}
 
 const RULES_KEY = 'sap:chatRulesAccepted';
 const ACT_TIMEOUT_MS = 4000;
@@ -147,7 +155,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
           }, 2000);
         }
         welcomedAt = Date.now();
-        net?.send({ t: 'avatar', id: getAvatar() });
+        net?.send(avatarMessage(getAvatar()));
         send({ t: 'rooms' });
         if (pendingIntent) {
           send(pendingIntent);
@@ -328,7 +336,7 @@ export const useRoomStore = create<RoomStore>((set, get) => {
       pending = [];
       set({ open: false, status: 'off', user: null, publicRooms: [], notice: null });
     },
-    sendAvatar: (id) => { net?.send({ t: 'avatar', id }); },
+    sendAvatar: (id) => { net?.send(avatarMessage(id)); },
     startDaily() {
       if (!getServerUrl()) return;
       get().connect();

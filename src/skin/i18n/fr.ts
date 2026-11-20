@@ -4,6 +4,7 @@
 
 /** Lines with a name or number in them: the English pattern and its French, `$1`, `$2` for the parts kept. */
 export const FR_PATTERNS: [RegExp, string][] = [
+  [/^The (.+) update$/, 'La mise à jour $1'],
   [/^Word of the day: (.+)$/, 'Mot du jour : $1'],
   [/^a word starting with ([A-Z]+)$/, 'un mot qui commence par $1'],
   [/^Starts with ([A-Z]+)$/, 'Commence par $1'],

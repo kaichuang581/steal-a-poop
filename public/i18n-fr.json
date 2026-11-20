@@ -755,7 +755,6 @@
  "You’re frozen: out of wool, no more turns.": "Tu es gelé : plus de laine, plus de tours.",
  "Not allowed right now.": "Pas permis pour l’instant.",
  "· Profile": "· Profil",
- "The Fleece Navidad update": "La mise à jour Fleece Navidad",
  "Chain words, keep your wool, and be the last sheep standing": "Enchaîne les mots, garde ta laine et sois le dernier mouton debout",
  "DAILY": "DU JOUR",
  "Privacy policy": "Politique de confidentialité",
@@ -768,12 +767,12 @@
  "PRACTICE": "ENTRAÎNEMENT",
  "NEW": "NOUVEAU",
  "Daily": "Du jour",
- "update": "mise à jour",
  "none yet": "aucun pour l’instant",
  "type ahead...": "tape à l’avance...",
  "Zzz…": "Zzz…",
  "sheep": "moutons",
  "Tonight's dream returns at": "Le rêve de ce soir revient à",
  "Longest word:": "Mot le plus long :",
- "for": "pour"
+ "for": "pour",
+ "daily": "du jour"
 }

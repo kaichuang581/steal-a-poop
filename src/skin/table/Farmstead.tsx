@@ -249,18 +249,18 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
 function ShotCasters({ world, farm, country, phone }: { world: World; farm: Built | null; country: CountryPart | null; phone: boolean }) {
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
-  const st = useRef({ meshes: [] as { mesh: Mesh; ball: Sphere }[], sun: null as Vector3 | null, shown: -2, aspect: 0 });
+  const st = useRef({ meshes: [] as { mesh: Mesh; ball: Sphere }[], light: null as DirectionalLight | null, shown: -2, aspect: 0 });
   useEffect(() => {
     const scenery = new Set<BufferGeometry>([
       ...world.barn.static, ...world.barn.doorLeaves.map((d) => d.geo), ...world.yard.chunks, world.yard.snowman,
       ...(farm ? [farm.shell, ...farm.props, ...farm.fine] : []), ...(country ? [...country.woods, ...country.scrub].filter((g): g is BufferGeometry => !!g) : []),
     ]);
     const meshes: { mesh: Mesh; ball: Sphere }[] = [];
-    let sun: Vector3 | null = null;
+    let sun: DirectionalLight | null = null;
     scene.updateMatrixWorld();
     scene.traverse((o) => {
       const light = o as DirectionalLight;
-      if (light.isDirectionalLight && light.castShadow) sun = light.target.getWorldPosition(new Vector3()).sub(light.getWorldPosition(new Vector3())).normalize();
+      if (light.isDirectionalLight && light.castShadow) sun = light;
       const mesh = o as Mesh;
       // Marked the first time it is met, while it still casts: later it may be one this has switched off.
       if (!mesh.isMesh || !scenery.has(mesh.geometry) || !(mesh.castShadow || mesh.userData.shotCaster)) return;
@@ -268,7 +268,7 @@ function ShotCasters({ world, farm, country, phone }: { world: World; farm: Buil
       if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
       meshes.push({ mesh, ball: new Sphere().copy(mesh.geometry.boundingSphere!).applyMatrix4(mesh.matrixWorld) });
     });
-    st.current = { meshes, sun, shown: -2, aspect: 0 };
+    st.current = { meshes, light: sun, shown: -2, aspect: 0 };
     return () => { for (const { mesh } of meshes) mesh.castShadow = true; };
   }, [scene, world, farm, country]);
   useFrame(() => {
@@ -278,8 +278,10 @@ function ShotCasters({ world, farm, country, phone }: { world: World; farm: Buil
     s.shown = now;
     s.aspect = camera.aspect;
     let views: Frustum[] | null = null, pad = 0;
-    if (now >= 0 && now !== PADDOCK_SHOT && s.sun) ({ views, pad } = viewsOf(shots[now], camera.aspect));
-    for (const { mesh, ball } of s.meshes) mesh.castShadow = !views || shadowSeen(ball, s.sun!, views, pad);
+    // The sun's own direction as it stands on this shot (each shot's look sets it in the dip: `shotLight` in Rendering.tsx).
+    const sun = s.light ? s.light.target.position.clone().sub(s.light.position).normalize() : null;
+    if (now >= 0 && now !== PADDOCK_SHOT && sun) ({ views, pad } = viewsOf(shots[now], camera.aspect));
+    for (const { mesh, ball } of s.meshes) mesh.castShadow = !views || shadowSeen(ball, sun!, views, pad);
   });
   return null;
 }

@@ -8,6 +8,7 @@
  *   ?soft=3                the sun's shadow edge radius (PCFShadowMap; today none)
  *   ?ao=0.25               the mesher's corner shading step (today 0.2)
  *   ?sky=warm              the day sky pale blue overhead to a warm off-white horizon, the fog in the horizon's colour
+ *   ?homeSun=2.1 ?homeFill=1.6   Home's sun and sky fill by day (table/Rendering.tsx, DAYLIGHT)
  * Fog and tilt-shift ship at the lighter values (Brian's picture); the rest are still pairs to look at. The wendigo's
  * paddock shot keeps today's light, fog and tilt-shift (6.2).
  */
@@ -31,6 +32,10 @@ export const LOOK = {
   shadowRadius: num('soft'),
   ao: num('ao'),
   warmSky: q?.get('sky') === 'warm',
+  // Home's sun and sky fill by day, for tuning against docs/miniature/02's targets: ?homeSun=2.1&homeFill=1.6
+  // (not ?fill=, which is the soft shading's own switch in voxel/material.ts)
+  sun: num('homeSun'),
+  fill: num('homeFill'),
 } as const;
 
 /** The warm day sky of `?sky=warm`: [top, horizon]. */

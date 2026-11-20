@@ -13,8 +13,8 @@ import { DevStats } from './DevStats';
 import { Farmstead, farmReady } from './Farmstead';
 import { doorsShut } from '../components/BarnDoors';
 import { Wendigo } from './Wendigo';
-import { AdaptiveCanvas, Atmosphere, Effects, FOG, holdDpr, Lights, MarkDrawn, noteNewShot, sunEveryFrameFor, yawToward } from './Rendering';
-import { applyPendingTier, setExemptShot } from '../perf/tier';
+import { AdaptiveCanvas, Atmosphere, Effects, FOG, holdDpr, Lights, MarkDrawn, noteNewShot, setShotLight, shotLight, sunEveryFrameFor, yawToward } from './Rendering';
+import { applyPendingTier, getTier, setExemptShot } from '../perf/tier';
 import { PADDOCK_SHOT } from '../voxel/unseen';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { ADMIN_AVATAR_ID } from '../../avatars/ids';
@@ -61,7 +61,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
   // The hop throws the hero's shadow about: the sun's map follows it every picture while it lasts, not ten times a second.
   useEffect(() => { if (hopKey > 0) sunEveryFrameFor(1500); }, [hopKey]);
   // Leaving Home: the next Home starts outside the paddock's exemption until its own first shot says otherwise.
-  useEffect(() => () => setExemptShot(false), []);
+  useEffect(() => () => { setExemptShot(false); setShotLight(null); }, []);
   const sky = <div className="absolute inset-0" style={{ background: `linear-gradient(${FOG[hour]}, #DCE6F2)` }} />;
   if (!w) return sky;
   // The hero stands 1.2 m in front of the doors and faces the camera.
@@ -79,7 +79,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
-      <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} />
+      <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} hour={hour} />
       <DoorGain hour={hour} />
       <Atmosphere hour={hour} />
       <MarkDrawn />
@@ -113,9 +113,9 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
  * The camera travels along each scene's `push` for a few seconds, with a slight 0.25 m by 0.12 m drift over 40 s, then
  * dips to dark to cut to the next. Under reduced motion it stays still on the first scene.
  */
-function Drift({ shots, veil, spot, bounce, reduced, ready }: {
+function Drift({ shots, veil, spot, bounce, reduced, ready, hour }: {
   shots: PovShot[]; veil: RefObject<HTMLDivElement | null>;
-  spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null>; reduced: boolean; ready: boolean;
+  spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null>; reduced: boolean; ready: boolean; hour: Hour;
 }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const pinned = useMemo(() => pinnedPov(location.search, shots.length), [shots]);
@@ -137,6 +137,8 @@ function Drift({ shots, veil, spot, bounce, reduced, ready }: {
       // sun's map is drawn again for the new shot.
       applyPendingTier();
       setExemptShot(pov.index === PADDOCK_SHOT);
+      // The shot's own haze, exposure, sun and shadow box (docs/miniature/02): set here, in the dark, with everything else.
+      setShotLight(shotLight(shot, hour, { paddock: pov.index === PADDOCK_SHOT, low: getTier() === 'low', aspect: camera.aspect }));
       noteNewShot();
       camera.fov = shot.fov;
       camera.updateProjectionMatrix();

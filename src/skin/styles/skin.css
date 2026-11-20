@@ -1061,6 +1061,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-final-stat span { font: 400 14px/1.1 var(--skin-font-hand); color: rgba(255, 255, 255, 0.72); }
 .sk-final-stat[data-beat] b { color: #F4D27A; }
 .sk-final-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sk-final-actions > * { white-space: nowrap; } /* "Back to the farm" broke onto two lines on a phone */
 .sk-final-show {
   position: fixed; z-index: 45; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); padding: 10px 16px;
   border: 0; border-radius: 4px; background: rgba(14, 10, 8, 0.66); color: #fff; font: 700 15px/1 var(--skin-font-body); cursor: pointer; backdrop-filter: blur(6px);
@@ -1069,7 +1070,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   .sk-final-wrap { align-items: flex-end; justify-content: center; padding: 10px; }
   .sk-final { max-height: 52vh; padding: 16px 16px 14px; gap: 10px; }
   .sk-final-rows { display: none; } /* the podium already shows every place on a phone */
-  .sk-final-stats { grid-template-columns: 1fr; }
+  .sk-final-stats { grid-template-columns: 1fr 1fr; } /* side by side: one a row pushed the buttons out of sight */
   .sk-final-title { font-size: 21px; }
   .sk-pod-name { font-size: 13px; padding: 4px 9px; }
 }

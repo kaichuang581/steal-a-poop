@@ -1,10 +1,10 @@
 import type { Character } from '../../avatars/catalog';
-import { lin } from '../palette';
 import { Grid } from '../primitives';
 import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
 import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
+import { shade } from '../paint';
 
 /** Hooves for the species that keep a dark hoof (kept for any importer). */
 export const HOOF = tones('#4A3A3A');
@@ -17,7 +17,7 @@ const PINK = ['#F2AFAE', '#E9A0A2', '#D98890', '#B5646F'] as const;
  * little curl of a tail. Grid cells (0.04 m), drawn at 1.43 (`drawScale`). Faces +z.
  */
 export function pigModel(_ch: Character): AnimalModel {
-  const pink = lin(PINK[0]);
+  const pink = shade(PINK[0]);
   const face = tones(PINK[0]);
 
   // ---- Body: the back thirteen slices of an 11 x 10 x 17 box.
@@ -32,7 +32,7 @@ export function pigModel(_ch: Character): AnimalModel {
   const hg = new Grid(S);
   cube(hg, [-5, 4, 5], [5, 13, 8], () => pink);
   const sg = new Grid(S);
-  cube(sg, [-2, 6, 9], [2, 9, 10], (x, y, z) => lin(z === 10 && y === 8 && Math.abs(x) === 1 ? PINK[3] : PINK[1]));
+  cube(sg, [-2, 6, 9], [2, 9, 10], (x, y, z) => shade(z === 10 && y === 8 && Math.abs(x) === 1 ? PINK[3] : PINK[1]));
   const snout: SigPart = { ...part(sg, HEAD), name: 'snout', where: 'head', anim: 'snout', cells: sg.map };
   const { eyes, lids, brows } = smallEyes(hg, 10, 8, '#1E1A19', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
@@ -45,8 +45,8 @@ export function pigModel(_ch: Character): AnimalModel {
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
     const [x0, x1] = sx < 0 ? [-6, -3] : [3, 6];
-    cube(g, [x0, 14, 6], [x1, 14, 8], () => lin(PINK[1]));
-    cube(g, [sx * 6, 10, 6], [sx * 6, 13, 7], () => lin(PINK[2]));
+    cube(g, [x0, 14, 6], [x1, 14, 8], () => shade(PINK[1]));
+    cube(g, [sx * 6, 10, 6], [sx * 6, 13, 7], () => shade(PINK[2]));
     return part(g, [sx * 4.5 * S + 0.02, 14 * S, 7 * S]);
   }) as unknown as [CPart, CPart];
 
@@ -54,17 +54,17 @@ export function pigModel(_ch: Character): AnimalModel {
   const legSpots = [[-4, 1], [2, 1], [-4, -7], [2, -7]] as const; // the front pair a cell clear of where the head meets the body (the winner's scarf ties there)
   const legs = legSpots.map(([x0, z0]) => {
     const g = new Grid(S);
-    cube(g, [x0, 0, z0], [x0 + 2, 5, z0 + 2], (_x, y) => lin(y === 0 ? PINK[3] : PINK[1]));
+    cube(g, [x0, 0, z0], [x0 + 2, 5, z0 + 2], (_x, y) => shade(y === 0 ? PINK[3] : PINK[1]));
     unshare(g, bodySolid);
     return part(g, [(x0 + 1.5) * S, 4 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];
 
   // ---- Tail: a little curl, 2 x 2 x 2 off the top of the rump with a cell over, rooted a cell in.
   const tg = new Grid(S);
-  cube(tg, [0, 11, -9], [1, 12, -8], () => lin(PINK[2]));
-  cube(tg, [0, 11, -10], [1, 11, -10], () => lin(PINK[2]));
-  tg.set(0, 12, -10, lin(PINK[1]));
-  tg.set(1, 12, -10, lin(PINK[1]));
+  cube(tg, [0, 11, -9], [1, 12, -8], () => shade(PINK[2]));
+  cube(tg, [0, 11, -10], [1, 11, -10], () => shade(PINK[2]));
+  tg.set(0, 12, -10, shade(PINK[1]));
+  tg.set(1, 12, -10, shade(PINK[1]));
   const tail = part(tg, [0.04, 0.46, -0.34]);
 
   const coats = coatsFor({

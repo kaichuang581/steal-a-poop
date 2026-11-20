@@ -41,8 +41,8 @@ interface Tones { deep: RGB; mid: RGB; pale: RGB; shine: RGB; frost: RGB; vein: 
 /** A colour at full strength, for the parts that glow (`lin` takes 30% of the saturation off). */
 const raw = (hex: string): RGB => { const c = new Color(hex); return [c.r, c.g, c.b]; };
 const tones = (s: BombShell): Tones => ({
-  deep: lin(s.deep), mid: lin(s.mid), pale: lin(s.pale), shine: lin(s.shine), frost: lin(s.frost), vein: lin(s.vein),
-  neck: [lin((s.neck ?? ICE_SHELL.neck!)[0]), lin((s.neck ?? ICE_SHELL.neck!)[1])],
+  deep: raw(s.deep), mid: raw(s.mid), pale: raw(s.pale), shine: raw(s.shine), frost: raw(s.frost), vein: raw(s.vein),
+  neck: [raw((s.neck ?? ICE_SHELL.neck!)[0]), raw((s.neck ?? ICE_SHELL.neck!)[1])],
 });
 /** Light from the upper left front, about -1 to 1 across the bomb: the ice bomb's own rule. */
 const lit = (x: number, y: number, z: number) => (-x * 0.5 + y * 0.6 + z * 0.6) / 5;
@@ -85,7 +85,7 @@ const SKINS: Record<string, (t: Tones) => Built> = {
   },
   // A peppermint: white, with two broad green stripes winding round it, in a wrapper's ruff, on a candy-cane neck.
   'bomb-mint': (t) => {
-    const body = new Grid(S), white = lin('#ffffff');
+    const body = new Grid(S), white = raw('#ffffff');
     each(ball, (x, y, z) => {
       const turn = (around(x, z) * 2) / Math.PI + (y + 0.5) * 0.3, s = ((turn % 2) + 2) % 2, l = lit(x, y, z);
       body.set(x, y, z, s < 0.95 ? (l > 0.35 ? t.pale : l > -0.05 ? t.mid : t.deep) : l > -0.05 ? white : t.frost);
@@ -105,7 +105,7 @@ const SKINS: Record<string, (t: Tones) => Built> = {
       while (z > 0 && !body.has(0, y, z)) z--;
       if (z > 0) { body.del(0, y, z); if (body.has(0, y, z - 1)) body.set(0, y, z - 1, t.deep); }
     }
-    const leaf = lin('#4c8a3a'), rib = lin('#7ab85a'), calyx = lin('#3f6a34');
+    const leaf = raw('#4c8a3a'), rib = raw('#7ab85a'), calyx = raw('#3f6a34');
     for (let x = -1; x <= 1; x++) for (let z = -1; z <= 1; z++) body.set(x, 5, z, calyx);
     for (const [x, z] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) body.set(x, 6, z, (x + z) % 2 ? t.neck[0] : t.neck[1]);
     for (const [x, z] of [[-2, 0], [-3, -1], [-3, 0], [-3, 1], [-4, -1], [-4, 0], [-4, 1], [-5, 0]]) body.set(x, 6, z, z === 0 ? rib : leaf);
@@ -133,8 +133,8 @@ const SKINS: Record<string, (t: Tones) => Built> = {
   'bomb-diamond': (t) => {
     const body = new Grid(S), glow = new Grid(S), R = [0.9, 1.7, 2.5, 3.3, 4.1, 4.9, 5.5, 5, 3.9, 2.8];
     const inside = (x: number, y: number, z: number) => { const r = R[y + 5]; return Math.max(Math.abs(x + 0.5), Math.abs(z + 0.5)) <= r && Math.abs(x + 0.5) + Math.abs(z + 0.5) <= r * 1.42; };
-    const crown = ['#e6f4ff', '#a8d8f6', '#cfeaff', '#f2d2ea', '#e6f4ff', '#98cef2', '#c4e4fc', '#b8eed8'].map(lin);
-    const pavilion = ['#7cc2ee', '#b4def8', '#4fa6e2', '#98d0f4', '#ecd896', '#6ab8ea', '#bfe4fa', '#58aee6'].map(lin);
+    const crown = ['#e6f4ff', '#a8d8f6', '#cfeaff', '#f2d2ea', '#e6f4ff', '#98cef2', '#c4e4fc', '#b8eed8'].map(raw);
+    const pavilion = ['#7cc2ee', '#b4def8', '#4fa6e2', '#98d0f4', '#ecd896', '#6ab8ea', '#bfe4fa', '#58aee6'].map(raw);
     const edge = raw('#ffffff'), dim = (c: RGB): RGB => [c[0] * 0.84, c[1] * 0.86, c[2] * 0.9];
     each(inside, (x, y, z) => {
       const a = around(x, z) / (Math.PI / 4), facet = ((Math.round(a) % 8) + 8) % 8, ridge = Math.abs(a - Math.round(a)) > 0.38;
@@ -144,7 +144,7 @@ const SKINS: Record<string, (t: Tones) => Built> = {
       const c = y >= 1 ? crown[facet] : ridge ? t.deep : pavilion[facet];
       body.set(x, y, z, lit(x, y, z) < -0.2 ? dim(c) : c);
     });
-    neck(body, t.neck[0], t.neck[1], lin('#d8dee6'));
+    neck(body, t.neck[0], t.neck[1], raw('#d8dee6'));
     return { body, glow };
   },
   // The barn bell: a dome that waists and flares to a bright lip it stands on, two engraved bands, knobs on its shoulders.
@@ -160,7 +160,7 @@ const SKINS: Record<string, (t: Tones) => Built> = {
   // A ball of night sky: deep blue with stars in it, and two bands of aurora winding round it, green over violet.
   // The green one stands a voxel proud of the ball, and six rays of light rise off it like a curtain's top.
   'bomb-aurora': (t) => {
-    const body = new Grid(S), glow = new Grid(S), star = lin('#ffffff');
+    const body = new Grid(S), glow = new Grid(S), star = raw('#ffffff');
     const green = [raw('#2fe08a'), raw('#22b8a8')], violet = [raw('#9a6af0'), raw('#6a5ae0')];
     const wave = (a: number) => 1.6 + 1.3 * Math.sin(a * 2 + 0.6);
     const ribbon = (x: number, y: number, z: number) => Math.abs(y + 0.5 - wave(around(x, z))) < 0.62;
@@ -179,7 +179,7 @@ const SKINS: Record<string, (t: Tones) => Built> = {
       do { d -= 0.25; x = Math.floor(Math.cos(a) * d); z = Math.floor(Math.sin(a) * d); } while (d > 3 && !glow.has(x, y0, z));
       if (glow.has(x, y0, z)) for (let up = 1; up <= 2 + (k % 2); up++) glow.set(x, y0 + up, z, up === 1 ? green[k % 2] : violet[k % 2]);
     }
-    neck(body, t.neck[0], t.neck[1], lin('#c8fff0'));
+    neck(body, t.neck[0], t.neck[1], raw('#c8fff0'));
     return { body, glow };
   },
 };
@@ -193,7 +193,7 @@ const SKINS: Record<string, (t: Tones) => Built> = {
 const GROUNDS: Record<string, (g: Grid, d: (x: number, z: number) => number) => void> = {
   // A scorch: a ragged black burn with long tongues, ash in it, and embers still glowing at its edge.
   'bomb-ember': (g, d) => {
-    const char = [lin('#17100d'), lin('#241a16'), lin('#33261f')], ash = lin('#7a6f68'), hot = [raw('#ff7a22'), raw('#ffb04a')];
+    const char = [raw('#17100d'), raw('#241a16'), raw('#33261f')], ash = raw('#7a6f68'), hot = [raw('#ff7a22'), raw('#ffb04a')];
     for (let x = -12; x <= 12; x++) for (let z = -12; z <= 12; z++) {
       const r = d(x, z), a = Math.atan2(z, x), reach = 0.5 + 0.4 * Math.abs(Math.sin(a * 3.5 + 1)) + (hash3(x, 0, z, 3) - 0.5) * 0.2;
       if (r > reach) continue;
@@ -203,7 +203,7 @@ const GROUNDS: Record<string, (g: Grid, d: (x: number, z: number) => number) => 
   },
   // Sugar: a scatter of white crystals with the odd green and red one, thinning outward. No disc at all.
   'bomb-mint': (g, d) => {
-    const bits = [lin('#ffffff'), lin('#ffffff'), lin('#eafff6'), lin('#6fd3a8'), lin('#e8475a')];
+    const bits = [raw('#ffffff'), raw('#ffffff'), raw('#eafff6'), raw('#6fd3a8'), raw('#e8475a')];
     for (let x = -12; x <= 12; x++) for (let z = -12; z <= 12; z++) {
       const r = d(x, z);
       if (r <= 1 && hash3(x, 0, z, 3) < 0.3 * (1 - r * 0.75)) g.set(x, 0, z, bits[Math.floor(hash3(x, 1, z, 7) * bits.length)]);
@@ -211,7 +211,7 @@ const GROUNDS: Record<string, (g: Grid, d: (x: number, z: number) => number) => 
   },
   // A small pool of juice, and three leaves that came down with it.
   'bomb-plum': (g, d) => {
-    const juice = [lin('#2e1250'), lin('#4a2478'), lin('#7a48b8')], leaf = lin('#4c8a3a'), rib = lin('#7ab85a');
+    const juice = [raw('#2e1250'), raw('#4a2478'), raw('#7a48b8')], leaf = raw('#4c8a3a'), rib = raw('#7ab85a');
     for (let x = -12; x <= 12; x++) for (let z = -12; z <= 12; z++) {
       const r = d(x, z), a = Math.atan2(z, x);
       if (r <= 0.5 + 0.09 * Math.sin(a * 3 + 0.5)) g.set(x, 0, z, juice[r < 0.2 ? 0 : -x + z > 3 && r > 0.3 ? 2 : 1]);
@@ -223,7 +223,7 @@ const GROUNDS: Record<string, (g: Grid, d: (x: number, z: number) => number) => 
   },
   // Coins: a few gold pieces lying where they rolled, in a dusting of gold.
   'bomb-gold': (g, d) => {
-    const gold = lin('#f0c84a'), face = lin('#fff0b0'), rim = lin('#c9981f'), dust = lin('#f8dc7a');
+    const gold = raw('#f0c84a'), face = raw('#fff0b0'), rim = raw('#c9981f'), dust = raw('#f8dc7a');
     for (let x = -12; x <= 12; x++) for (let z = -12; z <= 12; z++) { const r = d(x, z); if (r <= 1 && hash3(x, 0, z, 3) < 0.1 * (1 - r * 0.6)) g.set(x, 0, z, dust); }
     for (const [cx, cz] of [[7, 3], [-6, 6], [-8, -3], [2, -9], [9, -5], [-1, 9], [5, 9]]) for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
       g.set(cx + i, 0, cz + j, i === 0 && j === 0 ? face : Math.abs(i) + Math.abs(j) === 2 ? rim : gold);
@@ -231,16 +231,16 @@ const GROUNDS: Record<string, (g: Grid, d: (x: number, z: number) => number) => 
   },
   // Light thrown through a gem: eight thin rays in the palest colours, each ending in a bright fleck.
   'bomb-diamond': (g, d) => {
-    const tints = ['#ffffff', '#ffd6f0', '#d6f0ff', '#fff6c8', '#d6ffe8', '#e0d6ff', '#ffffff', '#cfeeff'].map(lin);
+    const tints = ['#ffffff', '#ffd6f0', '#d6f0ff', '#fff6c8', '#d6ffe8', '#e0d6ff', '#ffffff', '#cfeeff'].map(raw);
     for (let k = 0; k < 8; k++) {
       const a = (k / 8) * Math.PI * 2 + 0.2, long = k % 2 ? 9 : 12;
-      for (let i = 4; i <= long; i++) g.set(Math.round(Math.cos(a) * i), 0, Math.round(Math.sin(a) * i), i >= long - 1 ? lin('#ffffff') : tints[k]);
+      for (let i = 4; i <= long; i++) g.set(Math.round(Math.cos(a) * i), 0, Math.round(Math.sin(a) * i), i >= long - 1 ? raw('#ffffff') : tints[k]);
     }
     for (let x = -12; x <= 12; x++) for (let z = -12; z <= 12; z++) { const r = d(x, z); if (r > 0.3 && r <= 1 && hash3(x, 0, z, 3) < 0.035) g.set(x, 0, z, tints[Math.floor(hash3(x, 1, z, 7) * tints.length)]); }
   },
   // A bell's note: two thin rings on the floor round it, like the rings in a pond.
   'bomb-brass': (g, d) => {
-    const brass = [lin('#dcae40'), lin('#b08428')];
+    const brass = [raw('#dcae40'), raw('#b08428')];
     for (let x = -12; x <= 12; x++) for (let z = -12; z <= 12; z++) {
       const r = d(x, z);
       if ((Math.abs(r - 0.56) < 0.045 || Math.abs(r - 0.92) < 0.04) && hash3(x, 0, z, 3) > 0.1) g.set(x, 0, z, brass[hash3(x, 1, z, 5) < 0.5 ? 0 : 1]);

@@ -102,13 +102,15 @@ for (const species of BUILT) {
         expect(l.y).toBe(Math.max(...cells.map((v) => v.y)) - (irisN === 5 ? 2 : 1)); // the goat's bar iris sits a row lower
       }
     });
-    // Body saturation under 62%: the sheets' own colours (Brian, 2026-11-18), the horse's brown measuring 0.61.
-    it('4. keeps the palette: at most 14 colours, nothing darker than the floor, body saturation under 62%', () => {
+    // Body saturation under 88%: the sheets' own colours (Brian, 2026-11-18), the horse's brown measuring 0.876. It was
+    // 62% (the brown at 0.61) while every animal was drawn with 30% of its colour taken off; since 2026-11-20 the animals
+    // are drawn in their sheets' own colours (docs/miniature/06, section 3; the plan's decision 6, Brian's to confirm).
+    it('4. keeps the palette: at most 14 colours, nothing darker than the floor, body saturation under 88%', () => {
       const all = union([...Object.values(named), m.coatCells[2]]);
       const cols = new Set([...all.values()].map((v) => hexOf(v.c)));
       expect(cols.size).toBeLessThanOrEqual(14);
       for (const c of cols) expect(lum(c)).toBeGreaterThanOrEqual(lum(DARKEST) - 0.005);
-      for (const v of named.body.values()) expect(sat(hexOf(v.c))).toBeLessThanOrEqual(0.62);
+      for (const v of named.body.values()) expect(sat(hexOf(v.c))).toBeLessThanOrEqual(0.88);
     });
     it('5. stays inside the budgets', () => {
       const s = m.stats;

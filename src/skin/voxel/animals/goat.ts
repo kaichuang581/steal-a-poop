@@ -1,11 +1,11 @@
 import type { Character } from '../../avatars/catalog';
-import { lin } from '../palette';
 import { Grid } from '../primitives';
 import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
 import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import type { Faces } from './faces';
+import { shade } from '../paint';
 
 const COAT = ['#F1EFEB', '#E2E0DC', '#CFCCC7'] as const;
 const HORN = ['#ADA090', '#968776'] as const;
@@ -20,12 +20,12 @@ const NOSE = '#6E6862';
  * drawn at 1.25 (`drawScale`). Faces +z.
  */
 export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
-  const coat = lin(COAT[1]);
+  const coat = shade(COAT[1]);
   const face = tones(COAT[1]);
 
   // ---- Body: 11 wide, 9 tall, 15 long; the bottom two rows and the chest under the head paler.
   const bg = new Grid(S);
-  cube(bg, [-5, 6, -7], [5, 14, 7], (x, y, z) => lin(y <= 7 || (z === 7 && y <= 11 && Math.abs(x) <= 3) ? COAT[0] : COAT[1]));
+  cube(bg, [-5, 6, -7], [5, 14, 7], (x, y, z) => shade(y <= 7 || (z === 7 && y <= 11 && Math.abs(x) <= 3) ? COAT[0] : COAT[1]));
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -35,15 +35,15 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const hg = new Grid(S);
   cube(hg, [-4, 12, 6], [4, 19, 10], () => coat);
   const muzzleG = new Grid(S);
-  cube(muzzleG, [-2, 12, 11], [2, 14, 13], (x, y, z) => lin(z === 13 && y === 13 && Math.abs(x) <= 1 ? NOSE : COAT[0]));
+  cube(muzzleG, [-2, 12, 11], [2, 14, 13], (x, y, z) => shade(z === 13 && y === 13 && Math.abs(x) <= 1 ? NOSE : COAT[0]));
   for (const v of muzzleG.map.values()) hg.set(v.x, v.y, v.z, v.c);
   const { eyes, lids, brows } = smallEyes(hg, 15, 10, '#1E1A19', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   // Beard: 3 wide, stepping in under the muzzle: three rows at the front, two, then one.
   const beardG = new Grid(S);
-  cube(beardG, [-1, 11, 9], [1, 11, 11], () => lin(COAT[0]));
-  cube(beardG, [-1, 10, 10], [1, 10, 11], () => lin(COAT[0]));
-  cube(beardG, [-1, 9, 10], [1, 9, 10], () => lin(COAT[0]));
+  cube(beardG, [-1, 11, 9], [1, 11, 11], () => shade(COAT[0]));
+  cube(beardG, [-1, 10, 10], [1, 10, 11], () => shade(COAT[0]));
+  cube(beardG, [-1, 9, 10], [1, 9, 10], () => shade(COAT[0]));
   const beard: SigPart = { ...part(beardG, [0.02, 12 * S, 10 * S]), name: 'beard', where: 'head', anim: 'beard', cells: beardG.map };
   const headSolid = solidSet(hg);
   hollow(hg);
@@ -53,7 +53,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const horns = ([-1, 1] as const).map((sx, i) => {
     const g = new Grid(S);
     const [x0, x1] = sx < 0 ? [-3, -2] : [2, 3];
-    const paint = (_x: number, y: number) => lin(HORN[y >= 22 ? 0 : 1]);
+    const paint = (_x: number, y: number) => shade(HORN[y >= 22 ? 0 : 1]);
     cube(g, [x0, 19, 7], [x1, 20, 8], paint);
     cube(g, [x0, 21, 6], [x1, 21, 7], paint);
     cube(g, [x0, 22, 4], [x1, 22, 6], paint);
@@ -64,7 +64,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
     cube(g, [sx < 0 ? -6 : 5, 16, 7], [sx < 0 ? -5 : 6, 17, 8], () => coat);
-    cube(g, [sx * 7, 15, 7], [sx * 7, 16, 8], () => lin(COAT[2]));
+    cube(g, [sx * 7, 15, 7], [sx * 7, 16, 8], () => shade(COAT[2]));
     return part(g, [sx * 4.5 * S + 0.02, 17 * S, 8 * S]);
   }) as unknown as [CPart, CPart];
 
@@ -81,7 +81,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const legSpots = [[-4, 4], [2, 4], [-4, -6], [2, -6]] as const;
   const legs = legSpots.map(([x0, z0]) => {
     const g = new Grid(S);
-    cube(g, [x0, 0, z0], [x0 + 2, 7, z0 + 2], (_x, y) => lin(y === 0 ? HOOF : COAT[1]));
+    cube(g, [x0, 0, z0], [x0 + 2, 7, z0 + 2], (_x, y) => shade(y === 0 ? HOOF : COAT[1]));
     unshare(g, bodySolid);
     return part(g, [(x0 + 1.5) * S, 6 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];

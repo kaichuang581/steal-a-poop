@@ -1,5 +1,4 @@
 import type { Character } from '../../avatars/catalog';
-import { lin } from '../palette';
 import { Grid } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
@@ -7,6 +6,7 @@ import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, sma
 import type { AnimalModel, CPart, SigPart } from './rig';
 import type { Faces } from './faces';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { shade } from '../paint';
 
 const COAT = ['#B0663A', '#A0582A', '#864822'] as [string, string, string]; // the sheet's brown
 const DARK = ['#3A281D', '#2B1D15', '#1F1410'] as const;
@@ -19,8 +19,8 @@ const DARK = ['#3A281D', '#2B1D15', '#1F1410'] as const;
  * of the rump that steps down and back. Grid cells (0.04 m), drawn at 1.24 (`drawScale`). Faces +z.
  */
 export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
-  const coat = lin(COAT[1]);
-  const dark = lin(DARK[1]);
+  const coat = shade(COAT[1]);
+  const dark = shade(DARK[1]);
 
   // ---- Body: 11 wide, 9 tall, 20 long.
   const bg = new Grid(S);
@@ -34,7 +34,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
   const HEAD: V3 = [0.02, 22 * S, 8 * S];
   const hg = new Grid(S);
   cube(hg, [-3, 22, 8], [3, 27, 13], () => coat);
-  const snoutPaint: Paint = (x, y, z) => (z >= 17 || (z >= 15 && y <= 22) ? (z === 18 && y === 24 && Math.abs(x) === 1 ? lin(DARK[2]) : lin(DARK[0])) : coat);
+  const snoutPaint: Paint = (x, y, z) => (z >= 17 || (z >= 15 && y <= 22) ? (z === 18 && y === 24 && Math.abs(x) === 1 ? shade(DARK[2]) : shade(DARK[0])) : coat);
   cube(hg, [-2, 22, 14], [2, 25, 18], snoutPaint);
   cube(hg, [-1, 28, 7], [1, 29, 13], () => dark); // the forelock, the crown's whole length
   cube(hg, [-1, 24, 7], [1, 27, 7], () => dark); // the mane over the back of the head, down to the neck's
@@ -76,7 +76,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
   // ---- Ears: 2 wide, 3 tall, 1 deep, upright on the crown's back corners, rooted a row into it.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
-    cube(g, [sx < 0 ? -3 : 2, 27, 10], [sx < 0 ? -2 : 3, 30, 10], (_x, y) => lin(y === 30 ? COAT[2] : COAT[1]));
+    cube(g, [sx < 0 ? -3 : 2, 27, 10], [sx < 0 ? -2 : 3, 30, 10], (_x, y) => shade(y === 30 ? COAT[2] : COAT[1]));
     return part(g, [sx * 2.5 * S + 0.02, 28 * S, 10.5 * S]);
   }) as unknown as [CPart, CPart];
 
@@ -86,7 +86,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
     const g = new Grid(S);
     const out = x0 < 0 ? -1 : 0;
     cube(g, [x0, 2, z0], [x0 + 2, 9, z0 + 2], () => coat);
-    cube(g, [x0 + out, 0, z0], [x0 + 3 + out, 1, z0 + 3], () => lin(DARK[1]));
+    cube(g, [x0 + out, 0, z0], [x0 + 3 + out, 1, z0 + 3], () => shade(DARK[1]));
     unshare(g, bodySolid);
     return part(g, [(x0 + 1.5) * S, 9 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];

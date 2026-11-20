@@ -1,11 +1,11 @@
 import type { Character } from '../../avatars/catalog';
-import { lin } from '../palette';
 import { Grid } from '../primitives';
 import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
 import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import type { Faces } from './faces';
+import { shade } from '../paint';
 
 const WHITE = ['#F4F3F0', '#ECEBE7', '#DCDAD5'] as const;
 const RED = '#D42A1F';
@@ -21,13 +21,13 @@ const FOOT = ['#EE8A23', '#D46E19'] as const;
  * No mouth: the sheet has none (every mouth frame is empty). Grid cells (0.04 m), drawn at 1.1 (`drawScale`). Faces +z.
  */
 export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
-  const white = lin(WHITE[1]);
+  const white = shade(WHITE[1]);
   const face = tones(WHITE[1]);
 
   // ---- Body: 9 wide, the five rows under the head and a narrower band under those.
   const bg = new Grid(S);
   cube(bg, [-4, 3, -4], [4, 7, 4], () => white);
-  cube(bg, [-3, 2, -3], [3, 2, 3], () => lin(WHITE[2]));
+  cube(bg, [-3, 2, -3], [3, 2, 3], () => shade(WHITE[2]));
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -36,7 +36,7 @@ export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
   // bottom; the bottom back corner stepped off.
   const wings = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
-    cube(g, [sx * 5, 4, -2], [sx * 5, 7, 2], (_x, y, z) => (y <= 5 && z === -2 ? null : lin(WHITE[2])));
+    cube(g, [sx * 5, 4, -2], [sx * 5, 7, 2], (_x, y, z) => (y <= 5 && z === -2 ? null : shade(WHITE[2])));
     return { ...part(g, [sx * 0.2 + 0.02, 0.24, 0]), name: sx < 0 ? 'wingL' : 'wingR', where: 'body' as const, anim: sx < 0 ? ('wingL' as const) : ('wingR' as const), cells: g.map } as SigPart;
   });
 
@@ -56,13 +56,13 @@ export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
   cube(hg, [-3, 12, -3], [3, 12, 4], () => white);
   const { eyes, lids, brows } = smallEyes(hg, 10, 4, '#141212', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
   const beakG = new Grid(S);
-  cube(beakG, [-1, 8, 5], [1, 9, 6], (_x, y) => lin(y === 9 ? BEAK[0] : BEAK[1]));
+  cube(beakG, [-1, 8, 5], [1, 9, 6], (_x, y) => shade(y === 9 ? BEAK[0] : BEAK[1]));
   const wattle = new Grid(S);
-  cube(wattle, [0, 6, 5], [0, 7, 5], () => lin(WATTLE));
+  cube(wattle, [0, 6, 5], [0, 7, 5], () => shade(WATTLE));
   for (const g of [beakG, wattle]) for (const v of g.map.values()) hg.set(v.x, v.y, v.z, v.c);
   // Comb: one cell across, two tall and four long along the crown's front half, rooted a row into it.
   const combG = new Grid(S);
-  cube(combG, [0, 12, 0], [0, 14, 3], () => lin(RED));
+  cube(combG, [0, 12, 0], [0, 14, 3], () => shade(RED));
   const comb: SigPart = { ...part(combG, HEAD), name: 'comb', where: 'head', anim: 'comb', cells: combG.map };
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   const headCells = solidSet(hg);
@@ -74,8 +74,8 @@ export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
   const legs = [
     ...legSpots.map(([x0, z0]) => {
       const g = new Grid(S);
-      cube(g, [x0, 0, z0], [x0, 3, z0], () => lin(FOOT[0]));
-      cube(g, [x0 - 1, 0, z0], [x0 + 1, 0, z0 + 2], (x) => lin(x === x0 ? FOOT[0] : FOOT[1]));
+      cube(g, [x0, 0, z0], [x0, 3, z0], () => shade(FOOT[0]));
+      cube(g, [x0 - 1, 0, z0], [x0 + 1, 0, z0 + 2], (x) => shade(x === x0 ? FOOT[0] : FOOT[1]));
       unshare(g, bodySolid);
       return part(g, [(x0 + 0.5) * S, 2 * S, (z0 + 0.5) * S]);
     }),

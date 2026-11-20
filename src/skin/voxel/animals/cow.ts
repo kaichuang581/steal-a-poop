@@ -1,11 +1,11 @@
 import type { Character } from '../../avatars/catalog';
-import { lin } from '../palette';
 import { Grid } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
 import { breathAt, cellsOf, cube, extentOf, hollow, inBlocks, noMouths, none, part, S, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import type { Faces } from './faces';
+import { shade } from '../paint';
 
 const PINK = ['#F0B4AE', '#E7A7A2', '#8C5A55'] as const;
 const HORN = '#D9BE8E';
@@ -22,7 +22,7 @@ const EAR_IN = '#5A4640';
  * drawn at 1.3 (`drawScale`). Faces +z; the centre column is x = 0.
  */
 export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
-  const white = lin(WHITE), black = lin(BLACK);
+  const white = shade(WHITE), black = shade(BLACK);
   const face = tones(WHITE);
 
   // ---- Body: 13 wide, 11 tall, 18 long. Patches as 3D blocks, so each wraps its corner onto the top and front.
@@ -46,7 +46,7 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   cube(hg, [-4, 12, 9], [4, 19, 14], (x, y) => (x >= 2 && y >= 14 ? black : white));
   // Muzzle: 7 wide, 4 tall, 2 proud, pink; two nostrils in its upper row.
   const muzzleG = new Grid(S);
-  cube(muzzleG, [-3, 12, 15], [3, 15, 16], (x, y, z) => lin(z === 16 && y === 14 && Math.abs(x) === 2 ? PINK[2] : PINK[0]));
+  cube(muzzleG, [-3, 12, 15], [3, 15, 16], (x, y, z) => shade(z === 16 && y === 14 && Math.abs(x) === 2 ? PINK[2] : PINK[0]));
   for (const v of muzzleG.map.values()) hg.set(v.x, v.y, v.z, v.c);
   const { eyes, lids, brows } = smallEyes(hg, 17, 14, '#141212', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
@@ -58,15 +58,15 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   // Rooted a row into the crown.
   const hornG = new Grid(S);
   for (const sx of [-1, 1]) {
-    cube(hornG, [sx * 4, 19, 10], [sx * 4, 21, 10], () => lin(HORN));
-    cube(hornG, [sx * 3, 19, 10], [sx * 3, 20, 10], () => lin(HORN));
+    cube(hornG, [sx * 4, 19, 10], [sx * 4, 21, 10], () => shade(HORN));
+    cube(hornG, [sx * 3, 19, 10], [sx * 3, 20, 10], () => shade(HORN));
   }
   const horns: SigPart = { ...part(hornG, HEAD), name: 'horns', where: 'head', cells: hornG.map };
 
   // ---- Ears: black, 4 out, 3 tall, 2 deep, straight out from the crown's sides, a dark inside on the front.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
-    cube(g, [sx < 0 ? -8 : 5, 17, 10], [sx < 0 ? -5 : 8, 19, 11], (x, y, z) => (z === 11 && y === 18 && Math.abs(x) >= 6 && Math.abs(x) <= 7 ? lin(EAR_IN) : black));
+    cube(g, [sx < 0 ? -8 : 5, 17, 10], [sx < 0 ? -5 : 8, 19, 11], (x, y, z) => (z === 11 && y === 18 && Math.abs(x) >= 6 && Math.abs(x) <= 7 ? shade(EAR_IN) : black));
     return part(g, [sx * 4.5 * S + 0.02, 18 * S, 10.5 * S]);
   }) as unknown as [CPart, CPart];
 
@@ -81,8 +81,8 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
 
   // ---- Udder: pink, 5 x 2 x 3 under the belly toward the back legs, four teats under it.
   const ug = new Grid(S);
-  cube(ug, [-2, 5, -5], [2, 6, -3], () => lin(PINK[1]));
-  for (const x of [-2, 2]) for (const z of [-5, -3]) ug.set(x, 4, z, lin(PINK[1]));
+  cube(ug, [-2, 5, -5], [2, 6, -3], () => shade(PINK[1]));
+  for (const x of [-2, 2]) for (const z of [-5, -3]) ug.set(x, 4, z, shade(PINK[1]));
   const udder: SigPart = { ...part(ug, [0, 0, 0]), name: 'udder', where: 'body', cells: ug.map };
 
   // ---- Tail: a short black stub out of the rump, rooted a cell in.

@@ -1,6 +1,5 @@
 import { Color } from 'three';
 import type { BurstShape } from '../shop/catalog';
-import { lin } from './palette';
 import { Grid, hash3 } from './primitives';
 import type { RGB } from './primitives';
 
@@ -43,7 +42,7 @@ export function haystackGrid(p: BurstPalette): Grid {
 
 /** A snow cloud: three soft lumps, white on top and grey underneath. Centred on the origin. */
 export function cloudGrid(p: BurstPalette): Grid {
-  const g = new Grid(PROP_VOXEL), top = lin(p.flame[0]), mid = lin(p.flame[1]), under = lin(p.flame[3]);
+  const g = new Grid(PROP_VOXEL), top = raw(p.flame[0]), mid = raw(p.flame[1]), under = raw(p.flame[3]);
   const paint = (_x: number, y: number) => (y >= 2 ? top : y >= -1 ? mid : under);
   ball(g, 0, 0, 0, 10, 5.4, 6.5, paint);
   ball(g, -8, -1, 1, 6.5, 4.2, 5, paint);
@@ -64,8 +63,8 @@ export function balloonGrid(): Grid {
 
 /** A campfire: two crossed logs over embers on a bed of ash, ringed with stones. Stands on y = 0. */
 export function campfireGrid(p: BurstPalette): Grid {
-  const g = new Grid(PROP_VOXEL), bark = lin('#5a3a22'), end = lin('#9a7248'), char = lin('#2b1c12'), stone = lin('#8a8478'), stoneDark = lin('#6a655c');
-  const ash = [lin('#3a302a'), lin('#4a3f38'), lin('#2e2622')], ember = [p.flame[1], p.flame[2], p.flame[3]].map(raw);
+  const g = new Grid(PROP_VOXEL), bark = raw('#5a3a22'), end = raw('#9a7248'), char = raw('#2b1c12'), stone = raw('#8a8478'), stoneDark = raw('#6a655c');
+  const ash = [raw('#3a302a'), raw('#4a3f38'), raw('#2e2622')], ember = [p.flame[1], p.flame[2], p.flame[3]].map(raw);
   for (let x = -11; x <= 11; x++) for (let z = -11; z <= 11; z++) if (Math.hypot(x, z) <= 10.6) g.set(x, 0, z, ash[Math.floor(hash3(x, 0, z, 2) * 3)]);
   for (let x = -5; x <= 5; x++) for (let z = -5; z <= 5; z++) if (Math.hypot(x, z) < 4.6 && hash3(x, 1, z, 4) < 0.7) g.set(x, 1, z, ember[Math.floor(hash3(x, 2, z, 6) * 3)]);
   fill(g, -8, 1, -1, 8, 2, 0, (x, y) => (Math.abs(x) === 8 ? end : Math.abs(x) < 3 && y === 2 ? char : bark));
@@ -79,7 +78,7 @@ export function campfireGrid(p: BurstPalette): Grid {
 
 /** A clump of heather: a low green mound and five spikes of small flowers leaning apart. Stands on y = 0. */
 export function heatherGrid(p: BurstPalette): Grid {
-  const g = new Grid(PROP_VOXEL), stem = lin('#4c7a3a'), leaf = [lin('#4c7a3a'), lin('#6a9a4a'), lin('#3f6a34')], bloom = [p.flame[1], p.flame[2], p.flame[3]].map(raw);
+  const g = new Grid(PROP_VOXEL), stem = raw('#4c7a3a'), leaf = [raw('#4c7a3a'), raw('#6a9a4a'), raw('#3f6a34')], bloom = [p.flame[1], p.flame[2], p.flame[3]].map(raw);
   [4.2, 3.6, 2.7].forEach((r, y) => { for (let x = -5; x <= 5; x++) for (let z = -5; z <= 5; z++) if (Math.hypot(x, z) <= r) g.set(x, y, z, leaf[Math.floor(hash3(x, y, z, 7) * 3)]); });
   const spikes: [number, number, number, number, number][] = [[0, 0, 0, 0, 12], [-2, -1, -1, 0, 9], [2, 1, 1, 0, 10], [1, -2, 0, -1, 8], [-1, 2, 0, 1, 9]];
   spikes.forEach(([x0, z0, lx, lz, h], n) => {
@@ -108,7 +107,7 @@ export function sunGrid(p: BurstPalette): Grid {
 
 /** A paper lantern: a warm glowing shade between two dark caps, with a loop to hold it by. Its foot is at y = 0. */
 export function lanternGrid(p: BurstPalette): Grid {
-  const g = new Grid(PROP_VOXEL), f = p.flame.map(raw), cap = lin('#5a3a22');
+  const g = new Grid(PROP_VOXEL), f = p.flame.map(raw), cap = raw('#5a3a22');
   for (let y = 1; y <= 9; y++) for (let x = -3; x <= 3; x++) for (let z = -3; z <= 3; z++) {
     if (Math.abs(x) === 3 && Math.abs(z) === 3) continue;
     const bulge = y === 1 || y === 9 ? 2 : 3;

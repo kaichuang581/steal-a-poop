@@ -1,12 +1,13 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry, packGeometry } from '../voxel/mesher';
-import { lin, pick, T } from '../voxel/palette';
+import { lin, T } from '../voxel/palette';
+import { solid } from '../voxel/paint';
 import { box, Grid, hash3 } from '../voxel/primitives';
 import type { V3 } from '../voxel/primitives';
 import { DUEL } from './duel';
 import { FARM } from './farmstead';
 import { BARN, YARD } from './layout';
-import { pineShape, tieredPine } from './style/pine';
+import { pinePaint, pineShape, tieredPine } from './style/pine';
 
 /**
  * The farm dressed for the Fleece Navidad update: a tree by the barn doors and a small one inside, presents, lights on
@@ -18,8 +19,15 @@ const GLOW = ['#E8402E', '#3FBF5F', '#FFC24B'] as const;
 export const BULB_COLORS = GLOW;
 /** Twinkle groups per colour. Each bulb joins one at random, and each group keeps its own time (Festive.tsx). */
 export const BULB_GROUPS = 5;
-const RED = '#C8342E';
 const GOLD = T.brass[0];
+/**
+ * The decorations' colours, from the ladders of voxel/paint.ts (docs/miniature/06, section 6): one solid colour a part.
+ * Only the bulbs keep their own (`GLOW`), with their glow. No cube of any decoration moved for it.
+ */
+const BERRY = solid('scarfRed', 0), FROSTING = solid('trimWhite', 1);
+/** A present's wrap or ribbon, by the colour it is handed: red, green, gold (a ribbon's gold a step up) or white. */
+const giftColour = (hex: string, ribbon: boolean) =>
+  hex === GOLD ? solid('brass', ribbon ? 1 : 0) : hex === T.pine[1] ? solid('giftGreen', 0) : hex === T.snow[1] ? FROSTING : BERRY;
 const STAR = ['...#...', '...#...', '..###..', '#######', '.#####.', '..###..', '.##.##.', '.#...#.'];
 
 export interface FestiveGeometry {
@@ -89,7 +97,7 @@ class Dressing {
     // The wire steps one axis at a time from cell to cell, so it is one unbroken line: a step that moved along all
     // three at once left two cells touching at a corner only, and the sag between them hung in the air (Brian,
     // 2026-11-09: "a lot of them are floating").
-    const wire = lin(T.face[2]), g = this.decor;
+    const wire = solid('iron', 0), g = this.decor;
     const cells: V3[] = [], mine = new Set<string>(), hangs: number[] = [];
     let prev: V3 | null = null;
     for (let i = 0; i <= steps; i++) {
@@ -136,7 +144,7 @@ class Dressing {
   private fir(x: number, z: number, height: number, bauble: number, clear: boolean) {
     // The diorama's tiered pine (style/pine.ts), as every pine on the farm, with baubles set round each tier's rim.
     const g = this.decor, cell = g.size, cx = g.i(x), cz = g.i(z);
-    tieredPine((a, b, c, col) => g.set(a, b, c, col), (a, b, c) => g.has(a, b, c), cx, cz, 0, height, cell);
+    tieredPine((a, b, c, col) => g.set(a, b, c, col), (a, b, c) => g.has(a, b, c), cx, cz, 0, height, cell, 6, pinePaint(1)); // needles by tier, as the yard's pines
     const { bare, th, n, radius } = pineShape(height, cell);
     for (let k = 0; k < n; k++) {
       const r = (radius(k) - 0.6) * cell, y = (bare + k * th + 0.5) * cell + cell / 2;
@@ -164,7 +172,7 @@ class Dressing {
     for (const v of g.map.values()) if (Math.abs(v.x - cx) <= 1 && Math.abs(v.z - cz) <= 1 && (!top || v.y > top.y)) top = v;
     if (top) {
       // A stem up from the tip's own cell to the star's middle row (STAR row 5 is the first with a middle cell).
-      for (let k = 1; k <= 4; k++) this.stars.set(top.x, top.y + k, top.z, lin(GOLD));
+      for (let k = 1; k <= 4; k++) this.stars.set(top.x, top.y + k, top.z, solid('brass', 1));
       this.star(top.x * g.size, (top.y + 1) * g.size, top.z * g.size);
     }
   }
@@ -176,8 +184,8 @@ class Dressing {
       if (cell !== '#') return;
       const across = (c - 3) * 0.1, up = y + (STAR.length - r) * 0.1;
       // Two crossed faces, so it is a star from every side.
-      box(star, [x + across, up, z], [x + across + 0.1, up + 0.1, z + 0.1], () => lin(GOLD));
-      box(star, [x, up, z + across], [x + 0.1, up + 0.1, z + across + 0.1], () => lin(GOLD));
+      box(star, [x + across, up, z], [x + across + 0.1, up + 0.1, z + 0.1], () => solid('brass', 1));
+      box(star, [x, up, z + across], [x + 0.1, up + 0.1, z + across + 0.1], () => solid('brass', 1));
     }));
   }
 
@@ -191,7 +199,7 @@ class Dressing {
   /** A plain post for lights to hang from. */
   post(x: number, z: number, height: number) {
     this.item('post', () => {
-      box(this.decor, [x - 0.1, 0, z - 0.1], [x + 0.1, height, z + 0.1], (a, b, c) => pick(T.beam, hash3(a, b, c, 83)));
+      box(this.decor, [x - 0.1, 0, z - 0.1], [x + 0.1, height, z + 0.1], () => solid('wood', -1));
     });
   }
 
@@ -199,9 +207,9 @@ class Dressing {
   stocking(x: number, y: number, z: number, toe: number) {
     this.item('stocking', () => {
       const g = this.decor;
-      box(g, [x - 0.1, y, z], [x + 0.2, y + 0.5, z + 0.1], () => lin(RED));
-      box(g, [x - 0.1 + toe * 0.1, y, z], [x + 0.2 + toe * 0.2, y + 0.2, z + 0.1], () => lin(RED));
-      box(g, [x - 0.2, y + 0.5, z], [x + 0.3, y + 0.7, z + 0.1], () => lin(T.snow[1]));
+      box(g, [x - 0.1, y, z], [x + 0.2, y + 0.5, z + 0.1], () => BERRY);
+      box(g, [x - 0.1 + toe * 0.1, y, z], [x + 0.2 + toe * 0.2, y + 0.2, z + 0.1], () => BERRY);
+      box(g, [x - 0.2, y + 0.5, z], [x + 0.3, y + 0.7, z + 0.1], () => FROSTING);
     });
   }
 
@@ -210,15 +218,15 @@ class Dressing {
     this.item('present', () => {
       const g = this.decor;
       const cx = Math.round(x / 0.1), cz = Math.round(z / 0.1);
-      box(g, [x - w / 2, base, z - w / 2], [x + w / 2, base + h, z + w / 2], (a, _, c) => lin(a === cx || c === cz ? ribbon : wrap));
-      box(g, [x - 0.1, base + h, z - 0.1], [x + 0.2, base + h + 0.1, z + 0.2], () => lin(ribbon));
+      box(g, [x - w / 2, base, z - w / 2], [x + w / 2, base + h, z + w / 2], (a, _, c) => (a === cx || c === cz ? giftColour(ribbon, true) : giftColour(wrap, false)));
+      box(g, [x - 0.1, base + h, z - 0.1], [x + 0.2, base + h + 0.1, z + 0.2], () => giftColour(ribbon, true));
     });
   }
 
   /** A candy cane stuck in the snow, its hook turned along x. */
   cane(x: number, z: number, side: number) {
     this.item('cane', () => {
-      const stripe = (i: number) => lin(i % 4 < 2 ? RED : T.snow[1]);
+      const stripe = (i: number) => (i % 4 < 2 ? BERRY : FROSTING);
       const g = this.decor;
       const top = 11;
       for (let i = 0; i <= top; i++) box(g, [x, i * 0.1, z], [x + 0.2, i * 0.1 + 0.1, z + 0.2], () => stripe(i));
@@ -240,11 +248,11 @@ class Dressing {
         if (d < 0.3 || d > 0.62) continue;
         for (const k of [0, 1]) {
           const [a, b, c] = [cx + i, cy + j, cz + k];
-          g.set(a, b, c, k === 1 && (i + 6 * j + 60) % 7 === 0 ? lin(RED) : pick(T.pine, 0)); // berries in a set pattern
+          g.set(a, b, c, k === 1 && (i + 6 * j + 60) % 7 === 0 ? BERRY : solid('giftGreen', -1)); // berries in a set pattern
         }
       }
-      box(g, [x - 0.3, y - 0.7, z - 0.1], [x + 0.4, y - 0.5, z + 0.3], () => lin(RED));
-      box(g, [x - 0.1, y - 0.9, z - 0.1], [x + 0.2, y - 0.7, z + 0.3], () => lin(RED));
+      box(g, [x - 0.3, y - 0.7, z - 0.1], [x + 0.4, y - 0.5, z + 0.3], () => BERRY);
+      box(g, [x - 0.1, y - 0.9, z - 0.1], [x + 0.2, y - 0.7, z + 0.3], () => BERRY);
     });
   }
 
@@ -253,13 +261,13 @@ class Dressing {
     this.item('hat', () => {
       const g = this.decor, s = (m: number) => m * scale;
       const brim = Math.max(0.1, Math.round(s(0.2) * 10) / 10), tiers = Math.round(6 * scale);
-      box(g, [x - s(0.4), y, z - s(0.4)], [x + s(0.4), y + brim, z + s(0.4)], () => lin(T.snow[1]));
+      box(g, [x - s(0.4), y, z - s(0.4)], [x + s(0.4), y + brim, z + s(0.4)], () => FROSTING);
       for (let i = 0; i < tiers; i++) {
         const r = s(0.32) - i * s(0.3) / tiers, lean = i * s(0.24) / tiers;
-        box(g, [x + lean - r, y + brim + i * 0.1, z - r], [x + lean + r, y + brim + 0.1 + i * 0.1, z + r], () => lin(RED));
+        box(g, [x + lean - r, y + brim + i * 0.1, z - r], [x + lean + r, y + brim + 0.1 + i * 0.1, z + r], () => BERRY);
       }
       const tip = y + brim + tiers * 0.1;
-      box(g, [x + s(0.1), tip, z - s(0.2)], [x + s(0.5), tip + s(0.3), z + s(0.2)], () => lin(T.snow[0]));
+      box(g, [x + s(0.1), tip, z - s(0.2)], [x + s(0.5), tip + s(0.3), z + s(0.2)], () => FROSTING);
     });
   }
 
@@ -384,8 +392,7 @@ let santa: BufferGeometry | null = null;
 export function santaHat(): BufferGeometry {
   if (santa) return santa;
   const g = new Grid(0.04);
-  const red = (x: number, y: number, z: number) => pick(T.collar, hash3(x, y, z, 91));
-  const white = (x: number, y: number, z: number) => pick(T.snow, hash3(x, y, z, 93));
+  const red = () => BERRY, white = () => FROSTING;
   box(g, [-0.2, 0, -0.2], [0.2, 0.08, 0.2], white);
   for (let i = 0; i < 6; i++) {
     const r = 0.16 - i * 0.024, off = -i * 0.024, y = 0.08 + i * 0.04;

@@ -1,6 +1,7 @@
 import { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
-import { lin, pickBy as pick, IRIS, PUPIL, T, WHITE, WOLF_EYE } from './palette'; // the characters are not scenery: unchanged
+import { IRIS, PUPIL, T, WHITE, WOLF_EYE } from './palette';
+import { shade } from './paint';
 import type { Tone } from './palette';
 import { box, ellipsoid, Grid, hash3, helix, line, norm, ring, rng, taperedBox } from './primitives';
 import type { Paint, V3 } from './primitives';
@@ -9,7 +10,9 @@ import type { Part } from './sheep';
 
 const s = CHAR;
 const RED = '#C24E45';
-const tone = (t: Tone, seed: number, w?: [number, number]): Paint => (x, y, z) => pick(t, hash3(x, y, z, seed), w);
+/** One solid colour a part, the tone's middle value, not desaturated (docs/miniature/06, section 3.2): it was a random tone a cube. */
+const pick = (t: Tone, _r?: number, _w?: readonly [number, number]) => shade(t[1]);
+const tone = (t: Tone, _seed: number, _w?: [number, number]): Paint => () => pick(t);
 
 function part(g: Grid, pivot: V3): Part {
   const geo = buildGeometry(g.map, g.size);
@@ -26,7 +29,7 @@ function frontZ(g: Grid, x: number, y: number): number | null {
 function onFront(dst: Grid, src: Grid, px: [number, number][], hex: string) {
   for (const [x, y] of px) {
     const z = frontZ(src, x, y);
-    if (z !== null) dst.set(x, y, z + 1, lin(hex));
+    if (z !== null) dst.set(x, y, z + 1, shade(hex));
   }
 }
 
@@ -49,18 +52,18 @@ export function wolfModel(): WolfModel {
   const headPivot: V3 = [0, 0.66, 0.36];
   const head = new Grid(s);
   ellipsoid(head, [0, 0.74, 0.46], [0.1, 0.1, 0.11], tone(T.wolf, 11, [0.2, 0.8]));
-  box(head, [-0.06, 0.64, 0.5], [0.06, 0.74, 0.68], (x, y, z) => (y * s < 0.68 ? lin(T.wolf[0]) : pick(T.wolf, hash3(x, y, z, 13), [0.3, 0.9])), 1);
+  box(head, [-0.06, 0.64, 0.5], [0.06, 0.74, 0.68], (x, y, z) => (y * s < 0.68 ? shade(T.wolf[0]) : pick(T.wolf, hash3(x, y, z, 13), [0.3, 0.9])), 1);
   box(head, [-0.04, 0.7, 0.68], [0.04, 0.74, 0.72], tone(T.hoof, 15)); // nose
-  for (const x of [-1, 1]) head.set(x, head.i(0.64) - 1, head.i(0.64), lin(WHITE)); // fangs
+  for (const x of [-1, 1]) head.set(x, head.i(0.64) - 1, head.i(0.64), shade(WHITE)); // fangs
   for (const sx of [-1, 1]) taperedBox(head, [sx * 0.06, 0.8, 0.42], [0.12, 0.16, 0.08], 0.25, tone(T.wolf, 17, [0.1, 0.7]));
   for (const v of [...head.map.values()]) // inner ear: the middle column of each ear's front face
-    if (v.z === head.i(0.44) && v.y >= 21 && v.y <= 22 && head.has(v.x - 1, v.y, v.z) && head.has(v.x + 1, v.y, v.z)) v.c = lin(T.pink[2]);
+    if (v.z === head.i(0.44) && v.y >= 21 && v.y <= 22 && head.has(v.x - 1, v.y, v.z) && head.has(v.x + 1, v.y, v.z)) v.c = shade(T.pink[2]);
   const eyes = new Grid(s);
   onFront(eyes, head, [[1, 19], [1, 20], [-2, 19], [-2, 20]], WOLF_EYE);
 
   const tailPivot: V3 = [0, 0.62, -0.36];
   const tail = new Grid(s);
-  const tailFur: Paint = (x, y, z) => (z * s < -0.64 ? lin(T.wolf[0]) : pick(T.wolf, hash3(x, y, z, 19), [0.2, 0.75]));
+  const tailFur: Paint = (x, y, z) => (z * s < -0.64 ? shade(T.wolf[0]) : pick(T.wolf, hash3(x, y, z, 19), [0.2, 0.75]));
   const at = (t: number): V3 => [0, 0.62 - 0.2 * t, -0.38 - 0.3 * t];
   const rad = (t: number) => 0.05 + 0.04 * Math.sin(Math.PI * Math.min(1, t * 1.2));
   for (let i = 0; i <= 6; i++) {
@@ -89,7 +92,7 @@ let eyePair: BufferGeometry | null = null;
 export function wolfEyes(): BufferGeometry {
   if (eyePair) return eyePair;
   const g = new Grid(s);
-  for (const x0 of [0, 6]) for (let x = x0; x < x0 + 3; x++) for (let y = 0; y < 2; y++) g.set(x, y, 0, lin(WOLF_EYE));
+  for (const x0 of [0, 6]) for (let x = x0; x < x0 + 3; x++) for (let y = 0; y < 2; y++) g.set(x, y, 0, shade(WOLF_EYE));
   eyePair = buildGeometry(g.map, s).translate(-4.5 * s, -s, -s / 2);
   return eyePair;
 }
@@ -128,7 +131,7 @@ export function sheepdogModel(): SheepdogModel {
   box(head, [-0.06, 0.6, 0.14], [0.06, 0.68, 0.32], white, 1); // muzzle, from z 0.14: the chamfer took its back row, which left it off the head
   box(head, [-0.04, 0.66, 0.24], [0.04, 0.7, 0.34], tone(T.hoof, 41)); // nose, from z 0.24 (cell 6) so it sits on the muzzle's top
   onFront(head, head, [[1, 18], [-2, 18]], IRIS);
-  head.set(1, 19, (frontZ(head, 1, 18) ?? 0) - 1, lin(PUPIL));
+  head.set(1, 19, (frontZ(head, 1, 18) ?? 0) - 1, shade(PUPIL));
 
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(s);
@@ -177,14 +180,14 @@ export function shearsModel(): ShearsModel {
       const w = Math.max(1, Math.round(3 * (1 - i / 10)));
       for (let k = 0; k < w; k++) {
         const x = sx > 0 ? k - 1 : 1 - k;
-        g.set(x, layer, i, lin(k === w - 1 && w > 1 ? T.stone[1] : T.stone[0])); // light edge, mid spine
+        g.set(x, layer, i, shade(k === w - 1 && w > 1 ? T.stone[1] : T.stone[0])); // light edge, mid spine
       }
     }
     const y = layer * s;
     line(g, [0, y, -0.04], [-sx * 0.08, y, -0.14], handle);
     ring(g, [-sx * 0.1, y, -0.22], 0.06, 0.08, 0.02, handle);
     ring(g, [-sx * 0.1, y, -0.22], 0.08, 0.1, 0.02, handle);
-    if (layer) g.set(0, 2, 0, lin(T.brass[1])); // screw head
+    if (layer) g.set(0, 2, 0, shade(T.brass[1])); // screw head
     return part(g, [s / 2, 0, s / 2]);
   });
   shears = { bladeA, bladeB };
@@ -248,10 +251,10 @@ export function icicleModel(): { ice: Part; drip: BufferGeometry } {
   for (let i = 0; i < 20; i++) {
     const rr = 2.5 * (1 - i / 20);
     for (let x = -3; x <= 3; x++) for (let z = -3; z <= 3; z++)
-      if (x * x + z * z <= Math.max(0.3, rr * rr)) g.set(x, -i, z, x === 0 ? lin(T.ice[0]) : pick(T.ice, hash3(x, i, z, 81), [0, 0.6]));
+      if (x * x + z * z <= Math.max(0.3, rr * rr)) g.set(x, -i, z, x === 0 ? shade(T.ice[0]) : pick(T.ice, hash3(x, i, z, 81), [0, 0.6]));
   }
   const d = new Grid(s);
-  d.set(0, 0, 0, lin(T.ice[0]));
+  d.set(0, 0, 0, shade(T.ice[0]));
   icicle = { ice: part(g, [s / 2, s, s / 2]), drip: buildGeometry(d.map, s).translate(-s / 2, -s / 2, -s / 2) };
   return icicle;
 }
@@ -282,8 +285,8 @@ export function digitGeometry(text: string, cell = 0.06): BufferGeometry {
     const rows = FONT[ch];
     if (rows) rows.forEach((row, r) => [...row].forEach((bit, c) => {
       if (bit !== '1') return;
-      g.set(n * 6 + c, 6 - r, 1, lin(T.lantern[0]));
-      g.set(n * 6 + c, 6 - r, 0, lin(T.lantern[2]));
+      g.set(n * 6 + c, 6 - r, 1, shade(T.lantern[0]));
+      g.set(n * 6 + c, 6 - r, 0, shade(T.lantern[2]));
     }));
   });
   const width = Math.max(0, text.length * 6 - 1);

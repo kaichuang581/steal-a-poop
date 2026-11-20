@@ -1,4 +1,5 @@
 import { getAvatar } from '../skin/avatars/store';
+import { getLang } from '../lib/lang';
 import { create } from 'zustand';
 import type { Action, ActionResult } from '../engine';
 import { load, save } from '../lib/storage';
@@ -124,6 +125,8 @@ function noticeFrom(c: { banned: boolean; suspendedUntil: number | null }): { re
 
 export const useRoomStore = create<RoomStore>((set, get) => {
   const send = (msg: Parameters<NetClient['send']>[0]) => {
+    // A French player is matched with French tables and their lobby plays the French word list.
+    if (getLang() === 'fr' && (msg.t === 'create' || msg.t === 'quick' || msg.t === 'ranked')) msg = { ...msg, lang: 'fr' };
     if (!net?.send(msg)) set({ notice: 'Not connected to the game server.' });
   };
 

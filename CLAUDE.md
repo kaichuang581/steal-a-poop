@@ -1755,6 +1755,19 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Checked and fine: the chat filter
   already catches a blocked word split by zero-width, joiner, soft-hyphen or direction characters. Not checkable here: the
   live site and server (this machine cannot reach them), real sign-in, real GPUs and phones, and how anything looks or sounds.
+- French version (requested by Kai, 2026-11-20: "a button ... that says French ... everything is french, exactly the same ... use the
+  french dictionary ... make the accents not so restrictive"). The language is src/lib/lang.ts (`sap:lang`, `?lang=fr`); the
+  "French" / "English" button is first in Home's top bar and reloads the page. Words: public/words-fr.txt, built by
+  scripts/build-french-words.mjs from the MIT package an-array-of-french-words (stored without accents, French swears removed);
+  `normalizeWord` folds accents for every language, so "élève" and "eleve" both count and the typo assist works the same. The
+  server loads both lists; a room opened by a French player (`lang` on create / quick / ranked) plays the French list and the
+  queues match French with French. The screen is translated by src/skin/i18n/translate.ts, a page-level swap of exact English
+  lines from public/i18n-fr.json (fetched only in French) plus the patterns in i18n/fr.ts; the chat log, inputs and anything
+  marked data-i18n-skip are left alone. New English text needs its French added there. In French the word of the day is
+  public/wotd-fr.json (120 French words, 35 / 50 / 35 by level, picked by `pickFrom`, so they repeat every few months), and
+  Counting Sheep asks for French starts, fence words and hint examples (`setDreamLanguage` in src/dream/dream.ts, set once at
+  boot; `check` and `matched` fold accents). Not translated: lines built with values not in the patterns, the share text,
+  the classic look and the legal pages.
 - A second admin avatar (requested by Brian, 2026-11-20): another photo beside Kaiyan's, admin-only in the same way (id `admin2`,
   `ADMIN2_AVATAR_ID` in src/avatars/ids.ts; `isAdminAvatar` is the check everywhere, server, store, save code and skin). It is a plain
   flat square picture (src/skin/assets/admin2.png, a 512 x 512 circle, one-off crop of the photo Brian sent): no stretched forehead and

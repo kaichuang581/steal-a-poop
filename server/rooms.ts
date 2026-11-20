@@ -11,6 +11,8 @@ export type ClientAction = { type: 'play'; word: string } | { type: 'bank' } | {
 
 export interface RoomManagerDeps {
   ctx: EngineContext;
+  /** The French word list, for rooms opened by a French player. Without it they play the English list. */
+  dictFr?: EngineContext['dict'];
   now: () => number;
   /** Integer in [0, n). Production uses crypto.randomInt. */
   randomInt: (n: number) => number;
@@ -69,7 +71,12 @@ export class RoomManager {
     return this.rooms.size;
   }
 
-  createRoom(userId: string, rawName: string, opts: { visibility: Visibility; roomName?: string }): Result<{ code: string }> {
+  /** The engine context for a room: its own language's word list. */
+  private ctxFor(room: Room): EngineContext {
+    return room.lang === 'fr' && this.deps.dictFr ? { ...this.deps.ctx, dict: this.deps.dictFr } : this.deps.ctx;
+  }
+
+  createRoom(userId: string, rawName: string, opts: { visibility: Visibility; roomName?: string; lang?: 'en' | 'fr' }): Result<{ code: string }> {
     const name = rawName.trim().slice(0, NAME_MAX);
     if (!name) return { ok: false, error: 'bad_name' };
     if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
@@ -94,6 +101,7 @@ export class RoomManager {
       kicked: [],
       finishedAt: null,
       ...FRESH, ratedSeats: [], leftAt: {}, botNames: [], quietSince: this.deps.now(),
+      ...(opts.lang === 'fr' ? { lang: 'fr' as const } : {}),
     };
     this.rooms.set(code, room);
     this.roomOfUser.set(userId, code);
@@ -128,18 +136,18 @@ export class RoomManager {
    * Quick start: puts the player in the fullest open public room they may join (the oldest on a tie), so tables fill
    * one at a time, or opens a new public room when there is none.
    */
-  quickJoin(userId: string, rawName: string): Result<{ code: string; created: boolean }> {
+  quickJoin(userId: string, rawName: string, lang: 'en' | 'fr' = 'en'): Result<{ code: string; created: boolean }> {
     const name = rawName.trim().slice(0, NAME_MAX);
     if (!name) return { ok: false, error: 'bad_name' };
     if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
     const open = [...this.rooms.values()]
-      .filter((r) => r.kind === 'room' && !r.ranked && r.visibility === 'public' && r.phase === 'lobby' && r.members.length < MAX_ROOM_SIZE && !r.kicked.includes(userId))
+      .filter((r) => r.kind === 'room' && !r.ranked && (r.lang ?? 'en') === lang && r.visibility === 'public' && r.phase === 'lobby' && r.members.length < MAX_ROOM_SIZE && !r.kicked.includes(userId))
       .sort((a, b) => b.members.length - a.members.length || (a.members[0]?.joinedAt ?? 0) - (b.members[0]?.joinedAt ?? 0));
     if (open.length > 0) {
       const joined = this.join(userId, name, open[0].code);
       return joined.ok ? { ...joined, created: false } : joined;
     }
-    const made = this.createRoom(userId, name, { visibility: 'public', roomName: 'Quick play' });
+    const made = this.createRoom(userId, name, { visibility: 'public', roomName: lang === 'fr' ? 'Partie rapide' : 'Quick play', lang });
     if (!made.ok) return made;
     this.rooms.get(made.code)!.queue = true;
     return { ...made, created: true };
@@ -151,13 +159,13 @@ export class RoomManager {
    * player sits down, or RANKED_FULL_WAIT_MS after its fourth. Nobody hosts it, and it cannot be joined by code. The
    * caller has already checked that this is an account (a guest has no rating to play for).
    */
-  rankedJoin(userId: string, rawName: string): Result<{ code: string; created: boolean }> {
+  rankedJoin(userId: string, rawName: string, lang: 'en' | 'fr' = 'en'): Result<{ code: string; created: boolean }> {
     const name = rawName.trim().slice(0, NAME_MAX);
     if (!name) return { ok: false, error: 'bad_name' };
     if (this.roomOfUser.has(userId)) return { ok: false, error: 'already_in_room' };
     const now = this.deps.now();
     const open = [...this.rooms.values()]
-      .filter((r) => r.kind === 'room' && r.ranked && r.phase === 'lobby' && r.members.length < RANKED_MAX_PLAYERS)
+      .filter((r) => r.kind === 'room' && r.ranked && (r.lang ?? 'en') === lang && r.phase === 'lobby' && r.members.length < RANKED_MAX_PLAYERS)
       .sort((a, b) => b.members.length - a.members.length || (a.members[0]?.joinedAt ?? 0) - (b.members[0]?.joinedAt ?? 0));
     if (open.length > 0) {
       const room = open[0];
@@ -166,7 +174,7 @@ export class RoomManager {
       this.armRanked(room);
       return { ok: true, code: room.code, created: false };
     }
-    const made = this.createRoom(userId, name, { visibility: 'public', roomName: 'Ranked' });
+    const made = this.createRoom(userId, name, { visibility: 'public', roomName: lang === 'fr' ? 'Classée' : 'Ranked', lang });
     if (!made.ok) return made;
     const room = this.rooms.get(made.code)!;
     room.queue = true;
@@ -397,7 +405,7 @@ export class RoomManager {
             botNames: room.botNames,
             settings: { turnsPerRound: room.settings.turnsPerRound, lives: room.settings.lives, twists: room.settings.twists, timeCarry: 'more' },
           },
-      this.deps.ctx.dict,
+      this.ctxFor(room).dict,
     );
     room.phase = 'playing';
     room.gameId = `${room.code}:${now}`;
@@ -413,7 +421,7 @@ export class RoomManager {
     if (room.phase !== 'playing' || !room.game) return { ok: false, error: 'game_not_running' };
     const seat = room.seatOf[userId];
     if (seat === undefined) return { ok: false, error: 'not_in_room' };
-    const result = apply(room.game, this.deps.ctx, { ...action, seat }, this.deps.now());
+    const result = apply(room.game, this.ctxFor(room), { ...action, seat }, this.deps.now());
     room.game = result.state;
     this.finishIfOver(room);
     return { ok: true, result };
@@ -440,7 +448,7 @@ export class RoomManager {
         continue;
       }
       if (room.phase !== 'playing' || !room.game) continue;
-      const next = advance(room.game, this.deps.ctx, now);
+      const next = advance(room.game, this.ctxFor(room), now);
       if (next !== room.game) {
         room.game = next;
         changed.push(room.code);

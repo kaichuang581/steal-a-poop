@@ -1,4 +1,9 @@
 import { JoinLink } from './share/JoinLink';
+import { getLang } from '../lib/lang';
+import { setDreamLanguage } from '../dream/dream';
+
+// The dream's fences ask for French starts in French (src/dream/dream.ts).
+setDreamLanguage(getLang());
 import { heatFor, setMusicScene } from '../audio/scene';
 import { setSoftBoom, setTickVoice } from '../audio/sound';
 import { loadStreak } from '../dream/daily';
@@ -87,6 +92,15 @@ export function PaintedApp() {
   const [report, setReport] = useState(REPORT);
   // Tell the game server this tab is open (numbers only, for the admin panel's visit counts): src/lib/visit.ts.
   useEffect(() => startVisitReports(), []);
+  // French: the language button on Home sets it; the page's text is swapped by i18n/translate.ts.
+  useEffect(() => {
+    if (getLang() !== 'fr') return;
+    // Loaded only for French players, so the English game carries none of it.
+    let stop: (() => void) | undefined;
+    let gone = false;
+    void import('./i18n/translate').then((m) => { if (!gone) stop = m.startFrench(); });
+    return () => { gone = true; stop?.(); };
+  }, []);
   // Sound sleeps while the tab is hidden and wakes with it (plan file 17, change 12): perf/audioSleep.ts.
   useEffect(() => installAudioSleep(), []);
   // Keep the server told which avatar you picked, so the others in a room see it.

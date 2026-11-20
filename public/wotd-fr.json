@@ -1,0 +1,842 @@
+[
+{
+"word": "hiberner",
+"level": 1,
+"pos": "v",
+"say": "i-ber-NÉ",
+"short": "dormir tout l'hiver"
+},
+{
+"word": "migrer",
+"level": 1,
+"pos": "v",
+"say": "mi-GRÉ",
+"short": "voyager au fil des saisons"
+},
+{
+"word": "terrier",
+"level": 1,
+"pos": "n",
+"say": "tè-RIÉ",
+"short": "trou où vit un lapin"
+},
+{
+"word": "troupeau",
+"level": 1,
+"pos": "n",
+"say": "trou-PÔ",
+"short": "groupe d'animaux ensemble"
+},
+{
+"word": "grelotter",
+"level": 1,
+"pos": "v",
+"say": "gre-lo-TÉ",
+"short": "trembler de froid"
+},
+{
+"word": "flocon",
+"level": 1,
+"pos": "n",
+"say": "flo-KON",
+"short": "petit cristal de neige"
+},
+{
+"word": "crépuscule",
+"level": 1,
+"pos": "n",
+"say": "kré-pus-KUL",
+"short": "fin du jour, avant la nuit"
+},
+{
+"word": "aurore",
+"level": 1,
+"pos": "n",
+"say": "o-ROR",
+"short": "lumière juste avant le jour"
+},
+{
+"word": "givre",
+"level": 1,
+"pos": "n",
+"say": "JIVR",
+"short": "glace fine sur l'herbe"
+},
+{
+"word": "brindille",
+"level": 1,
+"pos": "n",
+"say": "brin-DIY",
+"short": "petite branche très fine"
+},
+{
+"word": "ruisseau",
+"level": 1,
+"pos": "n",
+"say": "rui-SÔ",
+"short": "petite rivière qui coule"
+},
+{
+"word": "murmurer",
+"level": 1,
+"pos": "v",
+"say": "mur-mu-RÉ",
+"short": "parler tout bas"
+},
+{
+"word": "grignoter",
+"level": 1,
+"pos": "v",
+"say": "gri-nyo-TÉ",
+"short": "manger par petits bouts"
+},
+{
+"word": "bâiller",
+"level": 1,
+"pos": "v",
+"say": "ba-YÉ",
+"short": "ouvrir la bouche de sommeil"
+},
+{
+"word": "sommeiller",
+"level": 1,
+"pos": "v",
+"say": "so-mè-YÉ",
+"short": "dormir à moitié"
+},
+{
+"word": "étincelle",
+"level": 1,
+"pos": "n",
+"say": "é-tin-SÈL",
+"short": "petit point de feu"
+},
+{
+"word": "lanterne",
+"level": 1,
+"pos": "n",
+"say": "lan-TÈRN",
+"short": "lampe qu'on porte à la main"
+},
+{
+"word": "grenier",
+"level": 1,
+"pos": "n",
+"say": "gre-NIÉ",
+"short": "pièce sous le toit"
+},
+{
+"word": "étable",
+"level": 1,
+"pos": "n",
+"say": "é-TABL",
+"short": "maison des vaches"
+},
+{
+"word": "enclos",
+"level": 1,
+"pos": "n",
+"say": "an-KLÔ",
+"short": "terrain fermé par une clôture"
+},
+{
+"word": "berger",
+"level": 1,
+"pos": "n",
+"say": "bèr-JÉ",
+"short": "celui qui garde les moutons"
+},
+{
+"word": "toison",
+"level": 1,
+"pos": "n",
+"say": "toi-ZON",
+"short": "laine d'un mouton"
+},
+{
+"word": "tricoter",
+"level": 1,
+"pos": "v",
+"say": "tri-ko-TÉ",
+"short": "faire un tissu avec de la laine"
+},
+{
+"word": "pelote",
+"level": 1,
+"pos": "n",
+"say": "pe-LOT",
+"short": "boule de fil de laine"
+},
+{
+"word": "douillet",
+"level": 1,
+"pos": "adj",
+"say": "dou-YÈ",
+"short": "doux et confortable"
+},
+{
+"word": "emmitouflé",
+"level": 1,
+"pos": "adj",
+"say": "an-mi-tou-FLÉ",
+"short": "bien couvert contre le froid"
+},
+{
+"word": "gambader",
+"level": 1,
+"pos": "v",
+"say": "gan-ba-DÉ",
+"short": "sauter joyeusement"
+},
+{
+"word": "paisible",
+"level": 1,
+"pos": "adj",
+"say": "pè-ZIBL",
+"short": "calme et tranquille"
+},
+{
+"word": "chuchoter",
+"level": 1,
+"pos": "v",
+"say": "chu-cho-TÉ",
+"short": "parler à voix basse"
+},
+{
+"word": "scintiller",
+"level": 1,
+"pos": "v",
+"say": "sin-ti-YÉ",
+"short": "briller en clignotant"
+},
+{
+"word": "verger",
+"level": 1,
+"pos": "n",
+"say": "vèr-JÉ",
+"short": "champ d'arbres fruitiers"
+},
+{
+"word": "récolte",
+"level": 1,
+"pos": "n",
+"say": "ré-KOLT",
+"short": "ce qu'on cueille aux champs"
+},
+{
+"word": "moisson",
+"level": 1,
+"pos": "n",
+"say": "moi-SON",
+"short": "récolte du blé"
+},
+{
+"word": "sillon",
+"level": 1,
+"pos": "n",
+"say": "si-YON",
+"short": "ligne creusée par la charrue"
+},
+{
+"word": "clairière",
+"level": 1,
+"pos": "n",
+"say": "klè-RIÈR",
+"short": "endroit sans arbres en forêt"
+},
+{
+"word": "bourrasque",
+"level": 2,
+"pos": "n",
+"say": "bou-RASK",
+"short": "coup de vent violent"
+},
+{
+"word": "congère",
+"level": 2,
+"pos": "n",
+"say": "kon-JÈR",
+"short": "tas de neige poussé par le vent"
+},
+{
+"word": "engourdi",
+"level": 2,
+"pos": "adj",
+"say": "an-gour-DI",
+"short": "qui ne sent plus rien de froid"
+},
+{
+"word": "s'assoupir",
+"level": 2,
+"pos": "v",
+"say": "sa-sou-PIR",
+"short": "s'endormir doucement"
+},
+{
+"word": "pénombre",
+"level": 2,
+"pos": "n",
+"say": "pé-NONBR",
+"short": "lumière faible, presque noire"
+},
+{
+"word": "rêvasser",
+"level": 2,
+"pos": "v",
+"say": "rè-va-SÉ",
+"short": "rêver tout éveillé"
+},
+{
+"word": "somnoler",
+"level": 2,
+"pos": "v",
+"say": "som-no-LÉ",
+"short": "dormir à demi"
+},
+{
+"word": "bercer",
+"level": 2,
+"pos": "v",
+"say": "bèr-SÉ",
+"short": "balancer doucement"
+},
+{
+"word": "blottir",
+"level": 2,
+"pos": "v",
+"say": "blo-TIR",
+"short": "se serrer contre quelqu'un"
+},
+{
+"word": "frimas",
+"level": 2,
+"pos": "n",
+"say": "fri-MA",
+"short": "brouillard givré de l'hiver"
+},
+{
+"word": "verglas",
+"level": 2,
+"pos": "n",
+"say": "vèr-GLA",
+"short": "glace mince sur la route"
+},
+{
+"word": "stalactite",
+"level": 2,
+"pos": "n",
+"say": "sta-lak-TIT",
+"short": "glace pendue qui pointe en bas"
+},
+{
+"word": "glaçon",
+"level": 2,
+"pos": "n",
+"say": "gla-SON",
+"short": "petit morceau de glace"
+},
+{
+"word": "âtre",
+"level": 2,
+"pos": "n",
+"say": "ATR",
+"short": "endroit où brûle le feu"
+},
+{
+"word": "braise",
+"level": 2,
+"pos": "n",
+"say": "BRÈZ",
+"short": "bois qui rougeoie encore"
+},
+{
+"word": "crépiter",
+"level": 2,
+"pos": "v",
+"say": "kré-pi-TÉ",
+"short": "faire de petits bruits secs"
+},
+{
+"word": "tisonnier",
+"level": 2,
+"pos": "n",
+"say": "ti-zo-NIÉ",
+"short": "tige pour remuer le feu"
+},
+{
+"word": "édredon",
+"level": 2,
+"pos": "n",
+"say": "é-dre-DON",
+"short": "couverture gonflée de plumes"
+},
+{
+"word": "écurie",
+"level": 2,
+"pos": "n",
+"say": "é-ku-RI",
+"short": "maison des chevaux"
+},
+{
+"word": "poulailler",
+"level": 2,
+"pos": "n",
+"say": "pou-la-YÉ",
+"short": "maison des poules"
+},
+{
+"word": "bergerie",
+"level": 2,
+"pos": "n",
+"say": "bèr-je-RI",
+"short": "maison des moutons"
+},
+{
+"word": "fourrage",
+"level": 2,
+"pos": "n",
+"say": "fou-RAJ",
+"short": "nourriture sèche des bêtes"
+},
+{
+"word": "mangeoire",
+"level": 2,
+"pos": "n",
+"say": "man-JOIR",
+"short": "bac où mangent les animaux"
+},
+{
+"word": "abreuvoir",
+"level": 2,
+"pos": "n",
+"say": "a-breu-VOIR",
+"short": "bac où boivent les animaux"
+},
+{
+"word": "botteler",
+"level": 2,
+"pos": "v",
+"say": "bo-te-LÉ",
+"short": "mettre le foin en bottes"
+},
+{
+"word": "tondre",
+"level": 2,
+"pos": "v",
+"say": "TONDR",
+"short": "couper la laine d'un mouton"
+},
+{
+"word": "bêler",
+"level": 2,
+"pos": "v",
+"say": "bè-LÉ",
+"short": "crier comme un mouton"
+},
+{
+"word": "hennir",
+"level": 2,
+"pos": "v",
+"say": "è-NIR",
+"short": "crier comme un cheval"
+},
+{
+"word": "glousser",
+"level": 2,
+"pos": "v",
+"say": "glou-SÉ",
+"short": "crier comme une poule"
+},
+{
+"word": "roucouler",
+"level": 2,
+"pos": "v",
+"say": "rou-kou-LÉ",
+"short": "chanter comme un pigeon"
+},
+{
+"word": "pépier",
+"level": 2,
+"pos": "v",
+"say": "pé-PIÉ",
+"short": "crier comme un petit oiseau"
+},
+{
+"word": "gazouiller",
+"level": 2,
+"pos": "v",
+"say": "ga-zou-YÉ",
+"short": "chanter doucement"
+},
+{
+"word": "caqueter",
+"level": 2,
+"pos": "v",
+"say": "ka-ke-TÉ",
+"short": "crier comme une poule qui pond"
+},
+{
+"word": "fureter",
+"level": 2,
+"pos": "v",
+"say": "fu-re-TÉ",
+"short": "chercher partout"
+},
+{
+"word": "dénicher",
+"level": 2,
+"pos": "v",
+"say": "dé-ni-CHÉ",
+"short": "trouver après avoir cherché"
+},
+{
+"word": "flâner",
+"level": 2,
+"pos": "v",
+"say": "fla-NÉ",
+"short": "se promener sans se presser"
+},
+{
+"word": "musarder",
+"level": 2,
+"pos": "v",
+"say": "mu-zar-DÉ",
+"short": "perdre son temps à flâner"
+},
+{
+"word": "vagabonder",
+"level": 2,
+"pos": "v",
+"say": "va-ga-bon-DÉ",
+"short": "errer çà et là"
+},
+{
+"word": "s'éclipser",
+"level": 2,
+"pos": "v",
+"say": "sé-klip-SÉ",
+"short": "partir sans se faire voir"
+},
+{
+"word": "chatoyer",
+"level": 2,
+"pos": "v",
+"say": "cha-toi-YÉ",
+"short": "briller de reflets changeants"
+},
+{
+"word": "miroiter",
+"level": 2,
+"pos": "v",
+"say": "mi-roi-TÉ",
+"short": "refléter la lumière"
+},
+{
+"word": "tintinnabuler",
+"level": 2,
+"pos": "v",
+"say": "tin-ti-na-bu-LÉ",
+"short": "sonner comme une clochette"
+},
+{
+"word": "fredonner",
+"level": 2,
+"pos": "v",
+"say": "fre-do-NÉ",
+"short": "chanter bouche fermée"
+},
+{
+"word": "pétiller",
+"level": 2,
+"pos": "v",
+"say": "pé-ti-YÉ",
+"short": "faire de petites bulles"
+},
+{
+"word": "câlin",
+"level": 2,
+"pos": "n",
+"say": "ka-LIN",
+"short": "tendre embrassade"
+},
+{
+"word": "tendresse",
+"level": 2,
+"pos": "n",
+"say": "tan-DRÈS",
+"short": "douceur pleine d'amour"
+},
+{
+"word": "quiétude",
+"level": 2,
+"pos": "n",
+"say": "kié-TUD",
+"short": "grand calme intérieur"
+},
+{
+"word": "sérénité",
+"level": 2,
+"pos": "n",
+"say": "sé-ré-ni-TÉ",
+"short": "paix de l'esprit"
+},
+{
+"word": "nostalgie",
+"level": 2,
+"pos": "n",
+"say": "nos-tal-JI",
+"short": "regret doux du passé"
+},
+{
+"word": "émerveillé",
+"level": 2,
+"pos": "adj",
+"say": "é-mèr-vè-YÉ",
+"short": "rempli d'admiration"
+},
+{
+"word": "crépusculaire",
+"level": 3,
+"pos": "adj",
+"say": "kré-pus-ku-LÈR",
+"short": "qui a lieu au crépuscule"
+},
+{
+"word": "noctambule",
+"level": 3,
+"pos": "n",
+"say": "nok-tan-BUL",
+"short": "qui aime sortir la nuit"
+},
+{
+"word": "insomnie",
+"level": 3,
+"pos": "n",
+"say": "in-som-NI",
+"short": "quand on n'arrive pas à dormir"
+},
+{
+"word": "léthargie",
+"level": 3,
+"pos": "n",
+"say": "lé-tar-JI",
+"short": "sommeil très profond"
+},
+{
+"word": "torpeur",
+"level": 3,
+"pos": "n",
+"say": "tor-PEUR",
+"short": "lenteur de quelqu'un engourdi"
+},
+{
+"word": "somnambule",
+"level": 3,
+"pos": "n",
+"say": "som-nan-BUL",
+"short": "qui marche en dormant"
+},
+{
+"word": "onirique",
+"level": 3,
+"pos": "adj",
+"say": "o-ni-RIK",
+"short": "qui ressemble à un rêve"
+},
+{
+"word": "chimère",
+"level": 3,
+"pos": "n",
+"say": "chi-MÈR",
+"short": "rêve impossible"
+},
+{
+"word": "féerique",
+"level": 3,
+"pos": "adj",
+"say": "fé-RIK",
+"short": "beau comme dans un conte"
+},
+{
+"word": "éphémère",
+"level": 3,
+"pos": "adj",
+"say": "é-fé-MÈR",
+"short": "qui dure très peu"
+},
+{
+"word": "pérenne",
+"level": 3,
+"pos": "adj",
+"say": "pé-RÈN",
+"short": "qui dure longtemps"
+},
+{
+"word": "bucolique",
+"level": 3,
+"pos": "adj",
+"say": "bu-ko-LIK",
+"short": "qui parle de la campagne"
+},
+{
+"word": "pastoral",
+"level": 3,
+"pos": "adj",
+"say": "pas-to-RAL",
+"short": "qui concerne les bergers"
+},
+{
+"word": "transhumance",
+"level": 3,
+"pos": "n",
+"say": "tranz-u-MANS",
+"short": "voyage des troupeaux en montagne"
+},
+{
+"word": "estive",
+"level": 3,
+"pos": "n",
+"say": "ès-TIV",
+"short": "pâturage d'été en montagne"
+},
+{
+"word": "herbivore",
+"level": 3,
+"pos": "adj",
+"say": "èr-bi-VOR",
+"short": "qui mange de l'herbe"
+},
+{
+"word": "ruminer",
+"level": 3,
+"pos": "v",
+"say": "ru-mi-NÉ",
+"short": "mâcher encore sa nourriture"
+},
+{
+"word": "pâturage",
+"level": 3,
+"pos": "n",
+"say": "pa-tu-RAJ",
+"short": "pré où mangent les bêtes"
+},
+{
+"word": "boréal",
+"level": 3,
+"pos": "adj",
+"say": "bo-ré-AL",
+"short": "qui vient du grand nord"
+},
+{
+"word": "solstice",
+"level": 3,
+"pos": "n",
+"say": "sol-STIS",
+"short": "jour le plus long ou court"
+},
+{
+"word": "équinoxe",
+"level": 3,
+"pos": "n",
+"say": "é-ki-NOKS",
+"short": "jour égal à la nuit"
+},
+{
+"word": "cristallin",
+"level": 3,
+"pos": "adj",
+"say": "kris-ta-LIN",
+"short": "clair comme du cristal"
+},
+{
+"word": "diaphane",
+"level": 3,
+"pos": "adj",
+"say": "dia-FAN",
+"short": "qui laisse passer la lumière"
+},
+{
+"word": "évanescent",
+"level": 3,
+"pos": "adj",
+"say": "é-va-nè-SAN",
+"short": "qui disparaît peu à peu"
+},
+{
+"word": "étincelant",
+"level": 3,
+"pos": "adj",
+"say": "é-tin-se-LAN",
+"short": "qui brille très fort"
+},
+{
+"word": "susurrer",
+"level": 3,
+"pos": "v",
+"say": "su-su-RÉ",
+"short": "murmurer très doucement"
+},
+{
+"word": "tergiverser",
+"level": 3,
+"pos": "v",
+"say": "tèr-ji-vèr-SÉ",
+"short": "hésiter avant de décider"
+},
+{
+"word": "pérégrination",
+"level": 3,
+"pos": "n",
+"say": "pé-ré-gri-na-SION",
+"short": "long voyage plein de détours"
+},
+{
+"word": "quintessence",
+"level": 3,
+"pos": "n",
+"say": "kin-té-SANS",
+"short": "ce qu'il y a de meilleur"
+},
+{
+"word": "sempiternel",
+"level": 3,
+"pos": "adj",
+"say": "san-pi-tèr-NÈL",
+"short": "qui ne finit jamais"
+},
+{
+"word": "hétéroclite",
+"level": 3,
+"pos": "adj",
+"say": "é-té-ro-KLIT",
+"short": "fait de choses très variées"
+},
+{
+"word": "saugrenu",
+"level": 3,
+"pos": "adj",
+"say": "sô-gre-NU",
+"short": "bizarre et inattendu"
+},
+{
+"word": "farfelu",
+"level": 3,
+"pos": "adj",
+"say": "far-fe-LU",
+"short": "un peu fou et drôle"
+},
+{
+"word": "abasourdi",
+"level": 3,
+"pos": "adj",
+"say": "a-ba-zour-DI",
+"short": "très surpris"
+},
+{
+"word": "ébahi",
+"level": 3,
+"pos": "adj",
+"say": "é-ba-I",
+"short": "étonné, bouche ouverte"
+}
+]

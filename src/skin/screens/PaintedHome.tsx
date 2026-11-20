@@ -58,6 +58,7 @@ import { FarmBackdrop } from '../table/FarmBackdrop';
 import { useHomeFps } from '../perf/governor';
 import { PaintedSettings } from './PaintedSettings';
 import { SoundMenu } from '../components/SoundMenu';
+import { getLang, setLang } from '../../lib/lang';
 
 export const PAINTED_TITLE = PAINTED_GAME_TITLE;
 /** The game's version, as the footer shows it: the device report (perf/report.ts) reads it from here. */
@@ -425,6 +426,8 @@ export function PaintedHome() {
             {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinArt size={14} /></span>}
           </>
         ))}
+        {/* The language switch: the whole game, word list included, in French or in English. */}
+        <button className="sk-icon-btn" data-lang-switch data-i18n-skip onClick={() => setLang(getLang() === 'fr' ? 'en' : 'fr')} aria-label={getLang() === 'fr' ? 'English' : 'Français'} title={getLang() === 'fr' ? 'Play in English' : 'Jouer en français'} style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap', fontWeight: 800 }}>{getLang() === 'fr' ? 'English' : 'French'}</button>
         {authEnabled() && (authStatus === 'ready' ? (
           <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Account</button>
         ) : (

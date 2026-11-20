@@ -1,3 +1,35 @@
+## The painted-miniature look (docs/miniature/, from 2026-11-20)
+
+The plan in docs/miniature/ is the current plan for how the game looks. It replaces docs/toybox/ (never run it: it
+was built on branches `toybox/*`, which are not merged and not continued) and the diorama scenery plan.
+
+Read docs/miniature/inventory.md and anchors.md first: the plan was written against v0.8.0, and those two files map
+its names and places onto the tree as it stood at v0.8.3 (commit 6608e99). Where they differ from the plan's files,
+they are the ones to use. Brian's words for the run, 2026-11-20: "execute fleeced miniature plan".
+
+Standing rules from it (docs/miniature/01-target-look.md has the full text):
+- One part, one colour. Parts that touch differ by one step of the material's ladder. Nothing random per cube:
+  no random tone, no grain, no random holes in snow. Colours come from `LADDER` in src/skin/voxel/paint.ts.
+- Structure is 0.2 m blocks and is not smoothed (`CHUNKY` in refine.ts). Small detail is 0.05 m blocks (the micro
+  layer, Home only). Edges are sharp; `ROUNDED_VOXELS` stays a switch (Brian's trial of 2026-11-09 can be restored).
+- No texture, gradient, gloss or outline. Shade comes from light, corner shade, the ground shade map and the eave step.
+- An empty area is fixed with a real part from the kit (docs/miniature/04) or a planned value step, never with noise.
+
+Brian's decisions for this plan (each overrides the older rule named). The plan runs on its defaults (README,
+section 7) by his instruction of 2026-11-20; a date is written here when he answers a pair:
+- Day and dawn light on Home: sun 45 degrees up (dawn 30), 40 degrees round, Neutral tone mapping, exposure 2.2
+  (dawn 2.0), haze fitted per shot, shadow box fitted per shot, shadow radius 2. Overrides the day values in
+  "Brian's light limits". Approved: ____
+- Solid snow in front of z = -16. Overrides "the snow's texture stands" there. Approved: ____
+- Chunky structure: ____   Sharp edges: ____   Animal colours: ____   Barn table palette: ____
+- Dusk and night light: unchanged unless recorded here: ____
+
+Unchanged and still binding: every wendigo rule; the paddock shot draws today's light, haze, tone mapping, exposure,
+shadows and tilt-shift on every tier; nothing behind z = -16 changes; no cube of the country or the land is added or
+removed; the wendigo's pins as they stand at 6608e99 are the frozen ones; one branch per milestone
+(`miniature/m0-inventory` …), local commits, no push or pull request until Brian says; the full gate runs once, at
+the end.
+
 ## The visual overhaul (Brian, 2026-11-16) — read this first
 Requested by Brian of the whole painted game: "especially the animal models good lord", "you can completely remake the
 scenery if needed", and, after a friend's report of about 10 fps, broken-looking assets and 35% of a battery in five

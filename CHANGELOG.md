@@ -4,7 +4,7 @@ All user-visible changes, newest first.
 
 ## Unreleased
 
-- French: a "French" button on the start screen switches the whole game to French, with a French word list (accents optional, spelling help as in English). French players are matched with French tables.
+- French: a "French" button on the start screen switches the whole game to French, with a French word list (accents optional, spelling help as in English). French players are matched with French tables. The word of the day and Counting Sheep are French too.
 
 ## 0.8.0
 

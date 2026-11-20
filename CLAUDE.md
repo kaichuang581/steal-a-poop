@@ -1763,6 +1763,8 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   server loads both lists; a room opened by a French player (`lang` on create / quick / ranked) plays the French list and the
   queues match French with French. The screen is translated by src/skin/i18n/translate.ts, a page-level swap of exact English
   lines from public/i18n-fr.json (fetched only in French) plus the patterns in i18n/fr.ts; the chat log, inputs and anything
-  marked data-i18n-skip are left alone. New English text needs its French added there. Not translated: the word of the day,
-  the dream's fence words and hints (still English starts, checked against the French list), lines built with values not in
-  the patterns, the classic look and the legal pages.
+  marked data-i18n-skip are left alone. New English text needs its French added there. In French the word of the day is
+  public/wotd-fr.json (120 French words, 35 / 50 / 35 by level, picked by `pickFrom`, so they repeat every few months), and
+  Counting Sheep asks for French starts, fence words and hint examples (`setDreamLanguage` in src/dream/dream.ts, set once at
+  boot; `check` and `matched` fold accents). Not translated: lines built with values not in the patterns, the share text,
+  the classic look and the legal pages.

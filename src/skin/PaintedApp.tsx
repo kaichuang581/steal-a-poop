@@ -1,5 +1,9 @@
 import { JoinLink } from './share/JoinLink';
 import { getLang } from '../lib/lang';
+import { setDreamLanguage } from '../dream/dream';
+
+// The dream's fences ask for French starts in French (src/dream/dream.ts).
+setDreamLanguage(getLang());
 import { heatFor, setMusicScene } from '../audio/scene';
 import { setSoftBoom, setTickVoice } from '../audio/sound';
 import { loadStreak } from '../dream/daily';

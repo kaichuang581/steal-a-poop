@@ -5,6 +5,8 @@ import { normalizeWord, validateWord } from '../../../engine/validation';
 import { suggestCorrection } from '../../../engine/typos';
 import { foldAccents } from '../../../lib/lang';
 import { setFrench, toFrench } from '../translate';
+import { check, fenceAt, formatHint, setDreamLanguage, STARTS } from '../../../dream/dream';
+import { pickFrom } from '../../wotd/pick';
 
 const FR = JSON.parse(readFileSync('public/i18n-fr.json', 'utf8')) as Record<string, string>;
 setFrench(FR);
@@ -41,5 +43,37 @@ describe('the French game', () => {
     expect(toFrench('Must start with B.')).toBe('Doit commencer par B.');
     expect(toFrench('kxln')).toBeNull();
     expect(Object.values(FR).every((v) => v.length > 0)).toBe(true);
+  });
+});
+
+describe('the French dream and word of the day', () => {
+  it('asks for French starts that begin plenty of French words, and takes accents', () => {
+    setDreamLanguage('fr');
+    try {
+      for (const k of [1, 2, 3] as const) {
+        for (const p of STARTS[k]) {
+          const n = [...'abcdefghijklmnopqrstuvwxyz'].includes(p[0]) ? fr.startingWith(p[0]).filter((w) => w.startsWith(p) && w.length >= 3).length : 0;
+          expect(n, p).toBeGreaterThan(50);
+        }
+      }
+      const seed = 'dream:2026-11-20';
+      for (let i = 0; i < 30; i++) expect(STARTS[fenceAt(seed, i).letters.length as 1 | 2 | 3]).toContain(fenceAt(seed, i).letters.join(''));
+      const f = { index: 0, kind: 'fence' as const, letters: ['e'], source: '', gap: 800 };
+      expect(check(fr, f, 'Été', new Set()).ok).toBe(true);
+      const hint = formatHint(seed, fenceAt(seed, 0));
+      if (hint) expect(fr.has(hint.word)).toBe(true);
+    } finally {
+      setDreamLanguage('en');
+    }
+  });
+
+  it('has French words of the day, every one in the French list, for every weekday', () => {
+    const all = JSON.parse(readFileSync('public/wotd-fr.json', 'utf8')) as { word: string; level: 1 | 2 | 3; short: string }[];
+    for (const e of all) {
+      expect(fr.has(normalizeWord(e.word.split("'").pop()!)), e.word).toBe(true);
+      expect(e.short.length).toBeLessThanOrEqual(32);
+    }
+    const byLevel = { 1: all.filter((w) => w.level === 1), 2: all.filter((w) => w.level === 2), 3: all.filter((w) => w.level === 3) } as never;
+    for (const d of ['2026-11-16', '2026-11-18', '2026-11-21']) expect(pickFrom(byLevel, d).word).toBeTruthy();
   });
 });

@@ -553,7 +553,7 @@
  "The bright beep the bomb always had.": "Le bip clair que la bombe a toujours eu.",
  "The chain": "La chaîne",
  "The classic frozen bomb.": "La bombe gelée classique.",
- "The farmer drifted off": "Le fermier s’est assoupi",
+ "The farmer drifted off": "Le fermier s’est endormi",
  "The farmer slept": "Le fermier a dormi",
  "The farmer woke up": "Le fermier s’est réveillé",
  "The farmer woke up!": "Le fermier s’est réveillé !",
@@ -768,5 +768,12 @@
  "PRACTICE": "ENTRAÎNEMENT",
  "NEW": "NOUVEAU",
  "Daily": "Du jour",
- "update": "mise à jour"
+ "update": "mise à jour",
+ "none yet": "aucun pour l’instant",
+ "type ahead...": "tape à l’avance...",
+ "Zzz…": "Zzz…",
+ "sheep": "moutons",
+ "Tonight's dream returns at": "Le rêve de ce soir revient à",
+ "Longest word:": "Mot le plus long :",
+ "for": "pour"
 }

@@ -1,4 +1,5 @@
 import type { Dictionary } from '../engine/dictionary';
+import { foldAccents } from '../lib/lang';
 
 /**
  * Counting Sheep, the daily dream: the farmer is asleep, and in the thought bubble a sheep runs at a row of fences.
@@ -12,7 +13,7 @@ import type { Dictionary } from '../engine/dictionary';
  */
 
 /** Words the fences are cut from: common, sleepy, farmy. Any real word that fits the blanks is accepted. */
-export const FENCE_WORDS: readonly string[] = (
+export let FENCE_WORDS: readonly string[] = (
   'bed cap cow dog hay hen ram ewe pig owl sky sun nap dew fog ice oak elm hut pen jar mug cup rug hat toe bun pie ' +
   'barn bell boot calf cart coat corn dawn deer dove dusk farm fawn fern gate goat hill horn lamb lane moon moss nest ' +
   'pail pond rain rest road seed snow star tree wool yard wind wish milk bunk doze lull calm cozy dark glow hush ' +
@@ -80,7 +81,7 @@ export function lettersAt(index: number): number {
  * consonant blends (GR, ST, SH, STR), and a consonant with a vowel (BA, MO, CHA). Every one is checked against the word
  * list by the tests. A fence's word must begin with them, nothing else.
  */
-export const STARTS: Record<1 | 2 | 3, readonly string[]> = {
+export let STARTS: Record<1 | 2 | 3, readonly string[]> = {
   1: 'b c d f g h l m n p r s t w'.split(' '),
   2: ('bl br ch cl cr dr fl fr gl gr pl pr sc sh sk sl sm sn sp st sw th tr wh ' +
     'ba be bo bu ca co cu da de di fa fe fi fo ha he hi ho la le li lo ma me mi mo pa pe pi po ra re ri ro sa se si so su ta te ti to wa we wi').split(' '),
@@ -155,7 +156,7 @@ function buildFence(seed: string, index: number): Fence {
 
 /** How many of the fence's letters `typed` already has: the letters it starts with, in order, up to the first miss. */
 export function matched(fence: Fence, typed: string): number {
-  const t = typed.toLowerCase();
+  const t = foldAccents(typed.toLowerCase());
   let k = 0;
   while (k < fence.letters.length && t[k] === fence.letters[k]) k++;
   return k;
@@ -166,7 +167,7 @@ export type Verdict = { ok: true } | { ok: false; reason: 'short' | 'letters' | 
 /** Whether `typed` clears the fence: a real word of 3+ letters, not used yet this dream, that starts with the fence's
  *  letters. */
 export function check(dict: Dictionary, fence: Fence, typed: string, used: ReadonlySet<string>): Verdict {
-  const w = typed.trim().toLowerCase();
+  const w = foldAccents(typed.trim().toLowerCase());
   if (w.length < MIN_WORD) return { ok: false, reason: 'short' };
   if (matched(fence, w) < fence.letters.length) return { ok: false, reason: 'letters' };
   if (!dict.has(w)) return { ok: false, reason: 'word' };
@@ -185,7 +186,7 @@ export function signOf(fence: Fence): string {
  * many hints, and hints that also literally give the word directly. make hints only pop up when theres a new letter
  * format"). Null for a format already seen.
  */
-const FORMAT_EXAMPLES: Record<1 | 2 | 3, readonly [string, string][]> = {
+let FORMAT_EXAMPLES: Record<1 | 2 | 3, readonly [string, string][]> = {
   1: [['s', 'sheep'], ['b', 'barn'], ['m', 'moon'], ['h', 'hay']],
   2: [['gr', 'grass'], ['st', 'star'], ['sh', 'sheep'], ['fl', 'flock'], ['sn', 'snow'], ['tr', 'tree']],
   3: [['str', 'straw'], ['sle', 'sleep'], ['sno', 'snow'], ['pla', 'plant'], ['thr', 'three'], ['cha', 'chair']],
@@ -287,4 +288,39 @@ export function dreamShareText(r: DreamResult): string {
     streak,
     r.url ?? '',
   ].filter(Boolean).join('\n');
+}
+
+/** The French dream: French starts, words and examples, all in public/words-fr.txt (stored without accents). */
+const FR_FENCE_WORDS = (
+  'lit nuit reve lune ciel etoile mouton laine ferme foin paille grange vache cochon chevre cheval poule coq chien chat ' +
+  'oie canard lapin renard hibou loup ours biche cerf herbe pre champ colline foret sapin arbre feuille fleur neige givre ' +
+  'glace nuage pluie vent brume rosee aube soir matin sommeil oreiller couverture couette edredon doudou berceuse ' +
+  'chanson calme douceur repos sieste bonnet pantoufle bougie lanterne lampe fenetre maison cabane chalet porte ' +
+  'barriere cloture enclos troupeau berger bergere fermier tracteur charrette brouette verger pomme poire prune cerise ' +
+  'miel lait pain tarte gateau biscuit confiture soupe chocolat tisane cheminee feu braise flocon bonhomme traineau ' +
+  'mitaine echarpe tricot pelote velours plume coton duvet ruisseau riviere etang pont chemin sentier jardin potager ' +
+  'carotte navet citrouille trefle marguerite tulipe rose violette grillon luciole papillon abeille souris ecureuil ' +
+  'grenier etable moulin silo cloche grelot musique piano violon tambour sourire bisou caresse calin tendresse'
+).split(' ');
+const FR_STARTS: Record<1 | 2 | 3, readonly string[]> = {
+  1: 'a b c d e f g l m n p r s t v'.split(' '),
+  2: ('bl br ch cl cr dr fl fr gl gr pl pr tr ba be bo bu ca ce co cu da de di do fa fe fi fo ga ge la le li lo ' +
+    'ma me mi mo pa pe pi po ra re ri ro sa se si so ta te ti to va ve vi vo').split(' '),
+  3: ('tra tre tri pro pre pri cha che chi gra gre gri bra bri cra cre fra pla par por con com dis mon mar sou ver ' +
+    'man men lan pen ren ten cou pou tou fou bou mou cor dor mor sor').split(' '),
+};
+const FR_FORMAT_EXAMPLES: Record<1 | 2 | 3, readonly [string, string][]> = {
+  1: [['m', 'mouton'], ['l', 'lune'], ['f', 'ferme'], ['n', 'nuit']],
+  2: [['ch', 'cheval'], ['pr', 'pre'], ['tr', 'troupeau'], ['fl', 'flocon'], ['gr', 'grange'], ['bo', 'bonnet']],
+  3: [['cha', 'chapeau'], ['pai', 'paille'], ['gra', 'grange'], ['cou', 'couette'], ['tra', 'traineau'], ['pou', 'poule']],
+};
+const EN = { words: FENCE_WORDS, starts: STARTS, examples: FORMAT_EXAMPLES };
+
+/** Sets the dream's language before a dream is built: French starts, fence words and examples, or the English ones. */
+export function setDreamLanguage(lang: 'en' | 'fr'): void {
+  const fr = lang === 'fr';
+  FENCE_WORDS = fr ? FR_FENCE_WORDS : EN.words;
+  STARTS = fr ? FR_STARTS : EN.starts;
+  FORMAT_EXAMPLES = fr ? FR_FORMAT_EXAMPLES : EN.examples;
+  built.clear();
 }

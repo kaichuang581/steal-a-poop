@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { ADMIN_AVATAR_ID, isAvatarId } from '../../avatars/ids';
+import { isAdminAvatar, isAvatarId } from '../../avatars/ids';
 import type { AvatarId } from '../../avatars/ids';
 import { isAdmin } from '../../lib/admin';
 
@@ -19,8 +19,8 @@ function readSaved(): AvatarId | null {
     return isAvatarId(v) ? v : null;
   } catch { return null; }
 }
-/** The admin avatar only counts while admin is unlocked. */
-const worn = (v: AvatarId | null): AvatarId | null => (v === ADMIN_AVATAR_ID && !isAdmin() ? null : v);
+/** An admin avatar only counts while admin is unlocked. */
+const worn = (v: AvatarId | null): AvatarId | null => (isAdminAvatar(v) && !isAdmin() ? null : v);
 const refresh = () => { kept = readSaved(); subs.forEach((f) => f()); };
 
 /** The avatar picked on this device, or null for the plain sheep. The admin avatar only counts while admin is unlocked. Reads storage. */

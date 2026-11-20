@@ -1,4 +1,4 @@
-import { ADMIN_AVATAR_ID, isAvatarId } from '../avatars/ids';
+import { isAdminAvatar, isAvatarId } from '../avatars/ids';
 import { mergeWallets, normalise } from '../skin/shop/economy';
 
 /**
@@ -94,7 +94,7 @@ export const SAVE_KEYS: readonly Spec[] = [
   },
   {
     key: 'sap:avatar', label: 'your avatar', raw: true, onlyIfDefault: true,
-    valid: (v) => (isAvatarId(v) && v !== ADMIN_AVATAR_ID ? v : null),
+    valid: (v) => (isAvatarId(v) && !isAdminAvatar(v) ? v : null),
     merge: (l, i) => l ?? i,
   },
   {

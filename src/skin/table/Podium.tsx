@@ -6,7 +6,7 @@ import {
   ACESFilmicToneMapping, AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Group, InstancedMesh,
   MeshBasicMaterial, MeshLambertMaterial, Object3D, PCFShadowMap, Points, PointsMaterial, SRGBColorSpace, Vector3,
 } from 'three';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { isAdminAvatar } from '../../avatars/ids';
 import { byId } from '../avatars/catalog';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { SHEEP_SCALE } from '../scene/layout';
@@ -280,7 +280,7 @@ function Dancer({ entry, reduced }: { entry: PodiumEntry; reduced: boolean }) {
   const [x, y, z] = spot(entry.place);
   const move = DANCES[(entry.place - 1) % DANCES.length];
   const phase = entry.place * 0.61;
-  const admin = entry.avatar === ADMIN_AVATAR_ID;
+  const admin = isAdminAvatar(entry.avatar);
   const model = byId(entry.avatar ?? undefined);
   const drawScale = admin ? 1 : animalModel(model?.animal ?? 'sheep').drawScale;
   const trophy = useMemo(() => trophyGeometry(), []);
@@ -309,7 +309,7 @@ function Dancer({ entry, reduced }: { entry: PodiumEntry; reduced: boolean }) {
     <group ref={g} position={[x, y, z]}>
       <group scale={SHEEP_SCALE * drawScale}>
         {admin
-          ? <AvatarDisc state="happy" stateKey={mood.key} reduced={reduced} speaking />
+          ? <AvatarDisc state="happy" stateKey={mood.key} reduced={reduced} speaking avatar={entry.avatar} />
           : <Sheep level={entry.level} state={mood.state} stateKey={mood.key} reduced={reduced} scarf={entry.place === 1} lookAt="camera" speaking
               model={model ? animalModel(model.animal) : undefined} />}
       </group>

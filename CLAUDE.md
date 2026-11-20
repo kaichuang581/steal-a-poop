@@ -1755,3 +1755,10 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Checked and fine: the chat filter
   already catches a blocked word split by zero-width, joiner, soft-hyphen or direction characters. Not checkable here: the
   live site and server (this machine cannot reach them), real sign-in, real GPUs and phones, and how anything looks or sounds.
+- A second admin avatar (requested by Brian, 2026-11-20): another photo beside Kaiyan's, admin-only in the same way (id `admin2`,
+  `ADMIN2_AVATAR_ID` in src/avatars/ids.ts; `isAdminAvatar` is the check everywhere, server, store, save code and skin). It is a plain
+  flat square picture (src/skin/assets/admin2.png, a 512 x 512 circle, one-off crop of the photo Brian sent): no stretched forehead and
+  no glare, drawn by `AvatarDisc`'s `avatar` prop and `PhotoAvatar`'s (src/skin/avatars/photos.ts holds its size and file), 1.2 m across
+  at the table. Equipped and unequipped only from the admin panel's "Second admin avatar" card, taken off by Lock, never in the picker or
+  a save code. Changes outside src/skin: the id and `isAdminAvatar` in src/avatars/ids.ts, the server's admin check, the save code's
+  filter, one assertion in avatars.test.ts and a server test; the fence pins in fences.json were re-pinned on purpose.

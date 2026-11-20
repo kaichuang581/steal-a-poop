@@ -12,7 +12,8 @@ import type { FarmMicro } from '../scene/farmMicro';
 import { buildFarmsteadSteps } from '../scene/farmstead';
 import type { Farmstead as Built } from '../scene/farmstead';
 import { pinnedPov, POV_SHOTS } from '../scene/homePov';
-import { HEN_Y, LIVESTOCK } from '../scene/livestock';
+import { FLOCK_DOG, HEN_Y, LIVESTOCK } from '../scene/livestock';
+import { Sheepdog } from './places';
 import { dropBuild, queueBuild, rush } from '../scene/slices';
 import type { Steps } from '../scene/slices';
 import { animalModel } from '../voxel/animals';
@@ -217,6 +218,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
           <Sheep level={2} state={state} reduced={reduced} model={animal === 'sheep' ? undefined : animalModel(animal)} />
         </group>
       ))}
+      {!phone && <Sheepdog reduced={reduced} at={[FLOCK_DOG[0], 0, FLOCK_DOG[1]]} yaw={FLOCK_DOG[2]} scale={1.5} />}
     </>
   );
 }

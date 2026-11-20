@@ -22,7 +22,7 @@ import { BOARD } from '../voxel/table';
 import { CAT_SPOT, ROBIN_SPOT } from './barn';
 import { DUEL, duelSeat } from './duel';
 import { HOME_CAMERA } from './homePov';
-import { BARN, HEAP, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition } from './layout';
+import { BARN, HEAP, HOME_GAME, homeGameSeat, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition } from './layout';
 import { PEN, penSpot } from './pen';
 
 type V3 = readonly [number, number, number];
@@ -206,7 +206,7 @@ function table(): Placed[] {
     id: 'table:sheepdog', scene: 'table', position: [2.25, 0, BARN.maxZ - 1.2], yaw: Math.PI + 0.6,
     footprint: [SHEEPDOG_SITS.across, SHEEPDOG_SITS.along], height: SHEEPDOG_SITS.tall, support: 'floor',
     from: 'Sheepdog in table/places.tsx (the tutorial)',
-    copied: { file: 'src/skin/table/places.tsx', text: '<group ref={root} position={[2.25, 0, BARN.maxZ - 1.2]} rotation={[0, Math.PI + 0.6, 0]}>' },
+    copied: { file: 'src/skin/table/places.tsx', text: 'export function Sheepdog({ reduced, at = [2.25, 0, BARN.maxZ - 1.2], yaw = Math.PI + 0.6, scale = 1 }: { reduced: boolean; at?: readonly [number, number, number]; yaw?: number; scale?: number }) {' },
   });
   // The ring, for every table size: each seat at rest, the same seat stepped in on its turn, and the bomb at its hooves.
   const sheep = stands('sheep', SHEEP_SCALE);
@@ -242,11 +242,14 @@ function farm(): Placed[] {
     from: 'the hero of FarmBackdrop in table/FarmBackdrop.tsx (the sheep; a worn avatar stands on the same spot)',
     copied: { file: 'src/skin/table/FarmBackdrop.tsx', text: 'const hero: [number, number, number] = [0, 0, BARN.maxZ + 1.2];' },
   });
-  out.push({
-    // At x 1.9, clear of the wheelbarrow now the sheep is longer (Brian's sheet, 2026-11-18).
-    id: 'farm:doorway sheep', scene: 'farm', position: [1.9, 0, BARN.maxZ - 1.4], yaw: Math.PI / 2, ...stands('sheep', 1.5, SHEEP_TALL_AT_3), support: 'floor',
-    from: 'the second sheep of FarmBackdrop in table/FarmBackdrop.tsx (coat level 3)',
-    copied: { file: 'src/skin/table/FarmBackdrop.tsx', text: '<group position={[1.9, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5 * animalModel(\'sheep\').drawScale}>' },
+  // The game going on in the barn: six sheep round the pile (table/BarnGame.tsx).
+  HOME_GAME.angles.forEach((_, seat) => {
+    const p = homeGameSeat(seat);
+    out.push({
+      id: `farm:barn game seat ${seat}`, scene: 'farm', position: [p.x, 0, p.z], yaw: p.yaw, ...stands('sheep', SHEEP_SCALE, SHEEP_TALL_AT_3), support: 'floor',
+      from: 'a seat of BarnGame in table/BarnGame.tsx (the sheep; coats 1 to 3)',
+      copied: { file: 'src/skin/table/BarnGame.tsx', text: '<group key={seat} position={[p.x, 0, p.z]} rotation={[0, p.yaw, 0]} scale={sheepScale}>' },
+    });
   });
   // Who lives on the farm. The hens stand on the straw of their run (HEN_Y); everyone else on the land.
   LIVESTOCK.forEach(([animal, x, z, facing], i) => out.push({

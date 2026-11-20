@@ -139,31 +139,21 @@ function barnShell(): BufferGeometry {
 function barnShellGrid(): Builder {
   const b = new Builder(new Grid(F));
   // Boards three cubes wide, each one red, in a rhythm of four by board number (the same in scene/barn.ts, whose boards
-  // these continue); the seam between two boards two steps down; the top 0.4 m under the roof a step darker, the eave's
-  // shade. Foundation stones 0.4 m long and 0.2 m high in a running bond, each its own step.
-  const seam = solid('barnRed', -2);
+  // these continue); the top 0.4 m under the roof a step darker, the eave's shade. No seam between boards: a line one
+  // cube wide and two steps down crawled as the camera moved (Brian, 2026-11-20: "a lot of glitchy textures").
+  // Foundation stones 0.4 m long and 0.2 m high in a running bond, each its own step.
   const board = (i: number): Paint => (x, y) => solid('barnRed', BOARD_STEPS[i % 4] - (y >= roofY(x) - 4 ? 1 : 0));
   const stone = seededPart('stone', 51, (x, y, z) => ((x + 2 * ((y >> 1) & 1)) >> 2) * 31 + (y >> 1) * 7 + (z >> 2));
-
-  // The gaps between the back boards, closed from just inside the outer face.
-  for (let xa = -62; xa <= 61; xa += 3) {
-    const x = xa + 2;
-    if (x > 61) break;
-    for (let y = 0; y < barnRoofY(x); y++) {
-      if (x >= -18 && x < 18 && y < 34) continue;
-      b.set(x, y, 70, () => seam);
-    }
-  }
 
   // Front wall: the side walls' boards, up into the gable, with big closed doors in the middle.
   for (let i = 0, xa = -62; xa <= 61; i++, xa += 3) {
     for (let x = xa; x <= Math.min(61, xa + 2); x++)
       for (let y = 0; y < roofY(x); y++)
-        for (const z of [-44, -43]) b.set(x, y, z, x === xa + 2 ? () => seam : board(i));
+        for (const z of [-44, -43]) b.set(x, y, z, board(i));
     // The back gable, from over the barn's own roof boards (two cells thick) up to the outer roof.
     for (let x = xa; x <= Math.min(61, xa + 2); x++)
       for (let y = barnRoofY(x) + 2; y < roofY(x); y++)
-        for (const z of [70, 71]) b.set(x, y, z, x === xa + 2 ? () => seam : board(i));
+        for (const z of [70, 71]) b.set(x, y, z, board(i));
   }
   const frame = (x0: number, x1: number, y0: number, y1: number, z: number, w = 2) => {
     b.box(x0, x1, y0, y0 + w - 1, z, z, white);
@@ -432,6 +422,23 @@ function coop(b: Builder) {
  * What the hens actually use, on the 0.1 m grid: a bed of straw spread out from the pop door and thinning into wisps at
  * its edge, a feed trough full of grain, a water pan with a skin of ice, and a perch.
  */
+/**
+ * The paddock's bedding: a clean ellipse of straw round the hay rack, a step darker where the animals tread, and the
+ * hay they have pulled down along the rack's foot. Its top is level with the yard (the land lies 0.05 m under that), so
+ * what stands in the paddock stands on it. The ground there was bare snow, which the paddock shot's own light draws as
+ * plain grey (Brian, 2026-11-20).
+ */
+function paddockBed(b: Builder) {
+  const cx = 16, cz = -2.2;
+  for (let px = b.ix(cx - 3.6); px <= b.ix(cx + 3.6); px++)
+    for (let pz = b.ix(cz - 4.6); pz <= b.ix(cz + 4.6); pz++) {
+      const x = px * F, z = pz * F, d = Math.hypot((x - cx) / 3.6, (z - cz) / 4.6);
+      if (d > 1.0) continue;
+      const fallen = x >= 14.9 && x <= 18.3 && Math.abs(z + 3.4) <= 0.9 && Math.abs(z + 3.4) > 0.5;
+      b.set(px, -1, pz, fallen ? paint('hay', 1) : paint('straw', d <= 0.5 ? -1 : 0));
+    }
+}
+
 function henYard(b: Builder) {
   // One flat layer, a clean ellipse: straw, and a step darker in its trodden middle.
   const cx = FARM.coop.x, cz = FARM.coop.z + 3.1;
@@ -733,6 +740,7 @@ export function* buildFarmsteadSteps(): Steps<Farmstead> {
   yield;
   const litter = new Builder(new Grid(F));
   henYard(litter);
+  paddockBed(litter);
   yield;
   const fine = [...(yield* chunksSteps(close.map, close.size)), ...(yield* chunksSteps(litter.g.map, F))];
   const land = yield* terrainSteps();

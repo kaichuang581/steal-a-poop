@@ -1,8 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { Object3D, PCFShadowMap, SRGBColorSpace } from 'three';
-import type { PerspectiveCamera, PointLight, SpotLight } from 'three';
+import { Object3D, PCFShadowMap, SRGBColorSpace, Vector3 } from 'three';
+import type { Group, PerspectiveCamera, PointLight, SpotLight } from 'three';
 import type { Hour } from '../model/types';
 import { HOME_CAMERA, pinnedPov, POV_SHOTS, povAt } from '../scene/homePov';
 import type { PovShot } from '../scene/homePov';
@@ -22,6 +22,7 @@ import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
 import { animalModel } from '../voxel/animals';
 import { useAvatar } from '../avatars/store';
+import { BarnGame } from './BarnGame';
 import { Sheep } from './Sheep';
 import { LOOK } from '../look';
 
@@ -36,6 +37,8 @@ interface Props {
   phone: boolean;
   /** Where the hero looks (radians, clamped by the sheep): follows the pointer on desktop. A ref is read as the hero is drawn, with no render. */
   heroYaw?: number | { readonly current: number };
+  /** Where the pointer is over Home, x and y from -1 to 1 (y up), or null before it has moved: the hero looks at it. */
+  heroGaze?: { readonly current: readonly [number, number] | null };
   /** Bump to make the hero hop (the name field took focus). */
   hopKey?: number;
   /** A full page (the Trading Post) covers the farm: stop drawing it until the page closes. */
@@ -45,7 +48,7 @@ interface Props {
 }
 
 /** Home's backdrop: the farm seen from the yard, the barn's open back doors glowing, the player's sheep in the doorway light. */
-export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey = 0, paused = false, fps }: Props) {
+export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, heroGaze, hopKey = 0, paused = false, fps }: Props) {
   const w = useWorld();
   const avatar = useAvatar();
   const cam = phone ? HOME_CAMERA.phone : HOME_CAMERA.desktop;
@@ -59,7 +62,15 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
   const [instant, setInstant] = useState(farmReady);
   const onReady = useCallback((r: boolean) => { if (r) setInstant(doorsShut()); setReady(r); }, []);
   // The hop throws the hero's shadow about: the sun's map follows it every picture while it lasts, not ten times a second.
-  useEffect(() => { if (hopKey > 0) sunEveryFrameFor(1500); }, [hopKey]);
+  // One hop, then back to standing: held as 'happy' it wagged for good, and its happy lids hid a one-row eye.
+  const [hopping, setHopping] = useState(false);
+  useEffect(() => {
+    if (hopKey <= 0) return;
+    sunEveryFrameFor(1500);
+    setHopping(true);
+    const id = setTimeout(() => setHopping(false), 1200);
+    return () => clearTimeout(id);
+  }, [hopKey]);
   // Leaving Home: the next Home starts outside the paddock's exemption until its own first shot says otherwise.
   useEffect(() => () => { setExemptShot(false); setShotLight(null); }, []);
   const sky = <div className="absolute inset-0" style={{ background: `linear-gradient(${FOG[hour]}, #DCE6F2)` }} />;
@@ -89,16 +100,13 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Farm world={w} reduced={reduced} />
       <Farmstead world={w} reduced={reduced} phone={phone} onReady={onReady} />
       <Wendigo reduced={reduced} />
-      <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5 * (avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(avatar)?.animal ?? 'sheep').drawScale)}>
-        {avatar === ADMIN_AVATAR_ID
-          ? <AvatarDisc state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} />
-          : <Sheep level={2} state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} headYaw={sleepy ? 0 : heroYaw}
+      <Hero at={hero} facing={heroFacing} gaze={sleepy ? undefined : heroGaze} scale={1.5 * (avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(avatar)?.animal ?? 'sheep').drawScale)}>
+        {(look) => avatar === ADMIN_AVATAR_ID
+          ? <AvatarDisc state={sleepy ? 'sleeping' : hopping ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} />
+          : <Sheep level={2} state={sleepy ? 'sleeping' : hopping ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} lookAt={sleepy ? undefined : look}
               model={byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined} />}
-      </group>
-      {/* A second sheep half inside the doorway, head down in the hay by the bales. */}
-      <group position={[1.9, 0, BARN.maxZ - 1.4]} rotation={[0, Math.PI / 2, 0]} scale={1.5 * animalModel('sheep').drawScale}>
-        <Sheep level={3} state={sleepy ? 'sleeping' : 'grazing'} reduced={reduced} />
-      </group>
+      </Hero>
+      <BarnGame reduced={reduced} phone={phone} sleepy={sleepy} />
       <Effects tiltShift={0.15} home />
       <DevStats />
     </AdaptiveCanvas>
@@ -161,6 +169,35 @@ function Drift({ shots, veil, spot, bounce, reduced, ready, hour }: {
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
   });
   return null;
+}
+
+const ray = new Vector3();
+/**
+ * The hero in the doorway. It looks at the pointer: the point its head turns to lies on the pointer's line from the
+ * camera, 2.5 m nearer the camera than the hero stands. Past what its neck allows (the sheep clamps that) the body turns
+ * too, up to 1.1 rad either way. With the camera behind it (the shot from inside the barn) it stands as it was put.
+ */
+function Hero({ at, facing, scale, gaze, children }: { at: [number, number, number]; facing: number; scale: number; gaze?: { readonly current: readonly [number, number] | null }; children: (look: [number, number, number]) => React.ReactNode }) {
+  const group = useRef<Group>(null);
+  const look = useMemo<[number, number, number]>(() => [at[0] + Math.sin(facing) * 9, 1.2, at[2] + Math.cos(facing) * 9], [at[0], at[2], facing]); // eslint-disable-line react-hooks/exhaustive-deps
+  const turn = useRef(0);
+  const camera = useThree((st) => st.camera);
+  useFrame((_, dt) => {
+    const g = group.current, p = gaze?.current;
+    if (!g) return;
+    let body = 0;
+    if (p) {
+      ray.set(p[0], p[1], 0.5).unproject(camera).sub(camera.position).normalize();
+      const reach = Math.max(1, Math.hypot(camera.position.x - at[0], camera.position.y - 1.2, camera.position.z - at[2]) - 2.5);
+      look[0] = camera.position.x + ray.x * reach; look[1] = camera.position.y + ray.y * reach; look[2] = camera.position.z + ray.z * reach;
+      const want = ((Math.atan2(look[0] - at[0], look[2] - at[2]) - facing + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      if (Math.abs(want) < 2) body = Math.max(-1.1, Math.min(1.1, want - Math.max(-0.5, Math.min(0.5, want))));
+    }
+    if (Math.abs(body - turn.current) > 0.01) sunEveryFrameFor(200); // its shadow turns with it, every picture
+    turn.current += (body - turn.current) * (1 - Math.exp(-dt / 0.3));
+    g.rotation.y = facing + turn.current;
+  });
+  return <group ref={group} position={at} rotation={[0, facing, 0]} scale={scale}>{children(look)}</group>;
 }
 
 /**

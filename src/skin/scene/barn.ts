@@ -23,7 +23,6 @@ export const ROBIN_SPOT: V3 = [1.2, 4.6, 1.05]; // on the cross beam's top (y 4.
 
 /** The steps the wall boards take, by board number (docs/miniature/01, section 5): the same in `barnShell` (farmstead.ts), whose boards continue these. */
 const BOARD_STEPS = [0, -1, 0, 1] as const;
-const SEAM = solid('barnRed', -2);
 const I = (m: number) => Math.round(m / S);
 
 /** Inclusive index box; `chamfer` names the long axis whose four edges lose one voxel. */
@@ -57,9 +56,10 @@ function walls(): Grid {
   // cubes of another colour: the fittings are the micro layer's, docs/miniature/04).
   const board = (b: number) => solid('barnRed', BOARD_STEPS[b % 4]);
 
-  // Back wall: boards 2 wide, 2 thick, 1-voxel gaps left empty so outside light shows through; gable up to the roof.
+  // Back wall: boards 3 wide, 2 thick, no gaps or seams (thin lines of light and of dark crawled as the camera moved;
+  // Brian, 2026-11-20: "a lot of glitchy textures"); gable up to the roof.
   for (let b = 0, xa = -62; xa <= 61; b++, xa += 3) {
-    const cols = [xa, xa + 1].filter((x) => x <= 61);
+    const cols = [xa, xa + 1, xa + 2].filter((x) => x <= 61);
     const top = Math.min(...cols.map(roofY));
     const c = board(b);
     for (const x of cols) for (let y = 0; y < top; y++) if (!inBackDoor(x, y)) for (const z of [70, 71]) g.set(x, y, z, c);
@@ -68,7 +68,7 @@ function walls(): Grid {
   for (const y0 of [9, 30]) fill(g, -62, 61, y0, y0 + 1, 72, 72, (x) => (x >= -21 && x <= 20 ? null : solid('wood', -1)));
 
   // Side walls: boards 3 wide along z, no gaps; the left one has the wolf's side door.
-  for (const [xs, inner, left] of [[[-62, -61], -61, true], [[60, 61], 60, false]] as const) {
+  for (const [xs, left] of [[[-62, -61], true], [[60, 61], false]] as const) {
     for (let b = 0, za = -40; za <= 69; b++, za += 3) {
       const zs = [za, za + 1, za + 2].filter((z) => z <= 69);
       for (const z of zs)
@@ -76,7 +76,7 @@ function walls(): Grid {
           if (left && inSideDoor(y, z)) continue;
           // The top 0.4 m under the eave a step darker (rule R7.3): Home sees these walls from outside.
           const c = solid('barnRed', BOARD_STEPS[b % 4] - (y >= 38 ? 1 : 0));
-          for (const x of xs) g.set(x, y, z, x === inner && z === za + 2 ? SEAM : c);
+          for (const x of xs) g.set(x, y, z, c);
         }
     }
   }
@@ -93,7 +93,7 @@ function frontInside(): BufferGeometry {
   const g = new Grid(S);
   for (let b = 0, xa = -62; xa <= 61; b++, xa += 3) {
     const c = solid('barnRed', BOARD_STEPS[b % 4]);
-    for (let x = xa; x <= Math.min(61, xa + 2); x++) for (let y = 0; y < 42; y++) for (const z of [-42, -41]) g.set(x, y, z, x === xa + 2 ? SEAM : c);
+    for (let x = xa; x <= Math.min(61, xa + 2); x++) for (let y = 0; y < 42; y++) for (const z of [-42, -41]) g.set(x, y, z, c);
   }
   const geo = buildGeometry(g.map, S);
   const idx = geo.index!, nor = geo.getAttribute('normal');
@@ -373,7 +373,7 @@ function leaf(side: -1 | 1): BufferGeometry {
   const brace = paint('wood', -1), iron = solid('iron', 0), snowC = paint('snow', 1);
   for (let i = 0; i < w; i++)
     for (let y = 0; y < h; y++)
-      for (const z of [0, 1]) g.set(X(i), y, z, i % 3 === 2 ? SEAM : solid('barnRed', BOARD_STEPS[Math.floor(i / 3) % 4]));
+      for (const z of [0, 1]) g.set(X(i), y, z, solid('barnRed', BOARD_STEPS[Math.floor(i / 3) % 4]));
   // Z brace on the inner face
   for (const y0 of [3, h - 5]) for (let i = 1; i < w - 1; i++) for (const y of [y0, y0 + 1]) g.set(X(i), y, -1, brace(i, y, -1)!);
   for (let t = 0; t <= 40; t++) {

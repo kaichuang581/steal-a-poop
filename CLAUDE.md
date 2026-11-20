@@ -54,6 +54,21 @@ the numbers: docs/miniature/numbers.md). What a later change must know:
   the east track round the court's fence, the farmhouse turned east, no woodpile, the tractor in no shot).
 - The size budget was raised by 6,000 bytes in M3 (scripts/check-bundle-size.mjs).
 
+After the plan, 2026-11-20 (Brian, looking at the result: "the scenery and aesthetics are nearly perfect, but theres a
+lot of glitchy textures and a ton of just strange empty space"; branch `miniature/m9-lively`):
+- A game goes on inside the barn on Home (`table/BarnGame.tsx`): six sheep round the pile, the letter board, the bomb
+  passed on every few seconds. Seats are `HOME_GAME` in scene/layout.ts; the place by the doors is the player's.
+  It replaced the one sheep in the doorway ("a randomly placed sheep in the barn").
+- The hero looks at the pointer and turns its body past what its neck allows (`Hero` in table/FarmBackdrop.tsx). It
+  hops once when the profile plate is hovered and goes back to standing.
+- A happy face no longer covers an eye one row tall (`lidsAndBrows` in voxel/animals/rig.ts): every sheet animal's
+  eyes are one row, and the lid hid them whole ("they just become whited over").
+- The paddock holds the cow, the goat and the horse, each with its face to the paddock shot, on a bed of straw
+  (`paddockBed` in scene/farmstead.ts); the sheep and the second cow are in the pasture with the flock, which a
+  sheepdog minds (`LIVESTOCK`, `FLOCK_DOG` in scene/livestock.ts).
+- No seams or gaps between the barn's boards, outside or in: lines one cube wide crawled as the camera moved.
+- The paddock shot's own light is still the old one (a wendigo rule), so that shot stays greyer than the others.
+
 Unchanged and still binding: every wendigo rule; the paddock shot draws today's light, haze, tone mapping, exposure,
 shadows and tilt-shift on every tier; nothing behind z = -16 changes; no cube of the country or the land is added or
 removed; the wendigo's pins as they stand at 6608e99 are the frozen ones; one branch per milestone

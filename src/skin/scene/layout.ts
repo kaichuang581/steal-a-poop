@@ -58,6 +58,19 @@ export function seatPosition(index: number, n: number): { x: number; z: number; 
 }
 
 /**
+ * The game Home shows going on in the barn (table/BarnGame.tsx): each seat's degrees round the pile from the barn's
+ * open front (0) to its doors (180), as the table's are, and how far out it is. The place in front of the doors is the
+ * player's own and stands empty: their animal is in the doorway. None sits within 50 degrees of the open front, where
+ * the shot from inside the barn has its camera (scene/homePov.ts, shot 3), and the two by the doors sit a little
+ * further out, so that shot holds them whole.
+ */
+export const HOME_GAME = { angles: [150, 100, 50, -50, -100, -150], ring: [3.3, 2.9, 2.9, 2.9, 2.9, 3.3] } as const;
+export function homeGameSeat(seat: number): { x: number; z: number; yaw: number } {
+  const a = (HOME_GAME.angles[seat] * Math.PI) / 180, x = HEAP[0] + Math.sin(a) * HOME_GAME.ring[seat], z = HEAP[2] - Math.cos(a) * HOME_GAME.ring[seat];
+  return { x, z, yaw: Math.atan2(HEAP[0] - x, HEAP[2] - z) };
+}
+
+/**
  * The yard and the far layers, all beyond the back wall. The farm is laid out as a farmstead is (Brian, 2026-11-19:
  * "naturalize the layout of the farm ... a lot of stuff feels out of place"; the rules are in CLAUDE.md, the diorama
  * scenery): one cluster round one court, which the barn's doors, the hens' gate and the farmhouse's porch all face; the

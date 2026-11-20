@@ -123,6 +123,7 @@ export function PaintedHome() {
   // Where the hero looks. A ref, not state (plan file 17, change 11): the sheep reads it as it is drawn, so moving the
   // pointer over Home renders nothing.
   const heroYaw = useRef(0);
+  const heroGaze = useRef<[number, number] | null>(null);
   const [hopKey, setHopKey] = useState(0);
   const [tip, setTip] = useState(() => Math.floor(Math.random() * TIPS.length));
   const coins = useSocial((st) => st.balance);
@@ -197,6 +198,7 @@ export function PaintedHome() {
   const onPointerMove = (e: PointerEvent) => {
     if (mobile || reduced) return;
     heroYaw.current = ((e.clientX / window.innerWidth) * 2 - 1) * 0.3;
+    heroGaze.current = [(e.clientX / window.innerWidth) * 2 - 1, 1 - (e.clientY / window.innerHeight) * 2];
   };
 
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -421,7 +423,7 @@ export function PaintedHome() {
   return (
     // data-covered: a full page lies over Home, so its title and word of the day hold still (skin.css).
     <main className={`sk-home relative h-full overflow-hidden`} data-covered={bazaar || boards || profile || undefined} onPointerMove={onPointerMove} onKeyDown={onKey}>
-      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} paused={bazaar || boards} fps={farmFps} /></div>
+      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} heroGaze={heroGaze} hopKey={hopKey} paused={bazaar || boards} fps={farmFps} /></div>
       <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
 
       {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}

@@ -67,9 +67,9 @@
       "width": 800,
       "height": 500,
       "alpha": false,
-      "modelHash": "7507466eb061f2e45a6abc7a1961d9027819c27e389934d0bab401cb33d2ea9b",
+      "modelHash": "0254c08ed8da95958150f338f4d1b140a6dfa836fcbbeefd82ca1584bf706821",
       "renderHash": "aba8eb50bb036d5c3d2767c5c400da3b9dc875ca1227e40587fc52d28851d332",
-      "fileHash": "9613429dbdb8f881968eee0240542100ff6e0974c6f526f83912c553af6101fd"
+      "fileHash": "d066c4af8a70869d7a6c4af0a16d7f93fdea35659930c23022497fb7e6376cf7"
     },
     {
       "id": "play/ranked",
@@ -83,7 +83,7 @@
       "width": 800,
       "height": 500,
       "alpha": false,
-      "modelHash": "78e8d935b48ca01023803fd5a9a8883e05adadf84ec525f4158c7c26eb8f8d45",
+      "modelHash": "ebeeb36e11ad6d9873e59f32f4c63cff9b009eadecd063cfe4883ff3fe1f760f",
       "renderHash": "aba8eb50bb036d5c3d2767c5c400da3b9dc875ca1227e40587fc52d28851d332",
       "fileHash": "8f7ec561c531f4ae0b39383e54dc41e950bef02dc59f8b59c82798d4c17d8c78"
     },

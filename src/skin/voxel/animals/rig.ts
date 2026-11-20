@@ -346,9 +346,11 @@ export function lidsAndBrows(eyes: { place: EyePlace; n: number; rows?: number; 
     const g = new Grid(S);
     for (const e of eyes) for (let col = 0; col < e.n; col++) {
       if (e.small) {
-        // The small eye: closed is a lid over every row (a dark lash line under it), happy covers the bottom row.
+        // The small eye: closed is a lid over every row (a dark lash line under it), happy covers the bottom row. An eye
+        // one row tall has no bottom row to spare: happy leaves it open (the lid hid the whole eye; Brian, 2026-11-20:
+        // "the models for some reason lose their eyes, they just become whited over").
         const h = e.rows ?? 2;
-        for (const r of kind === 'closed' ? Array.from({ length: h }, (_, k) => k) : [h - 1]) { const [x, y, z] = e.place(col, r, 2); g.set(x, y, z, shade(kind === 'closed' && r === h - 1 ? face[2] : face[1])); }
+        for (const r of kind === 'closed' ? Array.from({ length: h }, (_, k) => k) : h > 1 ? [h - 1] : []) { const [x, y, z] = e.place(col, r, 2); g.set(x, y, z, shade(kind === 'closed' && r === h - 1 ? face[2] : face[1])); }
       } else if (kind === 'closed') { const [x, y, z] = e.place(col, Math.floor(e.n / 2), 2); g.set(x, y, z, shade(face[1])); }
       else {
         const r = col === 0 || col === e.n - 1 ? 2 : 3;

@@ -1,10 +1,10 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { AdditiveBlending, CanvasTexture, Group, MeshBasicMaterial, MeshDepthMaterial, MeshLambertMaterial, PlaneGeometry, PointLight, RepeatWrapping, RGBADepthPacking, SRGBColorSpace, Texture, TextureLoader } from 'three';
-import photoUrl from '../assets/kaiyan-forehead.png';
 import type { SheepState } from '../table/Sheep';
 import { DISC, discPose } from './discPose';
 import { SLICE, sliceHeights, useKaiyanLook } from './kaiyanLook';
+import { isPlainPhoto, photoUrlFor, PLAIN_PHOTO } from './photos';
 
 /**
  * The admin avatar at the table or on the farm, in place of the sheep: the photo itself and nothing else, a flat
@@ -22,14 +22,18 @@ interface Props {
   yaw?: number | { readonly current: number };
   /** Counting Sheep's pace, 0 to 1: the trot quickens with it. */
   pace?: number;
+  /** Which admin avatar this is (src/avatars/ids.ts): Kaiyan's by default, or the second, plain photo. */
+  avatar?: string | null;
 }
 
-let photo: Texture | null = null;
-function photoTexture(): Texture {
+const photos = new Map<string, Texture>();
+function photoTexture(url: string): Texture {
+  let photo = photos.get(url);
   if (!photo) {
-    photo = new TextureLoader().load(photoUrl);
+    photo = new TextureLoader().load(url);
     photo.colorSpace = SRGBColorSpace;
     photo.anisotropy = 4;
+    photos.set(url, photo);
   }
   return photo;
 }
@@ -81,17 +85,21 @@ function starTexture(): Texture {
   return starTex;
 }
 
-export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0, pace = 0 }: Props) {
-  const { length, glare } = useKaiyanLook();
-  const tex = useMemo(() => photoTexture(), []);
-  const quad = useMemo(() => pictureGeometry(length), [length]);
+export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0, pace = 0, avatar }: Props) {
+  // The second admin avatar is the plain photo: a flat square, never stretched and never glaring (src/skin/avatars/photos.ts).
+  const plain = isPlainPhoto(avatar);
+  const look = useKaiyanLook();
+  const length = plain ? 1 : look.length;
+  const glare = plain ? 0 : look.glare;
+  const tex = useMemo(() => photoTexture(photoUrlFor(avatar)), [avatar]);
+  const quad = useMemo(() => (plain ? new PlaneGeometry(PLAIN_PHOTO.size, PLAIN_PHOTO.size) : pictureGeometry(length)), [plain, length]);
   useEffect(() => () => quad.dispose(), [quad]);
   // Where the slices sit: the picture's foot stays on the snow however long the band is. It sways, leans and hops about
   // the height its middle had at length 1 (DISC.rest), never the stretched picture's own middle: a pivot that rose with
   // the forehead swung the feet off his spot with every wiggle (Brian, 2026-11-09: "kaiyan gets placed off his position
   // in the start menu when u adjust his size"). At length 1 this is exactly the old motion.
-  const s = sliceHeights(length), h = s.hair + s.band + s.face;
-  const rest = DISC.rest;
+  const s = plain ? { hair: 0, band: PLAIN_PHOTO.size, face: 0 } : sliceHeights(length), h = s.hair + s.band + s.face;
+  const rest = plain ? PLAIN_PHOTO.size / 2 + 0.02 : DISC.rest;
   const lift = h / 2 + 0.02 - rest; // from the pivot up to the picture's middle
   const bandY = h / 2 - s.hair - s.band / 2;
   const { mats, depth } = useMemo(() => {

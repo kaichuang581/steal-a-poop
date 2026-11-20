@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { Color, FogExp2, PCFShadowMap, SRGBColorSpace } from 'three';
 import type { Group, PerspectiveCamera } from 'three';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
 import { SHEEP_SCALE } from '../scene/layout';
@@ -191,14 +191,14 @@ function Animal({ id, index, guest, reduced, flock, plate }: { id: string; index
     if (g) { g.position.set(r.x, 0, r.z); g.rotation.y = r.yaw; }
   });
   const c = byId(guest?.avatar);
-  const admin = guest?.avatar === ADMIN_AVATAR_ID;
+  const admin = isAdminAvatar(guest?.avatar);
   const model = c ? animalModel(c.animal) : undefined;
   const start = penSpot(index);
   return (
     <group ref={group} position={[start.x, 0, start.z]} rotation={[0, start.yaw, 0]}>
       <group scale={SHEEP_SCALE * (admin ? 1 : (model ?? animalModel('sheep')).drawScale)}>
         {admin
-          ? <AvatarDisc state="idle" reduced={reduced} />
+          ? <AvatarDisc state="idle" reduced={reduced} avatar={guest?.avatar} />
           : <Sheep level={2} state={pose === 'graze' ? 'grazing' : pose} reduced={reduced} lookAt={guest && pose === 'idle' ? 'camera' : undefined} model={model} />}
         {/* The name plank over the head (`platePoint`), 0.1 m higher than the table's plate, in the scaled group's units. */}
         {guest && plate && <ScreenAnchor el={plate} position={penPlate(guest.avatar)} above cull={false} />}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { ADMIN2_AVATAR_ID, ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
 import { useAdmin } from '../../lib/admin';
 import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
@@ -15,7 +15,7 @@ import type { EndPreview } from '../admin/endPreview';
 /**
  * The admin lock: a small paper dialog off the lock button by the avatar. One password, no username; the right one
  * unlocks admin on this device (the night's dream can then be played again and again). Unlocked, the same dialog
- * says so, offers the admin avatar (Brian's photo, equipped and taken off only here) and offers to lock up again,
+ * says so, offers the admin avatars (Brian's photo and a second, plain photo, equipped and taken off only here) and offers to lock up again,
  * which takes the photo off too.
  */
 export function AdminPanel({ onClose }: { onClose: () => void }) {
@@ -24,6 +24,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const lock = useAdmin((s) => s.lock);
   const avatar = useAvatar();
   const wearing = avatar === ADMIN_AVATAR_ID;
+  const wearing2 = avatar === ADMIN2_AVATAR_ID;
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -73,6 +74,16 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
             <AdminCoins />
             <SiteNumbers />
             <KaiyanSliders />
+            <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label="Second admin avatar">
+              <PhotoAvatar size={72} avatar={ADMIN2_AVATAR_ID} label="The second admin avatar" />
+              <div className="min-w-0 flex-1">
+                <b className="sk-display block text-base">Second admin avatar</b>
+                <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>{wearing2 ? 'On. The others in a room see it too.' : 'A plain photo. Only here, only for admin.'}</p>
+                {wearing2
+                  ? <WoodButton onClick={() => setAvatar(null)} className="sk-btn mt-1" aria-pressed>Unequip</WoodButton>
+                  : <ClothButton onClick={() => setAvatar(ADMIN2_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
+              </div>
+            </section>
             {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
             <section className="sk-paper mt-3 p-2" aria-label="See the end screens">
               <b className="sk-display block text-base">Skip to the end</b>
@@ -84,7 +95,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
               </div>
             </section>
             <div className="mt-3 flex gap-2">
-              <WoodButton onClick={() => { if (wearing) setAvatar(null); lock(); pokeAvatar(); setError(''); }} className="sk-btn flex-1">Lock</WoodButton>
+              <WoodButton onClick={() => { if (isAdminAvatar(avatar)) setAvatar(null); lock(); pokeAvatar(); setError(''); }} className="sk-btn flex-1">Lock</WoodButton>
               <ClothButton onClick={onClose} className="sk-btn flex-1">Done</ClothButton>
             </div>
           </>

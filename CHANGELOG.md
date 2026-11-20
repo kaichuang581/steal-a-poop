@@ -2,6 +2,13 @@
 
 All user-visible changes, newest first.
 
+## 0.9.0
+
+- French: a "French" button on the start screen switches the whole game to French, with a French word list (accents optional, spelling help as in English). French players are matched with French tables. The word of the day and Counting Sheep are French too.
+- The start screen is redrawn: a slanted night-blue panel with word chains sliding across it, "Fleeced" in wool blocks with the last one fleeced, the menu as flat blocks that lean with the panel and slide out when chosen, with new icons by Brian.
+- Word of the day floats over the farm under the top-right buttons; the coins are a gold coin; the Trading Post and the leaderboards are the coin purse and the trophy at the top right; a square "FR"/"EN" button switches language.
+- Queue's Casual and Ranked chooser and the Practice, Join party and Set the table panels use the same blocks.
+
 ## 0.8.3
 
 - The farm is laid out as a farmstead: the farmhouse, the hens' run and the barn stand round one court, and a lane runs in from the road past the house to the court's gate.

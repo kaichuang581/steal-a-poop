@@ -32,8 +32,9 @@ import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Festive } from './Festive';
 import { AdaptiveCanvas, Atmosphere, Effects, holdDpr, LANTERN_LIGHT, lanternIntensity, Lights, MarkDrawn } from './Rendering';
 import { SceneBoundary } from '../perf/SceneBoundary';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
+import { isPlainPhoto, PLAIN_PHOTO } from '../avatars/photos';
 import { byId } from '../avatars/catalog';
 import { animalModel, heightRatio } from '../voxel/animals';
 import { anchorsOf } from '../voxel/animals/anchors';
@@ -358,9 +359,9 @@ function Scene({ bombSize, seats, pile, speaker, dazed = null, upNext = null, fr
       <Bomb speaker={speaker} n={n} phone={phone} fraction={fraction} red={false} reduced={reduced} boomKey={moments.boom?.key} secondsLeft={secondsLeft} size={bombSize ?? 1} power={moments.boom?.power ?? 1} />
       {seats.map((s) => {
         return (
-          <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === focus || s.index === dazed} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(s.avatar)?.animal ?? 'sheep').drawScale}>
-            {s.avatar === ADMIN_AVATAR_ID ? (
-              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} speaking={s.index === speaker} />
+          <SeatGroup key={s.seat} index={s.index} n={n} active={s.index === focus || s.index === dazed} reduced={reduced} drawScale={isAdminAvatar(s.avatar) ? 1 : animalModel(byId(s.avatar)?.animal ?? 'sheep').drawScale}>
+            {isAdminAvatar(s.avatar) ? (
+              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} speaking={s.index === speaker} avatar={s.avatar} />
             ) : (
               <Sheep level={s.level} state={s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} scarf={s.scarf}
                 gustFrom={[0, 0.8, -6]} lookAt={s.index === focus ? 'camera' : speakerHead} speaking={s.index === speaker} thinking={s.thinking}
@@ -680,6 +681,7 @@ function Moments({ moments, n }: { moments: BarnMoments; n: number }) {
 export function nameplateY(avatar: string | null | undefined): number {
   // Over the photo's top, but never higher than the head stood on 2026-11-08: a forehead stretched far up would carry the
   // plate and the speech bubble off the screen.
+  if (isPlainPhoto(avatar)) return (PLAIN_PHOTO.size + 0.14) * SHEEP_SCALE;
   if (avatar === ADMIN_AVATAR_ID) return (Math.min(pictureHeight(getKaiyanLook().length), pictureHeight(1)) + 0.14) * SHEEP_SCALE;
   const m = animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep');
   return anchorsOf(m).plate[1] * SHEEP_SCALE * m.drawScale;
@@ -687,7 +689,7 @@ export function nameplateY(avatar: string | null | undefined): number {
 
 /** How the table scales a seat's group: the sheep's scale times the animal's own (the admin's picture at 1). */
 export function seatScale(avatar: string | null | undefined): number {
-  return SHEEP_SCALE * (avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep').drawScale);
+  return SHEEP_SCALE * (isAdminAvatar(avatar) ? 1 : animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep').drawScale);
 }
 
 /**
@@ -696,14 +698,14 @@ export function seatScale(avatar: string | null | undefined): number {
  * group's scale. The admin's picture has no head to measure: over its middle, at the height `nameplateY` gives it.
  */
 export function platePoint(avatar: string | null | undefined): [number, number, number] {
-  if (avatar === ADMIN_AVATAR_ID) return [0, nameplateY(avatar) / seatScale(avatar), 0];
+  if (isAdminAvatar(avatar)) return [0, nameplateY(avatar) / seatScale(avatar), 0];
   const p = anchorsOf(animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep')).plate;
   return [p[0], p[1], p[2]];
 }
 
 /** The speaker's measured body for the board's search (`boardHang`): the admin's picture is searched as the sheep. */
 function speakerBody(avatar: string | null | undefined): SpeakerBody {
-  const m = animalModel(avatar === ADMIN_AVATAR_ID ? 'sheep' : byId(avatar ?? undefined)?.animal ?? 'sheep');
+  const m = animalModel(isAdminAvatar(avatar) ? 'sheep' : byId(avatar ?? undefined)?.animal ?? 'sheep');
   const a = anchorsOf(m);
   return { min: a.bounds.min, max: a.bounds.max, plate: a.plate, scale: SHEEP_SCALE * m.drawScale, ratio: heightRatio(m.species ?? 'sheep') };
 }

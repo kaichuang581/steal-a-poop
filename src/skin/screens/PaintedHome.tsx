@@ -53,6 +53,7 @@ import { FarmBackdrop } from '../table/FarmBackdrop';
 import { useHomeFps } from '../perf/governor';
 import { PaintedSettings } from './PaintedSettings';
 import { SoundMenu } from '../components/SoundMenu';
+import { getLang, setLang } from '../../lib/lang';
 
 export const PAINTED_TITLE = PAINTED_GAME_TITLE;
 /** Whether Home has already played its entrance this visit. */
@@ -422,6 +423,14 @@ export function PaintedHome() {
   const account = authEnabled() && (authStatus === 'ready'
     ? <button className="hm-slab hm-slab--wool hm-slab--sm hm-pill" onClick={() => setSignIn(true)} aria-label="Account" title="Account">Account</button>
     : <button className="hm-slab hm-slab--wool hm-slab--sm hm-pill" onClick={openSignInForm} aria-label="Log in" title="Log in to save your progress">Log in</button>);
+  // The language switch (Kai, pull request 56): the whole game, word list included, in French or in English. A square
+  // like the others, naming the language it switches to (HOME-UI-PLAN section 8).
+  const lang = (
+    <button className={`${square} hm-lang`} data-lang-switch data-i18n-skip onClick={() => setLang(getLang() === 'fr' ? 'en' : 'fr')}
+      aria-label={getLang() === 'fr' ? 'English' : 'Français'} title={getLang() === 'fr' ? 'Play in English' : 'Jouer en français'}>
+      {getLang() === 'fr' ? 'EN' : 'FR'}
+    </button>
+  );
   const tipLine = <p className="hm-tip" aria-live="off"><span className="hm-tag hm-tag--lantern">Tip</span><span key={tip} className="hm-tip-text">{TIPS[tip]}</span></p>;
 
   return (
@@ -436,7 +445,7 @@ export function PaintedHome() {
         // the title and the menu (scrolling in itself), the word of the day as one line, and the footer.
         <>
           <div className="hm-chip">{profilePlate}</div>
-          <div className="hm-corner">{purse}<div className="hm-squares">{trophy}{account}<button className={square} onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button><SoundMenu />{helpButton}</div></div>
+          <div className="hm-corner">{purse}<div className="hm-squares">{trophy}{lang}{account}<button className={square} onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button><SoundMenu />{helpButton}</div></div>
           <div className="hm-sheet-col">
             {notes && step === 'tables' && <div className="hm-note">{notes}</div>}
             <div className="hm-scroll">
@@ -462,7 +471,7 @@ export function PaintedHome() {
             </div>
           </div>
           <div className="hm-corner">
-            {purse}{trophy}{account}
+            {purse}{trophy}{lang}{account}
             <button className={square} onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
             <SoundMenu />
             {helpButton}

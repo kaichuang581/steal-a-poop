@@ -18,7 +18,7 @@ import { AdaptiveCanvas, Atmosphere, Effects, FOG, holdDpr, Lights, MarkDrawn, n
 import { applyPendingTier, getTier, setExemptShot } from '../perf/tier';
 import { PADDOCK_SHOT } from '../voxel/unseen';
 import { SceneBoundary } from '../perf/SceneBoundary';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
 import { animalModel } from '../voxel/animals';
@@ -101,9 +101,9 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, heroGa
       <Farm world={w} reduced={reduced} />
       <Farmstead world={w} reduced={reduced} phone={phone} onReady={onReady} />
       <Wendigo reduced={reduced} />
-      <Hero at={hero} facing={heroFacing} gaze={sleepy ? undefined : heroGaze} scale={1.5 * (avatar === ADMIN_AVATAR_ID ? 1 : animalModel(byId(avatar)?.animal ?? 'sheep').drawScale)}>
-        {(look) => avatar === ADMIN_AVATAR_ID
-          ? <AvatarDisc state={sleepy ? 'sleeping' : hopping ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} />
+      <Hero at={hero} facing={heroFacing} gaze={sleepy ? undefined : heroGaze} scale={1.5 * (isAdminAvatar(avatar) ? 1 : animalModel(byId(avatar)?.animal ?? 'sheep').drawScale)}>
+        {(look) => isAdminAvatar(avatar)
+          ? <AvatarDisc state={sleepy ? 'sleeping' : hopping ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} avatar={avatar} />
           : <Sheep level={2} state={sleepy ? 'sleeping' : hopping ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} lookAt={sleepy ? undefined : look}
               model={byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined} />}
       </Hero>

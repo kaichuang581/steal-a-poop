@@ -345,3 +345,4 @@
   .hm[data-phone] .hm-title { margin-bottom: 8px; }
   .hm[data-phone] .hm-tuft { display: none; }
 }
+.hm-lang { font: 800 calc(14 * var(--u))/1 var(--skin-font-body); }

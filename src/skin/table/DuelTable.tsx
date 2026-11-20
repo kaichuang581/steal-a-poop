@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Color, FogExp2, Group, Object3D, PCFShadowMap, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { useKaiyanLook } from '../avatars/kaiyanLook';
 import { byId } from '../avatars/catalog';
@@ -91,9 +91,9 @@ function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone,
         const other = duelSeat(s.seat === 0 ? 1 : 0);
         const model = byId(s.avatar);
         return (
-          <Stand key={s.seat} seat={s.seat} active={s.index === speaker} reduced={reduced} drawScale={s.avatar === ADMIN_AVATAR_ID ? 1 : animalModel(model?.animal ?? 'sheep').drawScale}>
-            {s.avatar === ADMIN_AVATAR_ID ? (
-              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} speaking={s.index === speaker} />
+          <Stand key={s.seat} seat={s.seat} active={s.index === speaker} reduced={reduced} drawScale={isAdminAvatar(s.avatar) ? 1 : animalModel(model?.animal ?? 'sheep').drawScale}>
+            {isAdminAvatar(s.avatar) ? (
+              <AvatarDisc state={s.thinking && s.state === 'idle' ? 'thinking' : s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} speaking={s.index === speaker} avatar={s.avatar} />
             ) : (
               <Sheep level={s.level} state={s.state} stateKey={s.stateKey} dimmed={s.dimmed} reduced={reduced} scarf={s.scarf}
                 gustFrom={[0, 0.8, -6]} lookAt={[other.x, 0.85 * SHEEP_SCALE, other.z]} speaking={s.index === speaker} thinking={s.thinking}

@@ -1,4 +1,5 @@
 import { useLoadingHold } from '../components/BarnDoors';
+import { foldAccents, getLang } from '../../lib/lang';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
@@ -42,7 +43,7 @@ const SAYS: Record<string, string> = { short: 'Three letters or more', letters: 
 interface Hud { letters: string[]; lit: number; typed: string; say: string; wrong: boolean; active: boolean; index: number }
 
 /** The local date as "6 Nov". */
-const shortDate = (key: string) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+const shortDate = (key: string) => new Date(`${key}T12:00:00`).toLocaleDateString(getLang() === 'fr' ? 'fr-FR' : undefined, { day: 'numeric', month: 'short' });
 /** The next local midnight, as "12:00 am". */
 function midnightLabel(): string {
   const d = new Date(); d.setHours(24, 0, 0, 0);
@@ -219,7 +220,7 @@ export function DreamScreen() {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); submit(); }
   };
   const onInput = (value: string) => {
-    for (const ch of value.toLowerCase()) if (ch >= 'a' && ch <= 'z') typeLetter(ch);
+    for (const ch of foldAccents(value.toLowerCase())) if (ch >= 'a' && ch <= 'z') typeLetter(ch);
     if (ghost.current) ghost.current.value = '';
   };
   const focus = () => ghost.current?.focus();

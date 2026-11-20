@@ -749,6 +749,9 @@
   user-select: none; -webkit-user-drag: none;
 }
 .sk-photo-back { transform: rotateY(180deg); }
+/* The second admin avatar is a plain square photo: no tall forehead picture, no golden glow. */
+.sk-photo[data-plain] { width: var(--s, 30px); }
+.sk-photo[data-plain] .sk-photo-face { filter: none; }
 .sk-photo[data-lively] .sk-photo-jump { animation: sk-photo-jump 5.6s ease-in-out infinite; }
 .sk-photo[data-lively] .sk-photo-wiggle { animation: sk-photo-wiggle 1.9s ease-in-out infinite; }
 .sk-photo[data-lively] .sk-photo-spin { animation: sk-photo-spin 9s ease-in-out infinite; }

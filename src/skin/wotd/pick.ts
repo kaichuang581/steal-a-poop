@@ -28,6 +28,11 @@ export function levelFor(dateKey: string): 1 | 2 | 3 {
  * repeat every seven days.)
  */
 export function wordOfDay(dateKey: string): WotdEntry {
+  return pickFrom(BY_LEVEL, dateKey);
+}
+
+/** The same pick from any list (the French one is public/wotd-fr.json): each level's list may be any length. */
+export function pickFrom(byLevel: Record<1 | 2 | 3, readonly WotdEntry[]>, dateKey: string): WotdEntry {
   const day = dayNumber(dateKey);
   const level = levelFor(dateKey);
   const diff = day - dayNumber(WOTD_START);
@@ -35,6 +40,6 @@ export function wordOfDay(dateKey: string): WotdEntry {
   let earlier = weeks * PER_WEEK[level];
   const startWeekday = weekdayOf(dayNumber(WOTD_START));
   for (let i = 0; i < diff - weeks * 7; i++) if (LEVEL_OF_WEEKDAY[(startWeekday + i) % 7] === level) earlier += 1;
-  const list = BY_LEVEL[level];
+  const list = byLevel[level];
   return list[((earlier % list.length) + list.length) % list.length];
 }

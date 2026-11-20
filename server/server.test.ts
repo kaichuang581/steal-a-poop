@@ -748,4 +748,29 @@ describe('the admin avatar', () => {
     const room = await a.waitFor((m) => m.t === 'room' && a.msgs.indexOf(m) >= before);
     expect(room.view.members[0].avatar).toBe('kaiyan');
   });
+
+  it('keeps the second admin avatar to admins too: refused quietly for a plain player, allowed on the admin list', async () => {
+    const server = await boot({ adminUserIds: ['dev:Brian2'] });
+    const plain = await Client.connect(server.port, 'Plain2');
+    clients.push(plain);
+    await plain.waitFor((m) => m.t === 'welcome');
+    plain.send({ t: 'create', visibility: 'private' });
+    await plain.waitFor((m) => m.t === 'room');
+    const before = plain.msgs.length;
+    plain.send({ t: 'avatar', id: 'admin2' });
+    plain.send({ t: 'avatar', id: 'goat' });
+    const room = await plain.waitFor((m) => m.t === 'room' && plain.msgs.indexOf(m) >= before && m.view.members[0].avatar === 'goat');
+    expect(room.view.members[0].avatar).toBe('goat');
+    expect(plain.msgs.slice(before).some((m) => m.t === 'error')).toBe(false);
+
+    const admin = await Client.connect(server.port, 'Brian2');
+    clients.push(admin);
+    await admin.waitFor((m) => m.t === 'welcome');
+    admin.send({ t: 'create', visibility: 'private' });
+    await admin.waitFor((m) => m.t === 'room');
+    const mark = admin.msgs.length;
+    admin.send({ t: 'avatar', id: 'admin2' });
+    const seen = await admin.waitFor((m) => m.t === 'room' && admin.msgs.indexOf(m) >= mark);
+    expect(seen.view.members[0].avatar).toBe('admin2');
+  });
 });

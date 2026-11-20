@@ -86,6 +86,7 @@ const envNumber = (name: string): number | undefined => {
 };
 
 const dict = createDictionary(readFileSync('public/words.txt', 'utf8').split('\n'));
+const dictFr = createDictionary(readFileSync('public/words-fr.txt', 'utf8').split('\n'));
 const filter = new ChatFilter({
   blocklist: readFileSync('server/data/blocklist-en.txt', 'utf8').split('\n'),
   isWord: (w) => dict.has(w),
@@ -336,6 +337,7 @@ const server = await startServer({
   port,
   httpServer,
   ctx: { dict },
+  dictFr,
   chat,
   verifyToken,
   randomInt: (n) => randomInt(n),

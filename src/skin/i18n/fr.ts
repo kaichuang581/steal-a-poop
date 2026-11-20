@@ -1,0 +1,41 @@
+/** The French text of the painted game, for translate.ts: the lines with a name or number in them. */
+/** The English lines and their French live in public/i18n-fr.json (fetched only by a French player, so the English
+ * game's download does not grow). Keys must match the English on screen exactly. */
+
+/** Lines with a name or number in them: the English pattern and its French, `$1`, `$2` for the parts kept. */
+export const FR_PATTERNS: [RegExp, string][] = [
+  [/^(.+)'s turn$/, 'Au tour de $1'],
+  [/^(.+)’s turn$/, 'Au tour de $1'],
+  [/^(.+)'s room$/, 'Salon de $1'],
+  [/^Round (\d+)$/, 'Manche $1'],
+  [/^Round (\d+) of (\d+)$/, 'Manche $1 sur $2'],
+  [/^Level (\d+)$/, 'Niveau $1'],
+  [/^Level (\d+) \u00b7 Profile$/, 'Niveau $1 \u00b7 Profil'],
+  [/^(\d+) players?$/, '$1 joueur(s)'],
+  [/^(\d+) words?$/, '$1 mot(s)'],
+  [/^(\d+) wins?$/, '$1 victoire(s)'],
+  [/^(\d+) games?$/, '$1 partie(s)'],
+  [/^(\d+) wool balls?$/, '$1 pelote(s) de laine'],
+  [/^(\d+) turns a round$/, '$1 tours par manche'],
+  [/^(\d+) turns?$/, '$1 tour(s)'],
+  [/^(\d+) bots?$/, '$1 robot(s)'],
+  [/^You and (\d+) bots?$/, 'Toi et $1 robot(s)'],
+  [/^(\d+) players?, no bots$/, '$1 joueurs, pas de robots'],
+  [/^(\d+) players? and (\d+) bots?$/, '$1 joueurs et $2 robot(s)'],
+  [/^#(\d+) of (.+)$/, 'N° $1 sur $2'],
+  [/^Best (\d+)$/, 'Record $1'],
+  [/^BEST (\d+)$/, 'RECORD $1'],
+  [/^about (\d+) min$/, 'environ $1 min'],
+  [/^(\d+) of (\d+) found$/, '$1 sur $2 trouvés'],
+  [/^You are in the top (.+)$/, 'Tu es dans le top $1'],
+  [/^Top (.+)%$/, 'Top $1 %'],
+  [/^The gate opens in (\d+) seconds?$/, 'La barrière s’ouvre dans $1 s'],
+  [/^Waiting for (.+)$/, 'En attente de $1'],
+  [/^(.+) wins!$/, '$1 gagne !'],
+  [/^Tonight's dream returns at (.+)\.$/, 'Le rêve de ce soir revient à $1.'],
+  [/^Tonight’s dream returns at (.+)\.$/, 'Le rêve de ce soir revient à $1.'],
+  [/^(\d+) nights?$/, '$1 nuit(s)'],
+  [/^(\d+) points? to the podium(.*)$/, '$1 points avant le podium$2'],
+  [/^Open \((\d+)\)$/, 'Ouvrir ($1)'],
+  [/^Must start with ([A-Z])\.$/, 'Doit commencer par $1.'],
+];

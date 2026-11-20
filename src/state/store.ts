@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { wordsFile } from '../lib/lang';
 import { createDictionary, dailySetup, rankPlayers, suggestWords, utcDateKey } from '../engine';
 import { DEFAULT_SETTINGS, PRESETS } from '../engine';
 import type { Action, ActionResult, Dictionary, Difficulty, GameSettings, GameState } from '../engine';
@@ -204,7 +205,7 @@ export const useStore = create<Store>((set, get) => ({
   async loadDictionary() {
     if (get().client) return;
     try {
-      const res = await fetch('words.txt');
+      const res = await fetch(wordsFile());
       if (!res.ok) throw new Error(String(res.status));
       const dict = createDictionary((await res.text()).split('\n'));
       set({ client: createLocalClient(dict), dict, dictStatus: 'ready' });

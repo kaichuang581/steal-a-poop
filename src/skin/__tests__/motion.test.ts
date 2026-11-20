@@ -129,7 +129,7 @@ describe('motion and feel', () => {
     expect(home).toMatch(/className=\{`sk-home[^`]*`\} data-covered=\{bazaar \|\| boards \|\| profile \|\| undefined\}/);
     const homeCss = css.find(({ f }) => f.endsWith('home/home.css'))!.text;
     const paused = rules(homeCss).filter(({ decls }) => /animation-play-state:\s*paused/.test(decls)).flatMap(({ sel }) => topLevel(sel));
-    const all = ':is(.hm-slab, .hm-title, .sk-wotd)';
+    const all = ':is(.hm-panel, .hm-title, .sk-wotd)';
     for (const sel of [all, `${all} *`, `${all} ::before`, `${all} ::after`]) expect(paused).toContain(`.sk-home[data-covered] ${sel}`);
   });
 

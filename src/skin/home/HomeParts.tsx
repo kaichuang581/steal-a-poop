@@ -1,12 +1,19 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { HomeArt } from './HomeArt';
-import type { ArtId } from './HomeArt';
+import queue from '../assets/menu/queue.png';
+import lobby from '../assets/menu/lobby.png';
+import join from '../assets/menu/join.png';
+import dream from '../assets/menu/dream.png';
+import practice from '../assets/menu/practice.png';
+import tutorial from '../assets/menu/tutorial.png';
 import './home.css';
 
+/** Brian's menu icons (2026-11-20), by menu item. */
+export const MENU_ICONS: Record<string, string> = { queue, lobby, join, dream, repair: dream, practice, tutorial };
+export const MenuIcon = ({ id }: { id: string }) => (MENU_ICONS[id] ? <img src={MENU_ICONS[id]} alt="" draggable={false} /> : null);
+
 /**
- * Word chains for the slab behind Home's menu: every word starts with the last letter of the one before, and each row
- * comes round to its start, so the scroll never breaks the rule at its seam. Every word is in public/words.txt (a test
- * checks both).
+ * The words that slide across Home's panel: word chains, each word starting with the last letter of the one before, and
+ * each row coming round to its start. Every word is in public/words.txt (a test checks both).
  */
 export const WORD_CHAINS: readonly string[][] = [
   ['LAMB', 'BARN', 'NIGHT', 'TINSEL', 'LANTERN', 'NOEL'],
@@ -16,54 +23,41 @@ export const WORD_CHAINS: readonly string[][] = [
   ['HAY', 'YARN', 'NAP', 'PIE', 'EGG', 'GOOSE', 'EARTH'],
   ['CABIN', 'NUTMEG', 'GARLIC'],
 ];
+const ROWS = 36;
 
-/** The night-blue slab with the chains drifting across it, and its lit edge. Decoration only. */
-export function HomeSlab({ rows }: { rows: number }) {
-  const chain = (words: readonly string[], k: number) => words.map((w, i) => <i key={`${k}-${i}`}>{w.slice(0, -1)}<b>{w.at(-1)}</b></i>);
+/** The night-blue panel with the words sliding across all of it, and its edge. Decoration only. */
+export function HomeSlab() {
   return (
-    <>
-      <div className="hm-slab" aria-hidden="true">
-        <div className="hm-chains">
-          {Array.from({ length: rows }, (_, r) => {
-            const words = WORD_CHAINS[r % WORD_CHAINS.length];
-            // Four copies: the row drifts half its length, so the second half takes the first one's place.
-            return <div key={r} className="hm-chain" style={{ '--t': `${80 + (r % 3) * 22}s` } as CSSProperties}><span>{[0, 1, 2, 3].map((k) => chain(words, k))}</span></div>;
+    <div className="hm-panel" aria-hidden="true">
+      <div className="hm-panel-fill">
+        <div className="hm-rows">
+          {Array.from({ length: ROWS }, (_, r) => {
+            const words = WORD_CHAINS[(r * 5) % WORD_CHAINS.length];
+            const text = [...words, ...words].join(' ');
+            // The text twice: the row slides half its length and comes round seamlessly.
+            return <div key={r} className="hm-row" style={{ '--t': `${[60, 75, 90][r % 3]}s` } as CSSProperties}><span>{text}{' '}{text}{' '}</span></div>;
           })}
         </div>
       </div>
-      <div className="hm-edge" aria-hidden="true" />
-    </>
-  );
-}
-
-/** The game's name in its own letter tiles, standing in a rack, the tagline under it. */
-export function HomeTitle({ title, tagline }: { title: string; tagline?: ReactNode }) {
-  const letters = [...title.toUpperCase()];
-  return (
-    <div className="hm-title" style={{ '--count': letters.length } as CSSProperties}>
-      <h1 className="hm-tiles" aria-label={title}>
-        {letters.map((c, i) => <span key={i} className="hm-tile" style={{ '--i': i } as CSSProperties} aria-hidden="true">{c}</span>)}
-      </h1>
-      <div className="hm-rack hm-board" aria-hidden="true" />
-      {tagline && <p className="hm-tagline">{tagline}</p>}
+      <div className="hm-panel-edge" />
     </div>
   );
 }
 
-/** The menu items' pictures: Counting Sheep's repair is the same dream. */
-const ART: Record<string, ArtId> = { queue: 'queue', lobby: 'lobby', join: 'join', dream: 'dream', repair: 'dream', practice: 'practice', tutorial: 'tutorial' };
-
-/** The card on the right for the chosen menu item: its picture, its name, what it is, and anything it offers. */
-export function HomeCard({ id, title, text, badge, children }: { id: string; title: ReactNode; text: ReactNode; badge?: ReactNode; children?: ReactNode }) {
-  const art = ART[id];
+/** The game's name as wool blocks, one letter each; the last one has been fleeced. */
+export function HomeTitle({ title, tagline }: { title: string; tagline?: ReactNode }) {
+  const letters = [...title.toUpperCase()];
   return (
-    <aside className="hm-card hm-board" aria-live="polite">
-      <div className="hm-card-art">{art && <HomeArt key={art} id={art} />}</div>
-      <div className="hm-card-body">
-        <div className="hm-card-title"><h2>{title}</h2>{badge}</div>
-        <div className="hm-card-text">{text}</div>
-        {children}
-      </div>
-    </aside>
+    <div className="hm-title">
+      <h1 className="hm-blocks" aria-label={title}>
+        {letters.map((c, i) => (
+          <span key={i} className={`hm-block-l${i === letters.length - 1 ? ' hm-fleeced' : ''}`} style={{ '--i': i } as CSSProperties} aria-hidden="true">
+            <span>{c}</span>
+            {i === letters.length - 1 && <><i className="hm-tuft" /><i className="hm-tuft" /><i className="hm-tuft" /></>}
+          </span>
+        ))}
+      </h1>
+      {tagline && <p className="hm-tagline">{tagline}</p>}
+    </div>
   );
 }

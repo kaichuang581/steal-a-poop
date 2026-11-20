@@ -1984,3 +1984,19 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   - He will draw the menu's icons himself; Icons.tsx's BarnIcon, KeyIcon, PawIcon and CrescentIcon are stand-ins.
   - Checked at 320 to 1920 wide, a sideways phone, with and without a game server, every item hovered (nothing else
     moves), the three setup panels (restyled on the board finish). The size limit went up 3 kB for it.
+- Home, as Brian's plan has it (docs/home-ui/HOME-UI-PLAN.md and its two target pictures, Brian, 2026-11-20: "This is
+  Brian's own request and replaces earlier Home decisions"). It replaces the "Word chain" bullet above wherever they
+  differ; the slanted night-blue panel with sliding words stays. src/skin/home (home.css, HomeParts.tsx, layout.ts).
+  - Every control is a slab: a flat block with a 3 px ink outline, a visible side and a face with a one-step highlight,
+    pixel corners, no wood, gradient, glow, blur or rounded corner (the audit's allow list has no Home entries left).
+    The block is drawn by ::before so the button keeps its focus outline and its hard drop-shadow. Colours are only the
+    --hm-* tokens in tokens.css (prefixed: --ink and --wool already mean the paper's colours elsewhere).
+  - Sizes are the plan's pixels times --u (1 px at 1280 x 720, 0.8 to 1.5). The panel is --mid wide at mid-height with
+    an 11 degree lean; home/layout.ts holds the same numbers, and the farm's camera slides the picture right by
+    `sceneShift` (a view offset) so each shot's subject sits in the uncovered part. Never on the paddock shot: the
+    wendigo's frame is frozen; the wendigo check passes and it stays clear of the panel and the buttons.
+  - The menu's icons are Brian's own art (src/skin/assets/menu/*.png, cut from his sheet with the checkerboard
+    removed). His icons carry their own colour, so Create lobby's tile is frost, not barn red (his barn is red).
+  - The side card, its posters (HomeArt.tsx) and the board finish are gone. The Queue chooser and the setup panels use
+    the same slabs. With a longer menu (six or seven items) the tagline is hidden sooner, as the plan's own order says.
+  - Not done here: the language switch and French screenshots (pull request 56 is not on this branch).

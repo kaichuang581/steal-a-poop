@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { RANKED_MAX_PLAYERS, RANKED_MIN_PLAYERS, TIERS, rankOf } from '../../lib/ranked';
 import { CloseIcon } from '../components/Icons';
-import { ClothButton, WoodButton } from '../kit';
 import { RankBadge, TierBadge } from './RankBadge';
 import { useRanked } from './rankedStore';
 import './ranked.css';
@@ -42,7 +41,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
       <div className="sk-play-box" onClick={(e) => e.stopPropagation()}>
         <div className="sk-play-head">
           <h2>Play with real people</h2>
-          <button type="button" className="kit-peg kit-peg--light kit-peg--sm" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
+          <button type="button" className="hm-close hm-slab hm-slab--wool hm-slab--sm" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
         </div>
         {error && <p className="sk-play-error" role="alert">{error}</p>}
         <div className="sk-play-cards">
@@ -55,7 +54,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
                 <li>Any number of players</li>
                 <li>No account needed</li>
               </ul>
-              <ClothButton ref={first} className="sk-play-go" disabled={busy} onClick={onCasual}>Find a game</ClothButton>
+              <button ref={first} type="button" className="sk-play-go hm-slab hm-slab--lantern hm-knit" disabled={busy} onClick={onCasual}>Find a game</button>
             </div>
           </section>
           <section className="sk-play-card" data-mode="ranked" aria-label="Ranked">
@@ -78,8 +77,8 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
                 </p>
               )}
               {rank === 'play'
-                ? <WoodButton className="sk-play-go" disabled={busy} onClick={onRanked}>Find a ranked game</WoodButton>
-                : <WoodButton className="sk-play-go" onClick={onSignIn}>Sign in to play ranked</WoodButton>}
+                ? <button type="button" className="sk-play-go hm-slab hm-slab--lantern hm-knit" disabled={busy} onClick={onRanked}>Find a ranked game</button>
+                : <button type="button" className="sk-play-go hm-slab hm-slab--wool hm-knit" onClick={onSignIn}>Sign in to play ranked</button>}
               {rank === 'signin' && <p className="sk-play-note">Your rank is kept on your account.</p>}
             </div>
           </section>

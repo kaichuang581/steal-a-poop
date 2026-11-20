@@ -1,345 +1,346 @@
-/* Home, "Word chain" (Brian, 2026-11-20, picked from three mock-ups drawn over the running game: "number 1 is near
-   perfect"). A night-blue slab cut on a slant holds the title and the menu; word chains scroll behind it, each word
-   starting with the last letter of the one before. The menu is a stack of boards leaning with the slab's edge; the
-   chosen one is lit gold and slides out past the edge; a card on the right shows what it is. Nothing here changes size
-   when the choice moves: the lit board only slides (transform), so nothing else on the screen shifts. */
+/* Home (docs/home-ui/HOME-UI-PLAN.md, Brian, 2026-11-20). A slanted night-blue panel at the left with words sliding
+   across all of it; every control is a "slab": a flat block with a thick outline and a visible side, like a block from
+   the farm. No wood, gradient, glow, blur or rounded corner. Colours are only the --hm-* tokens (tokens.css).
+   Sizes are the plan's pixels at 1280 x 720, times --u (1 px there, 0.8 to 1.5 px elsewhere; home/layout.ts has the
+   same formulas for the farm's camera). */
 
 .hm {
-  --hm-navy: #22344F;
-  --hm-night: #12152A;
-  --hm-ice: #D9EEF8;
-  --hm-outline: #1F130B;
-  --hm-board-hi: #6B4729;
-  --hm-board-lo: #452B17;
-  --hm-gold-hi: #FFE7A8;
-  --hm-gold-ink: #7A3E12;
-  /* Painted wood: a few long, hand-drawn grain lines and one knot over two browns, not a ruled stripe. */
-  --hm-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='64' viewBox='0 0 420 64'%3E%3Cg fill='none' stroke='%23180d05' stroke-opacity='.26' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M-2 13C60 9 112 18 170 13S300 8 422 14'/%3E%3Cpath d='M-2 30C42 28 92 35 140 30C168 27 192 21 216 23C244 25 254 39 284 36S364 29 422 31'/%3E%3Cpath d='M-2 48C80 51 150 44 232 49S352 53 422 47'/%3E%3Cpath d='M36 57C92 59 140 55 198 57'/%3E%3Cpath d='M300 20C330 18 360 22 400 19'/%3E%3Cellipse cx='232' cy='31' rx='8' ry='3.6'/%3E%3Cellipse cx='232' cy='31' rx='3.4' ry='1.4'/%3E%3C/g%3E%3Cg fill='none' stroke='%23ffe2b8' stroke-opacity='.10' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M-2 21C70 19 140 25 212 20S342 17 422 22'/%3E%3Cpath d='M-2 40C60 42 120 38 180 41'/%3E%3C/g%3E%3C/svg%3E");
-  --hm-slab-w: 640px;
-  --hm-lean: 18.9vh;   /* how far the slab's edge has come in at the foot of the screen */
-  --hm-row: 58px;
-  --hm-row-1: 80px;
-  --hm-gap: 12px;
-  --hm-plank-w: 410px;
-  --hm-step: 14px;     /* each board one step in from the one above, along the edge */
-  --hm-side: 40px;
-}
-.hm-board {
-  color: var(--button-text);
-  background: var(--hm-grain) var(--grain-x, 0) 0 / 420px 100% repeat-x, linear-gradient(180deg, var(--hm-board-hi), var(--hm-board-lo));
-  box-shadow: inset 0 0 0 2px var(--hm-outline), inset 0 5px 0 rgba(255, 214, 160, 0.2), inset 0 -6px 0 rgba(20, 12, 6, 0.42), 0 5px 0 rgba(20, 12, 6, 0.5), 0 14px 26px rgba(20, 12, 6, 0.3);
+  --u: clamp(0.8px, min(100vw / 1280, 100vh / 720), 1.5px);
+  --s: calc(3 * var(--u));
+  --foot: calc(36 * var(--u));
+  --ph: calc(100vh - var(--foot));
+  --mid: clamp(calc(380 * var(--u)), 36vw, calc(560 * var(--u)));
+  --lean: min(calc(var(--ph) * 0.097), 8vw);
+  --knit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' shape-rendering='crispEdges'%3E%3Cg fill='%23000' fill-opacity='.07'%3E%3Crect x='2' y='2' width='2' height='2'/%3E%3Crect x='4' y='4' width='2' height='2'/%3E%3Crect x='6' y='6' width='4' height='2'/%3E%3Crect x='10' y='4' width='2' height='2'/%3E%3Crect x='12' y='2' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E");
+  --px: polygon(0 calc(2*var(--s)), var(--s) calc(2*var(--s)), var(--s) var(--s), calc(2*var(--s)) var(--s), calc(2*var(--s)) 0,
+    calc(100% - 2*var(--s)) 0, calc(100% - 2*var(--s)) var(--s), calc(100% - var(--s)) var(--s), calc(100% - var(--s)) calc(2*var(--s)), 100% calc(2*var(--s)),
+    100% calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) 100%,
+    calc(2*var(--s)) 100%, calc(2*var(--s)) calc(100% - var(--s)), var(--s) calc(100% - var(--s)), var(--s) calc(100% - 2*var(--s)), 0 calc(100% - 2*var(--s)));
+  --shadow: drop-shadow(0 calc(4 * var(--u)) 0 rgba(14, 21, 40, 0.38));
+  color: var(--hm-wool);
+  font-family: var(--skin-font-body);
 }
 
-/* ---------- The slab and its word chains ---------- */
-.hm-slab { position: absolute; inset: 0; overflow: hidden; pointer-events: none;
-  clip-path: polygon(0 0, var(--hm-slab-w) 0, calc(var(--hm-slab-w) - var(--hm-lean)) 100%, 0 100%);
-  background: radial-gradient(ellipse 60% 45% at 18% 38%, rgba(110, 159, 198, 0.26), transparent 70%), linear-gradient(160deg, var(--hm-navy) 0%, var(--hm-night) 100%); }
-.hm-edge { position: absolute; inset: 0; pointer-events: none; background: var(--amber);
-  clip-path: polygon(var(--hm-slab-w) 0, calc(var(--hm-slab-w) + 12px) 0, calc(var(--hm-slab-w) + 12px - var(--hm-lean)) 100%, calc(var(--hm-slab-w) - var(--hm-lean)) 100%); }
-.hm-chains { position: absolute; inset: -12% -40% -12% -30%; display: flex; flex-direction: column; justify-content: center; gap: 2px; rotate: -7deg; }
-.hm-chain { white-space: nowrap; font: 900 76px/1 var(--skin-font-display); color: rgba(217, 238, 248, 0.08); }
-.hm-chain > span { display: inline-block; animation: hm-drift var(--t, 90s) linear infinite; }
-.hm-chain:nth-child(even) > span { animation-direction: reverse; }
-.hm-chain i { font-style: normal; margin-right: 0.34em; }
-.hm-chain b { font-weight: inherit; color: rgba(255, 196, 90, 0.3); }
-@keyframes hm-drift { to { transform: translateX(-50%); } }
+/* ---------- The slab ----------
+   One recipe for every button: the block is drawn by ::before (outline, side, face and its top highlight, all inside
+   pixel corners), so the button itself is not clipped and keeps its focus outline and its hard shadow. */
+.hm-slab {
+  --face: var(--hm-wool); --hi: var(--hm-wool-hi); --lip: var(--hm-wool-lip); --edge: var(--hm-ink); --txt: var(--hm-ink);
+  --depth: calc(6 * var(--u)); --side: var(--depth); --drop: 0px;
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; gap: calc(8 * var(--u));
+  padding: 0 0 var(--depth); border: 0; border-radius: 0; background: none; color: var(--txt); cursor: pointer;
+  font: 800 calc(16 * var(--u))/1.15 var(--skin-font-body); text-shadow: none;
+}
+.hm-slab::before {
+  content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: var(--drop); bottom: 0; clip-path: var(--px);
+  background-color: var(--face);
+  box-shadow: inset 0 0 0 var(--s) var(--edge), inset 0 calc(-1 * (var(--side) - var(--drop) + var(--s))) 0 var(--lip), inset 0 calc(2 * var(--s)) 0 var(--hi);
+  transition: top 60ms linear, box-shadow 60ms linear;
+}
+.hm-slab > * { transform: translateY(var(--drop)); transition: transform 60ms linear; }
+.hm-knit::before { background-image: var(--knit); background-size: calc(16 * var(--u)) calc(12 * var(--u)); }
+.hm-slab--lantern { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); }
+.hm-slab--night { --face: var(--hm-night-2); --hi: var(--hm-night-3); --lip: #141D36; --txt: var(--hm-wool); }
+.hm-slab--ink { --face: var(--hm-ink); --hi: #1D2947; --lip: #05080F; --txt: var(--hm-wool); }
+.hm-slab:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 3px; }
+.hm-slab--sm:hover:not(:disabled) { --drop: calc(-2 * var(--u)); }
+.hm-slab:active:not(:disabled):not([data-busy]) { --drop: calc(4 * var(--u)); }
+.hm-slab:disabled { --face: #3A4664; --hi: #3A4664; --txt: var(--hm-frost); --side: calc(2 * var(--u)); cursor: not-allowed; }
+.hm-slab:disabled::before { background-image: none; }
+.hm-slab[data-busy] { cursor: progress; }
+/* Over the scenery, a slab casts one hard shadow (a filter, which the pixel corners do not cut). */
+.hm-corner .hm-slab, .hm-chip .hm-slab { filter: var(--shadow); }
 
-/* ---------- Top bar ---------- */
-.hm-top { position: absolute; z-index: 10; top: max(18px, env(safe-area-inset-top)); left: max(var(--hm-side), env(safe-area-inset-left)); right: max(var(--hm-side), env(safe-area-inset-right));
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; }
-.hm-top > * { pointer-events: auto; }
-.hm-right { display: flex; align-items: center; gap: 12px; }
+/* Three pixel dots lighting in turn: busy. */
+.hm-dots { display: inline-flex; gap: calc(8 * var(--u)); }
+.hm-dots i { width: calc(8 * var(--u)); height: calc(8 * var(--u)); background: currentColor; opacity: 0.3; animation: hm-dot 0.9s steps(1) infinite; }
+.hm-dots i:nth-child(2) { animation-delay: 0.3s; } .hm-dots i:nth-child(3) { animation-delay: 0.6s; }
+@keyframes hm-dot { 0%, 33% { opacity: 1; } 34%, 100% { opacity: 0.3; } }
 
-/* Who is playing: one board, the avatar on a peg at its end. The whole board is the button into the profile. */
-.sk-home button.hm-me { display: flex; align-items: center; gap: 12px; min-width: 250px; padding: 7px 20px 7px 7px; border: 0; border-radius: 40px 6px 6px 40px; cursor: pointer; text-align: left; transition: filter var(--t-fast); }
-.hm-me:hover { filter: brightness(1.1); }
-.hm-me:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
-.hm-me-peg { display: grid; place-items: center; flex: none; width: 54px; height: 54px; border-radius: 50%; }
-.hm-me-id { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; }
-.hm-me-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 12rem; font: 800 20px/1.05 var(--skin-font-display); text-shadow: 0 -1px 0 rgba(20, 12, 6, 0.7); }
-.hm-me-lvl { display: flex; align-items: center; gap: 8px; white-space: nowrap; font: 900 12px/1 var(--skin-font-body); letter-spacing: 0.06em; color: var(--glow); }
-.hm-xp { position: relative; flex: 1; min-width: 80px; height: 10px; border-radius: 4px; overflow: hidden; background: rgba(20, 12, 6, 0.55); box-shadow: inset 0 1px 0 rgba(20, 12, 6, 0.6); }
-.hm-xp > i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--amber); box-shadow: inset 0 2px 0 var(--hm-gold-hi); }
-.hm-me .kit-tag { margin-left: 2px; }
+/* A tag: small sentence-case words on a block with pixel corners. */
+.hm-tag, .hm .sk-menu-badge .kit-tag { --s: calc(2 * var(--u)); display: inline-flex; align-items: center; gap: calc(4 * var(--u)); height: calc(22 * var(--u)); padding: 0 calc(8 * var(--u));
+  clip-path: var(--px); border-radius: 0; filter: none;
+  font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); letter-spacing: 0; text-transform: none; white-space: nowrap; }
+.hm-tag--ink { color: var(--hm-lantern-hi); background: var(--hm-ink); }
+.hm-tag--lantern { color: var(--hm-ink); background: var(--hm-lantern); }
+.hm .sk-menu-badge .kit-tag { color: var(--hm-wool); background: var(--hm-night); }
+.hm .sk-menu-primary .sk-menu-badge .kit-tag { color: var(--hm-lantern-hi); background: var(--hm-ink); }
+.hm .sk-menu-badge .kit-tag::before { display: none; }
 
-/* Wool Coins and Golden Bells on one board; the whole board opens the Trading Post. */
-.hm-wallet { display: flex; align-items: center; gap: 4px; height: 48px; padding: 4px; border: 0; border-radius: 26px; cursor: pointer; }
-.hm-wallet:hover { filter: brightness(1.1); }
-.hm-wallet:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
-.hm-money { display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 20px; font: 800 17px/1 var(--skin-font-display); color: var(--chalk); background: var(--slate); box-shadow: inset 0 2px 0 rgba(20, 12, 6, 0.6); }
-.hm-money svg { color: var(--brass-light); }
-.hm-plus { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: var(--hm-gold-ink); background: var(--glow); box-shadow: inset 0 -3px 0 var(--amber), 0 2px 0 rgba(20, 12, 6, 0.4); font: 900 22px/1 var(--skin-font-body); }
-.hm .sk-icon-btn { flex: none; }
-.hm-pill { height: 44px; padding: 0 16px; border: 0; border-radius: 4px; cursor: pointer; font: 800 15px/1 var(--skin-font-body); white-space: nowrap; }
+/* ---------- The panel ---------- */
+.hm-panel { position: absolute; inset: 0 0 var(--foot) 0; pointer-events: none; }
+.hm-panel-fill { position: absolute; inset: 0; overflow: hidden; background: var(--hm-night);
+  clip-path: polygon(0 0, calc(var(--mid) + var(--lean)) 0, calc(var(--mid) - var(--lean)) 100%, 0 100%); }
+/* The edge: 9 of lantern, then 4 of ink, following the slant. */
+.hm-panel-edge { position: absolute; inset: 0; background: var(--hm-lantern);
+  clip-path: polygon(calc(var(--mid) + var(--lean)) 0, calc(var(--mid) + var(--lean) + 9 * var(--u)) 0, calc(var(--mid) - var(--lean) + 9 * var(--u)) 100%, calc(var(--mid) - var(--lean)) 100%); }
+.hm-panel-edge::after { content: ''; position: absolute; inset: 0; background: var(--hm-ink);
+  clip-path: polygon(calc(var(--mid) + var(--lean) + 9 * var(--u)) 0, calc(var(--mid) + var(--lean) + 13 * var(--u)) 0, calc(var(--mid) - var(--lean) + 13 * var(--u)) 100%, calc(var(--mid) - var(--lean) + 9 * var(--u)) 100%); }
 
-/* ---------- The title: the game's letter tiles standing on a rack ---------- */
-.hm-left { position: absolute; z-index: 2; left: var(--hm-side); top: 96px; bottom: 64px; display: flex; flex-direction: column; justify-content: safe center; gap: 26px; pointer-events: none; }
-.hm-left > * { pointer-events: auto; }
-.hm-title { --tw: min(62px, calc((var(--hm-slab-w) - var(--hm-side) - 150px) / var(--count))); align-self: flex-start; margin-left: 4px; rotate: -4deg; transform-origin: 0 100%; }
-.hm-tiles { display: flex; gap: calc(var(--tw) * 0.1); margin: 0 0 0 calc(var(--tw) * 0.22); padding: 0; }
-.hm-tile { display: grid; place-items: center; width: var(--tw); height: calc(var(--tw) * 1.08); border-radius: 4px;
-  font: 900 calc(var(--tw) * 0.66)/1 var(--skin-font-display); color: var(--wood-ink); font-variation-settings: 'opsz' 72;
-  background: var(--tile);
-  box-shadow: inset 0 0 0 2px var(--hm-outline), inset 0 4px 0 rgba(255, 240, 210, 0.7), inset 0 -5px 0 var(--wood), 0 4px 0 rgba(20, 12, 6, 0.45);
-  text-shadow: 0 2px 0 rgba(255, 236, 200, 0.6);
-  animation: hm-bob 2.8s ease-in-out infinite; animation-delay: calc(var(--i) * -0.32s); }
-.hm-tile:nth-child(3n + 1) { rotate: -2deg; } .hm-tile:nth-child(3n + 2) { rotate: 2.5deg; }
-@keyframes hm-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
-/* The rack the tiles stand in: a board with a lip, one finish with the menu. */
-.hm-rack { --grain-x: -120px; position: relative; height: 18px; margin-top: -4px; border-radius: 3px 3px 4px 4px; }
-.hm-rack::before { content: ''; position: absolute; left: 6px; right: 6px; top: -6px; height: 6px; border-radius: 2px; background: var(--hm-board-lo); box-shadow: inset 0 0 0 2px var(--hm-outline); }
-.hm-tagline { margin: 14px 0 0 2px; rotate: 4deg; transform-origin: 0 0; font: 400 22px/1.2 var(--skin-font-hand); color: var(--hm-ice); text-shadow: 0 2px 0 rgba(10, 18, 30, 0.6); }
+/* The words: rows over the whole panel, deliberately faint; every third row a little lantern. */
+.hm-rows { position: absolute; left: -20%; top: -10%; width: 160%; height: 130%; display: flex; flex-direction: column; gap: calc(10 * var(--u)); rotate: -6deg; }
+.hm-row { flex: none; white-space: nowrap; font: 800 calc(30 * var(--u))/1 var(--skin-font-display); letter-spacing: 0.06em; word-spacing: 0.55em; color: #222F53; }
+.hm-row:nth-child(3n) { color: rgba(242, 164, 68, 0.12); }
+.hm-row > span { display: inline-block; animation: hm-slide var(--t, 75s) linear infinite; }
+.hm-row:nth-child(even) > span { animation-direction: reverse; }
+@keyframes hm-slide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-/* ---------- The menu: boards leaning with the slab's edge ---------- */
-.hm .sk-menu { position: relative; }
-.hm .sk-menu > ul { display: flex; flex-direction: column; gap: var(--hm-gap); margin: 0; padding: 0; list-style: none; }
-.hm .sk-menu-row { margin-left: calc(var(--hm-step) * (4 - var(--n))); animation: hm-in 420ms var(--ease-out) both; }
-@keyframes hm-in { from { opacity: 0; transform: translateX(-28px); } }
-.hm .sk-menu-item { --grain-x: calc(var(--n) * -97px); position: relative; display: block; width: var(--hm-plank-w); height: var(--hm-row); padding: 0; border: 0; border-radius: 4px; cursor: pointer;
-  transform: skewX(-12deg); transition: transform 220ms var(--ease-out), filter var(--t-fast); }
-.hm .sk-menu-item:disabled { cursor: not-allowed; }
-.hm .sk-menu-item:disabled .hm-in { opacity: 0.5; }
-:root[data-skin="painted"] .hm .sk-menu-item:focus-visible { outline: none; } /* the lit board is the focus mark: it follows focus */
-.hm-in { display: flex; align-items: center; gap: 14px; height: 100%; padding: 0 16px 0 10px; transform: skewX(12deg); }
-.hm-ico { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 4px; color: var(--wood-ink);
-  background: var(--tile); box-shadow: inset 0 0 0 2px var(--hm-outline), inset 0 3px 0 rgba(255, 240, 210, 0.6), inset 0 -3px 0 var(--wood); }
-.hm-ico svg { width: 22px; height: 22px; }
-.hm-txt { display: flex; flex: 1; flex-direction: column; align-items: flex-start; min-width: 0; }
-.hm .sk-menu-label { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; font: 800 24px/1.18 var(--skin-font-display); font-variation-settings: 'opsz' 24; text-shadow: 0 -2px 0 rgba(20, 12, 6, 0.7); }
-.hm-sub { margin-top: 4px; overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; font: 700 13px/1.1 var(--skin-font-body); opacity: 0.85; }
-.hm .sk-menu-badge { display: flex; flex: none; }
-.hm-go { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 50%; color: var(--glow); background: var(--hm-gold-ink); opacity: 0; transform: scale(0.6); transition: opacity 160ms, transform 220ms var(--ease-out); }
-.hm-go svg { width: 16px; height: 16px; margin-left: 3px; }
-/* Queue: the first board is the big one, its icon on green. */
-.hm .sk-menu-primary { height: var(--hm-row-1); width: calc(var(--hm-plank-w) + 60px); }
-.hm .sk-menu-primary .sk-menu-label { font-size: 34px; }
-.hm .sk-menu-primary .hm-ico { width: 52px; height: 52px; color: var(--button-text); background: var(--cloth-dark); box-shadow: inset 0 0 0 2px var(--hm-outline), inset 0 3px 0 rgba(200, 240, 200, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.5); }
-.hm .sk-menu-primary .hm-ico svg { width: 26px; height: 26px; margin-left: 3px; }
-/* Lit: gold paint, slid out along its own line. */
-.hm .sk-menu-item[data-active] { transform: translateX(22px) skewX(-12deg); color: var(--hm-gold-ink);
-  background: var(--hm-grain) var(--grain-x, 0) 0 / 420px 100% repeat-x, linear-gradient(180deg, var(--hm-gold-hi), var(--glow) 55%, var(--flame-dark));
-  box-shadow: inset 0 0 0 2px var(--hm-gold-ink), inset 0 4px 0 rgba(255, 250, 230, 0.85), inset 0 -6px 0 var(--amber), 0 0 0 3px var(--fox-dark), 0 0 32px rgba(255, 200, 110, 0.7), 0 6px 0 rgba(20, 12, 6, 0.5); }
-.hm .sk-menu-item[data-active] .sk-menu-label { text-shadow: 0 2px 0 rgba(255, 250, 230, 0.6); }
-.hm .sk-menu-item[data-active] .hm-go { opacity: 1; transform: none; }
-.hm .sk-menu-item:active:not(:disabled) { filter: brightness(0.94); }
-/* A row's note (daily, best 18, a streak, your barn): small capitals on a dark chip, the tag's tint as its letters. */
-.hm :is(.sk-menu-badge, .hm-me, .hm-card-title) .kit-tag { height: 24px; padding: 0 9px; clip-path: none; border-radius: 5px; font-size: 11px; letter-spacing: 0.08em;
-  color: var(--tag-tint, var(--glow)); background: rgba(20, 12, 6, 0.4); box-shadow: inset 0 0 0 1.5px rgba(255, 214, 160, 0.18); }
-.hm :is(.sk-menu-badge, .hm-me, .hm-card-title) .kit-tag::before { display: none; }
-.hm .sk-menu-item[data-active] .sk-menu-badge .kit-tag { color: var(--hm-gold-ink); background: rgba(122, 62, 18, 0.14); box-shadow: inset 0 0 0 1.5px rgba(122, 62, 18, 0.35); }
-.hm-note { position: absolute; left: 0; top: calc(100% + 14px); width: var(--hm-plank-w); display: flex; flex-direction: column; gap: 8px; }
-.hm-note p { margin: 0; padding: 8px 12px; border-radius: 4px; font: 600 14px/1.3 var(--skin-font-body); color: var(--button-text); background: rgba(18, 21, 42, 0.86); box-shadow: inset 0 0 0 1px rgba(217, 238, 248, 0.2); }
-.hm-note p[role="alert"] { color: var(--blush); }
+/* ---------- Inside the panel: chip, the block (title, tagline, menu), the word of the day ---------- */
+.hm-col { position: absolute; z-index: 2; left: calc(24 * var(--u)); top: calc(16 * var(--u)); bottom: calc(var(--foot) + 14 * var(--u)); width: calc(var(--mid) + var(--lean));
+  display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
+.hm-col > * { pointer-events: auto; }
+.hm-block { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: calc(14 * var(--u)); width: 100%; pointer-events: none; }
+.hm-block > * { pointer-events: auto; }
 
-/* ---------- The card for the chosen item ---------- */
-.hm-card { --grain-x: -60px; position: absolute; z-index: 2; right: var(--hm-side); bottom: 72px; width: 340px; padding: 8px; border-radius: 4px; rotate: 1.5deg; }
-.hm-card-art { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 3px; background: var(--hm-night); box-shadow: inset 0 0 0 2px var(--hm-outline); }
-.hm-art-svg { display: block; width: 100%; height: 100%; animation: hm-art-in 380ms var(--ease-out) both; }
-@keyframes hm-art-in { from { opacity: 0; transform: scale(1.06); } }
-.hm-card-body { display: flex; flex-direction: column; gap: 8px; padding: 12px 8px 6px; }
-.hm-card-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.hm-card-title h2 { margin: 0; font: 800 28px/1.12 var(--skin-font-display); text-shadow: 0 -2px 0 rgba(20, 12, 6, 0.7); }
-.hm-card-text { margin: 0; min-height: 4.05em; font: 600 14px/1.35 var(--skin-font-body); color: var(--button-text); }
-.hm-card .dr-nights { flex: none; justify-content: flex-start; gap: 4px; }
-.hm-card .dr-night { width: 20px; height: 20px; box-shadow: inset 0 0 0 2px rgba(255, 220, 170, 0.55); }
-.hm-modes { display: flex; align-items: center; gap: 8px; height: 40px; }
-.hm-mode { flex: 1; height: 40px; border: 0; border-radius: 4px; cursor: pointer; font: 800 16px/1 var(--skin-font-display); color: var(--button-text); background: rgba(20, 12, 6, 0.45); box-shadow: inset 0 0 0 2px rgba(255, 214, 160, 0.22); }
-.hm-mode:hover { color: var(--hm-gold-ink); background: var(--glow); box-shadow: inset 0 -3px 0 var(--amber); }
-.hm-mode:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
-.hm-mode:disabled { opacity: 0.5; cursor: not-allowed; }
-.hm-mode--go { color: var(--hm-gold-ink); background: var(--glow); box-shadow: inset 0 -3px 0 var(--amber), inset 0 0 0 2px var(--hm-gold-ink); }
-.hm-mode--go:hover { filter: brightness(1.06); }
+/* The profile chip: avatar in a pixel-cornered square, name, level in ten segments, the night streak. */
+.hm-me { justify-content: flex-start; width: calc(250 * var(--u)); height: calc(46 * var(--u) + var(--depth)); padding: 0 calc(10 * var(--u)) var(--depth) calc(7 * var(--u)); gap: calc(10 * var(--u)); text-align: left; }
+.hm-me-face { --s: calc(2 * var(--u)); flex: none; display: grid; place-items: center; width: calc(32 * var(--u)); height: calc(32 * var(--u)); overflow: hidden; clip-path: var(--px); background: var(--hm-wool); color: var(--hm-ink); }
+.hm-me-face img, .hm-me-face svg { width: calc(28 * var(--u)); height: calc(28 * var(--u)); }
+.hm-me-id { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: calc(4 * var(--u)); }
+.hm-me-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(16 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); }
+.hm-me-lvl { display: flex; align-items: center; gap: calc(6 * var(--u)); font: 800 calc(10.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); white-space: nowrap; }
+.hm-xp { display: flex; gap: calc(2 * var(--u)); }
+.hm-xp i { width: calc(9 * var(--u)); height: calc(7 * var(--u)); background: #141D36; }
+.hm-xp i[data-on] { background: var(--hm-lantern); }
 
-/* ---------- Word of the day: a clean card in the slab's night blue ---------- */
-.hm .sk-wotd { position: absolute; z-index: 2; right: var(--hm-side); top: 96px; width: 300px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 18px 16px; border-radius: 4px; pointer-events: none;
-  color: var(--chalk); background: var(--hm-navy); box-shadow: inset 0 3px 0 var(--amber), inset 0 0 0 1px rgba(217, 238, 248, 0.16), 0 12px 26px rgba(10, 18, 30, 0.35); }
-.sk-wotd-label { font: 900 11px/1 var(--skin-font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--glow); }
-.sk-wotd-word { font: 800 34px/1.15 var(--skin-font-display); font-variation-settings: 'opsz' 72; color: #fff; overflow-wrap: anywhere; }
-.sk-wotd-say { display: flex; align-items: center; gap: 6px; }
-.sk-wotd-ipa, .sk-wotd-pos { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px; font: 700 12px/1 var(--skin-font-body); color: var(--hm-ice); background: rgba(217, 238, 248, 0.1); }
-.sk-wotd-pos { font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: var(--glow); background: rgba(255, 217, 138, 0.12); }
-.sk-wotd-short { font: 600 15px/1.35 var(--skin-font-body); color: var(--hm-ice); }
-/* On a phone: one line under the title, in the slab. */
-.hm .sk-wotd--compact { position: static; width: auto; max-width: calc(100vw - 32px); flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 6px; row-gap: 2px; padding: 0; background: none; box-shadow: none; text-align: center; }
-.sk-wotd--compact .sk-wotd-label { font-size: 11px; }
-.sk-wotd--compact .sk-wotd-word { font-size: 19px; }
-.sk-wotd--compact .sk-wotd-say { display: none; }
-.sk-wotd--compact .sk-wotd-short { flex-basis: 100%; font-size: 14px; line-height: 1.2; }
+/* The title: seven wool blocks, the last one fleeced. */
+.hm-title { margin-left: calc(56 * var(--u)); }
+.hm-blocks { display: flex; gap: calc(5 * var(--u)); margin: 0; padding: 0; }
+.hm-block-l { --tilt: 0deg; --lift: 0px; --s: calc(3 * var(--u)); position: relative; display: block; width: calc(52 * var(--u)); height: calc(64 * var(--u)); rotate: var(--tilt); translate: 0 var(--lift); }
+.hm-block-l::before { content: ''; position: absolute; inset: 0; clip-path: var(--px); background-color: var(--hm-wool);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-9 * var(--u)) 0 var(--hm-wool-lip), inset 0 calc(6 * var(--u)) 0 var(--hm-wool-hi); }
+.hm-block-l > span { position: absolute; left: 0; right: 0; top: 0; height: calc(58 * var(--u)); display: grid; place-items: center; font: 800 calc(38 * var(--u))/1 var(--skin-font-display); color: var(--hm-night); }
+.hm-block-l:nth-child(1) { --tilt: -5deg; } .hm-block-l:nth-child(2) { --tilt: 3deg; --lift: calc(-5 * var(--u)); } .hm-block-l:nth-child(3) { --tilt: -2deg; --lift: calc(2 * var(--u)); }
+.hm-block-l:nth-child(4) { --tilt: 4deg; --lift: calc(-4 * var(--u)); } .hm-block-l:nth-child(5) { --tilt: -4deg; --lift: calc(1 * var(--u)); } .hm-block-l:nth-child(6) { --tilt: 2deg; --lift: calc(-5 * var(--u)); }
+.hm-block-l:nth-child(7) { --tilt: -3deg; }
+/* Fleeced: the top right corner cut away in three pixel steps, the wool drifting off up and to the right. */
+.hm-block-l.hm-fleeced::before { clip-path: polygon(0 calc(2*var(--s)), var(--s) calc(2*var(--s)), var(--s) var(--s), calc(2*var(--s)) var(--s), calc(2*var(--s)) 0,
+  calc(100% - 18 * var(--u)) 0, calc(100% - 18 * var(--u)) calc(6 * var(--u)), calc(100% - 12 * var(--u)) calc(6 * var(--u)), calc(100% - 12 * var(--u)) calc(12 * var(--u)), calc(100% - 6 * var(--u)) calc(12 * var(--u)), calc(100% - 6 * var(--u)) calc(18 * var(--u)), 100% calc(18 * var(--u)),
+  100% calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) 100%,
+  calc(2*var(--s)) 100%, calc(2*var(--s)) calc(100% - var(--s)), var(--s) calc(100% - var(--s)), var(--s) calc(100% - 2*var(--s)), 0 calc(100% - 2*var(--s))); }
+.hm-tuft { position: absolute; width: calc(9 * var(--u)); height: calc(9 * var(--u)); background: var(--hm-wool); box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--hm-ink); right: calc(-14 * var(--u)); top: calc(-8 * var(--u)); }
+.hm-tuft:nth-of-type(2) { width: calc(6 * var(--u)); height: calc(6 * var(--u)); right: calc(-24 * var(--u)); top: calc(-22 * var(--u)); }
+.hm-tuft:nth-of-type(3) { width: calc(5 * var(--u)); height: calc(5 * var(--u)); right: calc(-10 * var(--u)); top: calc(-30 * var(--u)); }
+.hm-tagline { margin: calc(12 * var(--u)) 0 0; white-space: nowrap; font: 400 calc(17 * var(--u))/1.2 var(--skin-font-hand); color: var(--hm-frost); }
 
-/* ---------- The bottom bar (a computer): keys, a tip, the small print ---------- */
-.hm-foot { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; height: 50px; display: flex; align-items: center; gap: 28px; padding: 0 var(--hm-side);
-  color: var(--button-text); background: var(--hm-night); box-shadow: inset 0 2px 0 var(--amber), 0 -6px 18px rgba(10, 18, 30, 0.3); }
-.hm-keys { display: flex; flex: none; align-items: center; gap: 16px; font: 700 13px/1 var(--skin-font-body); }
-.hm-keys span { display: inline-flex; align-items: center; gap: 6px; }
-.hm-keys kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 4px; font: 900 11px/1 var(--skin-font-body); color: var(--wood-ink);
-  background: var(--tile); box-shadow: inset 0 0 0 1.5px var(--hm-outline), inset 0 -3px 0 var(--wood); }
-.hm-keys kbd svg { width: 11px; height: 11px; }
-.hm-tip { display: flex; flex: 1; align-items: center; justify-content: center; gap: 10px; min-width: 0; margin: 0; }
-.hm-tip-tag { flex: none; height: 22px; padding: 0 9px; border-radius: 4px; display: inline-flex; align-items: center; font: 900 11px/1 var(--skin-font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--hm-gold-ink); background: var(--glow); }
-/* Two lines at most, balanced, never cut off with dots: the bar is tall enough for two. */
-.hm-tip-text { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-wrap: balance; font: 600 13px/1.25 var(--skin-font-body); color: var(--hm-ice); animation: hm-tip-in 420ms var(--ease-out) both; }
-@keyframes hm-tip-in { from { opacity: 0; transform: translateY(8px); } }
-.hm-small { display: flex; flex: none; align-items: center; font: 700 12px/1 var(--skin-font-body); color: rgba(217, 238, 248, 0.75); }
-.hm-small > * { display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border-left: 1px solid rgba(217, 238, 248, 0.2); }
-.hm-small > :first-child { padding-left: 0; border-left: 0; }
-.hm-small > :last-child { padding-right: 0; }
-.hm-small button { color: inherit; }
-.hm-small button:hover { color: var(--glow); }
-.hm-small button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+/* ---------- The menu ----------
+   Each item is skewed 11 degrees from its bottom left corner and its contents skewed back. The bottom left corners
+   lie on one line leaning 11 degrees (12.4 to the right of the one below), so the items' ends run parallel to the
+   panel's edge. */
+.hm .sk-menu > ul { display: flex; flex-direction: column; gap: calc(6 * var(--u)); margin: 0; padding: 0; list-style: none; }
+.hm .sk-menu-row { position: relative; margin-left: calc(var(--k) * 12.4 * var(--u)); }
+.hm .sk-menu-item { --h: calc(52 * var(--u)); width: calc(var(--mid) - 96 * var(--u)); height: calc(var(--h) + var(--depth)); justify-content: flex-start;
+  transform-origin: 0 100%; transform: skewX(-11deg); transition: transform 160ms ease-out; }
+.hm .sk-menu-primary { --h: calc(70 * var(--u)); width: calc(var(--mid) - 72 * var(--u)); }
+.hm-in { display: flex; align-items: center; gap: calc(12 * var(--u)); width: 100%; height: 100%; padding: 0 calc(14 * var(--u)) 0 calc(10 * var(--u)); transform: translateY(var(--drop)) skewX(11deg); }
+.hm .sk-menu-item[data-active] { transform: translateX(calc(16 * var(--u))) skewX(-11deg); transition-duration: 120ms; }
+:root .hm .sk-menu-item:focus-visible, :root .hm .sk-menu-item:focus { outline: none; } /* the chosen block, its slide and its arrow, is the focus mark: it follows focus */
+/* The pixel arrow that marks the chosen item, 30 to its left. */
+.hm-arrow { position: absolute; left: calc(-30 * var(--u)); top: calc(50% - 14 * var(--u)); width: calc(18 * var(--u)); height: calc(22 * var(--u)); background: var(--hm-lantern);
+  clip-path: polygon(0 0, 33% 0, 33% 18%, 67% 18%, 67% 36%, 100% 36%, 100% 64%, 67% 64%, 67% 82%, 33% 82%, 33% 100%, 0 100%); visibility: hidden; }
+.hm .sk-menu-row[data-active] .hm-arrow { visibility: visible; }
+/* The icon tile: the tile is the icon's outline. */
+.hm-ico { --s: calc(2 * var(--u)); flex: none; display: grid; place-items: center; width: calc(36 * var(--u)); height: calc(36 * var(--u)); clip-path: var(--px); background: var(--hm-lantern-lip); }
+.hm-ico img { width: calc(32 * var(--u)); height: calc(32 * var(--u)); object-fit: contain; }
+.hm .sk-menu-primary .hm-ico { width: calc(52 * var(--u)); height: calc(52 * var(--u)); background: var(--hm-ink); }
+.hm .sk-menu-primary .hm-ico img { width: calc(48 * var(--u)); height: calc(48 * var(--u)); }
+/* Brian's icons carry their own colour, so the red barn sits on frost, not on barn red. */
+.hm [data-id="lobby"] .hm-ico { background: var(--hm-frost); }
+.hm :is([data-id="dream"], [data-id="repair"]) .hm-ico { background: var(--hm-dusk); }
+.hm [data-id="practice"] .hm-ico { background: var(--hm-pasture); }
+.hm [data-id="tutorial"] .hm-ico { background: var(--hm-night); }
+.hm [data-id="join"] .hm-ico { background: var(--hm-lantern-lip); }
+.hm .sk-menu-row[data-active] .hm-ico { animation: hm-hop 0.6s steps(1) infinite; }
+@keyframes hm-hop { 0%, 49% { translate: 0 0; } 50%, 100% { translate: 0 calc(-2 * var(--u)); } }
+.hm-txt { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: flex-start; }
+.hm .sk-menu-label { max-width: 100%; overflow: hidden; white-space: nowrap; font: 800 calc(21 * var(--u))/1.2 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-ink); }
+.hm .sk-menu-primary .sk-menu-label { font-size: calc(31 * var(--u)); }
+.hm-sub { max-width: 100%; overflow: hidden; white-space: nowrap; font: 800 calc(12.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-ink); }
+.hm .sk-menu-badge { display: flex; flex: none; margin-left: auto; }
+/* Chosen: the face flashes to its highlight three times (the action has already started). */
+.hm .sk-menu-item[data-flash]::before { animation: hm-flash 240ms steps(1); }
+@keyframes hm-flash { 0%, 16%, 34%, 50%, 68%, 84% { background-color: var(--hm-wool-hi); } 17%, 33%, 51%, 67%, 85%, 100% { background-color: var(--face); } }
+.hm-note { position: absolute; left: 0; top: calc(100% + 10 * var(--u)); width: calc(var(--mid) - 72 * var(--u)); display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
+.hm-note p { margin: 0; padding: calc(8 * var(--u)) calc(12 * var(--u)); clip-path: var(--px); font: 700 calc(13 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-wool); background: var(--hm-ink); }
+.hm-note p[role="alert"] { color: var(--hm-lantern-hi); }
+.hm-retry { height: calc(32 * var(--u) + var(--depth)); margin-left: calc(8 * var(--u)); padding-inline: calc(12 * var(--u)); }
 
-/* A panel (setup, practice, join) takes the card's and the word's place on the right. */
-.hm-panel { position: absolute; z-index: 4; right: var(--hm-side); top: 50%; width: 380px; max-height: 80%; overflow-y: auto; transform: translateY(-50%); }
+/* ---------- The word of the day: inside the panel, bottom left ---------- */
+.hm .sk-wotd.hm-wotd { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: calc(4 * var(--u));
+  width: min(calc(300 * var(--u)), calc(var(--mid) - var(--lean) - 80 * var(--u))); min-height: calc(112 * var(--u)); padding: calc(13 * var(--u)) calc(14 * var(--u)) calc(11 * var(--u));
+  clip-path: var(--px); background: var(--hm-night-2); box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink); color: var(--hm-wool); pointer-events: none; }
+.sk-wotd-label { font: 800 calc(11.5 * var(--u))/1.25 var(--skin-font-body); color: var(--hm-lantern-hi); }
+.sk-wotd-word { font: 800 calc(23 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); overflow-wrap: anywhere; }
+.sk-wotd-say { display: flex; align-items: center; gap: calc(6 * var(--u)); }
+.sk-wotd-ipa, .sk-wotd-pos { --s: calc(2 * var(--u)); display: inline-flex; align-items: center; height: calc(20 * var(--u)); padding: 0 calc(7 * var(--u)); clip-path: var(--px);
+  font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-wool); background: #141D36; }
+.sk-wotd-short { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font: 700 calc(13.5 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-frost); }
 
-/* The setup panels (Set the table, Practice, Join party): one board, cream type, chips that light gold like the menu. */
-.hm-sheet { --grain-x: -200px; position: relative; padding: 18px 18px 20px; border-radius: 4px; color: var(--button-text); font-family: var(--skin-font-body); }
-.hm-sheet .sk-setup-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 4px; padding: 0; }
-.hm-sheet .sk-setup-head h2 { margin: 0; font: 800 28px/1.15 var(--skin-font-display); color: var(--button-text); text-shadow: 0 -2px 0 rgba(20, 12, 6, 0.7); }
-.hm-sheet .sk-setup-back { min-height: 36px; padding: 0 12px; border-radius: 4px; font: 800 14px/1 var(--skin-font-body); color: var(--glow); background: rgba(20, 12, 6, 0.4); box-shadow: inset 0 0 0 1.5px rgba(255, 214, 160, 0.2); }
-.hm-sheet .sk-setup-back:hover { color: var(--hm-gold-ink); background: var(--glow); }
-.hm-sheet p, .hm-sheet .sk-hand { font: 600 14px/1.4 var(--skin-font-body); color: var(--hm-ice); }
-.hm-sheet .sk-display { font: 800 16px/1.2 var(--skin-font-display); color: var(--glow); }
-.hm-sheet legend, .hm-sheet summary { font: 900 11px/1 var(--skin-font-body) !important; letter-spacing: 0.12em; text-transform: uppercase; color: var(--glow); }
-.hm-sheet p[role="alert"] { color: var(--blush); }
-.hm-rules { border-top: 1px solid rgba(255, 214, 160, 0.2); border-bottom: 1px solid rgba(255, 214, 160, 0.2); }
-.hm-rules summary { padding: 6px 0; cursor: pointer; }
-.hm-sheet .sk-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 4px; clip-path: none; outline: 0;
-  font: 800 14px/1 var(--skin-font-body); color: var(--button-text); background: rgba(20, 12, 6, 0.42); box-shadow: inset 0 0 0 1.5px rgba(255, 214, 160, 0.2); }
-.hm-sheet .sk-chip::before, .hm-sheet .sk-chip::after { display: none; }
-.hm-sheet .sk-chip:hover { background: rgba(20, 12, 6, 0.6); }
-.hm-sheet .sk-chip[aria-pressed="true"] { color: var(--hm-gold-ink); background: var(--glow); box-shadow: inset 0 -3px 0 var(--amber), 0 0 0 2px var(--fox-dark); }
-.hm-sheet .sk-chip:focus-visible, .hm-sheet .kit-tile:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
-/* The panel's one action: a gold board, as the lit Queue is. */
-.sk-home .hm-sheet .sk-sit { width: 100%; min-height: 58px; border: 0; border-radius: 4px; font: 800 26px/1 var(--skin-font-display) !important; color: var(--hm-gold-ink) !important; text-shadow: 0 2px 0 rgba(255, 250, 230, 0.6);
-  background: var(--hm-grain) -40px 0 / 420px 100% repeat-x, linear-gradient(180deg, var(--hm-gold-hi), var(--glow) 55%, var(--flame-dark));
-  box-shadow: inset 0 0 0 2px var(--hm-gold-ink), inset 0 4px 0 rgba(255, 250, 230, 0.85), inset 0 -6px 0 var(--amber), 0 0 24px rgba(255, 200, 110, 0.5), 0 5px 0 rgba(20, 12, 6, 0.5); }
-.sk-home .hm-sheet .sk-sit:hover:not(:disabled) { filter: brightness(1.06); }
-.sk-home .hm-sheet .sk-sit:active:not(:disabled) { transform: translateY(2px); }
-.sk-home .hm-sheet .sk-sit:disabled { opacity: 0.45; cursor: not-allowed; }
-.hm-sheet .sk-sit .sk-nail { display: none; }
-/* A short fact (a game's length, your best here): a plain dark pill, not chalk. */
+/* ---------- Top right: the purse, then the square buttons ---------- */
+.hm-corner { position: absolute; z-index: 5; top: calc(16 * var(--u)); right: calc(20 * var(--u)); display: flex; align-items: flex-start; gap: calc(10 * var(--u)); }
+.hm-square { width: calc(44 * var(--u)); height: calc(44 * var(--u) + var(--depth)); }
+.hm-square svg { width: calc(20 * var(--u)); height: calc(20 * var(--u)); }
+.hm .sk-sound > .sk-icon-btn { --face: var(--hm-wool); --hi: var(--hm-wool-hi); --lip: var(--hm-wool-lip); --edge: var(--hm-ink); --depth: calc(6 * var(--u)); --side: var(--depth); --drop: 0px;
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; width: calc(44 * var(--u)); height: calc(44 * var(--u) + var(--depth));
+  padding: 0 0 var(--depth); border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--hm-ink); filter: var(--shadow); }
+.hm .sk-sound > .sk-icon-btn::before { content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: var(--drop); bottom: 0; clip-path: var(--px); background-color: var(--face);
+  box-shadow: inset 0 0 0 var(--s) var(--edge), inset 0 calc(-1 * (var(--side) - var(--drop) + var(--s))) 0 var(--lip), inset 0 calc(2 * var(--s)) 0 var(--hi); }
+.hm .sk-sound > .sk-icon-btn > * { transform: translateY(var(--drop)); }
+.hm .sk-sound > .sk-icon-btn:hover { --drop: calc(-2 * var(--u)); filter: var(--shadow); }
+.hm .sk-sound > .sk-icon-btn:active { --drop: calc(4 * var(--u)); transform: none; }
+.hm .sk-sound > .sk-icon-btn:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 3px; }
+.hm .sk-sound > .sk-icon-btn svg { width: calc(20 * var(--u)); height: calc(20 * var(--u)); }
+.hm-purse { display: flex; }
+.hm-coins { justify-content: flex-start; width: calc(108 * var(--u)); height: calc(44 * var(--u) + var(--depth)); padding-left: calc(12 * var(--u)); gap: calc(8 * var(--u));
+  font: 800 calc(17 * var(--u))/1 var(--skin-font-display); font-variant-numeric: tabular-nums; }
+.hm-coin { width: calc(18 * var(--u)); height: calc(18 * var(--u)); background: var(--hm-lantern); box-shadow: inset calc(3 * var(--u)) calc(3 * var(--u)) 0 var(--hm-lantern-hi), inset calc(-3 * var(--u)) calc(-3 * var(--u)) 0 var(--hm-lantern-lip); }
+.hm-plus { margin-left: calc(-3 * var(--u)); }
+.hm-plus i { position: relative; width: calc(16 * var(--u)); height: calc(16 * var(--u)); background: var(--hm-ink);
+  clip-path: polygon(37.5% 0, 62.5% 0, 62.5% 37.5%, 100% 37.5%, 100% 62.5%, 62.5% 62.5%, 62.5% 100%, 37.5% 100%, 37.5% 62.5%, 0 62.5%, 0 37.5%, 37.5% 37.5%); }
+.hm-pill { height: calc(44 * var(--u) + var(--depth)); padding-inline: calc(14 * var(--u)); }
+
+/* ---------- The footer ---------- */
+.hm-foot { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: var(--foot); display: flex; align-items: center; gap: calc(18 * var(--u)); padding: 0 calc(20 * var(--u));
+  background: var(--hm-ink); box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern); }
+.hm-tip { display: flex; flex: 1; align-items: center; gap: calc(10 * var(--u)); min-width: 0; margin: 0; }
+.hm-tip-text { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font: 700 calc(12.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); }
+.hm-small { display: flex; flex: none; align-items: center; gap: calc(18 * var(--u)); font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); }
+.hm-small > * { display: inline-flex; align-items: center; min-height: 24px; color: var(--hm-wool); }
+.hm-small .hm-version { color: var(--hm-frost); }
+.hm-small button:hover { color: var(--hm-lantern-hi); }
+.hm-small button:focus-visible, .hm-more:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
+
+/* ---------- Panels opened from Home (Set the table, Practice, Join party) ---------- */
+.hm-panel-slot { position: absolute; z-index: 7; left: calc((var(--mid) + 100vw) / 2 - 200 * var(--u)); top: calc(50% - var(--foot) / 2); width: calc(400 * var(--u)); max-height: 82%; overflow-y: auto; transform: translateY(-50%); }
+.hm-sheet { position: relative; padding: calc(16 * var(--u)) calc(18 * var(--u)) calc(18 * var(--u)); clip-path: var(--px); background: var(--hm-night-2);
+  box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink); color: var(--hm-wool); font-family: var(--skin-font-body); }
+.hm-sheet .sk-setup-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 calc(4 * var(--u)); padding: 0; }
+.hm-sheet .sk-setup-head h2 { margin: 0; font: 800 calc(26 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); }
+.hm-close { width: calc(36 * var(--u)); height: calc(36 * var(--u) + var(--depth)); }
+.hm-close svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
+.hm-sheet p, .hm-sheet .sk-hand { font: 700 calc(14 * var(--u))/1.4 var(--skin-font-body); color: var(--hm-frost); }
+.hm-sheet .sk-display { font: 800 calc(16 * var(--u))/1.2 var(--skin-font-display); color: var(--hm-lantern-hi); }
+.hm-sheet legend, .hm-sheet summary { font: 800 calc(12 * var(--u))/1 var(--skin-font-body) !important; letter-spacing: 0; text-transform: none; color: var(--hm-lantern-hi); }
+.hm-sheet p[role="alert"] { color: var(--hm-lantern-hi); }
+.hm-rules { border-top: 2px solid var(--hm-night-3); border-bottom: 2px solid var(--hm-night-3); }
+.hm-rules summary { padding: calc(6 * var(--u)) 0; cursor: pointer; }
+/* Choices: small wool blocks; the chosen one is lantern. */
+.hm-sheet .sk-chip { --face: var(--hm-wool); --hi: var(--hm-wool-hi); --lip: var(--hm-wool-lip); --depth: calc(4 * var(--u));
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: calc(6 * var(--u)); min-height: calc(34 * var(--u) + var(--depth)); padding: 0 calc(12 * var(--u)) var(--depth);
+  border: 0; border-radius: 0; outline: 0; clip-path: none; background: none; box-shadow: none; filter: none; font: 800 calc(14 * var(--u))/1 var(--skin-font-body); color: var(--hm-ink); }
+.hm-sheet .sk-chip::before { content: ''; position: absolute; z-index: -1; inset: 0; display: block; clip-path: var(--px); background: var(--face);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-1 * (var(--depth) + var(--s))) 0 var(--lip), inset 0 calc(2 * var(--s)) 0 var(--hi); }
+.hm-sheet .sk-chip::after { display: none; }
+.hm-sheet .sk-chip[aria-pressed="true"] { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); }
+.hm-sheet .sk-chip:focus-visible, .hm-sheet .kit-tile:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
+.hm-sheet .kit-tile { --tile-w: calc(36 * var(--u)); border-radius: 0; clip-path: var(--px); background: var(--hm-wool); color: var(--hm-night); text-shadow: none;
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-7 * var(--u)) 0 var(--hm-wool-lip); }
+.hm-sheet .kit-tile.kit-tile--lit { background: var(--hm-lantern); box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-7 * var(--u)) 0 var(--hm-lantern-lip); }
+.hm-sheet .sk-code .kit-tile { --tile-w: calc(40 * var(--u)); height: calc(44 * var(--u)); }
+.hm-sheet .sk-code .sk-code-next { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
 .hm-sheet .kit-slate { padding: 0; background: none; box-shadow: none; }
 .hm-sheet .kit-slate::after { display: none; }
-:root .sk-home .hm-sheet .kit-slate .kit-slate-face { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 15px; outline: 0; font: 800 13px/1 var(--skin-font-body); color: var(--glow); background: rgba(20, 12, 6, 0.42); box-shadow: inset 0 0 0 1.5px rgba(255, 214, 160, 0.2); text-shadow: none; }
+:root .sk-home .hm-sheet .kit-slate .kit-slate-face { --s: calc(2 * var(--u)); display: inline-flex; align-items: center; height: calc(24 * var(--u)); padding: 0 calc(9 * var(--u)); outline: 0; clip-path: var(--px);
+  font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); background: var(--hm-ink); box-shadow: none; text-shadow: none; }
+/* The panel's one action: a lantern slab 48 high. */
+.hm-act { width: 100%; height: calc(48 * var(--u) + var(--depth)); font: 800 calc(22 * var(--u))/1 var(--skin-font-display) !important; color: var(--hm-ink) !important; }
 
-/* ---------- Smaller computer windows ---------- */
-@media (max-height: 820px) {
-  .hm { --hm-row: 50px; --hm-row-1: 68px; --hm-gap: 9px; }
-  .hm-left { top: 88px; gap: 18px; }
-  .hm-title { --tw: min(52px, calc((var(--hm-slab-w) - var(--hm-side) - 150px) / var(--count))); }
-  .hm .sk-menu-label { font-size: 21px; } .hm .sk-menu-primary .sk-menu-label { font-size: 30px; }
-  .hm-ico { width: 34px; height: 34px; } .hm .sk-menu-primary .hm-ico { width: 44px; height: 44px; }
-  .hm-tagline { font-size: 19px; margin-top: 10px; }
-  .hm .sk-wotd { top: 88px; }
-}
-@media (max-height: 720px) {
-  .hm { --hm-row: 44px; --hm-row-1: 60px; --hm-gap: 7px; }
-  .hm-tagline { display: none; }
-}
-@media (max-width: 1180px) {
-  .hm { --hm-slab-w: 600px; --hm-plank-w: 380px; }
-  .hm-card { display: none; }
-}
-@media (max-width: 1180px) and (min-height: 700px) { .hm .sk-wotd { top: auto; bottom: 72px; } }
-@media (max-width: 1180px) {
-  .hm-small > [data-device-label], .hm-update { display: none; }
-}
-/* A tablet: no keys to name, and the tip goes before the small print does. */
-@media (max-width: 1100px) { .hm-keys { display: none; } }
-@media (max-width: 760px) { .hm-tip { visibility: hidden; } }
-@media (max-width: 960px) {
-  .hm { --hm-slab-w: 540px; --hm-plank-w: 350px; --hm-side: 28px; }
-}
-/* A big screen: everything a step larger, so it does not shrink into the corner. */
-@media (min-width: 1700px) and (min-height: 950px) {
-  .hm { --hm-slab-w: 820px; --hm-plank-w: 520px; --hm-row: 70px; --hm-row-1: 96px; --hm-gap: 14px; --hm-step: 17px; --hm-side: 56px; }
-  .hm-left { top: 120px; gap: 32px; }
-  .hm-title { --tw: min(80px, calc((var(--hm-slab-w) - var(--hm-side) - 150px) / var(--count))); }
-  .hm-tagline { font-size: 26px; }
-  .hm .sk-menu-label { font-size: 29px; } .hm .sk-menu-primary .sk-menu-label { font-size: 42px; }
-  .hm-sub { font-size: 15px; }
-  .hm-ico { width: 48px; height: 48px; } .hm-ico svg { width: 26px; height: 26px; }
-  .hm .sk-menu-primary .hm-ico { width: 64px; height: 64px; } .hm .sk-menu-primary .hm-ico svg { width: 32px; height: 32px; }
-  .hm-go { width: 46px; height: 46px; }
-  .hm :is(.sk-menu-badge, .hm-me, .hm-card-title) .kit-tag { height: 28px; font-size: 12px; }
-  .hm-card { width: 420px; bottom: 84px; }
-  .hm-card-title h2 { font-size: 34px; } .hm-card-text { font-size: 16px; }
-  .hm .sk-wotd { width: 360px; top: 116px; } .sk-wotd-word { font-size: 42px; } .sk-wotd-short { font-size: 17px; }
-  .hm-top { top: 24px; }
-  .sk-home button.hm-me { min-width: 300px; } .hm-me-peg { width: 62px; height: 62px; } .hm-me-name { font-size: 24px; }
-  .hm-foot { height: 58px; } .hm-tip-text { font-size: 15px; } .hm-keys, .hm-small { font-size: 14px; }
-}
+/* Queue's chooser (Casual and Ranked), drawn in the same pieces. */
+.hm .sk-play { background: rgba(14, 21, 40, 0.78); }
+.hm .sk-play-box { padding: calc(16 * var(--u)) calc(18 * var(--u)) calc(18 * var(--u)); clip-path: var(--px); background: var(--hm-night-2);
+  box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink); }
+.hm .sk-play-head h2 { font: 800 calc(26 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); text-shadow: none; }
+.hm .sk-play-error { clip-path: var(--px); border-radius: 0; font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-lantern-hi); background: var(--hm-ink); box-shadow: none; }
+.hm .sk-play-card, .hm .sk-play-card[data-mode] { clip-path: var(--px); border-radius: 0; color: var(--hm-wool); background: var(--hm-night); box-shadow: inset 0 0 0 var(--s) var(--hm-ink); }
+.hm .sk-play-card[data-mode] .sk-play-art { box-shadow: none; border-bottom: var(--s) solid var(--hm-ink); }
+.hm .sk-play-card[data-mode] h3 { font: 800 calc(28 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); text-transform: none; letter-spacing: 0; }
+.hm .sk-play-line, .hm .sk-play-facts, .hm .sk-play-note, .hm .sk-play-rank small { font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.hm .sk-play-card[data-mode] .sk-play-facts { color: var(--hm-frost); }
+.hm .sk-play-facts li::before { border-radius: 0; background: var(--hm-lantern); opacity: 1; }
+.hm .sk-play-ladder { border-radius: 0; background: #141D36; box-shadow: none; }
+.hm .sk-play-ladder span { border-radius: 0; }
+.hm .sk-play-ladder span[data-on] { background: var(--hm-night-3); box-shadow: 0 0 0 2px var(--hm-lantern); }
+.hm .sk-play-rank b { color: var(--hm-lantern-hi); }
+.hm .sk-play-go { width: 100%; height: calc(48 * var(--u) + var(--depth)); min-height: 0; font: 800 calc(19 * var(--u))/1 var(--skin-font-display); }
 
-/* ---------- A phone ---------- */
-.hm[data-phone] { --hm-side: 12px; --hm-row: 48px; --hm-row-1: 64px; --hm-gap: 8px; --hm-band: 250px; }
-.hm[data-phone] .hm-slab { clip-path: polygon(0 0, 100% 0, 100% calc(var(--hm-band) - 64px), 0 var(--hm-band)); }
-.hm[data-phone] .hm-edge { clip-path: polygon(0 var(--hm-band), 100% calc(var(--hm-band) - 64px), 100% calc(var(--hm-band) - 54px), 0 calc(var(--hm-band) + 10px)); }
-.hm[data-phone] .hm-chains { inset: -20px -60% auto; height: calc(var(--hm-band) + 40px); }
-.hm[data-phone] .hm-chain { font-size: 44px; }
-.hm[data-phone] .hm-top { top: max(10px, env(safe-area-inset-top)); }
-.hm[data-phone] button.hm-me { min-width: 0; gap: 8px; padding: 5px 14px 5px 5px; }
-.hm[data-phone] .hm-me-peg { width: 40px; height: 40px; }
-.hm[data-phone] .hm-me-name { max-width: 7.5rem; font-size: 16px; }
-.hm[data-phone] .hm-xp { min-width: 56px; }
-.hm[data-phone] .hm-right { gap: 8px; }
-.hm[data-phone] .hm-wallet { height: 42px; }
-.hm[data-phone] .hm-money { height: 32px; padding: 0 10px; font-size: 15px; }
-.hm[data-phone] .hm-money + .hm-money { display: none; }
-.hm[data-phone] .hm-plus { width: 32px; height: 32px; font-size: 19px; }
-.hm[data-phone] .hm-head { position: absolute; z-index: 2; left: 0; right: 0; top: calc(max(10px, env(safe-area-inset-top)) + 64px); display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.hm[data-phone] .hm-title { --tw: min(40px, calc((100vw - 60px) / var(--count) - 4px)); align-self: center; margin: 0; rotate: -3deg; transform-origin: 50% 100%; }
-/* The round buttons in a row at the right, just under the band's edge (higher on the right), clear of the menu. */
-.hm[data-phone] .hm-side { position: absolute; z-index: 2; right: var(--hm-side); top: calc(var(--hm-band) - 22px); display: flex; gap: 8px; }
-.hm[data-phone] .hm-side .sk-icon-btn { width: 44px; height: 44px; }
-.hm[data-phone] .hm-bottom { position: absolute; z-index: 2; left: 0; right: 0; bottom: max(8px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; max-height: calc(100% - var(--hm-band) - 30px - env(safe-area-inset-bottom)); }
-.hm[data-phone] .hm-scroll { min-height: 0; overflow-y: auto; padding: 4px 16px 4px 12px; }
-.hm[data-phone] .hm-scroll .sk-menu > ul { gap: var(--hm-gap); }
-.hm[data-phone] .sk-menu-row { margin-left: calc(var(--hm-step) * 0.3 * (5 - var(--n))); }
-.hm[data-phone] .sk-menu-item { width: calc(100% - 24px); transform: skewX(-8deg); }
-.hm[data-phone] .hm-in { transform: skewX(8deg); gap: 10px; }
-.hm[data-phone] .sk-menu-primary { width: 100%; }
-.hm[data-phone] .sk-menu-item[data-active] { transform: translateX(8px) skewX(-8deg); }
-.hm[data-phone] .sk-menu-primary[data-active] { transform: skewX(-8deg); }
-.hm[data-phone] .sk-menu-label { font-size: 20px; }
-.hm[data-phone] .sk-menu-primary .sk-menu-label { font-size: 28px; }
-.hm[data-phone] .hm-ico { width: 34px; height: 34px; }
+/* ---------- Entrance (the first Home of a visit) ---------- */
+.hm[data-enter] .hm-panel { animation: hm-panel-in 280ms ease-out both; }
+.hm[data-enter] .hm-block-l { animation: hm-drop 240ms ease-out both; animation-delay: calc(200ms + var(--i) * 45ms); }
+.hm[data-enter] .sk-menu-row { animation: hm-row-in 240ms ease-out both; animation-delay: calc(280ms + var(--n) * 40ms); }
+@keyframes hm-panel-in { from { transform: translateX(-100%); } }
+@keyframes hm-drop { from { opacity: 0; transform: translateY(calc(-40 * var(--u))); } }
+@keyframes hm-row-in { from { opacity: 0; transform: translateX(calc(-40 * var(--u))); } }
+
+/* ---------- A narrow computer window or a tablet: the panel takes half, so labels keep their words ---------- */
+@media (max-width: 960px) { .hm:not([data-phone]) { --mid: max(clamp(calc(380 * var(--u)), 36vw, calc(560 * var(--u))), 46vw); } }
+
+/* ---------- Shorter windows ---------- */
+@media (max-height: 640px) { .hm-tagline { display: none; } }
+/* A longer menu (with Join party, or last night's dream) needs the tagline's room sooner. */
+@media (max-height: 780px) { .hm[data-rows="6"] .hm-tagline { display: none; } }
+@media (max-height: 880px) { .hm[data-rows="7"] .hm-tagline { display: none; } }
+@media (max-height: 760px) { .hm[data-rows="7"] .hm-wotd .sk-wotd-short { display: none; } }
+@media (max-height: 560px) { .hm .hm-wotd .sk-wotd-short { display: none; } }
+
+/* ---------- A phone: the panel is a sheet at the bottom whose top edge slants 6 degrees ---------- */
+.hm[data-phone] { --u: 1px; --sheet: min(56vh, calc(100vh - 150px)); }
+.hm[data-phone] .hm-panel { inset: auto 0 var(--foot) 0; height: var(--sheet); }
+.hm[data-phone] .hm-panel-fill { clip-path: polygon(0 11vw, 100% 0, 100% 100%, 0 100%); }
+.hm[data-phone] .hm-panel-edge { clip-path: polygon(0 calc(11vw - 13px), 100% -13px, 100% 0, 0 11vw); }
+.hm[data-phone] .hm-panel-edge::after { clip-path: polygon(0 calc(11vw - 13px), 100% -13px, 100% -9px, 0 calc(11vw - 9px)); }
+.hm[data-phone] .hm-row { font-size: 22px; }
+.hm[data-phone] .hm-chip { position: absolute; z-index: 5; left: 12px; top: max(12px, env(safe-area-inset-top)); }
+.hm[data-phone] .hm-me { width: min(200px, calc(100vw - 150px)); }
+.hm[data-phone] .hm-me .hm-xp i { width: 5px; }
+.hm[data-phone] .hm-me .hm-tag { display: none; }
+.hm[data-phone] .hm-corner { top: max(12px, env(safe-area-inset-top)); right: 12px; flex-direction: column; align-items: flex-end; gap: 8px; }
+.hm[data-phone] .hm-squares { display: flex; gap: 8px; }
+.hm[data-phone] .hm-coins { width: auto; min-width: 84px; padding-right: 12px; }
+.hm[data-phone] .hm-sheet-col { position: absolute; z-index: 2; left: 0; right: 0; bottom: var(--foot); height: var(--sheet); display: flex; flex-direction: column; padding: calc(11vw + 6px) 0 8px; }
+.hm[data-phone] .hm-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 4px; }
+.hm[data-phone] .hm-title { margin: 0 0 12px 8px; }
+.hm[data-phone] .hm-block-l { width: 36px; height: 44px; }
+.hm[data-phone] .hm-block-l > span { height: 38px; font-size: 26px; }
+.hm[data-phone] .hm-blocks { gap: 4px; }
+.hm[data-phone] .sk-menu-row { margin-left: 0; }
+.hm[data-phone] .hm-arrow { display: none; }
+.hm[data-phone] .sk-menu-item { --h: 44px; width: calc(100% - 8px); transform: skewX(-6deg); }
+.hm[data-phone] .sk-menu-primary { --h: 60px; }
+.hm[data-phone] .hm-in { transform: translateY(var(--drop)) skewX(6deg); }
+.hm[data-phone] .sk-menu-item[data-active] { transform: translateX(6px) skewX(-6deg); }
+.hm[data-phone] .sk-menu-label { font-size: 19px; }
+.hm[data-phone] .sk-menu-primary .sk-menu-label { font-size: 26px; }
+.hm[data-phone] .hm-ico { width: 32px; height: 32px; }
+.hm[data-phone] .hm-ico img { width: 28px; height: 28px; }
 .hm[data-phone] .sk-menu-primary .hm-ico { width: 44px; height: 44px; }
-.hm[data-phone] .hm-go { width: 32px; height: 32px; }
-.hm[data-phone] .hm-note { position: static; width: auto; padding: 0 16px; }
-.hm[data-phone] .hm-small { flex-wrap: wrap; justify-content: center; row-gap: 0; margin: 12px 0 2px; padding: 2px 8px; border-radius: 4px; background: rgba(18, 21, 42, 0.82); }
-.hm[data-phone] .hm-small { font-size: 11px; }
-.hm[data-phone] .hm-small > * { min-height: 30px; padding: 0 6px; }
-.hm[data-phone] .hm-small > :first-child { padding-left: 6px; }
-.hm[data-phone] .hm-panel { position: static; width: auto; max-height: none; transform: none; overflow: visible; padding: 0 16px; }
+.hm[data-phone] .sk-menu-primary .hm-ico img { width: 40px; height: 40px; }
+.hm[data-phone] .sk-wotd--compact { position: static; display: flex; flex-wrap: nowrap; align-items: baseline; gap: 8px; margin: 6px 16px 0; overflow: hidden; white-space: nowrap; pointer-events: none; }
+.hm[data-phone] .sk-wotd--compact .sk-wotd-label, .hm[data-phone] .sk-wotd--compact .sk-wotd-say { display: none; }
+.hm[data-phone] .sk-wotd--compact .sk-wotd-word { font-size: 17px; }
+.hm[data-phone] .sk-wotd--compact .sk-wotd-short { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.hm[data-phone] .hm-note { position: static; width: auto; padding: 0 16px 6px; }
+.hm[data-phone] .hm-panel-slot { position: static; width: auto; max-height: none; overflow: visible; transform: none; }
+.hm[data-phone] { --foot: 48px; }
+.hm[data-phone] .hm-foot { padding: 0 12px; }
+.hm[data-phone] .hm-tip-text { -webkit-line-clamp: 3; font-size: 11.5px; line-height: 1.15; }
+.hm-more { flex: none; min-height: 24px; font: 800 13px/1 var(--skin-font-body); color: var(--hm-wool); }
+.hm-more-list { position: absolute; right: 8px; bottom: calc(var(--foot) + 6px); flex-direction: column; align-items: flex-end; gap: 4px; padding: 10px 14px; clip-path: var(--px); background: var(--hm-ink); box-shadow: inset 0 3px 0 var(--hm-lantern); }
+.hm-more-list > * { min-height: 32px; }
 
-/* A short phone: a lower band, closer rows. */
+/* Motion: none under reduced motion (the arrow alone marks the choice), and paused while a full page covers Home. */
+:root[data-skin="painted"].reduce-motion :is(.hm-row > span, .hm-ico, .hm-panel, .hm-block-l, .sk-menu-row, .hm-dots i) { animation: none; }
+@media (prefers-reduced-motion: reduce) { .hm-row > span, .hm-ico, .hm-panel, .hm-block-l, .sk-menu-row, .hm-dots i { animation: none; } }
+:root[data-skin="painted"].reduce-motion .hm .sk-menu-item { transition: none; }
+@media (prefers-reduced-motion: reduce) { .hm .sk-menu-item { transition: none; } }
+:root[data-skin="painted"].reduce-motion .hm .sk-menu-item[data-active] { transform: skewX(-11deg); }
+@media (prefers-reduced-motion: reduce) { .hm .sk-menu-item[data-active] { transform: skewX(-11deg); } }
+.sk-home[data-covered] :is(.hm-panel, .hm-title, .sk-wotd), .sk-home[data-covered] :is(.hm-panel, .hm-title, .sk-wotd) *,
+.sk-home[data-covered] :is(.hm-panel, .hm-title, .sk-wotd) ::before, .sk-home[data-covered] :is(.hm-panel, .hm-title, .sk-wotd) ::after { animation-play-state: paused; }
+/* A short phone: the sheet may take a little more, and the title steps down, so more of the menu shows. */
 @media (max-height: 700px) {
-  .hm[data-phone] { --hm-band: 214px; --hm-row: 44px; --hm-row-1: 58px; --hm-gap: 7px; }
-  .hm[data-phone] .hm-title { --tw: min(34px, calc((100vw - 60px) / var(--count) - 4px)); }
-  .hm[data-phone] .sk-wotd-short { display: none; }
+  .hm[data-phone] { --sheet: min(66vh, calc(100vh - 140px)); }
+  .hm[data-phone] .hm-block-l { width: 30px; height: 36px; }
+  .hm[data-phone] .hm-block-l > span { height: 31px; font-size: 21px; }
+  .hm[data-phone] .hm-title { margin-bottom: 8px; }
+  .hm[data-phone] .hm-tuft { display: none; }
 }
-/* A narrow phone: the name and the rows keep their words whole; the notes beside them give way. */
-@media (max-width: 359px) {
-  .hm[data-phone] .hm-xp, .hm[data-phone] .hm-sub, .hm[data-phone] .sk-menu-badge { display: none; }
-  .hm[data-phone] button.hm-me { padding-right: 10px; }
-  .hm[data-phone] .hm-me-peg { width: 36px; height: 36px; }
-  .hm[data-phone] .hm-me-name { max-width: 6rem; font-size: 15px; }
-  .hm[data-phone] .hm-right { gap: 6px; }
-}
-
-/* A phone on its side: the computer's split, the title on the slab at the left, the menu scrolling on the right. */
-@media (orientation: landscape) and (max-height: 500px) {
-  .hm[data-phone] .hm-slab { clip-path: polygon(0 0, 48% 0, 40% 100%, 0 100%); }
-  .hm[data-phone] .hm-edge { clip-path: polygon(48% 0, calc(48% + 8px) 0, calc(40% + 8px) 100%, 40% 100%); }
-  .hm[data-phone] .hm-chains { inset: -10% -30%; height: auto; }
-  .hm[data-phone] .hm-head { right: 56%; top: calc(max(10px, env(safe-area-inset-top)) + 70px); }
-  .hm[data-phone] .hm-title { --tw: min(34px, calc(38vw / var(--count) - 6px)); }
-  .hm[data-phone] .sk-wotd-short { display: none; }
-  .hm[data-phone] .hm-side { top: auto; bottom: max(12px, env(safe-area-inset-bottom)); right: auto; left: max(12px, env(safe-area-inset-left)); }
-  .hm[data-phone] .hm-bottom { left: 47%; top: calc(max(10px, env(safe-area-inset-top)) + 62px); max-height: none; }
-}
-
-/* Motion: still under reduced motion, and paused while a full page covers Home. */
-:root[data-skin="painted"].reduce-motion :is(.hm-chain > span, .hm-tile, .hm .sk-menu-row, .hm-art-svg, .hm-tip-text) { animation: none; }
-@media (prefers-reduced-motion: reduce) { .hm-chain > span, .hm-tile, .hm .sk-menu-row, .hm-art-svg, .hm-tip-text { animation: none; } }
-.sk-home[data-covered] :is(.hm-slab, .hm-title, .sk-wotd), .sk-home[data-covered] :is(.hm-slab, .hm-title, .sk-wotd) *,
-.sk-home[data-covered] :is(.hm-slab, .hm-title, .sk-wotd) ::before, .sk-home[data-covered] :is(.hm-slab, .hm-title, .sk-wotd) ::after { animation-play-state: paused; }

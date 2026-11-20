@@ -25,12 +25,10 @@ import { fileURLToPath } from 'node:url';
  * milestone 7 (table framings with the board in frame, the calmer floor, the duel refinements), and again by 1,000 bytes
  * for milestone 6 (Brian's face picks, the hat in the head, two shadow draws per animal), and on 2026-11-20 by 6,000
  * bytes for the painted-miniature plan's M3 (the micro kit's twenty-seven object builders, the placements with their
- * rules, the ground's shade map: 3.12 kB over the old limit), and on 2026-11-20 by 3,000 bytes for the "Word chain"
- * Home (its six pixel-art pictures drawn in code, the slab and the card: 2.16 kB over the old limit; Brian's standing
- * choice of 2026-11-17 is to raise the limit rather than slim src/ui). All are flagged to Brian; a shrink pass back
- * toward the plan's net-zero is listed for milestone 12.
+ * rules, the ground's shade map: 3.12 kB over the old limit). All are flagged to Brian; a shrink pass back toward the
+ * plan's net-zero is listed for milestone 12.
  */
-const BUDGET_GZIP_BYTES = 707000;
+const BUDGET_GZIP_BYTES = 704000;
 
 /** Allowed growth over the budget before the check fails (10%). */
 const TOLERANCE = 0.1;

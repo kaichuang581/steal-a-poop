@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { playTick } from '../../audio/sound';
-import { PlayIcon } from './Icons';
 
 export interface MenuItem {
   id: string;
@@ -16,20 +15,18 @@ export interface MenuItem {
   icon?: ReactNode;
   /** A short line under the label (Queue's). */
   sub?: ReactNode;
-  /** Home's card only: something to show beside its action (Counting Sheep's nights). */
-  more?: ReactNode;
+  /** Waiting on the server: three dots in place of the label, and no clicks. */
+  busy?: boolean;
 }
 
 /**
- * A console-style title menu (Home, "Word chain", 2026-11-20): a stack of boards, the first (Queue) the big one. The
- * chosen board is lit gold and slides out (home/home.css; it only slides, so nothing else moves), and stays lit until
- * another is chosen, by the pointer, the arrow keys (and W/S) or Tab: Home's card follows it (`onActive`). Enter or
- * Space picks, Home/End jump. The chosen item's caption describes its button.
+ * A console-style title menu (Home, docs/home-ui/HOME-UI-PLAN.md): a stack of slanted blocks, the first (Queue) the big
+ * lantern one. The chosen block slides out with a pixel arrow beside it (home/home.css; it only slides, so nothing else
+ * moves) and stays chosen until another is, by the pointer, the arrow keys (and W/S) or Tab. Enter or Space picks,
+ * Home/End jump; a picked block flashes while its action starts at once. The chosen item's caption describes it.
  */
-export function GameMenu({ items, label, compact = false, autoFocus = false, keys = false, onActive }: {
+export function GameMenu({ items, label, compact = false, autoFocus = false, keys = false }: {
   items: MenuItem[]; label: string; compact?: boolean; autoFocus?: boolean;
-  /** Told the id of the chosen item whenever it changes. */
-  onActive?: (id: string) => void;
   /** Listen for the arrow keys, W/S, Home/End and Enter anywhere on the page, not only when the menu has focus. */
   keys?: boolean;
 }) {
@@ -40,8 +37,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
   const settling = useRef(false);
   const enabled = items.map((it, i) => (it.disabled ? -1 : i)).filter((i) => i >= 0);
   const lit = (i: number) => i === active;
-  const activeId = items[active]?.id;
-  useEffect(() => { if (activeId) onActive?.(activeId); }, [activeId, onActive]);
+  const [flash, setFlash] = useState(-1);
 
   const move = (to: number) => {
     touched.current = true;
@@ -121,13 +117,20 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
 
   const caption = items[active]?.caption;
   const item = (it: MenuItem, i: number) => (
-    <li key={it.id} className="sk-menu-row" style={{ '--n': i, animationDelay: `${200 + i * 60}ms` } as CSSProperties}>
+    <li key={it.id} className="sk-menu-row" data-id={it.id} data-active={lit(i) || undefined} style={{ '--n': i, '--k': items.length - 1 - i } as CSSProperties}>
+      <span className="hm-arrow" aria-hidden="true" />
       <button
         ref={(el) => { refs.current[i] = el; }}
-        className={`sk-menu-item hm-board ${i === 0 ? 'sk-menu-primary' : ''}`.trim()}
+        className={`sk-menu-item hm-slab hm-knit ${i === 0 ? 'sk-menu-primary hm-slab--lantern' : 'hm-slab--wool'}`}
         data-active={lit(i) || undefined}
+        data-flash={flash === i || undefined}
+        data-busy={it.busy || undefined}
         disabled={it.disabled}
-        onClick={it.onSelect}
+        onClick={() => {
+          setFlash(i);
+          setTimeout(() => setFlash((f) => (f === i ? -1 : f)), 240);
+          it.onSelect();
+        }}
         onFocus={() => {
           if (!settling.current) touched.current = true;
           setActive(i);
@@ -135,7 +138,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
         onPointerEnter={() => {
           if (it.disabled) return;
           touched.current = true;
-          // The pointer chooses too: focus follows it, so Enter then picks the board that is lit.
+          // The pointer chooses too: focus follows it, so Enter then picks the block that is chosen.
           if (i !== active) { setActive(i); playTick(0.15); }
           if (document.activeElement !== refs.current[i] && (!document.activeElement || document.activeElement === document.body || refs.current.includes(document.activeElement as HTMLButtonElement))) {
             settling.current = true;
@@ -144,15 +147,17 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
           }
         }}
         aria-describedby={i === active ? 'sk-menu-caption' : undefined}
+        aria-busy={it.busy || undefined}
       >
         <span className="hm-in">
           {it.icon && <span className="hm-ico" aria-hidden="true">{it.icon}</span>}
-          <span className="hm-txt">
-            <span className="sk-menu-label">{it.label}</span>
-            {it.sub && <span className="hm-sub">{it.sub}</span>}
-          </span>
-          {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
-          {i === 0 && <span className="hm-go" aria-hidden="true"><PlayIcon /></span>}
+          {it.busy ? <span className="hm-dots" role="status" aria-label="Working"><i /><i /><i /></span> : (
+            <span className="hm-txt">
+              <span className="sk-menu-label">{it.label}</span>
+              {it.sub && <span className="hm-sub">{it.sub}</span>}
+            </span>
+          )}
+          {it.badge && !it.busy && <span className="sk-menu-badge">{it.badge}</span>}
         </span>
       </button>
     </li>

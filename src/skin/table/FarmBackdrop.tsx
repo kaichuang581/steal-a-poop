@@ -5,6 +5,7 @@ import { Object3D, PCFShadowMap, SRGBColorSpace, Vector3 } from 'three';
 import type { Group, PerspectiveCamera, PointLight, SpotLight } from 'three';
 import type { Hour } from '../model/types';
 import { HOME_CAMERA, pinnedPov, POV_SHOTS, povAt } from '../scene/homePov';
+import { sceneShift } from '../home/layout';
 import type { PovShot } from '../scene/homePov';
 import { BARN } from '../scene/layout';
 import { Sky } from '../scene/Sky';
@@ -90,7 +91,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, heroGa
       camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
       onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
     >
-      <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} hour={hour} />
+      <Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} hour={hour} phone={phone} />
       <DoorGain hour={hour} />
       <Atmosphere hour={hour} />
       <MarkDrawn />
@@ -121,11 +122,13 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, heroGa
  * The camera travels along each scene's `push` for a few seconds, with a slight 0.25 m by 0.12 m drift over 40 s, then
  * dips to dark to cut to the next. Under reduced motion it stays still on the first scene.
  */
-function Drift({ shots, veil, spot, bounce, reduced, ready, hour }: {
+function Drift({ shots, veil, spot, bounce, reduced, ready, hour, phone = false }: {
   shots: PovShot[]; veil: RefObject<HTMLDivElement | null>;
-  spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null>; reduced: boolean; ready: boolean; hour: Hour;
+  spot: RefObject<SpotLight | null>; bounce: RefObject<PointLight | null>; reduced: boolean; ready: boolean; hour: Hour; phone?: boolean;
 }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const size = useThree((s) => s.size);
+  const shifted = useRef('');
   const pinned = useMemo(() => pinnedPov(location.search, shots.length), [shots]);
   const shown = useRef(-1);
   // The tour starts when the farm is shown, not when the canvas mounts: until then the camera holds the opening shot,
@@ -167,6 +170,14 @@ function Drift({ shots, veil, spot, bounce, reduced, ready, hour }: {
     const k = pov.progress;
     camera.position.set(shot.position[0] + dx + shot.push[0] * k, shot.position[1] + dy + shot.push[1] * k, shot.position[2] + shot.push[2] * k);
     camera.lookAt(shot.target[0], shot.target[1], shot.target[2]);
+    // Home's panel covers the left (home/layout.ts): the picture slides right so the shot's subject sits in the middle
+    // of what is left open. Never on the paddock shot (the wendigo's frame is frozen) and not on a phone.
+    const d = phone || pov.index === PADDOCK_SHOT || DEV_CAM ? 0 : sceneShift(size.width, size.height);
+    const key = `${d} ${size.width} ${size.height}`;
+    if (key !== shifted.current) {
+      shifted.current = key;
+      if (d) camera.setViewOffset(size.width, size.height, -d, 0, size.width, size.height); else camera.clearViewOffset();
+    }
   });
   return null;
 }

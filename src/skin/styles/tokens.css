@@ -83,3 +83,14 @@
   :root[data-skin="painted"] { --t-fast: 0ms; --t-feedback: 0ms; --t-carry: 0ms; }
 }
 :root[data-skin="painted"].reduce-motion { --t-fast: 0ms; --t-feedback: 0ms; --t-carry: 0ms; }
+
+/* Home's palette (docs/home-ui/HOME-UI-PLAN.md section 3, Brian, 2026-11-20). Prefixed: --ink and --wool already name
+   the paper's colours everywhere else. Home uses no other colour. */
+:root {
+  --hm-night: #1B2742; --hm-night-2: #26365C; --hm-night-3: #34497A;
+  --hm-ink: #0E1528;
+  --hm-wool: #FFF4DC; --hm-wool-hi: #FFFDF4; --hm-wool-lip: #D8C49A;
+  --hm-lantern: #F2A444; --hm-lantern-hi: #FFD98A; --hm-lantern-lip: #B96F1E;
+  --hm-barn: #B8473A; --hm-dusk: #5B5FC7; --hm-pasture: #3F8A55;
+  --hm-frost: #B9C8E6;
+}

@@ -128,10 +128,10 @@
    lie on one line leaning 11 degrees (12.4 to the right of the one below), so the items' ends run parallel to the
    panel's edge. */
 .hm .sk-menu > ul { display: flex; flex-direction: column; gap: calc(6 * var(--u)); margin: 0; padding: 0; list-style: none; }
-.hm .sk-menu-row { position: relative; margin-left: calc(var(--k) * 11.3 * var(--u)); }
-.hm .sk-menu-item { --h: calc(46 * var(--u)); width: calc(var(--mid) - 116 * var(--u)); height: calc(var(--h) + var(--depth)); justify-content: flex-start;
+.hm .sk-menu-row { position: relative; margin-left: calc(var(--k) * 12.4 * var(--u)); }
+.hm .sk-menu-item { --h: calc(52 * var(--u)); width: calc(var(--mid) - 96 * var(--u)); height: calc(var(--h) + var(--depth)); justify-content: flex-start;
   transform-origin: 0 100%; transform: skewX(-11deg); transition: transform 160ms ease-out; }
-.hm .sk-menu-primary { --h: calc(60 * var(--u)); width: calc(var(--mid) - 92 * var(--u)); }
+.hm .sk-menu-primary { --h: calc(70 * var(--u)); width: calc(var(--mid) - 72 * var(--u)); }
 .hm-in { display: flex; align-items: center; gap: calc(12 * var(--u)); width: 100%; height: 100%; padding: 0 calc(14 * var(--u)) 0 calc(10 * var(--u)); transform: translateY(var(--drop)) skewX(11deg); }
 .hm .sk-menu-item[data-active] { transform: translateX(calc(16 * var(--u))) skewX(-11deg); transition-duration: 120ms; }
 :root .hm .sk-menu-item:focus-visible, :root .hm .sk-menu-item:focus { outline: none; } /* the chosen block, its slide and its arrow, is the focus mark: it follows focus */
@@ -140,22 +140,16 @@
   clip-path: polygon(0 0, 33% 0, 33% 18%, 67% 18%, 67% 36%, 100% 36%, 100% 64%, 67% 64%, 67% 82%, 33% 82%, 33% 100%, 0 100%); visibility: hidden; }
 .hm .sk-menu-row[data-active] .hm-arrow { visibility: visible; }
 /* The icon tile: the tile is the icon's outline. */
-.hm-ico { --s: calc(2 * var(--u)); flex: none; display: grid; place-items: center; width: calc(32 * var(--u)); height: calc(32 * var(--u)); clip-path: var(--px); background: var(--hm-lantern-lip); }
-.hm-ico img { width: calc(28 * var(--u)); height: calc(28 * var(--u)); object-fit: contain; }
-.hm .sk-menu-primary .hm-ico { width: calc(44 * var(--u)); height: calc(44 * var(--u)); background: var(--hm-ink); }
-.hm .sk-menu-primary .hm-ico img { width: calc(40 * var(--u)); height: calc(40 * var(--u)); }
-/* Brian's icons carry their own colour, so the red barn sits on frost, not on barn red. */
-.hm [data-id="lobby"] .hm-ico { background: var(--hm-frost); }
-.hm :is([data-id="dream"], [data-id="repair"]) .hm-ico { background: var(--hm-dusk); }
-.hm [data-id="practice"] .hm-ico { background: var(--hm-pasture); }
-.hm [data-id="tutorial"] .hm-ico { background: var(--hm-night); }
-.hm [data-id="join"] .hm-ico { background: var(--hm-lantern-lip); }
+.hm-ico { --s: calc(2 * var(--u)); flex: none; display: grid; place-items: center; width: calc(36 * var(--u)); height: calc(36 * var(--u)); clip-path: var(--px); background: var(--hm-night-2); box-shadow: inset 0 calc(-3 * var(--u)) 0 var(--hm-night); }
+.hm-ico img { width: calc(24 * var(--u)); height: calc(24 * var(--u)); object-fit: contain; }
+.hm .sk-menu-primary .hm-ico { width: calc(50 * var(--u)); height: calc(50 * var(--u)); background: var(--hm-ink); box-shadow: none; }
+.hm .sk-menu-primary .hm-ico img { width: calc(34 * var(--u)); height: calc(34 * var(--u)); }
 .hm .sk-menu-row[data-active] .hm-ico { animation: hm-hop 0.6s steps(1) infinite; }
 @keyframes hm-hop { 0%, 49% { translate: 0 0; } 50%, 100% { translate: 0 calc(-2 * var(--u)); } }
 .hm-txt { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: flex-start; }
-.hm .sk-menu-label { max-width: 100%; overflow: hidden; white-space: nowrap; font: 800 calc(19 * var(--u))/1.2 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-ink); }
-.hm .sk-menu-primary .sk-menu-label { font-size: calc(27 * var(--u)); }
-.hm-sub { max-width: 100%; overflow: hidden; white-space: nowrap; font: 800 calc(12 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-ink); }
+.hm .sk-menu-label { max-width: 100%; overflow: hidden; white-space: nowrap; font: 800 calc(21 * var(--u))/1.2 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-ink); }
+.hm .sk-menu-primary .sk-menu-label { font-size: calc(31 * var(--u)); }
+.hm-sub { max-width: 100%; overflow: hidden; white-space: nowrap; font: 800 calc(12.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-ink); }
 .hm .sk-menu-badge { display: flex; flex: none; margin-left: auto; }
 /* Chosen: the face flashes to its highlight three times (the action has already started). */
 .hm .sk-menu-item[data-flash]::before { animation: hm-flash 240ms steps(1); }
@@ -311,16 +305,16 @@
 .hm[data-phone] .hm-blocks { gap: 4px; }
 .hm[data-phone] .sk-menu-row { margin-left: 0; }
 .hm[data-phone] .hm-arrow { display: none; }
-.hm[data-phone] .sk-menu-item { --h: 40px; width: calc(100% - 8px); transform: skewX(-6deg); }
-.hm[data-phone] .sk-menu-primary { --h: 54px; }
+.hm[data-phone] .sk-menu-item { --h: 44px; width: calc(100% - 8px); transform: skewX(-6deg); }
+.hm[data-phone] .sk-menu-primary { --h: 60px; }
 .hm[data-phone] .hm-in { transform: translateY(var(--drop)) skewX(6deg); }
 .hm[data-phone] .sk-menu-item[data-active] { transform: translateX(6px) skewX(-6deg); }
-.hm[data-phone] .sk-menu-label { font-size: 18px; }
-.hm[data-phone] .sk-menu-primary .sk-menu-label { font-size: 24px; }
-.hm[data-phone] .hm-ico { width: 30px; height: 30px; }
-.hm[data-phone] .hm-ico img { width: 26px; height: 26px; }
-.hm[data-phone] .sk-menu-primary .hm-ico { width: 40px; height: 40px; }
-.hm[data-phone] .sk-menu-primary .hm-ico img { width: 36px; height: 36px; }
+.hm[data-phone] .sk-menu-label { font-size: 19px; }
+.hm[data-phone] .sk-menu-primary .sk-menu-label { font-size: 26px; }
+.hm[data-phone] .hm-ico { width: 32px; height: 32px; }
+.hm[data-phone] .hm-ico img { width: 22px; height: 22px; }
+.hm[data-phone] .sk-menu-primary .hm-ico { width: 44px; height: 44px; }
+.hm[data-phone] .sk-menu-primary .hm-ico img { width: 30px; height: 30px; }
 .hm[data-phone] .sk-wotd--compact { position: static; display: flex; flex-wrap: nowrap; align-items: baseline; gap: 8px; margin: 6px 16px 0; overflow: hidden; white-space: nowrap; pointer-events: none; }
 .hm[data-phone] .sk-wotd--compact .sk-wotd-label, .hm[data-phone] .sk-wotd--compact .sk-wotd-say { display: none; }
 .hm[data-phone] .sk-wotd--compact .sk-wotd-word { font-size: 17px; }

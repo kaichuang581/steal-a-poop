@@ -41,6 +41,8 @@ describe('the French game', () => {
     expect(toFrench('  Play again ')).toBe('  Rejouer ');
     expect(toFrench("Maya's turn")).toBe('Au tour de Maya');
     expect(toFrench('Must start with B.')).toBe('Doit commencer par B.');
+    expect(toFrench('The Fleece Navidad update')).toBe('La mise à jour Fleece Navidad');
+    expect(toFrench('daily')).toBe('du jour');
     expect(toFrench('kxln')).toBeNull();
     expect(Object.values(FR).every((v) => v.length > 0)).toBe(true);
   });

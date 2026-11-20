@@ -17,7 +17,7 @@ export function TitleBoard({ title, tagline, compact = false }: { title: string;
     <p className="sk-update kit-plank kit-plank--barn" data-knot="3">
       <SnowCap className="kit-snow" variant="small" />
       <span className="kit-nail kit-nail--tl" /><span className="kit-nail kit-nail--tr" />
-      The {UPDATE_NAME} update
+      {`The ${UPDATE_NAME} update`}
     </p>
   );
   return (

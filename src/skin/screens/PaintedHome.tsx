@@ -460,7 +460,6 @@ export function PaintedHome() {
               {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
               <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
             </div>
-            <WordOfDay className="hm-wotd" />
           </div>
           <div className="hm-corner">
             {purse}{trophy}{account}
@@ -468,7 +467,9 @@ export function PaintedHome() {
             <SoundMenu />
             {helpButton}
           </div>
-          {step !== 'tables' && <div className="hm-panel-slot">{panel}</div>}
+          {/* The word of the day floats over the scenery under the top-right buttons (Brian, 2026-11-20: "i like it being
+              over the scenery, however i dont like the card ... just the text very slightly tilted"). A panel takes its place. */}
+          {step === 'tables' ? <WordOfDay className="hm-wotd" /> : <div className="hm-panel-slot">{panel}</div>}
           <footer className="hm-foot">
             {tipLine}
             <nav className="hm-small" aria-label="About the game">{smallPrint}</nav>

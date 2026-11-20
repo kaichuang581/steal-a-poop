@@ -2000,3 +2000,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   - The side card, its posters (HomeArt.tsx) and the board finish are gone. The Queue chooser and the setup panels use
     the same slabs. With a longer menu (six or seven items) the tagline is hidden sooner, as the plan's own order says.
   - Not done here: the language switch and French screenshots (pull request 56 is not on this branch).
+  - Brian, later on 2026-11-20 ("absolutely wonderful"): the menu's blocks a size smaller (46 high, Queue 60, labels 19
+    and 27), the coin a round gold pixel coin, and the word of the day moved out of the panel to float over the scenery
+    under the top-right buttons as text only, tilted 3 degrees, with a hard ink outline (picked from five mock-ups: "i
+    like it being over the scenery, however i dont like the card ... just the text very slightly tilted").

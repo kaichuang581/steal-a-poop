@@ -9,6 +9,7 @@ import { standsInWendigoZone } from './wendigoZone';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, RGB } from '../voxel/primitives';
 import { backHillHeight } from './distance';
+import { noteShade } from '../voxel/groundShade';
 import { chunkMaps, landHeight } from './farmstead';
 import { finish } from './slices';
 import type { Steps } from './slices';
@@ -446,6 +447,9 @@ export function* buildCountrysideSteps(wanted?: (min: Box, max: Box) => boolean)
   stands(SCARECROW[0], SCARECROW[1], () => scarecrow(small, ...SCARECROW));
   yield;
   // No tracks worn in the snow any more: speckled strips and ruts in the ground read as a fault (Brian, 2026-11-19).
+  // Read, never changed: what stands in front of the line shades the ground at its foot (voxel/groundShade.ts keeps to its own area).
+  noteShade(wood.near.map.values(), S);
+  noteShade(small.map.values(), F);
   const lists: Record<(typeof LISTS)[number], { maps: ChunkMap[]; size: number; options?: (chunk: ChunkMap) => BuildOptions | undefined }> = {
     woods: { maps: chunkMaps(wood.near.map, S), size: S },
     forest: { maps: chunkMaps(wood.far.map, FAR), size: FAR, options: (chunk) => (inStand(chunk, FAR) ? undefined : { unseen: home }) },

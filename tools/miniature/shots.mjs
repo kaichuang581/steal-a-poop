@@ -1,7 +1,9 @@
 // The painted-miniature plan's pictures (docs/miniature/04, section 7; 08, section 4), from the development server.
 //
-//   node tools/miniature/shots.mjs piece <name> | sheet kit | sheet home | cluster <name>
-//       opens ?preview=mini (the page arrives in M3) at 1600 x 1200 and saves docs/miniature/review/<what>-<name>.jpg
+//   node tools/miniature/shots.mjs piece <name> | sheet kit | sheet home
+//       opens ?preview=mini at 1600 x 1200 and saves docs/miniature/review/<what>-<name>.jpg
+//   node tools/miniature/shots.mjs cluster <name> [--query shade=off] [--name word]
+//       one micro cluster on Home itself, the camera stood by it (?cam=), the menu hidden: review/cluster-<name>.jpg
 //   node tools/miniature/shots.mjs tour [--hour day|dawn|dusk|night] [--phone] [--shots 0,1,5] [--query k=v] [--name word]
 //       saves Home's tour shots through ?pov=N and ?hour=, 1280 x 800 (computer) or 390 x 844 (phone), to
 //       docs/miniature/review/tour/<shot>.jpg, a shot being pov<N>-<hour>[-phone][-<word>]
@@ -52,7 +54,25 @@ const save = (dir, name, bytes, keep = false) => {
 };
 let failed = 0;
 
-if (cmd === 'piece' || cmd === 'sheet' || cmd === 'cluster') {
+// Where the camera stands for a cluster's picture: on Home itself (?cam=), where the wall it stands against is.
+const CLUSTER_CAMS = { workCorner: '9.4,2.7,13.6,4.4,0.9,7.6,34', workCornerDoors: '-0.6,2.4,14.6,0.1,2.2,7.3,40' };
+if (cmd === 'cluster') {
+  if (!words.length) usage();
+  const browser = await launch();
+  for (const name of words) {
+    const file = `cluster-${name}${flags.name}.jpg`;
+    try {
+      if (!CLUSTER_CAMS[name]) throw new Error(`no camera for "${name}": add one to CLUSTER_CAMS`);
+      const o = await home(browser, { url: URL_, width: 1600, height: 1200, pov: 0, hour: flags.hour, extraQuery: { gfx: 'high', cam: CLUSTER_CAMS[name], ...flags.query } });
+      // The scene alone: the menu would cover half of it.
+      await o.page.evaluate(() => { for (const el of document.body.querySelectorAll('*')) if (!(el instanceof HTMLCanvasElement) && !el.querySelector('canvas')) el.style.visibility = 'hidden'; });
+      await o.page.waitForTimeout(600);
+      save(resolve(DOCS, 'review'), file, await shoot(o.page, { type: 'jpeg', quality: 90 }));
+      await o.context.close();
+    } catch (e) { failed++; console.log(`${file} FAILED: ${String(e.message).slice(0, 240)}`); }
+  }
+  await browser.close();
+} else if (cmd === 'piece' || cmd === 'sheet') {
   if (!words.length) usage();
   const browser = await launch();
   for (const name of words) {

@@ -1,6 +1,7 @@
 import { Color, MeshLambertMaterial } from 'three';
 import { COLOR_RANGE } from './mesher';
 import { withRoundedEdges } from './rounded';
+import { SHADE_UNIFORMS, shadeFor } from './groundShade';
 
 /**
  * A packed geometry's colour (`packGeometry` in mesher.ts) is 16-bit at 1 / COLOR_RANGE of its value with a fourth
@@ -11,6 +12,47 @@ const UNPACK = /* glsl */ `#include <color_vertex>
 #ifdef USE_COLOR_ALPHA
   vColor.rgb *= ${COLOR_RANGE.toFixed(1)};
 #endif`;
+
+/**
+ * The ground's shade map (voxel/groundShade.ts; docs/miniature/04, section 5): where a face lies in the world and
+ * whether it looks up, handed to the fragment shader, which darkens ground-level top faces by the map. A scene with no
+ * map reads a white texel and nothing changes.
+ */
+const SHADE_VERTEX_PARS = /* glsl */ `#include <common>
+varying vec3 vShadeAt;
+varying float vShadeUp;`;
+const SHADE_VERTEX = /* glsl */ `#include <project_vertex>
+{
+  vec4 shadeAt = vec4( transformed, 1.0 );
+  vec3 shadeUp = normal;
+  #ifdef USE_INSTANCING
+    shadeAt = instanceMatrix * shadeAt;
+    shadeUp = mat3( instanceMatrix ) * shadeUp;
+  #endif
+  vShadeAt = ( modelMatrix * shadeAt ).xyz;
+  vShadeUp = normalize( mat3( modelMatrix ) * shadeUp ).y;
+}`;
+const SHADE_FRAGMENT_PARS = /* glsl */ `#include <common>
+uniform sampler2D uGroundShade;
+uniform vec2 uShadeOrigin;
+uniform vec2 uShadeSize;
+varying vec3 vShadeAt;
+varying float vShadeUp;
+vec3 groundShade = vec3( 1.0 );`;
+/**
+ * In shade the ground is lit by the sky, so the shade is a little blue. Only the ground, drifts and dents: under 0.26 m.
+ * The map holds how bright the ground is, 0.6 (the deepest) to 1 (open ground): about 0.75 along the foot of a long
+ * wall and 0.9 round a post, which is what the plan says the snow is there. So the stored value is the brightness, in
+ * the plan's own shade colour (its 0.78, 0.83, 0.93, scaled so its red is the value): the plan's line, mixing toward
+ * that colour by the stored value, darkened a wall's foot by 5% and nothing else that could be seen.
+ * It is worked out here and laid over the lit colour after the shoulder (STUDIO_SHOULDER): snow in the sun is lit far past
+ * white and eased back to it, so a shade taken off its colour before the light was eased away to nothing.
+ */
+const SHADE_FRAGMENT = /* glsl */ `#include <color_fragment>
+if ( vShadeUp > 0.5 && vShadeAt.y < 0.26 ) {
+  float shade = texture2D( uGroundShade, ( vShadeAt.xz - uShadeOrigin ) / uShadeSize ).r;
+  groundShade = mix( vec3( 0.60, 0.64, 0.715 ), vec3( 1.0 ), clamp( ( shade - 0.6 ) / 0.4, 0.0, 1.0 ) );
+}`;
 
 /**
  * The soft shading every voxel takes (Brian, 2026-11-19: "the sheep are glowing. either match the scenery to that glow
@@ -55,7 +97,7 @@ const STUDIO_SHOULDER = /* glsl */ `{
     vec3 lit = outgoingLight - totalEmissiveRadiance;
     float peak = max( lit.r, max( lit.g, lit.b ) ), past = peak - ${SHOULDER.knee.toFixed(3)};
     if ( uShoulder > 0.5 && past > 0.0 ) lit *= ( ${SHOULDER.knee.toFixed(3)} + past / ( 1.0 + past / ${SHOULDER.over.toFixed(3)} ) ) / peak;
-    outgoingLight = lit + totalEmissiveRadiance;
+    outgoingLight = lit * groundShade + totalEmissiveRadiance;
   }
   #include <opaque_fragment>`;
 
@@ -79,15 +121,18 @@ export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: num
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uStudio = opts.always ? ALWAYS : STUDIO_SWITCH;
     shader.uniforms.uShoulder = STUDIO_SWITCH; // the scene's, for the animals too
-    shader.vertexShader = shader.vertexShader.replace('#include <color_vertex>', UNPACK);
+    Object.assign(shader.uniforms, SHADE_UNIFORMS);
+    shader.vertexShader = shader.vertexShader.replace('#include <color_vertex>', UNPACK).replace('#include <common>', SHADE_VERTEX_PARS).replace('#include <project_vertex>', SHADE_VERTEX);
     shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', SHADE_FRAGMENT_PARS)
+      .replace('#include <color_fragment>', SHADE_FRAGMENT)
       .replace('#include <lights_lambert_pars_fragment>', STUDIO_PARS(wrap))
       .replace('#include <lights_fragment_end>', STUDIO_FILL(fill))
       .replace('#include <opaque_fragment>', STUDIO_SHOULDER);
   };
   // The switch is read from the scene being drawn, just before this material's uniforms go to the card.
-  if (!opts.always) m.onBeforeRender = (_renderer, scene) => { STUDIO_SWITCH.value = scene.userData.plainLight ? 0 : 1; };
-  m.customProgramCacheKey = () => `voxel-color16-studio-${wrap}-${fill}-shoulder`;
+  if (!opts.always) m.onBeforeRender = (_renderer, scene) => { STUDIO_SWITCH.value = scene.userData.plainLight ? 0 : 1; shadeFor(scene); };
+  m.customProgramCacheKey = () => `voxel-color16-studio-${wrap}-${fill}-shoulder-shade4`;
   return withRoundedEdges(m);
 }
 

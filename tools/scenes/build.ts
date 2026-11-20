@@ -735,6 +735,9 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       '{farm.props.map((g, i) => <mesh key={`p${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
       '{farm.fine.map((g, i) => <mesh key={`f${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
       '<mesh geometry={farm.terrain} material={mat} receiveShadow />',
+      "{tier !== 'low' && <Micro micro={farm.micro} phone={phone} />}",
+      '{micro.clusters.map((c, i) => <mesh key={c.name} ref={(m) => { meshes.current[i] = m; }} geometry={c.geo} material={mat} castShadow receiveShadow />)}',
+      '{micro.glass && <mesh ref={glass} geometry={micro.glass} material={glassMat} />}',
       '<Festive geo={buildFarmFestive()} reduced={reduced} />',
       '{[...country.woods, ...country.scrub].map((g, i) => g && <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
       '{country.forest.map((g, i) => g && <mesh key={`w${i}`} geometry={g} material={mat} receiveShadow />)}',
@@ -749,6 +752,9 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     farm.props.forEach((g, i) => L.put(g, `farmstead.props[${i}]`));
     farm.fine.forEach((g, i) => L.put(g, `farmstead.fine[${i}]`));
     L.put(farm.terrain, 'farmstead.terrain');
+    // The micro layer (scene/farmMicro.ts): one mesh a cluster, and the lanterns' glass.
+    for (const c of farm.micro.clusters) L.put(c.geo, `farmstead.micro.${c.name}`);
+    if (farm.micro.glass) L.put(farm.micro.glass, 'farmstead.micro.glass');
     putFestive(L, festive.buildFarmFestive(), 'farmFestive');
     const country = countryside.buildCountryside();
     country.woods.forEach((g, i) => L.put(g, `countryside.woods[${i}]`));

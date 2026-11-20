@@ -205,6 +205,9 @@ const drawsSkipped = () => (globalThis as { __gate?: { drawing?: boolean } }).__
  */
 export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hour: Hour; phone: boolean; viewYaw: number; lampRef?: (i: number, l: PointLight | null) => void; place?: SunPlace }) {
   const sun = SUN[hour], look = DIORAMA[hour];
+  // The start screen and the barn table read the ground's shade map (voxel/groundShade.ts); no other scene has these lights.
+  const shaded = useThree((three) => three.scene);
+  useEffect(() => { shaded.userData.groundShade = true; return () => { shaded.userData.groundShade = false; }; }, [shaded]);
   // Under the barn's roof at the table the open sky's fill is cut, or the lanterns' light is lost in it and the
   // inside reads as washed out; Home's farm is out of doors and takes it all.
   const fillShare = place === 'table' ? INDOOR_FILL : 1;

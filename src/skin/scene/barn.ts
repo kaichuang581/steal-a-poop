@@ -3,6 +3,7 @@ import { buildGeometry, packGeometry, triangles as tris } from '../voxel/mesher'
 import { each, finish } from './slices';
 import type { Steps } from './slices';
 import { IRIS, lin, T } from '../voxel/palette';
+import { noteShade } from '../voxel/groundShade';
 import { byPart, paint, seededPart, shade, solid } from '../voxel/paint';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
@@ -46,6 +47,9 @@ const roofY = (x: number) => 42 + Math.floor(22 * Math.max(0, 1 - Math.abs(x + 0
 const inBackDoor = (x: number, y: number) => x >= I(BARN.backDoor.minX) && x < I(BARN.backDoor.maxX) && y < I(BARN.backDoor.height);
 const SD = { z0: I(BARN.sideDoor.z - BARN.sideDoor.width / 2), z1: I(BARN.sideDoor.z + BARN.sideDoor.width / 2) - 1, y1: I(BARN.sideDoor.height) - 1 };
 const inSideDoor = (y: number, z: number) => z >= SD.z0 && z <= SD.z1 && y <= SD.y1;
+
+/** The barn's own walls as cubes, for the review page (scene/farmstead.ts, `farmPiece`). */
+export const barnWalls = (): Grid => walls();
 
 function walls(): Grid {
   const g = new Grid(S);
@@ -528,6 +532,7 @@ export function* buildBarnSteps(): Steps<Barn> {
   const f = floor(blocked);
   yield;
   const w = walls();
+  noteShade(w.map.values(), S); // the walls' feet, for the ground's shade map (Home and the yard seen from the table)
   yield;
   const statics = yield* each([w, b, f, bl, p], (g) => buildGeometry(g.map, S));
   const leaves = yield* each([-1, 1] as const, (side) => ({

@@ -69,6 +69,12 @@ export interface BuildOptions {
    * Given a function, only the voxels it says yes to take part (their centres, in metres).
    */
   merge?: boolean | ((x: number, y: number, z: number) => boolean);
+  /**
+   * Whether something that is not this model fills a cell (asked in the model's own cube indices): the ground, a wall
+   * the model stands against. Read only where corner shade is worked out, so a crate gets a soft dark line where it
+   * meets the wall and the snow; never used to hide a face. (docs/miniature/04, section 4.)
+   */
+  near?: (x: number, y: number, z: number) => boolean;
 }
 
 const planeCell = (a: number, b: number) => (a + 8192) * 16384 + (b + 8192);
@@ -78,12 +84,13 @@ const planeCell = (a: number, b: number) => (a + 8192) * 16384 + (b + 8192);
  * voxel indices times `size`. Every face is four vertices and six indices, in order, but for the merged rectangles
  * (`merge`) at the end, which may be fans.
  */
-export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true, unseen, merge = false }: BuildOptions = {}): BufferGeometry {
+export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true, unseen, merge = false, near }: BuildOptions = {}): BufferGeometry {
   // tools/floatingVoxels.ts listens here to find voxels that touch nothing; nothing else sets it.
   (globalThis as { __voxelHook?: (vox: VoxelMap, size: number) => void }).__voxelHook?.(vox, size);
   const solid = solidOf(vox);
   // UVs are kept so a material may map a texture, but the voxel material carries none (plan V3.1 Part 1.1).
   const has = (p: number[]) => solid.has(cellKey(p[0], p[1], p[2]));
+  const shut = near ? (p: number[]) => has(p) || near(p[0], p[1], p[2]) : has; // for corner shade only
   const pos: number[] = [], col: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [], bev: number[] = [];
   const merging = !!merge && MERGE_FLAT;
   const mergeable = typeof merge === 'function' ? merge : null;
@@ -118,7 +125,7 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
         const s1 = [...outside]; s1[f.t1] += d1;
         const s2 = [...outside]; s2[f.t2] += d2;
         const cn = [...outside]; cn[f.t1] += d1; cn[f.t2] += d2;
-        const a = has(s1) ? 1 : 0, b = has(s2) ? 1 : 0, cc = has(cn) ? 1 : 0;
+        const a = shut(s1) ? 1 : 0, b = shut(s2) ? 1 : 0, cc = shut(cn) ? 1 : 0;
         aos.push(a && b ? 3 : a + b + cc); // 0 open .. 3 fully occluded
       }
       const shade = FACE_SHADE(f.axis, f.sign);

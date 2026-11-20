@@ -33,6 +33,7 @@ const ThumbRender = DEV ? lazy(() => import('./shop/ThumbRender')) : null;
 const StallRender = DEV ? lazy(() => import('./shop/StallRender')) : null;
 const GuideRender = DEV ? lazy(() => import('./tour/GuideRender')) : null;
 const PropPreview = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PropPreview }))) : null;
+const MiniPreview = DEV ? lazy(() => import('./scene/MiniPreview').then((m) => ({ default: m.MiniPreview }))) : null;
 const PropBoard = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PropBoard }))) : null;
 // ?preview=pen: the lobby's pen with four guests and no server, to look at the scene alone (development only).
 const PenPreview = DEV ? lazy(() => import('./rooms/PenStage').then((m) => ({ default: () => <m.PenStage guests={['sheep', 'cow', 'pig', 'chicken'].map((avatar, i) => ({ id: `p${i}`, name: ['Brian', 'Maple', 'Barley', 'Tansy'][i], avatar, you: i === 0, host: i === 0 }))} farmSheep={2} reduced={false} phone={innerWidth < 640} shift={[0, 0]} /> }))) : null;
@@ -163,6 +164,7 @@ export function PaintedApp() {
   if (PREVIEW === 'guide' && GuideRender) return <Suspense fallback={null}><GuideRender /></Suspense>;
   // The diorama scenery's pages (docs/diorama/PLAN.md, 5.3 and 5.4).
   if (PREVIEW === 'pen' && PenPreview) return <div style={{ position: 'fixed', inset: 0 }}><Suspense fallback={null}><PenPreview /></Suspense></div>;
+  if (PREVIEW === 'mini' && MiniPreview) return <Suspense fallback={null}><MiniPreview /></Suspense>;
   if (PREVIEW === 'prop' && PropPreview) return <Suspense fallback={null}><PropPreview /></Suspense>;
   if (PREVIEW === 'props' && PropBoard) return <Suspense fallback={null}><PropBoard /></Suspense>;
   if (PREVIEW === 'palette' && PaletteSwatches) return <Suspense fallback={null}><PaletteSwatches /></Suspense>;

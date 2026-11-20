@@ -5,11 +5,13 @@ import { each, finish } from './slices';
 import type { Steps } from './slices';
 import type { Voxel, VoxelMap } from '../voxel/mesher';
 import { blanket, SNOW, snowPaint } from '../voxel/snow';
+import { noteShade } from '../voxel/groundShade';
 import { byPart, paint, solid, SOLID_SNOW } from '../voxel/paint';
 import { course, patches } from '../voxel/texture';
 import { pinePaint, tieredPine } from './style/pine';
 import { box, ellipsoid, Grid, line, ring, rng } from '../voxel/primitives';
 import type { Paint, V3 } from '../voxel/primitives';
+import { noteStructure, underMicro } from './farmMicro';
 import { BARN, YARD } from './layout';
 
 /** The yard is built on the 0.20 m grid (plan V3 Part 4.1, 7.2). */
@@ -42,7 +44,7 @@ const PORCH_X = HOME.x + HOME.halfX + HOME.porch, LANE_FADE = 39;
  * barn's doors to the hens' gate.
  */
 const WALKS = [[PORCH_X + 0.5, HOME.z, -HALF, FENCE.z + 2.4], [-HALF, 10.6, FENCE.minX, 10.6]] as const;
-const onWalk = (x: number, z: number) => WALKS.some(([x0, z0, x1, z1]) => {
+export const onWalk = (x: number, z: number) => WALKS.some(([x0, z0, x1, z1]) => {
   const dx = x1 - x0, dz = z1 - z0, t = Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz)));
   return Math.hypot(x - x0 - dx * t, z - z0 - dz * t) < 0.45;
 });
@@ -70,23 +72,64 @@ export interface Yard {
 }
 
 /** The yard, built in steps (scene/slices.ts). */
+/**
+ * The yard's small props a micro object keeps 0.4 m from (docs/miniature/05, section 7, rule 7), each
+ * [name, minX, maxX, minZ, maxZ] in metres: the same cells `snowman`, `sled`, `feeder` and the mailbox in `fence` fill.
+ */
+export function yardProps(): [string, number, number, number, number][] {
+  const m = YARD.snowman, r = 0.78 * m.scale, sx = ix(PORCH_X + 0.5), sz = ix(HOME.z + 1.8), fx = ix(PORCH_X + 3.2), fz = ix(HOME.z - 3.6), mx = ix(2.6), mz = ix(FENCE.laneTo) + 5;
+  return [
+    ['snowman', m.x - r, m.x + r, m.z - r, m.z + r],
+    ['sled', sx * S, (sx + 3) * S, (sz - 2) * S, (sz + 7) * S],
+    ['bird feeder', (fx - 2) * S, (fx + 3) * S, (fz - 1) * S, (fz + 2) * S],
+    ['mailbox', (mx - 1) * S, (mx + 3) * S, (mz - 3) * S, (mz + 2) * S],
+  ];
+}
+
 export function buildYard(): Yard {
   return finish(buildYardSteps());
 }
 
-export function* buildYardSteps(): Steps<Yard> {
-  const g = new Grid(S);
-  const set = (x: number, y: number, z: number, p: Paint) => {
+/** What the yard's builders draw with, on a grid. */
+function toolsFor(g: Grid) {
+  const set: Set = (x, y, z, p) => {
     const c = p(x, y, z);
     if (c) g.set(x, y, z, c);
   };
-  const boxI = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, p: Paint) => {
+  const boxI: BoxI = (x0, x1, y0, y1, z0, z1, p) => {
     for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) set(x, y, z, p);
   };
   /** Snow on the upper face of a voxel, only where nothing sits there already. */
-  const capAt = (x: number, y: number, z: number) => {
+  const capAt: Cap = (x, y, z) => {
     if (!g.has(x, y + 1, z)) set(x, y + 1, z, snow);
   };
+  return { set, boxI, capAt };
+}
+
+/**
+ * One of the yard's models alone, as cubes, for the review page (`?preview=mini`; docs/miniature/04, section 7).
+ * Development only: the game never calls it. The gate and a run of fence are cut out of the whole fence.
+ */
+export function yardPiece(name: string): { vox: VoxelMap; size: number; plain?: boolean; glow?: boolean }[] | null {
+  const g = new Grid(S), { set, boxI, capAt } = toolsFor(g);
+  if (name === 'snowman') return [{ vox: snowmanGrid().map, size: S / 2, plain: true }];
+  if (name === 'pine') { pine(g, set, 0, 0, 1, 7.8); return [{ vox: g.map, size: S }]; }
+  if (name === 'farmhouse') {
+    const panes = new Grid(S), caps = new Grid(S);
+    farmhouse(g, panes, caps, set, boxI, capAt);
+    return [{ vox: g.map, size: S }, { vox: caps.map, size: S, plain: true }, { vox: panes.map, size: S, glow: true }];
+  }
+  if (name === 'fence' || name === 'gate') {
+    fence(g, set, boxI, capAt);
+    const [x0, x1, z0, z1] = name === 'gate' ? [-2.4, 2.4, FENCE.z - 0.2, FENCE.z + 3.4] : [3.6, 9.8, FENCE.z - 0.2, FENCE.z + 0.4];
+    for (const [k, v] of g.map) { const x = (v.x + 0.5) * S, z = (v.z + 0.5) * S; if (x < x0 || x > x1 || z < z0 || z > z1) g.map.delete(k); }
+    return [{ vox: g.map, size: S }];
+  }
+  return null;
+}
+
+export function* buildYardSteps(): Steps<Yard> {
+  const g = new Grid(S), { set, boxI, capAt } = toolsFor(g);
 
   const caps = new Grid(S); // the roofs' snow and the pond's bank: their own mesh with no corner shading, as the snowman is
   ground(caps, set);
@@ -120,6 +163,10 @@ export function* buildYardSteps(): Steps<Yard> {
   const fine = yield* structureSteps(g.map, S, standing);
   yield;
   const man = snowmanGrid();
+  // What stands in the yard, for the micro layer (what its objects stand against) and the ground's shade map.
+  noteStructure(g.map.values(), S, standing);
+  noteShade(g.map.values(), S, 0, standing);
+  noteShade(man.map.values(), S / 2);
   const geos = [
     ...(yield* inChunks(g.map, S, (v) => !standing(v), (ny, y) => ny < 0 && y < 0)),
     ...(yield* inChunks(fine.map, fine.size, () => true, (ny, y) => ny < 0 && y <= 0)),
@@ -176,6 +223,7 @@ function ground(caps: Grid, set: Set) {
       if (path) continue;
       // Round the pond, a whole raised rim of snow with a clean outline (docs/miniature/03, 3.1), a second step on the
       // sheltered east shore. It goes with the roofs' snow, in the mesh with no corner shading.
+      if (underMicro(x, z)) continue; // a micro object stands on the flat ground, never in a drift
       if (pd < 1.18) caps.set(xi, 0, zi, CAP_SNOW);
       if (pd < 1.08 && x > YARD.pond.x + 1) caps.set(xi, 1, zi, CAP_SNOW);
     }

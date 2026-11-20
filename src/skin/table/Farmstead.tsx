@@ -4,21 +4,23 @@ import { useLoadingHold } from '../components/BarnDoors';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Sphere, Vector3 } from 'three';
 import type { BufferGeometry, DirectionalLight, Frustum, Mesh, PerspectiveCamera } from 'three';
-import type { Animal } from '../avatars/catalog';
 import { buildCountrysideSteps, lowDrops } from '../scene/countryside';
 import type { Countryside, CountryPart } from '../scene/countryside';
 import { buildFarmFestive } from '../scene/festive';
+import { MICRO_RANGE } from '../scene/farmMicro';
+import type { FarmMicro } from '../scene/farmMicro';
 import { buildFarmsteadSteps } from '../scene/farmstead';
 import type { Farmstead as Built } from '../scene/farmstead';
 import { pinnedPov, POV_SHOTS } from '../scene/homePov';
+import { HEN_Y, LIVESTOCK } from '../scene/livestock';
 import { dropBuild, queueBuild, rush } from '../scene/slices';
 import type { Steps } from '../scene/slices';
 import { animalModel } from '../voxel/animals';
+import { bakeShade } from '../voxel/groundShade';
 import { voxelMaterial } from '../voxel/material';
 import { PADDOCK_SHOT, shadowSeen, shotAt, viewsOf } from '../voxel/unseen';
 import { Festive } from './Festive';
 import { Sheep } from './Sheep';
-import type { SheepState } from './Sheep';
 import { fineWorldReady, promoteWorld, retire, startFineWorld } from './BarnTable';
 import type { World } from './BarnTable';
 import { getTier, rememberedTier, subscribeTier, useTier } from '../perf/tier';
@@ -107,29 +109,7 @@ function sunOf(scene: { traverse: (f: (o: unknown) => void) => void }): Vector3 
   return sun;
 }
 
-/** The hens stand on the straw of their run, whose top is 0.10 m up; at 0 their feet were in it. */
-export const HEN_Y = 0.1;
-/**
- * Who lives on the farm: [animal, x, z, facing, state]. Phones keep the first few. The paddock's animals stand where the
- * paddock shot (POV_SHOTS.desktop[2], which never moves) frames each of them whole, right of the menu and clear of the
- * wendigo (plan file 04, section 4.3; scene/__tests__/homePov.test.ts).
- */
-export const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
-  ['cow', 15.8, -1, 2.4, 'grazing'],
-  ['horse', 13.5, -8.2, -1.1, 'idle'],
-  ['chicken', -13.4, 11.7, 0.5, 'grazing'],
-  ['sheep', 14.2, -6.4, 0.9, 'grazing'],
-  ['cow', 14.6, -3.9, -0.8, 'idle'],
-  ['goat', 13.8, -1.8, 1.5, 'idle'],
-  ['chicken', -11.9, 12.4, -0.9, 'idle'],
-  ['chicken', -14.4, 13, 2.2, 'grazing'],
-  ['pig', -12.8, 4.4, 1.1, 'grazing'],
-  ['sheep', 15.5, -7.6, -1.2, 'idle'],
-  // A few of the flock out in the pasture, by the trough.
-  ['sheep', 9.4, 18.2, 2.6, 'grazing'],
-  ['sheep', 12.6, 20.4, -2.2, 'idle'],
-  ['sheep', 6.4, 21.6, 0.9, 'grazing'],
-];
+export { HEN_Y, LIVESTOCK } from '../scene/livestock';
 
 /**
  * Everything the start screen's farm has that the game's table does not: see scene/farmstead.ts. Built after the
@@ -206,6 +186,9 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
   // Joins the first load's doors (never brings them down itself: a refresh has none, and the farm fades in instead).
   useLoadingHold('farm', !farm || !country, 'Building the farm', true, false);
   useEffect(() => { onReady?.(!!farm && !!country); }, [farm, country, onReady]);
+  // The ground's shade map, from what the yard, the farm, the micro layer and the land have told it stands where
+  // (voxel/groundShade.ts). Baked again only when one of them has built something new.
+  useEffect(() => { if (farm && country) bakeShade(tier === 'low'); }, [farm, country, tier]);
   return (
     <>
       <ShotCasters world={world} farm={farm} country={country} phone={phone} />
@@ -217,6 +200,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
           {farm.props.map((g, i) => <mesh key={`p${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
           {farm.fine.map((g, i) => <mesh key={`f${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
           <mesh geometry={farm.terrain} material={mat} receiveShadow />
+          {tier !== 'low' && <Micro micro={farm.micro} phone={phone} />}
           {FESTIVE && <Festive geo={buildFarmFestive()} reduced={reduced} />}
           {country && (
             <>
@@ -233,6 +217,44 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
           <Sheep level={2} state={state} reduced={reduced} model={animal === 'sheep' ? undefined : animalModel(animal)} />
         </group>
       ))}
+    </>
+  );
+}
+
+/**
+ * The micro layer (scene/farmMicro.ts; docs/miniature/04, section 4): one mesh a cluster. A cluster is drawn on a shot
+ * only if it is within 40 m of the camera at the start or the end of that shot's push (further off a 0.05 m block is
+ * under two pixels and would only shimmer), casts a shadow only within 25 m, and is never drawn on the paddock shot.
+ * Decided when the camera arrives on a shot, which is in the dark. Low does not draw the layer at all.
+ */
+function Micro({ micro, phone }: { micro: FarmMicro; phone: boolean }) {
+  const camera = useThree((s) => s.camera);
+  const mat = useMemo(() => voxelMaterial(), []);
+  // The lanterns' glass, as the farmhouse's panes are drawn (BarnTable.tsx): lit from inside, no light cast.
+  const glassMat = useMemo(() => voxelMaterial({ emissive: '#FFB84A', emissiveIntensity: 0.85 }), []);
+  useEffect(() => () => { mat.dispose(); glassMat.dispose(); }, [mat, glassMat]);
+  const meshes = useRef<(Mesh | null)[]>([]), glass = useRef<Mesh>(null), shown = useRef(-2);
+  useEffect(() => { shown.current = -2; }, [micro]);
+  useFrame(() => {
+    const shots = phone ? POV_SHOTS.phone : POV_SHOTS.desktop, at = camera.position;
+    const now = shotAt(shots, at.x, at.y, at.z);
+    if (now === shown.current) return;
+    shown.current = now;
+    micro.clusters.forEach((c, i) => {
+      const mesh = meshes.current[i];
+      if (!mesh) return;
+      // Off every shot (a camera stood by hand with ?cam=), the camera's own place decides.
+      const ends = now < 0 ? [[at.x, at.y, at.z]] : [shots[now].position, shots[now].position.map((v, k) => v + shots[now].push[k])];
+      const d = Math.min(...ends.map((e) => Math.hypot(e[0] - c.centre[0], e[1] - c.centre[1], e[2] - c.centre[2])));
+      mesh.visible = now !== PADDOCK_SHOT && d <= MICRO_RANGE.draw;
+      mesh.castShadow = mesh.visible && d <= MICRO_RANGE.cast;
+    });
+    if (glass.current) glass.current.visible = now !== PADDOCK_SHOT && meshes.current.some((m) => m?.visible);
+  });
+  return (
+    <>
+      {micro.clusters.map((c, i) => <mesh key={c.name} ref={(m) => { meshes.current[i] = m; }} geometry={c.geo} material={mat} castShadow receiveShadow />)}
+      {micro.glass && <mesh ref={glass} geometry={micro.glass} material={glassMat} />}
     </>
   );
 }

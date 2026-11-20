@@ -1,6 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
-import type { BuildOptions } from '../voxel/mesher';
+import type { BuildOptions, VoxelMap } from '../voxel/mesher';
+import { barnWalls } from './barn';
 import { sunReaches, unseenFrom } from '../voxel/unseen';
 import { detailedSteps, structureSteps } from '../voxel/refine';
 import { each, finish } from './slices';
@@ -10,10 +11,13 @@ import { inWendigoZone, nearWendigo } from './wendigoZone';
 import { blanket, SNOW, snowAt, snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
+import { noteShade } from '../voxel/groundShade';
 import { byPart, paint, seededPart, solid, SOLID_SNOW } from '../voxel/paint';
 import { pinePaint, tieredPine } from './style/pine';
 import type { Paint, V3 } from '../voxel/primitives';
 import { backHillHeight } from './distance';
+import { buildFarmMicroSteps, noteStructure, underMicro } from './farmMicro';
+import type { FarmMicro } from './farmMicro';
 import { BARN, YARD } from './layout';
 import { ChunkMap, plain } from './yard';
 
@@ -127,6 +131,12 @@ export const BOARD_STEPS = [0, -1, 0, 1] as const;
 
 /** The barn's missing outside on the 0.10 m grid: front wall, solid boards, trim, loft door, windows, foundation. */
 function barnShell(): BufferGeometry {
+  const b = barnShellGrid();
+  noteStructure(b.g.map.values(), F);
+  noteShade(b.g.map.values(), F);
+  return buildGeometry(b.g.map, F);
+}
+function barnShellGrid(): Builder {
   const b = new Builder(new Grid(F));
   // Boards three cubes wide, each one red, in a rhythm of four by board number (the same in scene/barn.ts, whose boards
   // these continue); the seam between two boards two steps down; the top 0.4 m under the roof a step darker, the eave's
@@ -217,7 +227,7 @@ function barnShell(): BufferGeometry {
     const r = Math.hypot(x, y);
     if (r <= 6.4) b.set(x, 58 + y, -45, r > 4.6 ? white : paint('barnRed', -2));
   }
-  return buildGeometry(b.g.map, F);
+  return b;
 }
 
 /** A white frame on an x-facing wall. */
@@ -529,7 +539,7 @@ function drifts(b: Builder) {
     for (let x = b.ix(cx - rx - 0.6); x <= b.ix(cx + rx + 0.6); x++)
       for (let z = b.ix(cz - rz - 0.6); z <= b.ix(cz + rz + 0.6); z++) {
         const mx = (x + 0.5) * S, mz = (z + 0.5) * S;
-        if (((mx - cx) / rx) ** 2 + ((mz - cz) / rz) ** 2 < 1) b.caps.set(x, 0, z, CAP_SNOW); // a clean outline (docs/miniature/03, 3.1)
+        if (((mx - cx) / rx) ** 2 + ((mz - cz) / rz) ** 2 < 1 && !underMicro(mx, mz)) b.caps.set(x, 0, z, CAP_SNOW); // a clean outline (docs/miniature/03, 3.1)
       }
 }
 
@@ -664,7 +674,28 @@ export function chunkMaps(map: Grid['map'], size: number): ChunkMap[] {
   return [...byChunk.values()];
 }
 
-export interface Farmstead { fine: BufferGeometry[]; props: BufferGeometry[]; shell: BufferGeometry; terrain: BufferGeometry; triangles: number }
+/** A model's cubes for the review page: `plain` is snow meshed with no corner shade, `glow` is lit glass. */
+export interface PieceGrid { vox: VoxelMap; size: number; plain?: boolean; glow?: boolean }
+/**
+ * One of the farm's models alone, as cubes, for the review page (`?preview=mini`; docs/miniature/04, section 7).
+ * Development only: the game never calls it.
+ */
+export function farmPiece(name: string): PieceGrid[] | null {
+  const big = new Builder(new Grid(S)), small = new Builder(new Grid(F));
+  const of = (b: Builder): PieceGrid[] => [{ vox: b.g.map, size: b.g.size }, { vox: b.caps.map, size: b.g.size, plain: true }];
+  if (name === 'barn') { barnRoof(big); return [{ vox: barnShellGrid().g.map, size: F }, { vox: barnWalls().map, size: F }, ...of(big)]; }
+  if (name === 'silo') { silo(big); return of(big); }
+  if (name === 'coop') { coop(big); return of(big); }
+  if (name === 'orchardTree') { bareTree(big, 0, 0, 3); return of(big); }
+  if (name === 'tractor') { tractor(small); return of(small); }
+  return null;
+}
+
+export interface Farmstead {
+  fine: BufferGeometry[]; props: BufferGeometry[]; shell: BufferGeometry; terrain: BufferGeometry; triangles: number;
+  /** The micro layer (scene/farmMicro.ts): its own budget, not counted in `triangles`. */
+  micro: FarmMicro;
+}
 
 /** The farm round the barn, built in steps (scene/slices.ts). */
 export function buildFarmstead(): Farmstead {
@@ -705,6 +736,11 @@ export function* buildFarmsteadSteps(): Steps<Farmstead> {
   const fine = [...(yield* chunksSteps(close.map, close.size)), ...(yield* chunksSteps(litter.g.map, F))];
   const land = yield* terrainSteps();
   yield;
+  // What stands on the farm, for the micro layer (what its objects stand against) and the ground's shade map. The
+  // hens' straw bed is ground; what stands on it is not.
+  for (const [grid, size] of [[big.g, S], [small.g, F], [litter.g, F]] as const) noteStructure(grid.map.values(), size);
+  for (const [grid, size, keep] of [[big.g, S], [far.g, S], [small.g, F], [litter.g, F, (v: { y: number }) => v.y >= 1]] as const) noteShade(grid.map.values(), size, 0, keep);
+  const micro = yield* buildFarmMicroSteps();
   yield* each([shell, land, ...props, ...fine], packGeometry); // half the bytes, the same picture (voxel/mesher.ts)
-  return { fine, props, shell, terrain: land, triangles: [shell, land, ...props, ...fine].reduce((n, g) => n + triangles(g), 0) };
+  return { fine, props, shell, terrain: land, triangles: [shell, land, ...props, ...fine].reduce((n, g) => n + triangles(g), 0), micro };
 }

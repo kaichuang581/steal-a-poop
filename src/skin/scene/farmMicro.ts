@@ -103,6 +103,35 @@ export const MICRO_PLACEMENTS: Placement[] = [
     ['strapHinge', -1.20, 0.85, 15.05, 3],
     ['latch', -1.20, 0.90, 17.75, 3],
   ]),
+  // `pondSide` (M5): the bench and the skates on the pond's west bank. The pond stands 8 m east and 5 m south of where
+  // it was and is wider; moved with it the bench stood on the ice, so it stands 1.6 m further west, on the bank.
+  ...cluster('pondSide', [
+    ['bench', 10.50, GROUND, 28.60, 1, { snow: true }],
+    ['skates', 11.00, GROUND, 29.20],
+  ]),
+  // `porch` (M5): the farmhouse, whose front has faced east under a porch since 0.8.3, with four windows. A pair of
+  // shutters a window (eight), as tall as the frames (1.8 m), their backs on the wall (x -15.0); the knob where the
+  // door's 0.2 m cube was; the lantern on the porch post north of the steps (every strip of wall by the door holds a
+  // shutter); the crate of carrots in the porch's north corner. There has been no woodpile since 0.8.3: the chopping
+  // block and the split logs stand before the woodshed on the kitchen end, and the broom leans by the kitchen door
+  // (no strip of the front wall is as wide as a broom).
+  ...cluster('porch', [
+    ...[17.4, 19.2, 22.2, 24.0].flatMap((z): Row[] => [['shutter', -15.00, 1.00, z - 0.30, 3, { h: 36 }], ['shutter', -15.00, 1.00, z + 1.00, 3, { h: 36 }]]),
+    ['knob', -15.00, 1.45, 21.45, 3],
+    ['wallLantern', -13.40, 2.00, 19.80, 3],
+    ['crateOpen', -14.80, 0.40, 17.05, 0, { contents: 'carrots' }],
+    ['choppingBlock', -20.40, GROUND, 14.20],
+    ['splitLogs', -19.70, GROUND, 14.20],
+    ['broom', -17.85, GROUND, 16.30, 2],
+  ]),
+  // `flockSpot` (M5): the flock's bales and hay, moved with the three loose sheep (+33, -1), who stand in the pasture
+  // by the trough now.
+  ...cluster('flockSpot', [
+    ['squareBale', 6.70, GROUND, 18.20],
+    ['squareBale', 6.70, GROUND, 18.70],
+    ['squareBale', 6.95, 0.45, 18.20, 1, { snow: true }],
+    ['hayHeap', 7.40, GROUND, 19.40],
+  ]),
 ];
 
 // ---- the rules a place must keep (docs/miniature/05, sections 1.3 and 7)

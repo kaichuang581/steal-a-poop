@@ -41,9 +41,14 @@ const HALF = YARD.path.halfWidth, FENCE = YARD.fence, HOME = YARD.farmhouse;
 const PORCH_X = HOME.x + HOME.halfX + HOME.porch, LANE_FADE = 39;
 /**
  * Footpaths, each worn straight from one door to the next ([x0, z0, x1, z1]): the porch steps to the court's gate, the
- * barn's doors to the hens' gate.
+ * barn's doors to the hens' gate, and (the plan's east track, docs/miniature/05, section 3) the animals' own way from
+ * the paddock's gate round the court's corner post to the pasture's trough. The plan ran that track from the lane
+ * across the court; since 0.8.3 the court's fence stands across that line (x 12), so it keeps to the pasture's side.
  */
-const WALKS = [[PORCH_X + 0.5, HOME.z, -HALF, FENCE.z + 2.4], [-HALF, 10.6, FENCE.minX, 10.6]] as const;
+const WALKS = [
+  [PORCH_X + 0.5, HOME.z, -HALF, FENCE.z + 2.4], [-HALF, 10.6, FENCE.minX, 10.6],
+  [16.8, 7.5, FENCE.maxX + 0.9, FENCE.z + 0.7], [FENCE.maxX + 0.9, FENCE.z + 0.7, 8.6, FENCE.z + 1.0],
+] as const;
 export const onWalk = (x: number, z: number) => WALKS.some(([x0, z0, x1, z1]) => {
   const dx = x1 - x0, dz = z1 - z0, t = Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz)));
   return Math.hypot(x - x0 - dx * t, z - z0 - dz * t) < 0.45;

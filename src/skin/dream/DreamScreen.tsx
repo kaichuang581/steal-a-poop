@@ -1,5 +1,5 @@
 import { useLoadingHold } from '../components/BarnDoors';
-import { getLang } from '../../lib/lang';
+import { foldAccents, getLang } from '../../lib/lang';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
@@ -220,7 +220,7 @@ export function DreamScreen() {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); submit(); }
   };
   const onInput = (value: string) => {
-    for (const ch of value.toLowerCase()) if (ch >= 'a' && ch <= 'z') typeLetter(ch);
+    for (const ch of foldAccents(value.toLowerCase())) if (ch >= 'a' && ch <= 'z') typeLetter(ch);
     if (ghost.current) ghost.current.value = '';
   };
   const focus = () => ghost.current?.focus();

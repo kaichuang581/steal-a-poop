@@ -14,6 +14,7 @@ import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
 import { buildGeometry } from '../voxel/mesher';
 import { lin } from '../voxel/palette';
+import { average } from '../voxel/paint';
 import { Grid, hash3 } from '../voxel/primitives';
 import { letterMask } from '../voxel/table';
 import { trophyGeometry } from '../voxel/trophy';
@@ -58,14 +59,15 @@ export function blockGeometry(place: number, lift = 0): BufferGeometry {
   const top3 = place <= 3, w = Math.round((top3 ? STEP.w : 1.1) / S), d = Math.round((top3 ? STEP.d : 0.9) / S), h = Math.round((heightOf(place) + lift) / S);
   const plank = [C('#8C5A2E'), C('#7A4B26'), C('#94633A'), C('#83532B')], seam = C('#4A2E16');
   const trim = top3 ? C(TRIM[place - 1]) : C('#6B4423'), trimDark = top3 ? C(TRIM_DARK[place - 1]) : C('#4A2E16');
-  const cloth = [C('#A8322C'), C('#8A2722')], straw = [C('#D9B66A'), C('#C9A253')];
+  const cloth = [C('#A8322C'), C('#8A2722')], thatch = average([C('#D9B66A'), C('#C9A253')]), timber = average(plank);
   const g = new Grid(S);
   for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) for (let z = 0; z < d; z++) {
     const shell = x === 0 || x === w - 1 || z === 0 || z === d - 1 || y === 0 || y === h - 1;
     if (!shell) continue;
     const edge = x === 0 || x === w - 1 || z === 0 || z === d - 1;
-    let c = (x % 3 === 0 && z === d - 1) || (z % 3 === 0 && (x === 0 || x === w - 1)) ? seam : plank[Math.floor(hash3(x, y >> 2, z, 3) * plank.length)];
-    if (y === h - 1) c = edge ? trim : top3 ? cloth[(x + z) % 2] : straw[Math.floor(hash3(x, 0, z, 5) * 2)];
+    // One colour a part, the average of the tones its cubes were tinted with one by one (docs/miniature/07, treatment B).
+    let c = (x % 3 === 0 && z === d - 1) || (z % 3 === 0 && (x === 0 || x === w - 1)) ? seam : timber;
+    if (y === h - 1) c = edge ? trim : top3 ? cloth[(x + z) % 2] : thatch;
     else if (y === h - 2 && edge) c = trimDark;
     else if (y === 0) c = seam;
     g.set(x, y, z, c);
@@ -135,19 +137,19 @@ export function doorsGeometry(): BufferGeometry {
 
 /** A straw floor: loose gold straw in four tones with darker patches, and stray tufts lying on top. */
 export function floorGeometry(): BufferGeometry {
-  const g = new Grid(S), straw = [C('#D9B66A'), C('#C9A253'), C('#E4C47E'), C('#B88F44')], dirt = C('#8A6A3A');
+  const g = new Grid(S), bed = average([C('#D9B66A'), C('#C9A253'), C('#E4C47E'), C('#B88F44')]), dirt = C('#8A6A3A');
   for (let x = -90; x < 90; x++) for (let z = -32; z < 40; z++) {
-    g.set(x, 0, z, hash3(x >> 1, 0, z >> 1, 11) < 0.06 ? dirt : straw[Math.floor(hash3(x, 0, z, 12) * straw.length)]);
-    if (hash3(x, 1, z, 13) < 0.09) g.set(x, 1, z, straw[Math.floor(hash3(x, 1, z, 14) * straw.length)]);
+    g.set(x, 0, z, hash3(x >> 1, 0, z >> 1, 11) < 0.06 ? dirt : bed); // the darker patches are two cubes a side, whole
+    if (hash3(x, 1, z, 13) < 0.09) g.set(x, 1, z, bed); // a stray tuft: where it lay
   }
   return buildGeometry(g.map, S, { ao: false }).translate(0, -S, 0);
 }
 
 /** A hay bale: straw packed tight with two twine bands. */
 export function baleGeometry(): BufferGeometry {
-  const g = new Grid(S), straw = [C('#D9B66A'), C('#C9A253'), C('#E4C47E')], twine = C('#7A5A30');
+  const g = new Grid(S), packed = average([C('#D9B66A'), C('#C9A253'), C('#E4C47E')]), twine = C('#7A5A30');
   for (let x = 0; x < 10; x++) for (let y = 0; y < 5; y++) for (let z = 0; z < 6; z++) {
-    g.set(x, y, z, x === 2 || x === 7 ? twine : straw[Math.floor(hash3(x, y, z, 21) * straw.length)]);
+    g.set(x, y, z, x === 2 || x === 7 ? twine : packed);
   }
   return buildGeometry(g.map, S).translate(-0.5, 0, -0.3);
 }

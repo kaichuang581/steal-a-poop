@@ -1,6 +1,7 @@
 import type { Shot } from './layout';
 import { buildGeometry, packGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
+import { meanOf } from '../voxel/paint';
 import { box, ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import type { RGB } from '../voxel/primitives';
 import { detailed } from '../voxel/refine';
@@ -111,13 +112,16 @@ function ground() {
 }
 
 /** The country beyond the near ground: snow on the swells of `hill`, out to the ridge and well to either side. */
+/** The land beyond the pen and the mountain wall: one colour a layer, the average of the two each cube was one of (docs/miniature/07, treatment B). */
+const LAND = meanOf(['#E6EDF6', '#D5DFEC']), PEAK_SNOW = meanOf(['#E3EAF5', '#C9D5E6']), PEAK_ROCK = meanOf(['#6B7790', '#5A657C']);
+
 function land() {
   const g = new Grid(1);
   for (let x = -90; x <= 90; x++) {
     for (let z = -22; z <= 96; z++) {
       if (Math.abs(x) < 12 && z > -8 && z < 9) continue; // the near ground is finer, and its own
       const top = Math.round(hill(x, z)) - 1;
-      for (let y = top - 2; y <= top; y++) g.set(x, y, z, lin(hash3(x, y, z, 13) > 0.5 ? '#E6EDF6' : '#D5DFEC'));
+      for (let y = top - 2; y <= top; y++) g.set(x, y, z, LAND);
     }
   }
   return buildGeometry(g.map, g.size);
@@ -188,7 +192,7 @@ function mountains() {
     const top = 16 + Math.abs(Math.sin(wx * 0.0125 + 0.9)) * 16 + Math.sin(wx * 0.041) * 5 + hash3(x, 0, 0, 81) * 4 - saddle;
     for (let y = 0; y * 4 < top; y++) {
       const high = y * 4 > top - 9 - hash3(x, y, 0, 82) * 5;
-      g.set(x, y, 78, lin(high ? (hash3(x, y, 0, 83) > 0.5 ? '#E3EAF5' : '#C9D5E6') : hash3(x, y, 0, 84) > 0.5 ? '#6B7790' : '#5A657C'));
+      g.set(x, y, 78, high ? PEAK_SNOW : PEAK_ROCK);
     }
   }
   return buildGeometry(g.map, g.size);

@@ -101,6 +101,14 @@ export function meanTone(tone: Tone, w: readonly [number, number] = [0.6, 0.9]):
   return [0, 1, 2].map((i) => a[i] * k[0] + b[i] * k[1] + c[i] * k[2]) as RGB;
 }
 
+/**
+ * The average of some colours (linear RGB): what a part looks like from far off when its cubes were tinted one by one,
+ * so the part can be that one colour with no speckle (docs/miniature/07, treatment B).
+ */
+export const average = (colours: readonly RGB[]): RGB => [0, 1, 2].map((k) => colours.reduce((n, c) => n + c[k], 0) / colours.length) as RGB;
+/** The average of hex colours as the small scenes paint them (through `lin`, with its desaturation), each as often as it is listed. */
+export const meanOf = (hexes: readonly string[]): RGB => average(hexes.map(lin));
+
 /** A paint that gives every cube the same colour (rule R1). */
 export const paint = (mat: Mat, step = 0): Paint => { const c = solid(mat, step); return () => c; };
 

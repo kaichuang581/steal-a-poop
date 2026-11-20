@@ -79,7 +79,7 @@ export const LIGHT_BOUNDS = {
  */
 export const DAYLIGHT: Record<Hour, { toneMapping: ToneMapping; exposure: number; sun: number; fill: number; sunElevationDeg: number; sunAzimuthOffsetDeg: number; fitHaze: boolean; fitShadow: boolean }> = {
   dawn: { toneMapping: NeutralToneMapping, exposure: 1, sun: 2.05, fill: 1.2, sunElevationDeg: 30, sunAzimuthOffsetDeg: 40, fitHaze: true, fitShadow: true },
-  day: { toneMapping: NeutralToneMapping, exposure: 1, sun: LOOK.sun ?? 2.4, fill: LOOK.fill ?? 1.4, sunElevationDeg: 45, sunAzimuthOffsetDeg: 40, fitHaze: true, fitShadow: true },
+  day: { toneMapping: NeutralToneMapping, exposure: 1, sun: 2.4, fill: 1.4, sunElevationDeg: 45, sunAzimuthOffsetDeg: 40, fitHaze: true, fitShadow: true },
   dusk: { toneMapping: LOOK.toneMapping, exposure: 1, sun: DIORAMA.dusk.intensity, fill: DIORAMA.dusk.fill, sunElevationDeg: DIORAMA.dusk.elevationDeg, sunAzimuthOffsetDeg: LIGHT_BOUNDS.sunAzimuthOffsetDeg, fitHaze: false, fitShadow: false },
   night: { toneMapping: LOOK.toneMapping, exposure: 1, sun: DIORAMA.night.intensity, fill: DIORAMA.night.fill, sunElevationDeg: DIORAMA.night.elevationDeg, sunAzimuthOffsetDeg: LIGHT_BOUNDS.sunAzimuthOffsetDeg, fitHaze: false, fitShadow: false },
 };

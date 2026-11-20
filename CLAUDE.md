@@ -17,12 +17,34 @@ Standing rules from it (docs/miniature/01-target-look.md has the full text):
 
 Brian's decisions for this plan (each overrides the older rule named). The plan runs on its defaults (README,
 section 7) by his instruction of 2026-11-20; a date is written here when he answers a pair:
-- Day and dawn light on Home: sun 45 degrees up (dawn 30), 40 degrees round, Neutral tone mapping, exposure 2.2
-  (dawn 2.0), haze fitted per shot, shadow box fitted per shot, shadow radius 2. Overrides the day values in
-  "Brian's light limits". Approved: ____
+- Day and dawn light on Home: sun 45 degrees up (dawn 30), 40 degrees round, Neutral tone mapping, haze fitted per
+  shot, shadow box fitted per shot. As built the exposure stays 1 with the sun at 2.4 and the fill at 1.4 (dawn 2.05
+  and 1.2), not the plan's 2.2: a higher exposure whitened the sky, the haze and every lamp on this tree
+  (docs/miniature/review/M1-light.md). Shadow radius 2.5, the tree's own. Overrides the day values in "Brian's light
+  limits". Approved: ____
 - Solid snow in front of z = -16. Overrides "the snow's texture stands" there. Approved: ____
 - Chunky structure: ____   Sharp edges: ____   Animal colours: ____   Barn table palette: ____
 - Dusk and night light: unchanged unless recorded here: ____
+
+As built, M0 to M8, on 2026-11-20 (each milestone's notes, deviations and pairs: docs/miniature/review/M<n>-*.md;
+the numbers: docs/miniature/numbers.md). What a later change must know:
+- Colours: `solid(material, step)` for scenery, `shade(hex)` for animals, garments, bombs and the trophy (their own
+  colours with nothing taken off; `lin` still desaturates and is what the small scenes and everything behind the line
+  use). The animals carry no value steps of the plan's: they are built from Brian's own six-view sheets.
+- The micro layer: `scene/farmMicro.ts` (`MICRO_PLACEMENTS`, eight clusters, the rules of a place in `breach`), the
+  kit in `voxel/microKit.ts` (closed: ask before adding a kind). A placement that lands in a cube of the yard or the
+  farm, in the wedge or the paddock, on the lane, or within its distance of an animal, the season's tree, a present or
+  a prop throws while the farm is built. Photograph a cluster with `node tools/miniature/shots.mjs cluster <name>`.
+- The ground's shade map: `voxel/groundShade.ts`. A model tells it what stands where with `noteShade` as it is built;
+  only Home and the barn table read it. Its strength is the plan's stated result (0.75 at a wall's foot), not the
+  plan's shader line, which gave 5%.
+- The review page: `?preview=mini&piece=<name>|sheet=kit|sheet=home` (development only).
+- Not done, and waiting on Brian: the plan's recolour of the land's trees, scrub and wall in front of the line
+  (file 05, section 9). The wendigo's pins hash the countryside's colours, so it fails `check.ts --only wendigo`.
+- Where the farm of 0.8.3 differed from the plan's v0.8.0, objects were moved the least that clears and each move
+  is written beside its line in `MICRO_PLACEMENTS` and in the milestone's notes (the bale stack at the work corner,
+  the east track round the court's fence, the farmhouse turned east, no woodpile, the tractor in no shot).
+- The size budget was raised by 6,000 bytes in M3 (scripts/check-bundle-size.mjs).
 
 Unchanged and still binding: every wendigo rule; the paddock shot draws today's light, haze, tone mapping, exposure,
 shadows and tilt-shift on every tier; nothing behind z = -16 changes; no cube of the country or the land is added or

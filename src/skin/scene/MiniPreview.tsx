@@ -111,7 +111,6 @@ function Look({ view, all }: { view: View; all: { minX: number; maxX: number; mi
     cam.near = 0.1, cam.far = reach * 6;
     cam.updateProjectionMatrix();
     gl.toneMapping = NeutralToneMapping;
-    gl.toneMappingExposure = DAYLIGHT.day.exposure;
     gl.shadowMap.type = PCFShadowMap;
     scene.userData.groundShade = true;
     invalidate();

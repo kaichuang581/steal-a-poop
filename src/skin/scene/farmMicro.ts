@@ -118,7 +118,7 @@ export const MICRO_PLACEMENTS: Placement[] = [
   ...cluster('porch', [
     ...[17.4, 19.2, 22.2, 24.0].flatMap((z): Row[] => [['shutter', -15.00, 1.00, z - 0.30, 3, { h: 36 }], ['shutter', -15.00, 1.00, z + 1.00, 3, { h: 36 }]]),
     ['knob', -15.00, 1.45, 21.45, 3],
-    ['wallLantern', -13.40, 2.00, 19.80, 3],
+    ['wallLantern', -13.80, 2.00, 19.80, 1], // on the post's inner face: the season's string of lights runs along its outer one
     ['crateOpen', -14.80, 0.40, 17.05, 0, { contents: 'carrots' }],
     ['choppingBlock', -20.40, GROUND, 14.20],
     ['splitLogs', -19.70, GROUND, 14.20],

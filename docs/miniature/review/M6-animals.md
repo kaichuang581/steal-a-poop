@@ -27,7 +27,7 @@ cube changed.
 
 | Plan | Built | Why |
 |---|---|---|
-| Value steps on animals: belly −1, head +1, legs −1, ears and tail −1, mane −1, tufts +1 | None added | The plan was written for the animals of v0.8.0. Since 0.8.x each animal is built one-to-one from Brian's six-view sheet (2026-11-18: "i want it to look like the reference"), part colours included; a step laid over a part would move it off his sheet. Taking the desaturation off moves every part toward his sheet's own colour |
+| Value steps on animals: belly −1, head +1, legs −1, ears and tail −1, mane −1, tufts +1 | Built on 2026-11-20, after Brian's "if this overrides stuff then treat this as the primary" (first left out, because each animal is built from his six-view sheet) | `step` and `stepHex` in `voxel/animals/rig.ts`, laid over the sheet's own colours: the six animals, the wolf, the sheepdog, and the scarf's hanging tails. Hooves, feet, horns, beak, comb, wattle, snout and udder stay at 0. The chicken's belly band is left as its sheet has it, already a step under the body (a second step also took it to 15 colours against the test's 14). A step is held to the palette's floor (the cow's black, the horse's mane) and to its part's own saturation. `VALUE_STEPS = false` puts every part back on its sheet colour. Pair: `review/animals-steps.jpg` (steps off above, on below) |
 | `props.ts`: five random picks made solid | Untouched | Its name stakes have not been drawn by the game since 2026-11-08, and `signs.test.ts` holds their colours |
 | The firs' baubles "one solid colour each" | Unchanged | On this tree the baubles are the string's own bulbs, which the plan keeps as they are |
 | Sheared skin, stubble tufts | Nothing to do | The sheet-built sheep has neither |
@@ -54,5 +54,6 @@ cube changed.
 
 ## For Brian
 
-- Decision 6, animal colours: the pair above. If he prefers them as they were, the animal files alone go back.
-- Whether the plan's value steps should be laid over his sheets' colours after all is his to say.
+- Decision 6, animal colours: the plan's default, built in full. If he prefers them without the steps, `VALUE_STEPS`
+  is one constant; without the colour either, the animal files alone go back.
+- After the steps: the sheepdog and the two play cards were baked again (`bakeStamp --check`: 47 fresh).

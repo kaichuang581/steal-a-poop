@@ -2,7 +2,7 @@ import type { Character } from '../../avatars/catalog';
 import { Grid } from '../primitives';
 import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
+import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, step, stepHex, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import type { Faces } from './faces';
 import { shade } from '../paint';
@@ -22,12 +22,12 @@ const FOOT = ['#EE8A23', '#D46E19'] as const;
  */
 export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
   const white = shade(WHITE[1]);
-  const face = tones(WHITE[1]);
+  const face = tones(stepHex(WHITE[1], 1));
 
   // ---- Body: 9 wide, the five rows under the head and a narrower band under those.
   const bg = new Grid(S);
   cube(bg, [-4, 3, -4], [4, 7, 4], () => white);
-  cube(bg, [-3, 2, -3], [3, 2, 3], () => shade(WHITE[2]));
+  cube(bg, [-3, 2, -3], [3, 2, 3], () => shade(WHITE[2])); // the belly row: the sheet's own band is already a step under the body
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -47,6 +47,7 @@ export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
   cube(tailG, [-1, 4, -5], [1, 4, -5], () => white);
   cube(tailG, [0, 8, -6], [0, 8, -5], () => white);
   cube(tailG, [-1, 4, -4], [1, 7, -4], () => white);
+  step(tailG, -1);
   const tail = part(tailG, [0.02, 0.24, -0.18]);
 
   // ---- Head: 9 wide, 5 tall, 9 deep, its top row stepped in a cell at the sides and back; it pivots at its middle bottom.
@@ -54,6 +55,7 @@ export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
   const hg = new Grid(S);
   cube(hg, [-4, 8, -4], [4, 11, 4], () => white);
   cube(hg, [-3, 12, -3], [3, 12, 4], () => white);
+  step(hg, 1);
   const { eyes, lids, brows } = smallEyes(hg, 10, 4, '#141212', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
   const beakG = new Grid(S);
   cube(beakG, [-1, 8, 5], [1, 9, 6], (_x, y) => shade(y === 9 ? BEAK[0] : BEAK[1]));
@@ -76,6 +78,7 @@ export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
       const g = new Grid(S);
       cube(g, [x0, 0, z0], [x0, 3, z0], () => shade(FOOT[0]));
       cube(g, [x0 - 1, 0, z0], [x0 + 1, 0, z0 + 2], (x) => shade(x === x0 ? FOOT[0] : FOOT[1]));
+      step(g, -1, (v) => v.y > 0); // the leg, not its foot
       unshare(g, bodySolid);
       return part(g, [(x0 + 0.5) * S, 2 * S, (z0 + 0.5) * S]);
     }),

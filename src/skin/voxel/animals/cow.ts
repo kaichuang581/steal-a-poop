@@ -2,7 +2,7 @@ import type { Character } from '../../avatars/catalog';
 import { Grid } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { breathAt, cellsOf, cube, extentOf, hollow, inBlocks, noMouths, none, part, S, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
+import { breathAt, cellsOf, cube, extentOf, hollow, inBlocks, noMouths, none, part, S, smallEyes, solidSet, statsOf, step, stepHex, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import type { Faces } from './faces';
 import { shade } from '../paint';
@@ -23,7 +23,7 @@ const EAR_IN = '#5A4640';
  */
 export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   const white = shade(WHITE), black = shade(BLACK);
-  const face = tones(WHITE);
+  const face = tones(stepHex(WHITE, 1));
 
   // ---- Body: 13 wide, 11 tall, 18 long. Patches as 3D blocks, so each wraps its corner onto the top and front.
   const PATCHES: [V3, V3][] = [
@@ -36,6 +36,7 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   const bodyPaint: Paint = (x, y, z) => (inBlocks(PATCHES, x, y, z) ? black : white);
   const bg = new Grid(S);
   cube(bg, [-6, 7, -9], [6, 17, 8], bodyPaint);
+  step(bg, -1, (v) => v.y === 7); // the belly row, white and patch alike
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -44,6 +45,7 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   const HEAD: V3 = [0.02, 12 * S, 9 * S]; // its back-bottom edge: a nod swings the face forward, never into the chest
   const hg = new Grid(S);
   cube(hg, [-4, 12, 9], [4, 19, 14], (x, y) => (x >= 2 && y >= 14 ? black : white));
+  step(hg, 1);
   // Muzzle: 7 wide, 4 tall, 2 proud, pink; two nostrils in its upper row.
   const muzzleG = new Grid(S);
   cube(muzzleG, [-3, 12, 15], [3, 15, 16], (x, y, z) => shade(z === 16 && y === 14 && Math.abs(x) === 2 ? PINK[2] : PINK[0]));
@@ -67,6 +69,7 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
     cube(g, [sx < 0 ? -8 : 5, 17, 10], [sx < 0 ? -5 : 8, 19, 11], (x, y, z) => (z === 11 && y === 18 && Math.abs(x) >= 6 && Math.abs(x) <= 7 ? shade(EAR_IN) : black));
+    step(g, -1);
     return part(g, [sx * 4.5 * S + 0.02, 18 * S, 10.5 * S]);
   }) as unknown as [CPart, CPart];
 
@@ -75,6 +78,7 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   const legs = legSpots.map(([x0, z0]) => {
     const g = new Grid(S);
     cube(g, [x0, 0, z0], [x0 + 2, 8, z0 + 2], (_x, y) => (y <= 1 ? black : white));
+    step(g, -1, (v) => v.y > 1); // the leg, not its hoof
     unshare(g, bodySolid);
     return part(g, [(x0 + 1.5) * S, 7 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];
@@ -88,6 +92,7 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   // ---- Tail: a short black stub out of the rump, rooted a cell in.
   const tg = new Grid(S);
   cube(tg, [0, 9, -10], [0, 10, -9], () => black);
+  step(tg, -1);
   const tail = part(tg, [0.02, 0.4, -0.38]);
 
   const coats = coatsFor({

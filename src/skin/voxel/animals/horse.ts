@@ -2,7 +2,7 @@ import type { Character } from '../../avatars/catalog';
 import { Grid } from '../primitives';
 import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, unshare } from './rig';
+import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, step, stepHex, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import type { Faces } from './faces';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -25,6 +25,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
   // ---- Body: 11 wide, 9 tall, 20 long.
   const bg = new Grid(S);
   cube(bg, [-5, 9, -10], [5, 17, 9], () => coat);
+  step(bg, -1, (v) => v.y === 9); // the belly row
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -36,9 +37,11 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
   cube(hg, [-3, 22, 8], [3, 27, 13], () => coat);
   const snoutPaint: Paint = (x, y, z) => (z >= 17 || (z >= 15 && y <= 22) ? (z === 18 && y === 24 && Math.abs(x) === 1 ? shade(DARK[2]) : shade(DARK[0])) : coat);
   cube(hg, [-2, 22, 14], [2, 25, 18], snoutPaint);
+  step(hg, 1, (v) => v.c === coat); // the head, not the snout's dark
   cube(hg, [-1, 28, 7], [1, 29, 13], () => dark); // the forelock, the crown's whole length
   cube(hg, [-1, 24, 7], [1, 27, 7], () => dark); // the mane over the back of the head, down to the neck's
-  const { eyes, lids, brows } = smallEyes(hg, 25, 11, '#1E1A19', COAT, HEAD, { rows: 1, cols: 1, glint: false });
+  step(hg, -1, (v) => v.c === dark);
+  const { eyes, lids, brows } = smallEyes(hg, 25, 11, '#1E1A19', COAT.map((h) => stepHex(h, 1)) as [string, string, string], HEAD, { rows: 1, cols: 1, glint: false });
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   const headSolid = solidSet(hg);
   hollow(hg);
@@ -69,6 +72,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
     const zb = Math.floor(cz - 3 * cos + (y + 0.5 - cy - 3 * sin) * (sin / cos)); // the back face's z at this row
     cube(mg, [-1, y, zb - 2], [1, y, zb], () => dark);
   }
+  step(mg, -1);
   const neck = { geo: mergeGeometries([neckGeo, part(mg, NECK_FOOT).geo], false)!, pivot: NECK_FOOT, voxels: ng.count + mg.count, cells: new Map([...neckCells.map, ...mg.map]) };
   const neckSolid = new Set(neckCells.map.keys());
   const maneSig: SigPart = { ...part(new Grid(S), [0, 0, 0]), name: 'mane', where: 'body', cells: mg.map }; // drawn with the neck
@@ -77,6 +81,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
     cube(g, [sx < 0 ? -3 : 2, 27, 10], [sx < 0 ? -2 : 3, 30, 10], (_x, y) => shade(y === 30 ? COAT[2] : COAT[1]));
+    step(g, -1);
     return part(g, [sx * 2.5 * S + 0.02, 28 * S, 10.5 * S]);
   }) as unknown as [CPart, CPart];
 
@@ -87,6 +92,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
     const out = x0 < 0 ? -1 : 0;
     cube(g, [x0, 2, z0], [x0 + 2, 9, z0 + 2], () => coat);
     cube(g, [x0 + out, 0, z0], [x0 + 3 + out, 1, z0 + 3], () => shade(DARK[1]));
+    step(g, -1, (v) => v.y > 1); // the leg, not its hoof
     unshare(g, bodySolid);
     return part(g, [(x0 + 1.5) * S, 9 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];
@@ -97,6 +103,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
   cube(tg, [-1, 14, -12], [1, 16, -10], () => dark);
   cube(tg, [-1, 11, -13], [1, 13, -11], () => dark);
   cube(tg, [-1, 8, -14], [1, 10, -12], () => dark);
+  step(tg, -1);
   for (const v of [...tg.map.values()]) if (bodySolid.has(`${v.x},${v.y},${v.z}`) && v.z > -10) tg.del(v.x, v.y, v.z);
   const tail = part(tg, [0.02, 0.72, -0.4]);
 

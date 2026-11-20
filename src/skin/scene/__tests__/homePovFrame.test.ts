@@ -226,9 +226,7 @@ const geometries = (o: unknown, out: BufferGeometry[] = [], seen = new Set<unkno
 /** The shots this milestone pulls back from what they pressed against, and the least room any shot may have. */
 const LENS = { need: 1.0, drift: 0.25 };
 /** The clearance all round at the base, for the shots the plan keeps (shot 2 never moves): they may not fall below it. */
-// 'computer 2' was 0.71 until 2026-11-20: with the farm's models no longer smoothed (CHUNKY in voxel/refine.ts) the court
-// fence's corner post keeps the corner of its snow cap, 0.663 m from that lens. The camera is the wendigo's and never moves.
-const LENS_TODAY: Record<string, number> = { 'computer 2': 0.66, 'computer 3': 0.75, 'phone 4': 0.81, 'phone 5': 0.85 };
+const LENS_TODAY: Record<string, number> = { 'computer 2': 0.71, 'computer 3': 0.75, 'phone 4': 0.81, 'phone 5': 0.85 };
 
 describe('the fourteen shots: nothing within 1.0 m of the lens (plan file 04, section 4.3)', () => {
   it('keeps every voxel of the barn, yard, farm and season, and every farm animal, 1.0 m from each lens over its travel and a 0.25 m drift', () => {

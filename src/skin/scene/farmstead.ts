@@ -338,7 +338,8 @@ function fenceRun(b: Builder, a: [number, number], c: [number, number], skip?: (
     b.cap(x, 4, z, snow); // an even line of snow along the top rail
     if (i % 10 === 0) {
       b.box(x, x, 0, 5, z, z, kept ? old : paint('wood', -1));
-      b.cap(x, 5, z, snow);
+      // The paddock camera hangs 0.7 m over this one post (it never moves): unsmoothed, a cap's corner came 0.66 m from the lens.
+      if (x !== b.ix(20) || z !== b.ix(FARM.paddock.maxZ)) b.cap(x, 5, z, snow);
     }
   }
 }

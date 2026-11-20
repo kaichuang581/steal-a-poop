@@ -5,7 +5,10 @@ was built on branches `toybox/*`, which are not merged and not continued) and th
 
 Read docs/miniature/inventory.md and anchors.md first: the plan was written against v0.8.0, and those two files map
 its names and places onto the tree as it stood at v0.8.3 (commit 6608e99). Where they differ from the plan's files,
-they are the ones to use. Brian's words for the run, 2026-11-20: "execute fleeced miniature plan".
+they are the ones to use. Brian's words for the run, 2026-11-20: "execute fleeced miniature plan", and later that
+day: "if this overrides stuff then treat this as the primary". So where this plan and an older rule of his disagree
+(the light limits, the snow's texture, the animals' sheets, the barn's patched floor), the plan wins. The wendigo's
+rules are not older rules in that sense: the plan itself keeps them, and so does he.
 
 Standing rules from it (docs/miniature/01-target-look.md has the full text):
 - One part, one colour. Parts that touch differ by one step of the material's ladder. Nothing random per cube:
@@ -15,22 +18,27 @@ Standing rules from it (docs/miniature/01-target-look.md has the full text):
 - No texture, gradient, gloss or outline. Shade comes from light, corner shade, the ground shade map and the eave step.
 - An empty area is fixed with a real part from the kit (docs/miniature/04) or a planned value step, never with noise.
 
-Brian's decisions for this plan (each overrides the older rule named). The plan runs on its defaults (README,
-section 7) by his instruction of 2026-11-20; a date is written here when he answers a pair:
+Brian's decisions for this plan (each overrides the older rule named). Each is the plan's default (README, section
+7), approved by his instruction of 2026-11-20 that the plan is the primary; he has not yet answered a pair one by one:
 - Day and dawn light on Home: sun 45 degrees up (dawn 30), 40 degrees round, Neutral tone mapping, haze fitted per
   shot, shadow box fitted per shot. As built the exposure stays 1 with the sun at 2.4 and the fill at 1.4 (dawn 2.05
   and 1.2), not the plan's 2.2: a higher exposure whitened the sky, the haze and every lamp on this tree
   (docs/miniature/review/M1-light.md). Shadow radius 2.5, the tree's own. Overrides the day values in "Brian's light
-  limits". Approved: ____
-- Solid snow in front of z = -16. Overrides "the snow's texture stands" there. Approved: ____
-- Chunky structure: ____   Sharp edges: ____   Animal colours: ____   Barn table palette: ____
-- Dusk and night light: unchanged unless recorded here: ____
+  limits". Approved: 2026-11-20
+- Solid snow in front of z = -16. Overrides "the snow's texture stands" there. Approved: 2026-11-20
+- Chunky structure: chunky. Sharp edges: sharp. Barn table palette: Home's, with the plan's flat straw floor. All
+  2026-11-20.
+- Animal colours: not desaturated, with the plan's value steps (belly, legs, ears and tail a step under, the head a
+  step over; `VALUE_STEPS` in voxel/animals/rig.ts turns the steps off). Overrides "animals match his sheets
+  one-to-one" for colour steps only: every shape and every part's base colour is still his sheet's. 2026-11-20
+- Dusk and night light: unchanged.
 
 As built, M0 to M8, on 2026-11-20 (each milestone's notes, deviations and pairs: docs/miniature/review/M<n>-*.md;
 the numbers: docs/miniature/numbers.md). What a later change must know:
 - Colours: `solid(material, step)` for scenery, `shade(hex)` for animals, garments, bombs and the trophy (their own
   colours with nothing taken off; `lin` still desaturates and is what the small scenes and everything behind the line
-  use). The animals carry no value steps of the plan's: they are built from Brian's own six-view sheets.
+  use). The animals' parts take the plan's value steps through `step` and `stepHex` in voxel/animals/rig.ts, laid over
+  the colours of Brian's six-view sheets; a step never goes under the palette's floor or over its part's saturation.
 - The micro layer: `scene/farmMicro.ts` (`MICRO_PLACEMENTS`, eight clusters, the rules of a place in `breach`), the
   kit in `voxel/microKit.ts` (closed: ask before adding a kind). A placement that lands in a cube of the yard or the
   farm, in the wedge or the paddock, on the lane, or within its distance of an animal, the season's tree, a present or

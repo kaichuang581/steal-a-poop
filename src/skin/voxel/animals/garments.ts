@@ -1,7 +1,7 @@
 import type { VoxelMap } from '../mesher';
 import { Grid } from '../primitives';
 import type { V3 } from '../primitives';
-import { addCavity, cavityOf, frostOf, hollow, part, S, SMOOTH_BODIES } from './rig';
+import { addCavity, cavityOf, frostOf, hollow, part, S, SMOOTH_BODIES, stepHex } from './rig';
 import type { AnimalModel, Part } from './rig';
 import { shade } from '../paint';
 
@@ -119,7 +119,7 @@ export function scarf(centre: V3, rx: number, ry: number, knit: Knit, tails: V3,
     const tz = bottom[0].z;
     const ends = [bottom[0].x, bottom[bottom.length - 1].x - 1];
     // Down to a cell above the ground at most: a head carried low (the pig's) would hang them through the floor.
-    for (const x0 of ends) for (let k = 1; k <= 6 && low - k >= 1; k++) for (const w of [0, 1]) g.set(x0 + w, low - k, tz, shade(k % 2 ? knit.b : knit.a));
+    for (const x0 of ends) for (let k = 1; k <= 6 && low - k >= 1; k++) for (const w of [0, 1]) g.set(x0 + w, low - k, tz, shade(stepHex(k % 2 ? knit.b : knit.a, -1)));
     void tails;
     return g;
   }
@@ -128,7 +128,7 @@ export function scarf(centre: V3, rx: number, ry: number, knit: Knit, tails: V3,
     for (const dz of [0, 1]) g.set(Math.round((centre[0] + Math.cos(a) * rx) / S), Math.round((centre[1] + Math.sin(a) * ry) / S), cz + dz, shade(k % 10 < 5 ? knit.a : knit.b));
   }
   const tx = Math.round(tails[0] / S), ty = Math.round(tails[1] / S), tz = Math.round(tails[2] / S);
-  for (const dx of [-2, 1]) for (let k = 0; k < 6; k++) for (const w of [0, 1]) g.set(tx + dx + w, ty - k, tz, shade(k % 2 ? knit.b : knit.a));
+  for (const dx of [-2, 1]) for (let k = 0; k < 6; k++) for (const w of [0, 1]) g.set(tx + dx + w, ty - k, tz, shade(stepHex(k % 2 ? knit.b : knit.a, -1))); // the hanging tails, a step under the band
   return g;
 }
 /** Leg warmers: the four voxels above each hoof wrapped one voxel proud, ribbed. */

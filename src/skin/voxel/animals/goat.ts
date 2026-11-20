@@ -2,7 +2,7 @@ import type { Character } from '../../avatars/catalog';
 import { Grid } from '../primitives';
 import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, tones, unshare } from './rig';
+import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, step, stepHex, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
 import type { Faces } from './faces';
 import { shade } from '../paint';
@@ -21,11 +21,12 @@ const NOSE = '#6E6862';
  */
 export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const coat = shade(COAT[1]);
-  const face = tones(COAT[1]);
+  const face = tones(stepHex(COAT[1], 1));
 
   // ---- Body: 11 wide, 9 tall, 15 long; the bottom two rows and the chest under the head paler.
   const bg = new Grid(S);
   cube(bg, [-5, 6, -7], [5, 14, 7], (x, y, z) => shade(y <= 7 || (z === 7 && y <= 11 && Math.abs(x) <= 3) ? COAT[0] : COAT[1]));
+  step(bg, -1, (v) => v.y === 6); // the belly row
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
@@ -34,6 +35,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const HEAD: V3 = [0.02, 12 * S, 6 * S];
   const hg = new Grid(S);
   cube(hg, [-4, 12, 6], [4, 19, 10], () => coat);
+  step(hg, 1);
   const muzzleG = new Grid(S);
   cube(muzzleG, [-2, 12, 11], [2, 14, 13], (x, y, z) => shade(z === 13 && y === 13 && Math.abs(x) <= 1 ? NOSE : COAT[0]));
   for (const v of muzzleG.map.values()) hg.set(v.x, v.y, v.z, v.c);
@@ -44,6 +46,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   cube(beardG, [-1, 11, 9], [1, 11, 11], () => shade(COAT[0]));
   cube(beardG, [-1, 10, 10], [1, 10, 11], () => shade(COAT[0]));
   cube(beardG, [-1, 9, 10], [1, 9, 10], () => shade(COAT[0]));
+  step(beardG, -1);
   const beard: SigPart = { ...part(beardG, [0.02, 12 * S, 10 * S]), name: 'beard', where: 'head', anim: 'beard', cells: beardG.map };
   const headSolid = solidSet(hg);
   hollow(hg);
@@ -65,6 +68,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
     const g = new Grid(S);
     cube(g, [sx < 0 ? -6 : 5, 16, 7], [sx < 0 ? -5 : 6, 17, 8], () => coat);
     cube(g, [sx * 7, 15, 7], [sx * 7, 16, 8], () => shade(COAT[2]));
+    step(g, -1);
     return part(g, [sx * 4.5 * S + 0.02, 17 * S, 8 * S]);
   }) as unknown as [CPart, CPart];
 
@@ -82,6 +86,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const legs = legSpots.map(([x0, z0]) => {
     const g = new Grid(S);
     cube(g, [x0, 0, z0], [x0 + 2, 7, z0 + 2], (_x, y) => shade(y === 0 ? HOOF : COAT[1]));
+    step(g, -1, (v) => v.y > 0); // the leg, not its hoof
     unshare(g, bodySolid);
     return part(g, [(x0 + 1.5) * S, 6 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];
@@ -90,6 +95,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const tg = new Grid(S);
   cube(tg, [-1, 13, -8], [1, 16, -7], () => coat);
   cube(tg, [-1, 16, -9], [1, 17, -9], () => coat);
+  step(tg, -1);
   const tail = part(tg, [0.02, 0.56, -0.3]);
 
   const coats = coatsFor({

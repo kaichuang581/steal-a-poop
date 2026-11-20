@@ -41,8 +41,9 @@ Other deviations:
 
 ## Tests whose expectations changed (look only)
 
-- `homePovFrame.test.ts`: `LENS_TODAY['computer 2']` 0.71 to 0.66. The paddock camera never moves; the court fence's
-  corner post keeps the corner of its snow cap, 0.663 m from the lens.
+- `homePovFrame.test.ts`: untouched again since 2026-11-20 (the plan never edits the paddock shot's entries). It had
+  been loosened from 0.71 to 0.66 because the unsmoothed snow cap of the paddock fence's post at (20, 7) came 0.663 m
+  from that lens; that one post now carries no cap (`fenceRun` in `scene/farmstead.ts`), and the test passes at 0.71.
 - `scale.test.ts`: the tractor is found by its 0.1 m cubes (was 0.05 m, the smoothed size).
 - Baked pictures: 47 went stale because `ROUNDED_VOXELS` changed. All baked again with their own tools; the two play
   cards re-taken by their recipe. `bakeStamp --check`: 47 fresh, 0 stale.

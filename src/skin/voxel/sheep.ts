@@ -1,7 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { DEFAULT_FACES, facesKey } from './animals/faces';
 import type { Faces } from './animals/faces';
-import { frostOf, hollow, noMouths, part as shellPart, smallEyes } from './animals/rig';
+import { frostOf, hollow, noMouths, part as shellPart, smallEyes, step } from './animals/rig';
 import { buildGeometry } from './mesher';
 import type { VoxelMap } from './mesher';
 import { ICE_CRACK, lin, T } from './palette';
@@ -179,6 +179,7 @@ function bodyWool(level: 1 | 2 | 3 | 4, skip: Skip): Grid {
     const top = (z >= -2 ? 13 : z >= -5 ? 12 : 11) + t, low = bottom + (z >= 3 ? 3 : z <= -2 && z >= -4 ? 1 : 2);
     for (let y = low; y <= top; y++) if (!skip(sx * (5 + w), y, z)) g.set(sx * (5 + w), y, z, wool);
   }
+  step(g, -1, (v) => v.y === bottom); // the belly row
   return g;
 }
 
@@ -219,11 +220,13 @@ export function sheepModel(faces: Faces = DEFAULT_FACES): SheepModel {
     for (let x = -half; x <= half; x++) if (!head.has(x, y, z)) hood.set(x, y, z, wool);
   }
   for (let x = -2; x <= 2; x++) for (let z = 6; z <= 8; z++) hood.set(x, 16, z, wool); // 5 wide: the crown steps in a cell a row, a soft dome
+  step(hood, 1); // the head's wool, a step over the fleece
 
   // ---- Ears: peach, 2 out, 2 tall, 2 deep from the head wool's sides, the inner lower corner of the front darker.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(s);
     cube(g, [sx < 0 ? -6 : 5, 11, 6], [sx < 0 ? -5 : 6, 12, 7], (x, y, z) => plain(z === 7 && y === 11 && Math.abs(x) === 5 ? SKIN[2] : SKIN[1]));
+    step(g, -1);
     return part(g, [sx * 4.5 * s + (sx < 0 ? 0 : s), 12 * s, 7 * s]);
   }) as [Part, Part];
 
@@ -232,6 +235,7 @@ export function sheepModel(faces: Faces = DEFAULT_FACES): SheepModel {
   const legs = ([[-3, 2], [2, 2], [-3, -6], [2, -6]] as const).map(([x0, z0]) => { // the back pair a cell in from the rump, under wool at every coat
     const g = new Grid(s);
     cube(g, [x0, 0, z0], [x0 + 1, 5, z0 + 1], (_x, y) => plain(y === 0 ? SHIN[1] : SHIN[0]));
+    step(g, -1, (v) => v.y > 0); // the leg, not its foot
     legGrids.push(g);
     return part(g, [(x0 + 1) * s, 4 * s, (z0 + 1) * s]);
   }) as [Part, Part, Part, Part];
@@ -255,6 +259,7 @@ export function sheepModel(faces: Faces = DEFAULT_FACES): SheepModel {
   const tail = new Grid(s);
   cube(tail, [-1, 8, -9], [1, 11, -9], () => plain(FLEECE[0]));
   tail.set(0, 12, -9, plain(FLEECE[0]));
+  step(tail, -1);
 
   // ---- Shorn (level 0): the skin, a smaller lobe.
   const sheared = new Grid(s);
@@ -262,6 +267,7 @@ export function sheepModel(faces: Faces = DEFAULT_FACES): SheepModel {
     const on = [Math.abs(x) === 3, y === 4 || y === 12, z === -7].filter(Boolean).length;
     return on >= 2 || taken(x, y, z) ? null : plain(SKIN[0]);
   });
+  step(sheared, -1, (v) => v.y === 4); // the belly row
   hollow(sheared);
 
   const breath = new Grid(s);

@@ -8,7 +8,7 @@ import { box, ellipsoid, Grid, hash3 } from '../primitives';
 import type { Paint, RGB, V3 } from '../primitives';
 import type { Brows, Lids, Mouth, Part, SheepModel } from '../sheep';
 import type { GarmentCells } from './garments';
-import { shade } from '../paint';
+import { shade, shadeHex } from '../paint';
 
 /**
  * The shared animal rig (V5 Part 4.1): one interface every species builds to, so `Animal.tsx` animates them all with
@@ -75,6 +75,19 @@ export function tones(hex: string, satCap = 0.55): [string, string, string] {
   return [clampHex(l(0.08), satCap), clampHex(l(0), satCap), clampHex(l(-0.2), satCap)];
 }
 export type Tones = [string, string, string];
+
+/**
+ * Value steps between an animal's parts (docs/miniature/06, section 3; decision 6, Brian 2026-11-20): belly and legs a
+ * step under the body, the head a step over it, ears and tail a step under. False draws every part in its sheet's colour.
+ */
+export const VALUE_STEPS = true;
+/** A colour `k` steps along the ladders' arithmetic, never under the palette's floor and no more saturated than it was. */
+export const stepHex = (hex: string, k: number): string => (VALUE_STEPS && k ? clampHex(shadeHex(hex, k), c.set(hex).getHSL(hsl).s) : hex);
+/** Moves the cells of a built part `k` steps (those `only` picks; all of them without it). */
+export function step(g: Grid, k: number, only: (v: { x: number; y: number; z: number; c: RGB }) => boolean = () => true): void {
+  if (!VALUE_STEPS) return;
+  for (const v of g.map.values()) if (only(v)) v.c = shade(stepHex(`#${c.setRGB(v.c[0], v.c[1], v.c[2]).getHexString()}`, k));
+}
 /** A paint in a material's base tone, with the light tone on top faces and the dark tone underneath, by shape not noise. */
 export const flat = (t: Tones, which: 0 | 1 | 2 = 1): Paint => () => shade(t[which]);
 /** Base everywhere; the light tone on the upper third of a shape and the dark on the lower fifth (a soft gradient by height). */

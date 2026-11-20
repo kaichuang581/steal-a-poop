@@ -1,199 +1,120 @@
 import type { Character } from '../../avatars/catalog';
-import { lin } from '../palette';
-import { box, Grid, line } from '../primitives';
-import type { Paint, V3 } from '../primitives';
+import { Grid } from '../primitives';
+import type { V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { addCavity, barrel, breathAt, bury, cavityOf, cellsOf, hugCollar, hollow, leg, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge, unshare } from './rig';
+import { breathAt, cellsOf, cube, extentOf, hollow, noMouths, none, part, S, smallEyes, solidSet, statsOf, step, stepHex, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
-import { HOOF } from './pig';
-import { DEFAULT_FACES } from './faces';
 import type { Faces } from './faces';
+import { shade } from '../paint';
+
+const COAT = ['#F1EFEB', '#E2E0DC', '#CFCCC7'] as const;
+const HORN = ['#ADA090', '#968776'] as const;
+const HOOF = '#8E8A85';
+const NOSE = '#6E6862';
 
 /**
- * The goat (V5.1 Part 5.5): a compact barrel with a shaggy belly fringe, a neck rising 35 degrees, a level wedge head
- * with a Roman nose and a beard, two horns rising then sweeping back and out, drooping ears, a short upturned tail and
- * horizontal pupils.
- *
- * The sheet's numbers miss its own ratio table (a 7-wide head is 0.64 of an 11-wide torso, the table allows 0.58):
- * solved for the table, the torso is 13 wide, 13 tall and 20 long (0.52 x 0.52 x 0.80 m) and the head 7 wide, 7 tall
- * with its bump, and 9 long.
+ * The goat, after Brian's six-view sheet (2026-11-18): a pale grey box on four square legs with grey hooves and a
+ * paler band low on its flanks and chest; a square head over the chest on a short neck that slants back; a paler
+ * muzzle block with a dark nostril bar; one-cell black eyes; ears straight out to the sides, drooping at the tips;
+ * two grey-brown horns rising and sweeping back; a stepped beard; a tail pointing up and back. Grid cells (0.04 m),
+ * drawn at 1.25 (`drawScale`). Faces +z.
  */
-const HORN = ['#6B5D50', '#5A4D42', '#473C33'] as const;
-const TY = 9; // the torso's bottom row (y 0.36)
-const HY = 21; // the head's bottom row (y 0.84)
-/**
- * Face switches (plan file 03, 4.11), off until Brian ticks the goat's row on the face sheet. GOAT_MOUTH: the mouth 3
- * wide (the muzzle's width) in a tone halfway between the muzzle's and its dark, flush in the muzzle instead of a
- * near-black bar 5 wide standing one voxel proud. GOAT_HORNS: the horns drawn one row behind the ears, so their roots
- * no longer interleave with the ears' columns.
- */
-export const GOAT_MOUTH = true; // ticked by Brian, 2026-11-17 (milestone 6)
-export const GOAT_HORNS = true; // ticked by Brian, 2026-11-17 (milestone 6)
-export function goatModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
-  const flushMouth = GOAT_MOUTH || faces.has('goatMouth');
-  const hornsBack = GOAT_HORNS || faces.has('goatHorns');
-  const body = tones(ch.colors.body);
-  const nose = tones(ch.colors.dark);
+export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
+  const coat = shade(COAT[1]);
+  const face = tones(stepHex(COAT[1], 1));
 
-  // ---- Torso: a barrel 0.52 x 0.52 x 0.72 (0.80 with its rounded ends), chamfer 2, rows 9 to 21.
+  // ---- Body: 11 wide, 9 tall, 15 long; the bottom two rows and the chest under the head paler.
   const bg = new Grid(S);
-  barrel(bg, [0.02, (TY + 6.5) * S, 0], [0.52, 0.52, 0.72], 2, shaded(body, TY + 12, TY), 1);
-  const legSpots = [[-0.13, 0.20], [0.17, 0.20], [-0.13, -0.20], [0.17, -0.20]] as const;
-  sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })), 11, 10); // shoulders and hips over the legs (4.2.3)
+  cube(bg, [-5, 6, -7], [5, 14, 7], (x, y, z) => shade(y <= 7 || (z === 7 && y <= 11 && Math.abs(x) <= 3) ? COAT[0] : COAT[1]));
+  step(bg, -1, (v) => v.y === 6); // the belly row
   const bodySolid = solidSet(bg);
   hollow(bg);
-  // The belly fringe: two-voxel drops every two voxels along both belly edges between z -0.30 and 0.30, dark tone.
-  const fringeG = new Grid(S);
-  for (let z = -7; z <= 7; z += 2) for (const sx of [-1, 1]) {
-    let edge = 0;
-    for (const v of bg.map.values()) if (v.y === TY && v.z === z && v.x * sx > edge * sx) edge = v.x;
-    if (!edge) continue;
-    for (let k = 1; k <= 2; k++) fringeG.set(edge, TY - k, z, lin(body[2]));
-  }
-  const fringe: SigPart = { ...part(fringeG, [0, 0, 0]), name: 'fringe', where: 'body', cells: fringeG.map };
-  // The fringe is drawn with the body at every level, but the torso's measures (4.1) read the barrel alone.
-  const shown = new Grid(S);
-  for (const g of [bg, fringeG]) for (const v of g.map.values()) shown.set(v.x, v.y, v.z, v.c);
-  addCavity(shown.map, cavityOf(bg.map));
-  const bodyPart = { ...part(shown, [0, 0, 0]), cells: bg.map };
+  const bodyPart = part(bg, [0, 0, 0]);
 
-  // ---- Head: a wedge 9 long, 7 wide at the back to 5 at the front, 6 tall with a Roman bump (rows 21 to 27), level.
-  const HEAD: V3 = [0, HY * S, 0.48];
+  // ---- Head: 9 wide, 8 tall, 5 deep, its back over the chest; the muzzle 5 x 3, 3 proud, its nostril bar dark.
+  const HEAD: V3 = [0.02, 12 * S, 6 * S];
   const hg = new Grid(S);
-  const zb = Math.round(0.48 / S), zf = zb + 8;
-  const paint: Paint = (x, y, z) => (z === zf && y <= HY + 2 && Math.abs(x) <= 1 ? lin(nose[1]) : shaded(body, HY + 6, HY)(x, y, z));
-  wedge(hg, HEAD, 0.36, 0.28, 0.20, 0.24, paint, 1);
-  // Eyes: small and simple (Brian, 2026-11-07), 2 x 2 on the sides at rows 24 and 25, the front third.
-  const { eyes, lids, brows } = smallEyes(hg, HY + 3, zb + 5, ch.colors.dark, body, HEAD, { proud: true });
-  // The mouth on row 22, width 5; chewing on rows 21 and 22, on the wedge's front with its corners knocked off.
-  const frontAt = (x: number, y: number) => { for (let k = zf; k >= zf - 4; k--) if (hg.has(x, y, k)) return k; return zf; };
-  const mouthParts = flushMouth ? flushMouths(hg, nose, HEAD, frontAt) : mouths([-2, HY, zf], 5, 'z', nose[2], HEAD, { front: frontAt });
-  // Beard: 3 wide x 4 down x 2 deep under the chin at the front, dark tone.
+  cube(hg, [-4, 12, 6], [4, 19, 10], () => coat);
+  step(hg, 1);
+  const muzzleG = new Grid(S);
+  cube(muzzleG, [-2, 12, 11], [2, 14, 13], (x, y, z) => shade(z === 13 && y === 13 && Math.abs(x) <= 1 ? NOSE : COAT[0]));
+  for (const v of muzzleG.map.values()) hg.set(v.x, v.y, v.z, v.c);
+  const { eyes, lids, brows } = smallEyes(hg, 15, 10, '#1E1A19', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
+  const mouthParts = noMouths(HEAD); // the sheet draws no mouth
+  // Beard: 3 wide, stepping in under the muzzle: three rows at the front, two, then one.
   const beardG = new Grid(S);
-  box(beardG, [-0.04, (HY - 4) * S, (zf - 2) * S], [0.08, HY * S, zf * S], () => lin(body[2]));
-  const beard: SigPart = { ...part(beardG, [0, HY * S, (zf - 1) * S]), name: 'beard', where: 'head', anim: 'beard', cells: beardG.map };
+  cube(beardG, [-1, 11, 9], [1, 11, 11], () => shade(COAT[0]));
+  cube(beardG, [-1, 10, 10], [1, 10, 11], () => shade(COAT[0]));
+  cube(beardG, [-1, 9, 10], [1, 9, 10], () => shade(COAT[0]));
+  step(beardG, -1);
+  const beard: SigPart = { ...part(beardG, [0.02, 12 * S, 10 * S]), name: 'beard', where: 'head', anim: 'beard', cells: beardG.map };
   const headSolid = solidSet(hg);
   hollow(hg);
   const headPart = part(hg, HEAD);
 
-  // ---- Horns: two curves 2 voxels thick from the crown's back corners, rising 0.12 then sweeping back and out.
-  const crown = (HY + 6) * S; // the top of the crown's back (the bump is at the front)
-  const hornGrids = ([-1, 1] as const).map((sx) => {
+  // ---- Horns: 2 x 1 across, rising from the crown's back half and sweeping back; rooted a row into the crown.
+  const horns = ([-1, 1] as const).map((sx, i) => {
     const g = new Grid(S);
-    const dz = 0.48 - 0.46; // the sheet's head starts at z 0.46; ours at 0.48
-    const pts: V3[] = [[0.06, -0.06, 0.56], [0.07, 0, 0.54], [0.09, 0.08, 0.50], [0.12, 0.12, 0.44], [0.16, 0.12, 0.36], [0.20, 0.10, 0.30]].map(([x, y, z]) => [sx * x + 0.02, crown + y, z + dz] as V3);
-    for (let i = 0; i + 1 < pts.length; i++) for (const o of [[0, 0], [S, 0], [0, S], [S, S]] as const) {
-      line(g, [pts[i][0] + o[0] * sx, pts[i][1], pts[i][2] + o[1]], [pts[i + 1][0] + o[0] * sx, pts[i + 1][1], pts[i + 1][2] + o[1]], () => lin(HORN[i < 2 ? 0 : i < 4 ? 1 : 2]));
-    }
-    // GOAT_HORNS: the root starts among the ears' columns (z zb + 1 to zb + 2) and the curve sweeps back through them;
-    // moved back whole until its front row is the row behind the ears' (zb), it rises from the back of the crown.
-    if (hornsBack) {
-      const k = Math.max(...[...g.map.values()].map((v) => v.z)) - zb;
-      const cells = [...g.map.values()];
-      for (const v of cells) g.del(v.x, v.y, v.z);
-      for (const v of cells) g.set(v.x, v.y, v.z - k, v.c);
-    }
-    return g;
+    const [x0, x1] = sx < 0 ? [-3, -2] : [2, 3];
+    const paint = (_x: number, y: number) => shade(HORN[y >= 22 ? 0 : 1]);
+    cube(g, [x0, 19, 7], [x1, 20, 8], paint);
+    cube(g, [x0, 21, 6], [x1, 21, 7], paint);
+    cube(g, [x0, 22, 4], [x1, 22, 6], paint);
+    return { ...part(g, HEAD), name: i === 0 ? 'horn0' : 'horn1', where: 'head' as const, cells: g.map } as SigPart;
   });
-  // Behind the ears the crown falls away, so a moved root may meet the head on fewer than the four cells a root needs
-  // (animalsV51 rule 3). Both horns sink together, a voxel at a time and at most two, until each one does: the horns
-  // are not exact mirrors (their x is offset), so sinking each alone left one a voxel lower than the other.
-  if (hornsBack) {
-    const meets = (g: Grid, dy: number) => [...g.map.values()].filter((v) => [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(([a, b, c]) => headSolid.has(`${v.x + a},${v.y - dy + b},${v.z + c}`))).length;
-    let sink = 0;
-    while (sink < 2 && hornGrids.some((g) => meets(g, sink) < 4)) sink++;
-    if (sink) for (const g of hornGrids) {
-      const now = [...g.map.values()];
-      for (const v of now) g.del(v.x, v.y, v.z);
-      for (const v of now) g.set(v.x, v.y - sink, v.z, v.c);
-    }
-  }
-  const horns = hornGrids.map((g, i) => ({ ...part(g, HEAD), name: i === 0 ? 'horn0' : 'horn1', where: 'head' as const, cells: g.map }) as SigPart);
 
-  // ---- Neck: rising 35 degrees from the chest (buried three voxels) into the head's back, sections 0.22 to 0.18.
-  const NECK_BASE: V3 = [0.02, 0.76, 0.30];
-  const ng = new Grid(S);
-  segment(ng, NECK_BASE, [0.02, 0.94, 0.56], 0.24, 0.20, shaded(body, HY + 2, HY - 6));
-  const neckSolid = solidSet(ng);
-  hollow(ng);
-  bury(ng, bodySolid, headSolid);
-  const neck = part(ng, [0, 0, 0]);
-
-  // ---- Ears: flaps 5 long x 2 wide x 1 thick, drooping 30 degrees from the crown's back corners, pink inside.
+  // ---- Ears: 3 out, 2 tall, 2 deep from the head's sides, the tip a row lower.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
-    let yPrev = HY + 4;
-    for (let k = 0; k < 6; k++) for (const dz of [0, 1]) {
-      const x = sx * (2 + k), y = HY + 4 - Math.floor(k * 0.6);
-      g.set(x, y, zb + 1 + dz, lin(dz === 1 && k > 2 ? nose[0] : body[1]));
-      for (let yy = y + 1; yy <= yPrev; yy++) g.set(x, yy, zb + 1 + dz, lin(body[1])); // the step down stays face-joined
-      if (k < 2) g.set(x, y + 1, zb + 1 + dz, lin(body[1])); // the root, two rows deep in the head
-      if (dz === 1) yPrev = y;
-    }
-    return part(g, [sx * 3 * S, (HY + 4) * S, (zb + 1.5) * S]);
+    cube(g, [sx < 0 ? -6 : 5, 16, 7], [sx < 0 ? -5 : 6, 17, 8], () => coat);
+    cube(g, [sx * 7, 15, 7], [sx * 7, 16, 8], () => shade(COAT[2]));
+    step(g, -1);
+    return part(g, [sx * 4.5 * S + 0.02, 17 * S, 8 * S]);
   }) as unknown as [CPart, CPart];
 
-  // ---- Legs: four, 3 x 3 x 11, a knee notch, hooves; tops two voxels inside the belly.
-  const legs = legSpots.map(([cx, cz]) => {
+  // ---- Neck: 7 wide behind the head, slanting back as it falls to the withers.
+  const NECK_BASE: V3 = [0.02, 14 * S, 4 * S];
+  const ng = new Grid(S);
+  cube(ng, [-3, 13, 2], [3, 15, 5], () => coat);
+  cube(ng, [-3, 16, 4], [3, 17, 5], () => coat);
+  cube(ng, [-3, 18, 5], [3, 18, 5], () => coat);
+  unshare(ng, bodySolid);
+  const neck = part(ng, [0, 0, 0]);
+
+  // ---- Legs: 3 x 3, two rows inside the belly, a grey hoof.
+  const legSpots = [[-4, 4], [2, 4], [-4, -6], [2, -6]] as const;
+  const legs = legSpots.map(([x0, z0]) => {
     const g = new Grid(S);
-    leg(g, cx, cz, 3, 11, body, HOOF, { knee: true, oneTone: true });
-    hollow(g);
-    bury(g, bodySolid);
-    return part(g, [cx, 0.42, cz]);
+    cube(g, [x0, 0, z0], [x0 + 2, 7, z0 + 2], (_x, y) => shade(y === 0 ? HOOF : COAT[1]));
+    step(g, -1, (v) => v.y > 0); // the leg, not its hoof
+    unshare(g, bodySolid);
+    return part(g, [(x0 + 1.5) * S, 6 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];
 
-  // ---- Tail: a stub 2 x 2 x 3 pointing up and back from the rump.
+  // ---- Tail: 3 wide, up and back off the top of the rump, rooted two rows into it.
   const tg = new Grid(S);
-  box(tg, [0, 0.76, -0.42], [0.08, 0.84, -0.34], () => lin(body[2])); // the root, inside the rump
-  box(tg, [0, 0.84, -0.46], [0.08, 0.96, -0.38], () => lin(body[1]));
-  bury(tg, bodySolid);
-  unshare(tg, bodySolid, 'cap'); // the stub's root is too small to lose a cell
-  const tail = part(tg, [0.04, 0.84, -0.40]);
+  cube(tg, [-1, 13, -8], [1, 16, -7], () => coat);
+  cube(tg, [-1, 16, -9], [1, 17, -9], () => coat);
+  step(tg, -1);
+  const tail = part(tg, [0.02, 0.56, -0.3]);
 
-  // ---- Collar (4.2.6) round the neck one voxel in front of the chest; the sweater's band at the chest; the scarf above.
-  const collar = hugCollar(neckSolid, 11, '#C24E45');
   const coats = coatsFor({
-    body: shown.map, torso: { zFrom: -0.24, zTo: 0.22, bellyY: 0.56 }, kind: 'sweater', knit: KNIT.goat,
-    neck: { centre: [0.02, 0.90, 0.48], rx: 0.15, ry: 0.17, tails: [0.02, 0.72, 0.54], solid: new Set([...neckSolid, ...headSolid]) }, // round the throat: the neck is short in z
-    band: { centre: [0.02, 0.83, 0.40], rx: 0.15, ry: 0.16, solid: neckSolid },
-    // Moved back, the horns' roots reach the sweater's neck: it keeps off them as it does the head and the ears.
-    avoid: [hg.map, ...ears.map((e) => e.cells), ...(hornsBack ? horns.map((h) => h.cells) : [])],
-    legs: legSpots.map(([cx, cz]) => ({ cx, cz, w: 3 })),
+    body: bg.map, torso: { zFrom: -0.16, zTo: 0.08, bellyY: 0.36 }, kind: 'sweater', knit: KNIT.goat,
+    neck: { centre: [0.02, 0.64, 7 * S + 0.001], rx: 0.18, ry: 0.2, tails: [0.02, 0.4, 0.3], solid: headSolid },
+    band: { centre: [0.02, 0.64, 6 * S + 0.001], rx: 0.18, ry: 0.2, solid: headSolid },
+    avoid: [hg.map, beardG.map, tg.map, ng.map, ...ears.map((e) => e.cells), ...horns.map((h) => h.cells)],
+    legs: legSpots.map(([x0, z0]) => ({ cx: (x0 + 1.5) * S, cz: (z0 + 1.5) * S, w: 3 })),
   });
-  const breath = breathAt([0.02, (HY + 1) * S, (zf + 1) * S]);
+  const breath = breathAt([0.02, 13 * S, 14 * S]);
   const signature = [...horns, beard];
-  const parts = [coats.wools[2], neck, headPart, ...eyes, ...ears, ...legs, tail, collar, ...horns, beard];
+  const parts = [coats.wools[2], neck, headPart, ...eyes, ...ears, ...legs, tail, ...horns, beard];
+  const { height, length } = extentOf([bodyPart, neck, headPart, beard, ...horns, ...ears, ...legs, tail]);
   return {
-    species: 'goat', bodyAlways: false, signature, height: 1.2, length: 1.12, drawScale: 1,
+    species: 'goat', bodyAlways: false, signature, height, length, drawScale: 1.25,
     wools: coats.wools, frosts: coats.frosts, coatCells: coats.coatCells, garment: coats.garment, neck, neckBase: NECK_BASE,
-    head: headPart, hood: part(new Grid(S), HEAD), tail, eyes, lids, brows, mouths: mouthParts, ears, legs, collar, bell: part(new Grid(S), [0, 0.7, 0.4]), sheared: bodyPart, breath,
+    head: headPart, hood: none(HEAD), tail, eyes, lids, brows, mouths: mouthParts, ears, legs, collar: none(), bell: none([0, 0.7, 0.4]), sheared: bodyPart, breath,
     lobes: { body: 1, hood: 0, tail: 1 }, woolTones: 3, voxels: parts.reduce((n, p) => n + p.voxels, 0),
-    cells: cellsOf({ body: bodyPart, neck, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar, horn: horns as unknown as CPart[], beard: beard as CPart, fringe: fringe as CPart }),
+    cells: cellsOf({ body: bodyPart, neck, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar: none(), horn: horns as unknown as CPart[], beard: beard as CPart }),
     stats: statsOf(parts, []),
   };
-}
-
-/**
- * GOAT_MOUTH: every mouth a plate filling the muzzle's front 3 x 3 (columns -1 to 1, rows HY to HY + 2) in place of the
- * head's own surface cells there, which are taken out: the mouth's cells in the ink, the rest of the plate in the
- * muzzle's tone. So the face stays whole whichever mouth shows (the component always shows one), nothing stands
- * proud, and no cell is in two parts. The ink is halfway between the muzzle's tone and its dark: a mouth in the
- * muzzle's own tone, flush, could not be seen.
- */
-function flushMouths(hg: Grid, nose: [string, string, string], pivot: V3, frontAt: (x: number, y: number) => number) {
-  const plate: V3[] = [];
-  for (let x = -1; x <= 1; x++) for (let y = HY; y <= HY + 2; y++) plate.push([x, y, frontAt(x, y)]);
-  const muzzle = lin(nose[1]), dark = lin(nose[2]);
-  const ink = muzzle.map((c, i) => (c + dark[i]) / 2) as typeof muzzle;
-  // The flat, smile, o and chewing shapes of `mouths`, 3 wide, as (column 0..2, row 0..2) on the plate.
-  const ms = mouths([0, 0, 0], 3, 'z', '#000000', pivot);
-  const out = {} as typeof ms;
-  for (const k of Object.keys(ms) as (keyof typeof ms)[]) {
-    const on = new Set([...(ms[k].cells?.values() ?? [])].map((v) => `${v.x - 1},${v.y + HY}`));
-    const g = new Grid(S);
-    for (const [x, y, z] of plate) g.set(x, y, z, on.has(`${x},${y}`) ? ink : muzzle);
-    out[k] = part(g, pivot);
-  }
-  for (const [x, y, z] of plate) hg.del(x, y, z);
-  return out;
 }

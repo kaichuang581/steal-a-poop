@@ -2,9 +2,48 @@
 
 All user-visible changes, newest first.
 
-## Unreleased
+## 0.9.0
 
 - French: a "French" button on the start screen switches the whole game to French, with a French word list (accents optional, spelling help as in English). French players are matched with French tables. The word of the day and Counting Sheep are French too.
+- The start screen is redrawn: a slanted night-blue panel with word chains sliding across it, "Fleeced" in wool blocks with the last one fleeced, the menu as flat blocks that lean with the panel and slide out when chosen, with new icons by Brian.
+- Word of the day floats over the farm under the top-right buttons; the coins are a gold coin; the Trading Post and the leaderboards are the coin purse and the trophy at the top right; a square "FR"/"EN" button switches language.
+- Queue's Casual and Ranked chooser and the Practice, Join party and Set the table panels use the same blocks.
+
+## 0.8.3
+
+- The farm is laid out as a farmstead: the farmhouse, the hens' run and the barn stand round one court, and a lane runs in from the road past the house to the court's gate.
+- The farmhouse is larger: a storey and a half, with a porch facing the court, and a kitchen door and woodshed on the end nearest the barn.
+- The pond lies out in the pasture with an uneven shore, and part of the flock grazes by the trough there.
+- Pines stand as a windbreak in two rows down the west side, and in small groups by the house, at the lane's end and behind the pond. The orchard is behind the hens.
+- The silo is joined to the barn by a feed room, the pig has its own sty, and the hay bales are stacked against the barn beside its doors.
+- Snow lies as snow does: one thick, even blanket on each roof that curls over the eaves, thinner on the windward side, none on the barn roof's steep lower slope or round the farmhouse's warm chimney. Pines carry snow only on top of each tier.
+- The lane has wheel ruts, and no bushes or rocks sit on the farm's own ground.
+- Home's tour has four stops re-aimed for the new layout: the whole farmstead from the south, the hens over their fence, the farmhouse's porch, and the barn across the pond.
+
+## 0.8.2
+
+- The farm is laid out as one yard: a single fence joins the hen run, the barn and the paddock, with a shovelled path from the barn doors through the gate to the farmhouse.
+- The farmhouse is rebuilt: clapboard walls, timber corners, a stone step and chimney, and windows that glow on all four sides.
+- Pines stand in groves, a stack of hay bales sits in the yard, the woodpile leans against the farmhouse, and the tractor is parked out back by the field.
+- Sheep no longer glow: animals and scenery share one soft light, and nothing lit is brighter than white. Only lamps, bulbs and windows glow.
+- Brighter, clearer days with white snow; pink dusks; blue moonlit nights. The barn's inside keeps its lantern light.
+- Surfaces have texture again without speckle: straw and planks on the barn floor, soft drifts in the snow, packed snow on the path, drilled rows in the field.
+- One string of lights a building, and none on fences, the pond, the silo or the tractor. The Christmas tree is a tiered pine with baubles.
+- The open ground is cleared of drifts, twigs and dead grass; the pond has no reeds; roofs carry one even blanket of snow.
+- Home's tour has three new stops in place of the old wide shot, the tractor and the pond: the whole farm as a diorama, the farmhouse with its lit windows, and the barn across the ice.
+- Home's menu is redrawn: "Fleeced" is one wordmark instead of seven letter tiles, Queue is in the same type as the rows, and the wooden frames, snow caps, hang tags and tilted boards are gone.
+
+## 0.8.1
+
+- The six animals are rebuilt to match Brian's six-view sheets one to one: sheep, pig, cow, goat, horse and chicken.
+- Every animal is drawn at its lineup size (sheep 1, chicken 0.66, pig 0.86, cow 1.14, goat 1.15, horse 1.54), scaled evenly so its proportions never change, on the farm too.
+- The horse's neck is one flat leaning block with a stepped mane, and its snout sits flush with the bottom of its head.
+- A frozen sheep in its thickest coat is fully inside its ice, and its tail stays on at every coat level.
+- The sheep is rebuilt cell for cell from Brian's sheet: a small face set into its wool, one-cell eyes, small ears, a cloud of a body on short legs.
+- Scenery colours are flat: no speckle, no grain, plain snow. Pines are tiered with snow on each tier. The air is clearer and Home is no longer blurred.
+- No footprints, sled ruts or worn tracks pressed into the ground.
+- The forest behind the farm is tiered pines too, and the barn has a rounded roof under one blanket of snow.
+- Home's two close shots of the sheep stand further back.
 
 ## 0.8.0
 

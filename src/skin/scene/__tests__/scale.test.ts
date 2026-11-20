@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { VoxelMap } from '../../voxel/mesher';
 import { buildFarmstead, FARM } from '../farmstead';
@@ -121,39 +121,17 @@ describe('the scale chart (plan file 04, section 4.4)', () => {
 describe('the season tidied, inside today\'s amount', () => {
   it('keeps the count of trees, presents, canes, wreaths and strands', () => {
     const yardSide = count(festive), farmSide = count(farmFestive), ice = count(buildDuelFestive());
-    expect([yardSide('tree'), yardSide('present'), yardSide('cane'), yardSide('wreath'), yardSide('strand')]).toEqual([2, 7, 4, 2, 30]);
-    expect([farmSide('tree'), farmSide('present'), farmSide('cane'), farmSide('wreath'), farmSide('strand')]).toEqual([0, 3, 0, 1, 94]);
+    expect([yardSide('tree'), yardSide('present'), yardSide('cane'), yardSide('wreath'), yardSide('strand')]).toEqual([2, 5, 4, 2, 11]);
+    expect([farmSide('tree'), farmSide('present'), farmSide('cane'), farmSide('wreath'), farmSide('strand')]).toEqual([0, 0, 0, 1, 6]);
     // One Christmas tree by the barn doors, one in the barn, one on the ice: never a fourth.
     expect(yardSide('tree') + farmSide('tree') + ice('tree')).toBe(3);
   });
 
-  it('keeps the tractor\'s presents out of the tractor in its tour shot (computer 5)', () => {
-    const tractor = boxIn(farm, [FARM.tractor.x - 3, FARM.tractor.x + 3], [FARM.tractor.z - 2, FARM.tractor.z + 2], (_, size) => size === 0.05);
+  it('leaves the tractor undressed: no presents on it or beside it (Brian, 2026-11-19: everything "intentionally placed")', () => {
+    const tractor = boxIn(farm, [FARM.tractor.x - 3, FARM.tractor.x + 3], [FARM.tractor.z - 2, FARM.tractor.z + 2], (_, size) => size === 0.1); // its own 0.1 m cubes: no longer smoothed to 0.05 (CHUNKY)
     expect(tractor).not.toBeNull();
     const presents = parts(farmFestive, 'present');
-    expect(presents).toHaveLength(3);
-    const shot = POV_SHOTS.desktop[5];
-    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
-      const cam = new PerspectiveCamera(shot.fov, 16 / 9, 0.1, 500);
-      cam.position.set(...(shot.position.map((v, k) => v + shot.push[k] * t) as [number, number, number]));
-      cam.lookAt(new Vector3(...shot.target));
-      cam.updateMatrixWorld();
-      const rect = (b: Box) => {
-        const r = [Infinity, Infinity, -Infinity, -Infinity];
-        for (const x of [b.min[0], b.max[0]]) for (const y of [b.min[1], b.max[1]]) for (const z of [b.min[2], b.max[2]]) {
-          const p = new Vector3(x, y, z).project(cam);
-          r[0] = Math.min(r[0], p.x); r[1] = Math.min(r[1], p.y); r[2] = Math.max(r[2], p.x); r[3] = Math.max(r[3], p.y);
-        }
-        // Only what is in the frame counts.
-        return [Math.max(r[0], -1), Math.max(r[1], -1), Math.min(r[2], 1), Math.min(r[3], 1)];
-      };
-      const a = rect(tractor!);
-      for (const p of presents) {
-        const b = rect(p);
-        const overlap = Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
-        expect(overlap, `present at ${p.min.join(', ')}, ${t} of the way along the shot`).toBe(0);
-      }
-    }
+    expect(presents).toHaveLength(0);
   });
 
   it('hangs no bulb within 1.0 m in front of a Home tour lens, anywhere along its push', () => {

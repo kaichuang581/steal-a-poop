@@ -35,7 +35,7 @@ for (const species of SPECIES) {
       if (g!.needsBand) expect(g!.band, 'neck band').toBeGreaterThan(0);
       expect(g!.nearHead, 'shell voxels within two of the head or ears').toBe(0);
     });
-    if (species === 'chicken') it('6. stands horizontal, head forward, tail high', () => expect(chickenOrientation(m)).toMatchObject({ ok: true }));
-    if (species === 'sheep') it('8. has a head wider than tall, level with its back, with long ears', () => expect(sheepHead(m)).toMatchObject({ ok: true }));
+    if (species === 'chicken') it('6. is one tall box, the head flush on the body, the beak ahead, the tail low (Brian\'s sheet, 2026-11-18)', () => expect(chickenOrientation(m)).toMatchObject({ ok: true }));
+    if (species === 'sheep') it('8. has a face wider than tall, proud of the fleece and under its top, ears out to the sides (Brian\'s sheet, 2026-11-18)', () => expect(sheepHead(m)).toMatchObject({ ok: true }));
   });
 }

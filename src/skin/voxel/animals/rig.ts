@@ -8,6 +8,7 @@ import { box, ellipsoid, Grid, hash3 } from '../primitives';
 import type { Paint, RGB, V3 } from '../primitives';
 import type { Brows, Lids, Mouth, Part, SheepModel } from '../sheep';
 import type { GarmentCells } from './garments';
+import { shade, shadeHex } from '../paint';
 
 /**
  * The shared animal rig (V5 Part 4.1): one interface every species builds to, so `Animal.tsx` animates them all with
@@ -74,11 +75,24 @@ export function tones(hex: string, satCap = 0.55): [string, string, string] {
   return [clampHex(l(0.08), satCap), clampHex(l(0), satCap), clampHex(l(-0.2), satCap)];
 }
 export type Tones = [string, string, string];
+
+/**
+ * Value steps between an animal's parts (docs/miniature/06, section 3; decision 6, Brian 2026-11-20): belly and legs a
+ * step under the body, the head a step over it, ears and tail a step under. False draws every part in its sheet's colour.
+ */
+export const VALUE_STEPS = true;
+/** A colour `k` steps along the ladders' arithmetic, never under the palette's floor and no more saturated than it was. */
+export const stepHex = (hex: string, k: number): string => (VALUE_STEPS && k ? clampHex(shadeHex(hex, k), c.set(hex).getHSL(hsl).s) : hex);
+/** Moves the cells of a built part `k` steps (those `only` picks; all of them without it). */
+export function step(g: Grid, k: number, only: (v: { x: number; y: number; z: number; c: RGB }) => boolean = () => true): void {
+  if (!VALUE_STEPS) return;
+  for (const v of g.map.values()) if (only(v)) v.c = shade(stepHex(`#${c.setRGB(v.c[0], v.c[1], v.c[2]).getHexString()}`, k));
+}
 /** A paint in a material's base tone, with the light tone on top faces and the dark tone underneath, by shape not noise. */
-export const flat = (t: Tones, which: 0 | 1 | 2 = 1): Paint => () => lin(t[which]);
+export const flat = (t: Tones, which: 0 | 1 | 2 = 1): Paint => () => shade(t[which]);
 /** Base everywhere; the light tone on the upper third of a shape and the dark on the lower fifth (a soft gradient by height). */
 export function shaded(t: Tones, yTop: number, yBottom: number): Paint {
-  return (_x, y) => { const k = (y - yBottom) / Math.max(1, yTop - yBottom); return lin(k > 0.72 ? t[0] : k < 0.2 ? t[2] : t[1]); };
+  return (_x, y) => { const k = (y - yBottom) / Math.max(1, yTop - yBottom); return shade(k > 0.72 ? t[0] : k < 0.2 ? t[2] : t[1]); };
 }
 
 // ---------- shapes ----------
@@ -129,6 +143,20 @@ export function wedge(g: Grid, back: V3, length: number, wBack: number, wFront: 
   }
 }
 
+/** A solid block of cells from `a` to `b` inclusive, in grid cells (the blocky rebuild, 2026-11-18). */
+export function cube(g: Grid, a: V3, b: V3, paint: Paint) {
+  for (let x = a[0]; x <= b[0]; x++) for (let y = a[1]; y <= b[1]; y++) for (let z = a[2]; z <= b[2]; z++) { const c = paint(x, y, z); if (c) g.set(x, y, z, c); }
+}
+/** Whether a cell lies in any of the blocks [a, b] (inclusive): for patches painted as rectangles. */
+export const inBlocks = (blocks: readonly (readonly [V3, V3])[], x: number, y: number, z: number) =>
+  blocks.some(([a, b]) => x >= a[0] && x <= b[0] && y >= a[1] && y <= b[1] && z >= a[2] && z <= b[2]);
+/** The model's top and its length over every part's cells, in metres. */
+export function extentOf(parts: (Part | undefined)[]): { height: number; length: number } {
+  let y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const p of parts) for (const v of p?.cells?.values() ?? []) { y1 = Math.max(y1, v.y); z0 = Math.min(z0, v.z); z1 = Math.max(z1, v.z); }
+  return { height: (y1 + 1) * S, length: (z1 - z0 + 1) * S };
+}
+
 /** A neck or limb as square sections stepped along a segment from `from` to `to`, the section shrinking from sFrom to sTo. */
 export function segment(g: Grid, from: V3, to: V3, sFrom: number, sTo: number, paint: Paint) {
   const d = Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
@@ -155,15 +183,15 @@ export function leg(g: Grid, cx: number, cz: number, w: number, h: number, body:
   const x0 = Math.round(cx / S) - half, z0 = Math.round(cz / S) - half;
   for (let y = 0; y < h; y++) for (let x = x0; x < x0 + w; x++) for (let z = z0; z < z0 + w; z++) {
     const outer = x === x0 || x === x0 + w - 1 || z === z0 || z === z0 + w - 1;
-    if (y < 2) { if (y === 0 && z === z0 + w - 1 && x === x0 + half) continue; g.set(x, y, z, lin(hoof[y === 0 ? 2 : 1])); continue; }
-    if (opts.sock && y < 5) { g.set(x, y, z, lin(opts.sock)); continue; }
-    if (opts.knee && y === 4 && outer) { g.set(x, y, z, lin(body[0])); continue; }
+    if (y < 2) { if (y === 0 && z === z0 + w - 1 && x === x0 + half) continue; g.set(x, y, z, shade(hoof[y === 0 ? 2 : 1])); continue; }
+    if (opts.sock && y < 5) { g.set(x, y, z, shade(opts.sock)); continue; }
+    if (opts.knee && y === 4 && outer) { g.set(x, y, z, shade(body[0])); continue; }
     // The back face a shade darker, unless the sheet asks one tone (V5.1: the cow's legs, no grey fronts).
-    g.set(x, y, z, lin(outer && z === z0 && !opts.oneTone ? body[2] : body[1]));
+    g.set(x, y, z, shade(outer && z === z0 && !opts.oneTone ? body[2] : body[1]));
   }
   // Three toes forward and one back, centred on the leg whatever its width.
-  if (opts.toes) for (let x = x0 - 1; x <= x0 + w; x++) for (let k = 1; k <= 3; k++) if (k === 1 || x === x0 - 1 || x === x0 + w || x === x0 + half) g.set(x, 0, z0 + w - 1 + k, lin(hoof[1]));
-  if (opts.toes) for (let x = x0; x < x0 + w; x++) for (let k = 1; k <= 2; k++) g.set(x, 0, z0 - k, lin(hoof[1]));
+  if (opts.toes) for (let x = x0 - 1; x <= x0 + w; x++) for (let k = 1; k <= 3; k++) if (k === 1 || x === x0 - 1 || x === x0 + w || x === x0 + half) g.set(x, 0, z0 + w - 1 + k, shade(hoof[1]));
+  if (opts.toes) for (let x = x0; x < x0 + w; x++) for (let k = 1; k <= 2; k++) g.set(x, 0, z0 - k, shade(hoof[1]));
 }
 
 /**
@@ -288,7 +316,7 @@ export function smallEyes(head: Grid, rowY: number, zFront: number, iris: string
   const places = raw.map((place, i): EyePlace => {
     const cells: V3[] = [];
     for (let col = 0; col < cols; col++) for (let row = 0; row < rows; row++) cells.push(place(col, row, 0));
-    const colourAt = (c: V3) => head.map.get(`${c[0]},${c[1]},${c[2]}`)?.c ?? lin(face[1]);
+    const colourAt = (c: V3) => head.map.get(`${c[0]},${c[1]},${c[2]}`)?.c ?? shade(face[1]);
     if (front === undefined) {
       const sign = i === 0 ? -1 : 1;
       const plane = sign < 0 ? Math.min(...cells.map((c) => c[0])) : Math.max(...cells.map((c) => c[0]));
@@ -318,14 +346,16 @@ export function lidsAndBrows(eyes: { place: EyePlace; n: number; rows?: number; 
     const g = new Grid(S);
     for (const e of eyes) for (let col = 0; col < e.n; col++) {
       if (e.small) {
-        // The small eye: closed is a lid over every row (a dark lash line under it), happy covers the bottom row.
+        // The small eye: closed is a lid over every row (a dark lash line under it), happy covers the bottom row. An eye
+        // one row tall has no bottom row to spare: happy leaves it open (the lid hid the whole eye; Brian, 2026-11-20:
+        // "the models for some reason lose their eyes, they just become whited over").
         const h = e.rows ?? 2;
-        for (const r of kind === 'closed' ? Array.from({ length: h }, (_, k) => k) : [h - 1]) { const [x, y, z] = e.place(col, r, 2); g.set(x, y, z, lin(kind === 'closed' && r === h - 1 ? face[2] : face[1])); }
-      } else if (kind === 'closed') { const [x, y, z] = e.place(col, Math.floor(e.n / 2), 2); g.set(x, y, z, lin(face[1])); }
+        for (const r of kind === 'closed' ? Array.from({ length: h }, (_, k) => k) : h > 1 ? [h - 1] : []) { const [x, y, z] = e.place(col, r, 2); g.set(x, y, z, shade(kind === 'closed' && r === h - 1 ? face[2] : face[1])); }
+      } else if (kind === 'closed') { const [x, y, z] = e.place(col, Math.floor(e.n / 2), 2); g.set(x, y, z, shade(face[1])); }
       else {
         const r = col === 0 || col === e.n - 1 ? 2 : 3;
-        const [x, y, z] = e.place(col, r, 2); g.set(x, y, z, lin(face[1]));
-        if (col > 0 && col < e.n - 1) { const [x2, y2, z2] = e.place(col, r - 1, 2); g.set(x2, y2, z2, lin(face[1])); }
+        const [x, y, z] = e.place(col, r, 2); g.set(x, y, z, shade(face[1]));
+        if (col > 0 && col < e.n - 1) { const [x2, y2, z2] = e.place(col, r - 1, 2); g.set(x2, y2, z2, shade(face[1])); }
       }
     }
     lids[kind] = part(g, pivot);
@@ -348,7 +378,7 @@ export function lidsAndBrows(eyes: { place: EyePlace; n: number; rows?: number; 
       for (const col of cols) {
         const row = fits ? -1 - lift(col) : lift(col) === 1 ? -1 : null;
         if (row === null || !backed(e, col, row)) continue;
-        const [x, y, z] = e.place(col, row, browOut); g.set(x, y, z, lin(face[2]));
+        const [x, y, z] = e.place(col, row, browOut); g.set(x, y, z, shade(face[2]));
       }
     }
     brows[kind] = part(g, pivot);
@@ -368,7 +398,7 @@ export function mouths(origin: V3, width: number, facing: 'z' | 'x', tone: strin
     if (facing === 'z') g.set(x, y, (opts.front ? opts.front(x, y) : origin[2]) + 1, colour);
     else g.set(origin[0] + 1, y, origin[2] - col, colour);
   };
-  const ink = lin(tone);
+  const ink = shade(tone);
   const mid = Math.floor(width / 2);
   const specs: Record<Mouth, [number, number][]> = opts.beak
     ? { flat: [], smile: [], chewL: [], chewDown: [], chewR: [], o: [[0, 0]] }
@@ -389,6 +419,15 @@ export function mouths(origin: V3, width: number, facing: 'z' | 'x', tone: strin
   return out;
 }
 
+/**
+ * No mouth at all: every frame empty (Brian's sheets, 2026-11-18, draw no mouths; the sheep's T is painted on its
+ * face). The face system still asks for a mouth each frame, and gets nothing to draw.
+ */
+export function noMouths(pivot: V3): Record<Mouth, Part> {
+  const e = () => part(new Grid(S), pivot);
+  return { flat: e(), smile: e(), o: e(), chewL: e(), chewDown: e(), chewR: e() };
+}
+
 // ---------- frost, breath, collar ----------
 /** Frost on a coat's upper faces: a snow voxel over every third exposed top. */
 export function frostOf(coat: VoxelMap, pivot: V3): Part {
@@ -396,13 +435,13 @@ export function frostOf(coat: VoxelMap, pivot: V3): Part {
   // A hollowed shell's cavity floor has nothing above it either; its cells are solid, so no frost there.
   const cav = CAVITY.get(coat);
   const has = (x: number, y: number, z: number) => coat.has(`${x},${y},${z}`) || !!cav?.has(`${x},${y},${z}`);
-  for (const v of coat.values()) if (!has(v.x, v.y + 1, v.z) && hash3(v.x, v.y, v.z, 57) < 0.4) g.set(v.x, v.y + 1, v.z, lin('#D9EEF8'));
+  for (const v of coat.values()) if (!has(v.x, v.y + 1, v.z) && hash3(v.x, v.y, v.z, 57) < 0.4) g.set(v.x, v.y + 1, v.z, shade('#D9EEF8'));
   return part(g, pivot);
 }
 export function breathAt(nose: V3): Part {
   const g = new Grid(S);
   const n = nose.map((v) => Math.round(v / S));
-  for (const [x, y, z] of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, 0, 1], [1, 1, 1]]) g.set(n[0] + x, n[1] + y, n[2] + z, lin('#FBFBF8'));
+  for (const [x, y, z] of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, 0, 1], [1, 1, 1]]) g.set(n[0] + x, n[1] + y, n[2] + z, shade('#FBFBF8'));
   return part(g, nose);
 }
 /** A collar: a ring one voxel thick hugging the neck at `centre`, radii rx (across) and ry (tall), in `colour`. */
@@ -410,7 +449,7 @@ export function collarRing(centre: V3, rx: number, ry: number, colour: string): 
   const g = new Grid(S);
   for (let k = 0; k < 160; k++) {
     const a = (k / 160) * Math.PI * 2;
-    g.set(Math.round((centre[0] + Math.cos(a) * rx) / S), Math.round((centre[1] + Math.sin(a) * ry) / S), Math.round(centre[2] / S), lin(colour));
+    g.set(Math.round((centre[0] + Math.cos(a) * rx) / S), Math.round((centre[1] + Math.sin(a) * ry) / S), Math.round(centre[2] / S), shade(colour));
   }
   return part(g, [0, 0, 0]);
 }
@@ -447,7 +486,7 @@ export function hugCollar(solid: Set<string>, z: number, colour: string, keep: (
   for (const k of solid) { const [x, y, zz] = k.split(',').map(Number); if (zz === z) { xs.push(x); ys.push(y); } }
   for (let x = Math.min(...xs) - 1; x <= Math.max(...xs) + 1; x++) for (let y = Math.min(...ys) - 1; y <= Math.max(...ys) + 1; y++) {
     if (inS(x, y) || !keep(x, y)) continue;
-    if (inS(x + 1, y) || inS(x - 1, y) || inS(x, y + 1) || inS(x, y - 1)) g.set(x, y, z, lin(colour));
+    if (inS(x + 1, y) || inS(x - 1, y) || inS(x, y + 1) || inS(x, y - 1)) g.set(x, y, z, shade(colour));
   }
   return part(g, [0, 0, 0]);
 }

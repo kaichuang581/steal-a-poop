@@ -17,7 +17,7 @@ export function MessageSlip({ message }: { message: MessageView | null }) {
           {message.kind === 'typo' && message.fix ? (
             <>
               “{message.text}” → <span style={{ textDecoration: 'underline', textDecorationColor: 'var(--cloth)', textDecorationThickness: 3 }}>“{message.fix}”</span>
-              <span className="sk-hand ml-2" style={{ color: 'var(--ink-soft)' }}>submit again to confirm · or edit</span>
+              <span className="sk-hand ml-2" style={{ color: 'var(--ink-soft)' }}>submit again to confirm, or edit</span>
             </>
           ) : message.text}
         </div>

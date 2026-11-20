@@ -107,7 +107,7 @@ describe('the placement manifest (plan file 18, section 4.3)', () => {
     }
     expect(problems, problems.join('\n')).toEqual([]);
     // The entries the plan names are all there (a manifest that lost its seats would pass everything above).
-    for (const id of ['table:robin', 'table:cat', 'farm:hero', 'farm:doorway sheep', 'table:sheepdog', 'table:letter board', 'duel:letter board', 'table:lantern 0', 'duel:lamp 0', 'pen:tall lantern', 'podium:bale 0', 'podium:bale 11', 'table:bomb at seat 0 of 2', 'duel:bomb at seat 1']) {
+    for (const id of ['table:robin', 'table:cat', 'farm:hero', 'farm:barn game seat 0', 'table:sheepdog', 'table:letter board', 'duel:letter board', 'table:lantern 0', 'duel:lamp 0', 'pen:tall lantern', 'podium:bale 0', 'podium:bale 11', 'table:bomb at seat 0 of 2', 'duel:bomb at seat 1']) {
       expect(seen.has(id), `PLACED has lost "${id}"`).toBe(true);
     }
     expect(PLACED.filter((e) => /^table:seat \d+ of \d+$/.test(e.id)).length, 'one seat for each sheep of every table of 2 to 10').toBe(54);
@@ -144,7 +144,7 @@ describe('the placement manifest (plan file 18, section 4.3)', () => {
     expect(together(at('table:seat 1 of 4, stepped in'), at('table:bomb at seat 1 of 4'))).toBe(true);
     expect(together(at('table:seat 1 of 4, stepped in'), at('table:bomb at seat 2 of 4'))).toBe(false); // two turns
     expect(together(at('table:sheepdog'), at('table:seat 0 of 4'))).toBe(true); // no arrangement: with everything
-    expect(together(at('table:sheepdog'), at('farm:doorway sheep'))).toBe(false); // two scenes
+    expect(together(at('table:sheepdog'), at('farm:barn game seat 0'))).toBe(false); // two scenes
   });
 
   it('is imported by nothing in the game, so it never ships', () => {

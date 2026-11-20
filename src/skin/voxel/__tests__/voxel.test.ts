@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
 import { buildGeometry } from '../mesher';
 import { Grid, ellipsoid, solid } from '../primitives';
-import { CHAR, CREAM, FACE, HEAD_FACE, NOSE_V51, NOSTRIL_V51, sheepModel } from '../sheep';
+import { CHAR, CREAM, HEAD_FACE, NOSE_V51, NOSTRIL_V51, SHEEP_DRAW, sheepModel, SKIN } from '../sheep';
 import type { Part } from '../sheep';
 
 describe('mesher', () => {
@@ -32,28 +32,28 @@ const lum = (hex: string) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(
 describe('the default sheep', () => {
   const m = sheepModel();
   it('is smooth wool lobes in two creams plus a crease tone, no per-voxel noise', () => {
-    expect(m.lobes.body).toBeGreaterThanOrEqual(8);
+    expect(m.lobes.body).toBeGreaterThanOrEqual(5); // the main lobe, the back, the shoulders, the chest and two flanks (Brian's sheet, cell for cell, 2026-11-19)
     expect(m.lobes.body).toBeLessThanOrEqual(10);
     expect(m.woolTones).toBeLessThanOrEqual(3);
   });
-  it('has the blunt dark head of V5.1 Part 5.1, wider than tall, about 1 : 1.6 to the body cloud, and thin legs', () => {
+  it('has the peach face of Brian\'s sheet (2026-11-18), wider than tall, a fraction of the fleece, and thin legs', () => {
     const head = bounds(m.head);
-    expect(head.width / head.height).toBeCloseTo(9 / 7, 1);
-    expect(head.width).toBeLessThanOrEqual(0.37);
+    expect(head.width / head.height).toBeCloseTo(7 / 5, 1); // the sheet's face: 7 cells by 5
+    expect(head.width).toBeLessThanOrEqual(0.45);
     expect(bounds(m.wools[2]).depth / head.depth).toBeGreaterThan(1.6);
-    expect(lum(FACE[0])).toBeLessThan(lum(CREAM[1]) / 2); // dark face, white fleece
+    expect(lum(SKIN[1])).toBeLessThan(lum(CREAM[1])); // a peach face on white fleece
     const leg = bounds(m.legs[0]);
     expect(leg.width).toBeLessThanOrEqual(0.13); // 0.08 m leg plus the splayed hoof
-    expect(leg.top - leg.bottom).toBeGreaterThanOrEqual(0.28);
+    expect((leg.top - leg.bottom) * SHEEP_DRAW).toBeGreaterThanOrEqual(0.28); // as drawn
   });
   it('has small simple eyes, a soft grey nose lighter than the face, and dark nostrils', () => {
-    expect(m.eyes[0].voxels).toBe(4); // 2 x 2 (Brian, 2026-11-07)
+    expect(m.eyes[0].voxels).toBe(1); // one cell, as the sheet draws them: the sheep is built at the sheet's own size now (2026-11-19)
     expect(m.eyes[0].voxels).toBe(m.eyes[1].voxels);
     expect(lum(NOSE_V51)).toBeGreaterThan(lum(HEAD_FACE[1]));
     expect(lum(NOSTRIL_V51)).toBeLessThan(lum(NOSE_V51));
   });
   it('keeps the voxel budget at the normal coat, and each coat level is bigger than the last', () => {
-    expect(m.voxels).toBeGreaterThanOrEqual(2500);
+    expect(m.voxels).toBeGreaterThanOrEqual(1000); // at the sheet's own size, 17 cells tall, it is about 1,300
     expect(m.voxels).toBeLessThanOrEqual(14000);
     for (const level of [2, 3, 4] as const) expect(m.wools[level].voxels).toBeGreaterThan(m.wools[(level - 1) as 1 | 2 | 3].voxels);
     expect(bounds(m.wools[4]).bottom).toBeLessThanOrEqual(0.02); // the thickest coat reaches the ground
@@ -76,7 +76,7 @@ describe('the animal avatars', () => {
     for (const a of ['pig', 'cow', 'goat', 'horse', 'chicken'] as const) {
       const m = animalModel(a);
       expect(m.species).toBe(a);
-      expect(m.voxels).toBeGreaterThan(800);
+      expect(m.voxels).toBeGreaterThan(500); // the hen, at its sheet's size, is about 700
       expect(bounds(m.wools[2]).bottom).toBeGreaterThanOrEqual(0);
       expect(bounds(m.legs[0]).bottom).toBeCloseTo(0, 1);
       // V5 Part 4.4: the head is a horizontal shape, muzzle forward, never a vertical plank.

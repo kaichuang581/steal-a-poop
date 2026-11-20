@@ -23,12 +23,16 @@ import { fileURLToPath } from 'node:url';
  * merged, animals in fewer draws: about 1,100 lines of real code, which took the total 0.87 kB over the old limit), and
  * again by 6,000 bytes for milestone 4 (quality tiers, the detail swap, the contact patch), and again by 3,000 bytes for
  * milestone 7 (table framings with the board in frame, the calmer floor, the duel refinements), and again by 4,000 bytes
- * for the French version (the last 1,000 because CI's build came out about 0.3 kB bigger than a local one) (the language switch, accent folding, the French page translator and the dream's French starts; the French text itself is
- * public/i18n-fr.json, not counted here), and again by 1,000 bytes
- * for milestone 6 (Brian's face picks, the hat in the head, two shadow draws per animal). Both are flagged to Brian; a
- * shrink pass back toward the plan's net-zero is listed for milestone 12.
+ * for the French version (the last 1,000 because CI's build came out about 0.3 kB bigger than a local one) (the language
+ * switch, accent folding, the French page translator and the dream's French starts; the French text itself is
+ * public/i18n-fr.json, not counted here), and again by 1,000 bytes for milestone 6 (Brian's face picks, the hat in the
+ * head, two shadow draws per animal), and on 2026-11-20 by 6,000 bytes for the painted-miniature plan's M3 (the micro
+ * kit's twenty-seven object builders, the placements with their rules, the ground's shade map: 3.12 kB over the old
+ * limit), and on 2026-11-20 by 3,000 bytes for the new start screen merged with the French version (CI's build came
+ * out 1.1 kB over, about 3 kB bigger than a local one; Brian's standing choice of 2026-11-17 is to raise the limit).
+ * All are flagged to Brian; a shrink pass back toward the plan's net-zero is listed for milestone 12.
  */
-const BUDGET_GZIP_BYTES = 702000;
+const BUDGET_GZIP_BYTES = 711000;
 
 /** Allowed growth over the budget before the check fails (10%). */
 const TOLERANCE = 0.1;

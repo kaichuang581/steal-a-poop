@@ -301,7 +301,7 @@ export function DreamScreen() {
     const asleep = L.asleepAt !== null;
     const text = dreamShareText({ date: night, count, longest: L.longest, streak: streakNow, blankets, bumped: !asleep, fences: L.reached, bumps: L.bumps, seed, title: PAINTED_TITLE, url: dreamLink() });
     await shareCard({
-      title: `Counting Sheep · ${night}`,
+      title: `Counting Sheep, ${night}`,
       headline: asleep ? 'The farmer drifted off' : `The farmer counted ${count} sheep`,
       lines: [asleep ? dreamSummary({ fences: L.reached, bumps: L.bumps, longest: L.longest }) : L.longest > 0 ? `Longest word: ${L.longest} letters` : '', streakNow > 1 ? `${streakNow}-night streak` : ''].filter(Boolean),
       count, unit: 'sheep',
@@ -381,7 +381,7 @@ export function DreamScreen() {
 
       {phase !== 'results' && (
         <header className="dr-hud sk-swoop-in pointer-events-none relative z-30 flex items-start justify-between gap-2 p-2 pt-[max(8px,env(safe-area-inset-top))] pr-[max(8px,env(safe-area-inset-right))] pl-[max(8px,env(safe-area-inset-left))]">
-          <Patch icon={<MoonIcon size={18} />} className="dr-night-patch">{practice ? 'Practice dream' : repair ? `Last night's dream · ${shortDate(night)}` : `Tonight's dream · ${shortDate(night)}`}</Patch>
+          <Patch icon={<MoonIcon size={18} />} className="dr-night-patch">{practice ? 'Practice dream' : repair ? `Last night's dream: ${shortDate(night)}` : `Tonight's dream: ${shortDate(night)}`}</Patch>
           <div className="pointer-events-auto flex items-start gap-2">
             {/* The count in chalk on a slate: sheep counted, the best, and how far into the night with the bumps left. */}
             <Slate size="plaque" className="dr-count" aria-live="polite" aria-label={`${count} sheep counted`}>
@@ -401,7 +401,7 @@ export function DreamScreen() {
       {/* The board at the top centre: how to play before the run, the bump when it ends. */}
       <div className={`dr-boards pointer-events-none absolute inset-x-0 z-20 flex flex-col items-center gap-3 px-3 ${mobile ? 'top-[9%]' : 'top-[6%]'}`} aria-live="polite">
         {phase === 'ready' && (
-          <Notice tone="wood" snow={false} size={mobile ? 'sm' : 'lg'} title={length ? 'Count sheep to keep the farmer asleep' : 'How far can you run?'} sub={<span className="dr-blink">Type a word that starts with the letters on the sign · press any key</span>} />
+          <Notice tone="wood" snow={false} size={mobile ? 'sm' : 'lg'} title={length ? 'Count sheep to keep the farmer asleep' : 'How far can you run?'} sub={<span className="dr-blink">Type a word that starts with the letters on the sign, or press any key</span>} />
         )}
         {stirred > 0 && phase === 'running' && <Notice key={stirred} tone="wood" snow={false} size="lg" icon={<GustIcon size={26} />} title="Bump!" sub={`mmf… ${bumpsLeft === 1 ? 'one more wakes him' : `${bumpsLeft} bumps left`}`} />}
         {phase === 'drifting' && <Notice tone="wood" snow={false} size="lg" title="Zzz…" sub="he’s out cold" />}
@@ -464,7 +464,7 @@ export function DreamScreen() {
               {!practice && (
                 <div className="dr-results-streak">
                   <Knit stitches={days} />
-                  <span>{streakNow}-night streak · best {loadStreak().best}</span>
+                  <span>{streakNow}-night streak, best {loadStreak().best}</span>
                   <Paper kind="note" className="dr-results-blankets">Warm Blankets keep your streak warm when you miss a night. You earn one every 7 nights.</Paper>
                 </div>
               )}

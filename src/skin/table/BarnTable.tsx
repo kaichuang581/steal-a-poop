@@ -3,7 +3,7 @@ import { Bomb } from './Bomb';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ACESFilmicToneMapping, BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
+import { BoxGeometry, Group, Mesh, MeshLambertMaterial, MeshPhongMaterial, Object3D, PCFShadowMap, PointLight, SpotLight, SRGBColorSpace, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import type { BufferGeometry } from 'three';
 import type { Hour } from '../model/types';
@@ -41,6 +41,7 @@ import { anchorsOf } from '../voxel/animals/anchors';
 import { getKaiyanLook, pictureHeight, useKaiyanLook } from '../avatars/kaiyanLook';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
+import { LOOK } from '../look';
 
 export interface BarnSeat {
   seat: number;
@@ -114,6 +115,10 @@ export interface World {
 }
 /** The world on screen. */
 let world: World | null = null;
+// The world is built once a page and held here. A hot update on a development server runs this file again with no
+// world and lets the screen keep waiting for the old one: only the sky showed, the tour dipping over it (Brian,
+// 2026-11-20: "the transition is transitioning from a white screen to a white screen"). Reload the page instead.
+if (import.meta.hot) import.meta.hot.on('vite:beforeUpdate', ({ updates }) => { if (updates.some((u) => u.type === 'js-update')) location.reload(); });
 /**
  * The world at the desktop's detail, built in the background slices while the session is not on High (plan file 17,
  * change 15): shown from the next dip or scene change once the tier is High, never part-built.
@@ -227,6 +232,8 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
   const voxMat = useMemo(() => voxelMaterial(), []);
   // Bright enough to pass the bloom threshold, so only the lanterns glow.
   const glowMat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2 }), []);
+  // The farmhouse's windows, lit from inside: warm by day, the brightest thing in the yard at night.
+  const paneMat = useMemo(() => voxelMaterial({ emissive: '#FFB84A', emissiveIntensity: 0.85 }), []);
   return (
     <>
       {barn.static.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
@@ -239,6 +246,7 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
       {/* A flat piece of ground cannot cast a shadow (see `castsShadow` in scene/yard.ts), so it is not asked to. */}
       {yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow={yard.casts[i]} receiveShadow />)}
       <mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />
+      <mesh geometry={yard.panes} material={paneMat} />
       <ChimneySmoke from={yard.smokeFrom} />
       <mesh geometry={distance.hills} material={voxMat} receiveShadow />
       <mesh geometry={distance.backHills} material={voxMat} receiveShadow />
@@ -263,7 +271,7 @@ export function BarnTable(props: Props) {
       <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="table" fps={props.fps}
         shadows={{ type: PCFShadowMap }}
        
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1, antialias: false /* the composer has its own 4x MSAA target */ }}
         camera={{ fov: cam.fov, position: [...cam.position], near: 0.1, far: 900 }}
         onCreated={({ camera }) => camera.lookAt(cam.target[0], cam.target[1], cam.target[2])}
       >

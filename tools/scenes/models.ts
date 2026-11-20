@@ -695,7 +695,11 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
     let set = solids.get(item.mesh.geometry);
     if (set) return set;
     set = new Set<number>();
-    for (const p of item.parts) for (let i = 0; i < p.count; i++) set.add(cellKey(p.cells[i * 3], p.cells[i * 3 + 1], p.cells[i * 3 + 2]));
+    const o = item.parts[0].offset;
+    for (const p of item.parts) {
+      const [dx, dy, dz] = p.offset.map((v, i) => Math.round((v - o[i]) / p.size)); // a merged part on the same grid, whole cells along
+      for (let i = 0; i < p.count; i++) set.add(cellKey(p.cells[i * 3] + dx, p.cells[i * 3 + 1] + dy, p.cells[i * 3 + 2] + dz));
+    }
     const cells = builtCells(model(sp)).get(item.mesh.geometry);
     const cavity = cells ? rig.cavityOf(cells) : undefined;
     if (cavity) for (const v of cavity.values()) set.add(cellKey(v.x, v.y, v.z));
@@ -769,7 +773,9 @@ async function judge(world: World, options: StageOptions, measured: Tally, lines
       const point = new Vector3();
       const joining = (childNames: string[], parentNames: string[]) => {
         const parents = parentNames.map((n) => byName.get(n)!), solid = parents.map((q) => solidOf(sp, q));
-        for (const q of parents) if (q.parts.length !== 1) throw new NotRun(`${sp}: "${q.name}" is drawn from ${q.parts.length} voxel sets, and a parent must be one`);
+        // A parent of several voxel sets (the horse's neck and its mane, one mesh) is judged as their union, so they must share one grid.
+        const sameGrid = (q: Item) => q.parts.every((p) => p.size === q.parts[0].size && p.offset.every((v, i) => { const k = (v - q.parts[0].offset[i]) / p.size; return Math.abs(k - Math.round(k)) < 1e-6; }));
+        for (const q of parents) if (!sameGrid(q)) throw new NotRun(`${sp}: "${q.name}" is drawn from ${q.parts.length} voxel sets on different grids, and a parent must be on one`);
         const laidInv = parents.map((q) => unturned(q).invert());
         const children = childNames.flatMap((n) => {
           const it = byName.get(n)!, laid = unturned(it);

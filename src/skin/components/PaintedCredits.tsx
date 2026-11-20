@@ -35,7 +35,7 @@ export function PaintedCredits({ onClose }: { onClose: () => void }) {
           <Chip ref={closeRef} className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
         </div>
         <div className="sk-sheet-body sk-rules">
-          <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>{PAINTED_GAME_TITLE} · v{pkg.version}</p>
+          <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>{PAINTED_GAME_TITLE} v{pkg.version}</p>
           <section>
             <h3>Word list</h3>
             <p className="text-sm">ENABLE (Enhanced North American Benchmark Lexicon), a public-domain word list, as published at{' '}

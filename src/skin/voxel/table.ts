@@ -1,6 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
-import { lin, pick, T } from './palette';
+import { T } from './palette';
+import { shade } from './paint';
 import { ellipsoid, Grid, hash3, helix, norm, rng } from './primitives';
 import type { Paint, RGB, V3 } from './primitives';
 
@@ -21,10 +22,10 @@ export function platformGeometry(): BufferGeometry {
       if ((x + 0.5) ** 2 + (z + 0.5) ** 2 > R * R) continue;
       const board = Math.floor((z + 100) / 5); // boards four voxels wide along x, one voxel gap between them
       const gap = ((z + 100) % 5) === 4;
-      const tone = pick(T.beam, hash3(board, 0, 0, 3), [0.1, 0.45]); // dark wood, one tone per board
+      const r = hash3(board, 0, 0, 3), tone = shade(T.beam[r < 0.1 ? 0 : r < 0.45 ? 1 : 2]); // dark wood, one tone per board
       for (let y = 0; y < H; y++) {
         if (gap && y === H - 1) continue; // the gap only shows on top; the rim stays solid
-        g.set(x, y, z, y === H - 1 ? tone : lin(T.beam[2]));
+        g.set(x, y, z, y === H - 1 ? tone : shade(T.beam[2]));
       }
     }
   platform = buildGeometry(g.map, s);
@@ -40,7 +41,7 @@ export function pileGeometry(width: number): BufferGeometry {
   const s = 0.04;
   const g = new Grid(s);
   const h = 0.3 + ((w - 0.9) / 1.3) * 0.5;
-  const wool: Paint = (x, y, z) => (y < 0 ? null : pick(T.wool, hash3(x >> 2, y >> 2, z >> 2, 71)));
+  const wool: Paint = (_x, y) => (y < 0 ? null : shade(T.wool[0]));
   const rx = w / 2, rz = w / 2 * 0.9;
   ellipsoid(g, [0, h * 0.25, 0], [rx, h * 0.85, rz], wool);
   // Locks: evenly spread bumps over the mound, each one tone.
@@ -51,14 +52,14 @@ export function pileGeometry(width: number): BufferGeometry {
     const px = Math.cos(a) * rx * d, pz = Math.sin(a) * rz * d;
     const py = h * 0.25 + h * 0.85 * Math.sqrt(Math.max(0, 1 - (px / rx) ** 2 - (pz / rz) ** 2));
     const toneR = hash3(i, 0, 0, 75);
-    const c = lin(toneR < 0.55 ? T.wool[0] : toneR < 0.9 ? T.wool[1] : T.wool[2]);
+    const c = shade(toneR < 0.55 ? T.wool[0] : toneR < 0.9 ? T.wool[1] : T.wool[2]);
     ellipsoid(g, [px, py, pz], [0.09, 0.075, 0.09], (_x, y) => (y < 0 ? null : c));
   }
   // A few curls on top.
   for (let i = 0; i < Math.round(w * 4); i++) {
     const a = r() * Math.PI * 2, d = r() * 0.6;
     const p: V3 = [Math.cos(a) * rx * d, h * 1.05, Math.sin(a) * rz * d];
-    helix(g, p, norm([Math.cos(a) * 0.3, 1, Math.sin(a) * 0.3]), () => lin(T.wool[0]), 0.035, 0.025, 1.5);
+    helix(g, p, norm([Math.cos(a) * 0.3, 1, Math.sin(a) * 0.3]), () => shade(T.wool[0]), 0.035, 0.025, 1.5);
   }
   const geo = buildGeometry(g.map, s);
   piles.set(w, geo);
@@ -120,7 +121,7 @@ export function letterGeometry(ch: string, cell: number, hex = '#5B3A1E'): Buffe
   const hit = glyphs.get(key);
   if (hit) return hit;
   const g = new Grid(cell);
-  paintGlyph(g, ch, 0, 0, 0, lin(hex));
+  paintGlyph(g, ch, 0, 0, 0, shade(hex));
   const geo = buildGeometry(g.map, cell);
   geo.translate(-(GLYPH.w / 2) * cell, -(GLYPH.h / 2) * cell, -cell / 2);
   glyphs.set(key, geo);
@@ -129,7 +130,7 @@ export function letterGeometry(ch: string, cell: number, hex = '#5B3A1E'): Buffe
 
 const boards = new Map<string, BufferGeometry>();
 
-const PLANK_TONES: RGB[] = [lin('#93653F'), lin('#8A5D39'), lin('#986A44')];
+const PLANK_TONES: RGB[] = [shade('#93653F'), shade('#8A5D39'), shade('#986A44')];
 
 /** The board's letters are cut from the title's carved face, so the sign over the table matches the title on Home. */
 const BOARD_FONT = "800 100px Fraunces";
@@ -212,7 +213,7 @@ export function letterBoardGeometry(letter: string, trap: boolean, beamY: number
   const front = z0; // the camera reads the board from -z
   const seamEvery = H / 3;
   if (!trap) {
-    const dark = lin(T.beam[2]), seam = lin('#4A3120');
+    const dark = shade(T.beam[2]), seam = shade('#4A3120');
     for (let x = 0; x < W; x++)
       for (let y = 0; y < H; y++) {
         const fromTop = H - 1 - y;
@@ -221,30 +222,27 @@ export function letterBoardGeometry(letter: string, trap: boolean, beamY: number
         const plank = Math.floor(y / seamEvery);
         const isSeam = y > 0 && y % seamEvery === 0;
         const rim = x === 0 || x === W - 1 || y === 0 || fromTop === 0 || fromTop + Math.min(x, W - 1 - x) === 2;
-        // Grain runs along each plank: one warm tone per plank, each row a few percent lighter or darker, so it reads as
-        // wood grain and not as stripes.
-        const base = PLANK_TONES[plank % PLANK_TONES.length];
-        const f = 0.94 + 0.1 * (hash3(y, plank, Math.floor(x / 9), 31) % 1);
-        const grain: RGB = [base[0] * f, base[1] * f, base[2] * f];
+        // One warm tone a plank and nothing within it (docs/miniature/01, rule R3: no grain).
+        const grain: RGB = PLANK_TONES[plank % PLANK_TONES.length];
         for (let z = 0; z < D; z++) {
           if (isSeam && z === 0) continue; // the seam is a groove between planks
           g.set(x0 + x, y0 + y, z0 + z, isSeam ? seam : rim && z === 0 ? dark : grain);
         }
       }
     // Brass nails, one in each top corner of the face.
-    for (const x of [3, W - 4]) g.set(x0 + x, y0 + H - 4, front - 1, lin(T.brass[1]));
+    for (const x of [3, W - 4]) g.set(x0 + x, y0 + H - 4, front - 1, shade(T.brass[1]));
   }
   // Ropes, two cells thick and twisted, from the board's top corners up to the hook.
   for (const sx of [-1, 1]) {
     const rx = Math.round((sx * 0.35) / s);
-    for (let y = y0 + H; y <= 0; y++) for (const dx of [0, 1]) g.set(rx + dx, y, -1 + dx, lin(T.hay[(y + dx) % 3 === 0 ? 2 : 1]));
+    for (let y = y0 + H; y <= 0; y++) for (const dx of [0, 1]) g.set(rx + dx, y, -1 + dx, shade(T.hay[(y + dx) % 3 === 0 ? 2 : 1]));
   }
   // The letter: cut one cell into the face and painted cream (or, on the trap, standing proud in ice).
   const lh = Math.round(0.46 / s);
   const mask = letterMask(letter, lh);
   const lw = mask[0]?.length ?? 0;
   const lx0 = -Math.floor(lw / 2), ly0 = y0 + Math.round((H - lh) / 2);
-  const paint = trap ? lin(T.ice[2]) : lin('#F3E7CC');
+  const paint = trap ? shade(T.ice[2]) : shade('#F3E7CC');
   mask.forEach((row, r) => row.forEach((on, c) => {
     if (!on) return;
     // The camera reads the face from -z, where +x runs right to left, so the columns are laid out mirrored.

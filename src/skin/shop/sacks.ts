@@ -42,4 +42,4 @@ export const poolFor = (sack: SackId) => POOL.filter((i) => i.kind === sack);
 export const poolOf = (sack: SackId, r: Rarity) => poolFor(sack).filter((i) => i.rarity === r);
 
 /** "Common 62% · Uncommon 28% · Rare 8% · Legendary 2%" */
-export const oddsLine = () => RARITIES.map((r) => `${RARITY_LABEL[r]} ${SACK.odds[r]}%`).join(' · ');
+export const oddsLine = () => RARITIES.map((r) => `${RARITY_LABEL[r]} ${SACK.odds[r]}%`).join(', ');

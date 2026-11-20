@@ -6,7 +6,7 @@ import {
 } from '../stage';
 import { signCap } from '../world';
 import { anchorsOf } from '../../voxel/animals/anchors';
-import { sheepModel } from '../../voxel/sheep';
+import { SHEEP_DRAW, sheepModel } from '../../voxel/sheep';
 
 /**
  * Counting Sheep seen side-on, "like the dinosaur game" (plan file 09, 4.2, 4.3 and 4.7). Every number here is
@@ -51,10 +51,10 @@ const TABLE: Record<string, { span: number; s: number; strip: number; sheep: num
 const viewOf = (w: number, h: number) => dreamView(w, h, phoneAt(w));
 /**
  * The drawn sheep, measured from its model at rest (anchorsOf): logical px from its feet to the top of its head, through
- * the scale DreamStage draws it at (SHEEP_SCALE, then ART); and its height in CSS px in the view `v`.
+ * the scale DreamStage draws it at (SHEEP_SCALE times the sheep's own drawScale, then ART); and its height in CSS px in the view `v`.
  */
 const rest = anchorsOf(sheepModel());
-const SHEEP_HEAD = ((rest.crown[1] - rest.feet[1]) * SHEEP_SCALE) / PX;
+const SHEEP_HEAD = ((rest.crown[1] - rest.feet[1]) * SHEEP_SCALE * SHEEP_DRAW) / PX;
 const sheepPx = (v: ReturnType<typeof viewOf>) => ART * SHEEP_HEAD * v.s;
 const letterPx = (w: number, h: number) => signCap(3) * signScale(phoneAt(w)) * viewOf(w, h).zoom;
 
@@ -122,8 +122,9 @@ describe('the side view\'s mapping (plan file 09, 4.2)', () => {
 describe('the jump and the bump, drawn (plan file 09, 4.3)', () => {
   it('clears the drawn fence by at least 3 logical px at 120, 265 and 320, with the leap\'s pitch and without', () => {
     for (const speed of SPEEDS) for (const pitched of [true, false]) expect(jumpClearance(speed, pitched)).toBeGreaterThanOrEqual(3);
-    // The plan's figures for the level arc: 8.4 / 14.6 / 15.1.
-    expect(SPEEDS.map((v) => +jumpClearance(v, false).toFixed(1))).toEqual([8.4, 14.6, 15.1]);
+    // For the level arc: 6.3 / 14.2 / 14.8 with the sheep of Brian's sheet (2026-11-19), 19.0 long with the extra all
+    // tail; the plan's figures, 8.4 / 14.6 / 15.1, were for the 17.2 sheep it measured. The rule is the 3 px above.
+    expect(SPEEDS.map((v) => +jumpClearance(v, false).toFixed(1))).toEqual([6.3, 14.2, 14.8]);
   });
   it('meets the rail at the bump and is clear of it once knocked back', () => {
     expect(bumpOverlap(0)).toBeGreaterThan(0);

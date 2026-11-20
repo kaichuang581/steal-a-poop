@@ -156,7 +156,7 @@ export function Profile({ onClose }: { onClose: () => void }) {
                     </div>
                   </div>
                   <div className="sk-prof-level">
-                    <span className="kit-plank kit-plank--light sk-level-badge">Level {lv.level} · {titleFor(lv.level)}</span>
+                    <span className="kit-plank kit-plank--light sk-level-badge">Level {lv.level}: {titleFor(lv.level)}</span>
                     <span className="sk-prof-xp">{(lv.need - lv.into).toLocaleString()} XP to level {lv.level + 1}</span>
                   </div>
                   <span role="img" aria-label={`${lv.into} of ${lv.need} XP into level ${lv.level}`} className="sk-prof-band"><Knit segments={10} filled={Math.floor((lv.into / lv.need) * 10)} /></span>
@@ -219,7 +219,7 @@ const BOT: Record<Difficulty, { name: string; icon: ReactNode }> = {
 const times = (w: number) => (w === 1 ? '' : `×${w}`);
 /** "12 words against the hard bot, from a 10 s clock". */
 export function runLine(cell: { words: number; difficulty: Difficulty; clock: number }): string {
-  return `${cell.words} word${cell.words === 1 ? '' : 's'} · ${BOT[cell.difficulty].name} bot · ${cell.clock} s clock`;
+  return `${cell.words} word${cell.words === 1 ? '' : 's'}, ${BOT[cell.difficulty].name} bot, ${cell.clock} s clock`;
 }
 
 /**

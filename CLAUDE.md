@@ -1,3 +1,80 @@
+## The painted-miniature look (docs/miniature/, from 2026-11-20)
+
+The plan in docs/miniature/ is the current plan for how the game looks. It replaces docs/toybox/ (never run it: it
+was built on branches `toybox/*`, which are not merged and not continued) and the diorama scenery plan.
+
+Read docs/miniature/inventory.md and anchors.md first: the plan was written against v0.8.0, and those two files map
+its names and places onto the tree as it stood at v0.8.3 (commit 6608e99). Where they differ from the plan's files,
+they are the ones to use. Brian's words for the run, 2026-11-20: "execute fleeced miniature plan", and later that
+day: "if this overrides stuff then treat this as the primary". So where this plan and an older rule of his disagree
+(the light limits, the snow's texture, the animals' sheets, the barn's patched floor), the plan wins. The wendigo's
+rules are not older rules in that sense: the plan itself keeps them, and so does he.
+
+Standing rules from it (docs/miniature/01-target-look.md has the full text):
+- One part, one colour. Parts that touch differ by one step of the material's ladder. Nothing random per cube:
+  no random tone, no grain, no random holes in snow. Colours come from `LADDER` in src/skin/voxel/paint.ts.
+- Structure is 0.2 m blocks and is not smoothed (`CHUNKY` in refine.ts). Small detail is 0.05 m blocks (the micro
+  layer, Home only). Edges are sharp; `ROUNDED_VOXELS` stays a switch (Brian's trial of 2026-11-09 can be restored).
+- No texture, gradient, gloss or outline. Shade comes from light, corner shade, the ground shade map and the eave step.
+- An empty area is fixed with a real part from the kit (docs/miniature/04) or a planned value step, never with noise.
+
+Brian's decisions for this plan (each overrides the older rule named). Each is the plan's default (README, section
+7), approved by his instruction of 2026-11-20 that the plan is the primary; he has not yet answered a pair one by one:
+- Day and dawn light on Home: sun 45 degrees up (dawn 30), 40 degrees round, Neutral tone mapping, haze fitted per
+  shot, shadow box fitted per shot. As built the exposure stays 1 with the sun at 2.4 and the fill at 1.4 (dawn 2.05
+  and 1.2), not the plan's 2.2: a higher exposure whitened the sky, the haze and every lamp on this tree
+  (docs/miniature/review/M1-light.md). Shadow radius 2.5, the tree's own. Overrides the day values in "Brian's light
+  limits". Approved: 2026-11-20
+- Solid snow in front of z = -16. Overrides "the snow's texture stands" there. Approved: 2026-11-20
+- Chunky structure: chunky. Sharp edges: sharp. Barn table palette: Home's, with the plan's flat straw floor. All
+  2026-11-20.
+- Animal colours: not desaturated, with the plan's value steps (belly, legs, ears and tail a step under, the head a
+  step over; `VALUE_STEPS` in voxel/animals/rig.ts turns the steps off). Overrides "animals match his sheets
+  one-to-one" for colour steps only: every shape and every part's base colour is still his sheet's. 2026-11-20
+- Dusk and night light: unchanged.
+
+As built, M0 to M8, on 2026-11-20 (each milestone's notes, deviations and pairs: docs/miniature/review/M<n>-*.md;
+the numbers: docs/miniature/numbers.md). What a later change must know:
+- Colours: `solid(material, step)` for scenery, `shade(hex)` for animals, garments, bombs and the trophy (their own
+  colours with nothing taken off; `lin` still desaturates and is what the small scenes and everything behind the line
+  use). The animals' parts take the plan's value steps through `step` and `stepHex` in voxel/animals/rig.ts, laid over
+  the colours of Brian's six-view sheets; a step never goes under the palette's floor or over its part's saturation.
+- The micro layer: `scene/farmMicro.ts` (`MICRO_PLACEMENTS`, eight clusters, the rules of a place in `breach`), the
+  kit in `voxel/microKit.ts` (closed: ask before adding a kind). A placement that lands in a cube of the yard or the
+  farm, in the wedge or the paddock, on the lane, or within its distance of an animal, the season's tree, a present or
+  a prop throws while the farm is built. Photograph a cluster with `node tools/miniature/shots.mjs cluster <name>`.
+- The ground's shade map: `voxel/groundShade.ts`. A model tells it what stands where with `noteShade` as it is built;
+  only Home and the barn table read it. Its strength is the plan's stated result (0.75 at a wall's foot), not the
+  plan's shader line, which gave 5%.
+- The review page: `?preview=mini&piece=<name>|sheet=kit|sheet=home` (development only).
+- Not done, and waiting on Brian: the plan's recolour of the land's trees, scrub and wall in front of the line
+  (file 05, section 9). The wendigo's pins hash the countryside's colours, so it fails `check.ts --only wendigo`.
+- Where the farm of 0.8.3 differed from the plan's v0.8.0, objects were moved the least that clears and each move
+  is written beside its line in `MICRO_PLACEMENTS` and in the milestone's notes (the bale stack at the work corner,
+  the east track round the court's fence, the farmhouse turned east, no woodpile, the tractor in no shot).
+- The size budget was raised by 6,000 bytes in M3 (scripts/check-bundle-size.mjs).
+
+After the plan, 2026-11-20 (Brian, looking at the result: "the scenery and aesthetics are nearly perfect, but theres a
+lot of glitchy textures and a ton of just strange empty space"; branch `miniature/m9-lively`):
+- A game goes on inside the barn on Home (`table/BarnGame.tsx`): six sheep round the pile, the letter board, the bomb
+  passed on every few seconds. Seats are `HOME_GAME` in scene/layout.ts; the place by the doors is the player's.
+  It replaced the one sheep in the doorway ("a randomly placed sheep in the barn").
+- The hero looks at the pointer and turns its body past what its neck allows (`Hero` in table/FarmBackdrop.tsx). It
+  hops once when the profile plate is hovered and goes back to standing.
+- A happy face no longer covers an eye one row tall (`lidsAndBrows` in voxel/animals/rig.ts): every sheet animal's
+  eyes are one row, and the lid hid them whole ("they just become whited over").
+- The paddock holds the cow, the goat and the horse, each with its face to the paddock shot, on a bed of straw
+  (`paddockBed` in scene/farmstead.ts); the sheep and the second cow are in the pasture with the flock, which a
+  sheepdog minds (`LIVESTOCK`, `FLOCK_DOG` in scene/livestock.ts).
+- No seams or gaps between the barn's boards, outside or in: lines one cube wide crawled as the camera moved.
+- The paddock shot's own light is still the old one (a wendigo rule), so that shot stays greyer than the others.
+
+Unchanged and still binding: every wendigo rule; the paddock shot draws today's light, haze, tone mapping, exposure,
+shadows and tilt-shift on every tier; nothing behind z = -16 changes; no cube of the country or the land is added or
+removed; the wendigo's pins as they stand at 6608e99 are the frozen ones; one branch per milestone
+(`miniature/m0-inventory` …), local commits, no push or pull request until Brian says; the full gate runs once, at
+the end.
+
 ## The visual overhaul (Brian, 2026-11-16) — read this first
 Requested by Brian of the whole painted game: "especially the animal models good lord", "you can completely remake the
 scenery if needed", and, after a friend's report of about 10 fps, broken-looking assets and 35% of a battery in five
@@ -59,6 +136,106 @@ text of this entry, the questions and the conflict register are in 19-decisions-
   12. Until then a milestone is done when the type check, `npm test` and the build pass; the Painted workflow runs only
   by hand; and work goes on to the next milestone without stopping, except where the plan needs a choice only Brian can
   make. Still in force: skin-only, the fenced folders, no new dependencies, no banned names, never a push to main.
+
+## The diorama scenery (Brian, 2026-11-18) — plan: docs/diorama/PLAN.md
+Requested by Brian: the game's scenery should look like his reference sheet (docs/diorama/reference/): clean
+micro-voxel models, flat matte colours, no texture or outlines, chunky blocks for structure and tiny blocks
+for detail, soft light. No interface, behaviour or animal changes.
+- Supersedes for scenery only: "One level of detail for the scenery" (2026-11-07: the refine step); V3 Part 4.1's
+  grid table (replaced by the plan's size ladder); per-voxel tone picks for scenery. If question 2 is yes, also
+  "Snow with a little texture" (2026-11-08).
+- Everything else stands, the wendigo zone above all.
+- Milestone D0's pieces: the palette and ladder (src/skin/scene/style/palette.ts), the kit and recipe format
+  (style/kit.ts, style/recipes/), the style lint (scene/__tests__/style.test.ts), the pages ?preview=prop, props and
+  palette (style/PropPreview.tsx, development only), and tools/propMatch.mjs (proven on a throwaway recipe: 100% against
+  its own renders, and it fails a changed shape and colour). The baseline is docs/diorama/BASELINE.md.
+- Brian's farm picture (docs/diorama/reference/farm-34.png, farm-views.jpg; 2026-11-18: "the scenery should look more
+  like this") is the look. Done toward it so far, ahead of the plan's order because he asked: flat colours everywhere
+  (no per-voxel `pick`, no refine grain, plain snow, even snow caps; `pickBy` only for a whole board, plank or bale);
+  the tiered pine (scene/style/pine.ts) in the yard, the pen and the forest; fog 0.006 and no tilt-shift (look.ts); the
+  barn's rounded gambrel roof with one blanket of snow (farmstead.ts); Home's two sheep shots (computer 3 and 6) pulled
+  back (2026-11-19: "why did u zoom so much in on the sheep ... its a little unsettling").
+- The wendigo's zone and this work (Brian, 2026-11-19, asked whether scene/countryside.ts may change: "yes, remodel"):
+  outside the zone the countryside is remodelled; inside it (scene/wendigoZone.ts: 17 m round the wendigo, and the
+  paddock camera's line to it) every voxel is built as before, through `asBefore` (voxel/palette.ts). The pins'
+  countryside total was recorded again on that day (tools/scenes/wendigo.pins.json, `pinned.again`); the stand, the
+  cone and the rays are the numbers of 2026-11-16 and must stay so. The paddock shot keeps its fog and tilt-shift.
+- Every limit but the wendigo's is lifted (Brian, 2026-11-19: "disregard all prior limits besides what i said about
+  touching the wendigo. dont touch the wendigo unless i explicitly say to. continue remodeling"). So the light limits,
+  "never modify existing tests" (but the wendigo's own: wendigoFence.test.ts, the pins' stand, cone and rays), the
+  tour's cameras (but index 2) and where things stand are his to have changed; the wendigo zone rules above all stand.
+  Built that day (0.8.2), from his words in the same message:
+  - "the sheep are glowing. either match the scenery to that glow or tone down the sheep glow": one soft shading for
+    every voxel, scenery and animals alike (`STUDIO` in voxel/material.ts: wrapped light and a little fill), and no lit
+    voxel is ever brighter than white (`SHOULDER`, under `BLOOM_THRESHOLD` in table/Rendering.tsx), so only what glows
+    of itself blooms (lanterns, bulbs, the farmhouse's panes). The light is `DIORAMA` (Rendering.tsx): a bright key, a
+    strong sky fill, white snow, Neutral tone mapping (look.ts); the barn's inside at the table takes `INDOOR_FILL` of
+    the fill so the lanterns still shape it; the doorway lamp is cut by day (`DOOR_GAIN` in FarmBackdrop.tsx). The
+    paddock shot is drawn as it always was: `exemptShot()` switches the light, fog, tone mapping, bloom threshold and
+    plain Lambert (`scene.userData.plainLight`) for that shot alone.
+  - "everything is without texture ... the ground of the barn is literally just... a flat yellow rectangle": texture
+    comes from what a thing is made of, in shapes far larger than a voxel, never voxel by voxel (voxel/texture.ts:
+    `patches`, `banded`, `course`): straw and planks on the barn floor, drifts in the snow, packed snow on the path,
+    drilled rows in the field, boards and courses on walls. Still no speckle.
+  - "everything should feel more intentionally placed and well put together instead of a bunch of randomly assorted
+    buildings": the forecourt's fence runs from the hen run's outer corner to the paddock's and back to both pens
+    (`YARD.fence`), in the pens' own make; a path with low banks runs from the doors through the gate to the
+    farmhouse step; pines stand in groves (`YARD.pines`, each with its height); the woodpile leans on the farmhouse,
+    the bird table is in its garden, a bale stack is in the forecourt, the tractor is parked at the back where the
+    barn hides it from the paddock camera (`FARM.tractor`); the farmhouse is rebuilt (clapboard, timber, stone, panes
+    in their own glowing mesh, `yard.panes`). One string of lights a building, none on fences, pond, silo or tractor.
+    Outside the wendigo's zone the open ground has no drifts, twigs or dead grass, and roofs carry one even blanket.
+    (The fence, the path, the groves and where the farmhouse, the pond and the bales stand were laid out again later
+    that day: the next bullet. What is said here of their make still holds.)
+  - `isClear` (countryside.ts) answers as it did at the freeze and reads the yard of that day (`FROZEN`); what the
+    yard has taken since, and the moved cameras' sight lines, are `taken`, which only leaves a bush or a rock unbuilt.
+    Never make isClear follow the yard again: the land's random streams, the wendigo's among them, run through it.
+  - "change the perspectives of the pov shifting lobby screen ... seeing a tractor isnt very pretty": computer shots 1,
+    5 and 7 are the whole farm as a diorama, the farmhouse from the path, and the barn across the ice; each is aimed to
+    the left of its subject because the menu has the frame's left half (homePovFrame.test.ts holds the subject to
+    x 40 to 97%). Eight computer and six phone shots as before; index 2 untouched.
+  - "fix the ui in the lobby screen ... 'fleeced' in all those letter blocks things doesnt fit ... the font for queue
+    doesnt match ... i dont want to see random shapes or clunky blocks anywhere": Home's title is one Fraunces
+    wordmark, Queue and the rows are one type (Fraunces 800 with its optical size pinned, which is why Queue had not
+    matched), and the tiles, frames, snow caps, hang tags, tilted boards and middle dots are gone. `?title=b` (gold
+    capitals) and `?title=c` (one carved board) are alternates he has not chosen between; their CSS ships until he does.
+  - Development only: `?cam=x,y,z,tx,ty,tz[,fov]` stands Home's camera anywhere (FarmBackdrop.tsx); `?preview=pen`
+    shows the lobby's pen with no server.
+  - Not done, and told to him: the dream's small props and the ice's black shore pines keep their own make.
+- The farmstead's layout and its snow (Brian, 2026-11-19, later: "naturalize the layout of the farm, i dont like where
+  and how everything is, a lot of stuff feels out of place ... u can restructure the placement of basically everything
+  in the world. also, make the natural elements more sensical, the snow on the roof for example. do some research for
+  elements in general and how stuff should be shaped structurally"). Built as 0.8.3 from farm-planning and
+  building-science sources (extension circulars on farmstead layout, snow-drift digests). The rules, for anything added:
+  - One cluster round one court. The barn's doors, the hens' gate and the farmhouse's porch face it. The lane runs in
+    from the road (+z), past the house, through the court's gate, to the barn's doors (`YARD.path`, straight on x = 0).
+    The winter wind is from the west (-x): the house is upwind of the barn; the windbreak (`FARM.windbreak`, two
+    staggered rows, on farmstead.ts's coarse grid) runs down the west side and turns the corner at the north.
+  - Every fence starts and ends at a building's corner or a gatepost and encloses a named thing: the court
+    (`YARD.fence`, run to gate to paddock), the lane's side of the pasture, the hens' run with the pig's sty on its
+    north side (`FARM.run`, `FARM.sty`), the paddock. No fence stands alone.
+  - Things stand where they are used: the silo against the barn, joined by its feed room; bales against the barn's wall
+    by the doors; the woodshed on the farmhouse's kitchen end; the trough in the pasture at the court's fence; the
+    mailbox where the lane's fence ends; the orchard (`FARM.orchard`) behind the hens; the pond (`YARD.pond`, an
+    uneven shore: `pondD` in yard.ts) out in the pasture. Paths are packed snow worn straight from door to door
+    (`WALKS` in yard.ts); the lane has two ruts. Pines only in the windbreak and in loose groups (`YARD.pines`).
+  - The farmhouse (yard.ts): a storey and a half, ridge along z, five bays under a porch on its east side, a kitchen
+    door on the gable toward the barn, a stone chimney through the ridge. `YARD.farmhouse` holds its middle and half
+    sizes; festive.ts and homePovFrame.test.ts read them.
+  - Roof snow is `blanket` (voxel/snow.ts): one even layer on every part of a roof flat enough to hold it, none where
+    the roof drops two cells or more to the next (the gambrel's lower slope), a lip one cell out and one down over
+    each edge, thinner on the windward (west) slope, none within reach of the farmhouse's chimney or under an eave.
+    It goes into its own grid (`caps`), meshed with no corner shading and no edge rounding (`plain` in yard.ts), or its
+    steps stripe it like ribbed metal. Low banks and drifts (the pond's shore, the eaves' berms, the lee of the
+    windbreak) go there too: the refine step takes a low slab's edges off and it reads as two stacked planks. No
+    banks along the lane for the same reason.
+  - A pine carries snow only on the shelf each tier leaves open (style/pine.ts), never on a tier's side.
+  - `TAKEN` in countryside.ts is the whole farmstead's ground: no bush, rock or forest pine of the open land stands on
+    it (outside the wendigo's zone). isClear's rectangles are written out as numbers and never read the layout.
+  - Computer shots 1, 4, 5 and 7 and phone shot 4 were re-aimed; index 2 untouched. The countryside total was recorded
+    a third time (pins, `pinned.again`); the stand, the cone and the rays measured equal to 2026-11-16's.
+  - Not done: no hand pump, kitchen garden or machine shed (the tractor is still parked out back); the far hills keep
+    their terraces; the dream's props and the ice's shore pines as before.
 
 ## Painted redesign (visual layer only)
 
@@ -1755,6 +1932,80 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   Checked and fine: the chat filter
   already catches a blocked word split by zero-width, joiner, soft-hyphen or direction characters. Not checkable here: the
   live site and server (this machine cannot reach them), real sign-in, real GPUs and phones, and how anything looks or sounds.
+- The animals are Brian's six-view sheets, one to one (Brian, 2026-11-18: "completely change them to be one-to-one,
+  disregard all old rules about the animal modeling. i want it to look like the reference"). This supersedes every
+  animal-modelling rule above: V5 and V5.1 (the proportion sheet, signature features, the eye standard, collars and
+  bells, the palette's 55% saturation cap), the 2026-11-07 requests (the cow's eyes clear of its spots, its bell and
+  drawScale, the chicken's head, the pig's plates), the face switches, and "Supersedes (a)" in the overhaul's entry.
+  - The reference is the sheets Brian sent on 2026-11-18 (sheep, chicken, horse, cow, pig, goat: front, back, left,
+    right, top, bottom) and his lineup picture for their sizes against each other (as drawn: sheep 1, cow 1.14, horse 1.54,
+    goat 1.15, pig 0.86, chicken 0.66; the picture measures 1, 1.17, 1.60,
+    1.15, 0.89, 0.64). Each species is built in cells at its sheet's proportions (src/skin/voxel/sheep.ts and
+    src/skin/voxel/animals/*.ts) and drawn to size by one uniform `drawScale` everywhere it stands (Home's farm too),
+    so its proportions never change with its size. The sheep too (2026-11-19): it is built at its sheet's own 17 cells
+    and drawn at SHEEP_DRAW (1.47), so it stands 1 m at the crown as before; whoever draws a sheep scales it by
+    `animalModel('sheep').drawScale`, as for any animal.
+  - Compare against the sheets with Blender, not by eye in the game: `npx vite-node tools/blender/dumpAnimals.ts --
+    --out <json>`, then `/Applications/Blender.app/Contents/MacOS/Blender -b --python tools/blender/lineup.py -- <json>
+    <out.png> <species> 24 sheet` and `node tools/blender/sheet.mjs <out> <sheet.png> <TITLE>` for the six views, or
+    `... <json> <out.png> all 64` for the lineup.
+  - Kept, because the game needs them, at a cell or less from the sheets: the pig's and the hen's heads are the top or
+    front of their box and only nod and turn a little (RANGES in table/Sheep.tsx), so the face never sinks into the
+    body; the pig's front legs and the goat's neck sit a cell off the sheet so the winner's scarf has its two clear
+    slices; horns, ears, tails and combs are rooted a cell
+    into their parent. Tests in src/skin/voxel/__tests__ (animals, animalsV51, voxel) and measure.ts (SHEET, sheepHead,
+    chickenOrientation, ROOTS) now pin the sheets instead of V5.1; the pose, leg-join, framing, scarf, garment,
+    contact-patch and face-rule tests are unchanged and pass.
+  - The sheep, rebuilt again on 2026-11-19 (Brian: "that doent look like a sheep at all, or the reference image i gave
+    you"): its face is a plate 7 x 5 set one cell proud of the wool round it, with one-cell eyes and a 5 x 3 muzzle; the
+    wool round the face, the cap and the crown turn with the head; the body is lobes of one white (voxel/sheep.ts). Its
+    scarf, its ice, its place in Counting Sheep (SHEEP_ART in dream/stage.ts: 19.0 long, its nose where the old one's
+    was) and the sizes in scene/placed.ts were measured again from it.
+- No footprints, hoof dents or sled ruts in the ground (Brian, 2026-11-19: "weird random square holes in the ground ...
+  just reads as a bug"): gone from the yard's path and the barn's floor, and the worn tracks of scene/countryside.ts
+  are deleted.
+- Home is "Word chain" (Brian, 2026-11-20: "change the home screen ui to make it more captivating and unique, rn its so
+  boring i could cry", pointing at a rhythm game's menu; picked mock-up A of three drawn over the running game: "number 1
+  is near perfect"). Branch `ui/home-word-chain`, local only. src/skin/home (home.css, HomeParts.tsx, HomeArt.tsx).
+  - A night-blue slab cut on a slant holds the left side, word chains drifting behind it (`WORD_CHAINS`: each word starts
+    with the last letter of the one before and each row comes round to its start; a test checks the rule and the word
+    list). The title is the game's name in letter tiles on a rack, tilted with the slab. This reverses "no letter tiles"
+    of 2026-11-19 for the title: he chose it. The menu is boards leaning with the slab's edge; the chosen one is gold and
+    slides out (transform only), focus follows the pointer so Enter picks the lit one, and a card on the right shows the
+    chosen item's own picture, what it is, and one action row of a fixed height (Queue: Casual and Ranked).
+  - His notes on the mock-up, and what answers them: no pictures from the game on the card ("make ur own artistic
+    images"): six posters drawn in code (HomeArt.tsx, pixel sprites with an outline over painted backdrops); the wood
+    "screams ai": the board finish is two browns under a few hand-drawn grain lines and a knot (`--hm-grain`), a dark
+    outline and a bevel, not ruled stripes; a cleaner word of the day: a night-blue card with chips; a better bottom
+    bar: keys as tiles, a TIP tag, the small print with rules between.
+  - The Trading Post and the leaderboards are no longer menu items: the coin purse and the trophy in the top bar (as in
+    the mock-up he picked; this reverses "leaderboards under the Trading Post" of 2026-11-14 unless he says otherwise).
+    The avatar button is gone from the bar (the profile changes it); the admin lock is "Admin" in the small print.
+  - He will draw the menu's icons himself; Icons.tsx's BarnIcon, KeyIcon, PawIcon and CrescentIcon are stand-ins.
+  - Checked at 320 to 1920 wide, a sideways phone, with and without a game server, every item hovered (nothing else
+    moves), the three setup panels (restyled on the board finish). The size limit went up 3 kB for it.
+- Home, as Brian's plan has it (docs/home-ui/HOME-UI-PLAN.md and its two target pictures, Brian, 2026-11-20: "This is
+  Brian's own request and replaces earlier Home decisions"). It replaces the "Word chain" bullet above wherever they
+  differ; the slanted night-blue panel with sliding words stays. src/skin/home (home.css, HomeParts.tsx, layout.ts).
+  - Every control is a slab: a flat block with a 3 px ink outline, a visible side and a face with a one-step highlight,
+    pixel corners, no wood, gradient, glow, blur or rounded corner (the audit's allow list has no Home entries left).
+    The block is drawn by ::before so the button keeps its focus outline and its hard drop-shadow. Colours are only the
+    --hm-* tokens in tokens.css (prefixed: --ink and --wool already mean the paper's colours elsewhere).
+  - Sizes are the plan's pixels times --u (1 px at 1280 x 720, 0.8 to 1.5). The panel is --mid wide at mid-height with
+    an 11 degree lean; home/layout.ts holds the same numbers, and the farm's camera slides the picture right by
+    `sceneShift` (a view offset) so each shot's subject sits in the uncovered part. Never on the paddock shot: the
+    wendigo's frame is frozen; the wendigo check passes and it stays clear of the panel and the buttons.
+  - The menu's icons are Brian's own art (src/skin/assets/menu/*.png, cut from his sheet with the checkerboard
+    removed). His icons carry their own colour, so Create lobby's tile is frost, not barn red (his barn is red).
+  - The side card, its posters (HomeArt.tsx) and the board finish are gone. The Queue chooser and the setup panels use
+    the same slabs. With a longer menu (six or seven items) the tagline is hidden sooner, as the plan's own order says.
+  - Not done here: the language switch and French screenshots (pull request 56 is not on this branch).
+  - Brian, later on 2026-11-20 ("absolutely wonderful"): the coin a round gold pixel coin, and the word of the day moved out of the panel to float over the scenery
+    under the top-right buttons as text only, tilted 3 degrees, with a hard ink outline (picked from five mock-ups: "i
+    like it being over the scenery, however i dont like the card ... just the text very slightly tilted").
+  - Then (same day, "i didnt mean make the buttons smaller i meant make the icons smaller ... similarish tones"): the
+    menu's blocks are back to the plan's sizes; the icons are smaller (24 in a 36 tile, Queue 34 in 50) and every tile is
+    the same night blue (Queue's ink), so his differently coloured icons sit together.
 - French version (requested by Kai, 2026-11-20: "a button ... that says French ... everything is french, exactly the same ... use the
   french dictionary ... make the accents not so restrictive"). The language is src/lib/lang.ts (`sap:lang`, `?lang=fr`); the
   "French" / "English" button is first in Home's top bar and reloads the page. Words: public/words-fr.txt, built by

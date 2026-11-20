@@ -45,7 +45,7 @@ export function LetterTile({ letter, isTrap, isVowel, fraction, secondsLeft, siz
         </div>
       </div>
       <div className="sk-hand text-sm" style={{ color: 'var(--ink)' }}>
-        starts with{secondsLeft !== undefined ? <span className="sk-num"> · {secondsLeft.toFixed(1)}s</span> : null}
+        starts with{secondsLeft !== undefined ? <span className="sk-num ml-2">{secondsLeft.toFixed(1)}s</span> : null}
       </div>
     </div>
   );

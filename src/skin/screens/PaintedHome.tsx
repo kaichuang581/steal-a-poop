@@ -7,13 +7,12 @@ import { useDevice, usePhoneLayout } from '../device';
 import { estimateMinutes, MAX_PLAYERS, MIN_PLAYERS, PRACTICE_CLOCKS, PRESETS, presetOf } from '../../engine';
 import type { Difficulty, GameSettings, PresetId } from '../../engine';
 import { dreamSeed, dreamShareText } from '../../dream/dream';
-import { streakRow } from '../dream/streakRow';
-import { dreamStreakDays, getDream, getDreamStreak, loadStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
+import { getDream, getDreamStreak, repairAvailable, takeCoverNotice } from '../../dream/daily';
 import { dreamLink, useDreamUi } from '../dream/dreamStore';
 import { useToday } from '../hooks/useToday';
 import { checkNickname } from '../../lib/nickname';
 import { getPracticeBest } from '../../lib/practice';
-import { PAINTED_GAME_TITLE, UPDATE_NAME } from '../../config';
+import { PAINTED_GAME_TITLE } from '../../config';
 import { SEASON_TIPS } from '../season';
 import { farmSheepLine } from '../../lib/record';
 import { getServerUrl } from '../../net/config';
@@ -23,14 +22,13 @@ import { PlayChooser } from '../ranked/PlayChooser';
 import { enterOnline, hasAccount } from '../rooms/enterOnline';
 import { levelOf } from '../shop/economy';
 import '../rooms/rooms.css';
-import { useSocial } from '../../state/socialStore';
 import { useStore, tableFor } from '../../state/store';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { openSignInForm } from '../onboarding/Onboarding';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, FlameIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon } from '../components/Icons';
+import { AcornIcon, CloseIcon, FlameIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
@@ -39,18 +37,15 @@ import { Bazaar } from '../shop/Bazaar';
 import { Profile } from '../profile/Profile';
 import { Leaderboards } from '../boards/Leaderboards';
 import { useWallet } from '../shop/store';
-import { CoinArt } from '../shop/art';
 import { formatCoins } from '../shop/format';
-import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
-import { AvatarButtonIcon } from '../components/PixelIcons';
 import { PaintedGuide } from '../components/PaintedGuide';
 import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
-import { TitleBoard } from '../components/TitleBoard';
+import { HomeSlab, HomeTitle, MenuIcon } from '../home/HomeParts';
 import { WordOfDay } from '../wotd/WordOfDay';
-import { Chip, PaperPanel, WoodButton } from '../components/Materials';
+import { Chip } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
@@ -61,6 +56,8 @@ import { SoundMenu } from '../components/SoundMenu';
 import { getLang, setLang } from '../../lib/lang';
 
 export const PAINTED_TITLE = PAINTED_GAME_TITLE;
+/** Whether Home has already played its entrance this visit. */
+let homeEntered = false;
 /** The game's version, as the footer shows it: the device report (perf/report.ts) reads it from here. */
 export const APP_VERSION: string = pkg.version;
 /** What each bot level means in a practice run, where it can't beat you: only the letters it leaves you differ. */
@@ -76,13 +73,15 @@ const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => M
 const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
 /** What Queue says in a copy of the game that has no server to reach. */
-const NO_SERVER = 'Real people need the game server, and this copy of the game has none. Custom game plays the farm sheep.';
+/** The legal pages' names as the small print says them (each button's label is the full title). */
+const SHORT_LEGAL: Record<LegalSlug, string> = { privacy: 'Privacy', terms: 'Terms', 'child-safety': 'Child safety' };
+const NO_SERVER = 'Real people need the game server, and this copy of the game has none. Create lobby plays the farm sheep.';
 
 const TIPS = [
   'Every word must start with the last letter of the one before it.',
   'Run out of time and you lose a wool ball. Lose them all and you freeze solid.',
   'A bad word just bounces, so try another before your timer runs out.',
-  'Turns get faster every round: 16, 12, 9, 7, then 5 seconds. The alarm calls each change.',
+  'Turns get faster every round: 15, 10, then 5 seconds. The alarm calls each change.',
   'Last sheep standing wins.',
   ...SEASON_TIPS,
 ];
@@ -103,12 +102,11 @@ export function PaintedHome() {
   const [partyCode, setPartyCode] = useState('');
   const entering = useRoomStore((st) => st.entering);
   const [help, setHelp] = useState(false);
-  const [pickAvatar, setPickAvatar] = useState(false);
   const [bazaar, setBazaar] = useState(false);
   const [profile, setProfile] = useState(false);
   const wallet = useWallet();
   const wool = wallet.coins;
-  const device = useDevice();
+  useDevice(); // sets data-device on the page, which the skin's styles read
   const [feedback, setFeedback] = useState(false);
   const [legal, setLegal] = useState<LegalSlug | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
@@ -121,12 +119,15 @@ export function PaintedHome() {
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
   const [boards, setBoards] = useState(false);
+  const [more, setMore] = useState(false);
+  // The entrance plays on the first Home of a visit only, not each time a game ends.
+  const [entrance] = useState(() => { const first = !homeEntered; homeEntered = true; return first; });
   // Where the hero looks. A ref, not state (plan file 17, change 11): the sheep reads it as it is drawn, so moving the
   // pointer over Home renders nothing.
   const heroYaw = useRef(0);
+  const heroGaze = useRef<[number, number] | null>(null);
   const [hopKey, setHopKey] = useState(0);
   const [tip, setTip] = useState(() => Math.floor(Math.random() * TIPS.length));
-  const coins = useSocial((st) => st.balance);
   const roomNotice = useRoomStore((st) => st.notice);
   const authStatus = useAuth((st) => st.status);
   const accountName = useAuth((st) => st.profile?.nickname ?? '');
@@ -136,16 +137,9 @@ export function PaintedHome() {
   const today = useToday();
   const dream = getDream(today);
   const streak = getDreamStreak(today);
-  const blankets = loadStreak().blankets;
   const repair = repairAvailable(today);
   // The day a Warm Blanket covered a missed night, the ticket says so once.
   const [covered] = useState(() => takeCoverNotice());
-  const nights = (
-    <span className="mt-1 flex items-center gap-2">
-      <span className="dr-nights" data-mini aria-label={`${streak}-night streak`}>{streakRow(dreamStreakDays(today), streak).map((st, i) => <span key={i} className="dr-night" data-status={st} />)}</span>
-      {blankets > 0 && <span className="dr-blankets" aria-label={`${blankets} Warm Blanket${blankets === 1 ? '' : 's'}`}>{Array.from({ length: blankets }, (_, i) => <BlanketIcon key={i} size={12} />)}</span>}
-    </span>
-  );
   const ready = dictStatus === 'ready';
   const table = tableFor(settings);
   const rooms = !!getServerUrl();
@@ -198,6 +192,7 @@ export function PaintedHome() {
   const onPointerMove = (e: PointerEvent) => {
     if (mobile || reduced) return;
     heroYaw.current = ((e.clientX / window.innerWidth) * 2 - 1) * 0.3;
+    heroGaze.current = [(e.clientX / window.innerWidth) * 2 - 1, 1 - (e.clientY / window.innerHeight) * 2];
   };
 
   const timeOfNext = nextTable.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -207,98 +202,101 @@ export function PaintedHome() {
   // The queue is for real people, always (Brian, 2026-11-13: "quick play and play should not bring you into bot lobbies").
   // A copy of the game with no server to reach (local development without one) still shows Queue: it says why it cannot be used.
   const items: MenuItem[] = [
-    { id: 'queue', label: 'Queue', caption: rooms ? 'Search for a game with real people: casual or ranked.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : online({ t: 'quick' })) },
+    { id: 'queue', label: 'Queue', icon: <MenuIcon id="queue" />, busy: entering, sub: 'Real people, casual or ranked', caption: rooms ? 'We find you a table of real people. Casual for fun, Ranked to climb from Wood to Zenith.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : undefined) }, // with no server its caption already says why
     // One lobby for every table you set yourself (Brian, 2026-11-14: "make custom game and create lobby the same thing ...
     // only with bots, only players, or bots and players"): inside it the host adds farm sheep, invites friends, or both.
     // It opens with the farm sheep the host had last time. With no server there is no lobby to open, so the same item
     // sets a table of farm sheep on this device.
     rooms
-      ? { id: 'lobby', label: 'Create lobby', caption: 'Make your own barn and invite friends with the party code.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private' }) }
-      : { id: 'lobby', label: ready ? 'Create lobby' : 'Loading…', caption: 'Set a table of farm sheep (bots), then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
+      ? { id: 'lobby', label: 'Create lobby', icon: <MenuIcon id="lobby" />, badge: <MenuTag tone="gray">Your barn</MenuTag>, caption: 'Make your own barn and invite friends with the party code.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private' }) }
+      : { id: 'lobby', label: ready ? 'Create lobby' : 'Loading…', icon: <MenuIcon id="lobby" />, badge: <MenuTag tone="gray">Farm sheep</MenuTag>, caption: 'Set a table of farm sheep (bots), then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     ...(rooms ? [
-      { id: 'join', label: 'Join party', caption: 'Got a party code from a friend? Type it in.', onSelect: () => { setPartyCode(''); setStep('join'); } },
+      { id: 'join', label: 'Join party', icon: <MenuIcon id="join" />, badge: <MenuTag tone="gray">Got a code?</MenuTag>, caption: 'Got a party code from a friend? Type it in and you are at their table.', onSelect: () => { setPartyCode(''); setStep('join'); } },
     ] satisfies MenuItem[] : []),
     // Admin plays tonight's dream as often as it likes; everyone else gets the one attempt, then the share.
     admin
       ? {
-        id: 'dream', label: 'Counting Sheep', badge: <MenuTag tone="gold">admin</MenuTag>, disabled: !ready,
+        id: 'dream', label: 'Counting Sheep', icon: <MenuIcon id="dream" />, badge: <MenuTag tone="gold">Admin</MenuTag>, disabled: !ready,
         caption: `Tonight's dream, as often as you like${dream?.status === 'done' ? ` (last run: ${dream.count ?? 0} sheep)` : ''}.`,
         onSelect: () => useDreamUi.getState().openDream(false),
       }
       : dream
       ? {
-        id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
-        badge: dream.status === 'done' ? <MenuTag tone="gold">{dream.count ?? 0} sheep</MenuTag> : <MenuTag tone="gray">used</MenuTag>,
+        id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep', icon: <MenuIcon id="dream" />,
+        badge: dream.status === 'done' ? <MenuTag tone="gold">{dream.count ?? 0} sheep</MenuTag> : <MenuTag tone="gray">Used</MenuTag>,
         disabled: dream.status !== 'done', onSelect: shareDream,
-        caption: <>The farmer is up for the day. Tonight's dream starts at {timeOfNext}.{nights}</>,
+        caption: <>The farmer is up for the day. Tonight's dream starts at {timeOfNext}.</>,
       }
       : {
-        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</MenuTag> : <MenuTag tone="gold">daily</MenuTag>, disabled: !ready,
-        caption: <>{covered ? `A Warm Blanket kept your streak warm · ${streak} nights. ` : ''}Keep the farmer asleep: type words with each fence's letters so the sheep clears it. One dream a night.{nights}</>,
+        id: 'dream', label: 'Counting Sheep', icon: <MenuIcon id="dream" />, badge: streak > 0 ? <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</MenuTag> : <MenuTag tone="gold">Daily</MenuTag>, disabled: !ready,
+        caption: <>{covered ? `A Warm Blanket kept your streak warm: ${streak} nights. ` : ''}Keep the farmer asleep: type words with each fence's letters so the sheep clears it. One dream a night.</>,
         onSelect: () => useDreamUi.getState().openDream(false),
       },
     ...(repair && !admin ? [{
-      id: 'repair', label: 'Dream last night\'s dream', badge: <MenuTag tone="gold">keeps your streak</MenuTag>, disabled: !ready,
+      id: 'repair', label: 'Dream last night\'s dream', icon: <MenuIcon id="repair" />, badge: <MenuTag tone="gold">Keeps your streak</MenuTag>, disabled: !ready,
       caption: `Last night's dream, dreamt today: until ${new Date(new Date().setHours(23, 59, 0, 0)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase()}.`,
       onSelect: () => useDreamUi.getState().openDream(false, repair),
     } satisfies MenuItem] : []),
     {
-      id: 'practice', label: 'Practice', badge: drillBest > 0 ? <MenuTag tone="green">best {drillBest}</MenuTag> : undefined, disabled: !ready,
+      id: 'practice', label: 'Practice', icon: <MenuIcon id="practice" />, badge: drillBest > 0 ? <MenuTag tone="green">Best {drillBest}</MenuTag> : undefined, disabled: !ready,
       caption: 'You against one bot, on one life. Chain as many words as you can.', onSelect: () => setStep('practice'),
     },
-    { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
-    {
-      id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${formatCoins(wool)} Wool Coins`}><CoinArt size={11} />{formatCoins(wool, true)}</MenuTag>,
-      caption: 'Feed Sacks of bomb skins, bursts and fuse sounds, missions, and your collection.', onSelect: () => setBazaar(true),
-    },
-    // The leaderboards sit under the Trading Post in the menu (Brian, 2026-11-14: "keep the full page but put it below the
-    // trading post button ... in the same area though so the font and everything should match"). It was a trophy button
-    // in the top bar. They need the game server, like the queue.
-    ...(rooms ? [{ id: 'boards', label: 'Leaderboards', caption: 'The best players: Ranked, Wins and Level, and where you stand.', onSelect: () => setBoards(true) }] satisfies MenuItem[] : []),
+    { id: 'tutorial', label: 'Tutorial', icon: <MenuIcon id="tutorial" />, caption: 'A guided first game with the sheepdog, who shows you every rule as it comes up.', disabled: !ready, onSelect: () => startTour('menu') },
+    // The Trading Post and the leaderboards are in the top bar (the wallet and the trophy) since the "Word chain" Home
+    // (Brian, 2026-11-20, picked from the mock-ups): before, they were the menu's last two items (2026-11-14).
   ];
   // The name plate opens the profile, where the name, the avatar and the stats live.
   const shownName = (signedIn ? accountName : settings.name) || '';
+  const lvl = levelOf(wallet.xp);
   // The box with your name IS the profile (Brian, 2026-11-14: "make the profile thing not a button below the quickplay
-  // but that box in the top left, just embed it in there"): the whole box is one button, and it says so under the name.
-  const profilePlate = (avatarSize: number, className: string, extra?: ReactNode) => (
+  // but that box in the top left, just embed it in there"): one night-blue block with the avatar, the name, the level in
+  // ten segments, and the night streak.
+  const filled = Math.round((10 * lvl.into) / Math.max(1, lvl.need));
+  const profilePlate = (
     <button
-      type="button" className={`sk-plate sk-plate-open kit-plank kit-plank--label ${className}`} onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
-      aria-label={`Your profile${shownName ? `: ${shownName}` : ''}, level ${levelOf(wallet.xp).level}`} title="Your profile: stats, rank, name and avatar" data-profile
+      type="button" className={`hm-me hm-slab hm-slab--night`} onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
+      aria-label={`Your profile${shownName ? `: ${shownName}` : ''}, level ${lvl.level}`} title="Your profile: stats, rank, name and avatar" data-profile
     >
-      <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={avatarSize} /> : <SheepIcon size={avatarSize} />}</span>
-      <span className="sk-plate-id">
-        <span className="sk-plate-name">{shownName || <span style={{ opacity: 0.75 }}>Your name</span>}</span>
-        <span className="sk-plate-sub">Level {levelOf(wallet.xp).level} · Profile</span>
+      <span className="hm-me-face" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={26} /> : <SheepIcon size={26} />}</span>
+      <span className="hm-me-id">
+        <span className="hm-me-name">{shownName || 'Your name'}</span>
+        <span className="hm-me-lvl">LV {lvl.level}<span className="hm-xp" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} data-on={i < filled || undefined} />)}</span></span>
       </span>
-      {extra}
+      {streak > 0 && <span className="hm-tag hm-tag--ink" aria-label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</span>}
     </button>
   );
-  const tables = (
-    <div className="flex flex-col gap-3" key="tables">
-      {mobile && profilePlate(22, 'self-center')}
-      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
+  // What went wrong never moves the menu (Brian: nothing shifts when a button is pressed). It is laid out of the
+  // flow: under the menu on a computer, just above it on a phone.
+  const notes = dictStatus === 'error' || error || (roomNotice && step !== 'join') ? (
+    <>
       {dictStatus === 'error' && (
-        <PaperPanel role="alert" className="p-3 text-center">
-          <p className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>The word list did not load. Check your connection, then try again.</p>
-          <WoodButton onClick={() => void retryDictionary()} className="mt-2">Retry</WoodButton>
-        </PaperPanel>
+        <p role="alert">
+          The word list did not load. Check your connection, then try again.
+          <button className="hm-slab hm-slab--wool hm-slab--sm hm-retry" onClick={() => void retryDictionary()}>Retry</button>
+        </p>
       )}
-      {error && <p role="alert" className="kit-paper kit-paper--note" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
-      {roomNotice && step !== 'join' && <p role="status" className="kit-paper kit-paper--note text-center">{roomNotice}</p>}
+      {error && <p role="alert">{error}</p>}
+      {roomNotice && step !== 'join' && <p role="status">{roomNotice}</p>}
+    </>
+  ) : null;
+  const tables = (
+    <div className="relative" key="tables">
+      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
+      {!mobile && notes && <div className="hm-note">{notes}</div>}
     </div>
   );
 
   const setup = (
-    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
+    <div className={`hm-sheet space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
       <div className="sk-setup-head">
         <h2>{rooms ? 'Custom game' : 'Set the table'}</h2>
-        <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
+        <button className="hm-close hm-slab hm-slab--wool hm-slab--sm" onClick={() => setStep('tables')} aria-label="Back" title="Back"><CloseIcon size={16} /></button>
       </div>
-      {rooms && <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>A table of your own against the farm sheep (bots).</p>}
+      {rooms && <p className="sk-hand text-lg">A table of your own against the farm sheep (bots).</p>}
       {table.first && <p className="sk-display text-base">Easy table for your first games</p>}
-      {error && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
+      {error && <p role="alert" className="text-sm font-bold">{error}</p>}
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Game length</legend>
+        <legend className="text-sm font-bold">Game length</legend>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {PRESET_IDS.map((id) => (
             <Chip key={id} aria-pressed={preset === id} className="capitalize" onClick={() => { if (id !== 'custom') setRule(PRESETS[id]); }}>{id}</Chip>
@@ -307,7 +305,7 @@ export function PaintedHome() {
         <p className="mt-1.5" aria-live="polite"><span className="kit-slate kit-slate--mini"><span className="kit-slate-face kit-chalk-hand">about {minutes} min</span></span></p>
       </fieldset>
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Sheep at the table</legend>
+        <legend className="text-sm font-bold">Sheep at the table</legend>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {COUNTS.map((c) => <button key={c} type="button" className={`kit-tile kit-tile--sm ${settings.playerCount === c ? 'kit-tile--lit' : ''}`} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</button>)}
         </div>
@@ -317,22 +315,22 @@ export function PaintedHome() {
             <span key={i} className="sk-walk-in" style={{ animationDelay: `${i * 40}ms` }}><SheepIcon size={i === 0 ? 26 : 22} /></span>
           ))}
         </div>
-        <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">{farmSheepLine(settings.playerCount - 1)}</p>
+        <p className="sk-hand mt-1 text-base" aria-live="polite">{farmSheepLine(settings.playerCount - 1)}</p>
       </fieldset>
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot difficulty</legend>
+        <legend className="text-sm font-bold">Bot difficulty</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
             <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })} aria-pressed={table.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
           ))}
         </div>
       </fieldset>
-      <details className="px-1 py-1" style={{ borderTop: '1px dashed var(--ink-soft)', borderBottom: '1px dashed var(--ink-soft)' }} open={preset === 'custom'}>
-        <summary className="cursor-pointer text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Custom rules</summary>
+      <details className="hm-rules px-1 py-1" open={preset === 'custom'}>
+        <summary className="cursor-pointer text-sm font-bold">Custom rules</summary>
         <div className="space-y-2 py-2">
           {RULES.map((r) => (
             <fieldset key={r.key}>
-              <legend className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--ink-soft)' }}>{r.label}</legend>
+              <legend className="text-xs font-bold uppercase tracking-wide">{r.label}</legend>
               <div className="mt-1 flex flex-wrap gap-1">
                 {r.values.map((v) => (
                   <Chip key={String(v)} aria-pressed={rules[r.key] === v} onClick={() => setRule({ [r.key]: v } as Partial<GameSettings>)}>{r.show ? r.show(v) : String(v)}</Chip>
@@ -342,44 +340,44 @@ export function PaintedHome() {
           ))}
         </div>
       </details>
-      <button onClick={() => go('quick')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Sit down</button>
-    </PaperPanel>
+      <button onClick={() => go('quick')} disabled={!ready} className="sk-sit hm-act hm-slab hm-slab--lantern hm-knit">Sit down</button>
+    </div>
   );
 
   const drillSetup = (
-    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="practice" role="dialog" aria-label="Practice run">
+    <div className={`hm-sheet space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="practice" role="dialog" aria-label="Practice run">
       <div className="sk-setup-head">
         <h2>Practice</h2>
-        <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
+        <button className="hm-close hm-slab hm-slab--wool hm-slab--sm" onClick={() => setStep('tables')} aria-label="Back" title="Back"><CloseIcon size={16} /></button>
       </div>
-      <p className="text-sm" style={{ color: 'var(--ink-soft)' }}>You and one bot, on one life. Every word you play scores a point, the clock loses a second every 5 words, and your run ends the first time it runs out.</p>
+      <p className="text-sm">You and one bot, on one life. Every word you play scores a point, the clock loses a second every 5 words, and your run ends the first time it runs out.</p>
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Starting clock</legend>
+        <legend className="text-sm font-bold">Starting clock</legend>
         <div className="mt-1 flex gap-1.5">
           {PRACTICE_CLOCKS.map((c) => <Chip key={c} onClick={() => setDrill({ clock: c })} aria-pressed={drill.clock === c}>{c} s</Chip>)}
         </div>
       </fieldset>
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot</legend>
+        <legend className="text-sm font-bold">Bot</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
             <Chip key={d.id} onClick={() => setDrill({ difficulty: d.id })} aria-pressed={drill.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
           ))}
         </div>
-        <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">{DRILL_BOTS[drill.difficulty]}</p>
+        <p className="sk-hand mt-1 text-base" aria-live="polite">{DRILL_BOTS[drill.difficulty]}</p>
       </fieldset>
       <p className="kit-slate kit-slate--mini kit-slate--amber" aria-live="polite"><span className="kit-slate-face kit-chalk-hand">{drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'}</span></p>
-      {error && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
-      <button autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Start run</button>
-    </PaperPanel>
+      {error && <p role="alert" className="text-sm font-bold">{error}</p>}
+      <button autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-sit hm-act hm-slab hm-slab--lantern hm-knit">Start run</button>
+    </div>
   );
   const joinParty = (
-    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="join" role="dialog" aria-label="Join a party">
+    <div className={`hm-sheet space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="join" role="dialog" aria-label="Join a party">
       <div className="sk-setup-head">
         <h2>Join party</h2>
-        <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
+        <button className="hm-close hm-slab hm-slab--wool hm-slab--sm" onClick={() => setStep('tables')} aria-label="Back" title="Back"><CloseIcon size={16} /></button>
       </div>
-      <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>Type the five-letter code your friend sent.</p>
+      <p className="sk-hand text-lg">Type the five-letter code your friend sent.</p>
       <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); if (partyCode.length === 5) online({ t: 'join', code: partyCode }); }}>
         <label className="sk-code">
           <span className="sr-only">Party code</span>
@@ -391,102 +389,100 @@ export function PaintedHome() {
             <span key={i} aria-hidden="true" className={`kit-tile kit-tile--md ${partyCode[i] ? '' : 'sk-code-empty'} ${i === Math.min(partyCode.length, 4) ? 'sk-code-next' : ''}`}>{partyCode[i] ?? ''}</span>
           ))}
         </label>
-        {(error || roomNotice) && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error || roomNotice}</p>}
-        <button type="submit" disabled={partyCode.length < 5 || entering} className="sk-btn sk-sit kit-sign w-full" data-join-party><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Join party</button>
+        {(error || roomNotice) && <p role="alert" className="text-sm font-bold">{error || roomNotice}</p>}
+        <button type="submit" disabled={partyCode.length < 5 || entering} className="sk-sit hm-act hm-slab hm-slab--lantern hm-knit" data-join-party>Join party</button>
       </form>
-    </PaperPanel>
+    </div>
   );
   const panel = step === 'practice' ? drillSetup : step === 'join' ? joinParty : setup;
 
-  const footer = (
-    <footer className="flex flex-wrap items-center gap-x-3 text-[12px] font-semibold" style={{ color: 'rgba(255, 244, 220, 0.75)' }}>
-      <span>v{pkg.version}{mobile ? '' : ` · ${UPDATE_NAME}`}</span>
-      <button className="min-h-8 content-center underline" onClick={() => setFeedback(true)}>Feedback</button>
-      <span className="text-xs" style={{ color: 'var(--button-text)' }} data-device-label>{device === 'phone' ? 'Phone layout' : 'Computer layout'}</span>
+  // The small print: on a computer at the right of the footer; on a phone behind "More".
+  const smallPrint = (
+    <>
+      <span className="hm-version">v{pkg.version}</span>
+      <button onClick={() => setFeedback(true)}>Feedback</button>
       {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
-        <button key={slug} className="min-h-8 content-center underline" onClick={() => setLegal(slug)}>{LEGAL_TITLES[slug]}</button>
+        <button key={slug} onClick={() => setLegal(slug)} aria-label={LEGAL_TITLES[slug]}>{SHORT_LEGAL[slug]}</button>
       ))}
-    </footer>
+      <button onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}>{admin ? 'Admin on' : 'Admin'}</button>
+    </>
   );
   // The farm rests (fewer pictures a second, the same motion) behind an open dialog and when Home is left alone.
-  const farmFps = useHomeFps(chooser || signIn || help || gear || legal !== null || feedback || profile || pickAvatar || adminOpen);
+  const farmFps = useHomeFps(chooser || signIn || help || gear || legal !== null || feedback || profile || adminOpen);
+  const square = 'hm-slab hm-slab--wool hm-slab--sm hm-square';
+  const helpButton = <button className={square} onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>;
+  const trophy = rooms && <button className={square} onClick={() => setBoards(true)} aria-label="Leaderboards" title="Leaderboards"><TrophyIcon size={20} /></button>;
+  const purse = (
+    <span className="hm-purse">
+      <button className="hm-slab hm-slab--ink hm-slab--sm hm-coins" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${formatCoins(wool)} Wool Coins`} title="The Trading Post">
+        <i className="hm-coin" aria-hidden="true" />{formatCoins(wool, true)}
+      </button>
+      <button className="hm-slab hm-slab--lantern hm-slab--sm hm-square hm-plus" onClick={() => setBazaar(true)} aria-label="Get more Wool Coins" title="The Trading Post"><i aria-hidden="true" /></button>
+    </span>
+  );
+  const account = authEnabled() && (authStatus === 'ready'
+    ? <button className="hm-slab hm-slab--wool hm-slab--sm hm-pill" onClick={() => setSignIn(true)} aria-label="Account" title="Account">Account</button>
+    : <button className="hm-slab hm-slab--wool hm-slab--sm hm-pill" onClick={openSignInForm} aria-label="Log in" title="Log in to save your progress">Log in</button>);
+  // The language switch (Kai, pull request 56): the whole game, word list included, in French or in English. A square
+  // like the others, naming the language it switches to (HOME-UI-PLAN section 8).
+  const lang = (
+    <button className={`${square} hm-lang`} data-lang-switch data-i18n-skip onClick={() => setLang(getLang() === 'fr' ? 'en' : 'fr')}
+      aria-label={getLang() === 'fr' ? 'English' : 'Français'} title={getLang() === 'fr' ? 'Play in English' : 'Jouer en français'}>
+      {getLang() === 'fr' ? 'EN' : 'FR'}
+    </button>
+  );
+  const tipLine = <p className="hm-tip" aria-live="off"><span className="hm-tag hm-tag--lantern">Tip</span><span key={tip} className="hm-tip-text">{TIPS[tip]}</span></p>;
 
   return (
-    // data-covered: a full page lies over Home, so its title and word of the day hold still (skin.css).
-    <main className={`sk-home relative h-full overflow-hidden`} data-covered={bazaar || boards || profile || undefined} onPointerMove={onPointerMove} onKeyDown={onKey}>
-      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} hopKey={hopKey} paused={bazaar || boards} fps={farmFps} /></div>
-      <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
-
-      {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
-      {/* Clear of a notch (plan file 14, change 5): every inset is 0 on a computer, so nothing moves there. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 p-3 pt-[max(12px,env(safe-area-inset-top))] pr-[max(12px,env(safe-area-inset-right))] pl-[max(12px,env(safe-area-inset-left))] sm:p-4 sm:pt-[max(16px,env(safe-area-inset-top))] sm:pr-[max(16px,env(safe-area-inset-right))] sm:pl-[max(16px,env(safe-area-inset-left))] [&>*]:pointer-events-auto">
-        {!mobile && profilePlate(24, 'mr-auto', (
-          <>
-            {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
-            {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinArt size={14} /></span>}
-          </>
-        ))}
-        {/* The language switch: the whole game, word list included, in French or in English. */}
-        <button className="sk-icon-btn" data-lang-switch data-i18n-skip onClick={() => setLang(getLang() === 'fr' ? 'en' : 'fr')} aria-label={getLang() === 'fr' ? 'English' : 'Français'} title={getLang() === 'fr' ? 'Play in English' : 'Jouer en français'} style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap', fontWeight: 800 }}>{getLang() === 'fr' ? 'English' : 'French'}</button>
-        {authEnabled() && (authStatus === 'ready' ? (
-          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Account</button>
-        ) : (
-          <button className="sk-icon-btn" onClick={openSignInForm} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Log in</button>
-        ))}
-        {/* The leaderboards (they are read from the game server, so there is no button without one). */}
-        <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${formatCoins(wool)} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{formatCoins(wool, true)}</span></button>
-        <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
-        <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
-        <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
-        <SoundMenu />
-        <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>
-      </div>
+    // data-covered: a full page lies over Home, so its panel and title hold still (home.css). data-enter: the first Home
+    // of this visit, which plays the entrance.
+    <main className={`sk-home hm relative h-full overflow-hidden`} data-covered={bazaar || boards || profile || undefined} data-phone={mobile || undefined} data-enter={entrance || undefined} data-rows={items.length} onPointerMove={onPointerMove} onKeyDown={onKey}>
+      <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} heroGaze={heroGaze} hopKey={hopKey} paused={bazaar || boards} fps={farmFps} /></div>
+      <HomeSlab />
 
       {mobile ? (
-        // One column under the top bar: the title block, then the menu's panel at the foot. The panel takes the height
-        // the title leaves and scrolls inside itself, so on a small or sideways phone the two never lie over each
-        // other. Its old cap (64% of the screen: this box is 72 px shorter than the screen) still holds on a tall one.
-        // The column starts under the top bar and keeps off a notch at the sides (plan file 14, change 5).
-        <div className="pointer-events-none absolute inset-x-0 bottom-2 top-[max(4rem,calc(env(safe-area-inset-top)+52px))] flex flex-col pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] [&>*]:pointer-events-auto">
-          <div className="flex flex-none flex-col items-center">
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
+        // A phone: the chip and the purse at the top, the square buttons under the purse, and a sheet at the foot with
+        // the title and the menu (scrolling in itself), the word of the day as one line, and the footer.
+        <>
+          <div className="hm-chip">{profilePlate}</div>
+          <div className="hm-corner">{purse}<div className="hm-squares">{trophy}{lang}{account}<button className={square} onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button><SoundMenu />{helpButton}</div></div>
+          <div className="hm-sheet-col">
+            {notes && step === 'tables' && <div className="hm-note">{notes}</div>}
+            <div className="hm-scroll">
+              {step === 'tables' ? <><HomeTitle title={PAINTED_TITLE} />{tables}</> : <div className="hm-panel-slot">{panel}</div>}
+            </div>
             <WordOfDay className="sk-wotd--compact" />
           </div>
-          <div className="mx-3 mt-auto min-h-0 overflow-y-auto" style={{ maxHeight: 'calc(64% + 46px)' }}>
-            {step === 'tables' ? (
-              <>
-                {tables}
-                <div className="mt-1 flex justify-center">{footer}</div>
-              </>
-            ) : panel}
-          </div>
-        </div>
+          <footer className="hm-foot">
+            {tipLine}
+            <button className="hm-more" aria-expanded={more} onClick={() => setMore((m) => !m)}>More</button>
+            {more && <nav className="hm-small hm-more-list" aria-label="About the game">{smallPrint}</nav>}
+          </footer>
+        </>
       ) : (
         <>
-          {/* Left column: the title board, then the menu, like a console title screen. */}
-          {/* "safe": on a short window the column starts under the name plate instead of riding up over it. */}
-          <div className="absolute bottom-14 left-10 top-20 flex w-[27rem] flex-col gap-3" style={{ justifyContent: 'safe center' }}>
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
-            {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
-            <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
-          </div>
-          {/* The word of the day stands on its own on the right; a panel opening there takes its place. */}
-          {step === 'tables' ? <WordOfDay className="sk-wotd--side" /> : (
-            <div className="absolute right-12 top-1/2 max-h-[86%] w-[380px] -translate-y-1/2 overflow-y-auto">{panel}</div>
-          )}
-          {/* Bottom bar: button prompts, a rotating tip, the streak and the small print. */}
-          <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3 text-sm font-bold" style={{ color: 'var(--button-text)', textShadow: '0 1px 2px rgba(30, 18, 8, 0.8)' }}>
-            <div className="flex shrink-0 items-center gap-4">
-              <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key"><ArrowUpIcon size={12} /></span><span className="sk-key kit-tile kit-tile--key"><ArrowDownIcon size={12} /></span> Choose</span>
-              <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Enter</span> Select</span>
-              {step !== 'tables' && <span className="sk-prompt"><span className="sk-key kit-tile kit-tile--key">Esc</span> Back</span>}
-            </div>
-            <p key={tip} className="sk-tip sk-hand flex min-w-0 flex-1 items-center justify-center gap-2 text-lg" style={{ color: 'var(--glow)' }} aria-live="off"><span className="line-clamp-2 text-center leading-[20px]">{TIPS[tip]}</span></p>
-            {/* Under 1280 px the small print wraps to two lines at the right, so the tip keeps room for its two lines. */}
-            <div className="flex shrink-0 flex-col items-end gap-1 max-xl:max-w-[320px] max-xl:[&>footer]:justify-end">
-              {footer}
+          {/* Inside the panel: the chip, then the title, tagline and menu as one block, then the word of the day. */}
+          <div className="hm-col">
+            {profilePlate}
+            <div className="hm-block">
+              <HomeTitle title={PAINTED_TITLE} tagline="Chain words. Keep your wool. Outlast the flock." />
+              {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
+              <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
             </div>
           </div>
+          <div className="hm-corner">
+            {purse}{trophy}{lang}{account}
+            <button className={square} onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
+            <SoundMenu />
+            {helpButton}
+          </div>
+          {/* The word of the day floats over the scenery under the top-right buttons (Brian, 2026-11-20: "i like it being
+              over the scenery, however i dont like the card ... just the text very slightly tilted"). A panel takes its place. */}
+          {step === 'tables' ? <WordOfDay className="hm-wotd" /> : <div className="hm-panel-slot">{panel}</div>}
+          <footer className="hm-foot">
+            {tipLine}
+            <nav className="hm-small" aria-label="About the game">{smallPrint}</nav>
+          </footer>
         </>
       )}
 
@@ -507,7 +503,6 @@ export function PaintedHome() {
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
       {bazaar && <Bazaar onClose={() => setBazaar(false)} />}
       {profile && <Profile onClose={() => setProfile(false)} />}
-      {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       <DevLine />
     </main>

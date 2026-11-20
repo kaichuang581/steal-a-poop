@@ -5,7 +5,9 @@ import { useStore } from '../../state/store';
 import { AccountPanel } from '../../ui/auth/AccountPanel';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { PaintedCredits } from '../components/PaintedCredits';
-import { Board, Switch, Panel, PanelRow, Peg, WoodButton } from '../kit';
+import { Switch, PanelRow, WoodButton } from '../kit';
+import { Chip } from '../components/Materials';
+import { SnowCap } from '../components/SnowCap';
 import { SaveCodeRow } from '../components/SaveCodeRow';
 
 /**
@@ -29,12 +31,15 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{ background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Settings" className="relative w-full max-w-sm pt-2" onClick={(e) => e.stopPropagation()}>
-        <div className="relative z-10 mx-auto flex justify-center">
-          <Board size="heading" tone="knit" snow id="settings-head">Settings</Board>
+      {/* The same header as How to play: the title and the close button inside the card. A sign standing over the card
+          ran into the menu behind it on a phone (2026-11-20). */}
+      <div role="dialog" aria-modal="true" aria-label="Settings" className="sk-guide sk-settings" onClick={(e) => e.stopPropagation()}>
+        <div className="sk-guide-head">
+          <SnowCap className="sk-guide-snow" />
+          <h2 id="settings-head">Settings</h2>
+          <Chip ref={closeRef} className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
         </div>
-        <Peg ref={closeRef} small light className="absolute right-1 top-3 z-20" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Peg>
-        <Panel className="-mt-3 pt-5">
+        <div className="sk-settings-rows">
           {/* The account panel is written light-on-dark; it sits on a cranberry patch. */}
           <div className="kit-panel-row sk-account-row empty:hidden"><AccountPanel onSignIn={() => setSignIn(true)} /></div>
           <PanelRow label="Reduce motion"><Switch checked={s.reduceMotion} onChange={s.setReduceMotion} label="Reduce motion" /></PanelRow>
@@ -51,7 +56,7 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
           <PanelRow label="Credits and licenses">
             <WoodButton className="kit-btn--sm" aria-label="Credits and licenses" onClick={() => setCredits(true)}>Open</WoodButton>
           </PanelRow>
-        </Panel>
+        </div>
       </div>
       {credits && <PaintedCredits onClose={() => setCredits(false)} />}
       {signIn && <AuthDialog onClose={() => setSignIn(false)} />}

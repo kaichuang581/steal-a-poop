@@ -61,7 +61,33 @@ export function lin(hex: string): [number, number, number] {
   return c;
 }
 
-/** Seeded pick of a tone: 60% light, 30% mid, 10% dark unless weights say otherwise. */
+/**
+ * The tone a surface is painted: the one of the three its weights favour (light, mid or dark), flat, one colour for the
+ * whole surface (Brian, 2026-11-18: "remove all glitchy/static textures"; docs/diorama/PLAN.md 3.2). `r` is no longer
+ * read: every voxel of a surface takes the same tone, so nothing speckles. Weights still choose which tone.
+ */
 export function pick(tone: Tone, r: number, w: readonly [number, number] = [0.6, 0.9]): [number, number, number] {
+  if (asIs) return pickBy(tone, r, w);
+  const light = w[0], mid = w[1] - w[0], dark = 1 - w[1];
+  return lin(light >= mid && light >= dark ? tone[0] : mid >= dark ? tone[1] : tone[2]);
+}
+
+let asIs = 0;
+/**
+ * Paints as the game painted before 2026-11-18 while `fn` runs: `pick` chooses per voxel as `pickBy` does and snow takes
+ * its texture (voxel/snow.ts). Only for the wendigo's zone, whose every voxel is pinned (tools/scenes/wendigo.pins.json).
+ */
+export function asBefore<V>(fn: () => V): V {
+  asIs++;
+  try { return fn(); } finally { asIs--; }
+}
+export const paintingAsBefore = () => asIs > 0;
+
+/**
+ * A seeded pick among the three tones: 60% light, 30% mid, 10% dark unless weights say otherwise. Only for a choice made
+ * once per board, plank, bale or tree (a value step between whole parts), and for what may not change: the wendigo's
+ * zone (scene/countryside.ts, pinned voxel by voxel) and the characters (voxel/characters.ts). Never per voxel.
+ */
+export function pickBy(tone: Tone, r: number, w: readonly [number, number] = [0.6, 0.9]): [number, number, number] {
   return lin(r < w[0] ? tone[0] : r < w[1] ? tone[1] : tone[2]);
 }

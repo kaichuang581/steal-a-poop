@@ -34,7 +34,7 @@ describe('T0: the catalogue and the pool', () => {
   });
   it('the odds add up to 100', () => {
     expect(RARITIES.reduce((n, r) => n + SACK.odds[r], 0)).toBe(100);
-    expect(oddsLine()).toBe('Common 62% · Uncommon 28% · Rare 8% · Legendary 2%');
+    expect(oddsLine()).toBe('Common 62%, Uncommon 28%, Rare 8%, Legendary 2%');
   });
 });
 

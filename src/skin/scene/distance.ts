@@ -3,7 +3,9 @@ import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
 import { coarseDevice, detailedSteps } from '../voxel/refine';
 import { finish } from './slices';
 import type { Steps } from './slices';
-import { lin, pick, T } from '../voxel/palette';
+import { asBefore, lin, pick, T } from '../voxel/palette';
+import { inWendigoZone } from './wendigoZone';
+import { SNOW } from '../voxel/snow';
 import { Grid, hash3, rng } from '../voxel/primitives';
 import type { RGB } from '../voxel/primitives';
 import { DISTANCE, YARD } from './layout';
@@ -27,7 +29,7 @@ function fbm(x: number, z: number, seed: number) {
  * Fill each column only from its lowest neighbour's top to its own top, so slopes are closed but the solid interior
  * (never visible) is left empty. Columns on the grid's outer edge go down to the ground.
  */
-function columns(g: Grid, nx: [number, number], nz: [number, number], h: (x: number, z: number) => number, paint: (x: number, y: number, z: number, top: number, slope: number) => RGB) {
+function columns(g: Grid, nx: [number, number], nz: [number, number], h: (x: number, z: number) => number, paint: (x: number, y: number, z: number, top: number, slope: number) => RGB, turnedToo = false) {
   const W = nx[1] - nx[0] + 1, D = nz[1] - nz[0] + 1;
   const H = new Int32Array(W * D);
   for (let i = 0; i < W; i++) for (let k = 0; k < D; k++) H[i * D + k] = Math.max(1, Math.round(h(nx[0] + i, nz[0] + k)));
@@ -38,10 +40,14 @@ function columns(g: Grid, nx: [number, number], nz: [number, number], h: (x: num
       const nb = [at(i - 1, k), at(i + 1, k), at(i, k - 1), at(i, k + 1)];
       const lo = Math.min(top - 1, ...nb);
       const slope = Math.max(...nb.map((n) => top - n));
-      for (let y = lo; y < top; y++) g.set(nx[0] + i, y, nz[0] + k, paint(nx[0] + i, y, nz[0] + k, top, slope));
+      const x = nx[0] + i, z = nz[0] + k, seen = inWendigoZone(x * g.size, z * g.size) || (turnedToo && inWendigoZone(-x * g.size, -z * g.size));
+      for (let y = lo; y < top; y++) g.set(x, y, z, seen ? asBefore(() => paint(x, y, z, top, slope)) : paint(x, y, z, top, slope));
     }
   return at;
 }
+
+/** A colour painted as before in the wendigo's zone (scene/wendigoZone.ts), flat otherwise. */
+const zoned = (x: number, z: number, paint: () => RGB): RGB => (inWendigoZone(x, z) ? asBefore(paint) : paint());
 
 /** How high the low hills behind the barn stand at (x, z), in metres. */
 const BACK_HILLS = { fromZ: -110, toZ: -34 };
@@ -90,17 +96,20 @@ export function* buildDistanceSteps(): Steps<Distance> {
         if (Math.hypot(x - V.x, z - V.z) < 12 || Math.hypot(x - M.x, z - M.z) < 7) continue;
         const top = Math.max(1, Math.round(hillH(x, z)));
         hillsG.set(x, top, z, pineDark);
-        if (hash3(x, 1, z, 15) > 0.6) hillsG.set(x, top + 1, z, pineMid);
+        const tall = hash3(x, 1, z, 15) > 0.6;
+        if (tall) hillsG.set(x, top + 1, z, pineMid);
+        // Snow on each: a line of dark cubes on a white hill read as stray blocks, a line of snowy tops as trees.
+        hillsG.set(x, top + (tall ? 2 : 1), z, SNOW);
       }
     }
   // Village: four tiny houses with lit windows, snowy roof ridges and a chimney each.
-  const wall = (x: number, y: number, z: number) => pick(T.house, hash3(x, y, z, 21));
+  const wall = (x: number, y: number, z: number) => zoned(x, z, () => pick(T.house, hash3(x, y, z, 21)));
   const lot: [number, number][] = [[-7, -3], [-1, -5], [5, -2], [0, 4]];
   for (const [dx, dz] of lot) {
     const x0 = V.x + dx - 2, zz0 = V.z + dz - 1, y0 = vBase;
     for (let x = x0; x < x0 + 4; x++) for (let y = y0; y < y0 + 3; y++) for (let z = zz0; z < zz0 + 3; z++) hillsG.set(x, y, z, wall(x, y, z));
     for (let x = x0 - 1; x < x0 + 5; x++) {
-      for (let z = zz0 - 1; z < zz0 + 4; z++) hillsG.set(x, y0 + 3, z, z === zz0 + 1 ? lin(T.snow[1]) : pick(T.roof, hash3(x, 3, z, 22)));
+      for (let z = zz0 - 1; z < zz0 + 4; z++) hillsG.set(x, y0 + 3, z, z === zz0 + 1 ? lin(T.snow[1]) : zoned(x, z, () => pick(T.roof, hash3(x, 3, z, 22))));
       hillsG.set(x, y0 + 4, zz0 + 1, lin(T.snow[0]));
     }
     hillsG.set(x0 + 1, y0 + 1, zz0 - 1, lin(T.lantern[0]));
@@ -113,9 +122,9 @@ export function* buildDistanceSteps(): Steps<Distance> {
   const bodyG = new Grid(1);
   for (let y = 0; y < 10; y++) {
     const r = y < 5 ? 2 : 1;
-    for (let x = M.x - r; x <= M.x + r; x++) for (let z = M.z - r; z <= M.z + r; z++) bodyG.set(x, mBase + y, z, pick(T.house, hash3(x, y, z, 31)));
+    for (let x = M.x - r; x <= M.x + r; x++) for (let z = M.z - r; z <= M.z + r; z++) bodyG.set(x, mBase + y, z, zoned(x, z, () => pick(T.house, hash3(x, y, z, 31))));
   }
-  for (let x = M.x - 1; x <= M.x + 1; x++) for (let z = M.z - 1; z <= M.z + 1; z++) bodyG.set(x, mBase + 10, z, pick(T.roof, hash3(x, 10, z, 32)));
+  for (let x = M.x - 1; x <= M.x + 1; x++) for (let z = M.z - 1; z <= M.z + 1; z++) bodyG.set(x, mBase + 10, z, zoned(x, z, () => pick(T.roof, hash3(x, 10, z, 32))));
   bodyG.set(M.x, mBase + 11, M.z, lin(T.snow[0]));
   bodyG.set(M.x, mBase, M.z - 3, lin(T.roof[2]));
   bodyG.set(M.x, mBase + 1, M.z - 3, lin(T.roof[2]));
@@ -179,7 +188,7 @@ export function* buildDistanceSteps(): Steps<Distance> {
     }
     if (m > snowLine + 6 && n > 0.4) return pick(T.snow, n, [0.1, 0.6]);
     return pick(T.stone, n, [0.2, 0.6]);
-  });
+  }, true); // the range is drawn a second time turned half round (table/Farmstead.tsx): its zone is checked both ways
 
   yield;
   // ---- Low hills behind the barn (the open-front side), 1 m grid: the Home diorama and the near-side turn shots need a horizon.
@@ -192,7 +201,9 @@ export function* buildDistanceSteps(): Steps<Distance> {
       if (line === 0 && x > -60 && x < 34) continue; // the forest behind the field stands there now (countryside.ts)
       const z = Math.floor(-52 - line * 26 + Math.sin(x / 19 + line) * 6);
       if (hash3(x, line, z, 64) < 0.45) continue;
-      backG.set(x, Math.max(1, Math.round(backH(x, z))), z, pineDark);
+      const top = Math.max(1, Math.round(backH(x, z)));
+      backG.set(x, top, z, pineDark);
+      if (!inWendigoZone(x, z)) backG.set(x, top + 1, z, SNOW); // snow on each, but where the wendigo's zone keeps them as they were
     }
 
   // Terrain has no overhangs, so no downward face is ever visible.

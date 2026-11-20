@@ -110,8 +110,8 @@ describe('Queue is for real people', () => {
 
   it('the profile is the box with your name, not a menu item', () => {
     expect(home).not.toContain("id: 'profile'");
-    expect(home).toMatch(/className=\{`sk-plate sk-plate-open[^`]*`\} onClick=\{\(\) => setProfile\(true\)\}/);
-    expect(home).toContain('· Profile</span>');
+    expect(home).toMatch(/className=\{`hm-me[^`]*`\} onClick=\{\(\) => setProfile\(true\)\}/);
+    expect(home).toContain('aria-label={`Your profile');
   });
 
   it('with no game server to reach, going online says why instead of dealing a bot game', () => {

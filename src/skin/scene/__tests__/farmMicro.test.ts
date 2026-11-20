@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { triangles } from '../../voxel/mesher';
 import { KIT } from '../../voxel/microKit';
-import { breach, buildFarmMicroSteps, inWedge, MICRO_BUDGET, MICRO_PLACEMENTS, underMicro } from '../farmMicro';
+import { breach, buildFarmMicroSteps, inWedge, MICRO_BUDGET, MICRO_PLACEMENTS, STRAW_BED, underMicro } from '../farmMicro';
+import { FARM } from '../farmstead';
 import { finish } from '../slices';
 
 describe('the micro layer on Home (docs/miniature/04; 05, sections 7 and 8)', () => {
@@ -15,6 +16,10 @@ describe('the micro layer on Home (docs/miniature/04; 05, sections 7 and 8)', ()
 
   it('keeps every rule of a place: the wedge and the paddock, the lane, the doorway, the animals, the season, the props', () => {
     expect(MICRO_PLACEMENTS.map((p) => [p.kind, p.at, breach(p)]).filter(([, , why]) => why)).toEqual([]);
+  });
+
+  it('knows the hens\' straw bed where the farm lays it (henYard in farmstead.ts): 0.6 m west and 3.5 m south of the coop', () => {
+    expect(STRAW_BED).toEqual({ x: FARM.coop.x - 0.6, z: FARM.coop.z + 3.5, rx: 3, rz: 2.1, top: 0.1 });
   });
 
   it('refuses a place in the wedge, in the doorway, on the lane and beside the snowman', () => {

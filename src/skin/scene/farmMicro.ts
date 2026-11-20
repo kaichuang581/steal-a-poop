@@ -28,8 +28,14 @@ export const MICRO_RANGE = { draw: 40, cast: 25 };
 export const MICRO_BUDGET = { triangles: 120_000, clusters: 8, tallest: 1.9 };
 
 const GROUND = 'ground' as const;
-/** The ground's height under a place: the yard's snow (0) or the land beyond it (0.05 m lower). */
-const groundAt = (x: number, z: number) => (x >= YARD.minX && x < YARD.maxX && z >= -7 && z < YARD.maxZ ? 0 : -0.05);
+/**
+ * The hens' straw bed (`henYard` in scene/farmstead.ts lays it: an ellipse off the coop, 0.10 m thick). Written out
+ * here because that file reads this one; a test holds the two together.
+ */
+export const STRAW_BED = { x: -13.6, z: 11.9, rx: 3, rz: 2.1, top: 0.1 };
+/** The ground's height under a place: the straw bed (0.10 m up), the yard's snow (0) or the land beyond it (0.05 m lower). */
+const groundAt = (x: number, z: number) => (Math.hypot((x - STRAW_BED.x) / STRAW_BED.rx, (z - STRAW_BED.z) / STRAW_BED.rz) <= 1 ? STRAW_BED.top
+  : x >= YARD.minX && x < YARD.maxX && z >= -7 && z < YARD.maxZ ? 0 : -0.05);
 type Row = [kind: string, x: number, y: number | typeof GROUND, z: number, turn?: 0 | 1 | 2 | 3, options?: Record<string, unknown>];
 const cluster = (name: string, rows: Row[]): Placement[] =>
   rows.map(([kind, x, y, z, turn = 0, options]) => ({ kind, at: [x, y === GROUND ? groundAt(x, z) : y, z], turn, ...(options ? { options } : {}), cluster: name }));
@@ -59,6 +65,43 @@ export const MICRO_PLACEMENTS: Placement[] = [
     ['wallLantern', -2.90, 2.30, 7.20],
     ['horseshoe', -0.10, 3.45, 7.30],
     ['hoistRope', -0.05, 4.65, 8.30],
+  ]),
+  // `toolCorner` (M4): the west end of the same wall. The broom and the shovel stand 0.15 m east of the plan's places:
+  // the white corner board reaches in to x -5.9 and stands proud of the red boards.
+  ...cluster('toolCorner', [
+    ['broom', -5.95, GROUND, 7.25],
+    ['shovel', -5.65, GROUND, 7.25],
+    ['pail', -6.10, GROUND, 7.70, 0, { contents: 'empty' }],
+  ]),
+  // `tractorSide` (M4): the pump and its pail, moved with the pasture's trough they stand by (z +2.0), the pail 0.15 m
+  // nearer so it stands under the spout. The tractor's grille bars and wheel nuts are not built: since 0.8.2 the
+  // tractor is parked behind the barn, where no shot of the tour sees it.
+  ...cluster('tractorSide', [
+    ['handPump', 7.80, GROUND, 15.75, 2],
+    ['pail', 7.75, GROUND, 15.60, 0, { contents: 'ice' }],
+  ]),
+  // `henCorner` (M4), moved with the coop, which stands at (-13, 8.4) with its pop door and ramp on its south side.
+  // Two cleats, not four: of the ramp's four steps the pop door stands on the first and the last is level with the
+  // ground, under the straw. The feed pail stands at the trough's west
+  // end (the hens stand within 1.2 m of its east end), and the sacks 0.4 m east of the window's middle, off the straw.
+  // The bales stand against the run's west fence by its south corner.
+  ...cluster('henCorner', [
+    ['cleat', -14.20, 0.40, 10.15, 0, { w: 12 }],
+    ['cleat', -14.20, 0.20, 10.35, 0, { w: 12 }],
+    ['eggBasket', -13.40, GROUND, 10.00],
+    ['sack', -12.15, GROUND, 9.80],
+    ['sack', -11.70, GROUND, 9.80],
+    ['pail', -17.05, GROUND, 11.95, 0, { contents: 'hay' }],
+    ['squareBale', -17.15, GROUND, 13.90],
+    ['squareBale', -17.15, GROUND, 14.35],
+    ['squareBale', -16.90, 0.45, 13.90, 1, { snow: true }],
+  ]),
+  // `gate` (M4): on the leaf's face toward the lane (x -1.2). The upper hinge and the latch are on the upper rail, which
+  // is 0.2 m lower than the plan's (0.8 to 1.0 m); turned so their backs lie on the leaf.
+  ...cluster('gate', [
+    ['strapHinge', -1.20, 0.45, 15.05, 3],
+    ['strapHinge', -1.20, 0.85, 15.05, 3],
+    ['latch', -1.20, 0.90, 17.75, 3],
   ]),
 ];
 
@@ -101,10 +144,11 @@ export function breach(p: Placement, o = objectOf(p)): string | null {
   const points: [number, number][] = [[b.x0, b.z0], [b.x1, b.z0], [b.x0, b.z1], [b.x1, b.z1], [mx, mz]];
   if (o.size[1] * MICRO > MICRO_BUDGET.tallest + 1e-9) return 'is taller than 1.9 m';
   if (points.some(([x, z]) => inWedge(x, z)) || overlaps(b, PADDOCK.minX, PADDOCK.maxX, PADDOCK.minZ, PADDOCK.maxZ)) return 'stands in the wedge or the paddock (the wendigo)';
+  // The lane and the footpaths, for what stands on the ground (a hinge on the gate's leaf is on the gate). The trampled
+  // apron before the doors is not counted: the plan's own corner stands at the wall on it, and it reads as walked ground
+  // with a wheel leaning at its edge.
+  if (b.y0 < 0.3 && (overlaps(b, -YARD.path.halfWidth, YARD.path.halfWidth, YARD.path.fromZ, YARD.path.toZ) || points.some(([x, z]) => onWalk(x, z)))) return 'stands on the lane or a footpath';
   if (b.y0 < DOORWAY.under) {
-    // The lane and the footpaths. The trampled apron before the doors is not counted: the plan's own corner stands at
-    // the wall on it, and it reads as walked ground with a wheel leaning at its edge.
-    if (overlaps(b, -YARD.path.halfWidth, YARD.path.halfWidth, YARD.path.fromZ, YARD.path.toZ) || points.some(([x, z]) => onWalk(x, z))) return 'stands on the lane or a footpath';
     if (overlaps(b, DOORWAY.minX, DOORWAY.maxX, DOORWAY.minZ, DOORWAY.maxZ)) return 'stands in the doorway';
     for (const [animal, x, z] of [...LIVESTOCK, ['hero', ...HERO] as const]) if (gap(b, x, z) < 1.2) return `stands within 1.2 m of the ${animal} at ${x}, ${z}`;
   }

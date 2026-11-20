@@ -55,7 +55,11 @@ const save = (dir, name, bytes, keep = false) => {
 let failed = 0;
 
 // Where the camera stands for a cluster's picture: on Home itself (?cam=), where the wall it stands against is.
-const CLUSTER_CAMS = { workCorner: '9.4,2.7,13.6,4.4,0.9,7.6,34', workCornerDoors: '-0.6,2.4,14.6,0.1,2.2,7.3,40' };
+const CLUSTER_CAMS = {
+  workCorner: '9.4,2.7,13.6,4.4,0.9,7.6,34', workCornerDoors: '-0.6,2.4,14.6,0.1,2.2,7.3,40',
+  toolCorner: '-9.6,2.2,12.2,-5.7,0.7,7.6,30', tractorSide: '11.0,1.7,16.9,7.9,0.5,16.0,28',
+  henCorner: '-9.2,3.6,12.6,-14.8,0.3,11.4,46', gate: '1.4,1.5,19.6,-1.3,0.7,16.6,34',
+};
 if (cmd === 'cluster') {
   if (!words.length) usage();
   const browser = await launch();

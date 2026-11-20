@@ -120,7 +120,7 @@ export function yardPiece(name: string): { vox: VoxelMap; size: number; plain?: 
     return [{ vox: g.map, size: S }, { vox: caps.map, size: S, plain: true }, { vox: panes.map, size: S, glow: true }];
   }
   if (name === 'fence' || name === 'gate') {
-    fence(g, set, boxI, capAt);
+    fence(set, boxI, capAt);
     const [x0, x1, z0, z1] = name === 'gate' ? [-2.4, 2.4, FENCE.z - 0.2, FENCE.z + 3.4] : [3.6, 9.8, FENCE.z - 0.2, FENCE.z + 0.4];
     for (const [k, v] of g.map) { const x = (v.x + 0.5) * S, z = (v.z + 0.5) * S; if (x < x0 || x > x1 || z < z0 || z > z1) g.map.delete(k); }
     return [{ vox: g.map, size: S }];
@@ -134,7 +134,7 @@ export function* buildYardSteps(): Steps<Yard> {
   const caps = new Grid(S); // the roofs' snow and the pond's bank: their own mesh with no corner shading, as the snowman is
   ground(caps, set);
   yield;
-  fence(g, set, boxI, capAt);
+  fence(set, boxI, capAt);
   yield;
   YARD.pines.forEach(([x, z, h], i) => pine(g, set, x, z, i + 1, h));
   yield;
@@ -230,7 +230,7 @@ function ground(caps: Grid, set: Set) {
   // No hoof dents or sled ruts in the path: square holes in the ground read as a fault (Brian, 2026-11-19).
 }
 
-function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
+function fence(set: Set, boxI: BoxI, cap: Cap) {
   // Posts a step under the lower rail, the upper rail a step over it (docs/miniature/03, 7.2).
   const post = paint('wood', -1), rail = paint('wood', 0), upper = paint('wood', 1);
   const F = YARD.fence;
@@ -268,7 +268,9 @@ function fence(g: Grid, set: Set, boxI: BoxI, cap: Cap) {
     // The leaf's uprights and brace first, a step under its rails, which are laid over them.
     if (dz === 0 || dz === len - 1 || dz === len >> 1) boxI(leafX, leafX, 1, 5, zf + 1 + dz, zf + 1 + dz, post);
   }
-  line(g, [(leafX + 0.5) * S, 2.5 * S, (zf + 1.5) * S], [(leafX + 0.5) * S, 4.5 * S, (zf + len - 0.5) * S], post);
+  // The brace, in the leaf's own plane from the hinge's foot up to the latch's rail. (It was a line drawn half a cell
+  // off the leaf: all that came of it was five cubes standing out beside the leaf's free end.)
+  for (let dz = 1; dz < len - 1; dz++) set(leafX, 1 + Math.round((3 * dz) / (len - 1)), zf + 1 + dz, post);
   for (let dz = 0; dz < len; dz++) {
     set(leafX, 2, zf + 1 + dz, rail), set(leafX, 4, zf + 1 + dz, rail);
     cap(leafX, 4, zf + 1 + dz);

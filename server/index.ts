@@ -13,7 +13,7 @@ import { BlockList } from './blocks';
 import type { AuditLog } from './moderation/audit';
 import type { RevocationBus } from './auth/revocations';
 import type { Cosmetics } from '../src/net/protocol';
-import { ADMIN_AVATAR_ID, isAvatarId } from '../src/avatars/ids';
+import { isAdminAvatar, isAvatarId } from '../src/avatars/ids';
 import { clientAddress, limitKey } from './address';
 import { isGuestId } from './guest';
 import type { RatingChange } from '../src/lib/ranked';
@@ -250,7 +250,7 @@ export async function startServer(opts: ServerOptions) {
         // may wear it in front of other players.
         // Refused quietly (the others just see the plain sheep): the client resends its avatar on every connect, and an
         // error here would show "Something went wrong" each time.
-        if (msg.id === ADMIN_AVATAR_ID && !user.isModerator && !(opts.adminUserIds ?? []).includes(userId)) {
+        if (isAdminAvatar(msg.id) && !user.isModerator && !(opts.adminUserIds ?? []).includes(userId)) {
           if (avatars.delete(userId)) { const here = rooms.roomFor(userId); if (here) broadcastRoom(here.code); }
           return;
         }

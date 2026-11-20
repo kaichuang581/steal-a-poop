@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ADMIN_AVATAR_ID, ANIMAL_AVATAR_IDS, AVATAR_IDS, isAvatarId } from '../../../avatars/ids';
+import { ADMIN_AVATAR_ID, ADMIN_AVATAR_IDS, ANIMAL_AVATAR_IDS, AVATAR_IDS, isAvatarId } from '../../../avatars/ids';
 import { useAdmin } from '../../../lib/admin';
 import { ANIMALS, CHARACTERS, byId } from '../catalog';
 import { DISC, discPose } from '../discPose';
@@ -9,7 +9,7 @@ import { getAvatar, setAvatar } from '../store';
 describe('avatar catalog', () => {
   it('offers the animals the server accepts, each once, and never the admin avatar', () => {
     expect(CHARACTERS.map((c) => c.id).sort()).toEqual([...ANIMAL_AVATAR_IDS].sort());
-    expect([...AVATAR_IDS].sort()).toEqual([...ANIMAL_AVATAR_IDS, ADMIN_AVATAR_ID].sort());
+    expect([...AVATAR_IDS].sort()).toEqual([...ANIMAL_AVATAR_IDS, ...ADMIN_AVATAR_IDS].sort());
     expect(byId(ADMIN_AVATAR_ID)).toBeUndefined();
   });
   it('is six distinct animals, one each, named after the animal', () => {

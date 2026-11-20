@@ -6,7 +6,14 @@
  */
 export const ANIMAL_AVATAR_IDS = ['sheep', 'pig', 'cow', 'goat', 'horse', 'chicken'] as const;
 export const ADMIN_AVATAR_ID = 'kaiyan';
-export const AVATAR_IDS = [...ANIMAL_AVATAR_IDS, ADMIN_AVATAR_ID] as const;
+/** The second admin avatar (requested by Brian, 2026-11-20): another photo, flat and plain (no stretched forehead, no glare). */
+export const ADMIN2_AVATAR_ID = 'admin2';
+/** Every admin-only avatar: equipped only from the admin panel and never offered in the picker. */
+export const ADMIN_AVATAR_IDS = [ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID] as const;
+export const AVATAR_IDS = [...ANIMAL_AVATAR_IDS, ...ADMIN_AVATAR_IDS] as const;
 
 export type AvatarId = (typeof AVATAR_IDS)[number];
 export const isAvatarId = (v: unknown): v is AvatarId => typeof v === 'string' && (AVATAR_IDS as readonly string[]).includes(v);
+
+/** True for the admin-only photo avatars. */
+export const isAdminAvatar = (v: unknown): boolean => typeof v === 'string' && (ADMIN_AVATAR_IDS as readonly string[]).includes(v);

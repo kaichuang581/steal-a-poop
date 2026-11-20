@@ -115,132 +115,17 @@
 /* The caret after a bot's half-typed word on its tag. */
 .sk-caret { display: inline-block; width: 0; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; border-left: 2px solid var(--ink); animation: sk-blink 1s steps(1) infinite; }
 
-/* ---------- Title screen (the start screen as a game screen) ----------
-   One type system (Brian, 2026-11-19: "the font for queue doesnt match ... a lot of stuff that just looks plain weird
-   ... i dont want to see random shapes or clunky blocks anywhere"). Three roles and no others: the display face for
-   names (the title, the menu, your name, the word of the day), the hand face for sentences (the tagline, the caption,
-   the tip, the gist), and the body face for small capitals and small print (a row's note, the part of speech, the foot
-   of the screen). All of it floats in the scene on one recipe; the one filled shape is the green Queue button. */
-.sk-home {
-  --home-edge: #2A1A0C;
-  /* Cream or white over a dark outline and glow: it reads over near-white snow, barn red and the night sky alike. */
-  --home-float: 1px 1px 0 var(--home-edge), -1px 1px 0 var(--home-edge), 1px -1px 0 var(--home-edge), -1px -1px 0 var(--home-edge), 0 2px 0 var(--home-edge), 0 0 12px rgba(30, 16, 6, 0.9);
-  --home-float-big: 0 3px 0 var(--wood-ink), 2px 2px 0 var(--home-edge), -2px 2px 0 var(--home-edge), 2px -1px 0 var(--home-edge), -2px -1px 0 var(--home-edge), 0 0 18px rgba(30, 16, 6, 0.85);
-}
-
-/* The title: one wordmark, the update's name over it and the tagline under it. No tiles, boards, snow or holly. */
-.sk-title { display: flex; flex-direction: column; align-items: flex-start; animation: sk-title-fade 500ms var(--ease-out) both; }
-.sk-title-kicker { font: 400 20px/1.1 var(--skin-font-hand); letter-spacing: 0.02em; color: var(--glow); text-shadow: var(--home-float); }
-.sk-title-word {
-  /* The F's stem sits on the left edge the update's name and the tagline keep. */
-  margin: 0 0 6px -0.04em; font-family: var(--skin-font-display); font-weight: 800; font-size: clamp(64px, 5.6vw, 100px); line-height: 1; letter-spacing: -0.01em;
-  color: #fff; text-shadow: var(--home-float-big);
-}
-.sk-title-tagline { max-width: 27rem; font: 400 20px/1.25 var(--skin-font-hand); color: #FFF1D6; text-shadow: var(--home-float); }
-.sk-title-compact { align-items: center; text-align: center; }
-.sk-title-compact .sk-title-kicker { font-size: 16px; }
-.sk-title-compact .sk-title-word { margin: 0 0 2px; font-size: clamp(44px, 14vw, 56px); }
-.sk-title-compact .sk-title-tagline { font-size: 17px; }
-/* Two alternates to choose from, shown only on a development server (?title=b, ?title=c; TitleBoard.tsx). b: capitals
-   in lantern gold. c: the word carved on one board. Delete the two that are not picked. */
-.sk-title[data-title="b"] .sk-title-word { margin-right: -0.14em; font-size: clamp(42px, 3.8vw, 68px); letter-spacing: 0.14em; text-transform: uppercase; color: var(--glow); }
-.sk-title[data-title="c"] .sk-title-word {
-  margin: 8px 0 14px; padding: 12px calc(24px - 0.1em) 9px 24px; font-size: clamp(36px, 3.2vw, 56px); letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--button-text); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.75), 0 1px 0 rgba(255, 220, 170, 0.35);
-}
+/* ---------- Home ----------
+   Home's own styles are src/skin/home/home.css ("Word chain", 2026-11-20). What stays here is shared. */
 @keyframes sk-title-hang { from { transform: translateY(-60px) rotate(-12deg); opacity: 0; } to { opacity: 1; } }
 @keyframes sk-title-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
-/* Menu: the one green button, then plain labels. The item in focus is lit and nothing moves: a row moving or growing
-   under the pointer shifted everything beside it (the old lit Queue slid 10 px and grew 2%). */
-.sk-menu-row { animation: sk-menu-in 420ms var(--ease-out) both; }
-.sk-menu-item {
-  position: relative; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 16px 0 0; border-radius: 3px; text-align: left;
-  font-family: var(--skin-font-display); font-weight: 800; font-size: 23px; letter-spacing: 0.01em;
-  color: #F8EBD0; text-shadow: var(--home-float);
-  transition: color var(--t-fast), box-shadow var(--t-fast);
-}
-.sk-menu-item:disabled { color: rgba(248, 235, 208, 0.45); cursor: not-allowed; }
-/* The row in focus: gold letters and an amber bar in the margin beside it, so every label keeps the title's left edge.
-   The decoration goes only with a lit row: a row that merely kept focus after a click shows nothing. */
-.sk-menu-item[data-active] { color: var(--glow); }
-.sk-menu-item:not(.sk-menu-primary)::before { content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 3px; background: var(--amber); opacity: 0; transition: opacity var(--t-fast); }
-.sk-menu-item[data-active]:not(.sk-menu-primary)::before { opacity: 1; }
-:root[data-skin="painted"] .sk-menu-item:focus-visible { outline: none; }
-/* Queue: green paint with a dark green edge (kit.css gives the face, as it does Sit down's); no wooden frame, snow,
-   icicles or nails. */
-.sk-menu-primary {
-  min-height: 60px; gap: 12px; margin-bottom: 8px; padding: 0 20px 0 16px; border-color: #24402D; font-size: 30px; color: var(--button-text); text-shadow: 0 2px 0 rgba(20, 30, 20, 0.55);
-  box-shadow: inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 5px 0 #24402D;
-  transition: color var(--t-fast), border-color var(--t-fast);
-}
-.sk-menu-primary:disabled { color: var(--button-text); opacity: 0.5; }
-/* Lit: the paint brightens (kit.css) and the edge turns amber. One edge, not a ring round a frame. */
-.sk-menu-primary[data-active] { color: #fff; border-color: var(--amber); box-shadow: inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 5px 0 #24402D; }
-.sk-menu-primary:active:not(:disabled) { transform: translateY(2px); }
-.sk-menu-play-icon { flex: none; }
 .sk-nail-tl { left: 7px; top: 7px; }
 .sk-nail-tr { right: 7px; top: 7px; }
 .sk-nail-bl { left: 7px; bottom: 7px; }
 .sk-nail-br { right: 7px; bottom: 7px; }
-/* A row's note (daily, best 31, the coins): small capitals in the tag's own tint, with no paper tag behind them. */
-.sk-menu-badge { margin-left: 2px; }
-.sk-home :is(.sk-menu-badge, .sk-plate-open) .kit-tag {
-  padding: 0; background: none; clip-path: none; filter: none; font-size: 12px; letter-spacing: 0.1em; color: var(--tag-tint, var(--glow)); text-shadow: var(--home-float);
-}
-.sk-home :is(.sk-menu-badge, .sk-plate-open) .kit-tag::before { display: none; }
-.sk-menu-caption {
-  /* A fixed height: captions run one to three lines, and a growing caption would shift the (vertically centred) menu
-     under the pointer, which then hovers the next item and flickers between the two. */
-  height: 3.9em; overflow: hidden; margin-top: 8px; font-family: var(--skin-font-hand); font-size: 17px; line-height: 1.3;
-  color: #F6E4BE; text-shadow: var(--home-float);
-}
-.sk-menu-compact .sk-menu-item { min-height: 46px; font-size: 21px; }
-.sk-menu-compact .sk-menu-primary { min-height: 58px; font-size: 28px; }
-.sk-menu-compact .sk-menu-caption { font-size: 16px; }
-/* What went wrong (no server to reach, a name that will not do), in the caption's type and out of the menu's flow. */
-.sk-home-note { font: 400 17px/1.3 var(--skin-font-hand); color: #FFF1D6; text-shadow: var(--home-float); }
-.sk-home-note[role="alert"] { color: var(--blush); }
-@keyframes sk-menu-in { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
-
-/* The shade that keeps the type readable over the farm: down the left behind the menu and along the foot behind the
-   small print on a computer, up from the foot on a phone. */
-.sk-wash-left { background: linear-gradient(0deg, rgba(38, 41, 45, 0.5) 0, rgba(38, 41, 45, 0) 100px), linear-gradient(90deg, rgba(38, 41, 45, 0.5) 0%, rgba(38, 41, 45, 0.32) 26%, rgba(38, 41, 45, 0.1) 44%, rgba(38, 41, 45, 0) 56%); }
-.sk-wash-bottom { background: linear-gradient(0deg, rgba(38, 41, 45, 0.66) 0%, rgba(38, 41, 45, 0.4) 45%, rgba(38, 41, 45, 0) 72%); }
-/* The foot of the screen: what the keys do, the version and the links, in one quiet size; and the tip between them. */
-.sk-small { font-family: var(--skin-font-body); font-size: 12px; font-weight: 700; color: #FFF1D6; text-shadow: var(--home-float); }
-.sk-small button { text-decoration: underline; text-decoration-color: rgba(255, 241, 214, 0.5); text-underline-offset: 3px; }
-.sk-small button:hover { color: var(--glow); }
-.sk-prompt { display: inline-flex; align-items: center; gap: 6px; }
-.sk-prompt b { display: inline-flex; gap: 2px; font-weight: 900; color: var(--glow); }
-.sk-tip { font: 400 18px/20px var(--skin-font-hand); color: var(--glow); text-shadow: var(--home-float); animation: sk-title-fade 500ms var(--ease-out) both; }
 /* Lines of a heading or a tip share the words evenly: no single word left on a line of its own (2026-11-20). */
-:root[data-skin="painted"] :is(h1, h2, h3, .sk-tip > span, .sk-notice-title, .sk-notice-sub) { text-wrap: balance; }
-
-/* Your name, top left: the avatar on a peg like the round buttons across the bar, and the name floating beside it; the
-   whole thing is the button into your profile. (It also carries the table's .sk-plate by name; that knitted plate is
-   undone on Home.) */
-.sk-plate-id { display: flex; flex-direction: column; gap: 2px; min-width: 6.5rem; max-width: 12rem; text-align: left; }
-.sk-plate-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--skin-font-display); font-size: 20px; line-height: 1.15; }
-.sk-plate-sub { display: flex; gap: 8px; font: 400 15px/1.1 var(--skin-font-hand); letter-spacing: 0.01em; color: #FFF1D6; }
-.sk-plate-sub > :last-child { color: var(--glow); }
-button.sk-plate { border: 0; color: var(--button-text); transition: color var(--t-fast); }
-button.sk-plate:hover .sk-plate-name { color: var(--glow); }
-button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset: 4px; }
+:root[data-skin="painted"] :is(h1, h2, h3, .sk-notice-title, .sk-notice-sub) { text-wrap: balance; }
 .sk-plate { display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 10px; font-family: var(--skin-font-body); font-weight: 800; }
-.sk-home .sk-plate-open { gap: 12px; padding: 0; border-radius: 0; white-space: normal; background: none; outline: 0; box-shadow: none; opacity: 1; text-shadow: var(--home-float); }
-.sk-home .sk-plate-avatar { width: 44px; height: 44px; cursor: inherit; text-shadow: none; }
-
-/* One cut of the display face. Fraunces has an optical-size axis and the browser sets it from the font size, so the
-   44 px Queue was drawn in the display cut (thin hairlines, tight curls) and the 22 px rows in the text cut: one
-   family that read as two. Home pins the axis for all of its display type. After the rules above, and no `font`
-   shorthand on these four anywhere at this weight or over: the shorthand puts the axis back to automatic. */
-.sk-home :is(.sk-title-word, .sk-menu-item, .sk-plate-name, .sk-wotd-word) { font-variation-settings: 'opsz' 24; }
-
-:root[data-skin="painted"].reduce-motion :is(.sk-title, .sk-menu-row, .sk-tip) { animation: none; }
-@media (prefers-reduced-motion: reduce) {
-  .sk-title, .sk-menu-row, .sk-tip { animation: none; }
-}
 
 /* ---------- Cursors: the usual arrow and pointing hand, drawn as pixel art in the skin's palette ----------
    Cream with a wood outline and a soft shadow (src/skin/assets/cursors). SVG first (sharp at any pixel ratio), a PNG
@@ -938,31 +823,10 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @media (prefers-reduced-motion: reduce) { .sk-jump, .sk-wordblast { display: none; } }
 
 
-/* Short windows (a laptop's browser is one): a smaller title and closer rows, so the menu fits between the name plate
-   and the bottom bar with Leaderboards and Join party on it. */
-@media (max-height: 800px) and (min-width: 641px) {
-  .sk-home .sk-title-word { font-size: clamp(56px, 5.2vw, 72px); }
-  .sk-home .sk-menu-item:not(.sk-menu-primary) { min-height: 38px; font-size: 22px; }
-  .sk-home .sk-menu-primary { min-height: 54px; font-size: 28px; }
-}
-@media (max-height: 740px) and (min-width: 641px) {
-  .sk-home .sk-title-word { font-size: 52px; }
-  .sk-home .sk-menu-item:not(.sk-menu-primary) { min-height: 35px; font-size: 21px; }
-  .sk-home .sk-menu-primary { min-height: 50px; font-size: 26px; }
-}
-/* A big screen: the menu a step larger, so it does not shrink into the corner. */
-@media (min-width: 1700px) and (min-height: 950px) {
-  .sk-home .sk-menu-item:not(.sk-menu-primary) { min-height: 50px; font-size: 26px; }
-  .sk-home .sk-menu-primary { min-height: 66px; font-size: 34px; }
-  .sk-home .sk-menu-caption { font-size: 19px; }
-}
 /* A phone on its side gets the phone layout (usePhoneLayout in device.ts) in a window wider than 640 px. The row of
-   names runs five across there, so ten seats are two rows and the word bar stays on screen; and the menu's rows keep a
-   finger's height (the two short-window rules above are for a computer's menu and would shrink them). */
+   names runs five across there, so ten seats are two rows and the word bar stays on screen. */
 @media (max-height: 500px) and (pointer: coarse) and (min-width: 641px) {
   .sk-ledger-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .sk-home .sk-menu-compact .sk-menu-item:not(.sk-menu-primary) { min-height: 46px; font-size: 21px; }
-  .sk-home .sk-menu-compact .sk-menu-primary { min-height: 58px; font-size: 28px; }
 }
 
 /* ---------- Rooms and the lobby (classic components, V6 6.5): a panel of planks, paper fields, brass and wood buttons ---------- */
@@ -1076,29 +940,6 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 }
 :root.reduce-motion .sk-podium, :root.reduce-motion .sk-final { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-podium, .sk-final { animation: none; } }
-
-/* The word of the day (src/skin/wotd/WordOfDay.tsx), set like a dictionary entry and floating in the scene: no paper.
-   The title's own type on the other side of the screen: a label in the hand face, the word in the display face, then
-   how to say it with its part of speech in small capitals, and the gist. Level and still. It never takes clicks. */
-.sk-wotd { display: flex; flex-direction: column; gap: 3px; pointer-events: none; color: #fff; text-shadow: var(--home-float); }
-.sk-wotd-label { font: 400 20px/1.1 var(--skin-font-hand); color: var(--glow); letter-spacing: 0.02em; }
-.sk-wotd-word { font-family: var(--skin-font-display); font-weight: 800; font-size: clamp(34px, 3vw, 52px); line-height: 1.1; text-shadow: var(--home-float-big); }
-/* The dictionary line: how to say it, and the part of speech. */
-.sk-wotd-say { display: flex; align-items: baseline; gap: 10px; font: 600 15px/1.2 var(--skin-font-body); letter-spacing: 0.04em; color: #FFE9C7; }
-.sk-wotd-pos { font-size: 12px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: var(--glow); }
-.sk-wotd-short { font: 400 20px/1.25 var(--skin-font-hand); color: #FFF1D6; }
-/* A computer: on the right, its top level with the title's, clear of everything on the left. */
-.sk-wotd--side { max-width: 24rem; align-items: flex-end; text-align: right; }
-/* A phone: two small lines under the title. */
-.sk-wotd--compact { margin-top: 8px; max-width: calc(100vw - 32px); flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 6px; row-gap: 2px; text-align: center; }
-.sk-wotd--compact .sk-wotd-label { font-size: 14px; }
-.sk-wotd--compact .sk-wotd-word { font-size: 19px; line-height: 1; text-shadow: var(--home-float); }
-.sk-wotd--compact .sk-wotd-say { font-size: 11px; gap: 4px; }
-.sk-wotd--compact .sk-wotd-pos { display: none; }
-.sk-wotd--compact .sk-wotd-short { flex-basis: 100%; font-size: 15px; line-height: 1.1; }
-/* Under a full page (the Trading Post, the leaderboards, the profile) Home's title and word of the day hold still. */
-.sk-home[data-covered] :is(.sk-title, .sk-wotd), .sk-home[data-covered] :is(.sk-title, .sk-wotd) *, .sk-home[data-covered] :is(.sk-title, .sk-wotd) ::before,
-.sk-home[data-covered] :is(.sk-title, .sk-wotd) ::after { animation-play-state: paused; }
 
 /* Home's farm (FarmBackdrop): over a soft sky until the farm and the land round it are built, then it fades in. */
 .sk-farm-fade { opacity: 0; transition: opacity 700ms ease-out; }
@@ -1587,8 +1428,6 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   .sk-prof-board-row { grid-template-columns: 2.4em minmax(0, 1fr) 6em; padding: 6px 10px; }
   .sk-prof-board-level { display: none; }
 }
-.sk-plate-open { cursor: pointer; text-align: left; }
-.sk-bazaar-btn { width: auto; min-width: 44px; padding: 0 10px; gap: 4px; display: inline-flex; align-items: center; font-weight: 800; }
 /* Frost in the last three seconds: ice creeping in from all four edges, thicker as the fuse burns down. */
 .sk-frost { position: fixed; inset: 0; z-index: 35; pointer-events: none; --t: calc(var(--frost) * 7vmin); }
 .sk-frost > .kit-ice { position: absolute; opacity: calc(0.35 + var(--frost) * 0.5); transition: width 300ms linear, height 300ms linear; }

@@ -13,8 +13,8 @@ import { describe, expect, it } from 'vitest';
 const SMALL_TEXT_LIMIT = 3;
 /** Distinct colours among the hex, rgb() and rgba() literals of src/skin/**\/*.css, counted as the plan counted its 267
  *  (and as tools/gate/banned.mjs does): the alpha left out, a hex and an rgb() of one colour counted once. 264 once
- *  Home's title tiles, update board and menu patch went (2026-11-19). */
-const CSS_COLOUR_LIMIT = 264;
+ *  Home's title tiles, update board and menu patch went (2026-11-19); 261 with the "Word chain" Home (2026-11-20). */
+const CSS_COLOUR_LIMIT = 261;
 /** Lines of player-facing code in src/skin with a middle dot in them (comments and dev-only pages left out). 39 at the
  *  plan's count; 34 by this rule at milestone 10; 30 once Home's name plate, version line and blanket caption lost
  *  theirs (2026-11-19); 0 once the rest went in the polish of 2026-11-20. No new one: "No middle dot between phrases"
@@ -98,9 +98,10 @@ describe('type and copy ratchets (plan file 13)', () => {
     expect(found.length, `font sizes under 11 px (limit ${SMALL_TEXT_LIMIT}):\n${found.join('\n')}`).toBeLessThanOrEqual(SMALL_TEXT_LIMIT);
   });
 
-  it('the phone word of the day says its pronunciation at 11 px, not 10', () => {
-    const text = readFileSync('src/skin/styles/skin.css', 'utf8');
-    expect(text).toMatch(/\.sk-wotd--compact \.sk-wotd-say \{ font-size: 11px;/);
+  it('the phone word of the day is 11 px at its smallest (its label), and leaves the pronunciation to the computer', () => {
+    const text = readFileSync('src/skin/home/home.css', 'utf8');
+    expect(text).toMatch(/\.sk-wotd--compact \.sk-wotd-label \{ font-size: 11px; \}/);
+    expect(text).toMatch(/\.sk-wotd--compact \.sk-wotd-say \{ display: none; \}/);
   });
 
   it('raw colours in the skin\'s CSS only get fewer', () => {

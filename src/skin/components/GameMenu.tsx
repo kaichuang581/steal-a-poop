@@ -1,54 +1,50 @@
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { playTick } from '../../audio/sound';
+import { PlayIcon } from './Icons';
 
 export interface MenuItem {
   id: string;
   label: ReactNode;
-  /** One line for the caption under the menu while this item is focused. */
+  /** What the item is, in a sentence: Home's card shows it for the chosen item, and it describes the button. */
   caption: ReactNode;
   onSelect: () => void;
   disabled?: boolean;
   /** A small tag beside the label: a streak, "done", "soon". */
   badge?: ReactNode;
-  /** A small pixel icon before the label (the items under Play). */
+  /** The icon on the board's tile. */
   icon?: ReactNode;
-}
-
-/** Whether the element's focus came from the keyboard (so it should be lit); true where the browser cannot say. */
-function focusVisible(el: Element): boolean {
-  try { return el.matches(':focus-visible'); } catch { return true; }
+  /** A short line under the label (Queue's). */
+  sub?: ReactNode;
+  /** Home's card only: something to show beside its action (Counting Sheep's nights). */
+  more?: ReactNode;
 }
 
 /**
- * A console-style title menu: the first item (Queue) is the one green button, the rest are plain labels, and the item
- * focused or hovered is lit (skin.css: a brighter face for the button, gold letters and a bar for a label; nothing
- * moves). Arrow keys (and W/S) move, Enter or Space picks, Home/End jump. The focused item's caption shows below, so
- * the labels can stay short.
- *
- * A row is lit only while the pointer is over it, or while the keyboard is driving the menu: once the pointer leaves,
- * nothing stays highlighted. The active index (for the keys and the caption) is remembered either way.
+ * A console-style title menu (Home, "Word chain", 2026-11-20): a stack of boards, the first (Queue) the big one. The
+ * chosen board is lit gold and slides out (home/home.css; it only slides, so nothing else moves), and stays lit until
+ * another is chosen, by the pointer, the arrow keys (and W/S) or Tab: Home's card follows it (`onActive`). Enter or
+ * Space picks, Home/End jump. The chosen item's caption describes its button.
  */
-export function GameMenu({ items, label, compact = false, autoFocus = false, keys = false }: {
+export function GameMenu({ items, label, compact = false, autoFocus = false, keys = false, onActive }: {
   items: MenuItem[]; label: string; compact?: boolean; autoFocus?: boolean;
+  /** Told the id of the chosen item whenever it changes. */
+  onActive?: (id: string) => void;
   /** Listen for the arrow keys, W/S, Home/End and Enter anywhere on the page, not only when the menu has focus. */
   keys?: boolean;
 }) {
   const [active, setActive] = useState(() => Math.max(0, items.findIndex((i) => !i.disabled)));
-  // The row under the pointer, and whether the keyboard (not the pointer) made the last move: together they decide
-  // which row is lit. The menu starts in keyboard mode so the first live row is lit before anyone touches it.
-  const [hover, setHover] = useState<number | null>(null);
-  const [keyboard, setKeyboard] = useState(true);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   // Whether the player has touched the menu (pointer, keys, Tab); `settling` marks the menu's own focus calls.
   const touched = useRef(false);
   const settling = useRef(false);
   const enabled = items.map((it, i) => (it.disabled ? -1 : i)).filter((i) => i >= 0);
-  const lit = (i: number) => hover === i || (keyboard && i === active);
+  const lit = (i: number) => i === active;
+  const activeId = items[active]?.id;
+  useEffect(() => { if (activeId) onActive?.(activeId); }, [activeId, onActive]);
 
   const move = (to: number) => {
     touched.current = true;
-    setKeyboard(true);
     if (to === active) return;
     setActive(to);
     refs.current[to]?.focus();
@@ -108,7 +104,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
   // menu would: the first live item, lit for the keys.
   const wasAuto = useRef(autoFocus);
   useEffect(() => {
-    if (autoFocus && !wasAuto.current) { touched.current = false; setHover(null); setKeyboard(true); }
+    if (autoFocus && !wasAuto.current) touched.current = false;
     wasAuto.current = autoFocus;
     if (!autoFocus || !live) return;
     const el = document.activeElement;
@@ -125,43 +121,46 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
 
   const caption = items[active]?.caption;
   const item = (it: MenuItem, i: number) => (
-    <li key={it.id} className="sk-menu-row" style={{ animationDelay: `${300 + i * 70}ms` }}>
+    <li key={it.id} className="sk-menu-row" style={{ '--n': i, animationDelay: `${200 + i * 60}ms` } as CSSProperties}>
       <button
         ref={(el) => { refs.current[i] = el; }}
-        className={`sk-menu-item ${i === 0 ? 'sk-menu-primary' : ''}`.trim()}
+        className={`sk-menu-item hm-board ${i === 0 ? 'sk-menu-primary' : ''}`.trim()}
         data-active={lit(i) || undefined}
         disabled={it.disabled}
         onClick={it.onSelect}
-        onFocus={(e) => {
+        onFocus={() => {
           if (!settling.current) touched.current = true;
           setActive(i);
-          if (focusVisible(e.currentTarget)) setKeyboard(true);
         }}
         onPointerEnter={() => {
           if (it.disabled) return;
           touched.current = true;
-          setHover(i);
-          setKeyboard(false);
+          // The pointer chooses too: focus follows it, so Enter then picks the board that is lit.
           if (i !== active) { setActive(i); playTick(0.15); }
+          if (document.activeElement !== refs.current[i] && (!document.activeElement || document.activeElement === document.body || refs.current.includes(document.activeElement as HTMLButtonElement))) {
+            settling.current = true;
+            refs.current[i]?.focus({ preventScroll: true });
+            settling.current = false;
+          }
         }}
-        onPointerLeave={() => setHover((h) => (h === i ? null : h))}
         aria-describedby={i === active ? 'sk-menu-caption' : undefined}
       >
-        {i === 0 && <svg className="sk-menu-play-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 4.8 C7 3.6 8.3 2.9 9.3 3.6 L20 10.8 C20.9 11.4 20.9 12.6 20 13.2 L9.3 20.4 C8.3 21.1 7 20.4 7 19.2 Z" fill="currentColor" /></svg>}
-        <span className="sk-menu-label">{it.label}</span>
-        {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
+        <span className="hm-in">
+          {it.icon && <span className="hm-ico" aria-hidden="true">{it.icon}</span>}
+          <span className="hm-txt">
+            <span className="sk-menu-label">{it.label}</span>
+            {it.sub && <span className="hm-sub">{it.sub}</span>}
+          </span>
+          {it.badge && <span className="sk-menu-badge">{it.badge}</span>}
+          {i === 0 && <span className="hm-go" aria-hidden="true"><PlayIcon /></span>}
+        </span>
       </button>
     </li>
   );
-  // The green button on its own, then the other labels, then the caption for the item in focus.
   return (
     <nav aria-label={label} className={`sk-menu ${compact ? 'sk-menu-compact' : ''}`} onKeyDown={keys ? undefined : (e) => { onKey(e); }}>
-      <ul className="flex flex-col">{items.slice(0, 1).map((it) => item(it, 0))}</ul>
-      <div className="sk-menu-board">
-        <ul className="flex flex-col">{items.slice(1).map((it, k) => item(it, k + 1))}</ul>
-        <p id="sk-menu-caption" className="sk-menu-caption">{caption}</p>
-      </div>
+      <ul>{items.map(item)}</ul>
+      <p id="sk-menu-caption" className="sr-only">{caption}</p>
     </nav>
   );
 }
-

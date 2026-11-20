@@ -124,14 +124,13 @@ describe('motion and feel', () => {
     }
     expect(bad).toEqual([]);
   });
-  it('Home marks itself covered under a full page and pauses its title and word of the day (change 3)', () => {
+  it('Home marks itself covered under a full page and pauses its slab, title and word of the day (change 3)', () => {
     const home = readFileSync('src/skin/screens/PaintedHome.tsx', 'utf8');
     expect(home).toMatch(/className=\{`sk-home[^`]*`\} data-covered=\{bazaar \|\| boards \|\| profile \|\| undefined\}/);
-    const skin = css.find(({ f }) => f.endsWith('styles/skin.css'))!.text;
-    const paused = rules(skin).filter(({ decls }) => /animation-play-state:\s*paused/.test(decls)).flatMap(({ sel }) => topLevel(sel));
-    for (const sel of [':is(.sk-title, .sk-wotd)', ':is(.sk-title, .sk-wotd) *', ':is(.sk-title, .sk-wotd) ::before', ':is(.sk-title, .sk-wotd) ::after']) {
-      expect(paused).toContain(`.sk-home[data-covered] ${sel}`);
-    }
+    const homeCss = css.find(({ f }) => f.endsWith('home/home.css'))!.text;
+    const paused = rules(homeCss).filter(({ decls }) => /animation-play-state:\s*paused/.test(decls)).flatMap(({ sel }) => topLevel(sel));
+    const all = ':is(.hm-slab, .hm-title, .sk-wotd)';
+    for (const sel of [all, `${all} *`, `${all} ::before`, `${all} ::after`]) expect(paused).toContain(`.sk-home[data-covered] ${sel}`);
   });
 
   it('the desktop menu sits in one wrapper whatever the step, so a panel never remounts it (change 4)', () => {

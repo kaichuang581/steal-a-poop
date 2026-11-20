@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
@@ -30,7 +31,7 @@ import { openSignInForm } from '../onboarding/Onboarding';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
-import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BagIcon, BlanketIcon, FlameIcon, GearIcon, HelpIcon, LeafIcon, LockIcon, SeedlingIcon } from '../components/Icons';
+import { AcornIcon, ArrowDownIcon, ArrowUpIcon, BarnIcon, BlanketIcon, ClockIcon, CrescentIcon, FlameIcon, GearIcon, HelpIcon, KeyIcon, LeafIcon, PawIcon, PlayIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
@@ -41,14 +42,12 @@ import { Leaderboards } from '../boards/Leaderboards';
 import { useWallet } from '../shop/store';
 import { CoinArt } from '../shop/art';
 import { formatCoins } from '../shop/format';
-import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
-import { AvatarButtonIcon } from '../components/PixelIcons';
 import { PaintedGuide } from '../components/PaintedGuide';
 import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
-import { TitleBoard } from '../components/TitleBoard';
+import { HomeCard, HomeSlab, HomeTitle } from '../home/HomeParts';
 import { WordOfDay } from '../wotd/WordOfDay';
 import { Chip, PaperPanel, WoodButton } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
@@ -75,6 +74,17 @@ const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => M
 const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
 /** What Queue says in a copy of the game that has no server to reach. */
+/** What the button on Home's card says for each item (the Queue's card has Casual and Ranked instead). */
+const CARD_ACTION: Record<string, (rooms: boolean, dreamt: boolean) => string> = {
+  lobby: (rooms) => (rooms ? 'Open my barn' : 'Set the table'),
+  join: () => 'Enter a code',
+  dream: (_, dreamt) => (dreamt ? 'Copy my result' : 'Dream tonight'),
+  repair: () => 'Dream it now',
+  practice: () => 'Set up a run',
+  tutorial: () => 'Start the tutorial',
+};
+/** The legal pages' names as the small print says them (each button's label is the full title). */
+const SHORT_LEGAL: Record<LegalSlug, string> = { privacy: 'Privacy', terms: 'Terms', 'child-safety': 'Child safety' };
 const NO_SERVER = 'Real people need the game server, and this copy of the game has none. Create lobby plays the farm sheep.';
 
 const TIPS = [
@@ -102,7 +112,6 @@ export function PaintedHome() {
   const [partyCode, setPartyCode] = useState('');
   const entering = useRoomStore((st) => st.entering);
   const [help, setHelp] = useState(false);
-  const [pickAvatar, setPickAvatar] = useState(false);
   const [bazaar, setBazaar] = useState(false);
   const [profile, setProfile] = useState(false);
   const wallet = useWallet();
@@ -120,6 +129,8 @@ export function PaintedHome() {
   const [copiedDream, setCopiedDream] = useState(false);
   const [signIn, setSignIn] = useState(false);
   const [boards, setBoards] = useState(false);
+  // The menu item chosen (lit), whose card shows on the right.
+  const [chosen, setChosen] = useState('queue');
   // Where the hero looks. A ref, not state (plan file 17, change 11): the sheep reads it as it is drawn, so moving the
   // pointer over Home renders nothing.
   const heroYaw = useRef(0);
@@ -208,75 +219,70 @@ export function PaintedHome() {
   // The queue is for real people, always (Brian, 2026-11-13: "quick play and play should not bring you into bot lobbies").
   // A copy of the game with no server to reach (local development without one) still shows Queue: it says why it cannot be used.
   const items: MenuItem[] = [
-    { id: 'queue', label: 'Queue', caption: rooms ? 'Search for a game with real people: casual or ranked.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : undefined) }, // with no server its caption already says why
+    { id: 'queue', label: 'Queue', icon: <PlayIcon />, sub: 'Real people, casual or ranked', caption: rooms ? 'We find you a table of real people. Casual for fun, Ranked to climb from Wood to Zenith.' : NO_SERVER, disabled: entering, onSelect: () => (rooms ? (setError(''), setChooser(true)) : undefined) }, // with no server its caption already says why
     // One lobby for every table you set yourself (Brian, 2026-11-14: "make custom game and create lobby the same thing ...
     // only with bots, only players, or bots and players"): inside it the host adds farm sheep, invites friends, or both.
     // It opens with the farm sheep the host had last time. With no server there is no lobby to open, so the same item
     // sets a table of farm sheep on this device.
     rooms
-      ? { id: 'lobby', label: 'Create lobby', caption: 'Make your own barn and invite friends with the party code.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private' }) }
-      : { id: 'lobby', label: ready ? 'Create lobby' : 'Loading…', caption: 'Set a table of farm sheep (bots), then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
+      ? { id: 'lobby', label: 'Create lobby', icon: <BarnIcon />, badge: <MenuTag tone="gray">your barn</MenuTag>, caption: 'Make your own barn and invite friends with the party code.', disabled: entering, onSelect: () => online({ t: 'create', visibility: 'private' }) }
+      : { id: 'lobby', label: ready ? 'Create lobby' : 'Loading…', icon: <BarnIcon />, badge: <MenuTag tone="gray">farm sheep</MenuTag>, caption: 'Set a table of farm sheep (bots), then sit down.', disabled: !ready, onSelect: () => setStep('setup') },
     ...(rooms ? [
-      { id: 'join', label: 'Join party', caption: 'Got a party code from a friend? Type it in.', onSelect: () => { setPartyCode(''); setStep('join'); } },
+      { id: 'join', label: 'Join party', icon: <KeyIcon />, badge: <MenuTag tone="gray">got a code?</MenuTag>, caption: 'Got a party code from a friend? Type it in and you are at their table.', onSelect: () => { setPartyCode(''); setStep('join'); } },
     ] satisfies MenuItem[] : []),
     // Admin plays tonight's dream as often as it likes; everyone else gets the one attempt, then the share.
     admin
       ? {
-        id: 'dream', label: 'Counting Sheep', badge: <MenuTag tone="gold">admin</MenuTag>, disabled: !ready,
+        id: 'dream', label: 'Counting Sheep', icon: <CrescentIcon />, badge: <MenuTag tone="gold">admin</MenuTag>, disabled: !ready,
         caption: `Tonight's dream, as often as you like${dream?.status === 'done' ? ` (last run: ${dream.count ?? 0} sheep)` : ''}.`,
         onSelect: () => useDreamUi.getState().openDream(false),
       }
       : dream
       ? {
-        id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep',
+        id: 'dream', label: dream.status === 'done' ? (copiedDream ? 'Copied!' : 'Share dream') : 'Counting Sheep', icon: <CrescentIcon />,
         badge: dream.status === 'done' ? <MenuTag tone="gold">{dream.count ?? 0} sheep</MenuTag> : <MenuTag tone="gray">used</MenuTag>,
         disabled: dream.status !== 'done', onSelect: shareDream,
-        caption: <>The farmer is up for the day. Tonight's dream starts at {timeOfNext}.{nights}</>,
+        caption: <>The farmer is up for the day. Tonight's dream starts at {timeOfNext}.</>, more: nights,
       }
       : {
-        id: 'dream', label: 'Counting Sheep', badge: streak > 0 ? <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</MenuTag> : <MenuTag tone="gold">daily</MenuTag>, disabled: !ready,
-        caption: <>{covered ? `A Warm Blanket kept your streak warm: ${streak} nights. ` : ''}Keep the farmer asleep: type words with each fence's letters so the sheep clears it. One dream a night.{nights}</>,
+        id: 'dream', label: 'Counting Sheep', icon: <CrescentIcon />, badge: streak > 0 ? <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak} night{streak === 1 ? '' : 's'}</MenuTag> : <MenuTag tone="gold">daily</MenuTag>, disabled: !ready,
+        caption: <>{covered ? `A Warm Blanket kept your streak warm: ${streak} nights. ` : ''}Keep the farmer asleep: type words with each fence's letters so the sheep clears it. One dream a night.</>, more: nights,
         onSelect: () => useDreamUi.getState().openDream(false),
       },
     ...(repair && !admin ? [{
-      id: 'repair', label: 'Dream last night\'s dream', badge: <MenuTag tone="gold">keeps your streak</MenuTag>, disabled: !ready,
+      id: 'repair', label: 'Dream last night\'s dream', icon: <CrescentIcon />, badge: <MenuTag tone="gold">keeps your streak</MenuTag>, disabled: !ready,
       caption: `Last night's dream, dreamt today: until ${new Date(new Date().setHours(23, 59, 0, 0)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase()}.`,
       onSelect: () => useDreamUi.getState().openDream(false, repair),
     } satisfies MenuItem] : []),
     {
-      id: 'practice', label: 'Practice', badge: drillBest > 0 ? <MenuTag tone="green">best {drillBest}</MenuTag> : undefined, disabled: !ready,
+      id: 'practice', label: 'Practice', icon: <ClockIcon />, badge: drillBest > 0 ? <MenuTag tone="green">best {drillBest}</MenuTag> : undefined, disabled: !ready,
       caption: 'You against one bot, on one life. Chain as many words as you can.', onSelect: () => setStep('practice'),
     },
-    { id: 'tutorial', label: 'Tutorial', caption: 'A guided first game with the sheepdog.', disabled: !ready, onSelect: () => startTour('menu') },
-    {
-      id: 'bazaar', label: 'Trading Post', badge: <MenuTag tone="gold" label={`${formatCoins(wool)} Wool Coins`}><CoinArt size={13} />{formatCoins(wool, true)}</MenuTag>,
-      caption: 'Feed Sacks of bomb skins, bursts and fuse sounds, missions, and your collection.', onSelect: () => setBazaar(true),
-    },
-    // The leaderboards sit under the Trading Post in the menu (Brian, 2026-11-14: "keep the full page but put it below the
-    // trading post button ... in the same area though so the font and everything should match"). It was a trophy button
-    // in the top bar. They need the game server, like the queue.
-    ...(rooms ? [{ id: 'boards', label: 'Leaderboards', caption: 'The best players: Ranked, Wins and Level, and where you stand.', onSelect: () => setBoards(true) }] satisfies MenuItem[] : []),
+    { id: 'tutorial', label: 'Tutorial', icon: <PawIcon />, caption: 'A guided first game with the sheepdog, who shows you every rule as it comes up.', disabled: !ready, onSelect: () => startTour('menu') },
+    // The Trading Post and the leaderboards are in the top bar (the wallet and the trophy) since the "Word chain" Home
+    // (Brian, 2026-11-20, picked from the mock-ups): before, they were the menu's last two items (2026-11-14).
   ];
   // The name plate opens the profile, where the name, the avatar and the stats live.
   const shownName = (signedIn ? accountName : settings.name) || '';
+  const lvl = levelOf(wallet.xp);
   // The box with your name IS the profile (Brian, 2026-11-14: "make the profile thing not a button below the quickplay
-  // but that box in the top left, just embed it in there"): the whole box is one button, and it says so under the name.
-  // No board behind it: the avatar's peg, like the round buttons across the bar, and the name floating beside it.
-  const profilePlate = (avatarSize: number, className: string, extra?: ReactNode) => (
+  // but that box in the top left, just embed it in there"): one board, the avatar on a peg at its end, the name, the
+  // level and how far to the next.
+  const profilePlate = (
     <button
-      type="button" className={`sk-plate sk-plate-open ${className}`} onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
-      aria-label={`Your profile${shownName ? `: ${shownName}` : ''}, level ${levelOf(wallet.xp).level}`} title="Your profile: stats, rank, name and avatar" data-profile
+      type="button" className={`hm-me hm-board`} onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
+      aria-label={`Your profile${shownName ? `: ${shownName}` : ''}, level ${lvl.level}`} title="Your profile: stats, rank, name and avatar" data-profile
     >
-      <span className="sk-plate-avatar kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={avatarSize} /> : <SheepIcon size={avatarSize} />}</span>
-      <span className="sk-plate-id">
-        <span className="sk-plate-name">{shownName || <span style={{ opacity: 0.75 }}>Your name</span>}</span>
-        <span className="sk-plate-sub"><span>Level {levelOf(wallet.xp).level}</span><span>Profile</span></span>
+      <span className="hm-me-peg kit-peg kit-peg--light" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={mobile ? 24 : 30} /> : <SheepIcon size={mobile ? 24 : 30} />}</span>
+      <span className="hm-me-id">
+        <span className="hm-me-name">{shownName || <span style={{ opacity: 0.75 }}>Your name</span>}</span>
+        <span className="hm-me-lvl">LV {lvl.level}<span className="hm-xp" aria-hidden="true"><i style={{ width: `${Math.round((100 * lvl.into) / Math.max(1, lvl.need))}%` }} /></span></span>
       </span>
-      {extra}
+      {!mobile && streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
     </button>
   );
   // What went wrong never moves the menu (Brian: nothing shifts when a button is pressed). It is laid out of the
-  // flow: under the caption on a computer, just above the menu's panel on a phone, in the caption's own type.
+  // flow: under the menu on a computer, just above it on a phone.
   const notes = dictStatus === 'error' || error || (roomNotice && step !== 'join') ? (
     <>
       {dictStatus === 'error' && (
@@ -285,29 +291,28 @@ export function PaintedHome() {
           <WoodButton onClick={() => void retryDictionary()} className="mt-2">Retry</WoodButton>
         </PaperPanel>
       )}
-      {error && <p role="alert" className="sk-home-note">{error}</p>}
-      {roomNotice && step !== 'join' && <p role="status" className="sk-home-note">{roomNotice}</p>}
+      {error && <p role="alert">{error}</p>}
+      {roomNotice && step !== 'join' && <p role="status">{roomNotice}</p>}
     </>
   ) : null;
   const tables = (
-    <div className="relative flex flex-col gap-3" key="tables">
-      {mobile && profilePlate(26, 'self-start')}
-      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} />
-      {!mobile && notes && <div className="absolute inset-x-0 top-full mt-2 flex flex-col gap-2">{notes}</div>}
+    <div className="relative" key="tables">
+      <GameMenu items={items} label="Main menu" compact={mobile} autoFocus={!mobile && step === 'tables'} keys={step === 'tables'} onActive={setChosen} />
+      {!mobile && notes && <div className="hm-note">{notes}</div>}
     </div>
   );
 
   const setup = (
-    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
+    <div className={`hm-sheet hm-board space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
       <div className="sk-setup-head">
         <h2>{rooms ? 'Custom game' : 'Set the table'}</h2>
         <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
       </div>
-      {rooms && <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>A table of your own against the farm sheep (bots).</p>}
+      {rooms && <p className="sk-hand text-lg">A table of your own against the farm sheep (bots).</p>}
       {table.first && <p className="sk-display text-base">Easy table for your first games</p>}
-      {error && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
+      {error && <p role="alert" className="text-sm font-bold">{error}</p>}
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Game length</legend>
+        <legend className="text-sm font-bold">Game length</legend>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {PRESET_IDS.map((id) => (
             <Chip key={id} aria-pressed={preset === id} className="capitalize" onClick={() => { if (id !== 'custom') setRule(PRESETS[id]); }}>{id}</Chip>
@@ -316,7 +321,7 @@ export function PaintedHome() {
         <p className="mt-1.5" aria-live="polite"><span className="kit-slate kit-slate--mini"><span className="kit-slate-face kit-chalk-hand">about {minutes} min</span></span></p>
       </fieldset>
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Sheep at the table</legend>
+        <legend className="text-sm font-bold">Sheep at the table</legend>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {COUNTS.map((c) => <button key={c} type="button" className={`kit-tile kit-tile--sm ${settings.playerCount === c ? 'kit-tile--lit' : ''}`} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</button>)}
         </div>
@@ -326,22 +331,22 @@ export function PaintedHome() {
             <span key={i} className="sk-walk-in" style={{ animationDelay: `${i * 40}ms` }}><SheepIcon size={i === 0 ? 26 : 22} /></span>
           ))}
         </div>
-        <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">{farmSheepLine(settings.playerCount - 1)}</p>
+        <p className="sk-hand mt-1 text-base" aria-live="polite">{farmSheepLine(settings.playerCount - 1)}</p>
       </fieldset>
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot difficulty</legend>
+        <legend className="text-sm font-bold">Bot difficulty</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
             <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })} aria-pressed={table.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
           ))}
         </div>
       </fieldset>
-      <details className="px-1 py-1" style={{ borderTop: '1px dashed var(--ink-soft)', borderBottom: '1px dashed var(--ink-soft)' }} open={preset === 'custom'}>
-        <summary className="cursor-pointer text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Custom rules</summary>
+      <details className="hm-rules px-1 py-1" open={preset === 'custom'}>
+        <summary className="cursor-pointer text-sm font-bold">Custom rules</summary>
         <div className="space-y-2 py-2">
           {RULES.map((r) => (
             <fieldset key={r.key}>
-              <legend className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--ink-soft)' }}>{r.label}</legend>
+              <legend className="text-xs font-bold uppercase tracking-wide">{r.label}</legend>
               <div className="mt-1 flex flex-wrap gap-1">
                 {r.values.map((v) => (
                   <Chip key={String(v)} aria-pressed={rules[r.key] === v} onClick={() => setRule({ [r.key]: v } as Partial<GameSettings>)}>{r.show ? r.show(v) : String(v)}</Chip>
@@ -352,43 +357,43 @@ export function PaintedHome() {
         </div>
       </details>
       <button onClick={() => go('quick')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Sit down</button>
-    </PaperPanel>
+    </div>
   );
 
   const drillSetup = (
-    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="practice" role="dialog" aria-label="Practice run">
+    <div className={`hm-sheet hm-board space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="practice" role="dialog" aria-label="Practice run">
       <div className="sk-setup-head">
         <h2>Practice</h2>
         <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
       </div>
-      <p className="text-sm" style={{ color: 'var(--ink-soft)' }}>You and one bot, on one life. Every word you play scores a point, the clock loses a second every 5 words, and your run ends the first time it runs out.</p>
+      <p className="text-sm">You and one bot, on one life. Every word you play scores a point, the clock loses a second every 5 words, and your run ends the first time it runs out.</p>
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Starting clock</legend>
+        <legend className="text-sm font-bold">Starting clock</legend>
         <div className="mt-1 flex gap-1.5">
           {PRACTICE_CLOCKS.map((c) => <Chip key={c} onClick={() => setDrill({ clock: c })} aria-pressed={drill.clock === c}>{c} s</Chip>)}
         </div>
       </fieldset>
       <fieldset>
-        <legend className="text-sm font-bold" style={{ color: 'var(--ink-soft)' }}>Bot</legend>
+        <legend className="text-sm font-bold">Bot</legend>
         <div className="mt-1 flex gap-1.5">
           {DIFFS.map((d) => (
             <Chip key={d.id} onClick={() => setDrill({ difficulty: d.id })} aria-pressed={drill.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
           ))}
         </div>
-        <p className="sk-hand mt-1 text-base" style={{ color: 'var(--ink-soft)' }} aria-live="polite">{DRILL_BOTS[drill.difficulty]}</p>
+        <p className="sk-hand mt-1 text-base" aria-live="polite">{DRILL_BOTS[drill.difficulty]}</p>
       </fieldset>
       <p className="kit-slate kit-slate--mini kit-slate--amber" aria-live="polite"><span className="kit-slate-face kit-chalk-hand">{drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'}</span></p>
-      {error && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
+      {error && <p role="alert" className="text-sm font-bold">{error}</p>}
       <button autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-btn sk-sit kit-sign w-full"><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Start run</button>
-    </PaperPanel>
+    </div>
   );
   const joinParty = (
-    <PaperPanel className={`sk-setup space-y-3 p-4 pt-0 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="join" role="dialog" aria-label="Join a party">
+    <div className={`hm-sheet hm-board space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="join" role="dialog" aria-label="Join a party">
       <div className="sk-setup-head">
         <h2>Join party</h2>
         <button className="sk-setup-back" onClick={() => setStep('tables')}>← Back</button>
       </div>
-      <p className="sk-hand text-lg" style={{ color: 'var(--ink-soft)' }}>Type the five-letter code your friend sent.</p>
+      <p className="sk-hand text-lg">Type the five-letter code your friend sent.</p>
       <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); if (partyCode.length === 5) online({ t: 'join', code: partyCode }); }}>
         <label className="sk-code">
           <span className="sr-only">Party code</span>
@@ -400,111 +405,111 @@ export function PaintedHome() {
             <span key={i} aria-hidden="true" className={`kit-tile kit-tile--md ${partyCode[i] ? '' : 'sk-code-empty'} ${i === Math.min(partyCode.length, 4) ? 'sk-code-next' : ''}`}>{partyCode[i] ?? ''}</span>
           ))}
         </label>
-        {(error || roomNotice) && <p role="alert" className="text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error || roomNotice}</p>}
+        {(error || roomNotice) && <p role="alert" className="text-sm font-bold">{error || roomNotice}</p>}
         <button type="submit" disabled={partyCode.length < 5 || entering} className="sk-btn sk-sit kit-sign w-full" data-join-party><span className="sk-nail sk-nail-tl" /><span className="sk-nail sk-nail-tr" />Join party</button>
       </form>
-    </PaperPanel>
+    </div>
   );
   const panel = step === 'practice' ? drillSetup : step === 'join' ? joinParty : setup;
 
-  const footer = (
-    <footer className="sk-small flex flex-wrap items-center gap-x-4">
-      <span>{mobile ? '' : `${UPDATE_NAME} `}v{pkg.version}</span>
-      <button className="min-h-8 content-center" onClick={() => setFeedback(true)}>Feedback</button>
-      <span data-device-label>{device === 'phone' ? 'Phone layout' : 'Computer layout'}</span>
+  // The small print: on a computer at the right of the bottom bar, on a phone under the menu.
+  const smallPrint = (
+    <nav className="hm-small" aria-label="About the game">
+      <span>{!mobile && <span className="hm-update">{UPDATE_NAME}&nbsp;</span>}v{pkg.version}</span>
+      <button onClick={() => setFeedback(true)}>Feedback</button>
       {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
-        <button key={slug} className="min-h-8 content-center" onClick={() => setLegal(slug)}>{LEGAL_TITLES[slug]}</button>
+        <button key={slug} onClick={() => setLegal(slug)} aria-label={LEGAL_TITLES[slug]}>{SHORT_LEGAL[slug]}</button>
       ))}
-    </footer>
+      <button onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}>{admin ? 'Admin on' : 'Admin'}</button>
+      <span data-device-label>{device === 'phone' ? 'Phone layout' : 'Computer layout'}</span>
+    </nav>
   );
   // The farm rests (fewer pictures a second, the same motion) behind an open dialog and when Home is left alone.
-  const farmFps = useHomeFps(chooser || signIn || help || gear || legal !== null || feedback || profile || pickAvatar || adminOpen);
+  const farmFps = useHomeFps(chooser || signIn || help || gear || legal !== null || feedback || profile || adminOpen);
+  const pick = items.find((it) => it.id === chosen) ?? items[0];
+  const helpButton = <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>;
+  const trophy = rooms && <button className="sk-icon-btn" onClick={() => setBoards(true)} aria-label="Leaderboards" title="Leaderboards"><TrophyIcon size={22} /></button>;
 
   return (
-    // data-covered: a full page lies over Home, so its title and word of the day hold still (skin.css).
-    <main className={`sk-home relative h-full overflow-hidden`} data-covered={bazaar || boards || profile || undefined} onPointerMove={onPointerMove} onKeyDown={onKey}>
+    // data-covered: a full page lies over Home, so its slab, title and word of the day hold still (home.css).
+    <main className={`sk-home hm relative h-full overflow-hidden`} data-covered={bazaar || boards || profile || undefined} data-phone={mobile || undefined} onPointerMove={onPointerMove} onKeyDown={onKey}>
       <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} heroGaze={heroGaze} hopKey={hopKey} paused={bazaar || boards} fps={farmFps} /></div>
-      <div className={`pointer-events-none absolute inset-0 ${mobile ? 'sk-wash-bottom' : 'sk-wash-left'}`} />
+      <HomeSlab rows={mobile ? 5 : 9} />
 
-      {/* Top bar: who is playing on the left (desktop) and the system buttons on the right. */}
-      {/* Clear of a notch (plan file 14, change 5): every inset is 0 on a computer, so nothing moves there. */}
-      {/* A computer keeps one 40 px frame: the plate, the title, the menu and the small print share its left edge, the
-          round buttons, the word of the day and the small print its right. */}
-      <div className={`pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-end gap-2 [&>*]:pointer-events-auto ${mobile
-        ? 'p-3 pt-[max(12px,env(safe-area-inset-top))] pr-[max(12px,env(safe-area-inset-right))] pl-[max(12px,env(safe-area-inset-left))]'
-        : 'pb-4 pt-[max(20px,env(safe-area-inset-top))] pr-[max(40px,env(safe-area-inset-right))] pl-[max(40px,env(safe-area-inset-left))]'}`}>
-        {!mobile && profilePlate(26, 'mr-auto', (
-          <>
-            {streak > 0 && <MenuTag tone="flame" label={`${streak}-night streak`}><FlameIcon size={11} />{streak}</MenuTag>}
-            {signedIn && coins !== null && <span aria-label={`${coins} coins`} className="flex items-center gap-1 text-sm">{coins} <CoinArt size={14} /></span>}
-          </>
-        ))}
-        {authEnabled() && (authStatus === 'ready' ? (
-          <button className="sk-icon-btn" onClick={() => setSignIn(true)} aria-label="Account" title="Account" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Account</button>
-        ) : (
-          <button className="sk-icon-btn" onClick={openSignInForm} aria-label="Log in" title="Log in to save your progress" style={{ width: 'auto', padding: '0 12px', whiteSpace: 'nowrap' }}>Log in</button>
-        ))}
-        {/* The leaderboards (they are read from the game server, so there is no button without one). */}
-        <button className="sk-icon-btn sk-bazaar-btn" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${formatCoins(wool)} Wool Coins`} title="The Trading Post"><BagIcon size={20} /><span>{formatCoins(wool, true)}</span></button>
-        <button className="sk-icon-btn" onClick={() => setPickAvatar(true)} aria-label="Avatar" title="Avatar"><AvatarButtonIcon /></button>
-        <button className="sk-icon-btn" onClick={() => setAdminOpen(true)} aria-label={admin ? 'Admin (unlocked)' : 'Admin access'} title={admin ? 'Admin: unlocked' : 'Admin access'} aria-pressed={admin} data-admin={admin || undefined}><LockIcon size={20} /></button>
-        <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
-        <SoundMenu />
-        <button className="sk-icon-btn" onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>
-      </div>
+      {/* Top bar: who is playing on the left; the leaderboards, the money (into the Trading Post) and the system buttons
+          on the right. Clear of a notch (plan file 14, change 5). */}
+      <header className="hm-top">
+        {profilePlate}
+        <div className="hm-right">
+          {!mobile && trophy}
+          {authEnabled() && (authStatus === 'ready' ? (
+            <button className="hm-pill hm-board" onClick={() => setSignIn(true)} aria-label="Account" title="Account">Account</button>
+          ) : (
+            <button className="hm-pill hm-board" onClick={openSignInForm} aria-label="Log in" title="Log in to save your progress">Log in</button>
+          ))}
+          <button className="hm-wallet hm-board" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${formatCoins(wool)} Wool Coins${signedIn && coins !== null ? `, ${coins} coins` : ''}`} title="The Trading Post">
+            <span className="hm-money"><CoinArt size={16} />{formatCoins(wool, true)}</span>
+            {signedIn && coins !== null && <span className="hm-money">{coins}</span>}
+            <span className="hm-plus" aria-hidden="true">+</span>
+          </button>
+          <button className="sk-icon-btn" onClick={() => setGear(true)} aria-label="Settings" title="Settings"><GearIcon /></button>
+          {!mobile && <SoundMenu />}
+          {!mobile && helpButton}
+        </div>
+      </header>
 
       {mobile ? (
-        // One column under the top bar: the title block, then the menu's panel at the foot. The panel takes the height
-        // the title leaves and scrolls inside itself, so on a small or sideways phone the two never lie over each
-        // other. Its old cap (64% of the screen: this box is 72 px shorter than the screen) still holds on a tall one.
-        // The column starts under the top bar and keeps off a notch at the sides (plan file 14, change 5).
-        <div className="pointer-events-none absolute inset-x-0 bottom-2 top-[max(4rem,calc(env(safe-area-inset-top)+52px))] flex flex-col pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] [&>*]:pointer-events-auto">
-          <div className="flex flex-none flex-col items-center">
-            <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, outlast the flock." compact />
+        // A phone: the title and the word of the day in the slab's band, the round buttons down the right, and the menu
+        // at the foot, scrolling in its own box so a short or sideways phone never runs it into the band.
+        <>
+          <div className="hm-head">
+            <HomeTitle title={PAINTED_TITLE} />
             <WordOfDay className="sk-wotd--compact" />
           </div>
-          <div className="relative mt-auto flex min-h-0 flex-col" style={{ maxHeight: 'calc(64% + 46px)' }}>
-            {notes && step === 'tables' && <div className="absolute inset-x-4 bottom-full mb-2 flex flex-col gap-2">{notes}</div>}
-            <div className="min-h-0 overflow-y-auto px-4">
-              {step === 'tables' ? (
-                <>
-                  {tables}
-                  <div className="mt-1">{footer}</div>
-                </>
-              ) : panel}
-            </div>
+          <div className="hm-side">{trophy}<SoundMenu />{helpButton}</div>
+          <div className="hm-bottom">
+            {notes && step === 'tables' && <div className="hm-note">{notes}</div>}
+            <div className="hm-scroll">{step === 'tables' ? <>{tables}{smallPrint}</> : <div className="hm-panel">{panel}</div>}</div>
           </div>
-        </div>
+        </>
       ) : (
         <>
-          {/* The title and the menu on the left, like a console title screen; the word of the day on the right, its top
-              level with the title's. "safe": on a short window they start under the name plate instead of riding up
-              over it. */}
-          <div className="pointer-events-none absolute bottom-14 left-10 right-10 top-20 flex flex-col" style={{ justifyContent: 'safe center' }}>
-            <div className="flex items-start justify-between gap-10">
-              <div className="pointer-events-auto flex w-[27rem] flex-none flex-col gap-4">
-                <TitleBoard title={PAINTED_TITLE} tagline="Chain words, keep your wool, and be the last sheep standing." />
-                {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
-                <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
-              </div>
-              {step === 'tables' && <WordOfDay className="sk-wotd--side" />}
-            </div>
+          <div className="hm-left">
+            <HomeTitle title={PAINTED_TITLE} tagline="Chain words. Keep your wool. Outlast the flock." />
+            {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
+            <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
           </div>
-          {/* A panel opening on the right takes the word of the day's place. */}
-          {step !== 'tables' && <div className="absolute right-10 top-1/2 max-h-[86%] w-[380px] -translate-y-1/2 overflow-y-auto">{panel}</div>}
+          {step === 'tables' ? (
+            <>
+              <WordOfDay />
+              <HomeCard id={pick.id} title={pick.label} text={pick.caption} badge={pick.id === 'queue' ? undefined : pick.badge}>
+                {/* Every card ends in one row of the same height, so the card never changes size as the choice moves. */}
+                <div className="hm-modes">
+                  {pick.id === 'queue' ? (rooms && (
+                    <>
+                      <button className="hm-mode" disabled={entering} onClick={() => online({ t: 'quick' })}>Casual</button>
+                      <button className="hm-mode" disabled={entering} onClick={() => (hasAccount() ? online({ t: 'ranked' }) : setSignIn(true))}>Ranked</button>
+                    </>
+                  )) : (
+                    <>
+                      {pick.more}
+                      <button className="hm-mode hm-mode--go" disabled={pick.disabled} onClick={pick.onSelect}>{CARD_ACTION[pick.id]?.(rooms, dream?.status === 'done') ?? 'Go'}</button>
+                    </>
+                  )}
+                </div>
+              </HomeCard>
+            </>
+          ) : <div className="hm-panel">{panel}</div>}
           {/* Bottom bar: what the keys do, a rotating tip, and the small print. */}
-          <div className="absolute inset-x-0 bottom-0 flex items-end gap-6 px-10 pb-3">
-            <div className="sk-small flex min-h-8 shrink-0 items-center gap-4">
-              <span className="sk-prompt"><b><ArrowUpIcon size={12} /><ArrowDownIcon size={12} /></b> Choose</span>
-              <span className="sk-prompt"><b>Enter</b> Select</span>
-              {step !== 'tables' && <span className="sk-prompt"><b>Esc</b> Back</span>}
+          <footer className="hm-foot">
+            <div className="hm-keys">
+              <span><kbd><ArrowUpIcon size={11} /></kbd><kbd><ArrowDownIcon size={11} /></kbd>Choose</span>
+              <span><kbd>Enter</kbd>Select</span>
+              <span style={{ visibility: step === 'tables' ? 'hidden' : undefined } as CSSProperties}><kbd>Esc</kbd>Back</span>
             </div>
-            <p key={tip} className="sk-tip flex min-w-0 flex-1 items-center justify-center" aria-live="off"><span className="line-clamp-2 text-center">{TIPS[tip]}</span></p>
-            {/* Under 1280 px the small print wraps to two lines at the right, so the tip keeps room for its two lines. */}
-            <div className="flex shrink-0 flex-col items-end gap-1 max-xl:max-w-[320px] max-xl:[&>footer]:justify-end">
-              {footer}
-            </div>
-          </div>
+            <p className="hm-tip" aria-live="off"><span className="hm-tip-tag">Tip</span><span key={tip} className="hm-tip-text">{TIPS[tip]}</span></p>
+            {smallPrint}
+          </footer>
         </>
       )}
 
@@ -525,7 +530,6 @@ export function PaintedHome() {
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
       {bazaar && <Bazaar onClose={() => setBazaar(false)} />}
       {profile && <Profile onClose={() => setProfile(false)} />}
-      {pickAvatar && <AvatarPicker onClose={() => setPickAvatar(false)} />}
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       <DevLine />
     </main>

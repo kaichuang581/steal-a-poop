@@ -133,11 +133,11 @@ describe('friends live on the profile', () => {
     expect(src('src/skin/profile/FriendsSection.tsx')).toContain('Your friend code');
   });
 
-  it('the start screen opens the leaderboards from the menu, under the Trading Post, and has no friends button', () => {
+  it('the start screen opens the leaderboards from the trophy in its top bar (the "Word chain" Home), and has no friends button', () => {
     const home = src('src/skin/screens/PaintedHome.tsx');
     expect(home).toContain('<Leaderboards onClose=');
-    expect(home).toContain("id: 'boards', label: 'Leaderboards'");
-    expect(home.indexOf("id: 'boards'")).toBeGreaterThan(home.indexOf("id: 'bazaar'"));
+    expect(home).toMatch(/onClick=\{\(\) => setBoards\(true\)\} aria-label="Leaderboards"/);
+    expect(home).not.toContain("id: 'boards'");
     expect(home).not.toContain('data-boards');
     expect(home).not.toMatch(/FriendsIcon|aria-label="Friends|social\/Hub/);
   });

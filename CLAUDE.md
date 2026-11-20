@@ -1964,3 +1964,23 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
 - No footprints, hoof dents or sled ruts in the ground (Brian, 2026-11-19: "weird random square holes in the ground ...
   just reads as a bug"): gone from the yard's path and the barn's floor, and the worn tracks of scene/countryside.ts
   are deleted.
+- Home is "Word chain" (Brian, 2026-11-20: "change the home screen ui to make it more captivating and unique, rn its so
+  boring i could cry", pointing at a rhythm game's menu; picked mock-up A of three drawn over the running game: "number 1
+  is near perfect"). Branch `ui/home-word-chain`, local only. src/skin/home (home.css, HomeParts.tsx, HomeArt.tsx).
+  - A night-blue slab cut on a slant holds the left side, word chains drifting behind it (`WORD_CHAINS`: each word starts
+    with the last letter of the one before and each row comes round to its start; a test checks the rule and the word
+    list). The title is the game's name in letter tiles on a rack, tilted with the slab. This reverses "no letter tiles"
+    of 2026-11-19 for the title: he chose it. The menu is boards leaning with the slab's edge; the chosen one is gold and
+    slides out (transform only), focus follows the pointer so Enter picks the lit one, and a card on the right shows the
+    chosen item's own picture, what it is, and one action row of a fixed height (Queue: Casual and Ranked).
+  - His notes on the mock-up, and what answers them: no pictures from the game on the card ("make ur own artistic
+    images"): six posters drawn in code (HomeArt.tsx, pixel sprites with an outline over painted backdrops); the wood
+    "screams ai": the board finish is two browns under a few hand-drawn grain lines and a knot (`--hm-grain`), a dark
+    outline and a bevel, not ruled stripes; a cleaner word of the day: a night-blue card with chips; a better bottom
+    bar: keys as tiles, a TIP tag, the small print with rules between.
+  - The Trading Post and the leaderboards are no longer menu items: the coin purse and the trophy in the top bar (as in
+    the mock-up he picked; this reverses "leaderboards under the Trading Post" of 2026-11-14 unless he says otherwise).
+    The avatar button is gone from the bar (the profile changes it); the admin lock is "Admin" in the small print.
+  - He will draw the menu's icons himself; Icons.tsx's BarnIcon, KeyIcon, PawIcon and CrescentIcon are stand-ins.
+  - Checked at 320 to 1920 wide, a sideways phone, with and without a game server, every item hovered (nothing else
+    moves), the three setup panels (restyled on the board finish). The size limit went up 3 kB for it.

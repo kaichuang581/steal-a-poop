@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { ACESFilmicToneMapping, Color, FogExp2, PCFShadowMap, SRGBColorSpace } from 'three';
 import type { BufferAttribute, BufferGeometry, Group, PerspectiveCamera } from 'three';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { isAdminAvatar } from '../../avatars/ids';
 import { useIsMobile } from '../../ui/hooks';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
@@ -232,14 +232,14 @@ function Cup() {
 /** The one who holds the place, at ease on the pedestal. Everyone is the sheep but you, who wear your own avatar. */
 function Lounger({ seat, reduced }: { seat: StageSeat; reduced: boolean }) {
   const s = SEATS[seat.place - 1];
-  const admin = seat.you && seat.avatar === ADMIN_AVATAR_ID;
+  const admin = seat.you && isAdminAvatar(seat.avatar);
   const model = seat.you ? byId(seat.avatar ?? undefined) : undefined;
   const k = SHEEP_SCALE * s.size * (model ? animalModel(model.animal).drawScale : 1);
   const top = HEIGHTS[seat.place - 1];
   // The photo has no legs to hang: it stands on the top facing us, asleep or thinking.
   if (admin) return (
     <group position={[0, top, 0.2]} scale={0.45}>
-      <AvatarDisc state={seat.place === 3 ? 'sleeping' : 'thinking'} reduced={reduced} />
+      <AvatarDisc state={seat.place === 3 ? 'sleeping' : 'thinking'} reduced={reduced} avatar={seat.avatar} />
     </group>
   );
   return (

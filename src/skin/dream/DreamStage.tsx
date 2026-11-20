@@ -15,11 +15,12 @@ import { Windmill } from '../scene/Sky';
 import { useWorld } from '../table/BarnTable';
 import { ScreenAnchor } from '../table/Anchors';
 import { DevStats, devOn } from '../table/DevStats';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { isAdminAvatar } from '../../avatars/ids';
 import { byId } from '../avatars/catalog';
 import { useAvatar } from '../avatars/store';
 import { AvatarDisc } from '../avatars/AvatarDisc';
-import { pictureHeight, useKaiyanLook } from '../avatars/kaiyanLook';
+import { useKaiyanLook } from '../avatars/kaiyanLook';
+import { photoHeight } from '../avatars/photos';
 import { animalModel } from '../voxel/animals';
 import { Sheep } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
@@ -157,13 +158,13 @@ function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Ta
   // The worn avatar runs the dream (V5.1 Part 6.7), drawn at its own scale. The admin's photo runs too (Brian,
   // 2026-11-09), trotting and leaping as a picture facing the camera (discPose's dream states).
   const avatar = useAvatar();
-  const admin = avatar === ADMIN_AVATAR_ID;
+  const admin = isAdminAvatar(avatar);
   const runner = !admin && byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined;
   const { length } = useKaiyanLook();
-  const discScale = Math.min(SHEEP_SCALE, DISC_MAX_H / pictureHeight(length));
+  const discScale = Math.min(SHEEP_SCALE, DISC_MAX_H / photoHeight(avatar, length));
   // The bonk stars circle the head and the count pops over it, so both rise with a tall picture. The photo faces the
   // camera, which looks straight across the lane.
-  const headY = admin ? pictureHeight(length) * discScale + 0.08 : 0.95;
+  const headY = admin ? photoHeight(avatar, length) * discScale + 0.08 : 0.95;
   const [stateKey, setStateKey] = useState(0);
   const [pace, setPace] = useState(0);
   const paceRef = useRef(0);
@@ -339,7 +340,7 @@ function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Ta
             {admin ? (
               // Facing the camera, which looks straight across the lane.
               <group scale={discScale}>
-                <AvatarDisc state={sheepState} stateKey={stateKey} reduced={reduced} pace={pace} />
+                <AvatarDisc state={sheepState} stateKey={stateKey} reduced={reduced} pace={pace} avatar={avatar} />
               </group>
             ) : (
               <group position={[-SHEEP_ART.mid * PX, 0, 0]} rotation={[0, Math.PI / 2, 0]} scale={SHEEP_SCALE * (runner?.drawScale ?? 1)}>

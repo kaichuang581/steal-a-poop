@@ -17,7 +17,7 @@ import { AdaptiveCanvas, Atmosphere, Effects, FOG, holdDpr, Lights, MarkDrawn, n
 import { applyPendingTier, setExemptShot } from '../perf/tier';
 import { PADDOCK_SHOT } from '../voxel/unseen';
 import { SceneBoundary } from '../perf/SceneBoundary';
-import { ADMIN_AVATAR_ID } from '../../avatars/ids';
+import { isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
 import { animalModel } from '../voxel/animals';
@@ -88,8 +88,8 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, hopKey
       <Farmstead world={w} reduced={reduced} phone={phone} onReady={onReady} />
       <Wendigo reduced={reduced} />
       <group position={hero} rotation={[0, heroFacing, 0]} scale={1.5}>
-        {avatar === ADMIN_AVATAR_ID
-          ? <AvatarDisc state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} />
+        {isAdminAvatar(avatar)
+          ? <AvatarDisc state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} yaw={sleepy ? 0 : heroYaw} avatar={avatar} />
           : <Sheep level={2} state={sleepy ? 'sleeping' : hopKey > 0 ? 'happy' : 'idle'} stateKey={hopKey} reduced={reduced} headYaw={sleepy ? 0 : heroYaw}
               model={byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined} />}
       </group>

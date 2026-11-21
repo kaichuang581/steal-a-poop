@@ -542,5 +542,4 @@ export const LIGHTS: readonly Light[] = [
   { id: 'admin photo glare', kind: 'point', element: el('avatars/AvatarDisc.tsx', '<pointLight ref={lamp} position={[0, bandY, 0]}'), unseen: 'it rides the admin\'s photo disc, the one thing in the game that is not voxels' },
   { id: 'leaderboards:trophy', kind: 'point', element: el('boards/BoardStage.tsx', '<pointLight position={[0, 0.5, 0.4]}'), unseen: 'it stands by the trophy on first place\'s pedestal in the leaderboards\' sky, a scene the checker does not build' },
   { id: 'barn book:preview', kind: 'point', element: el('shop/PreviewStage.tsx', '<pointLight ref={lamp} color={auraOf(item.id).light}'), unseen: 'it lights the bomb on the Barn Book\'s stand; the preview is not one of the seven scenes' },
-  { id: 'door bake', kind: 'point', element: el('loading/DoorsRender.tsx', '<pointLight position={[cx - 1.6, cy + 1.3, 1.6]}'), fill: 'the warm side light of the page that bakes the loading doors (development builds only); the doorway has no lantern' },
 ];

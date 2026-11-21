@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## 0.9.1
+
+- A new loading screen: on the night sky, a red yarn ball rolls along a dotted outline of "fleeced" and spells the word in real-looking yarn as the game loads. When the word is finished, the game opens. The barn doors are gone.
+
 ## 0.9.0
 
 - French: a "French" button on the start screen switches the whole game to French, with a French word list (accents optional, spelling help as in English). French players are matched with French tables. The word of the day and Counting Sheep are French too.

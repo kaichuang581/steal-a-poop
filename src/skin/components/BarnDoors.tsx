@@ -309,6 +309,8 @@ function Doors({ id }: { id: number }) {
       if (p.shown !== lastShown) { lastShown = p.shown; movedAt = now; b.removeAttribute('data-rest'); }
       else if (now - movedAt > REST_MS && !reducedRef.current) b.setAttribute('data-rest', '');
       el.setAttribute('aria-valuenow', String(Math.round(p.shown * 100)));
+      // For the tools that measure it: from when the new screen is ready (CLAUDE.md: measure, do not reason about it).
+      el.toggleAttribute('data-ready', ready);
       // The word is whole: the screen may go FULL_HOLD_MS later.
       if (ready && drawn >= TOTAL - 1e-6 && shownP >= 1 - 1e-6) { fullAt ||= now; state.current.full = now - fullAt >= FULL_HOLD_MS; }
       raf = requestAnimationFrame(frame);

@@ -52,8 +52,8 @@ function Live({ n }: { n: number | undefined }) {
  * ranked. make the casual side popup be a relaxed sort of sheep icon background/scenery and the ranked look more like
  * a competitive thing"). Two cards, both for games with real people. Since 2026-11-21 (Brian) the pictures are pixel
  * art drawn by tools/art/playArt.js (Casual: a sheep among sunflowers at sunset; Ranked: a three-panel neon face-off),
- * each card shows how many people are in that mode now (usePlayCounts), and on Home the chooser is drawn after
- * Persona's menus (home.css; Brian: "can u make it more like persona"): red, black and white, everything at a slant. Ranked also shows your rank and the ladder you climb.
+ * each card shows how many people are in that mode now (usePlayCounts), and on Home the chooser borrows the swagger of
+ * Persona's and Friday Night Funkin's menus in the farm's own colours (home.css): everything at a slant, an OR sticker. Ranked also shows your rank and the ladder you climb.
  *
  * `rank` says what the Ranked card can do: play, ask for a sign-in first (a guest has no rating to play for), or
  * nothing at all (this copy of the game has no server).
@@ -91,6 +91,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
         </div>
         {error && <p className="sk-play-error" role="alert">{error}</p>}
         <div className="sk-play-cards">
+          <span className="sk-play-or" aria-hidden="true">or</span>
           <section className="sk-play-card" data-mode="casual" aria-label="Casual">
             <div className="sk-play-frame">
               <img className="sk-play-art" src={ART('casual')} alt="" width={1440} height={900} />

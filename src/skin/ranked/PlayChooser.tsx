@@ -52,8 +52,8 @@ function Live({ n }: { n: number | undefined }) {
  * ranked. make the casual side popup be a relaxed sort of sheep icon background/scenery and the ranked look more like
  * a competitive thing"). Two cards, both for games with real people. Since 2026-11-21 (Brian) the pictures are pixel
  * art drawn by tools/art/playArt.js (Casual: a sheep among sunflowers at sunset; Ranked: a three-panel neon face-off),
- * each card shows how many people are in that mode now (usePlayCounts), and on Home the box is a nailed barn board
- * (home.css). Ranked also shows your rank and the ladder you climb.
+ * each card shows how many people are in that mode now (usePlayCounts), and on Home the chooser is drawn after
+ * Persona's menus (home.css; Brian: "can u make it more like persona"): red, black and white, everything at a slant. Ranked also shows your rank and the ladder you climb.
  *
  * `rank` says what the Ranked card can do: play, ask for a sign-in first (a guest has no rating to play for), or
  * nothing at all (this copy of the game has no server).
@@ -85,13 +85,13 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
         <div className="sk-play-head">
           <div className="sk-play-title">
             <span className="sk-play-kicker">Queue</span>
-            <h2>Play with real people</h2>
+            <h2 className="sk-play-ransom"><span>Play</span> <span>with</span> <span>real</span> <span>people</span></h2>
           </div>
-          <button type="button" className="hm-close hm-slab hm-slab--wool hm-slab--sm" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
+          <button type="button" className="sk-play-x" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
         </div>
         {error && <p className="sk-play-error" role="alert">{error}</p>}
         <div className="sk-play-cards">
-          <section className="sk-play-card kit-paper" data-mode="casual" aria-label="Casual">
+          <section className="sk-play-card" data-mode="casual" aria-label="Casual">
             <div className="sk-play-frame">
               <img className="sk-play-art" src={ART('casual')} alt="" width={1440} height={900} />
               <Live n={counts?.casual} />
@@ -103,7 +103,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
                 <li>Any number of players</li>
                 <li>No account needed</li>
               </ul>
-              <button ref={first} type="button" className="sk-play-go hm-slab hm-slab--lantern hm-knit" disabled={busy} onClick={onCasual}>Find a game</button>
+              <button ref={first} type="button" className="sk-play-go" disabled={busy} onClick={onCasual}>Find a game</button>
             </div>
           </section>
           <section className="sk-play-card" data-mode="ranked" aria-label="Ranked">
@@ -129,8 +129,8 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
                 </p>
               )}
               {rank === 'play'
-                ? <button type="button" className="sk-play-go hm-slab hm-slab--lantern hm-knit" disabled={busy} onClick={onRanked}>Find a ranked game</button>
-                : <button type="button" className="sk-play-go hm-slab hm-slab--wool hm-knit" onClick={onSignIn}>Sign in to play ranked</button>}
+                ? <button type="button" className="sk-play-go" disabled={busy} onClick={onRanked}>Find a ranked game</button>
+                : <button type="button" className="sk-play-go" data-tone="quiet" onClick={onSignIn}>Sign in to play ranked</button>}
               {rank === 'signin' && <p className="sk-play-note">Your rank is kept on your account.</p>}
             </div>
           </section>

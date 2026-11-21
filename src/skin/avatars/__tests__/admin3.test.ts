@@ -5,7 +5,7 @@ import { useAdmin } from '../../../lib/admin';
 import { SAVE_KEYS } from '../../../lib/savecode';
 import { byId } from '../catalog';
 import { DEFAULT_LOOK, GLARE, LENGTH, getKaiyanLook, pictureHeight, setKaiyanLook } from '../kaiyanLook';
-import { isPlainPhoto, isTallPhoto, photoHeight, photoUrlFor } from '../photos';
+import { isTallPhoto, photoHeight, photoUrlFor } from '../photos';
 import { getAvatar, setAvatar } from '../store';
 
 /** The third admin avatar (requested by Brian, 2026-11-21): another photo with Kaiyan's long forehead and glare. */
@@ -28,19 +28,18 @@ describe('the third admin avatar', () => {
     expect(byId(ADMIN3_AVATAR_ID)).toBeUndefined();
   });
 
-  it('is a tall photo like Kaiyan\'s, with its own picture; the second one stays plain', () => {
+  it('is a tall photo like Kaiyan\'s, with its own picture', () => {
     expect(isTallPhoto(ADMIN3_AVATAR_ID)).toBe(true);
     expect(isTallPhoto(ADMIN_AVATAR_ID)).toBe(true);
-    expect(isTallPhoto(ADMIN2_AVATAR_ID)).toBe(false);
+    expect(isTallPhoto(ADMIN2_AVATAR_ID)).toBe(true);
     expect(isTallPhoto('sheep')).toBe(false);
     expect(isTallPhoto(null)).toBe(false);
-    expect(isPlainPhoto(ADMIN3_AVATAR_ID)).toBe(false);
     expect(new Set([ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID].map(photoUrlFor)).size).toBe(3);
     expect(photoHeight(ADMIN3_AVATAR_ID, 3)).toBe(pictureHeight(3));
   });
 
   it('ships its picture: a 512 x 1339 PNG, the same three slices as Kaiyan\'s', () => {
-    for (const name of ['admin3-forehead.png', 'kaiyan-forehead.png']) {
+    for (const name of ['admin3-forehead.png', 'admin2-forehead.png', 'kaiyan-forehead.png']) {
       const file = new URL(`../../assets/${name}`, import.meta.url);
       expect(existsSync(file)).toBe(true);
       const png = readFileSync(file);

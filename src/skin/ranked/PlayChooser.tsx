@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiBase } from '../../auth/config';
-import { RANKED_MAX_PLAYERS, RANKED_MIN_PLAYERS, TIERS, rankOf } from '../../lib/ranked';
+import { DIVISION_POINTS, rankOf } from '../../lib/ranked';
+import type { RankedMe } from './rankedStore';
 import { CloseIcon } from '../components/Icons';
-import { RankBadge, TierBadge } from './RankBadge';
+import { TierBadge } from './RankBadge';
 import { useRanked } from './rankedStore';
 import './ranked.css';
 import './chooser.css';
@@ -44,18 +45,45 @@ export function playingLabel(n: number): string {
   return n > 0 ? `${n.toLocaleString()} playing` : 'Be the first in';
 }
 
-/** How many are in this mode now, on a small block in the picture's corner. Not there without a count. */
+/** How many are in this mode now, beside the mode's name. Not there without a count. */
 function Count({ n }: { n: number | undefined }) {
   if (n === undefined) return null;
   return <span className="qz-count" data-empty={n === 0 || undefined} aria-live="polite"><i aria-hidden="true" />{playingLabel(n)}</span>;
 }
 
 /**
+ * Where you stand on the ladder, for the Ranked plate (Brian, 2026-11-21: "only show your own rank ... a bar of how
+ * progressed you are IN that rank showing how close u r to rankup"): the rank's badge and name, how far through it you
+ * are (0 to 1), and what is left. With no rating yet it is the first rank, empty; at the top rank the bar is full.
+ */
+export function rankProgress(me: RankedMe | null, signedIn: boolean): { tier: number; label: string; share: number; note: string; none: boolean } {
+  if (!signedIn) return { tier: 0, label: 'No rank yet', share: 0, note: 'Sign in to climb', none: true };
+  const r = rankOf(me?.rating ?? 0);
+  if (r.toNext === null) return { tier: r.tier, label: r.label, share: 1, note: 'Top rank', none: false };
+  return { tier: r.tier, label: r.label, share: r.points / DIVISION_POINTS, note: `${r.toNext} to ${r.next}`, none: false };
+}
+
+function MyRank({ me, signedIn }: { me: RankedMe | null; signedIn: boolean }) {
+  const p = rankProgress(me, signedIn);
+  return (
+    <div className="qz-row qz-mine" data-none={p.none || undefined}>
+      <TierBadge tier={p.tier} size={22} />
+      <b>{p.label}</b>
+      <span className="qz-bar" role="progressbar" aria-label={`Progress in ${p.label}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p.share * 100)}>
+        <i style={{ width: `${p.share * 100}%` }} />
+      </span>
+      <small>{p.note}</small>
+    </div>
+  );
+}
+
+/**
  * What Queue opens (Brian, 2026-11-13; redrawn 2026-11-21: "it should still be a popup ... rehash everything solely with
  * pixel art ... one looks casual/playful/nonstressful, while the other one looks exciting and competitive"). A popup in
  * Home's own slabs with two windows onto pixel-art scenes drawn by tools/art/playArt.js: Casual is a snow day on the
- * farm (snow falling over it), Ranked a night match on the rink (the crowd's flashes blinking). Each window has its
- * count in the corner and a plate along its foot with the mode's name, what it is, and the way in.
+ * farm (snow falling over it), Ranked a night match on the rink (the crowd's flashes blinking). Under each picture
+ * hangs a plate of three rows, the same in both: the mode's name with how many are playing, then what it is (Casual)
+ * or your own rank and how close you are to the next (Ranked), then the way in.
  *
  * `rank` says what the Ranked side can do: play, or ask for a sign-in first (a guest has no rating to play for).
  */
@@ -78,7 +106,6 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
     window.addEventListener('keydown', on);
     return () => window.removeEventListener('keydown', on);
   }, [onClose]);
-  const mine = me ? rankOf(me.rating) : null;
   const counts = usePlayCounts();
   return (
     <div className="sk-play qz" role="dialog" aria-modal="true" aria-label="Queue" onClick={onClose}>
@@ -95,10 +122,9 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
               <img className="qz-art" src={ART('casual')} alt="" width={800} height={880} />
               <span className="qz-snow" style={{ backgroundImage: `url(${ART('casual-snow')})` }} />
             </div>
-            <Count n={counts?.casual} />
             <div className="qz-plate">
-              <div className="qz-name"><h3>Casual</h3></div>
-              <ul className="qz-facts">
+              <div className="qz-name"><h3>Casual</h3><Count n={counts?.casual} /></div>
+              <ul className="qz-row qz-facts">
                 <li>Any number of players</li>
                 <li>No account needed</li>
               </ul>
@@ -111,19 +137,9 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
               <img className="qz-art" src={ART('ranked')} alt="" width={800} height={880} />
               <img className="qz-flash" src={ART('ranked-flash')} alt="" width={800} height={880} />
             </div>
-            <Count n={counts?.ranked} />
             <div className="qz-plate">
-              <div className="qz-name">
-                <h3>Ranked</h3>
-                <div className="qz-ladder" aria-label={`The ranks, lowest first: ${TIERS.map((t) => t.name).join(', ')}`}>
-                  {TIERS.map((t, i) => <span key={t.id} data-on={mine?.tier === i || undefined} title={t.name}><TierBadge tier={i} size={18} /></span>)}
-                </div>
-              </div>
-              <ul className="qz-facts">
-                <li>{`${RANKED_MIN_PLAYERS} to ${RANKED_MAX_PLAYERS} players`}</li>
-                <li>Leaving a game counts as a loss</li>
-                {rank === 'play' && me && mine && <li className="qz-mine" aria-live="polite"><RankBadge rating={me.rating} size={16} />{mine.label}</li>}
-              </ul>
+              <div className="qz-name"><h3>Ranked</h3><Count n={counts?.ranked} /></div>
+              <MyRank me={me} signedIn={rank === 'play'} />
               {rank === 'play'
                 ? <button type="button" className="qz-go hm-slab hm-slab--lantern hm-knit" disabled={busy} onClick={onRanked}>Find a ranked game</button>
                 : <button type="button" className="qz-go hm-slab hm-knit" onClick={onSignIn}>Sign in to play ranked</button>}

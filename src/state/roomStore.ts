@@ -1,4 +1,4 @@
-import { ADMIN2_AVATAR_ID, isAdminAvatar } from '../avatars/ids';
+import { ADMIN2_AVATAR_ID, ADMIN4_AVATAR_ID, isAdminAvatar } from '../avatars/ids';
 import { adminProof } from '../lib/admin';
 import { getKaiyanLook } from '../skin/avatars/kaiyanLook';
 import { getAvatar } from '../skin/avatars/store';
@@ -18,10 +18,11 @@ import { useSocial } from './socialStore';
 import { useStore } from './store';
 
 /** The avatar message: an admin avatar carries the admin password (while admin is unlocked), so the server can tell it is allowed. */
-function avatarMessage(id: string | null): { t: 'avatar'; id: string | null; proof?: string; orange?: number } {
+function avatarMessage(id: string | null): { t: 'avatar'; id: string | null; proof?: string; orange?: number; age?: number } {
   const proof = isAdminAvatar(id) ? adminProof() : null;
   const orange = id === ADMIN2_AVATAR_ID ? getKaiyanLook(id).orange : undefined; // Juan's tint, so the room sees it too
-  return { t: 'avatar', id, ...(proof ? { proof } : {}), ...(orange ? { orange } : {}) };
+  const age = id === ADMIN4_AVATAR_ID ? getKaiyanLook(id).age : undefined; // and the fourth avatar's age
+  return { t: 'avatar', id, ...(proof ? { proof } : {}), ...(orange ? { orange } : {}), ...(age ? { age } : {}) };
 }
 
 const RULES_KEY = 'sap:chatRulesAccepted';

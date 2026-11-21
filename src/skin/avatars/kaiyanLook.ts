@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
-import { baseAvatarId } from '../../avatars/ids';
+import { ADMIN4_AVATAR_ID, baseAvatarId } from '../../avatars/ids';
 import { DISC } from './discPose';
-import { ORANGE } from './orange';
+import { AGE, ORANGE } from './orange';
 
 /**
  * How long a tall photo's forehead is (Kaiyan's, and the third admin avatar's, each its own) and how hard it shines (Brian, 2026-11-09: "make kaiyans head adjustable in both length
@@ -12,11 +12,22 @@ import { ORANGE } from './orange';
  * (192..1041) and the face (1041..1339). Only the band grows or shrinks; the hair and face stay their own size.
  */
 /** `orange` (Juan's slider) is left out while it is 0, so a look with none still reads as just length and glare. */
-export interface KaiyanLook { length: number; glare: number; orange?: number }
+export interface KaiyanLook { length: number; glare: number; orange?: number; age?: number }
 
 export const LENGTH = { min: 0.1, max: 6, step: 0.1, def: 1.8 } as const;
 export const GLARE = { min: 0, max: 6, step: 0.1, def: 2 } as const;
 export const DEFAULT_LOOK: KaiyanLook = { length: LENGTH.def, glare: GLARE.def };
+
+/** The fourth avatar's sliders go to 12x, and open there (Brian, 2026-11-21: "make the forehead 12x and glare 12x"). */
+const LENGTH12 = { ...LENGTH, max: 12, def: 12 } as const;
+const GLARE12 = { ...GLARE, max: 12, def: 12 } as const;
+export type Range = { min: number; max: number; step: number; def: number };
+/** The forehead and glare ranges of an avatar. */
+export function rangesFor(id?: string | null): { length: Range; glare: Range } {
+  return baseAvatarId(id) === ADMIN4_AVATAR_ID ? { length: LENGTH12, glare: GLARE12 } : { length: LENGTH, glare: GLARE };
+}
+/** The look an avatar has until its sliders are moved. */
+export const defaultLookFor = (id?: string | null): KaiyanLook => { const r = rangesFor(id); return { length: r.length.def, glare: r.glare.def }; };
 
 /** The picture's slices, as fractions of its height from the top. */
 export const SLICE = { bandTop: 192 / 1339, bandBottom: 1041 / 1339 } as const;
@@ -33,7 +44,7 @@ export function pictureHeight(length: number): number {
 }
 
 /** Each tall photo keeps its own look on this device. Kaiyan's key is the one it has always had. */
-const KEYS: Record<string, string> = { kaiyan: 'sap:kaiyan-look', admin2: 'sap:admin2-look', admin3: 'sap:admin3-look' };
+const KEYS: Record<string, string> = { kaiyan: 'sap:kaiyan-look', admin2: 'sap:admin2-look', admin3: 'sap:admin3-look', admin4: 'sap:admin4-look' };
 const keyFor = (id?: string | null): string => {
   const base = baseAvatarId(id);
   return base && Object.hasOwn(KEYS, base) ? KEYS[base] : KEYS.kaiyan;
@@ -51,12 +62,13 @@ export function getKaiyanLook(id?: string | null): KaiyanLook {
   try { raw = localStorage.getItem(key); } catch { /* storage blocked */ }
   const cache = caches.get(key);
   if (cache && cache.raw === raw) return cache.look;
-  let look = DEFAULT_LOOK;
+  const r = rangesFor(id);
+  let look = defaultLookFor(id);
   if (raw) {
     try {
       const v = JSON.parse(raw) as Partial<KaiyanLook>;
-      const orange = clamp(v?.orange, ORANGE);
-      look = { length: clamp(v?.length, LENGTH), glare: clamp(v?.glare, GLARE), ...(orange > 0 ? { orange } : {}) };
+      const orange = clamp(v?.orange, ORANGE), age = clamp(v?.age, AGE);
+      look = { length: clamp(v?.length, r.length), glare: clamp(v?.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}) };
     } catch { /* a broken value: the defaults */ }
   }
   caches.set(key, { raw, look });
@@ -69,8 +81,9 @@ export function setKaiyanLook(next: Partial<KaiyanLook> | null, id?: string | nu
     if (next === null) localStorage.removeItem(key);
     else {
       const cur = getKaiyanLook(id);
-      const orange = clamp(next.orange ?? cur.orange ?? 0, ORANGE);
-      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, LENGTH), glare: clamp(next.glare ?? cur.glare, GLARE), ...(orange > 0 ? { orange } : {}) }));
+      const r = rangesFor(id);
+      const orange = clamp(next.orange ?? cur.orange ?? 0, ORANGE), age = clamp(next.age ?? cur.age ?? 0, AGE);
+      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, r.length), glare: clamp(next.glare ?? cur.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}) }));
     }
   } catch { /* storage blocked */ }
   caches.delete(key);

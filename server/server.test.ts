@@ -827,6 +827,31 @@ describe('the admin avatar', () => {
     expect(err.error).toBe('bad_message');
   });
 
+  it("shows the fourth avatar's age to the room in halves up to 12, and only on him", async () => {
+    const { createHash } = await import('node:crypto');
+    const password = 'server-test-password';
+    const server = await boot({ adminHash: createHash('sha256').update(password).digest('hex') });
+    const a = await Client.connect(server.port, 'Owner4');
+    const b = await Client.connect(server.port, 'Watch4');
+    clients.push(a, b);
+    await a.waitFor((m) => m.t === 'welcome');
+    await b.waitFor((m) => m.t === 'welcome');
+    a.send({ t: 'create', visibility: 'private' });
+    const made = await a.waitFor((m) => m.t === 'room');
+    b.send({ t: 'join', code: made.view.code });
+    await b.waitFor((m) => m.t === 'room' && m.view.members.length === 2);
+    const seen = async (msg: object, want: string) => {
+      const before = b.msgs.length;
+      a.send(msg);
+      const room = await b.waitFor((m) => m.t === 'room' && b.msgs.indexOf(m) >= before && m.view.members.some((x: { name: string; avatar?: string }) => x.name === 'Owner4' && x.avatar === want));
+      expect(room.view.members.find((x: { name: string }) => x.name === 'Owner4').avatar).toBe(want);
+    };
+    await seen({ t: 'avatar', id: 'admin4', proof: password, age: 6 }, 'admin4~12');
+    await seen({ t: 'avatar', id: 'admin4', proof: password, age: 99 }, 'admin4~24'); // clamped to 12x
+    await seen({ t: 'avatar', id: 'admin4', proof: password, age: 'old' }, 'admin4');
+    await seen({ t: 'avatar', id: 'admin2', proof: password, age: 6 }, 'admin2'); // only the fourth takes an age
+  });
+
   it('refuses an orange Juan, and a client-made orange id, without the password', async () => {
     const { createHash } = await import('node:crypto');
     const server = await boot({ adminHash: createHash('sha256').update('server-test-password').digest('hex') });

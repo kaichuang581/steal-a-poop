@@ -13,7 +13,7 @@ import { BlockList } from './blocks';
 import type { AuditLog } from './moderation/audit';
 import type { RevocationBus } from './auth/revocations';
 import type { Cosmetics } from '../src/net/protocol';
-import { isAdminAvatar, isAvatarId, withOrange } from '../src/avatars/ids';
+import { isAdminAvatar, isAvatarId, withAge, withOrange } from '../src/avatars/ids';
 import { ADMIN_HASH } from '../src/lib/adminHash';
 import { isAdminProof } from './adminProof';
 import { clientAddress, limitKey } from './address';
@@ -135,7 +135,7 @@ type ClientMsg =
   | { t: 'mute'; on: boolean; userId?: string }
   | { t: 'kick'; userId: string }
   | { t: 'auth'; token: string }
-  | { t: 'avatar'; id: string | null; proof?: string; orange?: number };
+  | { t: 'avatar'; id: string | null; proof?: string; orange?: number; age?: number };
 
 const MAX_PAYLOAD = 4096;
 
@@ -261,7 +261,7 @@ export async function startServer(opts: ServerOptions) {
         }
         // Juan's orange amount rides on the id the room sees (`admin2~12`), built here from a clamped number: a client
         // never gets to send text of its own into the member list.
-        const shown = msg.id === null ? null : withOrange(msg.id, msg.orange);
+        const shown = msg.id === null ? null : withAge(withOrange(msg.id, msg.orange), msg.age);
         if ((avatars.get(userId) ?? null) === shown) return; // no change, nothing to send
         if (shown === null) avatars.delete(userId); else avatars.set(userId, shown);
         const here = rooms.roomFor(userId);

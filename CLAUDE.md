@@ -2062,4 +2062,14 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   key). AvatarDisc shows another player's Juan at their amount (`orangeOf(avatar) ?? own`); your own is still your live slider. Forehead
   and glare are still each viewer's own. PaintedApp resends the avatar 600 ms after the slider stops (the server takes 10 avatar messages
   a minute). An older browser, which does not know the suffix, shows such a player as the sheep. The server must be deployed for it.
+- A fourth admin avatar, with sliders to 12x and an age slider (requested by Brian, 2026-11-21: "do the same for this, except make the
+  forehead 12x and glare 12x, another slider to make him progressively darker and wrinkly, 0-12x"): id `admin4` (`ADMIN4_AVATAR_ID`),
+  a tall photo like the others (src/skin/assets/admin4-forehead.png; the strip that stretches is skin from under his fringe).
+  Forehead and Glare run 0.1 to 12 (and 0 to 12) and OPEN at 12x, a tower; the other three stop at 6 (`rangesFor`, `defaultLookFor`
+  in kaiyanLook.ts). The "Older" slider (`age`, 0 to 12 in halves, `sap:admin4-look`) darkens and browns skin and cuts fine creases
+  across it (`ageUp`, `creaseAt`, `ageData` in src/skin/avatars/orange.ts: only skin, so backdrop, suit, shirt and dark hair stay),
+  drawn on the same canvas texture as Juan's orange (`warmedTexture(url, mode, amount)` in AvatarDisc). Like Juan's orange it
+  reaches the room on the id: `admin4~24` is 12x (`withAge`, `ageOf`, `AGE_STEPS` 24 in src/avatars/ids.ts; the avatar message gains
+  `age`; the server clamps it and only the fourth takes it). Forehead and glare are still each viewer's own. The nameplate does not
+  rise past the 1x height, and the dream caps the picture at `DISC_MAX_H`. The server must be deployed for others to see the age.
 

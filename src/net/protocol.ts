@@ -130,7 +130,7 @@ export type ClientMsg =
   /** A fresh login token for the same account, sent when the server asks with 'reauth'. */
   | { t: 'auth'; token: string }
   /** The avatar you picked, or null for the default sheep. Cosmetic only. `proof` is the admin password, sent only with an admin avatar; `orange` (0 to 1) is Juan's tint, sent only with his. */
-  | { t: 'avatar'; id: string | null; proof?: string; orange?: number };
+  | { t: 'avatar'; id: string | null; proof?: string; orange?: number; age?: number };
 
 /** Human-readable text for a server error code. */
 export function describeError(code: string): string {

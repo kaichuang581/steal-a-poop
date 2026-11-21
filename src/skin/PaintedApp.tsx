@@ -9,7 +9,7 @@ import { setSoftBoom, setTickVoice } from '../audio/sound';
 import { loadStreak } from '../dream/daily';
 import { burstExplodes, TICK_VOICE } from './shop/catalog';
 import { grantStreak, useWallet } from './shop/store';
-import { ADMIN2_AVATAR_ID } from '../avatars/ids';
+import { ADMIN2_AVATAR_ID, ADMIN4_AVATAR_ID } from '../avatars/ids';
 import { useKaiyanLook } from './avatars/kaiyanLook';
 import { useAvatar } from './avatars/store';
 import { Suspense, lazy, useEffect, useState } from 'react';
@@ -115,8 +115,8 @@ export function PaintedApp() {
   const avatar = useAvatar();
   // Juan's orange amount goes with it, so the room sees the tint too. It is sent once the slider has stopped moving: the server
   // takes 10 avatar messages a minute.
-  const orange = useKaiyanLook(avatar).orange ?? 0;
-  const tint = avatar === ADMIN2_AVATAR_ID ? orange : 0;
+  const { orange = 0, age = 0 } = useKaiyanLook(avatar);
+  const tint = avatar === ADMIN2_AVATAR_ID ? orange : avatar === ADMIN4_AVATAR_ID ? age : 0;
   useEffect(() => {
     const t = window.setTimeout(() => useRoomStore.getState().sendAvatar(avatar), 600);
     return () => window.clearTimeout(t);

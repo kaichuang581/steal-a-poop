@@ -4,8 +4,8 @@ import { AdditiveBlending, CanvasTexture, Group, MeshBasicMaterial, MeshDepthMat
 import type { SheepState } from '../table/Sheep';
 import { DISC, discPose } from './discPose';
 import { SLICE, sliceHeights, useKaiyanLook } from './kaiyanLook';
-import { orangeOf } from '../../avatars/ids';
-import { warmData } from './orange';
+import { ageOf, orangeOf } from '../../avatars/ids';
+import { ageData, warmData } from './orange';
 import { photoUrlFor } from './photos';
 
 /**
@@ -36,8 +36,9 @@ const photos = new Map<string, Texture>();
  */
 const warmed = new Map<string, CanvasTexture>();
 const WARMED_KEEP = 4;
-function warmedTexture(url: string, amount: number): CanvasTexture {
-  const key = `${url}|${Math.round(amount * 20)}`;
+/** `mode` 'orange' warms it (Juan's slider), 'age' darkens and wrinkles it (the fourth avatar's). */
+function warmedTexture(url: string, mode: 'orange' | 'age', amount: number): CanvasTexture {
+  const key = `${url}|${mode}|${Math.round(amount * 20)}`;
   const have = warmed.get(key);
   if (have) { warmed.delete(key); warmed.set(key, have); return have; }
   const canvas = document.createElement('canvas');
@@ -51,7 +52,7 @@ function warmedTexture(url: string, amount: number): CanvasTexture {
     if (!g) return;
     g.drawImage(img, 0, 0, 512, 1339);
     const px = g.getImageData(0, 0, 512, 1339);
-    warmData(px.data, amount);
+    if (mode === 'age') ageData(px.data, 512, amount); else warmData(px.data, amount);
     g.putImageData(px, 0, 0);
     tex.needsUpdate = true;
   };
@@ -124,11 +125,12 @@ function starTexture(): Texture {
 
 export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0, pace = 0, avatar }: Props) {
   // Each admin avatar has its own forehead length and glare, and Juan's an orange amount (src/skin/avatars/kaiyanLook.ts).
-  const { length, glare, orange: own = 0 } = useKaiyanLook(avatar);
-  // Someone else's Juan comes with the amount of orange they chose on the id (src/avatars/ids.ts); yours is your own slider.
-  const orange = orangeOf(avatar) ?? own;
+  const { length, glare, orange: ownOrange = 0, age: ownAge = 0 } = useKaiyanLook(avatar);
+  // Someone else's Juan or fourth avatar comes with the amount they chose on the id (src/avatars/ids.ts); yours is your own slider.
+  const orange = orangeOf(avatar) ?? ownOrange;
+  const age = ageOf(avatar) ?? ownAge;
   const url = photoUrlFor(avatar);
-  const tex = useMemo(() => (orange > 0 ? warmedTexture(url, orange) : photoTexture(url)), [url, orange]);
+  const tex = useMemo(() => (orange > 0 ? warmedTexture(url, 'orange', orange) : age > 0 ? warmedTexture(url, 'age', age) : photoTexture(url)), [url, orange, age]);
   const quad = useMemo(() => pictureGeometry(length), [length]);
   useEffect(() => () => quad.dispose(), [quad]);
   // Where the slices sit: the picture's foot stays on the snow however long the band is. It sways, leans and hops about

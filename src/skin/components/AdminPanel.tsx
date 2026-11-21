@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
+import { ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, ADMIN4_AVATAR_ID, ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
 import { useAdmin } from '../../lib/admin';
 import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
 import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
 import { Brass, Switch, Slider } from '../kit';
-import { GLARE, LENGTH, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
-import { ORANGE } from '../avatars/orange';
+import { rangesFor, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
+import { AGE, ORANGE } from '../avatars/orange';
 import { previewEnd } from '../admin/endPreview';
 import { SiteNumbers } from '../admin/SiteNumbers';
 import type { EndPreview } from '../admin/endPreview';
@@ -27,6 +27,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const wearing = avatar === ADMIN_AVATAR_ID;
   const wearing2 = avatar === ADMIN2_AVATAR_ID;
   const wearing3 = avatar === ADMIN3_AVATAR_ID;
+  const wearing4 = avatar === ADMIN4_AVATAR_ID;
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -98,6 +99,17 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
               </div>
             </section>
             <HeadSliders avatar={ADMIN3_AVATAR_ID} title="Third avatar’s head" />
+            <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label="Fourth admin avatar">
+              <PhotoAvatar size={72} avatar={ADMIN4_AVATAR_ID} label="The fourth admin avatar" />
+              <div className="min-w-0 flex-1">
+                <b className="sk-display block text-base">Fourth admin avatar</b>
+                <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>{wearing4 ? 'On. The others in a room see it too.' : 'Sliders to 12x, and one to make him older. Only here, only for admin.'}</p>
+                {wearing4
+                  ? <WoodButton onClick={() => setAvatar(null)} className="sk-btn mt-1" aria-pressed>Unequip</WoodButton>
+                  : <ClothButton onClick={() => setAvatar(ADMIN4_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
+              </div>
+            </section>
+            <HeadSliders avatar={ADMIN4_AVATAR_ID} title="Fourth avatar’s head" age />
             {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
             <section className="sk-paper mt-3 p-2" aria-label="See the end screens">
               <b className="sk-display block text-base">Skip to the end</b>
@@ -133,8 +145,9 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 }
 
 /** How long an avatar's forehead is and how hard it shines, on this device (src/skin/avatars/kaiyanLook.ts). */
-function HeadSliders({ avatar, title, orange = false }: { avatar: string; title: string; orange?: boolean }) {
-  const { length, glare, orange: tint = 0 } = useKaiyanLook(avatar);
+function HeadSliders({ avatar, title, orange = false, age = false }: { avatar: string; title: string; orange?: boolean; age?: boolean }) {
+  const { length, glare, orange: tint = 0, age: years = 0 } = useKaiyanLook(avatar);
+  const { length: LENGTH, glare: GLARE } = rangesFor(avatar);
   const row = (label: string, value: number, r: { min: number; max: number; step: number }, set: (v: number) => void, show: (v: number) => string = (v) => `×${v.toFixed(1)}`) => (
     <label className="mt-1 flex items-center gap-2">
       <span className="sk-hand w-20 shrink-0 text-sm" style={{ color: 'var(--ink-soft)' }}>{label}</span>
@@ -150,6 +163,7 @@ function HeadSliders({ avatar, title, orange = false }: { avatar: string; title:
       </div>
       {row('Forehead', length, LENGTH, (v) => setKaiyanLook({ length: v }, avatar))}
       {row('Glare', glare, GLARE, (v) => setKaiyanLook({ glare: v }, avatar))}
+      {age && row('Older', years, AGE, (v) => setKaiyanLook({ age: v }, avatar))}
       {orange && row('Orange', tint, ORANGE, (v) => setKaiyanLook({ orange: v }, avatar), (v) => `${Math.round(v * 100)}%`)}
     </section>
   );

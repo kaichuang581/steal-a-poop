@@ -11,12 +11,10 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
     <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <!-- The loading screen's doors: fetched with the page, so they are in before the doors first draw. Relative to the
+    <!-- The loading screen's yarn ball: fetched with the page, so it is in before the screen first draws. Relative to the
          page (which is served at the base), because the dev server prefixes %BASE_URL% links with the base a second time. -->
-    <link rel="preload" as="image" type="image/webp" href="loading/doors-leaves.webp" />
-    <link rel="preload" as="image" type="image/webp" href="loading/doors-lintel.webp" />
-    <link rel="preload" as="image" type="image/webp" href="loading/doors-sill.webp" />
-    <!-- The two faces the first screen is set in (the doors' sign, the title and the menu); the rest are in src/skin/styles/fonts.css. -->
+    <link rel="preload" as="image" type="image/webp" href="loading/yarn-ball.webp" />
+    <!-- The two faces the first screen is set in (the title and the menu); the rest are in src/skin/styles/fonts.css. -->
     <link rel="preload" as="font" type="font/woff2" href="fonts/patrick-hand-latin.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="fonts/fraunces-latin.woff2" crossorigin />
     <meta property="og:type" content="website" />
@@ -32,11 +30,11 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- The barn doors, shut, are written in here by vite.config.ts (src/skin/loading/bootDoors.ts), so they are on
-         screen with the page's first frame, before the game's code has arrived. -->
+    <!-- The loading screen at its start (the night, the dotted word and the yarn ball) is written in here by vite.config.ts
+         (src/skin/loading/bootDoors.ts), so it is on screen with the page's first frame, before the game's code has arrived. -->
     <!--boot-doors-->
     <!-- Before the game's code, a small plain script any browser can read (public/boot-check.js): a browser too old for
-         the game is told so, and so is a page that never starts, instead of the doors staying shut for ever. -->
+         the game is told so, and so is a page that never starts, instead of the loading screen staying up for ever. -->
     <script src="/boot-check.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -42,6 +42,9 @@ let around: (ms: number) => void = () => {};
 
 /** The longest slice so far, in ms (read by the tools that measure the build). */
 export let longestSlice = 0;
+/** How many steps the page's builds have taken so far, all told (read by the loading screen's progress, never written
+ *  outside this file). */
+export let stepsTaken = 0;
 
 function slice() {
   timer = null;
@@ -52,6 +55,7 @@ function slice() {
       const job = queue[0];
       let r: IteratorResult<unknown, unknown>;
       // A build that throws is taken out of the queue and never reported done: done with nothing showed an empty sky.
+      stepsTaken++;
       try { r = job.steps.next(); } catch (e) { queue.shift(); reportError(e); continue; }
       if (r.done) { queue.shift(); job.done(r.value); }
       else if (r.value !== undefined) job.part?.(r.value);
@@ -73,6 +77,7 @@ export function rush(steps: Steps<unknown, unknown>): void {
   const jobs = queue.splice(0, at + 1);
   for (const job of jobs) {
     for (;;) {
+      stepsTaken++;
       const r = job.steps.next();
       if (r.done) { job.done(r.value); break; }
       if (r.value !== undefined) job.part?.(r.value);

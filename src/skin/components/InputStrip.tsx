@@ -52,7 +52,7 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
   const mode = out ? 'out' : myTurn ? 'mine' : 'wait';
   const prompt = {
     mine: <>Your turn: type a word starting with <b>{L}</b> and press Enter</>,
-    wait: <>{turnName}’s turn. Get ready</>,
+    wait: <>{`${turnName}’s turn. Get ready`}</>,
     out: <>You’re frozen solid: out of wool. Watch who’s the last sheep standing</>,
   }[mode];
   const placeholder = { mine: 'type your word…', wait: 'type ahead…', out: '' }[mode];

@@ -155,7 +155,7 @@ export function PaintedTour() {
         <div className="sk-tour-head">
           <span className="sk-tour-dog"><img src={DOG} alt="" width={48} height={48} /></span>
           <div className="sk-tour-meta">
-            <span className="sk-tour-kicker">Tutorial, step {i + 1} of {TOUR_STEPS.length}</span>
+            <span className="sk-tour-kicker">{`Tutorial, step ${i + 1} of ${TOUR_STEPS.length}`}</span>
             <span className="sk-tour-pips" aria-hidden="true">{TOUR_STEPS.map((s, k) => <i key={s.id} data-on={k < i ? 'done' : k === i ? 'now' : undefined} />)}</span>
           </div>
         </div>

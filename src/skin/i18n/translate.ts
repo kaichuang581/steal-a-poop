@@ -4,16 +4,25 @@
  * component so that the English game is untouched and every screen is covered by one table. Anything marked
  * `data-i18n-skip`, typed fields, and the room's chat log (players' own words) are left alone.
  */
-import { FR_PATTERNS } from './fr';
-
 let FR: Record<string, string> = {};
-/** Sets the English-to-French lines (public/i18n-fr.json). */
-export function setFrench(lines: Record<string, string>): void {
+let FR_PATTERNS: [RegExp, string][] = [];
+/** Sets the English-to-French lines (public/i18n-fr.json) and the patterns for lines with names and numbers in them
+ *  (public/i18n-fr-patterns.json: [regular expression source, French], first match wins). Both are fetched only in
+ *  French, so the English game's download does not grow. */
+export function setFrench(lines: Record<string, string>, patterns: [string, string][] = []): void {
   FR = lines;
+  FR_PATTERNS = patterns.map(([src, out]) => [new RegExp(src), out]);
 }
 
 const ATTRS = ['placeholder', 'aria-label', 'title', 'alt'] as const;
 const SKIP = '[data-i18n-skip], script, style, textarea, input, [role="log"], .rm-chat-log, [contenteditable="true"]';
+
+/** A piece kept from an English line: its French if the table has it (a list like "Wood, Stone" piece by piece). */
+function piece(g: string): string {
+  if (Object.hasOwn(FR, g)) return FR[g];
+  if (g.includes(', ')) return g.split(', ').map((x) => (Object.hasOwn(FR, x) ? FR[x] : x)).join(', ');
+  return /[A-Za-z]/.test(g) && !/^\d/.test(g) ? (toFrench(g) ?? g) : g;
+}
 
 /** French for one line of English, or null when there is none. Leading and trailing spaces are kept. */
 export function toFrench(text: string): string | null {
@@ -23,7 +32,11 @@ export function toFrench(text: string): string | null {
   if (fr === undefined) {
     for (const [re, out] of FR_PATTERNS) {
       if (re.test(core)) {
-        fr = core.replace(re, out);
+        // The parts kept from the English (a name, a number, a rank) are translated too when the table has them.
+        fr = core.replace(re, (...args: unknown[]) => {
+          const groups = args.slice(1).filter((a): a is string => typeof a === 'string');
+          return out.replace(/\$(\d)/g, (_, i: string) => piece(groups[Number(i) - 1] ?? ''));
+        });
         break;
       }
     }
@@ -71,12 +84,13 @@ export function startFrench(): () => void {
   let stop = () => {};
   let gone = false;
   document.documentElement.lang = 'fr';
-  void fetch(`${import.meta.env.BASE_URL}i18n-fr.json`)
-    .then((r) => (r.ok ? r.json() : {}))
-    .catch(() => ({}))
-    .then((lines: Record<string, string>) => {
+  const get = <T,>(file: string, empty: T): Promise<T> => fetch(`${import.meta.env.BASE_URL}${file}`)
+    .then((r) => (r.ok ? (r.json() as Promise<T>) : empty))
+    .catch(() => empty);
+  void Promise.all([get<Record<string, string>>('i18n-fr.json', {}), get<[string, string][]>('i18n-fr-patterns.json', [])])
+    .then(([lines, patterns]) => {
       if (gone) return;
-      setFrench(lines);
+      setFrench(lines, patterns);
       stop = observe();
     });
   return () => { gone = true; stop(); };

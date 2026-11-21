@@ -302,7 +302,7 @@ export function PaintedHome() {
             <Chip key={id} aria-pressed={preset === id} className="capitalize" onClick={() => { if (id !== 'custom') setRule(PRESETS[id]); }}>{id}</Chip>
           ))}
         </div>
-        <p className="mt-1.5" aria-live="polite"><span className="kit-slate kit-slate--mini"><span className="kit-slate-face kit-chalk-hand">about {minutes} min</span></span></p>
+        <p className="mt-1.5" aria-live="polite"><span className="kit-slate kit-slate--mini"><span className="kit-slate-face kit-chalk-hand">{`about ${minutes} min`}</span></span></p>
       </fieldset>
       <fieldset>
         <legend className="text-sm font-bold">Sheep at the table</legend>

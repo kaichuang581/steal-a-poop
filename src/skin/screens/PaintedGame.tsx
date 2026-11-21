@@ -428,7 +428,7 @@ export function PaintedGame() {
                         aria-label={p.isYou ? undefined : `${p.name} is typing`}>
                         {typed ? [...typed].map((ch, i) => (
                           <span key={i} data-first={i === 0 && p.isYou ? (ch.toLowerCase() === L ? 'ok' : 'bad') : undefined}>{ch.toUpperCase()}</span>
-                        )) : <span className="sk-say-ph">a word with {L.toUpperCase()}…</span>}
+                        )) : <span className="sk-say-ph">{`a word with ${L.toUpperCase()}…`}</span>}
                         {speaking && <i className="sk-say-caret" aria-hidden="true" />}
                       </div>
                     )}
@@ -641,7 +641,7 @@ function RunOver() {
           <h2 className="sk-tally-title">{run?.isNew ? 'New best!' : RUN_OVER_TITLE}</h2>
           <div className="mt-2 flex justify-center">
             <Slate size="plaque" tone={run?.isNew ? 'amber' : 'chalk'} className="sk-score-plaque">
-              {score}<span className="kit-chalk-hand">word{score === 1 ? '' : 's'} before the clock ran out</span>
+              {score}<span className="kit-chalk-hand">{`word${score === 1 ? '' : 's'} before the clock ran out`}</span>
             </Slate>
           </div>
           <div className="sk-plaques">

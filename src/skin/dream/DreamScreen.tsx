@@ -456,7 +456,7 @@ export function DreamScreen() {
                     ? <p>{dreamSummary({ fences: live.current.reached, bumps: live.current.bumps, longest })}</p>
                     : <>
                         <p>Longest word: {longest > 0 ? `${longest} letters` : 'none yet'}</p>
-                        {length ? <p>fence {fenceNow} of {length.fences}</p> : null}
+                        {length ? <p>{`fence ${fenceNow} of ${length.fences}`}</p> : null}
                       </>}
                   {practice ? <p>Practice dreams don’t count toward your streak.</p> : null}
                 </div>
@@ -464,7 +464,7 @@ export function DreamScreen() {
               {!practice && (
                 <div className="dr-results-streak">
                   <Knit stitches={days} />
-                  <span>{streakNow}-night streak, best {loadStreak().best}</span>
+                  <span>{`${streakNow}-night streak, best ${loadStreak().best}`}</span>
                   <Paper kind="note" className="dr-results-blankets">Warm Blankets keep your streak warm when you miss a night. You earn one every 7 nights.</Paper>
                 </div>
               )}

@@ -134,8 +134,8 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
         <div className="sk-room-strip">
           <span className="kit-plank kit-plank--light sk-level-badge">Level {lv.level}: {titleFor(lv.level)}</span>
           <Band value={lv.into / lv.need} label={`${lv.need - lv.into} XP to level ${lv.level + 1}`} />
-          <span className="sk-strip-xp">{formatCoins(lv.need - lv.into)} XP to level {lv.level + 1}</span>
-          <span className="sk-strip-today"><CoinArt size={16} /> {today} / {DAILY_CAP} from games today</span>
+          <span className="sk-strip-xp">{`${formatCoins(lv.need - lv.into)} XP to level ${lv.level + 1}`}</span>
+          <span className="sk-strip-today"><CoinArt size={16} /> {`${today} / ${DAILY_CAP} from games today`}</span>
         </div>
         <div className="sk-room-bodywrap">
           <div role="tabpanel" tabIndex={-1} className="sk-room-body" ref={body} onScroll={measure}>
@@ -207,7 +207,7 @@ function BellShelf({ wallet, onNote, onFound }: { wallet: Wallet; onNote: (s: st
         ))}
       </div>
       <p className="sk-room-hint sk-bells-earn">
-        <BellArt size={16} /> +{BELLS.level} every level, +{BELLS.achievement} every milestone and +{BELLS.streak7} every 7 dream nights. Bells buy only what is on this shelf.
+        <BellArt size={16} /> {`+${BELLS.level} every level, +${BELLS.achievement} every milestone and +${BELLS.streak7} every 7 dream nights. Bells buy only what is on this shelf.`}
       </p>
     </div>
   );

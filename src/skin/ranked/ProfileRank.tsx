@@ -21,7 +21,7 @@ export function ProfileRank() {
     <section aria-labelledby="prof-ranked">
       <div className="sk-prof-head">
         <Sign size="label" tone="wood" className="sk-room-heading"><h3 id="prof-ranked">Ranked</h3></Sign>
-        <p className="sk-room-hint">{TIERS.length} ranks, from {TIERS[0].name} to {TIERS[TIERS.length - 1].name}. Ranked games are under Queue on the menu.</p>
+        <p className="sk-room-hint">{`${TIERS.length} ranks, from ${TIERS[0].name} to ${TIERS[TIERS.length - 1].name}. Ranked games are under Queue on the menu.`}</p>
       </div>
       <Paper kind="note" className="sk-prof-ranked">
         <RankBadge rating={me?.rating ?? 0} size={64} />
@@ -33,7 +33,7 @@ export function ProfileRank() {
           ) : !me ? (
             <><b>Checking</b><span>Asking the barn for your rank.</span></>
           ) : !played ? (
-            <><b>Unranked</b><span>Everyone starts at {rank.label}. Your first ranked game starts the climb.</span></>
+            <><b>Unranked</b><span>{`Everyone starts at ${rank.label}. Your first ranked game starts the climb.`}</span></>
           ) : (
             <>
               <b>{rank.label}</b>

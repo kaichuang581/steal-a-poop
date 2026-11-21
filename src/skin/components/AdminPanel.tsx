@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { ADMIN2_AVATAR_ID, ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
+import { ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
 import { useAdmin } from '../../lib/admin';
 import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
@@ -25,6 +25,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const avatar = useAvatar();
   const wearing = avatar === ADMIN_AVATAR_ID;
   const wearing2 = avatar === ADMIN2_AVATAR_ID;
+  const wearing3 = avatar === ADMIN3_AVATAR_ID;
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -73,7 +74,18 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
             </section>
             <AdminCoins />
             <SiteNumbers />
-            <KaiyanSliders />
+            <HeadSliders avatar={ADMIN_AVATAR_ID} title="Kaiyan’s head" />
+            <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label="Third admin avatar">
+              <PhotoAvatar size={72} avatar={ADMIN3_AVATAR_ID} label="The third admin avatar" />
+              <div className="min-w-0 flex-1">
+                <b className="sk-display block text-base">Third admin avatar</b>
+                <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>{wearing3 ? 'On. The others in a room see it too.' : 'A long forehead and a glare, like Kaiyan’s. Only here, only for admin.'}</p>
+                {wearing3
+                  ? <WoodButton onClick={() => setAvatar(null)} className="sk-btn mt-1" aria-pressed>Unequip</WoodButton>
+                  : <ClothButton onClick={() => setAvatar(ADMIN3_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
+              </div>
+            </section>
+            <HeadSliders avatar={ADMIN3_AVATAR_ID} title="Third avatar’s head" />
             <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label="Second admin avatar">
               <PhotoAvatar size={72} avatar={ADMIN2_AVATAR_ID} label="The second admin avatar" />
               <div className="min-w-0 flex-1">
@@ -118,9 +130,9 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** How long Kaiyan's forehead is and how hard it shines, on this device (src/skin/avatars/kaiyanLook.ts). */
-function KaiyanSliders() {
-  const { length, glare } = useKaiyanLook();
+/** How long an avatar's forehead is and how hard it shines, on this device (src/skin/avatars/kaiyanLook.ts). */
+function HeadSliders({ avatar, title }: { avatar: string; title: string }) {
+  const { length, glare } = useKaiyanLook(avatar);
   const row = (label: string, value: number, r: { min: number; max: number; step: number }, set: (v: number) => void) => (
     <label className="mt-1 flex items-center gap-2">
       <span className="sk-hand w-20 shrink-0 text-sm" style={{ color: 'var(--ink-soft)' }}>{label}</span>
@@ -129,13 +141,13 @@ function KaiyanSliders() {
     </label>
   );
   return (
-    <section className="sk-paper mt-3 p-2" aria-label="Kaiyan's head">
+    <section className="sk-paper mt-3 p-2" aria-label={title}>
       <div className="flex items-center justify-between gap-2">
-        <b className="sk-display block text-base">Kaiyan’s head</b>
-        <ClothButton className="sk-btn" onClick={() => setKaiyanLook(null)}>Reset</ClothButton>
+        <b className="sk-display block text-base">{title}</b>
+        <ClothButton className="sk-btn" onClick={() => setKaiyanLook(null, avatar)}>Reset</ClothButton>
       </div>
-      {row('Forehead', length, LENGTH, (v) => setKaiyanLook({ length: v }))}
-      {row('Glare', glare, GLARE, (v) => setKaiyanLook({ glare: v }))}
+      {row('Forehead', length, LENGTH, (v) => setKaiyanLook({ length: v }, avatar))}
+      {row('Glare', glare, GLARE, (v) => setKaiyanLook({ glare: v }, avatar))}
     </section>
   );
 }

@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { DISC } from './discPose';
 
 /**
- * How long Kaiyan's forehead is and how hard it shines (Brian, 2026-11-09: "make kaiyans head adjustable in both length
+ * How long a tall photo's forehead is (Kaiyan's, and the third admin avatar's, each its own) and how hard it shines (Brian, 2026-11-09: "make kaiyans head adjustable in both length
  * and glare, make it extend even further and get even brighter"). Set with two sliders in the admin panel and kept on
  * this device. Both are multiples of the look as it was on 2026-11-08 (1 = that look); the defaults go past it.
  *
@@ -29,15 +29,21 @@ export function pictureHeight(length: number): number {
   return s.hair + s.band + s.face;
 }
 
-const KEY = 'sap:kaiyan-look';
+/** Each tall photo keeps its own look on this device. Kaiyan's key is the one it has always had. */
+const KEYS: Record<string, string> = { kaiyan: 'sap:kaiyan-look', admin3: 'sap:admin3-look' };
+const keyFor = (id?: string | null): string => (id && Object.hasOwn(KEYS, id) ? KEYS[id] : KEYS.kaiyan);
 const subs = new Set<() => void>();
 const clamp = (v: unknown, r: { min: number; max: number; def: number }) =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(r.max, Math.max(r.min, v)) : r.def;
 
-let cache: { raw: string | null; look: KaiyanLook } | null = null;
-export function getKaiyanLook(): KaiyanLook {
+const caches = new Map<string, { raw: string | null; look: KaiyanLook }>();
+/** Bumped by every change, so a screen that only needs to look again (the name plates) can hear it. */
+let version = 0;
+export function getKaiyanLook(id?: string | null): KaiyanLook {
+  const key = keyFor(id);
   let raw: string | null = null;
-  try { raw = localStorage.getItem(KEY); } catch { /* storage blocked */ }
+  try { raw = localStorage.getItem(key); } catch { /* storage blocked */ }
+  const cache = caches.get(key);
   if (cache && cache.raw === raw) return cache.look;
   let look = DEFAULT_LOOK;
   if (raw) {
@@ -46,29 +52,37 @@ export function getKaiyanLook(): KaiyanLook {
       look = { length: clamp(v?.length, LENGTH), glare: clamp(v?.glare, GLARE) };
     } catch { /* a broken value: the defaults */ }
   }
-  cache = { raw, look };
+  caches.set(key, { raw, look });
   return look;
 }
 
-export function setKaiyanLook(next: Partial<KaiyanLook> | null): void {
+export function setKaiyanLook(next: Partial<KaiyanLook> | null, id?: string | null): void {
+  const key = keyFor(id);
   try {
-    if (next === null) localStorage.removeItem(KEY);
+    if (next === null) localStorage.removeItem(key);
     else {
-      const cur = getKaiyanLook();
-      localStorage.setItem(KEY, JSON.stringify({ length: clamp(next.length ?? cur.length, LENGTH), glare: clamp(next.glare ?? cur.glare, GLARE) }));
+      const cur = getKaiyanLook(id);
+      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, LENGTH), glare: clamp(next.glare ?? cur.glare, GLARE) }));
     }
   } catch { /* storage blocked */ }
-  cache = null;
+  caches.delete(key);
+  version++;
   subs.forEach((f) => f());
 }
+
+const subscribe = (f: () => void) => { subs.add(f); return () => { subs.delete(f); }; };
 
 /**
  * What the hook hands React: the look as last read, with no trip to storage. React asks for it on every render of the
  * table, the ice and the dream, which was two storage reads a frame (plan file 17, change 11). It is read again when
  * the sliders move it (setKaiyanLook drops the cache); `getKaiyanLook` itself still asks storage every time.
  */
-const keptLook = (): KaiyanLook => cache?.look ?? getKaiyanLook();
+export function useKaiyanLook(id?: string | null): KaiyanLook {
+  const key = keyFor(id);
+  return useSyncExternalStore(subscribe, () => caches.get(key)?.look ?? getKaiyanLook(id), () => DEFAULT_LOOK);
+}
 
-export function useKaiyanLook(): KaiyanLook {
-  return useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f); }; }, keptLook, () => DEFAULT_LOOK);
+/** A number that changes whenever any avatar's look does: for the screens that only need to place a name plate again. */
+export function useLooksVersion(): number {
+  return useSyncExternalStore(subscribe, () => version, () => 0);
 }

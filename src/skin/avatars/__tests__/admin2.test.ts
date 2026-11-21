@@ -11,7 +11,8 @@ import { getAvatar, setAvatar } from '../store';
 /** The second admin avatar (requested by Brian, 2026-11-20): a plain photo beside Kaiyan's, admin-only like it. */
 describe('the second admin avatar', () => {
   it('is an admin avatar the server accepts and the picker never offers', () => {
-    expect(ADMIN_AVATAR_IDS).toEqual([ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID]);
+    expect(ADMIN_AVATAR_IDS).toContain(ADMIN_AVATAR_ID);
+    expect(ADMIN_AVATAR_IDS).toContain(ADMIN2_AVATAR_ID);
     expect(isAvatarId(ADMIN2_AVATAR_ID)).toBe(true);
     expect(AVATAR_IDS).toContain(ADMIN2_AVATAR_ID);
     expect(isAdminAvatar(ADMIN2_AVATAR_ID)).toBe(true);

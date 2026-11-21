@@ -17,7 +17,7 @@ import { pinePaint, pineShape, tieredPine } from './style/pine';
 
 /** The bulbs, warm (docs/depth/DEPTH-PLAN.md, A3): warm red, warm white, amber, and one muted green in four so they
  *  still read as the season. They were neon red, green and gold, which fought the warm light. */
-const GLOW = ['#F26B4F', '#FFE2B0', '#FFB45A', '#8CC26A'] as const;
+const GLOW = ['#F07A5A', '#FFE2B0', '#FFD08A', '#9CCB78'] as const; // warm red, cream, warm gold, sage (docs/depth section 3.3)
 export const BULB_COLORS = GLOW;
 /** Twinkle groups per colour. Each bulb joins one at random, and each group keeps its own time (Festive.tsx). */
 export const BULB_GROUPS = 5;

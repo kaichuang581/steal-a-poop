@@ -8,33 +8,35 @@ import { hash3 } from './primitives';
  * The painted-miniature look's colours (docs/miniature/01, section 4; 03, section 1). One ladder of five steps a
  * material: index 0 is step -2, index 2 is step 0, index 4 is step +2. One part, one colour; parts that touch differ
  * by a step; nothing is chosen per cube. These are final colours: they are not desaturated as `lin()`'s are.
+ * The palette of docs/depth/DEPTH-PLAN.md, section 3: warm leads, red leans coral, green leans teal, no pure white or black.
  */
 export const LADDER = {
-  snow:       ['#D9D6D0', '#E7E5E0', '#F4F2EE', '#FBFAF7', '#FBFAF7'],
-  barnRed:    ['#A52A1F', '#AE392D', '#B8473A', '#C25447', '#CB6153'],
-  trimWhite:  ['#D8D1C0', '#E4DCCC', '#EFE8D8', '#FAF4E4', '#FFFAEB'],
-  slate:      ['#474C56', '#50555F', '#5A5F69', '#646973', '#6E737D'],
-  wood:       ['#835325', '#8C5D32', '#96683F', '#A0734C', '#A97E58'],
-  darkWood:   ['#4F3013', '#58391E', '#614329', '#6A4D34', '#74573F'],
-  roofBrown:  ['#644329', '#6E4D34', '#77573F', '#81614A', '#8A6C55'],
-  stone:      ['#7E7973', '#89837D', '#938E88', '#9E9993', '#A8A39E'],
-  hay:        ['#C99F35', '#D3AA49', '#DDB65A', '#E7C26B', '#F2CD7B'],
-  straw:      ['#D1B569', '#DBC178', '#E6CC86', '#F1D894', '#FBE3A3'],
-  pine:       ['#2F5D37', '#3B6641', '#46704C', '#517A57', '#5D8462'],
-  houseCream: ['#C4B28E', '#CEBD9B', '#D9C8A7', '#E4D3B3', '#EFDFC0'],
-  tractorRed: ['#AF180C', '#B82D20', '#C23E2F', '#CB4D3D', '#D55B4B'],
-  iron:       ['#2B2726', '#34302F', '#3D3938', '#464241', '#4F4C4B'],
-  brass:      ['#DBA306', '#E5AF30', '#EFBB48', '#F9C75C', '#FFD36E'],
-  coopYellow: ['#C9A24D', '#D3AE5D', '#DDB96C', '#E7C57B', '#F2D08A'],
-  glass:      ['#1F2A39', '#283341', '#313C4A', '#3A4553', '#444F5C'],
-  ice:        ['#A7C6D2', '#B3D1DD', '#BFDCE8', '#CBE7F3', '#D8F3FE'],
-  reed:       ['#5E6A36', '#687442', '#727E4E', '#7C885A', '#879366'],
-  scarfRed:   ['#AF312C', '#B84038', '#C24E45', '#CC5B51', '#D5685E'],
-  carrot:     ['#D36E04', '#DC7B27', '#E6873C', '#F0934E', '#F9A05E'],
-  wool:       ['#DBD4C4', '#E7DFD0', '#F2EBDC', '#FDF7E8', '#FFFAEC'],
-  faceDark:   ['#312B2A', '#3A3433', '#433D3C', '#4C4645', '#56504F'],
-  pink:       ['#D99B91', '#E3A69D', '#EDB2A9', '#F7BEB5', '#FFCAC1'],
-  giftGreen:  ['#1F763E', '#30804A', '#3F8A55', '#4D9461', '#5B9E6C'],
+  snow:       ['#D8D2C9', '#E3DDD5', '#EEE9E1', '#F3EEE6', '#F3EEE7'],
+  barnRed:    ['#A3412D', '#AD4D3A', '#B75946', '#C06653', '#CA725F'],
+  trimWhite:  ['#CEC0AC', '#D9CCB8', '#E4D7C4', '#EFE3D0', '#F9EDDA'],
+  slate:      ['#715961', '#7B636B', '#856D75', '#8E7780', '#99828A'],
+  wood:       ['#885A33', '#926540', '#9B704C', '#A57B58', '#AF8564'],
+  darkWood:   ['#5B3923', '#65432E', '#6E4D38', '#775743', '#81614E'],
+  roofBrown:  ['#714B38', '#7A5542', '#84604D', '#8D6A58', '#977563'],
+  stone:      ['#867B71', '#90867C', '#9A9087', '#A59B92', '#AFA69D'],
+  hay:        ['#CAA153', '#D4AC62', '#DEB870', '#E8C37F', '#F3CF8E'],
+  straw:      ['#D0B476', '#DBBF84', '#E5CB91', '#F0D69F', '#FBE2AD'],
+  pine:       ['#306A56', '#3D7460', '#497E6A', '#568875', '#62927F'],
+  houseCream: ['#C2AA88', '#CDB594', '#D8C0A1', '#E2CCAD', '#EDD7BA'],
+  tractorRed: ['#A73F30', '#B14C3C', '#BB5949', '#C46555', '#CE7161'],
+  iron:       ['#382E2A', '#413633', '#4A403C', '#544945', '#5D534F'],
+  brass:      ['#DBA342', '#E5AE54', '#EFBA64', '#F9C675', '#FFD38F'],
+  coopYellow: ['#C8A15E', '#D2AC6C', '#DCB87A', '#E7C388', '#F1CF96'],
+  glass:      ['#2B3D4A', '#354653', '#3E505C', '#485965', '#53636F'],
+  ice:        ['#98C3CE', '#A4CED9', '#B0D9E4', '#BDE4EE', '#CAF0F9'],
+  reed:       ['#656B3E', '#6F754A', '#797F55', '#838961', '#8E946D'],
+  scarfRed:   ['#AC473D', '#B65349', '#BF6055', '#C96C61', '#D3786D'],
+  carrot:     ['#CC7228', '#D57E3B', '#DF8A4B', '#E9965B', '#F2A26A'],
+  wool:       ['#D8CEBE', '#E3D9CA', '#EEE5D6', '#F6EDDF', '#F6EDE0'],
+  faceDark:   ['#3B2C2A', '#433533', '#4D3F3C', '#564846', '#5F524F'],
+  pink:       ['#D49A95', '#DEA6A0', '#E8B1AC', '#F3BDB8', '#FDC9C4'],
+  giftGreen:  ['#2A7656', '#398060', '#478A6B', '#549476', '#619E81'],
+  ink:        ['#2D2020', '#2E2221', '#362A2A', '#3F3333', '#483C3C'],
 } as const;
 export type Mat = keyof typeof LADDER;
 type RGB = [number, number, number];
@@ -61,7 +63,7 @@ export function solid(mat: Mat, step = 0): RGB {
 
 // ---- the ladder's own arithmetic (tools/miniature/ladder.mjs): lightness moves 0.035 a step in OKLab, and the colour's
 // strength is scaled by 1 - 0.04 x step, so darker steps are a touch richer and lighter ones paler.
-const STEP = 0.035, TOP = 0.985;
+const STEP = 0.035, TOP = 0.95, FLOOR = 0.26;
 const toLinear = (c: number) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const toSrgb = (c: number) => { c = Math.max(0, Math.min(1, c)); return Math.round((c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055) * 255); };
 function toOklab(hex: string): RGB {
@@ -76,23 +78,55 @@ function toHex(L: number, a: number, b: number): string {
   const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
   return '#' + rgb.map((c) => toSrgb(c).toString(16).padStart(2, '0').toUpperCase()).join('');
 }
+/** A colour's OKLCH: lightness 0 to 1, colour strength, hue in degrees (docs/depth/DEPTH-PLAN.md, section 2). */
+export function oklch(hex: string): RGB {
+  const [L, a, b] = toOklab(hex), h = (Math.atan2(b, a) * 180) / Math.PI;
+  return [L, Math.hypot(a, b), h < 0 ? h + 360 : h];
+}
 /** The hex a colour takes at a step, by the ladders' own method. */
 export function shadeHex(hex: string, step = 0): string {
   const k = clampStep(step);
   if (k === 0) return hex.toUpperCase();
   const [L, a, b] = toOklab(hex), sc = 1 - 0.04 * k;
-  return toHex(Math.min(TOP, L + k * STEP), a * sc, b * sc);
+  return toHex(Math.max(FLOOR, Math.min(TOP, L + k * STEP)), a * sc, b * sc);
 }
-const shades = new Map<string, RGB>();
+/** Brings a colour from a sheet into the palette (docs/depth/DEPTH-PLAN.md, section 3.1, rules R3 to R6). */
+export function harmonize(hex: string): string {
+  const [L0, a0, b0] = toOklab(hex);
+  const L = Math.min(0.93, Math.max(0.28, L0));
+  let C = Math.hypot(a0, b0), h = (Math.atan2(b0, a0) * 180) / Math.PI;
+  if (h < 0) h += 360;
+  if (C < 0.025) { h = 55; C = Math.max(C, 0.012); } // R6: no dead greys
+  else if (h >= 115 && h <= 165) { h += (168 - h) * 0.6; C = Math.min(C, 0.085); } // R5: greens toward teal
+  else if (h >= 200 && h <= 320) C = Math.min(C, 0.1); // blues and purples
+  else C = Math.min(C, 0.13); // R4: warm accents
+  const r = (h * Math.PI) / 180;
+  return toHex(L, C * Math.cos(r), C * Math.sin(r));
+}
+
+const shades = new Map<string, RGB>(), raws = new Map<string, RGB>();
 /**
- * Any colour at a step, by the same arithmetic as the ladders. No desaturation. For colours that are not in the table:
- * animals, garments, skins. `shade('#B8473A', 1)` is `solid('barnRed', 1)`.
+ * Any colour at a step, by the same arithmetic as the ladders, first brought into the palette by `harmonize()`. No
+ * desaturation. For colours that are not in the table: animals, garments, worn things.
  */
 export function shade(hex: string, step = 0): RGB {
   const key = `${hex}|${clampStep(step)}`;
   let c = shades.get(key);
-  if (!c) shades.set(key, (c = plain(shadeHex(hex, step))));
+  if (!c) shades.set(key, (c = plain(shadeHex(harmonize(hex), step))));
   return c;
+}
+/** `shade()` without `harmonize()`: bombs, their skins, fuses and sparks, the trophy and anything that glows keep their strength. */
+export function shadeRaw(hex: string, step = 0): RGB {
+  const key = `${hex}|${clampStep(step)}`;
+  let c = raws.get(key);
+  if (!c) raws.set(key, (c = plain(shadeHex(hex, step))));
+  return c;
+}
+
+/** A material's colour at a step with its colour strength scaled by `k`: the barn's inside faces (docs/depth section 3.3). */
+export function muted(mat: Mat, step: number, k: number): RGB {
+  const [L, a, b] = toOklab(LADDER[mat][clampStep(step) + 2]);
+  return plain(toHex(L, a * k, b * k));
 }
 
 /** The average colour of the old random three-tone pick, with its desaturation: the same overall colour, no speckle. */

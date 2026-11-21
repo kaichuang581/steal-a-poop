@@ -1,7 +1,7 @@
 import { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
 import { IRIS, PUPIL, T, WHITE, WOLF_EYE } from './palette';
-import { shade } from './paint';
+import { shade, shadeRaw } from './paint';
 import type { Tone } from './palette';
 import { box, ellipsoid, Grid, hash3, helix, line, norm, ring, rng, taperedBox } from './primitives';
 import type { Paint, V3 } from './primitives';
@@ -102,7 +102,7 @@ let eyePair: BufferGeometry | null = null;
 export function wolfEyes(): BufferGeometry {
   if (eyePair) return eyePair;
   const g = new Grid(s);
-  for (const x0 of [0, 6]) for (let x = x0; x < x0 + 3; x++) for (let y = 0; y < 2; y++) g.set(x, y, 0, shade(WOLF_EYE));
+  for (const x0 of [0, 6]) for (let x = x0; x < x0 + 3; x++) for (let y = 0; y < 2; y++) g.set(x, y, 0, shadeRaw(WOLF_EYE));
   eyePair = buildGeometry(g.map, s).translate(-4.5 * s, -s, -s / 2);
   return eyePair;
 }
@@ -300,8 +300,8 @@ export function digitGeometry(text: string, cell = 0.06): BufferGeometry {
     const rows = FONT[ch];
     if (rows) rows.forEach((row, r) => [...row].forEach((bit, c) => {
       if (bit !== '1') return;
-      g.set(n * 6 + c, 6 - r, 1, shade(T.lantern[0]));
-      g.set(n * 6 + c, 6 - r, 0, shade(T.lantern[2]));
+      g.set(n * 6 + c, 6 - r, 1, shadeRaw(T.lantern[0]));
+      g.set(n * 6 + c, 6 - r, 0, shadeRaw(T.lantern[2]));
     }));
   });
   const width = Math.max(0, text.length * 6 - 1);

@@ -48,7 +48,7 @@ export const DIORAMA: Record<Hour, { sun: string; intensity: number; elevationDe
 /** The key colours before the hour grades, kept for the wendigo's shot, which draws today's light on every tier. */
 export const TODAY_SUN: Record<Hour, string> = { dawn: '#FFD3A8', day: '#FFE8C8', dusk: '#FFD3A8', night: '#C6CDE4' };
 // Physical falloff (decay 2) needs candela-scale intensity; 40 here lands where the plan's nominal 2.0 reads on screen.
-export const LANTERN_LIGHT = { color: '#FFB862', intensity: 40, distance: 14, decay: 2 };
+export const LANTERN_LIGHT = { color: '#FFC890', /* a less orange amber (docs/depth section 3.3); was #FFB862 */ intensity: 40, distance: 14, decay: 2 };
 /**
  * At night the lanterns burn brighter and reach further, and the moon and the sky's fill are up a little (Brian,
  * 2026-11-13, of a room game, which is always at night: "make the room a little brighter ngl i cant see a thing").
@@ -331,6 +331,25 @@ const TiltShiftShader = {
 };
 
 /**
+ * Home's grade, on the finished picture after tone mapping (docs/depth/DEPTH-PLAN.md, section 3.4): pure greens lean
+ * teal (the woods and hills, which cannot be repainted), the brightest whites roll toward cream, the deepest darks lift
+ * to a warm plum. Off on the wendigo's paddock shot and in every other scene.
+ */
+const GradeShader = {
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse; varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv); vec3 x = c.rgb;
+      float gr = max(0.0, x.g - max(x.r, x.b)); x.g -= 0.45 * gr; x.b += 0.25 * gr; x.r += 0.08 * gr;
+      float lw = dot(x, vec3(0.2126, 0.7152, 0.0722)); x = mix(x, x * vec3(1.0, 0.975, 0.93), smoothstep(0.75, 1.0, lw) * 0.6);
+      x = vec3(0.07, 0.05, 0.07) + x * (1.0 - vec3(0.07, 0.05, 0.07));
+      gl_FragColor = vec4(x, c.a);
+    }`,
+};
+
+/**
  * What the picture costs at a fine resolution (Brian, 2026-11-13: "make the website less laggy"). Measured at the barn
  * table at 1.5x on a Retina laptop: 24.5 ms a frame, of which the 4x multisampling was about 7.5 (every pass of the
  * composer resolves it again) and the bloom about 7.5, and both grow with every pixel. So: 4 samples only at 1x, where
@@ -381,10 +400,11 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
       c.addPass(pass);
     }
     c.addPass(new OutputPass());
+    if (home) { const g = new ShaderPass(GradeShader); g.enabled = false; c.addPass(g); }
     return c;
     // The size is applied by the effect below; recreating on every resize would drop frames.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gl, scene, camera, tiltShift]);
+  }, [gl, scene, camera, tiltShift, home]);
   // What the tier asks of the composer, applied in the frame that first draws under it (a tier changes in a dip).
   const plan = useRef('');
   const fit = (maxW: number, tilt: boolean) => {
@@ -424,7 +444,10 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
     scene.userData.glow = golden ? golden.glow : 1;
     gl.toneMappingExposure = golden ? golden.exposure : 1;
     gl.toneMapping = exempt ? ACESFilmicToneMapping : (home ? shotNow?.toneMapping : null) ?? LOOK.toneMapping;
-    for (const p of composer.passes) if (p instanceof UnrealBloomPass) p.threshold = exempt ? PADDOCK_BLOOM : BLOOM_THRESHOLD;
+    for (const p of composer.passes) {
+      if (p instanceof UnrealBloomPass) p.threshold = exempt ? PADDOCK_BLOOM : BLOOM_THRESHOLD;
+      if (p instanceof ShaderPass && p.material.fragmentShader === GradeShader.fragmentShader) p.enabled = home && !exempt && !LOOK.noGrade;
+    }
     const want = effectsPlan(getTier(), exempt);
     if (home && !exempt && !LOOK.tilt) want.tiltShift = false; // ?tilt=0 (look.ts): off but on the wendigo's shot
     const key = `${want.bloomMaxW}|${want.tiltShift}`;

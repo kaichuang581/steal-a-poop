@@ -24,6 +24,8 @@ import type { BarnTableProps } from './BarnTable';
 import { DevStats } from './DevStats';
 import { Festive } from './Festive';
 import { AdaptiveCanvas, Effects, LANTERN_LIGHT, MarkDrawn, SHADOW_LAYERS } from './Rendering';
+/** The duel keeps the old lantern amber: the small scenes keep their colours (docs/depth section 3.3). */
+const DUEL_LAMP = '#FFB862';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Sheep } from './Sheep';
@@ -63,7 +65,7 @@ export function DuelTable({ bombSize, seats, speaker, fraction, secondsLeft, let
         <Duel bombSize={bombSize} seats={seats} speaker={speaker} fraction={fraction} secondsLeft={secondsLeft} reduced={reduced} phone={phone} boomKey={moments.boom?.key} power={moments.boom?.power} slipRef={slipRef} />
         <LetterBoard letter={letter} isTrap={isTrap} reduced={reduced} beamY={DUEL_BEAM} hook={DUEL.hook} />
         {/* The moon is behind the board's back: a warm lamp in front of it keeps the carved letter readable at night. */}
-        <pointLight position={[0, BOARD_BOTTOM + 0.3, -1.1]} color={LANTERN_LIGHT.color} intensity={7} distance={3} decay={2} />
+        <pointLight position={[0, BOARD_BOTTOM + 0.3, -1.1]} color={DUEL_LAMP} intensity={7} distance={3} decay={2} />
       </AdaptiveCanvas>
       </SceneBoundary>
       {/* The edges of the screen close in red over the last half of your clock. */}
@@ -125,7 +127,7 @@ function Night() {
         position={[-6, 12, -16]} color="#C9D8F0" intensity={2.2} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-layers-mask={SHADOW_LAYERS}
         shadow-camera-left={-9} shadow-camera-right={9} shadow-camera-top={9} shadow-camera-bottom={-9} shadow-camera-near={1} shadow-camera-far={60}
       />
-      {DUEL.lamps.map((p, i) => <pointLight key={i} position={[p[0], p[1], p[2]]} color={LANTERN_LIGHT.color} intensity={14} distance={9} decay={LANTERN_LIGHT.decay} />)}
+      {DUEL.lamps.map((p, i) => <pointLight key={i} position={[p[0], p[1], p[2]]} color={DUEL_LAMP} intensity={14} distance={9} decay={LANTERN_LIGHT.decay} />)}
     </>
   );
 }
@@ -155,7 +157,7 @@ function Place() {
   // The ice's detail follows the tier (plan file 17, change 15): the touch detail unless the session is on High.
   const w = useMemo(() => withDetail(coarseFor(getTier()), buildDuel), []);
   const mat = useMemo(() => voxelMaterial(), []);
-  const glow = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 1.3 }), []);
+  const glow = useMemo(() => voxelMaterial({ emissive: DUEL_LAMP, emissiveIntensity: 1.3 }), []);
   return (
     <>
       <mesh geometry={w.ice} material={mat} castShadow receiveShadow />

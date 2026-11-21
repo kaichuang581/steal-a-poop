@@ -88,7 +88,7 @@ function starTexture(): Texture {
 export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0, pace = 0, avatar }: Props) {
   // The second admin avatar is the plain photo: a flat square, never stretched and never glaring (src/skin/avatars/photos.ts).
   const plain = isPlainPhoto(avatar);
-  const look = useKaiyanLook();
+  const look = useKaiyanLook(avatar);
   const length = plain ? 1 : look.length;
   const glare = plain ? 0 : look.glare;
   const tex = useMemo(() => photoTexture(photoUrlFor(avatar)), [avatar]);

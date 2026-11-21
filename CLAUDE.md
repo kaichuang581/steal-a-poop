@@ -2037,3 +2037,12 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   and unlocked once. Weakness, told to Brian: the password was once written into the repo (see adminHash.ts), so anyone who finds it in
   git history can wear the admin avatars; change the password's hash to a long random one to close that. This supersedes "the server
   alone decides ... (moderators and ADMIN_USER_IDS)" in the security pass: the server still alone decides, by the list or the password.
+- A third admin avatar (requested by Brian, 2026-11-21): another photo (id `admin3`, `ADMIN3_AVATAR_ID`), admin-only like the other two, with
+  Kaiyan's treatment: a tall picture (src/skin/assets/admin3-forehead.png, 512 x 1339, the same hair / forehead band / face slices, cut
+  from the photo Brian sent; no stars baked in, the live glare is the shine) whose forehead stretches and whose glare is adjustable.
+  Each tall photo keeps its own look on this device: Kaiyan's `sap:kaiyan-look` as before, the third's `sap:admin3-look`
+  (`getKaiyanLook(id)`, `setKaiyanLook(next, id)`, `useKaiyanLook(id)` in src/skin/avatars/kaiyanLook.ts; `useLooksVersion` is what the table
+  and the ice listen to so their name plates follow either). The admin panel has a "Third admin avatar" card with its own head sliders. The
+  second admin avatar stays the plain square photo. `isTallPhoto` and `photoUrlFor` (avatars/photos.ts) say which picture an id wears.
+  Others in a room see the default look of the third, as with Kaiyan's.
+

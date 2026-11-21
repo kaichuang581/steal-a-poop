@@ -231,9 +231,9 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
   const { barn, yard, distance, festive } = w;
   const voxMat = useMemo(() => voxelMaterial(), []);
   // Bright enough to pass the bloom threshold, so only the lanterns glow.
-  const glowMat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2 }), []);
+  const glowMat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2, homeGlow: true }), []);
   // The farmhouse's windows, lit from inside: warm by day, the brightest thing in the yard at night.
-  const paneMat = useMemo(() => voxelMaterial({ emissive: '#FFB84A', emissiveIntensity: 0.85 }), []);
+  const paneMat = useMemo(() => voxelMaterial({ emissive: '#FFB84A', emissiveIntensity: 0.85, homeGlow: true }), []);
   return (
     <>
       {barn.static.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow receiveShadow />)}
@@ -445,7 +445,7 @@ function SpeakerCamera({ speaker, n, phone, reduced, moments, fade, headY }: { s
  */
 function DazeStars({ on, at, scale }: { on: boolean; at: readonly [number, number, number]; scale: number }) {
   const geo = useMemo(() => bonkStar(), []);
-  const mat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2 }), []);
+  const mat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2, homeGlow: true }), []);
   const stars = useRef<(Mesh | null)[]>([]);
   const since = useRef(0);
   useFrame(({ clock }, dt) => {

@@ -73,18 +73,32 @@ function studioFromUrl() {
   const n = (k: string, d: number) => (q.get(k) === null ? d : Number(q.get(k)));
   return { wrap: n('wrap', STUDIO.wrap), fill: n('fill', STUDIO.fill), toneMapped: STUDIO.toneMapped };
 }
-const STUDIO_PARS = (wrap: number) => /* glsl */ `#include <lights_lambert_pars_fragment>
+/**
+ * The wrap and self-fill as shared uniforms (docs/depth/DEPTH-PLAN.md, A1): set just before each draw from the scene's
+ * `userData.studio`, so Home's golden afternoon can use its own while a scene that sets nothing keeps STUDIO's (or a
+ * development URL's `?wrap=` / `?fill=`).
+ */
+const WRAP = { value: STUDIO.wrap };
+const FILL = { value: STUDIO.fill };
+function studioFor(scene: { userData: Record<string, unknown> }, base: { wrap: number; fill: number }) {
+  const s = scene.userData.studio as { wrap: number; fill: number } | undefined;
+  WRAP.value = s?.wrap ?? base.wrap;
+  FILL.value = s?.fill ?? base.fill;
+}
+const STUDIO_PARS = /* glsl */ `#include <lights_lambert_pars_fragment>
 uniform float uStudio;
 uniform float uShoulder;
+uniform float uWrap;
+uniform float uFill;
 #undef RE_Direct
 #define RE_Direct RE_Direct_Studio
 void RE_Direct_Studio( const in IncidentLight directLight, const in vec3 geometryPosition, const in vec3 geometryNormal, const in vec3 geometryViewDir, const in vec3 geometryClearcoatNormal, const in LambertMaterial material, inout ReflectedLight reflectedLight ) {
-  float wrap = ${wrap.toFixed(3)} * uStudio;
+  float wrap = uWrap * uStudio;
   float dotNL = saturate( ( dot( geometryNormal, directLight.direction ) + wrap ) / ( 1.0 + wrap ) );
   reflectedLight.directDiffuse += dotNL * directLight.color * BRDF_Lambert( material.diffuseColor );
 }`;
-const STUDIO_FILL = (fill: number) => /* glsl */ `#include <lights_fragment_end>
-  reflectedLight.indirectDiffuse += material.diffuseColor * ( ${fill.toFixed(3)} * uStudio );`;
+const STUDIO_FILL = /* glsl */ `#include <lights_fragment_end>
+  reflectedLight.indirectDiffuse += material.diffuseColor * ( uFill * uStudio );`;
 /**
  * No lit voxel is brighter than white (Brian, 2026-11-19: "the sheep are glowing"): what the lights make of a surface
  * is eased off toward `SHOULDER.knee + SHOULDER.over`, which is under the bloom's threshold (BLOOM_THRESHOLD in
@@ -107,8 +121,8 @@ const STUDIO_SHOULDER = /* glsl */ `{
  * one unbroken surface, and the cubes show only at silhouettes and real steps. `always`: the soft shading stays on in
  * a scene that asks for plain light (the animals).
  */
-export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: number; transparent?: boolean; opacity?: number; color?: string; always?: boolean } = {}) {
-  const { wrap, fill } = studioFromUrl();
+export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: number; transparent?: boolean; opacity?: number; color?: string; always?: boolean; homeGlow?: boolean } = {}) {
+  const base = studioFromUrl();
   // Only the parameters that are set: three warns about every one given as undefined, and that was thousands a load.
   const m = new MeshLambertMaterial({
     vertexColors: true,
@@ -121,18 +135,26 @@ export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: num
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uStudio = opts.always ? ALWAYS : STUDIO_SWITCH;
     shader.uniforms.uShoulder = STUDIO_SWITCH; // the scene's, for the animals too
+    shader.uniforms.uWrap = WRAP;
+    shader.uniforms.uFill = FILL;
     Object.assign(shader.uniforms, SHADE_UNIFORMS);
     shader.vertexShader = shader.vertexShader.replace('#include <color_vertex>', UNPACK).replace('#include <common>', SHADE_VERTEX_PARS).replace('#include <project_vertex>', SHADE_VERTEX);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', SHADE_FRAGMENT_PARS)
       .replace('#include <color_fragment>', SHADE_FRAGMENT)
-      .replace('#include <lights_lambert_pars_fragment>', STUDIO_PARS(wrap))
-      .replace('#include <lights_fragment_end>', STUDIO_FILL(fill))
+      .replace('#include <lights_lambert_pars_fragment>', STUDIO_PARS)
+      .replace('#include <lights_fragment_end>', STUDIO_FILL)
       .replace('#include <opaque_fragment>', STUDIO_SHOULDER);
   };
   // The switch is read from the scene being drawn, just before this material's uniforms go to the card.
-  if (!opts.always) m.onBeforeRender = (_renderer, scene) => { STUDIO_SWITCH.value = scene.userData.plainLight ? 0 : 1; shadeFor(scene); };
-  m.customProgramCacheKey = () => `voxel-color16-studio-${wrap}-${fill}-shoulder-shade4`;
+  // A lamp named for it (`homeGlow`) burns as much brighter as the scene asks (`userData.glow`; Home by day, A3).
+  const lit = m.emissiveIntensity;
+  m.onBeforeRender = (_renderer, scene) => {
+    if (!opts.always) { STUDIO_SWITCH.value = scene.userData.plainLight ? 0 : 1; shadeFor(scene); }
+    studioFor(scene, base);
+    if (opts.homeGlow) m.emissiveIntensity = lit * ((scene.userData.glow as number | undefined) ?? 1);
+  };
+  m.customProgramCacheKey = () => 'voxel-color16-studio-uniform-shoulder-shade4';
   return withRoundedEdges(m);
 }
 

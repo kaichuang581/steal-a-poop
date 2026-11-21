@@ -33,8 +33,15 @@ describe("a Home shot's light", () => {
     }
   });
 
-  it('leaves dusk and night unfitted, and exposure at 1 at every hour', () => {
+  it('leaves dusk and night unfitted; exposure 1.05 by day and dawn, 1 at dusk and night (docs/depth/DEPTH-PLAN.md, A2)', () => {
     for (const hour of ['dusk', 'night'] as const) expect(shotLight(DOORWAY, hour)).toMatchObject({ haze: 0.006, half: 20, centre: [0, 0] });
-    for (const hour of ['dawn', 'day', 'dusk', 'night'] as const) expect(DAYLIGHT[hour].exposure).toBe(LIGHT_BOUNDS.exposure);
+    for (const hour of ['dawn', 'day'] as const) expect(DAYLIGHT[hour].exposure).toBe(1.05);
+    for (const hour of ['dusk', 'night'] as const) expect(DAYLIGHT[hour].exposure).toBe(LIGHT_BOUNDS.exposure);
+  });
+
+  it('the golden afternoon: a bounce light opposite the sun by day, dawn and dusk, none at night, and never on the paddock shot', () => {
+    expect(shotLight(DOORWAY, 'day')).toMatchObject({ sun: 3.9, sunColour: '#FFDDB0', bounce: 2.1, softWrap: 0.14, softFill: 0.15, glow: 1.6 });
+    expect(shotLight(DOORWAY, 'night')).toMatchObject({ bounce: 0, glow: 1 });
+    for (const hour of ['dawn', 'day', 'dusk', 'night'] as const) expect(shotLight(DOORWAY, hour, { paddock: true })).toMatchObject({ bounce: 0, glow: 1, softWrap: 0.35, softFill: 0.22 });
   });
 });

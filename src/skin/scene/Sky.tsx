@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AdditiveBlending, BackSide, BufferAttribute, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh,
   MeshBasicMaterial, MeshLambertMaterial, PlaneGeometry, PointsMaterial, SphereGeometry,
@@ -10,6 +10,7 @@ import { lin } from '../voxel/palette';
 import { ellipsoid, Grid, rng } from '../voxel/primitives';
 import { DISTANCE } from './layout';
 import { LOOK, WARM_DAY_SKY } from '../look';
+import { exemptShot } from '../perf/tier';
 
 export type Hour = 'dawn' | 'day' | 'dusk' | 'night';
 
@@ -20,19 +21,27 @@ const SKY: Record<Hour, [string, string]> = {
   dusk: ['#5E5A94', '#D08AA2'],
   night: ['#101B3A', '#273B66'],
 };
+/** Home's sky in the golden afternoon (docs/depth/DEPTH-PLAN.md, A2): a clearer blue over a warm horizon. Night as it was.
+ *  The wendigo's paddock shot keeps the sky it had. */
+export const HOME_SKY: Record<Hour, [string, string]> = {
+  dawn: ['#9FB7D6', '#F6CDB8'],
+  day: ['#86B6E8', '#F4DCC6'],
+  dusk: ['#6F69A8', '#F0A88C'],
+  night: SKY.night,
+};
 const AURORA: Record<Hour, number> = { dawn: 0, day: 0, dusk: 0.22, night: 0.85 };
 
 /** The dream's sky (V4 Part 6.1): an hour-independent palette, fewer and twinkling stars, a tinted moon, no snow. */
 export type SkyPalette = 'hour' | 'dream';
 export const DREAM_PALETTE = { top: '#5B4AA6', middle: '#8A78D2', horizon: '#D2C6F4', moon: '#FFF1B8', aurora: ['#F2A7D8', '#8FE3D9'] as const };
 
-interface SkyProps { hour: Hour; reduced: boolean; blizzard: boolean; palette?: SkyPalette }
+interface SkyProps { hour: Hour; reduced: boolean; blizzard: boolean; palette?: SkyPalette; home?: boolean }
 
-export function Sky({ hour, reduced, blizzard, palette = 'hour' }: SkyProps) {
+export function Sky({ hour, reduced, blizzard, palette = 'hour', home = false }: SkyProps) {
   const dream = palette === 'dream';
   return (
     <group>
-      <Dome hour={hour} palette={palette} />
+      <Dome hour={hour} palette={palette} home={home} />
       {(hour === 'night' || dream) && <Stars count={dream ? 180 : 900} twinkle={dream && !reduced} />}
       {hour === 'night' && !dream && <Moon />}
       {dream ? <Aurora opacity={0.35} reduced={reduced} dream /> : AURORA[hour] > 0 && <Aurora opacity={AURORA[hour]} reduced={reduced} />}
@@ -41,7 +50,7 @@ export function Sky({ hour, reduced, blizzard, palette = 'hour' }: SkyProps) {
   );
 }
 
-export function Dome({ hour, palette = 'hour' }: { hour: Hour; palette?: SkyPalette }) {
+export function Dome({ hour, palette = 'hour', home = false }: { hour: Hour; palette?: SkyPalette; home?: boolean }) {
   const R = DISTANCE.skyRadius;
   const geo = useMemo(() => {
     const g = new SphereGeometry(R, 48, 24);
@@ -49,9 +58,12 @@ export function Dome({ hour, palette = 'hour' }: { hour: Hour; palette?: SkyPale
     return g;
   }, [R]);
   const mat = useMemo(() => new MeshBasicMaterial({ vertexColors: true, side: BackSide, fog: false, depthWrite: false }), []);
+  // On Home the sky is the golden afternoon's except on the paddock shot; the tour cuts in the dark, so it is redrawn then.
+  const [plain, setPlain] = useState(() => home && exemptShot());
+  useFrame(() => { if (home && exemptShot() !== plain) setPlain(exemptShot()); });
   useEffect(() => {
     const dream = palette === 'dream';
-    const sky = !dream && hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY : SKY[hour];
+    const sky = home && !plain && !dream ? HOME_SKY[hour] : !dream && hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY : SKY[hour];
     const top = new Color(dream ? DREAM_PALETTE.top : sky[0]), bottom = new Color(dream ? DREAM_PALETTE.horizon : sky[1]), mid = new Color(DREAM_PALETTE.middle), c = new Color();
     const pos = geo.getAttribute('position'), col = geo.getAttribute('color') as BufferAttribute;
     for (let i = 0; i < pos.count; i++) {
@@ -62,7 +74,7 @@ export function Dome({ hour, palette = 'hour' }: { hour: Hour; palette?: SkyPale
       col.setXYZ(i, c.r, c.g, c.b);
     }
     col.needsUpdate = true;
-  }, [hour, geo, R, palette]);
+  }, [hour, geo, R, palette, home, plain]);
   useEffect(() => () => (geo.dispose(), mat.dispose()), [geo, mat]);
   return <mesh geometry={geo} material={mat} renderOrder={-10} />;
 }

@@ -15,7 +15,9 @@ import { pinePaint, pineShape, tieredPine } from './style/pine';
  * touches the barn or the yard: it is all laid over them, so taking it down is one line in `Farm`.
  */
 
-const GLOW = ['#E8402E', '#3FBF5F', '#FFC24B'] as const;
+/** The bulbs, warm (docs/depth/DEPTH-PLAN.md, A3): warm red, warm white, amber, and one muted green in four so they
+ *  still read as the season. They were neon red, green and gold, which fought the warm light. */
+const GLOW = ['#F26B4F', '#FFE2B0', '#FFB45A', '#8CC26A'] as const;
 export const BULB_COLORS = GLOW;
 /** Twinkle groups per colour. Each bulb joins one at random, and each group keeps its own time (Festive.tsx). */
 export const BULB_GROUPS = 5;

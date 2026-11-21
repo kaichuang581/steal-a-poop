@@ -34,7 +34,7 @@ import { AdaptiveCanvas, Atmosphere, Effects, holdDpr, LANTERN_LIGHT, lanternInt
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
-import { isPlainPhoto, isTallPhoto, PLAIN_PHOTO } from '../avatars/photos';
+import { isTallPhoto } from '../avatars/photos';
 import { byId } from '../avatars/catalog';
 import { animalModel, heightRatio } from '../voxel/animals';
 import { anchorsOf } from '../voxel/animals/anchors';
@@ -681,7 +681,6 @@ function Moments({ moments, n }: { moments: BarnMoments; n: number }) {
 export function nameplateY(avatar: string | null | undefined): number {
   // Over the photo's top, but never higher than the head stood on 2026-11-08: a forehead stretched far up would carry the
   // plate and the speech bubble off the screen.
-  if (isPlainPhoto(avatar)) return (PLAIN_PHOTO.size + 0.14) * SHEEP_SCALE;
   if (isTallPhoto(avatar)) return (Math.min(pictureHeight(getKaiyanLook(avatar).length), pictureHeight(1)) + 0.14) * SHEEP_SCALE;
   const m = animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep');
   return anchorsOf(m).plate[1] * SHEEP_SCALE * m.drawScale;

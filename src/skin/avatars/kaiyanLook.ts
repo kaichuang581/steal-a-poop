@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { DISC } from './discPose';
+import { ORANGE } from './orange';
 
 /**
  * How long a tall photo's forehead is (Kaiyan's, and the third admin avatar's, each its own) and how hard it shines (Brian, 2026-11-09: "make kaiyans head adjustable in both length
@@ -9,7 +10,8 @@ import { DISC } from './discPose';
  * The picture (kaiyan-forehead.png, 512 x 1339) is three slices: the hair (rows 0..192), the stretched forehead band
  * (192..1041) and the face (1041..1339). Only the band grows or shrinks; the hair and face stay their own size.
  */
-export interface KaiyanLook { length: number; glare: number }
+/** `orange` (Juan's slider) is left out while it is 0, so a look with none still reads as just length and glare. */
+export interface KaiyanLook { length: number; glare: number; orange?: number }
 
 export const LENGTH = { min: 0.1, max: 6, step: 0.1, def: 1.8 } as const;
 export const GLARE = { min: 0, max: 6, step: 0.1, def: 2 } as const;
@@ -30,7 +32,7 @@ export function pictureHeight(length: number): number {
 }
 
 /** Each tall photo keeps its own look on this device. Kaiyan's key is the one it has always had. */
-const KEYS: Record<string, string> = { kaiyan: 'sap:kaiyan-look', admin3: 'sap:admin3-look' };
+const KEYS: Record<string, string> = { kaiyan: 'sap:kaiyan-look', admin2: 'sap:admin2-look', admin3: 'sap:admin3-look' };
 const keyFor = (id?: string | null): string => (id && Object.hasOwn(KEYS, id) ? KEYS[id] : KEYS.kaiyan);
 const subs = new Set<() => void>();
 const clamp = (v: unknown, r: { min: number; max: number; def: number }) =>
@@ -49,7 +51,8 @@ export function getKaiyanLook(id?: string | null): KaiyanLook {
   if (raw) {
     try {
       const v = JSON.parse(raw) as Partial<KaiyanLook>;
-      look = { length: clamp(v?.length, LENGTH), glare: clamp(v?.glare, GLARE) };
+      const orange = clamp(v?.orange, ORANGE);
+      look = { length: clamp(v?.length, LENGTH), glare: clamp(v?.glare, GLARE), ...(orange > 0 ? { orange } : {}) };
     } catch { /* a broken value: the defaults */ }
   }
   caches.set(key, { raw, look });
@@ -62,7 +65,8 @@ export function setKaiyanLook(next: Partial<KaiyanLook> | null, id?: string | nu
     if (next === null) localStorage.removeItem(key);
     else {
       const cur = getKaiyanLook(id);
-      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, LENGTH), glare: clamp(next.glare ?? cur.glare, GLARE) }));
+      const orange = clamp(next.orange ?? cur.orange ?? 0, ORANGE);
+      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, LENGTH), glare: clamp(next.glare ?? cur.glare, GLARE), ...(orange > 0 ? { orange } : {}) }));
     }
   } catch { /* storage blocked */ }
   caches.delete(key);

@@ -8,6 +8,7 @@ import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
 import { Brass, Switch, Slider } from '../kit';
 import { GLARE, LENGTH, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
+import { ORANGE } from '../avatars/orange';
 import { previewEnd } from '../admin/endPreview';
 import { SiteNumbers } from '../admin/SiteNumbers';
 import type { EndPreview } from '../admin/endPreview';
@@ -75,6 +76,17 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
             <AdminCoins />
             <SiteNumbers />
             <HeadSliders avatar={ADMIN_AVATAR_ID} title="Kaiyan’s head" />
+            <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label="Second admin avatar">
+              <PhotoAvatar size={72} avatar={ADMIN2_AVATAR_ID} label="Juan, the second admin avatar" />
+              <div className="min-w-0 flex-1">
+                <b className="sk-display block text-base">Second admin avatar (Juan)</b>
+                <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>{wearing2 ? 'On. The others in a room see it too.' : 'A long forehead, a glare and an orange slider. Only here, only for admin.'}</p>
+                {wearing2
+                  ? <WoodButton onClick={() => setAvatar(null)} className="sk-btn mt-1" aria-pressed>Unequip</WoodButton>
+                  : <ClothButton onClick={() => setAvatar(ADMIN2_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
+              </div>
+            </section>
+            <HeadSliders avatar={ADMIN2_AVATAR_ID} title="Juan’s head" orange />
             <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label="Third admin avatar">
               <PhotoAvatar size={72} avatar={ADMIN3_AVATAR_ID} label="The third admin avatar" />
               <div className="min-w-0 flex-1">
@@ -86,16 +98,6 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
               </div>
             </section>
             <HeadSliders avatar={ADMIN3_AVATAR_ID} title="Third avatar’s head" />
-            <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label="Second admin avatar">
-              <PhotoAvatar size={72} avatar={ADMIN2_AVATAR_ID} label="The second admin avatar" />
-              <div className="min-w-0 flex-1">
-                <b className="sk-display block text-base">Second admin avatar</b>
-                <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>{wearing2 ? 'On. The others in a room see it too.' : 'A plain photo. Only here, only for admin.'}</p>
-                {wearing2
-                  ? <WoodButton onClick={() => setAvatar(null)} className="sk-btn mt-1" aria-pressed>Unequip</WoodButton>
-                  : <ClothButton onClick={() => setAvatar(ADMIN2_AVATAR_ID)} className="sk-btn mt-1">Equip</ClothButton>}
-              </div>
-            </section>
             {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
             <section className="sk-paper mt-3 p-2" aria-label="See the end screens">
               <b className="sk-display block text-base">Skip to the end</b>
@@ -131,13 +133,13 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 }
 
 /** How long an avatar's forehead is and how hard it shines, on this device (src/skin/avatars/kaiyanLook.ts). */
-function HeadSliders({ avatar, title }: { avatar: string; title: string }) {
-  const { length, glare } = useKaiyanLook(avatar);
-  const row = (label: string, value: number, r: { min: number; max: number; step: number }, set: (v: number) => void) => (
+function HeadSliders({ avatar, title, orange = false }: { avatar: string; title: string; orange?: boolean }) {
+  const { length, glare, orange: tint = 0 } = useKaiyanLook(avatar);
+  const row = (label: string, value: number, r: { min: number; max: number; step: number }, set: (v: number) => void, show: (v: number) => string = (v) => `×${v.toFixed(1)}`) => (
     <label className="mt-1 flex items-center gap-2">
       <span className="sk-hand w-20 shrink-0 text-sm" style={{ color: 'var(--ink-soft)' }}>{label}</span>
       <Slider className="min-w-0 flex-1" min={r.min} max={r.max} step={r.step} value={value} onChange={(e) => set(Number(e.target.value))} aria-label={label} />
-      <span className="sk-hand w-10 shrink-0 text-right text-sm">×{value.toFixed(1)}</span>
+      <span className="sk-hand w-10 shrink-0 text-right text-sm">{show(value)}</span>
     </label>
   );
   return (
@@ -148,6 +150,7 @@ function HeadSliders({ avatar, title }: { avatar: string; title: string }) {
       </div>
       {row('Forehead', length, LENGTH, (v) => setKaiyanLook({ length: v }, avatar))}
       {row('Glare', glare, GLARE, (v) => setKaiyanLook({ glare: v }, avatar))}
+      {orange && row('Orange', tint, ORANGE, (v) => setKaiyanLook({ orange: v }, avatar), (v) => `${Math.round(v * 100)}%`)}
     </section>
   );
 }

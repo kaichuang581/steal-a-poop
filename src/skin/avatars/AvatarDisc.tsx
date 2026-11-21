@@ -4,7 +4,8 @@ import { AdditiveBlending, CanvasTexture, Group, MeshBasicMaterial, MeshDepthMat
 import type { SheepState } from '../table/Sheep';
 import { DISC, discPose } from './discPose';
 import { SLICE, sliceHeights, useKaiyanLook } from './kaiyanLook';
-import { isPlainPhoto, photoUrlFor, PLAIN_PHOTO } from './photos';
+import { warmData } from './orange';
+import { photoUrlFor } from './photos';
 
 /**
  * The admin avatar at the table or on the farm, in place of the sheep: the photo itself and nothing else, a flat
@@ -22,11 +23,46 @@ interface Props {
   yaw?: number | { readonly current: number };
   /** Counting Sheep's pace, 0 to 1: the trot quickens with it. */
   pace?: number;
-  /** Which admin avatar this is (src/avatars/ids.ts): Kaiyan's by default, or the second, plain photo. */
+  /** Which admin avatar this is (src/avatars/ids.ts): Kaiyan's by default, or the second or third. */
   avatar?: string | null;
 }
 
 const photos = new Map<string, Texture>();
+
+/**
+ * The photo warmed toward orange (Juan's slider, src/skin/avatars/orange.ts), as a texture drawn on a canvas the moment its
+ * picture has loaded. Kept per amount (in twentieths), the last few only: each is 512 x 1339.
+ */
+const warmed = new Map<string, CanvasTexture>();
+const WARMED_KEEP = 4;
+function warmedTexture(url: string, amount: number): CanvasTexture {
+  const key = `${url}|${Math.round(amount * 20)}`;
+  const have = warmed.get(key);
+  if (have) { warmed.delete(key); warmed.set(key, have); return have; }
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 1339;
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
+  tex.anisotropy = 4;
+  const img = new Image();
+  img.onload = () => {
+    const g = canvas.getContext('2d');
+    if (!g) return;
+    g.drawImage(img, 0, 0, 512, 1339);
+    const px = g.getImageData(0, 0, 512, 1339);
+    warmData(px.data, amount);
+    g.putImageData(px, 0, 0);
+    tex.needsUpdate = true;
+  };
+  img.src = url;
+  warmed.set(key, tex);
+  while (warmed.size > WARMED_KEEP) {
+    const oldest = warmed.keys().next().value as string;
+    warmed.get(oldest)?.dispose();
+    warmed.delete(oldest);
+  }
+  return tex;
+}
 function photoTexture(url: string): Texture {
   let photo = photos.get(url);
   if (!photo) {
@@ -86,20 +122,18 @@ function starTexture(): Texture {
 }
 
 export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0, pace = 0, avatar }: Props) {
-  // The second admin avatar is the plain photo: a flat square, never stretched and never glaring (src/skin/avatars/photos.ts).
-  const plain = isPlainPhoto(avatar);
-  const look = useKaiyanLook(avatar);
-  const length = plain ? 1 : look.length;
-  const glare = plain ? 0 : look.glare;
-  const tex = useMemo(() => photoTexture(photoUrlFor(avatar)), [avatar]);
-  const quad = useMemo(() => (plain ? new PlaneGeometry(PLAIN_PHOTO.size, PLAIN_PHOTO.size) : pictureGeometry(length)), [plain, length]);
+  // Each admin avatar has its own forehead length and glare, and Juan's an orange amount (src/skin/avatars/kaiyanLook.ts).
+  const { length, glare, orange = 0 } = useKaiyanLook(avatar);
+  const url = photoUrlFor(avatar);
+  const tex = useMemo(() => (orange > 0 ? warmedTexture(url, orange) : photoTexture(url)), [url, orange]);
+  const quad = useMemo(() => pictureGeometry(length), [length]);
   useEffect(() => () => quad.dispose(), [quad]);
   // Where the slices sit: the picture's foot stays on the snow however long the band is. It sways, leans and hops about
   // the height its middle had at length 1 (DISC.rest), never the stretched picture's own middle: a pivot that rose with
   // the forehead swung the feet off his spot with every wiggle (Brian, 2026-11-09: "kaiyan gets placed off his position
   // in the start menu when u adjust his size"). At length 1 this is exactly the old motion.
-  const s = plain ? { hair: 0, band: PLAIN_PHOTO.size, face: 0 } : sliceHeights(length), h = s.hair + s.band + s.face;
-  const rest = plain ? PLAIN_PHOTO.size / 2 + 0.02 : DISC.rest;
+  const s = sliceHeights(length), h = s.hair + s.band + s.face;
+  const rest = DISC.rest;
   const lift = h / 2 + 0.02 - rest; // from the pivot up to the picture's middle
   const bandY = h / 2 - s.hair - s.band / 2;
   const { mats, depth } = useMemo(() => {

@@ -2045,4 +2045,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   and the ice listen to so their name plates follow either). The admin panel has a "Third admin avatar" card with its own head sliders. The
   second admin avatar stays the plain square photo. `isTallPhoto` and `photoUrlFor` (avatars/photos.ts) say which picture an id wears.
   Others in a room see the default look of the third, as with Kaiyan's.
+- Juan, the second admin avatar, is a tall photo too, with an orange slider (requested by Brian, 2026-11-21: "make it so that his
+  forehead is extendable, there is the glare like the kaiyan one, also ... a slider to make his face more progressively orange").
+  This supersedes the plain square photo of 2026-11-20: src/skin/assets/admin2.png is gone and admin2-forehead.png (512 x 1339, the
+  same three slices as Kaiyan's, cut from the same photo) replaces it, so all three admin avatars are tall photos with a Forehead
+  and Glare slider each, saved apart (`sap:kaiyan-look`, `sap:admin2-look`, `sap:admin3-look`). Juan's card also has an Orange slider
+  (0 to 100%, in twentieths; `orange` in the look, left out of the saved value while 0). The tint is pixel maths in
+  src/skin/avatars/orange.ts (`skinWeight`, `warmUp`: only warm, mid-light pixels, so the blue backdrop, the suit and the shirt stay
+  put; fair hair goes orange with the skin), drawn on a canvas texture by AvatarDisc (`warmedTexture`, the last four amounts kept). The
+  panel's small picture and the others' view of him are not tinted: others see the default look, as with Kaiyan's.
 

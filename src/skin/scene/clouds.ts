@@ -1,11 +1,11 @@
 /**
  * Home's clouds (docs/depth/DEPTH-PLAN.md, section 9.3; Brian's pick of the five mockups, 2026-11-20: the voxel style;
  * 2026-11-21: "too unnatural ... insane blocks", so finer and softer). Cumulus of 1.7 m cubes in a ring 280 m out, past
- * the mountains: each a heap of round puffs on a long flat base, edges billowed by noise, white on top to a soft grey
- * underneath. Every column is solid down to the flat base, so no step shows an underside (one read as a dark dash).
+ * the mountains: each a heap of round puffs on a long flat base, edges billowed by noise, drawn unlit in one colour (Sky.tsx).
+ * Every column is solid down to the flat base, so no step shows an underside (one read as a dark dash).
  * The tops and the far faces are never seen from the farm and are not drawn, which keeps it under 20,000 triangles.
  */
-import { BufferGeometry, Color, Matrix4 } from 'three';
+import { BufferGeometry, Matrix4 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { buildGeometry } from '../voxel/mesher';
 import { Grid, rng } from '../voxel/primitives';
@@ -49,9 +49,7 @@ export function cloudRing(): CloudAt[] {
   return out;
 }
 
-const srgb = (hex: string): RGB => { const c = new Color(hex); return [c.r, c.g, c.b]; };
-// Lit top to shaded base in four bands by height; the base a soft cool grey, as real cumulus bottoms are.
-const BANDS = ['#E3E3EC', '#EEEEF2', '#F7F6F6', '#FFFFFF'].map(srgb);
+const WHITE: RGB = [1, 1, 1]; // one colour: the material draws them unlit (Sky.tsx)
 
 /** Smooth value noise, about -1 to 1: billows on the puffs so no edge is a clean stepped circle. */
 function billow(x: number, y: number, z: number, s: number): number {
@@ -62,16 +60,11 @@ function billow(x: number, y: number, z: number, s: number): number {
 function cloudGrid(c: CloudAt): Grid {
   const C = CLOUD.cube, g = new Grid(C), s = c.seed % 100;
   const n = Math.ceil((c.L * 0.8) / C), h = Math.ceil((c.H * 1.4) / C), w = Math.ceil((c.H * 0.9) / C);
-  let top = 1;
   for (let i = -n; i < n; i++) for (let k = -w; k < w; k++) for (let y = 0; y < h; y++) {
     const px = (i + 0.5) * C, py = (y + 0.5) * C, pz = (k + 0.5) * C, wob = 1 + 0.16 * billow(px, py, pz, s);
     if (c.lobes.some((l) => ((px - l.t) / (l.long ?? l.r * 1.12)) ** 2 + ((py - l.y) / l.r) ** 2 + ((pz - l.z) / (l.r * 0.85)) ** 2 <= wob)) {
-      for (let f = 0; f <= y; f++) g.set(i, f, k, BANDS[0]); // solid down to the flat base: no step shows an underside
-      top = Math.max(top, y);
+      for (let f = 0; f <= y; f++) g.set(i, f, k, WHITE); // solid down to the flat base: no step shows an underside
     }
-  }
-  for (const v of g.map.values()) {
-    v.c = BANDS[Math.min(3, Math.floor((v.y / top) * 4))];
   }
   return g;
 }

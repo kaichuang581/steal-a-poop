@@ -52,17 +52,17 @@ export function Sky({ hour, reduced, blizzard, palette = 'hour', home = false }:
   );
 }
 
-/** Emissive haze on the clouds by hour: they glow a little by day so their shaded sides stay soft; at night they dim. */
-const CLOUD_HAZE: Record<Hour, number> = { dawn: 0.3, day: 0.34, dusk: 0.28, night: 0.06 };
+/** The clouds' one flat colour by hour (Brian, 2026-11-21: "voxels with no shadows"): no light, no shading, the cubes read by outline only. */
+const CLOUD_TINT: Record<Hour, string> = { dawn: '#FBEFEA', day: '#FFFFFF', dusk: '#EEDDE6', night: '#465070' };
 
 /**
- * Home's voxel clouds (scene/clouds.ts; docs/depth/DEPTH-PLAN.md, section 9.3): lit by the scene's own sun, so they
- * follow the hour; fog off; turning 0.0012 rad/s, still under reduced motion. Never on the wendigo's paddock shot.
+ * Home's voxel clouds (scene/clouds.ts; docs/depth/DEPTH-PLAN.md, section 9.3): unlit, one colour for the hour; fog off;
+ * turning 0.0012 rad/s, still under reduced motion. Never on the wendigo's paddock shot.
  */
 function Clouds({ hour, reduced }: { hour: Hour; reduced: boolean }) {
   const geo = useMemo(() => cloudGeometry(), []);
-  const mat = useMemo(() => new MeshLambertMaterial({ color: '#E2E0E6', vertexColors: true, emissive: '#E4E2EC', fog: false }), []);
-  mat.emissiveIntensity = CLOUD_HAZE[hour];
+  const mat = useMemo(() => new MeshBasicMaterial({ fog: false }), []);
+  mat.color.set(CLOUD_TINT[hour]);
   const ref = useRef<Mesh>(null);
   useFrame((_, dt) => {
     const m = ref.current;

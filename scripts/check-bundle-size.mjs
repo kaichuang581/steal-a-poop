@@ -32,10 +32,11 @@ import { fileURLToPath } from 'node:url';
  * out 1.1 kB over, about 3 kB bigger than a local one; Brian's standing choice of 2026-11-17 is to raise the limit),
  * and on 2026-11-21 by 1,000 bytes for the yarn loading screen (CI's build came out 0.09 kB over; locally 2.9 kB under),
  * and on 2026-11-21 by 2,000 bytes for the depth plan's light, palette and clouds (1.72 kB under locally, which CI's
- * build, about 3 kB bigger, would have failed).
+ * build, about 3 kB bigger, would have failed), and on 2026-11-21 by 4,000 bytes for the unique-visitor report and the
+ * Queue chooser's live player counts (locally 0.12 kB over; CI's build runs about 3 kB bigger).
  * All are flagged to Brian; a shrink pass back toward the plan's net-zero is listed for milestone 12.
  */
-const BUDGET_GZIP_BYTES = 715000; // +1,000 in 0.9.3 (the kitchen garden): CI's gzip ran 0.42 kB over
+const BUDGET_GZIP_BYTES = 719000; // +4,000 on 2026-11-21: unique visitors and the chooser's live counts
 
 /** Allowed growth over the budget before the check fails (10%). */
 const TOLERANCE = 0.1;

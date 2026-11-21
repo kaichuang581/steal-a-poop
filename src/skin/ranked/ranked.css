@@ -18,7 +18,14 @@
 .sk-play-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
 .sk-play-card { position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 4px; }
-.sk-play-art { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; }
+.sk-play-frame { position: relative; overflow: hidden; line-height: 0; }
+.sk-play-art { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; image-rendering: pixelated; }
+.sk-play-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sk-play-kicker { font: 800 11px/1 var(--skin-font-body); letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
+.sk-play-tag { position: absolute; left: 12px; bottom: 10px; line-height: 1; }
+.sk-play-live { position: absolute; left: 10px; top: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 3px; font: 700 13px/1 var(--skin-font-body); color: var(--button-text); background: rgba(20, 12, 6, 0.78); }
+.sk-play-live i { width: 8px; height: 8px; border-radius: 1px; background: var(--hm-pasture); }
+.sk-play-live[data-empty] i { background: var(--amber); }
 .sk-play-body { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 14px 16px 16px; }
 .sk-play-card h3 { margin: 0; font: 800 30px/1 var(--skin-font-display); }
 .sk-play-line { margin: 0; font: 400 18px/1.3 var(--skin-font-hand); text-wrap: pretty; }
@@ -50,10 +57,7 @@
   .sk-play { place-items: start center; }
   .sk-play-cards { grid-template-columns: 1fr; gap: 14px; }
   .sk-play-head h2 { font-size: 21px; }
-  .sk-play-card { flex-direction: row; }
-  .sk-play-card[data-mode="ranked"] { flex-direction: column; }
-  .sk-play-card[data-mode="casual"] .sk-play-art { width: 38%; aspect-ratio: auto; align-self: stretch; object-position: 68% 50%; }
-  .sk-play-card[data-mode="ranked"] .sk-play-art { aspect-ratio: 16 / 6; }
+  .sk-play-art { aspect-ratio: 16 / 7; }
   .sk-play-body { padding: 10px 12px 12px; gap: 6px; }
   .sk-play-card h3 { font-size: 24px; }
   .sk-play-line { font-size: 16px; }

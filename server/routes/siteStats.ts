@@ -18,6 +18,8 @@ export interface OnlineNow { connections: number; guests: number; rooms: number;
  * Two routes for the admin panel's numbers (requested by Kai, 2026-11-15).
  *
  *  POST /api/site/ping   Public. A tab says it is open (once, `open`, with `unique`) or still there. Only numbers are kept: see ops/siteStats.ts.
+ *  GET  /api/play/counts Public. How many people are in casual and in ranked games right now, for the Queue chooser.
+ *                        Two numbers and nothing else, recounted at most every 5 s.
  *  POST /api/admin/stats The numbers: who is on the site and in games right now, visits, new browsers and how many accounts
  *                        there are. Needs `key` in the body, the server's ADMIN_STATS_KEY. The admin lock on the page is only
  *                        a convenience (anyone can read the page's code), so this is what actually keeps the numbers private.
@@ -27,6 +29,8 @@ export function createSiteRoutes(deps: {
   stats: SiteStats;
   accounts: Pick<AccountStore, 'profileCounts'>;
   online: () => OnlineNow;
+  /** People in each mode right now (RoomManager.modeCounts). */
+  modes?: () => { casual: number; ranked: number };
   key: string | undefined;
   now?: () => number;
 }): Route[] {
@@ -35,6 +39,8 @@ export function createSiteRoutes(deps: {
   const tries = new RateLimiter(20, 3600_000);
   const digest = (s: string) => createHash('sha256').update(s).digest();
   const wanted = deps.key && deps.key.length >= MIN_STATS_KEY ? digest(deps.key) : null;
+  const looks = new RateLimiter(120, 10 * 60_000);
+  let counted: { at: number; casual: number; ranked: number } | null = null;
 
   return [
     {
@@ -47,6 +53,15 @@ export function createSiteRoutes(deps: {
         const u = (b.unique && typeof b.unique === 'object' ? b.unique : {}) as Record<string, unknown>;
         await deps.stats.ping(b.tab, b.open === true, b.open === true && b.first === true, { day: u.day === true, week: u.week === true, month: u.month === true });
         return { status: 200, json: { ok: true } };
+      },
+    },
+    {
+      method: 'GET', path: '/api/play/counts', auth: 'none',
+      handler: async (req) => {
+        if (!looks.allow(limitKey(req.ip), now())) return bad('rate_limited', 429);
+        const t = now();
+        if (!counted || t - counted.at >= 5000) counted = { at: t, ...(deps.modes?.() ?? { casual: 0, ranked: 0 }) };
+        return { status: 200, json: { casual: counted.casual, ranked: counted.ranked } };
       },
     },
     {

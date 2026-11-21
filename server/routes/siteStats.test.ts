@@ -22,9 +22,10 @@ async function setup(key: string | null = KEY) {
   const routes = createSiteRoutes({
     stats, accounts: store, key: key ?? undefined, now: () => NOW,
     online: () => ({ connections: 9, guests: 4, rooms: 2, playersInGames: 6 }),
+    modes: () => ({ casual: 5, ranked: 2 }),
   });
   const call = (path: string, body: unknown, ip = '1.2.3.4') => {
-    const r = routes.find((x: Route) => x.path === path)!;
+    const r = routes.find((x: Route) => x.path === path && (path !== '/api/play/counts' || x.method === 'GET'))!;
     return r.handler({ params: {}, query: {}, body, user: null, session: null, ip } satisfies RouteRequest);
   };
   return { call, stats };
@@ -63,6 +64,14 @@ describe('the site ping', () => {
     let last = 0;
     for (let i = 0; i < 601; i++) last = (await call('/api/site/ping', { tab: 'abcdefghijkl' })).status;
     expect(last).toBe(429);
+  });
+});
+
+describe('the play counts', () => {
+  it('are public and only two numbers', async () => {
+    const { call } = await setup(null);
+    const r = await call('/api/play/counts', null);
+    expect(r).toEqual({ status: 200, json: { casual: 5, ranked: 2 } });
   });
 });
 

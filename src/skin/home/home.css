@@ -254,23 +254,67 @@
 /* The panel's one action: a lantern slab 48 high. */
 .hm-act { width: 100%; height: calc(48 * var(--u) + var(--depth)); font: 800 calc(22 * var(--u))/1 var(--skin-font-display) !important; color: var(--hm-ink) !important; }
 
-/* Queue's chooser (Casual and Ranked), drawn in the same pieces. */
-.hm .sk-play { background: rgba(14, 21, 40, 0.78); }
-.hm .sk-play-box { padding: calc(16 * var(--u)) calc(18 * var(--u)) calc(18 * var(--u)); clip-path: var(--px); background: var(--hm-night-2);
-  box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink); }
-.hm .sk-play-head h2 { font: 800 calc(26 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); text-shadow: none; }
+/* Queue's chooser (Casual and Ranked) (Brian, 2026-11-21: "make it so that the card that popups isnt just a flat blue
+   box ... make the formatting in that card overall better and more unique"). The box is a barn board: planks of the
+   wood tokens, drawn as a pixel tile. Each card is its picture with the mode's name on a plaque and the live count in
+   its corner, over a body in its own mood: wool paper with a lantern stripe for Casual, the night with a dusk stripe
+   for Ranked. Flat colours and hard edges only, as everywhere in the kit. */
+.hm .sk-play { background: rgba(14, 21, 40, 0.82); }
+.hm .sk-play-box { position: relative; width: min(calc(920 * var(--u)), 100%); padding: calc(18 * var(--u)) calc(20 * var(--u)) calc(20 * var(--u)); clip-path: var(--px);
+  background: var(--wood-dark) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' shape-rendering='crispEdges'%3E%3Crect width='24' height='24' fill='%238C5A2E'/%3E%3Crect y='22' width='24' height='2' fill='%235B3A1E'/%3E%3Crect y='2' width='9' height='1' fill='%23B57F4A' opacity='.35'/%3E%3Crect x='13' y='9' width='11' height='1' fill='%235B3A1E' opacity='.35'/%3E%3Crect x='4' y='15' width='8' height='1' fill='%235B3A1E' opacity='.3'/%3E%3C/svg%3E") 0 0 / calc(48 * var(--u)) calc(48 * var(--u)); image-rendering: pixelated;
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(6 * var(--u)) 0 var(--wood), inset 0 calc(-6 * var(--u)) 0 var(--wood-ink); }
+.hm .sk-play-head { margin-bottom: calc(14 * var(--u)); }
+.hm .sk-play-title { display: flex; flex-direction: column; gap: calc(4 * var(--u)); min-width: 0; padding-left: calc(6 * var(--u)); }
+.hm .sk-play-kicker { align-self: flex-start; padding: calc(3 * var(--u)) calc(9 * var(--u)) calc(4 * var(--u)); clip-path: var(--px); font: 800 calc(11 * var(--u))/1 var(--skin-font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--hm-ink); background: var(--hm-lantern); opacity: 1; }
+.hm .sk-play-head h2 { font: 800 calc(30 * var(--u))/1.05 var(--skin-font-display); color: var(--hm-wool); text-shadow: 0 calc(3 * var(--u)) 0 var(--wood-ink); }
 .hm .sk-play-error { clip-path: var(--px); border-radius: 0; font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-lantern-hi); background: var(--hm-ink); box-shadow: none; }
-.hm .sk-play-card, .hm .sk-play-card[data-mode] { clip-path: var(--px); border-radius: 0; color: var(--hm-wool); background: var(--hm-night); box-shadow: inset 0 0 0 var(--s) var(--hm-ink); }
-.hm .sk-play-card[data-mode] .sk-play-art { box-shadow: none; border-bottom: var(--s) solid var(--hm-ink); }
-.hm .sk-play-card[data-mode] h3 { font: 800 calc(28 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); text-transform: none; letter-spacing: 0; }
-.hm .sk-play-line, .hm .sk-play-facts, .hm .sk-play-note, .hm .sk-play-rank small { font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
-.hm .sk-play-card[data-mode] .sk-play-facts { color: var(--hm-frost); }
-.hm .sk-play-facts li::before { border-radius: 0; background: var(--hm-lantern); opacity: 1; }
-.hm .sk-play-ladder { border-radius: 0; background: #141D36; box-shadow: none; }
+.hm .sk-play-cards { gap: calc(16 * var(--u)); }
+
+.hm .sk-play-card, .hm .sk-play-card[data-mode] { clip-path: var(--px); border-radius: 0; transition: transform 140ms ease-out; }
+.hm .sk-play-card:hover, .hm .sk-play-card:focus-within { transform: translateY(calc(-3 * var(--u))); }
+.hm .sk-play-card[data-mode] .sk-play-art { box-shadow: none; border: 0; transition: transform 400ms ease-out; }
+.hm .sk-play-card:hover .sk-play-art { transform: scale(1.03); }
+.hm .sk-play-card[data-mode="casual"] .sk-play-frame { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 14 * var(--u))); }
+.hm .sk-play-card[data-mode="ranked"] .sk-play-frame { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14 * var(--u)), 0 100%); }
+.hm .sk-play-tag { position: absolute; left: auto; right: calc(14 * var(--u)); bottom: calc(18 * var(--u)); margin: 0; padding: calc(5 * var(--u)) calc(14 * var(--u)) calc(7 * var(--u)); clip-path: var(--px); font: 800 calc(26 * var(--u))/1 var(--skin-font-display); }
+.hm .sk-play-card[data-mode="casual"] .sk-play-tag { color: var(--hm-barn); background: var(--hm-wool); box-shadow: inset 0 calc(-4 * var(--u)) 0 var(--hm-lantern); text-transform: none; letter-spacing: 0; }
+.hm .sk-play-card[data-mode="ranked"] .sk-play-tag { color: var(--hm-wool); background: var(--hm-ink); box-shadow: inset 0 calc(-4 * var(--u)) 0 var(--hm-dusk); text-transform: uppercase; letter-spacing: 0.06em; }
+.hm .sk-play-live { position: absolute; left: calc(10 * var(--u)); top: calc(10 * var(--u)); display: inline-flex; align-items: center; gap: calc(7 * var(--u)); padding: calc(5 * var(--u)) calc(10 * var(--u)); border-radius: 0; clip-path: var(--px);
+  font: 800 calc(13 * var(--u))/1 var(--skin-font-body); color: var(--hm-wool); background: rgba(14, 21, 40, 0.82); }
+.hm .sk-play-live i { width: calc(8 * var(--u)); height: calc(8 * var(--u)); border-radius: 0; background: var(--hm-pasture); animation: hm-live 1.6s ease-in-out infinite; }
+.hm .sk-play-live[data-empty] i { background: var(--hm-lantern); animation: none; }
+@keyframes hm-live { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.hm .sk-play-body { gap: calc(10 * var(--u)); padding: calc(12 * var(--u)) calc(18 * var(--u)) calc(18 * var(--u)); }
+.hm .sk-play-line, .hm .sk-play-note, .hm .sk-play-rank small { font: 700 calc(15 * var(--u))/1.4 var(--skin-font-body); }
+.hm .sk-play-facts { flex-direction: row; flex-wrap: wrap; gap: calc(6 * var(--u)); font: 800 calc(13 * var(--u))/1 var(--skin-font-body); }
+.hm .sk-play-facts li { padding: calc(6 * var(--u)) calc(10 * var(--u)); clip-path: var(--px); }
+.hm .sk-play-facts li::before { display: none; }
+.hm .sk-play-go { width: 100%; height: calc(50 * var(--u) + var(--depth)); min-height: 0; font: 800 calc(20 * var(--u))/1 var(--skin-font-display); }
+
+/* Casual: wool paper, a lantern stripe along its top. */
+.hm .sk-play-card[data-mode="casual"] { color: var(--hm-ink); background: var(--hm-wool); box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(6 * var(--u)) 0 var(--hm-lantern); }
+.hm .sk-play-card[data-mode="casual"] .sk-play-line { color: var(--wood-ink); }
+.hm .sk-play-card[data-mode="casual"] .sk-play-facts li { color: var(--hm-barn); background: rgba(184, 71, 58, 0.12); }
+
+/* Ranked: the night of the face-off, a dusk stripe along its top. */
+.hm .sk-play-card[data-mode="ranked"] { color: var(--hm-wool); background: var(--hm-ink); box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(6 * var(--u)) 0 var(--hm-dusk); }
+.hm .sk-play-card[data-mode="ranked"] .sk-play-line { color: var(--hm-frost); }
+.hm .sk-play-card[data-mode="ranked"] .sk-play-facts li { color: var(--hm-wool); background: rgba(91, 95, 199, 0.3); }
+.hm .sk-play-ladder { border-radius: 0; clip-path: var(--px); background: var(--hm-night); box-shadow: none; }
 .hm .sk-play-ladder span { border-radius: 0; }
 .hm .sk-play-ladder span[data-on] { background: var(--hm-night-3); box-shadow: 0 0 0 2px var(--hm-lantern); }
 .hm .sk-play-rank b { color: var(--hm-lantern-hi); }
-.hm .sk-play-go { width: 100%; height: calc(48 * var(--u) + var(--depth)); min-height: 0; font: 800 calc(19 * var(--u))/1 var(--skin-font-display); }
+.hm .sk-play-card[data-mode="ranked"] .sk-play-rank small, .hm .sk-play-card[data-mode="ranked"] .sk-play-note { color: var(--hm-frost); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hm .sk-play-card, .hm .sk-play-art { transition: none; }
+  .hm .sk-play-card:hover, .hm .sk-play-card:focus-within, .hm .sk-play-card:hover .sk-play-art { transform: none; }
+  .hm .sk-play-live i { animation: none; }
+}
+:root.reduce-motion .hm .sk-play-card, :root.reduce-motion .hm .sk-play-art { transition: none; }
+:root.reduce-motion .hm .sk-play-card:hover, :root.reduce-motion .hm .sk-play-card:focus-within, :root.reduce-motion .hm .sk-play-card:hover .sk-play-art { transform: none; }
+:root.reduce-motion .hm .sk-play-live i { animation: none; }
 
 /* ---------- Entrance (the first Home of a visit) ---------- */
 .hm[data-enter] .hm-panel { animation: hm-panel-in 280ms ease-out both; }

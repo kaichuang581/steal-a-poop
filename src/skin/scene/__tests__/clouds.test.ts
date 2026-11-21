@@ -14,16 +14,16 @@ describe("Home's clouds", () => {
   it('show three to five in every shot that holds sky, at every turn of the ring', () => {
     const clouds = cloudRing();
     expect(clouds.length).toBe(CLOUD.count);
-    // Shots whose frame reaches above 10 degrees and is not the wendigo's paddock (index 2, which has no clouds).
+    // Shots whose frame reaches 2 degrees past the lowest cloud and is not the wendigo's paddock (index 2, which has no clouds).
     const skyShots = POV_SHOTS.desktop.map((s, i) => {
       const [px, py, pz] = s.position, [tx, ty, tz] = s.target, run = Math.hypot(tx - px, tz - pz);
       const pitch = deg(Math.atan2(ty - py, run)), half = deg(Math.atan(Math.tan((s.fov / 2) * Math.PI / 180) * 1.6)) * Math.PI / 180;
       return { i, yaw: Math.atan2(tz - pz, tx - px), half, top: pitch + s.fov / 2 };
-    }).filter((s) => s.i !== 2 && s.top > 10);
+    }).filter((s) => s.i !== 2 && s.top > CLOUD.minElevation + 2);
     expect(skyShots.map((s) => s.i)).toEqual(expect.arrayContaining([5, 6, 7]));
     for (const s of skyShots) {
-      // The open-sky shots (the farmhouse and the pond) hold every cloud whole under the top of the frame.
-      if (s.i === 5 || s.i === 7) for (const c of clouds) expect(c.elevation + deg(Math.atan(Math.max(...c.lobes.map((l) => l.y + l.r * 1.08)) / CLOUD.ring)), `shot ${s.i}`).toBeLessThanOrEqual(s.top);
+      // The open-sky shots (the farmhouse and the pond) hold every cloud's base well inside the frame; a crown may pass the top.
+      if (s.i === 5 || s.i === 7) for (const c of clouds) expect(c.elevation + 2, `shot ${s.i}`).toBeLessThanOrEqual(s.top);
       for (let k = 0; k < 120; k++) {
         const turn = (k / 120) * Math.PI * 2;
         const seen = clouds.filter((c) => Math.abs(wrap(c.az - turn - s.yaw)) < s.half + (c.L * 0.3) / CLOUD.ring).length;

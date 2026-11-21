@@ -52,26 +52,36 @@ export function Sky({ hour, reduced, blizzard, palette = 'hour', home = false }:
   );
 }
 
-/** The clouds' one flat colour by hour (Brian, 2026-11-21: "voxels with no shadows"): no light, no shading, the cubes read by outline only. */
-const CLOUD_TINT: Record<Hour, string> = { dawn: '#FBEFEA', day: '#FFFFFF', dusk: '#EEDDE6', night: '#465070' };
+/** Emissive haze on the clouds by hour: they glow a little by day so their shaded sides stay soft; at night they dim. */
+const CLOUD_HAZE: Record<Hour, number> = { dawn: 0.3, day: 0.34, dusk: 0.28, night: 0.06 };
+/** A little see-through (Brian, 2026-11-21), the sky showing faintly through. */
+const CLOUD_OPACITY = 0.82;
 
 /**
- * Home's voxel clouds (scene/clouds.ts; docs/depth/DEPTH-PLAN.md, section 9.3): unlit, one colour for the hour; fog off;
- * turning 0.0012 rad/s, still under reduced motion. Never on the wendigo's paddock shot.
+ * Home's voxel clouds (scene/clouds.ts; docs/depth/DEPTH-PLAN.md, section 9.3): lit by the scene's own sun, so they
+ * follow the hour; fog off; turning 0.0012 rad/s, still under reduced motion. Never on the wendigo's paddock shot.
+ * See-through in two passes: depth first, then colour only on the nearest face, so where puffs overlap the cloud is
+ * one even veil and never darker.
  */
 function Clouds({ hour, reduced }: { hour: Hour; reduced: boolean }) {
   const geo = useMemo(() => cloudGeometry(), []);
-  const mat = useMemo(() => new MeshBasicMaterial({ fog: false }), []);
-  mat.color.set(CLOUD_TINT[hour]);
-  const ref = useRef<Mesh>(null);
+  const depth = useMemo(() => new MeshBasicMaterial({ colorWrite: false, transparent: true, fog: false }), []);
+  const mat = useMemo(() => new MeshLambertMaterial({ color: '#E2E0E6', emissive: '#E4E2EC', fog: false, transparent: true, opacity: CLOUD_OPACITY, depthWrite: false }), []);
+  mat.emissiveIntensity = CLOUD_HAZE[hour];
+  const ref = useRef<Group>(null);
   useFrame((_, dt) => {
     const m = ref.current;
     if (!m) return;
     m.visible = !exemptShot();
     if (!reduced) m.rotation.y += Math.min(dt, 0.05) * 0.0012;
   });
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
-  return <mesh ref={ref} geometry={geo} material={mat} frustumCulled={false} renderOrder={-5} />;
+  useEffect(() => () => { geo.dispose(); mat.dispose(); depth.dispose(); }, [geo, mat, depth]);
+  return (
+    <group ref={ref}>
+      <mesh geometry={geo} material={depth} frustumCulled={false} renderOrder={-6} />
+      <mesh geometry={geo} material={mat} frustumCulled={false} renderOrder={-5} />
+    </group>
+  );
 }
 
 export function Dome({ hour, palette = 'hour', home = false }: { hour: Hour; palette?: SkyPalette; home?: boolean }) {

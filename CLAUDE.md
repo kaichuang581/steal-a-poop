@@ -67,7 +67,10 @@ lot of glitchy textures and a ton of just strange empty space"; branch `miniatur
   (`paddockBed` in scene/farmstead.ts); the sheep and the second cow are in the pasture with the flock, which a
   sheepdog minds (`LIVESTOCK`, `FLOCK_DOG` in scene/livestock.ts).
 - No seams or gaps between the barn's boards, outside or in: lines one cube wide crawled as the camera moved.
-- The paddock shot's own light is still the old one (a wendigo rule), so that shot stays greyer than the others.
+- The paddock shot's own light was the old one (a wendigo rule) until 2026-11-21, when Brian lifted that part: "brighten the
+  entire thing ... make it match the lighting of everything else". It now takes the other shots' light, sky and fog
+  (`PADDOCK_OLD_LIGHT` in src/skin/look.ts, false; true restores the old light). It keeps its tier exemption (shadow
+  map, bloom and tilt-shift on every tier), and the wendigo's geometry, stand, cone and rays are unchanged.
 
 Unchanged and still binding: every wendigo rule; the paddock shot draws today's light, haze, tone mapping, exposure,
 shadows and tilt-shift on every tier; nothing behind z = -16 changes; no cube of the country or the land is added or

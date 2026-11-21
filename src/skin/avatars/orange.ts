@@ -35,3 +35,33 @@ export function warmData(data: Uint8ClampedArray, amount: number): void {
     data[i] = r; data[i + 1] = g; data[i + 2] = b;
   }
 }
+
+/**
+ * The age slider (requested by Brian, 2026-11-21, of the fourth admin avatar: "progressively darker and wrinkly, 0-12x"):
+ * skin goes darker and browner, and fine dark creases cross it, more of both the higher it goes. Only skin is touched (the
+ * same `skinWeight` as the orange), so the backdrop, suit, shirt and dark hair stay. 0 is the photo, 12 the most.
+ */
+export const AGE = { min: 0, max: 12, step: 0.5, def: 0 } as const;
+
+/** How much of a crease passes through (x, y), 0 to 1: wavering horizontal lines, about a tenth of the rows. */
+export function creaseAt(x: number, y: number): number {
+  const v = Math.sin(y * 0.55 + 7 * Math.sin(x * 0.045 + y * 0.004) + 3 * Math.sin(x * 0.11));
+  return Math.min(1, Math.max(0, (v - 0.8) / 0.2));
+}
+
+/** One skin pixel, aged by `amount` (0 to 12) at (x, y). */
+export function ageUp(r: number, g: number, b: number, amount: number, x: number, y: number): [number, number, number] {
+  const k = Math.min(1, Math.max(0, amount / AGE.max)) * skinWeight(r, g, b);
+  if (k <= 0) return [r, g, b];
+  const dark = 1 - 0.62 * k - 0.7 * k * creaseAt(x, y); // darker overall, much darker in a crease
+  return [r * dark, g * dark * (1 - 0.08 * k), b * dark * (1 - 0.18 * k)];
+}
+
+/** Ages the colour pixels of RGBA data (`width` pixels a row) in place. */
+export function ageData(data: Uint8ClampedArray, width: number, amount: number): void {
+  if (amount <= 0) return;
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    const [r, g, b] = ageUp(data[i], data[i + 1], data[i + 2], amount, p % width, Math.floor(p / width));
+    data[i] = r; data[i + 1] = g; data[i + 2] = b;
+  }
+}

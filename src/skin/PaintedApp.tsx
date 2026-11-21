@@ -9,6 +9,8 @@ import { setSoftBoom, setTickVoice } from '../audio/sound';
 import { loadStreak } from '../dream/daily';
 import { burstExplodes, TICK_VOICE } from './shop/catalog';
 import { grantStreak, useWallet } from './shop/store';
+import { ADMIN2_AVATAR_ID, ADMIN4_AVATAR_ID } from '../avatars/ids';
+import { useKaiyanLook } from './avatars/kaiyanLook';
 import { useAvatar } from './avatars/store';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { useRoomStore } from '../state/roomStore';
@@ -111,7 +113,14 @@ export function PaintedApp() {
   useEffect(() => installAudioSleep(), []);
   // Keep the server told which avatar you picked, so the others in a room see it.
   const avatar = useAvatar();
-  useEffect(() => { useRoomStore.getState().sendAvatar(avatar); }, [avatar]);
+  // Juan's orange amount goes with it, so the room sees the tint too. It is sent once the slider has stopped moving: the server
+  // takes 10 avatar messages a minute.
+  const { orange = 0, age = 0 } = useKaiyanLook(avatar);
+  const tint = avatar === ADMIN2_AVATAR_ID ? orange : avatar === ADMIN4_AVATAR_ID ? age : 0;
+  useEffect(() => {
+    const t = window.setTimeout(() => useRoomStore.getState().sendAvatar(avatar), 600);
+    return () => window.clearTimeout(t);
+  }, [avatar, tint]);
   // The Trading Post: the fuse sound and the burst worn, and any streak item the best dream streak has earned (kept for good).
   // A signed-in player has one name, the account's. Solo games seat the player under `settings.name`, so it follows
   // the account: it used to keep whatever the browser's guest name had been, with nowhere to change it while signed in.

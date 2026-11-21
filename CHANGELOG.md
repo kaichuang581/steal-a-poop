@@ -2,6 +2,11 @@
 
 All user-visible changes, newest first.
 
+## 0.9.3
+
+- A kitchen garden in front of the farmhouse: six raised beds of kale, cabbages, leeks and a cold frame inside a white fence, with a path through its gate.
+- No more flickering stripes on Home: the barn, silo, coop and farmhouse walls are one colour each, roof snow is lit evenly, and the silo reads as round.
+
 ## 0.9.2
 
 - Home is a golden winter afternoon: a warm low sun, a soft second light so shaded sides stay warm, a warmer sky and haze, and lamps and bulbs that glow by day.

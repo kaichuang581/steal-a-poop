@@ -23,7 +23,7 @@ describe("Home's clouds", () => {
     expect(skyShots.map((s) => s.i)).toEqual(expect.arrayContaining([5, 6, 7]));
     for (const s of skyShots) {
       // The open-sky shots (the farmhouse and the pond) hold every cloud whole under the top of the frame.
-      if (s.i === 5 || s.i === 7) for (const c of clouds) expect(c.elevation + deg(Math.atan((c.H * 1.1) / CLOUD.ring)), `shot ${s.i}`).toBeLessThanOrEqual(s.top);
+      if (s.i === 5 || s.i === 7) for (const c of clouds) expect(c.elevation + deg(Math.atan(Math.max(...c.lobes.map((l) => l.y + l.r * 1.08)) / CLOUD.ring)), `shot ${s.i}`).toBeLessThanOrEqual(s.top);
       for (let k = 0; k < 120; k++) {
         const turn = (k / 120) * Math.PI * 2;
         const seen = clouds.filter((c) => Math.abs(wrap(c.az - turn - s.yaw)) < s.half + (c.L * 0.3) / CLOUD.ring).length;

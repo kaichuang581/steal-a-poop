@@ -61,7 +61,7 @@ const CLOUD_HAZE: Record<Hour, number> = { dawn: 0.3, day: 0.34, dusk: 0.28, nig
  */
 function Clouds({ hour, reduced }: { hour: Hour; reduced: boolean }) {
   const geo = useMemo(() => cloudGeometry(), []);
-  const mat = useMemo(() => new MeshLambertMaterial({ color: '#D2CED8', vertexColors: true, emissive: '#C9C0E6', fog: false }), []);
+  const mat = useMemo(() => new MeshLambertMaterial({ color: '#E2E0E6', vertexColors: true, emissive: '#E4E2EC', fog: false }), []);
   mat.emissiveIntensity = CLOUD_HAZE[hour];
   const ref = useRef<Mesh>(null);
   useFrame((_, dt) => {

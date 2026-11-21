@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pairRule, singleRules, MAX_TWIST_SHARE, MIN_TWIST_WORDS } from '../twists/rules';
+import { pairRule, singleRules, MAX_TWIST_SHARE, MIN_TWIST_WORDS } from '../rules';
 
 const rule = (id: string) => {
   const r = singleRules().find((x) => x.id === id);

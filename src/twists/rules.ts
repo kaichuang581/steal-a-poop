@@ -1,4 +1,4 @@
-import { MIN_WORD_LENGTH } from '../constants';
+import { MIN_WORD_LENGTH } from '../engine/constants';
 
 /**
  * Word twists, built from rule families. A rule is one test on a word; a twist is one rule or two rules that both

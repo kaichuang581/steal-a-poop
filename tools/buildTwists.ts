@@ -9,7 +9,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createDictionary } from '../src/engine/dictionary';
-import { LETTERS, MAX_TWIST_SHARE, MIN_CONTINUATIONS, MIN_START_LETTERS, MIN_TWIST_WORDS, pairRule, RULE_MIN_LENGTH, singleRules, type TwistRule } from '../src/engine/twists/rules';
+import { LETTERS, MAX_TWIST_SHARE, MIN_CONTINUATIONS, MIN_START_LETTERS, MIN_TWIST_WORDS, pairRule, RULE_MIN_LENGTH, singleRules, type TwistRule } from '../src/twists/rules';
 
 const arg = (name: string) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; };
 const outFile = arg('--out');

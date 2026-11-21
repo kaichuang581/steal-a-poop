@@ -207,7 +207,8 @@ export function drawnHashOf(root: string, plan: Plan): string {
   const parts: string[] = [];
   for (const file of plan.drawn) {
     if (!existsSync(join(root, file))) throw new Error(`${file} is gone: it draws ${plan.file}`);
-    parts.push(`${file}\n`, text(root, file), '\n');
+    // A picture given as a picture (the Ranked card's source) is its own bytes; code is its text.
+    parts.push(`${file}\n`, PICTURE.test(file) ? readFileSync(join(root, file)).toString('base64') : text(root, file), '\n');
   }
   return sha(...parts);
 }
@@ -423,24 +424,28 @@ const guidePlan = (): Plan => ({
 });
 
 /**
- * The two cards of the Queue chooser (src/skin/ranked/PlayChooser.tsx): pixel art drawn on a 2D canvas by
- * tools/art/playArt.js and baked by tools/renderPlayArt.mjs (Brian, 2026-11-21). They show no voxel model, so, as with the
- * yarn ball, their model is the text of the code that draws them.
+ * The two cards of the Queue chooser (src/skin/ranked/PlayChooser.tsx), both baked by tools/renderPlayArt.mjs
+ * (Brian, 2026-11-21). Casual is pixel art drawn on a 2D canvas by tools/art/playArt.js, so, as with the yarn ball, its
+ * model is the text of that code. Ranked is Brian's own picture, tools/art/ranked-source.webp, cropped: its model is
+ * that file's bytes.
  */
 function playPlan(name: 'casual' | 'ranked'): Plan {
+  const casual = name === 'casual';
   return {
     id: `play/${name}`, file: `public/play/${name}.webp`, tool: PLAY, args: [], page: null, sources: [PLAY],
-    model: name === 'casual'
+    model: casual
       ? 'the evening meadow, drawn pixel by pixel (drawPlayArt("casual") in tools/art/playArt.js)'
-      : 'the three-panel face-off, drawn pixel by pixel (drawPlayArt("ranked") in tools/art/playArt.js)',
+      : "Brian's three-panel face-off (tools/art/ranked-source.webp), cropped to 1024 x 640",
     checked: 'npm test', alpha: false,
-    size: async () => [1440, 900],
+    size: async () => (casual ? [1440, 900] : [1024, 640]),
     mirrors: [
       ['src/skin/ranked/PlayChooser.tsx', ["const ART = (name: 'casual' | 'ranked') => `${import.meta.env.BASE_URL}play/${name}.webp`;"]],
-      [PLAY, ['return out.toDataURL(\'image/webp\', 1);', 'writeFileSync(`public/play/${name}.webp`, bytes);']],
-      ['tools/art/playArt.js', ['var PLAY_ART = { W: 480, H: 300, SCALE: 3 };']],
+      [PLAY, casual
+        ? ['return out.toDataURL(\'image/webp\', 1);', 'writeFileSync(`public/play/${name}.webp`, bytes);']
+        : ['const RANKED_CROP = { y: 140, width: 1024, height: 640 };', "writeFileSync('public/play/ranked.webp', rankedBytes);"]],
+      ...(casual ? [['tools/art/playArt.js', ['var PLAY_ART = { W: 480, H: 300, SCALE: 3 };']] as [string, string[]]] : []),
     ],
-    drawn: ['tools/art/playArt.js'],
+    drawn: [casual ? 'tools/art/playArt.js' : 'tools/art/ranked-source.webp'],
   };
 }
 

@@ -166,11 +166,11 @@ describe('the bake manifest: the checks check', () => {
     expect(modelFinding(marked, hex('d')).map((f) => f.kind)).toEqual(['stale']);
   });
 
-  it('a play card is pixel art its tool draws: the drawing code is its model (Brian, 2026-11-21)', () => {
+  it('a play card is baked by its tool: Casual from its drawing code, Ranked from Brian\'s picture (2026-11-21)', () => {
     for (const name of ['casual', 'ranked'] as const) {
       const plan = planFor(`public/play/${name}.webp`)!;
       expect(plan.tool).toBe('tools/renderPlayArt.mjs');
-      expect(plan.drawn).toEqual(['tools/art/playArt.js']);
+      expect(plan.drawn).toEqual([name === 'casual' ? 'tools/art/playArt.js' : 'tools/art/ranked-source.webp']);
       expect(plan.scene).toBeUndefined();
       expect(plan.checked).toBe('npm test');
     }

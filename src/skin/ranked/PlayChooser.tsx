@@ -108,7 +108,7 @@ export function PlayChooser({ onClose, onCasual, onRanked, onSignIn, rank, busy,
           </section>
           <section className="sk-play-card" data-mode="ranked" aria-label="Ranked">
             <div className="sk-play-frame">
-              <img className="sk-play-art" src={ART('ranked')} alt="" width={1440} height={900} />
+              <img className="sk-play-art" src={ART('ranked')} alt="" width={1024} height={640} />
               <Live n={counts?.ranked} />
               <h3 className="sk-play-tag">Ranked</h3>
             </div>

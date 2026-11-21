@@ -36,8 +36,8 @@
       "width": 1440,
       "height": 900,
       "alpha": false,
-      "modelHash": "9ab1135f5969db9af7c412a591610eb7093b5eab993e54ae3b1f7d180f3047e1",
-      "renderHash": "988f3c43e299086eca6cdee71a2e76a17b1411aa3830ecc0c89d1927883a475d",
+      "modelHash": "2a2ce190fc5594a727c3892235df4e9264530a494cd75508c79fec2017667483",
+      "renderHash": "4ab32ab7d9ce7541a6e1a0feb643de88f323fdf72ce6443bd86e175baa465376",
       "fileHash": "631b1ec3f5fccf28513c45e8da5f93c0f1b622fb7541dd464a743f69856e0e9d"
     },
     {
@@ -46,14 +46,14 @@
       "tool": "tools/renderPlayArt.mjs",
       "args": [],
       "page": null,
-      "model": "the three-panel face-off, drawn pixel by pixel (drawPlayArt(\"ranked\") in tools/art/playArt.js)",
+      "model": "Brian's three-panel face-off (tools/art/ranked-source.webp), cropped to 1024 x 640",
       "checked": "npm test",
-      "width": 1440,
-      "height": 900,
+      "width": 1024,
+      "height": 640,
       "alpha": false,
-      "modelHash": "9ab1135f5969db9af7c412a591610eb7093b5eab993e54ae3b1f7d180f3047e1",
-      "renderHash": "988f3c43e299086eca6cdee71a2e76a17b1411aa3830ecc0c89d1927883a475d",
-      "fileHash": "cd0b1f2fde43a53f52a479b85d99df9d4e13a77e055cb0ef204d309cfccb92f7"
+      "modelHash": "65b88e784c97d75922caf3a3030bcaf1cdc14909458f15e46ee807b58836db7c",
+      "renderHash": "4ab32ab7d9ce7541a6e1a0feb643de88f323fdf72ce6443bd86e175baa465376",
+      "fileHash": "2c9cc45c8c5f3f1ab53f5c9c69d4273c4d92f3b8054a68d00e9b7b124f5353a1"
     },
     {
       "id": "shop/blast-bubblegum",

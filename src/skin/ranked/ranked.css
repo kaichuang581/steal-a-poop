@@ -149,3 +149,6 @@
 @keyframes sk-zenith { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .sk-zenith-rays { animation: none; opacity: 0.8; } }
 :root.reduce-motion .sk-zenith-rays { animation: none; opacity: 0.8; }
+
+/* Brian's Ranked picture is drawn finer than the cards show it: it is scaled down smoothly, not pixel by pixel. */
+.sk-play-card[data-mode="ranked"] .sk-play-art { image-rendering: auto; }

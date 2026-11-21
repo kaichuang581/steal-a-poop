@@ -4,7 +4,13 @@
 //
 //  - Casual, "the evening meadow": a sheep in a green knit cap among sunflowers, looking over the hills to the barn at
 //    sunset, bumblebees drifting round it, big soft clouds, a faint rainbow.
-//  The Ranked card's picture is Brian's own (tools/art/ranked-source.webp), cropped by tools/renderPlayArt.mjs.
+//  The Ranked side's picture is Brian's own (tools/art/ranked-source.webp), re-encoded by tools/renderPlayArt.mjs.
+//
+// The meadow is drawn in layers, so the chooser can move them at different speeds (parallax) and fly the bees itself:
+//   'casual'         the sky, the sun's glow, the rainbow, the three ridges, the farm and the lane (opaque);
+//   'casual-clouds'  the clouds alone (clear round them);
+//   'casual-field'   the field of sunflowers and the sheep, with the bee on its nose (clear above the field);
+//   'bee'            one bumblebee, 18 x 16, for the chooser to fly about.
 //
 // Plain JavaScript with no imports: tools/renderPlayArt.mjs puts this file into a blank page and calls
 // `drawPlayArt(name)`. The same seed gives the same picture, pixel for pixel. Art is W x H pixels; the tool scales it
@@ -14,7 +20,9 @@
 var PLAY_ART = { W: 480, H: 300, SCALE: 3 };
 
 function drawPlayArt(name) {
-  var W = PLAY_ART.W, H = PLAY_ART.H;
+  var BEE = name === 'bee';
+  var W = BEE ? 18 : PLAY_ART.W, H = BEE ? 16 : PLAY_ART.H;
+  var BASE = name === 'casual', CLOUDS = name === 'casual-clouds', FIELD = name === 'casual-field';
   var cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   var ctx = cv.getContext('2d');
@@ -31,6 +39,8 @@ function drawPlayArt(name) {
     if (x < 0 || y < 0 || x >= W || y >= H) return;
     var i = (y * W + x) * 4;
     if (a === undefined || a >= 1) { buf[i] = c[0]; buf[i + 1] = c[1]; buf[i + 2] = c[2]; buf[i + 3] = 255; return; }
+    // Over nothing (a layer's clear part), the colour itself at that much opacity; over a colour, a blend of the two.
+    if (buf[i + 3] === 0) { buf[i] = c[0]; buf[i + 1] = c[1]; buf[i + 2] = c[2]; buf[i + 3] = Math.round(a * 255); return; }
     buf[i] = Math.round(buf[i] + (c[0] - buf[i]) * a); buf[i + 1] = Math.round(buf[i + 1] + (c[1] - buf[i + 1]) * a); buf[i + 2] = Math.round(buf[i + 2] + (c[2] - buf[i + 2]) * a); buf[i + 3] = 255;
   }
   function get(x, y) { var i = (y * W + x) * 4; return [buf[i], buf[i + 1], buf[i + 2]]; }
@@ -80,7 +90,7 @@ function drawPlayArt(name) {
     for (var i = 0; i < hits.length; i += 2) px(hits[i], hits[i + 1], c);
   }
 
-  casual();
+  if (BEE) bee(9, 10, 1, 1); else casual();
   ctx.putImageData(img, 0, 0);
   return cv;
 
@@ -92,16 +102,16 @@ function drawPlayArt(name) {
     var SKY = ['#C9452E', '#DB5730', '#E86A34', '#F07F3A', '#F49442', '#F7A84C', '#F9BC5C', '#FBD078', '#FCE09A'].map(hex);
     var HORIZON = 182;
     // The sky: a sunset from deep coral at the top to pale gold on the hills, in dithered bands.
-    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) px(x, y, ramp(SKY, Math.pow(y / HORIZON, 1.1), x, y));
+    if (BASE) for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) px(x, y, ramp(SKY, Math.pow(y / HORIZON, 1.1), x, y));
     // The sun's glow behind the far hills, right of the barn.
     var GLOW = hex('#FFF1C4');
-    for (var y = 110; y < HORIZON + 4; y++) for (var x = 230; x < 470; x++) {
+    if (BASE) for (var y = 110; y < HORIZON + 4; y++) for (var x = 230; x < 470; x++) {
       var d = Math.hypot((x - 352) / 120, (y - 186) / 60);
       if (d < 1 && (1 - d) * (1 - d) > bayer(x, y) * 1.15) px(x, y, GLOW, 0.55);
     }
     // A faint rainbow, high on the right, in six thin bands that fade toward the hills.
     var BOW = ['#E8574A', '#F2934A', '#F5D36A', '#8FC46A', '#6FA7C9', '#9B85C9'].map(hex);
-    for (var y = 0; y < 170; y++) for (var x = 300; x < W; x++) {
+    if (BASE) for (var y = 0; y < 170; y++) for (var x = 300; x < W; x++) {
       var r = Math.hypot(x - 520, y - 250), band = Math.floor((r - 214) / 3);
       if (band < 0 || band >= BOW.length) continue;
       var fade = Math.min(1, (170 - y) / 90) * Math.min(1, (x - 300) / 60) * 0.5;
@@ -135,13 +145,13 @@ function drawPlayArt(name) {
         px(x, y, ramp(CLOUD, best * 0.95 + 0.12 - under * 0.45, x, y));
       }
     }
-    cloud(96, 52, 1.15, 11); cloud(268, 34, 0.8, 23); cloud(395, 92, 1.0, 37); cloud(180, 120, 0.55, 41); cloud(36, 140, 0.5, 53);
+    if (CLOUDS) { cloud(96, 52, 1.15, 11); cloud(268, 34, 0.8, 23); cloud(395, 92, 1.0, 37); cloud(180, 120, 0.55, 41); cloud(36, 140, 0.5, 53); return; }
 
     // The hills: three ridges, the far one hazed toward the sky, each a step greener and darker as it nears.
     function ridge(base, amp, f1, f2, ph, cols, haze) {
       var top = [];
       for (var x = 0; x < W; x++) top.push(Math.round(base - amp * (0.6 * Math.sin(x * f1 + ph) + 0.4 * Math.sin(x * f2 + ph * 1.7))));
-      for (var x = 0; x < W; x++) for (var y = top[x]; y < H; y++) {
+      if (BASE) for (var x = 0; x < W; x++) for (var y = top[x]; y < H; y++) {
         var t = Math.min(1, (y - top[x]) / 26);
         var c = ramp(cols, 1 - t, x, y);
         px(x, y, c);
@@ -151,7 +161,7 @@ function drawPlayArt(name) {
     }
     var far = ridge(178, 10, 0.018, 0.041, 1.2, ['#5E7A4A', '#6F8C52', '#82A05C'].map(hex), 0.42);
     // The farm on the far ridge: a red barn with a white-trimmed roof, its silo, a fence along the crest.
-    (function farm() {
+    if (BASE) (function farm() {
       var bx = 118, gy = far[bx + 12];
       var RED = hex('#A9473A'), RED_D = hex('#8A3A31'), ROOF = hex('#6E4A3C'), TRIM = hex('#EFE3D0'), SILO = hex('#B9AFA2'), SILO_D = hex('#958B80');
       rect(bx + 30, gy - 30, 8, 30, SILO); rect(bx + 35, gy - 30, 3, 30, SILO_D); disc(bx + 34, gy - 30, 4, function (x, y, nx, ny) { return ny < 0 ? (nx > 0.3 ? SILO_D : SILO) : null; });
@@ -165,12 +175,13 @@ function drawPlayArt(name) {
     var mid = ridge(198, 9, 0.011, 0.033, 3.1, ['#4E7A3C', '#5E8A44', '#74A050'].map(hex), 0.16);
     // A lane winding up the middle ridge toward the barn, with a hay cart on it.
     var LANE = hex('#C8A26A'), LANE_D = hex('#A8834F');
-    for (var y = 0; y < 60; y++) {
+    if (BASE) for (var y = 0; y < 60; y++) {
       var t = y / 60, cx = 150 + Math.sin(t * 5.2) * 30 * (1 - t) + t * 0;
       var yy = 240 - y * 0.95, w = 1 + (1 - t) * 6;
       for (var x = Math.round(cx - w); x <= Math.round(cx + w); x++) if (yy >= mid[x] + 1) px(x, Math.round(yy), x < cx - w + 1.5 ? LANE_D : LANE);
     }
     var near = ridge(228, 6, 0.009, 0.027, 0.4, ['#3C6A30', '#4A7A36', '#5C8E40'].map(hex), 0);
+    if (!FIELD) return;
 
     // The sunflowers: row upon row, small and dense at the back, big at the front.
     var PET = ['#B8741A', '#D9961E', '#F2B829', '#FFD54A', '#FFE88A'].map(hex);
@@ -215,15 +226,7 @@ function drawPlayArt(name) {
     sheep(SHEEP.x, SHEEP.y);
     front.forEach(foliage); front.forEach(head);
 
-    // Bumblebees drifting about, a few big ones close to us.
-    var BEES = [[120, 70, 1.6], [208, 92, 1.1], [300, 60, 0.9], [352, 130, 1.3], [410, 40, 1.0], [440, 178, 1.9], [60, 190, 2.2], [246, 150, 0.8], [30, 58, 1.2], [392, 236, 2.6], [228, 125, 1.0]];
-    BEES.forEach(function (b, i) { bee(b[0], b[1], b[2], i % 2 ? 1 : -1); });
-
-    // A soft warm light over everything from the low sun: a vignette darker at the bottom corners.
-    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
-      var v = Math.hypot((x - W * 0.55) / (W * 0.75), (y - H * 0.42) / (H * 0.8));
-      if (v > 0.8 && (v - 0.8) * 1.4 > bayer(x, y)) px(x, y, hex('#2A1A2E'), 0.22);
-    }
+    // The bumblebees fly in the chooser itself (the 'bee' layer), and the light falls there too.
   }
 
   /** A woolly sheep from behind and to the left, its head turned to the sunset, in a green knit cap. Feet at (fx, fy). */

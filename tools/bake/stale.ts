@@ -423,29 +423,36 @@ const guidePlan = (): Plan => ({
   },
 });
 
+/** The meadow's layers and the bee, drawn by tools/art/playArt.js, and the size each is baked at. */
+export const PLAY_LAYERS: Record<string, [number, number]> = { casual: [1440, 900], 'casual-clouds': [1440, 900], 'casual-field': [1440, 900], bee: [54, 48] };
+
 /**
- * The two cards of the Queue chooser (src/skin/ranked/PlayChooser.tsx), both baked by tools/renderPlayArt.mjs
- * (Brian, 2026-11-21). Casual is pixel art drawn on a 2D canvas by tools/art/playArt.js, so, as with the yarn ball, its
- * model is the text of that code. Ranked is Brian's own picture, tools/art/ranked-source.webp, cropped: its model is
- * that file's bytes.
+ * The Queue chooser's pictures (src/skin/ranked/PlayChooser.tsx), all baked by tools/renderPlayArt.mjs (Brian,
+ * 2026-11-21). The meadow's layers and the bee are pixel art drawn on a 2D canvas by tools/art/playArt.js, so, as with
+ * the yarn ball, their model is the text of that code. Ranked is Brian's own picture, tools/art/ranked-source.webp,
+ * re-encoded whole: its model is that file's bytes.
  */
-function playPlan(name: 'casual' | 'ranked'): Plan {
-  const casual = name === 'casual';
+function playPlan(name: string): Plan | null {
+  const layer = PLAY_LAYERS[name];
+  if (!layer && name !== 'ranked') return null;
+  const MODELS: Record<string, string> = {
+    casual: 'the evening meadow\'s sky, hills and farm, drawn pixel by pixel (drawPlayArt("casual") in tools/art/playArt.js)',
+    'casual-clouds': 'the evening meadow\'s clouds (drawPlayArt("casual-clouds") in tools/art/playArt.js)',
+    'casual-field': 'the evening meadow\'s sunflowers and sheep (drawPlayArt("casual-field") in tools/art/playArt.js)',
+    bee: 'one bumblebee (drawPlayArt("bee") in tools/art/playArt.js)',
+    ranked: "Brian's three-panel face-off (tools/art/ranked-source.webp), whole",
+  };
   return {
     id: `play/${name}`, file: `public/play/${name}.webp`, tool: PLAY, args: [], page: null, sources: [PLAY],
-    model: casual
-      ? 'the evening meadow, drawn pixel by pixel (drawPlayArt("casual") in tools/art/playArt.js)'
-      : "Brian's three-panel face-off (tools/art/ranked-source.webp), cropped to 1024 x 640",
-    checked: 'npm test', alpha: false,
-    size: async () => (casual ? [1440, 900] : [1024, 640]),
+    model: MODELS[name], checked: 'npm test', alpha: !!layer && name !== 'casual',
+    size: async () => layer ?? [1024, 1024],
     mirrors: [
-      ['src/skin/ranked/PlayChooser.tsx', ["const ART = (name: 'casual' | 'ranked') => `${import.meta.env.BASE_URL}play/${name}.webp`;"]],
-      [PLAY, casual
-        ? ['return out.toDataURL(\'image/webp\', 1);', 'writeFileSync(`public/play/${name}.webp`, bytes);']
-        : ['const RANKED_CROP = { y: 140, width: 1024, height: 640 };', "writeFileSync('public/play/ranked.webp', rankedBytes);"]],
-      ...(casual ? [['tools/art/playArt.js', ['var PLAY_ART = { W: 480, H: 300, SCALE: 3 };']] as [string, string[]]] : []),
+      [PLAY, layer
+        ? ["export const LAYERS = ['casual', 'casual-clouds', 'casual-field', 'bee'];", "return out.toDataURL('image/webp', 1);"]
+        : ["return out.toDataURL('image/webp', 0.9);", "write('public/play/ranked.webp', ranked);"]],
+      ...(layer ? [['tools/art/playArt.js', ['var PLAY_ART = { W: 480, H: 300, SCALE: 3 };']] as [string, string[]]] : []),
     ],
-    drawn: [casual ? 'tools/art/playArt.js' : 'tools/art/ranked-source.webp'],
+    drawn: [layer ? 'tools/art/playArt.js' : 'tools/art/ranked-source.webp'],
   };
 }
 
@@ -458,7 +465,7 @@ export function planFor(file: string): Plan | null {
   if (dir === 'public/shop/stall') return stallPlan(name);
   if (dir === 'public/loading') return name === 'yarn-ball' ? yarnBallPlan() : null;
   if (dir === 'public/tour') return name === 'sheepdog' ? guidePlan() : null;
-  if (dir === 'public/play') return name === 'casual' || name === 'ranked' ? playPlan(name) : null;
+  if (dir === 'public/play') return playPlan(name);
   return null;
 }
 

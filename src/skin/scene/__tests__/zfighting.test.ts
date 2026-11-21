@@ -12,12 +12,14 @@ function coplanarOverlaps(named: [string, BufferGeometry][], cell = 0.1, within 
   const owner = new Map<string, string>();
   const found = new Set<string>();
   for (const [name, g] of named) {
-    const pos = g.getAttribute('position'), nor = g.getAttribute('normal'), idx = g.index!.array;
+    const pos = g.getAttribute('position'), idx = g.index!.array;
     for (let t = 0; t < idx.length; t += 6) {
       const vs = Array.from(idx.slice(t, t + 6));
-      const n = [nor.getX(vs[0]), nor.getY(vs[0]), nor.getZ(vs[0])];
-      const axis = n.findIndex((v) => Math.abs(v) > 0.5);
       const pts = vs.map((v) => [pos.getX(v), pos.getY(v), pos.getZ(v)]);
+      // Which way the face looks, from its corners' winding: a lighting normal may be bent (yard.ts `plain`).
+      const e1 = [0, 1, 2].map((k) => pts[1][k] - pts[0][k]), e2 = [0, 1, 2].map((k) => pts[2][k] - pts[0][k]);
+      const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+      const axis = [0, 1, 2].reduce((m, k) => (Math.abs(n[k]) > Math.abs(n[m]) ? k : m), 0);
       if (Math.abs(pts[0][axis]) > within) continue;
       const [a, b] = [0, 1, 2].filter((k) => k !== axis);
       const lo = (k: number) => Math.round(Math.max(-within, Math.min(...pts.map((p) => p[k]))) / cell);

@@ -97,7 +97,7 @@ export function FarmBackdrop({ hour, reduced, sleepy, phone, heroYaw = 0, heroGa
       <MarkDrawn />
       <Lights hour={hour} phone={phone} viewYaw={yawToward(cam.position, cam.target)} lampRef={lowerLamp} place="home" />
       <DoorSpill spot={spot} bounce={bounce} />
-      <Sky hour={hour} reduced={reduced} blizzard={false} />
+      <Sky hour={hour} reduced={reduced} blizzard={false} home />
       <Farm world={w} reduced={reduced} />
       <Farmstead world={w} reduced={reduced} phone={phone} onReady={onReady} />
       <Wendigo reduced={reduced} />

@@ -2,6 +2,23 @@
 
 All user-visible changes, newest first.
 
+## 0.9.3
+
+- A kitchen garden in front of the farmhouse: six raised beds of kale, cabbages, leeks and a cold frame inside a white fence, with a path through its gate.
+- No more flickering stripes on Home: the barn, silo, coop and farmhouse walls are one colour each, roof snow is lit evenly, and the silo reads as round.
+
+## 0.9.2
+
+- Home is a golden winter afternoon: a warm low sun, a soft second light so shaded sides stay warm, a warmer sky and haze, and lamps and bulbs that glow by day.
+- Calmer colours across the farm: coral reds, sage-teal pines, dusty mauve roofs, cream snow and warm greys; the animals' loudest colours are softened to match, and the barn's inside is a softer red under amber lanterns.
+- Clouds drift slowly round Home's sky: puffy voxel cumulus, lit by the sun and a little see-through.
+- The title's letters are knitted word tiles with their point values, and the top-right buttons are a size smaller.
+- Animals' eyes close flat into the face.
+
+## 0.9.1
+
+- A new loading screen: on the night sky, a red yarn ball rolls along a dotted outline of "fleeced" and spells the word in real-looking yarn as the game loads. When the word is finished, the game opens. The barn doors are gone.
+
 ## 0.9.0
 
 - French: a "French" button on the start screen switches the whole game to French, with a French word list (accents optional, spelling help as in English). French players are matched with French tables. The word of the day and Counting Sheep are French too.

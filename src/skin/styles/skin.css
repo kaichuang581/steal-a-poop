@@ -552,172 +552,70 @@
 :root.reduce-motion .sk-swoop-out, :root.reduce-motion .sk-swoop-in { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-swoop-out, .sk-swoop-in { animation: none; } }
 
-/* Barn doors (BarnDoors.tsx): the game is already behind them. They stay shut, under a snowy lintel, until its barn has
-   drawn; then they unlatch, lantern light shows in the crack, and they swing in on their hinges while the view steps
-   through onto the table. No glow fills the screen and nothing goes white. */
-/* boot-doors:start. The rules from here to boot-doors:end draw the doors shut, and nothing else. vite.config.ts also
-   writes them into index.html, with the shut doors themselves (src/skin/loading/bootDoors.ts), so the doors are on
-   screen with the page's first frame, before this file or any of the game's code has arrived. Keep them free of
-   anything defined elsewhere (tokens, kit classes): there they stand alone. */
+/* The loading screen (BarnDoors.tsx; docs/landing/LANDING-PLAN.md): Home's night, a few slow flakes, the name as a
+   dotted line, and a red yarn ball that lays one strand of yarn along it as the game loads. The strand is the
+   progress. No text, number, bar, sheep, button or opening animation. */
+/* boot-doors:start. The rules from here to boot-doors:end draw the screen at p = 0, and nothing else. vite.config.ts
+   also writes them into index.html, with the screen itself (src/skin/loading/bootDoors.ts), so it is on screen with
+   the page's first frame, before this file or any of the game's code has arrived. Keep them free of anything defined
+   elsewhere (tokens, kit classes): there they stand alone. */
 .sk-doors {
-  position: fixed; inset: 0; z-index: 90; overflow: hidden; pointer-events: all; perspective: 1400px; perspective-origin: 50% 45%;
-  /* One voxel's size on screen: as big as it takes for the doors to fill the width and, with the beam over them, the height. */
-  --vox: max(calc(100vw / var(--vox-cols, 96)), calc(100vh / (var(--leaf-rows, 52) + var(--lintel-above, 7) - 1)));
-  --art-w: calc(var(--vox) * var(--vox-cols, 96));
+  position: fixed; inset: 0; z-index: 90; overflow: hidden; pointer-events: all;
+  display: flex; align-items: center; justify-content: center; padding-bottom: 4vh; box-sizing: border-box;
+  background: #1B2742;
 }
-.sk-doors-frame { position: absolute; inset: 0; display: flex; transform-style: preserve-3d; }
-.sk-door { position: relative; flex: 1; overflow: hidden; backface-visibility: hidden; background: #3A2117; }
-.sk-door-l { transform-origin: 0 50%; }
-.sk-door-r { transform-origin: 100% 50%; }
-/* Each leaf shows its half of the baked doors (src/skin/loading), the crack exactly at the middle of the screen, the top
-   tucked under the beam. Until the image is in, the leaf is plain dark wood. */
-.sk-door-art { position: absolute; top: calc(var(--vox) * (var(--lintel-above, 7) - 1)); width: var(--art-w); height: calc(var(--vox) * var(--leaf-rows, 52)); background: var(--doors-leaves) 0 0 / 100% 100% no-repeat; }
-.sk-door-l .sk-door-art { left: calc(50vw - var(--art-w) / 2); }
-.sk-door-r .sk-door-art { left: calc(var(--art-w) / -2); }
-/* The snowy beam over the doorway, with its icicles, and the drift at their foot: baked like the doors, at the same
-   voxel size, laid over the top and bottom of the screen. They stay put while the doors swing. */
-.sk-doors-lintel, .sk-doors-sill { position: absolute; left: calc(50vw - var(--art-w) / 2); width: var(--art-w); z-index: 1; pointer-events: none; background: 0 0 / 100% 100% no-repeat; }
-.sk-doors-lintel { top: 0; height: calc(var(--vox) * var(--lintel-rows, 13)); background-image: var(--doors-lintel); }
-/* Night sky behind the snow's uneven top, where the picture has gaps. */
-.sk-doors-sky { position: absolute; inset: 0 0 auto; z-index: 1; height: calc(var(--vox) * 3); background: #12152A; }
-.sk-doors-sill { bottom: 0; height: calc(var(--vox) * var(--sill-rows, 7)); background-image: var(--doors-sill); }
-/* A few flakes drifting down in front of the doors, square like the game's snow. */
-.sk-doors-snow { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
-.sk-doors-snow i { position: absolute; top: -12px; aspect-ratio: 1; background: #F4F8FF; box-shadow: 1px 1px 0 rgba(40, 30, 60, 0.35); opacity: 0.85; animation: sk-doors-flake linear infinite; }
-@keyframes sk-doors-flake { from { transform: translate(0, -5vh); } to { transform: translate(var(--drift, 0), 108vh); } }
-@media (prefers-reduced-motion: reduce) { .sk-doors-snow { display: none; } }
-/* The page's own doors sit just under BarnDoors' (which take over from them, shut, and then open). */
+.sk-yarn-snow { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.sk-yarn-snow i { position: absolute; top: -8px; aspect-ratio: 1; background: #FFFFFF; animation: sk-yarn-flake linear infinite; }
+@keyframes sk-yarn-flake { from { transform: translate(0, -5vh); } to { transform: translate(var(--drift, 0), 108vh); } }
+@media (prefers-reduced-motion: reduce) { .sk-yarn-snow { display: none; } }
+/* The word's box: 542 x 216 of its units, a unit --u px; the ball's radius at its biggest --r. */
+.sk-yarn-word {
+  --ww: min(820px, 64vw); --u: calc(var(--ww) / 542); --r: max(28px, calc(38 * var(--u)));
+  position: relative; flex: none; width: var(--ww); aspect-ratio: 542 / 216;
+}
+@media (orientation: portrait) { .sk-yarn-word { --ww: calc(100vw - 44px); } }
+.sk-yarn-guide, .sk-yarn-shadow, .sk-yarn-strand { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sk-yarn-guide { overflow: visible; }
+.sk-yarn-guide path { fill: none; stroke: #3D5283; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 0.1 11.7; }
+/* The ball's box is 2.4 r square, centred on the strand's tip; it moves and shrinks by transform alone. */
+.sk-yarn-ball { position: absolute; width: calc(2.4 * var(--r)); height: calc(2.4 * var(--r)); margin: calc(-1.2 * var(--r)) 0 0 calc(-1.2 * var(--r)); transform-origin: 50% 50%; }
+.sk-yarn-ball-body { position: absolute; inset: 0; transform-origin: 50% 91.7%; }
+.sk-yarn-ball-shadow, .sk-yarn-ball-wraps, .sk-yarn-ball-shade { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sk-yarn-ball-shadow { overflow: visible; }
+.sk-yarn-ball-wraps { user-select: none; -webkit-user-drag: none; }
+/* The page's own screen sits just under BarnDoors' (which takes over from it). */
 #boot-doors { z-index: 89; }
 /* boot-doors:end */
-.sk-doors[data-phase="open"] { pointer-events: none; animation: sk-doors-through 1100ms cubic-bezier(0.5, 0, 0.7, 1) forwards; transform-origin: 50% 52%; }
-.sk-doors[data-phase="open"] .sk-door-l { animation: sk-door-swing-l 950ms cubic-bezier(0.5, 0, 0.25, 1) forwards; }
-.sk-doors[data-phase="open"] .sk-door-r { animation: sk-door-swing-r 950ms 40ms cubic-bezier(0.5, 0, 0.25, 1) forwards; }
-.sk-doors[data-phase="closing"] .sk-doors-sky { animation: sk-doors-lintel-in 420ms ease-out both; }
-.sk-doors[data-phase="open"] .sk-doors-snow { opacity: 0; transition: opacity 300ms ease-out; }
-:root.reduce-motion .sk-doors-snow { display: none; }
-/* Lantern light in the crack as the latch lifts: a warm line down the middle that widens, then is gone. */
-.sk-doors-spill { position: absolute; top: 0; bottom: 0; left: 50%; width: 30vw; margin-left: -15vw; opacity: 0; pointer-events: none; z-index: 2;
-  background: linear-gradient(90deg, transparent, rgba(255, 196, 110, 0.55) 46%, rgba(255, 236, 190, 0.85) 50%, rgba(255, 196, 110, 0.55) 54%, transparent); }
-.sk-doors[data-phase="open"] .sk-doors-spill { animation: sk-doors-spill 700ms ease-out forwards; }
-@keyframes sk-door-swing-l { 0% { transform: rotateY(0); filter: brightness(1); } 12% { transform: rotateY(4deg); } 100% { transform: rotateY(104deg); filter: brightness(0.55); } }
-@keyframes sk-door-swing-r { 0% { transform: rotateY(0); filter: brightness(1); } 12% { transform: rotateY(-4deg); } 100% { transform: rotateY(-104deg); filter: brightness(0.55); } }
-@keyframes sk-doors-spill { 0% { opacity: 0; transform: scaleX(0.05); } 18% { opacity: 1; transform: scaleX(0.25); } 100% { opacity: 0; transform: scaleX(2.2); } }
-@keyframes sk-doors-through { 0%, 35% { transform: scale(1); opacity: 1; } 80% { opacity: 1; } 100% { transform: scale(1.22); opacity: 0; } }
-/* A quick change of screen (playBarnDoors({ quick })): only a short dark fade, which lifts as soon as the new screen has
-   drawn. If that takes longer than a moment it is a real load, and the doors fade in, already shut, the sign dropping
-   in on its ropes (data-revealed). */
+:root.reduce-motion .sk-yarn-snow { display: none; }
+.sk-yarn-ball { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* Waiting: when the progress has not moved for 600 ms the ball rocks on its base. A tap: it hops half its radius and
+   lands with a little squash. */
+.sk-yarn-ball[data-rest] .sk-yarn-ball-body { animation: sk-yarn-rock 1.4s ease-in-out infinite; }
+.sk-yarn-ball[data-hop] .sk-yarn-ball-body { animation: sk-yarn-hop 380ms ease-out; }
+@keyframes sk-yarn-rock { 0%, 100% { rotate: 0deg; } 25% { rotate: 4deg; } 75% { rotate: -4deg; } }
+@keyframes sk-yarn-hop {
+  0% { translate: 0 0; scale: 1; animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+  45% { translate: 0 calc(-0.5 * var(--r)); scale: 1; animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+  80% { translate: 0 0; scale: 1.06 0.94; }
+  100% { translate: 0 0; scale: 1; }
+}
+:root.reduce-motion .sk-yarn-ball .sk-yarn-ball-body { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-yarn-ball .sk-yarn-ball-body { animation: none; } }
+/* Coming and going. A hold that brings the screen up on its own fades it in (180 ms); a quick change of screen is a
+   short dark fade first, and the yarn fades in on the dark only if the wait goes on (data-revealed); it goes with a
+   250 ms fade, taking no more clicks. */
+.sk-doors[data-phase="closing"] { animation: sk-veil-in 180ms ease-out both; }
 .sk-doors[data-veil] { background: #0D0F1C; }
-.sk-doors[data-veil] :is(.sk-doors-frame, .sk-doors-sky, .sk-doors-lintel, .sk-doors-sill, .sk-doors-snow, .sk-load, .sk-doors-spill) { visibility: hidden; }
+.sk-doors[data-veil] > * { visibility: hidden; }
 .sk-doors[data-phase="veiling"] { animation: sk-veil-in 180ms ease-out both; }
+.sk-doors[data-revealed] { animation: sk-yarn-dusk 240ms ease-out both; }
+.sk-doors[data-revealed] > * { animation: sk-veil-in 240ms ease-out both; }
+.sk-doors[data-phase="open"] { pointer-events: none; animation: sk-veil-out 250ms ease-in forwards; }
 .sk-doors[data-phase="open"][data-veil] { animation: sk-veil-out 240ms ease-in forwards; }
+.sk-doors[data-phase="open"] .sk-yarn-ball { pointer-events: none; }
 @keyframes sk-veil-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sk-veil-out { to { opacity: 0; } }
-.sk-doors[data-revealed][data-phase="shut"] { background: #0D0F1C; } /* the dark stays behind the doors as they fade in */
-.sk-doors[data-revealed][data-phase="shut"] :is(.sk-doors-frame, .sk-doors-sky, .sk-doors-lintel, .sk-doors-sill) { animation: sk-veil-in 240ms ease-out both; }
-.sk-doors[data-revealed][data-phase="shut"] :is(.sk-load-board, .sk-load-rope) { animation: sk-load-drop-late 620ms cubic-bezier(0.3, 0.8, 0.4, 1) both; }
-@keyframes sk-load-drop-late { 0% { transform: translateY(-80vh); } 70% { transform: translateY(8px); } 85% { transform: translateY(-3px); } 100% { transform: none; } }
-:root.reduce-motion .sk-doors:is([data-phase="veiling"], [data-revealed]) :is(.sk-load-board, .sk-load-rope) { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-doors:is([data-phase="veiling"], [data-revealed]) :is(.sk-load-board, .sk-load-rope) { animation: none; } }
-/* Swinging shut over the screen being left (BarnDoors CLOSE_MS, 620 ms): the doors come round from inside the barn,
-   edge on, gathering speed, and meet at 80% with a thud that jolts the frame and squeezes the lantern light in the crack
-   down to nothing. The lintel settles in as they come, and the slip is pinned up only once they are shut. */
-.sk-doors[data-phase="closing"] .sk-door-l { animation: sk-door-close-l 620ms linear both; }
-.sk-doors[data-phase="closing"] .sk-door-r { animation: sk-door-close-r 620ms linear both; }
-.sk-doors[data-phase="closing"] .sk-doors-frame { animation: sk-doors-jolt 620ms linear both; }
-.sk-doors[data-phase="closing"] .sk-doors-lintel { animation: sk-doors-lintel-in 420ms ease-out both; }
-.sk-doors[data-phase="closing"] .sk-doors-sill { animation: sk-doors-sill-in 420ms ease-out both; }
-.sk-doors[data-phase="closing"] .sk-doors-spill { animation: sk-doors-spill-close 620ms linear both; }
-.sk-doors[data-phase="closing"] .sk-load { opacity: 0; }
-.sk-doors[data-phase="shut"] .sk-load-board, .sk-doors[data-phase="shut"] .sk-load-rope { animation: sk-load-drop 620ms cubic-bezier(0.3, 0.8, 0.4, 1) both; }
-@keyframes sk-door-close-l {
-  0% { transform: rotateY(100deg); filter: brightness(0.5); animation-timing-function: cubic-bezier(0.45, 0, 0.9, 0.55); }
-  80% { transform: rotateY(0); filter: brightness(1); animation-timing-function: ease-out; }
-  88% { transform: rotateY(2.5deg); animation-timing-function: ease-in-out; }
-  100% { transform: rotateY(0); }
-}
-@keyframes sk-door-close-r {
-  0% { transform: rotateY(-100deg); filter: brightness(0.5); animation-timing-function: cubic-bezier(0.45, 0, 0.9, 0.55); }
-  80% { transform: rotateY(0); filter: brightness(1); animation-timing-function: ease-out; }
-  88% { transform: rotateY(-2.5deg); animation-timing-function: ease-in-out; }
-  100% { transform: rotateY(0); }
-}
-@keyframes sk-doors-jolt { 0%, 79% { transform: none; } 83% { transform: translateY(4px) scale(1.006); } 91% { transform: translateY(-1px); } 100% { transform: none; } }
-@keyframes sk-doors-lintel-in { from { transform: translateY(-100%); } to { transform: none; } }
-@keyframes sk-doors-sill-in { from { transform: translateY(100%); } to { transform: none; } }
-@keyframes sk-doors-spill-close { 0%, 40% { opacity: 0; transform: scaleX(1.6); } 62% { opacity: 0.85; transform: scaleX(0.7); } 80% { opacity: 1; transform: scaleX(0.04); } 86%, 100% { opacity: 0; transform: scaleX(0.02); } }
-/* Reduced motion: the doors still cover a load, but they fade in and out instead of swinging, and the sheep stands still. */
-:root.reduce-motion .sk-doors:is([data-phase="open"], [data-phase="closing"]), :root.reduce-motion .sk-doors:is([data-phase="open"], [data-phase="closing"]) :is(.sk-door-l, .sk-door-r, .sk-doors-spill, .sk-doors-frame, .sk-doors-lintel, .sk-load) { animation: none; }
-:root.reduce-motion .sk-doors[data-phase="closing"] { animation: sk-load-fade-in 220ms ease-out both; }
-:root.reduce-motion .sk-doors[data-phase="shut"] :is(.sk-load-board, .sk-load-rope) { animation: none; }
-:root.reduce-motion .sk-doors[data-phase="open"] { opacity: 0; transition: opacity 300ms ease-out; }
-@media (prefers-reduced-motion: reduce) {
-  .sk-doors:is([data-phase="open"], [data-phase="closing"]), .sk-doors:is([data-phase="open"], [data-phase="closing"]) :is(.sk-door-l, .sk-door-r, .sk-doors-spill, .sk-doors-frame, .sk-doors-lintel, .sk-load) { animation: none; }
-  .sk-doors[data-phase="closing"] { animation: sk-load-fade-in 220ms ease-out both; }
-  .sk-doors[data-phase="shut"] :is(.sk-load-board, .sk-load-rope) { animation: none; }
-  .sk-doors[data-phase="open"] { opacity: 0; transition: opacity 300ms ease-out; }
-}
-@keyframes sk-load-fade-in { from { opacity: 0; } to { opacity: 1; } }
-/* The loading slip, pinned over the crack between the doors: a sheep hopping a little fence, and a line under it.
-   Everything that moves is transform or opacity, so it keeps going while the page is busy building a scene. */
-.sk-load {
-  /* The sign hangs from the beam: its top a third of the way down the screen, ropes up to the beam's underside. */
-  --rope: calc(33vh - var(--vox, 20px) * var(--lintel-above, 7));
-  position: absolute; left: 50%; top: 33vh; z-index: 3; translate: -50% 0;
-  transform-origin: 50% calc(-1 * var(--rope)); animation: sk-load-sway 6s ease-in-out infinite;
-}
-@keyframes sk-load-sway { 0%, 100% { rotate: -1.2deg; } 50% { rotate: 1.2deg; } }
-.sk-load-rope { top: calc(-1 * var(--rope)); height: calc(var(--rope) + 6px); z-index: 0; }
-.sk-load-rope--l { left: 22%; } .sk-load-rope--r { right: 22%; }
-.sk-load-board { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 20px 14px; }
-/* A window in the plank onto a moonlit field: sunk into the wood, its frame a dark rebate. */
-.sk-load-window {
-  position: relative; display: block; width: 288px; height: 96px; overflow: hidden; border-radius: 2px;
-  box-shadow: 0 0 0 3px #3A2416, 0 0 0 5px rgba(255, 220, 170, 0.18), inset 0 3px 0 rgba(10, 8, 20, 0.45);
-}
-.sk-load-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
-.sk-load-twinkle { animation: sk-load-twinkle 2.4s steps(1) infinite; }
-@keyframes sk-load-twinkle { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0.25; } }
-/* The sheep runs in from the left, leaps the fence in the middle, lands in a puff of snow and runs off; then again. */
-.sk-load-sheep { position: absolute; left: 0; bottom: 16px; display: block; width: 72px; height: 48px; animation: sk-load-hop 1.9s linear infinite; }
-.sk-load-sheep svg { display: block; }
-.sk-load-legs-a { animation: sk-load-legs 0.26s steps(1) infinite; }
-.sk-load-legs-b { animation: sk-load-legs 0.26s steps(1) infinite reverse; }
-@keyframes sk-load-legs { 0% { opacity: 1; } 50% { opacity: 0; } }
-@keyframes sk-load-hop {
-  0% { transform: translate(-76px, 0); }
-  32% { transform: translate(64px, 0) rotate(0deg); }
-  44% { transform: translate(108px, -40px) rotate(-9deg); }
-  56% { transform: translate(150px, 0) rotate(5deg); }
-  62% { transform: translate(168px, 0) rotate(0deg); }
-  100% { transform: translate(296px, 0); }
-}
-.sk-load-puff { position: absolute; left: 172px; bottom: 12px; display: block; opacity: 0; animation: sk-load-puff 1.9s ease-out infinite; }
-.sk-load-puff svg { display: block; }
-@keyframes sk-load-puff { 0%, 55% { opacity: 0; transform: scale(0.5); } 58% { opacity: 1; transform: scale(0.8); } 75% { opacity: 0; transform: scale(1.4) translateY(-4px); } 100% { opacity: 0; } }
-.sk-load-line { font: 400 26px/1.1 var(--skin-font-hand); color: var(--button-text); white-space: nowrap; letter-spacing: 0.01em; }
-/* Lowered on its ropes once the doors are shut, with a little bounce; gone quickly when they open. */
-@keyframes sk-load-drop { 0% { transform: translateY(-80vh); } 70% { transform: translateY(8px); } 85% { transform: translateY(-3px); } 100% { transform: none; } }
-@keyframes sk-load-off { to { opacity: 0; } }
-.sk-doors[data-phase="open"] .sk-load { animation: sk-load-off 260ms ease-in forwards; }
-/* Big screens: a bigger sign, scaled from where its ropes meet the beam, so it still hangs from it. */
-@media (min-width: 1400px) and (min-height: 760px) { .sk-load { scale: 1.25; } }
-@media (min-width: 2200px) and (min-height: 1100px) { .sk-load { scale: 1.55; } }
-/* Phones: a smaller sign, the same picture. */
-@media (max-width: 480px) {
-  .sk-load-board { padding: 18px 14px 10px; gap: 8px; }
-  .sk-load-window { width: 240px; height: 80px; }
-  .sk-load-sheep { bottom: 13px; scale: 0.84; transform-origin: 0 100%; }
-  .sk-load-puff { left: 143px; bottom: 10px; scale: 0.84; }
-  .sk-load-line { font-size: 22px; }
-}
-:root.reduce-motion :is(.sk-load, .sk-load-sheep, .sk-load-legs-a, .sk-load-legs-b, .sk-load-twinkle) { animation: none; }
-:root.reduce-motion .sk-load-sheep { transform: translate(30px, 0); }
-:root.reduce-motion .sk-load-legs-b, :root.reduce-motion .sk-load-puff { display: none; }
-@media (prefers-reduced-motion: reduce) {
-  .sk-load, .sk-load-sheep, .sk-load-legs-a, .sk-load-legs-b, .sk-load-twinkle { animation: none; }
-  .sk-load-sheep { transform: translate(30px, 0); }
-  .sk-load-legs-b, .sk-load-puff { display: none; }
-}
+@keyframes sk-yarn-dusk { from { background-color: #0D0F1C; } to { background-color: #1B2742; } }
 
 /* ---------- Text fields on paper (the admin password) ---------- */
 .sk-field {

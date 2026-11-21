@@ -48,6 +48,7 @@ const PORCH_X = HOME.x + HOME.halfX + HOME.porch, LANE_FADE = 39;
 const WALKS = [
   [PORCH_X + 0.5, HOME.z, -HALF, FENCE.z + 2.4], [-HALF, 10.6, FENCE.minX, 10.6],
   [16.8, 7.5, FENCE.maxX + 0.9, FENCE.z + 0.7], [FENCE.maxX + 0.9, FENCE.z + 0.7, 8.6, FENCE.z + 1.0],
+  [-7.65, 19.4, -7.65, 27.6], // from the porch's walk through the kitchen garden's gate and down its middle (farmstead.ts, GARDEN)
 ] as const;
 export const onWalk = (x: number, z: number) => WALKS.some(([x0, z0, x1, z1]) => {
   const dx = x1 - x0, dz = z1 - z0, t = Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz)));
@@ -197,8 +198,17 @@ export function castsShadow(g: BufferGeometry): boolean {
   return false;
 }
 
-/** A mesh with no rounding at its edges (voxel/rounded.ts): with the corner shading off too, a stepped blanket of snow is one white. */
-export const plain = (g: BufferGeometry) => (g.deleteAttribute('bevel'), g);
+/**
+ * A mesh with no rounding at its edges (voxel/rounded.ts): with the corner shading off too, a stepped blanket of snow is one
+ * white. Every face is lit as if it looked up, so the sides of a roof's steps take the light of their tops: lit apart, they
+ * striped the roofs a cube apart and crawled as the camera moved (Brian, 2026-11-21: "fix all of the glitchy textures").
+ */
+export const plain = (g: BufferGeometry) => {
+  g.deleteAttribute('bevel');
+  const n = g.getAttribute('normal');
+  for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
+  return g;
+};
 
 type Set = (x: number, y: number, z: number, p: Paint) => void;
 type BoxI = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, p: Paint) => void;
@@ -398,7 +408,7 @@ const BALE_STEPS = [0, 1, 0, 1, 0, -1, 0, 1] as const;
 function baleStack(boxI: BoxI, cap: Cap) {
   const x0 = ix(3.2), z0 = ix(BARN.maxZ + 0.4), L = 5, W = 3, H = 3; // a bale: 1.0 x 0.6 x 0.6 m, its length along x
   const bale = (bx: number, by: number, bz: number, n: number) => {
-    const straw = solid('hay', BALE_STEPS[n]), twine = solid('hay', -2);
+    const straw = solid('hay', BALE_STEPS[n]), twine = solid('hay', BALE_STEPS[n] - 1); // twine one step under its bale: two steps striped the stack
     boxI(bx, bx + L - 1, by, by + H - 1, bz, bz + W - 1, (x) => (x === bx + 1 || x === bx + L - 2 ? twine : straw));
     for (let x = bx; x < bx + L; x++) for (let z = Math.max(bz, z0 + 2); z < bz + W; z++) cap(x, by + H - 1, z); // a bale set on top takes its place
   };
@@ -438,9 +448,9 @@ function farmhouse(g: Grid, panes: Grid, caps: Grid, set: Set, boxI: BoxI, cap: 
   const timber = paint('darkWood', 0), TIMBER = solid('darkWood', 0);
   const roofY = (x: number) => WH + Math.floor((half - Math.abs(x + 0.5 - xc)) * 0.875);
   const wall: Paint = (x, y, z) => (y < 2 ? solid('stone', 0)
-    : solid('houseCream', ((y >> 1) & 1) - (y >= (z === Z0 || z === Z1 ? Math.max(WH, roofY(x)) : WH) - 2 ? 1 : 0)));
-  // Courses two rows deep down the slope, a step apart, with staggered seams a step under the darker course.
-  const shingle = (along: number, d: number): Paint => () => solid('roofBrown', (along + ((d >> 1) % 2) * 2) % 4 === 0 ? -1 : (d >> 1) % 2 ? 0 : 1);
+    : solid('houseCream', -(y >= (z === Z0 || z === Z1 ? Math.max(WH, roofY(x)) : WH) - 2 ? 1 : 0)));
+  // One colour: courses and seams a step apart striped the roof and shimmered.
+  const shingle: Paint = () => solid('roofBrown', 0);
   const snowOn = (tops: [number, number, number][], thick: number | ((x: number) => number)) =>
     blanket(tops, (x, y, z) => { if (!g.has(x, y, z)) caps.set(x, y, z, CAP_SNOW); }, thick);
   // Walls (one voxel shell) and the gable ends.
@@ -498,13 +508,13 @@ function farmhouse(g: Grid, panes: Grid, caps: Grid, set: Set, boxI: BoxI, cap: 
   for (let x = X0 - 2; x <= X1 + 2; x++)
     for (let z = Z0 - 2; z <= Z1 + 2; z++) {
       const y = roofY(x);
-      set(x, y, z, shingle(z, Math.floor(Math.abs(x + 0.5 - xc))));
+      set(x, y, z, shingle);
       if (Math.max(Math.abs(x + 0.5 - xc), Math.abs(z + 0.5 - cz)) > 3.6) roof.push([x, y, z]); // melted bare round the chimney
     }
   snowOn(roof, (x) => (x < xc ? 1 : 2));
   // The porch along the front: a plank deck on the footing's level, four posts and a beam, a shingled roof tucked under
   // the eave, two steps down to the path.
-  const PX = X1 + 8, pz0 = Z0 + 2, pz1 = Z1 - 2, plank = byPart('wood', [0, 1], (_x, _y, z) => z >> 1); // deck boards two cubes wide
+  const PX = X1 + 8, pz0 = Z0 + 2, pz1 = Z1 - 2, plank = paint('wood', 0); // the deck one colour: boards two cubes wide striped it
   boxI(X1 + 1, PX, 0, 1, pz0, pz1, plank);
   boxI(PX + 1, PX + 2, 0, 0, zm - 3, zm + 4, plank);
   boxI(PX, PX, 11, 11, pz0, pz1, timber);
@@ -513,7 +523,7 @@ function farmhouse(g: Grid, panes: Grid, caps: Grid, set: Set, boxI: BoxI, cap: 
   for (let x = X1 + 1; x <= PX + 2; x++)
     for (let z = pz0 - 2; z <= pz1 + 2; z++) {
       const y = 14 - Math.round(((x - X1 - 1) * 2) / 9);
-      set(x, y, z, shingle(z, x - X1));
+      set(x, y, z, shingle);
       if (x > X1 + 2) lean.push([x, y, z]); // none under the eave
     }
   snowOn(lean, 2);

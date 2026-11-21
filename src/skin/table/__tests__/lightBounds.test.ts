@@ -41,8 +41,6 @@ describe('the light limits', () => {
     walk(join(__dirname, '..', '..'));
     let canvases = 0;
     for (const f of files) {
-      // The doors keep their own light (2026-11-08), and their bake's stage is no scene canvas: only a picture maker.
-      if (f.endsWith(join('loading', 'DoorsRender.tsx'))) continue;
       const src = readFileSync(f, 'utf8');
       for (const m of src.matchAll(/toneMappingExposure:\s*([\d.]+)/g)) { canvases++; expect(Number(m[1]), f).toBe(LIGHT_BOUNDS.exposure); }
       expect(src, f).not.toMatch(/PCFSoftShadowMap|VSMShadowMap|BasicShadowMap/);

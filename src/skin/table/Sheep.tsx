@@ -761,6 +761,8 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const mat = useMemo(() => animalMaterial(), []);
   // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice.
   const faceMat = useMemo(() => animalMaterial(), []);
+  // A lid lies in its eye's cells (rig.ts, lidsAndBrows), so it is pulled a hair toward the camera to win over the eye.
+  const lidMat = useMemo(() => Object.assign(animalMaterial(), { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), []);
   const breathMat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 })), []);
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
@@ -920,10 +922,11 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     (o.eyeR as Mesh).scale.setScalar(c[CH.eye]);
     // At their rest size the eyes are drawn as one mesh (`eyePair`); the moment they widen, each by its own again.
     const eyesMesh = o.eyes as Mesh | null | undefined, paired = !!eyesMesh && c[CH.eye] === 1;
-    if (eyesMesh) eyesMesh.visible = paired;
-    (o.eyeL as Mesh).visible = !paired && drawn(m.eyes[0].geo);
-    (o.eyeR as Mesh).visible = !paired && drawn(m.eyes[1].geo);
     const iced = live === 'frozen' || live === 'freezing';
+    const shut = f.lids === 'closed' && !iced && drawn(m.lids.closed.geo); // the closed lid fills the eye's cells
+    if (eyesMesh) eyesMesh.visible = paired && !shut;
+    (o.eyeL as Mesh).visible = !paired && !shut && drawn(m.eyes[0].geo);
+    (o.eyeR as Mesh).visible = !paired && !shut && drawn(m.eyes[1].geo);
     // A part with nothing in it (a species with no brow at rest, say) is never shown: an empty mesh is still a draw call.
     (o['lid-closed'] as Mesh).visible = f.lids === 'closed' && !iced && drawn(m.lids.closed.geo);
     (o['lid-arc'] as Mesh).visible = f.lids === 'arc' && !iced && drawn(m.lids.arc.geo);
@@ -1034,7 +1037,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
           <mesh ref={set('eyeL')} geometry={m.eyes[0].geo} position={rel(m.eyes[0])} material={faceMat} visible={drawn(m.eyes[0].geo)} />
           <mesh ref={set('eyeR')} geometry={m.eyes[1].geo} position={rel(m.eyes[1])} material={faceMat} visible={drawn(m.eyes[1].geo)} />
           {eyesGeo && <mesh ref={set('eyes')} geometry={eyesGeo} material={faceMat} visible={false} />}
-          {(['closed', 'arc'] as Lids[]).map((k) => <mesh key={k} ref={set(`lid-${k}`)} geometry={m.lids[k].geo} material={faceMat} />)}
+          {(['closed', 'arc'] as Lids[]).map((k) => <mesh key={k} ref={set(`lid-${k}`)} geometry={m.lids[k].geo} material={lidMat} />)}
           {BROWS.map((b) => <mesh key={b} ref={set(`brow-${b}`)} geometry={m.brows[b].geo} material={faceMat} />)}
           {MOUTHS.map((k) => <mesh key={k} ref={set(`mouth-${k}`)} geometry={m.mouths[k].geo} material={faceMat} />)}
           <mesh ref={set('earL')} geometry={m.ears[0].geo} position={rel(m.ears[0])} material={mat} castShadow={cast} visible={drawn(m.ears[0].geo)} userData={{ shadow: 'ears' }} />

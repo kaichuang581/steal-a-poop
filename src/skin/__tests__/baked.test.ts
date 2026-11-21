@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import {
-  checkAllButModels, fileFindings, fileHashOf, firstLine, knownFindings, listening, loadFrom, MANIFEST, modelFinding, modelHashOf, planFor, renderFindings, setOf, webpHeader,
+  checkAllButModels, drawnHashOf, fileFindings, fileHashOf, firstLine, knownFindings, listening, loadFrom, MANIFEST, modelFinding, modelHashOf, planFor, renderFindings, setOf, webpHeader,
 } from '../../../tools/bake/stale';
 import type { Baked, Finding, VoxelSet } from '../../../tools/bake/stale';
 
@@ -14,7 +14,7 @@ import type { Baked, Finding, VoxelSet } from '../../../tools/bake/stale';
  *
  * Checked here for every picture: its file (changed without a stamp), its size and clearness from its WebP header,
  * and its render hash (the page, the tool, ROUNDED_VOXELS). Checked here for the thumbnails and the sheepdog: the
- * model, built again (each in a few milliseconds). The doors', the stall's and the two play cards' models are built
+ * model, built again (each in a few milliseconds), and the yarn ball's drawing code. The stall's and the two play cards' models are built
  * in `npm run check:scenes` (tools/scenes/baked.ts): the stall alone takes longer than this whole file.
  */
 const ROOT = process.cwd();
@@ -35,8 +35,9 @@ describe('the bake manifest: every baked picture is listed and fresh', { timeout
     await listening(ROOT, async (setsOf) => {
       for (const { entry, plan } of here) {
         try {
-          if (!plan.recipe) throw new Error('tools/bake/stale.ts has no recipe for it');
-          models.push(...modelFinding(entry, modelHashOf(setsOf(await plan.recipe(load), plan.file))));
+          if (plan.drawn) models.push(...modelFinding(entry, drawnHashOf(ROOT, plan)));
+          else if (!plan.recipe) throw new Error('tools/bake/stale.ts has no recipe for it');
+          else models.push(...modelFinding(entry, modelHashOf(setsOf(await plan.recipe(load), plan.file))));
           built++;
         } catch (e) {
           models.push({ file: entry.file, kind: 'broken', text: `${entry.file}: its model could not be built (${firstLine(e)})` });
@@ -146,10 +147,10 @@ describe('the bake manifest: the checks check', () => {
     expect(render.text.startsWith('public/shop/tick-owl.webp is stale: run `node tools/renderThumbs.mjs --only tick-owl` with the dev server up')).toBe(true);
     expect(render.text).toContain('src/skin/shop/ThumbRender.tsx');
     expect(render.text).toContain('tools/renderThumbs.mjs');
-    // The stall's backdrop, the doors and the sheepdog, each by its own tool's real arguments.
+    // The stall's backdrop, one of its crates and the sheepdog, each by its own tool's real arguments.
     const commandFor = (file: string) => { const plan = planFor(file)!; return modelFinding({ ...owl(), id: plan.id, file, tool: plan.tool, args: plan.args }, hex('d'))[0].text; };
     expect(commandFor('public/shop/stall/wide.webp')).toContain('run `node tools/renderStall.mjs --only wide` with the dev server up');
-    expect(commandFor('public/loading/doors-sill.webp')).toContain('run `node tools/renderDoors.mjs` with the dev server up');
+    expect(commandFor('public/shop/stall/crate-bomb.webp')).toContain('run `node tools/renderStall.mjs --only crate-bomb` with the dev server up');
     expect(commandFor('public/tour/sheepdog.webp')).toContain('run `node tools/renderGuide.mjs` with the dev server up');
   });
 
@@ -214,7 +215,7 @@ describe('the bake manifest: the checks check', () => {
     expect(planFor('public/shop/something-new.png')).toBeNull();
     expect(planFor('public/shop/stall/wide-extra-part.webp')).toBeNull();
     expect(planFor('public/play/third.webp')).toBeNull();
-    expect(planFor('public/loading/doors-knocker.webp')).toBeNull();
+    expect(planFor('public/shop/stall/crate-knocker.webp')).toBeNull();
     expect(MANIFEST).toBe('tools/bake/baked.json');
   });
 });

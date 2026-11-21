@@ -2,7 +2,7 @@ import type { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
 import { Grid, ellipsoid, hash3 } from './primitives';
 import { lin } from './palette';
-import { shade } from './paint';
+import { shadeRaw as shade } from './paint'; // bombs keep their strength (docs/depth/DEPTH-PLAN.md, section 3.3)
 
 /** Characters' voxel size (plan V3 Part 4): the bomb is built on the same grid as the sheep. */
 const S = 0.04;

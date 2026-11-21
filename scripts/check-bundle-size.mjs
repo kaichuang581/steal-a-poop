@@ -29,10 +29,13 @@ import { fileURLToPath } from 'node:url';
  * head, two shadow draws per animal), and on 2026-11-20 by 6,000 bytes for the painted-miniature plan's M3 (the micro
  * kit's twenty-seven object builders, the placements with their rules, the ground's shade map: 3.12 kB over the old
  * limit), and on 2026-11-20 by 3,000 bytes for the new start screen merged with the French version (CI's build came
- * out 1.1 kB over, about 3 kB bigger than a local one; Brian's standing choice of 2026-11-17 is to raise the limit).
+ * out 1.1 kB over, about 3 kB bigger than a local one; Brian's standing choice of 2026-11-17 is to raise the limit),
+ * and on 2026-11-21 by 1,000 bytes for the yarn loading screen (CI's build came out 0.09 kB over; locally 2.9 kB under),
+ * and on 2026-11-21 by 2,000 bytes for the depth plan's light, palette and clouds (1.72 kB under locally, which CI's
+ * build, about 3 kB bigger, would have failed).
  * All are flagged to Brian; a shrink pass back toward the plan's net-zero is listed for milestone 12.
  */
-const BUDGET_GZIP_BYTES = 711000;
+const BUDGET_GZIP_BYTES = 715000; // +1,000 in 0.9.3 (the kitchen garden): CI's gzip ran 0.42 kB over
 
 /** Allowed growth over the budget before the check fails (10%). */
 const TOLERANCE = 0.1;

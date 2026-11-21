@@ -336,11 +336,11 @@ export function smallEyes(head: Grid, rowY: number, zFront: number, iris: string
     const c = (k: 'x' | 'y' | 'z') => (cs.reduce((a, v) => a + v[k], 0) / cs.length + 0.5) * S;
     return part(g, [c('x'), c('y'), c('z')]);
   }) as unknown as [CPart, CPart];
-  return { eyes, ...lidsAndBrows(places.map((place) => ({ place, n: cols, rows, small: true })), face, pivot, head, proud ? 1 : 2) };
+  return { eyes, ...lidsAndBrows(places.map((place) => ({ place, n: cols, rows, small: true })), face, pivot, head, proud ? 1 : 2, iris) };
 }
 
 /** The lids (closed line at the middle row, an arc for happy) and the brows (a 4-bar one row above), over the eyes. */
-export function lidsAndBrows(eyes: { place: EyePlace; n: number; rows?: number; small?: boolean }[], face: Tones, pivot: V3, on?: Grid, browOut = 1): { lids: Record<Lids, Part>; brows: Record<Brows, Part> } {
+export function lidsAndBrows(eyes: { place: EyePlace; n: number; rows?: number; small?: boolean }[], face: Tones, pivot: V3, on?: Grid, browOut = 1, lash?: string): { lids: Record<Lids, Part>; brows: Record<Brows, Part> } {
   const lids = {} as Record<Lids, Part>;
   for (const kind of ['closed', 'arc'] as Lids[]) {
     const g = new Grid(S);
@@ -349,8 +349,17 @@ export function lidsAndBrows(eyes: { place: EyePlace; n: number; rows?: number; 
         // The small eye: closed is a lid over every row (a dark lash line under it), happy covers the bottom row. An eye
         // one row tall has no bottom row to spare: happy leaves it open (the lid hid the whole eye; Brian, 2026-11-20:
         // "the models for some reason lose their eyes, they just become whited over").
+        // In the eye's own cells, flush with the face: one voxel out, the closed eye stood out as a pink block for the length
+        // of every blink (Brian, 2026-11-20: "the eyes glitch on every animal"). Sheep.tsx hides the eye behind a closed lid
+        // and draws the lids over it (`lidMat`), since they share the eye's faces.
+        // The lid is the skin round the eye (the head's cell above it), so a shut eye is the face with a dark lash line.
         const h = e.rows ?? 2;
-        for (const r of kind === 'closed' ? Array.from({ length: h }, (_, k) => k) : h > 1 ? [h - 1] : []) { const [x, y, z] = e.place(col, r, 2); g.set(x, y, z, shade(kind === 'closed' && r === h - 1 ? face[2] : face[1])); }
+        const above = e.place(col, -1, 1), skin = on?.map.get(`${above[0]},${above[1]},${above[2]}`)?.c ?? shade(face[1]);
+        for (const r of kind === 'closed' ? Array.from({ length: h }, (_, k) => k) : h > 1 ? [h - 1] : []) {
+          const [x, y, z] = e.place(col, r, 1);
+          // An eye one row tall closes into the skin; a taller one keeps a dark lash along its bottom row.
+          g.set(x, y, z, kind === 'closed' && h > 1 && r === h - 1 ? shade(lash ?? face[2]) : skin);
+        }
       } else if (kind === 'closed') { const [x, y, z] = e.place(col, Math.floor(e.n / 2), 2); g.set(x, y, z, shade(face[1])); }
       else {
         const r = col === 0 || col === e.n - 1 ? 2 : 3;

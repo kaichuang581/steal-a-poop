@@ -44,7 +44,14 @@ export function HomeSlab() {
   );
 }
 
-/** The game's name as wool blocks, one letter each; the last one has been fleeced. */
+/** What each letter is worth on a word game's tile: the corner number on the title's blocks. */
+const LETTER_POINTS: Record<string, number> = { A: 1, B: 3, C: 3, D: 2, E: 1, F: 4, G: 2, H: 4, I: 1, J: 8, K: 5, L: 1, M: 3, N: 1, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1, U: 1, V: 4, W: 4, X: 8, Y: 4, Z: 10 };
+
+/**
+ * The game's name as wool letter tiles, one letter each: knitted faces with a stitched border and the letter's worth in
+ * the corner, as on a word game's tiles (Brian, 2026-11-20: the plain blocks round each letter should look intentional).
+ * The last one has been fleeced.
+ */
 export function HomeTitle({ title, tagline }: { title: string; tagline?: ReactNode }) {
   const letters = [...title.toUpperCase()];
   return (
@@ -53,6 +60,7 @@ export function HomeTitle({ title, tagline }: { title: string; tagline?: ReactNo
         {letters.map((c, i) => (
           <span key={i} className={`hm-block-l${i === letters.length - 1 ? ' hm-fleeced' : ''}`} style={{ '--i': i } as CSSProperties} aria-hidden="true">
             <span>{c}</span>
+            {LETTER_POINTS[c] && <b className="hm-pts">{LETTER_POINTS[c]}</b>}
             {i === letters.length - 1 && <><i className="hm-tuft" /><i className="hm-tuft" /><i className="hm-tuft" /></>}
           </span>
         ))}

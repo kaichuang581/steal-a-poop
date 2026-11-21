@@ -4,7 +4,7 @@ import { each, finish } from './slices';
 import type { Steps } from './slices';
 import { IRIS, lin, T } from '../voxel/palette';
 import { noteShade } from '../voxel/groundShade';
-import { byPart, paint, seededPart, shade, solid } from '../voxel/paint';
+import { muted, paint, seededPart, shade, solid } from '../voxel/paint';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { BARN, HEAP, SEAT_RING, seatPosition } from './layout';
@@ -21,8 +21,9 @@ const C = 0.04;
 export const CAT_SPOT: V3 = [-4.9, 1.5, 6.1];
 export const ROBIN_SPOT: V3 = [1.2, 4.6, 1.05]; // on the cross beam's top (y 4.6), over its middle (z 0.9 to 1.2)
 
-/** The steps the wall boards take, by board number (docs/miniature/01, section 5): the same in `barnShell` (farmstead.ts), whose boards continue these. */
-const BOARD_STEPS = [0, -1, 0, 1] as const;
+/** The steps the wall boards take, by board number: the same as `barnShell`'s (farmstead.ts), whose boards continue these. One
+ * step for all: alternating reds striped the walls and crawled as the camera moved (Brian, 2026-11-21). */
+const BOARD_STEPS = [0, 0, 0, 0] as const;
 const I = (m: number) => Math.round(m / S);
 
 /** Inclusive index box; `chamfer` names the long axis whose four edges lose one voxel. */
@@ -55,6 +56,9 @@ function walls(): Grid {
   // One red a board, in a rhythm of four, the same on its inner and its outer face; no knots or nails (they were single
   // cubes of another colour: the fittings are the micro layer's, docs/miniature/04).
   const board = (b: number) => solid('barnRed', BOARD_STEPS[b % 4]);
+  // The inner layer's faces are seen only from inside, under the lanterns: a step down and softer, or the red walls
+  // become the loudest colour on screen (docs/depth/DEPTH-PLAN.md, section 3.3, decision 4).
+  const inner = (b: number) => muted('barnRed', BOARD_STEPS[b % 4] - 1, 0.85);
 
   // Back wall: boards 3 wide, 2 thick, no gaps or seams (thin lines of light and of dark crawled as the camera moved;
   // Brian, 2026-11-20: "a lot of glitchy textures"); gable up to the roof.
@@ -62,7 +66,7 @@ function walls(): Grid {
     const cols = [xa, xa + 1, xa + 2].filter((x) => x <= 61);
     const top = Math.min(...cols.map(roofY));
     const c = board(b);
-    for (const x of cols) for (let y = 0; y < top; y++) if (!inBackDoor(x, y)) for (const z of [70, 71]) g.set(x, y, z, c);
+    for (const x of cols) for (let y = 0; y < top; y++) if (!inBackDoor(x, y)) for (const z of [70, 71]) g.set(x, y, z, z === 70 ? inner(b) : c);
   }
   // Outside rails behind the gaps (stop short of the door so the open leaves clear them).
   for (const y0 of [9, 30]) fill(g, -62, 61, y0, y0 + 1, 72, 72, (x) => (x >= -21 && x <= 20 ? null : solid('wood', -1)));
@@ -76,7 +80,7 @@ function walls(): Grid {
           if (left && inSideDoor(y, z)) continue;
           // The top 0.4 m under the eave a step darker (rule R7.3): Home sees these walls from outside.
           const c = solid('barnRed', BOARD_STEPS[b % 4] - (y >= 38 ? 1 : 0));
-          for (const x of xs) g.set(x, y, z, c);
+          for (const x of xs) g.set(x, y, z, x === -61 || x === 60 ? inner(b) : c);
         }
     }
   }
@@ -92,7 +96,7 @@ function walls(): Grid {
 function frontInside(): BufferGeometry {
   const g = new Grid(S);
   for (let b = 0, xa = -62; xa <= 61; b++, xa += 3) {
-    const c = solid('barnRed', BOARD_STEPS[b % 4]);
+    const c = muted('barnRed', BOARD_STEPS[b % 4] - 1, 0.85); // seen only from inside (docs/depth section 3.3)
     for (let x = xa; x <= Math.min(61, xa + 2); x++) for (let y = 0; y < 42; y++) for (const z of [-42, -41]) g.set(x, y, z, c);
   }
   const geo = buildGeometry(g.map, S);
@@ -134,7 +138,7 @@ function beams(): Grid {
   // rafters toward the ridge, back half only; roof boards only over z >= 4.0 so the camera's view stays open
   for (const z0 of [19, 35, 51, 67]) for (let x = -60; x <= 59; x++) fill(g, x, x, roofY(x) - 3, roofY(x) - 1, z0, z0 + 2, wood);
   fill(g, -1, 1, roofY(0) - 3, roofY(0) - 1, 19, 69, cross, 2);
-  const roof = byPart('roofBrown', [0, -1], (x) => Math.floor((x + 62) / 3)); // roof boards 0.3 m wide, seen from below
+  const roof = paint('roofBrown', 0); // one colour: alternating boards striped it
   for (let x = -62; x <= 61; x++) fill(g, x, x, roofY(x), roofY(x) + 1, 40, 71, roof);
 
   // rope coil hung on the right wall post at z -0.35
@@ -317,7 +321,7 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
 
   // snow drifts blown in through the back doorway
   const snow: Paint = (x, y, z) => (z >= 70 || y < 0 || !inBackDoor(x, 0) || blocked(x, y, z) ? null : solid('snow', 0));
-  for (const [x, rx, ry, rz] of [[-1.3, 0.7, 0.35, 0.7], [-0.4, 0.8, 0.28, 0.55], [0.5, 0.7, 0.4, 0.8], [1.35, 0.6, 0.3, 0.6]]) ellipsoid(g, [x, 0, 7.0], [rx, ry, rz], snow, 0.15, 6);
+  for (const [x, rx, ry, rz] of [[-1.3, 0.7, 0.35, 0.7], [-0.4, 0.8, 0.28, 0.55], [0.5, 0.7, 0.4, 0.8], [1.35, 0.6, 0.3, 0.6]]) ellipsoid(g, [x, 0, 7.0], [rx, ry, rz], snow); // smooth: a ragged edge read as speckle
 
   const topY = (x: number, z: number) => {
     for (let y = 4; y >= -1; y--) if (g.has(x, y, z)) return y;
@@ -336,7 +340,7 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
     if (Math.hypot(x0 * S - HEAP[0], z0 * S - HEAP[2]) < 1.3 || !byWall(x0, z0)) continue;
     const cells: [number, number][] = [];
     for (let k = 0; k < len; k++) cells.push([Math.round(x0 + Math.cos(a) * k), Math.round(z0 + Math.sin(a) * k)]);
-    if (cells.some(([x, z]) => x < -60 || x > 59 || z < -40 || z > 69 || seatGap(x, z) <= FLOOR_CALM.clear)) continue;
+    if (cells.some(([x, z]) => x < -60 || x > 59 || z < -40 || z > 69 || seatGap(x, z) <= FLOOR_CALM.clear || (z >= 60 && inBackDoor(x, 0)))) continue; // none on the doorway's snow
     n++;
     for (const [x, z] of cells) {
       const y = topY(x, z) + 1;

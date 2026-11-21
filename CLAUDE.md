@@ -2073,3 +2073,29 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   `age`; the server clamps it and only the fourth takes it). Forehead and glare are still each viewer's own. The nameplate does not
   rise past the 1x height, and the dream caps the picture at `DISC_MAX_H`. The server must be deployed for others to see the age.
 
+- The yarn loading screen (Brian, 2026-11-21: "can we quit it with the barn stuff, it looks garbage"; the plan is
+  docs/landing/LANDING-PLAN.md, version 8). This overrides "the loading doors" in the overhaul's list of things that
+  stand, "One loading screen", "The doors, refined", "The doors are voxels", "The loading sign" and "Back to the barn
+  doors" (with its "Don't redesign the loading screen again unless he asks": he asked).
+  - What it is: Home's night blue (#1B2742), a few slow flakes, the name "fleeced" in plain rounded print as a faint
+    dotted line, and a red yarn ball that rolls along it from the foot of the "f", laying one strand of yarn that spells
+    the word. The strand is the progress: half loaded, half the word is yarn; ready, the word is whole and the small
+    ball sits on top of the "d", and 300 ms later the screen fades onto Home. If loading pauses the ball rocks; a tap
+    makes it hop. Nothing else: no text, no number, no bar, no icon, no sheep, no button, no opening animation.
+  - Where it lives: src/skin/loading (yarnWord.ts the word and its points, yarn.ts the yarn and the ball's wraps,
+    progress.ts what counts as progress, bootDoors.ts the page's own copy at p = 0), drawn by
+    src/skin/components/BarnDoors.tsx. The ball's wraps are one baked picture, public/loading/yarn-ball.webp
+    (`node tools/renderYarnBall.mjs`, dev server up, then it stamps itself; its "model" in the bake manifest is the
+    text of yarn.ts, so change yarn.ts and bake again). Every number is the prototype's, from the plan's appendices.
+  - Names kept from the doors on purpose: BarnDoors.tsx and every name it exports (playBarnDoors, whenDoorsShut,
+    whenDoorsOpen, useLoadingHold, keysBlocked ...), bootDoors.ts's names, the class `sk-doors`, the id `boot-doors`
+    and the phase names. Rendering.tsx, the gate tools and e2e-painted/helpers.ts find the screen by them.
+  - Progress: the farm's build counts its steps (`stepsTaken` in scene/slices.ts) against what this device took last
+    time (`sap:boot-steps`, by detail level; `DEFAULT_STEPS` in BarnDoors.tsx on a first visit), other loads against
+    `sap:load-steps` by their label. It never goes back and never finishes before the game is ready.
+  - Standing rules: (1) the yarn looks like real wool: two twisted plies, matte, one light, fine fibres, no outline,
+    no painted stripes, no gloss, nothing regular that reads as segments (the first try "looks fully ai generated ...
+    kind of like a worm"). (2) No percentage or any other number ("nvm dont add a percentage"), and no line of text.
+    (3) Never naked: the game's sheep always wears its wool. No sheep is on this screen; if one is ever added to any
+    loading screen it never uses the `sheared` part or coat level 0, not even for a moment.
+  - Don't redesign the loading screen unless Brian asks.

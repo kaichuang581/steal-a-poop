@@ -30,12 +30,12 @@ import { installAudioSleep } from './perf/audioSleep';
 import { noteDoorsOpen, noteError, setReportVersion, startReport } from './perf/report';
 import { FacesPreview, LineupPreview, SheepPreview, SheetPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
-// Developer pages (?preview=), for the tools that bake the game's pictures and strips (tools/renderDoors.mjs,
+// Developer pages (?preview=), for the tools that bake the game's pictures and strips (tools/renderYarnBall.mjs,
 // renderThumbs.mjs, renderStall.mjs, renderGuide.mjs, animalStrips.mjs), which all run against `npm run dev`. They are
 // not in the build players load: there `import.meta.env.DEV` is false, so PREVIEW is null and all of this falls away.
 // (Taken out of the build on 2026-11-14 to make room for the leaderboards' sky; no player ever opened them.)
 const DEV = import.meta.env.DEV;
-const DoorsRender = DEV ? lazy(() => import('./loading/DoorsRender')) : null;
+const YarnBallRender = DEV ? lazy(() => import('./loading/YarnBallRender')) : null;
 const ThumbRender = DEV ? lazy(() => import('./shop/ThumbRender')) : null;
 const StallRender = DEV ? lazy(() => import('./shop/StallRender')) : null;
 const GuideRender = DEV ? lazy(() => import('./tour/GuideRender')) : null;
@@ -181,7 +181,7 @@ export function PaintedApp() {
   if (PREVIEW === 'sheet') return <SheetPreview />;
   if (PREVIEW === 'faces') return <FacesPreview />;
   if (PREVIEW === 'kit') return <KitPreview />;
-  if (PREVIEW === 'doors' && DoorsRender) return <Suspense fallback={null}><DoorsRender /></Suspense>;
+  if (PREVIEW === 'yarnball' && YarnBallRender) return <Suspense fallback={null}><YarnBallRender /></Suspense>;
   if (PREVIEW === 'thumb' && ThumbRender) return <Suspense fallback={null}><ThumbRender /></Suspense>;
   if (PREVIEW === 'stall' && StallRender) return <Suspense fallback={null}><StallRender /></Suspense>;
   if (PREVIEW === 'guide' && GuideRender) return <Suspense fallback={null}><GuideRender /></Suspense>;

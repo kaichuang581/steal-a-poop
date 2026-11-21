@@ -8,6 +8,7 @@
  *   ?soft=3                the sun's shadow edge radius (PCFShadowMap; today none)
  *   ?ao=0.25               the mesher's corner shading step (today 0.2)
  *   ?sky=warm              the day sky pale blue overhead to a warm off-white horizon, the fog in the horizon's colour
+ *   ?grade=0               Home's palette grade off (docs/depth/DEPTH-PLAN.md, section 3.4)
  * Fog and tilt-shift ship at the lighter values (Brian's picture); the rest are still pairs to look at. The wendigo's
  * paddock shot keeps today's light, fog and tilt-shift (6.2).
  */
@@ -31,6 +32,7 @@ export const LOOK = {
   shadowRadius: num('soft'),
   ao: num('ao'),
   warmSky: q?.get('sky') === 'warm',
+  noGrade: q?.get('grade') === '0',
 } as const;
 
 /** The warm day sky of `?sky=warm`: [top, horizon]. */

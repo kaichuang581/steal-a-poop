@@ -2013,12 +2013,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   `normalizeWord` folds accents for every language, so "élève" and "eleve" both count and the typo assist works the same. The
   server loads both lists; a room opened by a French player (`lang` on create / quick / ranked) plays the French list and the
   queues match French with French. The screen is translated by src/skin/i18n/translate.ts, a page-level swap of exact English
-  lines from public/i18n-fr.json (fetched only in French) plus the patterns in i18n/fr.ts; the chat log, inputs and anything
+  lines from public/i18n-fr.json plus the patterns in public/i18n-fr-patterns.json ([regex, French], first match wins, the kept parts translated too), both fetched only in French; the chat log, inputs and anything
   marked data-i18n-skip are left alone. New English text needs its French added there. In French the word of the day is
   public/wotd-fr.json (120 French words, 35 / 50 / 35 by level, picked by `pickFrom`, so they repeat every few months), and
   Counting Sheep asks for French starts, fence words and hint examples (`setDreamLanguage` in src/dream/dream.ts, set once at
-  boot; `check` and `matched` fold accents). Not translated: lines built with values not in the patterns, the share text,
-  the classic look and the legal pages.
+  boot; `check` and `matched` fold accents). Not translated: the share text, the classic look and the legal pages. A sentence with a value spliced into
+  JSX (`Text {value} more text`) is several text nodes; write it as one template string so it can be one pattern.
+  Every screen was walked in French on 2026-11-21 (scratchpad walk*.cjs) and its English lines fixed.
 - A second admin avatar (requested by Brian, 2026-11-20): another photo beside Kaiyan's, admin-only in the same way (id `admin2`,
   `ADMIN2_AVATAR_ID` in src/avatars/ids.ts; `isAdminAvatar` is the check everywhere, server, store, save code and skin). It is a plain
   flat square picture (src/skin/assets/admin2.png, a 512 x 512 circle, one-off crop of the photo Brian sent): no stretched forehead and

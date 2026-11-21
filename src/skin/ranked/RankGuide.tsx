@@ -68,7 +68,7 @@ export function RankGuideBody({ mine }: { mine: number | null }) {
                     <span className="sk-rg-name">
                       <b>{t.name}</b>
                       {mine === i && <span className="sk-rg-you">you</span>}
-                      <small>{top ? `${fmt(TOP_FLOOR)} points and up` : `${fmt(from)} to ${fmt(from + span - 1)} points`}{loss ? `. ${loss}` : ''}</small>
+                      <small>{`${top ? `${fmt(TOP_FLOOR)} points and up` : `${fmt(from)} to ${fmt(from + span - 1)} points`}${loss ? `. ${loss}` : ''}`}</small>
                     </span>
                     <span className="sk-rg-divs" aria-label={top ? 'No divisions: the top rank' : `Divisions ${ROMAN.join(', ')}`}>
                       {top ? <i data-top>Top rank</i> : ROMAN.map((r) => <i key={r}>{r}</i>)}
@@ -81,7 +81,7 @@ export function RankGuideBody({ mine }: { mine: number | null }) {
           <div className="sk-rg-rules">
             <Slate size="board" className="sk-rg-rule">
               <h3>Climbing</h3>
-              <p>Everyone starts at {TIERS[0].name} I with 0 points. Each rank has three divisions, I, II and III, of {DIVISION_POINTS} points each; fill one and you move up.</p>
+              <p>{`Everyone starts at ${TIERS[0].name} I with 0 points. Each rank has three divisions, I, II and III, of ${DIVISION_POINTS} points each; fill one and you move up.`}</p>
             </Slate>
             <Slate size="board" className="sk-rg-rule">
               <h3>Points</h3>
@@ -89,11 +89,11 @@ export function RankGuideBody({ mine }: { mine: number | null }) {
             </Slate>
             <Slate size="board" className="sk-rg-rule">
               <h3>Easy at the start</h3>
-              <p>A loss costs nothing in {TIERS[0].name}, half in {TIERS[1].name} and three quarters in {TIERS[2].name}. Coming first on your own always gains at least a point.</p>
+              <p>{`A loss costs nothing in ${TIERS[0].name}, half in ${TIERS[1].name} and three quarters in ${TIERS[2].name}. Coming first on your own always gains at least a point.`}</p>
             </Slate>
             <Slate size="board" className="sk-rg-rule">
               <h3>The games</h3>
-              <p>Ranked is {RANKED_MIN_PLAYERS} to {RANKED_MAX_PLAYERS} players, the same rules for everyone, and needs an account. Leaving a game counts as a loss.</p>
+              <p>{`Ranked is ${RANKED_MIN_PLAYERS} to ${RANKED_MAX_PLAYERS} players, the same rules for everyone, and needs an account. Leaving a game counts as a loss.`}</p>
             </Slate>
           </div>
         </div>

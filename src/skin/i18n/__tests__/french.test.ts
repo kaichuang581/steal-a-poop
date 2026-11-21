@@ -9,7 +9,7 @@ import { check, fenceAt, formatHint, setDreamLanguage, STARTS } from '../../../d
 import { pickFrom } from '../../wotd/pick';
 
 const FR = JSON.parse(readFileSync('public/i18n-fr.json', 'utf8')) as Record<string, string>;
-setFrench(FR);
+setFrench(FR, JSON.parse(readFileSync('public/i18n-fr-patterns.json', 'utf8')) as [string, string][]);
 
 const fr = createDictionary(readFileSync('public/words-fr.txt', 'utf8').split('\n'));
 const ctx = (letter: string) => ({ dict: fr, chainLetter: letter, used: [], modifier: null as never });
@@ -77,5 +77,16 @@ describe('the French dream and word of the day', () => {
     }
     const byLevel = { 1: all.filter((w) => w.level === 1), 2: all.filter((w) => w.level === 2), 3: all.filter((w) => w.level === 3) } as never;
     for (const d of ['2026-11-16', '2026-11-18', '2026-11-21']) expect(pickFrom(byLevel, d).word).toBeTruthy();
+  });
+});
+
+describe('French lines with names and numbers', () => {
+  it('translates the parts a pattern keeps, like rank names', () => {
+    expect(toFrench('Wood I')).toBe('Bois I');
+    expect(toFrench('Everyone starts at Wood I.')).toBe('Tout le monde commence en Bois I.');
+    expect(toFrench('The ranks, lowest first: Wood, Stone, Iron')).toBe('Les rangs, du plus bas au plus haut : Bois, Pierre, Fer');
+    expect(toFrench('Maya’s turn. Get ready')).toBe('Au tour de Maya. Prépare-toi');
+    expect(toFrench('Easy bot, 10 s clock: not played')).toBe('Robot facile, chrono de 10 s : pas joué');
+    expect(toFrench('Round 2, 3 sheep left, 10s turns')).toBe('Manche 2, 3 moutons restants');
   });
 });

@@ -4,7 +4,7 @@ import { each, finish } from './slices';
 import type { Steps } from './slices';
 import { IRIS, lin, T } from '../voxel/palette';
 import { noteShade } from '../voxel/groundShade';
-import { byPart, paint, seededPart, shade, solid } from '../voxel/paint';
+import { byPart, muted, paint, seededPart, shade, solid } from '../voxel/paint';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { BARN, HEAP, SEAT_RING, seatPosition } from './layout';
@@ -55,6 +55,9 @@ function walls(): Grid {
   // One red a board, in a rhythm of four, the same on its inner and its outer face; no knots or nails (they were single
   // cubes of another colour: the fittings are the micro layer's, docs/miniature/04).
   const board = (b: number) => solid('barnRed', BOARD_STEPS[b % 4]);
+  // The inner layer's faces are seen only from inside, under the lanterns: a step down and softer, or the red walls
+  // become the loudest colour on screen (docs/depth/DEPTH-PLAN.md, section 3.3, decision 4).
+  const inner = (b: number) => muted('barnRed', BOARD_STEPS[b % 4] - 1, 0.85);
 
   // Back wall: boards 3 wide, 2 thick, no gaps or seams (thin lines of light and of dark crawled as the camera moved;
   // Brian, 2026-11-20: "a lot of glitchy textures"); gable up to the roof.
@@ -62,7 +65,7 @@ function walls(): Grid {
     const cols = [xa, xa + 1, xa + 2].filter((x) => x <= 61);
     const top = Math.min(...cols.map(roofY));
     const c = board(b);
-    for (const x of cols) for (let y = 0; y < top; y++) if (!inBackDoor(x, y)) for (const z of [70, 71]) g.set(x, y, z, c);
+    for (const x of cols) for (let y = 0; y < top; y++) if (!inBackDoor(x, y)) for (const z of [70, 71]) g.set(x, y, z, z === 70 ? inner(b) : c);
   }
   // Outside rails behind the gaps (stop short of the door so the open leaves clear them).
   for (const y0 of [9, 30]) fill(g, -62, 61, y0, y0 + 1, 72, 72, (x) => (x >= -21 && x <= 20 ? null : solid('wood', -1)));
@@ -76,7 +79,7 @@ function walls(): Grid {
           if (left && inSideDoor(y, z)) continue;
           // The top 0.4 m under the eave a step darker (rule R7.3): Home sees these walls from outside.
           const c = solid('barnRed', BOARD_STEPS[b % 4] - (y >= 38 ? 1 : 0));
-          for (const x of xs) g.set(x, y, z, c);
+          for (const x of xs) g.set(x, y, z, x === -61 || x === 60 ? inner(b) : c);
         }
     }
   }
@@ -92,7 +95,7 @@ function walls(): Grid {
 function frontInside(): BufferGeometry {
   const g = new Grid(S);
   for (let b = 0, xa = -62; xa <= 61; b++, xa += 3) {
-    const c = solid('barnRed', BOARD_STEPS[b % 4]);
+    const c = muted('barnRed', BOARD_STEPS[b % 4] - 1, 0.85); // seen only from inside (docs/depth section 3.3)
     for (let x = xa; x <= Math.min(61, xa + 2); x++) for (let y = 0; y < 42; y++) for (const z of [-42, -41]) g.set(x, y, z, c);
   }
   const geo = buildGeometry(g.map, S);

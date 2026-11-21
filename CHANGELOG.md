@@ -2,6 +2,14 @@
 
 All user-visible changes, newest first.
 
+## 0.9.2
+
+- Home is a golden winter afternoon: a warm low sun, a soft second light so shaded sides stay warm, a warmer sky and haze, and lamps and bulbs that glow by day.
+- Calmer colours across the farm: coral reds, sage-teal pines, dusty mauve roofs, cream snow and warm greys; the animals' loudest colours are softened to match, and the barn's inside is a softer red under amber lanterns.
+- Clouds drift slowly round Home's sky: puffy voxel cumulus, lit by the sun and a little see-through.
+- The title's letters are knitted word tiles with their point values, and the top-right buttons are a size smaller.
+- Animals' eyes close flat into the face.
+
 ## 0.9.1
 
 - A new loading screen: on the night sky, a red yarn ball rolls along a dotted outline of "fleeced" and spells the word in real-looking yarn as the game loads. When the word is finished, the game opens. The barn doors are gone.

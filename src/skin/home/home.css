@@ -108,7 +108,13 @@
 .hm-blocks { display: flex; gap: calc(5 * var(--u)); margin: 0; padding: 0; }
 .hm-block-l { --tilt: 0deg; --lift: 0px; --s: calc(3 * var(--u)); position: relative; display: block; width: calc(52 * var(--u)); height: calc(64 * var(--u)); rotate: var(--tilt); translate: 0 var(--lift); }
 .hm-block-l::before { content: ''; position: absolute; inset: 0; clip-path: var(--px); background-color: var(--hm-wool);
+  background-image: var(--knit); background-size: calc(12 * var(--u)) calc(9 * var(--u));
   box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-9 * var(--u)) 0 var(--hm-wool-lip), inset 0 calc(6 * var(--u)) 0 var(--hm-wool-hi); }
+/* A stitched border inside each tile's face, like the edge of a knitted square. */
+.hm-block-l::after { content: ''; position: absolute; left: calc(7 * var(--u)); right: calc(7 * var(--u)); top: calc(8 * var(--u)); height: calc(42 * var(--u));
+  border: calc(2 * var(--u)) dashed var(--hm-wool-lip); pointer-events: none; }
+.hm-block-l.hm-fleeced::after { right: calc(20 * var(--u)); border-right: 0; }
+.hm-pts { position: absolute; z-index: 1; right: calc(9 * var(--u)); bottom: calc(13 * var(--u)); font: 800 calc(10.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-night); }
 .hm-block-l > span { position: absolute; left: 0; right: 0; top: 0; height: calc(58 * var(--u)); display: grid; place-items: center; font: 800 calc(38 * var(--u))/1 var(--skin-font-display); color: var(--hm-night); }
 .hm-block-l:nth-child(1) { --tilt: -5deg; } .hm-block-l:nth-child(2) { --tilt: 3deg; --lift: calc(-5 * var(--u)); } .hm-block-l:nth-child(3) { --tilt: -2deg; --lift: calc(2 * var(--u)); }
 .hm-block-l:nth-child(4) { --tilt: 4deg; --lift: calc(-4 * var(--u)); } .hm-block-l:nth-child(5) { --tilt: -4deg; --lift: calc(1 * var(--u)); } .hm-block-l:nth-child(6) { --tilt: 2deg; --lift: calc(-5 * var(--u)); }
@@ -162,7 +168,7 @@
 /* ---------- The word of the day: text over the scenery under the top-right buttons, tilted a little ----------
    No card (Brian, 2026-11-20). A hard ink outline, drawn as offset copies (no blur), keeps it readable over snow,
    barn red and sky alike. */
-.hm .sk-wotd.hm-wotd { position: absolute; z-index: 4; right: calc(28 * var(--u)); top: calc(92 * var(--u)); max-width: calc(330 * var(--u));
+.hm .sk-wotd.hm-wotd { position: absolute; z-index: 4; right: calc(28 * var(--u)); top: calc(82 * var(--u)); max-width: calc(330 * var(--u));
   display: flex; flex-direction: column; align-items: flex-end; gap: calc(3 * var(--u)); text-align: right; rotate: -3deg; transform-origin: 100% 0;
   color: var(--hm-wool); pointer-events: none;
   --o: calc(2 * var(--u));
@@ -177,11 +183,11 @@
 .sk-wotd-short { font: 400 calc(20 * var(--u))/1.2 var(--skin-font-hand); color: var(--hm-wool); }
 
 /* ---------- Top right: the purse, then the square buttons ---------- */
-.hm-corner { position: absolute; z-index: 5; top: calc(16 * var(--u)); right: calc(20 * var(--u)); display: flex; align-items: flex-start; gap: calc(10 * var(--u)); }
-.hm-square { width: calc(44 * var(--u)); height: calc(44 * var(--u) + var(--depth)); }
-.hm-square svg { width: calc(20 * var(--u)); height: calc(20 * var(--u)); }
+.hm-corner { position: absolute; z-index: 5; top: calc(16 * var(--u)); right: calc(20 * var(--u)); display: flex; align-items: flex-start; gap: calc(8 * var(--u)); }
+.hm-square { width: calc(36 * var(--u)); height: calc(36 * var(--u) + var(--depth)); }
+.hm-square svg { width: calc(17 * var(--u)); height: calc(17 * var(--u)); }
 .hm .sk-sound > .sk-icon-btn { --face: var(--hm-wool); --hi: var(--hm-wool-hi); --lip: var(--hm-wool-lip); --edge: var(--hm-ink); --depth: calc(6 * var(--u)); --side: var(--depth); --drop: 0px;
-  position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; width: calc(44 * var(--u)); height: calc(44 * var(--u) + var(--depth));
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; width: calc(36 * var(--u)); height: calc(36 * var(--u) + var(--depth));
   padding: 0 0 var(--depth); border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--hm-ink); filter: var(--shadow); }
 .hm .sk-sound > .sk-icon-btn::before { content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: var(--drop); bottom: 0; clip-path: var(--px); background-color: var(--face);
   box-shadow: inset 0 0 0 var(--s) var(--edge), inset 0 calc(-1 * (var(--side) - var(--drop) + var(--s))) 0 var(--lip), inset 0 calc(2 * var(--s)) 0 var(--hi); }
@@ -189,17 +195,17 @@
 .hm .sk-sound > .sk-icon-btn:hover { --drop: calc(-2 * var(--u)); filter: var(--shadow); }
 .hm .sk-sound > .sk-icon-btn:active { --drop: calc(4 * var(--u)); transform: none; }
 .hm .sk-sound > .sk-icon-btn:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 3px; }
-.hm .sk-sound > .sk-icon-btn svg { width: calc(20 * var(--u)); height: calc(20 * var(--u)); }
+.hm .sk-sound > .sk-icon-btn svg { width: calc(17 * var(--u)); height: calc(17 * var(--u)); }
 .hm-purse { display: flex; }
-.hm-coins { justify-content: flex-start; width: calc(108 * var(--u)); height: calc(44 * var(--u) + var(--depth)); padding-left: calc(12 * var(--u)); gap: calc(8 * var(--u));
-  font: 800 calc(17 * var(--u))/1 var(--skin-font-display); font-variant-numeric: tabular-nums; }
+.hm-coins { justify-content: flex-start; width: calc(90 * var(--u)); height: calc(36 * var(--u) + var(--depth)); padding-left: calc(10 * var(--u)); gap: calc(7 * var(--u));
+  font: 800 calc(15 * var(--u))/1 var(--skin-font-display); font-variant-numeric: tabular-nums; }
 /* A gold coin in pixels: round, lit at the top left, shaded at the bottom right, a stamped mark in the middle. */
-.hm-coin { flex: none; width: calc(24 * var(--u)); height: calc(24 * var(--u)); image-rendering: pixelated;
+.hm-coin { flex: none; width: calc(20 * var(--u)); height: calc(20 * var(--u)); image-rendering: pixelated;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11' shape-rendering='crispEdges'%3E%3Cpath fill='%238A4E12' d='M3 0h5v1h2v2h1v5h-1v2h-2v1H3v-1H1V8H0V3h1V1h2z'/%3E%3Cpath fill='%23F7C23E' d='M3 1h5v1h1v1h1v5H9v1H8v1H3V9H2V8H1V3h1V2h1z'/%3E%3Cpath fill='%23FFEBA6' d='M3 2h3v1H4v1H3v2H2V3h1z'/%3E%3Cpath fill='%23D99520' d='M9 4h1v3H9v1H8v1H6V8h2V7h1z'/%3E%3Cpath fill='%23C07A14' d='M5 3h1v5H5z'/%3E%3Cpath fill='%23FFEBA6' d='M6 3h1v1H6z'/%3E%3C/svg%3E") center / contain no-repeat; }
 .hm-plus { margin-left: calc(-3 * var(--u)); }
-.hm-plus i { position: relative; width: calc(16 * var(--u)); height: calc(16 * var(--u)); background: var(--hm-ink);
+.hm-plus i { position: relative; width: calc(13 * var(--u)); height: calc(13 * var(--u)); background: var(--hm-ink);
   clip-path: polygon(37.5% 0, 62.5% 0, 62.5% 37.5%, 100% 37.5%, 100% 62.5%, 62.5% 62.5%, 62.5% 100%, 37.5% 100%, 37.5% 62.5%, 0 62.5%, 0 37.5%, 37.5% 37.5%); }
-.hm-pill { height: calc(44 * var(--u) + var(--depth)); padding-inline: calc(14 * var(--u)); }
+.hm-pill { height: calc(36 * var(--u) + var(--depth)); padding-inline: calc(12 * var(--u)); font-size: calc(14 * var(--u)); }
 
 /* ---------- The footer ---------- */
 .hm-foot { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: var(--foot); display: flex; align-items: center; gap: calc(18 * var(--u)); padding: 0 calc(20 * var(--u));
@@ -345,4 +351,9 @@
   .hm[data-phone] .hm-title { margin-bottom: 8px; }
   .hm[data-phone] .hm-tuft { display: none; }
 }
-.hm-lang { font: 800 calc(14 * var(--u))/1 var(--skin-font-body); }
+.hm-lang { font: 800 calc(12 * var(--u))/1 var(--skin-font-body); }
+/* A phone's smaller title tiles: a tighter stitch, and the letter values left to the computer's larger tiles. */
+.hm[data-phone] .hm-block-l::after { left: 5px; right: 5px; top: 5px; height: 28px; border-width: 1.5px; }
+.hm[data-phone] .hm-block-l.hm-fleeced::after { right: 14px; }
+.hm[data-phone] .hm-pts { display: none; }
+@media (max-height: 700px) { .hm[data-phone] .hm-block-l::after { height: 21px; } }

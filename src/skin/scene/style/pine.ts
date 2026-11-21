@@ -17,7 +17,7 @@ export interface PinePaint { trunk: RGB; needles: (k: number, n: number) => RGB;
  */
 export const pinePaint = (tree: number): PinePaint => {
   const shift = tree % 3 === 0 ? -1 : 0, tier = (k: number, n: number) => (k / n < 0.34 ? -1 : k / n < 0.67 ? 0 : 1) + shift;
-  return { trunk: solid('darkWood', 0), needles: (k: number, n: number) => solid('pine', tier(k, n)), under: (k: number, n: number) => solid('pine', tier(k, n) - 1), snow: SOLID_SNOW ? solid('snow', 1) : SNOW };
+  return { trunk: solid('darkWood', 0), needles: (k: number, n: number) => solid('pine', tier(k, n)), under: (k: number, n: number) => solid('pine', tier(k, n) - 1), snow: SOLID_SNOW ? solid('snow', -1) : SNOW }; // snow -1: a softer stripe on the needles (docs/depth section 3.2)
 };
 
 /** How a pine of `height` metres is laid out on a grid of `cell` metres: its rows, its bare trunk, its tiers. */

@@ -1,7 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
 import { Grid, hash3 } from './primitives';
-import { shade as plain } from './paint'; // the trophy's own colours, not desaturated (docs/miniature/06, section 4)
+import { shadeRaw as plain } from './paint'; // the trophy's own colours, not desaturated or harmonized (docs/miniature/06, section 4; docs/depth section 3.3)
 
 /** The winner's trophy (Brian, 2026-11-08): a big golden cup on the sheep's grid scale, about 0.7 m tall. */
 export const TROPHY_CELL = 0.035;

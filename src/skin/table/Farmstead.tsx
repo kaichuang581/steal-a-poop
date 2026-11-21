@@ -233,7 +233,7 @@ function Micro({ micro, phone }: { micro: FarmMicro; phone: boolean }) {
   const camera = useThree((s) => s.camera);
   const mat = useMemo(() => voxelMaterial(), []);
   // The lanterns' glass, as the farmhouse's panes are drawn (BarnTable.tsx): lit from inside, no light cast.
-  const glassMat = useMemo(() => voxelMaterial({ emissive: '#FFB84A', emissiveIntensity: 0.85 }), []);
+  const glassMat = useMemo(() => voxelMaterial({ emissive: '#FFB84A', emissiveIntensity: 0.85, homeGlow: true }), []);
   useEffect(() => () => { mat.dispose(); glassMat.dispose(); }, [mat, glassMat]);
   const meshes = useRef<(Mesh | null)[]>([]), glass = useRef<Mesh>(null), shown = useRef(-2);
   useEffect(() => { shown.current = -2; }, [micro]);

@@ -83,7 +83,8 @@ describe('the animal avatars', () => {
       const head = bounds(m.head);
       expect(head.height).toBeLessThanOrEqual(head.width * 1.35);
       const col = m.wools[2].geo.getAttribute('color');
-      const key = [col.getX(0), col.getY(0), col.getZ(0)].map((v) => v.toFixed(2)).join(',');
+      // The whole body's colours: the palette (docs/depth section 3.3) brings the cow's and the goat's whites to one cream.
+      const key = [...new Set(Array.from({ length: col.count }, (_, i) => [col.getX(i), col.getY(i), col.getZ(i)].map((v) => v.toFixed(2)).join(',')))].sort().join(' ');
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }

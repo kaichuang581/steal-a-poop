@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { Pool } from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { MAX_TABS, MemoryVisitStore, ON_SITE_FOR_MS, PostgresVisitStore, SiteStats, dayKey } from './siteStats';
+import { MAX_TABS, MemoryVisitStore, ON_SITE_FOR_MS, PostgresVisitStore, SiteStats, dayKey, weekKey } from './siteStats';
 import type { VisitStore } from './siteStats';
 
 const DAY = 86_400_000;
@@ -48,9 +48,33 @@ describe('counting visits', () => {
     expect(s.newBrowsers.total).toBe(20);
   });
 
+  it('counts unique visitors from what each opening tab says, by day, week and month', async () => {
+    // T0 is Sunday 15 November 2026: its week began on Monday 9 November.
+    const { stats, advance } = setup();
+    const again = { day: false, week: false, month: false };
+    await stats.ping('tab-aaaaaaaaaaaa', true, true); // a new browser: unique for all three
+    await stats.ping('tab-bbbbbbbbbbbb', true, false, { day: true, week: false, month: false }); // back from earlier this week
+    await stats.ping('tab-cccccccccccc', true, false, again); // a second tab of a browser already counted today
+    await stats.ping('tab-dddddddddddd', false, false, { day: true, week: true, month: true }); // not an open: counts nothing
+    let s = await stats.summary();
+    expect(s.visits.today).toBe(3);
+    expect(s.uniqueVisitors).toEqual({ today: 2, yesterday: 0, thisWeek: 1, thisMonth: 1, total: 1 });
+    expect(s.uniqueSince).toBe('2026-11-15');
+    advance(DAY); // Monday 16 November: a new week, the same month
+    await stats.ping('tab-eeeeeeeeeeee', true, false, { day: true, week: true, month: false });
+    s = await stats.summary();
+    expect(s.uniqueVisitors).toEqual({ today: 1, yesterday: 2, thisWeek: 1, thisMonth: 1, total: 1 });
+  });
+
+  it('starts weeks on Monday, UTC', () => {
+    expect(weekKey('2026-11-15')).toBe('2026-11-09'); // a Sunday
+    expect(weekKey('2026-11-16')).toBe('2026-11-16'); // a Monday
+    expect(weekKey('2026-11-21')).toBe('2026-11-16');
+  });
+
   it('starts empty', async () => {
     const { stats } = setup();
-    expect(await stats.summary()).toEqual({ onSiteNow: 0, visits: { today: 0, yesterday: 0, last7: 0, last30: 0, total: 0 }, newBrowsers: { today: 0, last7: 0, total: 0 }, since: null });
+    expect(await stats.summary()).toEqual({ onSiteNow: 0, visits: { today: 0, yesterday: 0, last7: 0, last30: 0, total: 0 }, newBrowsers: { today: 0, last7: 0, total: 0 }, uniqueVisitors: { today: 0, yesterday: 0, thisWeek: 0, thisMonth: 0, total: 0 }, since: null, uniqueSince: null });
   });
 
   it('never throws when the count cannot be saved', async () => {
@@ -86,7 +110,7 @@ describe('who is on the site now', () => {
     const { stats, store } = setup();
     await stats.ping('tab-secretcode0', true, true);
     expect(JSON.stringify(await store.all())).not.toContain('secretcode');
-    expect(Object.keys((await store.all())[0]).sort()).toEqual(['day', 'newBrowsers', 'visits']);
+    expect(Object.keys((await store.all())[0]).sort()).toEqual(['day', 'newBrowsers', 'uniqueDay', 'uniqueMonth', 'uniqueWeek', 'visits']);
   });
 });
 
@@ -104,13 +128,13 @@ function behaves(make: () => Promise<VisitStore>) {
   });
   it('adds to a day\'s two counts, as numbers, and lists the days in order', async () => {
     const s = await make();
-    await s.add('2026-11-16', true);
+    await s.add('2026-11-16', true, { day: true, week: true, month: true });
     await s.add('2026-11-15', false);
-    await s.add('2026-11-16', false);
-    await s.add('2026-11-16', true);
+    await s.add('2026-11-16', false, { day: true, week: false, month: false });
+    await s.add('2026-11-16', true, { day: true, week: true, month: true });
     expect(await s.all()).toEqual([
-      { day: '2026-11-15', visits: 1, newBrowsers: 0 },
-      { day: '2026-11-16', visits: 3, newBrowsers: 2 },
+      { day: '2026-11-15', visits: 1, newBrowsers: 0, uniqueDay: 0, uniqueWeek: 0, uniqueMonth: 0 },
+      { day: '2026-11-16', visits: 3, newBrowsers: 2, uniqueDay: 3, uniqueWeek: 2, uniqueMonth: 2 },
     ]);
   });
   it('gives the summary the admin panel reads', async () => {
@@ -118,7 +142,7 @@ function behaves(make: () => Promise<VisitStore>) {
     const stats = new SiteStats({ store, now: () => T0 });
     await stats.ping('tab-aaaaaaaaaaaa', true, true);
     await stats.ping('tab-bbbbbbbbbbbb', true, false);
-    expect(await stats.summary()).toEqual({ onSiteNow: 2, visits: { today: 2, yesterday: 0, last7: 2, last30: 2, total: 2 }, newBrowsers: { today: 1, last7: 1, total: 1 }, since: '2026-11-15' });
+    expect(await stats.summary()).toEqual({ onSiteNow: 2, visits: { today: 2, yesterday: 0, last7: 2, last30: 2, total: 2 }, newBrowsers: { today: 1, last7: 1, total: 1 }, uniqueVisitors: { today: 1, yesterday: 0, thisWeek: 1, thisMonth: 1, total: 1 }, since: '2026-11-15', uniqueSince: '2026-11-15' });
   });
 }
 
@@ -130,7 +154,7 @@ const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)('PostgresVisitStore against a real Postgres (set TEST_DATABASE_URL)', () => {
   const pool = new Pool({ connectionString: url, options: '-c search_path=test_visits' });
   const admin = new Pool({ connectionString: url });
-  const migration = readFileSync('db/migrations/107_site_visits.sql', 'utf8');
+  const migration = ['107_site_visits.sql', '108_site_unique_visitors.sql'].map((f) => readFileSync(`db/migrations/${f}`, 'utf8')).join('\n');
   afterAll(async () => {
     await pool.end();
     await admin.end();

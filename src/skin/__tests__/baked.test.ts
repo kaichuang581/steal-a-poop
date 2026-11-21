@@ -166,15 +166,15 @@ describe('the bake manifest: the checks check', () => {
     expect(modelFinding(marked, hex('d')).map((f) => f.kind)).toEqual(['stale']);
   });
 
-  it('the Queue chooser\'s pictures are baked by their tool: the meadow\'s layers from its drawing code, Ranked from Brian\'s picture (2026-11-21)', () => {
-    for (const name of ['casual', 'casual-clouds', 'casual-field', 'bee', 'ranked']) {
+  it('the Queue chooser\'s pictures are pixel art its tool draws: the drawing code is their model (Brian, 2026-11-21)', () => {
+    for (const name of ['casual', 'casual-snow', 'ranked', 'ranked-flash']) {
       const plan = planFor(`public/play/${name}.webp`)!;
       expect(plan.tool).toBe('tools/renderPlayArt.mjs');
-      expect(plan.drawn).toEqual([name === 'ranked' ? 'tools/art/ranked-source.webp' : 'tools/art/playArt.js']);
+      expect(plan.drawn).toEqual(['tools/art/playArt.js']);
       expect(plan.scene).toBeUndefined();
       expect(plan.checked).toBe('npm test');
     }
-    expect(planFor('public/play/nothing.webp')).toBeNull();
+    expect(planFor('public/play/bee.webp')).toBeNull();
   });
 
   describe('against a picture on disk', () => {

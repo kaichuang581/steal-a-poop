@@ -207,8 +207,7 @@ export function drawnHashOf(root: string, plan: Plan): string {
   const parts: string[] = [];
   for (const file of plan.drawn) {
     if (!existsSync(join(root, file))) throw new Error(`${file} is gone: it draws ${plan.file}`);
-    // A picture given as a picture (the Ranked card's source) is its own bytes; code is its text.
-    parts.push(`${file}\n`, PICTURE.test(file) ? readFileSync(join(root, file)).toString('base64') : text(root, file), '\n');
+    parts.push(`${file}\n`, text(root, file), '\n');
   }
   return sha(...parts);
 }
@@ -423,36 +422,31 @@ const guidePlan = (): Plan => ({
   },
 });
 
-/** The meadow's layers and the bee, drawn by tools/art/playArt.js, and the size each is baked at. */
-export const PLAY_LAYERS: Record<string, [number, number]> = { casual: [1440, 900], 'casual-clouds': [1440, 900], 'casual-field': [1440, 900], bee: [54, 48] };
+/** The Queue chooser's pictures, all drawn by tools/art/playArt.js, the size each is baked at, and whether it is clear round what it holds. */
+export const PLAY_LAYERS: Record<string, { size: [number, number]; alpha: boolean; model: string }> = {
+  casual: { size: [800, 880], alpha: false, model: 'the snow day, drawn pixel by pixel (drawPlayArt("casual") in tools/art/playArt.js)' },
+  'casual-snow': { size: [240, 240], alpha: true, model: 'a tile of falling snow (drawPlayArt("casual-snow") in tools/art/playArt.js)' },
+  ranked: { size: [800, 880], alpha: false, model: 'the night rink, drawn pixel by pixel (drawPlayArt("ranked") in tools/art/playArt.js)' },
+  'ranked-flash': { size: [800, 880], alpha: true, model: 'the rink\'s second frame of flashes and sparkle (drawPlayArt("ranked-flash") in tools/art/playArt.js)' },
+};
 
 /**
- * The Queue chooser's pictures (src/skin/ranked/PlayChooser.tsx), all baked by tools/renderPlayArt.mjs (Brian,
- * 2026-11-21). The meadow's layers and the bee are pixel art drawn on a 2D canvas by tools/art/playArt.js, so, as with
- * the yarn ball, their model is the text of that code. Ranked is Brian's own picture, tools/art/ranked-source.webp,
- * re-encoded whole: its model is that file's bytes.
+ * The Queue chooser's pictures (src/skin/ranked/PlayChooser.tsx), baked by tools/renderPlayArt.mjs (Brian, 2026-11-21:
+ * "rehash everything solely with pixel art"). They are pixel art drawn on a 2D canvas, so, as with the yarn ball, their
+ * model is the text of the code that draws them.
  */
 function playPlan(name: string): Plan | null {
   const layer = PLAY_LAYERS[name];
-  if (!layer && name !== 'ranked') return null;
-  const MODELS: Record<string, string> = {
-    casual: 'the evening meadow\'s sky, hills and farm, drawn pixel by pixel (drawPlayArt("casual") in tools/art/playArt.js)',
-    'casual-clouds': 'the evening meadow\'s clouds (drawPlayArt("casual-clouds") in tools/art/playArt.js)',
-    'casual-field': 'the evening meadow\'s sunflowers and sheep (drawPlayArt("casual-field") in tools/art/playArt.js)',
-    bee: 'one bumblebee (drawPlayArt("bee") in tools/art/playArt.js)',
-    ranked: "Brian's three-panel face-off (tools/art/ranked-source.webp), whole",
-  };
+  if (!layer) return null;
   return {
     id: `play/${name}`, file: `public/play/${name}.webp`, tool: PLAY, args: [], page: null, sources: [PLAY],
-    model: MODELS[name], checked: 'npm test', alpha: !!layer && name !== 'casual',
-    size: async () => layer ?? [1024, 1024],
+    model: layer.model, checked: 'npm test', alpha: layer.alpha,
+    size: async () => layer.size,
     mirrors: [
-      [PLAY, layer
-        ? ["export const LAYERS = ['casual', 'casual-clouds', 'casual-field', 'bee'];", "return out.toDataURL('image/webp', 1);"]
-        : ["return out.toDataURL('image/webp', 0.9);", "write('public/play/ranked.webp', ranked);"]],
-      ...(layer ? [['tools/art/playArt.js', ['var PLAY_ART = { W: 480, H: 300, SCALE: 3 };']] as [string, string[]]] : []),
+      [PLAY, ["export const LAYERS = ['casual', 'casual-snow', 'ranked', 'ranked-flash'];", "return out.toDataURL('image/webp', 1);"]],
+      ['tools/art/playArt.js', ['var PLAY_ART = { SCALE: 5, SCENE: { W: 160, H: 176 }, SNOW: { W: 48, H: 48 } };']],
     ],
-    drawn: [layer ? 'tools/art/playArt.js' : 'tools/art/ranked-source.webp'],
+    drawn: ['tools/art/playArt.js'],
   };
 }
 

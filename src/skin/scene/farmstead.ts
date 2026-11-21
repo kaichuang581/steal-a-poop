@@ -12,7 +12,7 @@ import { blanket, SNOW, snowAt, snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import { noteShade } from '../voxel/groundShade';
-import { byPart, paint, seededPart, solid, SOLID_SNOW } from '../voxel/paint';
+import { paint, seededPart, solid, SOLID_SNOW } from '../voxel/paint';
 import { pinePaint, tieredPine } from './style/pine';
 import type { Paint, V3 } from '../voxel/primitives';
 import { backHillHeight } from './distance';
@@ -126,8 +126,12 @@ class Builder {
   }
 }
 
-/** The steps the barn's boards take, by board number (docs/miniature/01, section 5). */
-export const BOARD_STEPS = [0, -1, 0, 1] as const;
+/**
+ * The steps the barn's boards take, by board number. All one step now: boards 0.3 m wide in alternating reds became
+ * stripes two pixels wide in the far shots and crawled as the camera moved (Brian, 2026-11-21: "fix all of the glitchy
+ * textures").
+ */
+export const BOARD_STEPS = [0, 0, 0, 0] as const;
 
 /** The barn's missing outside on the 0.10 m grid: front wall, solid boards, trim, loft door, windows, foundation. */
 function barnShell(): BufferGeometry {
@@ -181,7 +185,7 @@ function barnShellGrid(): Builder {
 
   // The wolf's side door, boarded up properly from outside.
   const SD = { z0: 17, z1: 30, y1: 23 };
-  b.box(-63, -63, 4, SD.y1, SD.z0, SD.z1, byPart('barnRed', [-1, 0], (_x, _y, z) => z >> 1));
+  b.box(-63, -63, 4, SD.y1, SD.z0, SD.z1, paint('barnRed', -1));
   frame2z(b, -63, SD.z0 - 2, SD.z1 + 2, 4, SD.y1 + 2);
 
   // Windows along both sides: white frame, dark panes, a sill with snow.
@@ -206,7 +210,7 @@ function barnShellGrid(): Builder {
   b.box(-20, 19, 34, 36, 72, 72, white);
 
   // Hay loft over the open doors: a white-framed door with a cross, and the hoist beam above it.
-  b.box(-9, 8, 39, 55, 72, 72, byPart('barnRed', [1, 0], (x) => x >> 2));
+  b.box(-9, 8, 39, 55, 72, 72, paint('barnRed', 0));
   frame(-9, 8, 39, 55, 73);
   cross(-8, 7, 40, 53, 73);
   b.box(-1, 0, 58, 59, 72, 84, paint('wood', -1));
@@ -283,7 +287,7 @@ function silo(b: Builder) {
   const cx = b.ix(x), cz = b.ix(z), R = Math.round(r / S), H = b.ix(h);
   // The feed room that joins it to the barn: plank walls, a roof sloping away from the barn's eave.
   const link: [number, number, number][] = [];
-  b.box(32, cx - 5, 0, 11, cz - 4, cz + 6, byPart('barnRed', [0, -1], (px) => px >> 1)); // planks two cubes wide, along its long sides
+  b.box(32, cx - 5, 0, 11, cz - 4, cz + 6, paint('barnRed', 0));
   for (let px = 32; px <= cx - 5; px++)
     for (let pz = cz - 5; pz <= cz + 7; pz++) {
       b.set(px, 12, pz, paint('slate', 0));
@@ -294,9 +298,8 @@ function silo(b: Builder) {
       const d = Math.hypot(dx + 0.5, dz + 0.5);
       if (d > R || d < R - 1.6) continue;
       for (let y = 0; y < H; y++) {
-        const a = Math.floor((Math.atan2(dz + 0.5, dx + 0.5) + Math.PI) * 7);
         const band = y % 8 === 0;
-        b.set(cx + dx, y, cz + dz, () => (band ? solid('stone', -1) : solid('trimWhite', a % 2 ? -1 : -2))); // hoops, and staves in two steps
+        b.set(cx + dx, y, cz + dz, () => (band ? solid('trimWhite', -2) : solid('trimWhite', -1))); // hoops a step under the staves; staves one colour (stripes a cube wide shimmered)
       }
     }
   ellipsoid(b.g, [x + S / 2, h, z + S / 2], [r + 0.1, r * 0.8, r + 0.1], (_px, py) => (py < H ? null : solid('stone', 0)));
@@ -343,9 +346,9 @@ function paddock(b: Builder) {
   // Run-in shed along the back: three plank walls, a roof sloping to the rear, the open side toward the yard.
   const x0 = b.ix(13), x1 = b.ix(20.4), z0 = b.ix(-13.4), z1 = b.ix(-10.2);
   // Planks two cubes wide, two steps in turn: along x on the back wall, along z on the sides.
-  b.box(x0, x1, 0, 11, z0, z0, byPart('barnRed', [0, -1], (x) => x >> 1));
-  b.box(x0, x0, 0, 13, z0, z1, byPart('barnRed', [0, -1], (_x, _y, z) => z >> 1));
-  b.box(x1, x1, 0, 13, z0, z1, byPart('barnRed', [0, -1], (_x, _y, z) => z >> 1));
+  b.box(x0, x1, 0, 11, z0, z0, paint('barnRed', 0));
+  b.box(x0, x0, 0, 13, z0, z1, paint('barnRed', 0));
+  b.box(x1, x1, 0, 13, z0, z1, paint('barnRed', 0));
   b.box(x0, x0, 0, 13, z1, z1, paint('wood', -1));
   b.box(x1, x1, 0, 13, z1, z1, paint('wood', -1));
   const shed: [number, number, number][] = [];
@@ -369,7 +372,7 @@ function coop(b: Builder) {
   const { x, z } = FARM.coop;
   const x0 = b.ix(x - 1.8), x1 = b.ix(x + 1.8) - 1, z0 = b.ix(z - 1.3), z1 = b.ix(z + 1.3) - 1, W = 8, y0 = 2;
   // Clapboards a row each, two steps in turn; the top row under the roof a step darker (the eave's shade).
-  const wall: Paint = (_x, py) => solid('coopYellow', (py % 2 ? 1 : 0) - (py >= y0 + W ? 1 : 0));
+  const wall: Paint = (_x, py) => solid('coopYellow', py >= y0 + W ? -1 : 0);
   for (const px of [x0, x1]) for (const pz of [z0, z1]) b.box(px, px, 0, y0 - 1, pz, pz, paint('wood', -1));
   b.box(x0, x1, y0, y0, z0, z1, paint('wood', 0));
   for (let px = x0; px <= x1; px++)
@@ -405,7 +408,7 @@ function coop(b: Builder) {
   fenceRun(b, [R.minX, sz], [R.maxX, sz]);
   fenceRun(b, [R.maxX, sz], [R.maxX, R.minZ]);
   const sx0 = b.ix(R.minX + 0.6), sx1 = b.ix(R.minX + 3.4), sz0 = b.ix(sz + 0.6), sz1 = b.ix(sz + 2.6);
-  const plank = byPart('wood', [0, -1], (px, _y, pz) => (px + pz) >> 1);
+  const plank = paint('wood', 0);
   b.box(sx0, sx1, 0, 5, sz0, sz0, plank);
   for (const px of [sx0, sx1]) b.box(px, px, 0, 6, sz0, sz1, plank);
   const sty: [number, number, number][] = [];
@@ -437,6 +440,72 @@ function paddockBed(b: Builder) {
       const fallen = x >= 14.9 && x <= 18.3 && Math.abs(z + 3.4) <= 0.9 && Math.abs(z + 3.4) > 0.5;
       b.set(px, -1, pz, fallen ? paint('hay', 1) : paint('straw', d <= 0.5 ? -1 : 0));
     }
+}
+
+/**
+ * The kitchen garden in front of the porch (docs/depth/DEPTH-PLAN.md, section 7.2, item 1, version 8's layout; Brian,
+ * 2026-11-21: "where did the garden go, why is there so much empty space in the bottom left of the scenery"). 8.5 x 6 m
+ * on one axis, the path from its gate (x -7.65): six raised beds of one size, three either side, one crop a bed in two
+ * straight rows, the beds cross-matched. Departure from the plan: one white board between the posts instead of
+ * pickets 0.1 m wide every 0.2 m, which would be the finest stripes on the farm and shimmer in the whole-farm shot.
+ */
+export const GARDEN = { x0: -11.9, x1: -3.4, z0: 22.4, z1: 28.4, gate: [-8.25, -7.05] } as const;
+function kitchenGarden(b: Builder) {
+  const G = GARDEN, i = b.ix;
+  /** A box in metres, ends exclusive. */
+  const box = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, p: Paint) => b.box(i(x0), i(x1) - 1, i(y0), i(y1) - 1, i(z0), i(z1) - 1, p);
+  const post = paint('trimWhite', 0), board = paint('trimWhite', -1), snow = paint('snow', 1);
+  // The fence: posts every metre or so with a snow cap, one board between them, snow along its top.
+  const side = (ax: number, az: number, bx: number, bz: number) => {
+    const alongX = az === bz, len = alongX ? bx - ax : bz - az, n = Math.max(1, Math.round(len / 1.2));
+    const at = (t: number): [number, number] => (alongX ? [ax + t, az] : [ax, az + t]);
+    const inGate = (x: number) => alongX && az === G.z0 && x > G.gate[0] - 0.05 && x < G.gate[1] + 0.05;
+    for (let t = 0; t < len; t += F) {
+      const [x, z] = at(t);
+      if (inGate(x)) continue;
+      box(x, x + F, 0.3, 0.6, z, z + F, board);
+      box(x, x + F, 0.6, 0.7, z, z + F, snow);
+    }
+    for (let k = 0; k <= n; k++) {
+      const [x, z] = at(Math.min(len - 0.2, (len - 0.2) * (k / n)));
+      if (inGate(x) || inGate(x + 0.2)) continue;
+      box(x, x + 0.2, 0, 0.8, z - (alongX ? 0.05 : 0), z + (alongX ? 0.15 : 0.2), post);
+      box(x, x + 0.2, 0.8, 0.9, z - (alongX ? 0.05 : 0), z + (alongX ? 0.15 : 0.2), snow);
+    }
+  };
+  side(G.x0, G.z0, G.x1, G.z0);
+  side(G.x0, G.z1 - F, G.x1, G.z1 - F);
+  side(G.x0, G.z0, G.x0, G.z1);
+  side(G.x1 - 0.2, G.z0, G.x1 - 0.2, G.z1);
+  // The gate: two posts and a beam over the path, snow on the beam; no leaf.
+  for (const x of [G.gate[0] - 0.2, G.gate[1]]) box(x, x + 0.2, 0, 1.2, G.z0 - 0.05, G.z0 + 0.15, post);
+  box(G.gate[0] - 0.2, G.gate[1] + 0.2, 1.2, 1.4, G.z0 - 0.05, G.z0 + 0.15, post);
+  box(G.gate[0] - 0.2, G.gate[1] + 0.2, 1.4, 1.5, G.z0 - 0.05, G.z0 + 0.15, snow);
+  // Six beds: plank frames with a rim round a layer of snow; the crops in two rows of six.
+  const cols = [[-11.3, -8.75], [-6.55, -4.0]] as const, rows = [[23.0, 24.2], [24.8, 26.0], [26.6, 27.8]] as const;
+  const crops = [['kale', 'cabbage'], ['leek', 'frame'], ['cabbage', 'kale']] as const;
+  const frame = paint('darkWood', 1), wood = paint('wood', 0);
+  rows.forEach(([z0, z1], r) => cols.forEach(([x0, x1], c) => {
+    const crop = crops[r][c], mid = (z0 + z1) / 2;
+    box(x0, x1, 0, 0.2, z0, z1, frame);
+    box(x0, x1, 0.2, 0.3, z0, z0 + F, frame), box(x0, x1, 0.2, 0.3, z1 - F, z1, frame);
+    box(x0, x0 + F, 0.2, 0.3, z0, z1, frame), box(x1 - F, x1, 0.2, 0.3, z0, z1, frame);
+    box(x0 + F, x1 - F, 0.2, 0.3, z0 + F, z1 - F, snow);
+    if (crop === 'frame') { // a cold frame filling the bed: a low front, a high back, glass between, snow on its back half
+      box(x0 + F, x1 - F, 0.3, 0.4, z0 + F, z0 + 0.2, wood), box(x0 + F, x1 - F, 0.3, 0.6, z1 - 0.2, z1 - F, wood);
+      box(x0 + F, x0 + 0.2, 0.3, 0.5, z0 + F, z1 - F, wood), box(x1 - 0.2, x1 - F, 0.3, 0.5, z0 + F, z1 - F, wood);
+      box(x0 + 0.2, x1 - 0.2, 0.4, 0.5, z0 + 0.2, mid, paint('ice', 1));
+      box(x0 + 0.2, x1 - 0.2, 0.5, 0.6, mid, z1 - 0.2, snow);
+      return;
+    }
+    // Each row one unbroken line of plants: single plants a few pixels apart in the whole-farm shot speckled and shimmered.
+    for (const dz of [-0.3, 0.3]) {
+      const z = mid + dz, a = x0 + 0.2, e = x1 - 0.2;
+      if (crop === 'kale') { box(a, e, 0.3, 0.5, z - F, z + F, paint('pine', -2)); box(a, e, 0.5, 0.6, z - 0.05, z + 0.05, paint('pine', -1)); }
+      if (crop === 'cabbage') box(a, e, 0.3, 0.5, z - 0.15, z + 0.15, paint('giftGreen', 1));
+      if (crop === 'leek') { box(a, e, 0.3, 0.5, z - 0.05, z + 0.05, paint('trimWhite', -1)); box(a, e, 0.5, 0.7, z - F, z + F, paint('pine', 0)); }
+    }
+  }));
 }
 
 function henYard(b: Builder) {
@@ -699,6 +768,20 @@ export function farmPiece(name: string): PieceGrid[] | null {
   return null;
 }
 
+/**
+ * The silo lit as the round thing it is: each face of its stepped wall takes the normal of the cylinder there. Lit by
+ * their own square normals, the steps were vertical bands of light and shade a cube apart that crawled as the camera
+ * moved (Brian, 2026-11-21: "fix all of the glitchy textures").
+ */
+function roundSilo(g: BufferGeometry) {
+  const { x, z, r, h } = FARM.silo, cx = Math.round(x / S) * S, cz = Math.round(z / S) * S;
+  const p = g.getAttribute('position'), n = g.getAttribute('normal');
+  for (let i = 0; i < p.count; i++) {
+    const dx = p.getX(i) - cx, dz = p.getZ(i) - cz, d = Math.hypot(dx, dz);
+    if (p.getY(i) <= h && d > r - 0.5 && d < r + 0.15 && Math.abs(n.getY(i)) < 0.5) n.setXYZ(i, dx / d, 0, dz / d);
+  }
+}
+
 export interface Farmstead {
   fine: BufferGeometry[]; props: BufferGeometry[]; shell: BufferGeometry; terrain: BufferGeometry; triangles: number;
   /** The micro layer (scene/farmMicro.ts): its own budget, not counted in `triangles`. */
@@ -716,7 +799,10 @@ export function* buildFarmsteadSteps(): Steps<Farmstead> {
   const big = new Builder(new Grid(S));
   barnRoof(big);
   yield;
-  silo(big);
+  // The silo on its own, meshed with no corner shading and lit as a cylinder (`roundSilo`).
+  const tall = new Builder(new Grid(S));
+  silo(tall);
+  const round = yield* structureSteps(tall.g.map, S);
   yield;
   paddock(big);
   yield;
@@ -733,6 +819,9 @@ export function* buildFarmsteadSteps(): Steps<Farmstead> {
   fieldAndTrees(far);
   yield;
   const props = [...(yield* chunksSteps(near.map, near.size)), ...(yield* chunksSteps(far.g.map, S)), ...(yield* chunksSteps(big.caps.map, S, { ao: false })).map(plain)];
+  const siloGeos = [...(yield* chunksSteps(round.map, round.size, { ao: false })), ...(yield* chunksSteps(tall.caps.map, S, { ao: false })).map(plain)];
+  for (const g of siloGeos) roundSilo(g);
+  props.push(...siloGeos);
   const small = new Builder(new Grid(F));
   tractor(small);
   yield;
@@ -741,14 +830,15 @@ export function* buildFarmsteadSteps(): Steps<Farmstead> {
   const litter = new Builder(new Grid(F));
   henYard(litter);
   paddockBed(litter);
+  kitchenGarden(litter);
   yield;
   const fine = [...(yield* chunksSteps(close.map, close.size)), ...(yield* chunksSteps(litter.g.map, F))];
   const land = yield* terrainSteps();
   yield;
   // What stands on the farm, for the micro layer (what its objects stand against) and the ground's shade map. The
   // hens' straw bed is ground; what stands on it is not.
-  for (const [grid, size] of [[big.g, S], [small.g, F], [litter.g, F]] as const) noteStructure(grid.map.values(), size);
-  for (const [grid, size, keep] of [[big.g, S], [far.g, S], [small.g, F], [litter.g, F, (v: { y: number }) => v.y >= 1]] as const) noteShade(grid.map.values(), size, 0, keep);
+  for (const [grid, size] of [[big.g, S], [tall.g, S], [small.g, F], [litter.g, F]] as const) noteStructure(grid.map.values(), size);
+  for (const [grid, size, keep] of [[big.g, S], [tall.g, S], [far.g, S], [small.g, F], [litter.g, F, (v: { y: number }) => v.y >= 1]] as const) noteShade(grid.map.values(), size, 0, keep);
   const micro = yield* buildFarmMicroSteps();
   yield* each([shell, land, ...props, ...fine], packGeometry); // half the bytes, the same picture (voxel/mesher.ts)
   return { fine, props, shell, terrain: land, triangles: [shell, land, ...props, ...fine].reduce((n, g) => n + triangles(g), 0), micro };

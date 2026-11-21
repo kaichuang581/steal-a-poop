@@ -107,12 +107,12 @@ export type ServerMsg =
 export type ClientMsg =
   | { t: 'hello'; token: string }
   | { t: 'rooms' }
-  | ({ t: 'create'; visibility: 'public' | 'private'; roomName?: string } & Partial<RoomSettingsDTO>)
+  | ({ t: 'create'; visibility: 'public' | 'private'; roomName?: string; lang?: 'en' | 'fr' } & Partial<RoomSettingsDTO>)
   | { t: 'join'; code: string }
   /** Quick start: the fullest open public room, or a new one. */
-  | { t: 'quick' }
+  | { t: 'quick'; lang?: 'en' | 'fr' }
   /** The ranked queue: the fullest waiting ranked table, or a new one. Accounts only. */
-  | { t: 'ranked' }
+  | { t: 'ranked'; lang?: 'en' | 'fr' }
   /** Host only, before the game: game length and whether quick-start players may come in. */
   | ({ t: 'options'; visibility?: 'public' | 'private' } & Partial<RoomSettingsDTO>)
   | { t: 'leave' }

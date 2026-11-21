@@ -27,6 +27,7 @@ export interface ServerOptions {
   port: number;
   httpServer?: Server;
   ctx: EngineContext;
+  dictFr?: EngineContext['dict'];
   chat: ChatService;
   verifyToken: VerifyToken;
   /** Told about every finished game (rooms and Daily Table). The accounts lane stores them. */
@@ -117,10 +118,10 @@ export const DEFAULT_MESSAGE_LIMITS: Record<string, readonly [number, number]> =
 type ClientMsg =
   | { t: 'hello'; token: string }
   | { t: 'rooms' }
-  | { t: 'create'; visibility: Visibility; roomName?: string; turnsPerRound?: unknown; lives?: unknown; twists?: unknown; bots?: unknown; botLevel?: unknown }
+  | { t: 'create'; visibility: Visibility; roomName?: string; turnsPerRound?: unknown; lives?: unknown; twists?: unknown; bots?: unknown; botLevel?: unknown; lang?: unknown }
   | { t: 'join'; code: string }
-  | { t: 'quick' }
-  | { t: 'ranked' }
+  | { t: 'quick'; lang?: unknown }
+  | { t: 'ranked'; lang?: unknown }
   | { t: 'options'; turnsPerRound?: unknown; lives?: unknown; twists?: unknown; visibility?: unknown; bots?: unknown; botLevel?: unknown }
   | { t: 'leave' }
   | { t: 'start' }
@@ -143,6 +144,7 @@ export async function startServer(opts: ServerOptions) {
   const grace = opts.reconnectGraceMs ?? 15_000;
   const rooms = new RoomManager({
     ctx: opts.ctx,
+    dictFr: opts.dictFr,
     now,
     randomInt: opts.randomInt,
     onClosed: (code) => opts.chat.dropRoom(code),
@@ -277,7 +279,7 @@ export async function startServer(opts: ServerOptions) {
         // A room's name is shown to everyone browsing rooms, so it passes the same check as a player's name.
         const asked = typeof msg.roomName === 'string' ? msg.roomName : undefined;
         const roomName = asked && opts.nameAllowed && !opts.nameAllowed(asked.trim()) ? undefined : asked;
-        const r = rooms.createRoom(userId, name, { visibility: msg.visibility === 'private' ? 'private' : 'public', roomName });
+        const r = rooms.createRoom(userId, name, { visibility: msg.visibility === 'private' ? 'private' : 'public', roomName, lang: msg.lang === 'fr' ? 'fr' : 'en' });
         if (!r.ok) return fail(ws, r.error);
         // The game length picked on the way in. A value that is not on the list leaves the room on the standard game.
         rooms.setOptions(userId, { turnsPerRound: msg.turnsPerRound, lives: msg.lives, twists: msg.twists });
@@ -293,7 +295,7 @@ export async function startServer(opts: ServerOptions) {
       }
       case 'quick': {
         if (!joinLimit.allow(userId, now())) return fail(ws, 'rate_limited');
-        const r = rooms.quickJoin(userId, name);
+        const r = rooms.quickJoin(userId, name, msg.lang === 'fr' ? 'fr' : 'en');
         if (!r.ok) return fail(ws, r.error);
         return broadcastRoom(r.code);
       }
@@ -304,7 +306,7 @@ export async function startServer(opts: ServerOptions) {
         if (!joinLimit.allow(userId, now())) return fail(ws, 'rate_limited');
         await opts.ranked.load(userId).catch(() => undefined); // so the table shows their rank from the first view
         if (ws.readyState !== ws.OPEN) return;
-        const r = rooms.rankedJoin(userId, name);
+        const r = rooms.rankedJoin(userId, name, msg.lang === 'fr' ? 'fr' : 'en');
         if (!r.ok) return fail(ws, r.error);
         return broadcastRoom(r.code);
       }

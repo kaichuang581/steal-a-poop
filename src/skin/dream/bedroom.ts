@@ -1,7 +1,8 @@
 import type { BufferGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { buildGeometry } from '../voxel/mesher';
-import { lin, pick, T } from '../voxel/palette';
+import { lin, pick, pickBy, T } from '../voxel/palette';
+import { meanOf } from '../voxel/paint';
 import { box, ellipsoid, Grid, hash3 } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { CHAR } from '../voxel/sheep';
@@ -111,7 +112,7 @@ function sky(glow: Grid, at: Wall, h: Hole, moon: [number, number] | null, seed:
     const pine = hash3(Math.floor(u / 5), 0, seed, 61) < 0.35 ? 5 - Math.abs(mod(u, 5) - 2) * 2 : 0;
     for (let y = h.y0 - m; y < h.y1 + m; y++) {
       let col: string;
-      if (y <= hill) col = y === hill ? '#D7E0F4' : hash3(u, y, seed, 63) < 0.2 ? '#AEBBE0' : '#BFCBEA';
+      if (y <= hill) col = y === hill ? '#D7E0F4' : '#BCC8E8'; // one tone: the average of its paler and its darker cubes, four to one
       else if (pine > 0 && y <= hill + pine) col = '#22314A';
       else if (moon && (u - moon[0]) ** 2 + (y - moon[1]) ** 2 <= 10 && (u - moon[0] + 2) ** 2 + (y - moon[1] - 1) ** 2 > 8) col = '#F6F0CC';
       else if (hash3(u, y, seed, 67) < 0.025 && y > Math.max(hill + 7, h.y0 + 9)) col = hash3(u, y, seed, 69) < 0.5 ? '#FFF6D8' : '#CFDBFF';
@@ -123,7 +124,8 @@ function sky(glow: Grid, at: Wall, h: Hole, moon: [number, number] | null, seed:
 
 /** A window cut in a wall: cream frame and cross bar, a deep sill, snow banked outside, frost in the pane corners. */
 function windowIn(g: Grid, glow: Grid, at: Wall, h: Hole, seed: number) {
-  const trim = (u: number, y: number) => lin(TRIM[hash3(u, y, seed, 71) < 0.8 ? 0 : 1]);
+  const TRIMMED = meanOf([TRIM[0], TRIM[0], TRIM[0], TRIM[0], TRIM[1]]);
+  const trim = (_u: number, _y: number) => TRIMMED; // one colour: four cubes in five were the paler
   const mu = Math.floor((h.u0 + h.u1) / 2), my = h.y0 + Math.round((h.y1 - h.y0) * 0.6);
   for (let u = h.u0 - 1; u <= h.u1; u++) for (let y = h.y0 - 1; y <= h.y1; y++) {
     const edge = u === h.u0 - 1 || u === h.u1 || y === h.y0 - 1 || y === h.y1;
@@ -198,7 +200,7 @@ export function bedroomGeometry(): BedroomGeo {
   for (let x = i(SIDE_X); x < i(ROOM_X1); x++) for (let z = i(BACK_Z); z < i(ROOM_Z1); z++) {
     const row = Math.floor(z / 3), off = mod(row * 17, 40);
     const seam = mod(z, 3) === 0 || mod(x + off, 40) === 0;
-    g.set(x, -1, z, seam ? lin(FLOOR[2]) : pick(FLOOR, hash3(Math.floor((x + off) / 40), row, 0, 7), [0.5, 0.95]));
+    g.set(x, -1, z, seam ? lin(FLOOR[2]) : pickBy(FLOOR, hash3(Math.floor((x + off) / 40), row, 0, 7), [0.5, 0.95]));
   }
   for (let x = Math.round(SIDE_X / B) - 1; x < Math.round(ROOM_X1 / B); x++) for (let z = Math.round(BACK_Z / B) - 1; z < Math.round(ROOM_Z1 / B); z++) {
     big.set(x, Math.round(ROOM_H / B), z, lin(PINE[mod(z, 3) === 0 ? 2 : 1]));
@@ -257,7 +259,7 @@ export function bedroomGeometry(): BedroomGeo {
   const lx = Math.round(LAMP.x / S), ly = Math.round(LAMP.y / S), lz = Math.round(LAMP.z / S);
   box(lamp, [(lx - 2) * S, LAMP.y, (lz - 2) * S], [(lx + 2) * S, LAMP.y + S, (lz + 2) * S], c(T.brass[1]));
   box(lamp, [(lx - 1) * S, LAMP.y + S, (lz - 1) * S], [(lx + 1) * S, LAMP.y + 2 * S, (lz + 1) * S], c(T.brass[2]));
-  ellipsoid(lamp, [(lx) * S, LAMP.y + 3.5 * S, lz * S], [0.06, 0.04, 0.06], (x, y, z) => lin(hash3(x, y, z, 5) < 0.3 ? '#B46F2E' : '#C98A3A'));
+  ellipsoid(lamp, [(lx) * S, LAMP.y + 3.5 * S, lz * S], [0.06, 0.04, 0.06], () => meanOf(['#B46F2E', '#B46F2E', '#B46F2E', '#C98A3A', '#C98A3A', '#C98A3A', '#C98A3A', '#C98A3A', '#C98A3A', '#C98A3A']));
   box(lamp, [(lx - 2) * S, LAMP.y + 5 * S, (lz - 2) * S], [(lx + 2) * S, LAMP.y + 6 * S, (lz + 2) * S], c(T.brass[0]));
   for (let y = ly + 6; y < ly + 13; y++) {
     const r = y < ly + 9 ? 1 : 0;
@@ -269,7 +271,7 @@ export function bedroomGeometry(): BedroomGeo {
 
   // ---- the alarm clock: a red drum, a cream face, two brass bells and a hammer, on brass feet
   const clock = new Grid(S), ring = new Grid(S);
-  ellipsoid(clock, [0, 0.085, 0], [0.07, 0.07, 0.035], (x, y, z) => lin(T.collar[hash3(x, y, z, 9) < 0.7 ? 0 : 1]));
+  ellipsoid(clock, [0, 0.085, 0], [0.07, 0.07, 0.035], () => meanOf([...Array(7).fill(T.collar[0]), ...Array(3).fill(T.collar[1])]));
   for (let x = -3; x <= 2; x++) for (let y = 1; y <= 6; y++) if ((x + 0.5) ** 2 + (y - 3.5) ** 2 <= 7.5) clock.set(x, y, 2, lin(TRIM[0]));
   clock.set(-1, 3, 3, lin(T.hoof[1])); clock.set(-1, 4, 3, lin(T.hoof[1])); clock.set(-1, 5, 3, lin(T.hoof[1])); clock.set(0, 3, 3, lin(T.hoof[1]));
   for (const dx of [-0.045, 0.045]) ellipsoid(clock, [dx, 0.165, 0], [0.03, 0.026, 0.026], c(T.brass[0]));
@@ -331,7 +333,7 @@ export function bedroomGeometry(): BedroomGeo {
     if (d > 1) continue;
     const band = Math.min(4, Math.floor(d * 5));
     const tone = ['#C24E45', '#E3D8C0', '#4F7A55', '#D9A84A', '#3D5A8A'][band];
-    g.set(x, 0, z, lin(mod(x + z, 2) && hash3(x, 0, z, 79) < 0.35 ? TRIM[2] : tone));
+    g.set(x, 0, z, lin(tone));
   }
   for (const sx of [0.78, 0.94]) {
     const x0 = Math.round(sx / S), z0 = Math.round(0.62 / S);
@@ -350,7 +352,7 @@ export function bedroomGeometry(): BedroomGeo {
   for (const x of [sx0 + 2, sx1 - 3]) for (const y of [shy - 1, shy - 2]) g.set(x, y, wz, lin(WALNUT[2]));
   const fy = Math.round((shy + 1) * D / S), fz = Math.round((BACK_Z + 0.08) / S);
   const sheepX = Math.round(-0.38 / S);
-  ellipsoid(fine, [(sheepX + 2) * S, (fy + 2.5) * S, fz * S], [0.07, 0.055, 0.05], (x, y, z) => lin(T.wool[hash3(x, y, z, 81) < 0.6 ? 0 : 1]));
+  ellipsoid(fine, [(sheepX + 2) * S, (fy + 2.5) * S, fz * S], [0.07, 0.055, 0.05], () => meanOf([T.wool[0], T.wool[0], T.wool[0], T.wool[1], T.wool[1]]));
   box(fine, [(sheepX + 4) * S, (fy + 2) * S, (fz - 1) * S], [(sheepX + 7) * S, (fy + 5) * S, (fz + 1) * S], c(T.face[0]));
   for (const lxx of [sheepX, sheepX + 3]) box(fine, [lxx * S, fy * S, (fz - 1) * S], [(lxx + 1) * S, (fy + 1) * S, (fz + 1) * S], c(T.face[1]));
   for (const [jx, col] of [[-0.12, '#9C2F3A'], [-0.01, '#D9A84A']] as const) {
@@ -406,7 +408,6 @@ const CREASE = '#B8755A';
 const WHISKER = ['#FCF8F0', '#F2EBDF', '#E6DCCB'] as const;
 /** Grizzled hair and whiskers: warm greys from near white to pewter, and a few dark flecks. */
 const GREY = ['#F2EEE8', '#DCD6CE', '#C0BAB2', '#9C958D'] as const;
-const FLECK = '#6E665F';
 const BLUSH = '#E58C78';
 const NOSE = ['#E48A74', '#CC6A58'] as const;
 const IRIS = ['#5C3E31', '#3F2A23'] as const;
@@ -464,9 +465,11 @@ export function farmerGeometry(): FarmerGeo {
   const s = HS;
   const skin: Paint = (x, y, z) => (y < 0 ? null : pick(SKIN, hash3(x >> 1, y >> 1, z >> 1, 5), [0.72, 0.97]));
   /** Grizzled: mostly pale greys, some pewter, a dark fleck here and there; `paler` shifts the mix (below 0, darker). */
-  const grey = (paler = 0): Paint => (x, y, z) => {
-    const h = hash3(x, y, z, 7), r = h - paler;
-    return lin(h > 0.985 && paler <= 0 ? FLECK : r < 0.42 ? GREY[0] : r < 0.72 ? GREY[1] : r < 0.92 ? GREY[2] : GREY[3]);
+  // One grey a part: the average of the mix its cubes were drawn from, one by one (docs/miniature/07, treatment B).
+  const grey = (paler = 0): Paint => {
+    const cut = (t: number) => Math.min(1, Math.max(0, t + paler)), share = [cut(0.42), cut(0.72) - cut(0.42), cut(0.92) - cut(0.72), 1 - cut(0.92)];
+    const c = [0, 1, 2].map((k) => GREY.reduce((n, hex, i) => n + lin(hex)[k] * share[i], 0)) as RGB;
+    return () => c;
   };
   const white = grey();
   const g = new Grid(s);
@@ -591,7 +594,8 @@ export const SITTING = { x: 0.42, y: 1.08, z: 0.02, turn: 0.55 } as const;
 /** He props himself up from his hips (this far under the base of his neck), and rubs his eye from the shoulder. */
 export const HIP = 0.5;
 export const SHOULDER: V3 = [0.25, -0.1, 0];
-const shirt: Paint = (x, y, z) => lin(mod(x, 2) === 0 ? '#F3EAD6' : hash3(x, y, z, 6) < 0.15 ? '#6F8DBB' : '#7F9CC9');
+const STRIPE = meanOf([...Array(17).fill('#7F9CC9'), ...Array(3).fill('#6F8DBB')]); // the blue stripe, one colour
+const shirt: Paint = (x) => (mod(x, 2) === 0 ? lin('#F3EAD6') : STRIPE);
 const handSkin: Paint = (x, y, z) => pick(SKIN, hash3(x, y, z, 5), [0.72, 0.97]);
 function limb(g: Grid, pts: V3[], r: number, paint: Paint) {
   for (let k = 0; k < pts.length - 1; k++) for (let j = 0; j <= 6; j++) {
@@ -635,8 +639,8 @@ export function farmerRubArm(): BufferGeometry {
   if (rubCache) return rubCache;
   const g = new Grid(HS);
   const fist: Paint = (x, y, z) => (z >= 9 && mod(x, 2) === 0 && y >= 7 ? lin('#B9735A') : pick(['#E5A47F', '#D8936F', '#C88262'], hash3(x, y, z, 3), [0.6, 0.95]));
-  limb(g, [[0.25, -0.1, 0], [0.35, -0.13, 0.14], [0.18, 0.05, 0.2]], 0.06, (x, y, z) => lin(mod(x + y, 4) < 2 ? '#F3EAD6' : hash3(x, y, z, 6) < 0.15 ? '#6F8DBB' : '#7F9CC9'));
-  ellipsoid(g, [0.165, 0.065, 0.195], [0.06, 0.032, 0.06], (x, y, z) => lin(TRIM[hash3(x, y, z, 4) < 0.7 ? 0 : 1]));
+  limb(g, [[0.25, -0.1, 0], [0.35, -0.13, 0.14], [0.18, 0.05, 0.2]], 0.06, (x, y) => (mod(x + y, 4) < 2 ? lin('#F3EAD6') : STRIPE));
+  ellipsoid(g, [0.165, 0.065, 0.195], [0.06, 0.032, 0.06], () => meanOf([...Array(7).fill(TRIM[0]), ...Array(3).fill(TRIM[1])]));
   limb(g, [[0.16, 0.08, 0.19], [0.14, 0.12, 0.18]], 0.038, fist);
   ellipsoid(g, [0.115, 0.152, 0.168], [0.055, 0.05, 0.042], fist);
   return (rubCache = buildGeometry(g.map, HS));

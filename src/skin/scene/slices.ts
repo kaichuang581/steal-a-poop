@@ -50,7 +50,9 @@ function slice() {
   try {
     while (queue.length && performance.now() - t0 < SLICE_MS) {
       const job = queue[0];
-      const r = job.steps.next();
+      let r: IteratorResult<unknown, unknown>;
+      // A build that throws is taken out of the queue and never reported done: done with nothing showed an empty sky.
+      try { r = job.steps.next(); } catch (e) { queue.shift(); reportError(e); continue; }
       if (r.done) { queue.shift(); job.done(r.value); }
       else if (r.value !== undefined) job.part?.(r.value);
     }

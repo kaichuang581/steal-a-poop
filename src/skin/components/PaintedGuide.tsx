@@ -55,7 +55,7 @@ export function PaintedGuide({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex gap-2 px-4 pt-3">
           <ClothButton disabled={!ready} onClick={() => startTour('menu')} className="inline-flex flex-1 items-center justify-center gap-2">
-            <PlayIcon size={14} /> Interactive tour
+            <PlayIcon size={14} /> Tutorial
           </ClothButton>
           <WoodButton disabled={!ready} onClick={() => start('practice')} className="flex-1">Practice game</WoodButton>
         </div>

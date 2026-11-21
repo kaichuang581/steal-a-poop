@@ -36,7 +36,7 @@ describe('practice bests on the profile', () => {
     const html = page();
     expect(html.match(/data-top="true"/g)).toHaveLength(1);
     expect(html).toMatch(/data-top="true"[^>]*><span class="kit-chalk-ring"><b>12<\/b>/);
-    expect(html).toMatch(/Practice rating<\/span><span class="sk-prof-rating-value">36<\/span><span class="sk-prof-rating-run">12 words · Hard bot · 10 s clock/);
+    expect(html).toMatch(/Practice rating<\/span><span class="sk-prof-rating-value">36<\/span><span class="sk-prof-rating-run">12 words, Hard bot, 10 s clock/);
   });
   it('says how a run is rated, on the card and on the slate', () => {
     const html = page();
@@ -51,7 +51,7 @@ describe('practice bests on the profile', () => {
     expect(html).toMatch(/sk-prof-rating-value" data-none="true">–</);
   });
   it('words a run plainly', () => {
-    expect(runLine({ words: 1, difficulty: 'easy', clock: 15 })).toBe('1 word · Easy bot · 15 s clock');
-    expect(runLine({ words: 12, difficulty: 'hard', clock: 5 })).toBe('12 words · Hard bot · 5 s clock');
+    expect(runLine({ words: 1, difficulty: 'easy', clock: 15 })).toBe('1 word, Easy bot, 15 s clock');
+    expect(runLine({ words: 12, difficulty: 'hard', clock: 5 })).toBe('12 words, Hard bot, 5 s clock');
   });
 });

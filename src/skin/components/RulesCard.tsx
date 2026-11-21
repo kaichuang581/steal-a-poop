@@ -39,7 +39,7 @@ export function RulesCard() {
         <h3>Rounds</h3>
         <ul>
           <Row icon={<ClockIcon size={20} />}>
-            Turns get faster every round, and the alarm calls it: {TURN_MS_BY_ROUND.map((ms) => ms / 1000).join(', ')} seconds, then {LAST_ROUND_TURN_MS / 1000} for good.
+            {`Turns get faster every round, and the alarm calls it: ${TURN_MS_BY_ROUND.map((ms) => ms / 1000).join(', ')} seconds, then ${LAST_ROUND_TURN_MS / 1000} for good.`}
           </Row>
           <Row icon={<span className="flex gap-1"><NoEIcon size={16} /><RulerIcon size={16} /><DoubleIcon size={16} /></span>}>
             After the first round every round has a twist, called out by the alarm: no letter E, A or S, 6 letters or more, 5 letters or fewer, a double letter, an O, or a vowel at the end.
@@ -49,7 +49,7 @@ export function RulesCard() {
       <section>
         <h3>Winning</h3>
         <ul>
-          <Row icon={<TrophyIcon size={20} />}><b>Last sheep standing wins.</b> Everyone starts with {LIVES_PER_GAME} wool balls, and wool is never won back.</Row>
+          <Row icon={<TrophyIcon size={20} />}><b>Last sheep standing wins.</b> {`Everyone starts with ${LIVES_PER_GAME} wool balls, and wool is never won back.`}</Row>
         </ul>
       </section>
     </div>

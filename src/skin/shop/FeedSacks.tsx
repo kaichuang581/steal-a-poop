@@ -36,7 +36,7 @@ export function FeedSacks({ wallet, onNote, onFound, fresh, onView }: { wallet: 
   return (
     <div className="sk-sacks">
       <Stall sack={sack} wallet={wallet} onPick={pick} />
-      <Board size="label" tone="wood" className="sk-room-heading"><h3>Inside the {SACKS[sack].name}</h3></Board>
+      <Board size="label" tone="wood" className="sk-room-heading"><h3>{`Inside the ${SACKS[sack].name}`}</h3></Board>
       <div className="sk-sack-main">
         <section className="sk-grid" aria-label={`Inside the ${SACKS[sack].name}`}>
           {[...poolFor(sack)].sort(byRarity).map((i) => <ItemCard key={i.id} item={i} wallet={wallet} onNote={onNote} fresh={fresh === i.id} onView={onView} />)}
@@ -87,7 +87,7 @@ function Stall({ sack, wallet, onPick }: { sack: SackId; wallet: Wallet; onPick:
       <img className="sk-thumb sk-stall-back" src={stallArt(size)} alt="" draggable={false} />
       {sign && (
         <span className="sk-stall-sign kit-chalk-hand" data-lines={sign.lines} style={{ left: wide(sign.x + 1), bottom: up(rise(sign.y + 1, 2)), width: wide(sign.w - 2), height: tall((sign.h - 2) * Math.cos(STALL_PITCH)) }}>
-          <span>Feed Sacks</span><i aria-hidden="true">·</i><span><CoinArt size={15} /> {formatCoins(SACK.price)} each</span>
+          <span>Feed Sacks,</span><span><CoinArt size={15} /> {`${formatCoins(SACK.price)} each`}</span>
         </span>
       )}
       {SACK_IDS.map((id, n) => (
@@ -124,7 +124,7 @@ function StallSack({ sack, wallet, picked, onPick, style, art, tag }: { sack: Sa
       <span className="sk-stall-hang" style={{ top: tag }}>
         <span className="sk-stall-tag kit-paper">
           <span className="sk-stall-name">{SACKS[sack].name}</span>
-          <span className="sk-stall-found"><span className="sk-stall-kind">{KIND_LABEL[sack]} · </span>{found} of {pool.length} found</span>
+          <span className="sk-stall-found"><span className="sk-stall-kind">{KIND_LABEL[sack]}: </span>{`${found} of ${pool.length} found`}</span>
           <span className="sk-pips">
             {pool.map((i) => <i key={i.id} title={`${i.name} (${RARITY_LABEL[i.rarity ?? 'common']})${wallet.owned.includes(i.id) ? ', found' : ''}`} style={{ '--pip': RARITY_COLOR[i.rarity ?? 'common'] } as CSSProperties} data-found={wallet.owned.includes(i.id) || undefined} />)}
           </span>

@@ -1,3 +1,4 @@
+import { foldAccents } from '../lib/lang';
 import { MIN_WORD_LENGTH } from './constants';
 import type { Dictionary } from './dictionary';
 import type { RoundModifier } from './types';
@@ -26,8 +27,9 @@ export interface ValidationContext {
   modifier: RoundModifier;
 }
 
+/** Lowercase, trimmed and without accents ("Été" is "ete"), so a word typed with or without its accents counts. */
 export function normalizeWord(raw: string): string {
-  return raw.trim().toLowerCase();
+  return foldAccents(raw.trim().toLowerCase());
 }
 
 /** True if at least one dictionary word is legal for this letter under the modifier. */

@@ -2,39 +2,84 @@ import type { BufferGeometry } from 'three';
 import { buildGeometry, packGeometry, triangles } from '../voxel/mesher';
 import type { BuildOptions } from '../voxel/mesher';
 import { unseenFrom } from '../voxel/unseen';
-import { lin, pick, T } from '../voxel/palette';
+import { asBefore, lin, pick, T } from '../voxel/palette';
 import { snowAt, snowPaint } from '../voxel/snow';
+import { tieredPine } from './style/pine';
+import { standsInWendigoZone } from './wendigoZone';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import type { Paint, RGB } from '../voxel/primitives';
 import { backHillHeight } from './distance';
-import { chunkMaps, FARM, landHeight } from './farmstead';
+import { noteShade } from '../voxel/groundShade';
+import { chunkMaps, landHeight } from './farmstead';
 import { finish } from './slices';
 import type { Steps } from './slices';
 import type { ChunkMap } from './yard';
-import { BARN, YARD } from './layout';
+import { YARD } from './layout';
 
 /**
  * The land around the farm, seen only from the start screen, so it reads as a place rather than a flat white board:
  * woods standing in uneven clumps, drifts that give the snow some shape, shrubs, rocks and dead grass, a dry stone wall
- * round the orchard, and tracks worn between the things people walk to. All of it is placed by `isClear`, which keeps it
+ * round the orchard. All of it is placed by `isClear`, which keeps it
  * off the farm and out of the way of every camera on the tour.
  */
 
 const S = 0.2;
 const F = 0.1;
 const snow: Paint = snowPaint(S, 201);
+/**
+ * Builds a thing that stands at (x, z). In the wendigo's zone (scene/wendigoZone.ts: its stand, and the paddock camera's
+ * line to it) it is built exactly as it always was, voxel for voxel: that zone is pinned (tools/scenes/wendigo.pins.json).
+ * Everywhere else it takes the flat colours of 2026-11-18 (Brian, 2026-11-19, of changing this land: "yes, remodel").
+ */
+const stands = (x: number, z: number, build: () => void): void => {
+  if (standsInWendigoZone(x, z)) asBefore(build);
+  else if (!taken(x, z)) build();
+};
+/**
+ * Ground the farm has taken since isClear was frozen: the whole farmstead, from the windbreak to the pasture's far side
+ * and from the field's fence to the road. Nothing of the open land's (no bush, rock or forest pine) stands on it.
+ */
+const TAKEN: [number, number, number, number][] = [[-41, 32, -15, YARD.maxZ]];
+/**
+ * The tour camera that has moved since the freeze to stand off the farm's own ground (computer 1 in the tour's shot
+ * list), as [position, target]: its first stretch is kept open as CLEAR_SIGHT_LINES keeps the others'. Written out,
+ * because this file may never read the live tour (wendigoFence.test.ts); countryside.test.ts holds it to it.
+ */
+const LATER_SIGHT_LINES: [number[], number[]][] = [[[12, 22, 52], [-10, 0.5, 8]]];
+const taken = (x: number, z: number) => TAKEN.some(([x0, x1, z0, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1)
+  || LATER_SIGHT_LINES.some(([position, target]) => fromSightLine(x, z, position, target) <= 3);
+/** Whether the open ground's bushes and rocks may be built at (x, z) today: clear at the freeze, and not taken since. */
+export const isOpen = (x: number, z: number) => isClear(x, z) && !taken(x, z);
+/**
+ * Litter the open ground no longer has (Brian, 2026-11-19: no "random shapes"; everything "intentionally placed"): built
+ * only in the wendigo's zone, where it stands as it always did. Its random draws are still taken, so what is kept
+ * (bushes, rocks) stands where it stood.
+ */
+const kept = (x: number, z: number, build: () => void): void => { if (standsInWendigoZone(x, z)) asBefore(build); };
 
+/**
+ * The yard as `isClear` knew it on 2026-11-16. isClear's answers are frozen with the wendigo's zone (the land is planted
+ * through it from shared random streams: scene/__tests__/wendigoFence.test.ts), so it never follows the yard's later
+ * moves. What the yard has taken since then is `taken`, which only leaves a thing unbuilt.
+ */
+const FROZEN = {
+  fence: { z: 15, minX: -16, maxX: 16 },
+  tractor: { x: 9.6, z: 8.6 },
+  pines: [[-14, 20], [-17, 26], [13, 33], [17, 19], [-6, 40], [7, 42], [-22, 34], [22, 30], [-9.8, 12.7], [-10.9, 16.8]],
+} as const;
+
+/** Written out, not read from the layout: the barn, the paddock, the run, the field, the orchard, the tractor, the farmhouse, the pond, the path, the fence. */
 const RECTS: [number, number, number, number][] = [
-  [BARN.minX - 2, BARN.maxX + 2, BARN.minZ - 2, BARN.maxZ + 3],
-  [FARM.paddock.minX - 1, FARM.paddock.maxX + 1, FARM.paddock.minZ - 1, FARM.paddock.maxZ + 1],
-  [FARM.run.minX - 1, FARM.run.maxX + 1, FARM.run.minZ - 1, FARM.run.maxZ + 1],
-  [FARM.field.minX - 1, FARM.field.maxX + 1, FARM.field.minZ - 1, FARM.field.maxZ + 2],
-  [FARM.orchard.minX - 3, -21, FARM.orchard.minZ - 3, 12],
-  [FARM.tractor.x - 3, FARM.tractor.x + 5, FARM.tractor.z - 3, FARM.tractor.z + 4],
-  [YARD.farmhouse.x - 6, YARD.farmhouse.x + 7, YARD.farmhouse.z - 6, YARD.farmhouse.z + 5],
-  [YARD.pond.x - YARD.pond.rx - 3, YARD.pond.x + YARD.pond.rx + 3, YARD.pond.z - YARD.pond.rz - 3, YARD.pond.z + YARD.pond.rz + 3],
-  [-3, 3, BARN.maxZ, 26], // the path
-  [YARD.fence.minX - 1, YARD.fence.maxX + 1, YARD.fence.z - 1, YARD.fence.z + 1],
+  [-8, 8, -6, 10],
+  [11, 23, -15, 8],
+  [-20, -7.6, -6, 9],
+  [-27, 31, -28, -14],
+  [-39, -21, -16, 12],
+  [FROZEN.tractor.x - 3, FROZEN.tractor.x + 5, FROZEN.tractor.z - 3, FROZEN.tractor.z + 4],
+  [-15, -2, 24, 35],
+  [2.5, 17.5, 18, 30],
+  [-3, 3, 7, 26],
+  [FROZEN.fence.minX - 1, FROZEN.fence.maxX + 1, FROZEN.fence.z - 1, FROZEN.fence.z + 1],
 ];
 
 /** How far a point is from the first stretch of a camera's line of sight. */
@@ -73,7 +118,7 @@ export const CLEAR_SIGHT_LINES: readonly (readonly [position: V3, target: V3])[]
 /** Somewhere open: off the farm, off the yard's pines, and not in front of any camera on the tour. */
 export function isClear(x: number, z: number): boolean {
   if (RECTS.some(([x0, x1, z0, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1)) return false;
-  if (YARD.pines.some(([px, pz]) => Math.hypot(x - px, z - pz) < 3)) return false;
+  if (FROZEN.pines.some(([px, pz]) => Math.hypot(x - px, z - pz) < 3)) return false;
   return CLEAR_SIGHT_LINES.every(([position, target]) => fromSightLine(x, z, position, target) > 3);
 }
 
@@ -103,6 +148,18 @@ const steep = (x: number, z: number) => Math.max(...[[0.5, 0], [-0.5, 0], [0, 0.
  * white and green checker that crawled as the camera moved. `ground` is in metres; the tree is drawn at the grid's size.
  */
 function forestPine(g: Grid, wx: number, wz: number, H: number, seed: number, ground: number) {
+  // Outside the wendigo's zone: the diorama's tiered pine (style/pine.ts), as Brian's farm picture draws them.
+  if (!standsInWendigoZone(wx, wz)) {
+    if (taken(wx, wz)) return;
+    const k = g.size;
+    tieredPine((x, y, z, c) => g.set(x, y, z, c), (x, y, z) => g.has(x, y, z), Math.round(wx / k), Math.round(wz / k), Math.round(ground / k), H, k);
+    return;
+  }
+  asBefore(() => raggedPine(g, wx, wz, H, seed, ground));
+}
+
+/** The forest's pine as it was before 2026-11-19, kept for the wendigo's zone. */
+function raggedPine(g: Grid, wx: number, wz: number, H: number, seed: number, ground: number) {
   const k = g.size, r = rng(seed * 131);
   const cx = wx / k, cz = wz / k, y0 = Math.round(ground / k);
   const cells = new Map<string, [number, number, number, number]>(); // x, y, z, how far out (0 at the trunk, 1 at the rim)
@@ -221,7 +278,9 @@ function drifts(g: Grid) {
     i++;
     const long = 2.2 + r() * 3.6;
     const wide = r() > 0.5;
-    ellipsoid(g, [x, -0.1, z], [wide ? long : long * 0.55, 0.3 + r() * 0.35, wide ? long * 0.55 : long], (a, b, c) => (b < 0 ? null : snow(a, b, c)), 0.12, i);
+    const high = 0.3 + r() * 0.35;
+    // Outside the wendigo's zone there are none: a low mound on the 0.2 m grid is a flat plate lying on the snow.
+    kept(x, z, () => ellipsoid(g, [x, -0.1, z], [wide ? long : long * 0.55, high, wide ? long * 0.55 : long], (a, b, c) => (b < 0 ? null : snow(a, b, c)), 0.12, i));
   }
 }
 
@@ -239,10 +298,12 @@ function scrub(g: Grid) {
     const at = spot();
     if (!at) continue;
     const [x, z] = at, w = 0.5 + r() * 0.6, h = 0.35 + r() * 0.35;
-    ellipsoid(g, [x, h * 0.6, z], [w, h, w * (0.7 + r() * 0.4)], (a, b, c) => {
+    const deep = w * (0.7 + r() * 0.4), old = standsInWendigoZone(x, z);
+    stands(x, z, () => ellipsoid(g, [x, h * 0.6, z], [w, h, deep], (a, b, c) => {
       if (b < 0) return null;
-      return hash3(a, b, c, 323) > 0.55 && b > h * 7 ? pick(T.snow, hash3(a, b, c, 325)) : pick(T.pine, hash3(a, b, c, 327), [0.2, 0.7]);
-    }, 0.2, i + 1);
+      // Snow on its top; in the wendigo's zone, the speckle it always had.
+      return (old ? hash3(a, b, c, 323) > 0.55 : true) && b > h * 7 ? pick(T.snow, hash3(a, b, c, 325)) : pick(T.pine, hash3(a, b, c, 327), [0.2, 0.7]);
+    }, 0.2, i + 1));
   }
   const twig: Paint = (a, b, c) => pick(T.trunk, hash3(a, b, c, 329));
   for (let i = 0; i < 26; i++) {
@@ -251,7 +312,7 @@ function scrub(g: Grid) {
     const [x, z] = at;
     for (let k = 0, n = 4 + Math.floor(r() * 3); k < n; k++) {
       const a = r() * Math.PI * 2, lean = 0.25 + r() * 0.45, h = 0.6 + r() * 0.7;
-      line(g, [x, 0, z], [x + Math.cos(a) * lean, h, z + Math.sin(a) * lean], twig, true);
+      kept(x, z, () => line(g, [x, 0, z], [x + Math.cos(a) * lean, h, z + Math.sin(a) * lean], twig, true)); // bare twigs: scratches on the snow
     }
   }
   for (let i = 0; i < 12; i++) {
@@ -259,10 +320,10 @@ function scrub(g: Grid) {
     if (!at) continue;
     for (let k = 0, n = 1 + Math.floor(r() * 3); k < n; k++) {
       const x = at[0] + (r() - 0.5) * 2.4, z = at[1] + (r() - 0.5) * 2.4, w = 0.35 + r() * 0.5;
-      ellipsoid(g, [x, w * 0.3, z], [w, w * 0.7, w * 0.8], (a, b, c) => {
+      stands(x, z, () => ellipsoid(g, [x, w * 0.3, z], [w, w * 0.7, w * 0.8], (a, b, c) => {
         if (b < 0) return null;
         return b > w * 7 ? pick(T.snow, hash3(a, b, c, 331)) : pick(T.stone, hash3(a, b, c, 333), [0.3, 0.75]);
-      }, 0.25, i + k + 1);
+      }, 0.25, i + k + 1));
     }
   }
   const grass: Paint = (a, b, c) => pick(T.hay, hash3(a, b, c, 335), [0.1, 0.6]);
@@ -271,7 +332,8 @@ function scrub(g: Grid) {
     if (!at) continue;
     for (let k = 0, n = 5 + Math.floor(r() * 7); k < n; k++) {
       const x = Math.round((at[0] + (r() - 0.5) * 1.2) / F), z = Math.round((at[1] + (r() - 0.5) * 1.2) / F);
-      for (let y = 0, h = 2 + Math.floor(r() * 3); y < h; y++) { const c = grass(x, y, z); if (c) g.set(x, y, z, c); }
+      const h = 2 + Math.floor(r() * 3);
+      kept(x * F, z * F, () => { for (let y = 0; y < h; y++) { const c = grass(x, y, z); if (c) g.set(x, y, z, c); } }); // dead grass: specks
     }
   }
 }
@@ -288,7 +350,7 @@ function wall(g: Grid, points: [number, number][]) {
       if (crumble > 0.9) continue;
       const height = crumble > 0.72 ? 0.3 : 0.6 + hash3(Math.floor(x / 0.6), 1, Math.floor(z / 0.6), 345) * 0.2;
       box(g, [x - 0.2, 0, z - 0.2], [x + 0.2, height, z + 0.2], stone);
-      box(g, [x - 0.2, height, z - 0.2], [x + 0.2, height + F, z + 0.2], (a, b, c) => (hash3(a, 0, c, 347) > 0.2 ? snowAt(a, b, c, F, 201) : null)); // the wall is on the fine grid
+      box(g, [x - 0.2, height, z - 0.2], [x + 0.2, height + F, z + 0.2], (a, b, c) => snowAt(a, b, c, F, 201)); // the wall is on the fine grid; an even cap of snow
     }
   }
 }
@@ -305,25 +367,6 @@ function scarecrow(g: Grid, x: number, z: number) {
   box(g, [x - 0.1, 2.6, z - 0.1], [x + 0.1, 2.8, z + 0.1], () => lin(T.snow[0]));
 }
 
-/** Tracks worn in the snow: two ruts and a trodden strip, wandering a little from point to point. */
-function tracks(g: Grid, points: [number, number][]) {
-  const worn = (a: number, c: number) => lin(hash3(a >> 1, 0, c >> 1, 361) > 0.5 ? T.path[1] : T.path[0]);
-  for (let i = 0; i + 1 < points.length; i++) {
-    const [ax, az] = points[i], [bx, bz] = points[i + 1];
-    const length = Math.hypot(bx - ax, bz - az), nx = -(bz - az) / length, nz = (bx - ax) / length;
-    for (let d = 0; d <= length; d += S / 2) {
-      const wander = Math.sin((d + i * 7) / 3.1) * 0.35;
-      for (let w = -0.7; w <= 0.7; w += S / 2) {
-        const x = ax + ((bx - ax) * d) / length + nx * (w + wander), z = az + ((bz - az) * d) / length + nz * (w + wander);
-        const a = Math.round(x / S), c = Math.round(z / S);
-        if (Math.abs(Math.abs(w) - 0.45) < 0.11) g.set(a, 0, c, lin(T.path[2]));
-        else if (!g.has(a, 0, c) && hash3(a, 1, c, 363) > 0.25) g.set(a, 0, c, worn(a, c));
-      }
-    }
-  }
-}
-
-const TRACKS_LIFT = -0.16;
 const WALL: [number, number][] = [[-62, 21], [-48, 15], [-39, 13], [-29, 13.4], [-21, 12.6], [-20.4, 0], [-21, -15], [-30, -16]];
 const SCARECROW: [number, number] = [8.6, -21.4];
 
@@ -357,11 +400,11 @@ function inStand(chunk: Iterable<[string, { x: number; z: number }]>, size: numb
   return false;
 }
 
-export interface Countryside { woods: BufferGeometry[]; forest: BufferGeometry[]; scrub: BufferGeometry[]; drifts: BufferGeometry[]; tracks: BufferGeometry; triangles: number;
+export interface Countryside { woods: BufferGeometry[]; forest: BufferGeometry[]; scrub: BufferGeometry[]; drifts: BufferGeometry[]; triangles: number;
   /** Which scrub pieces hold any of the stone wall or the scarecrow (Low keeps those: see `lowDrops`). */
   scrubFixed: boolean[] }
 /** The countryside part built: the same lists, with a hole where a piece is still to come. */
-export interface CountryPart { woods: (BufferGeometry | undefined)[]; forest: (BufferGeometry | undefined)[]; scrub: (BufferGeometry | undefined)[]; drifts: (BufferGeometry | undefined)[]; tracks?: BufferGeometry; scrubFixed?: boolean[] }
+export interface CountryPart { woods: (BufferGeometry | undefined)[]; forest: (BufferGeometry | undefined)[]; scrub: (BufferGeometry | undefined)[]; drifts: (BufferGeometry | undefined)[]; scrubFixed?: boolean[] }
 type Box = [number, number, number];
 
 let built: Countryside | null = null;
@@ -391,7 +434,7 @@ export function* buildCountrysideSteps(wanted?: (min: Box, max: Box) => boolean)
   if (built) return built;
   const wood = woods();
   yield;
-  // The far forest, the drifts and the tracks cast no shadow and only the start screen draws them: faces none of its
+  // The far forest and the drifts cast no shadow and only the start screen draws them: faces none of its
   // cameras can be in front of are left out (voxel/unseen.ts). A chunk with any tree of the wendigo's stand in it is
   // built as it always was. (Their faces are not merged: trees and drifts have next to no flat runs of one tone.)
   const home = unseenFrom([{ screens: 'home' }]);
@@ -401,13 +444,12 @@ export function* buildCountrysideSteps(wanted?: (min: Box, max: Box) => boolean)
   const small = new Grid(F);
   scrub(small);
   wall(small, WALL);
-  scarecrow(small, ...SCARECROW);
+  stands(SCARECROW[0], SCARECROW[1], () => scarecrow(small, ...SCARECROW));
   yield;
-  const worn = new Grid(S);
-  tracks(worn, [[-1.4, 12.6], [-6, 11.6], [-12, 10.4], [-12.2, 8.6]]);
-  tracks(worn, [[-12, 10.4], [-20, 11], [-29, 11.8]]);
-  tracks(worn, [[1.6, 12.4], [6, 12], [11, 11.2], [16.8, 8.2]]);
-  yield;
+  // No tracks worn in the snow any more: speckled strips and ruts in the ground read as a fault (Brian, 2026-11-19).
+  // Read, never changed: what stands in front of the line shades the ground at its foot (voxel/groundShade.ts keeps to its own area).
+  noteShade(wood.near.map.values(), S);
+  noteShade(small.map.values(), F);
   const lists: Record<(typeof LISTS)[number], { maps: ChunkMap[]; size: number; options?: (chunk: ChunkMap) => BuildOptions | undefined }> = {
     woods: { maps: chunkMaps(wood.near.map, S), size: S },
     forest: { maps: chunkMaps(wood.far.map, FAR), size: FAR, options: (chunk) => (inStand(chunk, FAR) ? undefined : { unseen: home }) },
@@ -427,19 +469,11 @@ export function* buildCountrysideSteps(wanted?: (min: Box, max: Box) => boolean)
     packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
     out[k][i] = g;
   };
-  const makeTracks = () => {
-    const flat = buildGeometry(worn.map, S, { unseen: unseenFrom([{ screens: 'home', lift: TRACKS_LIFT }]) });
-    flat.translate(0, TRACKS_LIFT, 0); // all but flush with the snow: a mark in it, not a slab on it
-    packGeometry(flat);
-    out.tracks = flat;
-  };
   if (wanted) {
     for (const k of LISTS) for (let i = 0; i < lists[k].maps.length; i++) if (wanted(...boxOf(lists[k].maps[i].values(), lists[k].size, 0))) { make(k, i); yield; }
-    if (wanted(...boxOf(worn.map.values(), S, TRACKS_LIFT))) makeTracks();
-    yield { woods: [...out.woods], forest: [...out.forest], scrub: [...out.scrub], drifts: [...out.drifts], tracks: out.tracks, scrubFixed };
+    yield { woods: [...out.woods], forest: [...out.forest], scrub: [...out.scrub], drifts: [...out.drifts], scrubFixed };
   }
   for (const k of LISTS) for (let i = 0; i < lists[k].maps.length; i++) if (!out[k][i]) { make(k, i); yield; }
-  if (!out.tracks) makeTracks();
-  const parts = { woods: out.woods as BufferGeometry[], forest: out.forest as BufferGeometry[], scrub: out.scrub as BufferGeometry[], drifts: out.drifts as BufferGeometry[], tracks: out.tracks! };
-  return (built = { ...parts, scrubFixed, triangles: [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts, parts.tracks].reduce((n, g) => n + triangles(g), 0) });
+  const parts = { woods: out.woods as BufferGeometry[], forest: out.forest as BufferGeometry[], scrub: out.scrub as BufferGeometry[], drifts: out.drifts as BufferGeometry[] };
+  return (built = { ...parts, scrubFixed, triangles: [...parts.woods, ...parts.forest, ...parts.scrub, ...parts.drifts].reduce((n, g) => n + triangles(g), 0) });
 }

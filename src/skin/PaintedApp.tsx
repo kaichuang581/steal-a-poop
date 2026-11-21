@@ -1,4 +1,9 @@
 import { JoinLink } from './share/JoinLink';
+import { getLang } from '../lib/lang';
+import { setDreamLanguage } from '../dream/dream';
+
+// The dream's fences ask for French starts in French (src/dream/dream.ts).
+setDreamLanguage(getLang());
 import { heatFor, setMusicScene } from '../audio/scene';
 import { setSoftBoom, setTickVoice } from '../audio/sound';
 import { loadStreak } from '../dream/daily';
@@ -21,7 +26,7 @@ import { AppBoundary, reloadOnceForChunk } from './perf/AppBoundary';
 import { ReportCard } from './perf/ReportCard';
 import { installAudioSleep } from './perf/audioSleep';
 import { noteDoorsOpen, noteError, setReportVersion, startReport } from './perf/report';
-import { FacesPreview, LineupPreview, SheepPreview, StripsPreview } from './table/SheepPreview';
+import { FacesPreview, LineupPreview, SheepPreview, SheetPreview, StripsPreview } from './table/SheepPreview';
 import KitPreview from './kit/KitPreview';
 // Developer pages (?preview=), for the tools that bake the game's pictures and strips (tools/renderDoors.mjs,
 // renderThumbs.mjs, renderStall.mjs, renderGuide.mjs, animalStrips.mjs), which all run against `npm run dev`. They are
@@ -32,6 +37,12 @@ const DoorsRender = DEV ? lazy(() => import('./loading/DoorsRender')) : null;
 const ThumbRender = DEV ? lazy(() => import('./shop/ThumbRender')) : null;
 const StallRender = DEV ? lazy(() => import('./shop/StallRender')) : null;
 const GuideRender = DEV ? lazy(() => import('./tour/GuideRender')) : null;
+const PropPreview = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PropPreview }))) : null;
+const MiniPreview = DEV ? lazy(() => import('./scene/MiniPreview').then((m) => ({ default: m.MiniPreview }))) : null;
+const PropBoard = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PropBoard }))) : null;
+// ?preview=pen: the lobby's pen with four guests and no server, to look at the scene alone (development only).
+const PenPreview = DEV ? lazy(() => import('./rooms/PenStage').then((m) => ({ default: () => <m.PenStage guests={['sheep', 'cow', 'pig', 'chicken'].map((avatar, i) => ({ id: `p${i}`, name: ['Brian', 'Maple', 'Barley', 'Tansy'][i], avatar, you: i === 0, host: i === 0 }))} farmSheep={2} reduced={false} phone={innerWidth < 640} shift={[0, 0]} /> }))) : null;
+const PaletteSwatches = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PaletteSwatches }))) : null;
 import { OnboardingGate } from './onboarding/Onboarding';
 import { startVisitReports } from '../lib/visit';
 import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot, whenDoorsOpen, whenDoorsShut } from './components/BarnDoors';
@@ -87,6 +98,15 @@ export function PaintedApp() {
   const [report, setReport] = useState(REPORT);
   // Tell the game server this tab is open (numbers only, for the admin panel's visit counts): src/lib/visit.ts.
   useEffect(() => startVisitReports(), []);
+  // French: the language button on Home sets it; the page's text is swapped by i18n/translate.ts.
+  useEffect(() => {
+    if (getLang() !== 'fr') return;
+    // Loaded only for French players, so the English game carries none of it.
+    let stop: (() => void) | undefined;
+    let gone = false;
+    void import('./i18n/translate').then((m) => { if (!gone) stop = m.startFrench(); });
+    return () => { gone = true; stop?.(); };
+  }, []);
   // Sound sleeps while the tab is hidden and wakes with it (plan file 17, change 12): perf/audioSleep.ts.
   useEffect(() => installAudioSleep(), []);
   // Keep the server told which avatar you picked, so the others in a room see it.
@@ -149,12 +169,19 @@ export function PaintedApp() {
   if (PREVIEW === 'sheep') return <SheepPreview />;
   if (PREVIEW === 'strips') return <StripsPreview />;
   if (PREVIEW === 'lineup') return <LineupPreview />;
+  if (PREVIEW === 'sheet') return <SheetPreview />;
   if (PREVIEW === 'faces') return <FacesPreview />;
   if (PREVIEW === 'kit') return <KitPreview />;
   if (PREVIEW === 'doors' && DoorsRender) return <Suspense fallback={null}><DoorsRender /></Suspense>;
   if (PREVIEW === 'thumb' && ThumbRender) return <Suspense fallback={null}><ThumbRender /></Suspense>;
   if (PREVIEW === 'stall' && StallRender) return <Suspense fallback={null}><StallRender /></Suspense>;
   if (PREVIEW === 'guide' && GuideRender) return <Suspense fallback={null}><GuideRender /></Suspense>;
+  // The diorama scenery's pages (docs/diorama/PLAN.md, 5.3 and 5.4).
+  if (PREVIEW === 'pen' && PenPreview) return <div style={{ position: 'fixed', inset: 0 }}><Suspense fallback={null}><PenPreview /></Suspense></div>;
+  if (PREVIEW === 'mini' && MiniPreview) return <Suspense fallback={null}><MiniPreview /></Suspense>;
+  if (PREVIEW === 'prop' && PropPreview) return <Suspense fallback={null}><PropPreview /></Suspense>;
+  if (PREVIEW === 'props' && PropBoard) return <Suspense fallback={null}><PropBoard /></Suspense>;
+  if (PREVIEW === 'palette' && PaletteSwatches) return <Suspense fallback={null}><PaletteSwatches /></Suspense>;
   if (PREVIEW === 'wendigo') return <div style={{ position: 'fixed', inset: 0 }}><WendigoPreviewCanvas /></div>;
   // A ?join=CODE address joins that room once the player is signed in and online.
   // The start screen is always the first thing: nothing to get through before it. The name is picked there, and signing

@@ -1,166 +1,118 @@
-import { Color } from 'three';
 import type { Character } from '../../avatars/catalog';
-import { lin, T } from '../palette';
-import { box, ellipsoid, Grid, line } from '../primitives';
-import type { V3 } from '../primitives';
+import { Grid } from '../primitives';
+import type { Paint, V3 } from '../primitives';
 import { coatsFor, KNIT } from './garments';
-import { barrel, BODY_POWER, breathAt, bury, cellsOf, hugCollar, hollow, leg, mask, mouths, part, S, segment, shaded, sockets, smallEyes, solidSet, statsOf, tones, wedge } from './rig';
+import { breathAt, cellsOf, cube, extentOf, hollow, inBlocks, noMouths, none, part, S, smallEyes, solidSet, statsOf, step, stepHex, tones, unshare } from './rig';
 import type { AnimalModel, CPart, SigPart } from './rig';
-import { HOOF } from './pig';
-import { DEFAULT_FACES } from './faces';
 import type { Faces } from './faces';
+import { shade } from '../paint';
+
+const PINK = ['#F0B4AE', '#E7A7A2', '#8C5A55'] as const;
+const HORN = '#D9BE8E';
+const WHITE = '#F4F2EE';
+const BLACK = '#211E1E'; // the sheet's near-black, a shade over the palette floor (DARKEST)
+const EAR_IN = '#5A4640';
 
 /**
- * The cow (V5.1 Part 5.3): a long barrel with a round chest and a squarer rump, a shoulder rising to meet a short thick
- * neck, a wedge head carried a little low with a broad muzzle, sideways leaf ears, two horn nubs and a forelock, a bell
- * under the throat and a tufted tail. Holstein patches as shaped masks in the character's dark tone. Legs in one tone.
- *
- * Bigger than the sheet (Brian, 2026-11-07: "why is the cow so small?"): its back stood at the goat's 0.88 m. It is
- * drawn at 1.2 (`drawScale`), its back at 1.06 m and 1.6 m long, the second biggest after the horse: grown in voxels it
- * would cost half again the voxel budget (4.7), and these ratios already pass the sheet.
+ * The cow, after Brian's six-view sheet (2026-11-18): a deep white box on four square legs with black hooves; a square
+ * head on its front, its top a little over the back, black over its left half and that side's top (both eyes are drawn,
+ * one on the white, one on the black, as the sheet has them); a wide pink muzzle with two nostrils; L-shaped tan horns;
+ * long black ears straight out to the sides with dark insides; stepped black patches over the shoulders and back,
+ * with a white stripe down the middle of the rump; a pink udder with four teats; a short black tail. Grid cells (0.04 m),
+ * drawn at 1.3 (`drawScale`). Faces +z; the centre column is x = 0.
  */
-const HY = 13; // the head's bottom row (y 0.52)
-/**
- * Face switch (plan file 03, 4.11), off: the cow keeps its white glint (Brian, 2026-11-07). On, the glint is dropped
- * and the eyes are plain 2 x 2 dark squares.
- */
-export const COW_NO_GLINT = true; // ticked by Brian, 2026-11-17 (milestone 6)
-export function cowModel(ch: Character, faces: Faces = DEFAULT_FACES): AnimalModel {
-  const glint = !(COW_NO_GLINT || faces.has('cowNoGlint'));
-  // The coat a shade under the catalogue's white (Brian, 2026-11-07), so the eyes' white glints stand out against it.
-  const body = tones(`#${new Color(ch.colors.body).multiplyScalar(0.8).getHexString()}`);
-  const face = body;
-  const muzzle = tones(ch.colors.soft);
-  const patch = lin(ch.colors.dark);
+export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
+  const white = shade(WHITE), black = shade(BLACK);
+  const face = tones(stepHex(WHITE, 1));
 
-  // ---- Torso: a barrel 0.56 x 0.54 x 0.92, chamfer 3, chest rounder 0.8, rump 0.5; a shoulder rise where the neck
-  // leaves (4.2.3), inside the torso's width so the width-to-height ratio holds; three patches.
+  // ---- Body: 13 wide, 11 tall, 18 long. Patches as 3D blocks, so each wraps its corner onto the top and front.
+  const PATCHES: [V3, V3][] = [
+    [[2, 9, 5], [6, 17, 8]], [[2, 9, 2], [6, 12, 4]], // the left shoulder
+    [[-6, 8, 4], [-2, 17, 8]], [[-6, 10, 1], [-2, 13, 3]], // the right shoulder
+    [[-6, 16, 3], [6, 17, 8]], // over the withers
+    [[2, 14, -9], [6, 17, -1]], [[2, 12, -7], [6, 13, -1]], [[-6, 14, -9], [-2, 17, -1]], [[-6, 12, -7], [-2, 13, -1]], // the rump, a white stripe between
+    [[3, 9, -9], [6, 11, -7]], [[-6, 9, -9], [-3, 11, -7]], // low on the haunches
+  ];
+  const bodyPaint: Paint = (x, y, z) => (inBlocks(PATCHES, x, y, z) ? black : white);
   const bg = new Grid(S);
-  const paint = shaded(body, 21, 8);
-  barrel(bg, [0.02, 0.60, 0], [0.56, 0.54, 0.92], 3, paint, [0.8, 0.5]);
-  ellipsoid(bg, [0.02, 0.70, 0.30], [0.24, 0.16, 0.16], paint, 0, 1, BODY_POWER);
-  mask(bg, [{ c: [-0.22, 0.66, 0.26], r: [0.16, 0.14, 0.18] }], patch, lin(body[2]));
-  mask(bg, [{ c: [0.24, 0.62, -0.30], r: [0.14, 0.13, 0.17] }], patch, lin(body[2]));
-  mask(bg, [{ c: [0.10, 0.86, -0.04], r: [0.18, 0.06, 0.16] }], patch, lin(body[2]));
-  // More patches where the blanket leaves the coat to be seen (Brian, 2026-11-07: "don't cows have spots?"): both lower
-  // flanks, the rump and the chest.
-  mask(bg, [{ c: [0.26, 0.40, 0.10], r: [0.12, 0.08, 0.22] }, { c: [0.26, 0.44, -0.24], r: [0.12, 0.06, 0.10] }], patch, lin(body[2]));
-  mask(bg, [{ c: [-0.24, 0.40, -0.18], r: [0.12, 0.08, 0.2] }, { c: [-0.26, 0.42, 0.22], r: [0.12, 0.06, 0.08] }], patch, lin(body[2]));
-  mask(bg, [{ c: [0.08, 0.66, -0.46], r: [0.14, 0.12, 0.08] }], patch, lin(body[2]));
-  mask(bg, [{ c: [-0.12, 0.50, 0.44], r: [0.12, 0.10, 0.06] }], patch, lin(body[2]));
-  const legSpots = [[-0.17, 0.28], [0.21, 0.28], [-0.17, -0.28], [0.21, -0.28]] as const;
-  sockets(bg, legSpots.map(([cx, cz]) => ({ cx, cz, w: 4 })), 11, 10); // shoulders and hips over the legs (4.2.3)
+  cube(bg, [-6, 7, -9], [6, 17, 8], bodyPaint);
+  step(bg, -1, (v) => v.y === 7); // the belly row, white and patch alike
   const bodySolid = solidSet(bg);
   hollow(bg);
   const bodyPart = part(bg, [0, 0, 0]);
 
-  // ---- Neck: a segment from the chest (buried three voxels) to the head's back (three voxels in), 0.30 to 0.26.
-  const NECK_BASE: V3 = [0.02, 0.74, 0.40];
-  const ng = new Grid(S);
-  segment(ng, NECK_BASE, [0.02, 0.68, 0.60], 0.30, 0.26, shaded(body, 20, 14));
-  mask(ng, [{ c: [-0.14, 0.72, 0.50], r: [0.07, 0.09, 0.09] }], patch, lin(body[2])); // a patch on each side of the neck
-  mask(ng, [{ c: [0.16, 0.66, 0.54], r: [0.06, 0.07, 0.06] }], patch, lin(body[2]));
-  const neckSolid = solidSet(ng);
-  hollow(ng);
-
-  // ---- Head: a wedge 10 long, 9 wide at the back to 7 at the front, 8 tall (rows 13 to 20), its back in the neck.
-  const HEAD: V3 = [0, 0.52, 0.56];
+  // ---- Head: 9 wide, 8 tall, 6 deep, black over its left side and the left of its brow.
+  const HEAD: V3 = [0.02, 12 * S, 9 * S]; // its back-bottom edge: a nod swings the face forward, never into the chest
   const hg = new Grid(S);
-  wedge(hg, HEAD, 0.40, 0.34, 0.28, 0.32, shaded(face, HY + 7, HY));
-  const zb = Math.round(0.56 / S), zf = zb + 9; // the back and front slices
-  // Muzzle: 7 wide x 3 tall x 3 deep on the front three slices at rows 13 to 15, one voxel proud, nostrils on row 15.
+  cube(hg, [-4, 12, 9], [4, 19, 14], (x, y) => (x >= 2 && y >= 14 ? black : white));
+  step(hg, 1);
+  // Muzzle: 7 wide, 4 tall, 2 proud, pink; two nostrils in its upper row.
   const muzzleG = new Grid(S);
-  for (let x = -3; x <= 3; x++) for (let y = HY; y <= HY + 2; y++) for (let z = zf - 1; z <= zf + 1; z++) {
-    if (Math.abs(x) === 3 && y === HY && z === zf + 1) continue; // the lower front corners knocked off
-    const nostril = z === zf + 1 && y === HY + 2 && (x === -2 || x === 2);
-    muzzleG.set(x, y, z, lin(nostril ? muzzle[2] : muzzle[1]));
-  }
+  cube(muzzleG, [-3, 12, 15], [3, 15, 16], (x, y, z) => shade(z === 16 && y === 14 && Math.abs(x) === 2 ? PINK[2] : PINK[0]));
   for (const v of muzzleG.map.values()) hg.set(v.x, v.y, v.z, v.c);
-  mask(hg, [{ c: [0.16, 0.80, 0.62], r: [0.08, 0.09, 0.10] }], patch, lin(body[2])); // a patch at the back of the head's right side
-  // Eyes: beady (Brian, 2026-11-07), 2 x 2 dark with a white glint in the outer top corner, on the face's front either side
-  // of the bridge; the coat is a shade under white so the glint shows against it.
-  const { eyes, lids, brows } = smallEyes(hg, HY + 4, zf, '#1E1A19', face, HEAD, { front: 2, glint });
-
-  // The mouth on row 14 (the muzzle's second row), width 7; chewing on rows 13 and 14, all on the muzzle's front.
-  // Each mouth cell one voxel in front of the muzzle's front at its own column and row (file 03, 4.4): the old rule put the
-  // end cells at zf + 1, inside the muzzle on the rows its corners are not knocked off.
-  const frontAt = (x: number, y: number) => { for (let k = zf + 1; k >= zf - 4; k--) if (hg.has(x, y, k)) return k; return zf + 1; };
-  const mouthParts = mouths([-3, HY, zf + 1], 7, 'z', muzzle[2], HEAD, { front: frontAt });
+  const { eyes, lids, brows } = smallEyes(hg, 17, 14, '#141212', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
+  const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   const headSolid = solidSet(hg);
   hollow(hg);
   const headPart = part(hg, HEAD);
-  // Horns: nubs 2 x 2 x 2 at the crown's back corners, curving out one voxel; a forelock of three light voxels between.
-  const top = HY + 8;
-  const hornG = new Grid(S);
-  for (const sx of [-1, 1]) for (const dx of [0, 1]) for (const dz of [0, 1]) {
-    hornG.set(sx * (2 + dx), top, zb + 1 + dz, lin(body[0]));
-    hornG.set(sx * (3 + dx), top + 1, zb + 1 + dz, lin(body[0]));
-  }
-  for (const x of [-1, 0, 1]) hornG.set(x, top, zb + 2, lin(body[0]));
-  const horns: SigPart = { ...part(hornG, HEAD), name: 'horns', where: 'head', cells: hornG.map };
-  bury(ng, bodySolid, headSolid);
-  const neck = part(ng, [0, 0, 0]);
 
-  // ---- Ears: leaves 5 long x 3 wide x 2 thick from the crown's back corners, sideways and 15 degrees down, the muzzle's pink inside.
+  // ---- Horns: tan Ls, one cell across: up two from the crown's outer corners, a foot turned in at the bottom.
+  // Rooted a row into the crown.
+  const hornG = new Grid(S);
+  for (const sx of [-1, 1]) {
+    cube(hornG, [sx * 4, 19, 10], [sx * 4, 21, 10], () => shade(HORN));
+    cube(hornG, [sx * 3, 19, 10], [sx * 3, 20, 10], () => shade(HORN));
+  }
+  const horns: SigPart = { ...part(hornG, HEAD), name: 'horns', where: 'head', cells: hornG.map };
+
+  // ---- Ears: black, 4 out, 3 tall, 2 deep, straight out from the crown's sides, a dark inside on the front.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(S);
-    for (let k = 0; k < 6; k++) for (const dz of [0, 1, 2]) for (const dy of [0, 1]) {
-      if (k === 5 && (dz === 0 || dz === 2)) continue;
-      const x = sx * (3 + k), y = top - 3 - Math.floor(k / 3) + dy, z = zb + 1 + dz;
-      g.set(x, y, z, lin(dy === 0 && dz === 1 && k > 1 ? muzzle[1] : body[1]));
-    }
-    return part(g, [sx * 3.5 * S, (top - 2) * S, (zb + 2.5) * S]);
+    cube(g, [sx < 0 ? -8 : 5, 17, 10], [sx < 0 ? -5 : 8, 19, 11], (x, y, z) => (z === 11 && y === 18 && Math.abs(x) >= 6 && Math.abs(x) <= 7 ? shade(EAR_IN) : black));
+    step(g, -1);
+    return part(g, [sx * 4.5 * S + 0.02, 18 * S, 10.5 * S]);
   }) as unknown as [CPart, CPart];
 
-  // ---- Legs: four, 4 x 4 x 11, a knee notch, one body tone, hooves; tops 0.11 inside the belly.
-  // At the sheet's z (0.32) the barrel's chamfered ends lift the belly over the leg and it shows too long.
-  const legs = legSpots.map(([cx, cz]) => {
+  // ---- Legs: 3 x 3, two rows up inside the belly, the bottom two rows black.
+  const legSpots = [[-5, 4], [3, 4], [-5, -8], [3, -8]] as const;
+  const legs = legSpots.map(([x0, z0]) => {
     const g = new Grid(S);
-    leg(g, cx, cz, 4, 11, body, HOOF, { knee: true, oneTone: true });
-    // Spots on the front-right and back-left legs, high on the outside.
-    if ((cx > 0) === (cz > 0)) mask(g, [{ c: [cx + Math.sign(cx) * 0.04, 0.30, cz], r: [0.05, 0.07, 0.06] }], patch, patch);
-    hollow(g);
-    bury(g, bodySolid);
-    return part(g, [cx, 0.42, cz]);
+    cube(g, [x0, 0, z0], [x0 + 2, 8, z0 + 2], (_x, y) => (y <= 1 ? black : white));
+    step(g, -1, (v) => v.y > 1); // the leg, not its hoof
+    unshare(g, bodySolid);
+    return part(g, [(x0 + 1.5) * S, 7 * S, (z0 + 1.5) * S]);
   }) as unknown as [CPart, CPart, CPart, CPart];
 
-  // ---- Tail: two voxels thick from the rump to the hocks, a dark tuft 3 x 3 x 3.
-  const tg = new Grid(S);
-  box(tg, [-0.02, 0.74, -0.46], [0.06, 0.82, -0.38], () => lin(body[2])); // the root, inside the rump
-  for (const dx of [0, 0.04]) line(tg, [dx, 0.80, -0.46], [dx, 0.44, -0.52], () => lin(body[2]));
-  box(tg, [-0.02, 0.36, -0.56], [0.10, 0.48, -0.44], () => patch, 1);
-  bury(tg, bodySolid);
-  const tail = part(tg, [0.02, 0.80, -0.46]);
+  // ---- Udder: pink, 5 x 2 x 3 under the belly toward the back legs, four teats under it.
+  const ug = new Grid(S);
+  cube(ug, [-2, 5, -5], [2, 6, -3], () => shade(PINK[1]));
+  for (const x of [-2, 2]) for (const z of [-5, -3]) ug.set(x, 4, z, shade(PINK[1]));
+  const udder: SigPart = { ...part(ug, [0, 0, 0]), name: 'udder', where: 'body', cells: ug.map };
 
-  // ---- Collar and bell (4.2.6): a ring round the neck one voxel in front of the chest, the bell's top on its lowest voxel.
-  const RING: V3 = [0.02, 0.69, 0.50];
-  const collar = hugCollar(neckSolid, Math.round(RING[2] / S), '#C24E45');
-  const ringLow = Math.min(...[...collar.cells.values()].map((v) => v.y));
-  const bellG = new Grid(S);
-  const bz = Math.round(RING[2] / S);
-  for (let y = ringLow - 3; y < ringLow; y++) for (let x = -1; x <= 1; x++) for (let z = bz - 1; z <= bz + 1; z++) {
-    if (y === ringLow - 3 && Math.abs(x) === 1 && z !== bz) continue; // a rounded mouth
-    bellG.set(x, y, z, lin(T.brass[y === ringLow - 1 ? 0 : 1]));
-  }
-  bellG.set(0, ringLow - 4, bz, lin(T.brass[1])); // the clapper
-  for (let x = -1; x <= 1; x++) for (let y = ringLow - 3; y < ringLow; y++) bellG.set(x, y, bz + 2, lin(T.brass[1])); // a fuller bell
-  const bell = part(bellG, [RING[0], (ringLow) * S, RING[2]]);
+  // ---- Tail: a short black stub out of the rump, rooted a cell in.
+  const tg = new Grid(S);
+  cube(tg, [0, 9, -10], [0, 10, -9], () => black);
+  step(tg, -1);
+  const tail = part(tg, [0.02, 0.4, -0.38]);
 
   const coats = coatsFor({
-    body: bg.map, torso: { zFrom: -0.34, zTo: 0.30, bellyY: 0.46 }, kind: 'blanket-square', knit: KNIT.cow,
-    neck: { centre: [RING[0], RING[1] - 0.02, RING[2] + 0.04], rx: 0.18, ry: 0.18, tails: [0.02, 0.54, 0.60], solid: neckSolid }, // a slice ahead of the collar
-    avoid: [hg.map, ...ears.map((e) => e.cells)],
-    legs: legSpots.map(([cx, cz]) => ({ cx, cz, w: 4 })),
+    body: bg.map, torso: { zFrom: -0.24, zTo: 0.16, bellyY: 0.4 }, kind: 'blanket-square', knit: KNIT.cow,
+    neck: { centre: [0.02, 0.62, 10 * S + 0.001], rx: 0.2, ry: 0.2, tails: [0.02, 0.4, 0.42], solid: headSolid },
+    avoid: [hg.map, hornG.map, ...ears.map((e) => e.cells)],
+    legs: legSpots.map(([x0, z0]) => ({ cx: (x0 + 1.5) * S, cz: (z0 + 1.5) * S, w: 3 })),
   });
   const muzzleSig: SigPart = { ...part(new Grid(S), HEAD), name: 'muzzle', where: 'head', cells: muzzleG.map };
-  const breath = breathAt([0.02, HY * S + 0.04, (zf + 2) * S]);
-  const parts = [coats.wools[2], neck, headPart, horns, ...eyes, ...ears, ...legs, tail, collar, bell];
+  const breath = breathAt([0.02, 13 * S, 17 * S]);
+  const parts = [coats.wools[2], headPart, horns, ...eyes, ...ears, ...legs, tail, udder];
+  const { height, length } = extentOf([bodyPart, headPart, horns, ...ears, ...legs, tail]);
+  const collar = none(), bell = none([0.02, 0.4, 0.42]);
   return {
-    species: 'cow', bodyAlways: false, signature: [muzzleSig, horns], height: 1.08, length: 1.6, drawScale: 1.2, headPitch: 0.17,
-    wools: coats.wools, frosts: coats.frosts, coatCells: coats.coatCells, garment: coats.garment, neck, neckBase: NECK_BASE,
-    head: headPart, hood: part(new Grid(S), HEAD), tail, eyes, lids, brows, mouths: mouthParts, ears, legs, collar, bell, sheared: bodyPart, breath,
+    species: 'cow', bodyAlways: false, signature: [muzzleSig, horns, udder], height, length, drawScale: 1.3,
+    wools: coats.wools, frosts: coats.frosts, coatCells: coats.coatCells, garment: coats.garment,
+    head: headPart, hood: none(HEAD), tail, eyes, lids, brows, mouths: mouthParts, ears, legs, collar, bell, sheared: bodyPart, breath,
     lobes: { body: 1, hood: 0, tail: 1 }, woolTones: 3, voxels: parts.reduce((n, p) => n + p.voxels, 0),
-    cells: cellsOf({ body: bodyPart, neck, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar, bell, muzzle: muzzleSig as CPart, horns: horns as CPart }),
+    // No neck part: the head's two slices ahead of the ears and horns stand in for it, so the winner's scarf (anchors.ts) ties there.
+    cells: cellsOf({ body: bodyPart, neck: { ...headPart, cells: new Map([...hg.map].filter(([, v]) => v.z >= 12 && v.z <= 13)) }, head: headPart, eye: [...eyes], ear: [...ears], leg: [...legs], tail, collar, bell, muzzle: muzzleSig as CPart, horns: horns as CPart, udder: udder as CPart }),
     stats: statsOf(parts, []),
   };
 }

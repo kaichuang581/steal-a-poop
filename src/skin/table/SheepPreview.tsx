@@ -104,19 +104,27 @@ export function LineupPreview() {
   const silhouette = q.get('silhouette') === '1';
   const squint = q.get('squint') === '1';
   const size = Number(q.get('size')) || 400;
+  // ?yaw=-0.9 turns every animal (a three-quarter view); ?level=0..4 picks the coat; ?bare=1 shows the sheep in its
+  // fleece and the others with no coat; ?bg=%23f4f4f2 a plain background with no floor; ?fit=1 frames each animal by
+  // its drawn height (the reference sheets' studio look, for comparing with tools/blender).
+  const yaw = Number(q.get('yaw')) || 0;
+  const level = (Number(q.get('level') ?? 2) || 0) as WoolLevel;
+  const bare = q.get('bare') === '1';
+  const bg = q.get('bg');
+  const fit = q.get('fit') === '1';
   const floor = useFloor();
   const floorMat = useMemo(() => voxelMaterial(), []);
   return (
-    <div className="h-full overflow-auto" style={{ background: silhouette ? '#FFFFFF' : '#3A4E78' }}>
+    <div className="h-full overflow-auto" style={{ background: silhouette ? '#FFFFFF' : bg ?? '#3A4E78' }}>
       <div id="lineup" className="flex" style={{ width: size * ANIMAL_AVATAR_IDS.length, height: size, filter: squint ? 'blur(6px)' : undefined }}>
         {ANIMAL_AVATAR_IDS.map((a) => (
           <div key={a} style={{ width: size, height: size, filter: silhouette ? 'brightness(0)' : undefined }}>
-            <Canvas shadows={!silhouette && { type: PCFShadowMap }} dpr={1} gl={{ alpha: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 32, position: [1.3, 1.2, 3.4] }} onCreated={({ camera }) => camera.lookAt(0, 0.68, 0)}>
+            <Canvas shadows={!silhouette && { type: PCFShadowMap }} dpr={1} gl={{ alpha: true, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }} camera={{ fov: 32, position: fitPos(a, fit) }} onCreated={({ camera }) => camera.lookAt(0, fitLook(a, fit), 0)}>
               <hemisphereLight args={['#DCE6F2', '#8E3A31', 0.9]} />
               <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow={!silhouette} shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} />
-              {!silhouette && <mesh geometry={floor} receiveShadow position={[-1.6, -0.1, -1.6]} material={floorMat} />}
-              <group scale={animalModel(a).drawScale}>
-                <Sheep level={2} state="idle" lookAt="camera" model={animalModel(a)} />
+              {!silhouette && !bg && <mesh geometry={floor} receiveShadow position={[-1.6, -0.1, -1.6]} material={floorMat} />}
+              <group scale={animalModel(a).drawScale} rotation={[0, yaw, 0]}>
+                <Sheep level={bare ? (a === 'sheep' ? 2 : 0) : level} state="idle" lookAt={yaw ? undefined : 'camera'} model={animalModel(a)} />
               </group>
             </Canvas>
           </div>
@@ -126,6 +134,11 @@ export function LineupPreview() {
     </div>
   );
 }
+
+/** The lineup camera, or with ?fit=1 one pulled back by the animal's drawn height so the tallest is whole. */
+const drawnHeight = (a: Animal) => animalModel(a).height * animalModel(a).drawScale;
+const fitPos = (a: Animal, fit: boolean): [number, number, number] => { const k = fit ? Math.max(1, drawnHeight(a) / 1.05) : 1; return [1.3 * k, 1.2 * k, 3.4 * k]; };
+const fitLook = (a: Animal, fit: boolean) => (fit ? Math.max(0.68, drawnHeight(a) * 0.55) : 0.68);
 
 let floorGeo: ReturnType<typeof buildGeometry> | null = null;
 function useFloor() {
@@ -391,4 +404,46 @@ function FacesDriver({ plan, set, onLog }: { plan: SheetPlan; set: { current: (s
     return () => { alive = false; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
+}
+
+/**
+ * ?skin=painted&preview=sheet&species=cow&view=front (development only): one animal as the game draws it, at rest and
+ * still, with no hat (?hats=0), from one of six orthographic views framed as tools/blender/lineup.py frames its `sheet`
+ * renders (front, back, left, right, top, bottom), so the two can be laid side by side. The sheep wears its fleece,
+ * every other animal no coat. 600 x 600.
+ */
+export function SheetPreview() {
+  const q = new URLSearchParams(location.search);
+  const a = (q.get('species') ?? 'sheep') as Animal;
+  const view = q.get('view') ?? 'front';
+  const m = animalModel(a);
+  // The box Blender frames: every part's cells at rest, scaled to the drawn size.
+  let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (const cells of Object.values(m.cells)) for (const v of cells.values()) {
+    const c = [v.x, v.y, v.z];
+    lo = lo.map((l, i) => Math.min(l, c[i])); hi = hi.map((h, i) => Math.max(h, c[i] + 1));
+  }
+  const k = 0.04 * m.drawScale;
+  const mid = lo.map((l, i) => ((l + hi[i]) / 2) * k) as [number, number, number];
+  const span = Math.max(...hi.map((h, i) => (h - lo[i]) * k)) * 1.15;
+  const D = 20;
+  const at: Record<string, { p: [number, number, number]; up: [number, number, number] }> = {
+    front: { p: [mid[0], mid[1], mid[2] + D], up: [0, 1, 0] }, back: { p: [mid[0], mid[1], mid[2] - D], up: [0, 1, 0] },
+    left: { p: [mid[0] + D, mid[1], mid[2]], up: [0, 1, 0] }, right: { p: [mid[0] - D, mid[1], mid[2]], up: [0, 1, 0] },
+    top: { p: [mid[0], mid[1] + D, mid[2]], up: [-1, 0, 0] }, bottom: { p: [mid[0], mid[1] - D, mid[2]], up: [-1, 0, 0] },
+  };
+  const cam = at[view] ?? at.front;
+  return (
+    <div style={{ width: 600, height: 600, background: '#F4F4F2' }}>
+      <Canvas orthographic dpr={1} gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping }}
+        camera={{ position: cam.p, up: cam.up, zoom: 600 / span, near: 0.1, far: 100 }}
+        onCreated={({ camera }) => { camera.lookAt(...mid); camera.updateProjectionMatrix(); (window as unknown as { __sheetReady?: boolean }).__sheetReady = true; }}>
+        <hemisphereLight args={['#DCE6F2', '#B8B4AE', 0.9]} />
+        <directionalLight position={[-3, 5, 4]} intensity={1.6} />
+        <group scale={m.drawScale}>
+          <Sheep level={a === 'sheep' ? 2 : 0} state="idle" still model={m} contact={false} />
+        </group>
+      </Canvas>
+    </div>
+  );
 }

@@ -13,13 +13,13 @@ import type { BufferGeometry } from 'three';
 import { santaHat } from '../../scene/festive';
 import type { V3 } from '../primitives';
 import type { Part, SheepModel } from '../sheep';
-import { LEVEL_K } from '../sheep';
+import { TAIL_BACK } from '../sheep';
 import type { AnimalModel } from './rig';
 
 /** How far the name plate stands over the highest voxel, hat included, in model units (0.065 m at the sheep's table scale). */
 export const PLATE_GAP = 0.05;
-/** How the ears hang at rest: `DROOP` in table/Sheep.tsx. */
-const DROOP = (20 * Math.PI) / 180;
+/** How the ears hang at rest: `DROOP` in table/Sheep.tsx (none: as built). */
+const DROOP = 0;
 /** How the frozen pose leans the body back, and swells the coat (`'frozen'` in `poseFor`, table/Sheep.tsx). */
 const FROZEN_LEAN = -0.14, FROZEN_PUFF = 1.06;
 
@@ -98,7 +98,7 @@ export function anchorsOf(model: SheepModel | AnimalModel): Anchors {
     for (const l of [1, 2, 3, 4] as const) {
       into(box, model.wools[l].geo, body.clone().multiply(at(0, legTop * (1 - puff), 0)).multiply(new Matrix4().makeScale(puff, puff, puff)));
       // The sheep's tail moves back with its fleece (`tailZ` in table/Sheep.tsx); another species' stays where it was built.
-      const tz = model.tail.pivot[2] - (species === 'sheep' ? 0.4 * (LEVEL_K[l] - 1) : 0);
+      const tz = model.tail.pivot[2] - (species === 'sheep' ? TAIL_BACK[l] : 0);
       into(box, model.tail.geo, body.clone().multiply(at(model.tail.pivot[0], model.tail.pivot[1], tz)));
     }
     for (const p of [model.sheared, ...model.legs, model.collar, model.bell, ...(am.neck ? [am.neck] : []), ...(am.signature ?? []).filter((sp) => sp.where === 'body')]) onBody(p);

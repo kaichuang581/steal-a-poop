@@ -24,20 +24,16 @@ export const RATIO_NAMES: Record<Ratio, string> = {
   headHW: 'Head H / head W', legT: 'Leg height / torso H', headTop: 'Head top / back line', muzzle: 'Muzzle ahead of chest / head L', eyeH: 'Eye height / head H',
 };
 type Range = [number, number];
+// Brian's six-view sheets (2026-11-18) replace the V5.1 proportion sheet: "completely change them to be one-to-one,
+// disregard all old rules about the animal modeling". Each range is the rebuilt model's own ratio within 8%, so a
+// model that drifts from its sheet fails.
 export const SHEET: Record<Species, Record<Ratio, Range>> = {
-  // The muzzle's range for the cow, horse and goat is the one their own sheets give (5.3 to 5.5: a neck buried three
-  // voxels in the chest and three in the head puts the muzzle 1.15 to 1.25 head lengths ahead of the chest). The table's
-  // 0.6 to 1.0 cannot be met with a neck at all; the conflict is written up in docs/skin/animals-v5_1 for Brian.
-  // The eye-height row for the sheep, cow and goat follows Brian's small, simple eyes (2026-11-07: no whites), which
-  // replace the plan's 4 x 4 and 5 x 5 plates on the sheep, cow, horse and goat: 0.20 of the head or more.
-  // The chicken's head (Brian, 2026-11-07): nearer the breast and with a two-step beak, so its beak's reach is 0.6 to 1.0
-  // of the head and the head with its beak 1.0 to 1.3 as long as it is wide; its eyes are the small ones too.
-  sheep: { torsoLH: [1.4, 1.55], torsoWH: [1.05, 1.2], headHT: [0.5, 0.62], headWT: [0.6, 0.72], headLW: [0.8, 1.0], headHW: [0.7, 0.85], legT: [0.4, 0.55], headTop: [1.0, 1.1], muzzle: [0.55, 0.75], eyeH: [0.2, 9] },
-  pig: { torsoLH: [1.4, 1.55], torsoWH: [1.0, 1.15], headHT: [0.75, 0.85], headWT: [0.72, 0.82], headLW: [0.75, 0.9], headHW: [0.95, 1.05], legT: [0.3, 0.45], headTop: [0.95, 1.08], muzzle: [0.45, 0.6], eyeH: [0.36, 9] },
-  cow: { torsoLH: [1.65, 1.8], torsoWH: [0.95, 1.1], headHT: [0.55, 0.65], headWT: [0.58, 0.68], headLW: [1.1, 1.25], headHW: [0.85, 1.0], legT: [0.45, 0.6], headTop: [0.9, 1.0], muzzle: [1.1, 1.3], eyeH: [0.2, 9] },
-  horse: { torsoLH: [1.85, 2.0], torsoWH: [0.8, 0.95], headHT: [0.5, 0.6], headWT: [0.5, 0.6], headLW: [1.7, 1.95], headHW: [1.1, 1.25], legT: [0.7, 0.85], headTop: [1.3, 1.45], muzzle: [1.1, 1.3], eyeH: [0.2, 9] },
-  goat: { torsoLH: [1.5, 1.65], torsoWH: [0.9, 1.05], headHT: [0.5, 0.6], headWT: [0.48, 0.58], headLW: [1.25, 1.45], headHW: [1.0, 1.15], legT: [0.55, 0.7], headTop: [1.15, 1.3], muzzle: [1.1, 1.3], eyeH: [0.2, 9] },
-  chicken: { torsoLH: [1.6, 1.75], torsoWH: [0.95, 1.1], headHT: [0.7, 0.85], headWT: [0.65, 0.8], headLW: [1.0, 1.3], headHW: [0.95, 1.05], legT: [0.45, 0.6], headTop: [1.2, 1.4], muzzle: [0.6, 1.0], eyeH: [0.2, 9] },
+  sheep: { torsoLH: [1.13, 1.33], torsoWH: [0.78, 0.92], headHT: [0.35, 0.41], headWT: [0.59, 0.7], headLW: [0.79, 0.93], headHW: [0.66, 0.77], legT: [0.46, 0.55], headTop: [0.75, 0.88], muzzle: [0.62, 0.72], eyeH: [0.2, 0.24] }, // the sheet's own cells: a small face set into the wool (2026-11-19)
+  pig: { torsoLH: [1.19, 1.41], torsoWH: [1.01, 1.19], headHT: [0.92, 1.08], headWT: [0.92, 1.08], headLW: [0.33, 0.4], headHW: [0.83, 0.99], legT: [0.36, 0.44], headTop: [0.92, 1.08], muzzle: [0.92, 1.08], eyeH: [0.09, 0.11] },
+  cow: { torsoLH: [1.5, 1.77], torsoWH: [1.08, 1.28], headHT: [0.66, 0.79], headWT: [0.63, 0.75], headLW: [0.81, 0.97], headHW: [0.81, 0.97], legT: [0.58, 0.69], headTop: [1.02, 1.2], muzzle: [0.92, 1.08], eyeH: [0.11, 0.14] },
+  horse: { torsoLH: [2.04, 2.4], torsoWH: [1.12, 1.32], headHT: [0.83, 0.97], headWT: [0.58, 0.69], headLW: [1.57, 1.86], headHW: [1.05, 1.25], legT: [0.92, 1.08], headTop: [1.53, 1.81], muzzle: [0.69, 0.82], eyeH: [0.12, 0.14] }, // the snout flush with the head's bottom (2026-11-18)
+  goat: { torsoLH: [1.53, 1.81], torsoWH: [1.12, 1.32], headHT: [0.81, 0.97], headWT: [0.75, 0.89], headLW: [0.81, 0.97], headHW: [0.81, 0.97], legT: [0.61, 0.73], headTop: [1.22, 1.44], muzzle: [0.69, 0.82], eyeH: [0.11, 0.14] },
+  chicken: { torsoLH: [1.38, 1.62], torsoWH: [1.38, 1.62], headHT: [0.76, 0.9], headWT: [0.92, 1.08], headLW: [1.12, 1.32], headHW: [0.51, 0.61], legT: [0.3, 0.36], headTop: [1.43, 1.69], muzzle: [0.16, 0.2], eyeH: [0.18, 0.22] },
 };
 
 /** The head as the sheet measures it: the head part (and for the chicken its beak, the "muzzle tip"). Horns, combs and ears are not head. */
@@ -83,7 +79,7 @@ export function notch(m: AnimalModel): Notch {
 }
 
 // ---------- 4.2.4 roots ----------
-const ROOTS: Record<string, 'head' | 'body'> = { ear0: 'head', ear1: 'head', horn0: 'head', horn1: 'head', comb: 'head', beard: 'head', wattle: 'head', beak: 'head', tail: 'body', wing0: 'body', wing1: 'body' };
+const ROOTS: Record<string, 'head' | 'body'> = { ear0: 'head', ear1: 'head', horn0: 'head', horn1: 'head', comb: 'head', beard: 'head', tail: 'body', wing0: 'body', wing1: 'body' };
 export interface Root { part: string; contact: number; spans: number[]; ok: boolean }
 /**
  * A part is rooted when its cells that are inside or face-touching its parent number at least four and that patch
@@ -133,24 +129,22 @@ export function faceRule(m: AnimalModel): FaceCheck[] {
   return out;
 }
 
-// ---------- 5.6 the chicken's orientation ----------
-export function chickenOrientation(m: AnimalModel): { torsoLH: number; headAhead: boolean; tailHighest: boolean; ok: boolean } {
-  const c = m.cells, t = bbox(c.body), h = bbox(c.head);
-  const hy = Math.round((h.y0 + h.y1) / 2), hz = (h.z0 + h.z1) / 2;
-  let front = -Infinity;
-  for (const v of c.body.values()) if (v.y === hy) front = Math.max(front, v.z);
-  if (!Number.isFinite(front)) front = t.z1;
-  const tailTop = bbox(c.tail).y1;
-  const others = Object.entries(c).filter(([k]) => !['tail', 'comb'].includes(k)).map(([, v]) => bbox(v).y1).filter(Number.isFinite);
-  const torsoLH = t.l / t.h, headAhead = hz > front, tailHighest = others.every((y) => tailTop >= y);
-  return { torsoLH, headAhead, tailHighest, ok: torsoLH >= 1.6 && headAhead && tailHighest };
+// ---------- the chicken's shape (Brian's sheet, 2026-11-18) ----------
+/** One tall box: the head as wide as the body and standing on it, flush at the front, the beak ahead of the face, the
+ * tail lower than the head's top and behind the body. */
+export function chickenOrientation(m: AnimalModel): { sameWidth: boolean; headOnTop: boolean; flushFront: boolean; beakAhead: boolean; tailLow: boolean; ok: boolean } {
+  const c = m.cells, t = bbox(c.body), h = bbox(c.head), b = bbox(c.beak), tl = bbox(c.tail);
+  const sameWidth = h.w === t.w, headOnTop = h.y0 === t.y1 + 1, flushFront = h.z1 === t.z1, beakAhead = b.z0 > h.z1, tailLow = tl.y1 < h.y1 && tl.z0 < t.z0;
+  return { sameWidth, headOnTop, flushFront, beakAhead, tailLow, ok: sameWidth && headOnTop && flushFront && beakAhead && tailLow };
 }
 
-// ---------- 7.8 the sheep's head ----------
-export function sheepHead(m: AnimalModel): { wider: boolean; muzzleAbove: boolean; topNearBack: boolean; earsLong: boolean; ok: boolean } {
+// ---------- the sheep's head (Brian's sheet, 2026-11-18) ----------
+/** A face wider than tall, set into the fleece and standing proud of its front, under the fleece's top, ears out to the
+ * sides three cells or more. */
+export function sheepHead(m: AnimalModel): { wider: boolean; faceProud: boolean; underFleece: boolean; earsOut: boolean; ok: boolean } {
   const c = m.cells, h = bbox(c.head), t = bbox(c.body), e = bbox(c.ear0);
-  const wider = h.w > h.h, muzzleAbove = h.y0 > (t.y0 + t.y1) / 2, topNearBack = Math.abs(h.y1 - t.y1) <= 2, earsLong = Math.max(e.w, e.l) >= 4;
-  return { wider, muzzleAbove, topNearBack, earsLong, ok: wider && muzzleAbove && topNearBack && earsLong };
+  const wider = h.w > h.h, faceProud = h.z1 > t.z1, underFleece = h.y1 <= bbox(c.body, c.hood).y1, earsOut = e.w >= 2;
+  return { wider, faceProud, underFleece, earsOut, ok: wider && faceProud && underFleece && earsOut };
 }
 
 // ---------- 4.5 garments ----------

@@ -4,13 +4,14 @@ import { SceneBoundary } from '../perf/SceneBoundary';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
-import { ACESFilmicToneMapping, Color, MeshBasicMaterial, SRGBColorSpace, Vector3 } from 'three';
+import { Color, MeshBasicMaterial, SRGBColorSpace, Vector3 } from 'three';
 import type { Group, Mesh, MeshLambertMaterial, PerspectiveCamera, PointLight } from 'three';
 import { voxelMaterial } from '../voxel/material';
 import { BEAM, BED, bedroomGeometry, CANDLE, CLOCK, drowsyAt, EYE_TOP, farmerGeometry, farmerRubArm, farmerSitting, foldedQuilt, HEAD_PIVOT, HIP, LAMP, quiltSat, roomOn, settleAt, SHOULDER, SITTING, smooth, STIR_MS, stirAt } from './bedroom';
 import type { Phase, StageLive } from './DreamStage';
 import { STUMBLE_MS } from '../../dream/dream';
 import { WAKE } from './stage';
+import { LOOK } from '../look';
 
 /** From the foot of the bed on the lamp side: his face left of centre, the window and the nightstand to his right. */
 const CAMERA = { position: [2.3, 1.4, 1.05] as const, target: [0.35, 1.0, -0.4] as const, fov: 29 };
@@ -54,7 +55,7 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
           // rattles thirty times a second, which a slow rate would show standing still) and once the bubble is the room.
           fps={phase === 'crashed' || room ? undefined : BUBBLE_FPS}
           flat={false}
-          gl={{ antialias: true, alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1 }}
+          gl={{ antialias: true, alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1 }}
           camera={{ fov: CAMERA.fov, position: [...CAMERA.position], near: 0.05, far: 20 }}
           onCreated={({ camera }) => camera.lookAt(...CAMERA.target)}
         >

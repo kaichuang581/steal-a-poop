@@ -54,6 +54,8 @@ export interface Member {
 
 export interface Room {
   code: string;
+  /** 'fr' for a French table (French word list, matched only with French players); absent is English. */
+  lang?: 'fr';
   name: string;
   visibility: Visibility;
   hostId: string;

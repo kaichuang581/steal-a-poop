@@ -115,130 +115,17 @@
 /* The caret after a bot's half-typed word on its tag. */
 .sk-caret { display: inline-block; width: 0; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; border-left: 2px solid var(--ink); animation: sk-blink 1s steps(1) infinite; }
 
-/* ---------- Title screen (the start screen as a game screen) ---------- */
-
-/* Title: a carved plank with snow on top, and the last word hanging below as letter tiles on ropes. */
-.sk-title { --title-tile: 64px; position: relative; display: inline-flex; flex-direction: column; align-items: flex-start; }
-.sk-title-compact { --title-tile: 52px; align-items: center; }
-.sk-title-plank { margin-top: 10px; padding: 12px 34px 9px; animation: sk-title-drop 600ms var(--ease-spring) both; }
-.sk-title-lead {
-  display: block; font-family: var(--skin-font-display); font-weight: 800; letter-spacing: 0.12em;
-  font-size: calc(var(--title-tile) * 0.42); line-height: 1; color: var(--button-text);
-  /* Carved into the board: dark cut above, light lip below. */
-  text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.75), 0 1px 0 rgba(255, 220, 170, 0.35), 0 3px 4px rgba(40, 24, 10, 0.35);
-}
-.sk-title-snow { position: absolute; left: -6px; right: -4px; top: -13px; width: calc(100% + 10px); height: 26px; overflow: visible; pointer-events: none; }
-/* Iron nail heads holding a board up. */
-.sk-nail-l { left: 11px; top: 50%; transform: translateY(-30%); }
-.sk-nail-r { right: 11px; top: 50%; transform: translateY(-30%); }
-.sk-title-tiles { display: flex; gap: calc(var(--title-tile) * 0.12); padding: calc(var(--title-tile) * 0.32) calc(var(--title-tile) * 0.25) 0; }
-.sk-title-compact .sk-title-tiles { padding-left: 0; padding-right: 0; }
-/* A one-word title of six or more letters (Fleeced): the tiles shrink until the row fits the screen. */
-.sk-title-compact.sk-title-long { --title-tile: min(52px, calc((100vw - 32px) / 10.6)); }
-.sk-title-tile {
-  --tile-w: var(--title-tile); width: var(--title-tile); height: calc(var(--title-tile) * 1.08); font-size: calc(var(--title-tile) * 0.7);
-  transform-origin: 50% calc(var(--title-tile) * -0.32);
-  animation: sk-title-hang 700ms var(--ease-spring) both, sk-title-sway 4.6s ease-in-out infinite;
-}
-.sk-title-rope { left: 50%; top: calc(var(--title-tile) * -0.34); width: 3px; height: calc(var(--title-tile) * 0.34); transform: translateX(-50%); }
-.sk-title-cap { position: absolute; left: -3px; right: -3px; top: -7px; width: calc(100% + 6px); height: 15px; overflow: visible; pointer-events: none; }
-/* The chain letter: the one the next word must start with. */
-/* Its glow: a colour-dodge layer over the tile that brightens what is under it by 12% (the old
-   brightness(1.12) filter, which repainted every frame) as it fades in. The swaying tile isolates it from the scene. */
-.sk-title-tile-next::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: color-mix(in srgb, #FFF 10.6%, #000); mix-blend-mode: color-dodge;
-  opacity: 0; animation: sk-title-glow 2.2s ease-in-out infinite; animation-delay: inherit;
-}
-.sk-title-tagline {
-  /* Hand-lettered under the tiles, each phrase strung on with a little ball of yarn; a soft dark glow keeps it
-     readable over the snow without a banner behind it. */
-  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin-top: 12px; padding-left: 6px;
-  font-family: var(--skin-font-hand); font-size: 20px; line-height: 1.2; color: var(--button-text);
-  text-shadow: 0 1px 0 rgba(30, 18, 8, 0.9), 0 0 10px rgba(30, 18, 8, 0.75), 0 0 22px rgba(30, 18, 8, 0.5);
-  animation: sk-title-fade 500ms 600ms var(--ease-out) both;
-}
-.sk-title-holly { position: absolute; top: -8px; left: -14px; z-index: 2; width: 58px; height: auto; filter: drop-shadow(0 2px 2px rgba(30, 18, 8, 0.6)); }
-/* The update's name on a red board. On a computer TitleBoard puts it inside the sign, and it hangs just past the sign's
-   right edge: clear of the last tile whatever the title's length (a fixed 342px lay over the D of a seven-letter word),
-   and out of the column's flow, so the menu under the title does not move. */
-.sk-title-sign { position: relative; }
-.sk-update {
-  position: absolute; top: 8px; left: calc(100% + 8px); width: 150px; padding: 8px 10px 5px; text-align: center; transform: rotate(4deg);
-  font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; line-height: 1.3; color: var(--button-text);
-}
-.sk-title-compact .sk-update { position: static; display: block; width: fit-content; margin: 4px auto 0; font-size: 15px; transform: rotate(-1.5deg); }
-.sk-title-compact .sk-title-tagline { justify-content: center; padding-left: 0; font-size: 18px; }
-.sk-title-tag-part { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
-.sk-title-tag-part svg { filter: drop-shadow(0 1px 2px rgba(30, 18, 8, 0.7)); }
-@keyframes sk-title-drop { from { transform: translateY(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* ---------- Home ----------
+   Home's own styles are src/skin/home/home.css ("Word chain", 2026-11-20). What stays here is shared. */
 @keyframes sk-title-hang { from { transform: translateY(-60px) rotate(-12deg); opacity: 0; } to { opacity: 1; } }
-@keyframes sk-title-sway { 0%, 100% { rotate: -2.2deg; } 50% { rotate: 2.2deg; } }
-@keyframes sk-title-glow { 50% { opacity: 1; } }
 @keyframes sk-title-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
-/* Menu: carved labels on a dark wash, a lantern beside the one in focus. */
-.sk-menu-row { animation: sk-menu-in 420ms var(--ease-out) both; }
-.sk-menu-item {
-  position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px;
-  padding: 6px 16px 6px 10px; border-radius: 3px; text-align: left;
-  font-family: var(--skin-font-display); font-weight: 800; font-size: 26px; letter-spacing: 0.01em;
-  color: var(--button-text); text-shadow: 0 2px 0 rgba(30, 18, 8, 0.55);
-  transition: background var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out), color var(--t-fast);
-}
-.sk-menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
-.sk-menu-item[data-active] { transform: translateX(10px); color: #fff; }
-/* The lantern and the lit row are the focus indicator; a left amber bar keeps it visible without colour cues. The
-   decoration goes only with a lit row: a row that merely kept focus after a click shows nothing. */
-:root[data-skin="painted"] .sk-menu-item:focus-visible { outline: none; }
-:root[data-skin="painted"] .sk-menu-item[data-active]:focus-visible { box-shadow: inset 4px 0 0 var(--amber); }
-:root[data-skin="painted"] .sk-menu-primary[data-active]:focus-visible { box-shadow: inset 4px 0 0 var(--amber), 0 6px 0 rgba(20, 30, 20, 0.45), var(--shadow-warm); }
-.sk-menu-lantern { display: grid; place-items: center; width: 32px; opacity: 0; transform: translateX(-6px) scale(0.8); transition: opacity var(--t-fast), transform var(--t-fast) var(--ease-spring); }
-.sk-menu-item[data-active] .sk-menu-lantern { opacity: 1; transform: none; filter: drop-shadow(0 0 8px rgba(255, 196, 90, 0.9)); }
-.sk-menu-item[data-active] .sk-menu-lantern svg { animation: sk-flicker 0.9s ease-in-out infinite; }
-.sk-menu-primary { min-height: 78px; font-size: 44px; letter-spacing: 0.04em; margin: 12px 0 8px; padding-left: 16px; }
-.sk-menu-primary[data-active] { transform: translateX(10px) scale(1.02); }
-.sk-menu-snow { position: absolute; left: -8px; right: -6px; top: -17px; width: calc(100% + 14px); height: 28px; overflow: visible; pointer-events: none; }
 .sk-nail-tl { left: 7px; top: 7px; }
 .sk-nail-tr { right: 7px; top: 7px; }
 .sk-nail-bl { left: 7px; bottom: 7px; }
 .sk-nail-br { right: 7px; bottom: 7px; }
-.sk-menu-primary:active:not(:disabled) { transform: translateX(10px) translateY(3px); box-shadow: 0 3px 0 rgba(20, 30, 20, 0.45); }
-.sk-menu-badge { margin-left: auto; }
-.sk-menu-caption {
-  /* A fixed height: captions run one to three lines, and a growing caption would shift the (vertically centred) menu
-     under the pointer, which then hovers the next item and flickers between the two. */
-  height: 3.9em; overflow: hidden; margin-top: 10px; padding-left: 54px; font-family: var(--skin-font-hand); font-size: 20px; line-height: 1.3;
-  color: var(--glow); text-shadow: 0 1px 2px rgba(30, 18, 8, 0.8);
-}
-.sk-menu-compact .sk-menu-item { font-size: 22px; min-height: 48px; }
-.sk-menu-compact .sk-menu-item[data-active] { transform: none; }
-.sk-menu-compact .sk-menu-primary { font-size: 34px; min-height: 64px; justify-content: center; }
-.sk-menu-compact .sk-menu-primary[data-active] { transform: none; }
-.sk-menu-compact .sk-menu-caption { padding-left: 12px; text-align: center; font-size: 17px; height: 3.9em; }
-@keyframes sk-menu-in { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
-
-/* The washes that keep text readable over the farm, and the bottom bar of button prompts and tips. */
-.sk-wash-left { background: linear-gradient(90deg, rgba(28, 20, 14, 0.62) 0%, rgba(28, 20, 14, 0.38) 34%, rgba(28, 20, 14, 0) 58%); }
-.sk-wash-bottom { background: linear-gradient(0deg, rgba(28, 20, 14, 0.78) 0%, rgba(28, 20, 14, 0.5) 45%, rgba(28, 20, 14, 0) 72%); }
-.sk-prompt { display: inline-flex; align-items: center; gap: 6px; }
-.sk-key { min-width: 26px; height: 26px; padding: 0 6px; font-family: var(--skin-font-body); font-weight: 900; font-size: 13px; }
-.sk-tip { animation: sk-title-fade 500ms var(--ease-out) both; }
-/* The box with your name is the way into your profile: one button, your name over a line that says so. */
-.sk-plate-id { display: flex; flex-direction: column; gap: 1px; min-width: 6.5rem; max-width: 12rem; text-align: left; }
-.sk-plate-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: inherit; line-height: 1.15; color: inherit; text-shadow: inherit; }
-.sk-plate-sub { font: 400 14px/1.1 var(--skin-font-hand); color: var(--glow); letter-spacing: 0.01em; }
-button.sk-plate { border: 0; color: var(--button-text); transition: transform var(--t-fast) var(--ease-out), filter var(--t-fast); }
-button.sk-plate:hover { filter: brightness(1.12); transform: translateY(-1px); }
-button.sk-plate:active { transform: translateY(1px); }
-button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+/* Lines of a heading or a tip share the words evenly: no single word left on a line of its own (2026-11-20). */
+:root[data-skin="painted"] :is(h1, h2, h3, .sk-notice-title, .sk-notice-sub) { text-wrap: balance; }
 .sk-plate { display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 10px; font-family: var(--skin-font-body); font-weight: 800; }
-
-:root[data-skin="painted"].reduce-motion :is(.sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip),
-:root[data-skin="painted"].reduce-motion .sk-menu-item[data-active] .sk-menu-lantern svg,
-:root[data-skin="painted"].reduce-motion .sk-title-tile-next::after { animation: none; }
-@media (prefers-reduced-motion: reduce) {
-  .sk-title-plank, .sk-title-tile, .sk-title-tagline, .sk-menu-row, .sk-tip, .sk-menu-item[data-active] .sk-menu-lantern svg, .sk-title-tile-next::after { animation: none; }
-}
 
 /* ---------- Cursors: the usual arrow and pointing hand, drawn as pixel art in the skin's palette ----------
    Cream with a wood outline and a soft shadow (src/skin/assets/cursors). SVG first (sharp at any pixel ratio), a PNG
@@ -566,6 +453,8 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 }
 .sk-guide-tabs button[aria-selected="true"] { color: var(--ink); background: var(--paper); translate: 0 3px; box-shadow: 2px -2px 0 rgba(59, 48, 40, 0.18); }
 .sk-guide-body { min-height: 0; flex: 1; overflow-y: auto; padding: 14px 16px 18px; }
+.sk-settings { max-width: 24rem; }
+.sk-settings-rows { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 6px 4px; }
 .sk-guide-basic { display: flex; align-items: center; gap: 14px; padding: 10px 4px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
 .sk-guide-basic h3, .sk-guide-basic dt { font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; color: var(--wood-ink); }
 .sk-guide-basic p, .sk-guide-basic dd { font-size: 15px; line-height: 1.4; color: var(--ink); }
@@ -590,20 +479,6 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   background: var(--wood-dark) !important;
 }
 
-/* ---------- The menu board: everything under Play ---------- */
-.sk-menu-board { position: relative; margin: 4px 6px 0; padding: 8px 8px 0; }
-.sk-menu-board .sk-menu-row + .sk-menu-row { border-top: 1px solid rgba(20, 12, 6, 0.45); box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.07); }
-.sk-menu-board .sk-menu-item { min-height: 46px; font-size: 23px; }
-.sk-menu-board .sk-menu-item[data-active] { transform: translateX(6px); }
-.sk-menu-icon { display: grid; place-items: center; width: 26px; flex: none; color: var(--glow); filter: drop-shadow(0 1px 0 rgba(20, 12, 6, 0.8)); }
-.sk-menu-board .sk-menu-lantern { width: 22px; margin-right: -4px; }
-.sk-menu-board .sk-menu-caption {
-  /* Still a fixed height (three lines), so a longer caption never shifts the menu under the pointer. */
-  margin: 6px -8px 0; padding: 8px 16px 10px; height: calc(3.9em + 18px); border-top: 1px solid rgba(20, 12, 6, 0.5); font-size: 17px;
-}
-.sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 21px; min-height: 46px; }
-.sk-menu-compact .sk-menu-board .sk-menu-caption { height: calc(3.9em + 18px); font-size: 16px; }
-
 /* ---------- Table setup: a paper card under a snowy wooden header ---------- */
 .sk-setup { overflow: visible; }
 .sk-setup-head { position: relative; display: flex; align-items: center; justify-content: space-between; margin: 0 0 4px; padding: 10px 0 2px; }
@@ -621,69 +496,9 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 :root[data-skin="painted"] .classic-panel-title { font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 24px !important; color: var(--glow) !important; text-shadow: 0 -2px 0 rgba(20, 12, 6, 0.7); }
 :root[data-skin="painted"] .classic-panel [role="tab"][aria-selected="true"] { background: var(--glow) !important; color: var(--wood-ink) !important; }
 
-/* ==============================================================================================================
-   Start screen, second pass: fewer materials. The title sign is the one carved, snowy object; everything else is quiet
-   type over the scene, one clear green button, and frosted corner controls. (Scoped to .sk-home so it wins cleanly.)
-   ===================================================================================================================== */
-.sk-home .sk-title-tagline { font-size: 20px; color: #FFF1D6; max-width: 27rem; }
-.sk-home .sk-title-tag-part { white-space: normal; }
-
-/* A deeper, softer shade behind the left column so the type reads without boxes. */
-.sk-home .sk-wash-left { background: linear-gradient(90deg, rgba(24, 16, 10, 0.72) 0%, rgba(24, 16, 10, 0.5) 28%, rgba(24, 16, 10, 0.18) 46%, rgba(24, 16, 10, 0) 60%); }
-
-/* Setup: a clean paper card; the title and Back in plain type, Sit down matching Play. */
+/* The setup card on the start screen: Back in plain type, Sit down matching Queue. */
 .sk-home .sk-setup-back:hover { color: var(--ink); }
 .sk-home .sk-sit { min-height: 58px; color: var(--button-text) !important; }
-/* Badges follow their label instead of floating at the far edge. */
-.sk-home .sk-menu-board .sk-menu-badge { margin-left: 4px; }
-
-
-/* ---------- Start screen, third pass ---------- */
-/* Play keeps its painted, framed, snow-capped sign; its triangle sits in a small cream disc. */
-.sk-home .sk-menu-play-icon { flex: none; width: 34px; height: 34px; padding: 6px; color: var(--cloth-dark); cursor: inherit; }
-
-/* Corner controls: filled, warm cream discs with the pixel icons in dark wood; the name plate the same. */
-.sk-home .sk-plate-avatar { width: 34px; height: 34px; cursor: default; }
-
-
-/* ---------- Start screen, fifth pass: cozy ---------- */
-/* Play: the painted green sign in its wooden frame, with snow, nails and a faint warm glow around the frame. */
-.sk-home .sk-menu-primary {
-  box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.22), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink),
-    0 7px 0 rgba(40, 24, 10, 0.45), 0 0 28px rgba(255, 210, 140, 0.28), var(--shadow-warm);
-}
-
-/* The rest of the menu: a soft cream card of felted wool with a stitched edge, like the quilt in the farmer's bed. */
-.sk-home .sk-menu-board .sk-menu-row + .sk-menu-row { border: 0; box-shadow: none; background: none; }
-.sk-home .sk-menu-board .sk-menu-item { position: relative; z-index: 1; min-height: 48px; padding: 0 12px 0 18px; gap: 12px; font-size: 23px; transform: none; }
-.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(122, 106, 88, 0.6); opacity: 1; }
-:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item:focus-visible { outline: none; }
-:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item[data-active]:focus-visible { box-shadow: inset 0 0 0 2px var(--amber); }
-.sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { text-align: center; }
-.sk-home .sk-menu-compact .sk-menu-board .sk-menu-item { font-size: 21px; min-height: 46px; justify-content: flex-start; }
-
-/* Tags: little stitched patches in soft colours. */
-
-/* ---------- Start screen, sixth pass: no card; only the row in focus gets the felt patch ---------- */
-.sk-home .sk-menu-board { background: none; box-shadow: none; padding: 0; margin: 12px 0 0; }
-.sk-home .sk-menu-board::after { display: none; }
-.sk-home .sk-menu-board .sk-menu-item {
-  color: #F8EBD0; text-shadow: 0 2px 0 rgba(30, 18, 8, 0.6), 0 0 12px rgba(30, 18, 8, 0.55);
-}
-.sk-home .sk-menu-board .sk-menu-item:disabled { color: rgba(248, 235, 208, 0.45); }
-/* The row in focus: a cream felt patch with stitching just inside its edge. */
-.sk-home .sk-menu-board .sk-menu-item[data-active] { color: var(--wood-ink); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); }
-:root[data-skin="painted"] .sk-home .sk-menu-board .sk-menu-item[data-active]:focus-visible { outline: 2px dashed rgba(181, 127, 74, 0.7); outline-offset: -6px; }
-.sk-home .sk-menu-board .sk-menu-caption {
-  margin: 10px 0 0; padding: 10px 0 0 18px; border-top: 2px dashed rgba(255, 217, 138, 0.35);
-  color: #F6E4BE; text-shadow: 0 1px 0 rgba(30, 18, 8, 0.8), 0 0 10px rgba(30, 18, 8, 0.6);
-}
-.sk-home .sk-menu-compact .sk-menu-board .sk-menu-caption { padding-left: 0; }
-/* No amber marker on the felt patch: the patch alone shows the row in focus. */
-.sk-home .sk-menu-board .sk-menu-item::before { display: none; }
-
-/* The title's plank sits centred over its hanging tiles. */
-.sk-title-sign { display: inline-flex; flex-direction: column; align-items: center; }
 
 /* ---------- Alarm: the barn's emergency board, full width, for faster turns and twists ----------
    A hazard-striped plank right across the screen, lamps blinking, the board throbbing with its colour, the edges of
@@ -1011,28 +826,10 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 @media (prefers-reduced-motion: reduce) { .sk-jump, .sk-wordblast { display: none; } }
 
 
-/* Short windows: a smaller title sign, so the menu fits between the name plate and the bottom bar. */
-@media (max-height: 800px) and (min-width: 641px) {
-  .sk-title { --title-tile: 46px; }
-  .sk-title-plank { margin-top: 4px; padding-top: 8px; padding-bottom: 6px; }
-  .sk-menu-item:not(.sk-menu-primary) { min-height: 38px; padding-top: 3px; padding-bottom: 3px; }
-  /* The start screen's own row rule (.sk-home .sk-menu-board .sk-menu-item, 48 px) is heavier and used to win here, so
-     on a 1280 x 720 laptop the caption ran under the bottom bar; with Leaderboards added (eight rows) it is a step
-     heavier on purpose. */
-  .sk-home .sk-menu-board .sk-menu-row .sk-menu-item:not(.sk-menu-primary) { min-height: 38px; font-size: 22px; }
-  .sk-home .sk-menu-board .sk-menu-row .sk-menu-primary { min-height: 68px; margin: 10px 0 4px; }
-  .sk-home .sk-menu-board .sk-menu-caption { margin-top: 6px; padding-top: 6px; }
-}
-@media (max-height: 740px) and (min-width: 641px) {
-  .sk-home .sk-menu-board .sk-menu-row .sk-menu-item:not(.sk-menu-primary) { min-height: 35px; font-size: 21px; }
-  .sk-home .sk-menu-board .sk-menu-row .sk-menu-primary { min-height: 64px; }
-}
 /* A phone on its side gets the phone layout (usePhoneLayout in device.ts) in a window wider than 640 px. The row of
-   names runs five across there, so ten seats are two rows and the word bar stays on screen; and the menu's rows keep a
-   finger's height (the two short-window rules above are for a computer's menu and would shrink them). */
+   names runs five across there, so ten seats are two rows and the word bar stays on screen. */
 @media (max-height: 500px) and (pointer: coarse) and (min-width: 641px) {
   .sk-ledger-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .sk-home .sk-menu-compact .sk-menu-board .sk-menu-row .sk-menu-item:not(.sk-menu-primary) { min-height: 46px; font-size: 21px; }
 }
 
 /* ---------- Rooms and the lobby (classic components, V6 6.5): a panel of planks, paper fields, brass and wood buttons ---------- */
@@ -1131,6 +928,7 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
 .sk-final-stat span { font: 400 14px/1.1 var(--skin-font-hand); color: rgba(255, 255, 255, 0.72); }
 .sk-final-stat[data-beat] b { color: #F4D27A; }
 .sk-final-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sk-final-actions > * { white-space: nowrap; } /* "Back to the farm" broke onto two lines on a phone */
 .sk-final-show {
   position: fixed; z-index: 45; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); padding: 10px 16px;
   border: 0; border-radius: 4px; background: rgba(14, 10, 8, 0.66); color: #fff; font: 700 15px/1 var(--skin-font-body); cursor: pointer; backdrop-filter: blur(6px);
@@ -1139,48 +937,12 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   .sk-final-wrap { align-items: flex-end; justify-content: center; padding: 10px; }
   .sk-final { max-height: 52vh; padding: 16px 16px 14px; gap: 10px; }
   .sk-final-rows { display: none; } /* the podium already shows every place on a phone */
-  .sk-final-stats { grid-template-columns: 1fr; }
+  .sk-final-stats { grid-template-columns: 1fr 1fr; } /* side by side: one a row pushed the buttons out of sight */
   .sk-final-title { font-size: 21px; }
   .sk-pod-name { font-size: 13px; padding: 4px 9px; }
 }
 :root.reduce-motion .sk-podium, :root.reduce-motion .sk-final { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-podium, .sk-final { animation: none; } }
-
-/* The word of the day (src/skin/wotd/WordOfDay.tsx), set like a dictionary entry and floating in the scene: no paper.
-   White on a dark outline and glow, like the table's floating letters, so it reads over snow, sky and barn alike. The
-   block hangs at a slight tilt and sways like the title's tiles. It never takes clicks. */
-.sk-wotd {
-  --wotd-edge: #2A1A0C;
-  display: flex; flex-direction: column; gap: 3px; pointer-events: none; color: #fff;
-  rotate: -3deg; transform-origin: 70% 0; animation: sk-wotd-sway 7s ease-in-out infinite;
-  text-shadow: 1px 1px 0 var(--wotd-edge), -1px 1px 0 var(--wotd-edge), 1px -1px 0 var(--wotd-edge), -1px -1px 0 var(--wotd-edge), 0 2px 0 var(--wotd-edge), 0 0 12px rgba(30, 16, 6, 0.9);
-}
-@keyframes sk-wotd-sway { 0%, 100% { rotate: -3deg; } 50% { rotate: -1.8deg; } }
-.sk-wotd-label { font: 400 22px/1 var(--skin-font-hand); color: var(--glow); letter-spacing: 0.02em; }
-.sk-wotd-word {
-  font: 800 clamp(44px, 3.8vw, 64px)/1 var(--skin-font-display); letter-spacing: 0.02em;
-  text-shadow: 0 3px 0 #5B3A1E, 2px 2px 0 var(--wotd-edge), -2px 2px 0 var(--wotd-edge), 2px -1px 0 var(--wotd-edge), -2px -1px 0 var(--wotd-edge), 0 0 18px rgba(30, 16, 6, 0.85);
-}
-/* The dictionary line: how to say it, small, and the part of speech in italics. */
-.sk-wotd-say { display: flex; align-items: baseline; gap: 10px; font: 600 15px/1.1 var(--skin-font-body); letter-spacing: 0.04em; color: #FFE9C7; }
-.sk-wotd-pos { font: italic 400 19px/1 var(--skin-font-display); letter-spacing: 0; color: var(--glow); }
-/* A strand of yarn between the entry and its meaning, like the one the tagline hangs on. */
-.sk-wotd-yarn { width: 9rem; height: 0; margin: 5px 0 3px; border-top: 3px dotted rgba(255, 233, 199, 0.85); filter: drop-shadow(0 1px 0 var(--wotd-edge)); }
-.sk-wotd-short { font: 400 25px/1.15 var(--skin-font-hand); }
-/* A computer: on its own on the right, level with the title, clear of everything on the left. */
-.sk-wotd--side { position: absolute; right: 4rem; top: 16%; max-width: 30rem; align-items: flex-end; text-align: right; z-index: 5; }
-/* A phone: two small lines in the strip between the update board and the name plate. */
-.sk-wotd--compact { margin-top: 0; max-width: calc(100vw - 32px); flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 6px; row-gap: 0; text-align: center; rotate: -1deg; animation: none; transform-origin: 50% 50%; }
-.sk-wotd--compact .sk-wotd-label { font-size: 12px; }
-.sk-wotd--compact .sk-wotd-word { font-size: 16px; line-height: 1; letter-spacing: 0.01em; text-shadow: 0 2px 0 #5B3A1E, 1px 1px 0 var(--wotd-edge), -1px 1px 0 var(--wotd-edge), 1px -1px 0 var(--wotd-edge), -1px -1px 0 var(--wotd-edge), 0 0 10px rgba(30, 16, 6, 0.9); }
-.sk-wotd--compact .sk-wotd-say { font-size: 11px; gap: 4px; }
-.sk-wotd--compact .sk-wotd-pos, .sk-wotd--compact .sk-wotd-yarn { display: none; }
-.sk-wotd--compact .sk-wotd-short { flex-basis: 100%; font-size: 13px; line-height: 0.95; }
-:root.reduce-motion .sk-wotd { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-wotd { animation: none; } }
-/* Under a full page (the Trading Post, the leaderboards, the profile) Home's title and word of the day hold still. */
-.sk-home[data-covered] :is(.sk-title, .sk-wotd), .sk-home[data-covered] :is(.sk-title, .sk-wotd) *, .sk-home[data-covered] :is(.sk-title, .sk-wotd) ::before,
-.sk-home[data-covered] :is(.sk-title, .sk-wotd) ::after { animation-play-state: paused; }
 
 /* Home's farm (FarmBackdrop): over a soft sky until the farm and the land round it are built, then it fades in. */
 .sk-farm-fade { opacity: 0; transition: opacity 700ms ease-out; }
@@ -1669,8 +1431,6 @@ button.sk-plate:focus-visible { outline: 3px solid var(--amber); outline-offset:
   .sk-prof-board-row { grid-template-columns: 2.4em minmax(0, 1fr) 6em; padding: 6px 10px; }
   .sk-prof-board-level { display: none; }
 }
-.sk-plate-open { cursor: pointer; text-align: left; }
-.sk-bazaar-btn { width: auto; min-width: 44px; padding: 0 10px; gap: 4px; display: inline-flex; align-items: center; font-weight: 800; }
 /* Frost in the last three seconds: ice creeping in from all four edges, thicker as the fuse burns down. */
 .sk-frost { position: fixed; inset: 0; z-index: 35; pointer-events: none; --t: calc(var(--frost) * 7vmin); }
 .sk-frost > .kit-ice { position: absolute; opacity: calc(0.35 + var(--frost) * 0.5); transition: width 300ms linear, height 300ms linear; }

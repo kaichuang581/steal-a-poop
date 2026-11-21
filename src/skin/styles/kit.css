@@ -69,14 +69,14 @@
 .kit-string--knot::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 7px; height: 7px; transform: translateX(-50%); border-radius: 50%; border: 2px solid #4A3A2C; }
 
 /* The painted sign (the Play board and the setup's Sit down): green paint in a wooden frame, nailed, snow on top. */
-.kit-sign, .sk-menu-primary {
+.kit-sign {
   position: relative; border: 4px solid var(--wood-dark); border-radius: 3px; color: var(--button-text);
   background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px, rgba(0, 0, 0, 0.06) 7px 8px, transparent 8px 12px), linear-gradient(180deg, #7DB583 0 9%, var(--cloth-dark) 9% 88%, #2C4C34 88%);
   box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.22), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink), 0 7px 0 rgba(40, 24, 10, 0.45), 0 12px 22px rgba(40, 24, 10, 0.3);
   text-shadow: 0 -2px 0 rgba(20, 30, 20, 0.6), 0 2px 0 rgba(20, 30, 20, 0.45);
   font-family: var(--skin-font-display); font-weight: 800;
 }
-.kit-sign[data-active], .sk-menu-primary[data-active], button.kit-sign:hover:not(:disabled) {
+.kit-sign[data-active], button.kit-sign:hover:not(:disabled) {
   background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 7px, rgba(0, 0, 0, 0.06) 7px 8px, transparent 8px 12px), linear-gradient(180deg, #8BC891 0 9%, #467654 9% 88%, #2C4C34 88%);
   box-shadow: inset 0 0 0 2px rgba(255, 240, 210, 0.3), inset 0 -4px 0 rgba(20, 30, 20, 0.35), 0 0 0 2px var(--wood-ink), 0 0 0 5px rgba(255, 196, 90, 0.45), 0 7px 0 rgba(40, 24, 10, 0.45), 0 12px 26px rgba(255, 196, 90, 0.3);
 }
@@ -196,13 +196,6 @@ button.kit-sign:disabled { opacity: 0.5; cursor: not-allowed; }
 .kit-patch:disabled { cursor: not-allowed; outline-color: rgba(122, 106, 88, 0.4); }
 button.kit-patch, button.sk-chip { cursor: pointer; transition: transform var(--t-fast) var(--ease-out); }
 button.sk-chip:active:not(:disabled), button.kit-patch:active:not(:disabled) { transform: translateY(1px); }
-
-/* A menu row in focus: a cream patch stitched over the scene. */
-.kit-patch-row[data-active] {
-  background: repeating-linear-gradient(45deg, rgba(59, 48, 40, 0.06) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.2) 0 1px, transparent 1px 3px), #F3E7CC;
-  outline: 2px dashed #7A6A58; outline-offset: -6px; border-radius: 0;
-  box-shadow: 1px 2px 0 rgba(59, 48, 40, 0.3), 0 6px 0 -2px rgba(30, 18, 8, 0.25);
-}
 
 /* ---------- Knit ---------- */
 .kit-knit {

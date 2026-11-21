@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { foldAccents } from '../../lib/lang';
 import type { MouseEvent } from 'react';
 import type { MessageView } from '../model/types';
 import { BookIcon } from './Icons';
@@ -51,7 +52,7 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
   const mode = out ? 'out' : myTurn ? 'mine' : 'wait';
   const prompt = {
     mine: <>Your turn: type a word starting with <b>{L}</b> and press Enter</>,
-    wait: <>{turnName}’s turn. Get ready</>,
+    wait: <>{`${turnName}’s turn. Get ready`}</>,
     out: <>You’re frozen solid: out of wool. Watch who’s the last sheep standing</>,
   }[mode];
   const placeholder = { mine: 'type your word…', wait: 'type ahead…', out: '' }[mode];
@@ -92,7 +93,7 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
               ref={ref}
               value={typed}
               disabled={out}
-              onChange={(e) => onChange(e.target.value.replace(/[^a-zA-Z]/g, ''))}
+              onChange={(e) => onChange(foldAccents(e.target.value).replace(/[^a-zA-Z]/g, ''))}
               onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); }}
               onBlur={(e) => {
                 if (!e.relatedTarget) requestAnimationFrame(() => ref.current?.focus());

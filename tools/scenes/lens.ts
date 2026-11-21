@@ -399,7 +399,7 @@ const PINS: Record<string, string[]> = {
     'const front = frontInside();',
   ],
   'src/skin/table/FarmBackdrop.tsx': [
-    '<Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} />',
+    '<Drift shots={phone ? POV_SHOTS.phone : POV_SHOTS.desktop} veil={veil} spot={spot} bounce={bounce} reduced={reduced} ready={ready} hour={hour} />',
     'const dx = reduced ? 0 : Math.cos(t) * 0.25;',
     'const dy = reduced ? 0 : Math.sin(t) * 0.12;',
     'camera.position.set(shot.position[0] + dx + shot.push[0] * k, shot.position[1] + dy + shot.push[1] * k, shot.position[2] + shot.push[2] * k);',

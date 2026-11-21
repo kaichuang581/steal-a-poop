@@ -2,8 +2,9 @@ import type { BufferGeometry } from 'three';
 import { buildGeometry, packGeometry, triangles as tris } from '../voxel/mesher';
 import { each, finish } from './slices';
 import type { Steps } from './slices';
-import { IRIS, lin, pick, T } from '../voxel/palette';
-import type { Tone } from '../voxel/palette';
+import { IRIS, lin, T } from '../voxel/palette';
+import { noteShade } from '../voxel/groundShade';
+import { byPart, paint, seededPart, shade, solid } from '../voxel/paint';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { BARN, HEAP, SEAT_RING, seatPosition } from './layout';
@@ -20,7 +21,8 @@ const C = 0.04;
 export const CAT_SPOT: V3 = [-4.9, 1.5, 6.1];
 export const ROBIN_SPOT: V3 = [1.2, 4.6, 1.05]; // on the cross beam's top (y 4.6), over its middle (z 0.9 to 1.2)
 
-const tone = (t: Tone, seed: number, w?: readonly [number, number]): Paint => (x, y, z) => pick(t, hash3(x, y, z, seed), w);
+/** The steps the wall boards take, by board number (docs/miniature/01, section 5): the same in `barnShell` (farmstead.ts), whose boards continue these. */
+const BOARD_STEPS = [0, -1, 0, 1] as const;
 const I = (m: number) => Math.round(m / S);
 
 /** Inclusive index box; `chamfer` names the long axis whose four edges lose one voxel. */
@@ -45,55 +47,37 @@ const inBackDoor = (x: number, y: number) => x >= I(BARN.backDoor.minX) && x < I
 const SD = { z0: I(BARN.sideDoor.z - BARN.sideDoor.width / 2), z1: I(BARN.sideDoor.z + BARN.sideDoor.width / 2) - 1, y1: I(BARN.sideDoor.height) - 1 };
 const inSideDoor = (y: number, z: number) => z >= SD.z0 && z <= SD.z1 && y <= SD.y1;
 
+/** The barn's own walls as cubes, for the review page (scene/farmstead.ts, `farmPiece`). */
+export const barnWalls = (): Grid => walls();
+
 function walls(): Grid {
   const g = new Grid(S);
-  const knot = lin(T.beam[2]), nail = lin(T.stone[2]), seam = lin(T.barn[2]);
-  // One tone per board: coplanar faces of a plank share a colour, so a wall is a wall, not a grid of tiles.
-  const board = (b: number, seed: number): Paint => () => pick(T.barn, hash3(b, seed, 7, 41));
-  const r = rng(101);
-  let next = 2;
-  const knotAt = (pts: [number, number, number][]) => {
-    for (const [x, y, z] of pts) if (g.has(x, y, z)) g.set(x, y, z, knot);
-  };
+  // One red a board, in a rhythm of four, the same on its inner and its outer face; no knots or nails (they were single
+  // cubes of another colour: the fittings are the micro layer's, docs/miniature/04).
+  const board = (b: number) => solid('barnRed', BOARD_STEPS[b % 4]);
 
-  // Back wall: boards 2 wide, 2 thick, 1-voxel gaps left empty so outside light shows through; gable up to the roof.
+  // Back wall: boards 3 wide, 2 thick, no gaps or seams (thin lines of light and of dark crawled as the camera moved;
+  // Brian, 2026-11-20: "a lot of glitchy textures"); gable up to the roof.
   for (let b = 0, xa = -62; xa <= 61; b++, xa += 3) {
-    const cols = [xa, xa + 1].filter((x) => x <= 61);
+    const cols = [xa, xa + 1, xa + 2].filter((x) => x <= 61);
     const top = Math.min(...cols.map(roofY));
-    const p = board(b, 1);
-    for (const x of cols) for (let y = 0; y < top; y++) if (!inBackDoor(x, y)) for (const z of [70, 71]) g.set(x, y, z, p(x, y, z)!);
-    const bottom = inBackDoor(xa, 0) ? I(BARN.backDoor.height) : 0;
-    if (top - bottom < 4) continue;
-    g.set(xa, bottom + 1, 70, nail);
-    g.set(xa, top - 2, 70, nail);
-    if (b >= next) {
-      next = b + 2 + Math.floor(r() * 3);
-      const y = bottom + 3 + Math.floor(r() * Math.max(1, top - bottom - 8));
-      knotAt([[xa, y, 70], [xa, y + 1, 70], [cols[cols.length - 1], y, 70]]);
-    }
+    const c = board(b);
+    for (const x of cols) for (let y = 0; y < top; y++) if (!inBackDoor(x, y)) for (const z of [70, 71]) g.set(x, y, z, c);
   }
   // Outside rails behind the gaps (stop short of the door so the open leaves clear them).
-  for (const y0 of [9, 30]) fill(g, -62, 61, y0, y0 + 1, 72, 72, (x, y, z) => (x >= -21 && x <= 20 ? null : pick(T.beam, hash3(x, y, z, 9))));
+  for (const y0 of [9, 30]) fill(g, -62, 61, y0, y0 + 1, 72, 72, (x) => (x >= -21 && x <= 20 ? null : solid('wood', -1)));
 
   // Side walls: boards 3 wide along z, no gaps; the left one has the wolf's side door.
-  for (const [xs, inner, left] of [[[-62, -61], -61, true], [[60, 61], 60, false]] as const) {
-    next = 1;
+  for (const [xs, left] of [[[-62, -61], true], [[60, 61], false]] as const) {
     for (let b = 0, za = -40; za <= 69; b++, za += 3) {
       const zs = [za, za + 1, za + 2].filter((z) => z <= 69);
-      const p = board(b, left ? 2 : 3);
       for (const z of zs)
         for (let y = 0; y < 42; y++) {
           if (left && inSideDoor(y, z)) continue;
-          for (const x of xs) g.set(x, y, z, x === inner && z === za + 2 ? seam : p(x, y, z)!);
+          // The top 0.4 m under the eave a step darker (rule R7.3): Home sees these walls from outside.
+          const c = solid('barnRed', BOARD_STEPS[b % 4] - (y >= 38 ? 1 : 0));
+          for (const x of xs) g.set(x, y, z, c);
         }
-      const bottom = left && inSideDoor(0, za + 1) ? SD.y1 + 1 : 0;
-      g.set(inner, bottom + 1, za + 1, nail);
-      g.set(inner, 40, za + 1, nail);
-      if (b >= next) {
-        next = b + 2 + Math.floor(r() * 3);
-        const y = bottom + 3 + Math.floor(r() * (38 - bottom - 6));
-        knotAt([[inner, y, za], [inner, y, za + 1], [inner, y + 1, za]]);
-      }
     }
   }
   return g;
@@ -108,8 +92,8 @@ function walls(): Grid {
 function frontInside(): BufferGeometry {
   const g = new Grid(S);
   for (let b = 0, xa = -62; xa <= 61; b++, xa += 3) {
-    const c = pick(T.barn, hash3(b, 4, 7, 41));
-    for (let x = xa; x <= Math.min(61, xa + 2); x++) for (let y = 0; y < 42; y++) for (const z of [-42, -41]) g.set(x, y, z, x === xa + 2 ? lin(T.barn[2]) : c);
+    const c = solid('barnRed', BOARD_STEPS[b % 4]);
+    for (let x = xa; x <= Math.min(61, xa + 2); x++) for (let y = 0; y < 42; y++) for (const z of [-42, -41]) g.set(x, y, z, c);
   }
   const geo = buildGeometry(g.map, S);
   const idx = geo.index!, nor = geo.getAttribute('normal');
@@ -121,12 +105,13 @@ function frontInside(): BufferGeometry {
 
 function beams(): Grid {
   const g = new Grid(S);
-  const wood = tone(T.beam, 21, [0.45, 0.9]);
-  const peg = lin(T.beam[0]);
-  const post = (x0: number, z0: number, peg: [number, number]) => {
-    fill(g, x0, x0 + 2, 0, 38, z0, z0 + 2, wood, 1);
-    g.set(peg[0], 36, peg[1], lin(T.beam[0]));
-    g.set(peg[0], 37, peg[1], lin(T.beam[0]));
+  // Posts a step under the plates and rafters, the cross beam and the ridge a step over them, pegs two over.
+  const upright = paint('wood', -1), wood = paint('wood', 0), cross = paint('wood', 1);
+  const peg = solid('wood', 2);
+  const post = (x0: number, z0: number, at: [number, number]) => {
+    fill(g, x0, x0 + 2, 0, 38, z0, z0 + 2, upright, 1);
+    g.set(at[0], 36, at[1], peg);
+    g.set(at[0], 37, at[1], peg);
   };
   for (const z0 of [-40, -5, 12, 33, 67]) post(-60, z0, [-57, z0 + 1]); // left wall, flanking the side door
   for (const z0 of [-40, -5, 19, 44, 67]) post(57, z0, [56, z0 + 1]); // right wall; z 19 carries the cross beam
@@ -140,20 +125,20 @@ function beams(): Grid {
   // The cross beam runs wall to wall over the plates and stands on a post at each end (Brian, 2026-11-09: "a lot of
   // them are floating"): it moved to the lanterns' z long ago and was left hanging between the walls, 0.1 m over the
   // plates and clear of every post, with its two pegs in the air below it. The pegs are in the posts now.
-  fill(g, -60, 59, I(BARN.beamY) - 1, I(BARN.beamY) + 1, bz - 1, bz + 1, wood, 0);
-  for (const x0 of [-60, 57]) fill(g, x0, x0 + 2, 0, I(BARN.beamY) - 2, bz - 1, bz + 1, wood, 1);
+  fill(g, -60, 59, I(BARN.beamY) - 1, I(BARN.beamY) + 1, bz - 1, bz + 1, cross, 0);
+  for (const x0 of [-60, 57]) fill(g, x0, x0 + 2, 0, I(BARN.beamY) - 2, bz - 1, bz + 1, upright, 1);
   for (const x of [-57, 56]) for (const y of [36, 37]) g.set(x, y, bz, peg);
   fill(g, -21, 20, 34, 36, 67, 69, wood, 0); // back door header
   fill(g, -60, -59, SD.y1 + 1, SD.y1 + 3, SD.z0 - 2, SD.z1 + 2, wood, 2); // side door header
 
   // rafters toward the ridge, back half only; roof boards only over z >= 4.0 so the camera's view stays open
   for (const z0 of [19, 35, 51, 67]) for (let x = -60; x <= 59; x++) fill(g, x, x, roofY(x) - 3, roofY(x) - 1, z0, z0 + 2, wood);
-  fill(g, -1, 1, roofY(0) - 3, roofY(0) - 1, 19, 69, wood, 2);
-  const roof = tone(T.roof, 23);
+  fill(g, -1, 1, roofY(0) - 3, roofY(0) - 1, 19, 69, cross, 2);
+  const roof = byPart('roofBrown', [0, -1], (x) => Math.floor((x + 62) / 3)); // roof boards 0.3 m wide, seen from below
   for (let x = -62; x <= 61; x++) fill(g, x, x, roofY(x), roofY(x) + 1, 40, 71, roof);
 
   // rope coil hung on the right wall post at z -0.35
-  const rope: Paint = (x, y, z) => (x >= 57 && x <= 59 && z >= -5 && z <= -3) || x >= 60 ? null : g.has(x, y, z) ? null : pick(T.hay, 0.7 + hash3(x, y, z, 5) * 0.3);
+  const rope: Paint = (x, y, z) => (x >= 57 && x <= 59 && z >= -5 && z <= -3) || x >= 60 ? null : g.has(x, y, z) ? null : solid('straw', -2);
   ring(g, [5.85, 1.45, -0.35], 0.25, 0.25, 0.1, rope);
   ring(g, [5.85, 1.65, -0.35], 0.28, 0.28, 0.1, rope);
   line(g, [5.6, 1.4, -0.6], [5.58, 0.95, -0.4], rope);
@@ -162,7 +147,8 @@ function beams(): Grid {
 }
 
 function bale(g: Grid, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, seed: number, blocked: (x: number, y: number, z: number) => boolean) {
-  const twine = lin(T.beam[2]);
+  // Body, the two end faces a step under it, the twine bands two under; its loose straws a step over.
+  const body = solid('hay', 0), ends = solid('hay', -1), twine = solid('hay', -2), loose = solid('hay', 1);
   const len = x1 - x0 + 1;
   const bands = [0.2, 0.5, 0.8].map((f) => x0 + Math.round(len * f) - 1);
   for (let x = x0 - 1; x <= x1 + 1; x++)
@@ -173,7 +159,7 @@ function bale(g: Grid, x0: number, x1: number, y0: number, y1: number, z0: numbe
         if ((x === x0 || x === x1) && h < 0.15) continue; // ragged end
         if (blocked(x, y, z)) continue;
         const surface = y === y0 || y === y1 || z === z0 || z === z1;
-        g.set(x, y, z, surface && bands.some((b) => x === b || x === b + 1) ? twine : pick(T.hay, h));
+        g.set(x, y, z, surface && bands.some((b) => x === b || x === b + 1) ? twine : x <= x0 || x >= x1 ? ends : body);
       }
   const r = rng(seed);
   for (let i = 0; i < 4; i++) {
@@ -182,7 +168,8 @@ function bale(g: Grid, x0: number, x1: number, y0: number, y1: number, z0: numbe
     let x = end ? (dir < 0 ? x0 - 1 : x1 + 1) : x0 + 1 + Math.floor(r() * (len - 2));
     let y = y0 + Math.floor(r() * (y1 - y0 + 1));
     let z = end ? z0 + 1 + Math.floor(r() * (z1 - z0 - 1)) : z0 - 1;
-    const c = pick(T.hay, r() * 0.5);
+    r(); // the draw that chose a straw's tone: kept, so every straw lies where it lay
+    const c = loose;
     for (let k = 0, n = 2 + Math.floor(r() * 2); k < n; k++) {
       if (!blocked(x, y, z)) g.set(x, y, z, c);
       if (end) x += dir;
@@ -195,7 +182,7 @@ function bale(g: Grid, x0: number, x1: number, y0: number, y1: number, z0: numbe
 
 function props(): Grid {
   const g = new Grid(S);
-  const metal = tone(T.stone, 31), handle = tone(T.beam, 33, [0.3, 0.9]);
+  const metal = paint('stone', 0), handle = paint('wood', 1), iron = solid('iron', 0);
   // rake and pitchfork leaning on the left wall
   line(g, [-5.3, 0.0, -1.0], [-5.95, 1.9, -1.0], handle);
   line(g, [-5.92, 1.95, -1.3], [-5.92, 1.95, -0.7], metal);
@@ -213,7 +200,7 @@ function props(): Grid {
         if (d > 2.3) continue;
         for (let y = 0; y <= 2; y++) if (y === 0 || d > 1.3) g.set(cx + dx, y, cz + dz, metal(cx + dx, y, cz + dz)!);
       }
-    for (const [dx, y] of [[-2, 3], [-1, 4], [0, 4], [1, 4], [2, 3]]) g.set(cx + dx, y, cz, lin(T.stone[2]));
+    for (const [dx, y] of [[-2, 3], [-1, 4], [0, 4], [1, 4], [2, 3]]) g.set(cx + dx, y, cz, iron);
   }
   // milk can: body, shoulder, neck, lid, two side handles
   {
@@ -221,22 +208,22 @@ function props(): Grid {
     const disc = (y: number, r: number, c: Paint) => {
       for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.hypot(dx, dz) <= r) g.set(cx + dx, y, cz + dz, c(cx + dx, y, cz + dz)!);
     };
-    const light = tone(T.stone, 35, [0.8, 0.95]);
+    const light = paint('stone', 1);
     for (let y = 0; y <= 4; y++) disc(y, 2.2, light);
     disc(5, 1.5, light);
     disc(6, 1.0, light);
-    disc(7, 1.5, () => lin(T.stone[2]));
-    g.set(cx - 3, 5, cz, lin(T.stone[2]));
-    g.set(cx + 3, 5, cz, lin(T.stone[2]));
+    disc(7, 1.5, paint('stone', -1));
+    g.set(cx - 3, 5, cz, iron);
+    g.set(cx + 3, 5, cz, iron);
   }
   // wheelbarrow in the right back corner: hollow tray, wheel, two legs, two handles
   {
-    const rim = lin(T.beam[2]);
+    const rim = solid('wood', -1), tray = solid('wood', 0);
     fill(g, 26, 34, 3, 6, 57, 64, (x, y, z) => {
       const wall = x === 26 || x === 34 || z === 57 || z === 64 || y === 3;
-      return wall ? (y === 6 ? rim : pick(T.beam, hash3(x, y, z, 37))) : null;
+      return wall ? (y === 6 ? rim : tray) : null;
     });
-    for (let y = 0; y <= 4; y++) for (let z = 53; z <= 57; z++) if (Math.hypot(y - 2, z - 55) <= 2.2) for (const x of [29, 30]) g.set(x, y, z, Math.hypot(y - 2, z - 55) < 1 ? lin(T.stone[0]) : lin(T.stone[2]));
+    for (let y = 0; y <= 4; y++) for (let z = 53; z <= 57; z++) if (Math.hypot(y - 2, z - 55) <= 2.2) for (const x of [29, 30]) g.set(x, y, z, Math.hypot(y - 2, z - 55) < 1 ? solid('stone', 0) : iron);
     for (const x of [27, 33]) {
       fill(g, x, x, 0, 2, 63, 63, handle);
       line(g, [x * S + 0.05, 0.55, 6.45], [x * S + 0.05, 0.45, 6.85], handle);
@@ -244,11 +231,11 @@ function props(): Grid {
   }
   // feed sack with a 3-voxel patch and a tied neck
   {
-    const sack = tone(T.house, 39);
-    ellipsoid(g, [-2.7, 0.0, 6.35], [0.3, 0.6, 0.25], (x, y, z) => (y < 0 ? null : sack(x, y, z)), 0.1, 4);
-    fill(g, -28, -27, 6, 6, 62, 63, () => lin(T.house[2]));
-    g.set(-28, 7, 63, lin(T.hay[2]));
-    const patch = lin(T.beam[0]);
+    const sack = solid('straw', -1);
+    ellipsoid(g, [-2.7, 0.0, 6.35], [0.3, 0.6, 0.25], (_x, y) => (y < 0 ? null : sack), 0.1, 4);
+    fill(g, -28, -27, 6, 6, 62, 63, paint('straw', -2));
+    g.set(-28, 7, 63, solid('straw', -2));
+    const patch = solid('wood', 2);
     for (const [x, y] of [[-28, 2], [-27, 2], [-28, 3]]) {
       for (let z = 55; z <= 70; z++)
         if (g.has(x, y, z)) {
@@ -259,7 +246,7 @@ function props(): Grid {
   }
   // horseshoe on the door header, open end up
   {
-    const shoe = lin(T.stone[1]);
+    const shoe = solid('stone', 0);
     for (const [x, y] of [[-2, 35], [-2, 36], [-2, 37], [2, 35], [2, 36], [2, 37], [-1, 34], [0, 34], [1, 34]]) g.set(x, y, 66, shoe);
   }
   return g;
@@ -304,50 +291,38 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
     if (v === undefined) near.set(k, (v = seatDistance((x + 0.5) * S, (z + 0.5) * S)));
     return v;
   };
-  const plankTone = (x: number, z: number) => pick(T.beam, hash3(Math.floor((x + 60) / 3), 0, Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25), 51), [0.5, 0.95]);
-  const rr = (SEAT_RING.rx + SEAT_RING.rz) / 2;
+  // Planks: 0.3 m wide along the barn, their ends staggered, a value step or two between neighbours (one tone a plank).
+  const plankTone = seededPart('wood', 51, (x, _y, z) => Math.floor((x + 60) / 3) * 64 + Math.floor((z + 40 + ((x + 60) % 9) * 4) / 25));
+  // The straw: one mat over the middle of the floor, under every seat and out a metre past them, its edge wandering a
+  // little; the planks show round it, along the walls and in the corners. Two planned zones and no more
+  // (docs/miniature/07, section 2): open straw, and a step darker the ring the animals have trodden round the seats.
+  const open = solid('straw', 0), trod = solid('straw', -1);
+  const matEdge = (mx: number, mz: number) => {
+    const dx = mx - SEAT_RING.cx, dz = mz - SEAT_RING.cz, a = Math.atan2(dz, dx);
+    return 5.05 + 0.3 * Math.sin(a * 3 + 1) + 0.2 * Math.sin(a * 7 + 2.3) - Math.hypot(dx, dz); // metres inside the mat's edge
+  };
   for (let x = -60; x <= 59; x++)
     for (let z = -40; z <= 69; z++) {
-      g.set(x, -1, z, plankTone(x, z));
+      g.set(x, -1, z, plankTone(x, -1, z)!);
       if (blocked(x, 0, z)) continue;
       const mx = (x + 0.5) * S, mz = (z + 0.5) * S;
-      const h = hash3(x, 0, z, 53), h2 = hash3(x >> 1, 0, z >> 1, 54);
+      const h2 = hash3(x >> 1, 0, z >> 1, 54);
       if (Math.hypot(mx - HEAP[0], mz - HEAP[2]) < 1.45 + (h2 - 0.5) * 0.2) continue; // bare boards under the platform
-      const seatAt = seatGap(x, z);
-      if (seatAt === 0) {
-        g.set(x, 0, z, pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // hay under every hoof, trampled
-        continue;
-      }
+      const seatAt = seatGap(x, z), inside = matEdge(mx, mz);
+      if (inside < 0 && seatAt > 0.3) continue; // bare planks
+      // Trodden (darker) where the animals stand and walk round the ring; fresh (lighter) in patches elsewhere.
       const e = Math.hypot((mx - SEAT_RING.cx) / SEAT_RING.rx, (mz - SEAT_RING.cz) / SEAT_RING.rz);
-      if (Math.abs(e - 1) * rr < 0.4) {
-        if (h < 0.7) g.set(x, 0, z, h < 0.08 ? lin(T.beam[0]) : pick(T.hay, 0.6 + hash3(x >> 2, 0, z >> 2, 57) * 0.4)); // trampled, darker
-        continue;
-      }
-      // Broad hay is one tone with the occasional lighter patch: the texture comes from the straws, not from noise.
-      if (h < 0.92) g.set(x, 0, z, pick(T.hay, hash3(x >> 3, 0, z >> 3, 56) < 0.12 ? 0.1 : 0.7));
-      if (h2 < 0.09 && h < 0.5 && seatAt > FLOOR_CALM.clear && !blocked(x, 1, z)) g.set(x, 1, z, pick(T.hay, h * 1.6)); // tufts
+      g.set(x, 0, z, Math.abs(e - 1) < 0.2 ? trod : open);
     }
 
   // snow drifts blown in through the back doorway
-  const snow: Paint = (x, y, z) => (z >= 70 || y < 0 || !inBackDoor(x, 0) || blocked(x, y, z) ? null : pick(T.snow, hash3(x >> 2, y >> 2, z >> 2, 55), [0.6, 0.97]));
+  const snow: Paint = (x, y, z) => (z >= 70 || y < 0 || !inBackDoor(x, 0) || blocked(x, y, z) ? null : solid('snow', 0));
   for (const [x, rx, ry, rz] of [[-1.3, 0.7, 0.35, 0.7], [-0.4, 0.8, 0.28, 0.55], [0.5, 0.7, 0.4, 0.8], [1.35, 0.6, 0.3, 0.6]]) ellipsoid(g, [x, 0, 7.0], [rx, ry, rz], snow, 0.15, 6);
 
   const topY = (x: number, z: number) => {
     for (let y = 4; y >= -1; y--) if (g.has(x, y, z)) return y;
     return -1;
   };
-  // two-toe sheep footprints from the door to seat 0
-  const seat = seatPosition(0, 6);
-  const pressed = lin(T.path[2]);
-  for (let i = 0, zf = 6.8; zf > seat.z + 0.4; i++, zf -= 0.3) {
-    const xc = I(seat.x + (i % 2 ? 0.15 : -0.15)), zc = I(zf);
-    for (const dx of [-1, 1])
-      for (const dz of [0, 1]) {
-        const x = xc + dx, z = zc + dz, y = topY(x, z);
-        if (y > 0) g.del(x, y, z);
-        g.set(x, Math.max(0, y - 1), z, pressed);
-      }
-  }
   // Loose straws on top of the floor, following its surface: a few, swept to the walls and into the corners, none near a
   // seat (they were 300 over the whole floor, the noisiest thing behind every turn).
   const r = rng(57);
@@ -356,7 +331,8 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
   for (let n = 0, tries = 0; n < FLOOR_CALM.straws && tries < 5000; tries++) {
     const x0 = -58 + r() * 116, z0 = -38 + r() * 106;
     const a = r() * Math.PI * 2, len = 4 + Math.floor(r() * 5);
-    const c = lin(r() < 0.6 ? T.hay[0] : T.hay[2]);
+    r(); // the draw that chose a straw's tone: kept, so every straw lies where it lay
+    const c = solid('straw', 1);
     if (Math.hypot(x0 * S - HEAP[0], z0 * S - HEAP[2]) < 1.3 || !byWall(x0, z0)) continue;
     const cells: [number, number][] = [];
     for (let k = 0; k < len; k++) cells.push([Math.round(x0 + Math.cos(a) * k), Math.round(z0 + Math.sin(a) * k)]);
@@ -372,7 +348,7 @@ function floor(blocked: (x: number, y: number, z: number) => boolean): Grid {
 
 function lanterns(): Grid {
   const g = new Grid(S);
-  const wire = lin(T.hoof[0]);
+  const wire = solid('iron', 0);
   for (const L of BARN.lanterns) {
     const cx = I(L[0]), cy = I(L[1]), cz = I(L[2]);
     for (let x = cx - 1; x <= cx; x++)
@@ -394,10 +370,10 @@ function leaf(side: -1 | 1): BufferGeometry {
   const g = new Grid(S);
   const X = (i: number) => (side < 0 ? i : -1 - i);
   const w = I(BARN.backDoor.maxX), h = I(BARN.backDoor.height);
-  const seam = lin(T.barn[2]), brace = tone(T.beam, 61), iron = lin(T.stone[2]), snowC = tone(T.snow, 63, [0.5, 0.85]);
+  const brace = paint('wood', -1), iron = solid('iron', 0), snowC = paint('snow', 1);
   for (let i = 0; i < w; i++)
     for (let y = 0; y < h; y++)
-      for (const z of [0, 1]) g.set(X(i), y, z, i % 3 === 2 ? seam : pick(T.barn, hash3(Math.floor(i / 3), side, 0, 65)));
+      for (const z of [0, 1]) g.set(X(i), y, z, solid('barnRed', BOARD_STEPS[Math.floor(i / 3) % 4]));
   // Z brace on the inner face
   for (const y0 of [3, h - 5]) for (let i = 1; i < w - 1; i++) for (const y of [y0, y0 + 1]) g.set(X(i), y, -1, brace(i, y, -1)!);
   for (let t = 0; t <= 40; t++) {
@@ -417,17 +393,17 @@ function leaf(side: -1 | 1): BufferGeometry {
     for (const z of [0, 1]) g.set(X(i), h, z, snowC(i, h, z)!);
   }
   // The outer face's white frame and cross, the way a farm barn's doors are painted.
-  const white = lin(T.trim[0]);
-  const paint = (i: number, y: number) => { if (!g.has(X(i), y, 2)) g.set(X(i), y, 2, white); };
-  for (let i = 0; i < w; i++) for (const y of [8, 9, h - 2, h - 1]) paint(i, y);
-  for (let y = 8; y < h; y++) for (const i of [0, 1, w - 2, w - 1]) paint(i, y);
+  const white = solid('trimWhite', 0);
+  const whiten = (i: number, y: number) => { if (!g.has(X(i), y, 2)) g.set(X(i), y, 2, white); };
+  for (let i = 0; i < w; i++) for (const y of [8, 9, h - 2, h - 1]) whiten(i, y);
+  for (let y = 8; y < h; y++) for (const i of [0, 1, w - 2, w - 1]) whiten(i, y);
   for (let t = 0; t <= 60; t++) {
     const i = Math.round(1 + (w - 3) * (t / 60)), y = Math.round(9 + (h - 11) * (t / 60));
-    for (const [a, b] of [[i, y], [i, y + 1], [w - 1 - i, y], [w - 1 - i, y + 1]]) paint(a, b);
+    for (const [a, b] of [[i, y], [i, y + 1], [w - 1 - i, y], [w - 1 - i, y + 1]]) whiten(a, b);
   }
   if (side < 0) {
     const y = Math.floor(h / 2) - 1;
-    for (let i = w - 7; i < w; i++) g.set(X(i), y, -1, lin(T.stone[1]));
+    for (let i = w - 7; i < w; i++) g.set(X(i), y, -1, solid('iron', 1));
     g.set(X(w - 4), y + 1, -1, iron);
   }
   return buildGeometry(g.map, S);
@@ -441,7 +417,7 @@ function tarp(): Grid {
     for (let y = torn; y <= SD.y1; y++) {
       const h = hash3(z, y, 0, 73);
       if (h < 0.025 && y < SD.y1 - 2) continue; // small holes
-      g.set(-61, y, z, fold ? lin(T.beam[2]) : h < 0.3 ? lin(T.stone[2]) : pick(T.stone, 0.3 + h * 0.7));
+      g.set(-61, y, z, fold ? solid('darkWood', 0) : solid('stone', 0));
     }
   }
   return g;
@@ -450,13 +426,13 @@ function tarp(): Grid {
 /** Sleeping grey tabby around its own origin (belly on y = 0, head toward -z and +x); tail built about its pivot. */
 function cat(): { body: BufferGeometry; tail: BufferGeometry; tailPivot: V3 } {
   const g = new Grid(C);
-  const stripe = lin(T.stone[2]);
-  const fur: Paint = (x, y, z) => (((x % 3) + 3) % 3 === 0 && hash3(x, y, z, 81) < 0.85 ? stripe : pick(T.stone, hash3(x, y, z, 82) * 0.85));
+  const stripe = solid('stone', -2), grey = solid('stone', 0);
+  const fur: Paint = (x) => (((x % 3) + 3) % 3 === 0 ? stripe : grey); // a stripe every third column
   const up = (p: Paint): Paint => (x, y, z) => (y < 0 ? null : p(x, y, z));
   ellipsoid(g, [0, 0.09, 0], [0.2, 0.09, 0.12], up(fur), 0.05, 83);
   ellipsoid(g, [-0.1, 0.1, 0.03], [0.1, 0.09, 0.1], up(fur), 0.05, 84);
   ellipsoid(g, [0.16, 0.09, -0.07], [0.075, 0.065, 0.07], up(fur), 0, 85);
-  for (const ex of [0.13, 0.19]) cone(g, [ex, 0.14, -0.1], 0.025, 0.06, 1, () => lin(T.stone[1]));
+  for (const ex of [0.13, 0.19]) cone(g, [ex, 0.14, -0.1], 0.025, 0.06, 1, () => shade(T.stone[1]));
   const front = (x: number, y: number) => {
     for (let z = -8; z <= 4; z++) if (g.has(x, y, z)) return z;
     return null;
@@ -466,10 +442,10 @@ function cat(): { body: BufferGeometry; tail: BufferGeometry; tailPivot: V3 } {
     if (z !== null) g.set(x, y, z, c);
   };
   for (const ex of [0.12, 0.2]) {
-    face(ex, 0.1, lin(T.face[2])); // closed eyes: short dark lines
-    face(ex + 0.04, 0.1, lin(T.face[2]));
+    face(ex, 0.1, shade(T.face[2])); // closed eyes: short dark lines
+    face(ex + 0.04, 0.1, shade(T.face[2]));
   }
-  face(0.16, 0.06, lin(T.pink[2]));
+  face(0.16, 0.06, shade(T.pink[2]));
 
   const t = new Grid(C);
   const path: V3[] = [[-0.18, 0.05, -0.1], [-0.2, 0.02, -0.24], [-0.2, 0.0, -0.34], [-0.2, -0.12, -0.37], [-0.19, -0.27, -0.36]];
@@ -480,7 +456,7 @@ function cat(): { body: BufferGeometry; tail: BufferGeometry; tailPivot: V3 } {
     for (let i = 0; i < n; i++, k++) {
       const f = i / n;
       const x = Math.round((a[0] + (b[0] - a[0]) * f) / C), y = Math.round((a[1] + (b[1] - a[1]) * f) / C), z = Math.round((a[2] + (b[2] - a[2]) * f) / C);
-      const c = Math.floor(k / 2) % 3 === 0 || (s === path.length - 2 && f > 0.6) ? stripe : pick(T.stone, hash3(x, y, z, 86) * 0.85);
+      const c = Math.floor(k / 2) % 3 === 0 || (s === path.length - 2 && f > 0.6) ? stripe : grey;
       for (const [dx, dz] of [[0, 0], [1, 0], [0, 1], [1, 1]]) if (!t.has(x + dx, y, z + dz)) t.set(x + dx, y, z + dz, c);
     }
   }
@@ -493,8 +469,8 @@ function cat(): { body: BufferGeometry; tail: BufferGeometry; tailPivot: V3 } {
 /** Robin around its own origin (feet on y = 0, facing +z). */
 function robin(): BufferGeometry {
   const g = new Grid(C);
-  const breast = lin('#D9653B');
-  const back = tone(T.beam, 91, [0.4, 0.9]);
+  const breast = shade('#D9653B');
+  const back = paint('wood', -1);
   const body: Paint = (x, y, z) => (z * C > -0.005 && y * C < 0.085 ? breast : back(x, y, z));
   ellipsoid(g, [0, 0.055, 0], [0.035, 0.035, 0.055], body);
   ellipsoid(g, [0, 0.095, 0.035], [0.028, 0.026, 0.028], body);
@@ -556,6 +532,7 @@ export function* buildBarnSteps(): Steps<Barn> {
   const f = floor(blocked);
   yield;
   const w = walls();
+  noteShade(w.map.values(), S); // the walls' feet, for the ground's shade map (Home and the yard seen from the table)
   yield;
   const statics = yield* each([w, b, f, bl, p], (g) => buildGeometry(g.map, S));
   const leaves = yield* each([-1, 1] as const, (side) => ({

@@ -1,9 +1,9 @@
 import type { VoxelMap } from '../mesher';
-import { lin } from '../palette';
 import { Grid } from '../primitives';
 import type { V3 } from '../primitives';
-import { addCavity, cavityOf, frostOf, hollow, part, S, SMOOTH_BODIES } from './rig';
+import { addCavity, cavityOf, frostOf, hollow, part, S, SMOOTH_BODIES, stepHex } from './rig';
 import type { AnimalModel, Part } from './rig';
+import { shade } from '../paint';
 
 /**
  * Warmth layers (V5 Part 4.9): the farmer's knitwear stands in for the sheep's wool as lives on every other species.
@@ -46,7 +46,7 @@ function shell(g: Grid, body: VoxelMap, zFrom: number, zTo: number, bellyY: numb
       if (y < yb || body.has(key(x, y, z))) continue;
       // Plain knit with a ribbed hem: stripes everywhere would cost faces the mesher cannot merge.
       const rib = hem && y === yb ? (x + z) % 2 === 0 : false;
-      g.set(x, y, z, lin(rib ? knit.b : knit.a));
+      g.set(x, y, z, shade(rib ? knit.b : knit.a));
     }
   }
 }
@@ -56,12 +56,12 @@ export function neckBand(centre: V3, rx: number, ry: number, knit: Knit, solid?:
   const g = new Grid(S);
   if (solid) {
     const z = Math.round(centre[2] / S);
-    for (const [x, y] of outline(solid, z)) g.set(x, y, z, lin((x + y) % 4 < 2 ? knit.a : knit.b));
+    for (const [x, y] of outline(solid, z)) g.set(x, y, z, shade((x + y) % 4 < 2 ? knit.a : knit.b));
     return g;
   }
   for (let k = 0; k < 200; k++) {
     const a = (k / 200) * Math.PI * 2;
-    g.set(Math.round((centre[0] + Math.cos(a) * rx) / S), Math.round((centre[1] + Math.sin(a) * ry) / S), Math.round(centre[2] / S), lin(Math.floor(k / 8) % 2 ? knit.b : knit.a));
+    g.set(Math.round((centre[0] + Math.cos(a) * rx) / S), Math.round((centre[1] + Math.sin(a) * ry) / S), Math.round(centre[2] / S), shade(Math.floor(k / 8) % 2 ? knit.b : knit.a));
   }
   return g;
 }
@@ -86,7 +86,7 @@ export function blanket(body: VoxelMap, zFrom: number, zTo: number, bellyY: numb
       if (y < yb || body.has(key(x, y, z))) continue;
       // The fringe: one row of the second tone along the hem and the two ends.
       const fringe = y === yb || v.z === z0 || v.z === z1;
-      g.set(x, y, z, lin(fringe ? knit.b : knit.a));
+      g.set(x, y, z, shade(fringe ? knit.b : knit.a));
     }
   }
   return g;
@@ -111,23 +111,24 @@ export function scarf(centre: V3, rx: number, ry: number, knit: Knit, tails: V3,
   const cz = Math.round(centre[2] / S);
   if (solid) {
     // Hugging the neck: its outline on two slices; the tails hang from the ring's lowest row at the front.
-    for (const dz of [0, 1]) for (const [x, y] of outline(solid, cz + dz)) g.set(x, y, cz + dz, lin((x + y) % 4 < 2 ? knit.a : knit.b));
+    for (const dz of [0, 1]) for (const [x, y] of outline(solid, cz + dz)) g.set(x, y, cz + dz, shade((x + y) % 4 < 2 ? knit.a : knit.b));
     // The tails hang from the ring's own bottom row: its two ends, two voxels wide each, on the slice that row is on.
     const cells = [...g.map.values()];
     const low = Math.min(...cells.map((v) => v.y));
     const bottom = cells.filter((v) => v.y === low).sort((p, q) => p.x - q.x);
     const tz = bottom[0].z;
     const ends = [bottom[0].x, bottom[bottom.length - 1].x - 1];
-    for (const x0 of ends) for (let k = 1; k <= 6; k++) for (const w of [0, 1]) g.set(x0 + w, low - k, tz, lin(k % 2 ? knit.b : knit.a));
+    // Down to a cell above the ground at most: a head carried low (the pig's) would hang them through the floor.
+    for (const x0 of ends) for (let k = 1; k <= 6 && low - k >= 1; k++) for (const w of [0, 1]) g.set(x0 + w, low - k, tz, shade(stepHex(k % 2 ? knit.b : knit.a, -1)));
     void tails;
     return g;
   }
   for (let k = 0; k < 200; k++) {
     const a = (k / 200) * Math.PI * 2;
-    for (const dz of [0, 1]) g.set(Math.round((centre[0] + Math.cos(a) * rx) / S), Math.round((centre[1] + Math.sin(a) * ry) / S), cz + dz, lin(k % 10 < 5 ? knit.a : knit.b));
+    for (const dz of [0, 1]) g.set(Math.round((centre[0] + Math.cos(a) * rx) / S), Math.round((centre[1] + Math.sin(a) * ry) / S), cz + dz, shade(k % 10 < 5 ? knit.a : knit.b));
   }
   const tx = Math.round(tails[0] / S), ty = Math.round(tails[1] / S), tz = Math.round(tails[2] / S);
-  for (const dx of [-2, 1]) for (let k = 0; k < 6; k++) for (const w of [0, 1]) g.set(tx + dx + w, ty - k, tz, lin(k % 2 ? knit.b : knit.a));
+  for (const dx of [-2, 1]) for (let k = 0; k < 6; k++) for (const w of [0, 1]) g.set(tx + dx + w, ty - k, tz, shade(stepHex(k % 2 ? knit.b : knit.a, -1))); // the hanging tails, a step under the band
   return g;
 }
 /** Leg warmers: the four voxels above each hoof wrapped one voxel proud, ribbed. */
@@ -138,7 +139,7 @@ export function legWarmers(legs: { cx: number; cz: number; w: number }[], knit: 
     const x0 = Math.round(l.cx / S) - half - 1, z0 = Math.round(l.cz / S) - half - 1, n = l.w + 2;
     for (let y = rows[0]; y <= rows[1]; y++) for (let x = x0; x < x0 + n; x++) for (let z = z0; z < z0 + n; z++) {
       if (x !== x0 && x !== x0 + n - 1 && z !== z0 && z !== z0 + n - 1) continue;
-      g.set(x, y, z, lin(y % 2 ? knit.a : knit.b));
+      g.set(x, y, z, shade(y % 2 ? knit.a : knit.b));
     }
   }
   return g;

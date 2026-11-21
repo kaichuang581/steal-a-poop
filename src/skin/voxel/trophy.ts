@@ -1,7 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
 import { Grid, hash3 } from './primitives';
-import { lin } from './palette';
+import { shade as plain } from './paint'; // the trophy's own colours, not desaturated (docs/miniature/06, section 4)
 
 /** The winner's trophy (Brian, 2026-11-08): a big golden cup on the sheep's grid scale, about 0.7 m tall. */
 export const TROPHY_CELL = 0.035;
@@ -16,14 +16,14 @@ let geo: BufferGeometry | null = null;
 export function trophyGeometry(): BufferGeometry {
   if (geo) return geo;
   const g = new Grid(TROPHY_CELL);
-  const deep = lin('#8A5A12'), mid = lin('#C98F22'), gold = lin('#E8B23A'), light = lin('#F7D673'), glint = lin('#FFF4C2');
-  const wood = lin('#4A2E16'), woodLight = lin('#64401F');
+  const deep = plain('#8A5A12'), mid = plain('#C98F22'), gold = plain('#E8B23A'), light = plain('#F7D673'), glint = plain('#FFF4C2');
+  const wood = plain('#4A2E16'), woodLight = plain('#64401F');
   const shade = (x: number, y: number, z: number, r: number) => {
     const lit = (-x * 0.6 + z * 0.8) / Math.max(1, r) + y * 0.01;
     if (hash3(x, y, z, 9) < 0.04 && lit > 0.3) return glint;
     return lit > 0.55 ? light : lit > 0.05 ? gold : lit > -0.45 ? mid : deep;
   };
-  const disc = (y: number, r: number, paint: (x: number, z: number) => ReturnType<typeof lin>, hollow = 0) => {
+  const disc = (y: number, r: number, paint: (x: number, z: number) => ReturnType<typeof plain>, hollow = 0) => {
     for (let x = -Math.ceil(r); x <= Math.ceil(r); x++) for (let z = -Math.ceil(r); z <= Math.ceil(r); z++) {
       const d = Math.hypot(x, z);
       if (d <= r + 0.3 && d >= hollow) g.set(x, y, z, paint(x, z));

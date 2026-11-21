@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
-import { ACESFilmicToneMapping, Color, FogExp2, PCFShadowMap, SRGBColorSpace } from 'three';
+import { Color, FogExp2, PCFShadowMap, SRGBColorSpace } from 'three';
 import type { BufferAttribute, BufferGeometry, Group, PerspectiveCamera } from 'three';
 import { isAdminAvatar } from '../../avatars/ids';
 import { useIsMobile } from '../../ui/hooks';
@@ -22,6 +22,7 @@ import { cloudGrid, PROP_VOXEL } from '../voxel/burstProps';
 import { buildGeometry } from '../voxel/mesher';
 import { voxelMaterial } from '../voxel/material';
 import { trophyGeometry } from '../voxel/trophy';
+import { LOOK } from '../look';
 
 /**
  * The leaderboards' stage (Brian, 2026-11-14: "dont make the scenery for this one a barn, maybe place them up on
@@ -65,7 +66,7 @@ export default function BoardStage({ seats, plaques, windowEl }: { seats: StageS
   return (
     <div className="sk-lb-stage" aria-hidden="true">
       <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="boards-sky" shadows={{ type: PCFShadowMap }}
-        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: ACESFilmicToneMapping, antialias: true }}
+        gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, antialias: true }}
         camera={{ fov: 20, position: [0, (LOW + HIGH) / 2, D], near: 0.5, far: 600 }}
       >
         <Frame windowEl={windowEl} layer={layer} onGap={setGap} />
@@ -234,7 +235,7 @@ function Lounger({ seat, reduced }: { seat: StageSeat; reduced: boolean }) {
   const s = SEATS[seat.place - 1];
   const admin = seat.you && isAdminAvatar(seat.avatar);
   const model = seat.you ? byId(seat.avatar ?? undefined) : undefined;
-  const k = SHEEP_SCALE * s.size * (model ? animalModel(model.animal).drawScale : 1);
+  const k = SHEEP_SCALE * s.size * animalModel(model?.animal ?? 'sheep').drawScale;
   const top = HEIGHTS[seat.place - 1];
   // The photo has no legs to hang: it stands on the top facing us, asleep or thinking.
   if (admin) return (

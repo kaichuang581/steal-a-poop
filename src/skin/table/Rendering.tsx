@@ -1,8 +1,8 @@
 import { Canvas, addAfterEffect, invalidate, useFrame, useStore, useThree } from '@react-three/fiber';
 import type { CanvasProps } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Color, FogExp2, HalfFloatType, PCFShadowMap, Vector2, WebGLRenderTarget } from 'three';
-import type { DirectionalLight, PointLight } from 'three';
+import { ACESFilmicToneMapping, Color, FogExp2, HalfFloatType, NeutralToneMapping, PCFShadowMap, Vector2, WebGLRenderTarget } from 'three';
+import type { DirectionalLight, HemisphereLight, PointLight, ToneMapping } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -17,6 +17,7 @@ import { watchScene } from '../perf/report';
 import { applyPendingTier, createSlowWatch, createTierJudge, exemptShot, getTier, proposeTier } from '../perf/tier';
 import type { Tier } from '../perf/tier';
 import { BARN } from '../scene/layout';
+import { LOOK, PADDOCK_FOG, WARM_DAY_SKY } from '../look';
 
 /** The look, applied once and globally (plan V3.1 Part 1.3). */
 // A warm white Christmas that is still winter (Brian, 2026-11-08: "warmer and more welcoming ... it looks a little dark"):
@@ -29,6 +30,19 @@ export const SUN: Record<Hour, { color: string; intensity: number }> = {
   day: { color: '#FFE8C8', intensity: 1.85 },
   dusk: { color: '#FFC08A', intensity: 1.7 },
   night: { color: '#C6CDE4', intensity: 1.15 }, // moonlight, less blue than it was; the lanterns carry the barn
+};
+/**
+ * The diorama's light (Brian, 2026-11-19: "disregard all prior limits besides what i said about touching the wendigo";
+ * his farm picture is lit like a soft studio): a high, gentle key and a strong sky fill, so snow reads white, shadows are
+ * short and open, and colours are their paint. Per hour: the key's colour and strength, how high it stands, the fill's
+ * strength and its sky and ground colours, and the haze. Every scene lit by `Lights` takes it, but the wendigo's paddock
+ * shot, which keeps the light it had (SUN, LIGHT_BOUNDS, FOG).
+ */
+export const DIORAMA: Record<Hour, { sun: string; intensity: number; elevationDeg: number; fill: number; sky: string; ground: string; fog: string }> = {
+  dawn: { sun: '#FFD9C6', intensity: 1.25, elevationDeg: 30, fill: 0.95, sky: '#F1DFDC', ground: '#C4B4AC', fog: '#F6DDD0' },
+  day: { sun: '#FFF3E0', intensity: 1.45, elevationDeg: 42, fill: 1.1, sky: '#E3ECF7', ground: '#CFC8BE', fog: '#E3EAF1' },
+  dusk: { sun: '#FFC9A0', intensity: 1.3, elevationDeg: 28, fill: 0.9, sky: '#EAD3DA', ground: '#B9A8A0', fog: '#E0B4BC' },
+  night: { sun: '#CBD6F2', intensity: 0.95, elevationDeg: 40, fill: 0.8, sky: '#8C9ECB', ground: '#4C536C', fog: '#3A4772' },
 };
 /** The key colours before the hour grades, kept for the wendigo's shot, which draws today's light on every tier. */
 export const TODAY_SUN: Record<Hour, string> = { dawn: '#FFD3A8', day: '#FFE8C8', dusk: '#FFD3A8', night: '#C6CDE4' };
@@ -50,6 +64,76 @@ export const LIGHT_BOUNDS = {
   exposure: 1, moon: SUN.night.intensity, nightLantern: NIGHT.lantern, nightReach: NIGHT.reach,
   sunElevationDeg: 20, sunAzimuthOffsetDeg: 35, shadowType: PCFShadowMap,
 } as const;
+/**
+ * Home's picture by hour (docs/miniature/02, section 6). By day and at
+ * dawn: a higher sun a little further round, strong enough that sunlit snow is white and a shadow on it is plainly a
+ * shadow (the plan's targets, section 4), the haze fitted to each shot and the sun's shadow box fitted to each view.
+ * Dusk and night are as they were (Brian likes them: the plan's default), so their sun and fill are DIORAMA's.
+ *
+ * The plan reaches its targets by exposure (2.2) because, in the code it was written against, a stronger sun pushed
+ * snow over the bloom's threshold. Here it cannot (SHOULDER in voxel/material.ts keeps every lit voxel under the
+ * threshold), and exposure also multiplies everything the sun does not light: the sky, the haze, lanterns, bulbs and
+ * windows all went white. So the sun and the fill carry it and exposure stays 1 on every canvas
+ * (docs/miniature/review/M1-light.md has the measurements).
+ * The wendigo's paddock shot takes none of this: `shotLight` hands it the light it always had.
+ */
+export const DAYLIGHT: Record<Hour, { toneMapping: ToneMapping; exposure: number; sun: number; fill: number; sunElevationDeg: number; sunAzimuthOffsetDeg: number; fitHaze: boolean; fitShadow: boolean }> = {
+  dawn: { toneMapping: NeutralToneMapping, exposure: 1, sun: 2.05, fill: 1.2, sunElevationDeg: 30, sunAzimuthOffsetDeg: 40, fitHaze: true, fitShadow: true },
+  day: { toneMapping: NeutralToneMapping, exposure: 1, sun: 2.4, fill: 1.4, sunElevationDeg: 45, sunAzimuthOffsetDeg: 40, fitHaze: true, fitShadow: true },
+  dusk: { toneMapping: LOOK.toneMapping, exposure: 1, sun: DIORAMA.dusk.intensity, fill: DIORAMA.dusk.fill, sunElevationDeg: DIORAMA.dusk.elevationDeg, sunAzimuthOffsetDeg: LIGHT_BOUNDS.sunAzimuthOffsetDeg, fitHaze: false, fitShadow: false },
+  night: { toneMapping: LOOK.toneMapping, exposure: 1, sun: DIORAMA.night.intensity, fill: DIORAMA.night.fill, sunElevationDeg: DIORAMA.night.elevationDeg, sunAzimuthOffsetDeg: LIGHT_BOUNDS.sunAzimuthOffsetDeg, fitHaze: false, fitShadow: false },
+};
+/** The haze a fitted shot may take, and the sun's shadow box's half-size by tier (docs/miniature/02, changes A and D). */
+export const HAZE_FIT = { min: 0.004, max: 0.014, share: 0.5 } as const;
+export const SHADOW_FIT = { min: 20, max: 44, maxLow: 30, perMetre: 0.75, plus: 6 } as const;
+/**
+ * `?light=today` on a development server draws Home as it was before the table above on every shot, `?light=mini` forces
+ * the day's fitted haze and shadow box at every hour (the plan's option 2 for dusk and night), for pairs. Read once.
+ */
+const ASKED_LIGHT = import.meta.env.DEV && typeof location !== 'undefined' ? new URLSearchParams(location.search).get('light') : null;
+/** The farm rectangle the haze is fitted to (docs/miniature/02, change A): the yard and the pens, back to the line z = -16. */
+export const FARM_RECT = { minX: -40, maxX: 40, minZ: -16, maxZ: 46 } as const;
+/** What one Home shot is drawn with. `centre` is where the sun's shadow box is centred on the ground, `half` its half-size. */
+export interface ShotLight { haze: number; half: number; centre: readonly [number, number]; exposure: number; toneMapping: ToneMapping; sun: number; fill: number; sunElevationDeg: number; sunAzimuthOffsetDeg: number }
+/** The light a shot had before the table: the paddock shot's on every tier (through exemptShot), and `?light=today`'s. */
+const lookBefore = (hour: Hour, paddock: boolean): ShotLight => ({
+  haze: paddock ? PADDOCK_FOG : LOOK.fog, half: SHADOW_FIT.min, centre: [0, 0], exposure: 1, toneMapping: paddock ? ACESFilmicToneMapping : LOOK.toneMapping,
+  sun: paddock ? SUN[hour].intensity : DIORAMA[hour].intensity, fill: paddock ? (hour === 'night' ? LIGHT_BOUNDS.fillNight : LIGHT_BOUNDS.fillDay) : DIORAMA[hour].fill,
+  sunElevationDeg: paddock ? LIGHT_BOUNDS.sunElevationDeg : DIORAMA[hour].elevationDeg, sunAzimuthOffsetDeg: LIGHT_BOUNDS.sunAzimuthOffsetDeg,
+});
+/**
+ * How far it is from a shot's camera to the farthest point of the board's outer edge that the shot's horizontal view
+ * holds, at the shot's start (docs/miniature/02, change A): the haze is fitted so that point is `HAZE_FIT.share` gone.
+ */
+export function farEdge(shot: { position: readonly number[]; target: readonly number[]; fov: number }, aspect: number): number {
+  const [px, py, pz] = shot.position, fx = shot.target[0] - px, fz = shot.target[2] - pz, fl = Math.hypot(fx, fz) || 1;
+  const halfView = Math.atan(Math.tan((shot.fov * Math.PI) / 360) * aspect);
+  let far = 0;
+  const see = (x: number, z: number) => {
+    const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz);
+    if (d > 0 && Math.acos(Math.min(1, Math.max(-1, (dx * fx + dz * fz) / (d * fl)))) <= halfView) far = Math.max(far, Math.hypot(d, py));
+  };
+  for (let x = FARM_RECT.minX; x <= FARM_RECT.maxX; x += 0.5) { see(x, FARM_RECT.minZ); see(x, FARM_RECT.maxZ); }
+  for (let z = FARM_RECT.minZ; z <= FARM_RECT.maxZ; z += 0.5) { see(FARM_RECT.minX, z); see(FARM_RECT.maxX, z); }
+  return far;
+}
+/** A Home shot's picture at an hour. `paddock`: the wendigo's shot, which is always what it was. */
+export function shotLight(shot: { position: readonly number[]; target: readonly number[]; fov: number }, hour: Hour, { paddock = false, low = false, aspect = 1.6 } = {}): ShotLight {
+  if (paddock || ASKED_LIGHT === 'today') return lookBefore(hour, paddock);
+  const t = DAYLIGHT[hour], before = lookBefore(hour, false), fit = ASKED_LIGHT === 'mini';
+  const edge = farEdge(shot, aspect);
+  const d = Math.hypot(shot.target[0] - shot.position[0], shot.target[2] - shot.position[2]);
+  return {
+    haze: (t.fitHaze || fit) && edge > 0 ? Math.min(HAZE_FIT.max, Math.max(HAZE_FIT.min, HAZE_FIT.share / edge)) : before.haze,
+    half: t.fitShadow || fit ? Math.min(low ? SHADOW_FIT.maxLow : SHADOW_FIT.max, Math.max(SHADOW_FIT.min, SHADOW_FIT.perMetre * d + SHADOW_FIT.plus)) : before.half,
+    centre: t.fitShadow || fit ? [shot.target[0], shot.target[2]] : before.centre,
+    exposure: t.exposure, toneMapping: t.toneMapping, sun: t.sun, fill: t.fill, sunElevationDeg: t.sunElevationDeg, sunAzimuthOffsetDeg: t.sunAzimuthOffsetDeg,
+  };
+}
+/** Home's shot as the tour set it in the dip (`Drift` in FarmBackdrop.tsx); null wherever there is no tour (the table). */
+let shotNow: ShotLight | null = null;
+export function setShotLight(look: ShotLight | null): void { shotNow = look; }
+
 /** How bright a lantern burns at this hour. */
 export const lanternIntensity = (hour: Hour) => LANTERN_LIGHT.intensity * (hour === 'night' ? NIGHT.lantern : 1);
 
@@ -57,9 +141,22 @@ export const lanternIntensity = (hour: Hour) => LANTERN_LIGHT.intensity * (hour 
 export function Atmosphere({ hour }: { hour: Hour }) {
   const scene = useThree((s) => s.scene);
   useEffect(() => {
-    scene.fog = new FogExp2(FOG[hour], 0.012);
-    scene.background = new Color(FOG[hour]);
+    const fog = hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY[1] : DIORAMA[hour].fog;
+    scene.fog = new FogExp2(fog, LOOK.fog);
+    scene.background = new Color(fog);
   }, [scene, hour]);
+  // The wendigo's paddock shot keeps the fog it had, colour and density; every other shot the diorama's.
+  const was = useRef('');
+  useFrame(() => {
+    const f = scene.fog as FogExp2 | null, exempt = exemptShot();
+    // Home's haze is fitted to each shot (shotLight), set in the dip with the camera's jump.
+    const density = exempt ? PADDOCK_FOG : shotNow?.haze ?? LOOK.fog, key = `${exempt}|${density}`;
+    if (!f || was.current === key) return;
+    was.current = key;
+    f.density = density;
+    f.color.set(exempt ? FOG[hour] : hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY[1] : DIORAMA[hour].fog);
+    (scene.background as Color).copy(f.color);
+  });
   return null;
 }
 
@@ -78,6 +175,8 @@ export const SUN_CLOCK_MS = 100;
  */
 export const SHADOW_LAYERS = 0b11;
 export type SunPlace = 'home' | 'table';
+/** How much of the diorama's sky fill reaches inside the barn at the table. */
+export const INDOOR_FILL = 0.62;
 export function sunPlan(tier: Tier, phone: boolean, exempt: boolean, place: SunPlace): { size: number; redraw: 'frame' | 'clock' | 'shot' } {
   const today = phone ? 2048 : 4096;
   if (exempt) return { size: today, redraw: 'frame' };
@@ -105,20 +204,56 @@ const drawsSkipped = () => (globalThis as { __gate?: { drawing?: boolean } }).__
  * with the tier: only the sun's map size, how often it is drawn and, on the wendigo's shot, its colour.
  */
 export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hour: Hour; phone: boolean; viewYaw: number; lampRef?: (i: number, l: PointLight | null) => void; place?: SunPlace }) {
-  const sun = SUN[hour];
-  const az = viewYaw + Math.PI + (LIGHT_BOUNDS.sunAzimuthOffsetDeg * Math.PI) / 180;
-  const el = (LIGHT_BOUNDS.sunElevationDeg * Math.PI) / 180;
-  const pos: [number, number, number] = [Math.sin(az) * Math.cos(el) * 60, Math.sin(el) * 60, Math.cos(az) * Math.cos(el) * 60];
+  const sun = SUN[hour], look = DIORAMA[hour];
+  // The start screen and the barn table read the ground's shade map (voxel/groundShade.ts); no other scene has these lights.
+  const shaded = useThree((three) => three.scene);
+  useEffect(() => { shaded.userData.groundShade = true; return () => { shaded.userData.groundShade = false; }; }, [shaded]);
+  // Under the barn's roof at the table the open sky's fill is cut, or the lanterns' light is lost in it and the
+  // inside reads as washed out; Home's farm is out of doors and takes it all.
+  const fillShare = place === 'table' ? INDOOR_FILL : 1;
+  const at = (deg: number, offsetDeg: number = LIGHT_BOUNDS.sunAzimuthOffsetDeg): [number, number, number] => {
+    const el = (deg * Math.PI) / 180, az = viewYaw + Math.PI + (offsetDeg * Math.PI) / 180;
+    return [Math.sin(az) * Math.cos(el) * 60, Math.sin(el) * 60, Math.cos(az) * Math.cos(el) * 60];
+  };
+  const pos = at(look.elevationDeg);
   const light = useRef<DirectionalLight>(null);
-  const st = useRef({ colour: '', seq: -1, last: -Infinity, again: 0, owed: true });
+  const fill = useRef<HemisphereLight>(null);
+  const st = useRef({ colour: '', seq: -1, last: -Infinity, again: 0, owed: true, plain: null as boolean | null, shot: null as ShotLight | null });
   // Before the first picture: the map's size, and nothing drawn on a stale plan.
   useFrame(() => {
     const l = light.current;
     if (!l) return;
     const s = st.current, now = performance.now();
     const exempt = place === 'home' && exemptShot();
-    const colour = exempt ? TODAY_SUN[hour] : sun.color;
+    const colour = exempt ? TODAY_SUN[hour] : look.sun;
     if (hour + colour !== s.colour) { s.colour = hour + colour; l.color.set(colour); }
+    // The paddock shot's light is the light it had; every other shot's is the diorama's (the tour cuts in the dark).
+    // Home's sun stands where the shot's look says, over a shadow box centred on what the shot looks at and as wide as
+    // its view (docs/miniature/02, changes B and D); the table's is DIORAMA's, over the barn, as it was.
+    const shot = place === 'home' ? shotNow : null;
+    if (s.plain !== exempt || s.shot !== shot) {
+      s.plain = exempt;
+      s.shot = shot;
+      l.intensity = shot?.sun ?? (exempt ? sun.intensity : look.intensity);
+      const from = shot ? at(shot.sunElevationDeg, shot.sunAzimuthOffsetDeg) : at(exempt ? LIGHT_BOUNDS.sunElevationDeg : look.elevationDeg);
+      const [cx, cz] = shot?.centre ?? [0, 0], half = shot?.half ?? SHADOW_FIT.min, cam = l.shadow.camera;
+      l.position.set(cx + from[0], from[1], cz + from[2]);
+      l.target.position.set(cx, 0, cz);
+      l.target.updateMatrixWorld();
+      if (cam.right !== half) {
+        cam.left = cam.bottom = -half; cam.right = cam.top = half;
+        cam.updateProjectionMatrix();
+        l.shadow.bias = (-0.0004 * half) / SHADOW_FIT.min;
+        l.shadow.normalBias = (0.02 * half) / SHADOW_FIT.min;
+      }
+      const h = fill.current;
+      if (h) {
+        h.color.set(exempt ? LIGHT_BOUNDS.fillSky : look.sky);
+        h.groundColor.set(exempt ? LIGHT_BOUNDS.fillGround : look.ground);
+        h.intensity = shot?.fill ?? (exempt ? (hour === 'night' ? LIGHT_BOUNDS.fillNight : LIGHT_BOUNDS.fillDay) : look.fill * fillShare);
+      }
+      s.owed = true;
+    }
     const plan = sunPlan(getTier(), phone, exempt, place);
     let due = false;
     if (l.shadow.mapSize.x !== plan.size) { l.shadow.mapSize.set(plan.size, plan.size); due = true; }
@@ -133,11 +268,11 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
   });
   return (
     <>
-      {/* Sky fill and a faint bounce from below. Kept low, so the sun or moon on the tops against the shaded sides is what
-          gives the snow its shape: a strong fill here flattened every drift to one grey. */}
-      <hemisphereLight args={[LIGHT_BOUNDS.fillSky, LIGHT_BOUNDS.fillGround, hour === 'night' ? LIGHT_BOUNDS.fillNight : LIGHT_BOUNDS.fillDay]} />
+      {/* A strong sky fill and a soft bounce from below: the diorama's open shadows. Snow gets its shape from its steps
+          and drifts and from the key's soft shadows. */}
+      <hemisphereLight ref={fill} args={[look.sky, look.ground, look.fill * fillShare]} />
       <directionalLight
-        ref={light} position={pos} color={sun.color} intensity={sun.intensity} castShadow
+        ref={light} position={pos} color={look.sun} intensity={look.intensity} castShadow shadow-radius={LOOK.shadowRadius ?? 2.5}
         shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-layers-mask={SHADOW_LAYERS}
         shadow-camera-left={-20} shadow-camera-right={20} shadow-camera-top={20} shadow-camera-bottom={-20} shadow-camera-near={1} shadow-camera-far={160}
       />
@@ -183,6 +318,10 @@ const BLOOM_MAX_W = 720;
  * Low no bloom, and no tilt-shift except on the wendigo's shot, which is today's on every tier (change 4). Passes are
  * switched, never added or taken out, so nothing recompiles.
  */
+/** Over this, a pixel blooms. Lit white (snow, wool) stays under it; lamps, windows and bulbs are over it. */
+export const BLOOM_THRESHOLD = 1.05;
+/** The wendigo's paddock shot blooms from where it always did. */
+const PADDOCK_BLOOM = 0.85;
 export function effectsPlan(tier: Tier, exempt: boolean): { bloomMaxW: number; tiltShift: boolean } {
   if (exempt || tier === 'high') return { bloomMaxW: BLOOM_MAX_W, tiltShift: true };
   return tier === 'medium' ? { bloomMaxW: 480, tiltShift: true } : { bloomMaxW: 0, tiltShift: false };
@@ -204,7 +343,9 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
     const c = new EffectComposer(gl, target);
     c.addPass(new RenderPass(scene, camera));
     // Bloom at half resolution: it only has to catch the lanterns, and the full-size blur chain costs most of a frame.
-    c.addPass(new UnrealBloomPass(new Vector2(Math.ceil(size.width / 2), Math.ceil(size.height / 2)), 0.35, 0.4, 0.85));
+    // Only what gives light blooms (lanterns, windows, bulbs: brighter than any lit surface): at 0.85 white wool and
+    // sunlit snow bloomed too, and the sheep glowed (Brian, 2026-11-19).
+    c.addPass(new UnrealBloomPass(new Vector2(Math.ceil(size.width / 2), Math.ceil(size.height / 2)), 0.35, 0.4, BLOOM_THRESHOLD));
     if (tiltShift > 0) {
       const pass = new ShaderPass(TiltShiftShader);
       pass.uniforms.strength.value = tiltShift;
@@ -245,7 +386,13 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
     return () => { gl.info.autoReset = true; };
   }, [gl]);
   useFrame(() => {
-    const want = effectsPlan(getTier(), home && exemptShot());
+    const exempt = home && exemptShot();
+    // The wendigo's paddock shot is drawn as it was: plain Lambert (voxel/material.ts) under the old tone mapping.
+    scene.userData.plainLight = exempt;
+    gl.toneMapping = exempt ? ACESFilmicToneMapping : (home ? shotNow?.toneMapping : null) ?? LOOK.toneMapping;
+    for (const p of composer.passes) if (p instanceof UnrealBloomPass) p.threshold = exempt ? PADDOCK_BLOOM : BLOOM_THRESHOLD;
+    const want = effectsPlan(getTier(), exempt);
+    if (home && !exempt && !LOOK.tilt) want.tiltShift = false; // ?tilt=0 (look.ts): off but on the wendigo's shot
     const key = `${want.bloomMaxW}|${want.tiltShift}`;
     if (key !== plan.current) { plan.current = key; fit(want.bloomMaxW, want.tiltShift); }
     gl.info.reset();

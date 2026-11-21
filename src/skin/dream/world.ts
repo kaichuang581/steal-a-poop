@@ -1,6 +1,7 @@
 import type { BufferGeometry } from 'three';
 import { buildGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
+import { average } from '../voxel/paint';
 import { ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { letterMask } from '../voxel/table';
@@ -90,18 +91,20 @@ export function raftChunk(index: number): BufferGeometry {
     for (let y = 0; y < h; y++) f.set(x, y, z, snow);
   }
   const scenery = scatter(index, gx);
-  for (const [k, v] of lobes.map) if (!f.map.has(k)) f.map.set(k, v);
-  // Every part goes through dropFaces so their attributes match, or the merge returns nothing.
-  return mergeGeometries([dropFaces(buildGeometry(g.map, S), (ny, y) => ny < 0 && y > -1), dropFaces(buildGeometry(f.map, F), () => false), dropFaces(buildGeometry(scenery.map, D), () => false)], false)!;
+  for (const k of f.map.keys()) lobes.map.delete(k); // where the lane or a drift is, it stays
+  // Every part goes through dropFaces so their attributes match, or the merge returns nothing. The lobes take no corner
+  // shade: on hundreds of small steps it read as a speckle along the bottom of the frame (Brian, 2026-11-20: "glitchy
+  // textures"); the crease tone shapes them.
+  return mergeGeometries([dropFaces(buildGeometry(g.map, S), (ny, y) => ny < 0 && y > -1), dropFaces(buildGeometry(f.map, F), () => false), dropFaces(buildGeometry(lobes.map, F, { ao: false }), () => false), dropFaces(buildGeometry(scenery.map, D), () => false)], false)!;
 }
 
 const D = 0.05;
 /** A snowy shrub: a few overlapping clumps of dark leaves, snow lying on the top of each. */
 function shrub(g: Grid, x: number, y: number, z: number, r: () => number) {
-  const leaf = T.pine.map(lin), snow = lin(T.snow[0]);
+  const leaf = average(T.pine.map(lin)), snow = lin(T.snow[0]); // one green: it was any of three, cube by cube (docs/miniature/07, treatment B)
   for (let k = 0; k < 4; k++) {
     const rad = 0.12 + r() * 0.1, cx = x + (r() - 0.5) * 0.34, cz = z + (r() - 0.5) * 0.22, cy = y + rad * 0.7 + k * 0.03;
-    ellipsoid(g, [cx, cy, cz], [rad, rad * 0.85, rad], (a, b, c) => leaf[Math.floor(hash3(a, b, c, 7) * 2.99)], 0.14, k + 3);
+    ellipsoid(g, [cx, cy, cz], [rad, rad * 0.85, rad], () => leaf, 0.14, k + 3);
   }
   capSnow(g, snow);
 }
@@ -114,23 +117,24 @@ function capSnow(g: Grid, snow: RGB, chance = 0.72) {
 /** A young pine, its branches in drooping tiers. */
 function sapling(g: Grid, x: number, y: number, z: number, h: number) {
   const X = Math.round(x / D), Y = Math.round(y / D), Z = Math.round(z / D), H = Math.round(h / D);
-  const bark = lin(T.trunk[1]), snow = lin(T.snow[0]), leaf = T.pine.map(lin);
+  const bark = lin(T.trunk[1]), snow = lin(T.snow[0]), green = average(T.pine.map(lin)); // one green a tree: it went in stripes of three, cube by cube
   for (let i = 0; i < 3; i++) g.set(X, Y + i, Z, bark);
   for (let i = 2; i < H; i++) {
     const tier = (i - 2) % 4, r = Math.max(0, Math.round((1 - (i - 2) / (H - 2)) * (H * 0.26) - tier * 0.7));
     for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
       if (dx * dx + dz * dz > r * r + 1) continue;
       const edge = dx * dx + dz * dz >= (r - 1) * (r - 1);
-      g.set(X + dx, Y + i - (edge && r > 1 ? 1 : 0), Z + dz, tier === 3 && hash3(dx, i, dz, 3) > 0.35 ? snow : leaf[Math.abs(dx + dz) % 3]);
+      g.set(X + dx, Y + i - (edge && r > 1 ? 1 : 0), Z + dz, tier === 3 && hash3(dx, i, dz, 3) > 0.35 ? snow : green);
     }
   }
   g.set(X, Y + H, Z, snow);
 }
 /** A rock with a cap of snow. */
 function rock(g: Grid, x: number, y: number, z: number, r: () => number) {
-  const side = lin(RAFT_TONES.rockSide), face = lin(RAFT_TONES.rock), snow = lin(T.snow[0]);
+  // The rock one colour (it was its face's or its side's, two cubes at a time); the lump beside it its darker side's.
+  const side = lin(RAFT_TONES.rockSide), stone = average([side, lin(RAFT_TONES.rock)]), snow = lin(T.snow[0]);
   const rad = 0.13 + r() * 0.09;
-  ellipsoid(g, [x, y + rad * 0.45, z], [rad * 1.25, rad * 0.8, rad], (a, b, c) => (hash3(a >> 1, b >> 1, c >> 1, 2) > 0.5 ? face : side), 0.12, 4);
+  ellipsoid(g, [x, y + rad * 0.45, z], [rad * 1.25, rad * 0.8, rad], () => stone, 0.12, 4);
   ellipsoid(g, [x + rad * 0.9, y + rad * 0.2, z + 0.05], [rad * 0.6, rad * 0.45, rad * 0.55], () => side, 0.1, 6);
   capSnow(g, snow, 0.9);
 }
@@ -398,9 +402,10 @@ const across = (f: (x: number) => void) => { for (let x = BOX.x0; x <= BOX.x1; x
  *  (the top one a candy cane, v0.3.0) and along both sides, snow along the tops. */
 function railFence(): BufferGeometry {
   const g = new Grid(D), [z0, z1] = zs(g), tones = T.beam.map(lin), snow = lin(T.snow[0]);
+  const post = average([tones[1], tones[2]]); // one wood: a post was either, two cubes at a time
   const cane = (n: number) => lin((n >> 1) % 2 ? T.collar[0] : T.snow[1]);
   const posts = [z0, -1, z1 - 2];
-  for (const z of posts) for (const x of [BOX.x0, BOX.x0 + 1, BOX.x1 - 1, BOX.x1]) for (let dz = 0; dz < 2; dz++) for (let y = 0; y <= BOX.top; y++) g.set(x, y, z + dz, tones[hash3(x, y >> 1, z, 4) > 0.5 ? 1 : 2]);
+  for (const z of posts) for (const x of [BOX.x0, BOX.x0 + 1, BOX.x1 - 1, BOX.x1]) for (let dz = 0; dz < 2; dz++) for (let y = 0; y <= BOX.top; y++) g.set(x, y, z + dz, post);
   [[1, 2], [4, 5], [7, 8]].forEach(([a, b], k) => {
     for (const y of [a, b]) {
       for (let z = z0; z < z1; z++) for (const x of [BOX.x0 + 1, BOX.x1 - 1]) g.set(x, y, z, tones[0]);
@@ -455,12 +460,13 @@ function fallenLog(): BufferGeometry {
 /** Square hay bales across the lane, two layers with the joints staggered, the twine looping over each bale's ends. */
 function hayBales(): BufferGeometry {
   const g = new Grid(D), [z0, z1] = zs(g), hay = T.hay.map(lin), twine = lin(T.hay[2]), snow = lin(T.snow[0]);
+  const packed = average([hay[0], hay[0], hay[0], hay[0], hay[0], hay[1], hay[1], hay[1], hay[1], hay[1], hay[2]]); // as often as each tone fell
   for (const [y0, from] of [[0, z0], [5, z0 - 7]]) for (let zb = from; zb < z1; zb += 15) {
     for (let z = Math.max(z0, zb); z < Math.min(z1, zb + 15); z++) for (let y = y0; y < y0 + 5; y++) across((x) => {
       const endFace = z === zb || z === zb + 14, edge = (x === BOX.x0 || x === BOX.x1) && (y === y0 || y === y0 + 4);
       if (endFace && edge) return; // the bale's corners, rounded off
       const tied = (x === -2 || x === 1) && (endFace || y === y0 + 4 || y === y0);
-      g.set(x, y, z, tied ? twine : hay[Math.floor(hash3(x, y, z >> 2, 6) * 2.2)]);
+      g.set(x, y, z, tied ? twine : packed);
     });
   }
   capSnow(g, snow, 0.75);
@@ -543,7 +549,7 @@ export function signBoardCells(letters: readonly string[]): { wood: Grid; ink: G
     if (fromTop + edge < 2) continue; // the top corners bevelled off
     const rim = x === 0 || y === 0 || x === W - 1 || fromTop === 0 || fromTop + edge === 2;
     // Grain along each plank: one tone per plank, each row a few percent lighter or darker.
-    const base = tones[y < seamY ? 0 : 1], f = 0.94 + 0.1 * hash3(y, x >> 3, 0, 23);
+    const base = tones[y < seamY ? 0 : 1], f = 0.99; // the grain's own average: no row lighter or darker than the next
     const face: RGB = rim ? beam[2] : [base[0] * f, base[1] * f, base[2] * f];
     b.set(x, y, 0, face);
     // A letter is a hole one cell deep: the front layer is left empty and its floor, in the back layer, is painted.

@@ -138,7 +138,7 @@ describe('the stall, on the page', () => {
   });
   it('chalks the price the roll uses on the sign', () => {
     expect(SACK.price).toBe(250);
-    expect(screen).toMatch(/<span>Feed Sacks<\/span>.*\{formatCoins\(SACK\.price\)\} each/);
+    expect(screen).toMatch(/<span>Feed Sacks,<\/span>.*\{formatCoins\(SACK\.price\)\} each/);
   });
   it('hangs each tag by 12 px of string, steps the picked crate 8 px forward, and rings its tag in amber', () => {
     expect(css).toMatch(/\.sk-stall-hang \{[^}]*padding-top: 12px/);

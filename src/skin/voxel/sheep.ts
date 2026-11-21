@@ -1,10 +1,11 @@
 import type { BufferGeometry } from 'three';
 import { DEFAULT_FACES, facesKey } from './animals/faces';
 import type { Faces } from './animals/faces';
-import { mouths as rigMouths, smallEyes, sockets } from './animals/rig';
+import { frostOf, hollow, noMouths, part as shellPart, smallEyes, step } from './animals/rig';
 import { buildGeometry } from './mesher';
 import type { VoxelMap } from './mesher';
-import { ICE_CRACK, lin, pick, T } from './palette';
+import { ICE_CRACK, lin, T } from './palette';
+import { shade as plain, solid as ladder } from './paint'; // the sheep's own colours, not desaturated; the block's ice and snow from the ladders (docs/miniature/06, 3.1)
 import { cone, ellipsoid, Grid, hash3, line, rng, solid } from './primitives';
 import type { V3 } from './primitives';
 
@@ -76,7 +77,7 @@ export const HEAD_FACE = ['#6A5A50', '#4A3B34', '#3A2E29'] as [string, string, s
 export const NOSE_V51 = '#8E7B78';
 export const NOSTRIL_V51 = '#5A4A46';
 /** The neck: the head group turns about this point, at the back of the jaw where it leaves the fleece. */
-export const HEAD_PIVOT: V3 = [CX, 0.58, 0.34];
+export const HEAD_PIVOT: V3 = [CX, 8 * CHAR, 6 * CHAR]; // the head's back-bottom edge
 /** How much bigger each coat level's fleece is than the normal coat (level 2). */
 export const LEVEL_K = [0, 0.88, 1, 1.12, 1.26] as const;
 
@@ -115,215 +116,170 @@ export function paintLobes(g: Grid, lobes: Lobe[], keep: Keep, noise = 0.04, pow
       const o = owner.get(`${x + dx},${y + dy},${z + dz}`);
       return o !== undefined && o > i;
     });
-    g.set(x, y, z, lin(crease ? CREASE : CREAM[lobes[i].tone]));
+    g.set(x, y, z, plain(crease ? CREASE : CREAM[lobes[i].tone]));
   }
 }
 
-/** The face window: no wool in front of the head below the brow line. */
-function inFace(xm: number, ym: number, zm: number): boolean {
-  return zm > 0.44 && Math.abs(xm - CX) < 0.22 && ym > 0.52 && ym < 0.88;
+/** The sheep's face and skin (Brian's six-view sheet, 2026-11-18): peach, a darker nose and ear lining, tan legs. */
+export const SKIN = ['#F4C3A4', '#EDB394', '#D9958A'] as const;
+export const SHIN = ['#D9BB8E', '#C9A577'] as const;
+/** The fleece: one white. Its shape, not its paint, makes the wool (Brian's sheet shows no second tone). */
+const FLEECE = ['#F6F5F2', '#E9E7E2', '#DEDBD4'] as const;
+
+/**
+ * The sheep is built at its sheet's own size, 17 cells from the ground to its crown (0.68 m of model), like every other
+ * species at its sheet's, and drawn this much larger, so it stands 1 m as it always has. Whoever draws a sheep scales it
+ * by this (`animalModel('sheep').drawScale`), as for any animal.
+ */
+export const SHEEP_ROWS = 17;
+export const SHEEP_DRAW = 1 / (SHEEP_ROWS * CHAR);
+
+/**
+ * How far the fleece grows out per coat level, in cells, from the normal coat (level 2): its sides, its top, its back
+ * (the tail rides back with it, TAIL_BACK) and the row its belly comes down to (the thickest coat reaches the ground).
+ * Its front never grows: the face stays one cell proud of the wool round it.
+ */
+const GROW: Record<1 | 2 | 3 | 4, { side: number; top: number; back: number; bottom: number }> = {
+  1: { side: -1, top: -1, back: -1, bottom: 4 }, 2: { side: 0, top: 0, back: 0, bottom: 3 }, 3: { side: 1, top: 1, back: 1, bottom: 2 }, 4: { side: 2, top: 1, back: 2, bottom: 0 },
+};
+/** How far back the tail sits at each coat level, in metres, so it stays on the fleece's back (table/Sheep.tsx, anchors.ts). */
+export const TAIL_BACK = [0, -1, 0, 1, 2].map((cells) => cells * CHAR);
+
+type Skip = (x: number, y: number, z: number) => boolean;
+/**
+ * A lobe of wool from `a` to `b` (cells, inclusive): a box with its edges taken off a cell, so lobes laid over one
+ * another read as a soft, stepped cloud. Along a side under three cells nothing is taken off, nor at a face named in
+ * `flat` (where another part sits against it: an edge taken off there would be a hole). `skip` leaves cells to other
+ * parts.
+ */
+function lobe(g: Grid, a: V3, b: V3, skip: Skip = () => false, flat: { front?: boolean } = {}) {
+  const wool = plain(FLEECE[0]);
+  const wide = [b[0] - a[0] >= 2, b[1] - a[1] >= 2, b[2] - a[2] >= 2];
+  for (let x = a[0]; x <= b[0]; x++) for (let y = a[1]; y <= b[1]; y++) for (let z = a[2]; z <= b[2]; z++) {
+    const on = [wide[0] && (x === a[0] || x === b[0]), wide[1] && (y === a[1] || y === b[1]), wide[2] && (z === a[2] || (z === b[2] && !flat.front))].filter(Boolean).length;
+    if (on < 2 && !skip(x, y, z)) g.set(x, y, z, wool);
+  }
 }
 
 /**
- * The body's nine lobes making a 0.56 by 0.5 by 0.74 m cloud at the normal coat, scaled about the body's centre
- * for the other levels. Thick coats hang more lobes down the flanks; the thickest reaches the ground.
+ * The sheep's body wool at a coat level (Brian's six-view sheet): a long main lobe, two lobes along
+ * the back that step down toward the rump, a chest under the chin, and over most of each flank a lobe one cell proud,
+ * its top stepping down toward the rump and its bottom scalloped. Everything but its front grows with the coat.
  */
-function bodyLobes(level: 1 | 2 | 3 | 4): Lobe[] {
-  const k = LEVEL_K[level];
-  const at = (x: number, y: number, z: number): V3 => [CX + x * k, 0.5 + (y - 0.5) * k, z * k];
-  const rr = (x: number, y: number, z: number): V3 => [x * k, y * k, z * k];
-  const lobes: Lobe[] = [
-    { c: at(0, 0.5, 0), r: rr(0.26, 0.23, 0.33), tone: 0 },
-    // V5.1: the back stands one voxel taller (to the 0.80 m back line) and the four corner lobes hang half a voxel lower
-    // over the legs, so the fleece meets the proportion sheet (torso 1.40 to 1.55 long and 1.05 to 1.20 wide for its
-    // height, the visible leg at most 0.55 of it, the head's top at most 1.10 of the back) with the legs unchanged.
-    { c: at(0, 0.6, 0.16), r: rr(0.2, 0.2, 0.2), tone: 1 },
-    { c: at(0, 0.6, -0.16), r: rr(0.2, 0.2, 0.2), tone: 0 },
-    { c: at(-0.13, 0.46, 0.17), r: rr(0.16, 0.17, 0.18), tone: 0 },
-    { c: at(0.13, 0.46, 0.17), r: rr(0.16, 0.17, 0.18), tone: 1 },
-    { c: at(-0.13, 0.46, -0.17), r: rr(0.16, 0.17, 0.18), tone: 1 },
-    { c: at(0.13, 0.46, -0.17), r: rr(0.16, 0.17, 0.18), tone: 0 },
-    { c: at(0, 0.52, -0.3), r: rr(0.17, 0.16, 0.1), tone: 1 },
-    { c: at(0, 0.5, 0.3), r: rr(0.17, 0.16, 0.1), tone: 0 },
-  ];
-  if (level >= 3) {
-    for (const [x, z] of [[-0.26, 0.16], [0.26, 0.16], [-0.26, -0.16], [0.26, -0.16]] as const) {
-      lobes.push({ c: [CX + x * k, level === 4 ? 0.2 : 0.28, z * k], r: rr(0.15, 0.15, 0.17), tone: 1 });
-    }
+function bodyWool(level: 1 | 2 | 3 | 4, skip: Skip): Grid {
+  const { side: w, top: t, back: k, bottom } = GROW[level];
+  const g = new Grid(CHAR);
+  lobe(g, [-4 - w, bottom, -8 - k], [4 + w, 13 + t, 5], skip, { front: true }); // the main lobe, down round the legs; the head's wool sits against its front
+  lobe(g, [-3 - w, 14 + t, -6 - k], [3 + w, 14 + t, 2], skip); // along the back
+  lobe(g, [-2 - w, 15 + t, -2], [2 + w, 15 + t, 2], skip); // the shoulders, behind the crown
+  lobe(g, [-3, Math.min(5, bottom + 2), 6], [3, 6, 7], skip); // the chest, under the chin
+  // The flanks: one cell proud of the main lobe's side.
+  const wool = plain(FLEECE[0]);
+  for (const sx of [-1, 1]) for (let z = -7 - k; z <= 4; z++) {
+    const top = (z >= -2 ? 13 : z >= -5 ? 12 : 11) + t, low = bottom + (z >= 3 ? 3 : z <= -2 && z >= -4 ? 1 : 2);
+    for (let y = low; y <= top; y++) if (!skip(sx * (5 + w), y, z)) g.set(sx * (5 + w), y, z, wool);
   }
-  if (level === 4) {
-    for (const [x, z, tone] of [[0, 0.44, 0], [0, -0.44, 1], [-0.22, 0.4, 1], [0.22, 0.4, 0], [-0.22, -0.4, 0], [0.22, -0.4, 1]] as const) {
-      lobes.push({ c: [CX + x, 0.17, z], r: [0.16, 0.16, 0.14], tone });
-    }
-  }
-  return lobes;
+  step(g, -1, (v) => v.y === bottom); // the belly row
+  return g;
 }
-
-/**
- * The head (V5.1 Part 5.1), row by row from the top: half-width in columns, and the back and front z cells. A blunt
- * wedge 9 wide, 7 tall and 8 long: a convex crown, a narrower blunt muzzle, wider than it is tall.
- */
-export const HEAD_ROWS: [number, number, number, number][] = [
-  [21, 4, 8, 12], [20, 4, 7, 13], [19, 4, 7, 14], [18, 4, 7, 14], [17, 3, 8, 14], [16, 3, 9, 14], [15, 2, 10, 13],
-];
-
-/** The left column of each eye. */
-export const EYE_BASES = [-3, 1] as const;
 
 const cached = new Map<string, SheepModel>();
 
 /**
- * Face switches (plan file 03, 4.9 and 4.11), off until Brian picks. SHEEP_FLEECE: the fleece's lobes (every coat
- * level) and the shorn body at power 4, the shape switch's superellipsoid, with the fleece's noise kept as it is (at
- * noise 0 it made flat panels); the hood and the tail stay round. SHEEP_EYES: the eyes 3 x 3 instead of 2 x 2.
- */
-export const SHEEP_FLEECE = false;
-export const SHEEP_EYES = false;
-
-/**
- * The default sheep: a 0.56 by 0.5 by 0.74 m cloud of nine smooth wool lobes on thin dark legs, a dark wedge head
- * (0.28 wide, 0.40 tall, 0.36 deep) coming out of the front of the cloud at two thirds of its height, small
- * white-and-brown eyes near the sides, leaf ears, a wool cap down to the brow and cheek lobes beside the jaw, a
- * red collar with a bell, and a tail puff. One model for every player, built once and shared.
- *
- * Parts never share a cell: the wool, the hood and the sheared body are built around the head, collar, bell and
- * legs, so no two parts can put a face on the same plane and flicker against each other.
+ * The default sheep, after Brian's six-view sheet (2026-11-18), cell for cell: 17 cells tall, drawn at SHEEP_DRAW. A
+ * long cloud of white wool in lobes on four short tan legs (2 x 2, three rows showing, the foot darker). Its head is
+ * the front three cells: a peach face plate 7 wide and 5 tall, one cell proud of the wool round it, with one-cell black
+ * eyes and a muzzle 5 wide, 3 tall and 2 proud carrying a darker T of a nose and mouth; wool all round the face (a cell
+ * at its sides, three rows and a tuft over it, a row under it), which turns with the head; peach ears 2 x 2 x 2 out of
+ * that wool's sides, the inner lower corner darker; a block of a tail on the rump. One model for every player, built
+ * once and shared. Parts never share a cell: the wool is built round the head, ears and legs. Grid cells (0.04 m).
  */
 export function sheepModel(faces: Faces = DEFAULT_FACES): SheepModel {
   const key = facesKey(faces);
   const hit = cached.get(key);
   if (hit) return hit;
-  const fleecePower = SHEEP_FLEECE || faces.has('sheepFleece') ? 4 : 2;
-  const bigEyes = SHEEP_EYES || faces.has('sheepEyes');
   const s = CHAR;
-  const i = (m: number) => Math.round(m / s);
-  const lobes = { body: 9, hood: 6, tail: 2 };
+  const lobes = { body: 6, hood: 3, tail: 1 };
+  const cube = (g: Grid, a: V3, b: V3, paint: (x: number, y: number, z: number) => ReturnType<typeof lin> | null) => {
+    for (let x = a[0]; x <= b[0]; x++) for (let y = a[1]; y <= b[1]; y++) for (let z = a[2]; z <= b[2]; z++) { const c = paint(x, y, z); if (c) g.set(x, y, z, c); }
+  };
 
-  // ---- Head (V5.1 Part 5.1): the blunt wedge, its bridge and cheeks a step lighter.
+  // ---- Head: the face plate (z 9) and the skull behind it in the wool; the muzzle, its T darker.
   const head = new Grid(s);
-  const zFront = new Map<number, number>();
-  for (const [y, hw, zb, zf] of HEAD_ROWS) {
-    zFront.set(y, zf);
-    for (let x = -hw; x <= hw; x++) for (let z = zb; z <= zf; z++) {
-      const bridge = z === zf && Math.abs(x) <= 1 && y >= 17 && y <= 20;
-      const cheek = Math.abs(x) === hw && y >= 15 && y <= 17;
-      head.set(x, y, z, lin(bridge || cheek ? HEAD_FACE[0] : HEAD_FACE[1]));
-    }
-  }
-  // The nose: a soft grey 2 x 2 at the front, its lower row the nostrils (an inverted Y). It sits on rows 17 and 18,
-  // above the mouth row (the plan's rows 15 and 16 would put the nose and the mouth on the same voxels).
-  for (const x of [-1, 0]) { head.set(x, 18, 14, lin(NOSE_V51)); head.set(x, 17, 14, lin(NOSTRIL_V51)); }
-  // Eyes: small and simple (Brian, 2026-11-07), 2 x 2 on the face's front either side of the bridge at rows 18 and 19,
-  // nearly black with a white glint so they read on the dark face.
-  const { eyes, lids, brows } = smallEyes(head, 18, 14, '#1E1A19', HEAD_FACE, HEAD_PIVOT, bigEyes ? { front: 2, cols: 3, rows: 3 } : { front: 2 });
-  // The mouth on row 16, the second from the bottom; the chewing frames on rows 15 and 16, every one on the face.
-  const mouths = rigMouths([-1, 15, 14], 3, 'z', NOSTRIL_V51, HEAD_PIVOT, { front: (_x, y) => zFront.get(y) ?? 14 });
+  cube(head, [-3, 8, 6], [3, 12, 9], () => plain(SKIN[1]));
+  cube(head, [-2, 8, 10], [2, 10, 11], (x, y, z) => plain(z === 11 && ((y === 9 && Math.abs(x) <= 1) || (x === 0 && y === 8)) ? SKIN[2] : SKIN[0]));
+  const { eyes, lids, brows } = smallEyes(head, 11, 9, '#141212', [SKIN[0], SKIN[1], SKIN[2]], HEAD_PIVOT, { front: 2, rows: 1, cols: 1, glint: false });
+  const mouths = noMouths(HEAD_PIVOT); // the T of its nose and mouth is painted on the muzzle; nothing more is drawn
 
-  // Ears (V5.1 Part 5.1): 5 long x 2 tall x 2 deep, straight out from the head's sides at rows 19 and 20, z 9 and 10,
-  // the lower front voxels pink; pivots at the roots, so the component droops them.
+  // ---- The head's wool: round the face (a cell at its sides, three rows over it, one under), the same through its
+  // three cells of depth; a cap back over the shoulders that steps down; a tuft on the crown (the 17th row).
+  const hood = new Grid(s);
+  const wool = plain(FLEECE[0]);
+  for (let z = 3; z <= 8; z++) for (let y = z >= 6 ? 7 : 14; y <= (z <= 4 ? 14 : 15); y++) { // the cap steps down toward the shoulders
+    const half = y === 7 || y === 15 ? 3 : 4;
+    for (let x = -half; x <= half; x++) if (!head.has(x, y, z)) hood.set(x, y, z, wool);
+  }
+  for (let x = -2; x <= 2; x++) for (let z = 6; z <= 8; z++) hood.set(x, 16, z, wool); // 5 wide: the crown steps in a cell a row, a soft dome
+  step(hood, 1); // the head's wool, a step over the fleece
+
+  // ---- Ears: peach, 2 out, 2 tall, 2 deep from the head wool's sides, the inner lower corner of the front darker.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(s);
-    for (let k = 0; k < 5; k++) for (const y of [19, 20]) for (const z of [9, 10]) g.set(sx * (5 + k), y, z, lin(y === 19 && z === 10 && k < 4 ? EAR_PINK : HEAD_FACE[1]));
-    return part(g, [sx * 4.5 * s + (sx < 0 ? 0 : s), 20 * s, 10 * s]);
+    cube(g, [sx < 0 ? -6 : 5, 11, 6], [sx < 0 ? -5 : 6, 12, 7], (x, y, z) => plain(z === 7 && y === 11 && Math.abs(x) === 5 ? SKIN[2] : SKIN[1]));
+    step(g, -1);
+    return part(g, [sx * 4.5 * s + (sx < 0 ? 0 : s), 12 * s, 7 * s]);
   }) as [Part, Part];
 
-  // Legs: 0.08 m square in the face colour, a lighter hoof splayed one voxel outward. V5.1: 0.28 m shows below the wool
-  // (rows 0 to 6, the proportion sheet's 0.55 of the torso); rows 7 and 8 run up inside it (4.2.3), held by `sockets`.
+  // ---- Legs: 2 x 2, tan, the foot a row darker; rows 3 to 5 run up inside the wool.
   const legGrids: Grid[] = [];
-  const legs = ([[-1, 1], [1, 1], [-1, -1], [1, -1]] as const).map(([sx, sz]) => {
+  const legs = ([[-3, 2], [2, 2], [-3, -6], [2, -6]] as const).map(([x0, z0]) => { // the back pair a cell in from the rump, under wool at every coat
     const g = new Grid(s);
-    const xs = sx < 0 ? [-5, -4] : [4, 5];
-    const zs = sz < 0 ? [-6, -5] : [4, 5];
-    for (const x of xs) for (const z of zs) {
-      // V5.1: the legs in the face's tone and the hooves in the nostrils' (the palette's 14 colours, Part 4.7).
-      for (let y = 1; y <= 8; y++) g.set(x, y, z, lin(HEAD_FACE[1]));
-      g.set(x + sx, 0, z, lin(NOSTRIL_V51));
-    }
+    cube(g, [x0, 0, z0], [x0 + 1, 5, z0 + 1], (_x, y) => plain(y === 0 ? SHIN[1] : SHIN[0]));
+    step(g, -1, (v) => v.y > 0); // the leg, not its foot
     legGrids.push(g);
-    return part(g, [(xs[0] + 1) * s, 0.28, (zs[0] + 1) * s]);
+    return part(g, [(x0 + 1) * s, 4 * s, (z0 + 1) * s]);
   }) as [Part, Part, Part, Part];
 
-  // Collar (V5.1 Part 5.1): a ring at rows 14 and 15 round the neck, radius 0.13 about (CX, 0.58, 0.36); the bell
-  // 3 x 3 x 3 straight under the chin at rows 11 to 13, its top touching the ring's lowest voxel.
-  const collar = new Grid(s);
-  for (let k = 0; k < 120; k++) {
-    const a = (k / 120) * Math.PI * 2;
-    const x = Math.round((CX + 0.13 * Math.cos(a)) / s - 0.5), z = Math.round((0.36 + 0.13 * Math.sin(a)) / s - 0.5);
-    for (const y of [14]) collar.set(x, y, z, lin(T.collar[1]));
-  }
-  const bell = new Grid(s);
-  for (let y = 11; y <= 13; y++) for (let x = -1; x <= 1; x++) for (let z = 11; z <= 13; z++) {
-    if (y === 11 && (Math.abs(x) === 1 && (z === 11 || z === 13))) continue; // a rounded mouth
-    bell.set(x, y, z, lin(T.brass[y === 13 ? 0 : 1]));
-  }
-  bell.set(0, 10, 12, lin(T.brass[1])); // the clapper
-  for (let z = 11; z <= 13; z++) if (!collar.has(0, 14, z)) collar.set(0, 14, z, lin(T.collar[1])); // the strap the bell hangs from
-
-  const legSpots = legs.map((l) => ({ cx: l.pivot[0], cz: l.pivot[2], w: 2 }));
-
-  // Cells the wool and the bare body must leave alone.
-  const taken = (x: number, y: number, z: number) => head.has(x, y, z) || collar.has(x, y, z) || bell.has(x, y, z) || legGrids.some((g) => g.has(x, y, z));
-
-  // Wool hood (V5.1 Part 5.1): lobes over the crown and down the cheeks to row 17 behind the eyes, never on the face
-  // below row 21, and a topknot of three lobes above row 21 between z 9 and 12. Never shares a cell with the head.
-  const hood = new Grid(s);
-  paintLobes(hood, [
-    { c: [CX, 0.89, 0.34], r: [0.2, 0.07, 0.15], tone: 0 },
-    { c: [CX, 0.84, 0.26], r: [0.2, 0.1, 0.1], tone: 1 },
-    { c: [CX - 0.19, 0.78, 0.34], r: [0.07, 0.1, 0.1], tone: 1 },
-    { c: [CX + 0.19, 0.78, 0.34], r: [0.07, 0.1, 0.1], tone: 0 },
-    { c: [CX, 0.94, 0.42], r: [0.07, 0.05, 0.06], tone: 0 },
-    { c: [CX - 0.06, 0.93, 0.38], r: [0.06, 0.04, 0.05], tone: 1 },
-    { c: [CX + 0.06, 0.93, 0.38], r: [0.06, 0.04, 0.05], tone: 1 },
-  ], (xm, ym, zm, x, y, z) => !inFace(xm, ym, zm) && !taken(x, y, z) && !(y < 22 && z >= 11) && !(y < 17), 0.03);
+  const collar = new Grid(s), bell = new Grid(s);
+  const taken = (x: number, y: number, z: number) => head.has(x, y, z) || hood.has(x, y, z) || ears.some((e) => e.cells?.has(`${x},${y},${z}`)) || legGrids.some((g) => g.has(x, y, z));
 
   // ---- Wool per coat level, with frost for the freeze.
   const wools = {} as SheepModel['wools'];
   const frosts = {} as SheepModel['frosts'];
   let woolTones = 0;
   for (const level of [1, 2, 3, 4] as const) {
-    const g = new Grid(s);
-    paintLobes(g, bodyLobes(level), (xm, ym, zm, x, y, z) => ym >= 0.02 && !inFace(xm, ym, zm) && !taken(x, y, z) && !(fleecePower !== 2 && hood.has(x, y, z)), 0.04, fleecePower);
-    // (SHEEP_FLEECE: the fuller lobes reach into the hood's cells; the hood keeps them, so no cell is in both.)
-    // The thin coats ride higher than the legs' tops: the wool comes down round each one, so no coat floats off them.
-    sockets(g, legSpots, 7, 8, taken);
-    wools[level] = part(g, [0, 0, 0]);
+    const g = bodyWool(level, taken);
+    hollow(g);
+    wools[level] = shellPart(g, [0, 0, 0]); // a hollowed shell: the mesher must know its cavity
     if (level === 2) woolTones = new Set([...g.map.values()].map((v) => v.c.join(','))).size;
-    const frost = new Grid(s);
-    const rf = rng(57 + level);
-    const k = LEVEL_K[level];
-    for (let n = 0; n < 30; n++) {
-      const a = rf() * Math.PI * 2, b = rf() * 0.9;
-      const x = Math.round((CX + Math.cos(a) * b * 0.26 * k) / s), z = Math.round((Math.sin(a) * b * 0.34 * k) / s);
-      let y = i(1.0);
-      while (y > 0 && !g.has(x, y, z)) y--;
-      if (y > 0) frost.set(x, y + 1, z, lin(T.ice[0]));
-    }
-    frosts[level] = part(frost, [0, 0, 0]);
+    frosts[level] = frostOf(g.map, [0, 0, 0]);
   }
 
-  // Tail: two lobes on the rump.
+  // ---- Tail: a block of wool on the rump, a nub on top.
   const tail = new Grid(s);
-  paintLobes(tail, [{ c: [CX, 0.62, -0.42], r: [0.09, 0.08, 0.09], tone: 0 }, { c: [CX, 0.68, -0.46], r: [0.06, 0.06, 0.06], tone: 1 }], () => true, 0.03);
+  cube(tail, [-1, 8, -9], [1, 11, -9], () => plain(FLEECE[0]));
+  tail.set(0, 12, -9, plain(FLEECE[0]));
+  step(tail, -1);
 
-  // The sheared body for coat level 0, with a little stubble.
+  // ---- Shorn (level 0): the skin, a smaller lobe.
   const sheared = new Grid(s);
-  ellipsoid(sheared, [CX, 0.5, 0.0], [0.26, 0.2, 0.34], (x, y, z) => (taken(x, y, z) ? null : pick(T.skin, hash3(x >> 2, y >> 2, z >> 2, 53))), 0, 1, fleecePower);
-  for (const v of [...sheared.map.values()]) {
-    if (hash3(v.x, v.y, v.z, 55) < 0.08 && !sheared.has(v.x, v.y + 1, v.z) && !taken(v.x, v.y + 1, v.z)) sheared.set(v.x, v.y + 1, v.z, lin(CREAM[0]));
-  }
-  sockets(sheared, legSpots, 7, 8, taken);
+  cube(sheared, [-3, 4, -7], [3, 12, 5], (x, y, z) => {
+    const on = [Math.abs(x) === 3, y === 4 || y === 12, z === -7].filter(Boolean).length;
+    return on >= 2 || taken(x, y, z) ? null : plain(SKIN[0]);
+  });
+  step(sheared, -1, (v) => v.y === 4); // the belly row
+  hollow(sheared);
 
   const breath = new Grid(s);
-  for (const [x, y, z] of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, 0, 1], [1, 1, 1]]) breath.set(x, 16 + y, 16 + z, lin(EYE_WHITE));
+  for (const [x, y, z] of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, 0, 1], [1, 1, 1]]) breath.set(x, 9 + y, 13 + z, plain(EYE_WHITE));
 
   const parts = {
-    wools, frosts, head: part(head, HEAD_PIVOT), hood: part(hood, HEAD_PIVOT), tail: part(tail, [CX, 0.6, -0.38]), eyes, lids, brows, mouths, ears, legs,
-    collar: part(collar, [0, 0, 0]), bell: part(bell, [CX, 0.56, 0.5]), sheared: part(sheared, [CX, 0.5, 0]), breath: part(breath, [CX, 0.66, 0.64]),
+    wools, frosts, head: part(head, HEAD_PIVOT), hood: part(hood, HEAD_PIVOT), tail: part(tail, [CX, 12 * s, -8 * s]), eyes, lids, brows, mouths, ears, legs,
+    collar: part(collar, [0, 0, 0]), bell: part(bell, [CX, 7 * s, 9 * s]), sheared: shellPart(sheared, [CX, 8 * s, 0]), breath: part(breath, [CX, 9.5 * s, 13.5 * s]),
     lobes, woolTones,
   };
   const voxels = wools[2].voxels + parts.head.voxels + parts.hood.voxels + parts.tail.voxels + eyes[0].voxels + eyes[1].voxels
-    + ears[0].voxels + ears[1].voxels + legs.reduce((n, l) => n + l.voxels, 0) + parts.collar.voxels + parts.bell.voxels;
+    + ears[0].voxels + ears[1].voxels + legs.reduce((n, l) => n + l.voxels, 0);
   const model = { ...parts, voxels };
   cached.set(key, model);
   return model;
@@ -377,10 +333,7 @@ export function iceBlock(size: V3): IceBlock {
         const near = e.filter((v) => v < CH);
         if (near.length >= 2 && near.reduce((n, v) => n + (CH - v), 0) > CH) continue;
         const rim = e.filter((v) => v <= CH).length >= 2;
-        const up = (y - lo[1]) / (hi[1] - lo[1]); // 0 at the floor, 1 at the top
-        const n = hash3(x >> 1, y >> 1, z >> 1, 83);
-        const tone = rim ? lin(T.snow[n < 0.5 ? 0 : 1]) : up < 0.35 ? pick(T.ice, n, [0.15, 0.45]) : up < 0.75 ? pick(T.ice, n, [0.35, 0.8]) : pick(T.ice, n, [0.7, 0.95]);
-        slab.set(x, y, z, tone);
+        slab.set(x, y, z, rim ? ladder('snow', 1) : ladder('ice', 0));
       }
 
   // Frosted base: a slightly inset layer of snow-white ice in the bottom three voxels, ragged on top.
@@ -388,7 +341,7 @@ export function iceBlock(size: V3): IceBlock {
   for (let x = lo[0] + 1; x <= hi[0] - 1; x++)
     for (let z = lo[2] + 1; z <= hi[2] - 1; z++) {
       const top = 2 + (hash3(x >> 1, 0, z >> 1, 85) < 0.35 ? 1 : 0);
-      for (let y = 0; y <= top; y++) base.set(x, lo[1] + y, z, pick(T.snow, hash3(x, y, z, 87), [0.4, 0.95]));
+      for (let y = 0; y <= top; y++) base.set(x, lo[1] + y, z, ladder('snow', 1));
     }
 
   // The front face is at z = (hi + 1) voxels; glints and cracks lie in the row of voxels just in front of it, on it
@@ -421,7 +374,7 @@ export function iceBlock(size: V3): IceBlock {
   for (let k = 0; k < 9; k++) {
     const x = -w / 2 + 0.1 + (k / 8) * (w - 0.2);
     const len = 0.08 + r() * 0.14;
-    cone(ic, [x, edgeY, edgeZ], 0.035, len, -1, (xx, yy, zz) => pick(T.ice, hash3(xx, yy, zz, 63), [0.5, 0.85]));
+    cone(ic, [x, edgeY, edgeZ], 0.035, len, -1, () => ladder('ice', 1));
   }
   const cap = new Grid(s);
   const top = hi[1] + 1;
@@ -432,14 +385,14 @@ export function iceBlock(size: V3): IceBlock {
       const inner = hash3((x >> 2) + 1, 0, z >> 2, 65) < 0.42 || hash3(x >> 2, 0, (z >> 2) + 1, 65) < 0.42;
       if (hash3(x, 1, z, 67) < (inner ? 0.12 : 0.3)) continue; // ragged edges
       if (!slab.has(x, hi[1], z)) continue; // snow lies only on ice: none over the chamfered rim
-      cap.set(x, top, z, pick(T.snow, hash3(x, 2, z, 69), [0.7, 0.95]));
-      if (inner && hash3(x, 3, z, 71) < 0.08) cap.set(x, top + 1, z, lin(T.snow[0]));
+      cap.set(x, top, z, ladder('snow', 1));
+      if (inner && hash3(x, 3, z, 71) < 0.08) cap.set(x, top + 1, z, ladder('snow', 1));
     }
 
   // Shards: three rough chunks, reused at different sizes and turns.
   const shards = [0.13, 0.1, 0.16].map((rad, i) => {
     const g = new Grid(s);
-    ellipsoid(g, [0, 0, 0], [rad, rad * 0.8, rad * 0.6], (xx, yy, zz) => pick(T.ice, hash3(xx, yy, zz, 89 + i), [0.3, 0.9]), 0.35, 91 + i);
+    ellipsoid(g, [0, 0, 0], [rad, rad * 0.8, rad * 0.6], () => ladder('ice', 0), 0.35, 91 + i);
     return buildGeometry(g.map, s).translate(-s / 2, -s / 2, -s / 2);
   });
 
@@ -466,6 +419,6 @@ export function windCurl(): BufferGeometry {
 /** A small wool tuft (about 40 voxels) for the effects. */
 export function tuftGeometry(seed = 71): BufferGeometry {
   const g = new Grid(CHAR);
-  ellipsoid(g, [0, 0, 0], [0.09, 0.07, 0.09], (x, y, z) => lin(hash3(x >> 1, y >> 1, z >> 1, seed) < 0.6 ? CREAM[0] : CREAM[1]), 0.2, seed);
+  ellipsoid(g, [0, 0, 0], [0.09, 0.07, 0.09], () => plain(CREAM[0]), 0.2, seed); // one colour a curl
   return buildGeometry(g.map, CHAR);
 }

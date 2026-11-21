@@ -1411,12 +1411,12 @@
           "fine": 0
         },
         "farm": {
-          "coarse": 1321,
-          "fine": 1321
+          "coarse": 1288,
+          "fine": 1288
         },
         "pen": {
-          "coarse": 66,
-          "fine": 66
+          "coarse": 47,
+          "fine": 47
         },
         "podium": {
           "coarse": 3,
@@ -1483,20 +1483,20 @@
           "fine": 6.4
         },
         "farm": {
-          "coarse": 833.59,
-          "fine": 766.58
+          "coarse": 787.455,
+          "fine": 722.385
         },
         "pen": {
           "coarse": 54.645,
-          "fine": 54.685
+          "fine": 54.655
         },
         "podium": {
           "coarse": 1.15,
           "fine": 1.15
         },
         "table": {
-          "coarse": 1.755,
-          "fine": 1.865
+          "coarse": 0.925,
+          "fine": 0.925
         }
       },
       "excused": {
@@ -1543,20 +1543,20 @@
           "fine": 6.4
         },
         "farm": {
-          "coarse": 278.09,
-          "fine": 252.805
+          "coarse": 252.805,
+          "fine": 229.21
         },
         "pen": {
           "coarse": 54.62,
-          "fine": 54.635
+          "fine": 54.605
         },
         "podium": {
           "coarse": 0.85,
           "fine": 0.85
         },
         "table": {
-          "coarse": 1.23,
-          "fine": 1.25
+          "coarse": 0.78,
+          "fine": 0.78
         }
       }
     },
@@ -1939,21 +1939,21 @@
     },
     "models": {
       "coincident": {
-        "chicken": 25,
-        "cow": 62,
-        "goat": 38,
-        "horse": 130,
-        "pig": 61,
-        "sheep": 70
+        "chicken": 4,
+        "cow": 77,
+        "goat": 96,
+        "horse": 115,
+        "pig": 48,
+        "sheep": 0
       },
       "draws": {
         "colour": {
-          "chicken": 10,
-          "cow": 13,
-          "goat": 11,
+          "chicken": 8,
+          "cow": 11,
+          "goat": 12,
           "horse": 11,
-          "pig": 13,
-          "sheep": 10
+          "pig": 11,
+          "sheep": 7
         },
         "over": {
           "chicken": 0,
@@ -2003,7 +2003,7 @@
           "goat": 0,
           "horse": 0,
           "pig": 0,
-          "sheep": 1
+          "sheep": 0
         }
       },
       "pieces": {
@@ -2059,28 +2059,28 @@
       },
       "riders": {
         "chicken": 0,
-        "cow": 4,
-        "goat": 4,
-        "horse": 17,
-        "pig": 18,
+        "cow": 0,
+        "goat": 0,
+        "horse": 0,
+        "pig": 0,
         "sheep": 0
       },
       "roots": {
         "leave": {
-          "chicken": 15,
-          "cow": 85,
-          "goat": 63,
-          "horse": 68,
-          "pig": 99,
-          "sheep": 27
+          "chicken": 18,
+          "cow": 61,
+          "goat": 54,
+          "horse": 78,
+          "pig": 59,
+          "sheep": 19
         },
         "lost": {
           "chicken": 0,
           "cow": 0,
           "goat": 0,
           "horse": 0,
-          "pig": 19,
-          "sheep": 20
+          "pig": 1,
+          "sheep": 0
         }
       },
       "scarf": {
@@ -2101,20 +2101,20 @@
       },
       "terraces": {
         "head": {
-          "chicken": 5,
+          "chicken": 0,
           "cow": 0,
           "goat": 0,
           "horse": 0,
           "pig": 0,
-          "sheep": 10
+          "sheep": 0
         },
         "torso": {
           "chicken": {
             "0": 0,
-            "1": 7,
+            "1": 0,
             "2": 0,
-            "3": 7,
-            "4": 7
+            "3": 0,
+            "4": 0
           },
           "cow": {
             "0": 0,
@@ -2125,31 +2125,31 @@
           },
           "goat": {
             "0": 0,
-            "1": 3,
-            "2": 8,
-            "3": 11,
-            "4": 11
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0
           },
           "horse": {
             "0": 0,
-            "1": 3,
+            "1": 6,
             "2": 0,
-            "3": 3,
-            "4": 3
-          },
-          "pig": {
-            "0": 0,
-            "1": 2,
-            "2": 4,
             "3": 6,
             "4": 6
           },
+          "pig": {
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0
+          },
           "sheep": {
-            "0": 18,
-            "1": 18,
-            "2": 34,
-            "3": 61,
-            "4": 84
+            "0": 0,
+            "1": 1,
+            "2": 4,
+            "3": 4,
+            "4": 4
           }
         }
       }
@@ -2199,8 +2199,8 @@
           "fine": 1
         },
         "farm": {
-          "coarse": 16,
-          "fine": 16
+          "coarse": 12,
+          "fine": 12
         },
         "pen": {
           "coarse": 1,
@@ -2211,8 +2211,8 @@
           "fine": 17
         },
         "table": {
-          "coarse": 170,
-          "fine": 170
+          "coarse": 168,
+          "fine": 168
         }
       },
       "inside": {
@@ -2229,20 +2229,20 @@
           "fine": 0
         },
         "farm": {
-          "coarse": 8,
-          "fine": 8
+          "coarse": 6,
+          "fine": 6
         },
         "pen": {
-          "coarse": 5,
-          "fine": 5
+          "coarse": 6,
+          "fine": 6
         },
         "podium": {
           "coarse": 15,
           "fine": 15
         },
         "table": {
-          "coarse": 169,
-          "fine": 169
+          "coarse": 168,
+          "fine": 168
         }
       },
       "unplaced": {

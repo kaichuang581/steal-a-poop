@@ -1,0 +1,213 @@
+diff --git a/src/skin/scene/Sky.tsx b/src/skin/scene/Sky.tsx
+index f8bbe06..5a15369 100644
+--- a/src/skin/scene/Sky.tsx
++++ b/src/skin/scene/Sky.tsx
+@@ -51,7 +51,8 @@ export function Dome({ hour, palette = 'hour' }: { hour: Hour; palette?: SkyPale
+   const mat = useMemo(() => new MeshBasicMaterial({ vertexColors: true, side: BackSide, fog: false, depthWrite: false }), []);
+   useEffect(() => {
+     const dream = palette === 'dream';
+-    const sky = !dream && hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY : SKY[hour];
++    const XS = new URLSearchParams(location.search);
++    const sky = !dream && XS.get('xskyt') ? ['#' + XS.get('xskyt'), '#' + XS.get('xskyh')] : !dream && hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY : SKY[hour];
+     const top = new Color(dream ? DREAM_PALETTE.top : sky[0]), bottom = new Color(dream ? DREAM_PALETTE.horizon : sky[1]), mid = new Color(DREAM_PALETTE.middle), c = new Color();
+     const pos = geo.getAttribute('position'), col = geo.getAttribute('color') as BufferAttribute;
+     for (let i = 0; i < pos.count; i++) {
+diff --git a/src/skin/table/Rendering.tsx b/src/skin/table/Rendering.tsx
+index 23fa669..4996213 100644
+--- a/src/skin/table/Rendering.tsx
++++ b/src/skin/table/Rendering.tsx
+@@ -8,6 +8,12 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
++import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
++// EXPERIMENT (local only, never committed): URL switches for the depth study.
++const XQ = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
++const xnum = (k: string): number | null => { const v = XQ?.get(k); return v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null; };
++const xstr = (k: string): string | null => XQ?.get(k) ?? null;
++
+ import { doorsShut } from '../components/BarnDoors';
+ import type { Hour } from '../model/types';
+ import { createPacer, newPace, noteSceneDrawn } from '../perf/governor';
+@@ -124,7 +130,7 @@ export function shotLight(shot: { position: readonly number[]; target: readonly
+   const edge = farEdge(shot, aspect);
+   const d = Math.hypot(shot.target[0] - shot.position[0], shot.target[2] - shot.position[2]);
+   return {
+-    haze: (t.fitHaze || fit) && edge > 0 ? Math.min(HAZE_FIT.max, Math.max(HAZE_FIT.min, HAZE_FIT.share / edge)) : before.haze,
++    haze: ((t.fitHaze || fit) && edge > 0 ? Math.min(HAZE_FIT.max, Math.max(HAZE_FIT.min, HAZE_FIT.share / edge)) : before.haze) * (xnum('xhaze') ?? 1),
+     half: t.fitShadow || fit ? Math.min(low ? SHADOW_FIT.maxLow : SHADOW_FIT.max, Math.max(SHADOW_FIT.min, SHADOW_FIT.perMetre * d + SHADOW_FIT.plus)) : before.half,
+     centre: t.fitShadow || fit ? [shot.target[0], shot.target[2]] : before.centre,
+     exposure: t.exposure, toneMapping: t.toneMapping, sun: t.sun, fill: t.fill, sunElevationDeg: t.sunElevationDeg, sunAzimuthOffsetDeg: t.sunAzimuthOffsetDeg,
+@@ -154,7 +160,7 @@ export function Atmosphere({ hour }: { hour: Hour }) {
+     if (!f || was.current === key) return;
+     was.current = key;
+     f.density = density;
+-    f.color.set(exempt ? FOG[hour] : hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY[1] : DIORAMA[hour].fog);
++    f.color.set(exempt ? FOG[hour] : xstr('xfog') ? '#' + xstr('xfog') : hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY[1] : DIORAMA[hour].fog);
+     (scene.background as Color).copy(f.color);
+   });
+   return null;
+@@ -235,7 +241,9 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
+       s.plain = exempt;
+       s.shot = shot;
+       l.intensity = shot?.sun ?? (exempt ? sun.intensity : look.intensity);
+-      const from = shot ? at(shot.sunElevationDeg, shot.sunAzimuthOffsetDeg) : at(exempt ? LIGHT_BOUNDS.sunElevationDeg : look.elevationDeg);
++      if (!exempt && xnum('xsun') != null) l.intensity = xnum('xsun')!;
++      if (!exempt && xstr('xsunc')) l.color.set('#' + xstr('xsunc'));
++      const from = shot ? at(xnum('xel') ?? shot.sunElevationDeg, xnum('xaz') ?? shot.sunAzimuthOffsetDeg) : at(exempt ? LIGHT_BOUNDS.sunElevationDeg : look.elevationDeg);
+       const [cx, cz] = shot?.centre ?? [0, 0], half = shot?.half ?? SHADOW_FIT.min, cam = l.shadow.camera;
+       l.position.set(cx + from[0], from[1], cz + from[2]);
+       l.target.position.set(cx, 0, cz);
+@@ -251,6 +259,9 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
+         h.color.set(exempt ? LIGHT_BOUNDS.fillSky : look.sky);
+         h.groundColor.set(exempt ? LIGHT_BOUNDS.fillGround : look.ground);
+         h.intensity = shot?.fill ?? (exempt ? (hour === 'night' ? LIGHT_BOUNDS.fillNight : LIGHT_BOUNDS.fillDay) : look.fill * fillShare);
++        if (!exempt && xnum('xfill') != null) h.intensity = xnum('xfill')! * fillShare;
++        if (!exempt && xstr('xsky')) h.color.set('#' + xstr('xsky'));
++        if (!exempt && xstr('xgnd')) h.groundColor.set('#' + xstr('xgnd'));
+       }
+       s.owed = true;
+     }
+@@ -271,6 +282,7 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
+       {/* A strong sky fill and a soft bounce from below: the diorama's open shadows. Snow gets its shape from its steps
+           and drifts and from the key's soft shadows. */}
+       <hemisphereLight ref={fill} args={[look.sky, look.ground, look.fill * fillShare]} />
++      {xnum('xkick') ? <directionalLight position={(() => { const el = ((xnum('xkickel') ?? 18) * Math.PI) / 180, az = viewYaw + ((xnum('xkickaz') ?? -50) * Math.PI) / 180; return [Math.sin(az) * Math.cos(el) * 60, Math.sin(el) * 60, Math.cos(az) * Math.cos(el) * 60] as [number, number, number]; })()} color={'#' + (xstr('xkickc') ?? 'FFC4A8')} intensity={xnum('xkick')!} /> : null}
+       <directionalLight
+         ref={light} position={pos} color={look.sun} intensity={look.intensity} castShadow shadow-radius={LOOK.shadowRadius ?? 2.5}
+         shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-layers-mask={SHADOW_LAYERS}
+@@ -342,6 +354,14 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
+     const target = new WebGLRenderTarget(size.width, size.height, { type: HalfFloatType, samples: samplesFor(gl.getPixelRatio()) });
+     const c = new EffectComposer(gl, target);
+     c.addPass(new RenderPass(scene, camera));
++    if (xnum('xgtao')) {
++      const g = new GTAOPass(scene, camera, size.width, size.height);
++      g.output = GTAOPass.OUTPUT.Default;
++      g.blendIntensity = xnum('xgtao')!;
++      g.updateGtaoMaterial({ radius: xnum('xaor') ?? 0.6, distanceExponent: 1.5, thickness: 1.5, scale: 1.0, samples: 16, distanceFallOff: 1.0, screenSpaceRadius: false });
++      g.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
++      c.addPass(g);
++    }
+     // Bloom at half resolution: it only has to catch the lanterns, and the full-size blur chain costs most of a frame.
+     // Only what gives light blooms (lanterns, windows, bulbs: brighter than any lit surface): at 0.85 white wool and
+     // sunlit snow bloomed too, and the sheep glowed (Brian, 2026-11-19).
+@@ -353,6 +373,19 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
+       c.addPass(pass);
+     }
+     c.addPass(new OutputPass());
++    if (xnum('xgrade') != null) {
++      const gp = new ShaderPass({
++        uniforms: { tDiffuse: { value: null }, curve: { value: xnum('xgrade') }, sat: { value: xnum('xsat') ?? 1.0 }, vig: { value: xnum('xvig') ?? 0.0 } },
++        vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
++        fragmentShader: `uniform sampler2D tDiffuse; uniform float curve, sat, vig; varying vec2 vUv;
++          void main() { vec4 c = texture2D(tDiffuse, vUv); vec3 x = clamp(c.rgb, 0.0, 1.0);
++            float l = dot(x, vec3(0.2126, 0.7152, 0.0722)); x = clamp(mix(vec3(l), x, sat), 0.0, 1.0);
++            x = mix(x, x * x * (3.0 - 2.0 * x), curve);
++            float d = distance(vUv, vec2(0.5)); x *= 1.0 - vig * smoothstep(0.3, 0.85, d);
++            gl_FragColor = vec4(x, c.a); }`,
++      });
++      c.addPass(gp);
++    }
+     return c;
+     // The size is applied by the effect below; recreating on every resize would drop frames.
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+@@ -390,6 +423,7 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
+     // The wendigo's paddock shot is drawn as it was: plain Lambert (voxel/material.ts) under the old tone mapping.
+     scene.userData.plainLight = exempt;
+     gl.toneMapping = exempt ? ACESFilmicToneMapping : (home ? shotNow?.toneMapping : null) ?? LOOK.toneMapping;
++    gl.toneMappingExposure = !exempt && home && xnum('xexp') != null ? xnum('xexp')! : 1;
+     for (const p of composer.passes) if (p instanceof UnrealBloomPass) p.threshold = exempt ? PADDOCK_BLOOM : BLOOM_THRESHOLD;
+     const want = effectsPlan(getTier(), exempt);
+     if (home && !exempt && !LOOK.tilt) want.tiltShift = false; // ?tilt=0 (look.ts): off but on the wendigo's shot
+diff --git a/src/skin/voxel/material.ts b/src/skin/voxel/material.ts
+index edf968d..5d3a056 100644
+--- a/src/skin/voxel/material.ts
++++ b/src/skin/voxel/material.ts
+@@ -92,7 +92,7 @@ const STUDIO_FILL = (fill: number) => /* glsl */ `#include <lights_fragment_end>
+  * (a material's own emissive: lanterns, bulbs) is left out of it and still blooms. Off where the scene asks for plain
+  * light (the wendigo's paddock shot).
+  */
+-export const SHOULDER = { knee: 0.95, over: 0.09 };
++export const SHOULDER = { knee: Number((typeof location !== 'undefined' && new URLSearchParams(location.search).get('xknee')) || 0.95), over: 0.09 };
+ const STUDIO_SHOULDER = /* glsl */ `{
+     vec3 lit = outgoingLight - totalEmissiveRadiance;
+     float peak = max( lit.r, max( lit.g, lit.b ) ), past = peak - ${SHOULDER.knee.toFixed(3)};
+@@ -113,7 +113,7 @@ export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: num
+   const m = new MeshLambertMaterial({
+     vertexColors: true,
+     ...(opts.emissive ? { emissive: new Color(opts.emissive) } : {}),
+-    emissiveIntensity: opts.emissiveIntensity ?? 1,
++    emissiveIntensity: (opts.emissiveIntensity ?? 1) * (opts.emissive ? Number((typeof location !== 'undefined' && new URLSearchParams(location.search).get('xemis')) || 1) : 1),
+     transparent: opts.transparent ?? false,
+     opacity: opts.opacity ?? 1,
+     ...(opts.color ? { color: opts.color } : {}),
+diff --git a/src/skin/voxel/mesher.ts b/src/skin/voxel/mesher.ts
+index 1692121..277b13e 100644
+--- a/src/skin/voxel/mesher.ts
++++ b/src/skin/voxel/mesher.ts
+@@ -16,6 +16,8 @@ const FACE_SHADE = (axis: number, sign: number) =>
+   axis === 1 ? (sign > 0 ? 1.0 : 0.78) : axis === 0 ? (sign > 0 ? 0.93 : 0.88) : sign > 0 ? 0.91 : 0.86;
+ /** How much each occluded corner darkens (0..3 corners). */
+ const AO_STEP = LOOK.ao ?? 0.2; // ?ao= on a development server (look.ts), for the diorama's pairs
++const XJIT = (() => { try { return Number(new URLSearchParams(globalThis.location?.search ?? '').get('xjit') || 0); } catch { return 0; } })();
++const jit = (x: number, y: number, z: number) => { if (!XJIT) return 1; let h = (x * 374761393 + y * 668265263 + z * 2147483647) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return 1 + XJIT * (((h >>> 0) / 4294967295) * 2 - 1); };
+ 
+ const cellKey = (x: number, y: number, z: number) => (x + 8192) * 268435456 + (y + 8192) * 16384 + (z + 8192);
+ const solids = new WeakMap<object, Set<number>>();
+@@ -131,7 +133,7 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
+       const shade = FACE_SHADE(f.axis, f.sign);
+       // One tone and no rounded edge: this face may join its neighbours in a rectangle, once every face is known.
+       if (merging && mask === 0 && aos[0] === aos[1] && aos[1] === aos[2] && aos[2] === aos[3] && (!mergeable || mergeable((P[0] + 0.5) * size, (P[1] + 0.5) * size, (P[2] + 0.5) * size))) {
+-        const k = (1 - AO_STEP * (occlude ? aos[0] : 0)) * shade;
++        const k = (1 - AO_STEP * (occlude ? aos[0] : 0)) * shade * jit(P[0], P[1], P[2]);
+         const key = `${FACES.indexOf(f)}|${P[f.axis]}`;
+         let cells = flat.get(key);
+         if (!cells) flat.set(key, (cells = new Map()));
+@@ -150,7 +152,7 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
+         nor.push(N[0], N[1], N[2]);
+         uv.push(u, w);
+         if (ROUND) bev.push(u, w, mask);
+-        const k = (1 - AO_STEP * (occlude ? aos[i] : 0)) * shade;
++        const k = (1 - AO_STEP * (occlude ? aos[i] : 0)) * shade * jit(P[0], P[1], P[2]);
+         col.push(v.c[0] * k, v.c[1] * k, v.c[2] * k);
+       }
+       // flip the quad diagonal when needed so AO gradients have no seam
+diff --git a/src/skin/voxel/rounded.ts b/src/skin/voxel/rounded.ts
+index 23c95d9..e844003 100644
+--- a/src/skin/voxel/rounded.ts
++++ b/src/skin/voxel/rounded.ts
+@@ -19,7 +19,9 @@ import type { Material } from 'three';
+ export const ROUNDED_VOXELS = false;
+ 
+ /** How far in from an edge the rounding starts (share of the voxel) and how far the normal bends at the very edge. */
+-export const BEVEL = { width: 0.16, strength: 1 } as const;
++const XR = (() => { try { return new URLSearchParams(globalThis.location?.search ?? ''); } catch { return new URLSearchParams(); } })();
++const XSEAM = Number(XR.get('xseam') || 0), XSEAMW = Number(XR.get('xseamw') || 0.12), XBEVALL = Number(XR.get('xbevall') || 0);
++export const BEVEL = { width: Number(XR.get('xbevw') || 0.16), strength: Number(XR.get('xbevs') || 1) } as const;
+ 
+ function fromUrl(): boolean | null {
+   try {
+@@ -53,8 +55,8 @@ varying vec3 vBevelT2;
+ `;
+ // After normal_fragment_begin. A face with no rounded edges (mask 0, or a mesh without the attribute) is untouched.
+ const FRAG_BODY = /* glsl */ `
+-  if ( vBevel.z > 0.5 ) {
+-    float m = floor( vBevel.z + 0.5 );
++  if ( vBevel.z > 0.5 || ${XBEVALL > 0 ? 'true' : 'false'} ) {
++    float m = max( floor( vBevel.z + 0.5 ), ${XBEVALL > 0 ? '15.0' : '0.0'} );
+     float e0 = mod( m, 2.0 ), e1 = mod( floor( m / 2.0 ), 2.0 ), e2 = mod( floor( m / 4.0 ), 2.0 ), e3 = mod( floor( m / 8.0 ), 2.0 );
+     float bw = ${BEVEL.width.toFixed(3)};
+     float bx = e1 * ( 1.0 - smoothstep( 0.0, bw, 1.0 - vBevel.x ) ) - e0 * ( 1.0 - smoothstep( 0.0, bw, vBevel.x ) );
+@@ -71,8 +73,11 @@ export function withRoundedEdges<M extends Material>(m: M): M {
+     prev.call(m, shader, renderer);
+     shader.vertexShader = VERT_HEAD + shader.vertexShader.replace('#include <defaultnormal_vertex>', `#include <defaultnormal_vertex>\n${VERT_BODY}`);
+     shader.fragmentShader = FRAG_HEAD + shader.fragmentShader.replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>\n${FRAG_BODY}`);
++    if (XSEAM > 0) shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
++  { float de = min( min( vBevel.x, 1.0 - vBevel.x ), min( vBevel.y, 1.0 - vBevel.y ) );
++    diffuseColor.rgb *= 1.0 - ${XSEAM.toFixed(3)} * ( 1.0 - smoothstep( 0.0, ${XSEAMW.toFixed(3)}, de ) ); }`);
+   };
+   const key = m.customProgramCacheKey.bind(m);
+-  m.customProgramCacheKey = () => `${key()}|voxel-bevel`;
++  m.customProgramCacheKey = () => `${key()}|voxel-bevel-${XSEAM}-${XBEVALL}-${BEVEL.width}-${BEVEL.strength}`;
+   return m;
+ }

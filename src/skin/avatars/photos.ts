@@ -1,4 +1,4 @@
-import { ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
+import { ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, baseAvatarId, isAdminAvatar } from '../../avatars/ids';
 import admin2Photo from '../assets/admin2-forehead.png';
 import admin3Photo from '../assets/admin3-forehead.png';
 import kaiyanPhoto from '../assets/kaiyan-forehead.png';
@@ -15,7 +15,10 @@ import { pictureHeight } from './kaiyanLook';
 export const isTallPhoto = (id: string | null | undefined): boolean => isAdminAvatar(id);
 
 /** The picture file an admin avatar wears. */
-export const photoUrlFor = (id: string | null | undefined): string => (id === ADMIN2_AVATAR_ID ? admin2Photo : id === ADMIN3_AVATAR_ID ? admin3Photo : kaiyanPhoto);
+export const photoUrlFor = (id: string | null | undefined): string => {
+  const base = baseAvatarId(id);
+  return base === ADMIN2_AVATAR_ID ? admin2Photo : base === ADMIN3_AVATAR_ID ? admin3Photo : kaiyanPhoto;
+};
 
 /** How tall the picture stands at the table, in metres (`length` is that avatar's forehead setting). */
 export const photoHeight = (_id: string | null | undefined, length: number): number => pictureHeight(length);

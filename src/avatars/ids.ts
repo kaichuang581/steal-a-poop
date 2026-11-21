@@ -17,5 +17,28 @@ export const AVATAR_IDS = [...ANIMAL_AVATAR_IDS, ...ADMIN_AVATAR_IDS] as const;
 export type AvatarId = (typeof AVATAR_IDS)[number];
 export const isAvatarId = (v: unknown): v is AvatarId => typeof v === 'string' && (AVATAR_IDS as readonly string[]).includes(v);
 
-/** True for the admin-only photo avatars. */
-export const isAdminAvatar = (v: unknown): boolean => typeof v === 'string' && (ADMIN_AVATAR_IDS as readonly string[]).includes(v);
+/**
+ * Juan's orange amount reaches other players on the avatar they are shown: the server writes `admin2~12` for Juan at 60%
+ * (twentieths, 1 to 20; none at 0) in a room's member list. A browser never sends that form: it sends the plain id and the
+ * amount apart, and the server builds this one. Everything that reads an id for what it IS goes through `baseAvatarId`.
+ */
+export const ORANGE_STEPS = 20;
+/** The avatar without any orange suffix. */
+export const baseAvatarId = (v: string | null | undefined): string | null => (typeof v === 'string' ? v.split('~', 1)[0] : null);
+/** Juan's id with an orange amount (0 to 1, in twentieths) on it; any other id comes back as it was. */
+export function withOrange(id: string, orange: unknown): string {
+  if (id !== ADMIN2_AVATAR_ID || typeof orange !== 'number' || !Number.isFinite(orange)) return id;
+  const n = Math.min(ORANGE_STEPS, Math.max(0, Math.round(orange * ORANGE_STEPS)));
+  return n > 0 ? `${id}~${n}` : id;
+}
+/** The orange amount (0 to 1) an avatar id carries, or null when it carries none. */
+export function orangeOf(id: string | null | undefined): number | null {
+  if (typeof id !== 'string') return null;
+  const m = /^admin2~(\d{1,2})$/.exec(id);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n >= 1 && n <= ORANGE_STEPS ? n / ORANGE_STEPS : null;
+}
+
+/** True for the admin-only photo avatars (with or without an orange amount). */
+export const isAdminAvatar = (v: unknown): boolean => typeof v === 'string' && (ADMIN_AVATAR_IDS as readonly string[]).includes(baseAvatarId(v) as string);

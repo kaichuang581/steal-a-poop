@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { baseAvatarId } from '../../avatars/ids';
 import { DISC } from './discPose';
 import { ORANGE } from './orange';
 
@@ -33,7 +34,10 @@ export function pictureHeight(length: number): number {
 
 /** Each tall photo keeps its own look on this device. Kaiyan's key is the one it has always had. */
 const KEYS: Record<string, string> = { kaiyan: 'sap:kaiyan-look', admin2: 'sap:admin2-look', admin3: 'sap:admin3-look' };
-const keyFor = (id?: string | null): string => (id && Object.hasOwn(KEYS, id) ? KEYS[id] : KEYS.kaiyan);
+const keyFor = (id?: string | null): string => {
+  const base = baseAvatarId(id);
+  return base && Object.hasOwn(KEYS, base) ? KEYS[base] : KEYS.kaiyan;
+};
 const subs = new Set<() => void>();
 const clamp = (v: unknown, r: { min: number; max: number; def: number }) =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(r.max, Math.max(r.min, v)) : r.def;

@@ -4,6 +4,7 @@ import { AdditiveBlending, CanvasTexture, Group, MeshBasicMaterial, MeshDepthMat
 import type { SheepState } from '../table/Sheep';
 import { DISC, discPose } from './discPose';
 import { SLICE, sliceHeights, useKaiyanLook } from './kaiyanLook';
+import { orangeOf } from '../../avatars/ids';
 import { warmData } from './orange';
 import { photoUrlFor } from './photos';
 
@@ -123,7 +124,9 @@ function starTexture(): Texture {
 
 export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0, pace = 0, avatar }: Props) {
   // Each admin avatar has its own forehead length and glare, and Juan's an orange amount (src/skin/avatars/kaiyanLook.ts).
-  const { length, glare, orange = 0 } = useKaiyanLook(avatar);
+  const { length, glare, orange: own = 0 } = useKaiyanLook(avatar);
+  // Someone else's Juan comes with the amount of orange they chose on the id (src/avatars/ids.ts); yours is your own slider.
+  const orange = orangeOf(avatar) ?? own;
   const url = photoUrlFor(avatar);
   const tex = useMemo(() => (orange > 0 ? warmedTexture(url, orange) : photoTexture(url)), [url, orange]);
   const quad = useMemo(() => pictureGeometry(length), [length]);

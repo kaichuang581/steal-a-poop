@@ -795,6 +795,55 @@ describe('the admin avatar', () => {
     }
   });
 
+  it("shows Juan's orange to the room, as a clamped amount, only with an admin's say-so and only on Juan", async () => {
+    const { createHash } = await import('node:crypto');
+    const password = 'server-test-password';
+    const server = await boot({ adminHash: createHash('sha256').update(password).digest('hex') });
+    const a = await Client.connect(server.port, 'Owner2');
+    const b = await Client.connect(server.port, 'Watch2');
+    clients.push(a, b);
+    await a.waitFor((m) => m.t === 'welcome');
+    await b.waitFor((m) => m.t === 'welcome');
+    a.send({ t: 'create', visibility: 'private' });
+    const made = await a.waitFor((m) => m.t === 'room');
+    b.send({ t: 'join', code: made.view.code });
+    await b.waitFor((m) => m.t === 'room' && m.view.members.length === 2);
+    const seen = async (msg: object, want: string | undefined) => {
+      const before = b.msgs.length;
+      a.send(msg);
+      const room = await b.waitFor((m) => m.t === 'room' && b.msgs.indexOf(m) >= before && m.view.members.some((x: { name: string; avatar?: string }) => x.name === 'Owner2' && x.avatar === want));
+      expect(room.view.members.find((x: { name: string }) => x.name === 'Owner2').avatar).toBe(want);
+    };
+    await seen({ t: 'avatar', id: 'admin2', proof: password, orange: 0.6 }, 'admin2~12');
+    await seen({ t: 'avatar', id: 'admin2', proof: password, orange: 'lots' }, 'admin2'); // not a number: no orange
+    await seen({ t: 'avatar', id: 'admin2', proof: password, orange: 9 }, 'admin2~20'); // clamped to the top
+    await seen({ t: 'avatar', id: 'admin2', proof: password, orange: 0 }, 'admin2');
+    await seen({ t: 'avatar', id: 'kaiyan', proof: password, orange: 0.6 }, 'kaiyan'); // only Juan takes an amount
+    await seen({ t: 'avatar', id: 'admin2', proof: password, orange: 0.35 }, 'admin2~7');
+    // a browser may not send the suffixed form itself: it is a bad message, and Juan stays as he was
+    const mark = a.msgs.length;
+    a.send({ t: 'avatar', id: 'admin2~7', proof: password });
+    const err = await a.waitFor((m) => m.t === 'error' && a.msgs.indexOf(m) >= mark);
+    expect(err.error).toBe('bad_message');
+  });
+
+  it('refuses an orange Juan, and a client-made orange id, without the password', async () => {
+    const { createHash } = await import('node:crypto');
+    const server = await boot({ adminHash: createHash('sha256').update('server-test-password').digest('hex') });
+    const a = await Client.connect(server.port, 'Orange1');
+    clients.push(a);
+    await a.waitFor((m) => m.t === 'welcome');
+    a.send({ t: 'create', visibility: 'private' });
+    await a.waitFor((m) => m.t === 'room');
+    const before = a.msgs.length;
+    a.send({ t: 'avatar', id: 'admin2', orange: 0.6 });
+    a.send({ t: 'avatar', id: 'admin2~12' });
+    a.send({ t: 'avatar', id: 'pig' });
+    const room = await a.waitFor((m) => m.t === 'room' && a.msgs.indexOf(m) >= before && m.view.members[0].avatar === 'pig');
+    expect(room.view.members[0].avatar).toBe('pig');
+    expect(a.msgs.slice(before).some((m) => m.t === 'room' && String(m.view.members[0].avatar).startsWith('admin2'))).toBe(false);
+  });
+
   it('is refused quietly for a wrong or missing password, or a password with a plain avatar', async () => {
     const { createHash } = await import('node:crypto');
     const server = await boot({ adminHash: createHash('sha256').update('server-test-password').digest('hex') });

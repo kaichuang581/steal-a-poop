@@ -2013,12 +2013,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   `normalizeWord` folds accents for every language, so "élève" and "eleve" both count and the typo assist works the same. The
   server loads both lists; a room opened by a French player (`lang` on create / quick / ranked) plays the French list and the
   queues match French with French. The screen is translated by src/skin/i18n/translate.ts, a page-level swap of exact English
-  lines from public/i18n-fr.json (fetched only in French) plus the patterns in i18n/fr.ts; the chat log, inputs and anything
+  lines from public/i18n-fr.json plus the patterns in public/i18n-fr-patterns.json ([regex, French], first match wins, the kept parts translated too), both fetched only in French; the chat log, inputs and anything
   marked data-i18n-skip are left alone. New English text needs its French added there. In French the word of the day is
   public/wotd-fr.json (120 French words, 35 / 50 / 35 by level, picked by `pickFrom`, so they repeat every few months), and
   Counting Sheep asks for French starts, fence words and hint examples (`setDreamLanguage` in src/dream/dream.ts, set once at
-  boot; `check` and `matched` fold accents). Not translated: lines built with values not in the patterns, the share text,
-  the classic look and the legal pages.
+  boot; `check` and `matched` fold accents). Not translated: the share text, the classic look and the legal pages. A sentence with a value spliced into
+  JSX (`Text {value} more text`) is several text nodes; write it as one template string so it can be one pattern.
+  Every screen was walked in French on 2026-11-21 (scratchpad walk*.cjs) and its English lines fixed.
 - A second admin avatar (requested by Brian, 2026-11-20): another photo beside Kaiyan's, admin-only in the same way (id `admin2`,
   `ADMIN2_AVATAR_ID` in src/avatars/ids.ts; `isAdminAvatar` is the check everywhere, server, store, save code and skin). It is a plain
   flat square picture (src/skin/assets/admin2.png, a 512 x 512 circle, one-off crop of the photo Brian sent): no stretched forehead and
@@ -2026,3 +2027,57 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   at the table. Equipped and unequipped only from the admin panel's "Second admin avatar" card, taken off by Lock, never in the picker or
   a save code. Changes outside src/skin: the id and `isAdminAvatar` in src/avatars/ids.ts, the server's admin check, the save code's
   filter, one assertion in avatars.test.ts and a server test; the fence pins in fences.json were re-pinned on purpose.
+- Admin avatars show to the room (requested by Brian, 2026-11-20: "im an admin and i want other people to see my avatar"). Before, the
+  server showed an admin avatar only for a moderator or an account in ADMIN_USER_IDS, so an admin who was neither (a guest, or an
+  account not on the list) wore it on their own screen and everyone else saw the sheep. Now a browser that unlocked admin keeps the
+  password it typed (`sap:admin-proof`, cleared by Lock; `adminProof` in src/lib/admin.ts) and sends it as `proof` beside an admin
+  avatar (`avatarMessage` in roomStore.ts); the server checks it against the admin hash (`isAdminProof` in server/adminProof.ts; the
+  hash moved to src/lib/adminHash.ts so the server can read it; `adminHash` in the server's options for tests). The hash itself is no
+  proof (it is in the bundle). Still refused quietly otherwise. A device that was unlocked before this has no proof until it is locked
+  and unlocked once. Weakness, told to Brian: the password was once written into the repo (see adminHash.ts), so anyone who finds it in
+  git history can wear the admin avatars; change the password's hash to a long random one to close that. This supersedes "the server
+  alone decides ... (moderators and ADMIN_USER_IDS)" in the security pass: the server still alone decides, by the list or the password.
+- A third admin avatar (requested by Brian, 2026-11-21): another photo (id `admin3`, `ADMIN3_AVATAR_ID`), admin-only like the other two, with
+  Kaiyan's treatment: a tall picture (src/skin/assets/admin3-forehead.png, 512 x 1339, the same hair / forehead band / face slices, cut
+  from the photo Brian sent; no stars baked in, the live glare is the shine) whose forehead stretches and whose glare is adjustable.
+  Each tall photo keeps its own look on this device: Kaiyan's `sap:kaiyan-look` as before, the third's `sap:admin3-look`
+  (`getKaiyanLook(id)`, `setKaiyanLook(next, id)`, `useKaiyanLook(id)` in src/skin/avatars/kaiyanLook.ts; `useLooksVersion` is what the table
+  and the ice listen to so their name plates follow either). The admin panel has a "Third admin avatar" card with its own head sliders. The
+  second admin avatar stays the plain square photo. `isTallPhoto` and `photoUrlFor` (avatars/photos.ts) say which picture an id wears.
+  Others in a room see the default look of the third, as with Kaiyan's.
+- Juan, the second admin avatar, is a tall photo too, with an orange slider (requested by Brian, 2026-11-21: "make it so that his
+  forehead is extendable, there is the glare like the kaiyan one, also ... a slider to make his face more progressively orange").
+  This supersedes the plain square photo of 2026-11-20: src/skin/assets/admin2.png is gone and admin2-forehead.png (512 x 1339, the
+  same three slices as Kaiyan's, cut from the same photo) replaces it, so all three admin avatars are tall photos with a Forehead
+  and Glare slider each, saved apart (`sap:kaiyan-look`, `sap:admin2-look`, `sap:admin3-look`). Juan's card also has an Orange slider
+  (0 to 100%, in twentieths; `orange` in the look, left out of the saved value while 0). The tint is pixel maths in
+  src/skin/avatars/orange.ts (`skinWeight`, `warmUp`: only warm, mid-light pixels, so the blue backdrop, the suit and the shirt stay
+  put; fair hair goes orange with the skin), drawn on a canvas texture by AvatarDisc (`warmedTexture`, the last four amounts kept). The
+  panel's small picture and the others' view of him are not tinted: others see the default look, as with Kaiyan's.
+
+- The yarn loading screen (Brian, 2026-11-21: "can we quit it with the barn stuff, it looks garbage"; the plan is
+  docs/landing/LANDING-PLAN.md, version 8). This overrides "the loading doors" in the overhaul's list of things that
+  stand, "One loading screen", "The doors, refined", "The doors are voxels", "The loading sign" and "Back to the barn
+  doors" (with its "Don't redesign the loading screen again unless he asks": he asked).
+  - What it is: Home's night blue (#1B2742), a few slow flakes, the name "fleeced" in plain rounded print as a faint
+    dotted line, and a red yarn ball that rolls along it from the foot of the "f", laying one strand of yarn that spells
+    the word. The strand is the progress: half loaded, half the word is yarn; ready, the word is whole and the small
+    ball sits on top of the "d", and 300 ms later the screen fades onto Home. If loading pauses the ball rocks; a tap
+    makes it hop. Nothing else: no text, no number, no bar, no icon, no sheep, no button, no opening animation.
+  - Where it lives: src/skin/loading (yarnWord.ts the word and its points, yarn.ts the yarn and the ball's wraps,
+    progress.ts what counts as progress, bootDoors.ts the page's own copy at p = 0), drawn by
+    src/skin/components/BarnDoors.tsx. The ball's wraps are one baked picture, public/loading/yarn-ball.webp
+    (`node tools/renderYarnBall.mjs`, dev server up, then it stamps itself; its "model" in the bake manifest is the
+    text of yarn.ts, so change yarn.ts and bake again). Every number is the prototype's, from the plan's appendices.
+  - Names kept from the doors on purpose: BarnDoors.tsx and every name it exports (playBarnDoors, whenDoorsShut,
+    whenDoorsOpen, useLoadingHold, keysBlocked ...), bootDoors.ts's names, the class `sk-doors`, the id `boot-doors`
+    and the phase names. Rendering.tsx, the gate tools and e2e-painted/helpers.ts find the screen by them.
+  - Progress: the farm's build counts its steps (`stepsTaken` in scene/slices.ts) against what this device took last
+    time (`sap:boot-steps`, by detail level; `DEFAULT_STEPS` in BarnDoors.tsx on a first visit), other loads against
+    `sap:load-steps` by their label. It never goes back and never finishes before the game is ready.
+  - Standing rules: (1) the yarn looks like real wool: two twisted plies, matte, one light, fine fibres, no outline,
+    no painted stripes, no gloss, nothing regular that reads as segments (the first try "looks fully ai generated ...
+    kind of like a worm"). (2) No percentage or any other number ("nvm dont add a percentage"), and no line of text.
+    (3) Never naked: the game's sheep always wears its wool. No sheep is on this screen; if one is ever added to any
+    loading screen it never uses the `sheared` part or coat level 0, not even for a moment.
+  - Don't redesign the loading screen unless Brian asks.

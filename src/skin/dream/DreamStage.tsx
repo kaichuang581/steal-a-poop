@@ -161,7 +161,7 @@ function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Ta
   const avatar = useAvatar();
   const admin = isAdminAvatar(avatar);
   const runner = !admin && byId(avatar) ? animalModel(byId(avatar)!.animal) : undefined;
-  const { length } = useKaiyanLook();
+  const { length } = useKaiyanLook(avatar);
   const discScale = Math.min(SHEEP_SCALE, DISC_MAX_H / photoHeight(avatar, length));
   // The bonk stars circle the head and the count pops over it, so both rise with a tall picture. The photo faces the
   // camera, which looks straight across the lane.

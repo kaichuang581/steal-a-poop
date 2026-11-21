@@ -64,7 +64,7 @@ const DOORS_SLOT = '<!--boot-doors-->';
  * over from them when it arrives. Plain markup and a style block only: the built page's policy (above) allows no inline script.
  */
 export function withBootDoors(html: string, skinCss: string = readFileSync('src/skin/styles/skin.css', 'utf8'), base: string = BASE): string {
-  if (!html.includes(DOORS_SLOT) || !html.includes('</head>')) throw new Error(`index.html has lost ${DOORS_SLOT} or its head: the barn doors have nowhere to go`);
+  if (!html.includes(DOORS_SLOT) || !html.includes('</head>')) throw new Error(`index.html has lost ${DOORS_SLOT} or its head: the loading screen has nowhere to go`);
   return html.replace(DOORS_SLOT, bootDoorsMarkup(base)).replace('</head>', `  <style id="boot-doors-style">${bootDoorsCss(skinCss)}</style>\n  </head>`);
 }
 const bootDoors = (): Plugin => ({ name: 'boot-doors', transformIndexHtml: (html) => withBootDoors(html) });

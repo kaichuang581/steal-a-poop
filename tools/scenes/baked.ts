@@ -4,11 +4,10 @@
  * Some pictures the game ships are photographs of its own voxel models: tools/bake/baked.json lists them, each with
  * the hash of its model, of the page and tool that made it, and of its own bytes (tools/bake/stale.ts works them
  * out; tools/bakeStamp.ts writes them). `npm test` checks every picture's file, size and render hash, and builds the
- * thumbnails' and the sheepdog's models again (src/skin/__tests__/baked.test.ts). This stage does the rest, the
+ * thumbnails', the sheepdog's and the yarn ball's models again (src/skin/__tests__/baked.test.ts). This stage does the rest, the
  * pictures whose models are too slow for `npm test` or need a whole scene:
  *
- *   the loading doors     three pictures   built through `world.capture`, as tools/renderDoors.mjs's page builds them;
- *   the market stall      fifteen          the same, as tools/renderStall.mjs's page builds each layer;
+ *   the market stall      fifteen          built through `world.capture`, as tools/renderStall.mjs's page builds each layer;
  *   the two play cards    two              no tool bakes them: each is a capture, by hand, of a scene this world has
  *                                          built already (Home's farm; the practice ice), with the models in the shot.
  *
@@ -26,12 +25,11 @@
  *
  * One kind of finding is a known failure and is treated as the scene checker treats those: a picture whose entry
  * says it was KNOWN to be stale when it was stamped (`knownStale`, with how it is known). It is named in the report
- * and in `failures`, counted in `measured.knownStale`, which may only fall, and `ok` stays true. Today that is the
- * three pictures of the loading doors, baked the day before the rounded voxel corners came in. The mark lets nothing
- * else off: a door whose model changes tomorrow is stale like any other picture, and fails.
+ * and in `failures`, counted in `measured.knownStale`, which may only fall, and `ok` stays true. Today there is none
+ * (the three door pictures that were went with the doors, 2026-11-21). The mark lets nothing else off.
  *
  * A part run judges what it is about: the casual card when the run holds the farm scene at the level a computer
- * builds, the ranked card when it holds the duel; the doors and the stall always (their models are not scenes).
+ * builds, the ranked card when it holds the duel; the stall always (its models are not scenes).
  */
 import { checkAllButModels, firstLine, MANIFEST, modelFinding, planFor, remedy, worldModelHash } from '../bake/stale';
 import type { Finding, Load } from '../bake/stale';
@@ -94,7 +92,7 @@ export async function run(world: World, options: StageOptions): Promise<StageRes
   }
   const fresh = pictures.filter((p) => p.state === 'fresh').length;
   lines.push('', `### baked pictures: ${plural(mine.length, 'picture')} of ${fast.entries.length} in ${MANIFEST} have their model checked here (the others in npm test)`);
-  for (const [tool, name] of [['tools/renderDoors.mjs', 'the loading doors'], ['tools/renderStall.mjs', 'the market stall'], [null, 'the play cards, captured by hand']] as const) {
+  for (const [tool, name] of [['tools/renderStall.mjs', 'the market stall'], [null, 'the play cards, captured by hand']] as const) {
     const group = mine.filter(({ entry }) => entry.tool === tool), stateOf = (file: string) => pictures.find((p) => p.file === file)?.state;
     const ok = group.filter(({ entry }) => stateOf(entry.file) === 'fresh').length, old = group.filter(({ entry }) => stateOf(entry.file) === 'known to be stale').length;
     const out = group.filter(({ entry }) => leftOut.includes(entry.file)).length;
@@ -117,7 +115,7 @@ export async function run(world: World, options: StageOptions): Promise<StageRes
     ok: open.length === 0,
     summary: open.length
       ? `${counts.map(([n, words]) => `${n} ${words}`).join(', ')}: ${[...new Set(open.map((f) => f.file))].slice(0, 4).join(', ')}${new Set(open.map((f) => f.file)).size > 4 ? ', and more' : ''}`
-      : `${fresh} baked pictures fresh${known ? `, ${known} KNOWN to be stale (${[...new Set(findings.filter((f) => f.kind === 'known').map((f) => f.file))].join(', ')})` : ''}, of the doors, the stall${leftOut.length === 2 ? '' : ' and the play cards'}; ${built} models built again${leftOut.length ? `; ${leftOut.length} left out of this part run` : ''}${excused ? `; ${excused} excused by EXEMPT.json` : ''}`,
+      : `${fresh} baked pictures fresh${known ? `, ${known} KNOWN to be stale (${[...new Set(findings.filter((f) => f.kind === 'known').map((f) => f.file))].join(', ')})` : ''}, of the stall${leftOut.length === 2 ? '' : ' and the play cards'}; ${built} models built again${leftOut.length ? `; ${leftOut.length} left out of this part run` : ''}${excused ? `; ${excused} excused by EXEMPT.json` : ''}`,
     lines,
     measured: { excused, knownStale: known },
     failures,

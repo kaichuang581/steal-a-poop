@@ -2,17 +2,17 @@ import { CloseIcon } from './Icons';
 import { useEffect, useRef, useState } from 'react';
 import { apiBase } from '../../auth/config';
 
-const REPO_ISSUES = 'https://github.com/kaichuang581/steal-a-poop/issues/new';
 const KINDS = [['bug', 'Something broke'], ['idea', 'An idea'], ['other', 'Something else']] as const;
 type Kind = (typeof KINDS)[number][0];
-type State = 'idle' | 'sending' | 'sent' | 'error' | 'github';
+type State = 'idle' | 'sending' | 'sent' | 'error';
 
-/** The feedback form as a window over the game: it posts to the game server, which files the issue on GitHub. */
+/** The feedback form as a window over the game: it posts to the game server, which files the issue on GitHub. Nothing leaves the page. */
 export function FeedbackDialog({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<Kind>('bug');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [state, setState] = useState<State>('idle');
+  const [error, setError] = useState('That did not send. Please try again in a moment.');
   const first = useRef<HTMLInputElement>(null);
   useEffect(() => { first.current?.focus(); }, []);
   useEffect(() => {
@@ -22,22 +22,22 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const valid = title.trim().length >= 3 && message.trim().length >= 10;
-  const toGithub = () => {
-    const q = new URLSearchParams({ title: `[${kind}] ${title.trim()}`, body: message.trim() });
-    window.open(`${REPO_ISSUES}?${q}`, '_blank', 'noopener');
-    setState('github');
-  };
   const send = async () => {
     if (!valid || state === 'sending') return;
     const base = apiBase();
-    if (!base) return toGithub(); // no game server in this build: the old way
+    if (!base) {
+      setError('Feedback is not switched on in this copy of the game.');
+      return setState('error');
+    }
     setState('sending');
     try {
       const res = await fetch(`${base}/api/feedback`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, title: title.trim(), message: message.trim() }) });
       if (res.ok) return setState('sent');
-      if (res.status === 503) return toGithub(); // the server has no GitHub key set up
+      if (res.status === 503) setError('Feedback is not switched on for this server yet.');
+      else setError('That did not send. Please try again in a moment.');
       setState('error');
     } catch {
+      setError('That did not send. Please try again in a moment.');
       setState('error');
     }
   };
@@ -51,9 +51,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
           <button className="kit-peg kit-peg--light kit-peg--sm" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
         </div>
         {state === 'sent' ? (
-          <p role="status" className="py-6 text-center font-bold">Thank you. Your message was sent.</p>
-        ) : state === 'github' ? (
-          <p role="status" className="py-6 text-center font-bold">A GitHub page opened with your message filled in. Press "Submit new issue" there to send it.</p>
+          <p role="status" className="py-6 text-center font-bold">Sent. Your issue will be looked after.</p>
         ) : (
           <form onSubmit={(e) => { e.preventDefault(); void send(); }}>
             <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="What is it about?">
@@ -66,7 +64,7 @@ export function FeedbackDialog({ onClose }: { onClose: () => void }) {
               <textarea value={message} maxLength={1500} rows={5} onChange={(e) => setMessage(e.target.value)} className="kit-paper kit-paper--sheet mt-1 w-full" />
             </label>
             <p className="mb-3 text-xs">{message.length}/1500</p>
-            {state === 'error' && <p role="alert" className="mb-2 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>That did not send. Please try again in a moment.</p>}
+            {state === 'error' && <p role="alert" className="mb-2 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>{error}</p>}
             <button type="submit" disabled={!valid || state === 'sending'} className="kit-btn kit-brass w-full">{state === 'sending' ? 'Sending…' : 'Send'}</button>
           </form>
         )}

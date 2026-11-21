@@ -32,13 +32,13 @@ import { ScreenAnchor, SlipLayer, useSlipRefs } from './Anchors';
 import { Festive } from './Festive';
 import { AdaptiveCanvas, Atmosphere, Effects, holdDpr, LANTERN_LIGHT, lanternIntensity, Lights, MarkDrawn } from './Rendering';
 import { SceneBoundary } from '../perf/SceneBoundary';
-import { ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
+import { isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
-import { isPlainPhoto, PLAIN_PHOTO } from '../avatars/photos';
+import { isTallPhoto } from '../avatars/photos';
 import { byId } from '../avatars/catalog';
 import { animalModel, heightRatio } from '../voxel/animals';
 import { anchorsOf } from '../voxel/animals/anchors';
-import { getKaiyanLook, pictureHeight, useKaiyanLook } from '../avatars/kaiyanLook';
+import { getKaiyanLook, pictureHeight, useLooksVersion } from '../avatars/kaiyanLook';
 import { Sheep } from './Sheep';
 import type { SheepState, WoolLevel } from './Sheep';
 import { LOOK } from '../look';
@@ -315,7 +315,7 @@ export function Building() {
 function Scene({ bombSize, seats, pile, speaker, dazed = null, upNext = null, fraction, secondsLeft, letter, isTrap, hour, reduced, phone, blizzard, moments, children, world: w, anchors }: Props & { world: World; anchors: Anchors }) {
   // Who the table is turned to: the speaker, or in the beat after a bomb the dazed sheep and then the one up next.
   const focus = speaker ?? dazed ?? upNext;
-  useKaiyanLook(); // the admin's name plate follows the forehead's length
+  useLooksVersion(); // the admin avatars' name plates follow the forehead's length
   const lamps = useRef<(PointLight | null)[]>([]);
   const n = seats.length;
 
@@ -681,8 +681,7 @@ function Moments({ moments, n }: { moments: BarnMoments; n: number }) {
 export function nameplateY(avatar: string | null | undefined): number {
   // Over the photo's top, but never higher than the head stood on 2026-11-08: a forehead stretched far up would carry the
   // plate and the speech bubble off the screen.
-  if (isPlainPhoto(avatar)) return (PLAIN_PHOTO.size + 0.14) * SHEEP_SCALE;
-  if (avatar === ADMIN_AVATAR_ID) return (Math.min(pictureHeight(getKaiyanLook().length), pictureHeight(1)) + 0.14) * SHEEP_SCALE;
+  if (isTallPhoto(avatar)) return (Math.min(pictureHeight(getKaiyanLook(avatar).length), pictureHeight(1)) + 0.14) * SHEEP_SCALE;
   const m = animalModel(byId(avatar ?? undefined)?.animal ?? 'sheep');
   return anchorsOf(m).plate[1] * SHEEP_SCALE * m.drawScale;
 }

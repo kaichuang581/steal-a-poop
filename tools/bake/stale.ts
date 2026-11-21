@@ -2,13 +2,14 @@
  * The bake manifest's working parts (plan file 18, section 4.5; file 16, section 4.1 h and check 10 of section 4.2).
  *
  * Some pictures the game ships are photographs of its own voxel models, taken once by a tool and committed: the
- * Trading Post's thumbnails, the market stall, the loading doors, the tutorial's sheepdog, and the two cards of the
- * Queue chooser. When a model changes and its picture is not taken again, the picture is stale, and nothing could tell.
+ * Trading Post's thumbnails, the market stall, the loading screen's yarn ball, the tutorial's sheepdog, and the two
+ * cards of the Queue chooser. When a model changes and its picture is not taken again, the picture is stale, and nothing could tell.
  * tools/bake/baked.json holds, for every such picture, three hashes; this file works them out again and says what no
  * longer matches:
  *
  *   modelHash    the voxels of the picture's model, as the mesher was given them (`__voxelHook` in
- *                src/skin/voxel/mesher.ts): every cell (x, y, z) with its colour at 16 bits, sorted;
+ *                src/skin/voxel/mesher.ts): every cell (x, y, z) with its colour at 16 bits, sorted; for a picture drawn
+ *                on a 2D canvas rather than built of voxels (the yarn ball), the text of the code that draws it;
  *   renderHash   the text of the page that draws the picture, of the tool that photographs it, and the value of
  *                ROUNDED_VOXELS;
  *   fileHash     the picture's own bytes.
@@ -21,7 +22,7 @@
  *   tools/bakeStamp.ts                  writes the manifest (the four bake tools run it at their end), and checks it;
  *   src/skin/__tests__/baked.test.ts    in `npm test`: every picture's file, size and render hash, and the model of
  *                                       each thumbnail and of the sheepdog;
- *   tools/scenes/baked.ts               in `npm run check:scenes`: the doors, the stall and the two play cards.
+ *   tools/scenes/baked.ts               in `npm run check:scenes`: the stall and the two play cards.
  *
  * It imports nothing from src/: a model is built through a `load` it is handed, so the scene checker can build it in
  * the graph its world was built in, and a test in its own.
@@ -98,6 +99,8 @@ export interface Plan {
   mirrors: [file: string, lines: string[]][];
   /** A baked picture: the geometries its page draws, built as the page builds them. */
   recipe?(load: Load): Promise<BufferGeometry[]>;
+  /** A picture drawn on a 2D canvas, not built of voxels: the files of the code that draws it, whose text is its model. */
+  drawn?: string[];
   /** A captured picture: the scene of the scene checker it shows, and the models that stand in it. */
   scene?: { name: 'farm' | 'duel'; models: string[] };
 }
@@ -198,6 +201,17 @@ export function renderHashOf(root: string, plan: Plan): string {
 
 export const fileHashOf = (bytes: Uint8Array): string => sha(bytes);
 
+/** The model hash of a picture drawn on a 2D canvas: the text of the code that draws it (line ends as \n), each under its name. */
+export function drawnHashOf(root: string, plan: Plan): string {
+  if (!plan.drawn?.length) throw new Error(`${plan.file}: tools/bake/stale.ts says no code draws it`);
+  const parts: string[] = [];
+  for (const file of plan.drawn) {
+    if (!existsSync(join(root, file))) throw new Error(`${file} is gone: it draws ${plan.file}`);
+    parts.push(`${file}\n`, text(root, file), '\n');
+  }
+  return sha(...parts);
+}
+
 /** What a WebP file's header says: its size, and whether it has an alpha channel. Null when it is not a WebP file. */
 export function webpHeader(bytes: Uint8Array): { width: number; height: number; alpha: boolean } | null {
   const b = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -226,9 +240,9 @@ const mesh = async (load: Load, ...grids: Grid[]): Promise<BufferGeometry[]> => 
   return grids.map((g) => buildGeometry(g.map, g.size));
 };
 
-const THUMBS = 'tools/renderThumbs.mjs', STALL = 'tools/renderStall.mjs', DOORS = 'tools/renderDoors.mjs', GUIDE = 'tools/renderGuide.mjs';
+const THUMBS = 'tools/renderThumbs.mjs', STALL = 'tools/renderStall.mjs', YARN = 'tools/renderYarnBall.mjs', GUIDE = 'tools/renderGuide.mjs';
 const THUMB_PAGE = 'src/skin/shop/ThumbRender.tsx', MODELS_3D = 'src/skin/shop/models3d.tsx', STALL_PAGE = 'src/skin/shop/StallRender.tsx';
-const DOORS_PAGE = 'src/skin/loading/DoorsRender.tsx', GUIDE_PAGE = 'src/skin/tour/GuideRender.tsx';
+const YARN_PAGE = 'src/skin/loading/YarnBallRender.tsx', GUIDE_PAGE = 'src/skin/tour/GuideRender.tsx';
 const SACK_IDS = ['bomb', 'blast', 'tick'] as const;
 const STALL_SIZES = ['wide', 'low', 'mid', 'narrow'] as const;
 type Sack = (typeof SACK_IDS)[number];
@@ -359,39 +373,26 @@ function stallPlan(name: string): Plan | null {
   };
 }
 
-const DOOR_PARTS = ['leaves', 'lintel', 'sill'] as const;
-/** One part of the loading screen's doors through ?preview=doors. The tool bakes all three at once. */
-function doorsPlan(part: (typeof DOOR_PARTS)[number]): Plan {
-  return {
-    id: `loading/doors-${part}`, file: `public/loading/doors-${part}.webp`, tool: DOORS, args: [], page: DOORS_PAGE,
-    sources: [DOORS_PAGE, DOORS], model: `the loading doors' ${part} (DOOR_PARTS.${part} in src/skin/loading/doorsModel.ts)`,
-    // The two leaves fill their frame, so that picture has no clear pixel; the beam and the drift do not fill theirs.
-    checked: 'check:scenes', alpha: part !== 'leaves',
-    async size(load, args) {
-      const { DOOR_BOXES } = await load<typeof import('../../src/skin/loading/doorBoxes')>('src/skin/loading/doorBoxes.ts');
-      const typed = args.indexOf('--width'), width = typed >= 0 ? Number(args[typed + 1]) : 2048, box = DOOR_BOXES[part];
-      return [width, Math.round((width * box.h) / box.w)];
-    },
-    mirrors: [
-      [DOORS, [
-        "const width = Number(arg('width', 2048));",
-        "for (const part of ['leaves', 'lintel', 'sill']) {",
-        'const url = `${base}?preview=doors&part=${part}`;',
-        'const height = Math.round((width * box.h) / box.w);',
-        'writeFileSync(`public/loading/doors-${part}.webp`, bytes);',
-      ]],
-      [DOORS_PAGE, [
-        'const box = DOOR_BOXES[part];',
-        'const geo = useMemo(() => buildGeometry(DOOR_PARTS[part]().map, DOOR_VOXEL), [part]);',
-        '<mesh geometry={geo} material={mat} castShadow receiveShadow />',
-      ]],
-    ],
-    async recipe(load) {
-      const doors = await load<typeof import('../../src/skin/loading/doorsModel')>('src/skin/loading/doorsModel.ts');
-      return mesh(load, { map: doors.DOOR_PARTS[part]().map, size: doors.DOOR_VOXEL });
-    },
-  };
-}
+/** The loading screen's yarn ball through ?preview=yarnball: its wraps alone, drawn on a 2D canvas (no voxels). */
+const yarnBallPlan = (): Plan => ({
+  id: 'loading/yarn-ball', file: 'public/loading/yarn-ball.webp', tool: YARN, args: [], page: YARN_PAGE,
+  sources: [YARN_PAGE, YARN], model: "the yarn ball's wraps, drawn on a canvas (drawBallWraps in src/skin/loading/yarn.ts)",
+  checked: 'npm test', alpha: true,
+  size: async () => [320, 320],
+  mirrors: [
+    [YARN, [
+      'const page = await browser.newPage({ viewport: { width: 320, height: 320 } });',
+      'await page.goto(`${base}?preview=yarnball`);',
+      "const data = await page.evaluate(() => document.querySelector('canvas').toDataURL('image/webp', 0.9));",
+      "writeFileSync('public/loading/yarn-ball.webp', bytes);",
+    ]],
+    [YARN_PAGE, [
+      'drawBallWraps(ctx, BALL_PX / 2, BALL_PX / 2, BALL_R, 0);',
+      'return <canvas ref={cv} width={BALL_PX} height={BALL_PX}',
+    ]],
+  ],
+  drawn: ['src/skin/loading/yarn.ts'],
+});
 
 /** The tutorial's sheepdog through ?preview=guide. */
 const guidePlan = (): Plan => ({
@@ -455,7 +456,7 @@ export function planFor(file: string): Plan | null {
   const name = base.slice(0, -'.webp'.length);
   if (dir === 'public/shop') return /^[a-z0-9-]+$/.test(name) ? thumbPlan(name) : null;
   if (dir === 'public/shop/stall') return stallPlan(name);
-  if (dir === 'public/loading') { const part = DOOR_PARTS.find((p) => name === `doors-${p}`); return part ? doorsPlan(part) : null; }
+  if (dir === 'public/loading') return name === 'yarn-ball' ? yarnBallPlan() : null;
   if (dir === 'public/tour') return name === 'sheepdog' ? guidePlan() : null;
   if (dir === 'public/play') return name === 'casual' || name === 'ranked' ? playPlan(name) : null;
   return null;
@@ -481,8 +482,8 @@ export const commandOf = (entry: { tool: string | null; args: string[] }): strin
 /** What tools/bake/baked.json says at its head. The stamp writes it; nothing reads it but people. */
 export const ABOUT = [
   'The bake manifest (plan file 18, section 4.5): one entry for every picture the game ships that is a photograph of one of its own voxel models.',
-  'Written by tools/bakeStamp.ts, which the four bake tools (tools/renderThumbs.mjs, renderStall.mjs, renderDoors.mjs, renderGuide.mjs) run at their end. Never edit it by hand.',
-  'modelHash is the SHA-256 of the model\'s voxels as the mesher was given them: each cell (x, y, z) with its colour at 16 bits, sorted. renderHash is the SHA-256 of the page that draws the picture, the tool that photographs it and the value of ROUNDED_VOXELS. fileHash is the SHA-256 of the picture itself. tools/bake/stale.ts works all three out.',
+  'Written by tools/bakeStamp.ts, which the four bake tools (tools/renderThumbs.mjs, renderStall.mjs, renderYarnBall.mjs, renderGuide.mjs) run at their end. Never edit it by hand.',
+  'modelHash is the SHA-256 of the model\'s voxels as the mesher was given them: each cell (x, y, z) with its colour at 16 bits, sorted (for the yarn ball, drawn on a 2D canvas, the text of the code that draws it). renderHash is the SHA-256 of the page that draws the picture, the tool that photographs it and the value of ROUNDED_VOXELS. fileHash is the SHA-256 of the picture itself. tools/bake/stale.ts works all three out.',
   'A model or render hash that no longer matches means the picture is stale: bake it again with its tool and arguments, the dev server up (npm run dev). A file hash that no longer matches means the picture changed without a stamp.',
   'checked says where a picture\'s model hash is worked out again: "npm test" (src/skin/__tests__/baked.test.ts) or "check:scenes" (tools/scenes/baked.ts). Every picture\'s file, size and render hash are checked in npm test.',
   'A picture with no tool is a capture taken by hand: when it is stale, capture it again as its entry says, then stamp it (npx vite-node tools/bakeStamp.ts -- --only <id>).',

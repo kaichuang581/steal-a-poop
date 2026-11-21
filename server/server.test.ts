@@ -66,11 +66,11 @@ afterEach(async () => {
   for (const s of open.splice(0)) await s.close();
 });
 
-async function boot(extra: { cosmetics?: ServerOptions['cosmetics']; blocks?: BlockList; verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit; adminUserIds?: string[] } = {}) {
+async function boot(extra: { cosmetics?: ServerOptions['cosmetics']; blocks?: BlockList; verifyToken?: (t: string) => Promise<AuthUser | null>; revocations?: RevocationBus; now?: () => number; limits?: ConnectionLimits; reconnectGraceMs?: number; dailyGate?: DailyGate; onGameFinished?: GameResultSink; audit?: MemoryAudit; adminUserIds?: string[]; adminHash?: string } = {}) {
   const chat = new ChatService({ now: Date.now, filter });
   const server = await startServer({
     port: 0, ctx: { dict }, chat, randomInt, tickMs: 50, reviewEveryMs: 60_000, reconnectGraceMs: extra.reconnectGraceMs,
-    dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit, adminUserIds: extra.adminUserIds,
+    dailyGate: extra.dailyGate, onGameFinished: extra.onGameFinished, audit: extra.audit, adminUserIds: extra.adminUserIds, adminHash: extra.adminHash,
     limits: { shutdownGraceMs: 0, ...extra.limits }, now: extra.now,
     revocations: extra.revocations, cosmetics: extra.cosmetics, blocks: extra.blocks,
     verifyToken: extra.verifyToken ?? (async (token) => (token.startsWith('dev:') ? { userId: token, name: token.slice(4), chatAllowed: !token.startsWith('dev:Mute'), isModerator: false } : null)),
@@ -772,5 +772,46 @@ describe('the admin avatar', () => {
     admin.send({ t: 'avatar', id: 'admin2' });
     const seen = await admin.waitFor((m) => m.t === 'room' && admin.msgs.indexOf(m) >= mark);
     expect(seen.view.members[0].avatar).toBe('admin2');
+  });
+
+  it('is shown to the room when the browser sends the admin password with it, for either avatar', async () => {
+    const { createHash } = await import('node:crypto');
+    const password = 'server-test-password'; // made up: the real one is never written into the repo
+    const server = await boot({ adminHash: createHash('sha256').update(password).digest('hex') });
+    const a = await Client.connect(server.port, 'Owner1');
+    const b = await Client.connect(server.port, 'Watch1');
+    clients.push(a, b);
+    await a.waitFor((m) => m.t === 'welcome');
+    await b.waitFor((m) => m.t === 'welcome');
+    a.send({ t: 'create', visibility: 'private' });
+    const made = await a.waitFor((m) => m.t === 'room');
+    b.send({ t: 'join', code: made.view.code });
+    await b.waitFor((m) => m.t === 'room' && m.view.members.length === 2);
+    for (const id of ['kaiyan', 'admin2']) {
+      const before = b.msgs.length;
+      a.send({ t: 'avatar', id, proof: ` ${password} ` });
+      const seen = await b.waitFor((m) => m.t === 'room' && b.msgs.indexOf(m) >= before && m.view.members.some((x: { avatar?: string }) => x.avatar === id));
+      expect(seen.view.members.some((x: { avatar?: string }) => x.avatar === id)).toBe(true);
+    }
+  });
+
+  it('is refused quietly for a wrong or missing password, or a password with a plain avatar', async () => {
+    const { createHash } = await import('node:crypto');
+    const server = await boot({ adminHash: createHash('sha256').update('server-test-password').digest('hex') });
+    const a = await Client.connect(server.port, 'Guess1');
+    clients.push(a);
+    await a.waitFor((m) => m.t === 'welcome');
+    a.send({ t: 'create', visibility: 'private' });
+    await a.waitFor((m) => m.t === 'room');
+    const before = a.msgs.length;
+    a.send({ t: 'avatar', id: 'kaiyan', proof: 'not-the-password' });
+    a.send({ t: 'avatar', id: 'admin2', proof: '' });
+    a.send({ t: 'avatar', id: 'admin2', proof: 'x'.repeat(300) });
+    a.send({ t: 'avatar', id: 'admin2' });
+    a.send({ t: 'avatar', id: 'pig', proof: 'server-test-password' });
+    const room = await a.waitFor((m) => m.t === 'room' && a.msgs.indexOf(m) >= before && m.view.members[0].avatar === 'pig');
+    expect(room.view.members[0].avatar).toBe('pig');
+    expect(a.msgs.slice(before).some((m) => m.t === 'error')).toBe(false);
+    expect(a.msgs.slice(before).some((m) => m.t === 'room' && ['kaiyan', 'admin2'].includes(m.view.members[0].avatar))).toBe(false);
   });
 });

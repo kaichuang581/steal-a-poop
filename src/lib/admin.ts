@@ -1,23 +1,22 @@
 import { create } from 'zustand';
+import { ADMIN_HASH } from './adminHash';
 import { load, save } from './storage';
+
+export { ADMIN_HASH };
 
 /**
  * Admin access: a single password (no username) unlocks everything on this device: the night's dream can be played
- * again and again, for a start. The password is never stored or shipped in clear: only its SHA-256 is compared, and
- * the unlocked state is kept in local storage until it is locked again. This is a convenience lock for the game's
- * owner, not a security boundary: anything the client can do, a determined reader of the bundle can do too. So nothing
- * it unlocks may reach other players: the server refuses the admin avatar unless the account is on its own admin list.
+ * again and again, for a start. The page only compares the password's SHA-256 and keeps the unlocked state in local
+ * storage until it is locked again. That lock is a convenience, not a security boundary: anything the client can do, a
+ * determined reader of the bundle can do too. So nothing it unlocks may reach other players on its say-so: the server
+ * decides who wears the admin avatars, by its own admin list or by the password itself, which unlocking keeps on this
+ * device (`adminProof`) and sends with the avatar so the server can check it against the same hash (server/adminProof.ts).
  */
 const ADMIN_KEY = 'sap:admin';
 /** The admin panel's "unlimited Wool Coins" switch (src/skin/shop/store.ts), on this device only. */
 const COINS_KEY = 'sap:admin-coins';
-/**
- * SHA-256 of the admin password. Never write the password itself into the repo (not in tests either; they set their own
- * hash). This is the hash of a password that was once written into the repo, so it can be found in git history. It was
- * replaced on 2026-11-08 and restored on 2026-11-15 at Kai's request. It is a convenience lock and unlocks nothing that
- * reaches other players; change it to a long random one if that ever matters.
- */
-export const ADMIN_HASH = '4303a4957aae4dbf0d0c392f5e0bb4690b8b8be1f032f07d5692b960c8248f90';
+/** The password this device unlocked with, sent to the game server beside an admin avatar. Cleared by Lock. */
+const PROOF_KEY = 'sap:admin-proof';
 let adminHash = ADMIN_HASH;
 /** Tests only: compare against the hash of a password the test makes up. */
 export const setAdminHashForTests = (hash: string) => { adminHash = hash; };
@@ -47,14 +46,17 @@ export const useAdmin = create<AdminStore>((set) => ({
   },
   async unlock(password) {
     const ok = (await sha256Hex(password.trim())) === adminHash;
-    if (ok) { save(ADMIN_KEY, true); set({ admin: true }); }
+    if (ok) { save(ADMIN_KEY, true); save(PROOF_KEY, password.trim()); set({ admin: true }); }
     return ok;
   },
   lock() {
     save(ADMIN_KEY, false);
+    save(PROOF_KEY, '');
     set({ admin: false });
   },
 }));
 
 /** Read outside React. */
 export const isAdmin = () => useAdmin.getState().admin;
+/** The password to send with an admin avatar, while admin is unlocked. A device unlocked before this existed has none until it is locked and unlocked once. */
+export const adminProof = (): string | null => (isAdmin() ? load<string>(PROOF_KEY, '') || null : null);

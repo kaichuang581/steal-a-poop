@@ -10,7 +10,7 @@
  *   --json <file>   the same, for a machine          --args '<json list>'   the arguments the bake tool was run with
  *   --known-stale '<how it is known>'   with --only: these pictures are KNOWN to be older than what makes them today
  *
- * The four bake tools (tools/renderThumbs.mjs, renderStall.mjs, renderDoors.mjs, renderGuide.mjs) run this at their
+ * The four bake tools (tools/renderThumbs.mjs, renderStall.mjs, renderYarnBall.mjs, renderGuide.mjs) run this at their
  * end for the pictures they have just baked. That is the only time a stamp means something: a stamp says "this file
  * is what this model, this page and this tool made", and only a bake makes that so. Stamping a picture that was not
  * baked again makes a stale picture read as fresh. The one honest use by hand is after a capture by hand (the two play
@@ -33,7 +33,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  checkAllButModels, commandOf, fileHashOf, firstLine, listening, loadFrom, MANIFEST, manifestText, mirrorFindings, modelFinding, modelHashOf, planFor,
+  checkAllButModels, commandOf, drawnHashOf, fileHashOf, firstLine, listening, loadFrom, MANIFEST, manifestText, mirrorFindings, modelFinding, modelHashOf, planFor,
   readManifest, renderHashOf, shipped, webpHeader, worldModelHash,
 } from './bake/stale';
 import type { Baked, Finding, Plan, WorldLike } from './bake/stale';
@@ -127,11 +127,13 @@ async function main(): Promise<number> {
   const squashed = new Map<string, string>();
   for (const n of now.values()) n.problems.push(...mirrorFindings(ROOT, n.plan, squashed).map((f) => f.text));
   const here = chosen.filter((p) => p.recipe && (args.times || p.checked === 'npm test'));
+  // A picture drawn on a 2D canvas: its model is the text of the code that draws it, read here.
+  for (const p of chosen) if (p.drawn) { const n = now.get(p.file)!; try { n.modelHash = drawnHashOf(ROOT, p); } catch (e) { n.problems.push(`${p.file}: ${firstLine(e)}`); } }
   const there = args.times ? [] : chosen.filter((p) => p.checked === 'check:scenes');
   if (here.length) {
     // The game's files are read in before anything is timed: what is timed is the model's build alone. One that is
     // gone is not this line's to report: the recipe that needs it says so, by its picture's name.
-    for (const path of ['src/skin/shop/catalog.ts', 'src/skin/voxel/bombSkins.ts', 'src/skin/shop/bombAura.ts', 'src/skin/shop/thumbModels.ts', 'src/skin/voxel/mesher.ts', 'src/skin/shop/stallModels.ts', 'src/skin/shop/stallPlan.ts', 'src/skin/loading/doorsModel.ts', 'src/skin/voxel/characters.ts']) await load(path).catch(() => undefined);
+    for (const path of ['src/skin/shop/catalog.ts', 'src/skin/voxel/bombSkins.ts', 'src/skin/shop/bombAura.ts', 'src/skin/shop/thumbModels.ts', 'src/skin/voxel/mesher.ts', 'src/skin/shop/stallModels.ts', 'src/skin/shop/stallPlan.ts', 'src/skin/voxel/characters.ts']) await load(path).catch(() => undefined);
     try {
       await listening(ROOT, async (setsOf) => {
         for (const plan of here) {

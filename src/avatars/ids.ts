@@ -9,7 +9,9 @@ export const ADMIN_AVATAR_ID = 'kaiyan';
 /** The second admin avatar (requested by Brian, 2026-11-20): another photo, flat and plain (no stretched forehead, no glare). */
 export const ADMIN2_AVATAR_ID = 'admin2';
 /** Every admin-only avatar: equipped only from the admin panel and never offered in the picker. */
-export const ADMIN_AVATAR_IDS = [ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID] as const;
+/** The third admin avatar (requested by Brian, 2026-11-21): another photo with Kaiyan's long forehead and glare, each adjustable. */
+export const ADMIN3_AVATAR_ID = 'admin3';
+export const ADMIN_AVATAR_IDS = [ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID] as const;
 export const AVATAR_IDS = [...ANIMAL_AVATAR_IDS, ...ADMIN_AVATAR_IDS] as const;
 
 export type AvatarId = (typeof AVATAR_IDS)[number];

@@ -6,7 +6,7 @@ import { Color, FogExp2, Group, Object3D, PCFShadowMap, SpotLight, SRGBColorSpac
 import type { PerspectiveCamera } from 'three';
 import { isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
-import { useKaiyanLook } from '../avatars/kaiyanLook';
+import { useLooksVersion } from '../avatars/kaiyanLook';
 import { byId } from '../avatars/catalog';
 import { buildDuel, DUEL, duelSeat, duelShot } from '../scene/duel';
 import { getTier } from '../perf/tier';
@@ -79,7 +79,7 @@ type DuelProps = Pick<BarnTableProps, 'bombSize' | 'seats' | 'speaker' | 'fracti
 
 function Duel({ bombSize, seats, speaker, fraction, secondsLeft, reduced, phone, boomKey, power, slipRef }: DuelProps) {
   const pressure = pressureOf(speaker, fraction);
-  useKaiyanLook(); // the admin's name plate follows the forehead's length
+  useLooksVersion(); // the admin avatars' name plates follow the forehead's length
   return (
     <>
       <DuelCamera speaker={speaker} pressure={pressure} phone={phone} reduced={reduced} />

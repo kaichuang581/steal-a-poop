@@ -2,6 +2,13 @@
 
 All user-visible changes, newest first.
 
+## 0.9.4
+
+- The leaderboards are redrawn in Home's style: a night-blue bar with snow and the season's lights, the three boards as blocks, and one night-blue board (a sheet on a phone) with a lantern ribbon for each board's title, the list from fourth place as tiles, and your own row pinned at the foot with your place, avatar and figure.
+- The top three stand on the podium's crates on one snowy island, with two pines, a fence, hay bales and a lantern, and two small islands far off; no clouds. The camera looks straight on, so the three crates look the same size, and each name plate sits on its crate's front, all three on one line.
+- First place no longer glows, and third place sleeps on its crate instead of hanging off it.
+- Numbers line up digit under digit and are grouped the French way in French. Who can see the boards is under the "i" button, on phones too.
+
 ## 0.9.3
 
 - A kitchen garden in front of the farmhouse: six raised beds of kale, cabbages, leeks and a cold frame inside a white fence, with a path through its gate.

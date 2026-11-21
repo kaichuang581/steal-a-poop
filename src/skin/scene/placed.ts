@@ -540,6 +540,7 @@ export const LIGHTS: readonly Light[] = [
   { id: 'bomb glow', kind: 'point', element: el('table/Bomb.tsx', '<pointLight ref={glow} color={aura.light}'), unseen: 'it is moved to the bomb every frame; the bomb is a model, not part of a scene' },
   { id: 'burst flash', kind: 'point', element: el('table/Blast.tsx', '<pointLight ref={light} color='), fill: 'the flash of a burst: it is dark between bursts and there is nothing to hang it on' },
   { id: 'admin photo glare', kind: 'point', element: el('avatars/AvatarDisc.tsx', '<pointLight ref={lamp} position={[0, bandY, 0]}'), unseen: 'it rides the admin\'s photo disc, the one thing in the game that is not voxels' },
-  { id: 'leaderboards:trophy', kind: 'point', element: el('boards/BoardStage.tsx', '<pointLight position={[0, 0.5, 0.4]}'), unseen: 'it stands by the trophy on first place\'s pedestal in the leaderboards\' sky, a scene the checker does not build' },
+  // (The trophy's own light on first place's crate is gone: it whitened the champion's wool. Brian, 2026-11-21.)
+  { id: 'leaderboards:lantern', kind: 'point', element: el('boards/BoardStage.tsx', '<pointLight position={geo.lamp}'), unseen: 'it is inside the lantern on the leaderboards\' island, a scene the checker does not build' },
   { id: 'barn book:preview', kind: 'point', element: el('shop/PreviewStage.tsx', '<pointLight ref={lamp} color={auraOf(item.id).light}'), unseen: 'it lights the bomb on the Barn Book\'s stand; the preview is not one of the seven scenes' },
 ];

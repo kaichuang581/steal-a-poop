@@ -33,9 +33,11 @@ import { fileURLToPath } from 'node:url';
  * and on 2026-11-21 by 1,000 bytes for the yarn loading screen (CI's build came out 0.09 kB over; locally 2.9 kB under),
  * and on 2026-11-21 by 2,000 bytes for the depth plan's light, palette and clouds (1.72 kB under locally, which CI's
  * build, about 3 kB bigger, would have failed).
+ * and on 2026-11-21 by 6,000 bytes for the leaderboards' second version (docs/leaderboards/LEADERBOARDS-PLAN.md: the
+ * slab screen, its pixel art and the snowy island; 4.1 kB locally, with room for CI's larger gzip).
  * All are flagged to Brian; a shrink pass back toward the plan's net-zero is listed for milestone 12.
  */
-const BUDGET_GZIP_BYTES = 715000; // +1,000 in 0.9.3 (the kitchen garden): CI's gzip ran 0.42 kB over
+const BUDGET_GZIP_BYTES = 721000; // +1,000 in 0.9.3 (the kitchen garden): CI's gzip ran 0.42 kB over; +6,000 in 0.9.4 (the leaderboards)
 
 /** Allowed growth over the budget before the check fails (10%). */
 const TOLERANCE = 0.1;

@@ -2099,3 +2099,46 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
     (3) Never naked: the game's sheep always wears its wool. No sheep is on this screen; if one is ever added to any
     loading screen it never uses the `sheared` part or coat level 0, not even for a moment.
   - Don't redesign the loading screen unless Brian asks.
+
+## The leaderboards, version 2 (Brian, 2026-11-21) — plan: docs/leaderboards/LEADERBOARDS-PLAN.md
+Brian's own request; it replaces "The leaderboards page", "The leaderboards' stage" and "The leaderboards in the sky"
+(2026-11-14) for how the screen looks; the boards, addresses and data are unchanged. His two rules for it: every part is
+specified in full, and nothing may look like a flat, empty, single-coloured card (every surface over 40 x 40 has a
+texture, a lit edge, a shaded edge or side, and a detail). Branch `ui/leaderboards-v2`, version 0.9.4.
+- Files: src/skin/boards/Leaderboards.tsx (the page), boards.css, art.tsx (every pixel grid of the plan: tab icons, the
+  "i", padlock, snowflake, brackets, rosettes, tier icons trimmed to 24 rows), BoardStage.tsx (the stage), island.ts (the
+  ground, pure). Tokens: the --hm-* additions in styles/tokens.css. The slab is Home's `.hm-slab` (home/home.css);
+  `.lb-static` takes its states off for pieces that are not buttons (title tag, plates, your row).
+- Recipes, by class: slab (`hm-slab`), board (`lb-board`), bar (`lb-bar`), tile (`lb-tile`), well (`lb-well`), ink card
+  (`lb-inkcard`), snow cap (`lb-snowcap`), ribbon (`lb-ribbon`). Each draws its block in `::before`, so nothing inside
+  is cut by its pixel corners. src/skin/boards/__tests__/surface.test.tsx renders every tab with made-up boards and fails
+  on any background the styles give an element that is neither a recipe's nor on a piece 40 or less on a side (sizes
+  read from the stylesheet: there is no browser in `npm test`). Name a new surface by its recipe, or it fails.
+- Banned here, besides Home's list: dashed or stitched borders, Patrick Hand, the kit's wood, paper, pegs and slates
+  (boards.test.tsx checks the markup, source and stylesheet). Numbers: lining tabular figures, `fmt` (Intl in the game's
+  language; French groups with a full no-break space, because the display face draws the narrow one almost invisible).
+- Layout: `screenOf` reads the plan's rule in its own pixels (at --u = 1): a computer's layout while the stage the board
+  leaves is 360 wide or more, else a phone's at scale 1. So a 768 x 1024 tablet is a phone (read at the 0.8 scale it was
+  a computer with 80 px crates in an empty sky). The list starts at fourth place everywhere; it shows whole rows only,
+  stops at the board's foot (computer) or the sheet's (phone), and scrolls past that with a drawn scroll bar.
+  Tab labels and the ribbon's title are fitted by measuring the text (`useFit`: 17 to 12 and 20 to 16), after the
+  French swap; a tab whose label will not fit at 12 drops its icon. On a computer the Wins toggle and the info button
+  move under the ribbon when the line cannot hold all three (French).
+- The stage: the podium's own crates (Podium.tsx's two builders, unchanged) on one island (`islandVoxels`: snow in two
+  tones with a ridge pattern, a mound against each crate, two soil layers, a stepped underside to a point; two pines, a
+  fence, two bales, a lantern with its light inside) and two pale far islands (`farIsland`, an unlit material). No cloud,
+  puff or sea. The camera is straight on, 10 degrees down, 28 degrees of view, solved in `Frame` from the window the
+  board leaves (70% of its width on a computer, 92% on a phone, less where the window is too short for the champion's
+  hat to stay 24 under the lowest bulb). The plates are placed there, on resize or camera change only: centred on each
+  crate's front, 10 over its foot, all three on one line. The crates' fronts are the same width to the pixel; the outer
+  two also show a few pixels of their inner sides at this lens (about 6% on a computer, 3% on a phone).
+- The trophy's own light is gone (it whitened the champion's wool); measured after, the champion's brightest wool is no
+  brighter than second place's. Third place sleeps at 0.76 of second place's size, centred on its crate: lying down it
+  is about 1.84 m nose to tail at full size, longer than the 1.4 m crate, so no move alone kept it on top. Its legs
+  still hang down the crate's front, as the pose has them.
+- Where the plan's letter was not followed: "Level 1 · Finish a game to get a place." is "Level 1", a thin rule, then the
+  sentence (no middle dot, Brian 2026-11-14); the "Show me on the leaderboards" choice (the only place to hide) lives in
+  the info card as a Shown / Hidden toggle, since the plan's rows had no place for it.
+- `?preview=boards` (development only) shows the screen without the farm; the boards come from whatever `sap:server`
+  names, which a test browser can stand in for.
+- The size budget was raised by 6,000 bytes for it (4.1 kB locally, room left for CI's larger gzip).

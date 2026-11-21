@@ -93,4 +93,11 @@
   --hm-lantern: #F2A444; --hm-lantern-hi: #FFD98A; --hm-lantern-lip: #B96F1E;
   --hm-barn: #B8473A; --hm-dusk: #5B5FC7; --hm-pasture: #3F8A55;
   --hm-frost: #B9C8E6;
+  /* The leaderboards' additions (docs/leaderboards/LEADERBOARDS-PLAN.md section 3, Brian, 2026-11-21). */
+  --hm-night-deep: #141D36;
+  --hm-ink-hi: #1D2947; --hm-ink-side: #05080F;
+  --hm-silver: #D9E0EA; --hm-silver-hi: #F4F7FB; --hm-silver-lip: #8E9BB2;
+  --hm-bronze: #D9925E; --hm-bronze-hi: #F2B98C; --hm-bronze-lip: #9A5B32;
+  --hm-ribbon: var(--hm-barn); --hm-ribbon-dark: #7E2B24;
+  --hm-lantern-fold: #8A5216;
 }

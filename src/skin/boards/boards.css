@@ -1,214 +1,334 @@
-/* The leaderboards (Leaderboards.tsx, BoardStage.tsx): a place, laid out as the lobby is. The sky is the whole screen;
-   a strapped beam across the top (kit-beam, kit-drift, the garland under it); one plank board (rm-panel kit-wall) with
-   dark stitched wool on the right. Every surface is the lobby's or the Trading Post's own piece: no paper, no flat
-   panels. Nothing here may change size or place when a tab or a "when" button is pressed. No gradients (the kit audit
-   counts them), corners of 4 px at most, shadows with an offset. kit.css is loaded after this file and its rules win
-   at equal weight (`.kit-beam` is position: relative), so some selectors here are a step heavier on purpose. */
-/* The beam's place, `--lb-top` and `--lb-m`, takes the screen's safe-area insets where they are larger, so the beam and
-   everything placed from it clear a notch (plan file 14, change 5); every inset is 0 on a computer. */
-.sk-lb { --lb-m: max(22px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --lb-gap: 22px; --lb-board: clamp(420px, 34vw, 520px); --lb-top: max(28px, env(safe-area-inset-top, 0px)); --lb-beam: 64px;
-  position: fixed; inset: 0; z-index: 45; height: auto; background: #BFE1F3; }
-.sk-lb :is(h1, h2, p, ol) { margin: 0; }
-.sk-lb ol { padding: 0; list-style: none; }
-/* The sky fills the screen behind everything; the names hang over it on their own layer. */
-.sk-lb-stage { position: absolute; inset: 0; }
-.sk-lb-stage::before { content: 'Setting the stage...'; position: absolute; left: 0; right: calc(var(--lb-m) + var(--lb-board) + var(--lb-gap)); top: 46%; text-align: center; font-family: var(--skin-font-hand); font-size: 20px; color: rgba(40, 60, 90, 0.55); }
-.sk-lb-stage > div:first-child { position: absolute !important; inset: 0; }
-.sk-lb-plaques { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.sk-lb-plaques > div { position: absolute; left: 0; top: 0; transform: translate3d(-9999px, 0, 0); }
-.sk-lb-body { position: absolute; inset: 0; pointer-events: none; }
-.sk-lb-body > * { pointer-events: auto; }
-.sk-lb[data-busy] :is(.sk-lb-lines, .sk-lb-plaques) { opacity: 0.6; transition: opacity 200ms 150ms; }
+/* The leaderboards (Leaderboards.tsx, BoardStage.tsx), version 2: docs/leaderboards/LEADERBOARDS-PLAN.md (Brian,
+   2026-11-21). Home's slabs and colours (home.css, the --hm-* tokens), and nothing flat: every surface over 40 x 40 is one
+   of the recipes below (slab, board, bar, tile, well, ink card, ribbon, snow cap) with a texture, a lit edge, a shaded
+   edge or side, and a detail. No wood, planks, ropes, nails, parchment, gradient, blur, glow, rounded corner, dashed or
+   stitched border, and no Patrick Hand. Every size is the plan's pixels times --u (Home's scale on a computer, 1 on a
+   phone), set on .lb by the page. */
 
-/* The beam: the boards' tabs over the sky, the page's name and the way out over the board. */
-.sk-lb .sk-lb-bar { position: absolute; left: var(--lb-m); right: var(--lb-m); top: var(--lb-top); height: var(--lb-beam); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--lb-board) - 64px); column-gap: calc(var(--lb-gap) + 64px); align-items: center; padding: 2px 48px 0; }
-.sk-lb-tabs { display: flex; justify-content: center; gap: 10px; }
-.sk-lb-tabs .rm-tab { min-width: 132px; min-height: 42px; gap: 8px; font-size: 17px; }
-.sk-lb-tabs .rm-tab > svg, .sk-lb-tabs .rm-tab > .sk-rank-badge { flex: none; }
-.sk-lb-end { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.sk-lb-end .rm-name { flex: 1; font-size: 24px; }
-.sk-lb-close.kit-peg { flex: none; width: 44px; height: 44px; }
-.sk-lb .kit-peg:active { transform: none; }
-.sk-lb-bar .sk-garland { position: absolute; left: 44px; right: calc(var(--lb-board) + var(--lb-gap) + 22px); top: calc(100% + 4px); }
-@media (min-width: 1400px) { .sk-lb-tabs .rm-tab { min-width: 168px; min-height: 46px; font-size: 19px; } }
-
-/* The part of the screen the sky keeps: the stage frames the three in it. One sentence (an empty board, or no board)
-   lies at its foot on a wool plate. */
-.sk-lb-window { position: absolute; left: var(--lb-m); right: calc(var(--lb-m) + var(--lb-board) + var(--lb-gap)); top: calc(var(--lb-top) + var(--lb-beam) + 18px); bottom: 24px; display: flex; align-items: flex-end; justify-content: center; pointer-events: none; }
-.sk-lb .sk-lb-say.kit-slate .kit-slate-face { padding: 10px 18px 11px; }
-.sk-lb-say { max-width: 600px; margin-bottom: 30px; }
-.sk-lb-say p { font-family: var(--skin-font-hand); font-size: 22px; line-height: 1.3; text-align: center; color: var(--chalk); }
-.sk-lb-say b { font-weight: 400; color: var(--glow); }
-
-/* On each pedestal, under its numeral: its holder's name on the table's own name tag, and the figure on a small wool
-   plate of the same width, never wider than the timber (`--lb-block` is a pedestal's width on screen). */
-.sk-lb-plaque { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: max(calc(var(--lb-block, 200px) - 10px), 124px); }
-.sk-lb-plaque .sk-plate { justify-content: center; max-width: 100%; opacity: 1; padding: 5px 10px 6px; }
-/* The name's size is set on the tag (18 px here, less on smaller screens); a long name (ten letters or more) is set
-   smaller than that, so it fits its pedestal whole. */
-.sk-lb .sk-lb-plaque .sk-plate { font-size: 18px; }
-.sk-lb-plaque .sk-plate-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 1em; }
-.sk-lb-plaque[data-long] .sk-plate-who { font-size: 0.8em; }
-.sk-lb-plaque .sk-head { display: flex; gap: 0; }
-.sk-lb-plaque .sk-head .sk-plate { flex: 1; }
-.sk-lb-plaque[data-open] .sk-plate-who { font-family: var(--skin-font-hand); font-weight: 400; color: rgba(243, 240, 230, 0.75); }
-.sk-lb-figure { container-type: inline-size; }
-.sk-lb .sk-lb-plaque .sk-lb-figure.kit-slate .kit-slate-face { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; padding: 3px 8px 4px; white-space: nowrap; }
-.sk-lb-figure b { font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; line-height: 1.2; color: var(--chalk); }
-.sk-lb-figure.kit-slate--amber b { color: var(--glow); }
-.sk-lb-figure span:not(.sk-rank-badge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--skin-font-hand); font-size: 17px; color: rgba(243, 240, 230, 0.86); }
-.sk-lb-figure .sk-rank-badge { flex: none; }
-/* A narrow plate keeps the figure (and the badge) and lets the words beside it step out whole. */
-@container (max-width: 190px) { .sk-lb-figure span:not(.sk-rank-badge):not(.sk-lb-could) { display: none; } }
-@container (max-width: 100px) { .sk-lb-figure .sk-rank-badge { display: none; } }
-/* Third place is asleep: three letters drifting up off its head, sized from the pedestal so they stay in scale. */
-.sk-lb-z { position: relative; display: block; width: 1px; height: 1px; }
-.sk-lb-z i { position: absolute; left: 0; bottom: 0; font: 700 clamp(9px, calc(var(--lb-block, 200px) * 0.075), 18px)/1 var(--skin-font-display); font-style: normal; color: #FFFFFF; text-shadow: 0 1px 0 #3B4A66, 1px 0 0 #3B4A66, -1px 0 0 #3B4A66, 0 -1px 0 #3B4A66; opacity: 0; animation: sk-lb-z 2.4s linear infinite; }
-.sk-lb-z i:nth-child(2) { font-size: clamp(11px, calc(var(--lb-block, 200px) * 0.095), 22px); animation-delay: 0.8s; }
-.sk-lb-z i:nth-child(3) { font-size: clamp(13px, calc(var(--lb-block, 200px) * 0.115), 26px); animation-delay: 1.6s; }
-@keyframes sk-lb-z { 0% { opacity: 0; transform: translate(0, 0); } 10% { opacity: 0.95; } 65% { opacity: 0.95; } 100% { opacity: 0; transform: translate(calc(var(--lb-block, 200px) * 0.12), calc(var(--lb-block, 200px) * -0.22)); } }
-
-/* The board: the lobby's plank board, from under the beam to the foot of the screen. */
-.sk-lb-board { position: absolute; right: var(--lb-m); top: calc(var(--lb-top) + var(--lb-beam) + 38px); bottom: 24px; width: var(--lb-board); }
-.sk-lb-board .rm-head { min-height: 40px; }
-.sk-lb-board .sk-room-heading { flex: none; padding: 2px 14px; min-height: 34px; }
-.sk-lb-board .sk-room-heading h2 { font-family: var(--skin-font-display); font-weight: 800; font-size: 19px; white-space: nowrap; }
-.sk-lb-when { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; flex: 1 1 0; min-width: 0; margin-left: auto; max-width: 230px; }
-.sk-lb-when .rm-tab { min-width: 0; min-height: 34px; padding: 0 4px 2px; font-size: 14px; }
-
-/* The list: a column head, then a ruled line for each player, scrolling inside the wool in whole lines (the page sets
-   its height). Every board has the same four columns, so nothing moves sideways between tabs: the place, the name, a
-   small fact in words (the rank, the games, the level), the big figure. Where the wool is narrower than about 440 px
-   the small fact steps out (the rank keeps its badge): a container query, so a tablet, whose board is wide, keeps it. */
-.sk-lb-list { flex: 1; min-height: 0; container-type: inline-size; --lb-place: 2.6em; --lb-sub: 7.6em; --lb-fig: 4.4em; }
-@container (max-width: 440px) {
-  .sk-lb-list .kit-slate-face { --lb-sub: 0px; }
-  .sk-lb-list[data-board="ranked"] .kit-slate-face { --lb-sub: 1.6em; }
-  .sk-lb-rank, .sk-lb-small, .sk-lb-name > .kit-tag { display: none; }
-  .sk-lb-cols > span:nth-child(3) { visibility: hidden; }
+.lb {
+  --s: calc(3 * var(--u));
+  --bar: calc(64 * var(--u));
+  --lights: 0px;
+  --panel: clamp(calc(400 * var(--u)), 34vw, calc(480 * var(--u)));
+  --shadow: drop-shadow(0 calc(4 * var(--u)) 0 rgba(14, 21, 40, 0.38));
+  /* Home's knit (--knit, from .hm, which the page always sits in) for wool and lantern faces; the same stitch in white for
+     ink faces; and the felt of the dark boards: one-step squares in fixed places, pressed wool with no pattern. */
+  --knit-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' shape-rendering='crispEdges'%3E%3Cg fill='%23fff' fill-opacity='.04'%3E%3Crect x='2' y='2' width='2' height='2'/%3E%3Crect x='4' y='4' width='2' height='2'/%3E%3Crect x='6' y='6' width='4' height='2'/%3E%3Crect x='10' y='4' width='2' height='2'/%3E%3Crect x='12' y='2' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E");
+  --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' shape-rendering='crispEdges'%3E%3Cg fill='%23fff' fill-opacity='.05'%3E%3Crect x='3' y='6' width='3' height='3'/%3E%3Crect x='18' y='3' width='3' height='3'/%3E%3Crect x='33' y='9' width='3' height='3'/%3E%3Crect x='42' y='24' width='3' height='3'/%3E%3Crect x='27' y='18' width='3' height='3'/%3E%3Crect x='9' y='21' width='3' height='3'/%3E%3Crect x='15' y='36' width='3' height='3'/%3E%3Crect x='36' y='39' width='3' height='3'/%3E%3Crect x='24' y='30' width='3' height='3'/%3E%3Crect x='6' y='42' width='3' height='3'/%3E%3Crect x='45' y='12' width='3' height='3'/%3E%3Crect x='30' y='45' width='3' height='3'/%3E%3C/g%3E%3Cg fill='%23000' fill-opacity='.12'%3E%3Crect x='12' y='12' width='3' height='3'/%3E%3Crect x='39' y='30' width='3' height='3'/%3E%3Crect x='21' y='42' width='3' height='3'/%3E%3Crect x='30' y='0' width='3' height='3'/%3E%3Crect x='0' y='30' width='3' height='3'/%3E%3Crect x='42' y='45' width='3' height='3'/%3E%3C/g%3E%3C/svg%3E");
+  --felt-size: calc(48 * var(--u)) calc(48 * var(--u));
+  --knit-size: calc(16 * var(--u)) calc(12 * var(--u));
+  /* Pixel corners: Home's two-step corners, and one-step ones for the small pieces. */
+  --px: polygon(0 calc(2*var(--s)), var(--s) calc(2*var(--s)), var(--s) var(--s), calc(2*var(--s)) var(--s), calc(2*var(--s)) 0,
+    calc(100% - 2*var(--s)) 0, calc(100% - 2*var(--s)) var(--s), calc(100% - var(--s)) var(--s), calc(100% - var(--s)) calc(2*var(--s)), 100% calc(2*var(--s)),
+    100% calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) 100%,
+    calc(2*var(--s)) 100%, calc(2*var(--s)) calc(100% - var(--s)), var(--s) calc(100% - var(--s)), var(--s) calc(100% - 2*var(--s)), 0 calc(100% - 2*var(--s)));
+  --px1: polygon(0 var(--s), var(--s) var(--s), var(--s) 0, calc(100% - var(--s)) 0, calc(100% - var(--s)) var(--s), 100% var(--s),
+    100% calc(100% - var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - var(--s)) 100%, var(--s) 100%, var(--s) calc(100% - var(--s)), 0 calc(100% - var(--s)));
+  position: fixed; inset: 0; z-index: 45; overflow: hidden;
+  background: #BFE1F3; color: var(--hm-wool); font-family: var(--skin-font-body);
 }
-.sk-lb .sk-lb-list.kit-slate .kit-slate-face { padding: 8px 14px 6px; }
-/* The head is set in the lines' own size (its words are smaller), so its em-sized columns match theirs, and it keeps
-   the same gutter the lines keep for their scrollbar. */
-.sk-lb-cols, .sk-lb-line { display: grid; grid-template-columns: var(--lb-place) minmax(0, 1fr) var(--lb-sub) var(--lb-fig); align-items: center; gap: 8px; font-size: 16px; }
-.sk-lb-cols { flex: none; overflow: hidden; scrollbar-gutter: stable; padding: 0 2px 6px; border-bottom: 1px solid rgba(243, 240, 230, 0.32); }
-.sk-lb-cols > span { font-family: var(--skin-font-body); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--glow); }
-.sk-lb-cols > span:last-child, .sk-lb-cols > span:first-child { text-align: right; }
-.sk-lb-lines { flex: none; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain; scroll-snap-type: y mandatory; scrollbar-width: thin; scrollbar-color: rgba(243, 240, 230, 0.35) transparent; }
-.sk-lb-line { min-height: var(--lb-row, 36px); padding: 0 2px; border-bottom: 1px dashed rgba(243, 240, 230, 0.18); color: var(--chalk); scroll-snap-align: start; }
-.sk-lb-place { display: flex; justify-content: flex-end; font-family: var(--skin-font-display); font-weight: 800; font-size: 1em; text-align: right; font-variant-numeric: tabular-nums; color: rgba(243, 240, 230, 0.75); }
-.sk-lb-place .kit-tag { justify-content: center; min-width: 3.6em; font-size: 11px; }
-/* Second's tag silver, not paper (the kit's grey is the paper's own tone). */
-.sk-lb .kit-tag--gray { --tag-tint: #B7BFCA; }
-.sk-lb-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-family: var(--skin-font-display); font-weight: 700; font-size: 1em; white-space: nowrap; }
-.sk-lb-name > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.sk-lb-name > .kit-tag { flex: none; }
-.sk-lb-sub { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
-.sk-lb-sub > .sk-rank-badge { flex: none; }
-.sk-lb-rank, .sk-lb-small { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--skin-font-hand); font-size: 17px; color: rgba(243, 240, 230, 0.85); }
-.sk-lb-fig { font-family: var(--skin-font-display); font-weight: 800; font-size: 1.125em; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-/* Rank pips are drawn for paper; on the wool they are chalk, the lit ones amber. */
-.sk-lb .sk-rank-pips i { background: rgba(243, 240, 230, 0.22); box-shadow: 0 0 0 1px rgba(243, 240, 230, 0.35); }
-.sk-lb .sk-rank-pips i[data-on] { background: var(--amber); }
-/* Your own line: the table ledger's amber ring, drawn inside so the scroller cannot clip it. */
-.sk-lb-line[data-you] { border-bottom-color: transparent; box-shadow: inset 0 0 0 2px var(--amber); border-radius: 3px; }
-/* Under the last line, the rest of the wool: one message under a cup, said once. It gives way when the lines need the
-   room (a container on its own height: the cup steps out first, then the words). */
-.sk-lb-rest { flex: 1; min-height: 0; container-type: size; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 8px 18px; text-align: center; }
-.sk-lb-rest-cup { line-height: 0; color: var(--glow); opacity: 0.55; }
-.sk-lb-rest p { font-family: var(--skin-font-hand); font-size: 19px; line-height: 1.3; color: var(--chalk); }
-.sk-lb-rest b { font-weight: 400; color: var(--glow); }
-@container (max-height: 110px) { .sk-lb-rest-cup { display: none; } }
-@media (min-width: 1000px) { .sk-lb-rest [data-at="narrow"] { display: none; } }
-@media (max-width: 999px) { .sk-lb-rest [data-at="wide"], .sk-lb .sk-lb-window .sk-lb-say.kit-slate { display: none; } }
-@container (max-height: 46px) { .sk-lb-rest p { display: none; } }
+:root[data-festive] .lb { --lights: calc(28 * var(--u)); }
+.lb[data-phone] { --bar: calc(60px + env(safe-area-inset-top, 0px)); }
+.lb :is(h1, h2, p, ol) { margin: 0; }
+.lb ol { padding: 0; list-style: none; }
+.lb button { font-family: inherit; }
+/* Figures line up digit under digit, and none drops below the line. */
+.lb-num, .lb-badge, .lb-score, .lb-you-score, .lb-plate-score { font-variant-numeric: lining-nums tabular-nums; }
+/* A slab that is not a button (the title tag, the plates, your row): no states, no pointer. */
+.lb .lb-static { cursor: default; --drop: 0px !important; }
+/* The slab's hover rise for the small buttons here (Home's states, section 7 of its plan). */
+.lb :is(.lb-tab, .lb-close, .lb-info-btn, .lb-toggle > .hm-slab):hover:not(:disabled) { --drop: calc(-2 * var(--u)); }
+.lb :is(.lb-tab, .lb-close, .lb-info-btn, .lb-toggle > .hm-slab):active:not(:disabled) { --drop: calc(4 * var(--u)); }
+.lb .hm-knit::before { background-size: var(--knit-size); }
+/* A click area at least 44 pixels high round every button, drawn by nothing (on a small screen --u is under 1). */
+.lb :is(.lb-tab, .lb-close, .lb-info-btn, .lb-toggle > .hm-slab)::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
 
-/* You, pinned at the board's foot: the ledger's ring on the same wool, three rows that are always there. */
-.sk-lb-you { flex: none; container-type: inline-size; }
-/* A narrow plate keeps your badge and figure and lets the rank's name step out. */
-@container (max-width: 400px) { .sk-lb-you-fig > span:not(.sk-rank-badge) { display: none; } }
-.sk-lb .sk-lb-you.kit-slate .kit-slate-face { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px 10px; }
-.sk-lb-you-top { display: flex; align-items: center; gap: 10px; min-height: 40px; }
-.sk-lb-you-top > :first-child { flex: none; }
-.sk-lb-you-big { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--skin-font-display); font-weight: 800; font-size: 22px; line-height: 1.2; color: var(--chalk); }
-.sk-lb-you-fig { display: flex; align-items: center; gap: 8px; font-family: var(--skin-font-display); font-weight: 700; font-size: 15px; color: rgba(243, 240, 230, 0.75); white-space: nowrap; }
-.sk-lb-you-fig b { font-weight: 800; font-size: 18px; color: var(--chalk); }
-.sk-lb-you-fig > span:not(.sk-rank-badge) { font-family: var(--skin-font-hand); font-weight: 400; font-size: 17px; }
-.sk-lb-you-gap { min-height: 22px; font-family: var(--skin-font-hand); font-size: 17px; line-height: 1.3; color: var(--glow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sk-lb-show { display: flex; align-items: center; gap: 10px; min-height: 30px; padding-top: 6px; border-top: 1px dashed rgba(243, 240, 230, 0.25); font-family: var(--skin-font-hand); font-size: 16px; line-height: 1.2; color: rgba(243, 240, 230, 0.85); cursor: default; }
-label.sk-lb-show { cursor: pointer; }
+/* ---------- The stage, and the plates on its crates ---------- */
+.lb-stage { position: absolute; inset: 0; }
+.lb-stage > div:first-child { position: absolute !important; inset: 0; }
+.lb-plates { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.lb-plate-at { position: absolute; left: 0; top: 0; width: 0; height: 0; transform: translate3d(-9999px, 0, 0); }
+.lb-plate-at > * { position: absolute; left: 0; bottom: 0; transform: translateX(-50%); }
+.lb[data-busy] .lb-plate-text { opacity: 0.6; transition: opacity 200ms 150ms; }
 
-/* Narrower computer windows: tighter edges and gaps. */
-@media (max-width: 1300px) { .sk-lb { --lb-gap: 16px; } }
-@media (max-width: 1150px) { .sk-lb { --lb-m: max(14px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --lb-gap: 12px; --lb-board: clamp(380px, 34vw, 520px); } }
-/* The board is narrow here: on Wins the "when" tabs take the sign's place, as on a phone (the lit Wins tab names it). */
-@media (min-width: 1000px) and (max-width: 1150px) { .sk-lb-board .rm-head:has(.sk-lb-when) .sk-room-heading { display: none; } .sk-lb-when { max-width: none; } }
-/* A short computer window (a small laptop): the lobby's own tighter rule. */
-@media (min-width: 1000px) and (max-height: 780px) {
-  .sk-lb { --lb-top: max(24px, env(safe-area-inset-top, 0px)); --lb-beam: 58px; }
-  .sk-lb-board { bottom: 16px; }
-  .sk-lb-board.rm-panel { gap: 7px; padding: 22px 14px 12px; }
-  .sk-lb-line { min-height: var(--lb-row, 34px); }
-  .sk-lb-you-top { min-height: 34px; }
-  .sk-lb .sk-lb-you.kit-slate .kit-slate-face { gap: 2px; padding: 7px 12px 8px; }
+/* A name plate: a wool slab with knit, one step of ink outline, 44 high with a side of 4; a rosette, the name, the figure.
+   Never wider than its crate less 8, never within 12 of the screen's edge. */
+.lb-plate {
+  --depth: calc(4 * var(--u));
+  --max: min(calc(var(--crate-w, 200px) - 8px), calc(2 * (var(--left, 400px) - 12px)), calc(2 * (var(--right, 400px) - 12px)));
+  justify-content: flex-start; gap: calc(8 * var(--u)); height: calc(48 * var(--u)); min-width: min(calc(112 * var(--u)), var(--max)); max-width: var(--max);
+  padding: 0 calc(10 * var(--u)) var(--depth) calc(8 * var(--u)); filter: drop-shadow(0 calc(3 * var(--u)) 0 rgba(14, 21, 40, 0.38)); text-align: left;
 }
-.sk-lb-list[data-board="level"] .sk-lb-fig { letter-spacing: -0.01em; }
-/* The first three are on their pedestals, with their figures; the list runs on from fourth (on a phone, from first). */
-@media (min-width: 561px) { .sk-lb-line[data-top] { display: none; } }
+.lb-plate--first { --hi: var(--hm-lantern); }
+.lb-plate-text { display: flex; min-width: 0; flex-direction: column; gap: calc(3 * var(--u)); animation: lb-fade 120ms ease-out both; }
+.lb-plate-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--hm-ink);
+  font: 800 clamp(calc(12 * var(--u)), calc((var(--max) - 46 * var(--u)) / (var(--n) * 0.68)), calc(15 * var(--u)))/1.1 var(--skin-font-display);
+}
+.lb-plate-score, .lb-plate-none { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(12.5 * var(--u))/1.1 var(--skin-font-body); color: var(--hm-night); }
+.lb-plate-score .lb-tier { display: inline-block; margin-right: calc(5 * var(--u)); vertical-align: -0.2em; }
+.lb[data-phone] .lb-plate { justify-content: center; width: var(--max); min-width: 0; padding: 0 8px var(--depth); }
+.lb[data-phone] .lb-plate-name { font-size: clamp(12px, calc((var(--max) - 16px) / (var(--n) * 0.68)), 15px); }
+.lb[data-phone] .lb-plate-text { align-items: center; max-width: 100%; }
+/* A phone's plate is as wide as its crate: where that leaves too little for the badge and the whole figure, the badge
+   steps out, never the figure. */
+.lb[data-phone] .lb-plate-text { container-type: inline-size; width: 100%; }
+@container (max-width: 56px) { .lb-plate-score .lb-tier { display: none; } }
+/* An open place on a phone's narrow plate: its words wrap (to three short lines at most) rather than end in an ellipsis. */
+.lb[data-phone] .lb-plate-none { max-height: 3.15em; white-space: normal; text-align: center; font-size: clamp(9.5px, calc((var(--max) - 16px) / 4.6), 11.5px); line-height: 1.05; }
+.lb-plate-name, .lb-plate-score, .lb-plate-none { max-width: 100%; }
 
-/* A narrow screen (a tablet held upright, a phone): one column. The beam, the sky with the three, then the board with
-   the list and you at its foot. Only the list scrolls. */
-@media (max-width: 999px) {
-  .sk-lb { --lb-m: max(12px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --lb-top: max(26px, env(safe-area-inset-top, 0px)); --lb-split: calc(var(--lb-top) + var(--lb-beam) + clamp(220px, 44dvh, 520px)); }
-  .sk-lb .sk-lb-bar { grid-template-columns: auto 1fr; column-gap: 16px; padding: 0 14px; }
-  .sk-lb-bar .kit-beam-strap, .sk-lb-bar .sk-garland { display: none; }
-  .sk-lb-tabs { justify-content: flex-start; gap: 8px; }
-  .sk-lb-tabs .rm-tab { min-height: 44px; font-size: 16px; }
-  .sk-lb-end { justify-content: flex-end; }
-  .sk-lb-end .rm-name { flex: none; }
-  .sk-lb-window { left: 0; right: 0; top: calc(var(--lb-top) + var(--lb-beam) + 4px); bottom: calc(100dvh - var(--lb-split) + 4px); }
-  .sk-lb-stage::before { right: 0; top: calc(var(--lb-split) / 2); }
-  .sk-lb-board { left: var(--lb-m); right: var(--lb-m); width: auto; top: calc(var(--lb-split) + 26px); bottom: 12px; }
-  .sk-lb-say { margin-bottom: 8px; }
-  .sk-lb-say p { font-size: 17px; }
-  .sk-lb-line { min-height: var(--lb-row, 44px); }
-  .sk-lb .sk-lb-plaque .sk-plate { font-size: 15px; }
-  .sk-lb-figure b { font-size: 15px; }
+/* Third place is asleep: three letters drifting up off its head, sized from the crate so they stay in scale. */
+.lb-z { position: absolute; left: 0; bottom: 0; display: block; width: 1px; height: 1px; }
+.lb-z i { position: absolute; left: 0; bottom: 0; font: 800 clamp(9px, calc(var(--crate-w, 120px) * 0.075), 18px)/1 var(--skin-font-display); font-style: normal; color: var(--hm-wool-hi); text-shadow: 0 1px 0 var(--hm-night), 1px 0 0 var(--hm-night), -1px 0 0 var(--hm-night), 0 -1px 0 var(--hm-night); opacity: 0; animation: lb-z 2.4s linear infinite; }
+.lb-z i:nth-child(2) { font-size: clamp(11px, calc(var(--crate-w, 120px) * 0.095), 22px); animation-delay: 0.8s; }
+.lb-z i:nth-child(3) { font-size: clamp(13px, calc(var(--crate-w, 120px) * 0.115), 26px); animation-delay: 1.6s; }
+@keyframes lb-z { 0% { opacity: 0; transform: translate(0, 0); } 10% { opacity: 0.95; } 65% { opacity: 0.95; } 100% { opacity: 0; transform: translate(calc(var(--crate-w, 120px) * 0.12), calc(var(--crate-w, 120px) * -0.22)); } }
+
+/* ---------- Snow ----------
+   One piece an edge. White on the top row, wool under it with two speckles of frost, a stepped edge (3, 3, 2, 2, 3, 3, 3, 2
+   steps, repeating every 24) with a row of frost under every column. On the board, icicles too (every 96). */
+.lb-snowcap {
+  position: absolute; z-index: 3; left: var(--s); right: var(--s); top: calc(-2 * var(--s)); height: calc(12 * var(--u)); pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' shape-rendering='crispEdges'%3E%3Crect x='0' y='3' width='6' height='6' fill='%23FFFDF4'/%3E%3Crect x='6' y='3' width='6' height='3' fill='%23FFFDF4'/%3E%3Crect x='12' y='3' width='9' height='6' fill='%23FFFDF4'/%3E%3Crect x='21' y='3' width='3' height='3' fill='%23FFFDF4'/%3E%3Crect x='0' y='0' width='24' height='3' fill='%23FFFFFF'/%3E%3Cg fill='%23B9C8E6'%3E%3Crect x='0' y='9' width='6' height='3'/%3E%3Crect x='6' y='6' width='6' height='3'/%3E%3Crect x='12' y='9' width='9' height='3'/%3E%3Crect x='21' y='6' width='3' height='3'/%3E%3C/g%3E%3Cg fill='%23B9C8E6' fill-opacity='.45'%3E%3Crect x='3' y='3' width='3' height='3'/%3E%3Crect x='15' y='0' width='3' height='3'/%3E%3C/g%3E%3C/svg%3E") 0 0 / calc(24 * var(--u)) calc(12 * var(--u)) repeat-x;
 }
-@media (max-width: 760px) { .sk-lb-end .rm-name { display: none; } }
-@media (max-width: 560px) {
-  .sk-lb { --lb-m: max(8px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --lb-top: max(20px, env(safe-area-inset-top, 0px)); --lb-split: calc(var(--lb-top) + var(--lb-beam) + clamp(170px, 32dvh, 300px)); }
-  .sk-lb .sk-lb-bar { grid-template-columns: 1fr auto; padding: 0 8px 0 10px; }
-  .sk-lb-tabs { gap: 6px; }
-  .sk-lb-tabs .rm-tab { flex: 1 1 0; min-width: 0; gap: 5px; font-size: 15px; padding: 0 4px 2px; }
-  .sk-lb-tabs .rm-tab > svg, .sk-lb-tabs .rm-tab > .sk-rank-badge { display: none; }
-  .sk-lb-board.rm-panel { padding: 22px 10px 10px; gap: 8px; }
-  /* On Wins the "when" tabs take the sign's place (the lit tab above already names the board). The row itself stays on
-     every board, so the list does not move when a tab is pressed. */
-  .sk-lb-board .rm-head:has(.sk-lb-when) .sk-room-heading { display: none; }
-  .sk-lb-board .rm-hint { display: none; }
-  .sk-lb-when { max-width: none; }
-  .sk-lb-when .rm-tab { min-height: 40px; font-size: 15px; }
-  .sk-lb-cols { padding-bottom: 4px; }
-  .sk-lb-line { gap: 7px; font-size: 15px; }
-  .sk-lb-place .kit-tag { font-size: 10px; min-width: 3.4em; padding: 2px 6px 2px 13px; }
-  .sk-lb-list { --lb-place: 3.6em; }
-  /* A phone keeps the switch on your plate, not the small print under it, so the list has room. */
-  span.sk-lb-show { display: none; }
-  .sk-lb .sk-lb-you.kit-slate .kit-slate-face { gap: 2px; padding: 8px 12px; }
-  .sk-lb-you-fig > span:not(.sk-rank-badge) { display: none; }
-  .sk-lb-you-big { font-size: 19px; }
-  .sk-lb-you-gap { font-size: 15px; }
-  .sk-lb-show { font-size: 14px; padding-top: 4px; }
-  /* The pedestals carry the names; the scores are in the list, which starts at first here. */
-  .sk-lb-figure { display: none !important; }
-  .sk-lb-plaque { width: auto; min-width: 0; max-width: max(calc(var(--lb-block, 80px) + 24px), 96px); }
-  .sk-lb .sk-lb-plaque .sk-plate { font-size: 13px; }
-  .sk-lb-plaque .sk-plate { padding: 3px 7px 4px; }
-  .sk-lb-rest p { font-size: 17px; }
+.lb-snowcap--icicles::after {
+  content: ''; position: absolute; left: 0; right: 0; top: calc(9 * var(--u)); height: calc(15 * var(--u));
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='15' shape-rendering='crispEdges'%3E%3Cg fill='%23FFFDF4'%3E%3Crect x='8' y='0' width='3' height='9'/%3E%3Crect x='30' y='0' width='3' height='15'/%3E%3Crect x='52' y='0' width='3' height='6'/%3E%3Crect x='74' y='0' width='3' height='12'/%3E%3C/g%3E%3Cg fill='%23B9C8E6'%3E%3Crect x='11' y='0' width='3' height='6'/%3E%3Crect x='33' y='0' width='3' height='9'/%3E%3Crect x='55' y='0' width='3' height='3'/%3E%3Crect x='77' y='0' width='3' height='6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / calc(96 * var(--u)) calc(15 * var(--u)) repeat-x;
 }
-@media (max-width: 380px) { .sk-lb-line { font-size: 14px; } .sk-lb-place .kit-tag { font-size: 9px; } .sk-lb-list { --lb-place: 3.2em; --lb-fig: 4em; } .sk-lb-list[data-board="level"] { --lb-fig: 4.5em; } .sk-lb-name > .kit-tag { display: none; } .sk-lb-plaque { max-width: max(calc(var(--lb-block, 70px) + 36px), 96px); } .sk-lb .sk-lb-plaque .sk-plate { font-size: 12px; } }
-/* A short phone: the sky gives up some height so the list keeps its lines. */
-@media (max-width: 999px) and (max-height: 640px) { .sk-lb { --lb-split: calc(var(--lb-top) + var(--lb-beam) + 150px); } }
-:root.reduce-motion .sk-lb-z i { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-lb-z i { animation: none; } }
+
+/* ---------- The bar ----------
+   Felt on night blue, a lit row along its top (under the snow), one step of ink then 3 of lantern along its bottom. */
+.lb-bar {
+  position: absolute; z-index: 4; left: 0; right: 0; top: 0; height: var(--bar); box-sizing: border-box;
+  display: flex; align-items: center; gap: calc(16 * var(--u)); padding: env(safe-area-inset-top, 0px) calc(20 * var(--u)) calc(6 * var(--u));
+  background-color: var(--hm-night); background-image: var(--felt); background-size: var(--felt-size);
+  box-shadow: inset 0 calc(-3 * var(--u)) 0 var(--hm-lantern), inset 0 calc(-3 * var(--u) - var(--s)) 0 var(--hm-ink), inset 0 var(--s) 0 var(--hm-night-3);
+}
+.lb-bar > .lb-snowcap { z-index: 0; left: 0; right: 0; top: 0; }
+.lb-bar > :is(.lb-titletag, .lb-tabs, .lb-close) { z-index: 1; }
+.lb-tabs { position: relative; }
+.lb-titletag { --depth: calc(4 * var(--u)); flex: none; gap: calc(8 * var(--u)); height: calc(42 * var(--u)); padding: 0 calc(12 * var(--u)) var(--depth); filter: var(--shadow); }
+.lb-titletag h1 { font: 800 calc(19 * var(--u))/1 var(--skin-font-display); color: var(--hm-ink); white-space: nowrap; }
+.lb-tabs { display: flex; gap: calc(8 * var(--u)); }
+.lb-tab { --depth: calc(6 * var(--u)); flex: none; gap: calc(8 * var(--u)); width: calc(132 * var(--u)); height: calc(44 * var(--u)); padding: 0 calc(8 * var(--u)) var(--depth); filter: var(--shadow); }
+.lb-tab-icon { display: flex; }
+.lb-tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-ink); }
+.lb-close { --depth: calc(6 * var(--u)); flex: none; width: calc(44 * var(--u)); height: calc(44 * var(--u)); margin-left: auto; filter: var(--shadow); }
+.lb-close svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
+.lb[data-phone] .lb-bar { gap: 8px; padding: env(safe-area-inset-top, 0px) 12px 6px; }
+.lb[data-phone] .lb-tabs { flex: 1 1 0; min-width: 0; }
+.lb[data-phone] .lb-tab { flex: 1 1 0; width: auto; min-width: 0; gap: 6px; padding: 0 4px var(--depth); }
+/* A tab whose label would not fit beside its icon at 12 drops the icon (French on a narrow phone). */
+.lb-tab[data-tight] .lb-tab-icon { display: none; }
+@media (max-width: 359px) { .lb[data-phone] .lb-tab-icon { display: none; } }
+
+/* The season's lights: an SVG the page draws across the bar's whole width, in front of the sky, behind the board. */
+.lb-lights { position: absolute; left: 0; right: 0; top: 100%; height: calc(32 * var(--u)); pointer-events: none; }
+.lb-lights svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.lb-bulb-on { animation: lb-twinkle 2s ease-in-out infinite; }
+@keyframes lb-twinkle { 50% { opacity: 0; } }
+
+/* ---------- The part of the stage the board leaves ---------- */
+.lb-window { position: absolute; left: 0; top: calc(var(--bar) + var(--lights)); bottom: 0; right: calc(var(--panel) + 40 * var(--u)); pointer-events: none; }
+.lb[data-phone] .lb-window { right: 0; bottom: auto; height: 40vh; }
+
+/* ---------- The board (a sheet on a phone) ----------
+   One step of ink outline, felt on night blue, a lit row along the top and down the left, a shaded row along the bottom
+   and down the right, a side of 6 under it, one hard shadow; an inner frame with four corner brackets, a snow cap with
+   icicles. It grows with its rows and stops 20 from the screen's foot; past that the rows scroll inside it. */
+.lb-board {
+  --side: calc(6 * var(--u));
+  position: absolute; z-index: 2; right: calc(20 * var(--u)); top: calc(var(--bar) + var(--lights) + 20 * var(--u)); width: var(--panel);
+  max-height: calc(100% - var(--bar) - var(--lights) - 40 * var(--u)); box-sizing: border-box;
+  display: flex; flex-direction: column; padding: calc(24 * var(--u)) calc(16 * var(--u)) calc(16 * var(--u) + var(--side)); filter: var(--shadow); isolation: isolate;
+}
+.lb-board::before {
+  content: ''; position: absolute; z-index: -2; inset: 0; clip-path: var(--px);
+  background-color: var(--hm-night); background-image: var(--felt); background-size: var(--felt-size);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-1 * (var(--s) + var(--side))) 0 var(--hm-night-deep),
+    inset 0 calc(2 * var(--s)) 0 var(--hm-night-3), inset calc(2 * var(--s)) 0 0 var(--hm-night-2),
+    inset 0 calc(-1 * (2 * var(--s) + var(--side))) 0 var(--hm-night-deep), inset calc(-2 * var(--s)) 0 0 var(--hm-night-deep);
+}
+.lb-frame { position: absolute; z-index: -1; inset: calc(4 * var(--s)) calc(4 * var(--s)) calc(4 * var(--s) + var(--side)); pointer-events: none; box-shadow: inset 0 0 0 var(--s) var(--hm-night-2); }
+.lb-bracket { position: absolute; }
+.lb-bracket--tl { left: 0; top: 0; }
+.lb-bracket--tr { right: 0; top: 0; transform: scaleX(-1); }
+.lb-bracket--bl { left: 0; bottom: 0; transform: scaleY(-1); }
+.lb-bracket--br { right: 0; bottom: 0; transform: scale(-1, -1); }
+.lb[data-phone] .lb-board {
+  --side: 0px; left: 0; right: 0; width: auto; top: calc(var(--bar) + var(--lights) + 40vh); bottom: 0; max-height: none;
+  padding: 24px 12px calc(16px + env(safe-area-inset-bottom, 0px)); filter: none;
+}
+/* A sheet: pixel corners on top only, no side. */
+.lb[data-phone] .lb-board::before {
+  clip-path: polygon(0 calc(2*var(--s)), var(--s) calc(2*var(--s)), var(--s) var(--s), calc(2*var(--s)) var(--s), calc(2*var(--s)) 0,
+    calc(100% - 2*var(--s)) 0, calc(100% - 2*var(--s)) var(--s), calc(100% - var(--s)) var(--s), calc(100% - var(--s)) calc(2*var(--s)), 100% calc(2*var(--s)), 100% 100%, 0 100%);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(2 * var(--s)) 0 var(--hm-night-3), inset calc(2 * var(--s)) 0 0 var(--hm-night-2), inset calc(-2 * var(--s)) 0 0 var(--hm-night-deep);
+}
+
+/* ---------- The board's head: the ribbon, the tools, the line under it ---------- */
+.lb-head { position: relative; z-index: 4; flex: none; }
+/* The ribbon keeps its line; where the Wins board's toggle leaves it no room (a narrow board, French), the tools go under it. */
+.lb-headline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: calc(8 * var(--u)); min-width: 0; }
+.lb-tools { flex: none; display: flex; align-items: center; gap: calc(8 * var(--u)); margin-left: auto; }
+.lb-sub { margin-top: calc(8 * var(--u)) !important; font: 800 calc(12.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); }
+
+/* The ribbon: lantern with knit, a lit and a shaded row, one step of ink outline; its right end cut into a V two steps
+   deep. On a computer its left end reaches 9 past the board and folds round it. */
+.lb-ribbon {
+  --v: polygon(0 0, 100% 0, 100% 30%, calc(100% - var(--s)) 30%, calc(100% - var(--s)) 42%, calc(100% - 2 * var(--s)) 42%, calc(100% - 2 * var(--s)) 58%, calc(100% - var(--s)) 58%, calc(100% - var(--s)) 70%, 100% 70%, 100% 100%, 0 100%);
+  position: relative; isolation: isolate; flex: 0 0 auto; min-width: 0; max-width: calc(100% + 25 * var(--u)); box-sizing: border-box; display: inline-flex; align-items: center; gap: calc(8 * var(--u));
+  height: calc(40 * var(--u)); margin-left: calc(-25 * var(--u)); padding: 0 calc(24 * var(--u)) 0 calc(16 * var(--u)); color: var(--hm-ink);
+  font: 800 calc(20 * var(--u))/1 var(--skin-font-display);
+}
+.lb-ribbon::before { content: ''; position: absolute; z-index: -2; inset: 0; clip-path: var(--v); background: var(--hm-ink); }
+.lb-ribbon-face { position: absolute; z-index: -1; inset: var(--s); clip-path: var(--v); background: var(--hm-lantern) var(--knit) 0 0 / var(--knit-size); box-shadow: inset 0 var(--s) 0 var(--hm-lantern-hi), inset 0 calc(-1 * var(--s)) 0 var(--hm-lantern-lip); }
+/* The fold under the overhang: a stepped right triangle, its square corner against the board's edge. */
+.lb-ribbon::after { content: ''; position: absolute; z-index: -3; left: 0; top: 100%; width: calc(3 * var(--s)); height: calc(3 * var(--s)); background: var(--hm-lantern-fold);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, calc(2 * var(--s)) 100%, calc(2 * var(--s)) calc(2 * var(--s)), var(--s) calc(2 * var(--s)), var(--s) var(--s), 0 var(--s)); }
+.lb-ribbon > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb[data-phone] .lb-ribbon {
+  --v: polygon(0 0, 100% 0, 100% 30%, calc(100% - var(--s)) 30%, calc(100% - var(--s)) 42%, calc(100% - 2 * var(--s)) 42%, calc(100% - 2 * var(--s)) 58%, calc(100% - var(--s)) 58%, calc(100% - var(--s)) 70%, 100% 70%, 100% 100%,
+    0 100%, 0 70%, var(--s) 70%, var(--s) 58%, calc(2 * var(--s)) 58%, calc(2 * var(--s)) 42%, var(--s) 42%, var(--s) 30%, 0 30%);
+  margin-left: 0; padding-left: calc(16px + 2 * var(--s));
+}
+.lb[data-phone] .lb-ribbon::after { display: none; }
+
+/* This week / All time: two slabs in a sunk well; and the same toggle for showing yourself, in the info card. */
+.lb-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s); height: calc(38 * var(--u)); padding: var(--s); box-sizing: border-box; }
+.lb-toggle > .hm-slab { --depth: var(--s); height: calc(29 * var(--u)); min-width: 0; padding: 0 calc(10 * var(--u)) var(--depth); font: 800 calc(13 * var(--u))/1 var(--skin-font-body); white-space: nowrap; }
+.lb-toggle--wide { width: 100%; margin-top: calc(10 * var(--u)); }
+.lb-toggle--small { height: calc(34 * var(--u)); margin-top: calc(8 * var(--u)); }
+.lb-toggle--small > .hm-slab { height: calc(25 * var(--u)); font-size: calc(12 * var(--u)); }
+
+/* The info button and its card: a night slab with an "i"; the card is ink with a lantern band, a pointer and a padlock. */
+.lb-info { position: relative; }
+.lb-info-btn { --depth: calc(6 * var(--u)); width: calc(32 * var(--u)); height: calc(32 * var(--u)); }
+.lb-inkcard {
+  position: absolute; z-index: 10; right: 0; top: calc(100% + 12 * var(--u)); box-sizing: border-box; width: max-content; max-width: calc(240 * var(--u));
+  display: flex; align-items: flex-start; gap: calc(8 * var(--u)); padding: calc(12 * var(--u) + 2 * var(--s)) calc(12 * var(--u)) calc(12 * var(--u) + 3 * var(--u)); isolation: isolate;
+  font: 700 calc(13 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); text-align: left; animation: lb-fade 100ms ease-out both; filter: var(--shadow);
+}
+.lb-inkcard::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-ink) var(--felt) 0 0 / var(--felt-size);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-night-3), inset 0 calc(3 * var(--u) + var(--s)) 0 var(--hm-lantern), inset 0 calc(3 * var(--u) + 2 * var(--s)) 0 var(--hm-ink-hi), inset 0 calc(-3 * var(--u) - var(--s)) 0 var(--hm-ink-side);
+}
+/* The pointer: a stepped triangle 4 steps wide and 2 tall, in the card's outline and band colours, under the button. */
+.lb-inkcard-point { position: absolute; right: calc(16 * var(--u) - 2 * var(--s)); bottom: 100%; width: calc(4 * var(--s)); height: calc(2 * var(--s)); background: var(--hm-lantern); box-shadow: inset var(--s) 0 0 var(--hm-night-3), inset calc(-1 * var(--s)) 0 0 var(--hm-night-3), inset 0 var(--s) 0 var(--hm-night-3);
+  clip-path: polygon(var(--s) 0, calc(100% - var(--s)) 0, calc(100% - var(--s)) var(--s), 100% var(--s), 100% 100%, 0 100%, 0 var(--s), var(--s) var(--s)); }
+.lb-inkcard-text { display: flex; flex-direction: column; gap: calc(6 * var(--u)); min-width: 0; }
+.lb-inkcard-text p { max-width: calc(190 * var(--u)); }
+.lb-show { display: flex; flex-direction: column; font-weight: 800; color: var(--hm-wool); }
+
+/* ---------- The divider and the column heads ---------- */
+.lb-divider { position: relative; flex: none; height: calc(2 * var(--s)); margin-top: calc(12 * var(--u)); background: var(--hm-night-3); box-shadow: inset 0 var(--s) 0 var(--hm-ink); }
+.lb-flake { position: absolute; left: 50%; top: 50%; display: flex; justify-content: center; width: calc(30 * var(--u)); height: calc(18 * var(--u)); background: var(--hm-night); transform: translate(-50%, -50%); }
+
+/* A well: sunk, so its shade is along the top and its light along the bottom. Drawn by ::before, so what is inside it is
+   never cut by its pixel corners. */
+.lb-well { position: relative; isolation: isolate; }
+.lb-well::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-deep) var(--felt) 0 0 / var(--felt-size);
+  box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-2); }
+
+/* The columns, the same for the heads and the rows: place, player, the small fact, the figure. */
+.lb-board { --cols: calc(6 * var(--u)) calc(28 * var(--u)) calc(10 * var(--u)) minmax(0, 1fr) calc(8 * var(--u)) calc(104 * var(--u)) calc(8 * var(--u)) calc(64 * var(--u)) calc(12 * var(--u)); --gutter: 0px; }
+.lb-board:has(.lb-rows[data-over]) { --gutter: calc(15 * var(--u)); }
+.lb-cols { flex: none; display: grid; grid-template-columns: var(--cols); align-items: center; height: calc(30 * var(--u)); margin-top: calc(12 * var(--u)); margin-right: var(--gutter);
+  font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); text-align: center; white-space: nowrap; }
+.lb-cols > span:nth-child(1) { grid-column: 2; }
+.lb-cols > span:nth-child(2) { grid-column: 4; }
+.lb-cols > span:nth-child(3) { grid-column: 6; }
+.lb-cols > span:nth-child(4) { grid-column: 8; text-align: right; }
+
+/* ---------- The rows ---------- */
+.lb-rows { position: relative; flex: 0 1 auto; min-height: 0; margin-top: calc(6 * var(--u)); overflow: hidden; transition: height 160ms ease-out; }
+.lb-lines { position: relative; height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding-right: var(--gutter) !important; box-sizing: border-box; }
+.lb-lines::-webkit-scrollbar { display: none; }
+/* A tile: felt on night-2, a lit row on top, a side of 3 under it, one-step corners; 3 apart. */
+.lb-tile { --face: calc(34 * var(--u)); position: relative; isolation: isolate; display: grid; grid-template-columns: var(--cols); align-items: center;
+  height: calc(var(--face) + 3 * var(--u)); padding-bottom: calc(3 * var(--u)); margin-bottom: calc(3 * var(--u)); box-sizing: border-box;
+  animation: lb-rise 140ms ease-out both; animation-delay: calc(var(--i, 0) * 25ms); }
+.lb-tile::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-2) var(--felt) 0 0 / var(--felt-size);
+  box-shadow: inset 0 var(--s) 0 var(--hm-night-3), inset 0 calc(-3 * var(--u)) 0 var(--hm-night-deep); }
+.lb-tile > .lb-badge { grid-column: 2; }
+.lb-tile-who { grid-column: 4 / 7; display: grid; grid-template-columns: minmax(0, 1fr) calc(8 * var(--u)) calc(104 * var(--u)); align-items: center; min-width: 0; }
+.lb-name { grid-column: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(16 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); }
+.lb-third { grid-column: 3; display: flex; align-items: center; gap: calc(6 * var(--u)); min-width: 0; overflow: hidden; white-space: nowrap; font: 800 calc(13 * var(--u))/1.1 var(--skin-font-body); color: var(--hm-frost); }
+.lb-third .lb-tier { flex: none; }
+.lb-third > span { overflow: hidden; text-overflow: ellipsis; }
+.lb-score { grid-column: 8; text-align: right; white-space: nowrap; font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
+/* You, where the list holds you: a lantern bar at the tile's left. */
+.lb-tile-you { position: absolute; left: 0; top: 0; width: calc(6 * var(--u)); height: var(--face); background: var(--hm-lantern); }
+/* The place: a mini ink slab with white knit, a lit row, a side of 3, one-step corners. */
+.lb-badge { display: grid; place-items: center; box-sizing: border-box; min-width: calc(28 * var(--u)); height: calc(28 * var(--u)); padding: 0 calc(4 * var(--u)) calc(3 * var(--u)); clip-path: var(--px1);
+  background: var(--hm-ink) var(--knit-ink) 0 0 / var(--knit-size); box-shadow: inset 0 var(--s) 0 var(--hm-ink-hi), inset 0 calc(-3 * var(--u)) 0 var(--hm-ink-side);
+  font: 800 calc(14 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
+/* On its way: six empty tiles, a bar where the name goes and one where the figure goes. Nothing moves. */
+.lb-tile--loading { animation: none; }
+.lb-ph { display: block; height: calc(12 * var(--u)); background: var(--hm-night-3); clip-path: var(--px1); }
+.lb-ph--name { grid-column: 4; width: 40%; }
+.lb-ph--score { grid-column: 8; justify-self: end; width: calc(40 * var(--u)); }
+/* Nobody listed: one sunk well with the board's icon. */
+.lb-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(10 * var(--u)); height: calc(120 * var(--u)); padding: 0 calc(16 * var(--u));
+  text-align: center; font: 800 calc(14 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-frost); }
+.lb[data-busy] .lb-lines { opacity: 0.6; transition: opacity 200ms 150ms; }
+
+/* The scroll bar, only when the rows overflow: a sunk track 9 wide, a thumb with a lit and a shaded row. */
+.lb-scroll { position: absolute; top: 0; bottom: calc(6 * var(--u)); right: calc(6 * var(--u)); width: calc(9 * var(--u)); }
+.lb-thumb { position: absolute; left: 0; top: 0; width: 100%; clip-path: var(--px1); background: var(--hm-night-3); box-shadow: inset 0 var(--s) 0 var(--hm-frost), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-2); cursor: grab; touch-action: none; }
+
+/* ---------- Your row ----------
+   A wool slab pinned under the list: a lantern bar, your place, your avatar, a "You" pennant and your name, the small fact
+   (or how to get a place), your figure. */
+.lb-you {
+  --depth: calc(6 * var(--u)); flex: none; justify-content: flex-start; gap: 0; min-height: calc(52 * var(--u)); margin-top: calc(10 * var(--u));
+  padding: calc(4 * var(--u)) calc(12 * var(--u)) calc(var(--depth) + 4 * var(--u)) calc(var(--s) + 12 * var(--u)); text-align: left; box-sizing: border-box;
+}
+.lb-you-bar { position: absolute; left: var(--s); top: var(--s); bottom: calc(var(--depth) + var(--s)); width: calc(6 * var(--u)); background: var(--hm-lantern); box-shadow: inset var(--s) 0 0 var(--hm-lantern-hi); }
+.lb-you > .lb-badge { flex: none; }
+.lb-you-face { flex: none; display: grid; place-items: center; width: calc(32 * var(--u)); height: calc(32 * var(--u)); margin-left: calc(8 * var(--u)); overflow: hidden; clip-path: var(--px1);
+  background: var(--hm-night-2); box-shadow: inset 0 var(--s) 0 var(--hm-night-3); }
+.lb-you-face img, .lb-you-face svg { width: calc(28 * var(--u)) !important; height: calc(28 * var(--u)) !important; }
+.lb-you-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(3 * var(--u)); margin-left: calc(8 * var(--u)); }
+.lb-you-l1 { display: flex; align-items: center; gap: calc(6 * var(--u)); min-width: 0; }
+.lb-you-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(16 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-ink); }
+.lb-you-l2 { display: flex; flex-wrap: wrap; align-items: center; gap: calc(4 * var(--u)) calc(6 * var(--u)); font: 800 calc(13 * var(--u))/1.25 var(--skin-font-body); color: var(--hm-night); }
+.lb-you-l2 .lb-tier { flex: none; }
+.lb-rule { display: block; width: calc(2 * var(--u)); height: calc(12 * var(--u)); background: var(--hm-wool-lip); }
+.lb-you-score { flex: none; min-width: calc(64 * var(--u)); text-align: right; white-space: nowrap; font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-ink); }
+/* The "You" pennant: lantern with knit, a side of 2, its right end cut one step. */
+.lb-pennant { flex: none; display: inline-flex; align-items: center; height: calc(20 * var(--u)); padding: 0 calc(10 * var(--u)) calc(2 * var(--u)) calc(6 * var(--u)); box-sizing: border-box;
+  background: var(--hm-lantern) var(--knit) 0 0 / var(--knit-size); box-shadow: inset 0 calc(-2 * var(--u)) 0 var(--hm-lantern-lip);
+  clip-path: polygon(0 0, 100% 0, 100% 35%, calc(100% - var(--s)) 35%, calc(100% - var(--s)) 65%, 100% 65%, 100% 100%, 0 100%);
+  font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-ink); }
+
+/* ---------- A phone ---------- */
+.lb[data-phone] .lb-board { --cols: 6px 28px 8px minmax(0, 1fr) 8px 64px 10px; }
+.lb[data-phone] .lb-board[data-board="ranked"] { --cols: 6px 28px 8px 24px 8px minmax(0, 1fr) 8px 64px 10px; }
+.lb[data-phone] .lb-tile { --face: 46px; height: 49px; padding-bottom: 3px; margin-bottom: 3px; }
+.lb[data-phone] .lb-tile-who { grid-column: 4; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.lb[data-phone] [data-board="ranked"] .lb-tile-tier { grid-column: 4; display: flex; }
+.lb[data-phone] [data-board="ranked"] .lb-tile-who { grid-column: 6; }
+.lb[data-phone] .lb-tile-who .lb-name { max-width: 100%; }
+.lb[data-phone] .lb-third { font-size: 12px; max-width: 100%; }
+.lb[data-phone] [data-board="ranked"] .lb-third .lb-tier { display: none; }
+.lb[data-phone] .lb-score { grid-column: 6; }
+.lb[data-phone] [data-board="ranked"] .lb-score { grid-column: 8; }
+.lb[data-phone] .lb-ph--score { grid-column: 6; }
+.lb[data-phone] .lb-cols > span:nth-child(3) { display: none; }
+.lb[data-phone] .lb-cols > span:nth-child(4) { grid-column: 6; }
+.lb[data-phone] .lb-board[data-board="ranked"] .lb-cols > span:nth-child(2) { grid-column: 6; }
+.lb[data-phone] .lb-board[data-board="ranked"] .lb-cols > span:nth-child(4) { grid-column: 8; }
+.lb[data-phone] .lb-you { min-height: 58px; }
+.lb-tile-tier { display: none; }
+
+/* ---------- Motion ---------- */
+@keyframes lb-fade { from { opacity: 0; } }
+@keyframes lb-rise { from { opacity: 0; transform: translateY(calc(6 * var(--u))); } }
+:root.reduce-motion .lb :is(.lb-tile, .lb-plate-text, .lb-inkcard, .lb-bulb-on, .lb-z i) { animation: none; }
+:root.reduce-motion .lb :is(.lb-rows, .lb-lines, .lb-plate-text) { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .lb :is(.lb-tile, .lb-plate-text, .lb-inkcard, .lb-bulb-on, .lb-z i) { animation: none; }
+  .lb :is(.lb-rows, .lb-lines, .lb-plate-text) { transition: none; }
+}

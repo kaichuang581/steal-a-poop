@@ -296,188 +296,272 @@ function drawPlayArt(name) {
   // =================================================================================================================
   // Ranked: the face-off
   // =================================================================================================================
-  function ranked() {
-    var R = rng(31337);
-    rect(0, 0, W, H, hex('#05040A'));
-    // Three panels between slanted black gutters, each in its own light.
-    var cut = [[0, 0], [168, 140], [318, 300], [W, W]]; // each gutter's x at the top and at the bottom
-    var PANELS = [
-      { glow: ['#03121A', '#063A4E', '#0E7C9A', '#2CC6E8', '#9CF2FF', '#EAFDFF'].map(hex), who: 'ram' },
-      { glow: ['#16031A', '#4A0A4E', '#9A1C8E', '#E040C0', '#FF9AE6', '#FFF0FB'].map(hex), who: 'sheep' },
-      { glow: ['#071603', '#1C4A08', '#3E8E14', '#86E03C', '#D2FF8C', '#F6FFE6'].map(hex), who: 'goat' },
-    ];
-    PANELS.forEach(function (P, i) {
-      var l0 = cut[i][0] + (i ? 4 : 0), l1 = cut[i][1] + (i ? 4 : 0), r0 = cut[i + 1][0] - 4, r1 = cut[i + 1][1] - 4;
-      if (i === 2) { r0 = W; r1 = W; }
-      var inside = function (x, y) { var t = y / H; return x >= l0 + (l1 - l0) * t && x <= r0 + (r1 - r0) * t; };
-      var mid = function (y) { var t = y / H; return (l0 + (l1 - l0) * t + r0 + (r1 - r0) * t) / 2; };
-      // The panel's dark, with a glow round where its fighter stands.
-      for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
-        if (!inside(x, y)) continue;
-        var g = Math.max(0, 1 - Math.hypot((x - mid(150)) / 110, (y - 160) / 170));
-        var burst = Math.max(0, 1 - Math.hypot((x - mid(110)) / 60, (y - 110) / 70));
-        px(x, y, ramp(P.glow, g * 0.5 + burst * burst * 0.45, x, y));
-      }
-      // Rain of light: streaks falling down the panel, some long and bright, most short and dim.
-      var r2 = rng(100 + i);
-      for (var k = 0; k < 140; k++) {
-        var x = Math.floor(l0 + r2() * (Math.max(r0, r1) - Math.min(l0, l1))), y0 = Math.floor(r2() * H * 1.2) - 40, len = 10 + Math.floor(r2() * r2() * 120);
-        var b = r2(), col = P.glow[b > 0.9 ? 5 : b > 0.6 ? 4 : 3];
-        for (var y = y0; y < y0 + len; y++) if (inside(x, y)) px(x, y, col, (0.25 + b * 0.6) * (1 - (y - y0) / len));
-      }
-      // Sparks.
-      for (var k = 0; k < 60; k++) { var x = Math.floor(l0 + r2() * (r0 - l0 + 60)), y = Math.floor(r2() * H); if (inside(x, y)) px(x, y, P.glow[5], 0.5 + r2() * 0.5); }
-      fighter(P.who, mid(160), P.glow, inside, i);
-    });
-    // The gutters: hard black slashes with a thin bright edge on each side.
-    for (var g = 1; g <= 2; g++) {
-      var a = cut[g];
-      for (var y = 0; y < H; y++) {
-        var x = Math.round(a[0] + (a[1] - a[0]) * (y / H));
-        for (var d = -1; d <= 4; d++) px(x + d, y, hex('#000000'));
-        px(x - 2, y, PANELS[g - 1].glow[4], 0.7);
-        px(x + 5, y, PANELS[g].glow[4], 0.7);
-      }
-    }
-    // A thin black frame, and a burst of white where the three lights meet in the middle of the top.
-    for (var x = 0; x < W; x++) { px(x, 0, hex('#000000')); px(x, H - 1, hex('#000000')); }
-  }
-
   /**
-   * A fighter, front on, from the chest up, filling its panel. It is drawn in two passes: first its shapes into a layer
-   * (which part, and how lit, a pixel at a time), then the layer is inked like a comic panel: a black outline, the
-   * panel's colour only in a hard rim of light from behind and above, hatching in the shadows. The face (eyes, mouth,
-   * teeth) goes on last.
+   * Three slanted panels, each in its own neon light with streaks of it falling past (Brian, 2026-11-21, after a picture
+   * of his: a rooster in a karate gi making a hand sign, a ram throwing a punch, a goat with its arms crossed, roaring;
+   * "the same level of detail as krillion"). Drawn chunkier than the meadow: 120 x 75 pixels, each one 4 x 4 here, so
+   * the fighters are small sprites placed pixel by pixel from the maps below.
    */
-  function fighter(who, cx, G, inside, i) {
-    var INK = hex('#05030A');
-    var L = new Float32Array(W * H).fill(-1), K = new Uint8Array(W * H); // light (-1: empty) and kind (1 wool, 2 skin, 3 horn, 4 hoof, 5 cap)
-    function put(x, y, t, k) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= W || y >= H || !inside(x, y)) return; var j = y * W + x; L[j] = t; K[j] = k; }
-    function pbox(x0, y0, w, h, t0, t1, k) { for (var y = Math.round(y0); y < y0 + h; y++) for (var x = Math.round(x0); x < x0 + w; x++) put(x, y, t0 + (t1 - t0) * ((y - y0) / h), k); }
-    function ppoly(pts, t0, t1, k) {
-      var y0 = Math.min.apply(null, pts.map(function (q) { return q[1]; })), y1 = Math.max.apply(null, pts.map(function (q) { return q[1]; }));
-      poly(pts, function (x, y) { put(x, y, t0 + (t1 - t0) * ((y - y0) / (y1 - y0 || 1)), k); return null; });
+  function ranked() {
+    var w = 120, h = 75, S = W / w;
+    var mine = new Int8Array(w * h);
+    var small = new Array(w * h);
+    function set(x, y, c, who) { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < w && y < h) { small[y * w + x] = c; if (who !== undefined) mine[y * w + x] = who; } }
+    function at(x, y) { return small[y * w + x]; }
+    function mix(a, b, t) { return [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t)]; }
+    var INK = hex('#07050C');
+    // The gutters: x at the top and at the bottom of each.
+    var G1 = [44, 36], G2 = [83, 75];
+    var gx = function (g, y) { return g[0] + (g[1] - g[0]) * (y / h); };
+    var panelOf = function (x, y) { return x < gx(G1, y) - 1 ? 0 : x > gx(G1, y) + 2 && x < gx(G2, y) - 1 ? 1 : x > gx(G2, y) + 2 ? 2 : -1; };
+    var LIGHT = [
+      ['#041019', '#07304A', '#0C6E96', '#22B8E8', '#8EEBFF', '#E8FCFF'],
+      ['#17041A', '#460A44', '#951A82', '#E23CB8', '#FF96E4', '#FFEEFA'],
+      ['#061404', '#16400A', '#348A16', '#7EDC34', '#D4FF7A', '#F8FFE8'],
+    ].map(function (l) { return l.map(hex); });
+    var CENTRE = [[20, 30], [59, 30], [99, 30]];
+    // The dark of each panel, lighter round its fighter; then the rain of light.
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+      var p = panelOf(x, y);
+      if (p < 0) { set(x, y, INK); continue; }
+      var L = LIGHT[p], c = CENTRE[p], g = Math.max(0, 1 - Math.hypot((x - c[0]) / 26, (y - c[1]) / 40));
+      set(x, y, g > 0.55 ? L[2] : g > 0.2 ? L[1] : L[0]); // hard rings of light, no dithering at this size
     }
-    function pdisc(x0, y0, r, t, k) { disc(x0, y0, r, function (x, y, nx, ny) { put(x, y, t + lit(nx, ny, -0.35, -0.85) * 0.55 - 0.2, k); return null; }); }
-    function fleece(bx, by, rx, ry, t, seed) {
-      // Wool: a heap of tufts, each its own small lit ball, in rows so the curls read.
-      var rr = rng(seed);
-      for (var row = 0; row < 4; row++) for (var k = 0; k < 5; k++) {
-        var a = (k + (row % 2) * 0.5) / 5, x = bx + (a - 0.5) * rx * 2 * Math.sin(Math.PI * (row + 1) / 5), y = by - ry + row * ry * 0.6;
-        pdisc(x + (rr() - 0.5) * 8, y + (rr() - 0.5) * 6, rx * (0.27 + rr() * 0.1), t + rr() * 0.08, 10 + ((row * 7 + k) % 40));
-      }
+    var rr = rng(4242);
+    for (var k = 0; k < 150; k++) {
+      var x = Math.floor(rr() * w), y0 = Math.floor(rr() * h * 1.3) - 15, len = 3 + Math.floor(rr() * rr() * 30), b = rr();
+      for (var y = y0; y < y0 + len; y++) { if (y < 0 || y >= h) continue; var p = panelOf(x, y); if (p < 0) continue; var L = LIGHT[p]; set(x, y, mix(at(x, y), L[b > 0.85 ? 5 : b > 0.5 ? 4 : 3], (b > 0.85 ? 0.9 : 0.55) * (1 - (y - y0) / len * 0.6))); }
     }
-    var cy = 150;
-    if (who === 'ram') {
-      fleece(cx, cy + 78, 70, 44, 0.3, 7);
-      // The face: broad at the brow, narrowing to a heavy muzzle.
-      ppoly([[cx - 27, cy - 40], [cx + 27, cy - 40], [cx + 22, cy + 6], [cx + 15, cy + 30], [cx - 15, cy + 30], [cx - 22, cy + 6]], 0.8, 0.35, 2);
-      fleece(cx, cy - 42, 30, 12, 0.5, 8); // the brow wool
-      for (var s = -1; s <= 1; s += 2) horn(cx + s * 26, cy - 38, s);
-      for (var s = -1; s <= 1; s += 2) ppoly([[cx + s * 26, cy - 22], [cx + s * 44, cy - 14], [cx + s * 40, cy - 8], [cx + s * 25, cy - 12]], 0.4, 0.2, 2); // ears
-      hoof(cx + 44, cy + 70, 42, 1);
-    } else if (who === 'sheep') {
-      fleece(cx, cy + 84, 66, 44, 0.28, 12);
-      fleece(cx, cy - 40, 40, 20, 0.45, 13);
-      ppoly([[cx - 24, cy - 34], [cx + 24, cy - 34], [cx + 20, cy + 8], [cx + 13, cy + 30], [cx - 13, cy + 30], [cx - 20, cy + 8]], 0.8, 0.35, 2);
-      for (var s = -1; s <= 1; s += 2) ppoly([[cx + s * 22, cy - 20], [cx + s * 40, cy - 16], [cx + s * 38, cy - 9], [cx + s * 22, cy - 12]], 0.4, 0.2, 2);
-      // The cap, pulled low, its ribs and rolled brim, the pompom on top.
-      ppoly([[cx - 30, cy - 46], [cx - 22, cy - 72], [cx, cy - 78], [cx + 22, cy - 72], [cx + 30, cy - 46]], 0.75, 0.45, 5);
-      pbox(cx - 33, cy - 48, 66, 9, 0.8, 0.6, 5);
-      pdisc(cx, cy - 84, 8, 0.75, 1);
-      hoof(cx - 50, cy + 66, 38, -1); hoof(cx + 50, cy + 72, 36, 1);
-    } else {
-      fleece(cx, cy + 92, 58, 36, 0.25, 21);
-      pbox(cx - 17, cy + 16, 34, 50, 0.35, 0.12, 2); // the neck
-      ppoly([[cx - 22, cy - 44], [cx + 22, cy - 44], [cx + 18, cy + 4], [cx + 11, cy + 26], [cx - 11, cy + 26], [cx - 18, cy + 4]], 0.82, 0.35, 2);
-      for (var s = -1; s <= 1; s += 2) for (var k = 0; k < 30; k++) { // long horns swept up and back
-        var x = cx + s * (9 + k * 1.05 + k * k * 0.02), y = cy - 42 - k * 2.5 + k * k * 0.045;
-        pbox(x - 4 + k * 0.06, y - 3, 8 - k * 0.12, 7, 0.85 - k * 0.012, 0.6, 3);
-      }
-      for (var s = -1; s <= 1; s += 2) ppoly([[cx + s * 20, cy - 30], [cx + s * 42, cy - 36], [cx + s * 40, cy - 28], [cx + s * 20, cy - 22]], 0.45, 0.25, 2);
-      for (var k = 0; k < 9; k++) pbox(cx - 9 + k * 2, cy + 24, 2, 12 + (k % 3) * 5 + (k > 2 && k < 6 ? 6 : 0), 0.45, 0.15, 1); // the beard
-      hoof(cx - 42, cy + 66, 40, -1);
+    for (var k = 0; k < 40; k++) { var x = Math.floor(rr() * w), y = Math.floor(rr() * h), p = panelOf(x, y); if (p >= 0) set(x, y, LIGHT[p][5]); }
+    // Each panel's edge catches its light.
+    for (var y = 0; y < h; y++) {
+      set(Math.round(gx(G1, y)) - 2, y, LIGHT[0][4]); set(Math.round(gx(G1, y)) + 3, y, LIGHT[1][4]);
+      set(Math.round(gx(G2, y)) - 2, y, LIGHT[1][4]); set(Math.round(gx(G2, y)) + 3, y, LIGHT[2][4]);
     }
 
-    // ---- ink the layer ----
-    var DARK = [G[0], G[1], G[2], G[3]];
-    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
-      var j = y * W + x, t = L[j];
-      if (t < 0) {
-        // The outline: two pixels of black round the whole fighter.
-        var near = 0;
-        for (var dy = -2; dy <= 2 && !near; dy++) for (var dx = -2; dx <= 2; dx++) { var xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < W && yy < H && L[yy * W + xx] >= 0 && Math.abs(dx) + Math.abs(dy) <= 2) { near = 1; break; } }
-        if (near && inside(x, y)) px(x, y, INK);
-        continue;
+    // ---- the fighters, from maps: one character a pixel, '.' nothing ----
+    function sprite(rows, pal, x0, y0, panel) {
+      for (var j = 0; j < rows.length; j++) for (var i = 0; i < rows[j].length; i++) {
+        var ch = rows[j][i];
+        if (ch === '.' || ch === ' ') continue;
+        var x = x0 + i, y = y0 + j;
+        if (panel !== undefined && panelOf(x, y) !== panel) continue;
+        set(x, y, hex(pal[ch]), panel + 1);
       }
-      var k = K[j];
-      // The rim: light from behind and above catches every edge that faces up or out from the middle.
-      var side = x < cx ? -1 : 1, rim = 0;
-      for (var d = 1; d <= 3; d++) {
-        var ux = x + side * d, uy = y - d;
-        if (ux < 0 || uy < 0 || ux >= W || uy >= H || L[uy * W + ux] < 0) { rim = 4 - d; break; }
+    }
+    /** The panel's light on a fighter: every pixel of it with open air up and to the panel's back gets the rim colour. */
+    function rim(x0, y0, x1, y1, panel, isMine, side) {
+      var hits = [];
+      for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) {
+        if (!isMine(x, y)) continue;
+        if (!isMine(x + side, y) || !isMine(x, y - 1)) hits.push(x, y);
       }
-      // Inner edges between parts read as ink lines.
-      var edge = (x + 1 < W && L[j + 1] >= 0 && K[j + 1] !== k) || (y + 1 < H && L[j + W] >= 0 && K[j + W] !== k);
-      var woolly = k >= 10, both = edge && woolly && ((x + 1 < W && K[j + 1] >= 10) || (y + 1 < H && K[j + W] >= 10));
-      var c;
-      if (both) c = G[0]; // between two tufts: a soft line, so the curls read
-      else if (edge) c = INK;
-      else if (rim >= 2) c = G[5];
-      else if (rim === 1) c = G[4];
-      else {
-        var tt = t + (k === 3 ? 0.15 : k === 5 ? 0.1 : 0);
-        c = ramp(DARK, tt, x, y);
-        if (tt < 0.2 && (x + y) % 5 === 0) c = INK; // hatching in the deepest shadow
-        if (k === 5 && x % 4 === 0) c = G[1]; // the cap's ribs
-        if (k === 3 && y % 5 === 0) c = G[1]; // the horn's ridges
+      for (var i = 0; i < hits.length; i += 2) if (panelOf(hits[i], hits[i + 1]) === panel) set(hits[i], hits[i + 1], LIGHT[panel][4]);
+    }
+    function aura(cx, cy, rx, ry, panel) {
+      for (var y = Math.floor(cy - ry); y <= cy + ry; y++) for (var x = Math.floor(cx - rx); x <= cx + rx; x++) {
+        var d = Math.hypot((x - cx) / rx, (y - cy) / ry);
+        if (d < 1 && panelOf(x, y) === panel && d < 0.75) set(x, y, mix(at(x, y), LIGHT[panel][3], d < 0.45 ? 0.4 : 0.22));
       }
-      px(x, y, c);
     }
 
-    // ---- the face ----
-    var fy = who === 'goat' ? cy - 20 : who === 'ram' ? cy - 16 : cy - 12, gap = who === 'sheep' ? 11 : 13;
-    for (var s = -1; s <= 1; s += 2) {
-      var ex = Math.round(cx + s * gap);
-      for (var yy = fy - 12; yy <= fy + 12; yy++) for (var xx = ex - 16; xx <= ex + 16; xx++) { var d = Math.hypot((xx - ex) / 16, (yy - fy) / 10); if (d < 1 && inside(xx, yy) && (1 - d) * 0.8 > bayer(xx, yy)) px(xx, yy, G[4], 0.35); }
-      rect(ex - 7, fy - 3, 14, 7, INK);
-      rect(ex - 5, fy - 1, 10, 4, G[5]); // the eyes burn in the panel's colour
-      rect(ex - 5, fy - 1, 10, 1, G[4]);
-      rect(ex - 1, fy - 1, 2, 4, INK);
-      // The brow: a hard slash down toward the nose, flatter on our steady sheep.
-      var steep = who === 'sheep' ? 0.15 : 0.5;
-      for (var k = 0; k < 14; k++) rect(ex - 7 + k, Math.round(fy - 6 - (s > 0 ? k : 13 - k) * steep), 1, 3, INK);
-    }
-    // Nostrils.
-    rect(cx - 6, cy + 14 + (who === 'goat' ? 2 : 0), 3, 2, INK); rect(cx + 3, cy + 14 + (who === 'goat' ? 2 : 0), 3, 2, INK);
-    if (who === 'sheep') {
-      // A set mouth and a fresh scratch across the cheek.
-      rect(cx - 7, cy + 22, 14, 2, INK);
-      for (var k = 0; k < 3; k++) line(cx + 9 + k * 3, cy - 2, cx + 15 + k * 3, cy + 8, G[5]);
-    } else {
-      // The roar: a black mouth that opens past the chin, teeth top and bottom, a tongue lit from inside.
-      var mw = who === 'ram' ? 13 : 10, mt = cy + 19, mb = cy + (who === 'ram' ? 40 : 36);
-      poly([[cx - mw, mt], [cx + mw, mt], [cx + mw - 3, mb], [cx - mw + 3, mb]], function () { return INK; });
-      for (var x = cx - mw + 2; x < cx + mw - 2; x += 4) { rect(x, mt, 3, 3, G[5]); rect(x + 1, mb - 3, 2, 3, G[4]); }
-      rect(cx - 5, mb - 8, 10, 4, G[2]);
-    }
-
-    function horn(x0, y0, s) {
-      // A spiral of blocks curling out, down and round, thinning as it goes.
-      for (var k = 0; k < 40; k++) {
-        var a = k * 0.17, r = 22 - k * 0.38, w = 12 - k * 0.15;
-        var x = x0 + s * (8 + Math.sin(a) * r), y = y0 + 12 - Math.cos(a) * r;
-        pbox(x - w / 2, y - w / 2, w, w, 0.85 - k * 0.012, 0.55 - k * 0.008, 3);
+    /** A torso from the shoulders down past the bottom: flat colour, a shaded far side, inked edges. */
+    function body(panel, cx, top, rx, col, shade, wool) {
+      for (var y = top; y < h; y++) {
+        var t = y - top, hw = rx * Math.min(1, Math.sqrt(t / 8 + 0.12)) + (wool ? (Math.floor(y / 3) % 2) : 0);
+        var x0 = Math.round(cx - hw), x1 = Math.round(cx + hw);
+        for (var x = x0; x <= x1; x++) {
+          if (panelOf(x, y) !== panel) continue;
+          var edge = x === x0 || x === x1 || y === top;
+          set(x, y, edge ? INK : hex(x > cx + hw * 0.4 ? shade : col), panel + 1);
+        }
       }
     }
-    function hoof(hx, hy, size, s) {
-      // A foreleg raised like a fist: a woolly arm up from the bottom of the panel, the hoof on top, split down the middle.
-      var w = size * 0.62;
-      for (var k = 0; k < 4; k++) pdisc(hx - s * k * 3, hy + k * size * 0.42, w * 0.62, 0.42 - k * 0.06, 60 + k);
-      pbox(hx - w / 2, hy - size * 0.72, w, size * 0.5, 0.62, 0.3, 4);
-      pbox(hx - w / 2, hy - size * 0.72, w, 3, 0.9, 0.9, 4);
-      for (var y = Math.round(hy - size * 0.72); y < hy - size * 0.22; y++) put(Math.round(hx), y, 0.05, 2); // the cleft
-      for (var k = 0; k < 5; k++) line(hx + s * (w * 0.5 + 6), hy - size * 0.7 + k * 7, hx + s * (w * 0.5 + 18 + k * 3), hy - size * 0.7 + k * 7 - 3, G[5], 0.55); // the swing
+    function blk(panel, x0, y0, ww, hh, c) { for (var y = y0; y < y0 + hh; y++) for (var x = x0; x < x0 + ww; x++) if (panelOf(x, y) === panel) set(x, y, hex(c), panel + 1); }
+
+    // The rooster, in the cyan panel: a karate gi open over white feathers, a black belt, its wing-hands making a sign
+    // before its chest, crowing at us.
+    var ROO = { k: '#0B0910', w: '#F4F1EC', g: '#B9C2CE', d: '#7D8796', r: '#E0303C', R: '#97182A', y: '#F6C433', o: '#C77A1A', m: '#3A0E1C', t: '#E8707C', e: '#FFFFFF', p: '#0B0910',
+      b: '#A9773E', B: '#7A5226', n: '#17131A' };
+    aura(20, 34, 24, 34, 0);
+    body(0, 20, 21, 14, ROO.w, ROO.g);
+    for (var y = 22; y < h; y++) { // the gi: brown from the sides in, open in a V down to the belt
+      var open = y < 46 ? Math.max(0, 9 - (y - 22) * 0.38) : 0;
+      for (var x = 0; x < 44; x++) {
+        if (mine[y * w + x] !== 1 || small[y * w + x] === INK) continue;
+        var d = Math.abs(x - 20);
+        if (y >= 46 || d > open + 2) set(x, y, hex(x > 26 ? ROO.B : ROO.b), 1);
+        else if (d > open) set(x, y, hex(ROO.B), 1);
+      }
     }
+    for (var x = 0; x < 44; x++) for (var y = 47; y < 50; y++) if (mine[y * w + x] === 1) set(x, y, hex(ROO.n), 1); blk(0, 18, 46, 5, 5, ROO.n); blk(0, 17, 51, 2, 8, ROO.n); blk(0, 22, 51, 2, 7, ROO.n); // the belt and its knot
+    for (var k = 0; k < 4; k++) { set(12 + k * 4, 30 + (k % 2), hex(ROO.g), 1); set(13 + k * 4, 31 + (k % 2), hex(ROO.g), 1); } // feathers
+        sprite([
+      '..........k.kk.kk.......',
+      '.........krkrrkrrk......',
+      '........krrrrrrrrrk.....',
+      '........krrRrrrrrrrk....',
+      '.........kRrrrrrrRk.....',
+      '........kkwwwwwwwwkk....',
+      '.......kwwwwwwwwwwwgk...',
+      '......kwkkkwwwwwwwwwgk..',
+      '......kwwrkkwwwwwwwwgk..',
+      '.....kkkwkpkwwwwwwwwgk..',
+      '....kyyykkkwwwwwwwwggk..',
+      '...kyyyyyykwwwwwwwwgk...',
+      '..kyyyyyyyykwwwwwwwgk...',
+      '...kmmmmmmkrwwwwwwggk...',
+      '....kmtttmkrrwwwwwgk....',
+      '...koooooookrrwwwggk....',
+      '....kkkkkkkkrRrrwgk.....',
+      '..........kRrrrRkgk.....',
+      '...........kRRRk.gk.....',
+      '............kkk..k......',
+    ], ROO, 8, 2, 0);
+    limb(0, 9, 27, 6, 42, 4, ROO.w, ROO.g); limb(0, 31, 27, 34, 42, 4, ROO.w, ROO.g); // the wings, as arms
+    limb(0, 6, 42, 16, 38, 3, ROO.w, ROO.g); limb(0, 34, 42, 24, 38, 3, ROO.w, ROO.g);
+    sprite([
+      '...kkk.....kkk...',
+      '..kwwwk...kwwwk..',
+      '.kwwkwwk.kwwkwwk.',
+      'kwwwkwwwkwwwkwwwk',
+      'kwwkwwwwwwwwwkwwk',
+      '.kwwkwwgwwgwkwwk.',
+      '..kwwwkwwwwkwwwk.',
+      '...kwwwwggwwwwk..',
+      '....kkwwwwwwkk...',
+      '......kkkkkk.....',
+    ], ROO, 12, 32, 0);
+    for (var k = 0; k < 5; k++) { set(6 + k, 28 - k, LIGHT[0][5], 1); set(30 + k, 40 + k, LIGHT[0][5], 1); } // the sign's energy
+
+    // The ram, in the magenta panel: curled horns, a mane of wool, teeth gritted, a fist coming straight at us.
+    var RAM = { k: '#0B0910', c: '#F4E8D0', C: '#CDB898', h: '#D29A44', H: '#8C5A22', s: '#E8B088', S: '#B87A58', e: '#FFFFFF', p: '#0B0910', t: '#FFFFFF', m: '#4A1020', f: '#EEB48C', F: '#B8785A' };
+    aura(59, 34, 24, 34, 1);
+    body(1, 59, 19, 15, RAM.c, RAM.C, true);
+    var tu = rng(77);
+    for (var k = 0; k < 40; k++) { var x = 42 + Math.floor(tu() * 36), y = 22 + Math.floor(tu() * 52); if (mine[y * w + x] === 2 && small[y * w + x] !== INK) { set(x, y, hex(RAM.C), 2); set(x + 1, y - 1, hex(RAM.C), 2); } } // the curls
+    /** A thick limb from one point to another: inked round its edge, shaded on its far side. */
+    function limb(panel, x0, y0, x1, y1, r, col, shade) {
+      for (var pass = 0; pass < 2; pass++) for (var t = 0; t <= 1; t += 0.04) {
+        var ax = x0 + (x1 - x0) * t, ay = y0 + (y1 - y0) * t;
+        for (var dx = -4; dx <= 4; dx++) for (var dy = -4; dy <= 4; dy++) {
+          var d = Math.hypot(dx, dy);
+          if (pass === 0 && d <= r + 0.9) set(ax + dx, ay + dy, INK, panel + 1);
+          if (pass === 1 && d <= r - 0.1) set(ax + dx, ay + dy, hex(dx + dy > 1 ? shade : col), panel + 1);
+        }
+      }
+    }
+    // The fleece's edge: a run of tufts round the shoulders and down the sides, inked first and filled after, so they
+    // read as one heap of curls.
+    var puffs = [];
+    for (var x = 45; x <= 73; x += 5) puffs.push([x, 22 + Math.abs(x - 59) * 0.18]);
+    for (var y = 27; y < 75; y += 5) { puffs.push([44 + (y % 2), y]); puffs.push([74 - (y % 2), y]); }
+    for (var pass = 0; pass < 2; pass++) puffs.forEach(function (q) {
+      for (var dx = -4; dx <= 4; dx++) for (var dy = -4; dy <= 4; dy++) {
+        var d = Math.hypot(dx, dy), x = q[0] + dx, y = q[1] + dy;
+        if (panelOf(x, y) !== 1) continue;
+        if (pass === 0 && d <= 3.8) set(x, y, INK, 2);
+        if (pass === 1 && d <= 2.9) set(x, y, hex(dx + dy > 1 ? RAM.C : RAM.c), 2);
+      }
+    });
+    limb(1, 47, 30, 46, 58, 3, RAM.s, RAM.S); limb(1, 71, 30, 74, 40, 3, RAM.s, RAM.S); // the arms, bare and strong
+    // Curls all over the fleece: a small dark arc every few pixels, in staggered rows.
+    var woolC = hex(RAM.c), woolS = hex(RAM.C), curlD = hex('#A8946E');
+    var isWool = function (x, y) { var c = at(x, y); return c && mine[y * w + x] === 2 && ((c[0] === woolC[0] && c[1] === woolC[1]) || (c[0] === woolS[0] && c[1] === woolS[1])); };
+    for (var y = 24; y < h; y += 4) for (var x = 40 + ((y / 4) % 2) * 2; x < 80; x += 4) {
+      if (!isWool(x, y) || !isWool(x + 2, y) || !isWool(x, y + 1)) continue;
+      set(x, y + 1, curlD, 2); set(x + 1, y, curlD, 2); set(x + 2, y + 1, curlD, 2);
+    }
+    limb(1, 74, 40, 68, 38, 3, RAM.s, RAM.S); // the forearm, behind the fist
+    sprite([
+      '.......kkkkkkkkkkk.......',
+      '..kkk.kcccCcccCccck.kkk..',
+      '.khhhkcccccccccccccckhhhk',
+      'khhHhkcCcccccccccCcckhHhk',
+      'khHkhkccccCcccCccccckhHhk',
+      'khHkhhkcccccccccccckhhkHk',
+      'khhHHhkssssssssssssskHHhk',
+      '.khhhkkkkkssssssskkkkkhk.',
+      '..kkkssskkkssssskkksssk..',
+      '....kskeepkssssskpeeksk..',
+      '....ksskkkksssssskkkkssk.',
+      '....ksssssssSSSsssssssk..',
+      '.....ksssssSSsSSssssssk..',
+      '.....ksssssskkkssssssk...',
+      '......kskkkkkkkkkkksk....',
+      '......ksktttttttttksk....',
+      '......ksktktktktktksk....',
+      '......kskkkkkkkkkkksk....',
+      '.......ksssssSSSsssk.....',
+      '........kkkkkkkkkkk......',
+    ], RAM, 47, 2, 1);
+    sprite([
+      '...kkkkkkkkkk...',
+      '..kffkffkffkfk..',
+      '.kfffkffkffkffk.',
+      '.kfffkffkffkffk.',
+      '.kfffkffkffkffk.',
+      'kkffffffffffffk.',
+      'kfkfffffffffffk.',
+      'kffkffffFFfffFk.',
+      'kfffkfffffffffk.',
+      '.kFfffffffffFk..',
+      '..kFFffffffFFk..',
+      '...kkkkkkkkkk...',
+    ], RAM, 59, 31, 1);
+    for (var k = 0; k < 4; k++) { set(76, 33 + k * 2, LIGHT[1][5], 2); set(77, 33 + k * 2, LIGHT[1][5], 2); } // the punch's swing
+
+    // The goat, in the green panel: green fire round it, long horns, wild white eyes, roaring, arms crossed, a ragged beard.
+    var GOAT = { k: '#0B0910', h: '#A08868', H: '#6E5A40', g: '#B4B0A6', G: '#7E7A72', d: '#5A564E', e: '#FFFFFF', p: '#0B0910', m: '#3A0E14', t: '#E07080', T: '#FFFFFF', b: '#B49A70', B: '#7E6844', a: '#A8A498', A: '#6E6A60' };
+    aura(99, 34, 24, 34, 2);
+    var fl = rng(91);
+    for (var k = 0; k < 14; k++) { // flames licking up behind it
+      var fx = 80 + Math.floor(fl() * 40), fy = 40 + Math.floor(fl() * 36), fh = 6 + Math.floor(fl() * 14);
+      for (var j = 0; j < fh; j++) { var wdt = Math.max(0, Math.round((1 - j / fh) * 2.2)); for (var dx = -wdt; dx <= wdt; dx++) if (panelOf(fx + dx, fy - j) === 2) set(fx + dx, fy - j, LIGHT[2][j < fh * 0.4 ? 4 : 3]); }
+    }
+    body(2, 99, 22, 14, GOAT.g, GOAT.G);
+        // Arms crossed over the chest, the fists up at the shoulders.
+    limb(2, 88, 27, 85, 44, 4, GOAT.a, GOAT.A); limb(2, 110, 27, 113, 44, 4, GOAT.a, GOAT.A); // the upper arms
+    limb(2, 85, 44, 106, 32, 3, GOAT.a, GOAT.A); limb(2, 113, 44, 92, 32, 3, GOAT.a, GOAT.A); // crossed
+    for (var sx of [92, 106]) { blk(2, sx - 3, 29, 7, 6, GOAT.k); blk(2, sx - 2, 30, 5, 4, GOAT.d); } // the hooves at the shoulders
+        sprite([
+      'kk....................kk',
+      'khk..................khk',
+      'kHhk................khHk',
+      '.kHhk..............khHk.',
+      '.khHhk............khHhk.',
+      '..khHhk..kkkkkk..khHhk..',
+      '..kkhHhkkggggggkkhHhkk..',
+      'kkggkhHhggggggggggHhkggk',
+      'kggggkkgggggggggggkkgggk',
+      '.kGgggkgkkkggggkkkgkggGk',
+      '..kkkkgkeepkggkpeekgkkk.',
+      '.....kgkeekkggkkeekgk...',
+      '.....kgggggggGggggggk...',
+      '.....kgGgggggGGgggGgk...',
+      '......kgggggkkkggggk....',
+      '......kgkmmmmmmmmkgk....',
+      '......kgkmTTTTTTmkgk....',
+      '......kgkmmttttmmkgk....',
+      '......kbkmTTTTTTmkbk....',
+      '.....kbbbkkkkkkkkbbbk...',
+      '.....kbBbbbbbbbbbbBbk...',
+      '......kbBbbBbbBbbBbk....',
+      '.......kbBbbbbbbBbk.....',
+      '........kbkbBbkbbk......',
+      '.........k.kbk.kk.......',
+    ], GOAT, 87, 0, 2);
+
+    // Every fighter's outer edge burns in its panel's light.
+    var edgeHits = [];
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+      var m = mine[y * w + x];
+      if (!m) continue;
+      if ((x > 0 && !mine[y * w + x - 1]) || (x + 1 < w && !mine[y * w + x + 1]) || (y > 0 && !mine[(y - 1) * w + x])) edgeHits.push(x, y, m - 1);
+    }
+    for (var i = 0; i < edgeHits.length; i += 3) set(edgeHits[i], edgeHits[i + 1], LIGHT[edgeHits[i + 2]][4]);
+
+    // Copy the small picture into the big one, each pixel 3 x 3.
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) { var c = small[y * w + x]; if (c) for (var dy = 0; dy < S; dy++) for (var dx = 0; dx < S; dx++) px(x * S + dx, y * S + dy, c); }
   }
 }

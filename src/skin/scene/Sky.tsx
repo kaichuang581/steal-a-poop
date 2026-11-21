@@ -11,6 +11,7 @@ import { ellipsoid, Grid, rng } from '../voxel/primitives';
 import { DISTANCE } from './layout';
 import { LOOK, WARM_DAY_SKY } from '../look';
 import { exemptShot } from '../perf/tier';
+import { cloudGeometry } from './clouds';
 
 export type Hour = 'dawn' | 'day' | 'dusk' | 'night';
 
@@ -42,12 +43,35 @@ export function Sky({ hour, reduced, blizzard, palette = 'hour', home = false }:
   return (
     <group>
       <Dome hour={hour} palette={palette} home={home} />
+      {home && !dream && <Clouds hour={hour} reduced={reduced} />}
       {(hour === 'night' || dream) && <Stars count={dream ? 180 : 900} twinkle={dream && !reduced} />}
       {hour === 'night' && !dream && <Moon />}
       {dream ? <Aurora opacity={0.35} reduced={reduced} dream /> : AURORA[hour] > 0 && <Aurora opacity={AURORA[hour]} reduced={reduced} />}
       {!dream && <Snowfall count={reduced ? 400 : 1600} blizzard={blizzard} />}
     </group>
   );
+}
+
+/** Emissive haze on the clouds by hour: they glow a little by day so their shaded sides stay soft; at night they dim. */
+const CLOUD_HAZE: Record<Hour, number> = { dawn: 0.3, day: 0.34, dusk: 0.28, night: 0.06 };
+
+/**
+ * Home's voxel clouds (scene/clouds.ts; docs/depth/DEPTH-PLAN.md, section 9.3): lit by the scene's own sun, so they
+ * follow the hour; fog off; turning 0.0012 rad/s, still under reduced motion. Never on the wendigo's paddock shot.
+ */
+function Clouds({ hour, reduced }: { hour: Hour; reduced: boolean }) {
+  const geo = useMemo(() => cloudGeometry(), []);
+  const mat = useMemo(() => new MeshLambertMaterial({ color: '#D2CED8', vertexColors: true, emissive: '#C9C0E6', fog: false }), []);
+  mat.emissiveIntensity = CLOUD_HAZE[hour];
+  const ref = useRef<Mesh>(null);
+  useFrame((_, dt) => {
+    const m = ref.current;
+    if (!m) return;
+    m.visible = !exemptShot();
+    if (!reduced) m.rotation.y += Math.min(dt, 0.05) * 0.0012;
+  });
+  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
+  return <mesh ref={ref} geometry={geo} material={mat} frustumCulled={false} renderOrder={-5} />;
 }
 
 export function Dome({ hour, palette = 'hour', home = false }: { hour: Hour; palette?: SkyPalette; home?: boolean }) {

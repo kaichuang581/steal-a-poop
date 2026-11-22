@@ -92,7 +92,7 @@ export async function run(world: World, options: StageOptions): Promise<StageRes
   }
   const fresh = pictures.filter((p) => p.state === 'fresh').length;
   lines.push('', `### baked pictures: ${plural(mine.length, 'picture')} of ${fast.entries.length} in ${MANIFEST} have their model checked here (the others in npm test)`);
-  for (const [tool, name] of [['tools/renderStall.mjs', 'the market stall'], [null, 'the play cards, captured by hand']] as const) {
+  for (const [tool, name] of [['tools/renderStall.mjs', 'the market stall']] as const) {
     const group = mine.filter(({ entry }) => entry.tool === tool), stateOf = (file: string) => pictures.find((p) => p.file === file)?.state;
     const ok = group.filter(({ entry }) => stateOf(entry.file) === 'fresh').length, old = group.filter(({ entry }) => stateOf(entry.file) === 'known to be stale').length;
     const out = group.filter(({ entry }) => leftOut.includes(entry.file)).length;

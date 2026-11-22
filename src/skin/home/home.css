@@ -254,23 +254,8 @@
 /* The panel's one action: a lantern slab 48 high. */
 .hm-act { width: 100%; height: calc(48 * var(--u) + var(--depth)); font: 800 calc(22 * var(--u))/1 var(--skin-font-display) !important; color: var(--hm-ink) !important; }
 
-/* Queue's chooser (Casual and Ranked), drawn in the same pieces. */
+/* The rank guide's overlay (RankGuide.tsx); the Queue chooser draws its own (ranked/chooser.css). */
 .hm .sk-play { background: rgba(14, 21, 40, 0.78); }
-.hm .sk-play-box { padding: calc(16 * var(--u)) calc(18 * var(--u)) calc(18 * var(--u)); clip-path: var(--px); background: var(--hm-night-2);
-  box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink); }
-.hm .sk-play-head h2 { font: 800 calc(26 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); text-shadow: none; }
-.hm .sk-play-error { clip-path: var(--px); border-radius: 0; font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-lantern-hi); background: var(--hm-ink); box-shadow: none; }
-.hm .sk-play-card, .hm .sk-play-card[data-mode] { clip-path: var(--px); border-radius: 0; color: var(--hm-wool); background: var(--hm-night); box-shadow: inset 0 0 0 var(--s) var(--hm-ink); }
-.hm .sk-play-card[data-mode] .sk-play-art { box-shadow: none; border-bottom: var(--s) solid var(--hm-ink); }
-.hm .sk-play-card[data-mode] h3 { font: 800 calc(28 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); text-transform: none; letter-spacing: 0; }
-.hm .sk-play-line, .hm .sk-play-facts, .hm .sk-play-note, .hm .sk-play-rank small { font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
-.hm .sk-play-card[data-mode] .sk-play-facts { color: var(--hm-frost); }
-.hm .sk-play-facts li::before { border-radius: 0; background: var(--hm-lantern); opacity: 1; }
-.hm .sk-play-ladder { border-radius: 0; background: #141D36; box-shadow: none; }
-.hm .sk-play-ladder span { border-radius: 0; }
-.hm .sk-play-ladder span[data-on] { background: var(--hm-night-3); box-shadow: 0 0 0 2px var(--hm-lantern); }
-.hm .sk-play-rank b { color: var(--hm-lantern-hi); }
-.hm .sk-play-go { width: 100%; height: calc(48 * var(--u) + var(--depth)); min-height: 0; font: 800 calc(19 * var(--u))/1 var(--skin-font-display); }
 
 /* ---------- Entrance (the first Home of a visit) ---------- */
 .hm[data-enter] .hm-panel { animation: hm-panel-in 280ms ease-out both; }

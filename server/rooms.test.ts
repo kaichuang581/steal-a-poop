@@ -442,6 +442,18 @@ describe('clean-up of finished games', () => {
   });
 });
 
+describe('people in each mode', () => {
+  it('counts people at casual tables and lobbies as casual, at ranked tables as ranked, and not the daily', () => {
+    const { m } = manager();
+    lobby(m, 3); // a lobby of three
+    m.quickJoin('q1', 'Quin');
+    m.rankedJoin('r1', 'Rae');
+    m.rankedJoin('r2', 'Ros');
+    m.startDaily('d1', 'Dee', '2026-11-21');
+    expect(m.modeCounts()).toEqual({ casual: 4, ranked: 2 });
+  });
+});
+
 describe('quick start', () => {
   it('opens a public room when none is open, and the next player lands in it', () => {
     const { m } = manager();

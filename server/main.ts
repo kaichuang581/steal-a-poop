@@ -303,6 +303,7 @@ const httpServer = createHttpServer({
       stats: siteStats,
       accounts: accountStore,
       key: adminStatsKey,
+      modes: () => serverRef?.rooms.modeCounts() ?? { casual: 0, ranked: 0 },
       online: () => {
         const rs = serverRef?.rooms.stats() ?? { rooms: 0, players: 0 };
         return { connections: serverRef?.connections() ?? 0, guests: presence.guests().length, rooms: rs.rooms, playersInGames: rs.players };

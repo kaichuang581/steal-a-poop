@@ -1,0 +1,102 @@
+/* The Queue chooser (PlayChooser.tsx; Brian, 2026-11-21: "it should still be a popup ... rehash everything solely with
+   pixel art"). A popup in Home's own pieces: the night-blue panel with its ink outline and lantern top edge, pixel
+   corners, slabs for the buttons, tags for the facts. Inside it, two windows onto the pixel-art scenes of
+   tools/art/playArt.js, drawn square-pixelled (image-rendering: pixelated), each with its count in the corner and a plate
+   along its foot. Casual is light and soft (a wool plate, falling snow); Ranked is dark and gold (an ink plate, the
+   crowd's flashes blinking). Kit rules: only the --hm-* colours, flat fills, hard edges and offset shadows, no gradient,
+   glow, blur or rounded corner, and every motion has its still twin (the two blocks at the end match, rule for rule). */
+
+.qz { --u: clamp(0.8px, min(100vw / 1280, 100vh / 720), 1.5px); --s: calc(3 * var(--u)); padding: 16px; background: rgba(14, 21, 40, 0.82); }
+
+/* ---------- the panel ---------- */
+.qz-box { position: relative; width: min(calc(900 * var(--u)), 100%); padding: calc(16 * var(--u)) calc(20 * var(--u)) calc(20 * var(--u));
+  clip-path: var(--px); background: var(--hm-night-2); color: var(--hm-wool);
+  box-shadow: inset 0 calc(4 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink);
+  animation: qz-in 180ms steps(4, end) both; }
+@keyframes qz-in { from { opacity: 0; transform: translateY(calc(10 * var(--u))); } to { opacity: 1; transform: none; } }
+.qz-head { display: flex; align-items: center; gap: calc(12 * var(--u)); margin: calc(2 * var(--u)) 0 calc(14 * var(--u)); }
+.qz-kicker { flex: none; display: inline-flex; align-items: center; height: calc(24 * var(--u)); padding: 0 calc(10 * var(--u)); clip-path: var(--px);
+  font: 800 calc(12 * var(--u))/1 var(--skin-font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--hm-ink); background: var(--hm-lantern); }
+.qz-head h2 { flex: 1; min-width: 0; margin: 0; font: 800 calc(26 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); }
+.qz .qz-close { flex: none; width: calc(40 * var(--u)); height: calc(40 * var(--u) + var(--depth)); }
+.qz .qz-close svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
+.qz-error { margin: 0 0 calc(12 * var(--u)); padding: calc(8 * var(--u)) calc(12 * var(--u)); clip-path: var(--px);
+  font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-lantern-hi); background: var(--hm-ink); }
+
+/* ---------- the two windows ---------- */
+.qz-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: calc(16 * var(--u)); }
+/* The window is the picture's own shape (160 x 176 pixels); the plate hangs over its foot and below it. */
+.qz-tile { --ring: var(--hm-wool); position: relative; aspect-ratio: 160 / 202; container-type: inline-size; transition: transform 120ms steps(3, end); }
+.qz-tile[data-mode="ranked"] { --ring: var(--hm-lantern); }
+.qz-tile:hover { transform: translateY(calc(-4 * var(--u))); }
+/* The window: the picture behind an ink frame with a ring of the side's colour, and a hard shadow under it. */
+.qz-window { position: absolute; left: 0; right: 0; top: 0; height: 110cqw; overflow: hidden; clip-path: var(--px); background: var(--hm-ink); }
+.qz-window::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 0 0 calc(var(--s) + 2 * var(--u)) var(--ring); }
+.qz-tile:hover .qz-window::after, .qz-tile:has(:focus-visible) .qz-window::after { box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 0 0 calc(var(--s) + 4 * var(--u)) var(--ring); }
+.qz-art, .qz-flash { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; image-rendering: pixelated; }
+/* Snow falling over the meadow: a tile of flakes as wide as 48 of the picture's 160 pixels, moved a pixel at a time. */
+.qz-snow { position: absolute; left: 0; right: 0; top: -30cqw; bottom: 0; background-repeat: repeat; background-size: 30cqw 30cqw; image-rendering: pixelated;
+  animation: qz-fall 6s steps(48, end) infinite; }
+@keyframes qz-fall { from { transform: translateY(0); } to { transform: translateY(30cqw); } }
+/* The crowd's camera flashes and the fireworks' sparkle: the second frame blinks on and off. */
+.qz-flash { animation: qz-blink 0.9s steps(1, end) infinite; }
+@keyframes qz-blink { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
+
+/* ---------- the plate under each picture: three rows, the same in both ----------
+   1. the mode's name, and how many are playing at the right;
+   2. one row of the same height: what Casual is, or your own rank and how close you are to the next;
+   3. the way in. */
+.qz-plate { position: absolute; z-index: 2; left: calc(12 * var(--u)); right: calc(12 * var(--u)); bottom: 0; display: flex; flex-direction: column; gap: calc(12 * var(--u));
+  padding: calc(14 * var(--u)) calc(16 * var(--u)) calc(16 * var(--u)); clip-path: var(--px);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-1 * (var(--s) + 4 * var(--u))) 0 var(--lip); }
+.qz-tile[data-mode="casual"] .qz-plate { --lip: var(--hm-wool-lip); --soft: var(--hm-night-3); color: var(--hm-ink); background: var(--hm-wool); }
+.qz-tile[data-mode="ranked"] .qz-plate { --lip: #05080F; --soft: var(--hm-frost); color: var(--hm-wool); background: var(--hm-ink); }
+.qz-name { display: flex; align-items: baseline; justify-content: space-between; gap: calc(10 * var(--u)); }
+.qz-name h3 { margin: 0; font: 900 calc(30 * var(--u))/1 var(--skin-font-display); }
+.qz-tile[data-mode="ranked"] .qz-name h3 { color: var(--hm-lantern-hi); }
+/* The count: a small square light and the number, in the plate's quiet colour. */
+.qz-count { display: inline-flex; align-items: center; gap: calc(6 * var(--u)); white-space: nowrap; font: 800 calc(13 * var(--u))/1 var(--skin-font-body); color: var(--soft); }
+.qz-count i { flex: none; width: calc(7 * var(--u)); height: calc(7 * var(--u)); background: var(--hm-pasture); animation: qz-live 1.2s steps(1, end) infinite; }
+.qz-count[data-empty] i { background: var(--hm-lantern); animation: none; }
+@keyframes qz-live { 0%, 59% { opacity: 1; } 60%, 100% { opacity: 0.25; } }
+.qz-row { display: flex; align-items: center; gap: calc(6 * var(--u)); height: calc(26 * var(--u)); margin: 0; padding: 0; }
+.qz-facts { list-style: none; }
+.qz-facts li { display: inline-flex; align-items: center; height: calc(24 * var(--u)); padding: 0 calc(9 * var(--u)); clip-path: var(--px);
+  font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); white-space: nowrap; color: var(--hm-ink); background: var(--hm-frost); }
+/* Your rank: its badge and name, a bar of how far through it you are, and what is left. */
+.qz-mine { gap: calc(8 * var(--u)); }
+.qz-mine svg { flex: none; width: calc(22 * var(--u)); height: auto; }
+.qz-mine b { flex: none; font: 800 calc(14 * var(--u))/1 var(--skin-font-display); color: var(--hm-lantern-hi); }
+.qz-mine small { flex: none; font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--soft); white-space: nowrap; }
+.qz-mine[data-none] svg { opacity: 0.4; }
+.qz-mine[data-none] b { color: var(--hm-wool); }
+.qz-bar { flex: 1; min-width: calc(40 * var(--u)); height: calc(10 * var(--u)); padding: calc(2 * var(--u)); background: var(--hm-night-2); box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--hm-night-3); }
+.qz-bar i { display: block; height: 100%; min-width: 0; background: var(--hm-lantern); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-lantern-hi); }
+.qz .qz-go { width: 100%; height: calc(50 * var(--u) + var(--depth)); font: 800 calc(20 * var(--u))/1 var(--skin-font-display); }
+
+/* ---------- a phone: the windows one above the other, each a strip of its picture with the plate under it ---------- */
+@media (max-width: 700px) {
+  .qz { place-items: start center; overflow-y: auto; padding: 12px; }
+  .qz-box { padding: 14px 12px 14px; }
+  .qz-head { gap: 8px; margin-bottom: 12px; }
+  .qz-head h2 { font-size: 20px; }
+  .qz-tiles { grid-template-columns: 1fr; gap: 14px; }
+  .qz-tile { aspect-ratio: auto; display: flex; flex-direction: column; }
+  .qz-window { position: relative; inset: auto; height: 50cqw; clip-path: none; }
+  .qz-tile[data-mode="casual"] .qz-art { object-position: 50% 50%; }
+  .qz-tile[data-mode="ranked"] .qz-art, .qz-tile[data-mode="ranked"] .qz-flash { object-position: 50% 62%; }
+  .qz-plate { position: relative; left: auto; right: auto; bottom: auto; gap: 10px; padding: 12px 14px 14px; clip-path: none; }
+  .qz-tile:hover { transform: none; }
+  .qz-name h3 { font-size: 26px; }
+}
+
+/* ---------- still: the computer's setting and the game's switch, the same rules ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .qz-box, .qz-snow, .qz-flash, .qz-count i { animation: none; }
+  .qz-tile { transition: none; }
+  .qz-snow { display: none; }
+}
+:root.reduce-motion .qz-box, :root.reduce-motion .qz-snow, :root.reduce-motion .qz-flash, :root.reduce-motion .qz-count i { animation: none; }
+:root.reduce-motion .qz-tile { transition: none; }
+:root.reduce-motion .qz-snow { display: none; }

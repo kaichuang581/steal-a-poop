@@ -39,7 +39,7 @@ import { fileURLToPath } from 'node:url';
  * 15.2 kB locally, all in the stage's own chunk, which loads only when the leaderboards open).
  * All are flagged to Brian; a shrink pass back toward the plan's net-zero is listed for milestone 12.
  */
-const BUDGET_GZIP_BYTES = 736000; // +1,000 in 0.9.3 (the kitchen garden): CI's gzip ran 0.42 kB over; +6,000 in 0.9.4 (the leaderboards); +15,000 in 0.9.5 (their stage)
+const BUDGET_GZIP_BYTES = 740000; // +1,000 in 0.9.3 (the kitchen garden): CI's gzip ran 0.42 kB over; +6,000 in 0.9.4 (the leaderboards); +15,000 in 0.9.5 (their stage); +4,000 unique visitors and the chooser's live counts
 
 /** Allowed growth over the budget before the check fails (10%). */
 const TOLERANCE = 0.1;

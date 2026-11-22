@@ -144,5 +144,7 @@
 ["^(\\d+) points? to the podium(.*)$","$1 points avant le podium$2"],
 ["^Open \\((\\d+)\\)$","Ouvrir ($1)"],
 ["^Must start with ([A-Z])\\.$","Doit commencer par $1."],
-["^From (\\d+)(?:st|nd|rd|th) place on, every place is open\\.$","À partir de la $1e place, toutes les places sont libres."]
+["^From (\\d+)(?:st|nd|rd|th) place on, every place is open\\.$","À partir de la $1e place, toutes les places sont libres."],
+["^([\\d,]+) playing$","$1 en jeu"],
+["^(\\d+) to (\\d+) players$","$1 à $2 joueurs"]
 ]

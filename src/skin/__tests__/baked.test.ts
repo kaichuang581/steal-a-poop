@@ -166,15 +166,15 @@ describe('the bake manifest: the checks check', () => {
     expect(modelFinding(marked, hex('d')).map((f) => f.kind)).toEqual(['stale']);
   });
 
-  it('a play card has no tool: its failure says so and names the capture to redo by hand', () => {
-    for (const name of ['casual', 'ranked'] as const) {
+  it('the Queue chooser\'s pictures are pixel art its tool draws: the drawing code is their model (Brian, 2026-11-21)', () => {
+    for (const name of ['casual', 'casual-snow', 'ranked', 'ranked-flash']) {
       const plan = planFor(`public/play/${name}.webp`)!;
-      expect(plan.tool).toBeNull();
-      expect(plan.capture).toBeTruthy();
-      const [stale] = modelFinding({ ...owl(), id: plan.id, file: plan.file, tool: null, args: [], capture: plan.capture }, hex('d'));
-      expect(stale.text).toContain(`public/play/${name}.webp is stale: no tool bakes it: capture it again by hand (${plan.capture})`);
-      expect(stale.text).toContain(`--only play/${name}`);
+      expect(plan.tool).toBe('tools/renderPlayArt.mjs');
+      expect(plan.drawn).toEqual(['tools/art/playArt.js']);
+      expect(plan.scene).toBeUndefined();
+      expect(plan.checked).toBe('npm test');
     }
+    expect(planFor('public/play/bee.webp')).toBeNull();
   });
 
   describe('against a picture on disk', () => {

@@ -294,8 +294,9 @@ function silo(b: Builder) {
       const d = Math.hypot(dx + 0.5, dz + 0.5);
       if (d > R || d < R - 1.6) continue;
       for (let y = 0; y < H; y++) {
+        const a = Math.floor((Math.atan2(dz + 0.5, dx + 0.5) + Math.PI) * 7);
         const band = y % 8 === 0;
-        b.set(cx + dx, y, cz + dz, () => (band ? solid('trimWhite', -2) : solid('trimWhite', -1))); // hoops a step under the staves; staves one colour (stripes a cube wide shimmered)
+        b.set(cx + dx, y, cz + dz, () => (band ? solid('stone', -1) : solid('trimWhite', a % 2 ? -1 : -2))); // hoops, and staves in two steps (back 2026-11-22: anti-aliasing is on)
       }
     }
   ellipsoid(b.g, [x + S / 2, h, z + S / 2], [r + 0.1, r * 0.8, r + 0.1], (_px, py) => (py < H ? null : solid('stone', 0)));
@@ -368,7 +369,7 @@ function coop(b: Builder) {
   const { x, z } = FARM.coop;
   const x0 = b.ix(x - 1.8), x1 = b.ix(x + 1.8) - 1, z0 = b.ix(z - 1.3), z1 = b.ix(z + 1.3) - 1, W = 8, y0 = 2;
   // Clapboards a row each, two steps in turn; the top row under the roof a step darker (the eave's shade).
-  const wall: Paint = (_x, py) => solid('coopYellow', py >= y0 + W ? -1 : 0);
+  const wall: Paint = (_x, py) => solid('coopYellow', (py % 2 ? 1 : 0) - (py >= y0 + W ? 1 : 0));
   for (const px of [x0, x1]) for (const pz of [z0, z1]) b.box(px, px, 0, y0 - 1, pz, pz, paint('wood', -1));
   b.box(x0, x1, y0, y0, z0, z1, paint('wood', 0));
   for (let px = x0; px <= x1; px++)
@@ -404,7 +405,7 @@ function coop(b: Builder) {
   fenceRun(b, [R.minX, sz], [R.maxX, sz]);
   fenceRun(b, [R.maxX, sz], [R.maxX, R.minZ]);
   const sx0 = b.ix(R.minX + 0.6), sx1 = b.ix(R.minX + 3.4), sz0 = b.ix(sz + 0.6), sz1 = b.ix(sz + 2.6);
-  const plank = paint('wood', 0);
+  const plank = byPart('wood', [0, -1], (px, _y, pz) => (px + pz) >> 1);
   b.box(sx0, sx1, 0, 5, sz0, sz0, plank);
   for (const px of [sx0, sx1]) b.box(px, px, 0, 6, sz0, sz1, plank);
   const sty: [number, number, number][] = [];

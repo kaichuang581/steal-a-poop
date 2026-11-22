@@ -1,7 +1,9 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { AdditiveBlending, CanvasTexture, SRGBColorSpace, Sprite, SpriteMaterial } from 'three';
-import type { Group } from 'three';
+import { useThree } from '@react-three/fiber';
+import { AdditiveBlending, BufferGeometry, CanvasTexture, Float32BufferAttribute, Points, SRGBColorSpace, Sprite, SpriteMaterial, Vector2 } from 'three';
+import type { Group, ShaderMaterial } from 'three';
+import { spritePoints } from './points';
 import { voxelMaterial } from '../voxel/material';
 import { cupGeometry, PRIZE_BOB, PRIZE_SCALE } from './cup';
 
@@ -45,10 +47,19 @@ export function Prize({ reduced }: { reduced: boolean }) {
       x.beginPath(); x.moveTo(32, 0); x.lineTo(37, 27); x.lineTo(64, 32); x.lineTo(37, 37); x.lineTo(32, 64); x.lineTo(27, 37); x.lineTo(0, 32); x.lineTo(27, 27); x.closePath(); x.fill();
     });
     const sprite = (map: CanvasTexture, opacity = 1) => new Sprite(new SpriteMaterial({ map, transparent: true, depthWrite: false, blending: AdditiveBlending, opacity, fog: false }));
-    return { halo: sprite(halo, 0.85), rays: sprite(rays, 0.6), sparks: Array.from({ length: 6 }, () => sprite(spark)), maps: [halo, rays, spark] };
+    // The six sparkles in one draw.
+    const g = new BufferGeometry();
+    g.setAttribute('position', new Float32BufferAttribute(new Float32Array(18), 3));
+    g.setAttribute('size', new Float32BufferAttribute(new Float32Array(6), 1));
+    g.setAttribute('alpha', new Float32BufferAttribute(new Float32Array(6).fill(1), 1));
+    const sparks = new Points(g, spritePoints(spark));
+    sparks.frustumCulled = false;
+    return { halo: sprite(halo, 0.85), rays: sprite(rays, 0.6), sparks, maps: [halo, rays, spark] };
   }, []);
   useEffect(() => () => fx.maps.forEach((m) => m.dispose()), [fx]);
   const spin = useRef<Group>(null);
+  const gl = useThree((st) => st.gl);
+  const buf = useMemo(() => new Vector2(), []);
   const h = cup.height * PRIZE_SCALE, mid = h * 0.55;
   useFrame(({ clock }) => {
     const t = reduced ? 0 : clock.elapsedTime;
@@ -58,21 +69,24 @@ export function Prize({ reduced }: { reduced: boolean }) {
     }
     fx.rays.material.rotation = t * 0.25;
     fx.halo.scale.setScalar(h * 2.1 * (1 + 0.05 * Math.sin(t * 3.1)));
-    fx.sparks.forEach((s, i) => {
+    const pos = fx.sparks.geometry.getAttribute('position'), size = fx.sparks.geometry.getAttribute('size');
+    for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2 + t * 0.6, r = h * (0.62 + 0.08 * Math.sin(t * 1.7 + i));
-      s.position.set(Math.cos(a) * r, mid + Math.sin(a) * r * 0.85, 0.1);
-      s.scale.setScalar(h * 0.16 * (0.35 + 0.65 * Math.abs(Math.sin(t * 2.2 + i * 1.3))));
-    });
+      pos.setXYZ(i, Math.cos(a) * r, mid + Math.sin(a) * r * 0.85, 0.1);
+      size.setX(i, h * 0.16 * (0.35 + 0.65 * Math.abs(Math.sin(t * 2.2 + i * 1.3))));
+    }
+    pos.needsUpdate = size.needsUpdate = true;
+    (fx.sparks.material as ShaderMaterial).uniforms.scale.value = gl.getDrawingBufferSize(buf).y / 2;
   });
   return (
     <group>
-      <primitive object={fx.rays} position={[0, mid, -0.15]} scale={[h * 2.6, h * 2.6, 1]} renderOrder={1} />
+      <primitive object={fx.rays} position={[0, mid, -0.15]} scale={[h * 2.3, h * 2.3, 1]} renderOrder={1} />
       <primitive object={fx.halo} position={[0, mid, -0.1]} renderOrder={1} />
       <group ref={spin}>
         <mesh geometry={cup.body} material={gold} scale={PRIZE_SCALE} castShadow />
         <mesh geometry={cup.gem} material={ruby} scale={PRIZE_SCALE} />
       </group>
-      {fx.sparks.map((s, i) => <primitive key={i} object={s} renderOrder={2} />)}
+      <primitive object={fx.sparks} renderOrder={2} />
     </group>
   );
 }

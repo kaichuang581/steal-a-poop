@@ -1,8 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { createRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
-import { Box3, Color, FogExp2, InstancedMesh, MeshBasicMaterial, Object3D, PCFShadowMap, SRGBColorSpace, SphereGeometry, Vector3 } from 'three';
-import type { BufferGeometry, Group, PerspectiveCamera } from 'three';
+import { AdditiveBlending, Box3, BufferGeometry, CanvasTexture, Color, Float32BufferAttribute, FogExp2, MeshBasicMaterial, PCFShadowMap, Points, PointsMaterial, SRGBColorSpace, Vector3 } from 'three';
+import type { Group, PerspectiveCamera } from 'three';
 import { isAdminAvatar } from '../../avatars/ids';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
@@ -15,12 +15,12 @@ import { voxelMaterial } from '../voxel/material';
 import { LOOK } from '../look';
 import { FAR_SPOTS, inWindow, jumpFor, onCanvas, skyBehind, solveCamera, worldAt } from './frame';
 import type { FarName } from './frame';
-import { CELL, CRATE, CRATE_HEIGHTS, FAR, farIsland, islandGeometry, stageLayout } from './island';
+import { CELL, CRATE, CRATE_HEIGHTS, FAR, farIsland, farLights, islandGeometry, stageLayout } from './island';
 import type { IslandGeo, StageLayout } from './island';
 import { emptyRig, inCrate, NAP, placement, POSES, rigOf, sample, STAGGER } from './poses';
 import type { Place } from './poses';
-import { podiumGeometry } from './podium';
-import { PartySky } from './PartySky';
+import { podiumGeometry, podiumVoxels } from './podium';
+import { FestivalSky } from './FestivalSky';
 import { Prize } from './Prize';
 import { PARTY_FOG } from './sky';
 
@@ -79,7 +79,7 @@ export default function BoardStage({ seats, plates, windowEl, phone, reduced, u 
         <Frame windowEl={windowEl} layout={layout} phone={phone} u={u} anchors={anchors} z={z} fars={fars} jumps={jumps} champ={kinds[0]} nap={kinds[2]}
           place={place} onPlaced={onPlaced} />
         <Air />
-        <PartySky place={place} version={skyVersion} reduced={reduced} />
+        <FestivalSky place={place} version={skyVersion} reduced={reduced} />
         <Ground layout={layout} phone={phone} reduced={reduced} />
         {(Object.keys(FAR_SPOTS) as FarName[]).map((n) => <Far key={n} name={n} phone={phone} reduced={reduced} fars={fars} />)}
         {([1, 2, 3] as const).map((p) => (
@@ -166,20 +166,20 @@ function Frame({ windowEl, layout, phone, u, anchors, z, fars, jumps, champ, nap
 }
 
 /**
- * The party's light (Brian, 2026-11-22): the warm key from the upper left that throws the shadows, a lavender sky fill
- * over a warm ground, and two rims from behind, pink from the right and cyan from the left, for a stage-lit edge. A thin
- * pink haze, the sky's own colour at the island's height.
+ * The festival night's light (Brian, 2026-11-22): a warm key from the upper left, as from the festival's lanterns, that
+ * throws the shadows; a cool fill from the night sky over a warm ground; the moon's pale blue on the edges from behind;
+ * and the festival's glow from below and in front, warm on the island's underside. A thin plum haze.
  */
 function Air() {
   const scene = useThree((st) => st.scene);
   useEffect(() => { scene.fog = new FogExp2(PARTY_FOG, 0.008); }, [scene]);
   return (
     <>
-      <hemisphereLight args={['#D4C4FF', '#9A7A86', 0.75]} />
-      <directionalLight position={[-9, 13, 15]} color="#FFE6CC" intensity={1.85} castShadow shadow-mapSize={[2048, 2048]}
+      <hemisphereLight args={['#8C96E2', '#D38C6C', 0.85]} />
+      <directionalLight position={[-9, 13, 15]} color="#FFD9B0" intensity={1.75} castShadow shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={7} shadow-camera-bottom={-4.5} shadow-camera-far={60} />
-      <directionalLight position={[8, 6, -10]} color="#FF6FB5" intensity={0.9} />
-      <directionalLight position={[-8, 5, -10]} color="#6FD8FF" intensity={0.55} />
+      <directionalLight position={[7, 8, -10]} color="#A9C4FF" intensity={0.85} />
+      <directionalLight position={[0, -5, 8]} color="#FF946A" intensity={0.4} />
     </>
   );
 }
@@ -209,9 +209,10 @@ function Ground({ layout, phone, reduced }: { layout: StageLayout; phone: boolea
   return (
     <group>
       <mesh geometry={geo.body} material={mat} castShadow receiveShadow />
-      {/* The underside's bands take no shadow: under the rim's they were one grey, and 4.3 wants them told apart. */}
-      <mesh geometry={geo.under} material={mat} castShadow />
-      <mesh geometry={geo.lantern} material={mat} castShadow />
+      {/* The underside's bands take no shadow (under the rim's they were one grey, and 4.3 wants them told apart) and cast
+          none (it would fall on nothing in view); nor do the small lantern's iron and the podiums' trim. */}
+      <mesh geometry={geo.under} material={mat} />
+      <mesh geometry={geo.lantern} material={mat} />
       <mesh geometry={geo.glass} material={lit} />
       {geo.icicles && <mesh geometry={geo.icicles} material={mat} />}
       <pointLight position={geo.lamp} color="#FFD27A" intensity={0.6} distance={1.4} decay={2} />
@@ -239,12 +240,20 @@ function Far({ name, phone, reduced, fars }: { name: FarName; phone: boolean; re
   let hit = farGeos.get(key);
   if (!hit) {
     const sky = skyBehind(name);
-    const geo = buildGeometry(farIsland(FAR[name], [sky.r, sky.g, sky.b]).map, CELL, { ao: false });
+    const geo = buildGeometry(farIsland(FAR[name], [sky.r, sky.g, sky.b]).map, CELL, { ao: false, merge: true });
     geo.computeBoundingBox();
     farGeos.set(key, (hit = { geo, mid: geo.boundingBox!.getCenter(new Vector3()) }));
   }
   const { geo, mid } = hit;
   const mat = useMemo(() => new MeshBasicMaterial({ vertexColors: true, fog: false }), []);
+  // Its string of festival lights: warm white, red and gold in turn, points that keep their size however far off.
+  const lights = useMemo(() => {
+    const at = farLights(FAR[name]), cols = ['#FFE9B8', '#FF6A5A', '#FFC65C'].map((c) => new Color(c));
+    const g = new BufferGeometry();
+    g.setAttribute('position', new Float32BufferAttribute(at.flat(), 3));
+    g.setAttribute('color', new Float32BufferAttribute(at.flatMap((_, i) => cols[i % 3].toArray()), 3));
+    return new Points(g, new PointsMaterial({ size: 4.5, sizeAttenuation: false, map: glowDot(), vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending, fog: false }));
+  }, [name]);
   const ref = useRef<Group>(null);
   useFrame(({ clock }) => {
     const g = ref.current, at = fars[name];
@@ -252,36 +261,58 @@ function Far({ name, phone, reduced, fars }: { name: FarName; phone: boolean; re
     g.position.copy(at).sub(mid);
     if (!reduced) g.position.y += DRIFT.m * Math.sin((2 * Math.PI * clock.elapsedTime) / DRIFT.periods[name]);
   });
-  return <group ref={ref} position={[0, -999, 0]}><mesh geometry={geo} material={mat} /></group>;
+  return <group ref={ref} position={[0, -999, 0]}><mesh geometry={geo} material={mat} /><primitive object={lights} /></group>;
 }
 
-const BULB_COLOURS = ['#FFF3C4', '#FF6FB5', '#7FE3FF', '#FFD45A'].map((c) => new Color(c));
-const BULB_OFF = new Color('#5A4290');
+/** A small soft dot, drawn once, for the far islands' lights. */
+let dot: CanvasTexture | null = null;
+const glowDot = () => {
+  if (dot) return dot;
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const x = c.getContext('2d')!, g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.8)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+  dot = new CanvasTexture(c); dot.colorSpace = SRGBColorSpace;
+  return dot;
+};
+
+/** A soft warm glow, drawn once, for the podiums' lanterns. */
+let lanternGlow: CanvasTexture | null = null;
+const glowMap = () => {
+  if (lanternGlow) return lanternGlow;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,170,110,0.55)'); g.addColorStop(0.45, 'rgba(255,120,70,0.18)'); g.addColorStop(1, 'rgba(255,100,60,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  lanternGlow = new CanvasTexture(c); lanternGlow.colorSpace = SRGBColorSpace;
+  return lanternGlow;
+};
 
 /**
- * One place: its podium (podium.ts) standing on the island, its marquee bulbs chasing round it, and whoever holds it
- * on top. Under reduced motion every bulb is lit and still.
+ * One place: its festival stage (podium.ts) standing on the island, its two paper lanterns lit from within with a soft
+ * glow round each that breathes a little (still under reduced motion), and whoever holds it on top.
  */
 function Podium({ place, x, reduced, children }: { place: Place; x: number; reduced: boolean; children?: ReactNode }) {
   const top = CRATE_HEIGHTS[place - 1], geo = podiumGeometry(place, top);
   const mat = useMemo(() => voxelMaterial(), []);
-  const bulbs = useMemo(() => {
-    const m = new InstancedMesh(new SphereGeometry(0.045, 8, 6), new MeshBasicMaterial({ toneMapped: false }), geo.bulbs.length);
-    const o = new Object3D();
-    geo.bulbs.forEach((p, i) => { o.position.set(...p); o.updateMatrix(); m.setMatrixAt(i, o.matrix); m.setColorAt(i, BULB_COLOURS[0]); });
-    return m;
-  }, [geo]);
+  const paper = useMemo(() => voxelMaterial({ emissive: '#FF6A3A', emissiveIntensity: 0.7 }), []);
+  const boxes = useMemo(() => podiumVoxels(place, top).lanterns, [place, top]);
+  // Both lanterns' glows in one draw: soft points that keep their size on screen to the lantern's.
+  const glows = useMemo(() => {
+    const g = new BufferGeometry();
+    g.setAttribute('position', new Float32BufferAttribute(boxes.flatMap((b) => [(b.x[0] + b.x[1]) / 2, (b.y[0] + b.y[1]) / 2 - 0.03, (b.z[0] + b.z[1]) / 2]), 3));
+    return new Points(g, new PointsMaterial({ size: 0.62, map: glowMap(), transparent: true, depthWrite: false, blending: AdditiveBlending }));
+  }, [boxes]);
   useFrame(({ clock }) => {
-    // Every fourth bulb lit, the lit ones stepping along five times a second, in four colours in turn.
-    const step = reduced ? 0 : Math.floor(clock.elapsedTime * 5);
-    for (let i = 0; i < geo.bulbs.length; i++) bulbs.setColorAt(i, reduced || (i + step) % 4 !== 0 ? (reduced || (i + step) % 2 === 0 ? BULB_COLOURS[(i >> 2) % 4] : BULB_OFF) : BULB_COLOURS[0]);
-    if (bulbs.instanceColor) bulbs.instanceColor.needsUpdate = true;
+    const t = reduced ? 0 : clock.elapsedTime;
+    glows.material.size = 0.62 * (1 + 0.06 * Math.sin(t * 2.3 + place));
   });
   return (
     <group position={[x, 0, 0]}>
       <mesh geometry={geo.body} material={mat} castShadow receiveShadow />
-      <mesh geometry={geo.badge} material={mat} castShadow />
-      <primitive object={bulbs} />
+      <mesh geometry={geo.trim} material={mat} />
+      <mesh geometry={geo.paper} material={paper} />
+      <primitive object={glows} renderOrder={1} />
       <group position={[0, top, 0]}>{children}</group>
     </group>
   );

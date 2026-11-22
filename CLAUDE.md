@@ -2151,11 +2151,11 @@ sizes of the models are too mismatched, the 3rd place looks so short while 1st l
 cooler ... make the background scenery cooler as well (the sky i mean, not anything else) ... like an anime
 sky/day/night and give the vibes of more like a party", and "u dont have to copy the fingers, just make the arms like
 that". Where that message and the plan differ, the message wins: the trophy floats (it is not held), the podiums replace
-the crates here (the victory screen keeps its crates), all three places are one size, and the party sky replaces
+the crates here (the victory screen keeps its crates), all three places are one size, and the festival sky replaces
 "keep today's sky". Branch `ui/leaderboards-v3`, version 0.9.5.
 - Files (src/skin/boards): poses.ts (the three poses as data, `sample`, `rigOf`, `placement`), frame.ts (the camera, pure),
   island.ts (the island, pure), podium.ts and cup.ts (the podiums and the trophy, pure voxels), sky.ts (the sky's colours),
-  PartySky.tsx, Prize.tsx and BoardStage.tsx (the scene). Tests: poses.test.ts, island.test.ts, party.test.ts and the
+  FestivalSky.tsx, Prize.tsx and BoardStage.tsx (the scene). Tests: poses.test.ts, island.test.ts, party.test.ts and the
   stage checks in boards.test.tsx. `?preview=boards&lbAnimal=cow&lbTime=0.4` (development only) puts one species in every
   place and holds every loop at that time, for pictures.
 - Poses: `lbChampion`, `lbGoodSport`, `lbNap` are data (a rest pose, keyframes, waves) handed whole to the Sheep component
@@ -2179,20 +2179,39 @@ the crates here (the victory screen keeps its crates), all three places are one 
   (one step rendered as the same colour), because 0.3 m of one colour was 28 px at 1440 x 900, past the plan's 24 (now 21); the underside bands are their own mesh with no
   shadow, or both tones went one grey under the rim; stones and roots are on the front face; trails run along their
   own direction. The island, the pines, the lantern and its glass are one connected piece (island.test.ts).
-- The podiums (podium.ts): the crate's footprint and heights, so every pose, plate and drift still fits: a plum plinth, a
-  column of gold, silver or bronze with lit corners and a studded plum frieze, a cap with a red carpet, a cream star
-  with the number (a drawn 5 x 7) on the front, and marquee bulbs down the front corners and along the plinth that
-  chase in four colours (lit and still under reduced motion). Nothing stands past the top's front edge.
+- Then, the same day: "now the podiums look sloppy and all the background stuff looks poorly done. i like your vision,
+  but maybe try and spend a little more time on perfecting the smaller details. additionally, try and go more for the
+  vibe of like those anime festivals while still being somewhat cohesive". So the podiums are festival stages and the
+  sky a festival night; the marquee bulbs, studded frieze, star badges, searchlights and pink party sky are gone.
+- The podiums (podium.ts): festival stages with the crate's footprint and heights, so every pose, plate and drift still
+  fits. Dark corner posts the full height; a dark plinth with a band of the place's metal (gold, silver, bronze);
+  upright slats with a shadowed gap between each two and a rail halfway up (the farm's fences); a red-and-white striped
+  curtain round the top, its stripes laid out from each face's middle so both ends match; a twisted rope of the metal
+  over it with a tassel on each front post; the deck and a red carpet edged in the metal; the number (a drawn bold 5 x 7)
+  in the metal's light on a lacquered sign framed in the metal, hung over the curtain so no name plate covers it; and a
+  red paper lantern on an iron arm at each front corner, its paper lit and a soft glow round it. Palette steps only.
 - The trophy (cup.ts, Prize.tsx): a tall gold cup with a ruby, looped handles and a star on its rim, drawn at 0.72,
   lit from within, with a halo, slow rays and six sparkles; it floats 0.06 H over the hat, bobs 0.08 m and turns a
   little. No light of its own (one whitened the champion's wool in version 2): the stage's one point light is still the
   lantern's.
-- The sky (sky.ts, PartySky.tsx): painted bands behind the picture (deep indigo with stars, violet, pink, a gold glow at
-  the foot), five flat cel-shaded clouds drifting along the glow, four searchlights sweeping, and fireworks to either side
-  of the podiums, all placed by spots of the window and sized by their distance. The far islands mix toward the band at
-  their height. Light: the warm key, a lavender fill, pink and cyan rims from behind, a thin pink haze.
+- The sky (sky.ts, FestivalSky.tsx): a festival night. Painted bands behind the picture (night blue, indigo, plum, and
+  the festival's warm glow rising behind the island); a big moon with far island C in front of it (`MOON`); stars,
+  thinning toward the glow, a few with a cross of light; three long clouds lit coral from beneath; sky lanterns rising
+  and swaying (added light, so a faint one is a dim glow, never grey); and fireworks in the open sky either side of the
+  stage, never over the moon, the trophy or the podiums: a rocket climbs on its trail, then a peony (with an inner ring
+  in a second colour), a chrysanthemum, a ring or a golden willow opens, its sparks trailing and drooping a little, the
+  glittering kinds flickering as they fade (a stronger pull read as rain). Everything is placed by spots of the window
+  and sized by shares of its width, so it composes the same at every size. The far islands mix toward the band at their
+  height, the barn's windows are lit, and a string of festival lamps runs along each island's front edge (`farLights`).
+  Light: a warm key as from lanterns, a cool sky fill over a warm ground, the moon's blue on the edges, the festival's
+  glow from below, a thin plum haze.
 - Framing (frame.ts): the plan's 66% holds only where the window is tall enough. With the trophy floating over the
   champion on the 2.9 m podium, the fill is 57% at 1440 x 900, 50% at 1280 x 720 and 1920 x 1080, 65% on a 390 x 844
   phone; every species makes its whole hop. Where a crate is drawn narrow, its plate's rank badge steps out
   (`data-narrow`), never the figure.
-- The size budget was raised by 13,000 bytes (12.6 kB locally, all in the stage's own lazy chunk).
+- Cost, measured back to back with version 2 (software rendering, 1440 x 900): 305 ms a frame against 302, 103k
+  triangles against 128k, 107 draws against 78. What keeps it there: flat faces merged (`merge` in the island, podium
+  and far-island meshes), the podiums solid inside, the sky lanterns and the trophy's sparkles one draw each
+  (`spritePoints`, boards/points.ts), each podium's lantern glows one, cloud quads only as tall as the clouds, and no
+  shadow from the underside, the lantern's iron or the podiums' trim.
+- The size budget was raised by 15,000 bytes (15.2 kB locally, all in the stage's own lazy chunk).

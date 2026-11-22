@@ -132,19 +132,20 @@ describe('the leaderboards page', () => {
     const frame = src('src/skin/boards/frame.ts'), poses = src('src/skin/boards/poses.ts');
     expect(source).toContain("lazy(() => import('./BoardStage'))");
     // Brian, 2026-11-22: the stage's own podiums (podium.ts), gold, silver and bronze; the victory screen keeps its crates.
-    expect(stage).toContain("import { podiumGeometry } from './podium'");
+    expect(stage).toMatch(/import \{ podiumGeometry[^}]*\} from '.\/podium'/);
     expect(stage).not.toMatch(/blockGeometry|carvedGeometry|trophyGeometry/);
     expect(frame).toMatch(/export const PITCH = \(10 \* Math\.PI\) \/ 180, FOV = 28/);
     expect(frame).toMatch(/FILL = \{ desk: 0\.66, phone: 0\.92 \}/);
     expect(stage).toContain('islandGeometry(layout)');
     expect(stage).toContain('farIsland(');
     expect(stage + island).not.toMatch(/cloudSea|cloudGrid|island\('windmill'|Puffs|whiten|wisp\(/);
-    // The sky is the party's (Brian, 2026-11-22: "like an anime sky/day/night ... the vibes of more like a party"): painted
-    // bands behind the picture, flat clouds, searchlights and fireworks, all in PartySky.tsx; no voxel clouds.
-    const sky = src('src/skin/boards/PartySky.tsx');
-    expect(stage).toContain('<PartySky place={place}');
-    expect(stage).not.toMatch(/<Dome\b/);
-    for (const part of ['backdrop()', 'cloudTexture(', 'beamTexture()', 'BURSTS', 'STARS']) expect(sky).toContain(part);
+    // The sky is a festival night (Brian, 2026-11-22: "go more for the vibe of like those anime festivals while still
+    // being somewhat cohesive"): painted bands behind the picture, a moon, stars, clouds lit from beneath, sky lanterns
+    // and fireworks, all in FestivalSky.tsx; no voxel clouds.
+    const sky = src('src/skin/boards/FestivalSky.tsx');
+    expect(stage).toContain('<FestivalSky place={place}');
+    expect(stage).not.toMatch(/<Dome\b|PartySky/);
+    for (const part of ['backdrop()', 'moonTexture()', 'cloudTexture(', 'lanternTexture()', 'KINDS', 'STARS']) expect(sky).toContain(part);
     expect(sky).not.toMatch(/Grid\(|buildGeometry/);
     // Version 3 (Brian, 2026-11-22): the stage's own three poses, handed to the Sheep component whole.
     for (const name of ["'lbChampion'", "'lbGoodSport'", "'lbNap'"]) expect(poses).toContain(`name: ${name}`);

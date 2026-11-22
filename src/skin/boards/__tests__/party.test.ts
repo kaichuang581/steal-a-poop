@@ -30,21 +30,28 @@ function pieces(keys: Iterable<string>): number {
 // Brian, 2026-11-22: livelier podiums, a cooler trophy floating and glowing, a party sky.
 describe('the leaderboards\' party', () => {
   for (const place of [1, 2, 3] as const) {
-    it(`podium ${place}: the crate's footprint and height, one piece, its own metal, its number on a star, bulbs on it`, () => {
+    it(`podium ${place}: the crate's footprint and height, one piece, its own metal, a sign, two lanterns in front`, () => {
       const h = CRATE_HEIGHTS[place - 1], v = podiumVoxels(place, h);
       const xs = [...v.body.map.values()].map((c) => c.x), zs = [...v.body.map.values()].map((c) => c.z), ys = [...v.body.map.values()].map((c) => c.y);
       expect((Math.max(...xs) - Math.min(...xs) + 1) * v.body.size).toBeCloseTo(CRATE.w, 6);
       expect((Math.max(...zs) - Math.min(...zs) + 1) * v.body.size).toBeCloseTo(CRATE.d, 6);
       expect((Math.max(...ys) + 1) * v.body.size).toBeCloseTo(h, 6);
       expect(Math.min(...ys)).toBe(0);
-      expect(pieces(v.body.map.keys())).toBe(1);
-      expect(pieces(v.badge.map.keys())).toBe(1);
+      // Every part, on S cells, is one piece: the stage, its rope, sign and tassels, the lanterns' arms, caps and paper.
+      const fine = (g: typeof v.body) => { const k = Math.round(g.size / v.trim.size); return [...g.map.values()].flatMap((c) => {
+        const out: string[] = [];
+        for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) for (let l = 0; l < k; l++) out.push(`${c.x * k + i},${c.y * k + j},${c.z * k + l}`);
+        return out;
+      }); };
+      expect(pieces([...fine(v.body), ...fine(v.trim), ...fine(v.frame), ...fine(v.paper)])).toBe(1);
       const metal = shade(METALS[place][1]).join();
-      expect([...v.body.map.values()].filter((c) => c.c.join() === metal).length).toBeGreaterThan(100);
-      expect(v.bulbs.length).toBeGreaterThan(10);
-      // Nothing of it stands past the top's front edge, where the second's legs hang.
-      for (const [, y, z] of v.bulbs) if (y > h - 0.4) expect(z).toBeLessThan(CRATE.d / 2);
-      for (const c of v.badge.map.values()) expect((c.z + 1) * v.badge.size).toBeLessThanOrEqual(CRATE.d / 2 + 1e-9);
+      expect([...v.body.map.values(), ...v.trim.map.values()].filter((c) => c.c.join() === metal).length).toBeGreaterThan(20);
+      // The lanterns hang at the front corners, clear of the top's middle where the second's legs swing.
+      expect(v.lanterns).toHaveLength(2);
+      for (const l of v.lanterns) { expect(Math.min(Math.abs(l.x[0]), Math.abs(l.x[1]))).toBeGreaterThanOrEqual(0.4 - 1e-9); expect(l.z[0]).toBeGreaterThan(CRATE.d / 2); expect(l.y[1]).toBeLessThan(h); }
+      // The sign hangs over the curtain, under the top, inside the podium's width.
+      expect(v.numeral.top).toBeLessThan(-0.2);
+      expect(v.numeral.half).toBeLessThan(CRATE.w / 2);
     });
   }
 

@@ -365,9 +365,10 @@ export interface IslandGeo {
 export function islandGeometry(layout: StageLayout): IslandGeo {
   const v = islandVoxels(layout);
   return {
-    body: buildGeometry(v.body.map, CELL), under: buildGeometry(v.under.map, CELL), lantern: buildGeometry(v.lantern.map, FINE), glass: buildGeometry(v.glass.map, FINE),
+    // Flat runs of one colour are drawn as one rectangle each (the mesher's `merge`): the same look in fewer triangles.
+    body: buildGeometry(v.body.map, CELL, { merge: true }), under: buildGeometry(v.under.map, CELL, { merge: true }), lantern: buildGeometry(v.lantern.map, FINE), glass: buildGeometry(v.glass.map, FINE),
     icicles: buildIcicles(v.lips, CELL), lamp: v.lamp, foot: v.foot,
-    pines: v.pines.map((p) => ({ geo: buildGeometry(p.grid.map, CELL), at: p.at })),
+    pines: v.pines.map((p) => ({ geo: buildGeometry(p.grid.map, CELL, { merge: true }), at: p.at })),
     rocks: v.rocks.map((r) => ({ geo: buildGeometry(r.grid.map, FINE), at: r.at })),
   };
 }
@@ -420,6 +421,20 @@ export const FAR: Record<'A' | 'B' | 'C', FarSpec> = {
  * tip off the middle (its left side stepping in twice as fast as its right, or the other way when mirrored); about 0.6
  * of its width tall in all. Every colour mixed toward `sky` by the spec's share, for a material that takes no light.
  */
+/**
+ * A far island's festival lights: a string of small lamps along its front edge, sagging a little between posts every
+ * 0.9 m (metres, in the island's own frame). The stage draws them as points of light that do not fade with distance.
+ */
+export function farLights(spec: FarSpec): [number, number, number][] {
+  const n = Math.round(spec.top / CELL), hw = n / 2, depth = Math.max(4, Math.round(n * 0.5));
+  const x0 = -Math.floor(hw) * CELL + 0.05, x1 = Math.ceil(hw) * CELL - 0.05, out: [number, number, number][] = [];
+  for (let x = x0; x <= x1 + 1e-9; x += 0.15) {
+    const along = ((x - x0) % 0.9) / 0.9;
+    out.push([x, 0.1 - 0.06 * Math.sin(Math.PI * along), depth * CELL + 0.03]);
+  }
+  return out;
+}
+
 export function farIsland(spec: FarSpec, sky: RGB): Grid {
   const g = new Grid(CELL);
   const mix = (col: RGB): RGB => [col[0] + (sky[0] - col[0]) * spec.mix, col[1] + (sky[1] - col[1]) * spec.mix, col[2] + (sky[2] - col[2]) * spec.mix];
@@ -446,6 +461,9 @@ export function farIsland(spec: FarSpec, sky: RGB): Grid {
     const red = mix(c('barnRed', 0)), roof = snow, bx0 = Math.ceil(hw) - 12, bz0 = mid - 4;
     for (let x = 0; x < 10; x++) for (let z = 0; z < 8; z++) for (let y = 0; y < 6; y++) g.set(bx0 + x, y, bz0 + z, red);
     for (let y = 0; y < 4; y++) for (let x = y; x < 10 - y; x++) for (let z = -1; z < 9; z++) g.set(bx0 + x, 6 + y, bz0 + z, roof);
+    // Its front lit for the festival: two warm windows (unmixed: they glow) and a dark door between them.
+    for (const wx of [2, 3, 6, 7]) for (const wy of [3, 4]) g.set(bx0 + wx, wy, bz0 + 7, c('brass', 2));
+    for (const dx of [4, 5]) for (let dy = 0; dy < 3; dy++) g.set(bx0 + dx, dy, bz0 + 7, mix(c('darkWood', -2)));
   } else if (spec.things === 'fence') {
     pine(spec.mirror ? Math.ceil(hw) - 3 : -Math.floor(hw) + 3, mid, 1.0);
     const post = mix(c('wood', -1)), fx0 = spec.mirror ? -Math.floor(hw) + 3 : Math.ceil(hw) - 7;

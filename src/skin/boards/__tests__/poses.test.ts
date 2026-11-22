@@ -15,8 +15,8 @@ const TIMES: Record<Place, number[]> = {
   2: [0, 0.075, 0.15, 0.225, 0.3, 0.375, 0.45, 0.6, 0.975, 1.35, 1.725, 2.1, 2.475, 2.99],
   3: [0, 0.8, 1.6, 1.65, 1.7, 2.4, 3.19],
 };
-/** The number's box on the second podium's front, from its top (podium.ts: the star it sits on). */
-const NUMERAL = podiumVoxels(2, CRATE_HEIGHTS[1]).numeral;
+/** The number's sign on the second podium's front, from its top, and its lanterns (podium.ts). */
+const NUMERAL = podiumVoxels(2, CRATE_HEIGHTS[1]).numeral, LANTERNS = podiumVoxels(2, CRATE_HEIGHTS[1]).lanterns;
 
 /** Every part's points in crate-local metres (x across, y up from the top, z to the camera) at `t` seconds into the loop. */
 function pose(species: Species, place: Place, t: number, loop = 0) {
@@ -135,7 +135,12 @@ describe('the leaderboards\' poses (version 3)', () => {
             const { pts } = pose(species, 2, t);
             for (const role of species === 'chicken' ? ['leg0', 'leg1'] : ['leg2', 'leg3']) for (const v of pts.get(role as never)!) {
               if (v.y < -0.003) expect(v.z, `${role} at ${t}`).toBeGreaterThanOrEqual(CRATE.d / 2 + 0.01);
-              if (Math.abs(v.x) < NUMERAL.half && v.z < CRATE.d / 2 + 0.05) expect(v.y, `${role} at ${t}`).toBeGreaterThan(NUMERAL.top + 0.03 * CRATE.w);
+              if (Math.abs(v.x) < NUMERAL.half && v.z < CRATE.d / 2 + 0.12) expect(v.y, `${role} at ${t}`).toBeGreaterThan(NUMERAL.top + 0.03 * CRATE.w);
+              // Clear of the podium's two lanterns (their boxes are from the podium's foot; the legs' from its top).
+              for (const l of LANTERNS) {
+                const inside = v.x > l.x[0] && v.x < l.x[1] && v.y + CRATE_HEIGHTS[1] > l.y[0] && v.y + CRATE_HEIGHTS[1] < l.y[1] && v.z > l.z[0] && v.z < l.z[1];
+                expect(inside, `${role} at ${t} in a lantern`).toBe(false);
+              }
             }
           }
         });

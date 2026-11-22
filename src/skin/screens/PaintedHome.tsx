@@ -35,7 +35,7 @@ import { AvatarIcon } from '../avatars/AvatarIcon';
 import { FeedbackDialog } from '../components/FeedbackDialog';
 import { Bazaar } from '../shop/Bazaar';
 import { Profile } from '../profile/Profile';
-import { Leaderboards } from '../boards/Leaderboards';
+import { BOARDS_DEMO, Leaderboards } from '../boards/Leaderboards';
 import { useWallet } from '../shop/store';
 import { formatCoins } from '../shop/format';
 import { useAvatar } from '../avatars/store';
@@ -411,7 +411,7 @@ export function PaintedHome() {
   const farmFps = useHomeFps(chooser || signIn || help || gear || legal !== null || feedback || profile || adminOpen);
   const square = 'hm-slab hm-slab--wool hm-slab--sm hm-square';
   const helpButton = <button className={square} onClick={() => setHelp(true)} aria-label="How to Play" title="How to play"><HelpIcon /></button>;
-  const trophy = rooms && <button className={square} onClick={() => setBoards(true)} aria-label="Leaderboards" title="Leaderboards"><TrophyIcon size={20} /></button>;
+  const trophy = (rooms || BOARDS_DEMO) && <button className={square} onClick={() => setBoards(true)} aria-label="Leaderboards" title="Leaderboards"><TrophyIcon size={20} /></button>;
   const purse = (
     <span className="hm-purse">
       <button className="hm-slab hm-slab--ink hm-slab--sm hm-coins" onClick={() => setBazaar(true)} aria-label={`The Trading Post, ${formatCoins(wool)} Wool Coins`} title="The Trading Post">

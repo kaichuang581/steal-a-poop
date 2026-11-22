@@ -2102,3 +2102,123 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
     (3) Never naked: the game's sheep always wears its wool. No sheep is on this screen; if one is ever added to any
     loading screen it never uses the `sheared` part or coat level 0, not even for a moment.
   - Don't redesign the loading screen unless Brian asks.
+
+## The leaderboards, version 2 (Brian, 2026-11-21) — plan: docs/leaderboards/LEADERBOARDS-PLAN.md
+Brian's own request; it replaces "The leaderboards page", "The leaderboards' stage" and "The leaderboards in the sky"
+(2026-11-14) for how the screen looks; the boards, addresses and data are unchanged. His two rules for it: every part is
+specified in full, and nothing may look like a flat, empty, single-coloured card (every surface over 40 x 40 has a
+texture, a lit edge, a shaded edge or side, and a detail). Branch `ui/leaderboards-v2`, version 0.9.4.
+- Files: src/skin/boards/Leaderboards.tsx (the page), boards.css, art.tsx (every pixel grid of the plan: tab icons, the
+  "i", padlock, snowflake, brackets, rosettes, tier icons trimmed to 24 rows), BoardStage.tsx (the stage), island.ts (the
+  ground, pure). Tokens: the --hm-* additions in styles/tokens.css. The slab is Home's `.hm-slab` (home/home.css);
+  `.lb-static` takes its states off for pieces that are not buttons (title tag, plates, your row).
+- Recipes, by class: slab (`hm-slab`), board (`lb-board`), bar (`lb-bar`), tile (`lb-tile`), well (`lb-well`), ink card
+  (`lb-inkcard`), snow cap (`lb-snowcap`), ribbon (`lb-ribbon`). Each draws its block in `::before`, so nothing inside
+  is cut by its pixel corners. src/skin/boards/__tests__/surface.test.tsx renders every tab with made-up boards and fails
+  on any background the styles give an element that is neither a recipe's nor on a piece 40 or less on a side (sizes
+  read from the stylesheet: there is no browser in `npm test`). Name a new surface by its recipe, or it fails.
+- Banned here, besides Home's list: dashed or stitched borders, Patrick Hand, the kit's wood, paper, pegs and slates
+  (boards.test.tsx checks the markup, source and stylesheet). Numbers: lining tabular figures, `fmt` (Intl in the game's
+  language; French groups with a full no-break space, because the display face draws the narrow one almost invisible).
+- Layout: `screenOf` reads the plan's rule in its own pixels (at --u = 1): a computer's layout while the stage the board
+  leaves is 360 wide or more, else a phone's at scale 1. So a 768 x 1024 tablet is a phone (read at the 0.8 scale it was
+  a computer with 80 px crates in an empty sky). The list starts at fourth place everywhere; it shows whole rows only,
+  stops at the board's foot (computer) or the sheet's (phone), and scrolls past that with a drawn scroll bar.
+  Tab labels and the ribbon's title are fitted by measuring the text (`useFit`: 17 to 12 and 20 to 16), after the
+  French swap; a tab whose label will not fit at 12 drops its icon. On a computer the Wins toggle and the info button
+  move under the ribbon when the line cannot hold all three (French).
+- The stage: the podium's own crates (Podium.tsx's two builders, unchanged) on one island (`islandVoxels`: snow in two
+  tones with a ridge pattern, a mound against each crate, two soil layers, a stepped underside to a point; two pines, a
+  fence, two bales, a lantern with its light inside) and two pale far islands (`farIsland`, an unlit material). No cloud,
+  puff or sea. The camera is straight on, 10 degrees down, 28 degrees of view, solved in `Frame` from the window the
+  board leaves (70% of its width on a computer, 92% on a phone, less where the window is too short for the champion's
+  hat to stay 24 under the lowest bulb). The plates are placed there, on resize or camera change only: centred on each
+  crate's front, 10 over its foot, all three on one line. The crates' fronts are the same width to the pixel; the outer
+  two also show a few pixels of their inner sides at this lens (about 6% on a computer, 3% on a phone).
+- The trophy's own light is gone (it whitened the champion's wool); measured after, the champion's brightest wool is no
+  brighter than second place's. Third place sleeps at 0.76 of second place's size, centred on its crate: lying down it
+  is about 1.84 m nose to tail at full size, longer than the 1.4 m crate, so no move alone kept it on top. Its legs
+  still hang down the crate's front, as the pose has them.
+- Where the plan's letter was not followed: "Level 1 · Finish a game to get a place." is "Level 1", a thin rule, then the
+  sentence (no middle dot, Brian 2026-11-14); the "Show me on the leaderboards" choice (the only place to hide) lives in
+  the info card as a Shown / Hidden toggle, since the plan's rows had no place for it.
+- `?preview=boards` (development only) shows the screen without the farm; the boards come from whatever `sap:server`
+  names, which a test browser can stand in for.
+- The size budget was raised by 6,000 bytes for it (4.1 kB locally, room left for CI's larger gzip).
+
+## The leaderboards' stage, version 3, and the party (Brian, 2026-11-22) — plan: docs/leaderboards/LEADERBOARDS-PLAN-V3.md
+Brian's own plan; it replaces sections 8.1 and 8.4 of version 2 (the island, the sheep), and the interface stays as
+version 2 built it. Later the same day, with a picture of a champion with both arms raised, he asked for more: "make first
+place more like this with the trophy floating and glowing above his head, make the podiums to look more exciting ... the
+sizes of the models are too mismatched, the 3rd place looks so short while 1st looks massive ... make the trophy look
+cooler ... make the background scenery cooler as well (the sky i mean, not anything else) ... like an anime
+sky/day/night and give the vibes of more like a party", and "u dont have to copy the fingers, just make the arms like
+that". Where that message and the plan differ, the message wins: the trophy floats (it is not held), the podiums replace
+the crates here (the victory screen keeps its crates), all three places are one size, and the festival sky replaces
+"keep today's sky". Branch `ui/leaderboards-v3`, version 0.9.5.
+- Files (src/skin/boards): poses.ts (the three poses as data, `sample`, `rigOf`, `placement`), frame.ts (the camera, pure),
+  island.ts (the island, pure), podium.ts and cup.ts (the podiums and the trophy, pure voxels), sky.ts (the sky's colours),
+  FestivalSky.tsx, Prize.tsx and BoardStage.tsx (the scene). Tests: poses.test.ts, island.test.ts, party.test.ts and the
+  stage checks in boards.test.tsx. `?preview=boards&lbAnimal=cow&lbTime=0.4` (development only) puts one species in every
+  place and holds every loop at that time, for pictures. `?lbDemo` (development only) fills every board with made-up
+  players, so the stage can be seen on `npm run dev` with no game server (Home then shows its trophy button too):
+  `http://localhost:5173/steal-a-poop/?lbDemo`, or `?preview=boards&lbDemo` for the screen alone.
+- Poses: `lbChampion`, `lbGoodSport`, `lbNap` are data (a rest pose, keyframes, waves) handed whole to the Sheep component
+  through its `rig` prop (table/Sheep.tsx: `RigPose`; without the prop the Sheep is exactly as before). Each place runs
+  on its own clock, starting 0, 0.8 and 1.6 s in, standing still while the tab is hidden and at rest under reduced motion;
+  a new holder (a tab pressed) remounts and starts from 0. The hop, squash and pulse are a group about where the weight
+  bears (BoardStage, `Lounger`). Faces: idle for the first two, asleep for the nap; the Santa hat is part of the head,
+  so the plan's hat lines are skipped; eyes are painted cells, so the nap's eyes close with the lids the face already has.
+- What the models could not do, and what was done instead (a sheep's legs are 0.16 of its height):
+  - The champion's front legs swing up 178 degrees and turn OUT 42 (a V, as in his picture), not in: raised they reach
+    the chin, and turned in they met over the mouth. On the cow and the horse the V clears the head; on the sheep it
+    frames the face. Moving the shoulders up opened dark holes where the legs leave the wool: never move a leg's root.
+  - The second sits with its body's front on the top's front edge, so its hips are 0.10 to 0.25 m behind the edge, not
+    0.04 W (its belly is in front of its hips); its hind legs rest where they clear the top (`hindRest`: sheep 42, pig 66,
+    cow 74, goat 68, horse 78, chicken 48 degrees, not 40), still swinging 12 either way and never touching the front.
+  - Tails that hang lower than the rump or the belly (pig, goat, horse) rest their tips inside the top, behind the body.
+  - One size: every place of a species is drawn at the smallest size any of its three fits at (the nap's), so first is no
+    longer "massive" and third no longer "short" (`PLACE_SIZE` is 1, 1, 1).
+- The island (island.ts): as the plan's section 4, with these readings: the front reaches 1.8 m past the crates (the
+  ripples need it); the snow is 0.3 m thick behind the step, 0.2 m in front; soil-1's lowest 0.1 m is two steps darker
+  (one step rendered as the same colour), because 0.3 m of one colour was 28 px at 1440 x 900, past the plan's 24 (now 21); the underside bands are their own mesh with no
+  shadow, or both tones went one grey under the rim; stones and roots are on the front face; trails run along their
+  own direction. The island, the pines, the lantern and its glass are one connected piece (island.test.ts).
+- Then, the same day: "now the podiums look sloppy and all the background stuff looks poorly done. i like your vision,
+  but maybe try and spend a little more time on perfecting the smaller details. additionally, try and go more for the
+  vibe of like those anime festivals while still being somewhat cohesive". So the podiums are festival stages and the
+  sky a festival night; the marquee bulbs, studded frieze, star badges, searchlights and pink party sky are gone.
+- The podiums (podium.ts): festival stages with the crate's footprint and heights, so every pose, plate and drift still
+  fits. Dark corner posts the full height; a dark plinth with a band of the place's metal (gold, silver, bronze);
+  upright slats with a shadowed gap between each two and a rail halfway up (the farm's fences); a red-and-white striped
+  curtain round the top, its stripes laid out from each face's middle so both ends match; a twisted rope of the metal
+  over it with a tassel on each front post; the deck and a red carpet edged in the metal; the number (a drawn bold 5 x 7)
+  in the metal's light on a lacquered sign framed in the metal, hung over the curtain so no name plate covers it; and a
+  red paper lantern on an iron arm at each front corner, its paper lit and a soft glow round it. Palette steps only.
+- The trophy (cup.ts, Prize.tsx): a tall gold cup with a ruby, looped handles and a star on its rim, drawn at 0.72,
+  lit from within, with a halo, slow rays and six sparkles; it floats 0.06 H over the hat, bobs 0.08 m and turns a
+  little. No light of its own (one whitened the champion's wool in version 2): the stage's one point light is still the
+  lantern's.
+- The sky (sky.ts, FestivalSky.tsx): a festival night. Painted bands behind the picture (night blue, indigo, plum, and
+  the festival's warm glow rising behind the island); a moon in pixel art (32 x 32, magnified with no smoothing: Brian
+  found the painted one "so out of theme") with far island C over it (`MOON`); stars, thinning toward the glow, a few
+  with a cross of light; sky lanterns rising and swaying (added light, so a faint one is a dim glow, never grey); and
+  fireworks in the open sky either side of the stage, never over the moon, the trophy or the podiums: a rocket climbs as
+  a short spark, then a peony (with an inner ring
+  in a second colour), a chrysanthemum, a ring or a golden willow opens, its sparks trailing and drooping a little, the
+  glittering kinds flickering as they fade (a stronger pull read as rain). Everything is placed by spots of the window
+  and sized by shares of its width, so it composes the same at every size. The far islands mix toward the band at their
+  height, the barn's windows are lit, and a string of festival lamps runs along each island's front edge (`farLights`).
+  No clouds: the long thin bands read as "a lot of these weird lines" (Brian); do not bring back thin streaks in the sky.
+  Light: a warm key as from lanterns, a cool sky fill over a warm ground, the moon's blue on the edges, the festival's
+  glow from below, a thin plum haze.
+- Framing (frame.ts): the plan's 66% holds only where the window is tall enough. With the trophy floating over the
+  champion on the 2.9 m podium, the fill is 57% at 1440 x 900, 50% at 1280 x 720 and 1920 x 1080, 65% on a 390 x 844
+  phone; every species makes its whole hop. Where a crate is drawn narrow, its plate's rank badge steps out
+  (`data-narrow`), never the figure.
+- Cost, measured back to back with version 2 (software rendering, 1440 x 900): 305 ms a frame against 302, 103k
+  triangles against 128k, 107 draws against 78. What keeps it there: flat faces merged (`merge` in the island, podium
+  and far-island meshes), the podiums solid inside, the sky lanterns and the trophy's sparkles one draw each
+  (`spritePoints`, boards/points.ts), each podium's lantern glows one, cloud quads only as tall as the clouds, and no
+  shadow from the underside, the lantern's iron or the podiums' trim.
+- The size budget was raised by 15,000 bytes (15.2 kB locally, all in the stage's own lazy chunk).

@@ -2,6 +2,20 @@
 
 All user-visible changes, newest first.
 
+## 0.9.5
+
+- The leaderboards' top three have new poses, all drawn the same size: first stands with both arms raised in a V and hops, a new golden trophy with a ruby and a star floating and glowing over its head; second sits on its podium's edge, turned to the winner, clapping, its legs swinging; third naps curled up with its eyes shut, its "z"s drifting up.
+- The podiums are festival stages: dark posts and slatted walls, a red-and-white striped curtain under a rope of gold, silver or bronze, the place's number on a lacquered sign, and a lit paper lantern at each front corner.
+- A festival night sky: a pixel-art moon under a far island, stars, paper sky lanterns rising, and fireworks that climb and open as peonies, chrysanthemums, rings and golden willows. The far islands have lit windows and strings of festival lights.
+- The island under them is rebuilt: level snow with one step, drifts, wind ripples and footprints, a clean rim of snow over soil with stones, roots and icicles, banded rock underneath with two floating rocks; the pines, fence, bales and a smaller lantern are spread so each is in full view, and the pines sway. Three small islands far off, one with a little red barn.
+
+## 0.9.4
+
+- The leaderboards are redrawn in Home's style: a night-blue bar with snow and the season's lights, the three boards as blocks, and one night-blue board (a sheet on a phone) with a lantern ribbon for each board's title, the list from fourth place as tiles, and your own row pinned at the foot with your place, avatar and figure.
+- The top three stand on the podium's crates on one snowy island, with two pines, a fence, hay bales and a lantern, and two small islands far off; no clouds. The camera looks straight on, so the three crates look the same size, and each name plate sits on its crate's front, all three on one line.
+- First place no longer glows, and third place sleeps on its crate instead of hanging off it.
+- Numbers line up digit under digit and are grouped the French way in French. Who can see the boards is under the "i" button, on phones too.
+
 ## 0.9.3
 
 - A kitchen garden in front of the farmhouse: six raised beds of kale, cabbages, leeks and a cold frame inside a white fence, with a path through its gate.

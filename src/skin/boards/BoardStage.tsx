@@ -1,252 +1,377 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
-import { Color, FogExp2, PCFShadowMap, SRGBColorSpace } from 'three';
-import type { BufferAttribute, BufferGeometry, Group, PerspectiveCamera } from 'three';
+import { AdditiveBlending, Box3, BufferGeometry, CanvasTexture, Color, Float32BufferAttribute, FogExp2, MeshBasicMaterial, PCFShadowMap, Points, PointsMaterial, SRGBColorSpace, Vector3 } from 'three';
+import type { Group, PerspectiveCamera } from 'three';
 import { isAdminAvatar } from '../../avatars/ids';
-import { useIsMobile } from '../../ui/hooks';
 import { AvatarDisc } from '../avatars/AvatarDisc';
 import { byId } from '../avatars/catalog';
-import { cloudSea, island } from '../dream/world';
-import { useMotionLevel } from '../hooks/useAmbient';
-import { BLAST_PALETTE } from '../shop/catalog';
-import { SHEEP_SCALE } from '../scene/layout';
-import { Dome } from '../scene/Sky';
-import { ScreenAnchor } from '../table/Anchors';
-import { blockGeometry, carvedGeometry } from '../table/Podium';
 import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
 import { Sheep } from '../table/Sheep';
-import type { SheepState } from '../table/Sheep';
 import { animalModel } from '../voxel/animals';
-import { cloudGrid, PROP_VOXEL } from '../voxel/burstProps';
+import type { Species } from '../voxel/animals/rig';
 import { buildGeometry } from '../voxel/mesher';
 import { voxelMaterial } from '../voxel/material';
-import { trophyGeometry } from '../voxel/trophy';
 import { LOOK } from '../look';
+import { FAR_SPOTS, inWindow, jumpFor, onCanvas, skyBehind, solveCamera, worldAt } from './frame';
+import type { FarName } from './frame';
+import { CELL, CRATE, CRATE_HEIGHTS, FAR, farIsland, farLights, islandGeometry, stageLayout } from './island';
+import type { IslandGeo, StageLayout } from './island';
+import { emptyRig, inCrate, NAP, placement, POSES, rigOf, sample, STAGGER } from './poses';
+import type { Place } from './poses';
+import { podiumGeometry, podiumVoxels } from './podium';
+import { FestivalSky } from './FestivalSky';
+import { Prize } from './Prize';
+import { PARTY_FOG } from './sky';
 
 /**
- * The leaderboards' stage (Brian, 2026-11-14: "dont make the scenery for this one a barn, maybe place them up on
- * pedastals on the sky with nonchalant poses, like 3rd place sleeping on his belly with his legs dangling off the
- * pedastal"). A clear winter sky over a sea of cloud fills the screen; the first three lounge on the victory podium's
- * own timber blocks (gold, silver and bronze bands, gilded numerals), each a metre taller and standing on its own island
- * of snow and cloud. First sits back beside the trophy, second sits on the edge kicking its heels, third is asleep on
- * its belly with its legs hanging down the front. The page lays its board over the right of the sky; the camera is
- * solved from the free part of the screen (`windowEl`) so the three always fill it.
+ * The leaderboards' stage (docs/leaderboards/LEADERBOARDS-PLAN.md section 8, Brian, 2026-11-21; its 8.1 and 8.4
+ * replaced by docs/leaderboards/LEADERBOARDS-PLAN-V3.md and his message of 2026-11-22). Three podiums of gold, silver
+ * and bronze (podium.ts) stand on one snowy island (island.ts) under a party sky (PartySky.tsx), three small islands far
+ * off. On them the first three hold this stage's own poses (poses.ts), one size for all: first with its arms up in a V
+ * and the trophy floating and glowing over it (Prize.tsx), second sat on its podium's edge clapping, third asleep as a
+ * loaf. The camera (frame.ts) looks straight on and 10 degrees down through a long lens, slid so the podiums are centred
+ * in the part of the screen the board leaves (`windowEl`). Each name plate hangs on its podium's front, 10 px over its
+ * foot, all three on one line; they, the third's "z"s, the far islands and the sky's things are placed when the window
+ * or the camera changes, never each frame.
  */
 export interface StageSeat { place: 1 | 2 | 3; you: boolean; avatar: string | null; taken: boolean }
 
-/**
- * Each place: its pedestal's height (the podium's block made taller by `lift`), which side it stands, how the animal lies
- * on it and how big it is drawn. The champion's pedestal stands well over the others and the champion is drawn a size up,
- * at the front of its top, so it is the biggest and highest of the three wherever the camera is (second sits on the very
- * edge, nearer the camera, and drew bigger before).
- */
-const SEATS = [
-  { lift: 1.4, side: 0, state: 'lounge', at: [-0.12, 0.12, 0.34], turn: [0, -0.5, 0.1], size: 1.22 },
-  { lift: 1, side: -1, state: 'perch', at: [0, 0.06, 1.11], turn: [0, -0.25, 0], size: 1 },
-  { lift: 1, side: 1, state: 'flop', at: [-0.2, -0.34, 0.47], turn: [0, -Math.PI / 2, 0], size: 1 },
-] as const;
-const HEIGHTS = [2.9, 2.1, 1.8];
-/** The camera's distance, and the height it stands at and looks along (level, so every hero is against open sky). */
-const D = 16.7;
-/**
- * What must fit in the window, in metres: from the islands' undersides (on a narrow screen, from their tops: the sky strip
- * is short and the undersides were a pale band) to the top of the champion's hat.
- */
-const LOW = -1.05, LOW_NARROW = -0.3, HIGH = 4.75;
-/** The numeral board hangs this far under a pedestal's top, and is this tall. */
-const BOARD = 0.4, NUMERAL = 0.66;
+/** Where the stage's three places stand in `stageLayout`'s list (second on the left, first in the middle, third right). */
+const COLUMN = [1, 0, 2] as const;
+const RAD = Math.PI / 180;
+/** Pines sway 1.5 degrees each way, every 5.0 s (left) and 6.2 s (right); the rocks bob 0.04 m; the far islands 0.06 m (4.3, 4.4, 4.5). */
+const SWAY = { deg: 1.5, periods: [5, 6.2] }, ROCK = { m: 0.04, periods: [4, 5.2] }, DRIFT = { m: 0.06, periods: { A: 7, B: 8.5, C: 10 } as Record<FarName, number> };
 
-export default function BoardStage({ seats, plaques, windowEl }: { seats: StageSeat[]; plaques: ReactNode[]; windowEl: RefObject<HTMLDivElement | null> }) {
-  const reduced = useMotionLevel() === 'reduced';
-  const phone = useIsMobile();
-  const [gap, setGap] = useState(2.2);
-  const layer = useRef<HTMLDivElement>(null);
-  const anchors = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
+/**
+ * Development only: `?lbAnimal=cow` puts that species in every place, and `?lbTime=1.2` holds every loop at that many
+ * seconds after its own start, for the pull request's pictures.
+ */
+const DEV = import.meta.env.DEV && typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
+const DEV_ANIMAL = (DEV?.get('lbAnimal') ?? null) as Species | null;
+const DEV_TIME = DEV?.get('lbTime') != null ? Number(DEV.get('lbTime')) : null;
+
+/** Which animal holds a place: you wear your own; everyone else is the sheep (the boards carry names, not avatars). */
+const speciesOf = (seat?: StageSeat): Species => DEV_ANIMAL ?? (seat?.you ? ((byId(seat.avatar ?? undefined)?.animal ?? 'sheep') as Species) : 'sheep');
+
+export default function BoardStage({ seats, plates, windowEl, phone, reduced, u }: {
+  seats: StageSeat[]; plates: ReactNode[]; windowEl: RefObject<HTMLDivElement | null>; phone: boolean; reduced: boolean; u: number;
+}) {
+  const layout = useMemo(() => stageLayout(phone), [phone]);
+  // One stable set of anchors, so a new board (a tab pressed) never re-runs the camera and the plates' placing.
+  const anchors = useRef([createRef<HTMLDivElement>(), createRef<HTMLDivElement>(), createRef<HTMLDivElement>()]).current;
+  const fars = useRef<Record<FarName, Vector3 | null>>({ A: null, B: null, C: null }).current;
+  const jumps = useRef(new Map<Species, number>()).current;
+  const z = useRef<HTMLDivElement>(null);
+  // A spot of the window as a point in the world, for the sky's clouds, lights and fireworks; renewed with the camera.
+  const place = useRef<((fx: number, fy: number, k: number) => Vector3 | null) | null>(null);
+  const [skyVersion, setSkyVersion] = useState(0);
+  const onPlaced = useCallback(() => setSkyVersion((v) => v + 1), []);
+  const kinds = [speciesOf(seats[0]), speciesOf(seats[1]), speciesOf(seats[2])] as const;
+  // A new holder of a place takes its rest pose at once and starts its loop from 0 (3.1): its key changes.
+  const who = (s?: StageSeat) => `${s?.taken ? 1 : 0}|${s?.you ? 1 : 0}|${s?.avatar ?? ''}|${speciesOf(s)}`;
   return (
-    <div className="sk-lb-stage" aria-hidden="true">
+    <div className="lb-stage" aria-hidden="true">
       <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="boards-sky" shadows={{ type: PCFShadowMap }}
         gl={{ outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, antialias: true }}
-        camera={{ fov: 20, position: [0, (LOW + HIGH) / 2, D], near: 0.5, far: 600 }}
+        camera={{ fov: 28, position: [0, 4, 15], near: 0.5, far: 600 }}
       >
-        <Frame windowEl={windowEl} layer={layer} onGap={setGap} />
-        <Air phone={phone} />
-        {/* The farm's day dome, pressed flat so its deep blue comes down to the heroes' heads. No snowfall up here. */}
-        <group scale={[1, 0.3, 1]}><Dome hour="day" /></group>
-        <Sea phone={phone} />
-        <Puffs reduced={reduced} />
-        {SEATS.map((s, i) => (
-          <Pedestal key={i} place={(i + 1) as 1 | 2 | 3} x={s.side * gap} seat={seats[i]} reduced={reduced} plaque={anchors[i]} z={i === 2 ? anchors[3] : undefined} />
+        <Frame windowEl={windowEl} layout={layout} phone={phone} u={u} anchors={anchors} z={z} fars={fars} jumps={jumps} champ={kinds[0]} nap={kinds[2]}
+          place={place} onPlaced={onPlaced} />
+        <Air />
+        <FestivalSky place={place} version={skyVersion} reduced={reduced} />
+        <Ground layout={layout} phone={phone} reduced={reduced} />
+        {(Object.keys(FAR_SPOTS) as FarName[]).map((n) => <Far key={n} name={n} phone={phone} reduced={reduced} fars={fars} />)}
+        {([1, 2, 3] as const).map((p) => (
+          <Podium key={p} place={p} x={layout.x[COLUMN[p - 1]]} reduced={reduced}>
+            {seats[p - 1]?.taken && <Lounger key={who(seats[p - 1])} seat={seats[p - 1]} species={kinds[p - 1]} reduced={reduced} jumps={jumps} />}
+          </Podium>
         ))}
         <MarkDrawn />
       </AdaptiveCanvas>
-      <div ref={layer} className="sk-lb-plaques">
-        {plaques.map((p, i) => <div key={i} ref={anchors[i]}>{p}</div>)}
-        <div ref={anchors[3]}>{seats[2]?.taken && !reduced && <span className="sk-lb-z"><i>z</i><i>z</i><i>z</i></span>}</div>
+      <div className="lb-plates">
+        {plates.map((p, i) => <div key={i} ref={anchors[i]} className="lb-plate-at">{p}</div>)}
+        <div ref={z} className="lb-plate-at">
+          {seats[2]?.taken && !(seats[2].you && isAdminAvatar(seats[2].avatar)) && (
+            <span key={who(seats[2])} className="lb-z" data-still={reduced || DEV_TIME != null ? '' : undefined}><i>z</i><i>z</i><i>z</i></span>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * The camera: level, at a fixed distance. The free window's size sets the scale (metres to pixels) so the three fill it,
- * the gap between the pedestals takes up any spare width, and the view is slid so the champion stands on the window's
- * centre line. Written again whenever the window or the canvas changes size.
+ * Stands the camera (frame.ts) whenever the window or the canvas changes size, and at no other time; then puts each
+ * plate on its crate, the third's "z"s over its head, and the far islands in their places, and works out how high the
+ * champion may hop so its trophy stays under the lights.
  */
-function Frame({ windowEl, layer, onGap }: { windowEl: RefObject<HTMLDivElement | null>; layer: RefObject<HTMLDivElement | null>; onGap: (g: number) => void }) {
+function Frame({ windowEl, layout, phone, u, anchors, z, fars, jumps, champ, nap, place, onPlaced }: {
+  windowEl: RefObject<HTMLDivElement | null>; layout: StageLayout; phone: boolean; u: number;
+  anchors: RefObject<HTMLDivElement | null>[]; z: RefObject<HTMLDivElement | null>; fars: Record<FarName, Vector3 | null>;
+  jumps: Map<Species, number>; champ: Species; nap: Species;
+  place: { current: ((fx: number, fy: number, k: number) => Vector3 | null) | null }; onPlaced: () => void;
+}) {
   const camera = useThree((st) => st.camera) as PerspectiveCamera;
   const gl = useThree((st) => st.gl);
   const size = useThree((st) => st.size);
+  const invalidate = useThree((st) => st.invalidate);
   useEffect(() => {
     const el = windowEl.current;
     if (!el) return;
     const fit = () => {
       const c = gl.domElement.getBoundingClientRect(), r = el.getBoundingClientRect();
-      if (!r.width || !r.height || !c.height) return;
-      const wide = c.width >= 1000, low = wide ? LOW : LOW_NARROW;
-      // Air kept clear over the hats (the lights under the beam) and under the islands.
-      const top = wide ? 40 : 6, foot = wide ? 4 : 6;
-      const s = Math.min(r.width / 6.8, (r.height - top - foot) / (HIGH - low));
-      // Spare width spreads the pedestals (more on a tablet, whose strip is wide and short).
-      const g = Math.min(wide ? 2.7 : 3.4, Math.max(1.9, (r.width / s - 2.5) / 2));
-      camera.fov = (2 * Math.atan(c.height / (2 * s * D)) * 180) / Math.PI;
-      camera.position.set(0, (low + HIGH) / 2, D);
-      camera.lookAt(0, (low + HIGH) / 2, 0);
-      // The three stand on the window's foot; any spare height is sky over their heads, never a pale floor under them.
-      const cx = r.left - c.left + r.width / 2, cy = r.bottom - c.top - foot - ((HIGH - low) / 2) * s;
-      camera.setViewOffset(c.width, c.height, c.width / 2 - cx, c.height / 2 - cy, c.width, c.height);
-      camera.updateProjectionMatrix();
-      layer.current?.style.setProperty('--lb-block', `${Math.round(1.4 * s)}px`);
-      onGap(Math.round(g * 100) / 100);
+      if (!r.width || !r.height || !c.height || !c.width) return;
+      const cw = c.width, ch = c.height, win = { left: r.left - c.left, top: r.top - c.top, width: r.width, height: r.height };
+      const solved = solveCamera(camera, cw, ch, win, u, phone, layout, groundOf(layout, phone).foot);
+      jumps.set(champ, jumpFor(champ, camera, cw, ch, solved.limit));
+      const at = (x: number, y: number, zz: number) => onCanvas(camera, cw, ch, x, y, zz);
+      // The plates: each centred on its crate's front face, 10 px over its foot; as wide as the crate allows.
+      [0, 1, 2].forEach((i) => {
+        const node = anchors[i].current;
+        if (!node) return;
+        const x = layout.x[COLUMN[i]], [fx, fy] = at(x, 0, CRATE.d / 2), w = at(x + CRATE.w / 2, 0, CRATE.d / 2)[0] - at(x - CRATE.w / 2, 0, CRATE.d / 2)[0];
+        node.style.transform = `translate3d(${fx.toFixed(1)}px, ${(fy - 10 * u).toFixed(1)}px, 0)`;
+        node.style.setProperty('--crate-w', `${Math.round(w)}px`);
+        node.style.setProperty('--left', `${Math.round(fx)}px`);
+        node.style.setProperty('--right', `${Math.round(cw - fx)}px`);
+        // Too narrow for the rosette, the badge and the whole figure: the badge steps out (boards.css).
+        if (!phone && w < 106 * u + 8) node.dataset.narrow = ''; else delete node.dataset.narrow;
+      });
+      // Third place's letters rise from 0.1 H over the top of its head, on its right (3.5).
+      if (z.current) {
+        const m = animalModel(nap), pl = placement(nap, 3), x3 = layout.x[COLUMN[2]];
+        const box = new Box3().setFromPoints(inCrate(m, NAP, rigOf(m, NAP, NAP.rest, pl.fit), pl.k, pl.at).get('head')!);
+        const [hx, hy] = at(x3 + box.max.x, CRATE_HEIGHTS[2] + box.max.y + 0.1 * pl.H, (box.min.z + box.max.z) / 2);
+        const H = at(x3, CRATE_HEIGHTS[2] + pl.H, 0)[1] - at(x3, CRATE_HEIGHTS[2], 0)[1];
+        z.current.style.transform = `translate3d(${hx.toFixed(1)}px, ${hy.toFixed(1)}px, 0)`;
+        z.current.style.setProperty('--zh', `${Math.abs(H).toFixed(1)}px`);
+      }
+      // The far islands: each middle on its place in the window, as far off as 4.5 says.
+      (Object.keys(FAR_SPOTS) as FarName[]).forEach((n) => {
+        const [fx, fy] = inWindow(n);
+        fars[n] = worldAt(camera, cw, ch, win.left + fx * win.width, win.top + fy * win.height, FAR_SPOTS[n].k);
+      });
+      // The sky's things are placed by the same spots of the window, much further off.
+      place.current = (fx, fy, k) => worldAt(camera, cw, ch, win.left + fx * win.width, win.top + fy * win.height, k);
+      onPlaced();
+      invalidate();
     };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [camera, gl, windowEl, layer, onGap, size.width, size.height]);
+  }, [camera, gl, windowEl, layout, phone, u, anchors, z, fars, jumps, champ, nap, place, onPlaced, invalidate, size.width, size.height]);
   return null;
 }
 
-/** A clear winter day, its haze thin enough for the far cloud to show: the farm's own day light, without the barn's lanterns. */
-function Air({ phone }: { phone: boolean }) {
+/**
+ * The festival night's light (Brian, 2026-11-22): a warm key from the upper left, as from the festival's lanterns, that
+ * throws the shadows; a cool fill from the night sky over a warm ground; the moon's pale blue on the edges from behind;
+ * and the festival's glow from below and in front, warm on the island's underside. A thin plum haze.
+ */
+function Air() {
   const scene = useThree((st) => st.scene);
-  useEffect(() => {
-    scene.fog = new FogExp2('#D3E6F4', 0.009);
-    scene.background = new Color('#BFE1F3');
-  }, [scene]);
+  useEffect(() => { scene.fog = new FogExp2(PARTY_FOG, 0.008); }, [scene]);
   return (
     <>
-      <hemisphereLight args={['#AEBEDA', '#8C8A86', 0.7]} />
-      <directionalLight position={[-9, 13, 15]} color="#FFE8C8" intensity={1.9} castShadow shadow-mapSize={phone ? [1024, 1024] : [2048, 2048]}
-        shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-left={-7} shadow-camera-right={7} shadow-camera-top={7} shadow-camera-bottom={-4} shadow-camera-far={60} />
+      <hemisphereLight args={['#8C96E2', '#D38C6C', 0.85]} />
+      <directionalLight position={[-9, 13, 15]} color="#FFD9B0" intensity={1.75} castShadow shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={7} shadow-camera-bottom={-4.5} shadow-camera-far={60} />
+      <directionalLight position={[7, 8, -10]} color="#A9C4FF" intensity={0.85} />
+      <directionalLight position={[0, -5, 8]} color="#FF946A" intensity={0.4} />
     </>
   );
 }
 
+const grounds = new Map<string, IslandGeo>();
+const groundOf = (layout: StageLayout, phone: boolean) => {
+  const key = phone ? 'phone' : 'desk';
+  let geo = grounds.get(key);
+  if (!geo) grounds.set(key, (geo = islandGeometry(layout)));
+  return geo;
+};
 /**
- * The dream's cloud is lilac, for its violet night. Under a day sky that reads as stone, so here every colour keeps a
- * quarter of its tint and is lifted a little: white cloud, cool in its shadows.
+ * The island under the crates with everything fixed on it; the lantern and its lit glass, its light inside the glass;
+ * the icicles; the two pines, each swaying about its trunk's foot; the two rocks under the tip, bobbing.
  */
-function whiten<T extends BufferGeometry>(g: T): T {
-  const c = g.getAttribute('color') as BufferAttribute;
-  for (let i = 0; i < c.count; i++) {
-    const r = c.getX(i), gr = c.getY(i), b = c.getZ(i), l = 0.2126 * r + 0.7152 * gr + 0.0722 * b;
-    c.setXYZ(i, (l + (r - l) * 0.25) * 1.06, (l + (gr - l) * 0.25) * 1.07, (l + (b - l) * 0.25) * 1.1);
-  }
-  return g;
-}
-
-/** The sea of cloud far below, the dream's own bank (built once, whitened), hazed by the distance. */
-let sea: BufferGeometry | null = null;
-let seaPhone: BufferGeometry | null = null;
-function Sea({ phone }: { phone: boolean }) {
-  const geo = phone ? (seaPhone ??= whiten(cloudSea(true))) : (sea ??= whiten(cloudSea(false)));
-  const mat = useMemo(cloudMaterial, []);
-  return <mesh geometry={geo} material={mat} position={[-32, -15, -40]} />;
-}
-
-/** White puffs of cloud drifting slowly past, between the pedestals and behind them: x, y, z, size, drift (m a second). */
-// Low, below every pedestal's top: they drift behind the timber shafts, never behind a head (cream sheep on white cloud
-// lost their outline).
-const PUFFS = [[-7, -2.4, -14, 2.4, 0.12], [7.5, -1.6, -18, 2.8, -0.1], [0.5, -3.4, -24, 3.2, 0.07]] as const;
-let puff: BufferGeometry | null = null;
-const cloudMaterial = () => voxelMaterial({ emissive: '#9FB4D6', emissiveIntensity: 0.4 });
-function Puffs({ reduced }: { reduced: boolean }) {
-  const geo = (puff ??= buildGeometry(cloudGrid(BLAST_PALETTE['blast-snowfall']).map, PROP_VOXEL));
-  const mat = useMemo(cloudMaterial, []);
-  const refs = useRef<(Group | null)[]>([]);
+function Ground({ layout, phone, reduced }: { layout: StageLayout; phone: boolean; reduced: boolean }) {
+  const geo = groundOf(layout, phone);
+  const mat = useMemo(() => voxelMaterial(), []);
+  const lit = useMemo(() => voxelMaterial({ emissive: '#FFB45A', emissiveIntensity: 0.85 }), []);
+  const pines = useRef<(Group | null)[]>([]), rocks = useRef<(Group | null)[]>([]);
   useFrame(({ clock }) => {
     if (reduced) return;
-    refs.current.forEach((g, i) => {
-      // Across and back round again, out of sight beyond 14 m either side.
-      if (g) g.position.x = ((PUFFS[i][0] + PUFFS[i][4] * clock.elapsedTime + 14) % 28 + 28) % 28 - 14;
-    });
+    const t = clock.elapsedTime;
+    pines.current.forEach((g, i) => { if (g) g.rotation.z = SWAY.deg * RAD * Math.sin((2 * Math.PI * t) / SWAY.periods[i]); });
+    rocks.current.forEach((g, i) => { if (g) g.position.y = geo.rocks[i].at[1] + ROCK.m * Math.sin((2 * Math.PI * t) / ROCK.periods[i]); });
   });
-  return <>{PUFFS.map(([x, y, z, k], i) => (
-    <group key={i} ref={(g) => { refs.current[i] = g; }} position={[x, y, z]} scale={k}><mesh geometry={geo} material={mat} /></group>
-  ))}</>;
+  return (
+    <group>
+      <mesh geometry={geo.body} material={mat} castShadow receiveShadow />
+      {/* The underside's bands take no shadow (under the rim's they were one grey, and 4.3 wants them told apart) and cast
+          none (it would fall on nothing in view); nor do the small lantern's iron and the podiums' trim. */}
+      <mesh geometry={geo.under} material={mat} />
+      <mesh geometry={geo.lantern} material={mat} />
+      <mesh geometry={geo.glass} material={lit} />
+      {geo.icicles && <mesh geometry={geo.icicles} material={mat} />}
+      <pointLight position={geo.lamp} color="#FFD27A" intensity={0.6} distance={1.4} decay={2} />
+      {geo.pines.map((p, i) => (
+        <group key={i} ref={(g) => { pines.current[i] = g; }} position={p.at}>
+          <mesh geometry={p.geo} material={mat} castShadow receiveShadow />
+        </group>
+      ))}
+      {geo.rocks.map((r, i) => (
+        <group key={i} ref={(g) => { rocks.current[i] = g; }} position={r.at}>
+          <mesh geometry={r.geo} material={mat} />
+        </group>
+      ))}
+    </group>
+  );
 }
 
-const blocks: ReturnType<typeof blockGeometry>[] = [], boards: ReturnType<typeof carvedGeometry>[] = [];
-const isles: { body: BufferGeometry }[] = [];
-let cup: ReturnType<typeof trophyGeometry> | null = null;
+const farGeos = new Map<string, { geo: BufferGeometry; mid: Vector3 }>();
+/**
+ * A small island far off (4.5), its colours mixed toward the sky behind it, for a material that takes no light and no
+ * haze; its middle on the point `Frame` worked out for it, bobbing 0.06 m.
+ */
+function Far({ name, phone, reduced, fars }: { name: FarName; phone: boolean; reduced: boolean; fars: Record<FarName, Vector3 | null> }) {
+  const key = `${name}|${phone}`;
+  let hit = farGeos.get(key);
+  if (!hit) {
+    const sky = skyBehind(name);
+    const geo = buildGeometry(farIsland(FAR[name], [sky.r, sky.g, sky.b]).map, CELL, { ao: false, merge: true });
+    geo.computeBoundingBox();
+    farGeos.set(key, (hit = { geo, mid: geo.boundingBox!.getCenter(new Vector3()) }));
+  }
+  const { geo, mid } = hit;
+  const mat = useMemo(() => new MeshBasicMaterial({ vertexColors: true, fog: false }), []);
+  // Its string of festival lights: warm white, red and gold in turn, points that keep their size however far off.
+  const lights = useMemo(() => {
+    const at = farLights(FAR[name]), cols = ['#FFE9B8', '#FF6A5A', '#FFC65C'].map((c) => new Color(c));
+    const g = new BufferGeometry();
+    g.setAttribute('position', new Float32BufferAttribute(at.flat(), 3));
+    g.setAttribute('color', new Float32BufferAttribute(at.flatMap((_, i) => cols[i % 3].toArray()), 3));
+    return new Points(g, new PointsMaterial({ size: 4.5, sizeAttenuation: false, map: glowDot(), vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending, fog: false }));
+  }, [name]);
+  const ref = useRef<Group>(null);
+  useFrame(({ clock }) => {
+    const g = ref.current, at = fars[name];
+    if (!g || !at) return;
+    g.position.copy(at).sub(mid);
+    if (!reduced) g.position.y += DRIFT.m * Math.sin((2 * Math.PI * clock.elapsedTime) / DRIFT.periods[name]);
+  });
+  return <group ref={ref} position={[0, -999, 0]}><mesh geometry={geo} material={mat} /><primitive object={lights} /></group>;
+}
 
-/** One place: its island, its pedestal and numeral, whoever holds it lounging on top, and the anchor for its name. */
-function Pedestal({ place, x, seat, reduced, plaque, z }: { place: 1 | 2 | 3; x: number; seat?: StageSeat; reduced: boolean; plaque: RefObject<HTMLDivElement | null>; z?: RefObject<HTMLDivElement | null> }) {
-  const i = place - 1, s = SEATS[i], top = HEIGHTS[i];
-  blocks[i] ??= blockGeometry(place, s.lift);
-  boards[i] ??= carvedGeometry(place);
-  isles[i] ??= { body: whiten(island('windmill', 2.2, 0.95, 7 + place).body) };
+/** A small soft dot, drawn once, for the far islands' lights. */
+let dot: CanvasTexture | null = null;
+const glowDot = () => {
+  if (dot) return dot;
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const x = c.getContext('2d')!, g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.8)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+  dot = new CanvasTexture(c); dot.colorSpace = SRGBColorSpace;
+  return dot;
+};
+
+/** A soft warm glow, drawn once, for the podiums' lanterns. */
+let lanternGlow: CanvasTexture | null = null;
+const glowMap = () => {
+  if (lanternGlow) return lanternGlow;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d')!, g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,170,110,0.55)'); g.addColorStop(0.45, 'rgba(255,120,70,0.18)'); g.addColorStop(1, 'rgba(255,100,60,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  lanternGlow = new CanvasTexture(c); lanternGlow.colorSpace = SRGBColorSpace;
+  return lanternGlow;
+};
+
+/**
+ * One place: its festival stage (podium.ts) standing on the island, its two paper lanterns lit from within with a soft
+ * glow round each that breathes a little (still under reduced motion), and whoever holds it on top.
+ */
+function Podium({ place, x, reduced, children }: { place: Place; x: number; reduced: boolean; children?: ReactNode }) {
+  const top = CRATE_HEIGHTS[place - 1], geo = podiumGeometry(place, top);
   const mat = useMemo(() => voxelMaterial(), []);
-  const cloud = useMemo(cloudMaterial, []);
-  const g = useRef<Group>(null);
-  // Each island bobs a few centimetres on its own slow clock.
-  useFrame(({ clock }) => { if (g.current) g.current.position.y = reduced ? 0 : Math.sin(clock.elapsedTime * 0.5 + place * 1.7) * 0.05; });
+  const paper = useMemo(() => voxelMaterial({ emissive: '#FF6A3A', emissiveIntensity: 0.7 }), []);
+  const boxes = useMemo(() => podiumVoxels(place, top).lanterns, [place, top]);
+  // Both lanterns' glows in one draw: soft points that keep their size on screen to the lantern's.
+  const glows = useMemo(() => {
+    const g = new BufferGeometry();
+    g.setAttribute('position', new Float32BufferAttribute(boxes.flatMap((b) => [(b.x[0] + b.x[1]) / 2, (b.y[0] + b.y[1]) / 2 - 0.03, (b.z[0] + b.z[1]) / 2]), 3));
+    return new Points(g, new PointsMaterial({ size: 0.62, map: glowMap(), transparent: true, depthWrite: false, blending: AdditiveBlending }));
+  }, [boxes]);
+  useFrame(({ clock }) => {
+    const t = reduced ? 0 : clock.elapsedTime;
+    glows.material.size = 0.62 * (1 + 0.06 * Math.sin(t * 2.3 + place));
+  });
   return (
     <group position={[x, 0, 0]}>
-      <group ref={g}>
-        <mesh geometry={isles[i].body} material={cloud} receiveShadow />
-        <mesh geometry={blocks[i]} material={mat} castShadow receiveShadow />
-        <mesh geometry={boards[i]} material={mat} position={[0, top - BOARD - NUMERAL, 0.605]} />
-        {place === 1 && <Cup />}
-        {seat?.taken && <Lounger seat={seat} reduced={reduced} />}
-        {/* The name hangs in the middle of the timber between the numeral and the island, on every pedestal alike. */}
-        <ScreenAnchor el={plaque} position={[0, (top - BOARD - NUMERAL) / 2, 0.66]} />
-        {z && <ScreenAnchor el={z} position={[-0.62, top + 0.62, 0.7]} />}
-      </group>
+      <mesh geometry={geo.body} material={mat} castShadow receiveShadow />
+      <mesh geometry={geo.trim} material={mat} />
+      <mesh geometry={geo.paper} material={paper} />
+      <primitive object={glows} renderOrder={1} />
+      <group position={[0, top, 0]}>{children}</group>
     </group>
   );
 }
 
-/** The trophy, standing on the champion's pedestal beside them: never held, never thrown. */
-function Cup() {
-  const geo = (cup ??= trophyGeometry());
-  const gold = useMemo(() => voxelMaterial({ emissive: '#6A4500', emissiveIntensity: 0.35 }), []);
-  return (
-    <group position={[0.56, HEIGHTS[0], 0]} rotation={[0, -0.35, 0]}>
-      <mesh geometry={geo} material={gold} castShadow />
-      <pointLight position={[0, 0.5, 0.4]} color="#FFD27A" intensity={6} distance={3} decay={2} />
+/**
+ * The one who holds the place, in this stage's pose for it (poses.ts), on its own clock: the loops start 0, 0.8 and 1.6 s
+ * after the screen opens, stand still while the tab is hidden, and hold the rest pose under reduced motion. The Sheep
+ * component turns the parts (its `rig`); this group lifts the whole avatar for the hop and squashes and pulses it about
+ * where its weight bears. The trophy is held in the same group, so it rises and squashes with the hooves that hold it.
+ */
+function Lounger({ seat, species, reduced, jumps }: { seat: StageSeat; species: Species; reduced: boolean; jumps: Map<Species, number> }) {
+  const place = seat.place, def = POSES[place];
+  const m = animalModel(species);
+  const pl = placement(species, place);
+  const pose = useRef(sample(def, 0));
+  const out = useRef(emptyRig());
+  const clock = useRef({ t: 0, last: NaN });
+  const wrap = useRef<Group>(null), held = useRef<Group>(null);
+  const rig = useMemo(() => (t: number) => {
+    const c = clock.current;
+    const dt = Number.isNaN(c.last) ? 0 : Math.min(0.1, Math.max(0, t - c.last));
+    c.last = t;
+    if (typeof document === 'undefined' || !document.hidden) c.t += dt;
+    const lt = DEV_TIME ?? c.t - STAGGER[place];
+    if (reduced || lt < 0) sample(def, 0, 0, pose.current);
+    else sample(def, lt, Math.floor(lt / def.loop), pose.current);
+    return rigOf(m, def, pose.current, pl.fit, out.current);
+  }, [def, m, pl, place, reduced]);
+  useFrame(() => {
+    const p = pose.current, w = wrap.current;
+    if (!w) return;
+    const j = place === 1 ? jumps.get(species) ?? 1 : 1;
+    w.position.set(pl.pivot[0], pl.pivot[1] + p.lift * pl.H * j, pl.pivot[2]);
+    w.scale.set(p.pulse / Math.sqrt(p.squash), p.pulse * p.squash, p.pulse / Math.sqrt(p.squash));
+    if (held.current) {
+      held.current.position.set(pl.trophy[0], pl.trophy[1] + p.trophyLift * pl.H * j, pl.trophy[2]);
+      held.current.rotation.z = -p.trophyRoll * RAD;
+    }
+  });
+  // The photo has no legs to pose: it stands on the top facing us, asleep or thinking, as since 2026-11-14.
+  if (seat.you && isAdminAvatar(seat.avatar)) return (
+    <group position={[0, 0, 0.2]} scale={0.45}>
+      <AvatarDisc state={place === 3 ? 'sleeping' : 'thinking'} reduced={reduced} avatar={seat.avatar} />
     </group>
   );
-}
-
-/** The one who holds the place, at ease on the pedestal. Everyone is the sheep but you, who wear your own avatar. */
-function Lounger({ seat, reduced }: { seat: StageSeat; reduced: boolean }) {
-  const s = SEATS[seat.place - 1];
-  const admin = seat.you && isAdminAvatar(seat.avatar);
-  const model = seat.you ? byId(seat.avatar ?? undefined) : undefined;
-  const k = SHEEP_SCALE * s.size * animalModel(model?.animal ?? 'sheep').drawScale;
-  const top = HEIGHTS[seat.place - 1];
-  // The photo has no legs to hang: it stands on the top facing us, asleep or thinking.
-  if (admin) return (
-    <group position={[0, top, 0.2]} scale={0.45}>
-      <AvatarDisc state={seat.place === 3 ? 'sleeping' : 'thinking'} reduced={reduced} avatar={seat.avatar} />
-    </group>
-  );
   return (
-    <group position={[s.at[0], top + s.at[1], s.at[2]]} rotation={[s.turn[0], s.turn[1], s.turn[2]]}>
-      <group scale={k}>
-        <Sheep level={2} state={s.state as SheepState} reduced={reduced} scarf={seat.place === 1} model={model ? animalModel(model.animal) : undefined} />
+    <group ref={wrap}>
+      <group position={[-pl.pivot[0], -pl.pivot[1], -pl.pivot[2]]}>
+        <group position={pl.at} rotation={[0, def.turn * RAD, 0]}>
+          <group scale={pl.k}>
+            <Sheep level={2} state={place === 3 ? 'sleeping' : 'idle'} still reduced={reduced} scarf={place === 1} model={m} rig={rig} />
+          </group>
+        </group>
+        {place === 1 && (
+          <group ref={held} position={pl.trophy}>
+            <Prize reduced={reduced} />
+          </group>
+        )}
       </group>
     </group>
   );

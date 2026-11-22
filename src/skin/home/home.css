@@ -253,24 +253,36 @@
 
 /* ---------- The setup sheets: Create lobby and Practice (SetupSheet.tsx) ----------
    Brian, 2026-11-22, of the old cards: "poorly done, its just another plain card"; he chose layout B of three, "but
-   better". The sheet comes out of the panel: it starts just right of the panel's edge at 12% of its height and leans
-   with it (the edge's lean is tan 11 degrees exactly: --lean is 0.097 of --ph, and 2 x 0.097 = tan 11), with the panel's
-   lantern stripe down its left side. Rows and choices lean with it; their text stands upright (`.hm-setup-up`). On a
-   phone the sheet is upright in the bottom sheet and each row leans 6 degrees by itself, as the phone's menu does. */
+   better"), then "i dont want it growing out of the menu ... now it just looks the same as the side bar": a sheet of its
+   own, floating in the middle of the scenery with a clear gap from the panel, leaning 11 degrees about its own middle, a
+   lighter face than the panel's with a lantern band on top and darker sunken rows. Rows and choices lean with it; their
+   text stands upright (`.hm-setup-up`). On a phone the sheet is upright in the bottom sheet and each row leans 6 degrees
+   by itself, as the phone's menu does. */
 .hm { --un: 11deg; }
 .hm[data-phone] { --un: 6deg; }
-.hm:not([data-phone]) .hm-panel-slot--lean { left: calc(var(--mid) + 0.76 * var(--lean) - 3 * var(--u)); top: calc(var(--ph) * 0.12); transform: none;
-  width: min(calc(610 * var(--u)), calc(100vw - var(--mid) - 0.76 * var(--lean) - 21 * var(--u))); max-height: none; overflow: visible; }
-.hm-setup { position: relative; isolation: isolate; display: flex; flex-direction: column; max-height: calc(var(--ph) * 0.86); padding: calc(16 * var(--u)) calc(22 * var(--u)) calc(20 * var(--u)) calc(30 * var(--u));
-  transform: skewX(-11deg); transform-origin: 0 0; animation: hm-setup-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-@keyframes hm-setup-in { from { opacity: 0; translate: calc(-36 * var(--u)) 0; } }
-.hm-setup-face { position: absolute; z-index: -1; inset: 0; overflow: hidden; clip-path: var(--px); background: var(--hm-night) var(--knit); background-size: calc(16 * var(--u)) calc(12 * var(--u)); }
-/* Its edges over the drifting words: the outline, the lantern stripe it shares with the panel's edge, a lit top, a dark foot. */
-.hm-setup-face::after { content: ''; position: absolute; inset: 0;
-  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset calc(12 * var(--u)) 0 0 var(--hm-lantern), inset calc(16 * var(--u)) 0 0 var(--hm-ink),
-    inset 0 calc(6 * var(--u)) 0 var(--hm-night-3), inset 0 calc(-7 * var(--u)) 0 var(--hm-night-deep); }
-/* The word chains drift behind it as they do behind the panel, upright and faint. */
-.hm-setup-words { position: absolute; inset: -30% -20%; display: flex; flex-direction: column; justify-content: center; gap: calc(10 * var(--u)); transform: skewX(var(--un)) rotate(-6deg); }
+.hm:not([data-phone]) .hm-panel-slot--lean {
+  --setup-h: min(calc(var(--ph) * 0.86), calc(560 * var(--u)));
+  /* The lean throws the corners out by a tenth of the sheet's height each side; width and place leave room for that.
+     Centred over the scenery; on a window too narrow for that it slides left over the dimmed menu only as far as it must. */
+  --setup-w: min(calc(600 * var(--u)), calc(100vw - 40 * var(--u) - 0.194 * var(--setup-h)));
+  left: min(calc((var(--mid) + 100vw) / 2), calc(100vw - var(--setup-w) / 2 - 20 * var(--u) - 0.097 * var(--setup-h)));
+  top: calc(50% - var(--foot) / 2); transform: translate(-50%, -50%); width: var(--setup-w); max-height: none; overflow: visible; }
+.hm:not([data-phone]) .hm-panel-slot--lean .hm-setup { max-height: var(--setup-h); }
+/* A narrow window leaves the sheet narrow: each row puts its name over its choices, as on a phone, and the title shrinks. */
+.hm-setup { container-type: inline-size; }
+@container (max-width: 500px) {
+  .hm-setup .hm-setup-row { flex-wrap: wrap; row-gap: calc(8 * var(--u)); }
+  .hm-setup .hm-setup-lead { width: 100%; }
+  .hm-setup .hm-setup-head h2 { font-size: calc(22 * var(--u)); }
+}
+@container (max-width: 360px) { .hm-setup .hm-setup-kicker { display: none; } }
+.hm-setup { position: relative; isolation: isolate; display: flex; flex-direction: column; max-height: calc(var(--ph) * 0.86); padding: calc(18 * var(--u)) calc(22 * var(--u)) calc(20 * var(--u));
+  transform: skewX(-11deg); transform-origin: 50% 50%; animation: hm-setup-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes hm-setup-in { from { opacity: 0; translate: 0 calc(12 * var(--u)); } }
+/* Its face: lighter than the panel, knitted, an ink outline, a lantern band on top and a dark foot; a hard shadow under it. */
+.hm-setup-face { position: absolute; z-index: -1; inset: 0; clip-path: var(--px); background: var(--hm-night-2) var(--knit); background-size: calc(16 * var(--u)) calc(12 * var(--u));
+  box-shadow: inset 0 calc(5 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-7 * var(--u)) 0 var(--hm-night-deep); }
+.hm:not([data-phone]) .hm-setup { filter: var(--shadow); }
 .hm-setup-up { display: inline-flex; align-items: center; gap: calc(8 * var(--u)); transform: skewX(var(--un)); }
 .hm-setup-head { position: relative; display: flex; align-items: center; gap: calc(12 * var(--u)); transform: skewX(var(--un)); transform-origin: 0 100%; }
 .hm-setup-kicker { flex: none; display: inline-flex; align-items: center; height: calc(24 * var(--u)); padding: 0 calc(10 * var(--u)); clip-path: var(--px);
@@ -283,8 +295,8 @@
 .hm-setup-rows > * { flex: none; }
 /* A row: a night block with an ink outline, a lit top step and a dark lip, like a menu block turned dark. */
 .hm-setup-row { position: relative; isolation: isolate; display: flex; align-items: center; gap: calc(12 * var(--u)); min-width: 0; margin: 0; padding: calc(9 * var(--u)) calc(12 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u)); border: 0; }
-.hm-setup-row::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px); background: var(--hm-night-2);
-  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(2 * var(--s)) 0 var(--hm-night-3), inset 0 calc(-1 * (var(--s) + 3 * var(--u))) 0 var(--hm-night-deep); }
+.hm-setup-row::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px); background: var(--hm-night);
+  box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-night-deep), inset 0 calc(-2 * var(--u)) 0 var(--hm-night-3); }
 .hm-setup-lead { flex: none; width: calc(128 * var(--u)); gap: calc(10 * var(--u)); }
 .hm-setup-ico { --s: calc(2 * var(--u)); flex: none; display: grid; place-items: center; width: calc(36 * var(--u)); height: calc(36 * var(--u)); clip-path: var(--px); color: var(--hm-wool);
   background: var(--hm-ink); box-shadow: inset 0 calc(-3 * var(--u)) 0 var(--hm-ink-side); }
@@ -322,8 +334,7 @@
 .hm[data-phone] .hm-setup-kicker { height: 20px; padding: 0 7px; font-size: 10px; letter-spacing: 0.08em; }
 .hm[data-phone] .hm-setup-head h2 { font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hm[data-phone] .hm-setup-choices { gap: 4px; }
-@media (max-width: 360px) { .hm[data-phone] .hm-setup-head h2 { font-size: 19px; } .hm[data-phone] .hm-setup-kicker { display: none; } .hm[data-phone] .hm-setup-go-text small { font-size: 11px; } .hm[data-phone] .hm-setup-go-in { gap: 8px; } .hm[data-phone] .hm-setup-go-ico { width: 36px; height: 36px; } .hm[data-phone] .hm-setup-go-ico img { width: 24px; height: 24px; } }
-.hm[data-phone] .hm-setup-words { transform: rotate(-6deg); }
+@media (max-width: 360px) { .hm[data-phone] .hm-setup-choices:has(> :nth-child(4):last-child) { grid-auto-flow: row; grid-template-columns: repeat(2, 1fr); } .hm[data-phone] .hm-setup-head h2 { font-size: 19px; } .hm[data-phone] .hm-setup-kicker { display: none; } .hm[data-phone] .hm-setup-go-text small { font-size: 11px; } .hm[data-phone] .hm-setup-go-in { gap: 8px; } .hm[data-phone] .hm-setup-go-ico { width: 36px; height: 36px; } .hm[data-phone] .hm-setup-go-ico img { width: 24px; height: 24px; } }
 .hm[data-phone] .hm-setup-row, .hm[data-phone] .hm-setup-go { width: calc(100% - 8px); transform: skewX(-6deg); transform-origin: 0 100%; }
 .hm[data-phone] .hm-setup-row { flex-wrap: wrap; gap: 8px; padding: 8px 10px 11px; }
 .hm[data-phone] .hm-setup-lead { width: 100%; }

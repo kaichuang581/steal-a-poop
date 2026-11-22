@@ -1,23 +1,19 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { CloseIcon } from '../components/Icons';
 import { pixelRects } from '../components/pixels';
-import { WORD_CHAINS } from './HomeParts';
 
 /**
  * The setup sheets Create lobby and Practice open (Brian, 2026-11-22: "the popup ui is poorly done, its just another plain
- * card"; of three layouts drawn over Home he chose "B but better"). The sheet comes out of the slanted panel: its left
- * edge runs along the panel's 11 degree edge with the panel's lantern stripe, the chosen menu item stays lit, the word
- * chains drift behind it, and every row and choice leans like the menu's blocks with its text upright. The action is a
- * big lit block like Queue, with what you chose written under it. Home's pieces only (home.css, `.hm-setup*`).
+ * card"; of three layouts drawn over Home he chose "B but better"). A sheet of its own floating over the scenery, apart
+ * from the panel ("i dont want it growing out of the menu ... now it just looks the same as the side bar"): leaning 11
+ * degrees like the menu, a lighter night face with a lantern band on top, every setting a darker sunken row, every choice a
+ * leaning block with its text upright, and the action a big lit block like Queue with what you chose written under it.
+ * The chosen menu item stays lit behind it. Home's pieces only (home.css, `.hm-setup*`).
  */
 export function SetupSheet({ label, kicker, title, note, onClose, action, children }: { label: string; kicker: string; title: string; note?: ReactNode; onClose: () => void; action: ReactNode; children: ReactNode }) {
   return (
     <div className="hm-setup" role="dialog" aria-label={label}>
-      <div className="hm-setup-face" aria-hidden="true">
-        <div className="hm-setup-words">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((r) => <div key={r} className="hm-row" style={{ '--t': `${[70, 85, 100][r % 3]}s` } as CSSProperties}><span>{[...WORD_CHAINS[(r * 3 + 1) % WORD_CHAINS.length], ...WORD_CHAINS[(r * 3 + 1) % WORD_CHAINS.length]].join(' ')}</span></div>)}
-        </div>
-      </div>
+      <div className="hm-setup-face" aria-hidden="true" />
       <div className="hm-setup-head">
         <span className="hm-setup-kicker">{kicker}</span>
         <h2>{title}</h2>

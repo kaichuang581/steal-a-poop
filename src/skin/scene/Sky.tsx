@@ -10,7 +10,7 @@ import { lin } from '../voxel/palette';
 import { ellipsoid, Grid, rng } from '../voxel/primitives';
 import { DISTANCE } from './layout';
 import { LOOK, WARM_DAY_SKY } from '../look';
-import { exemptShot } from '../perf/tier';
+import { oldLightShot } from '../perf/tier';
 import { cloudGeometry } from './clouds';
 
 export type Hour = 'dawn' | 'day' | 'dusk' | 'night';
@@ -72,7 +72,7 @@ function Clouds({ hour, reduced }: { hour: Hour; reduced: boolean }) {
   useFrame((_, dt) => {
     const m = ref.current;
     if (!m) return;
-    m.visible = !exemptShot();
+    m.visible = !oldLightShot();
     if (!reduced) m.rotation.y += Math.min(dt, 0.05) * 0.0012;
   });
   useEffect(() => () => { geo.dispose(); mat.dispose(); depth.dispose(); }, [geo, mat, depth]);
@@ -93,8 +93,8 @@ export function Dome({ hour, palette = 'hour', home = false }: { hour: Hour; pal
   }, [R]);
   const mat = useMemo(() => new MeshBasicMaterial({ vertexColors: true, side: BackSide, fog: false, depthWrite: false }), []);
   // On Home the sky is the golden afternoon's except on the paddock shot; the tour cuts in the dark, so it is redrawn then.
-  const [plain, setPlain] = useState(() => home && exemptShot());
-  useFrame(() => { if (home && exemptShot() !== plain) setPlain(exemptShot()); });
+  const [plain, setPlain] = useState(() => home && oldLightShot());
+  useFrame(() => { if (home && oldLightShot() !== plain) setPlain(oldLightShot()); });
   useEffect(() => {
     const dream = palette === 'dream';
     const sky = home && !plain && !dream ? HOME_SKY[hour] : !dream && hour === 'day' && LOOK.warmSky ? WARM_DAY_SKY : SKY[hour];

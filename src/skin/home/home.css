@@ -210,7 +210,8 @@
 /* ---------- The footer ---------- */
 .hm-foot { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: var(--foot); display: flex; align-items: center; gap: calc(18 * var(--u)); padding: 0 calc(20 * var(--u));
   background: var(--hm-ink); box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern); }
-.hm-tip { display: flex; flex: 1; align-items: center; gap: calc(10 * var(--u)); min-width: 0; margin: 0; }
+/* The tip sits centred in the space the small print leaves (Brian, 2026-11-21: "all the way to the left"). */
+.hm-tip { display: flex; flex: 1; align-items: center; justify-content: center; gap: calc(10 * var(--u)); min-width: 0; margin: 0; text-align: center; }
 .hm-tip-text { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font: 700 calc(12.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); }
 .hm-small { display: flex; flex: none; align-items: center; gap: calc(18 * var(--u)); font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); }
 .hm-small > * { display: inline-flex; align-items: center; min-height: 24px; color: var(--hm-wool); }

@@ -2,6 +2,7 @@
 // measured frames on Home; Low is fallen to when Medium cannot keep up. A tier changes only in Home's dip or at a
 // scene change, and never goes up and down in one session. `?gfx=low|medium|high` pins a tier.
 import { useSyncExternalStore } from 'react';
+import { PADDOCK_OLD_LIGHT } from '../look';
 
 export type Tier = 'low' | 'medium' | 'high';
 
@@ -178,6 +179,8 @@ export function applyPendingTier(): boolean {
 let exempt = false;
 export const exemptShot = (): boolean => exempt;
 export function setExemptShot(on: boolean): void { exempt = on; }
+/** Whether this shot is drawn in the paddock's old light: the exempt shot, while look.ts's PADDOCK_OLD_LIGHT is on. */
+export const oldLightShot = (): boolean => exempt && PADDOCK_OLD_LIGHT;
 
 /** Tests only. */
 export function resetTierRulesForTests(): void { pending = null; exempt = false; }

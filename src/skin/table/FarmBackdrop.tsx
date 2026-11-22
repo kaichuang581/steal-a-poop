@@ -25,7 +25,7 @@ import { animalModel } from '../voxel/animals';
 import { useAvatar } from '../avatars/store';
 import { BarnGame } from './BarnGame';
 import { Sheep } from './Sheep';
-import { LOOK } from '../look';
+import { LOOK, PADDOCK_OLD_LIGHT } from '../look';
 
 /** With the roof on, lanterns at their full height shine out through the shingles, so here they hang lower. */
 const lowerLamp = (_: number, lamp: PointLight | null) => { if (lamp) lamp.position.y = 2.5; };
@@ -149,7 +149,7 @@ function Drift({ shots, veil, spot, bounce, reduced, ready, hour, phone = false 
       applyPendingTier();
       setExemptShot(pov.index === PADDOCK_SHOT);
       // The shot's own haze, exposure, sun and shadow box (docs/miniature/02): set here, in the dark, with everything else.
-      setShotLight(shotLight(shot, hour, { paddock: pov.index === PADDOCK_SHOT, low: getTier() === 'low', aspect: camera.aspect }));
+      setShotLight(shotLight(shot, hour, { paddock: PADDOCK_OLD_LIGHT && pov.index === PADDOCK_SHOT, low: getTier() === 'low', aspect: camera.aspect }));
       noteNewShot();
       camera.fov = shot.fov;
       camera.updateProjectionMatrix();

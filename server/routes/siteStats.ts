@@ -17,7 +17,7 @@ export interface OnlineNow { connections: number; guests: number; rooms: number;
 /**
  * Two routes for the admin panel's numbers (requested by Kai, 2026-11-15).
  *
- *  POST /api/site/ping   Public. A tab says it is open (once, `open`) or still there. Only numbers are kept: see ops/siteStats.ts.
+ *  POST /api/site/ping   Public. A tab says it is open (once, `open`, with `unique`) or still there. Only numbers are kept: see ops/siteStats.ts.
  *  POST /api/admin/stats The numbers: who is on the site and in games right now, visits, new browsers and how many accounts
  *                        there are. Needs `key` in the body, the server's ADMIN_STATS_KEY. The admin lock on the page is only
  *                        a convenience (anyone can read the page's code), so this is what actually keeps the numbers private.
@@ -41,9 +41,11 @@ export function createSiteRoutes(deps: {
       method: 'POST', path: '/api/site/ping', auth: 'none',
       handler: async (req) => {
         if (!pings.allow(limitKey(req.ip), now())) return bad('rate_limited', 429);
-        const b = (req.body && typeof req.body === 'object' ? req.body : {}) as { tab?: unknown; open?: unknown; first?: unknown };
+        const b = (req.body && typeof req.body === 'object' ? req.body : {}) as { tab?: unknown; open?: unknown; first?: unknown; unique?: unknown };
         if (typeof b.tab !== 'string' || !TAB.test(b.tab)) return bad('bad_request');
-        await deps.stats.ping(b.tab, b.open === true, b.open === true && b.first === true);
+        // `unique`: is this the browser's first visit of the day, week, month (a game from before it existed sends none).
+        const u = (b.unique && typeof b.unique === 'object' ? b.unique : {}) as Record<string, unknown>;
+        await deps.stats.ping(b.tab, b.open === true, b.open === true && b.first === true, { day: u.day === true, week: u.week === true, month: u.month === true });
         return { status: 200, json: { ok: true } };
       },
     },

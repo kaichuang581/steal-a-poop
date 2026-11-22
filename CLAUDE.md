@@ -1219,6 +1219,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
     lullaby is the quietest); the old lofi measured about 4 dB under the new one. The home and shop songs pick up where
     they were left, so flipping between them does not replay an opening.
   - The sound menu says which song is playing. The fuse-sample ducking (`musicDuck`) applies to every song.
+  - 2026-11-22 (a friend of Brian's: the sounds were "extremely annoying" and the music did not match the farm or move
+    well between screens): the battle is a barn band now, not a synth (musicKit's synthBass, stab, chip and lead are an
+    upright bass, a strummed guitar, a mandolin and a fiddle, all triangles and sines); Home is "Snow on the farm", the
+    same chords with a brushed beat and sleigh bells; songs crossfade over about two seconds. Every sound effect in
+    sound.ts is bells, wood and soft thumps in C major pentatonic: no square, no saw, no noise (the old bomb blast clipped).
+    The menu's knock plays a note of the scale per item (`menuTick`). Measured offline against the old versions: the
+    battle's energy above 3 kHz is a third of what it was; levels within about 1 dB of before. Not heard by me.
   - Tests: src/audio/__tests__/songs.test.ts (every note in key and in its bar, no two songs alike, none a short loop,
     the lofi's and the battle's shapes) and music.test.ts (the player, on a stand-in for Web Audio).
   - Checked by measurement and by spectrogram, not by ear. The notes are written to be right by the rules of harmony;

@@ -12,7 +12,7 @@ vi.mock('../musicKit', async (original) => {
     ...real,
     epiano: one('epiano'), vibes: one('vibes'), glock: one('glock'), marimba: one('marimba'), subBass: one('subBass'), pizz: one('pizz'),
     synthBass: one('synthBass'), chip: one('chip'), lead: one('lead'), whistle: one('whistle'), pad: many('pad'), stab: many('stab'),
-    kick: drum('kick'), rim: drum('rim'), snare: drum('snare'), hat: drum('hat'), tom: drum('tom'),
+    kick: drum('kick'), rim: drum('rim'), snare: drum('snare'), hat: drum('hat'), tom: drum('tom'), sleigh: drum('sleigh'),
   };
 });
 
@@ -26,7 +26,7 @@ import type { Kit } from '../musicKit';
  * each game mode, and a less boring lofi). These hold each song to being a song: in its key, in time, of its own, and
  * with a shape, so none of them is a short loop going round.
  */
-const DRUMS = ['kick', 'rim', 'snare', 'hat', 'tom'], BASSES = ['subBass', 'pizz', 'synthBass'], TUNES = ['vibes', 'glock', 'whistle', 'lead', 'marimba'];
+const DRUMS = ['kick', 'rim', 'snare', 'hat', 'tom', 'sleigh'], BASSES = ['subBass', 'pizz', 'synthBass'], TUNES = ['vibes', 'glock', 'whistle', 'lead', 'marimba'];
 let seed = 1;
 const kit = { rand: () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }, left: 'left', right: 'right', echo: 'echo', pump: 'pump', soft: 'soft', low: 'low', out: 'out', air: 'air' } as unknown as Kit;
 

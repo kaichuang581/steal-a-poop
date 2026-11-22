@@ -1,4 +1,4 @@
-import { chip, epiano, glock, hat, kick, lead, marimba, n, notes, pad, pizz, rim, snare, stab, subBass, synthBass, tom, vibes, whistle } from './musicKit';
+import { chip, epiano, glock, hat, kick, lead, marimba, n, notes, pad, pizz, rim, sleigh, snare, stab, subBass, synthBass, tom, vibes, whistle } from './musicKit';
 import type { Kit } from './musicKit';
 import type { Heat, MusicScene } from './scene';
 
@@ -63,7 +63,7 @@ const HOME_B = [
 ].map(line);
 
 const home: Song = {
-  name: 'Lofi in the barn', bpm: () => 76, beats: 4, swing: 0.6, warm: 3200, echo: { beats: 0.75, back: 0.36 }, level: 1.05,
+  name: 'Snow on the farm', bpm: () => 76, beats: 4, swing: 0.6, warm: 3200, echo: { beats: 0.75, back: 0.36 }, level: 1.05,
   scale: [0, 1, 2, 4, 5, 7, 8, 9, 10, 11],
   bar(k, t, bar, _heat, beat) {
     // Four times round the eight bars: the band comes in, the first tune, its answer, then a breath with no drums.
@@ -83,16 +83,20 @@ const home: Song = {
     // Before the tune comes in, and under the breath: a few high notes of the chord, far away.
     if ((round === 0 && i >= 4) || (round === 3 && i < 4 && i % 2 === 1)) glock(k, ch.keys[3] + 12, t(2.5), beat, 0.045, k.left);
     if (!drums) return;
-    kick(k, t(0), 0.46);
-    kick(k, t(1.5), 0.35);
-    if (i % 2) kick(k, t(2.5), 0.3);
+    // A brushed beat, not a hip-hop one (2026-11-22: the farm is snowy and Christmassy): a soft kick, a light rim, and
+    // sleigh bells on the backbeat.
+    kick(k, t(0), 0.3);
+    kick(k, t(1.5), 0.21);
+    if (i % 2) kick(k, t(2.5), 0.18);
     if (backbeat) {
-      rim(k, t(1) + 0.018, touch(k, 0.2));
-      rim(k, t(3) + 0.022, touch(k, 0.22));
+      rim(k, t(1) + 0.018, touch(k, 0.11));
+      rim(k, t(3) + 0.022, touch(k, 0.12));
+      sleigh(k, t(1) + 0.01, touch(k, 0.022));
+      sleigh(k, t(3) + 0.01, touch(k, 0.026));
       // Into the next eight: two soft knocks.
-      if (i === 7) { rim(k, t(3.5), 0.1); rim(k, t(3.75), 0.13); }
+      if (i === 7) { rim(k, t(3.5), 0.07); rim(k, t(3.75), 0.09); }
     }
-    for (let b = 0; b < 4; b += 0.5) hat(k, t(b) + loose(k, 0.006), touch(k, b % 1 ? 0.034 : 0.02, 0.25), i % 4 === 3 && b === 3.5);
+    for (let b = 0; b < 4; b += 0.5) hat(k, t(b) + loose(k, 0.006), touch(k, b % 1 ? 0.022 : 0.013, 0.25), i % 4 === 3 && b === 3.5);
   },
 };
 
@@ -183,7 +187,7 @@ const BATTLE_TUNE = [
 const ARP = [0, 1, 2, 3, 2, 1];
 
 const battle: Song = {
-  name: 'Pass the bomb', bpm: (heat) => (heat < 0 ? 96 : [124, 128, 132, 138][heat]), beats: 4, swing: 0.5, warm: null, echo: { beats: 0.75, back: 0.3 }, level: 0.97,
+  name: 'Pass the bomb', bpm: (heat) => (heat < 0 ? 96 : [124, 128, 132, 138][heat]), beats: 4, swing: 0.5, warm: null, echo: { beats: 0.75, back: 0.3 }, level: 1.15,
   scale: [0, 2, 4, 5, 7, 8, 9, 11],
   bar(k, t, bar, heat, beat) {
     const i = bar % 8, ch = BATTLE[i], step = (s: number) => t(s / 4), sixteenth = beat / 4;
@@ -211,7 +215,7 @@ const battle: Song = {
     if (heat >= 2) for (const [b, len, m] of BATTLE_TUNE[i]) lead(k, m, t(b), len * beat * 0.92, 0.042);
     // Drums. Round one: kick on 1 and 3. After that, four on the floor, the hat on every off-beat, then on every sixteenth.
     const floor = heat >= 1;
-    for (const b of floor ? [0, 1, 2, 3] : i % 2 ? [0, 2, 2.5] : [0, 2]) kick(k, t(b), floor ? 0.5 : 0.46, floor);
+    for (const b of floor ? [0, 1, 2, 3] : i % 2 ? [0, 2, 2.5] : [0, 2]) kick(k, t(b), floor ? 0.42 : 0.4, floor);
     if (heat === 3 && i % 2) kick(k, step(15), 0.4, true);
     const fill = floor && i % 4 === 3;
     snare(k, t(1), 0.3);
@@ -220,7 +224,7 @@ const battle: Song = {
     else if (fill) for (const s of [14, 15]) snare(k, step(s), 0.2);
     for (let s = 0; s < 16; s += heat >= 2 ? 1 : 2) {
       const off = s % 4 === 2;
-      hat(k, step(s), touch(k, off ? 0.05 : s % 2 ? 0.02 : 0.03, 0.2), off && floor);
+      hat(k, step(s), touch(k, off ? 0.034 : s % 2 ? 0.014 : 0.02, 0.2), off && floor);
     }
   },
 };

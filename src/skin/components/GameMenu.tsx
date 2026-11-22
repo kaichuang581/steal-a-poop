@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { playTick } from '../../audio/sound';
+import { menuTick } from '../../audio/sound';
 
 export interface MenuItem {
   id: string;
@@ -44,7 +44,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
     if (to === active) return;
     setActive(to);
     refs.current[to]?.focus();
-    playTick(0.15);
+    menuTick(to);
   };
   const step = (dir: 1 | -1) => {
     const at = enabled.indexOf(active);
@@ -139,7 +139,7 @@ export function GameMenu({ items, label, compact = false, autoFocus = false, key
           if (it.disabled) return;
           touched.current = true;
           // The pointer chooses too: focus follows it, so Enter then picks the block that is chosen.
-          if (i !== active) { setActive(i); playTick(0.15); }
+          if (i !== active) { setActive(i); menuTick(i); }
           if (document.activeElement !== refs.current[i] && (!document.activeElement || document.activeElement === document.body || refs.current.includes(document.activeElement as HTMLButtonElement))) {
             settling.current = true;
             refs.current[i]?.focus({ preventScroll: true });

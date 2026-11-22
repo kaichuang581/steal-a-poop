@@ -139,11 +139,11 @@ function level(): number {
 /** Fades a song out and takes its stage down once it is silent. */
 function retire(c: AudioContext, st: Stage): void {
   st.fader.gain.cancelScheduledValues(c.currentTime);
-  st.fader.gain.setTargetAtTime(0, c.currentTime, 0.18);
+  st.fader.gain.setTargetAtTime(0, c.currentTime, 0.6); // about two seconds to silence: a crossfade, not a cut
   window.setTimeout(() => {
     for (const o of st.lfos) { try { o.stop(); } catch { /* already stopped */ } }
     st.fader.disconnect();
-  }, 2500);
+  }, 5000);
 }
 
 function tick() {
@@ -157,7 +157,7 @@ function tick() {
     if (now) { retire(c, now); left[now.scene] = now.bar; }
     const st = stage(c, master, SONGS[scene], heat);
     st.fader.gain.setValueAtTime(0, c.currentTime);
-    st.fader.gain.linearRampToValueAtTime(1, c.currentTime + 0.5);
+    st.fader.gain.linearRampToValueAtTime(1, c.currentTime + 1.8);
     now = { ...st, scene, next: c.currentTime + 0.12, bar: scene === 'home' || scene === 'shop' ? left[scene] ?? 0 : 0 };
   }
   if (want === 0) { now.next = c.currentTime + 0.1; return; } // silent: hold the place, schedule nothing

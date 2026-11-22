@@ -5,7 +5,6 @@ import type { TickVoice } from './fuseVoices';
 export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom' | 'poof' | 'doorShut' | 'doorOpen' | 'crunch';
 
 let ctx: AudioContext | null = null;
-let noiseBuf: AudioBuffer | null = null;
 let master: GainNode | null = null;
 
 /** One gain node in front of the speakers, set from the volume setting before every sound. */
@@ -73,29 +72,19 @@ function tone(c: AudioContext, { freq, at = 0, dur, type = 'sine', vol = 0.15, t
   osc.stop(t0 + dur + 0.03);
 }
 
-function whoosh(c: AudioContext, at: number, dur: number, from: number, to: number, vol: number) {
-  if (!noiseBuf) {
-    noiseBuf = c.createBuffer(1, c.sampleRate, c.sampleRate);
-    const data = noiseBuf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  }
-  const t0 = c.currentTime + at;
-  const src = c.createBufferSource();
-  src.buffer = noiseBuf;
-  src.loop = true;
-  const filter = c.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.Q.value = 1.2;
-  filter.frequency.setValueAtTime(from, t0);
-  filter.frequency.exponentialRampToValueAtTime(to, t0 + dur);
-  const gain = c.createGain();
-  gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.exponentialRampToValueAtTime(vol * gainScale, t0 + dur * 0.3);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  src.connect(filter).connect(gain).connect(destination(c));
-  src.start(t0);
-  src.stop(t0 + dur + 0.05);
+/** A small bell: the note, its glassy partials, a little of the octave. Every chime in the game is one of these. */
+function bell(c: AudioContext, freq: number, at: number, dur: number, vol: number) {
+  tone(c, { freq, at, dur, vol });
+  tone(c, { freq: freq * 2.76, at, dur: dur * 0.35, vol: vol * 0.18 });
+  tone(c, { freq: freq * 5.4, at, dur: dur * 0.12, vol: vol * 0.07 });
 }
+/** A knock on wood: a short triangle that drops a little, with a soft body under it. */
+function wood(c: AudioContext, freq: number, at: number, vol: number) {
+  tone(c, { freq: freq * 1.25, at, dur: 0.07, type: 'triangle', vol, to: freq });
+  tone(c, { freq: freq / 2, at, dur: 0.09, vol: vol * 0.5 });
+}
+/** C major pentatonic from C5: every pitched sound picks from it, so nothing clashes with the music. */
+const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760, 2093];
 
 /** Scales every tone's volume while a sound is being scheduled (the dream's alarm plays at low gain). */
 let gainScale = 1;
@@ -115,74 +104,65 @@ export function playSound(kind: SoundKind, gain = 1, exact = false): void {
   try { schedule(c, kind === 'boom' && softBoom && !exact ? 'poof' : kind); } finally { gainScale = 1; }
 }
 
+/**
+ * Every sound the game makes, made of tones in the music's key: no buzzy waves and no noise (2026-11-22: a friend of
+ * Brian's found the sounds "extremely annoying"; Brian, 2026-11-08: no static). Wood, bells and soft thumps, to fit a
+ * farm in the snow.
+ */
 function schedule(c: AudioContext, kind: SoundKind): void {
   switch (kind) {
-    case 'play':
-      tone(c, { freq: 520, dur: 0.09, type: 'triangle', vol: 0.12, to: 700 });
+    case 'play': // a word taken: a knock and a bell a fifth up
+      wood(c, 784, 0, 0.11);
+      bell(c, 1174.66, 0.05, 0.28, 0.08);
       break;
-    case 'bank': // coin cascade
-      for (let i = 0; i < 7; i++) {
-        tone(c, { freq: 1100 + Math.random() * 900, at: i * 0.055, dur: 0.12, type: 'square', vol: 0.05 });
-        tone(c, { freq: 2200 + Math.random() * 800, at: i * 0.055, dur: 0.09, type: 'triangle', vol: 0.04 });
-      }
+    case 'bank': // wool banked: little bells running up the scale
+      for (let i = 0; i < 6; i++) bell(c, PENTA[i + 4], i * 0.055, 0.3, 0.045);
       break;
-    case 'fanfare':
-      whoosh(c, 0, 0.32, 400, 3200, 0.25);
-      tone(c, { freq: 330, at: 0.28, dur: 0.14, type: 'sawtooth', vol: 0.1 });
-      tone(c, { freq: 495, at: 0.36, dur: 0.14, type: 'sawtooth', vol: 0.1 });
-      tone(c, { freq: 660, at: 0.44, dur: 0.3, type: 'sawtooth', vol: 0.12 });
+    case 'fanfare': // the winner: a rising call on a soft horn, the last chord held
+      [[0, 392], [0.12, 523.25], [0.24, 659.25]].forEach(([at, f]) => {
+        tone(c, { freq: f, at, dur: 0.22, type: 'triangle', vol: 0.09 });
+        tone(c, { freq: f * 2, at, dur: 0.16, vol: 0.02 });
+      });
+      for (const f of [523.25, 659.25, 783.99]) tone(c, { freq: f, at: 0.36, dur: 0.9, type: 'triangle', vol: 0.06 });
+      bell(c, 2093, 0.36, 0.7, 0.035);
       break;
-    case 'fail':
-      tone(c, { freq: 140, dur: 0.28, type: 'sawtooth', vol: 0.14, to: 90 });
-      tone(c, { freq: 147, dur: 0.28, type: 'square', vol: 0.06, to: 95 });
+    case 'fail': // not a word: two soft knocks going down, no buzzer
+      wood(c, 330, 0, 0.09);
+      wood(c, 262, 0.1, 0.08);
       break;
-    case 'trap':
-      tone(c, { freq: 700, dur: 0.32, type: 'square', vol: 0.09, to: 120 });
-      tone(c, { freq: 90, at: 0.3, dur: 0.15, type: 'sine', vol: 0.18 });
+    case 'trap': // a slip (the dream's crash): a soft slide down and a thud
+      tone(c, { freq: 660, dur: 0.28, type: 'triangle', vol: 0.06, to: 220 });
+      tone(c, { freq: 110, at: 0.24, dur: 0.2, vol: 0.16, to: 70 });
       break;
     case 'roundEnd':
-      [523, 659, 784, 1047].forEach((f, i) => tone(c, { freq: f, at: i * 0.11, dur: 0.3, type: 'triangle', vol: 0.1 }));
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => bell(c, f, i * 0.1, 0.45, 0.06));
       break;
-    case 'crunch': // your word breaks the frost: a short bright crackle and a click
-      whoosh(c, 0, 0.09, 7000, 2500, 0.32);
-      whoosh(c, 0.03, 0.07, 4000, 1500, 0.2);
-      tone(c, { freq: 1600, dur: 0.04, type: 'square', vol: 0.05, to: 900 });
+    case 'crunch': // your word breaks the frost: a few tiny ice ticks and a clear ping
+      [3136, 2637, 3520, 2349].forEach((f, i) => tone(c, { freq: f, at: i * 0.014, dur: 0.035, type: 'triangle', vol: 0.04 }));
+      bell(c, 1567.98, 0.02, 0.18, 0.07);
       break;
-    case 'boom': // the ice bomb: a glassy crack, a deep thump, shards of ice tinkling down and a freezing gust after
-      whoosh(c, 0, 0.12, 9000, 3000, 0.9);
-      whoosh(c, 0, 1.2, 2000, 70, 0.9);
-      whoosh(c, 0.05, 0.6, 600, 60, 0.8);
-      tone(c, { freq: 100, dur: 1.0, type: 'sine', vol: 0.95, to: 24 });
-      tone(c, { freq: 45, at: 0.03, dur: 1.2, type: 'sine', vol: 0.8, to: 20 });
-      tone(c, { freq: 2600, dur: 0.18, type: 'triangle', vol: 0.18, to: 900 });
-      for (let i = 0; i < 26; i++) tone(c, { freq: 2200 + Math.random() * 4800, at: 0.1 + Math.random() * 1.1, dur: 0.06 + Math.random() * 0.12, type: i % 3 ? 'sine' : 'triangle', vol: 0.05 + Math.random() * 0.05 });
-      whoosh(c, 0.35, 1.6, 1400, 4200, 0.35);
+    case 'boom': // the ice bomb: a deep, round thump, a crack, and ice tinkling down after
+      tone(c, { freq: 110, dur: 0.9, vol: 0.55, to: 30 });
+      tone(c, { freq: 55, at: 0.02, dur: 1.1, vol: 0.45, to: 24 });
+      tone(c, { freq: 240, dur: 0.22, type: 'triangle', vol: 0.12, to: 70 });
+      tone(c, { freq: 2600, dur: 0.12, type: 'triangle', vol: 0.07, to: 1100 });
+      [10, 7, 9, 5, 8, 6, 10, 4, 7, 9, 5, 8].forEach((p, i) => bell(c, PENTA[p], 0.12 + i * 0.085 + (i % 3) * 0.02, 0.35, 0.03 - i * 0.0015));
       break;
-    case 'poof': // the shell falling open and something coming out: a soft pop, a breath of air, three small rising notes
-      tone(c, { freq: 190, dur: 0.22, type: 'sine', vol: 0.55, to: 80 });
-      tone(c, { freq: 95, at: 0.02, dur: 0.3, type: 'sine', vol: 0.35, to: 50 });
-      whoosh(c, 0, 0.3, 700, 2600, 0.22);
-      [660, 880, 1320].forEach((f, i) => tone(c, { freq: f, at: 0.1 + i * 0.09, dur: 0.5, type: 'sine', vol: 0.09 }));
-      [1320, 1760, 2640].forEach((f, i) => tone(c, { freq: f, at: 0.1 + i * 0.09, dur: 0.3, type: 'triangle', vol: 0.03 }));
+    case 'poof': // the shell falling open and something coming out: a soft pop and three small rising notes
+      tone(c, { freq: 190, dur: 0.22, type: 'sine', vol: 0.4, to: 80 });
+      tone(c, { freq: 95, at: 0.02, dur: 0.3, type: 'sine', vol: 0.25, to: 50 });
+      [659.25, 880, 1318.51].forEach((f, i) => bell(c, f, 0.1 + i * 0.09, 0.5, 0.07));
       break;
-    case 'doorShut': // the barn doors meeting: a heavy wooden thud, a short rattle of the latch
-      tone(c, { freq: 78, dur: 0.32, type: 'sine', vol: 0.32, to: 42 });
-      tone(c, { freq: 160, dur: 0.08, type: 'triangle', vol: 0.08, to: 90 });
-      whoosh(c, 0, 0.14, 900, 200, 0.28);
-      tone(c, { freq: 1900, at: 0.09, dur: 0.035, type: 'square', vol: 0.025 });
-      tone(c, { freq: 1500, at: 0.15, dur: 0.03, type: 'square', vol: 0.018 });
+    case 'doorShut': // the barn doors meeting: a heavy wooden thud
+      tone(c, { freq: 78, dur: 0.32, type: 'sine', vol: 0.3, to: 42 });
+      wood(c, 160, 0, 0.06);
       break;
-    case 'doorOpen': // the latch lifting, then the doors creaking in on their hinges
-      tone(c, { freq: 2100, dur: 0.03, type: 'square', vol: 0.03 });
-      tone(c, { freq: 1300, at: 0.05, dur: 0.04, type: 'square', vol: 0.02 });
-      tone(c, { freq: 210, at: 0.12, dur: 0.55, type: 'sawtooth', vol: 0.022, to: 150 });
-      tone(c, { freq: 231, at: 0.16, dur: 0.5, type: 'sawtooth', vol: 0.016, to: 170 });
-      whoosh(c, 0.1, 0.8, 300, 1400, 0.16);
+    case 'doorOpen': // the latch lifting
+      wood(c, 1046.5, 0, 0.03);
+      wood(c, 784, 0.06, 0.025);
       break;
-    case 'alarm': // the barn klaxon: two notes blared three times over a rising and falling siren
-      for (let i = 0; i < 6; i++) tone(c, { freq: i % 2 ? 415 : 554, at: i * 0.22, dur: 0.2, type: 'square', vol: 0.085 });
-      tone(c, { freq: 220, dur: 0.68, type: 'sawtooth', vol: 0.06, to: 440 });
-      tone(c, { freq: 440, at: 0.68, dur: 0.68, type: 'sawtooth', vol: 0.06, to: 220 });
+    case 'alarm': // a new round: a farm hand bell rung three times (was a klaxon and a siren). The dream's alarm clock too.
+      [[0, 880], [0.2, 659.25], [0.4, 880]].forEach(([at, f]) => bell(c, f, at, 0.6, 0.075));
       break;
   }
 }
@@ -191,7 +171,15 @@ function schedule(c: AudioContext, kind: SoundKind): void {
 export function playTick(progress: number): void {
   const c = out();
   if (!c) return;
-  tone(c, { freq: 600 + progress * 1000, dur: 0.05, type: 'square', vol: 0.06 });
+  // A soft wooden tick that climbs as time runs out (was an electronic beep).
+  wood(c, 700 + progress * 600, 0, 0.045);
+}
+
+/** The menu: a soft knock as the choice moves, a note of the scale for each item, so running down it plays a little tune. */
+export function menuTick(index: number): void {
+  const c = out();
+  if (!c) return;
+  wood(c, PENTA[index % 7], 0, 0.04);
 }
 
 // The bomb's clock: one sound on each whole second left, all scheduled on the audio clock so they land exactly on the
@@ -298,8 +286,8 @@ export function leverPull(): void {
   const c = out();
   if (!c) return;
   tone(c, { freq: 190, dur: 0.14, type: 'triangle', vol: 0.14, to: 70 });
-  tone(c, { freq: 620, at: 0.11, dur: 0.04, type: 'square', vol: 0.035 });
-  tone(c, { freq: 520, at: 0.17, dur: 0.04, type: 'square', vol: 0.03 });
+  wood(c, 620, 0.11, 0.035);
+  wood(c, 520, 0.17, 0.03);
 }
 
 /** A little rising tune for a rare prize; a longer one for a legendary. */

@@ -7,7 +7,7 @@ import { snowAt, snowPaint } from '../voxel/snow';
 import { tieredPine } from './style/pine';
 import { standsInWendigoZone } from './wendigoZone';
 import { box, ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
-import type { Paint, RGB } from '../voxel/primitives';
+import type { Paint } from '../voxel/primitives';
 import { backHillHeight } from './distance';
 import { noteShade } from '../voxel/groundShade';
 import { chunkMaps, landHeight } from './farmstead';
@@ -147,63 +147,13 @@ const steep = (x: number, z: number) => Math.max(...[[0.5, 0], [-0.5, 0], [0, 0.
  * single-voxel branches with snow on every one; from far off, and above all at the forest's coarser grid, that became a
  * white and green checker that crawled as the camera moved. `ground` is in metres; the tree is drawn at the grid's size.
  */
-function forestPine(g: Grid, wx: number, wz: number, H: number, seed: number, ground: number) {
-  // Outside the wendigo's zone: the diorama's tiered pine (style/pine.ts), as Brian's farm picture draws them.
-  if (!standsInWendigoZone(wx, wz)) {
-    if (taken(wx, wz)) return;
-    const k = g.size;
-    tieredPine((x, y, z, c) => g.set(x, y, z, c), (x, y, z) => g.has(x, y, z), Math.round(wx / k), Math.round(wz / k), Math.round(ground / k), H, k);
-    return;
-  }
-  asBefore(() => raggedPine(g, wx, wz, H, seed, ground));
-}
-
-/** The forest's pine as it was before 2026-11-19, kept for the wendigo's zone. */
-function raggedPine(g: Grid, wx: number, wz: number, H: number, seed: number, ground: number) {
-  const k = g.size, r = rng(seed * 131);
-  const cx = wx / k, cz = wz / k, y0 = Math.round(ground / k);
-  const cells = new Map<string, [number, number, number, number]>(); // x, y, z, how far out (0 at the trunk, 1 at the rim)
-  const put = (x: number, y: number, z: number, out: number) => cells.set(`${x},${y},${z}`, [x, y, z, out]);
-  const bare = H * 0.2, top = H;
-  // The trunk, round, up into the crown.
-  const tr = Math.max(0.5, 0.17 / k);
-  for (let y = 0; y < (top * 0.8) / k; y++)
-    for (let x = Math.floor(cx - tr); x <= Math.ceil(cx + tr); x++)
-      for (let z = Math.floor(cz - tr); z <= Math.ceil(cz + tr); z++) if ((x + 0.5 - cx) ** 2 + (z + 0.5 - cz) ** 2 <= tr * tr) put(x, y, z, -1);
-  // Tiers from the bottom of the crown to the top, overlapping, each smaller than the one below.
-  const n = Math.max(3, Math.round((top - bare) / 0.95));
-  const span = (top - bare) / n;
-  for (let i = 0; i < n; i++) {
-    const t = i / n, yb = bare + (top - bare) * t * 0.94, R = (0.3 * H * (1 - t) ** 0.9 + 0.3) * (0.9 + r() * 0.2);
-    const turn = r() * Math.PI * 2;
-    for (let y = Math.round(yb / k); y <= Math.round((yb + span * 1.35) / k); y++) {
-      const f = (y * k - yb) / (span * 1.35), rr = (R * (1 - 0.7 * f)) / k;
-      for (let x = Math.floor(cx - rr - 1); x <= Math.ceil(cx + rr + 1); x++)
-        for (let z = Math.floor(cz - rr - 1); z <= Math.ceil(cz + rr + 1); z++) {
-          const dx = x + 0.5 - cx, dz = z + 0.5 - cz, d = Math.hypot(dx, dz);
-          // A ragged rim: the edge comes and goes in a dozen boughs round the tier.
-          const a = Math.atan2(dz, dx) + turn, bough = 0.82 + 0.18 * Math.abs(Math.sin(a * 6)) + (hash3(Math.floor(a * 2), i, seed, 91) - 0.5) * 0.16;
-          if (d <= rr * bough) put(x, y, z, d / Math.max(1, rr));
-        }
-    }
-  }
-  // A leader above the top tier, from the tier's own top: started at the drawn height it could leave a cell of air
-  // under it (Brian, 2026-11-09: "a lot of them are floating").
-  const lx = Math.floor(cx), lz = Math.floor(cz);
-  let crown = 0;
-  for (const [x, y, z] of cells.values()) if (x === lx && z === lz) crown = Math.max(crown, y);
-  for (let y = crown + 1; y < Math.max(crown + 2, Math.round((top + 0.5) / k)); y++) put(lx, y, lz, 0);
-  const bark = pick(T.trunk, hash3(seed, 0, 0, 93), [0.3, 0.8]);
-  for (const [x, y, z, out] of cells.values()) {
-    // Colour comes in patches a few voxels across, never voxel by voxel: single-voxel flecks are what read as noise.
-    const h = hash3(x >> 1, y >> 1, z >> 1, 95), open = !cells.has(`${x},${y + 1},${z}`);
-    let c: RGB;
-    if (out < 0) c = bark;
-    // Snow lies where the tier is open to the sky, set back from its rim: on the rim itself it striped every step white.
-    else if (open && out > 0.2 && out < 0.8 && h > 0.12) c = lin(h > 0.6 ? T.snow[0] : T.snow[1]);
-    else c = lin(out > 0.7 ? (h > 0.5 ? T.pine[0] : T.pine[1]) : T.pine[h > 0.4 ? 1 : 2]); // darker in toward the trunk
-    g.set(x, y + y0, z, c);
-  }
+function forestPine(g: Grid, wx: number, wz: number, H: number, ground: number) {
+  // The diorama's tiered pine (style/pine.ts), as Brian's farm picture draws them, in the wendigo's zone too: its old
+  // ragged pines' single snow cubes and broken rims crawled like static as the camera drifted (Brian, 2026-11-22: "yes,
+  // go ahead ... as long as the wendigo itself isnt remodeled"). The zone's trees keep where they stand; the wendigo does too.
+  if (!standsInWendigoZone(wx, wz) && taken(wx, wz)) return;
+  const k = g.size;
+  tieredPine((x, y, z, c) => g.set(x, y, z, c), (x, y, z) => g.has(x, y, z), Math.round(wx / k), Math.round(wz / k), Math.round(ground / k), H, k);
 }
 
 const FAR = 0.4;
@@ -240,10 +190,9 @@ function forest(near: Grid, far: Grid, r: () => number) {
       const deep = Math.min(1, Math.max(0, into / 14));
       placed.push([x, z, into < 0 ? 2.2 + r() * 2.4 : 4.5 + deep * 4 + r() * 3.5]);
     }
-  let seed = 600;
   for (const [x, z, h] of placed) {
     const fine = Math.hypot(x - wx, z - wz) < 9 || (z > -35 && x > -30 && x < 12);
-    forestPine(fine ? near : far, x, z, h, seed++, footing(x, z));
+    forestPine(fine ? near : far, x, z, h, footing(x, z));
   }
 }
 
@@ -251,7 +200,6 @@ function woods(): { near: Grid; far: Grid } {
   const g = new Grid(S), far = new Grid(FAR);
   const r = rng(301);
   const placed: [number, number][] = [];
-  let seed = 400;
   for (const [cx, cz, radius, count] of WOODS) {
     for (let i = 0, tries = 0; i < count && tries < count * 8; tries++) {
       // Summing two draws bunches the trees toward the middle of the clump and thins them at its edge.
@@ -262,7 +210,7 @@ function woods(): { near: Grid; far: Grid } {
       i++;
       // Tall in the heart of a clump, young at the edge.
       const height = 3 + (1 - d / radius) * 4 + r() * 3;
-      forestPine(g, x, z, height, seed++, footing(x, z));
+      forestPine(g, x, z, height, footing(x, z));
     }
   }
   forest(g, far, rng(303));
@@ -298,11 +246,11 @@ function scrub(g: Grid) {
     const at = spot();
     if (!at) continue;
     const [x, z] = at, w = 0.5 + r() * 0.6, h = 0.35 + r() * 0.35;
-    const deep = w * (0.7 + r() * 0.4), old = standsInWendigoZone(x, z);
+    const deep = w * (0.7 + r() * 0.4);
     stands(x, z, () => ellipsoid(g, [x, h * 0.6, z], [w, h, deep], (a, b, c) => {
       if (b < 0) return null;
-      // Snow on its top; in the wendigo's zone, the speckle it always had.
-      return (old ? hash3(a, b, c, 323) > 0.55 : true) && b > h * 7 ? pick(T.snow, hash3(a, b, c, 325)) : pick(T.pine, hash3(a, b, c, 327), [0.2, 0.7]);
+      // Snow on its top, everywhere: the wendigo's zone's speckle crawled like static (2026-11-22).
+      return b > h * 7 ? pick(T.snow, hash3(a, b, c, 325)) : pick(T.pine, hash3(a, b, c, 327), [0.2, 0.7]);
     }, 0.2, i + 1));
   }
   const twig: Paint = (a, b, c) => pick(T.trunk, hash3(a, b, c, 329));

@@ -358,7 +358,10 @@ const GradeShader = {
  * works on a picture no wider than BLOOM_MAX_W whatever the screen. After: 60 frames a second at 1.5x and at the full
  * 2x, where it had been 41 at 1.5x. Shadows were measured too and cost next to nothing.
  */
-const samplesFor = (pixelRatio: number) => (pixelRatio > 1.4 ? 0 : pixelRatio > 1.1 ? 2 : 4);
+// From 1.5x up it had no samples at all, which on a Retina screen left the far pines' tier steps and the long shadows on
+// the back slopes blinking as Home's camera drifted (Brian, 2026-11-22: "z-fighting and flickering in the back"; with
+// the camera held still nothing changes, so it is crawl, not depth). Two samples there take nearly all of it away.
+const samplesFor = (pixelRatio: number) => (pixelRatio > 1.1 ? 2 : 4);
 const BLOOM_MAX_W = 720;
 /**
  * The composer by tier (plan file 02, change 3): High today's; Medium the bloom on a picture at most 480 px across;

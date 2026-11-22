@@ -16,7 +16,7 @@ import { cloudGeometry } from './clouds';
 export type Hour = 'dawn' | 'day' | 'dusk' | 'night';
 
 /** Sky gradient per hour: [top, bottom (horizon)], as v2. */
-export const SKY: Record<Hour, [string, string]> = {
+const SKY: Record<Hour, [string, string]> = {
   dawn: ['#9FB7D6', '#F3C9B5'],
   day: ['#78B4E6', '#BFE1F3'],
   dusk: ['#5E5A94', '#D08AA2'],

@@ -2175,8 +2175,8 @@ the crates here (the victory screen keeps its crates), all three places are one 
   - One size: every place of a species is drawn at the smallest size any of its three fits at (the nap's), so first is no
     longer "massive" and third no longer "short" (`PLACE_SIZE` is 1, 1, 1).
 - The island (island.ts): as the plan's section 4, with these readings: the front reaches 1.8 m past the crates (the
-  ripples need it); the snow is 0.3 m thick behind the step, 0.2 m in front; soil-1's lowest 0.1 m is a step darker,
-  because 0.3 m of one colour was 28 px at 1440 x 900, past the plan's 24; the underside bands are their own mesh with no
+  ripples need it); the snow is 0.3 m thick behind the step, 0.2 m in front; soil-1's lowest 0.1 m is two steps darker
+  (one step rendered as the same colour), because 0.3 m of one colour was 28 px at 1440 x 900, past the plan's 24 (now 21); the underside bands are their own mesh with no
   shadow, or both tones went one grey under the rim; stones and roots are on the front face; trails run along their
   own direction. The island, the pines, the lantern and its glass are one connected piece (island.test.ts).
 - The podiums (podium.ts): the crate's footprint and heights, so every pose, plate and drift still fits: a plum plinth, a

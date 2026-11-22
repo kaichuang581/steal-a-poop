@@ -67,9 +67,10 @@ export const PROPS = {
 export const placeOf = (X: number, Z: number): [number, number] => [X * CRATE.w, FRONT + Z * CRATE.w];
 
 const c = (m: Mat, step = 0) => solid(m, step);
-/** The diorama's soil tokens (scene/style/palette.ts: soil, soil-1), and soil-1's foot a step under it: the plan's
- * 0.3 m of soil-1 in one colour is 28 px tall at 1440 x 900, past 4.2.6's 24, so its lowest 0.1 m is a planned value step. */
-const SOIL = shade('#6B4A2E'), SOIL_LOW = shade('#53392A'), SOIL_FOOT = shade('#53392A', -1);
+/** The diorama's soil tokens (scene/style/palette.ts: soil, soil-1), and soil-1's foot two steps under it: the plan's
+ * 0.3 m of soil-1 in one colour is 28 px tall at 1440 x 900, past 4.2.6's 24, so its lowest 0.1 m is a planned value
+ * step (two steps, because one rendered within 6 levels of soil-1 and read as the same colour). */
+const SOIL = shade('#6B4A2E'), SOIL_LOW = shade('#53392A'), SOIL_FOOT = shade('#53392A', -2);
 const cellAt = (m: number) => Math.floor(m / CELL + 1e-9);
 /** Inside a rounded rectangle (|dx/a|^p + |dz/b|^p <= 1) at a cell's middle. */
 const inRound = (x: number, z: number, cx: number, cz: number, a: number, b: number, p = 4) =>

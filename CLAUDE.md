@@ -2169,8 +2169,8 @@ the crates here (the victory screen keeps its crates), all three places are one 
     the chin, and turned in they met over the mouth. On the cow and the horse the V clears the head; on the sheep it
     frames the face. Moving the shoulders up opened dark holes where the legs leave the wool: never move a leg's root.
   - The second sits with its body's front on the top's front edge, so its hips are 0.10 to 0.25 m behind the edge, not
-    0.04 W (its belly is in front of its hips); its hind legs rest where they clear the top (`hindRest`: sheep 44, pig 68,
-    cow 76, goat 70, horse 72, chicken 48 degrees, not 40), still swinging 12 either way and never touching the front.
+    0.04 W (its belly is in front of its hips); its hind legs rest where they clear the top (`hindRest`: sheep 42, pig 66,
+    cow 74, goat 68, horse 78, chicken 48 degrees, not 40), still swinging 12 either way and never touching the front.
   - Tails that hang lower than the rump or the belly (pig, goat, horse) rest their tips inside the top, behind the body.
   - One size: every place of a species is drawn at the smallest size any of its three fits at (the nap's), so first is no
     longer "massive" and third no longer "short" (`PLACE_SIZE` is 1, 1, 1).

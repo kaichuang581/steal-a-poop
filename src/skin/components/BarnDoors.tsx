@@ -5,7 +5,7 @@ import { useMotionLevel } from '../hooks/useAmbient';
 import { BALL_AT, BOOT_DOORS_ID, FLAKES, ballImage, ballShadeMarkup, ballShadowMarkup, guideMarkup } from '../loading/bootDoors';
 import { CODE_IN, expectedSteps, startProgress, stepProgress, withSteps } from '../loading/progress';
 import type { Progress } from '../loading/progress';
-import { layYarn } from '../loading/yarn';
+import { BALL_PX, BALL_R, drawBallWraps, drawPeel, layYarn } from '../loading/yarn';
 import { START, TOTAL, VIEWBOX, WORD, sampleAt } from '../loading/yarnWord';
 import { stepsTaken } from '../scene/slices';
 import { getTier } from '../perf/tier';
@@ -251,14 +251,15 @@ function Doors({ id }: { id: number }) {
 
   // The yarn (3.5): every frame, the progress shown, the strand laid up to it, the ball moved to the strand's tip.
   const word = useRef<HTMLDivElement>(null), shadowCv = useRef<HTMLCanvasElement>(null), yarnCv = useRef<HTMLCanvasElement>(null);
-  const ball = useRef<HTMLDivElement>(null), wraps = useRef<HTMLImageElement>(null);
+  const ball = useRef<HTMLDivElement>(null), wraps = useRef<HTMLImageElement>(null), liveBall = useRef<HTMLCanvasElement>(null);
   const reducedRef = useRef(reduced);
   reducedRef.current = reduced;
   useEffect(() => {
-    const box = word.current, sc = shadowCv.current, yc = yarnCv.current, b = ball.current, w = wraps.current, el = root.current;
-    if (!box || !sc || !yc || !b || !w || !el) return;
-    const sctx = sc.getContext('2d'), yctx = yc.getContext('2d');
-    if (!sctx || !yctx) return;
+    const box = word.current, sc = shadowCv.current, yc = yarnCv.current, b = ball.current, w = wraps.current, el = root.current, lv = liveBall.current;
+    if (!box || !sc || !yc || !b || !w || !el || !lv) return;
+    const sctx = sc.getContext('2d'), yctx = yc.getContext('2d'), lctx = lv.getContext('2d');
+    if (!sctx || !yctx || !lctx) return;
+    let drawnBall = '';
     // How many steps this load is expected to take: the device's own count, by detail level or by what is loading.
     const key = boot ? (coarseFor(getTier()) ? 'touch' : 'desktop') : (useDoors.getState().label ?? 'load');
     const store = boot ? BOOT_STEPS : LOAD_STEPS;
@@ -304,7 +305,16 @@ function Doors({ id }: { id: number }) {
       // The ball at the strand's tip (never ahead of it), shrinking as its yarn runs out, turning as it rolls.
       const at = sampleAt(drawn < relay ? relay : drawn), shownP = drawn < relay ? relay / TOTAL : drawn / TOTAL;
       b.style.transform = `translate(${((at.x - START.x) * u).toFixed(2)}px, ${((at.y - START.y) * u).toFixed(2)}px) scale(${(1 - 0.42 * p.shown).toFixed(4)})`;
-      if (!reducedRef.current) w.style.rotate = `${(300 * p.shown).toFixed(2)}deg`;
+      // The ball drawn live over its baked picture: its wraps roll over its face as the yarn is laid, and the strand
+      // comes off it on the side it came from (Brian, 2026-11-22: "more like the yarn is actually unraveling").
+      const still = reducedRef.current, laid = still ? 0 : shownP, back = Math.atan2(-at.ty, -at.tx);
+      const look = `${laid.toFixed(4)}|${back.toFixed(3)}`;
+      if (look !== drawnBall) {
+        drawnBall = look;
+        lctx.clearRect(0, 0, BALL_PX, BALL_PX);
+        drawBallWraps(lctx, BALL_PX / 2, BALL_PX / 2, BALL_R, 30 * laid, 1100 * laid);
+        drawPeel(lctx, BALL_PX / 2, BALL_PX / 2, BALL_R, back, 34 * laid, 1 - 0.42 * p.shown);
+      }
       // Waiting: the ball rocks once the progress has not moved for REST_MS.
       if (p.shown !== lastShown) { lastShown = p.shown; movedAt = now; b.removeAttribute('data-rest'); }
       else if (now - movedAt > REST_MS && !reducedRef.current) b.setAttribute('data-rest', '');
@@ -343,6 +353,7 @@ function Doors({ id }: { id: number }) {
           <div className="sk-yarn-ball-body">
             <span style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: SHADOW }} />
             <img ref={wraps} className="sk-yarn-ball-wraps" src={BALL_SRC} alt="" draggable={false} />
+            <canvas ref={liveBall} className="sk-yarn-ball-wraps sk-yarn-ball-live" width={BALL_PX} height={BALL_PX} />
             <span style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: SHADE }} />
           </div>
         </div>

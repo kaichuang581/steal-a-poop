@@ -583,6 +583,7 @@
 .sk-yarn-ball-shadow, .sk-yarn-ball-wraps, .sk-yarn-ball-shade { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .sk-yarn-ball-shadow { overflow: visible; }
 .sk-yarn-ball-wraps { user-select: none; -webkit-user-drag: none; }
+.sk-yarn-ball-live { pointer-events: none; }
 /* The page's own screen sits just under BarnDoors' (which takes over from it). */
 #boot-doors { z-index: 89; }
 /* boot-doors:end */

@@ -22,5 +22,5 @@ export function skyAt(f: number): Color {
 /** The haze on the near island: the night's plum. */
 export const PARTY_FOG = '#4A3478';
 /** Where the moon stands, as a fraction of the window (across, down), and how much of its width it spans. */
-export const MOON = { fx: 0.795, fy: 0.17, size: 0.12 } as const;
+export const MOON = { fx: 0.795, fy: 0.17, size: 0.085 } as const;
 

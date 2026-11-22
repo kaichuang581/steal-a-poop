@@ -2195,14 +2195,16 @@ the crates here (the victory screen keeps its crates), all three places are one 
   little. No light of its own (one whitened the champion's wool in version 2): the stage's one point light is still the
   lantern's.
 - The sky (sky.ts, FestivalSky.tsx): a festival night. Painted bands behind the picture (night blue, indigo, plum, and
-  the festival's warm glow rising behind the island); a big moon with far island C in front of it (`MOON`); stars,
-  thinning toward the glow, a few with a cross of light; three long clouds lit coral from beneath; sky lanterns rising
-  and swaying (added light, so a faint one is a dim glow, never grey); and fireworks in the open sky either side of the
-  stage, never over the moon, the trophy or the podiums: a rocket climbs on its trail, then a peony (with an inner ring
+  the festival's warm glow rising behind the island); a moon in pixel art (32 x 32, magnified with no smoothing: Brian
+  found the painted one "so out of theme") with far island C over it (`MOON`); stars, thinning toward the glow, a few
+  with a cross of light; sky lanterns rising and swaying (added light, so a faint one is a dim glow, never grey); and
+  fireworks in the open sky either side of the stage, never over the moon, the trophy or the podiums: a rocket climbs as
+  a short spark, then a peony (with an inner ring
   in a second colour), a chrysanthemum, a ring or a golden willow opens, its sparks trailing and drooping a little, the
   glittering kinds flickering as they fade (a stronger pull read as rain). Everything is placed by spots of the window
   and sized by shares of its width, so it composes the same at every size. The far islands mix toward the band at their
   height, the barn's windows are lit, and a string of festival lamps runs along each island's front edge (`farLights`).
+  No clouds: the long thin bands read as "a lot of these weird lines" (Brian); do not bring back thin streaks in the sky.
   Light: a warm key as from lanterns, a cool sky fill over a warm ground, the moon's blue on the edges, the festival's
   glow from below, a thin plum haze.
 - Framing (frame.ts): the plan's 66% holds only where the window is tall enough. With the trophy floating over the

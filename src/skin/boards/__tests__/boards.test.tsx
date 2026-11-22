@@ -140,12 +140,16 @@ describe('the leaderboards page', () => {
     expect(stage).toContain('farIsland(');
     expect(stage + island).not.toMatch(/cloudSea|cloudGrid|island\('windmill'|Puffs|whiten|wisp\(/);
     // The sky is a festival night (Brian, 2026-11-22: "go more for the vibe of like those anime festivals while still
-    // being somewhat cohesive"): painted bands behind the picture, a moon, stars, clouds lit from beneath, sky lanterns
-    // and fireworks, all in FestivalSky.tsx; no voxel clouds.
+    // being somewhat cohesive"): painted bands behind the picture, a moon, stars, sky lanterns and fireworks, all in
+    // FestivalSky.tsx; no clouds.
     const sky = src('src/skin/boards/FestivalSky.tsx');
     expect(stage).toContain('<FestivalSky place={place}');
     expect(stage).not.toMatch(/<Dome\b|PartySky/);
-    for (const part of ['backdrop()', 'moonTexture()', 'cloudTexture(', 'lanternTexture()', 'KINDS', 'STARS']) expect(sky).toContain(part);
+    for (const part of ['backdrop()', 'moonTexture()', 'lanternTexture()', 'KINDS', 'STARS']) expect(sky).toContain(part);
+    // The moon is pixel art, magnified with no smoothing (Brian: the painted one was "so out of theme"), and the thin
+    // cloud bands are gone ("on the left theres a lot of these weird lines").
+    expect(sky).toContain('NearestFilter');
+    expect(sky).not.toMatch(/cloudTexture|CLOUDS/);
     expect(sky).not.toMatch(/Grid\(|buildGeometry/);
     // Version 3 (Brian, 2026-11-22): the stage's own three poses, handed to the Sheep component whole.
     for (const name of ["'lbChampion'", "'lbGoodSport'", "'lbNap'"]) expect(poses).toContain(`name: ${name}`);

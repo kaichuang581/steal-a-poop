@@ -28,7 +28,7 @@ import { openSignInForm } from '../onboarding/Onboarding';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
-import { AcornIcon, CloseIcon, FlameIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ChainIcon, ClockIcon, CloseIcon, FlameIcon, GearIcon, GustIcon, HelpIcon, LeafIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { whenDoorsOpen } from '../components/BarnDoors';
 import { useAdmin } from '../../lib/admin';
@@ -45,8 +45,8 @@ import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { HomeSlab, HomeTitle, MenuIcon } from '../home/HomeParts';
+import { HourglassIcon, SetupChoice, SetupGo, SetupRow, SetupSheet, WoolBallIcon } from '../home/SetupSheet';
 import { WordOfDay } from '../wotd/WordOfDay';
-import { Chip } from '../components/Materials';
 import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
@@ -87,6 +87,12 @@ const TIPS = [
   ...SEASON_TIPS,
 ];
 
+/** How each custom rule shows as a row of the setup sheet: a short name, its icon, and what it means. */
+const RULE_LOOK: Record<string, { name: string; icon: ReactNode; foot: string }> = {
+  turnsPerRound: { name: 'Turns', icon: <ChainIcon size={22} />, foot: 'How many turns each sheep takes in a round.' },
+  lives: { name: 'Wool', icon: <WoolBallIcon />, foot: 'Wool balls each sheep starts with.' },
+  twists: { name: 'Twists', icon: <GustIcon size={22} />, foot: 'A new twist every round after the first.' },
+};
 const RULES: { key: keyof GameSettings; label: string; values: (number | string | boolean)[]; show?: (v: number | string | boolean) => string }[] = [
   { key: 'turnsPerRound', label: 'Turns per round', values: [2, 3, 5] },
   { key: 'lives', label: 'Wool balls', values: [1, 2, 3, 5] },
@@ -100,6 +106,7 @@ const RULES: { key: keyof GameSettings; label: string; values: (number | string 
 export function PaintedHome() {
   const { settings, setSettings, start, startTour, dictStatus, retryDictionary } = useStore();
   const [step, setStep] = useState<'tables' | 'setup' | 'practice' | 'join'>('tables');
+  const [showRules, setShowRules] = useState(false);
   const [partyCode, setPartyCode] = useState('');
   const entering = useRoomStore((st) => st.entering);
   const [help, setHelp] = useState(false);
@@ -291,90 +298,51 @@ export function PaintedHome() {
     </div>
   );
 
+  // The setup sheets (home/SetupSheet.tsx): they come out of the panel, every choice a leaning block. Custom shows the
+  // three rules as rows of their own; picking a length puts them away again.
+  const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
+  const rulesShown = showRules || preset === 'custom';
+  const heldPreset = (id: PresetId) => (id === 'custom' ? rulesShown : preset === id && !rulesShown);
+  const tableNote = [rooms && 'A table of your own against the farm sheep (bots).', table.first && 'An easy table for your first games.'].filter(Boolean).join(' ');
   const setup = (
-    <div className={`hm-sheet space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="setup" role="dialog" aria-label="Set the table">
-      <div className="sk-setup-head">
-        <h2>{rooms ? 'Custom game' : 'Set the table'}</h2>
-        <button className="hm-close hm-slab hm-slab--wool hm-slab--sm" onClick={() => setStep('tables')} aria-label="Back" title="Back"><CloseIcon size={16} /></button>
-      </div>
-      {rooms && <p className="sk-hand text-lg">A table of your own against the farm sheep (bots).</p>}
-      {table.first && <p className="sk-display text-base">Easy table for your first games</p>}
-      {error && <p role="alert" className="text-sm font-bold">{error}</p>}
-      <fieldset>
-        <legend className="text-sm font-bold">Game length</legend>
-        <div className="mt-1 flex flex-wrap gap-1.5">
-          {PRESET_IDS.map((id) => (
-            <Chip key={id} aria-pressed={preset === id} className="capitalize" onClick={() => { if (id !== 'custom') setRule(PRESETS[id]); }}>{id}</Chip>
+    <SetupSheet key="setup" label="Set the table" kicker={rooms ? 'Farm sheep' : 'Your own table'} title={rooms ? 'Custom game' : 'Set the table'} onClose={() => setStep('tables')}
+      action={<SetupGo icon={<MenuIcon id="lobby" />} label="Sit down" onClick={() => go('quick')} disabled={!ready} sub={`${cap(preset)}, ${settings.playerCount} sheep, ${table.difficulty} bots`} />}
+      note={tableNote || error ? <>{tableNote}{error && <b role="alert"> {error}</b>}</> : undefined}>
+      <SetupRow icon={<HourglassIcon />} name="Length" label="Game length" foot={`About ${minutes} min`}>
+        {PRESET_IDS.map((id) => (
+          <SetupChoice key={id} on={heldPreset(id)} onClick={() => { if (id === 'custom') setShowRules(true); else { setShowRules(false); setRule(PRESETS[id]); } }}>{cap(id)}</SetupChoice>
+        ))}
+      </SetupRow>
+      <SetupRow icon={<SheepIcon size={22} />} name="Sheep" label="Sheep at the table"
+        foot={<><span className="hm-setup-flock">{Array.from({ length: settings.playerCount }, (_, i) => <span key={i} className="sk-walk-in" style={{ animationDelay: `${i * 40}ms` }}><SheepIcon size={16} /></span>)}</span>{farmSheepLine(settings.playerCount - 1)}</>}>
+        {COUNTS.map((c) => <SetupChoice key={c} big on={settings.playerCount === c} onClick={() => setSettings({ playerCount: c })}>{c}</SetupChoice>)}
+      </SetupRow>
+      <SetupRow icon={DIFFS.find((d) => d.id === table.difficulty)?.icon} name="Bots" label="Bot difficulty">
+        {DIFFS.map((d) => (
+          <SetupChoice key={d.id} on={table.difficulty === d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })}>{d.icon}{cap(d.id)}</SetupChoice>
+        ))}
+      </SetupRow>
+      {rulesShown && RULES.map((r) => (
+        <SetupRow key={r.key} icon={RULE_LOOK[r.key].icon} name={RULE_LOOK[r.key].name} label={r.label} foot={RULE_LOOK[r.key].foot}>
+          {r.values.map((v) => (
+            <SetupChoice key={String(v)} big={typeof v === 'number'} on={rules[r.key] === v} onClick={() => setRule({ [r.key]: v } as Partial<GameSettings>)}>{r.show ? r.show(v) : String(v)}</SetupChoice>
           ))}
-        </div>
-        <p className="mt-1.5" aria-live="polite"><span className="kit-slate kit-slate--mini"><span className="kit-slate-face kit-chalk-hand">{`about ${minutes} min`}</span></span></p>
-      </fieldset>
-      <fieldset>
-        <legend className="text-sm font-bold">Sheep at the table</legend>
-        <div className="mt-1 flex flex-wrap gap-1.5">
-          {COUNTS.map((c) => <button key={c} type="button" className={`kit-tile kit-tile--sm ${settings.playerCount === c ? 'kit-tile--lit' : ''}`} onClick={() => setSettings({ playerCount: c })} aria-pressed={settings.playerCount === c}>{c}</button>)}
-        </div>
-        {/* One icon per seat; a seat added walks in from the left. */}
-        <div className="mt-1.5 flex items-end gap-0.5" aria-hidden="true">
-          {Array.from({ length: settings.playerCount }, (_, i) => (
-            <span key={i} className="sk-walk-in" style={{ animationDelay: `${i * 40}ms` }}><SheepIcon size={i === 0 ? 26 : 22} /></span>
-          ))}
-        </div>
-        <p className="sk-hand mt-1 text-base" aria-live="polite">{farmSheepLine(settings.playerCount - 1)}</p>
-      </fieldset>
-      <fieldset>
-        <legend className="text-sm font-bold">Bot difficulty</legend>
-        <div className="mt-1 flex gap-1.5">
-          {DIFFS.map((d) => (
-            <Chip key={d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })} aria-pressed={table.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
-          ))}
-        </div>
-      </fieldset>
-      <details className="hm-rules px-1 py-1" open={preset === 'custom'}>
-        <summary className="cursor-pointer text-sm font-bold">Custom rules</summary>
-        <div className="space-y-2 py-2">
-          {RULES.map((r) => (
-            <fieldset key={r.key}>
-              <legend className="text-xs font-bold uppercase tracking-wide">{r.label}</legend>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {r.values.map((v) => (
-                  <Chip key={String(v)} aria-pressed={rules[r.key] === v} onClick={() => setRule({ [r.key]: v } as Partial<GameSettings>)}>{r.show ? r.show(v) : String(v)}</Chip>
-                ))}
-              </div>
-            </fieldset>
-          ))}
-        </div>
-      </details>
-      <button onClick={() => go('quick')} disabled={!ready} className="sk-sit hm-act hm-slab hm-slab--lantern hm-knit">Sit down</button>
-    </div>
+        </SetupRow>
+      ))}
+    </SetupSheet>
   );
 
   const drillSetup = (
-    <div className={`hm-sheet space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="practice" role="dialog" aria-label="Practice run">
-      <div className="sk-setup-head">
-        <h2>Practice</h2>
-        <button className="hm-close hm-slab hm-slab--wool hm-slab--sm" onClick={() => setStep('tables')} aria-label="Back" title="Back"><CloseIcon size={16} /></button>
-      </div>
-      <p className="text-sm">You and one bot, on one life. Every word you play scores a point, the clock loses a second every 5 words, and your run ends the first time it runs out.</p>
-      <fieldset>
-        <legend className="text-sm font-bold">Starting clock</legend>
-        <div className="mt-1 flex gap-1.5">
-          {PRACTICE_CLOCKS.map((c) => <Chip key={c} onClick={() => setDrill({ clock: c })} aria-pressed={drill.clock === c}>{c} s</Chip>)}
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend className="text-sm font-bold">Bot</legend>
-        <div className="mt-1 flex gap-1.5">
-          {DIFFS.map((d) => (
-            <Chip key={d.id} onClick={() => setDrill({ difficulty: d.id })} aria-pressed={drill.difficulty === d.id} className="capitalize">{d.icon}{d.id}</Chip>
-          ))}
-        </div>
-        <p className="sk-hand mt-1 text-base" aria-live="polite">{DRILL_BOTS[drill.difficulty]}</p>
-      </fieldset>
-      <p className="kit-slate kit-slate--mini kit-slate--amber" aria-live="polite"><span className="kit-slate-face kit-chalk-hand">{drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'}</span></p>
-      {error && <p role="alert" className="text-sm font-bold">{error}</p>}
-      <button autoFocus onClick={() => go('practice')} disabled={!ready} className="sk-sit hm-act hm-slab hm-slab--lantern hm-knit">Start run</button>
-    </div>
+    <SetupSheet key="practice" label="Practice run" kicker="Speed run" title="Practice" onClose={() => setStep('tables')}
+      action={<SetupGo icon={<MenuIcon id="practice" />} label="Start run" onClick={() => go('practice')} disabled={!ready} autoFocus sub={drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'} />}
+      note={<>You and one bot, on one life. Every word you play scores a point, and your run ends the first time your clock runs out.{error && <b role="alert"> {error}</b>}</>}>
+      <SetupRow icon={<ClockIcon size={22} />} name="Clock" label="Starting clock" foot="It loses a second every 5 words.">
+        {PRACTICE_CLOCKS.map((c) => <SetupChoice key={c} big on={drill.clock === c} onClick={() => setDrill({ clock: c })}>{c} s</SetupChoice>)}
+      </SetupRow>
+      <SetupRow icon={DIFFS.find((d) => d.id === drill.difficulty)?.icon} name="Bot" label="Bot" foot={DRILL_BOTS[drill.difficulty]}>
+        {DIFFS.map((d) => <SetupChoice key={d.id} on={drill.difficulty === d.id} onClick={() => setDrill({ difficulty: d.id })}>{d.icon}{cap(d.id)}</SetupChoice>)}
+      </SetupRow>
+    </SetupSheet>
   );
   const joinParty = (
     <div className={`hm-sheet space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="join" role="dialog" aria-label="Join a party">
@@ -472,7 +440,7 @@ export function PaintedHome() {
             <div className="hm-block">
               <HomeTitle title={PAINTED_TITLE} tagline="Chain words. Keep your wool. Outlast the flock." />
               {/* One wrapper always, so a panel dims the menu without remounting it (and replaying its entry). */}
-              <div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>
+              <div className={step === 'tables' ? undefined : step === 'join' ? 'pointer-events-none opacity-40' : 'pointer-events-none hm-menu-held'} data-held={step === 'setup' ? 'lobby' : step === 'practice' ? 'practice' : undefined} inert={step !== 'tables'}>{tables}</div>
             </div>
           </div>
           <div className="hm-corner">
@@ -483,7 +451,7 @@ export function PaintedHome() {
           </div>
           {/* The word of the day floats over the scenery under the top-right buttons (Brian, 2026-11-20: "i like it being
               over the scenery, however i dont like the card ... just the text very slightly tilted"). A panel takes its place. */}
-          {step === 'tables' ? <WordOfDay className="hm-wotd" /> : <div className="hm-panel-slot">{panel}</div>}
+          {step === 'tables' ? <WordOfDay className="hm-wotd" /> : <div className={`hm-panel-slot ${step === 'join' ? '' : 'hm-panel-slot--lean'}`}>{panel}</div>}
           <footer className="hm-foot">
             {tipLine}
             <nav className="hm-small" aria-label="About the game">{smallPrint}</nav>

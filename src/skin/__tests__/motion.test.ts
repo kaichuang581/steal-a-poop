@@ -135,7 +135,8 @@ describe('motion and feel', () => {
 
   it('the desktop menu sits in one wrapper whatever the step, so a panel never remounts it (change 4)', () => {
     const home = readFileSync('src/skin/screens/PaintedHome.tsx', 'utf8');
-    expect(home).toContain(`<div className={step === 'tables' ? undefined : 'pointer-events-none opacity-40'} inert={step !== 'tables'}>{tables}</div>`);
+    // One wrapper, whatever its class says about the step (2026-11-22: behind a setup sheet it dims all but the chosen item).
+    expect(home).toMatch(/<div className=\{step === 'tables' \? undefined : [^\n]*inert=\{step !== 'tables'\}>\{tables\}<\/div>/);
     expect(home).not.toMatch(/step === 'tables' \? tables :/);
   });
 });

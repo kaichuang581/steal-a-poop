@@ -2016,6 +2016,16 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   - Then (same day, "i didnt mean make the buttons smaller i meant make the icons smaller ... similarish tones"): the
     menu's blocks are back to the plan's sizes; the icons are smaller (24 in a 36 tile, Queue 34 in 50) and every tile is
     the same night blue (Queue's ink), so his differently coloured icons sit together.
+- The setup sheets (Brian, 2026-11-22, of Create lobby's and Practice's cards: "the popup ui is poorly done, its just another plain
+  card"; of three layouts drawn over Home he chose "B but better"): src/skin/home/SetupSheet.tsx, `.hm-setup*` in home.css. The
+  sheet comes out of the panel: it starts at 12% of the panel's height just past its edge, leans with it (the edge's lean is tan 11
+  degrees exactly), shares its lantern stripe, and the word chains drift behind it; the chosen menu item stays lit while the
+  others dim (`.hm-menu-held`). Each setting is a leaning row (icon tile, name, choices as leaning slabs, a line under them saying
+  what the choice means); the action is drawn like Queue (icon tile, label, what was chosen) and stays in view while the rows
+  scroll on a short window. Custom shows the three rules as rows of their own; a length puts them away. On a phone the sheet
+  stands upright in the bottom sheet and each row leans 6 degrees. Join party keeps the old card. The dialog names ("Set the
+  table", "Practice run"), `.sk-sit` and the button texts are what the gate and the smoke tests find: keep them. Checked at 320
+  to 1920 wide and sideways: nothing clipped, nothing under the footer, and no press or hold moves anything else.
 - French version (requested by Kai, 2026-11-20: "a button ... that says French ... everything is french, exactly the same ... use the
   french dictionary ... make the accents not so restrictive"). The language is src/lib/lang.ts (`sap:lang`, `?lang=fr`); the
   "French" / "English" button is first in Home's top bar and reloads the page. Words: public/words-fr.txt, built by

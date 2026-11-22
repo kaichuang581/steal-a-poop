@@ -2,6 +2,13 @@
 
 All user-visible changes, newest first.
 
+## 0.9.5
+
+- The leaderboards' top three have new poses, all drawn the same size: first stands with both arms raised in a V and hops, a new golden trophy with a ruby and a star floating and glowing over its head; second sits on its podium's edge, turned to the winner, clapping, its legs swinging; third naps curled up with its eyes shut, its "z"s drifting up.
+- The podiums are gold, silver and bronze, with a red carpet on top, a star with the place's number, and marquee lights chasing up their corners.
+- A party sky: twilight from deep indigo and stars down through violet and pink to a gold glow, painted clouds drifting, searchlights sweeping and fireworks.
+- The island under them is rebuilt: level snow with one step, drifts, wind ripples and footprints, a clean rim of snow over soil with stones, roots and icicles, banded rock underneath with two floating rocks; the pines, fence, bales and a smaller lantern are spread so each is in full view, and the pines sway. Three small islands far off, one with a little red barn.
+
 ## 0.9.4
 
 - The leaderboards are redrawn in Home's style: a night-blue bar with snow and the season's lights, the three boards as blocks, and one night-blue board (a sheet on a phone) with a lantern ribbon for each board's title, the list from fourth place as tiles, and your own row pinned at the foot with your place, avatar and figure.

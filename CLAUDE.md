@@ -2142,3 +2142,57 @@ texture, a lit edge, a shaded edge or side, and a detail). Branch `ui/leaderboar
 - `?preview=boards` (development only) shows the screen without the farm; the boards come from whatever `sap:server`
   names, which a test browser can stand in for.
 - The size budget was raised by 6,000 bytes for it (4.1 kB locally, room left for CI's larger gzip).
+
+## The leaderboards' stage, version 3, and the party (Brian, 2026-11-22) — plan: docs/leaderboards/LEADERBOARDS-PLAN-V3.md
+Brian's own plan; it replaces sections 8.1 and 8.4 of version 2 (the island, the sheep), and the interface stays as
+version 2 built it. Later the same day, with a picture of a champion with both arms raised, he asked for more: "make first
+place more like this with the trophy floating and glowing above his head, make the podiums to look more exciting ... the
+sizes of the models are too mismatched, the 3rd place looks so short while 1st looks massive ... make the trophy look
+cooler ... make the background scenery cooler as well (the sky i mean, not anything else) ... like an anime
+sky/day/night and give the vibes of more like a party", and "u dont have to copy the fingers, just make the arms like
+that". Where that message and the plan differ, the message wins: the trophy floats (it is not held), the podiums replace
+the crates here (the victory screen keeps its crates), all three places are one size, and the party sky replaces
+"keep today's sky". Branch `ui/leaderboards-v3`, version 0.9.5.
+- Files (src/skin/boards): poses.ts (the three poses as data, `sample`, `rigOf`, `placement`), frame.ts (the camera, pure),
+  island.ts (the island, pure), podium.ts and cup.ts (the podiums and the trophy, pure voxels), sky.ts (the sky's colours),
+  PartySky.tsx, Prize.tsx and BoardStage.tsx (the scene). Tests: poses.test.ts, island.test.ts, party.test.ts and the
+  stage checks in boards.test.tsx. `?preview=boards&lbAnimal=cow&lbTime=0.4` (development only) puts one species in every
+  place and holds every loop at that time, for pictures.
+- Poses: `lbChampion`, `lbGoodSport`, `lbNap` are data (a rest pose, keyframes, waves) handed whole to the Sheep component
+  through its `rig` prop (table/Sheep.tsx: `RigPose`; without the prop the Sheep is exactly as before). Each place runs
+  on its own clock, starting 0, 0.8 and 1.6 s in, standing still while the tab is hidden and at rest under reduced motion;
+  a new holder (a tab pressed) remounts and starts from 0. The hop, squash and pulse are a group about where the weight
+  bears (BoardStage, `Lounger`). Faces: idle for the first two, asleep for the nap; the Santa hat is part of the head,
+  so the plan's hat lines are skipped; eyes are painted cells, so the nap's eyes close with the lids the face already has.
+- What the models could not do, and what was done instead (a sheep's legs are 0.16 of its height):
+  - The champion's front legs swing up 178 degrees and turn OUT 42 (a V, as in his picture), not in: raised they reach
+    the chin, and turned in they met over the mouth. On the cow and the horse the V clears the head; on the sheep it
+    frames the face. Moving the shoulders up opened dark holes where the legs leave the wool: never move a leg's root.
+  - The second sits with its body's front on the top's front edge, so its hips are 0.10 to 0.25 m behind the edge, not
+    0.04 W (its belly is in front of its hips); its hind legs rest where they clear the top (`hindRest`: sheep 44, pig 68,
+    cow 76, goat 70, horse 72, chicken 48 degrees, not 40), still swinging 12 either way and never touching the front.
+  - Tails that hang lower than the rump or the belly (pig, goat, horse) rest their tips inside the top, behind the body.
+  - One size: every place of a species is drawn at the smallest size any of its three fits at (the nap's), so first is no
+    longer "massive" and third no longer "short" (`PLACE_SIZE` is 1, 1, 1).
+- The island (island.ts): as the plan's section 4, with these readings: the front reaches 1.8 m past the crates (the
+  ripples need it); the snow is 0.3 m thick behind the step, 0.2 m in front; soil-1's lowest 0.1 m is a step darker,
+  because 0.3 m of one colour was 28 px at 1440 x 900, past the plan's 24; the underside bands are their own mesh with no
+  shadow, or both tones went one grey under the rim; stones and roots are on the front face; trails run along their
+  own direction. The island, the pines, the lantern and its glass are one connected piece (island.test.ts).
+- The podiums (podium.ts): the crate's footprint and heights, so every pose, plate and drift still fits: a plum plinth, a
+  column of gold, silver or bronze with lit corners and a studded plum frieze, a cap with a red carpet, a cream star
+  with the number (a drawn 5 x 7) on the front, and marquee bulbs down the front corners and along the plinth that
+  chase in four colours (lit and still under reduced motion). Nothing stands past the top's front edge.
+- The trophy (cup.ts, Prize.tsx): a tall gold cup with a ruby, looped handles and a star on its rim, drawn at 0.72,
+  lit from within, with a halo, slow rays and six sparkles; it floats 0.06 H over the hat, bobs 0.08 m and turns a
+  little. No light of its own (one whitened the champion's wool in version 2): the stage's one point light is still the
+  lantern's.
+- The sky (sky.ts, PartySky.tsx): painted bands behind the picture (deep indigo with stars, violet, pink, a gold glow at
+  the foot), five flat cel-shaded clouds drifting along the glow, four searchlights sweeping, and fireworks to either side
+  of the podiums, all placed by spots of the window and sized by their distance. The far islands mix toward the band at
+  their height. Light: the warm key, a lavender fill, pink and cyan rims from behind, a thin pink haze.
+- Framing (frame.ts): the plan's 66% holds only where the window is tall enough. With the trophy floating over the
+  champion on the 2.9 m podium, the fill is 57% at 1440 x 900, 50% at 1280 x 720 and 1920 x 1080, 65% on a 390 x 844
+  phone; every species makes its whole hop. Where a crate is drawn narrow, its plate's rank badge steps out
+  (`data-narrow`), never the figure.
+- The size budget was raised by 13,000 bytes (12.6 kB locally, all in the stage's own lazy chunk).

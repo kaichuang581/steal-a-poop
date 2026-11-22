@@ -129,20 +129,37 @@ describe('the leaderboards page', () => {
   });
 
   it('the stage: the podium\'s crates on one snowy island, no clouds, a straight-on long lens, loaded after the page', () => {
+    const frame = src('src/skin/boards/frame.ts'), poses = src('src/skin/boards/poses.ts');
     expect(source).toContain("lazy(() => import('./BoardStage'))");
-    expect(stage).toContain("import { blockGeometry, carvedGeometry } from '../table/Podium'");
-    expect(stage).toMatch(/const PITCH = \(10 \* Math\.PI\) \/ 180, FOV = 28;/);
+    // Brian, 2026-11-22: the stage's own podiums (podium.ts), gold, silver and bronze; the victory screen keeps its crates.
+    expect(stage).toContain("import { podiumGeometry } from './podium'");
+    expect(stage).not.toMatch(/blockGeometry|carvedGeometry|trophyGeometry/);
+    expect(frame).toMatch(/export const PITCH = \(10 \* Math\.PI\) \/ 180, FOV = 28/);
+    expect(frame).toMatch(/FILL = \{ desk: 0\.66, phone: 0\.92 \}/);
     expect(stage).toContain('islandGeometry(layout)');
     expect(stage).toContain('farIsland(');
     expect(stage + island).not.toMatch(/cloudSea|cloudGrid|island\('windmill'|Puffs|whiten|wisp\(/);
-    for (const pose of ["'lounge'", "'perch'", "'flop'"]) expect(stage).toContain(`state: ${pose}`);
+    // The sky is the party's (Brian, 2026-11-22: "like an anime sky/day/night ... the vibes of more like a party"): painted
+    // bands behind the picture, flat clouds, searchlights and fireworks, all in PartySky.tsx; no voxel clouds.
+    const sky = src('src/skin/boards/PartySky.tsx');
+    expect(stage).toContain('<PartySky place={place}');
+    expect(stage).not.toMatch(/<Dome\b/);
+    for (const part of ['backdrop()', 'cloudTexture(', 'beamTexture()', 'BURSTS', 'STARS']) expect(sky).toContain(part);
+    expect(sky).not.toMatch(/Grid\(|buildGeometry/);
+    // Version 3 (Brian, 2026-11-22): the stage's own three poses, handed to the Sheep component whole.
+    for (const name of ["'lbChampion'", "'lbGoodSport'", "'lbNap'"]) expect(poses).toContain(`name: ${name}`);
+    expect(stage).toContain('rig={rig}');
+    expect(stage).not.toMatch(/'lounge'|'perch'|'flop'/);
     expect(stage).toContain('<AdaptiveCanvas');
     expect(stage).toContain('<MarkDrawn />');
     expect(stage).not.toMatch(/useWorld|Snowfall|<Sky\b|bloom|EffectComposer|TiltShift/i);
-    // The champion's wool is not lit by a light of the cup's own.
-    expect(stage).not.toMatch(/<pointLight[^>]*FFD27A[^>]*distance=\{3\}/);
+    // The champion's wool is not lit by a light of the cup's own: the one point light is the lantern's, inside its glass.
+    expect(stage.match(/<pointLight/g)).toHaveLength(1);
+    expect(stage).toContain('<pointLight position={geo.lamp}');
     // The plates are put on their crates when the window or the camera changes, never each frame.
-    expect(stage).not.toMatch(/ScreenAnchor|useFrame/);
+    expect(stage).not.toMatch(/ScreenAnchor/);
+    expect(stage).toContain('new ResizeObserver(fit)');
+    expect(stage.split('useFrame(').slice(1).join('')).not.toMatch(/anchors\[|--crate-w/);
   });
 
   it('the victory screen is as it was before the leaderboards: only two builders exported, the second with a lift', () => {

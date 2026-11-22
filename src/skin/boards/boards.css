@@ -71,8 +71,10 @@
 .lb[data-phone] .lb-plate-name { font-size: clamp(12px, calc((var(--max) - 16px) / (var(--n) * 0.68)), 15px); }
 .lb[data-phone] .lb-plate-text { align-items: center; max-width: 100%; }
 /* A phone's plate is as wide as its crate: where that leaves too little for the badge and the whole figure, the badge
-   steps out, never the figure. */
+   steps out, never the figure. A computer's plate does the same when its crate is drawn narrow (`data-narrow`, set
+   with the plates: version 3's stage stands back further in a short window). */
 .lb[data-phone] .lb-plate-text { container-type: inline-size; width: 100%; }
+.lb-plate-at[data-narrow] .lb-plate-score .lb-tier { display: none; }
 @container (max-width: 56px) { .lb-plate-score .lb-tier { display: none; } }
 /* An open place on a phone's narrow plate: its words wrap (to three short lines at most) rather than end in an ellipsis. */
 .lb[data-phone] .lb-plate-none { max-height: 3.15em; white-space: normal; text-align: center; font-size: clamp(9.5px, calc((var(--max) - 16px) / 4.6), 11.5px); line-height: 1.05; }
@@ -80,10 +82,28 @@
 
 /* Third place is asleep: three letters drifting up off its head, sized from the crate so they stay in scale. */
 .lb-z { position: absolute; left: 0; bottom: 0; display: block; width: 1px; height: 1px; }
-.lb-z i { position: absolute; left: 0; bottom: 0; font: 800 clamp(9px, calc(var(--crate-w, 120px) * 0.075), 18px)/1 var(--skin-font-display); font-style: normal; color: var(--hm-wool-hi); text-shadow: 0 1px 0 var(--hm-night), 1px 0 0 var(--hm-night), -1px 0 0 var(--hm-night), 0 -1px 0 var(--hm-night); opacity: 0; animation: lb-z 2.4s linear infinite; }
-.lb-z i:nth-child(2) { font-size: clamp(11px, calc(var(--crate-w, 120px) * 0.095), 22px); animation-delay: 0.8s; }
-.lb-z i:nth-child(3) { font-size: clamp(13px, calc(var(--crate-w, 120px) * 0.115), 26px); animation-delay: 1.6s; }
-@keyframes lb-z { 0% { opacity: 0; transform: translate(0, 0); } 10% { opacity: 0.95; } 65% { opacity: 0.95; } 100% { opacity: 0; transform: translate(calc(var(--crate-w, 120px) * 0.12), calc(var(--crate-w, 120px) * -0.22)); } }
+/* Third place's "z"s (version 3, 3.5): a new one every 0.8 s; each rises 0.28 H in 2.4 s, drifting 0.06 H right, growing
+   from 60% to 100%, fading in over its first 0.3 s and out over its last 0.6 s. H is the nap's own height on screen
+   (--zh, set with the plates). The first starts with the nap's loop, 1.6 s after the screen opens. */
+.lb-z i {
+  position: absolute; left: 0; bottom: 0; transform-origin: 0 100%;
+  font: 800 clamp(10px, calc(var(--zh, 100px) * 0.2), 28px)/1 var(--skin-font-display); font-style: normal; color: var(--hm-wool-hi);
+  text-shadow: 0 1px 0 var(--hm-night), 1px 0 0 var(--hm-night), -1px 0 0 var(--hm-night), 0 -1px 0 var(--hm-night);
+  opacity: 0; animation: lb-z 2.4s linear 1.6s infinite;
+}
+.lb-z i:nth-child(2) { animation-delay: 2.4s; }
+.lb-z i:nth-child(3) { animation-delay: 3.2s; }
+@keyframes lb-z {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  12.5% { opacity: 0.95; }
+  75% { opacity: 0.95; }
+  100% { opacity: 0; transform: translate(calc(var(--zh, 100px) * 0.06), calc(var(--zh, 100px) * -0.28)) scale(1); }
+}
+/* Reduced motion: the three stand still where they would be a sixth, a half and five sixths of the way up. */
+.lb .lb-z[data-still] i { animation: none; opacity: 0.95; }
+.lb .lb-z[data-still] i:nth-child(1) { transform: translate(calc(var(--zh, 100px) * 0.01), calc(var(--zh, 100px) * -0.047)) scale(0.67); }
+.lb .lb-z[data-still] i:nth-child(2) { transform: translate(calc(var(--zh, 100px) * 0.03), calc(var(--zh, 100px) * -0.14)) scale(0.8); }
+.lb .lb-z[data-still] i:nth-child(3) { transform: translate(calc(var(--zh, 100px) * 0.05), calc(var(--zh, 100px) * -0.233)) scale(0.93); }
 
 /* ---------- Snow ----------
    One piece an edge. White on the top row, wool under it with two speckles of frost, a stepped edge (3, 3, 2, 2, 3, 3, 3, 2

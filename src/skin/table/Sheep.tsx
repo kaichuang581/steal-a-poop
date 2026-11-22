@@ -55,6 +55,20 @@ export const WALK_HALF_STEP = 0.34;
 export interface SheepLook { woolColour: string; facePattern: string; collar: string; hat: string; scarf: string; bell: string }
 export const DEFAULT_LOOK: SheepLook = { woolColour: 'cream', facePattern: 'plain', collar: 'red', hat: 'none', scarf: 'none', bell: 'brass' };
 
+/**
+ * Every part's turn and offset for a pose a scene supplies (radians, model units), applied as the frame loop applies its
+ * own: the body group about the model's origin, each leg about its pivot (x then z: the swing, then the spread), the head
+ * about its pivot inside the neck group, the ears and tail about theirs, the wings (the chicken's) about their roots.
+ */
+export interface RigPose {
+  body: [number, number, number]; bodyAt: [number, number, number];
+  head: [number, number, number]; headAt: [number, number, number];
+  neck: number; ears: [number, number];
+  legs: [number, number][]; legsAt: [number, number, number][];
+  tail: [number, number]; wings: [number, number];
+  lids: 'open' | 'closed';
+}
+
 interface Props {
   level: WoolLevel;
   state: SheepState;
@@ -86,6 +100,11 @@ interface Props {
   pace?: number;
   /** Another animal built to the shared rig (src/skin/voxel/animals): the avatar a player wears. Default: the sheep. */
   model?: SheepModel | AnimalModel;
+  /**
+   * A pose handed in whole, every frame, in place of the state's own (the leaderboards' poses, boards/poses.ts): called
+   * with the clock's time and read at once. The state still runs the blink, the face and the idle layer underneath.
+   */
+  rig?: (t: number) => RigPose;
 }
 
 /** The ears hang 20 degrees below level. */
@@ -748,7 +767,7 @@ function flavour(p: Float32Array, f: Face, species: string, live: SheepState, e:
  * model; only level, state and seat differ. Each coat level is its own fleece built to fit the head and legs, so
  * growing or losing wool swaps the fleece rather than scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model, contact = true }: Props) {
+export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model, contact = true, rig }: Props) {
   const m = model ?? sheepModel();
   // Low tier: no animal casts a shadow; it stands on its contact patch instead (plan file 02, change 5).
   const low = useTier() === 'low';
@@ -816,6 +835,9 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     for (let i = 0; i < N; i++) c[i] = a.from[i] + (a.target[i] - a.from[i]) * w;
     Object.assign(a.face, w < 0.5 ? a.faceFrom : a.faceTarget);
     const f = a.face;
+    // A pose handed in whole (the leaderboards'): its lids win; the state's blink still closes open ones.
+    const rp = rig ? rig(t) : null;
+    if (rp?.lids === 'closed') f.lids = 'closed';
 
     // Attention: the head turns (up to 0.6 rad) and tilts toward the speaker or the camera, trailing the target a little.
     const attentive = live === 'idle' || live === 'thinking' || live === 'proud' || live === 'happy' || live === 'cold';
@@ -849,6 +871,16 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     if (o.neck) (o.neck as Group).rotation.x = am.neckBase ? c[CH.neckX] : 0;
     (o.earL as Mesh).rotation.set(0, -c[CH.earBack], c[CH.earL]);
     (o.earR as Mesh).rotation.set(0, c[CH.earBack], -c[CH.earR]);
+    if (rp) {
+      body.position.set(rp.bodyAt[0], rp.bodyAt[1], rp.bodyAt[2]);
+      body.rotation.set(rp.body[0], rp.body[1], rp.body[2]);
+      const hp = fromNeck(m.head.pivot);
+      head.position.set(hp[0] + rp.headAt[0], hp[1] + rp.headAt[1], hp[2] + rp.headAt[2]);
+      head.rotation.set(rp.head[0] + (am.headPitch ?? 0), rp.head[1], rp.head[2]);
+      if (o.neck) (o.neck as Group).rotation.x = am.neckBase ? rp.neck : 0;
+      (o.earL as Mesh).rotation.set(0, 0, rp.ears[0]);
+      (o.earR as Mesh).rotation.set(0, 0, -rp.ears[1]);
+    }
     // Breathing: the body lobes swell 2.5% either way; the fleece settles into place over half a second when the level changes.
     const breathe = moving && live !== 'freezing' && live !== 'startled' ? Math.sin(tp * (live === 'sleeping' || live === 'flop' ? 1.0 : 1.9)) * 0.025 : 0;
     const settle = reduced ? 1 : 0.94 + 0.06 * easeOut((t - a.levelAt) / 0.5);
@@ -878,7 +910,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
         const dir = sp.anim === 'wingL' ? 1 : -1;
         const open = live === 'happy' ? (moving && e < 1 ? Math.abs(Math.sin(e * 18)) * 0.9 : 0)
           : live === 'run' ? 0.2 : live === 'proud' ? 0.4 : live === 'startled' ? 0.6 : live === 'jump' ? 0.7 : 0;
-        mesh.rotation.z = dir * open;
+        mesh.rotation.z = dir * (rp ? rp.wings[sp.anim === 'wingL' ? 0 : 1] : open);
       }
       else if (sp.anim === 'beard') mesh.rotation.x = moving && (live === 'idle' || live === 'grazing') ? Math.sin(tp * 2.2) * 0.12 : 0;
       else if (sp.anim === 'comb') mesh.rotation.z = moving ? Math.sin(tp * 2.5) * 0.08 : 0;
@@ -890,6 +922,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     // The tail lifts when proud (and the horse's when startled); the chicken's fan spreads 1.2 proud and happy, folds 0.9
     // cold, and breathes +-4% at rest (6.4, 6.3).
     tail.rotation.x = live === 'proud' || (species === 'horse' && live === 'startled') ? tailLift : 0;
+    if (rp) tail.rotation.set(rp.tail[0], rp.tail[1], 0);
     if (am.tailAnim === 'tailFan') tail.scale.x = live === 'proud' || live === 'happy' ? 1.2 : live === 'cold' ? 0.9 : 1 + (moving ? Math.sin(tp * 1.9) * 0.04 : 0);
     tail.position.z = tailZ(m, species, lvl);
     const fl = o.legFL as Mesh;
@@ -899,8 +932,16 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     (o.legFR as Mesh).rotation.x = c[CH.legSwing] + c[CH.legFront];
     (o.legBL as Mesh).rotation.x = c[CH.legSwing] + c[CH.legBack];
     (o.legBR as Mesh).rotation.x = -c[CH.legSwing] + c[CH.legBack];
-    // Squash and stretch on the whole sheep, volume kept: shorter and wider, or taller and narrower.
-    const sq = Math.max(0.5, c[CH.squash] || 1);
+    if (rp) {
+      // Each leg about its own pivot, moved by its offset: the swing, then the spread (x, then z).
+      [fl, o.legFR as Mesh, o.legBL as Mesh, o.legBR as Mesh].forEach((leg, i) => {
+        leg.position.set(m.legs[i].pivot[0] + rp.legsAt[i][0], m.legs[i].pivot[1] + rp.legsAt[i][1], m.legs[i].pivot[2] + rp.legsAt[i][2]);
+        leg.rotation.set(rp.legs[i][0], 0, rp.legs[i][1]);
+      });
+    }
+    // Squash and stretch on the whole sheep, volume kept: shorter and wider, or taller and narrower. (A scene that hands
+    // in its own pose squashes the animal itself, about where its weight bears.)
+    const sq = rp ? 1 : Math.max(0.5, c[CH.squash] || 1);
     root.current.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
     // The `bell` tag (the sheep's and the cow's) swings about its top (6.4): +-0.3 rad dying away over 0.8 s on happy, jump and bonk; +-0.08 in the run.
     const bell = o.bell as Mesh;
@@ -911,7 +952,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     // places with the same material and shadows, in one draw call. The moment a leg moves, each is drawn by its own
     // mesh again.
     const fr = o.legFR as Mesh, bl = o.legBL as Mesh, br = o.legBR as Mesh, restMesh = o.rest as Mesh | null | undefined;
-    const rest = restMesh && restOf && c[CH.legLift] === 0 && fl.rotation.x === 0 && fr.rotation.x === 0 && bl.rotation.x === 0 && br.rotation.x === 0 ? restOf.legs : null;
+    const rest = !rp && restMesh && restOf && c[CH.legLift] === 0 && fl.rotation.x === 0 && fr.rotation.x === 0 && bl.rotation.x === 0 && br.rotation.x === 0 ? restOf.legs : null;
     if (restMesh) restMesh.visible = !!rest;
     fl.visible = !rest?.[0] && drawn(m.legs[0].geo);
     fr.visible = !rest?.[1] && drawn(m.legs[1].geo);
@@ -951,7 +992,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     const pb = o.proxyBody as Mesh | null | undefined, ph = o.proxyHead as Mesh | null | undefined;
     let bm = ALL_B, hm = ALL_H;
     if (!(level === 0 || Math.abs(ws - 1) <= BREATH)) bm &= ~B.coat;
-    if (!(c[CH.legLift] === 0 && fl.rotation.x === 0 && fr.rotation.x === 0 && bl.rotation.x === 0 && br.rotation.x === 0)) bm &= ~B.legs;
+    if (rp || !(c[CH.legLift] === 0 && fl.rotation.x === 0 && fr.rotation.x === 0 && bl.rotation.x === 0 && br.rotation.x === 0)) bm &= ~B.legs;
     // Joined on the CPU, the pig's legs round apart from the GPU's and move its shadow a row (LEGS_APART): they cast alone.
     if (LEGS_APART.has(species)) bm &= ~B.legs;
     if (!(tail.rotation.x === 0 && tail.rotation.y === 0 && tail.scale.x === 1)) bm &= ~B.tail;
@@ -959,7 +1000,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     if (o.neck && (o.neck as Group).rotation.x !== 0) bm &= ~B.neck;
     const earL = o.earL as Mesh, earR = o.earR as Mesh;
     // A blend into the rest pose can land a rounding away from DROOP: a millionth of a radian is at rest.
-    if (!(earL.rotation.y === 0 && earR.rotation.y === 0 && Math.abs(earL.rotation.z - DROOP) < 1e-6 && Math.abs(earR.rotation.z + DROOP) < 1e-6)) hm &= ~H.ears;
+    if (rp || !(earL.rotation.y === 0 && earR.rotation.y === 0 && Math.abs(earL.rotation.z - DROOP) < 1e-6 && Math.abs(earR.rotation.z + DROOP) < 1e-6)) hm &= ~H.ears;
     for (const sp of signature) {
       const sm = o[`sig-${sp.name}`] as Mesh | undefined;
       if (!sm || !sp.anim) continue;

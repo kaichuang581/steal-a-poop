@@ -498,14 +498,73 @@ function kitchenGarden(b: Builder) {
       box(x0 + 0.2, x1 - 0.2, 0.5, 0.6, mid, z1 - 0.2, snow);
       return;
     }
-    // Each row one unbroken line of plants: single plants a few pixels apart in the whole-farm shot speckled and shimmered.
+    // Each row stands on one unbroken base (single plants a few pixels apart speckled and shimmered in the whole-farm
+    // shot), and each plant has its own crown over it, so the row reads as plants close to and as a line from afar
+    // (Brian, 2026-11-21: "the garden looks low effort, increase the details on that"). The crowns keep a fixed rhythm.
     for (const dz of [-0.3, 0.3]) {
-      const z = mid + dz, a = x0 + 0.2, e = x1 - 0.2;
-      if (crop === 'kale') { box(a, e, 0.3, 0.5, z - F, z + F, paint('pine', -2)); box(a, e, 0.5, 0.6, z - 0.05, z + 0.05, paint('pine', -1)); }
-      if (crop === 'cabbage') box(a, e, 0.3, 0.5, z - 0.15, z + 0.15, paint('giftGreen', 1));
-      if (crop === 'leek') { box(a, e, 0.3, 0.5, z - 0.05, z + 0.05, paint('trimWhite', -1)); box(a, e, 0.5, 0.7, z - F, z + F, paint('pine', 0)); }
+      const iz = i(mid + dz), ia = i(x0 + 0.2), ie = i(x1 - 0.2) - 1;
+      /** Plants of `pitch` cells along the row, centred in it: each gets its first cell and its count. */
+      const plants = (pitch: number, each: (p: number, k: number) => void) => {
+        const n = Math.floor((ie - ia + 1) / pitch), p0 = ia + Math.floor((ie - ia + 1 - n * pitch) / 2);
+        for (let k = 0; k < n; k++) each(p0 + k * pitch, k);
+      };
+      if (crop === 'cabbage') {
+        // Outer leaves on a low base, a paler head in the middle of each.
+        const leaf = paint('giftGreen', 0), head = paint('giftGreen', 1);
+        b.box(ia, ie, 3, 3, iz - 1, iz + 1, leaf);
+        plants(5, (p) => { b.box(p, p + 3, 4, 4, iz - 1, iz + 1, leaf); b.box(p + 1, p + 2, 5, 5, iz - 1, iz + 1, head); });
+      }
+      if (crop === 'kale') {
+        // Dark stems, curled leaves a step lighter, every other plant a cube taller.
+        const stem = paint('pine', -2), curl = paint('pine', -1);
+        b.box(ia, ie, 3, 4, iz - 1, iz, stem);
+        plants(3, (p, k) => { b.box(p, p + 1, 5, 5, iz - 1, iz, curl); b.box(p + (k % 2), p + (k % 2), 6, 6 + (k % 2), iz - 1, iz, curl); });
+      }
+      if (crop === 'leek') {
+        // White shanks in a line, a fan of green blades over each, the tallest blade leaning one way, then the other.
+        const shank = paint('trimWhite', -1), blade = paint('pine', 0);
+        b.box(ia, ie, 3, 4, iz, iz, shank);
+        plants(3, (p, k) => { b.box(p, p + 1, 5, 6, iz, iz, blade); b.set(p + (k % 2), 7, iz, blade); });
+      }
     }
   }));
+  // Stepping stones down the path from the gate to the scarecrow, one stone a stride.
+  for (let z = G.z0 + 0.3; z < 27.6; z += 0.6) box(-7.9, -7.4, 0, F, z, z + 0.3, paint('stone', 0));
+  // The scarecrow at the head of the path, its face to the lane and the tour's cameras: a post and a cross-bar, a red coat with sleeves a step under
+  // it, straw at the hem and the cuffs, a sacking head with two dark eyes, a hat with snow on it, a crow on one arm.
+  const sx = -7.65, sz = 28.0;
+  box(sx - 0.05, sx + 0.05, 0, 1.6, sz, sz + F, paint('darkWood', -1));
+  box(sx - 0.55, sx + 0.55, 1.1, 1.2, sz, sz + F, paint('darkWood', 0));
+  box(sx - 0.25, sx + 0.25, 0.6, 1.3, sz - F, sz + 0.2, paint('scarfRed', 0));
+  box(sx - 0.5, sx - 0.25, 1.05, 1.25, sz - F, sz + 0.2, paint('scarfRed', -1));
+  box(sx + 0.25, sx + 0.5, 1.05, 1.25, sz - F, sz + 0.2, paint('scarfRed', -1));
+  box(sx - 0.6, sx - 0.5, 1.05, 1.15, sz, sz + F, paint('straw', 0));
+  box(sx + 0.5, sx + 0.6, 1.05, 1.15, sz, sz + F, paint('straw', 0));
+  box(sx - 0.2, sx + 0.2, 0.5, 0.6, sz - F, sz + 0.2, paint('straw', 0));
+  box(sx - 0.15, sx + 0.15, 1.3, 1.6, sz - F, sz + 0.2, paint('straw', 1));
+  box(sx - 0.1, sx, 1.4, 1.5, sz + 0.2, sz + 0.3, paint('ink', 0));
+  box(sx + 0.05, sx + 0.15, 1.4, 1.5, sz + 0.2, sz + 0.3, paint('ink', 0));
+  box(sx - 0.25, sx + 0.25, 1.6, 1.7, sz - 0.2, sz + 0.3, paint('darkWood', -2));
+  box(sx - 0.15, sx + 0.15, 1.7, 1.9, sz - F, sz + 0.2, paint('darkWood', -1));
+  box(sx - 0.15, sx + 0.15, 1.9, 2.0, sz - F, sz + 0.2, snow);
+  box(sx + 0.35, sx + 0.55, 1.2, 1.3, sz, sz + F, paint('ink', 0));
+  box(sx + 0.35, sx + 0.45, 1.3, 1.4, sz, sz + F, paint('ink', 1));
+  box(sx + 0.25, sx + 0.35, 1.3, 1.4, sz, sz + F, paint('carrot', 0));
+  // A water butt in the back corner by the last bed: staves, two iron hoops, a lid with snow on it.
+  box(-4.0, -3.6, 0, 0.7, 27.85, 28.25, paint('wood', 0));
+  for (const y of [0.1, 0.5]) box(-4.0, -3.6, y, y + F, 27.85, 28.25, paint('iron', 0));
+  box(-4.0, -3.6, 0.7, 0.8, 27.85, 28.25, paint('darkWood', 0));
+  box(-3.9, -3.7, 0.8, 0.9, 27.95, 28.15, snow);
+  // A wheelbarrow in the aisle between the first beds and the second, its nose to the fence: an iron wheel, a red tray
+  // with straw in it, two legs and two handles.
+  const wz = 24.5;
+  box(-11.1, -11.0, 0, 0.3, wz - F, wz + F, paint('iron', 0));
+  box(-11.0, -10.3, 0.2, 0.5, wz - 0.2, wz + 0.2, paint('tractorRed', 0));
+  box(-10.9, -10.4, 0.4, 0.5, wz - F, wz + F, paint('straw', 0));
+  for (const z of [wz - 0.2, wz + F]) {
+    box(-10.4, -10.3, 0, 0.2, z, z + F, paint('iron', -1));
+    box(-10.3, -9.8, 0.4, 0.5, z, z + F, paint('wood', 0));
+  }
 }
 
 function henYard(b: Builder) {

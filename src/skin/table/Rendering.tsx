@@ -15,7 +15,7 @@ import { createPacer, newPace, noteSceneDrawn } from '../perf/governor';
 import type { Pace } from '../perf/governor';
 import { FailCard } from '../perf/ReportCard';
 import { watchScene } from '../perf/report';
-import { applyPendingTier, createSlowWatch, createTierJudge, exemptShot, getTier, proposeTier } from '../perf/tier';
+import { applyPendingTier, createSlowWatch, createTierJudge, exemptShot, getTier, oldLightShot, proposeTier } from '../perf/tier';
 import type { Tier } from '../perf/tier';
 import { BARN } from '../scene/layout';
 import { LOOK, PADDOCK_FOG, WARM_DAY_SKY } from '../look';
@@ -167,7 +167,7 @@ export function Atmosphere({ hour }: { hour: Hour }) {
   // The wendigo's paddock shot keeps the fog it had, colour and density; every other shot the diorama's.
   const was = useRef('');
   useFrame(() => {
-    const f = scene.fog as FogExp2 | null, exempt = exemptShot();
+    const f = scene.fog as FogExp2 | null, exempt = oldLightShot();
     // Home's haze is fitted to each shot (shotLight), set in the dip with the camera's jump.
     const density = exempt ? PADDOCK_FOG : shotNow?.haze ?? LOOK.fog, key = `${exempt}|${density}|${shotNow?.hazeColour ?? ''}`;
     if (!f || was.current === key) return;
@@ -244,7 +244,7 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
     const l = light.current;
     if (!l) return;
     const s = st.current, now = performance.now();
-    const exempt = place === 'home' && exemptShot();
+    const exempt = place === 'home' && oldLightShot();
     const colour = exempt ? TODAY_SUN[hour] : (place === 'home' ? shotNow?.sunColour : null) ?? look.sun;
     if (hour + colour !== s.colour) { s.colour = hour + colour; l.color.set(colour); }
     // The paddock shot's light is the light it had; every other shot's is the diorama's (the tour cuts in the dark).
@@ -281,7 +281,7 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
       }
       s.owed = true;
     }
-    const plan = sunPlan(getTier(), phone, exempt, place);
+    const plan = sunPlan(getTier(), phone, place === 'home' && exemptShot(), place);
     let due = false;
     if (l.shadow.mapSize.x !== plan.size) { l.shadow.mapSize.set(plan.size, plan.size); due = true; }
     if (s.seq !== shotSeq) { s.seq = shotSeq; due = true; s.again = now + SHOT_AGAIN_MS; }
@@ -434,19 +434,20 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
     return () => { gl.info.autoReset = true; };
   }, [gl]);
   useFrame(() => {
-    const exempt = home && exemptShot();
-    // The wendigo's paddock shot is drawn as it was: plain Lambert (voxel/material.ts) under the old tone mapping.
-    scene.userData.plainLight = exempt;
+    // The wendigo's paddock shot keeps its tier exemption (bloom and tilt-shift on every tier); it is drawn in its old
+    // light, plain Lambert (voxel/material.ts) under the old tone mapping, only while PADDOCK_OLD_LIGHT (look.ts) is on.
+    const exempt = home && exemptShot(), old = home && oldLightShot();
+    scene.userData.plainLight = old;
     // The golden afternoon (docs/depth/DEPTH-PLAN.md, A1 to A3): Home's shots set the soft shading's amounts, the
     // exposure and how bright the lamps burn; the paddock shot and every other scene keep the material's own.
-    const golden = home && !exempt && shotNow ? shotNow : null;
+    const golden = home && !old && shotNow ? shotNow : null;
     scene.userData.studio = golden ? { wrap: golden.softWrap, fill: golden.softFill } : undefined;
     scene.userData.glow = golden ? golden.glow : 1;
     gl.toneMappingExposure = golden ? golden.exposure : 1;
-    gl.toneMapping = exempt ? ACESFilmicToneMapping : (home ? shotNow?.toneMapping : null) ?? LOOK.toneMapping;
+    gl.toneMapping = old ? ACESFilmicToneMapping : (home ? shotNow?.toneMapping : null) ?? LOOK.toneMapping;
     for (const p of composer.passes) {
-      if (p instanceof UnrealBloomPass) p.threshold = exempt ? PADDOCK_BLOOM : BLOOM_THRESHOLD;
-      if (p instanceof ShaderPass && p.material.fragmentShader === GradeShader.fragmentShader) p.enabled = home && !exempt && !LOOK.noGrade;
+      if (p instanceof UnrealBloomPass) p.threshold = old ? PADDOCK_BLOOM : BLOOM_THRESHOLD;
+      if (p instanceof ShaderPass && p.material.fragmentShader === GradeShader.fragmentShader) p.enabled = home && !old && !LOOK.noGrade;
     }
     const want = effectsPlan(getTier(), exempt);
     if (home && !exempt && !LOOK.tilt) want.tiltShift = false; // ?tilt=0 (look.ts): off but on the wendigo's shot

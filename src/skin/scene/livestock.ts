@@ -25,7 +25,9 @@ export const LIVESTOCK: [Animal, number, number, number, SheepState][] = [
   ['sheep', 12.6, 20.4, -2.2, 'idle'],
   ['sheep', 6.4, 21.6, 0.9, 'grazing'],
   ['sheep', 16.8, 22.6, -0.6, 'grazing'],
-  ['sheep', 12.4, 25.6, 1.9, 'idle'],
+  // 1.2 m back from the pond: at 12.4, 25.6 it stood in the bank's raised snow (pondD 1.02, the rim runs to 1.18) and
+  // its legs were sunk to the knee (Brian, 2026-11-21: "one of the sheeps in the pond area's legs are glitched into the ground").
+  ['sheep', 11.6, 23.9, 1.9, 'idle'],
   ['cow', 10.6, 17.0, -1.9, 'idle'],
   ['sheep', 7.6, 24.4, -1.3, 'idle'],
   ['sheep', 8.8, 30.6, 0.4, 'grazing'],

@@ -30,6 +30,7 @@ import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
 import { AcornIcon, CloseIcon, FlameIcon, GearIcon, HelpIcon, LeafIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
+import { whenDoorsOpen } from '../components/BarnDoors';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon } from '../avatars/AvatarIcon';
 import { FeedbackDialog } from '../components/FeedbackDialog';
@@ -122,6 +123,10 @@ export function PaintedHome() {
   const [more, setMore] = useState(false);
   // The entrance plays on the first Home of a visit only, not each time a game ends.
   const [entrance] = useState(() => { const first = !homeEntered; homeEntered = true; return first; });
+  // It waits behind the loading screen and plays as that lifts (Brian, 2026-11-22: "the game pops outta nowhere"):
+  // started at mount it was over before anyone could see it.
+  const [lifted, setLifted] = useState(false);
+  useEffect(() => (entrance ? whenDoorsOpen(() => setLifted(true)) : undefined), [entrance]);
   // Where the hero looks. A ref, not state (plan file 17, change 11): the sheep reads it as it is drawn, so moving the
   // pointer over Home renders nothing.
   const heroYaw = useRef(0);
@@ -436,7 +441,7 @@ export function PaintedHome() {
   return (
     // data-covered: a full page lies over Home, so its panel and title hold still (home.css). data-enter: the first Home
     // of this visit, which plays the entrance.
-    <main className={`sk-home hm relative h-full overflow-hidden`} data-covered={bazaar || boards || profile || undefined} data-phone={mobile || undefined} data-enter={entrance || undefined} data-rows={items.length} onPointerMove={onPointerMove} onKeyDown={onKey}>
+    <main className={`sk-home hm relative h-full overflow-hidden`} data-covered={bazaar || boards || profile || undefined} data-phone={mobile || undefined} data-enter={entrance ? (lifted ? 'play' : 'wait') : undefined} data-rows={items.length} onPointerMove={onPointerMove} onKeyDown={onKey}>
       <div className="absolute inset-0"><FarmBackdrop hour={hour} reduced={reduced} sleepy={!!dream} phone={mobile} heroYaw={heroYaw} heroGaze={heroGaze} hopKey={hopKey} paused={bazaar || boards} fps={farmFps} /></div>
       <HomeSlab />
 

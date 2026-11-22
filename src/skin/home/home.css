@@ -258,9 +258,12 @@
 .hm .sk-play { background: rgba(14, 21, 40, 0.78); }
 
 /* ---------- Entrance (the first Home of a visit) ---------- */
-.hm[data-enter] .hm-panel { animation: hm-panel-in 280ms ease-out both; }
-.hm[data-enter] .hm-block-l { animation: hm-drop 240ms ease-out both; animation-delay: calc(200ms + var(--i) * 45ms); }
-.hm[data-enter] .sk-menu-row { animation: hm-row-in 240ms ease-out both; animation-delay: calc(280ms + var(--n) * 40ms); }
+/* Held at its first frame behind the loading screen ("wait"), played as that lifts ("play"): the panel slides in while
+   the yarn screen dissolves, then the title's tiles drop and the rows come in. */
+.hm[data-enter] .hm-panel { animation: hm-panel-in 620ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both; }
+.hm[data-enter] .hm-block-l { animation: hm-drop 380ms cubic-bezier(0.34, 1.4, 0.64, 1) both; animation-delay: calc(420ms + var(--i) * 55ms); }
+.hm[data-enter] .sk-menu-row { animation: hm-row-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(520ms + var(--n) * 55ms); }
+.hm[data-enter="wait"] :is(.hm-panel, .hm-block-l, .sk-menu-row) { animation-play-state: paused; }
 @keyframes hm-panel-in { from { transform: translateX(-100%); } }
 @keyframes hm-drop { from { opacity: 0; transform: translateY(calc(-40 * var(--u))); } }
 @keyframes hm-row-in { from { opacity: 0; transform: translateX(calc(-40 * var(--u))); } }

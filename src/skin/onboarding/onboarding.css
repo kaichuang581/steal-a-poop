@@ -43,3 +43,12 @@
   .sk-onb { max-height: 100%; }
   .sk-onb-text { font-size: 17px; }
 }
+
+/* Eases in instead of appearing whole: on a first visit it waits for Home's entrance to finish (data-late). */
+.sk-onb-scrim { animation: sk-onb-in 320ms ease-out both; }
+.sk-onb-scrim[data-late] { animation-duration: 420ms; animation-delay: 750ms; }
+.sk-onb-scrim .sk-onb { animation: sk-onb-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: inherit; }
+@keyframes sk-onb-in { from { opacity: 0; } }
+@keyframes sk-onb-rise { from { transform: translateY(18px); } }
+:root.reduce-motion :is(.sk-onb-scrim, .sk-onb-scrim .sk-onb) { animation: none; }
+@media (prefers-reduced-motion: reduce) { :is(.sk-onb-scrim, .sk-onb-scrim .sk-onb) { animation: none; } }

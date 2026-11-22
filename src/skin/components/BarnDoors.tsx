@@ -233,7 +233,7 @@ function Doors({ id }: { id: number }) {
     if (phase !== 'open') return;
     if (liveKey === id) liveKey = -1;
     useDoors.setState({ opened: id });
-    const t = setTimeout(() => setPhase('gone'), 260);
+    const t = setTimeout(() => setPhase('gone'), 740); // after the dissolve (skin.css, .sk-doors[data-phase="open"])
     return () => clearTimeout(t);
   }, [phase, id]);
   // The screen is modal: keys pressed while it is up do not reach the screen behind (starting the dream, typing at

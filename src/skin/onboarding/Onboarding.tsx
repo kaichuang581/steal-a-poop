@@ -6,6 +6,7 @@ import { countryOptions, guessCountry } from '../../auth/countries';
 import { AGE_CHOICES, PARENT_AGREE, PARENT_DECLINE, PARENT_NOTICE, needsParent } from '../../lib/ageRules';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
 import { useStore } from '../../state/store';
+import { whenDoorsOpen } from '../components/BarnDoors';
 import { Captcha, captchaAvailable } from '../../ui/auth/Captcha';
 import { legalHref } from '../../ui/legal/legalLinks';
 import { CloseIcon } from '../components/Icons';
@@ -32,9 +33,13 @@ export function OnboardingGate() {
   const step = gateStep(status, profile, check);
   // Signed in and set up: a Log in form that is still open has done its job.
   useEffect(() => { if (open && step === null && status === 'ready') closeSignInForm(); }, [open, step, status]);
-  if (step === 'wait') return null; // a moment while the saved sign-in is checked; Home is behind
+  // On a first visit the card waits for the loading screen to lift, then eases in after Home's own entrance, instead of
+  // sitting on top of the yarn (Brian, 2026-11-22: "the game pops outta nowhere").
+  const [lifted, setLifted] = useState(false);
+  useEffect(() => whenDoorsOpen(() => setLifted(true)), []);
+  if (step === 'wait' || !lifted) return null; // a moment while the saved sign-in is checked; Home is behind
   if (step === null && !open) return null;
-  return <Onboarding gate={step} blocking={step !== null} onDone={() => { setChecked((n) => n + 1); closeSignInForm(); }} />;
+  return <Onboarding gate={step} blocking={step !== null} late={step !== null} onDone={() => { setChecked((n) => n + 1); closeSignInForm(); }} />;
 }
 
 type Way = 'choose' | 'guest' | 'email' | 'details' | 'parent' | 'declined';
@@ -43,7 +48,7 @@ type Way = 'choose' | 'guest' | 'email' | 'details' | 'parent' | 'declined';
 const BACK_TO_DETAILS = new Set(['nickname_taken', 'bad_nickname', 'bad_age', 'bad_dob', 'bad_country', 'country_not_supported', 'captcha_failed']);
 interface Answers { country: string; age: number | null; nickname: string }
 
-function Onboarding({ gate, blocking, onDone }: { gate: GateStep | null; blocking: boolean; onDone: () => void }) {
+function Onboarding({ gate, blocking, late = false, onDone }: { gate: GateStep | null; blocking: boolean; late?: boolean; onDone: () => void }) {
   const a = useAuth.getState();
   const status = useAuth((s) => s.status);
   const notice = useAuth((s) => s.notice);
@@ -193,7 +198,7 @@ function Onboarding({ gate, blocking, onDone }: { gate: GateStep | null; blockin
   }
 
   return (
-    <div className="sk-post-scrim sk-onb-scrim" onClick={blocking ? undefined : onDone}>
+    <div className="sk-post-scrim sk-onb-scrim" data-late={late || undefined} onClick={blocking ? undefined : onDone}>
       <div ref={panel} role="dialog" aria-modal="true" aria-label={title} className="sk-guide sk-post sk-onb" onClick={(e) => e.stopPropagation()}>
         <div className="sk-guide-head">
           <SnowCap className="sk-guide-snow" />

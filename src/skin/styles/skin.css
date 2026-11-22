@@ -610,7 +610,9 @@
 .sk-doors[data-phase="veiling"] { animation: sk-veil-in 180ms ease-out both; }
 .sk-doors[data-revealed] { animation: sk-yarn-dusk 240ms ease-out both; }
 .sk-doors[data-revealed] > * { animation: sk-veil-in 240ms ease-out both; }
-.sk-doors[data-phase="open"] { pointer-events: none; animation: sk-veil-out 250ms ease-in forwards; }
+.sk-doors[data-phase="open"] { pointer-events: none; animation: sk-veil-out 720ms cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.sk-doors[data-phase="open"]:not([data-veil]) .sk-yarn-word { animation: sk-yarn-word-out 720ms cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes sk-yarn-word-out { to { transform: scale(1.06); } }
 .sk-doors[data-phase="open"][data-veil] { animation: sk-veil-out 240ms ease-in forwards; }
 .sk-doors[data-phase="open"] .sk-yarn-ball { pointer-events: none; }
 @keyframes sk-veil-in { from { opacity: 0; } to { opacity: 1; } }

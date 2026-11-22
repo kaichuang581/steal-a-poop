@@ -601,7 +601,7 @@ const STALL_S = 0.25, STALLS_SLOW = 5;
 const QUIET_S = 1.5;
 
 /** The steady frame rate's judge, inside a canvas: it reports a new resolution, and the level it found too slow. */
-function AdaptiveDpr({ max, min, value, kept, pace, onChange }: { max: number; min: number; value: number; kept: Settled; pace: Pace; onChange: (next: Settled) => void }) {
+function AdaptiveDpr({ max, min, value, kept, pace, onChange }: { max: number; min: number; value: number; kept: Settled; pace: Pace; onChange: (next: Settled, keep?: boolean) => void }) {
   const st = useRef({ sum: 0, n: 0, worst: 0, stalls: 0, age: 0, quiet: QUIET_S, value, target: 0, w: 0, h: 0, streak: { slow: 0, fast: 0, ceiling: kept.ceiling, refusedAt: 0, tries: kept.tries } as DprStreak });
   useFrame(({ size }, dt) => {
     const s = st.current;
@@ -620,13 +620,14 @@ function AdaptiveDpr({ max, min, value, kept, pace, onChange }: { max: number; m
     }
     if (s.age < s.quiet) return;
     if (performance.now() < holdUntil || doorsShut()) { restart(); return; }
-    const report = (next: number) => {
+    const report = (next: number, keep = true) => {
       s.quiet = s.age + QUIET_S;
       restart();
-      if (next !== value) onChange({ dpr: next, ceiling: s.streak.ceiling, tries: s.streak.tries ?? 0 });
+      if (next !== value) onChange({ dpr: next, ceiling: s.streak.ceiling, tries: s.streak.tries ?? 0 }, keep);
     };
     if (dt > STALL_S) {
-      if (++s.stalls >= STALLS_SLOW) report(refuseDpr(value, s.streak, min, s.age));
+      // Stalls step down for now but are not kept: a reload, a tab switch or a load hitch is not the device being slow.
+      if (++s.stalls >= STALLS_SLOW) report(refuseDpr(value, s.streak, min, s.age), false);
       return;
     }
     s.stalls = 0;
@@ -755,9 +756,9 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, fps, judgeTier =
     const hint = memory ? deviceHint() : null;
     return { dpr: hint === null ? device : Math.max(minDpr, Math.min(device, hint)), ceiling: Infinity, tries: 0 };
   });
-  const onChange = (next: Settled) => {
+  const onChange = (next: Settled, keep = true) => {
     setState(next);
-    writeSettled(memory, next);
+    if (keep) writeSettled(memory, next);
   };
   // A scene change is one of the two places a tier earned elsewhere may come in (Home's dip is the other).
   useLayoutEffect(() => { applyPendingTier(); }, []);

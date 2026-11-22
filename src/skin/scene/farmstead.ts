@@ -12,7 +12,7 @@ import { blanket, SNOW, snowAt, snowPaint } from '../voxel/snow';
 import type { Tone } from '../voxel/palette';
 import { ellipsoid, Grid, hash3, line, rng } from '../voxel/primitives';
 import { noteShade } from '../voxel/groundShade';
-import { paint, seededPart, solid, SOLID_SNOW } from '../voxel/paint';
+import { byPart, paint, seededPart, solid, SOLID_SNOW } from '../voxel/paint';
 import { pinePaint, tieredPine } from './style/pine';
 import type { Paint, V3 } from '../voxel/primitives';
 import { backHillHeight } from './distance';
@@ -126,12 +126,8 @@ class Builder {
   }
 }
 
-/**
- * The steps the barn's boards take, by board number. All one step now: boards 0.3 m wide in alternating reds became
- * stripes two pixels wide in the far shots and crawled as the camera moved (Brian, 2026-11-21: "fix all of the glitchy
- * textures").
- */
-export const BOARD_STEPS = [0, 0, 0, 0] as const;
+/** The steps the barn's boards take, by board number (docs/miniature/01, section 5) (boards back, 2026-11-22: Brian, "why is the barn one flat color now"; their crawl was the missing anti-aliasing, now on). */
+export const BOARD_STEPS = [0, -1, 0, 1] as const;
 
 /** The barn's missing outside on the 0.10 m grid: front wall, solid boards, trim, loft door, windows, foundation. */
 function barnShell(): BufferGeometry {
@@ -185,7 +181,7 @@ function barnShellGrid(): Builder {
 
   // The wolf's side door, boarded up properly from outside.
   const SD = { z0: 17, z1: 30, y1: 23 };
-  b.box(-63, -63, 4, SD.y1, SD.z0, SD.z1, paint('barnRed', -1));
+  b.box(-63, -63, 4, SD.y1, SD.z0, SD.z1, byPart('barnRed', [-1, 0], (_x, _y, z) => z >> 1));
   frame2z(b, -63, SD.z0 - 2, SD.z1 + 2, 4, SD.y1 + 2);
 
   // Windows along both sides: white frame, dark panes, a sill with snow.
@@ -210,7 +206,7 @@ function barnShellGrid(): Builder {
   b.box(-20, 19, 34, 36, 72, 72, white);
 
   // Hay loft over the open doors: a white-framed door with a cross, and the hoist beam above it.
-  b.box(-9, 8, 39, 55, 72, 72, paint('barnRed', 0));
+  b.box(-9, 8, 39, 55, 72, 72, byPart('barnRed', [1, 0], (x) => x >> 2));
   frame(-9, 8, 39, 55, 73);
   cross(-8, 7, 40, 53, 73);
   b.box(-1, 0, 58, 59, 72, 84, paint('wood', -1));
@@ -287,7 +283,7 @@ function silo(b: Builder) {
   const cx = b.ix(x), cz = b.ix(z), R = Math.round(r / S), H = b.ix(h);
   // The feed room that joins it to the barn: plank walls, a roof sloping away from the barn's eave.
   const link: [number, number, number][] = [];
-  b.box(32, cx - 5, 0, 11, cz - 4, cz + 6, paint('barnRed', 0));
+  b.box(32, cx - 5, 0, 11, cz - 4, cz + 6, byPart('barnRed', [0, -1], (px) => px >> 1)); // planks two cubes wide, along its long sides
   for (let px = 32; px <= cx - 5; px++)
     for (let pz = cz - 5; pz <= cz + 7; pz++) {
       b.set(px, 12, pz, paint('slate', 0));
@@ -346,9 +342,9 @@ function paddock(b: Builder) {
   // Run-in shed along the back: three plank walls, a roof sloping to the rear, the open side toward the yard.
   const x0 = b.ix(13), x1 = b.ix(20.4), z0 = b.ix(-13.4), z1 = b.ix(-10.2);
   // Planks two cubes wide, two steps in turn: along x on the back wall, along z on the sides.
-  b.box(x0, x1, 0, 11, z0, z0, paint('barnRed', 0));
-  b.box(x0, x0, 0, 13, z0, z1, paint('barnRed', 0));
-  b.box(x1, x1, 0, 13, z0, z1, paint('barnRed', 0));
+  b.box(x0, x1, 0, 11, z0, z0, byPart('barnRed', [0, -1], (x) => x >> 1));
+  b.box(x0, x0, 0, 13, z0, z1, byPart('barnRed', [0, -1], (_x, _y, z) => z >> 1));
+  b.box(x1, x1, 0, 13, z0, z1, byPart('barnRed', [0, -1], (_x, _y, z) => z >> 1));
   b.box(x0, x0, 0, 13, z1, z1, paint('wood', -1));
   b.box(x1, x1, 0, 13, z1, z1, paint('wood', -1));
   const shed: [number, number, number][] = [];

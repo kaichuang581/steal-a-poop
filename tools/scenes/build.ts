@@ -657,9 +657,9 @@ async function putFarm(L: Layout, load: Load, shared: Shared) {
     '{yard.chunks.map((g, i) => <mesh key={i} geometry={g} material={voxMat} castShadow={yard.casts[i]} receiveShadow />)}',
     '<mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />',
     '<mesh geometry={yard.panes} material={paneMat} />',
-    '<mesh geometry={distance.hills} material={voxMat} receiveShadow />',
-    '<mesh geometry={distance.backHills} material={voxMat} receiveShadow />',
-    '<mesh geometry={distance.mountains} material={voxMat} />',
+    '<mesh geometry={distance.hills} material={farMat} receiveShadow />',
+    '<mesh geometry={distance.backHills} material={farMat} receiveShadow />',
+    '<mesh geometry={distance.mountains} material={farMat} />',
     '<Windmill body={distance.windmillBody} blades={distance.windmillBlades} hub={distance.bladesHub} />',
     '<group position={CAT_SPOT}>',
     '<mesh ref={body} geometry={geo.body} material={mat} castShadow />',
@@ -730,18 +730,18 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
   async farm(L, load, shared) {
     await putFarm(L, load, shared);
     mirrors('src/skin/table/Farmstead.tsx', [
-      '<mesh geometry={world.distance.mountains} material={mat} rotation={[0, Math.PI, 0]} />',
-      '<mesh geometry={farm.shell} material={mat} castShadow receiveShadow />',
+      '<mesh geometry={world.distance.mountains} material={farMat} rotation={[0, Math.PI, 0]} />',
+      '<mesh geometry={farm.shell} material={shellMat} castShadow receiveShadow />',
       '{farm.props.map((g, i) => <mesh key={`p${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
       '{farm.fine.map((g, i) => <mesh key={`f${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
-      '<mesh geometry={farm.terrain} material={mat} receiveShadow />',
+      '<mesh geometry={farm.terrain} material={groundMat} receiveShadow />',
       "{tier !== 'low' && <Micro micro={farm.micro} phone={phone} />}",
       '{micro.clusters.map((c, i) => <mesh key={c.name} ref={(m) => { meshes.current[i] = m; }} geometry={c.geo} material={mat} castShadow receiveShadow />)}',
       '{micro.glass && <mesh ref={glass} geometry={micro.glass} material={glassMat} />}',
       '<Festive geo={buildFarmFestive()} reduced={reduced} />',
-      '{[...country.woods, ...country.scrub].map((g, i) => g && <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}',
+      '{[...country.woods, ...country.scrub].map((g, i) => g && <mesh key={`c${i}`} geometry={g} material={woodsMat} castShadow receiveShadow />)}',
       '{country.forest.map((g, i) => g && <mesh key={`w${i}`} geometry={g} material={mat} receiveShadow />)}',
-      '{country.drifts.map((g, i) => g && <mesh key={`d${i}`} geometry={g} material={mat} receiveShadow />)}',
+      '{country.drifts.map((g, i) => g && <mesh key={`d${i}`} geometry={g} material={woodsMat} receiveShadow />)}',
     ]);
     const farmstead = await load<typeof import('../../src/skin/scene/farmstead')>('src/skin/scene/farmstead.ts');
     const festive = await load<Festive>('src/skin/scene/festive.ts');

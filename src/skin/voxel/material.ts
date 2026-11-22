@@ -121,7 +121,7 @@ const STUDIO_SHOULDER = /* glsl */ `{
  * one unbroken surface, and the cubes show only at silhouettes and real steps. `always`: the soft shading stays on in
  * a scene that asks for plain light (the animals).
  */
-export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: number; transparent?: boolean; opacity?: number; color?: string; always?: boolean; homeGlow?: boolean } = {}) {
+export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: number; transparent?: boolean; opacity?: number; color?: string; always?: boolean; homeGlow?: boolean; layer?: number } = {}) {
   const base = studioFromUrl();
   // Only the parameters that are set: three warns about every one given as undefined, and that was thousands a load.
   const m = new MeshLambertMaterial({
@@ -132,6 +132,10 @@ export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: num
     opacity: opts.opacity ?? 1,
     ...(opts.color ? { color: opts.color } : {}),
   });
+  // Who wins where two meshes' faces lie flush (2026-11-22, Brian: "a lot of z-fighting and flickering in the back"): a
+  // depth offset, positive behind, negative in front. Pieces built on separate grids meet flush along their edges (the
+  // back hills against Home's ground, the forest's feet on the hills); without it the two take turns and the seam crawls.
+  if (opts.layer) { m.polygonOffset = true; m.polygonOffsetFactor = opts.layer; m.polygonOffsetUnits = opts.layer * 2; }
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uStudio = opts.always ? ALWAYS : STUDIO_SWITCH;
     shader.uniforms.uShoulder = STUDIO_SWITCH; // the scene's, for the animals too

@@ -230,6 +230,8 @@ export function worldBuildMs(): number | null {
 export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) {
   const { barn, yard, distance, festive } = w;
   const voxMat = useMemo(() => voxelMaterial(), []);
+  // The hills and the range lose every tie with what stands on or against them (voxel/material.ts, `layer`).
+  const farMat = useMemo(() => voxelMaterial({ layer: 2 }), []);
   // Bright enough to pass the bloom threshold, so only the lanterns glow.
   const glowMat = useMemo(() => voxelMaterial({ emissive: LANTERN_LIGHT.color, emissiveIntensity: 2.2, homeGlow: true }), []);
   // The farmhouse's windows, lit from inside: warm by day, the brightest thing in the yard at night.
@@ -248,9 +250,9 @@ export function Farm({ world: w, reduced }: { world: World; reduced: boolean }) 
       <mesh geometry={yard.snowman} material={voxMat} castShadow receiveShadow />
       <mesh geometry={yard.panes} material={paneMat} />
       <ChimneySmoke from={yard.smokeFrom} />
-      <mesh geometry={distance.hills} material={voxMat} receiveShadow />
-      <mesh geometry={distance.backHills} material={voxMat} receiveShadow />
-      <mesh geometry={distance.mountains} material={voxMat} />
+      <mesh geometry={distance.hills} material={farMat} receiveShadow />
+      <mesh geometry={distance.backHills} material={farMat} receiveShadow />
+      <mesh geometry={distance.mountains} material={farMat} />
       <Windmill body={distance.windmillBody} blades={distance.windmillBlades} hub={distance.bladesHub} />
       {FESTIVE && <Festive geo={festive} reduced={reduced} />}
     </>

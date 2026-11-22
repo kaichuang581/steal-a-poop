@@ -120,7 +120,13 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
   const [, bump] = useReducer((n: number) => n + 1, 0);
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
-  const mat = useMemo(() => voxelMaterial(), []);
+  // Ties between flush faces (voxel/material.ts, `layer`): what Home builds wins over the barn table's scenery it is laid
+  // on, standing things over the ground, and the range behind everything.
+  const mat = useMemo(() => voxelMaterial({ layer: -2 }), []);
+  const groundMat = useMemo(() => voxelMaterial({ layer: -1 }), []);
+  const shellMat = useMemo(() => voxelMaterial({ layer: -1.5 }), []); // the barn's outside: behind what is built against it
+  const woodsMat = useMemo(() => voxelMaterial({ layer: -2.5 }), []); // bushes and drifts against fences and the forest
+  const farMat = useMemo(() => voxelMaterial({ layer: 2 }), []);
   const shots = phone ? POV_SHOTS.phone : POV_SHOTS.desktop;
   // The shot the camera opens on (the tour's first, or the one `?pov=` holds): the only one seen before the first dip.
   const open = useMemo(() => pinnedPov(location.search, shots.length) ?? 0, [shots]);
@@ -161,7 +167,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
     if (!land && landSteps) rush(landSteps);
     setWhole(true);
   });
-  useEffect(() => () => mat.dispose(), [mat]);
+  useEffect(() => () => { mat.dispose(); groundMat.dispose(); shellMat.dispose(); woodsMat.dispose(); farMat.dispose(); }, [mat, groundMat, shellMat, woodsMat, farMat]);
   const farm = built;
   const landNow: CountryPart | null = whole ? land ?? landPart : landPart ?? land;
   // Low leaves out the scrub and drifts far from the wendigo that its shot cannot see (countryside.ts, `lowDrops`).
@@ -194,21 +200,21 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
     <>
       <ShotCasters world={world} farm={farm} country={country} phone={phone} />
       {/* The range the yard looks at, turned round to stand behind the barn as well. */}
-      <mesh geometry={world.distance.mountains} material={mat} rotation={[0, Math.PI, 0]} />
+      <mesh geometry={world.distance.mountains} material={farMat} rotation={[0, Math.PI, 0]} />
       {farm && (
         <>
-          <mesh geometry={farm.shell} material={mat} castShadow receiveShadow />
+          <mesh geometry={farm.shell} material={shellMat} castShadow receiveShadow />
           {farm.props.map((g, i) => <mesh key={`p${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
           {farm.fine.map((g, i) => <mesh key={`f${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
-          <mesh geometry={farm.terrain} material={mat} receiveShadow />
+          <mesh geometry={farm.terrain} material={groundMat} receiveShadow />
           {tier !== 'low' && <Micro micro={farm.micro} phone={phone} />}
           {FESTIVE && <Festive geo={buildFarmFestive()} reduced={reduced} />}
           {country && (
             <>
               {/* A piece still to come is a hole in its list: the others keep their keys when it arrives. */}
-              {[...country.woods, ...country.scrub].map((g, i) => g && <mesh key={`c${i}`} geometry={g} material={mat} castShadow receiveShadow />)}
+              {[...country.woods, ...country.scrub].map((g, i) => g && <mesh key={`c${i}`} geometry={g} material={woodsMat} castShadow receiveShadow />)}
               {country.forest.map((g, i) => g && <mesh key={`w${i}`} geometry={g} material={mat} receiveShadow />)}
-              {country.drifts.map((g, i) => g && <mesh key={`d${i}`} geometry={g} material={mat} receiveShadow />)}
+              {country.drifts.map((g, i) => g && <mesh key={`d${i}`} geometry={g} material={woodsMat} receiveShadow />)}
             </>
           )}
         </>
@@ -231,7 +237,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
  */
 function Micro({ micro, phone }: { micro: FarmMicro; phone: boolean }) {
   const camera = useThree((s) => s.camera);
-  const mat = useMemo(() => voxelMaterial(), []);
+  const mat = useMemo(() => voxelMaterial({ layer: -3 }), []); // the small layer wins over the buildings and ground it sits on
   // The lanterns' glass, as the farmhouse's panes are drawn (BarnTable.tsx): lit from inside, no light cast.
   const glassMat = useMemo(() => voxelMaterial({ emissive: '#FFB84A', emissiveIntensity: 0.85, homeGlow: true }), []);
   useEffect(() => () => { mat.dispose(); glassMat.dispose(); }, [mat, glassMat]);

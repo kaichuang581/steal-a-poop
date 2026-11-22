@@ -246,12 +246,11 @@ export function FestivalSky({ place, version, reduced }: { place: { current: Pla
       if (s.slot === n || n < 0) continue;
       const left = n % 2 === 0;
       s.slot = n; s.start = n * EVERY;
-      // Where the sky is open: left of the stage, high; right of the stage, between the trophy and the moon, or beyond
-      // the moon by the board. Never over the moon, the trophy or the podiums.
+      // Where the sky is open: left of the stage, high, or beyond the moon by the board. Never over the moon, the
+      // trophy or the podiums (between the trophy and the moon there is no room for a whole flower).
       const h1 = hash(n, 21), h2 = hash(n, 22);
       if (left) { s.fx = 0.05 + h1 * 0.22; s.fy = 0.1 + h2 * 0.2; }
-      else if (hash(n, 26) < 0.6) { s.fx = 0.66 + h1 * 0.04; s.fy = 0.08 + h2 * 0.14; }
-      else { s.fx = 0.93 + h1 * 0.05; s.fy = 0.08 + h2 * 0.2; }
+      else { s.fx = 0.93 + h1 * 0.05; s.fy = 0.08 + h2 * 0.22; }
       s.kind = (['peony', 'chrysanthemum', 'ring', 'willow', 'peony', 'chrysanthemum'] as Kind[])[Math.floor(hash(n, 23) * 6)];
       s.c1.set(s.kind === 'willow' ? '#FFC65C' : FIRE[Math.floor(hash(n, 24) * FIRE.length)]);
       s.c2.set(s.kind === 'willow' ? '#FF9C3A' : FIRE[Math.floor(hash(n, 25) * FIRE.length)]);

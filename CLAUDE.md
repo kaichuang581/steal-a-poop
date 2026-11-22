@@ -2160,7 +2160,9 @@ the crates here (the victory screen keeps its crates), all three places are one 
   island.ts (the island, pure), podium.ts and cup.ts (the podiums and the trophy, pure voxels), sky.ts (the sky's colours),
   FestivalSky.tsx, Prize.tsx and BoardStage.tsx (the scene). Tests: poses.test.ts, island.test.ts, party.test.ts and the
   stage checks in boards.test.tsx. `?preview=boards&lbAnimal=cow&lbTime=0.4` (development only) puts one species in every
-  place and holds every loop at that time, for pictures.
+  place and holds every loop at that time, for pictures. `?lbDemo` (development only) fills every board with made-up
+  players, so the stage can be seen on `npm run dev` with no game server (Home then shows its trophy button too):
+  `http://localhost:5173/steal-a-poop/?lbDemo`, or `?preview=boards&lbDemo` for the screen alone.
 - Poses: `lbChampion`, `lbGoodSport`, `lbNap` are data (a rest pose, keyframes, waves) handed whole to the Sheep component
   through its `rig` prop (table/Sheep.tsx: `RigPose`; without the prop the Sheep is exactly as before). Each place runs
   on its own clock, starting 0, 0.8 and 1.6 s in, standing still while the tab is hidden and at rest under reduced motion;

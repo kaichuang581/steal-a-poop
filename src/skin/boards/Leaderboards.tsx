@@ -64,6 +64,19 @@ export function winsSheet(b: WinsBoard, me: string | null): Sheet {
 const NUMBER = new Intl.NumberFormat(getLang() === 'fr' ? 'fr-FR' : 'en-US');
 export const fmt = (n: number) => NUMBER.format(n).replace(/\u202f/g, '\u00a0');
 
+/**
+ * Development only: `?lbDemo` fills every board with made-up players, so the stage and its three can be seen on a copy
+ * of the game with no game server (`npm run dev`); with it, Home shows the trophy button too. A production build drops
+ * all of it (`import.meta.env.DEV` is false there).
+ */
+export const BOARDS_DEMO = import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).has('lbDemo');
+const DEMO_NAMES = ['kxln', 'owen2008', 'bigmayafan18', 'realfrog', 'libo', 'its_tansy', 'Pip', 'MapleLeafKid', 'barley_bun', 'thegoatjo', 'lilwool09', 'SnowyHollow'];
+function demoSheet(tab: BoardTab): Sheet {
+  if (tab === 'wins') return winsSheet({ rows: DEMO_NAMES.map((name, i) => ({ rank: i + 1, name, value: 212 - i * 12, games: 323 - i * 15 })) } as unknown as WinsBoard, null);
+  if (tab === 'ranked') return rankedSheet({ top: DEMO_NAMES.map((name, i) => ({ place: i + 1, name, rating: 2240 - i * 97, games: 300 - i * 11, wins: 120 - i * 5, you: false })), you: null } as unknown as RankedBoard);
+  return levelSheet({ top: DEMO_NAMES.map((name, i) => ({ place: i + 1, name, xp: 96000 - i * 5300, level: 41 - i * 2, you: false })), players: 2431, you: null } as unknown as LevelBoard);
+}
+
 /** A board read less than this long ago is shown again without asking (the server keeps its own copy as long). */
 const FRESH_MS = 30_000;
 const kept = new Map<string, { at: number; sheet: Sheet }>();
@@ -74,6 +87,7 @@ const kept = new Map<string, { at: number; sheet: Sheet }>();
  * addresses, with nobody marked.
  */
 async function read(tab: BoardTab, period: Period, me: string | null): Promise<Sheet> {
+  if (BOARDS_DEMO) return demoSheet(tab);
   if (tab === 'wins') return winsSheet(await api<WinsBoard>('GET', `/api/leaderboard/${period}?metric=wins`, null), me);
   const [mine, open] = tab === 'ranked' ? ['/api/ranked/top', '/api/ranked/board'] : ['/api/barn/top', '/api/barn/board'];
   const token = await apiToken();

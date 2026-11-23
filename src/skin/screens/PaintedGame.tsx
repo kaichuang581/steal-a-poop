@@ -37,7 +37,6 @@ import { TourMarks } from '../tour/TourMarks';
 import { useGameSounds } from '../../ui/useGameSounds';
 import { InputStrip } from '../components/InputStrip';
 import { Ledger } from '../components/Ledger';
-import { Lives } from '../components/Lives';
 import { TallyBoard } from '../components/TallyBoard';
 import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Panel, Paper, Peg, Slate, WoodButton } from '../kit';
 import { TwistSign } from '../components/TwistSign';
@@ -437,7 +436,7 @@ export function PaintedGame() {
                       tokens name={p.name} you={p.isYou} turn={speaking} frozen={p.frozen} className="sk-seat-plate"
                       // Online, a filled seat is not marked (Brian, 2026-11-14: "dont say they are bots"); offline you chose the bots.
                       lead={p.difficulty && !room ? <span className="np-badge" role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span> : undefined}
-                      trail={<Lives lives={p.lives} max={maxLives} size={speaking ? 14 : 12} />}
+                      lives={{ left: p.lives, max: maxLives }}
                       over={p.frozen ? <Ice /> : undefined}
                     />
                   </div>

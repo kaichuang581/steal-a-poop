@@ -10,7 +10,7 @@
 .pn .pn-plate--still { animation: none; }
 /* A phone's pen is drawn small (its strip is a third of the screen): its plates are smaller too, or ten of them stack
    into the lights. */
-.pn[data-phone] .pn-plate { --np-h: 24; --np-font: 11; padding-left: calc(8 * var(--u)); padding-right: calc(8 * var(--u)); }
+.pn[data-phone] .pn-plate { --np-h: 20; --np-font: 11; }
 @keyframes pn-fade { from { opacity: 0; } }
 
 :root[data-skin="painted"].reduce-motion .pn .pn-plate { animation: none; }

@@ -84,7 +84,7 @@ export function PenPlates({ guests, reduced, plateOf, ref }: {
     <div className="pn-plates" aria-hidden="true" ref={ref}>
       {guests.map((g) => (
         <div key={g.id} ref={plateOf(g.id)} data-anchor>
-          <NamePlate name={g.name} you={g.you} lead={g.host ? <Crown onLantern={g.you} /> : undefined} className={`pn-plate${reduced ? ' pn-plate--still' : ''}`} />
+          <NamePlate name={g.name} you={g.you} lead={g.host ? <Crown px={1} /> : undefined} className={`pn-plate${reduced ? ' pn-plate--still' : ''}`} />
         </div>
       ))}
     </div>

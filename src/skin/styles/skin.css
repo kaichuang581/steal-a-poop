@@ -394,7 +394,7 @@
 @keyframes sk-say-shake { 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
 :root.reduce-motion .sk-say { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-say { animation: none; } }
-@media (max-width: 640px) { .sk-say { font-size: 22px; min-height: 38px; padding: 5px 12px 6px; } .sk-say-ph { font-size: 18px; } .sk-head .np-plate { --np-h: 24; --np-font: 13; } }
+@media (max-width: 640px) { .sk-say { font-size: 22px; min-height: 38px; padding: 5px 12px 6px; } .sk-say-ph { font-size: 18px; } .sk-head .np-plate { --np-h: 20; --np-font: 12; } }
 
 /* The duel's fight card: two pinned slips and a carved VS. */
 .sk-vs-slip { flex-direction: column; gap: 0; padding: 6px 14px; font-family: var(--skin-font-display); font-weight: 700; font-size: 18px; }

@@ -1,50 +1,42 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { EMPTY_LINE, nothingPlayed, numberSlips, Profile } from '../Profile';
-import type { LocalNumbers, Stat } from '../Profile';
+import { nothingPlayed, numberSlips, Profile } from '../Profile';
+import type { LocalNumbers } from '../Profile';
 
 /**
- * A new player's profile (plan file 11, change 2): still six slips, the zero ones say how to fill them, one line under
- * the heading while nothing has been played, and no middle dot between phrases (Brian, 2026-11-14).
+ * The profile's numbers (Brian's profile plan of 2026-11-23, section 4): five Tiles, each a value and a label line; a
+ * Tile with nothing behind it shows 0 (the longest word a dash) and keeps its label. Wins are one Tile, online wins
+ * joining it only when the account's are known. No player-facing text says "server", and no middle dot
+ * stands between phrases (Brian, 2026-11-14; the plan wrote some, kept as commas).
  */
-describe("a new player's profile", () => {
+describe("the profile's numbers", () => {
   beforeEach(() => {
     const data = new Map<string, string>();
     vi.stubGlobal('localStorage', { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => data.set(k, v), removeItem: (k: string) => data.delete(k) });
   });
-  const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&#x27;/g, "'").replace(/\s+/g, ' ');
-  /** The "Your numbers" section of the whole page, rendered from an empty browser. */
-  const numbers = () => {
+  const none: LocalNumbers = { words: 0, wins: 0, longest: '', dreamBest: 0, streak: 0, bestStreak: 0 };
+
+  it('shows five Tiles from an empty browser, zeros and a dash, labels unchanged', () => {
     const html = renderToStaticMarkup(<Profile onClose={() => {}} />);
-    const at = html.indexOf('aria-labelledby="prof-stats"');
-    return html.slice(at, html.indexOf('</section>', at));
-  };
-  const notes = (html: string) => [...html.matchAll(/sk-prof-stat-note">(.*?)<\/span>/g)].map((m) => m[1]);
-
-  it('shows six slips, four of them invitations, and the line', () => {
-    const html = numbers();
-    expect(html.match(/class="[^"]*sk-prof-stat( |")/g)).toHaveLength(6);
-    expect(notes(html).slice(0, 5)).toEqual(['play a game to start', 'win a Quick Game', 'play a game', 'count sheep tonight', 'come back tomorrow night']);
-    expect(html).toContain(EMPTY_LINE);
-    expect(text(html)).not.toContain('·');
+    expect(html.match(/class="pf-tile"/g)).toHaveLength(5);
+    const tiles = numberSlips(none);
+    expect(tiles.map((s) => s.value)).toEqual(['0', '0', '0', '–', '0']);
+    expect(tiles.map((s) => s.label)).toEqual(['different words played', 'Quick Game wins', 'sheep in one night', 'longest word', 'nights in a row, best 0']);
+    // The only "server" is the developer build's own tag (import.meta.env.DEV, as in tests); players never see it.
+    expect(html.replace('Server off', '').toLowerCase()).not.toContain('server');
+    expect(html).not.toContain('Kept in this browser');
+    expect(html.match(/saved in this browser/g)).toHaveLength(1);
+    expect(html).not.toContain('·');
   });
 
-  it('drops the line once anything is counted, and says what the slips record', () => {
-    const room: Stat = { label: 'Online wins', value: '–', note: 'needs the game server' };
-    const none: LocalNumbers = { words: 0, wins: 0, longest: '', dreamBest: 0, streak: 0, bestStreak: 0 };
+  it('counts what is played, and adds online wins to the one Wins Tile', () => {
     expect(nothingPlayed(none)).toBe(true);
-    const oneWin = { ...none, wins: 1 };
-    expect(nothingPlayed(oneWin)).toBe(false);
-    expect(numberSlips(oneWin, room)[1].note).toBe('Quick Games won');
-    for (const n of [{ words: 3 }, { longest: 'lamb' }, { dreamBest: 4 }, { streak: 1, bestStreak: 1 }]) expect(nothingPlayed({ ...none, ...n })).toBe(false);
-    const played = numberSlips({ words: 12, wins: 2, longest: 'meadow', dreamBest: 9, streak: 2, bestStreak: 5 }, room);
-    expect(played).toHaveLength(6);
-    expect(played.map((s) => s.note)).toEqual(['played at the table', 'Quick Games won', '6 letters', 'sheep in one night', 'nights in a row, best 5', 'needs the game server']);
-    expect(played.map((s) => s.note).join(' ')).not.toContain('·');
-  });
-
-  it('keeps a broken streak\'s best rather than inviting again', () => {
-    const room: Stat = { label: 'Online wins', value: '–', note: '' };
-    expect(numberSlips({ words: 5, wins: 0, longest: 'ewe', dreamBest: 3, streak: 0, bestStreak: 4 }, room)[4].note).toBe('nights in a row, best 4');
+    for (const n of [{ words: 3 }, { wins: 1 }, { longest: 'lamb' }, { dreamBest: 4 }, { streak: 1, bestStreak: 1 }]) expect(nothingPlayed({ ...none, ...n })).toBe(false);
+    const played = numberSlips({ words: 12, wins: 2, longest: 'slipperiness', dreamBest: 9, streak: 2, bestStreak: 5 });
+    expect(played.map((s) => s.value)).toEqual(['12', '2', '9', 'SLIPPERINESS', '2']);
+    expect(played[3].label).toBe('longest word, 12 letters');
+    expect(played[4].label).toBe('nights in a row, best 5');
+    const both = numberSlips({ ...none, wins: 1 }, 3);
+    expect(both[1]).toMatchObject({ value: '4', label: 'Quick Games 1, online 3' });
   });
 });

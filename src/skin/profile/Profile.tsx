@@ -1,27 +1,34 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { api, ApiError, useAuth } from '../../auth/authStore';
 import { apiBase, authEnabled } from '../../auth/config';
+import { FESTIVE } from '../../config';
 import { getDreamBest, getDreamStreak, loadStreak } from '../../dream/daily';
 import type { Difficulty } from '../../engine';
 import { checkNickname, MAX_NICKNAME } from '../../lib/nickname';
 import { getPracticeSheet, PRACTICE_WEIGHT } from '../../lib/practice';
-import type { PracticeSheet } from '../../lib/practice';
+import type { PracticeCell, PracticeSheet } from '../../lib/practice';
 import { getRecord } from '../../lib/record';
 import { useStore } from '../../state/store';
 import type { Stats } from '../../state/socialStore';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
-import { AvatarIcon, SheepHead } from '../avatars/AvatarIcon';
+import { AvatarIcon } from '../avatars/AvatarIcon';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
-import { AcornIcon, CloseIcon, LeafIcon, SeedlingIcon } from '../components/Icons';
+import { Icon } from '../boards/art';
+import { StopwatchIcon, TreeIcon } from '../home/SetupSheet';
+import { useMotionLevel } from '../hooks/useAmbient';
 import { usePageHistory } from '../hooks/usePageHistory';
 import { useToday } from '../hooks/useToday';
-import { Board as Sign, Knit, Paper, Patch, Peg, Slate } from '../kit';
+import { BoardFrame, Lights, Pix, SnowCap } from '../kit/surfaces';
+import { PEN_ART, SheepHead } from '../rooms/penArt';
 import { ProfileRank } from '../ranked/ProfileRank';
 import { FriendsSection } from './FriendsSection';
+import { LengthArt, LetterArt, MoonArt, PencilArt, ShieldArt } from './art';
+import { SectionHead } from './parts';
 import { levelOf, titleFor } from '../shop/economy';
 import { online, useWallet } from '../shop/store';
+import './profile.css';
 
 /**
  * The board (GET /api/barn/top): the 100 players with the most XP, how many players there are, and where you stand.
@@ -53,39 +60,66 @@ const RENAME_ERR: Record<string, string> = {
   rate_limited: 'You have changed your name a few times today. Try again tomorrow.',
 };
 
-/** A number on the profile: what it is, the number, and a line under it. `long` is a word that may need smaller letters. */
-export interface Stat { label: string; value: ReactNode; note: string; long?: boolean; none?: boolean }
+/** One number Tile on the profile: its icon, the number (or word), and the label line under it. */
+export interface Stat { id: 'words' | 'wins' | 'sheep' | 'longest' | 'streak'; label: string; value: string; none?: boolean }
 
-/** The five numbers this device keeps (the sixth slip, Online wins, is the account's). */
+/** The five numbers this device keeps. */
 export interface LocalNumbers { words: number; wins: number; longest: string; dreamBest: number; streak: number; bestStreak: number }
 
-/** The line under "Your numbers" while all five of this device's numbers are still 0 (plan file 11, change 2). */
-export const EMPTY_LINE = 'Play a game and these fill in.';
+/** Whether nothing has been played on this device yet. */
 export const nothingPlayed = (n: LocalNumbers): boolean => !n.words && !n.wins && !n.longest && !n.dreamBest && !n.streak;
 
 /**
- * Always six slips, so they fill their rows: three across on a desktop, two on a phone. A slip still at 0 says how to
- * fill it, not what it records (plan file 11, change 2). No middle dot between phrases (Brian, 2026-11-14).
+ * The five number Tiles (the profile plan, section 4), in their grid order: Words, Wins, Sheep, then Longest word (two
+ * columns wide) and Night streak. A Tile with nothing behind it shows 0 (the longest word: a dash) and keeps its label.
+ * `onlineWins`, when the account's room wins are known, joins the Wins Tile: the value is the total.
  */
-export function numberSlips(n: LocalNumbers, rooms: Stat): Stat[] {
-  const { longest } = n;
+export function numberSlips(n: LocalNumbers, onlineWins: number | null = null): Stat[] {
   return [
-    { label: 'Different words', value: n.words.toLocaleString(), note: n.words ? 'played at the table' : 'play a game to start' },
-    { label: 'Wins', value: n.wins.toLocaleString(), note: n.wins ? 'Quick Games won' : 'win a Quick Game' },
-    { label: 'Longest word', long: longest.length > 6, value: longest ? longest.toUpperCase() : '–', none: !longest, note: longest ? `${longest.length} letters` : 'play a game' },
-    { label: 'Counting Sheep best', value: n.dreamBest.toLocaleString(), note: n.dreamBest ? 'sheep in one night' : 'count sheep tonight' },
-    // A broken streak with a best behind it keeps the best; only a player who never had one is invited.
-    { label: 'Night streak', value: n.streak.toLocaleString(), note: n.streak || n.bestStreak ? `nights in a row, best ${n.bestStreak}` : 'come back tomorrow night' },
-    rooms,
+    { id: 'words', value: n.words.toLocaleString(), label: 'different words played' },
+    onlineWins === null
+      ? { id: 'wins', value: n.wins.toLocaleString(), label: 'Quick Game wins' }
+      : { id: 'wins', value: (n.wins + onlineWins).toLocaleString(), label: `Quick Games ${n.wins.toLocaleString()}, online ${onlineWins.toLocaleString()}` },
+    { id: 'sheep', value: n.dreamBest.toLocaleString(), label: 'sheep in one night' },
+    n.longest
+      ? { id: 'longest', value: n.longest.toUpperCase(), label: `longest word, ${n.longest.length} letters` }
+      : { id: 'longest', value: '–', none: true, label: 'longest word' },
+    { id: 'streak', value: n.streak.toLocaleString(), label: `nights in a row, best ${n.bestStreak.toLocaleString()}` },
   ];
 }
 
+const STAT_ICON: Record<Stat['id'], () => ReactNode> = {
+  words: () => <LetterArt />,
+  wins: () => <Icon name="wins" color="var(--hm-lantern)" />,
+  sheep: () => <SheepHead px={3} />,
+  longest: () => <LengthArt />,
+  streak: () => <MoonArt />,
+};
+
+/** The pixel cross (the cards plan, 5.1), for the close square. */
+export const CROSS = ['XX....XX', 'XXX..XXX', '.XXXXXX.', '..XXXX..', '..XXXX..', '.XXXXXX.', 'XXX..XXX', 'XX....XX'];
+
+/** The screen's unit (--u) in px, read from the element: the festive lights are laid out in it. */
+export function useUnit(ref: React.RefObject<HTMLElement | null>): number {
+  const [u, setU] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => setU(parseFloat(getComputedStyle(el).getPropertyValue('--u')) || 1);
+    read();
+    window.addEventListener('resize', read);
+    return () => window.removeEventListener('resize', read);
+  }, [ref]);
+  return u;
+}
+
 /**
- * The profile: a page of its own over Home, in the same room as the Trading Post (a plank wall, a hung sign, paper,
- * slate). Who you are, on a card (name, avatar, level, account); where you stand among signed-in
- * players, chalked on a slate; your numbers from this device (and, signed in, from online rooms), six slips of paper;
- * your practice bests set out by bot and starting clock; and, signed in, the top 100. Changing your name happens here: a
- * guest's name is kept in this browser; a signed-in player's is the account's nickname.
+ * The profile (Brian, 2026-11-23: "ultra refine this, needs a ton of work, dont be generic"; his profile plan): one Board
+ * over Home in the game's current look, the leaderboard's and the pen's recipes only. A ribbon and a close square in a
+ * fixed header; under it two columns on a computer (who you are, your numbers and your friends; your rank and your
+ * practice), one on a narrow screen, and a single note at the foot saying where the numbers are kept. Nothing is drawn
+ * under the header, and at 1280 x 800 nothing scrolls. Saving the name, the avatar, the numbers, the friend code and the
+ * ranks all work as before; only the look and some words changed.
  */
 export function Profile({ onClose }: { onClose: () => void }) {
   const [picker, setPicker] = useState(false);
@@ -95,6 +129,7 @@ export function Profile({ onClose }: { onClose: () => void }) {
   const wallet = useWallet();
   const avatar = useAvatar();
   const today = useToday();
+  const reduced = useMotionLevel() === 'reduced';
   const { settings, setSettings } = useStore();
   const authStatus = useAuth((s) => s.status);
   const profile = useAuth((s) => s.profile);
@@ -106,6 +141,8 @@ export function Profile({ onClose }: { onClose: () => void }) {
   const streak = getDreamStreak(today);
   const bestStreak = Math.max(loadStreak().best, streak);
   const close = useRef<HTMLButtonElement>(null);
+  const card = useRef<HTMLDivElement>(null);
+  const u = useUnit(card);
   useEffect(() => { close.current?.focus({ preventScroll: true }); }, []);
 
   // Online numbers and the board need the game server and a signed-in player. Read once, when the page opens.
@@ -120,84 +157,49 @@ export function Profile({ onClose }: { onClose: () => void }) {
     return () => { live = false; };
   }, [account]);
 
-  const longest = record.bests.longest;
-  // Room wins are kept on the account: without one the slip is there, and says how to fill it.
-  const rooms: Stat = !account
-    ? { label: 'Online wins', value: '–', none: true, note: authEnabled() ? 'sign in to count room games' : 'needs the game server' }
-    : typeof onlineStats === 'object'
-      ? { label: 'Online wins', value: onlineStats.wins.toLocaleString(), note: `of ${onlineStats.gamesPlayed.toLocaleString()} room game${onlineStats.gamesPlayed === 1 ? '' : 's'}` }
-      : { label: 'Online wins', value: onlineStats === 'loading' ? '...' : '–', none: true, note: onlineStats === 'loading' ? 'asking the barn' : 'the barn could not be reached' };
-  const mine: LocalNumbers = { words: wallet.words.length, wins: record.wins, longest, dreamBest: getDreamBest(), streak, bestStreak };
-  const stats = numberSlips(mine, rooms);
+  const mine: LocalNumbers = { words: wallet.words.length, wins: record.wins, longest: record.bests.longest, dreamBest: getDreamBest(), streak, bestStreak };
+  const stats = numberSlips(mine, account && typeof onlineStats === 'object' ? onlineStats.wins : null);
+  const friends = !!apiBase() && (!authEnabled() || authStatus !== 'loading');
 
   return (
     <>
-    <div className="sk-post-scrim" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Your profile" className="sk-room kit-wall sk-prof" onClick={(e) => e.stopPropagation()}>
-        <div className="sk-room-beam" aria-hidden="true" />
-        <span className="sk-room-lights" aria-hidden="true">{Array.from({ length: 22 }, (_, i) => <i key={i} style={{ '--i': i } as CSSProperties} />)}</span>
-        <div className="sk-room-top">
-          <Sign size="heading" tone="wood" hang="ropes" snow className="sk-room-sign"><h2>Your profile</h2></Sign>
-          <Peg ref={close} small light className="sk-room-close" onClick={onClose} aria-label="Close"><CloseIcon size={18} /></Peg>
-        </div>
-        <div className="sk-room-bodywrap">
-          <div className="sk-room-body">
-            <div className="sk-room-content sk-prof-content">
-              <div className="sk-prof-top">
-                {/* The card: who you are. */}
-                <Paper kind="note" className="sk-prof-card">
-                  <div className="sk-prof-who">
-                    <button type="button" className="sk-prof-avatar kit-peg kit-peg--light" onClick={() => setPicker(true)} aria-label="Change avatar" title="Change avatar">
-                      {avatar ? <AvatarIcon id={avatar} size={60} /> : <SheepHead size={60} />}
-                    </button>
-                    <div className="sk-prof-id">
-                      <NameEditor signedIn={signedIn} accountName={profile?.nickname ?? ''} localName={settings.name} setLocalName={(name) => setSettings({ name })} />
-                    </div>
+    <div className="pf-scrim" onClick={onClose}>
+      <div ref={card} role="dialog" aria-modal="true" aria-labelledby="pf-title" className="pf hm rc" onClick={(e) => e.stopPropagation()}>
+        <i className="pf-face" aria-hidden="true" />
+        <BoardFrame />
+        <SnowCap icicles />
+        <header className="pf-head">
+          <h2 id="pf-title" className="pf-ribbon"><i className="pf-ribbon-face" aria-hidden="true" /><SheepHead px={3} /><span>Your profile</span></h2>
+          <button ref={close} type="button" className="pf-close hm-slab hm-knit" onClick={onClose} aria-label="Close" title="Close"><Pix rows={CROSS} colors={{ X: 'var(--hm-ink)' }} /></button>
+          {FESTIVE && <Lights u={u} reduced={reduced} />}
+        </header>
+        <div className="pf-body" onScroll={(e) => e.currentTarget.toggleAttribute('data-scrolled', e.currentTarget.scrollTop > 0)}>
+          <div className="pf-col">
+            <Identity avatar={avatar} onAvatar={() => setPicker(true)} lv={lv} xp={wallet.xp} signedIn={signedIn} onSignIn={() => setSignIn(true)}
+              name={<NameEditor signedIn={signedIn} accountName={profile?.nickname ?? ''} localName={settings.name} setLocalName={(name) => setSettings({ name })} />} />
+            <section className="pf-sec pf-sec--numbers" aria-labelledby="pf-numbers">
+              <SectionHead id="pf-numbers" icon={<LetterArt />} title="Your numbers" />
+              <div className="pf-tiles">
+                {stats.map((s) => (
+                  <div key={s.id} className="pf-tile" data-stat={s.id}>
+                    <span className="pf-tile-icon">{STAT_ICON[s.id]()}</span>
+                    <span className="pf-tile-text">
+                      <b className="pf-tile-value" data-none={s.none || undefined} data-long={s.id === 'longest' && !s.none ? (s.value.length > 12 ? 'xl' : s.value.length > 9 ? 'l' : undefined) : undefined}>{s.value}</b>
+                      <span className="pf-tile-label">{s.label}</span>
+                    </span>
                   </div>
-                  <div className="sk-prof-level">
-                    <span className="kit-plank kit-plank--light sk-level-badge">Level {lv.level}: {titleFor(lv.level)}</span>
-                    <span className="sk-prof-xp">{`${(lv.need - lv.into).toLocaleString()} XP to level ${lv.level + 1}`}</span>
-                  </div>
-                  <span role="img" aria-label={`${lv.into} of ${lv.need} XP into level ${lv.level}`} className="sk-prof-band"><Knit segments={10} filled={Math.floor((lv.into / lv.need) * 10)} /></span>
-                  <div className="sk-prof-acts">
-                    <span className="sk-prof-xp">{`${wallet.xp.toLocaleString()} XP in all`}</span>
-                    <Patch as="button" onClick={() => setPicker(true)}>Change avatar</Patch>
-                    {authEnabled() && !signedIn && <Patch as="button" tone="green" onClick={() => setSignIn(true)}>Sign in</Patch>}
-                    {signedIn && <Patch as="button" onClick={() => setSignIn(true)}>Account</Patch>}
-                  </div>
-                </Paper>
-                {/* The slate: where you stand. */}
-                <Slate size="board" className="sk-prof-rank" aria-live="polite">
-                  <p className="kit-chalk-hand sk-prof-rank-label">Your standing</p>
-                  <RankBox signedIn={signedIn} account={account} board={board} onSignIn={() => setSignIn(true)} />
-                </Slate>
+                ))}
               </div>
-
-              <section aria-labelledby="prof-stats">
-                <div className="sk-prof-head">
-                  <Sign size="label" tone="wood" className="sk-room-heading"><h3 id="prof-stats">Your numbers</h3></Sign>
-                  <p className="sk-room-hint">{account ? 'Words, level and XP follow your account. Games and bests are from this device.' : 'Kept in this browser.'}</p>
-                </div>
-                {nothingPlayed(mine) && <p className="sk-room-hint sk-prof-empty">{EMPTY_LINE}</p>}
-                <div className="sk-prof-grid">
-                  {stats.map((s) => (
-                    <Paper key={s.label} kind="note" className="sk-prof-stat">
-                      <span className="sk-prof-stat-label">{s.label}</span>
-                      <span className="sk-prof-stat-value" data-long={s.long || undefined} data-none={s.none || undefined} style={s.long ? ({ '--n': String(s.value).length } as CSSProperties) : undefined}>{s.value}</span>
-                      <span className="sk-prof-stat-note">{s.note}</span>
-                    </Paper>
-                  ))}
-                </div>
-              </section>
-
-              {/* The friend code is here, on the profile, not on a tab of its own. Needs the game server to swap requests. */}
-              {apiBase() && (!authEnabled() || authStatus !== 'loading') && <FriendsSection account={account} guestName={settings.name} />}
-
-              <ProfileRank />
-
-              <PracticeBests sheet={getPracticeSheet()} />
-              {account && typeof board === 'object' && board.top.length > 0 && <TopBoard board={board} />}
-            </div>
+            </section>
+            {/* Practice sits under the numbers and Friends under Ranked (the plan had them the other way): that way both
+                columns fit at 1280 x 800 with three friends, the plan's own goal. One column keeps the plan's order. */}
+            <PracticeBests sheet={getPracticeSheet()} />
+            <footer className="pf-foot"><ShieldArt quiet /><span>Your numbers and friends are saved in this browser. Clearing its data resets them.</span></footer>
+          </div>
+          <div className="pf-col">
+            <ProfileRank />
+            {friends && <FriendsSection account={account} guestName={settings.name} />}
+            {account && typeof board === 'object' && board.top.length > 0 && <TopBoard board={board} />}
           </div>
         </div>
       </div>
@@ -209,117 +211,134 @@ export function Profile({ onClose }: { onClose: () => void }) {
   );
 }
 
-const BOT: Record<Difficulty, { name: string; icon: ReactNode }> = {
-  easy: { name: 'Easy', icon: <SeedlingIcon size={18} /> },
-  medium: { name: 'Medium', icon: <LeafIcon size={18} /> },
-  hard: { name: 'Hard', icon: <AcornIcon size={18} /> },
-};
-/** "x1.5", "x2": how much a setting multiplies a run's rating. Nothing for x1. */
-const times = (w: number) => (w === 1 ? '' : `×${w}`);
-/** "12 words against the hard bot, from a 10 s clock". */
+/** Who you are: the avatar with its pencil, the name, and the level with its XP bar. */
+function Identity({ avatar, onAvatar, lv, xp, name, signedIn, onSignIn }: {
+  avatar: string | null; onAvatar: () => void; lv: { level: number; into: number; need: number }; xp: number; name: ReactNode; signedIn: boolean; onSignIn: () => void;
+}) {
+  const share = lv.need > 0 ? lv.into / lv.need : 0;
+  return (
+    <section className="pf-card pf-id" aria-label="You">
+      <div className="pf-avatar">
+        <span className="pf-avatar-tile">{avatar ? <AvatarIcon id={avatar} size={64} /> : <SheepHead px={6} />}</span>
+        <button type="button" className="pf-pencil hm-slab" onClick={onAvatar} aria-label="Change avatar" title="Change avatar"><PencilArt /></button>
+      </div>
+      <div className="pf-id-main">
+        {name}
+        <div className="pf-level">
+          <span className="pf-tag pf-tag--lantern">{`Lv ${lv.level}`}</span>
+          <b className="pf-level-name">{titleFor(lv.level)}</b>
+          <span className="pf-level-xp"><b>{xp.toLocaleString()}</b>{' XP, '}<b>{(lv.need - lv.into).toLocaleString()}</b>{` to Lv ${lv.level + 1}`}</span>
+        </div>
+        <span className="pf-xp" role="img" aria-label={`${lv.into} of ${lv.need} XP into level ${lv.level}`}>
+          {Array.from({ length: 10 }, (_, i) => <i key={i} style={{ '--fill': `${Math.max(0, Math.min(1, share * 10 - i)) * 100}%` } as CSSProperties} />)}
+        </span>
+        {authEnabled() && (
+          <button type="button" className="pf-slab pf-account hm-slab hm-knit" onClick={onSignIn}>{signedIn ? 'Account' : 'Sign in'}</button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** The multiplication sign of the written-out sums (arithmetic, not an icon). */
+const TIMES = '\u00D7';
+const BOT: Record<Difficulty, { name: string }> = { easy: { name: 'Easy' }, medium: { name: 'Medium' }, hard: { name: 'Hard' } };
+/** "×1.5": what a setting multiplies a run's rating by. */
+const times = (w: number) => `${TIMES}${w}`;
+/** "12 words, Hard, 10 s": a run, in the profile's short form (commas: no middle dots, Brian 2026-11-14). */
 export function runLine(cell: { words: number; difficulty: Difficulty; clock: number }): string {
-  return `${cell.words} word${cell.words === 1 ? '' : 's'}, ${BOT[cell.difficulty].name} bot, ${cell.clock} s clock`;
+  return `${cell.words} word${cell.words === 1 ? '' : 's'}, ${BOT[cell.difficulty].name}, ${cell.clock} s`;
+}
+/** The rating's sum, written out: "6 × 1.5 × 1.5 = 13.5, rounded to 14", or "24 × 2 × 2 = 96". */
+export function ratingSum(c: PracticeCell): { parts: [number, number, number]; product: number; rating: number } {
+  const bot = PRACTICE_WEIGHT.bot[c.difficulty], clock = PRACTICE_WEIGHT.clock[c.clock] ?? 1;
+  return { parts: [c.words, bot, clock], product: c.words * bot * clock, rating: c.rating };
+}
+const num = (n: number) => (Number.isInteger(n) ? n.toLocaleString() : n.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+/** The tooltip of a filled cell. */
+export function cellTip(c: PracticeCell): string {
+  const { parts, product, rating } = ratingSum(c);
+  const sum = `${parts.map(num).join(` ${TIMES} `)} = ${num(product)}`;
+  return `${c.words} word${c.words === 1 ? '' : 's'}, ${BOT[c.difficulty].name} bot, ${c.clock} s clock: ${sum}${product === rating ? '' : `, rounded to ${rating.toLocaleString()}`}`;
 }
 
 /**
- * Practice, by how hard it was set (Brian, 2026-11-13: "practice best could mean easy mode, medium, or hard mode, so its
- * less rewarding to those who do well in hard mode. take in account the time as well"). One "practice best" was the most
- * words at any setting, so 31 easy words hid 12 hard ones. Now every setting has its own best, chalked on a slate: a row
- * a bot, a column a starting clock. Each best is rated (lib/practice.ts: words, times more for a harder bot and for a
- * shorter clock), and the best-rated run of them all is the practice rating on the card beside it, ringed on the slate.
+ * Practice (the profile plan, section 7): the best-rated run with its sum written out (words × bot × clock), and every
+ * setting's best in a grid of sunk wells, a row a bot and a column a starting clock, each head with its multiplier. The
+ * best cell is a raised lantern tile. Ratings come from lib/practice.ts, unchanged.
  */
 export function PracticeBests({ sheet }: { sheet: PracticeSheet }) {
   const { top } = sheet;
+  const sum = top ? ratingSum(top) : null;
   return (
-    <section aria-labelledby="prof-drill">
-      <div className="sk-prof-head">
-        <Sign size="label" tone="wood" className="sk-room-heading"><h3 id="prof-drill">Practice bests</h3></Sign>
-        <p className="sk-room-hint">Most words in one run, for each bot and starting clock. A harder bot or a shorter clock counts for more.</p>
-      </div>
-      <div className="sk-prof-drill">
-        <Paper kind="note" className="sk-prof-rating">
-          <span className="sk-prof-stat-label">Practice rating</span>
-          <span className="sk-prof-rating-value" data-none={!top || undefined}>{top ? top.rating.toLocaleString() : '–'}</span>
-          <span className="sk-prof-rating-run">{top ? runLine(top) : 'No practice runs yet.'}</span>
-          <span className="sk-prof-stat-note">Your best-rated run. A run is rated by its words, times 1.5 for the medium bot or a 10 s clock, times 2 for the hard bot or a 5 s clock.</span>
-        </Paper>
-        <Slate size="board" className="sk-prof-sheet">
-          <table>
-            <caption className="sr-only">Your best practice run at each bot and starting clock: the words, and what the run is rated.</caption>
-            <thead>
-              <tr>
-                <th scope="col"><span className="sr-only">Bot</span></th>
-                {sheet.rows[0].cells.map((c) => <th key={c.clock} scope="col">{c.clock} s<i>{times(PRACTICE_WEIGHT.clock[c.clock] ?? 1)}</i></th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {sheet.rows.map((row) => (
-                <tr key={row.difficulty}>
-                  <th scope="row"><span className="sk-prof-bot">{BOT[row.difficulty].icon}<span>{BOT[row.difficulty].name}<i>{times(PRACTICE_WEIGHT.bot[row.difficulty])}</i></span></span></th>
-                  {row.cells.map((c) => {
-                    const best = top !== null && c.clock === top.clock && c.difficulty === top.difficulty;
-                    return (
-                      <td key={c.clock} data-none={c.words === 0 || undefined} data-top={best || undefined} aria-label={c.words ? `${runLine(c)}: rated ${c.rating}${best ? ', your best-rated run' : ''}` : `${BOT[c.difficulty].name} bot, ${c.clock} s clock: not played`}>
-                        {c.words ? <span className={best ? 'kit-chalk-ring' : undefined}><b>{c.words}</b><small>rated {c.rating}</small></span> : <b>–</b>}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Slate>
+    <section className="pf-sec pf-sec--practice" aria-labelledby="pf-practice">
+      <SectionHead id="pf-practice" icon={<span style={{ color: 'var(--hm-wool)', display: 'contents' }}><StopwatchIcon /></span>} title="Practice" />
+      <div className="pf-card pf-drill">
+        <div className="pf-rating">
+          <span className="pf-label">Best rating</span>
+          <b className="pf-rating-value" data-none={!top || undefined}>{top ? top.rating.toLocaleString() : '–'}</b>
+          <span className="pf-rating-run">{top ? runLine(top) : 'Finish a practice run to get a rating.'}</span>
+          {sum && (
+            <span className="pf-sum" role="img" aria-label={`${sum.parts.map(num).join(' times ')} equals ${num(sum.product)}${sum.product === sum.rating ? '' : `, rounded to ${sum.rating}`}`}>
+              {sum.parts.map((p, i) => <span key={i} className="pf-sum-n" style={{ gridColumn: 2 * i + 1 }}>{num(p)}</span>)}
+              <span className="pf-sum-op" style={{ gridColumn: 2 }}>{TIMES}</span>
+              <span className="pf-sum-op" style={{ gridColumn: 4 }}>{TIMES}</span>
+              <span className="pf-sum-op" style={{ gridColumn: 6 }}>=</span>
+              <b className="pf-sum-n" style={{ gridColumn: 7 }}>{sum.rating.toLocaleString()}</b>
+              {['words', 'bot', 'clock'].map((w, i) => <small key={w} style={{ gridColumn: 2 * i + 1 }}>{w}</small>)}
+            </span>
+          )}
+        </div>
+        <div className="pf-grid" role="table" aria-label="Your best practice run at each bot and starting clock">
+          <span role="row" className="pf-grid-row">
+            <span role="columnheader" className="pf-grid-corner"><span className="sr-only">Bot</span></span>
+            {sheet.rows[0].cells.map((c) => (
+              <span role="columnheader" key={c.clock} className="pf-grid-col"><b>{c.clock}{' '}s</b><span className="pf-mult">{times(PRACTICE_WEIGHT.clock[c.clock] ?? 1)}</span></span>
+            ))}
+          </span>
+          {sheet.rows.map((row) => (
+            <span role="row" key={row.difficulty} className="pf-grid-row">
+              <span role="rowheader" className="pf-grid-bot">
+                <span className="pf-grid-bot-name"><TreeIcon level={row.difficulty} /><b>{BOT[row.difficulty].name}</b></span>
+                <span className="pf-mult">{times(PRACTICE_WEIGHT.bot[row.difficulty])}</span>
+              </span>
+              {row.cells.map((c) => {
+                const best = top !== null && c.clock === top.clock && c.difficulty === top.difficulty;
+                return c.words ? (
+                  <span role="cell" key={c.clock} tabIndex={0} className="pf-cell" data-top={best || undefined} aria-label={`${cellTip(c)}${best ? '. Your best-rated run' : ''}`}>
+                    <b>{c.words}</b><small>{`rated ${c.rating.toLocaleString()}`}</small>
+                    <span className="pf-tip" aria-hidden="true">{cellTip(c)}</span>
+                  </span>
+                ) : (
+                  <span role="cell" key={c.clock} className="pf-cell" data-none aria-label={`${BOT[c.difficulty].name} bot, ${c.clock} s clock: not played`}><i /></span>
+                );
+              })}
+            </span>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-/** The top 100 players by XP, on a ruled sheet: place, name, level, XP. Your own line is marked. */
+/** Signed in: the top players by XP, and where you stand among them (once "Your standing"). */
 function TopBoard({ board }: { board: Board }) {
   return (
-    <section className="sk-prof-board" aria-labelledby="prof-board">
-      <div className="sk-prof-head">
-        <Sign size="label" tone="wood" className="sk-room-heading"><h3 id="prof-board">Top {Math.min(BOARD_TOP, board.top.length)} players</h3></Sign>
-        <p className="sk-room-hint">By XP, among {board.players.toLocaleString()} signed-in player{board.players === 1 ? '' : 's'}.</p>
-      </div>
-      <Paper kind="note" className="sk-prof-board-sheet">
-        <ol className="sk-prof-board-list">
-          {board.top.map((r) => (
-            <li key={r.place} className="sk-prof-board-row" data-you={r.you || undefined} aria-current={r.you ? 'true' : undefined}>
-              <span className="sk-prof-board-place">{r.place}</span>
-              <span className="sk-prof-board-name">{r.name}{r.you && <span className="kit-tag kit-tag--green">You</span>}</span>
-              <span className="sk-prof-board-level">Level {r.level}</span>
-              <span className="sk-prof-board-xp">{r.xp.toLocaleString()} XP</span>
-            </li>
-          ))}
-        </ol>
-      </Paper>
+    <section className="pf-sec pf-sec--board" aria-labelledby="pf-board">
+      <SectionHead id="pf-board" icon={<Icon name="level" color="var(--hm-wool)" />} title={`Top ${Math.min(BOARD_TOP, board.top.length)} by XP`}>
+        {board.you && <span className="pf-quiet">{board.you.place <= BOARD_TOP ? `You are ${standingLine(board.you, board.players)}` : `You are in the top ${topPercent(board.you.place, board.players)}%`}</span>}
+      </SectionHead>
+      <ol className="pf-card pf-board">
+        {board.top.map((r) => (
+          <li key={r.place} className="pf-board-row" data-you={r.you || undefined} aria-current={r.you ? 'true' : undefined}>
+            <span className="pf-board-place">{r.place}</span>
+            <span className="pf-board-name">{r.name}</span>
+            <span className="pf-tag">{`Lv ${r.level}`}</span>
+            <span className="pf-board-xp">{r.xp.toLocaleString()} XP</span>
+          </li>
+        ))}
+      </ol>
     </section>
-  );
-}
-
-function RankBox({ signedIn, account, board, onSignIn }: { signedIn: boolean; account: boolean; board: Board | 'loading' | 'error'; onSignIn: () => void }) {
-  if (!signedIn || !account) {
-    return (
-      <>
-        <p className="sk-prof-rank-big" data-none>Unranked</p>
-        <p className="kit-chalk-hand">{authEnabled() ? 'Sign in to be ranked against everyone else by XP.' : 'Ranks need the game server, which is not set up here.'}</p>
-        {authEnabled() && !signedIn && <Patch as="button" tone="green" onClick={onSignIn}>Sign in</Patch>}
-      </>
-    );
-  }
-  if (board === 'loading') return <p className="sk-prof-rank-big" data-none>...</p>;
-  if (board === 'error') return <><p className="sk-prof-rank-big" data-none>Unranked</p><p className="kit-chalk-hand">The barn could not be reached. Try again in a moment.</p></>;
-  if (!board.you) return <><p className="sk-prof-rank-big" data-none>Unranked</p><p className="kit-chalk-hand">Finish a game to get your first XP and a place.</p></>;
-  // On the board: your place. Below it: the share of players you are in, however small.
-  const listed = board.you.place <= BOARD_TOP;
-  return (
-    <>
-      <p className="sk-prof-rank-big">{standingLine(board.you, board.players)}</p>
-      <p className="kit-chalk-hand">
-        {listed ? `of ${board.players.toLocaleString()} player${board.players === 1 ? '' : 's'}, by XP` : `You are in the top ${topPercent(board.you.place, board.players)}% of ${board.players.toLocaleString()} players, by XP`}
-      </p>
-    </>
   );
 }
 
@@ -329,8 +348,9 @@ function NameEditor({ signedIn, accountName, localName, setLocalName }: { signed
   const [draft, setDraft] = useState(current);
   const [msg, setMsg] = useState<{ text: string; bad?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
+  const [saved, setSaved] = useState(false);
   useEffect(() => setDraft(current), [current]);
+  useEffect(() => { if (!saved) return; const t = setTimeout(() => setSaved(false), 2000); return () => clearTimeout(t); }, [saved]);
 
   const save = async () => {
     const nick = checkNickname(draft);
@@ -338,32 +358,36 @@ function NameEditor({ signedIn, accountName, localName, setLocalName }: { signed
     if (nick.name === current) return setMsg(null);
     if (!signedIn) {
       setLocalName(nick.name);
-      return setMsg({ text: nick.name ? 'Saved.' : 'Name cleared.' });
+      setMsg(null);
+      return setSaved(true);
     }
     setBusy(true);
     try {
       await useAuth.getState().rename(nick.name);
-      setMsg({ text: 'Saved. Rooms you join from now on show the new name.' });
+      setMsg({ text: 'Rooms you join from now on show the new name.' });
+      setSaved(true);
     } catch (e) {
-      setMsg({ text: RENAME_ERR[e instanceof ApiError ? e.code : ''] ?? 'Cannot reach the game server. Try again in a moment.', bad: true });
+      setMsg({ text: RENAME_ERR[e instanceof ApiError ? e.code : ''] ?? 'Your name could not be saved. Try again in a moment.', bad: true });
     } finally {
       setBusy(false);
     }
   };
   const changed = draft.trim() !== current;
   return (
-    <form className="sk-prof-name" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-      <label className="sk-prof-stat-label" htmlFor="prof-name">{signedIn ? 'Your username' : 'Your name'}</label>
-      <span className="sk-prof-name-row">
+    <form className="pf-name" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+      <label className="pf-label" htmlFor="prof-name">{signedIn ? 'Your username' : 'Your name'}</label>
+      <span className="pf-name-row">
         <input
-          id="prof-name" ref={input} className="sk-prof-name-input" value={draft} placeholder="Your name"
+          id="prof-name" className="pf-input pf-input--name" value={draft} placeholder="Your name"
           maxLength={MAX_NICKNAME} autoComplete="off" spellCheck={false}
-          onChange={(e) => { setDraft(e.target.value.slice(0, MAX_NICKNAME)); setMsg(null); }}
+          onChange={(e) => { setDraft(e.target.value.slice(0, MAX_NICKNAME)); setMsg(null); setSaved(false); }}
           onKeyDown={(e) => { if (e.key === 'Escape' && changed) { e.preventDefault(); e.stopPropagation(); setDraft(current); } }}
         />
-        <Patch as="button" type="submit" tone="green" disabled={busy || !changed}>{busy ? 'Saving...' : 'Save'}</Patch>
+        <button type="submit" className={`pf-slab pf-slab--40 hm-slab hm-knit ${changed ? 'hm-slab--lantern' : ''}`} disabled={busy || (!changed && !saved)} data-saved={saved && !changed || undefined}>
+          {saved && !changed ? <><Pix rows={PEN_ART.check} colors={{ X: 'currentColor' }} />Saved</> : busy ? 'Saving…' : 'Save'}
+        </button>
       </span>
-      {msg && <span role={msg.bad ? 'alert' : 'status'} className="sk-prof-msg" data-bad={msg.bad || undefined}>{msg.text}</span>}
+      {msg && <span role={msg.bad ? 'alert' : 'status'} className="pf-msg" data-bad={msg.bad || undefined}>{msg.text}</span>}
     </form>
   );
 }

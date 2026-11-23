@@ -2397,3 +2397,17 @@ loading screen keeps its own colour (it must stand alone).
   Deviations: empty code tiles have an --ink face (the plan's --night-deep is the row's face and they vanished); choices and
   the close button reach 44 px with invisible margins; Start run is focused on opening (Enter starts it) but its ring
   shows only after keyboard use; French "Speed run" is "Contre la montre".
+- The profile and How ranks work, rebuilt (Brian, 2026-11-23: "ultra refine this, needs a ton of work, dont be generic";
+  his profile plan). Both are Boards in the current look (profile/profile.css, `pf-*`; Profile.tsx, FriendsSection.tsx,
+  ranked/ProfileRank.tsx, ranked/RankGuide.tsx; the plan's pixel art in profile/art.tsx, `SectionHead` in profile/parts.tsx).
+  No wood, paper, rope, dashes, gingham, round shapes, hand font or capital labels; the old `sk-prof*`, `sk-fr*` and
+  `sk-rg*` rules are deleted. The card has its own `--u` (fit to an 800-high screen): at 1280 x 800 and up nothing
+  scrolls, with three friends and a request (the friends list scrolls inside itself after three rows). Where the plan's
+  letter was changed, and why: (1) Practice is under the numbers and Friends under Ranked (the plan had them the other way;
+  the left column was 40 too tall and would have been 130 with three friends); one column keeps the plan's order. (2) No
+  middle dots: the plan wrote " · " in seven lines; Brian's rule of 2026-11-14 and typeRatchets.test.ts forbid them, so
+  they are commas. Ask him before changing either back. (3) The guide's rank icons are 24, not 32: the badge is 24 rows
+  and 32 blurred it. (4) The ranked record ("3 wins in 9 games, best Titan III") is kept, beside the rank's name. (5) The
+  footer note sits at the foot of the left column. Without a game server players never read "server": ranked says it is
+  not open yet, and a developer build shows a "Server off" tag. The XP standing card ("Your standing") is gone; signed
+  in, the top-100 list says where you are.

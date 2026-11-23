@@ -4,6 +4,7 @@ All user-visible changes, newest first.
 
 ## 0.9.7
 
+- Your profile and How ranks work, rebuilt in the game's current look: one card with two columns that fits without scrolling, your rank on a ladder from Wood to Zenith, your numbers as tiles, a friend code in two easy groups, practice bests with the rating's sum written out, and ranks as tiles with short loss tags. In English and French.
 - Into a game without the wait: the loading screen lifts onto the table easing in from a warm close-up, and the first fuse drops as it settles, instead of a still, empty table for two and a half seconds.
 - The sheepdog is rebuilt from Brian's six-view sheet: a charcoal collie standing four-square, white blaze, muzzle, chest, socks and tail tip, a red bandana, folded ears. The tutorial's picture of it is baked again.
 - Home's cards (Set the table, Practice, Join party) polished: one slant for everything, labels and hints lined up, the main button inside the card and readable when it cannot be pressed, pixel icons throughout (a key, a gate, a clock, a bot, trees that grow with the bot, a stopwatch), code tiles that show where to type, with a caret and a shake for a refused code, and clearer wording in English and French.

@@ -28,7 +28,7 @@ import { openSignInForm } from '../onboarding/Onboarding';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
-import { AcornIcon, ChainIcon, ClockIcon, CloseIcon, FlameIcon, GearIcon, GustIcon, HelpIcon, LeafIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
+import { AcornIcon, ChainIcon, ClockIcon, FlameIcon, GearIcon, GustIcon, HelpIcon, LeafIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { whenDoorsOpen } from '../components/BarnDoors';
 import { useAdmin } from '../../lib/admin';
@@ -343,28 +343,27 @@ export function PaintedHome() {
       </SetupRow>
     </SetupSheet>
   );
+  const joinGo = () => { if (partyCode.length === 5 && !entering) online({ t: 'join', code: partyCode }); };
   const joinParty = (
-    <div className={`hm-sheet space-y-3 ${mobile ? 'sk-slide-up' : 'sk-slide-in'}`} key="join" role="dialog" aria-label="Join a party">
-      <div className="sk-setup-head">
-        <h2>Join party</h2>
-        <button className="hm-close hm-slab hm-slab--wool hm-slab--sm" onClick={() => setStep('tables')} aria-label="Back" title="Back"><CloseIcon size={16} /></button>
-      </div>
-      <p className="sk-hand text-lg">Type the five-letter code your friend sent.</p>
-      <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); if (partyCode.length === 5) online({ t: 'join', code: partyCode }); }}>
-        <label className="sk-code">
-          <span className="sr-only">Party code</span>
-          <input
-            id="sk-party-code" autoFocus value={partyCode} onChange={(e) => setPartyCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))}
-            autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text" maxLength={5} className="sk-code-input"
-          />
-          {Array.from({ length: 5 }, (_, i) => (
-            <span key={i} aria-hidden="true" className={`kit-tile kit-tile--md ${partyCode[i] ? '' : 'sk-code-empty'} ${i === Math.min(partyCode.length, 4) ? 'sk-code-next' : ''}`}>{partyCode[i] ?? ''}</span>
-          ))}
-        </label>
-        {(error || roomNotice) && <p role="alert" className="text-sm font-bold">{error || roomNotice}</p>}
-        <button type="submit" disabled={partyCode.length < 5 || entering} className="sk-sit hm-act hm-slab hm-slab--lantern hm-knit" data-join-party>Join party</button>
-      </form>
-    </div>
+    <SetupSheet key="join" label="Join a party" kicker="With friends" title="Join party" onClose={() => setStep('tables')}
+      action={<SetupGo icon={<MenuIcon id="join" />} label="Join party" onClick={joinGo} disabled={partyCode.length < 5 || entering}
+        sub={partyCode.length === 5 ? `To party ${partyCode}` : `${5 - partyCode.length} more to type`} />}
+      note={<>Your friend's party code is on their lobby screen. Type it here and you are at their table.{(error || roomNotice) && <b role="alert"> {error || roomNotice}</b>}</>}>
+      <SetupRow icon={<MenuIcon id="join" />} name="Code" label="Party code" foot="Five letters or numbers.">
+        <form className="sk-code-form" onSubmit={(e) => { e.preventDefault(); joinGo(); }}>
+          <label className="sk-code">
+            <span className="sr-only">Party code</span>
+            <input
+              id="sk-party-code" autoFocus value={partyCode} onChange={(e) => setPartyCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))}
+              autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text" maxLength={5} className="sk-code-input"
+            />
+            {Array.from({ length: 5 }, (_, i) => (
+              <span key={i} aria-hidden="true" className={`kit-tile kit-tile--md ${partyCode[i] ? '' : 'sk-code-empty'} ${i === Math.min(partyCode.length, 4) ? 'sk-code-next' : ''}`}>{partyCode[i] ?? ''}</span>
+            ))}
+          </label>
+        </form>
+      </SetupRow>
+    </SetupSheet>
   );
   const panel = step === 'practice' ? drillSetup : step === 'join' ? joinParty : setup;
 
@@ -450,7 +449,7 @@ export function PaintedHome() {
           </div>
           {/* The word of the day floats over the scenery under the top-right buttons (Brian, 2026-11-20: "i like it being
               over the scenery, however i dont like the card ... just the text very slightly tilted"). A panel takes its place. */}
-          {step === 'tables' ? <WordOfDay className="hm-wotd" /> : <div className={`hm-panel-slot ${step === 'join' ? '' : 'hm-panel-slot--lean'}`}>{panel}</div>}
+          {step === 'tables' ? <WordOfDay className="hm-wotd" /> : <div className={"hm-panel-slot hm-panel-slot--lean"}>{panel}</div>}
           <footer className="hm-foot">
             {tipLine}
             <nav className="hm-small" aria-label="About the game">{smallPrint}</nav>

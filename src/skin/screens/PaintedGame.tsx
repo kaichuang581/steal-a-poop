@@ -15,7 +15,7 @@ import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
-import { previewBotTurn, rankPlayers, roundTurnMs, startingWool, utcDateKey } from '../../engine';
+import { ALL_MODIFIERS, ANNOUNCE_MS, breaksRule, normalizeWord, previewBotTurn, rankPlayers, roundTurnMs, startingWool, utcDateKey } from '../../engine';
 import { getDream } from '../../dream/daily';
 import { getPracticeBest } from '../../lib/practice';
 import { farmSheepLine } from '../../lib/record';
@@ -78,6 +78,8 @@ const FINALE = { bang: AFTERMATH_MS, winner: 2400 };
 const PREROLL_MS = 650;
 /** How long a practice run's end board waits for a worn Trading Post act to be seen, in ms. */
 const ACT_WATCH_MS = 1900;
+/** The rules a word can be seen to break while it is still being typed. */
+const LIVE_RULES = new Set(['no_e', 'no_a', 'no_s', 'five_max']);
 const BADGE = { easy: <SeedlingIcon size={12} />, medium: <LeafIcon size={12} />, hard: <AcornIcon size={12} /> } as const;
 interface Mood { state: SheepState; key: number }
 
@@ -113,6 +115,9 @@ export function PaintedGame() {
   const [fx, setFx] = useState<Fx[]>([]);
   const [sheet, setSheet] = useState<'cheat' | 'chain' | 'chat' | 'leave' | null>(null);
   const [alarm, pushAlarm, clearAlarms] = useAlarms(mobile ? 2600 : 3000);
+  // Announcements waiting for the bang that ended a round to play out (cleared with the alarms).
+  const alarmWaits = useRef<number[]>([]);
+  useEffect(() => () => alarmWaits.current.forEach((id) => window.clearTimeout(id)), []);
   // Each alarm jolts the barn once: the class comes off for a frame and back on, so the jolt restarts per alarm.
   const [shake, setShake] = useState(false);
   useEffect(() => {
@@ -128,6 +133,15 @@ export function PaintedGame() {
   const rel = (seat: number) => (seat - mySeat + n) % n;
   const name = (id: string) => game.players[Number(id)]?.name ?? '';
   const practice = storeMode === 'practice';
+  // The round's rule, said beside the letter all round long (Brian, 2026-11-23: "make it clearer what event is in play.
+  // after the popup, people kind of just forget about it"). Rules a word breaks as it is typed (a letter it must not
+  // have, too long) show red at once; the rest are checked when it is played, as before.
+  const twistNow = view.twist && view.twist !== 'vowelDouble' && ALL_MODIFIERS.includes(game.modifier) ? view.twist : null;
+  const typedNow = normalizeWord(input.typed);
+  const roundRule = twistNow ? {
+    text: TWIST_TEXT[twistNow],
+    broken: !!typedNow && LIVE_RULES.has(game.modifier) && breaksRule(typedNow, game.modifier) !== null,
+  } : undefined;
   // A practice run has its own place: the two of you, out on the ice.
   const Stage = practice ? LiveDuel : BarnTable;
   // Read once a run: the table renders often and this reads storage.
@@ -337,12 +351,25 @@ export function PaintedGame() {
         break;
       case 'roundStart':
         // The round's alarms, one after the other: faster turns (every round until the floor), then the twist.
+        // Each is up for ANNOUNCE_MS, starting once the bomb that ended the round has gone off; the engine holds the
+        // first fuse until they are done (Brian, 2026-11-23: the popup must "actually stall the timer").
         if (e.round > 1 && storeMode !== 'tour') {
-          if (e.faster) pushAlarm({ tone: 'speed', label: `Round ${e.round}: faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on' });
-          if (e.twist && e.twist !== 'vowelDouble') pushAlarm({ tone: 'twist', label: `Round ${e.round}: new rule`, title: TWIST_TEXT[e.twist], sub: 'for this round only' });
+          const announce = () => {
+            if (e.faster) pushAlarm({ tone: 'speed', label: `Round ${e.round}: faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on', ms: ANNOUNCE_MS });
+            if (e.twist && e.twist !== 'vowelDouble') pushAlarm({ tone: 'twist', label: `Round ${e.round}: new rule`, title: TWIST_TEXT[e.twist], sub: 'for this round only', ms: ANNOUNCE_MS });
+          };
+          if (e.delayMs > 0) alarmWaits.current.push(window.setTimeout(announce, e.delayMs)); else announce();
+        }
+        break;
+      case 'chainReset':
+        // A fresh letter (two sheep in a row ran out on one): said once the bang has been seen.
+        if (!practice && storeMode !== 'tour') {
+          window.setTimeout(() => flash(<Notice tone="wood" size="sm" snow={false} icon={<MiniBomb size={22} />} title={`New letter: ${e.letter.toUpperCase()}`} sub={e.why} />, 2400), 700);
         }
         break;
       case 'gameEnd':
+        alarmWaits.current.forEach((id) => window.clearTimeout(id));
+        alarmWaits.current = [];
         clearAlarms();
         break;
       default:
@@ -530,6 +557,7 @@ export function PaintedGame() {
             turnName={(view.currentPlayerId || view.nextPlayerId) === '' ? 'Next sheep' : name(view.currentPlayerId || view.nextPlayerId)}
             onChange={input.onChange} onSubmit={input.submit} acceptKey={input.acceptKey} out={!!game.players[mySeat]?.frozen}
             message={input.message} turnKey={game.turn?.seat}
+            rule={roundRule}
             onPass={storeMode !== 'tour' && !practice && game.players[mySeat]?.passedRound !== game.round ? () => void useStore.getState().act({ type: 'pass', seat: mySeat }) : undefined}
             hints={input.learning ? { ideas: input.ideas, onHint: input.hintIdeas, onPick: input.useIdea } : undefined}
           />

@@ -8,6 +8,10 @@ All user-visible changes, newest first.
 - Then polished to the pixel: the panel never scrolls and the bar's empty half now holds the waiting time and the party code; every number appears once; names are no longer cut while there is room; every icon is pixel art drawn on whole pixels, and the avatars are crisp; the chat rules are one short strip with a new shield; the rules are three chips with their explanations on hover; the snow has proper icicles and the lights are bright.
 - In the pen: bigger animals, each standing exactly on its mat, every name plate crisp and over its own head, no numbers on the mats, a softer lantern on the corner post, clean snow inside the fence.
 - The lobby's music flows, and no song stutters any more when the screen is busy. The menu's hover sound is one soft tick for every button.
+- A new round's announcements (faster turns, the new rule) now hold the clock: the first turn starts only once you have read them.
+- The round's rule stays beside the letter all round, and turns red while the word you are typing breaks it.
+- If two sheep in a row run out of time on the same letter, the bomb resets with a fresh, friendlier letter.
+- Name tags are one small, quiet design in every mode.
 
 ## 0.9.5
 

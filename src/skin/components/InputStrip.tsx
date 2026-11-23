@@ -20,6 +20,8 @@ interface Props {
   message: MessageView | null;
   /** Tutorial: a Hint book and its word ideas. */
   hints?: { ideas: string[]; onHint: () => void; onPick: (w: string) => void };
+  /** This round's rule (its twist), shown beside the letter all round; `broken` when the word being typed breaks it. */
+  rule?: { text: string; broken: boolean };
   /** Changes when the turn changes, to refocus the input. */
   turnKey: number | undefined;
   /** Changes each time one of your words is accepted: the strip flashes. */
@@ -37,7 +39,7 @@ const keep = (e: MouseEvent) => e.preventDefault(); // buttons never take focus 
  * with the chain letter), the typed word in big white letters floating over the barn with a warm glow, a dotted line
  * under it, and a small key that is Play on your turn.
  */
-export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out, onPass }: Props) {
+export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out, onPass, rule }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => ref.current?.focus(), [turnKey]);
   const [flash, setFlash] = useState(false);
@@ -75,9 +77,10 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
         {/* Floating letters: no box. The chain letter above, the word big over the barn, Enter's key below. */}
         <div className={`sk-input-bar kit-float ${flash ? 'sk-accept-flash' : ''}`} data-mode={mode} data-tour="input"
           onMouseDown={(e) => { if ((e.target as HTMLElement).tagName !== 'BUTTON') { e.preventDefault(); ref.current?.focus(); } }}>
-          <p className="kit-float-need" aria-hidden="true">
+          <p className="kit-float-need">
             <small>starts with</small>
             <span className="kit-float-chain sk-input-letter" title="Starts with">{L}</span>
+            {rule && <span className="sk-rule" data-broken={rule.broken || undefined} title="This round's rule">{rule.text}</span>}
           </p>
           {/* The typed word, letter by letter, as well as in the speech bubble over your sheep; the real input sits on top, invisible, so typing, pasting and phone
               keyboards all work as usual. The first letter is gold when it fits the chain, red when it does not. */}

@@ -2330,3 +2330,23 @@ different". Every tag over an animal is `NamePlate` (src/skin/kit/NamePlate.tsx,
   dimmed; a bot's badge or the host's crown (8 x 5 at one pixel) before it; frozen dimmed under its ice. Phones: 20 high.
 - Keep it quiet: no snow, ribbons, heads or thick sides on it, and nothing bigger than the name inside it. Don't add
   another tag style: give NamePlate a slot instead. Where a page has no Home tokens, pass `tokens`.
+
+## Round announcements hold the clock; the rule stays in view; a stuck letter resets (Brian, 2026-11-23)
+Approved engine changes (src/engine: constants.ts, reducer.ts, types.ts, validation.ts; tests in
+src/engine/__tests__/announce.test.ts; fences re-pinned). Rooms get them from the server's engine once it is deployed.
+- "make the event popup actually stall the timer": a round's announcements (faster turns, its twist;
+  `roundAnnouncements`, normal games only) hold the table ANNOUNCE_MS (2.6 s) each, plus ANNOUNCE_TAIL_MS (0.4 s),
+  before the first fuse is lit, and the intro starts after the bomb that ended the round has gone off (the aftermath).
+  A round with nothing to announce keeps INTRO_MS from the round's end, as before. The roundStart event's `amount` is
+  that wait: the screen starts its alarms then, each up for exactly ANNOUNCE_MS (PaintedGame `alarmWaits`).
+  Before, the intro was 2.5 s from the time-out and two 3 s alarms queued, so the twist came up mid-turn.
+- "make it clearer what event is in play ... people kind of just forget about it": the round's rule sits beside
+  "starts with X" all round (InputStrip `rule`, `.sk-rule`: the name tag's dark label, lantern text), and turns barn red
+  with a shake while the word typed breaks it, for the rules that can be seen early (no E, no A, no S, five letters at
+  most; `LIVE_RULES`); the others are judged when the word is played, as before. `breaksRule` (validation.ts) is the
+  twist check on its own, used by validateWord and the screen. The corner sign stays.
+- "after 2 people die to the same thing, the bomb resets with a new letter": read as two time-outs in a row on the
+  same chain letter (a bomb going off; a freeze is one too). Then the chain moves to a fresh letter (STUCK_LIMIT 2,
+  `GameState.stuck`), never that letter or a corner letter (X, Z, Q, J, Y, K), before the next fuse; any word played
+  starts the count again; a pass does not. Normal games only. The screen says "New letter: D" with why. The reset draws
+  from the game's random stream, so seeded games differ after one.

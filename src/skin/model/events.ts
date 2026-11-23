@@ -11,8 +11,14 @@ export type VisualEvent =
   | { type: 'timedOut'; playerId: string; trapperId?: string }
   | { type: 'trapSet'; letter: string }
   | { type: 'passed'; playerId: string; toId: string }
-  /** `turnSeconds` is this round's turn; `faster` when it is shorter than the round before. */
-  | { type: 'roundStart'; round: number; twist: TwistId | null; turnSeconds: number; faster: boolean }
+  /**
+   * `turnSeconds` is this round's turn; `faster` when it is shorter than the round before. `delayMs`: wait this long
+   * before announcing (the bomb that ended the round is still going off); the engine holds the first fuse until the
+   * announcements are done (ANNOUNCE_MS each).
+   */
+  | { type: 'roundStart'; round: number; twist: TwistId | null; turnSeconds: number; faster: boolean; delayMs: number }
+  /** The chain moved to a fresh letter: two sheep in a row ran out on one, or no legal word started with it. */
+  | { type: 'chainReset'; letter: string; why: string }
   | { type: 'roundEnd'; round: number }
   | { type: 'gameEnd'; winnerIds: string[] }
   | { type: 'lifeLost'; playerId: string; livesLeft: number }
@@ -36,9 +42,11 @@ export function mapEngineEvent(e: GameEvent, prev: GameState | null, next: GameS
       const start: VisualEvent = {
         type: 'roundStart', round: next.round, twist: TWIST_OF[next.modifier],
         turnSeconds: roundTurnMs(next.round) / 1000, faster: next.round > 1 && roundTurnMs(next.round) < roundTurnMs(next.round - 1),
+        delayMs: e.amount,
       };
       return next.round > 1 ? [{ type: 'roundEnd', round: next.round - 1 }, start] : [start];
     }
+    case 'chainReset': return [{ type: 'chainReset', letter: e.word ?? next.chainLetter, why: e.text.split(', so the chain letter')[0] }];
     case 'pass': return [{ type: 'passed', playerId: seat, toId: next.turn ? String(next.turn.seat) : '' }];
     case 'gameOver': return [{ type: 'gameEnd', winnerIds: (next.winners ?? []).map(String) }];
     case 'lifeLost': return [{ type: 'lifeLost', playerId: seat, livesLeft: e.amount }];

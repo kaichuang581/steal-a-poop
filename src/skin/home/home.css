@@ -40,12 +40,12 @@
 .hm-slab > * { transform: translateY(var(--drop)); transition: transform 60ms linear; }
 .hm-knit::before { background-image: var(--knit); background-size: calc(16 * var(--u)) calc(12 * var(--u)); }
 .hm-slab--lantern { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); }
-.hm-slab--night { --face: var(--hm-night-2); --hi: var(--hm-night-3); --lip: #141D36; --txt: var(--hm-wool); }
-.hm-slab--ink { --face: var(--hm-ink); --hi: #1D2947; --lip: #05080F; --txt: var(--hm-wool); }
+.hm-slab--night { --face: var(--hm-night-2); --hi: var(--hm-night-3); --lip: var(--hm-night-deep); --txt: var(--hm-wool); }
+.hm-slab--ink { --face: var(--hm-ink); --hi: var(--hm-ink-hi); --lip: var(--hm-ink-side); --txt: var(--hm-wool); }
 .hm-slab:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 3px; }
 .hm-slab--sm:hover:not(:disabled) { --drop: calc(-2 * var(--u)); }
 .hm-slab:active:not(:disabled):not([data-busy]) { --drop: calc(4 * var(--u)); }
-.hm-slab:disabled { --face: #3A4664; --hi: #3A4664; --txt: var(--hm-frost); --side: calc(2 * var(--u)); cursor: not-allowed; }
+.hm-slab:disabled { --face: var(--hm-disabled); --hi: var(--hm-disabled); --txt: var(--hm-frost); --side: calc(2 * var(--u)); cursor: not-allowed; }
 .hm-slab:disabled::before { background-image: none; }
 .hm-slab[data-busy] { cursor: progress; }
 /* Over the scenery, a slab casts one hard shadow (a filter, which the pixel corners do not cut). */
@@ -100,7 +100,7 @@
 .hm-me-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(16 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); }
 .hm-me-lvl { display: flex; align-items: center; gap: calc(6 * var(--u)); font: 800 calc(10.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); white-space: nowrap; }
 .hm-xp { display: flex; gap: calc(2 * var(--u)); }
-.hm-xp i { width: calc(9 * var(--u)); height: calc(7 * var(--u)); background: #141D36; }
+.hm-xp i { width: calc(9 * var(--u)); height: calc(7 * var(--u)); background: var(--hm-night-deep); }
 .hm-xp i[data-on] { background: var(--hm-lantern); }
 
 /* The title: seven wool blocks, the last one fleeced. */

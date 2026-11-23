@@ -87,15 +87,19 @@
 /* Home's palette (docs/home-ui/HOME-UI-PLAN.md section 3, Brian, 2026-11-20). Prefixed: --ink and --wool already name
    the paper's colours everywhere else. Home uses no other colour. */
 :root {
-  --hm-night: #1B2742; --hm-night-2: #26365C; --hm-night-3: #34497A;
-  --hm-ink: #0E1528;
+  /* Midnight (Brian, 2026-11-23, picked from four blue tones: "lets do midnight"): deeper and richer than the first
+     night blue (#1B2742, #26365C, #34497A), so the orange and the cream stand out more. */
+  --hm-night: #131D3B; --hm-night-2: #1B2A52; --hm-night-3: #283E74;
+  --hm-ink: #090E20;
   --hm-wool: #FFF4DC; --hm-wool-hi: #FFFDF4; --hm-wool-lip: #D8C49A;
   --hm-lantern: #F2A444; --hm-lantern-hi: #FFD98A; --hm-lantern-lip: #B96F1E;
-  --hm-barn: #B8473A; --hm-dusk: #5B5FC7; --hm-pasture: #3F8A55;
-  --hm-frost: #B9C8E6;
+  --hm-barn: #B8473A; --hm-dusk: #4A54B8; --hm-pasture: #3F8A55;
+  --hm-frost: #BBCCF0;
   /* The leaderboards' additions (docs/leaderboards/LEADERBOARDS-PLAN.md section 3, Brian, 2026-11-21). */
-  --hm-night-deep: #141D36;
-  --hm-ink-hi: #1D2947; --hm-ink-side: #05080F;
+  --hm-night-deep: #0E152C;
+  --hm-ink-hi: #16213F; --hm-ink-side: #03050C;
+  /* A disabled slab's face and side (Home's, the pen's and the modern kit's). */
+  --hm-disabled: #323F62; --hm-disabled-lip: #222C48;
   --hm-silver: #D9E0EA; --hm-silver-hi: #F4F7FB; --hm-silver-lip: #8E9BB2;
   --hm-bronze: #D9925E; --hm-bronze-hi: #F2B98C; --hm-bronze-lip: #9A5B32;
   --hm-ribbon: var(--hm-barn); --hm-ribbon-dark: #7E2B24;

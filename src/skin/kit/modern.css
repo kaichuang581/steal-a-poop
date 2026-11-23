@@ -1,6 +1,6 @@
 /* The modern kit (modern.tsx): Home's slab and the pen's board, tile, well and ink-card recipes, on any screen. */
 
-.md-scrim { position: fixed; inset: 0; z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(14, 21, 40, 0.55); }
+.md-scrim { position: fixed; inset: 0; z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px; background: color-mix(in srgb, var(--hm-ink) 60%, transparent); }
 
 /* The dialog: a board. Sizes are Home's pixels times --u. */
 .md-dialog {
@@ -38,7 +38,7 @@
   filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35));
 }
 .md-card::before {
-  content: ''; position: absolute; z-index: -1; inset: 0; background: #0E1528; box-shadow: inset 6px 0 0 var(--bar);
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--hm-ink); box-shadow: inset 6px 0 0 var(--bar);
   clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
 }
 .md-card[data-tone="frost"] { --bar: var(--hm-frost); }
@@ -59,8 +59,8 @@
   font: 700 13px/1 var(--skin-font-display); color: var(--hm-wool); white-space: nowrap;
 }
 .md-tag::before {
-  content: ''; position: absolute; z-index: -1; inset: 0; background: #0E1528;
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--hm-ink);
   clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
 }
 /* A disabled slab is grey on a grey side, never an orange lip under grey (the pen plan's C1, kit-wide here). */
-.md-slab.hm-slab:disabled, .md-icon.hm-slab:disabled { --lip: #2A3350; }
+.md-slab.hm-slab:disabled, .md-icon.hm-slab:disabled { --lip: var(--hm-disabled-lip); }

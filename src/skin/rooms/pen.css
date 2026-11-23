@@ -32,7 +32,7 @@
 .pn .hm-knit::before { background-position: 0 calc(2 * var(--s)); }
 .pn :is(.pn-gate, .pn-title).hm-knit::before { background-image: var(--knit5); }
 /* The disabled slab: a grey face on a grey side, never an orange lip under grey (C1). */
-.pn .hm-slab:disabled { --lip: #2A3350; }
+.pn .hm-slab:disabled { --lip: var(--hm-disabled-lip); }
 
 /* ---------- Snow and lights (section 10), drawn on whole pixels ---------- */
 .pn .rc-snowcap { height: calc(12 * var(--ap)); background-size: calc(24 * var(--ap)) calc(12 * var(--ap)); }

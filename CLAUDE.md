@@ -2374,3 +2374,12 @@ run through" and "make it so that the sheep cant go naked".
 - `coatLevel` (table/Sheep.tsx) never goes under 1: a sheep keeps a thin coat to its last wool ball; the wool balls on its
   tag say what is left.
 - The kit audit's gradient budget is 2 (src/skin/audit/budget.json), down from 4: the old mini tiles' gradients went.
+
+## Midnight (Brian, 2026-11-23)
+"i feel like it should have an accent color, can u make everything not so blue": four other palettes (ember, pine,
+graphite with barn red, plum with gold) were shown on the real screens; he answered "nah ykw its fine. can u like change
+the toning on the blue", then picked "midnight" from four blue tones (midnight, slate, winter teal, indigo). The --hm-*
+night family in src/skin/styles/tokens.css is now deeper and richer (night #131D3B, night-2 #1B2A52, night-3 #283E74,
+night-deep #0E152C, ink #090E20, frost #BBCCF0, dusk #4A54B8); the orange accent is unchanged. Hard-coded copies of the
+old blues were routed through tokens (--hm-disabled, --hm-disabled-lip are new), so a palette change is one place. The
+loading screen keeps its own colour (it must stand alone).

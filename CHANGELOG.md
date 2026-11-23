@@ -14,6 +14,7 @@ All user-visible changes, newest first.
 - Name tags are one small, quiet design in every mode.
 - Every game screen is in the new look: notices, tips, the tutorial, the scoreboard, the boards between rounds and at the end, How to play, Settings, the welcome form and the corner buttons. No more wood planks, paper cards or stitched slates.
 - Sheep never get shorn bare: they keep a thin coat down to their last wool ball.
+- The interface blue is a deeper midnight navy, so the orange and cream stand out more.
 
 ## 0.9.5
 

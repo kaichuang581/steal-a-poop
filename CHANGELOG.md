@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## 0.9.7
+
+- Into a game without the wait: the loading screen lifts onto the table easing in from a warm close-up, and the first fuse drops as it settles, instead of a still, empty table for two and a half seconds.
+
 ## 0.9.6
 
 - The lobby and queue screen is clearer and lighter: the pen is the screen, with every player standing on their own straw mat; a slim panel says what is happening, who is here and what game it will be; the chat is a card that folds away; one button under the pen says why it can or cannot start.

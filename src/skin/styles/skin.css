@@ -384,8 +384,15 @@
   35% { opacity: 1; }
   100% { transform: scale(1); filter: brightness(1); opacity: 1; }
 }
-:root.reduce-motion .sk-swoop-out, :root.reduce-motion .sk-swoop-in { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-swoop-out, .sk-swoop-in { animation: none; } }
+/* A game coming out from behind the loading screen: the camera eases in from a little closer and lantern-bright,
+   under the screen's fade, so the hand-over moves instead of cutting to a still table. */
+.sk-settle-in { animation: sk-settle-in 1400ms cubic-bezier(0.3, 0.1, 0.25, 1) backwards; transform-origin: 50% 55%; }
+@keyframes sk-settle-in {
+  0% { transform: scale(1.12); filter: brightness(1.35) sepia(0.2); }
+  100% { transform: scale(1); filter: none; }
+}
+:root.reduce-motion .sk-swoop-out, :root.reduce-motion .sk-swoop-in, :root.reduce-motion .sk-settle-in { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-swoop-out, .sk-swoop-in, .sk-settle-in { animation: none; } }
 
 /* The loading screen (BarnDoors.tsx; docs/landing/LANDING-PLAN.md): Home's night, a few slow flakes, the name as a
    dotted line, and a red yarn ball that lays one strand of yarn along it as the game loads. The strand is the

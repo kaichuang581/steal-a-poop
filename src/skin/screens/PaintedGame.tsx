@@ -8,7 +8,7 @@ import type { GameState } from '../../engine/types';
 import { useWallet } from '../shop/store';
 import { playSound } from '../../audio/sound';
 import { AFTERMATH_MS } from '../../engine/constants';
-import { playBarnDoors, whenDoorsShut } from '../components/BarnDoors';
+import { playBarnDoors, whenDoorsOpen, whenDoorsShut } from '../components/BarnDoors';
 import { buzz } from '../hooks/buzz';
 import { Jumpscare, WordBlast } from '../components/Jumpscare';
 import { bombSize, wordsSinceBoom } from '../model/bombCharge';
@@ -410,6 +410,9 @@ export function PaintedGame() {
     const botRejectKey = botElapsed >= 0 ? lastRejectAt(typing!.script, botElapsed) : null;
     return !!botRejectKey && botElapsed - botRejectKey.at < 380;
   });
+  // The table settles in as the loading screen lifts, not behind it, where its move was never seen.
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => whenDoorsOpen(() => setRevealed(true)), []);
   const signState = game.phase === 'gameOver' ? 'raised' : game.phase === 'intro' ? 'lowering' : 'hung';
   const ranked = rankPlayers(game.players).map((p) => view.players[p.id]);
   const showTally = game.phase === 'intro' && game.round > 1 && storeMode !== 'tour';
@@ -422,7 +425,7 @@ export function PaintedGame() {
   };
 
   return (
-    <div ref={rootRef} className="sk-swoop-in relative flex h-full flex-col overflow-hidden">
+    <div ref={rootRef} className={`${revealed ? 'sk-settle-in' : ''} relative flex h-full flex-col overflow-hidden`}>
       {boom > 0 && <div key={boom} className="sk-boom" aria-hidden="true"><i /><i /><i /></div>}
       {/* Frost creeps in from the screen's edges in the last three seconds of a turn (not on the ice, which has its own red edge). */}
       {!practice && game.turn && game.phase === 'playing' && view.secondsLeft <= 3 && <Frost />}

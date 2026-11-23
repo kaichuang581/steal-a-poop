@@ -24,6 +24,9 @@ export const CARRY_MS_PER_POINT = 500;
 export const PASS_MIN_MS = 4_000;
 export const CARRY_HARD_LETTERS = new Set(['x', 'z', 'q', 'j']);
 export const INTRO_MS = 2_500;
+/** The game's first intro: the table settles in as the loading screen lifts, then the first fuse is lit at once
+ *  (Brian, 2026-11-23: the old 2.5 s showed a still, empty table). */
+export const FIRST_INTRO_MS = 1_200;
 /**
  * After a bomb goes off the table takes a beat (the sheep it went off beside is dazed, the screens show it): the next
  * sheep's fuse is lit this long after the bang, and its whole turn runs from then. Without it the next turn's clock

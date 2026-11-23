@@ -919,6 +919,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   (d) The odds are shown before every opening and are the real odds. The reveal shows the result honestly: no fake
       near-misses, no animation that suggests a better result than the one rolled.
   (e) No countdown timers, push notifications or "last chance" wording anywhere in the Trading Post.
+- Shorter first intro (approved by Brian, 2026-11-23): a game's round-1 intro is FIRST_INTRO_MS (1.2 s, was INTRO_MS 2.5 s)
+  in src/engine/game.ts; later rounds keep INTRO_MS. The painted table settles in (skin.css .sk-settle-in) as the loading
+  screen lifts, so the hand-over moves and the first fuse is lit right after. Rooms get it once the server is deployed.
 - Trading Post v2 as built, T0 to T3 (2026-11-12; T4, payments, is not approved and not built). Brian asked for a near-miss
   effect on the sacks; it was not built (plan decision 8.1, guardrail (d)): don't add one. Pure rules: src/skin/shop/sacks.ts
   (odds, pity, refunds, the pool: the one source the roll and the screen read), roll.ts (`rollSack`, crypto randomness),

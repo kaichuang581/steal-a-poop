@@ -4,7 +4,7 @@ import { CHAT_CONSEQUENCES, CHAT_RULES, ChatRulesModal } from '../../ui/ChatRule
 import { ModerationNotice } from '../../ui/mod/ModerationNotice';
 import { NameTag } from '../../ui/social/NameTag';
 import { ScrollBox } from '../kit/surfaces';
-import { PenIcon } from './penArt';
+import { PenIcon, Shield } from './penArt';
 
 const FOLD_KEY = 'sap:pen-chat-folded';
 
@@ -80,16 +80,17 @@ export function PenChat({ open, reduced, fold, unread }: { open: boolean; reduce
         )}
         {fold && (
           <button type="button" className="pn-ctl hm-slab hm-slab--night" onClick={() => fold.set(!folded)} aria-expanded={!folded} aria-label={folded ? 'Open the chat' : 'Fold the chat'} title={folded ? 'Open the chat' : 'Fold the chat'}>
-            <PenIcon name="chevron" color="var(--hm-wool)" px={1.5} className={folded ? 'pn-flip' : undefined} />
+            <PenIcon name="chevron" color="var(--hm-wool)" className={folded ? 'pn-flip' : undefined} />
           </button>
         )}
       </header>
       {!folded && (
         <>
-          <div className="pn-chatrules rc-inkcard" role="note">
-            <PenIcon name="shield" color="var(--hm-lantern)" />
+          <div className="pn-chatrules pn-strip-inkcard" role="note">
+            <i className="pn-bar6" aria-hidden="true" />
+            <Shield />
             <p>
-              Be kind: no swearing, nothing sexual, no slurs. Breaking these rules gets you suspended.{' '}
+              No swearing, nothing sexual, no slurs, or you get suspended.{'\u00a0'}
               <button type="button" className="pn-link" onClick={() => setAllRules((v) => !v)} aria-expanded={allRules}>All the rules</button>
             </p>
             {allRules && (
@@ -129,7 +130,7 @@ export function PenChat({ open, reduced, fold, unread }: { open: boolean; reduce
             {!accepted ? (
               <p className="pn-empty">Accept the chat rules to see messages.</p>
             ) : chat.length === 0 ? (
-              <p className="pn-empty"><PenIcon name="chat" color="var(--hm-night-3)" px={4} /><span>No messages yet. Say hi.</span></p>
+              <p className="pn-empty"><PenIcon name="chat" color="var(--hm-night-3)" px={3} /><span>No messages yet. Say hi.</span></p>
             ) : (
               chat.map((m) => {
                 const cos = room?.members.find((x) => x.userId === m.userId)?.cosmetics;

@@ -302,8 +302,8 @@ function pen(): Placed[] {
     });
   }
   // The tall lantern's glass hangs from its post's arm by an iron hanger one cell thick, on an iron lid as wide as the
-  // glass: what meets the support is the glass's top under the lid's middle cell. The gate's lantern sits on the gate's right post.
-  const [lx, ly, lz] = PEN.lamp, [qx, qy, qz] = PEN.gateLamp;
+  // glass: what meets the support is the glass's top under the lid's middle cell. The small lantern sits on the front-right corner post.
+  const [lx, ly, lz] = PEN.lamp, [qx, qy, qz] = PEN.cornerLamp;
   out.push({
     id: 'pen:tall lantern', scene: 'pen', position: [snap(lx - 0.05) + CELL / 2, snap(ly + 0.2), snap(lz - 0.7) + CELL / 2], footprint: [CELL, CELL],
     height: snap(ly + 0.2) - snap(ly - 0.15), support: 'post', hangs: true, own: 'pen.glow',
@@ -311,9 +311,9 @@ function pen(): Placed[] {
     copied: { file: 'src/skin/scene/pen.ts', text: 'box(g, [lx - 0.15, ly + 0.2, lz - 0.8], [lx + 0.15, ly + 0.3, lz - 0.5], iron);' },
   });
   out.push({
-    id: 'pen:gate lantern', scene: 'pen', position: [qx, snap(qy - 0.15), qz], footprint: [0.2, 0.2], height: snap(qy + 0.1) - snap(qy - 0.15), support: 'post', own: 'pen.glow',
-    from: 'PEN.gateLamp in scene/pen.ts',
-    copied: { file: 'src/skin/scene/pen.ts', text: 'box(glow, [qx - 0.1, qy - 0.15, qz - 0.1], [qx + 0.1, qy + 0.1, qz + 0.1], (a, b, c) => pick(T.lantern, hash3(a, b, c, 48)));' },
+    id: 'pen:corner lantern', scene: 'pen', position: [qx, snap(qy - 0.15), qz], footprint: [0.2, 0.2], height: snap(qy + 0.1) - snap(qy - 0.15), support: 'post', own: 'pen.dimGlow',
+    from: 'PEN.cornerLamp in scene/pen.ts',
+    copied: { file: 'src/skin/scene/pen.ts', text: 'box(dim, [qx - 0.1, qy - 0.15, qz - 0.1], [qx + 0.1, qy + 0.1, qz + 0.1], (a, b, c) => pick(T.lantern, hash3(a, b, c, 48)));' },
   });
   return out;
 }
@@ -509,8 +509,8 @@ export const LIGHTS: readonly Light[] = [
     lamp: { scene: 'pen', position: [PEN.lamp[0] + 0.1, PEN.lamp[1], PEN.lamp[2] - 0.7], mounts: ['pen.glow'] },
   },
   {
-    id: 'pen:gate lantern', kind: 'point', element: el('rooms/PenStage.tsx', '<pointLight position={[PEN.gateLamp[0], PEN.gateLamp[1] + 0.1, PEN.gateLamp[2] + 0.5]}'),
-    lamp: { scene: 'pen', position: [PEN.gateLamp[0], PEN.gateLamp[1] + 0.1, PEN.gateLamp[2] + 0.5], mounts: ['pen.glow'] },
+    id: 'pen:corner lantern', kind: 'point', element: el('rooms/PenStage.tsx', '<pointLight position={[PEN.cornerLamp[0] + 0.3, PEN.cornerLamp[1] + 0.1, PEN.cornerLamp[2] + 0.3]}'),
+    lamp: { scene: 'pen', position: [PEN.cornerLamp[0] + 0.3, PEN.cornerLamp[1] + 0.1, PEN.cornerLamp[2] + 0.3], mounts: ['pen.dimGlow'] },
   },
   // The farmer's bedroom.
   { id: 'bedroom:room side', kind: 'point', element: el('dream/BedroomBubble.tsx', '<pointLight position={[1.4, 1.5, 0.9]}'), fill: 'the lamp\'s glow from the room side, so his face reads whichever way he lies' },

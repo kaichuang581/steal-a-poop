@@ -177,5 +177,7 @@
 ["^Must start with ([A-Z])\\.$","Doit commencer par $1."],
 ["^From (\\d+)(?:st|nd|rd|th) place on, every place is open\\.$","À partir de la $1e place, toutes les places sont libres."],
 ["^([\\d,]+) playing$","$1 en jeu"],
-["^(\\d+) to (\\d+) players$","$1 à $2 joueurs"]
-]
+["^(\\d+) to (\\d+) players$","$1 à $2 joueurs"],
+["^(.+) starts when enough are here\\.$", "$1 lance la partie quand il y a assez de monde."],
+["^More can join until (.+) opens the gate\\.$", "D’autres peuvent encore venir."],
+["^Starts by itself at (\\d+)\\. People only\\.$", "Départ seul à $1 joueurs, que des gens."]]

@@ -10,12 +10,17 @@ import './surfaces.css';
  */
 export type Prefix = 'lb' | 'rc';
 
-/** A pixel grid, one character an art pixel, at `px` art pixels to the plan's pixel times `--u`, with crisp edges. */
+/**
+ * A pixel grid, one character an art pixel, `px` of the plan's pixels to an art pixel, with crisp edges. The art pixel
+ * is `px * --u` rounded to a whole CSS pixel (never under 1), so a grid is always drawn at a whole multiple of itself:
+ * at --u 1.125 a 2 px art pixel stayed 2.25 and the steps came out uneven (docs/pen/PEN-PLAN-V3.md, 2.3.1).
+ */
+export const artPixel = (px: number) => `max(1px, round(nearest, calc(${px} * var(--u)), 1px))`;
 export function Pix({ rows, colors, px = 2, className, style }: { rows: readonly string[]; colors: Record<string, string>; px?: number; className?: string; style?: CSSProperties }) {
-  const w = rows[0]?.length ?? 0, h = rows.length;
+  const w = rows[0]?.length ?? 0, h = rows.length, a = artPixel(px);
   return (
-    <svg className={className} viewBox={`0 0 ${w} ${h}`} shapeRendering="crispEdges" aria-hidden="true" focusable="false"
-      style={{ width: `calc(${w * px} * var(--u))`, height: `calc(${h * px} * var(--u))`, flex: 'none', ...style }}>
+    <svg className={className} viewBox={`0 0 ${w} ${h}`} shapeRendering="crispEdges" aria-hidden="true" focusable="false" data-grid={`${w}x${h}`}
+      style={{ width: `calc(${w} * ${a})`, height: `calc(${h} * ${a})`, flex: 'none', ...style }}>
       {pixelRects(rows, colors)}
     </svg>
   );
@@ -29,11 +34,15 @@ export const Padlock = ({ color = 'var(--hm-lantern)', px = 2 }: { color?: strin
 export const Bracket = ({ className }: { className?: string }) =>
   <Pix className={className} px={3} rows={['AAAA', 'AB..', 'A...', 'A...']} colors={{ A: 'var(--hm-night-3)', B: 'var(--hm-frost)' }} />;
 
-/** A board's inner frame with its four corner brackets (section 4.3). */
-export function BoardFrame({ prefix = 'rc' }: { prefix?: Prefix }) {
+type Corner = 'tl' | 'tr' | 'bl' | 'br';
+/**
+ * A board's inner frame with its corner brackets (section 4.3): all four, or only `corners` (the pen leaves out a
+ * corner under a snow cap, and every bracket where they would shrink to dots: docs/pen/PEN-PLAN-V3.md, 2.4.4).
+ */
+export function BoardFrame({ prefix = 'rc', corners = ['tl', 'tr', 'bl', 'br'] }: { prefix?: Prefix; corners?: readonly Corner[] }) {
   return (
     <i className={`${prefix}-frame`} aria-hidden="true">
-      {(['tl', 'tr', 'bl', 'br'] as const).map((k) => <Bracket key={k} className={`${prefix}-bracket ${prefix}-bracket--${k}`} />)}
+      {corners.map((k) => <Bracket key={k} className={`${prefix}-bracket ${prefix}-bracket--${k}`} />)}
     </i>
   );
 }
@@ -63,7 +72,13 @@ const sag = (x: number, L: number) => Math.round((8 * (1 - (2 * x / L - 1) ** 2)
  * in two-pixel steps, a bulb every 30, red, green and gold in turn. A bulb that is off is its own colour darkened toward
  * the ink, never a glow. Drawn in the plan's pixels (times `u`) across the element's whole width.
  */
-export function Lights({ u, reduced, prefix = 'rc' }: { u: number; reduced: boolean; prefix?: Prefix }) {
+/** The order bulbs take their turn to be off when `oneInSix` (never two neighbours in a row). */
+const OFF_ORDER = [0, 3, 1, 4, 2, 5];
+/**
+ * `oneInSix` (the pen, docs/pen/PEN-PLAN-V3.md section 10): at most one bulb in six is off at any moment, each in turn
+ * for a sixth of a 6 s cycle, so the string reads as lit rather than half dark.
+ */
+export function Lights({ u, reduced, prefix = 'rc', oneInSix = false }: { u: number; reduced: boolean; prefix?: Prefix; oneInSix?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(0);
   useLayoutEffect(() => {
@@ -99,7 +114,7 @@ export function Lights({ u, reduced, prefix = 'rc' }: { u: number; reduced: bool
         bulbs.push(
           <g key={i} transform={at}>
             <g>{pixel(BULB_ART, off)}</g>
-            <g className={`${prefix}-bulb-on`} style={reduced ? undefined : { animationDuration: `${dur}s`, animationDelay: `${delay}s`, animationDirection: k % 2 ? 'reverse' : 'normal' }}>{pixel(BULB_ART, on)}</g>
+            <g className={`${prefix}-bulb-on${oneInSix ? ` ${prefix}-bulb-six` : ''}`} style={reduced ? { animation: 'none' } : oneInSix ? { animationDelay: `${-OFF_ORDER[i % 6]}s` } : { animationDuration: `${dur}s`, animationDelay: `${delay}s`, animationDirection: k % 2 ? 'reverse' : 'normal' }}>{pixel(BULB_ART, on)}</g>
           </g>,
         );
       }

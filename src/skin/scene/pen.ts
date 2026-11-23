@@ -10,7 +10,7 @@ import { tieredPine } from './style/pine';
 
 /**
  * The lobby is a sheep pen in a mountain meadow on a winter night: a three-rail fence with a shut gate, a hay rack and
- * a water trough along the back rail, tufts of grass showing through the straw. Round it, nothing built: pines,
+ * a water trough along the back rail, a floor of flat snow. Round it, nothing built: pines,
  * boulders, bushes, the meadow rising to a wooded ridge, and mountains behind under the
  * moon. Everyone who has joined is inside until the host opens the gate. +y is up and the camera looks toward +z from
  * the gate side.
@@ -22,7 +22,7 @@ import { tieredPine } from './style/pine';
  * ground.
  *
  * Brian, 2026-11-22 (docs/pen/PEN-PLAN.md, section 8: the screen "looks too chunky and really unclear"): every player
- * stands on a numbered straw mat, the front side is posts and one low rail with a two-leaf gate in it, and the camera
+ * stands on a straw mat (numbered until V3 9.2), the front side is posts and one low rail with a two-leaf gate in it, and the camera
  * looks down 20 degrees, so every face shows. The pen is drawn round its ten mats.
  */
 export const PEN = {
@@ -31,13 +31,15 @@ export const PEN = {
   gate: 1.6,
   /** The front side's one rail, at this height (the other three sides keep three). */
   frontRail: 0.35,
-  /** The tall lantern post at the back-left corner, and the small lantern on the gate's right post. */
+  /**
+   * The tall lantern post at the back-left corner, and the small lantern on the front-right corner post (as the camera
+   * sees it: the screen's right is -x). It was on the gate's right post and lit a bright patch on the snow in front of
+   * the gate (docs/pen/PEN-PLAN-V3.md, 9.4).
+   */
   lamp: [-3.8, 2.6, 4.6] as const,
-  gateLamp: [0.8, 1.05, -4.6] as const,
+  cornerLamp: [-3.8, 1.35, -4.6] as const,
   rack: [1.6, 0, 4.25] as const,
   trough: [-2.0, 0, 4.3] as const,
-  /** Where grass shows through the snow: round the sides, clear of the mats. */
-  grass: [[-3.3, -3.8], [3.2, -3.9], [-3.3, 0.6], [3.3, 0.4], [-0.6, 4.2]] as readonly (readonly [number, number])[],
 };
 
 /**
@@ -61,6 +63,36 @@ export function matSpot(i: number, max: number): { x: number; z: number; yaw: nu
   // The camera looks along +z, so the screen's left is +x: mat 1 is at the largest x.
   const x = -((col - (n - 1) / 2) * step + (rows ? (back ? 0.3 : -0.3) : 0));
   return { x, z: back ? MATS.back : MATS.front, yaw: Math.PI + Math.max(-1, Math.min(1, x / 2.7)) * (10 * Math.PI) / 180 };
+}
+
+/** Where a player's animal is on its way to: its mat, its heading, and when it arrived (for the drop). */
+export interface PenPace { x: number; z: number; yaw: number; born: number }
+
+/**
+ * One frame of a player's animal (8.4), pure so a test can hold it to its mat: it drops onto its mat from 0.6 m with
+ * a small squash as it lands (350 ms), walks to a new mat when the seats before it empty (with a little hop on the
+ * way), hops off and shrinks away when its player leaves (300 ms), and turns to the gate when it opens. Under reduced
+ * motion it simply appears and goes. `pace` is null on the first frame. At rest the group stands exactly on its mat's
+ * centre, its feet on the mat's top.
+ */
+export function penStep(pace: PenPace | null, seat: number, max: number, now: number, dt: number, o: { reduced: boolean; opening: boolean; leaving?: boolean }) {
+  const spot = matSpot(seat, max);
+  const s = pace ?? { x: spot.x, z: spot.z, yaw: spot.yaw, born: now };
+  const k = o.reduced ? 1 : Math.min(1, dt * 7);
+  const far = Math.hypot(spot.x - s.x, spot.z - s.z);
+  s.x += (spot.x - s.x) * k; s.z += (spot.z - s.z) * k;
+  if (Math.hypot(spot.x - s.x, spot.z - s.z) < 1e-3) { s.x = spot.x; s.z = spot.z; }
+  const aim = o.opening ? Math.atan2(0 - s.x, -PEN.halfZ - s.z) : spot.yaw;
+  let turn = aim - s.yaw; turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+  s.yaw += turn * (o.reduced ? 1 : Math.min(1, dt * 8));
+  const t = (now - s.born) / (o.leaving ? 0.3 : 0.35);
+  let y = o.reduced ? 0 : Math.min(0.3, far * 0.5), sy = 1, sxz = 1;
+  if (!o.reduced && t < 1) {
+    if (o.leaving) { y = 0.3 * Math.sin((t * Math.PI) / 2); sxz = sy = 1 - t; }
+    else if (t < 0.7) y = 0.6 * (1 - (t / 0.7) ** 2);
+    else { const q = Math.sin((Math.PI * (t - 0.7)) / 0.3); sy = 1 - 0.18 * q; sxz = 1 + 0.1 * q; }
+  } else if (o.leaving) sxz = sy = 0.0001;
+  return { pace: s, x: s.x, y: MATS.top + y, z: s.z, yaw: s.yaw, sy, sxz };
 }
 
 /** The camera looks down this much (section 8.2). */
@@ -91,33 +123,26 @@ function make() {
 
 /** The meadow is level round the pen; from ten metres behind it the ground climbs, in long swells, to the ridge. */
 const hill = (x: number, z: number) => (z < 10 ? 0 : (z - 10) * 0.046 + (Math.sin(x * 0.07 + 1) + Math.sin(x * 0.031 + z * 0.05)) * 0.55 * Math.min(1, (z - 10) / 14));
-const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const STRAW = ['#D8BE7A', '#C9AD68', '#B89A58'] as const;
-const EARTH = ['#8E7C68', '#7F6E5C', '#6F5F50'] as const;
-const GRASS = ['#86AB62', '#6E9A52', '#5D8746'] as const;
+
+/** The pen's floor: one flat snow colour, the mean of the snow round it (docs/pen/PEN-PLAN-V3.md, 9.5). */
+const FLOOR = meanOf(['#F7F9FC', '#DCE6F2']);
+/** The drift along the inside of the back and side fences: the same snow a step lighter. */
+const DRIFT = meanOf(['#FFFFFF', '#EEF3F9']);
 
 /**
- * The ground. Inside the rails it is a pen floor: snow trodden flat, in whole patches a shade apart, earth showing where
- * the animals stand most (the gate, the trough, the rack), so the straw mats on it read as places (8.1). Outside,
- * clean snow with soft drifts. Top surface at y = 0.
+ * The ground. Inside the rails the pen's floor is one flat snow colour, so the straw mats on it read as places (8.1;
+ * the patches a shade apart read as a checkerboard, V3 P6). Outside, clean snow with soft drifts. Top surface at y = 0.
  */
 function ground() {
   const g = new Grid(0.2);
-  const near = (x: number, z: number, px: number, pz: number, r: number) => Math.hypot(x - px, z - pz) < r;
   for (let gx = -60; gx <= 60; gx++) {
     for (let gz = -40; gz <= 45; gz++) {
       const x = gx * g.size, z = gz * g.size;
       const inside = Math.abs(x) < PEN.halfX && Math.abs(z) < PEN.halfZ;
       const r = hash3(gx, 0, gz, 3);
       let c: RGB = pick(T.snow, r, [0.5, 0.85]);
-      if (inside) {
-        // Trodden snow: whole patches, one colour each, a shade apart.
-        const patch = hash3(gx >> 2, 1, gz >> 2, 5);
-        c = patch > 0.45 ? lin('#C9D3E1') : lin('#D6DEEA');
-        // Worn to earth by hooves: at the gate, along the trough and under the rack.
-        const worn = near(x, z, 0, -PEN.halfZ + 0.4, 1.3) || near(x, z, PEN.trough[0], PEN.trough[2] - 0.7, 1.3) || near(x, z, PEN.rack[0], PEN.rack[2] - 0.8, 1.5);
-        if (worn) c = mix(lin(EARTH[0]), lin('#C6D0DE'), 0.25);
-      }
+      if (inside) c = FLOOR;
       g.set(gx, -1, gz, c);
     }
   }
@@ -178,6 +203,9 @@ function trees() {
   return { trees: buildGeometry(near.map, near.size), wood: buildGeometry(far.map, far.size) };
 }
 
+/** The clumps of dead grass: x, z and blades. Outside the pen's back corners, and beside the pines either side of it. */
+export const STALKS: readonly (readonly [x: number, z: number, blades: number])[] = [[4.5, 5.3, 7], [-4.6, 5.2, 6], [-7.6, 3.4, 8], [8.1, 4.1, 5]];
+
 /**
  * What lies about on the ground: boulders with snow on them, low evergreen bushes, and dead grass standing
  * through the snow of the meadow.
@@ -193,15 +221,16 @@ function nature() {
     ellipsoid(g, [x, w * 0.6, z], [w, w * 0.7, w], (a, b, c) => pick(T.pine, hash3(a >> 1, b, c >> 1, 64 + i)), 0.3, 23 + i);
     ellipsoid(g, [x, w * 1.15, z], [w * 0.85, w * 0.28, w * 0.85], snowTop, 0.25, 33 + i);
   });
-  // Tufts of dead grass standing through the snow of the meadow: thin blades, straw-coloured.
-  const blade = (x: number, z: number, h: number, seed: number) => box(g, [x, hill(x, z), z], [x + 0.125, hill(x, z) + h, z + 0.125], (a, b, c) => pick(STRAW, hash3(a, b, c, seed)));
-  for (let k = 0; k < 90; k++) {
-    // Behind the pen and out to its sides only: in front of it, this close, a blade of grass is a plank.
-    const cx = (hash3(k, 4, 0, 70) * 2 - 1) * 18, cz = -2 + hash3(k, 5, 0, 71) * 24;
-    if (Math.abs(cx) < 6.2 && cz < 3.7) continue;
-    if (NEAR_PINES.some(([px, pz, h]) => Math.hypot(cx - px, cz - pz) < h * 0.3 + 0.4)) continue; // not into a pine's boughs
-    for (let b = 0; b < 4; b++) blade(cx + (hash3(k, b, 1, 72) - 0.5) * 0.5, cz + (hash3(k, b, 2, 73) - 0.5) * 0.5, 0.15 + hash3(k, b, 3, 74) * 0.3, 75);
-  }
+  // Dead grass standing through the snow, gathered into a few deliberate clumps (docs/pen/PEN-PLAN-V3.md, 9.6: stalks
+  // sprinkled over the meadow read as litter): STALKS, each its count of blades, the tallest in the middle.
+  STALKS.forEach(([cx, cz, n], k) => {
+    for (let b = 0; b < n; b++) {
+      const a = (b / n) * Math.PI * 2 + hash3(k, b, 0, 70), r = b === 0 ? 0 : 0.12 + hash3(k, b, 1, 71) * 0.2;
+      const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+      const h = 0.2 + (1 - r / 0.32) * 0.2 + hash3(k, b, 2, 72) * 0.1;
+      box(g, [x, hill(x, z), z], [x + 0.125, hill(x, z) + h, z + 0.125], (p, q, w) => pick(STRAW, hash3(p, q, w, 75)));
+    }
+  });
   return buildGeometry(g.map, g.size);
 }
 
@@ -223,12 +252,13 @@ function mountains() {
 /**
  * The pen itself: posts every metre and a quarter, three rails at the back and the sides, and at the front (the side
  * nearest the camera) short posts and one rail at PEN.frontRail, so every face shows over it; two posts for the gate
- * (its leaves are `gate()`, apart, so they can swing); the hay rack and the water trough along the back; the tufts of
- * grass; and two lanterns, one on the tall post at the back corner and one on the gate's right post.
+ * (its leaves are `gate()`, apart, so they can swing); the hay rack and the water trough along the back; a low drift
+ * along the inside of the back and the sides; and two lanterns, one on the tall post at the back corner and a small one
+ * on the front-right corner post.
  */
 function fence() {
   const g = new Grid(0.1);
-  const glow = new Grid(0.1);
+  const glow = new Grid(0.1), dim = new Grid(0.1);
   const wood = (a: number, b: number, c: number) => pick(T.beam, hash3(a >> 1, b, c >> 1, 31), [0.45, 0.85]);
   const dark = (a: number, b: number, c: number) => pick(T.trunk, hash3(a >> 1, b, c >> 1, 32), [0.45, 0.85]);
   const snow = (a: number, b: number, c: number) => (hash3(a, b, c, 33) > 0.22 ? pick(T.snow, hash3(a, 0, c, 35)) : null);
@@ -259,7 +289,7 @@ function fence() {
   for (const x of [-X + 1.5, -G - 0.75, G + 0.75, X - 1.5]) post(x, -Z, 0.5);
   for (let z = -Z + 1.2; z < Z - 0.3; z += 1.2) { post(-X, z); post(X, z); }
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) post(sx * X, sz * Z, 1.1);
-  // The gate's posts, a little taller than its leaves; the lantern sits on the right one.
+  // The gate's posts, a little taller than its leaves.
   for (const s of [-1, 1]) post(s * G, -Z, 0.8);
   // Hay rack on the back rail: a slatted crib full of hay, snow on top, hay dropped under it.
   const [rx, , rz] = PEN.rack;
@@ -274,14 +304,6 @@ function fence() {
   const [tx, , tz] = PEN.trough;
   box(g, [tx - 0.9, 0, tz - 0.3], [tx + 0.9, 0.5, tz + 0.3], wood);
   box(g, [tx - 0.8, 0.4, tz - 0.2], [tx + 0.8, 0.5, tz + 0.2], (a, b, c) => pick(T.ice, hash3(a, b, c, 49)));
-  // Grass: a tuft of blades at each place, some bent, the tallest in the middle.
-  PEN.grass.forEach(([px, pz], i) => {
-    for (let k = 0; k < 9; k++) {
-      const dx = (hash3(i, k, 0, 51) - 0.5) * 0.7, dz = (hash3(i, k, 1, 52) - 0.5) * 0.6;
-      const h = 0.1 + Math.round(hash3(i, k, 2, 53) * 3 * (1 - Math.hypot(dx, dz))) * 0.1;
-      box(g, [px + dx, 0, pz + dz], [px + dx + 0.1, h, pz + dz + 0.1], (a, b, c) => pick(GRASS, hash3(a, b, c, 54 + i)));
-    }
-  });
   // The tall lantern post at the back corner: a post, an arm, the lantern hanging from it.
   const [lx, ly, lz] = PEN.lamp;
   box(g, [lx - 0.1, 1.1, lz - 0.1], [lx + 0.1, ly + 0.5, lz + 0.1], dark);
@@ -292,11 +314,22 @@ function fence() {
   box(g, [lx - 0.15, ly + 0.2, lz - 0.8], [lx + 0.15, ly + 0.3, lz - 0.5], iron);
   box(g, [lx - 0.05, ly + 0.3, lz - 0.7], [lx + 0.05, ly + 0.4, lz - 0.6], iron);
   box(glow, [lx - 0.15, ly - 0.15, lz - 0.8], [lx + 0.15, ly + 0.2, lz - 0.5], (a, b, c) => pick(T.lantern, hash3(a, b, c, 47)));
-  // The gate lantern: sitting on the right-hand gate post.
-  const [qx, qy, qz] = PEN.gateLamp;
-  box(glow, [qx - 0.1, qy - 0.15, qz - 0.1], [qx + 0.1, qy + 0.1, qz + 0.1], (a, b, c) => pick(T.lantern, hash3(a, b, c, 48)));
+  // The small lantern sitting on the front-right corner post's snow cap, in its own mesh: it glows too dimly to bloom.
+  const [qx, qy, qz] = PEN.cornerLamp;
+  box(dim, [qx - 0.1, qy - 0.15, qz - 0.1], [qx + 0.1, qy + 0.1, qz + 0.1], (a, b, c) => pick(T.lantern, hash3(a, b, c, 48)));
+  // A drift one M cell (0.1 m) high along the inside of the back and side rails, wider where the wind leaves more. In
+  // its own grid and never refined: the refine step takes a low slab's edges off and it reads as two stacked planks.
+  const drift = new Grid(0.1);
+  const reach = (t: number) => 0.3 + 0.1 * (Math.sin(t * 1.7) + 1); // 0.3 to 0.5 m out from the rail
+  for (let gx = Math.round(-X / 0.1); gx < Math.round(X / 0.1); gx++) {
+    for (let gz = Math.round(-Z / 0.1); gz < Math.round(Z / 0.1); gz++) {
+      const x = (gx + 0.5) * 0.1, z = (gz + 0.5) * 0.1;
+      const back = Z - z < reach(x), side = X - Math.abs(x) < reach(z + (x > 0 ? 2 : 0)) && z > -Z + 1.2;
+      if (back || side) drift.set(gx, 0, gz, DRIFT);
+    }
+  }
   const fine = detailed(g.map, g.size);
-  return { fence: buildGeometry(fine.map, fine.size), glow: buildGeometry(glow.map, glow.size) };
+  return { fence: buildGeometry(fine.map, fine.size), glow: buildGeometry(glow.map, glow.size), dimGlow: buildGeometry(dim.map, dim.size), drift: buildGeometry(drift.map, drift.size) };
 }
 
 /**
@@ -322,15 +355,6 @@ function gate() {
   return { gateL: leaf(1), gateR: leaf(-1) };
 }
 
-/** A digit 4 x 6 (section 8.1: the mat's number, 0.15 m tall at 0.025 m a cell). */
-const DIGITS: Record<string, readonly string[]> = {
-  0: ['.XX.', 'X..X', 'X..X', 'X..X', 'X..X', '.XX.'], 1: ['.X..', 'XX..', '.X..', '.X..', '.X..', 'XXX.'],
-  2: ['.XX.', 'X..X', '...X', '..X.', '.X..', 'XXXX'], 3: ['XXX.', '...X', '.XX.', '...X', '...X', 'XXX.'],
-  4: ['X..X', 'X..X', 'XXXX', '...X', '...X', '...X'], 5: ['XXXX', 'X...', 'XXX.', '...X', '...X', 'XXX.'],
-  6: ['.XX.', 'X...', 'XXX.', 'X..X', 'X..X', '.XX.'], 7: ['XXXX', '...X', '..X.', '..X.', '.X..', '.X..'],
-  8: ['.XX.', 'X..X', '.XX.', 'X..X', 'X..X', '.XX.'], 9: ['.XX.', 'X..X', 'X..X', '.XXX', '...X', '.XX.'],
-};
-
 const matsBuilt = new Map<number, ReturnType<typeof makeMats>>();
 /** The `max` straw mats on the pen's floor, built once for each size of table (10, or 4 at a ranked one). */
 export function buildMats(max: number) {
@@ -340,12 +364,11 @@ export function buildMats(max: number) {
 }
 
 /**
- * Each mat MATS.w x MATS.d and one small cell (0.05 m) thick, straw with a rim of straw a step darker; its number, in
- * the darker straw, stands 0.15 m tall one small cell in front of its front edge, facing the camera, clear of a
- * standing sheep's front hooves.
+ * Each mat MATS.w x MATS.d and one small cell (0.05 m) thick, straw with a rim of straw a step darker. No numbers
+ * (docs/pen/PEN-PLAN-V3.md, 9.2): the list and the pen are tied together by the name plates.
  */
 function makeMats(max: number) {
-  const g = new Grid(0.05), num = new Grid(0.025);
+  const g = new Grid(0.05);
   const straw = solid('straw'), rim = solid('straw', -1);
   const hw = MATS.w / 2, hd = MATS.d / 2;
   for (let i = 0; i < max; i++) {
@@ -354,15 +377,8 @@ function makeMats(max: number) {
       const edge = Math.abs(a * 0.05 + 0.025 - x) > hw - 0.05 || Math.abs(c * 0.05 + 0.025 - z) > hd - 0.05;
       return edge ? rim : straw;
     });
-    const text = String(i + 1), wCells = text.length * 5 - 1;
-    [...text].forEach((d, k) => DIGITS[d].forEach((row, r) => [...row].forEach((ch, c) => {
-      if (ch !== 'X') return;
-      const px = x - (wCells * 0.025) / 2 + (k * 5 + c) * 0.025;
-      num.set(Math.round(px / 0.025), 5 - r, Math.round((z - hd - 0.05) / 0.025), rim);
-    })));
   }
-  const out = { mats: buildGeometry(g.map, g.size), numbers: buildGeometry(num.map, num.size) };
+  const out = { mats: buildGeometry(g.map, g.size) };
   packGeometry(out.mats);
-  packGeometry(out.numbers);
   return out;
 }

@@ -2,6 +2,13 @@
 
 All user-visible changes, newest first.
 
+## 0.9.6
+
+- The lobby and queue screen is clearer and lighter: the pen is the screen, with every player standing on their own straw mat; a slim panel says what is happening, who is here and what game it will be; the chat is a card that folds away; one button under the pen says why it can or cannot start.
+- Then polished to the pixel: the panel never scrolls and the bar's empty half now holds the waiting time and the party code; every number appears once; names are no longer cut while there is room; every icon is pixel art drawn on whole pixels, and the avatars are crisp; the chat rules are one short strip with a new shield; the rules are three chips with their explanations on hover; the snow has proper icicles and the lights are bright.
+- In the pen: bigger animals, each standing exactly on its mat, every name plate crisp and over its own head, no numbers on the mats, a softer lantern on the corner post, clean snow inside the fence.
+- The lobby's music flows, and no song stutters any more when the screen is busy. The menu's hover sound is one soft tick for every button.
+
 ## 0.9.5
 
 - The leaderboards' top three have new poses, all drawn the same size: first stands with both arms raised in a V and hops, a new golden trophy with a ruby and a star floating and glowing over its head; second sits on its podium's edge, turned to the winner, clapping, its legs swinging; third naps curled up with its eyes shut, its "z"s drifting up.

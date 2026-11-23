@@ -2278,3 +2278,40 @@ start, min and max, the rules editor, chat and its moderation, pausing chat, the
 - One new saved key: `sap:pen-chat-folded`, sessionStorage, whether the chat card is folded (the plan: "remembered for
   the session"), pinned in src/skin/__tests__/fences.json.
 - Open choices (plan section 13), the defaults used: chat open, numbered mats, the gate swings, explanations shown.
+
+## The pen screen, polish (Brian, 2026-11-22) — plan: docs/pen/PEN-PLAN-V3.md
+Brian: the screen "already looks good", make it as good as possible: better use of space, tidier text, every small
+flaw fixed (his example: the chat rules banner with the check mark). The plan (version 3, filed word for word but for its
+long grid listings, which are in penArt.tsx) applies on top of docs/pen/PEN-PLAN.md as built, replaces its sections 6
+and 9 and parts of 7 and 8; "no function changes" still holds. Its standing rules for this screen (section 2) bind any
+later change here: headlines and the status card's line 2 never wrap; a name gives way last (Host loses its word, then
+You becomes a square, `useSqueeze`); each number once; numbers in Fraunces with their words in Nunito; the spacing
+scale 4/6/10/12/16 only; every icon a grid at a whole number of pixels per art pixel; one outline per surface, coloured
+bars inside their face; no stray pixels.
+- Whole pixels: `Pix` (kit/surfaces.tsx) rounds its art pixel to whole CSS pixels (`artPixel`), so every grid on every
+  screen, the leaderboard's too, is a whole multiple of itself (identical at --u 1). On the pen screen `--s` is a whole
+  pixel (`.pn.rc`) and snow, icicles and lights use `--ap`, a whole-pixel --u: at --u 1.125 the step was 3.375 px and
+  that alone made the stray light pixels, uneven steps and dotted brackets.
+- Avatars in the list are `PixelHead` (avatars/AvatarIcon.tsx): Brian's six heads cut back to their own pixel grid
+  (src/skin/assets/heads/px, 21 to 25 px, recovered from the sheet's ~6.3 px cells) and drawn at a whole multiple.
+  They load as files (`?no-inline`): inlined they cost 8 kB of the bundle.
+- Layout as built: the bar 60 (Leave, title tag with the room icon in a lobby, state chip, waiting time; the party
+  code as a sunk pill and Invite on the right); a status card of three lines (~94 at --u 1); Players with "N open
+  places" in its header and no open-places row or seat badges; Game with the die, Change rules as a small slab in its
+  header, two choices of one design and the rules as three chips with their explanations in ink-card tooltips; the chat
+  card sized to its content, the rules strip one ink strip with a lantern bar and the new shield. The panel's content
+  sits 6 inside its inner frame (`--in`). Only the player list gives way to a short window, in whole rows.
+- The pen (scene/pen.ts, rooms/PenStage.tsx, penPlates.css): no numbers on the mats; each model's feet centred on its
+  mat (`standOffset`; the sheep's hooves sat 0.085 m off its origin, the pig's 0.12 m), the placing a pure function
+  (`penStep`) tested for every n; plates HTML on whole pixels (ScreenAnchor's opt-in `snap`), 26 high, centred 0.12 H
+  over their own head (they no longer step over faces: that lifted the front row off their own heads); your plate's
+  crown in ink (lantern on lantern left a line); the small lantern on the front-right corner post, half the light,
+  2.5 m reach, no bloom; one flat snow floor with a 0.1 m drift inside the back and side fences; no green tufts; the
+  tan stalks in four clumps. The camera fits the front row to 84% of the space and stands the gate's foot 20 over the
+  button (the spare height goes to the sky). Tests: src/skin/rooms/__tests__/penScene.test.ts.
+- Deviations, for Brian: ten seats sit 3 apart, not 5 (16 px seats 5 apart did not fit beside "10 of 10" at --u 1);
+  seats shrink to 8 px where even that does not fit (under about 1100 px wide); the chat card is 25vw wide, not 24 (the
+  rules ran to three lines at 1920); the party code is no longer a button (the plan), but its text selects whole; long
+  French lines were shortened to stay one line. Headlines end in "…" but do not first shrink by 2 px.
+- Open choices (section 13), the defaults used: no mat numbers or seat badges; explanations in tooltips; the code in
+  the bar.

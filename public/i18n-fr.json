@@ -984,5 +984,16 @@
  "Your lives. Run out of time and you lose one.": "Tes vies. Si le temps est écoulé, tu en perds une.",
  "Your lobby": "Ton salon",
  "Your message was held and nobody saw it. It is being reviewed.": "Ton message a été retenu et personne ne l’a vu. Il est en cours d’examen.",
- "start": "départ"
+ "start": "départ",
+ "More can join until you open the gate.": "D’autres peuvent venir d’ici l’ouverture.",
+ "More can join until it starts.": "D’autres peuvent venir jusqu’au départ.",
+ "Invite friends to fill it faster.": "Invite des amis pour le remplir plus vite.",
+ "No swearing, nothing sexual, no slurs, or you get suspended.": "Pas de jurons, rien de sexuel, pas d’insultes, sinon c’est la suspension.",
+ "Code": "Code",
+ "turns a round": "tours par manche",
+ "wool balls (lives)": "pelotes (vies)",
+ "wool ball (life)": "pelote (vie)",
+ "twists": "variantes",
+ "with your code": "avec ton code",
+ "anyone can join": "ouvert à tous"
 }

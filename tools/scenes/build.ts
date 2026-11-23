@@ -804,8 +804,9 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       '<mesh geometry={w.mountains} material={mat} />',
       '<mesh geometry={w.fence} material={mat} castShadow receiveShadow />',
       '<mesh geometry={w.glow} material={glow} />',
+      '<mesh geometry={w.dimGlow} material={dimGlow} />',
+      '<mesh geometry={w.drift} material={mat} receiveShadow />',
       '<mesh geometry={m.mats} material={mat} receiveShadow />',
-      '<mesh geometry={m.numbers} material={mat} receiveShadow />',
       '<group ref={l} position={[-G, 0, Z]}><mesh geometry={left} material={material} castShadow receiveShadow /></group>',
       '<group ref={r} position={[G, 0, Z]}><mesh geometry={right} material={material} castShadow receiveShadow /></group>',
     ]);
@@ -819,11 +820,12 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     L.put(w.mountains, 'pen.mountains');
     L.put(w.fence, 'pen.fence');
     L.put(w.glow, 'pen.glow');
+    L.put(w.dimGlow, 'pen.dimGlow');
+    L.put(w.drift, 'pen.drift');
     L.put(w.gateL, 'pen.gateL');
     L.put(w.gateR, 'pen.gateR');
     const m = pen.buildMats(10);
     L.put(m.mats, 'pen.mats');
-    L.put(m.numbers, 'pen.numbers');
   },
 
   /** The farmer's bedroom, asleep: src/skin/dream/BedroomBubble.tsx. */

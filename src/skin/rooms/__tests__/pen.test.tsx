@@ -7,7 +7,7 @@ import { RANKED_MAX_PLAYERS, RANKED_MIN_PLAYERS } from '../../../lib/ranked';
 import { useRoomStore } from '../../../state/roomStore';
 import { matSpot, MATS, PEN, PEN_PITCH, penShot } from '../../scene/pen';
 import { paints, rules, selectors, subject, surfaceProblems } from '../../kit/surfaceCheck';
-import { PEN_ART } from '../penArt';
+import { PEN_ART, SHEEP_HEAD } from '../penArt';
 
 // The pen's scene needs a GPU; the screen around it is what is judged here.
 vi.mock('../PenStage', () => ({ PenStage: () => null }));
@@ -76,7 +76,9 @@ describe('the pen screen', () => {
 
   it('is drawn from the recipes: slabs, a board, the bar, tiles, wells, ink cards and snow', () => {
     const used = new Set(STATES.flatMap(([, p]) => [...p().matchAll(/class="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/))));
-    for (const r of ['hm-slab', 'rc-board', 'rc-bar', 'rc-tile', 'rc-well', 'rc-inkcard', 'rc-snowcap', 'rc-badge', 'rc-pennant']) expect(used.has(r), r).toBe(true);
+    for (const r of ['hm-slab', 'rc-board', 'rc-bar', 'rc-tile', 'rc-well', 'rc-inkcard', 'rc-snowcap']) expect(used.has(r), r).toBe(true);
+    // PEN-PLAN-V3 5: the seat badges are gone with the mats' numbers.
+    expect(used.has('rc-badge')).toBe(false);
   });
 
   it('every background rule in its own stylesheet names the piece it paints by a class', () => {
@@ -106,32 +108,66 @@ describe('the pen screen', () => {
     expect(text(draw({ ...room('queue', 2), min: 4 }))).toContain('Needs 2 more players');
   });
 
-  it('the seat row, the count and the open places agree with each other (12.6)', () => {
+  it('the seat row, the count and the open places agree, and each number is said once (12.6, V3 2.1.4)', () => {
     for (const n of [1, 2, 5, 10]) {
-      const html = draw(room('queue', n));
+      const html = draw(room('queue', n)), words = text(html);
       expect(html.match(/class="pn-seat"/g)).toHaveLength(MAX_ROOM_SIZE);
       expect(html.match(/<rect[^>]*fill="var\(--hm-wool\)"/g)?.length ?? 0).toBeGreaterThan(0);
-      expect(text(html)).toContain(`${n} of ${MAX_ROOM_SIZE}`);
+      // "2 of 10": the number in Fraunces, the words in Nunito, once on the screen.
+      expect(html).toContain(`<b>${n}</b> of ${MAX_ROOM_SIZE}`);
+      expect(html.match(new RegExp(` of ${MAX_ROOM_SIZE}<`, 'g'))).toHaveLength(1);
       expect(html).toContain(`aria-label="${n} of ${MAX_ROOM_SIZE} places taken"`);
       expect(html.match(/class="pn-player rc-tile"/g)).toHaveLength(n);
-      if (n < MAX_ROOM_SIZE) expect(text(html)).toContain(`${MAX_ROOM_SIZE - n} open place${MAX_ROOM_SIZE - n === 1 ? '' : 's'}`);
-      else expect(html).not.toContain('pn-open');
+      const open = n < MAX_ROOM_SIZE ? `${MAX_ROOM_SIZE - n} open place${MAX_ROOM_SIZE - n === 1 ? '' : 's'}` : 'Full';
+      expect(words.filter((w) => w === open), open).toHaveLength(n < MAX_ROOM_SIZE ? 1 : 2); // "Full" is also the chip
       // "start" sits under seat `min` until there are enough.
       expect(html.includes('pn-start-mark')).toBe(n < MIN_TO_START);
     }
+    // The party code once, in the bar (not also in the status card).
+    expect(draw(room('lobby', 2)).match(/data-room-code=/g)).toHaveLength(1);
   });
 
-  it('says what is happening in the words of section 4', () => {
-    expect(text(draw(room('queue', 1)))).toEqual(expect.arrayContaining(['Casual game', 'Finding players', 'Finding players…', 'Others will join you here. Invite friends to fill it faster.', 'Leave queue', 'Invite friends']));
-    expect(text(draw(room('queue', 2)))).toEqual(expect.arrayContaining(['Ready', 'Ready when you are', 'More players can still join until you open the gate.']));
-    expect(text(draw(room('queue', 2), 'u1'))).toEqual(expect.arrayContaining(['Waiting for Brian2', 'Brian2 opens the gate to start. More can still join.', 'Host chooses']));
-    expect(text(draw(room('queue', 1, { members: [{ userId: 'u0', name: 'Brian2' }, { userId: 'u1', name: 'Maple' }].slice(0, 2), min: 3 }), 'u1'))).toContain('Brian2 opens the gate when enough players are here.');
+  it('says what is happening in the words of V3 section 4, line 2 one line', () => {
+    expect(text(draw(room('queue', 1)))).toEqual(expect.arrayContaining(['Casual game', 'Finding players', 'Finding players…', 'Invite friends to fill it faster.', 'Leave queue', 'Invite friends']));
+    expect(text(draw(room('queue', 2)))).toEqual(expect.arrayContaining(['Ready', 'Ready when you are', 'More can join until you open the gate.']));
+    expect(text(draw(room('queue', 2), 'u1'))).toEqual(expect.arrayContaining(['Waiting for Brian2', 'More can join until Brian2 opens the gate.', 'Host chooses']));
+    expect(text(draw(room('queue', 1, { members: [{ userId: 'u0', name: 'Brian2' }, { userId: 'u1', name: 'Maple' }].slice(0, 2), min: 3 }), 'u1'))).toContain('Brian2 starts when enough are here.');
     expect(text(draw(room('queue', 10)))).toEqual(expect.arrayContaining(['Full', 'The pen is full', 'Open the gate to start.']));
+    expect(text(draw(room('queue', 10), 'u1'))).toContain('Waiting for Brian2.');
     expect(text(draw(room('queue', 3, { phase: 'playing' })))).toEqual(expect.arrayContaining(['Starting', 'Opening the gate…']));
+    expect(draw(room('queue', 3, { phase: 'playing' }))).not.toContain('pn-status-l2');
     expect(text(draw(room('queue', 4, { startAt: Date.now() + 30000 }), 'u1'))).toContain('Starts by itself in 0:30');
     expect(text(draw(room('ranked', 1)))).toEqual(expect.arrayContaining(['Ranked game', 'Ranked rules']));
-    expect(text(draw(room('lobby', 2)))).toEqual(expect.arrayContaining(['Brian2’s lobby', 'Leave lobby', 'Party code', 'Who can join']));
+    expect(text(draw(room('lobby', 2)))).toEqual(expect.arrayContaining(['Brian2’s lobby', 'Leave lobby', 'Code', 'Who can join', 'with your code', 'anyone can join']));
     expect(text(draw({ ...room('lobby', 2), name: '' }))).toContain('Your lobby');
+    // A name the server made with a straight apostrophe is shown with a typographic one (2.1.7).
+    expect(text(draw({ ...room('lobby', 2), name: "Player809's room" }))).toContain('Player809’s room');
+    // The rules as chips, each with its explanation (open choice 2: in a tooltip).
+    const game = text(draw(room('lobby', 2)));
+    expect(game).toEqual(expect.arrayContaining(['turns a round', 'wool balls (lives)', 'twists', 'On', 'How many turns each sheep takes in a round.', 'Your lives. Run out of time and you lose one.']));
+    expect(draw(room('lobby', 2)).match(/role="tooltip"/g)).toHaveLength(3);
+  });
+
+  it('the chat rules are one strip with no outline or band, and the shorter line (7.1)', () => {
+    const html = draw(room('lobby', 2));
+    expect(html).toContain('class="pn-chatrules pn-strip-inkcard"');
+    expect(html).not.toMatch(/pn-chatrules[^"]*rc-inkcard/);
+    expect(text(html)).toContain('No swearing, nothing sexual, no slurs, or you get suspended.');
+    expect(html).toContain('placeholder="Be kind…"');
+  });
+
+  it('draws every icon from a grid, at a whole number of pixels per art pixel (12.7)', () => {
+    for (const [name, page] of STATES.filter(([n]) => !n.startsWith('ranked'))) { // a ranked row shows the ranked screen's own badge
+      const html = page();
+      for (const m of html.matchAll(/<svg([^>]*)>/g)) {
+        const a = m[1];
+        const grid = /data-grid="(\d+)x(\d+)"/.exec(a);
+        expect(grid, `${name}: an svg not drawn from a grid`).not.toBeNull();
+        expect(a, name).toMatch(new RegExp(`width:calc\\(${grid![1]} \\* max\\(1px, round\\(nearest, `));
+      }
+      // No smooth pictures: images are the pixel heads (or Home's queue icon, drawn pixelated).
+      for (const m of html.matchAll(/<img([^>]*)>/g)) expect(m[1], name).toMatch(/sk-pixel-head|src="[^"]*queue/);
+    }
   });
 
   it('keeps every control the old screen had, with the same hooks', () => {
@@ -152,8 +188,8 @@ describe('the pen screen', () => {
   it('a phone has the three tabs, Players first, and the button pinned under them', () => {
     const html = draw(room('queue', 3), 'u0', { wide: false });
     expect(html).toContain('data-phone="true"');
-    expect(text(html)).toEqual(expect.arrayContaining(['Players 3', 'Game', 'Chat']));
-    expect(html).toMatch(/aria-selected="true"[^>]*>(<span>)?Players 3/);
+    expect(text(html)).toEqual(expect.arrayContaining(['Players', 'Game', 'Chat']));
+    expect(html).toMatch(/aria-selected="true"[^>]*>(<span>)?Players</);
   });
 });
 
@@ -185,15 +221,18 @@ describe('the pen itself (section 8)', () => {
   });
 });
 
-describe('the pixel art (section 9)', () => {
-  it('is every grid the plan draws, each a rectangle, at its size', () => {
-    const size: Record<string, [number, number]> = { seatFilled: [8, 8], seatEmpty: [8, 8], crown: [8, 5], chevron: [12, 6] };
-    for (const name of ['hourglass', 'seatFilled', 'seatEmpty', 'crown', 'gate', 'rounds', 'woolBall', 'twist', 'gear', 'back', 'link', 'chat', 'pause', 'chevron', 'shield', 'clock'] as const) {
-      const rows = PEN_ART[name];
-      const [w, h] = size[name] ?? [12, 12];
+describe('the pixel art (V3 section 11)', () => {
+  it('is every grid the plans draw, each a rectangle, at its size', () => {
+    const small = ['seatEmpty', 'clock', 'gear', 'pause', 'check', 'mute', 'unmute', 'kick'];
+    const size = (name: string): [number, number] => (name === 'crown' ? [8, 5] : name === 'chevron' ? [8, 4] : small.includes(name) ? [8, 8] : [12, 12]);
+    for (const name of Object.keys(PEN_ART) as (keyof typeof PEN_ART)[]) {
+      const rows = PEN_ART[name], [w, h] = size(name);
       expect(rows, name).toHaveLength(h);
       for (const r of rows) expect(r, name).toHaveLength(w);
     }
-    expect(PEN_ART.pause.slice(1, 11).every((r) => r === '..XXX..XXX..')).toBe(true);
+    expect(PEN_ART.pause.every((r) => r === '.XX..XX.')).toBe(true);
+    // Brian's example, 11.6: the check is two art pixels thick, at the shield's own pixel size, and the tip narrows a pixel a row.
+    expect(PEN_ART.shield).toEqual(['HHHHHHHHHHHH', 'XXXXXXXXXXXL', 'XXXXXXXXXKKL', 'XXXXXXXXKKXL', 'XKKXXXXKKXXL', 'XXKKXXKKXXXL', 'XXXKKKKXXXXL', 'XXXXKKXXXXXL', '.XXXXXXXXXL.', '..XXXXXXXL..', '...XXXXXL...', '....XXXL....']);
+    expect(SHEEP_HEAD).toEqual(['..WWWW..', '.WWWWWW.', 'EWFFFFWE', 'EFKFFKFE', '.FFFFFF.', '.FFNNFF.', '..FFFF..', '........']);
   });
 });

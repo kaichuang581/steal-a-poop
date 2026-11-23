@@ -1209,7 +1209,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   - The songs. home, "Lofi in the barn": 76 bpm, swung, eight chords (ii V I vi, IV iv iii VI), a walking bass, and a
     32-bar shape: the band comes in, a written tune on the vibes, its answer, then four bars with no drums. It was four
     chords with random notes. shop, "The Trading Post shuffle": a swung I vi ii V with a walking bass and a glockenspiel
-    tune. lobby, "Waiting at the gate": the battle's key at rest. battle, "Pass the bomb" (Quick play, rooms, daily): A
+    tune. lobby, "Waiting at the gate": the battle's key at rest; since 2026-11-22 (Brian: "too choppy and inconsistent, doesnt flow well") 92 bpm, eight chords, pads that overlap bar to bar, a held bass, a marimba rolling eighths the whole way, a vibes tune over bars 8-31, and a steady soft beat from the first bar. battle, "Pass the bomb" (Quick play, rooms, daily): A
     minor at 124 bpm, and it heats up with the round (`heatFor`): a galloping bass and an arp from round two, the tune
     from round three, 138 bpm and tom fills from round four; when the game is over it lets go to held chords.
     practice, "Clearing the ice": G major, a marimba, a whistled tune. tour, "Whistling for the sheepdog": C major, bass
@@ -1224,7 +1224,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
     upright bass, a strummed guitar, a mandolin and a fiddle, all triangles and sines); Home is "Snow on the farm", the
     same chords with a brushed beat and sleigh bells; songs crossfade over about two seconds. Every sound effect in
     sound.ts is bells, wood and soft thumps in C major pentatonic: no square, no saw, no noise (the old bomb blast clipped).
-    The menu's knock plays a note of the scale per item (`menuTick`). Measured offline against the old versions: the
+    The menu's hover sound (`menuTick`) is one soft tick, the same for every item (2026-11-22: a falling note per item read as "bubbles ... it should be the same sound"). The player schedules bars 1.2 s ahead (`AHEAD` in music.ts; it was 0.3 s, and busy 3D frames made the music stutter). Measured offline against the old versions: the
     battle's energy above 3 kHz is a third of what it was; levels within about 1 dB of before. Not heard by me.
   - Tests: src/audio/__tests__/songs.test.ts (every note in key and in its bar, no two songs alike, none a short loop,
     the lofi's and the battle's shapes) and music.test.ts (the player, on a stand-in for Web Audio).

@@ -18,6 +18,8 @@ import { audioContext, musicDuck } from './sound';
  */
 const MUSIC_KEY = 'sap:music';
 const MUSIC_VOLUME_KEY = 'sap:musicVolume';
+/** How far ahead of the clock bars are scheduled, in seconds. */
+const AHEAD = 1.2;
 const LEVEL = 0.45; // full music volume still sits under the game's own sounds
 
 interface MusicStore { on: boolean; volume: number; toggle(): void; setVolume(v: number): void }
@@ -162,8 +164,9 @@ function tick() {
   }
   if (want === 0) { now.next = c.currentTime + 0.1; return; } // silent: hold the place, schedule nothing
   if (now.next < c.currentTime) now.next = c.currentTime + 0.1;
-  // A bar is scheduled whole, a moment before it starts.
-  while (now.next < c.currentTime + 0.3) now.next += playBar(now, now.next, now.bar++, heat);
+  // A bar is scheduled whole, over a second before it starts: a busy frame in the 3D scenes held the page long enough to
+  // miss a bar that was only 0.3 s ahead, and the song stuttered (Brian, 2026-11-22: "too choppy and inconsistent").
+  while (now.next < c.currentTime + AHEAD) now.next += playBar(now, now.next, now.bar++, heat);
 }
 
 /** Which scene's song is playing and the next bar it will play, or null before the music has started. */

@@ -175,11 +175,15 @@ export function playTick(progress: number): void {
   wood(c, 700 + progress * 600, 0, 0.045);
 }
 
-/** The menu: a soft knock as the choice moves, a note of the scale for each item, so running down it plays a little tune. */
-export function menuTick(index: number): void {
+/**
+ * The menu: one soft tick each time the choice moves, the same every time (Brian, 2026-11-22: a note per item, falling in
+ * pitch, read as "bubbles ... too inconsistent it should be the same sound"). No glide, so it clicks rather than bloops.
+ */
+export function menuTick(): void {
   const c = out();
   if (!c) return;
-  wood(c, PENTA[index % 7], 0, 0.04);
+  tone(c, { freq: 1568, dur: 0.028, type: 'triangle', vol: 0.03 });
+  tone(c, { freq: 784, dur: 0.035, vol: 0.02 });
 }
 
 // The bomb's clock: one sound on each whole second left, all scheduled on the audio clock so they land exactly on the

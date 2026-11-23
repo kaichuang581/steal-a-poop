@@ -139,35 +139,56 @@ const shop: Song = {
 
 // ---------------------------------------------------------------- lobby: waiting for the gate
 
-/** The battle's own key, at rest: A minor, F, G. The pads keep an E on top the whole way. */
+/**
+ * The battle's key, at rest: A minor, eight chords that lean into each other. Rewritten 2026-11-22 (Brian: "too choppy and
+ * inconsistent, doesnt flow well"): the old one re-swelled its pad every bar, plucked short bass notes, and brought the
+ * drums and the call in and out. Now everything plays from the first bar to the last: the pads overlap from one bar into
+ * the next, the bass holds and steps into each chord, a marimba rolls eighths through the chord the whole way, and a tune
+ * on the vibes floats over it.
+ */
 const LOBBY = [
-  { pad: notes('G3 C4 E4'), bass: n('A2'), into: n('G2') },
-  { pad: notes('G3 C4 E4'), bass: n('A2'), into: n('G2') },
-  { pad: notes('A3 C4 E4'), bass: n('F2'), into: n('F2') },
-  { pad: notes('G3 B3 E4'), bass: n('G2'), into: n('G2') },
+  { pad: notes('A3 C4 E4'), bass: n('A2'), into: n('G2') }, // Am
+  { pad: notes('A3 C4 F4'), bass: n('F2'), into: n('B2') }, // F
+  { pad: notes('G3 C4 E4'), bass: n('C3'), into: n('A2') }, // C
+  { pad: notes('G3 B3 D4'), bass: n('G2'), into: n('B2') }, // G
+  { pad: notes('A3 C4 E4'), bass: n('A2'), into: n('G2') }, // Am
+  { pad: notes('A3 C4 F4'), bass: n('F2'), into: n('C3') }, // F
+  { pad: notes('A3 D4 F4'), bass: n('D3'), into: n('F2') }, // Dm
+  { pad: notes('G3 B3 E4'), bass: n('E2'), into: n('G2') }, // Em
 ];
-const LOBBY_CALL = ['', 'E5@1:1 A5@3:1', '', 'D5@3:0.5 E5@3.5:0.5 G5@4:0.5 E5@4.5:0.5'].map(line);
+/** Two tunes over the eight chords: long notes, so they float rather than hop. The second answers the first, higher. */
+const LOBBY_A = [
+  'E5@1:1.5 C5@2.5:0.5 A4@3:2', 'C5@1:1 A4@2:1 F5@3:2', 'E5@1:1.5 D5@2.5:0.5 C5@3:2', 'D5@1:1 B4@2:1 G4@3:2',
+  'A4@1:1 C5@2:1 E5@3:1.5 D5@4.5:0.5', 'C5@1:1.5 A4@2.5:0.5 F4@3:2', 'D5@1:1 F5@2:1 A5@3:1 G5@4:1', 'E5@1:3 B4@4:1',
+].map(line);
+const LOBBY_B = [
+  'A5@1:2 G5@3:1 E5@4:1', 'F5@1:1.5 E5@2.5:0.5 C5@3:2', 'G5@1:1 E5@2:1 C5@3:1 E5@4:1', 'D5@1:3 G5@4:1',
+  'E5@1:1.5 A5@2.5:0.5 G5@3:2', 'F5@1:1 C5@2:1 A4@3:2', 'A4@1:1 D5@2:1 F5@3:1.5 E5@4.5:0.5', 'E5@1:2 D5@3:0.5 C5@3.5:0.5 B4@4:1',
+].map(line);
+/** The marimba's roll through the chord, an eighth at a time: up and back down, never stopping. */
+const ROLL = [0, 1, 2, 3, 2, 1, 2, 1];
 
 const lobby: Song = {
-  name: 'Waiting at the gate', bpm: () => 100, beats: 4, swing: 0.5, warm: null, echo: { beats: 0.75, back: 0.4 }, level: 0.72,
+  name: 'Waiting at the gate', bpm: () => 92, beats: 4, swing: 0.5, warm: 4200, echo: { beats: 0.75, back: 0.3 }, level: 0.64,
   scale: [0, 2, 4, 5, 7, 9, 11],
   bar(k, t, bar, _heat, beat) {
-    // Four times round the four chords: the pads and bass alone, the drums come in, then the call, then the call lower with a knock into the top.
-    const i = bar % 4, ch = LOBBY[i], pass = Math.floor(bar / 4) % 4;
-    pad(k, ch.pad, t(0), beat * 4, 0.2);
-    subBass(k, ch.bass, t(0), beat * 1.4, 0.46);
-    subBass(k, ch.bass, t(1.5), beat * 0.4, 0.32);
-    subBass(k, ch.bass, t(2), beat * 0.9, 0.4);
-    subBass(k, ch.into, t(3.5), beat * 0.4, 0.32);
-    // A call on the marimba: a piece of the battle's tune.
-    if (pass >= 2) for (const [b, len, m] of LOBBY_CALL[i]) marimba(k, m - (pass === 3 ? 12 : 0), t(b), len * beat, 0.1, k.echo);
-    for (let b = 0; b < 4; b += 0.5) hat(k, t(b), touch(k, b % 1 ? 0.03 : 0.018, 0.2), pass === 3 && i === 3 && b === 3.5);
-    if (pass === 0) return;
-    kick(k, t(0), 0.46);
-    kick(k, t(2.5), 0.34);
-    rim(k, t(1), 0.13);
-    rim(k, t(3), 0.15);
-    if (pass === 3 && i === 3) { rim(k, t(3.5), 0.09); rim(k, t(3.75), 0.12); }
+    // Thirty-two bars: the band alone, the tune, its answer, the tune again. Only the tune changes; the band never stops.
+    const i = bar % 8, ch = LOBBY[i], pass = Math.floor(bar / 8) % 4, len = beat * 4;
+    // The pad runs a little past the bar's end, so it is still letting go as the next chord swells in: no dip between bars.
+    pad(k, ch.pad, t(0), len + 0.9, 0.16);
+    // The bass holds the root for three beats, then steps into the next chord.
+    subBass(k, ch.bass, t(0), beat * 3.05, 0.4);
+    subBass(k, ch.into, t(3), beat * 1.05, 0.3);
+    const roll = [...ch.pad.map((m) => m + 12), ch.pad[0] + 24];
+    ROLL.forEach((r, j) => marimba(k, roll[r], t(j / 2) + loose(k, 0.004), beat * 0.5, touch(k, j % 2 ? 0.04 : 0.055, 0.1)));
+    const tune = pass === 1 || pass === 3 ? LOBBY_A[i] : pass === 2 ? LOBBY_B[i] : [];
+    for (const [b, l, m] of tune) vibes(k, m, t(b) + loose(k, 0.01), l * beat, touch(k, 0.1, 0.1));
+    // A soft, steady beat, the same in every bar.
+    kick(k, t(0), 0.3);
+    kick(k, t(2), 0.24);
+    rim(k, t(1), touch(k, 0.07));
+    rim(k, t(3), touch(k, 0.08));
+    for (let b = 0; b < 4; b += 0.5) hat(k, t(b), touch(k, b % 1 ? 0.014 : 0.02, 0.15));
   },
 };
 

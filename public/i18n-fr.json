@@ -995,5 +995,14 @@
  "wool ball (life)": "pelote (vie)",
  "twists": "variantes",
  "with your code": "avec ton code",
- "anyone can join": "ouvert à tous"
+ "anyone can join": "ouvert à tous",
+ "With friends": "Entre amis",
+ "Speed run": "Contre la montre",
+ "Type the code from your friend’s lobby screen to join their table.": "Tape le code affiché dans le salon de ton ami pour rejoindre sa table.",
+ "You against one bot, on one life. Each word scores a point, and your run ends the first time your clock runs out.": "Toi contre un robot, avec une seule vie. Chaque mot rapporte un point, et ta course s’arrête la première fois que ton chrono tombe à zéro.",
+ "Your clock loses 1 second every 5 words.": "Ton chrono perd 1 seconde tous les 5 mots.",
+ "No best run yet": "Pas encore de record",
+ "Five letters or numbers.": "Cinq lettres ou chiffres.",
+ "Bots": "Robots",
+ "Your own table": "Ta propre table"
 }

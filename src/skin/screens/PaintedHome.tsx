@@ -28,7 +28,7 @@ import { openSignInForm } from '../onboarding/Onboarding';
 import { LEGAL_TITLES } from '../../ui/legal/legalLinks';
 import type { LegalSlug } from '../../ui/legal/legalLinks';
 import { LegalDialog } from '../components/LegalDialog';
-import { AcornIcon, ChainIcon, ClockIcon, FlameIcon, GearIcon, GustIcon, HelpIcon, LeafIcon, SeedlingIcon, TrophyIcon } from '../components/Icons';
+import { ChainIcon, FlameIcon, GearIcon, GustIcon, HelpIcon, TrophyIcon } from '../components/Icons';
 import { AdminPanel } from '../components/AdminPanel';
 import { whenDoorsOpen } from '../components/BarnDoors';
 import { useAdmin } from '../../lib/admin';
@@ -45,7 +45,8 @@ import { MenuTag } from '../components/MenuTag';
 import { GameMenu } from '../components/GameMenu';
 import type { MenuItem } from '../components/GameMenu';
 import { HomeSlab, HomeTitle, MenuIcon } from '../home/HomeParts';
-import { HourglassIcon, SetupChoice, SetupGo, SetupRow, SetupSheet, WoolBallIcon } from '../home/SetupSheet';
+import { PenIcon } from '../rooms/penArt';
+import { BotIcon, ClockArt, GateIcon, HourglassIcon, KeyIcon, SetupChoice, SetupGo, SetupRow, SetupSheet, StopwatchIcon, TreeIcon, WoolBallIcon } from '../home/SetupSheet';
 import { WordOfDay } from '../wotd/WordOfDay';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
@@ -66,9 +67,8 @@ const DRILL_BOTS: Record<Difficulty, string> = {
   medium: 'Sometimes leaves you a hard letter.',
   hard: 'Keeps leaving you hard letters.',
 };
-const DIFFS: { id: Difficulty; icon: ReactNode }[] = [
-  { id: 'easy', icon: <SeedlingIcon /> }, { id: 'medium', icon: <LeafIcon /> }, { id: 'hard', icon: <AcornIcon /> },
-];
+/** The bot levels; each card draws them with a growing tree (TreeIcon: sprout, sapling, pine). */
+const DIFFS: { id: Difficulty }[] = [{ id: 'easy' }, { id: 'medium' }, { id: 'hard' }];
 const COUNTS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => MIN_PLAYERS + i);
 const PRESET_IDS: PresetId[] = ['quick', 'standard', 'long', 'custom'];
 /** Rotating along the bottom bar, one every few seconds: short, true, and useful in the next game. */
@@ -305,7 +305,7 @@ export function PaintedHome() {
   const tableNote = [rooms && 'A table of your own against the farm sheep (bots).', table.first && 'An easy table for your first games.'].filter(Boolean).join(' ');
   const setup = (
     <SetupSheet key="setup" label="Set the table" kicker={rooms ? 'Farm sheep' : 'Your own table'} title={rooms ? 'Custom game' : 'Set the table'} onClose={() => setStep('tables')}
-      action={<SetupGo icon={<MenuIcon id="lobby" />} label="Sit down" onClick={() => go('quick')} disabled={!ready} sub={`${cap(preset)}, ${settings.playerCount} sheep, ${table.difficulty} bots`} />}
+      action={<SetupGo icon={<PenIcon name="room" color="currentColor" />} label="Sit down" onClick={() => go('quick')} disabled={!ready} sub={`${cap(preset)}, ${settings.playerCount} sheep, ${table.difficulty} bots`} />}
       note={tableNote || error ? <>{tableNote}{error && <b role="alert"> {error}</b>}</> : undefined}>
       <SetupRow icon={<HourglassIcon />} name="Length" label="Game length" foot={`About ${minutes} min`}>
         {PRESET_IDS.map((id) => (
@@ -316,9 +316,9 @@ export function PaintedHome() {
         foot={<><span className="hm-setup-flock">{Array.from({ length: settings.playerCount }, (_, i) => <span key={i} className="sk-walk-in" style={{ animationDelay: `${i * 40}ms` }}><SheepHead size={16} /></span>)}</span>{farmSheepLine(settings.playerCount - 1)}</>}>
         {COUNTS.map((c) => <SetupChoice key={c} big on={settings.playerCount === c} onClick={() => setSettings({ playerCount: c })}>{c}</SetupChoice>)}
       </SetupRow>
-      <SetupRow icon={DIFFS.find((d) => d.id === table.difficulty)?.icon} name="Bots" label="Bot difficulty">
+      <SetupRow icon={<BotIcon />} name="Bots" label="Bot difficulty">
         {DIFFS.map((d) => (
-          <SetupChoice key={d.id} on={table.difficulty === d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })}>{d.icon}{cap(d.id)}</SetupChoice>
+          <SetupChoice key={d.id} on={table.difficulty === d.id} onClick={() => setSettings({ difficulty: d.id, game: rules, tableChosen: true })}><TreeIcon level={d.id} />{cap(d.id)}</SetupChoice>
         ))}
       </SetupRow>
       {rulesShown && RULES.map((r) => (
@@ -333,33 +333,44 @@ export function PaintedHome() {
 
   const drillSetup = (
     <SetupSheet key="practice" label="Practice run" kicker="Speed run" title="Practice" onClose={() => setStep('tables')}
-      action={<SetupGo icon={<MenuIcon id="practice" />} label="Start run" onClick={() => go('practice')} disabled={!ready} autoFocus sub={drillBest > 0 ? `Best here: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No run here yet'} />}
-      note={<>You and one bot, on one life. Every word you play scores a point, and your run ends the first time your clock runs out.{error && <b role="alert"> {error}</b>}</>}>
-      <SetupRow icon={<ClockIcon size={22} />} name="Clock" label="Starting clock" foot="It loses a second every 5 words.">
-        {PRACTICE_CLOCKS.map((c) => <SetupChoice key={c} big on={drill.clock === c} onClick={() => setDrill({ clock: c })}>{c} s</SetupChoice>)}
+      action={<SetupGo icon={<StopwatchIcon />} label="Start run" onClick={() => go('practice')} disabled={!ready} autoFocus sub={drillBest > 0 ? `Your best: ${drillBest} word${drillBest === 1 ? '' : 's'}` : 'No best run yet'} />}
+      note={<>You against one bot, on one life. Each word scores a point, and your run ends the first time your clock runs out.{error && <b role="alert"> {error}</b>}</>}>
+      <SetupRow icon={<ClockArt />} name="Clock" label="Starting clock" foot="Your clock loses 1 second every 5 words.">
+        {PRACTICE_CLOCKS.map((c) => <SetupChoice key={c} on={drill.clock === c} onClick={() => setDrill({ clock: c })}>{c}{'\u202Fs'}</SetupChoice>)}
       </SetupRow>
-      <SetupRow icon={DIFFS.find((d) => d.id === drill.difficulty)?.icon} name="Bot" label="Bot" foot={DRILL_BOTS[drill.difficulty]}>
-        {DIFFS.map((d) => <SetupChoice key={d.id} on={drill.difficulty === d.id} onClick={() => setDrill({ difficulty: d.id })}>{d.icon}{cap(d.id)}</SetupChoice>)}
+      <SetupRow icon={<BotIcon />} name="Bot" label="Bot" foot={DRILL_BOTS[drill.difficulty]}>
+        {DIFFS.map((d) => <SetupChoice key={d.id} on={drill.difficulty === d.id} onClick={() => setDrill({ difficulty: d.id })}><TreeIcon level={d.id} />{cap(d.id)}</SetupChoice>)}
       </SetupRow>
     </SetupSheet>
   );
+
+  // A refused code shakes the tiles once (the cards plan, 2026-11-23, section 3), each time a new refusal arrives.
+  const [shakeCode, setShakeCode] = useState(false);
+  const joinRefusal = step === 'join' ? error || roomNotice : '';
+  useEffect(() => {
+    if (!joinRefusal) return;
+    setShakeCode(true);
+    const t = window.setTimeout(() => setShakeCode(false), 240);
+    return () => window.clearTimeout(t);
+  }, [joinRefusal]);
   const joinGo = () => { if (partyCode.length === 5 && !entering) online({ t: 'join', code: partyCode }); };
+  const joinError = error || roomNotice;
   const joinParty = (
     <SetupSheet key="join" label="Join a party" kicker="With friends" title="Join party" onClose={() => setStep('tables')}
-      action={<SetupGo icon={<MenuIcon id="join" />} label="Join party" onClick={joinGo} disabled={partyCode.length < 5 || entering}
-        sub={partyCode.length === 5 ? `To party ${partyCode}` : `${5 - partyCode.length} more to type`} />}
-      note={<>Your friend's party code is on their lobby screen. Type it here and you are at their table.{(error || roomNotice) && <b role="alert"> {error || roomNotice}</b>}</>}>
-      <SetupRow icon={<MenuIcon id="join" />} name="Code" label="Party code" foot="Five letters or numbers.">
-        <form className="sk-code-form" onSubmit={(e) => { e.preventDefault(); joinGo(); }}>
-          <label className="sk-code">
+      action={<SetupGo icon={<GateIcon />} label="Join party" onClick={joinGo} disabled={partyCode.length < 5 || entering}
+        sub={partyCode.length === 5 ? 'Ready' : `${5 - partyCode.length} more to type`} />}
+      note="Type the code from your friend’s lobby screen to join their table.">
+      <SetupRow icon={<KeyIcon />} name="Code" label="Party code" foot={joinError ? <span role="alert">{joinError}</span> : 'Five letters or numbers.'} hintTone={joinError ? 'error' : undefined}>
+        <form onSubmit={(e) => { e.preventDefault(); joinGo(); }}>
+          <label className="sk-code" data-shake={shakeCode || undefined}>
             <span className="sr-only">Party code</span>
             <input
               id="sk-party-code" autoFocus value={partyCode} onChange={(e) => setPartyCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))}
               autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text" maxLength={5} className="sk-code-input"
             />
-            {Array.from({ length: 5 }, (_, i) => (
-              <span key={i} aria-hidden="true" className={`kit-tile kit-tile--md ${partyCode[i] ? '' : 'sk-code-empty'} ${i === Math.min(partyCode.length, 4) ? 'sk-code-next' : ''}`}>{partyCode[i] ?? ''}</span>
-            ))}
+            {Array.from({ length: 5 }, (_, i) => partyCode[i]
+              ? <span key={`${i}${partyCode[i]}`} aria-hidden="true" className="sk-code-tile hm-slab hm-knit" data-full=""><span>{partyCode[i]}</span></span>
+              : <span key={i} aria-hidden="true" className="sk-code-tile" data-next={i === partyCode.length || undefined}><i className="sk-code-caret" /></span>)}
           </label>
         </form>
       </SetupRow>

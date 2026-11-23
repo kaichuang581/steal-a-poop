@@ -180,4 +180,6 @@
 ["^(\\d+) to (\\d+) players$","$1 à $2 joueurs"],
 ["^(.+) starts when enough are here\\.$", "$1 lance la partie quand il y a assez de monde."],
 ["^More can join until (.+) opens the gate\\.$", "D’autres peuvent encore venir."],
-["^Starts by itself at (\\d+)\\. People only\\.$", "Départ seul à $1 joueurs, que des gens."]]
+["^Starts by itself at (\\d+)\\. People only\\.$", "Départ seul à $1 joueurs, que des gens."],
+["^Your best: (\\d+) words?$", "Ton record : $1 mots"],
+["^(\\d) more to type$", "Encore $1 à taper"]]

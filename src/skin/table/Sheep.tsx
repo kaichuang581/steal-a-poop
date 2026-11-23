@@ -33,10 +33,11 @@ export type { WoolLevel };
 
 /**
  * Coat level: the coat is the sheep's wool balls. A full start is a normal coat, each one lost shears it thinner, and
- * extra ones won from traps fluff it up.
+ * extra ones won from traps fluff it up. Never below 1 at the table: a sheep is never shorn bare (Brian, 2026-11-23:
+ * "make it so that the sheep cant go naked"); its wool balls on its tag say how many it has left.
  */
 export function coatLevel(lives: number, startLives: number): WoolLevel {
-  return Math.max(0, Math.min(4, 2 + (lives - startLives))) as WoolLevel;
+  return Math.max(1, Math.min(4, 2 + (lives - startLives))) as WoolLevel;
 }
 
 /** The coat's y offset when it swells by `k` about the legs' tops at `belly`, so the belly stays on the legs. */

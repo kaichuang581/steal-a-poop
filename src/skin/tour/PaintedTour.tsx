@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '../../state/roomStore';
 import { useStore } from '../../state/store';
-import { ClothButton, WoodButton } from '../kit';
+import { Slab } from '../kit/modern';
 import { enterOnline, onlinePlay } from '../rooms/enterOnline';
 import { loadIdeaRanks } from './ideas';
 import { RING_PAD, covered, markRect, ringFor } from './marks';
 import type { MarkRect } from './marks';
 import { TOUR_STEPS, enterMovesOn } from './steps';
 import type { TourTarget } from './steps';
-import './tour.css';
+import '../components/hud-overlays.css';
 
 /**
- * The tutorial's guide in the painted game: one card in the kit's own paper, with the farm's sheepdog on it, and a ring
+ * The tutorial's guide in the painted game: one ink card (kit/modern InkCard's look), the farm's sheepdog on it, and a ring
  * round whatever the card is talking about (the letter board, the word bar, the bomb, your name). It replaces the old
  * look's Tour for this skin (src/ui/Tour.tsx, which the old look keeps): that one blacked the table out to 72%, pointed
  * at things this skin does not have, and lost a card to the Enter key.
@@ -151,7 +151,7 @@ export function PaintedTour() {
         ? <div className="sk-tour-dim" style={{ left: ring.x, top: ring.y, width: ring.width, height: ring.height }} aria-hidden="true" />
         : <div className="sk-tour-dim sk-tour-dim--all" aria-hidden="true" />)}
       {ring && <div key={step.id} className="sk-tour-ring" style={{ left: ring.x, top: ring.y, width: ring.width, height: ring.height }} aria-hidden="true" />}
-      <div ref={card} className="kit-paper kit-paper--note sk-tour-card" style={{ left: layout.left, top: layout.top, width: layout.width }} data-kind={step.kind} data-dock={layout.side ? 'side' : 'top'}>
+      <div ref={card} className="md-card hm rc sk-tour-card" data-tone="lantern" style={{ left: layout.left, top: layout.top, width: layout.width }} data-kind={step.kind} data-dock={layout.side ? 'side' : 'top'}>
         <div className="sk-tour-head">
           <span className="sk-tour-dog"><img src={DOG} alt="" width={48} height={48} /></span>
           <div className="sk-tour-meta">
@@ -165,11 +165,11 @@ export function PaintedTour() {
           {note && <p className="sk-tour-note">{note}</p>}
         </div>
         <div className="sk-tour-actions">
-          {info && !last && <WoodButton className="kit-btn--sm sk-tour-next" onClick={next}>{step.next ?? 'Next'}<b className="sk-tour-key" aria-hidden="true">Enter</b></WoodButton>}
+          {info && !last && <Slab tone="lantern" size="sm" className="sk-tour-next" onClick={next}><span>{step.next ?? 'Next'}</span><b className="sk-tour-key" aria-hidden="true">Enter</b></Slab>}
           {last && (
             <>
-              {real && <ClothButton className="kit-btn--sm sk-tour-go" onClick={toRealGame}>Play a real game</ClothButton>}
-              <WoodButton className="kit-btn--sm" onClick={() => endTour('menu')}>{real ? 'Menu' : 'Back to the menu'}</WoodButton>
+              {real && <Slab tone="lantern" size="sm" className="sk-tour-go" onClick={toRealGame}>Play a real game</Slab>}
+              <Slab tone={real ? 'night' : 'lantern'} size="sm" onClick={() => endTour('menu')}>{real ? 'Menu' : 'Back to the menu'}</Slab>
             </>
           )}
           {step.kind === 'wait' && <button type="button" className="sk-tour-skip" onClick={next}>Skip this step</button>}

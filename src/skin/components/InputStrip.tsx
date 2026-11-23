@@ -3,9 +3,11 @@ import { foldAccents } from '../../lib/lang';
 import type { MouseEvent } from 'react';
 import type { MessageView } from '../model/types';
 import { BookIcon } from './Icons';
-import { Paper, Peg, Tile } from '../kit';
+import { Tile } from '../kit';
+import { IconSlab } from '../kit/modern';
 import { PassIcon } from './PixelIcons';
 import { MessageSlip } from './MessageSlip';
+import './hud-overlays.css';
 
 interface Props {
   letter: string;
@@ -36,8 +38,9 @@ const keep = (e: MouseEvent) => e.preventDefault(); // buttons never take focus 
 
 /**
  * The word bar: floating letters (chosen from the mockups, 2026-11-07). What the word needs on a line above (it starts
- * with the chain letter), the typed word in big white letters floating over the barn with a warm glow, a dotted line
- * under it, and a small key that is Play on your turn.
+ * with the chain letter), the typed word in big white Fraunces letters floating over the barn with an ink shadow, a line
+ * under it, and the Enter key as a small dark label that is Play on your turn. Small words in Nunito, small buttons
+ * Home's slab (hud-overlays.css; Brian, 2026-11-23: no hand font, no paper).
  */
 export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit, message, hints, turnKey, acceptKey, out, onPass, rule }: Props) {
   const ref = useRef<HTMLInputElement>(null);
@@ -59,18 +62,18 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
   }[mode];
   const placeholder = { mine: 'type your word…', wait: 'type ahead…', out: '' }[mode];
   return (
-    <div className="px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4">
+    <div className="sk-input px-2 pb-[max(12px,env(safe-area-inset-bottom))] pt-1 sm:px-4">
       <div className="mx-auto max-w-3xl">
         <MessageSlip message={message} />
         {hints && hints.ideas.length > 0 && (
-          <Paper kind="note" className="sk-pop sk-ideas" aria-label="Word ideas">
-            <span className="flex items-center gap-1" style={{ color: 'var(--ink-soft)' }}><BookIcon size={18} /> try:</span>
+          <div className="md-card hm rc sk-pop sk-ideas" data-tone="lantern" aria-label="Word ideas">
+            <span className="sk-ideas-try"><BookIcon size={16} /> try:</span>
             {hints.ideas.map((w) => (
               <button key={w} onMouseDown={keep} onClick={() => hints.onPick(w)} className="sk-idea" aria-label={w}>
                 {[...w].map((ch, i) => <Tile key={i} size="mini">{ch.toUpperCase()}</Tile>)}
               </button>
             ))}
-          </Paper>
+          </div>
         )}
         {/* On your own turn the line under it already says it all; the prompt stays for the screen reader. */}
         <p className={`sk-input-prompt ${mode === 'mine' ? 'sr-only' : ''}`} aria-live="polite" data-mode={mode}>{prompt}</p>
@@ -109,12 +112,12 @@ export function InputStrip({ letter, typed, myTurn, turnName, onChange, onSubmit
             />
           </div>
           <span className="kit-float-rule" aria-hidden="true" />
-          <div className="kit-float-row">
+          <div className="kit-float-row hm">
             {onPass && myTurn && (
-              <Peg small light onMouseDown={keep} onClick={onPass} aria-label="Pass the bomb" title="Pass the bomb" className="sk-input-hint"><PassIcon size={20} /></Peg>
+              <IconSlab onMouseDown={keep} onClick={onPass} aria-label="Pass the bomb" title="Pass the bomb" className="sk-input-hint"><PassIcon size={20} /></IconSlab>
             )}
             {hints && (
-              <Peg small light onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn} aria-label="Hint" className="sk-input-hint"><BookIcon size={20} /></Peg>
+              <IconSlab onMouseDown={keep} onClick={hints.onHint} disabled={!myTurn} aria-label="Hint" className="sk-input-hint"><BookIcon size={20} /></IconSlab>
             )}
             <button type="button" onMouseDown={keep} onClick={onSubmit} disabled={!myTurn} className="kit-float-go sk-input-go" aria-label="Play"><b>Enter</b> to play</button>
           </div>

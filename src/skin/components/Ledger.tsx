@@ -1,12 +1,12 @@
 import { useRoomStore } from '../../state/roomStore';
 import type { PlayerView } from '../model/types';
-import { AvatarIcon, SheepHead } from '../avatars/AvatarIcon';
+import { PixelHead } from '../avatars/AvatarIcon';
 import { useAvatar } from '../avatars/store';
-import { Slate, Tally } from '../kit';
+import { BoardFrame, SnowCap } from '../kit/surfaces';
 import { MiniBomb } from './BombClock';
-import { AcornIcon, LeafIcon, SeedlingIcon, SnowflakeIcon } from './Icons';
-
-const BADGE = { easy: <SeedlingIcon size={13} />, medium: <LeafIcon size={13} />, hard: <AcornIcon size={13} /> } as const;
+import { SnowflakeIcon } from './Icons';
+import '../kit/nameplate.css';
+import './hud-boards.css';
 
 /** The avatar a player wears: your own pick, or what the room says theirs is; bots and offline players are sheep. */
 function useWorn(player: PlayerView): string | null {
@@ -19,82 +19,101 @@ function useWorn(player: PlayerView): string | null {
   return player.isYou ? chosen : theirs;
 }
 
-function Portrait({ player, size }: { player: PlayerView; size: number }) {
+/** The crisp pixel head, in a dark square as on the pen's list. 28: every head is drawn at its own size (21 to 25). */
+function Portrait({ player }: { player: PlayerView }) {
   const worn = useWorn(player);
-  return worn ? <AvatarIcon id={worn} size={size} /> : <SheepHead size={size} />;
+  return <span className="hb-avatar" aria-hidden="true"><PixelHead id={worn ?? 'sheep'} box={28} /></span>;
+}
+
+/** Wool balls as the name tag's dots (kit/NamePlate): one a ball, the lost ones dimmed. */
+function Wool({ have, of }: { have: number; of: number }) {
+  return (
+    <span className="np-lives hb-wool" role="img" aria-label={`${have} wool ball${have === 1 ? '' : 's'} left`}>
+      {Array.from({ length: Math.max(of, have) }, (_, i) => <i key={i} data-off={i >= have || undefined} />)}
+    </span>
+  );
 }
 
 interface RowProps {
   player: PlayerView;
   place: number;
   maxLives: number;
-  /** Its name ringed in chalk: the sheep on turn, or the winner on the tally. */
+  /** Marked with the lantern bar: the sheep on turn, or the winner on the tally. */
   ringed?: boolean;
   /** The bomb in its hand: the sheep on turn. */
   bomb?: boolean;
   className?: string;
-  /** The last word it played, in small chalk under the name. */
+  /** The last word it played, small under the name. */
   lastWord?: string | null;
   /** The table's own scoreboard carries the seat attributes the tour and the tests look for; the tally does not. */
   marks?: boolean;
 }
 
-/** One chalk row of the barn ledger (V6 Part 6.3): the place, the portrait, the name, the wool as tally strokes. */
+/**
+ * One row of the scoreboard, a tile as on the pen's list of players: the place, the pixel head, the name (yours in
+ * lantern), a quiet "bot" tag, the wool as the name tag's dots. The one on turn has a lantern bar inside its tile; a
+ * frozen sheep's row is sunk into the board. It brings Home's tokens, so it sits on any screen (the end scoreboard).
+ */
 export function LedgerRow({ player: p, place, maxLives, ringed, bomb, lastWord, marks, className }: RowProps) {
   // Online, a seat filled after a quiet spell is not marked as a bot (Brian, 2026-11-14: "dont say they are bots").
   // Offline (practice, a table of your own, the tutorial) you chose the bots, and they say so.
   const online = useRoomStore((s) => !!s.room);
   const markBot = p.isBot && !online;
   return (
-    <li className={`kit-slate-row sk-ledger-row ${className ?? ""}`} data-dim={p.dimmed || undefined} data-seat={marks ? p.id : undefined} data-tour={marks && p.isYou ? 'me' : undefined}>
-      <span className="sk-ledger-place">{place}</span>
-      <Portrait player={p} size={22} />
-      <span className="sk-ledger-who">
-        <span className={`sk-ledger-name ${ringed ? 'kit-chalk-ring' : ''} ${p.frozen ? 'kit-chalk-strike' : ''}`} data-seat-name={marks ? p.id : undefined}>
-          {p.name}{p.isYou ? ' (you)' : ''}
-          {p.difficulty && markBot && <span className="sk-ledger-badge" title={`${p.difficulty} bot`} role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
+    <li
+      className={`hb-row hm rc hb ${p.frozen ? 'rc-well' : 'rc-tile'} ${className ?? ''}`}
+      data-dim={p.dimmed || undefined} data-frozen={p.frozen || undefined} data-you={p.isYou || undefined} data-lit={ringed || undefined}
+      data-seat={marks ? p.id : undefined} data-tour={marks && p.isYou ? 'me' : undefined}
+    >
+      {ringed && <i className="hb-bar" aria-hidden="true" />}
+      <span className="hb-place">{place}</span>
+      <Portrait player={p} />
+      <span className="hb-who">
+        <span className="hb-line">
+          <b className="hb-name" data-seat-name={marks ? p.id : undefined}>{p.name}{p.isYou && <span className="hb-sr"> (you)</span>}</b>
+          {markBot && <span className="hb-tag" title={p.difficulty ? `${p.difficulty} bot` : undefined}>{p.difficulty && <span className="hb-sr">{p.difficulty} </span>}bot</span>}
         </span>
-        <span className="sk-ledger-sub">
-          {markBot && <span>bot</span>}
-          {lastWord !== undefined && <span className="sk-ledger-word" data-seat-word={marks ? p.id : undefined}>{lastWord ?? '—'}</span>}
-        </span>
+        {lastWord !== undefined && <span className="hb-word" data-seat-word={marks ? p.id : undefined}>{lastWord ?? '—'}</span>}
       </span>
-      {bomb && <span key={p.id} className="sk-bomb-hand" aria-hidden="true"><MiniBomb /></span>}
-      {p.frozen ? <span className="sk-ledger-ice" title="frozen" aria-label="frozen"><SnowflakeIcon size={16} /></span> : null}
-      <span className="sk-ledger-wool" role="img" aria-label={`${p.lives} wool ball${p.lives === 1 ? '' : 's'} left`}><Tally have={p.lives} of={Math.max(maxLives, p.lives)} /></span>
+      {bomb && <span key={p.id} className="sk-bomb-hand hb-bomb" aria-hidden="true"><MiniBomb size={16} /></span>}
+      {p.frozen ? <span className="hb-ice" title="frozen" aria-label="frozen"><SnowflakeIcon size={10} /></span> : null}
+      <Wool have={p.lives} of={maxLives} />
     </li>
   );
 }
 
 /**
- * The barn ledger (V6 Part 6.3): a wool slate tucked under the top-right pegs, one row per sheep in
- * standings order. On a phone it is a strip of mini slates across the top: portrait, name, strokes.
+ * The scoreboard at the top right: a board as the pen's (felt, inner frame, snow on top), one tile per sheep in
+ * standings order. On a phone it is a grid of small tiles across the top: head, name, wool.
  */
 export function Ledger({ players, turnId, lastWords, maxLives, compact }: {
   players: PlayerView[]; turnId: string; lastWords: Record<string, string | null | undefined>; maxLives: number; compact: boolean;
 }) {
   if (compact) {
     return (
-      <ol className="sk-ledger-strip" aria-label="Scoreboard">
+      <ol className="hb-strip hm rc hb" aria-label="Scoreboard">
         {players.map((p) => (
-          <li key={p.id} data-seat={p.id} data-tour={p.isYou ? 'me' : undefined} data-dim={p.dimmed || undefined}>
-            <Slate size="mini" className={p.id === turnId ? 'sk-ledger-turn' : undefined}>
-              <Portrait player={p} size={16} />
-              <span className={`sk-ledger-name ${p.frozen ? 'kit-chalk-strike' : ''}`} data-seat-name={p.id}>{p.name}{p.isYou ? ' (you)' : ''}</span>
-              <span className="sk-ledger-wool" role="img" aria-label={`${p.lives} wool ball${p.lives === 1 ? '' : 's'} left`}><Tally have={p.lives} of={Math.max(maxLives, p.lives)} /></span>
-            </Slate>
+          <li
+            key={p.id} className={`hb-chip ${p.frozen ? 'rc-well' : 'rc-tile'}`}
+            data-seat={p.id} data-tour={p.isYou ? 'me' : undefined} data-dim={p.dimmed || undefined}
+            data-frozen={p.frozen || undefined} data-you={p.isYou || undefined} data-lit={p.id === turnId || undefined}
+          >
+            {p.id === turnId && <i className="hb-bar" aria-hidden="true" />}
+            <Portrait player={p} />
+            <b className="hb-name" data-seat-name={p.id}>{p.name}{p.isYou && <span className="hb-sr"> (you)</span>}</b>
+            <Wool have={p.lives} of={maxLives} />
           </li>
         ))}
       </ol>
     );
   }
   return (
-    <aside className="sk-ledger" aria-label="Scoreboard">
-      <Slate size="board">
-        <ol>
-          {players.map((p, i) => <LedgerRow key={p.id} player={p} place={i + 1} maxLives={maxLives} ringed={p.id === turnId} bomb={p.id === turnId} lastWord={lastWords[p.id] ?? null} marks />)}
-        </ol>
-      </Slate>
+    <aside className="sk-ledger hb-ledger hm rc hb rc-board" aria-label="Scoreboard">
+      <BoardFrame corners={['bl', 'br']} />
+      <SnowCap />
+      <ol className="hb-rows">
+        {players.map((p, i) => <LedgerRow key={p.id} player={p} place={i + 1} maxLives={maxLives} ringed={p.id === turnId} bomb={p.id === turnId} lastWord={lastWords[p.id] ?? null} marks />)}
+      </ol>
     </aside>
   );
 }

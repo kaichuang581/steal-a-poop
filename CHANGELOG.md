@@ -12,6 +12,8 @@ All user-visible changes, newest first.
 - The round's rule stays beside the letter all round, and turns red while the word you are typing breaks it.
 - If two sheep in a row run out of time on the same letter, the bomb resets with a fresh, friendlier letter.
 - Name tags are one small, quiet design in every mode.
+- Every game screen is in the new look: notices, tips, the tutorial, the scoreboard, the boards between rounds and at the end, How to play, Settings, the welcome form and the corner buttons. No more wood planks, paper cards or stitched slates.
+- Sheep never get shorn bare: they keep a thin coat down to their last wool ball.
 
 ## 0.9.5
 

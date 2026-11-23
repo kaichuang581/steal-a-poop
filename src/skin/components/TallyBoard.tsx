@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import type { PlayerView } from '../model/types';
-import { Board, Slate } from '../kit';
+import { BoardFrame, SnowCap } from '../kit/surfaces';
+import '../kit/modern.css';
 import { LedgerRow } from './Ledger';
+import './hud-boards.css';
 
 interface Props {
   players: PlayerView[];
@@ -11,7 +13,7 @@ interface Props {
   longestWord?: { word: string; playerId: string };
   /** Extra lines under the rows (stats, notes). */
   children?: ReactNode;
-  /** Buttons row. */
+  /** Buttons row: `Slab`s from kit/modern, the main one lantern. */
   actions?: ReactNode;
   /** Wool balls each sheep started with. */
   maxLives?: number;
@@ -20,39 +22,41 @@ interface Props {
 }
 
 /**
- * The tally between rounds and at the end (V6 Part 6.3): a `Board panel` hung on two ropes with snow on it, swinging in
- * from above, the title carved on the plank and the standings chalked on a slate set into it (rows as in the barn
- * ledger: frozen sheep struck through, the winner's name ringed under a lantern ring).
+ * The tally between rounds and at the end: the modern kit's dialog board (felt, inner frame, snow with icicles; the
+ * `Dialog` recipe, kept as markup here because the round's tally is a status, not a modal), a title in Fraunces and the
+ * standings as the scoreboard's tiles (the winner's with the lantern bar, frozen sheep sunk into the board).
  */
 export function TallyBoard({ players, round, isGameEnd, winnerIds, longestWord, children, actions, maxLives = 3, nextTurnSeconds }: Props) {
   const rows = players; // already in standings order (rankPlayers): still standing first, then by how long they lasted
   const winners = new Set(winnerIds);
   const left = rows.filter((p) => !p.frozen).length;
   return (
-    <Board
-      size="panel" hang="ropes" snow id={isGameEnd ? 'tally-end' : `tally-${round}`} className="sk-tally w-full max-w-md"
+    <div
+      id={isGameEnd ? 'tally-end' : `tally-${round}`} className="md-dialog hm rc hb rc-board hb-tally"
       role={isGameEnd ? 'dialog' : 'status'} aria-modal={isGameEnd || undefined} aria-label={isGameEnd ? 'Game over' : `Round ${round} tally`}
     >
-      <h2 className="sk-tally-title">
-        {isGameEnd
-          ? `${rows.find((p) => winners.has(p.id))?.name ?? rows[0].name} is the last sheep standing!`
-          : `After round ${round}`}
-      </h2>
-      {!isGameEnd && (
-        <p className="sk-tally-line">
-          {left} sheep still standing.{nextTurnSeconds ? ` ${nextTurnSeconds}-second turns from here.` : ''}
-        </p>
-      )}
-      {isGameEnd && longestWord && <p className="sk-tally-line">Longest word: {longestWord.word.toUpperCase()}</p>}
-      <Slate size="board" className="sk-tally-slate">
-        <ol>
-          {rows.map((p, i) => (
-            <LedgerRow key={p.id} player={p} place={i + 1} maxLives={maxLives} ringed={winners.has(p.id)} className={winners.has(p.id) ? 'sk-tally-winner' : undefined} />
-          ))}
+      <BoardFrame corners={['bl', 'br']} />
+      <SnowCap icicles />
+      <header className="md-dialog-head">
+        <h2>
+          {isGameEnd
+            ? `${rows.find((p) => winners.has(p.id))?.name ?? rows[0].name} is the last sheep standing!`
+            : `After round ${round}`}
+        </h2>
+      </header>
+      <div className="md-dialog-body">
+        {!isGameEnd && (
+          <p className="hb-tally-line">
+            <b>{left}</b> sheep still standing.{nextTurnSeconds ? <> <b>{nextTurnSeconds}</b>-second turns from here.</> : ''}
+          </p>
+        )}
+        {isGameEnd && longestWord && <p className="hb-tally-line">Longest word: <b>{longestWord.word.toUpperCase()}</b></p>}
+        <ol className="hb-rows">
+          {rows.map((p, i) => <LedgerRow key={p.id} player={p} place={i + 1} maxLives={maxLives} ringed={winners.has(p.id)} />)}
         </ol>
-      </Slate>
-      {children}
-      {actions && <div className="sk-tally-actions">{actions}</div>}
-    </Board>
+        {children}
+      </div>
+      {actions && <div className="md-row hb-tally-actions">{actions}</div>}
+    </div>
   );
 }

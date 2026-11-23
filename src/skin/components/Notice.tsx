@@ -1,26 +1,19 @@
 import type { ReactNode } from 'react';
-import { SnowCap } from './SnowCap';
+import { InkCard } from '../kit/modern';
+import type { CardTone } from '../kit/modern';
 
 export type NoticeTone = 'wood' | 'ice' | 'cold' | 'gold';
 
-/** Each moment's paint on the kit's plank (V6 Part 4.1): your turn the lantern's gold. */
-const TONE: Record<NoticeTone, string> = { wood: '', ice: 'kit-plank--ice', cold: 'kit-plank--cold', gold: 'kit-plank--gold' };
+/** Each moment's colour: the bar down the card's left. Time's up is bad news (barn), a freeze is ice (frost). */
+const TONE: Record<NoticeTone, CardTone> = { wood: 'lantern', gold: 'lantern', cold: 'barn', ice: 'frost' };
 
 /**
- * A hanging signboard for the moments over the table (a freeze, time's up, the round's twist): the kit's
- * `Board heading`, a sawn plank with grain, two nails and a snow cap, painted per moment. Big carved text, an optional
- * pixel icon, and a small hand-lettered line under it.
+ * A moment over the table (time's up, a freeze, a pass, a new letter, whose turn it is): the modern kit's small dark
+ * card (kit/modern InkCard), an icon, the title in Fraunces and a line in Nunito (Brian, 2026-11-23: the old hanging
+ * plank with nails and snow was "ai generated wood textures"). `snow` is kept for callers and no longer draws anything.
  */
-export function Notice({ tone = 'wood', icon, title, sub, size = 'md', snow = true, className }: {
+export function Notice({ tone = 'wood', icon, title, sub, size = 'md', className }: {
   tone?: NoticeTone; icon?: ReactNode; title: ReactNode; sub?: ReactNode; size?: 'sm' | 'md' | 'lg'; snow?: boolean; className?: string;
 }) {
-  return (
-    <div className={`kit-plank kit-plank--heading ${TONE[tone]} sk-notice sk-notice-${tone} sk-notice-${size} ${className ?? ''}`}>
-      {snow && <SnowCap className="kit-snow" />}
-      <span className="kit-nail sk-nail sk-notice-nail-l" />
-      <span className="kit-nail sk-nail sk-notice-nail-r" />
-      <span className="sk-notice-title">{icon && <span className="sk-notice-icon">{icon}</span>}{title}</span>
-      {sub && <span className="sk-notice-sub">{sub}</span>}
-    </div>
-  );
+  return <InkCard tone={TONE[tone]} icon={icon} title={title} sub={sub} size={size} className={`sk-notice sk-notice-${tone} ${className ?? ''}`} />;
 }

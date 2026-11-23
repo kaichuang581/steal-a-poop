@@ -9,13 +9,10 @@ import { useStore } from '../../state/store';
 import { whenDoorsOpen } from '../components/BarnDoors';
 import { Captcha, captchaAvailable } from '../../ui/auth/Captcha';
 import { legalHref } from '../../ui/legal/legalLinks';
-import { CloseIcon } from '../components/Icons';
-import { Chip } from '../components/Materials';
-import { SnowCap } from '../components/SnowCap';
-import { ClothButton, WoodButton } from '../kit';
+import { Dialog, InkCard, Scrim, Slab } from '../kit/modern';
 import { gateStep, loadAgeCheck, saveAgeCheck } from './gate';
 import type { GateStep } from './gate';
-import './onboarding.css';
+import '../components/hud-guide.css';
 
 /** The Log in button on Home opens the same form, as a dialog that can be closed. */
 export const useSignInForm = create<{ open: boolean }>(() => ({ open: false }));
@@ -65,7 +62,7 @@ function Onboarding({ gate, blocking, late = false, onDone }: { gate: GateStep |
   const account = gate === 'profile' || gate === 'age';
   const step: Way | 'refused' = gate === 'refused' ? 'refused' : account && way !== 'parent' && way !== 'declined' ? 'details' : way;
 
-  useEffect(() => { panel.current?.querySelector<HTMLElement>('select, input, button.kit-btn')?.focus(); }, [step]);
+  useEffect(() => { panel.current?.querySelector<HTMLElement>('select, input, button.md-slab')?.focus(); }, [step]);
   useEffect(() => {
     if (blocking) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onDone();
@@ -117,31 +114,31 @@ function Onboarding({ gate, blocking, late = false, onDone }: { gate: GateStep |
   let body;
   if (step === 'refused') {
     body = (
-      <div className="sk-onb-stack">
-        <p className="sk-onb-text">A parent said no to this account by email, so it cannot be used.</p>
-        <WoodButton className="sk-onb-btn" onClick={() => void a.signOut()}>Sign out</WoodButton>
+      <div className="hg-stack">
+        <p className="hg-text">A parent said no to this account by email, so it cannot be used.</p>
+        <Slab tone="lantern" onClick={() => void a.signOut()}>Sign out</Slab>
       </div>
     );
   } else if (step === 'choose') {
     body = (
-      <div className="sk-onb-stack">
-        <p className="sk-onb-text">How would you like to play?</p>
+      <div className="hg-stack">
+        <p className="hg-text">How would you like to play?</p>
         {blocking && (
-          <WoodButton className="sk-onb-way" onClick={() => setWay('guest')}>
-            <span className="sk-onb-way-name">Play as a guest</span>
-            <span className="sk-onb-way-sub">No account. Saved in this browser only.</span>
-          </WoodButton>
+          <Slab tone="lantern" className="hg-way" onClick={() => setWay('guest')}>
+            <span className="hg-way-name">Play as a guest</span>
+            <span className="hg-way-sub">No account. Saved in this browser only.</span>
+          </Slab>
         )}
         {authEnabled() && (
           <>
-            <ClothButton className="sk-onb-way" onClick={() => setWay('email')}>
-              <span className="sk-onb-way-name">Email and password</span>
-              <span className="sk-onb-way-sub">Sign up or log in. Keeps your progress on every device.</span>
-            </ClothButton>
-            <ClothButton className="sk-onb-way" disabled={busy} onClick={() => void run(() => a.signInWith('google'))}>
-              <span className="sk-onb-way-name">Continue with Google</span>
-              <span className="sk-onb-way-sub">Use your Google account.</span>
-            </ClothButton>
+            <Slab className="hg-way" onClick={() => setWay('email')}>
+              <span className="hg-way-name">Email and password</span>
+              <span className="hg-way-sub">Sign up or log in. Keeps your progress on every device.</span>
+            </Slab>
+            <Slab className="hg-way" disabled={busy} onClick={() => void run(() => a.signInWith('google'))}>
+              <span className="hg-way-name">Continue with Google</span>
+              <span className="hg-way-sub">Use your Google account.</span>
+            </Slab>
           </>
         )}
       </div>
@@ -154,64 +151,59 @@ function Onboarding({ gate, blocking, late = false, onDone }: { gate: GateStep |
     const nameTaken = newAccount && error === describeAuthError('nickname_taken');
     const ready = !!answers.country && answers.age !== null && !nameProblem && (!newAccount || !captchaAvailable() || !!captcha);
     body = (
-      <form className="sk-onb-stack" onSubmit={(e) => { e.preventDefault(); if (ready) answered(); }}>
-        <p className="sk-onb-text">{step === 'guest' ? 'Two questions before you play.' : gate === 'age' ? 'Two questions to finish setting up your account.' : 'Last step: your username, country and age.'}</p>
+      <form className="hg-stack" onSubmit={(e) => { e.preventDefault(); if (ready) answered(); }}>
+        <p className="hg-text">{step === 'guest' ? 'Two questions before you play.' : gate === 'age' ? 'Two questions to finish setting up your account.' : 'Last step: your username, country and age.'}</p>
         {newAccount && (
-          <label className="sk-onb-field">
+          <label className="hg-field">
             <span>Username</span>
-            <input className="sk-onb-input" aria-label="Username" maxLength={MAX_NICKNAME} value={answers.nickname} autoComplete="nickname"
+            <input className="hg-input" aria-label="Username" maxLength={MAX_NICKNAME} value={answers.nickname} autoComplete="nickname"
               onChange={(e) => setAnswers({ ...answers, nickname: e.target.value })} aria-invalid={!!(answers.nickname && nameProblem) || nameTaken} />
-            <small className="sk-onb-help" data-bad={!!(answers.nickname && nameProblem) || undefined}>{(answers.nickname && nameProblem) || 'Other players will see this.'}</small>
+            <small className="hg-help" data-bad={!!(answers.nickname && nameProblem) || undefined}>{(answers.nickname && nameProblem) || 'Other players will see this.'}</small>
           </label>
         )}
         <CountryAndAge answers={answers} onChange={setAnswers} />
         {newAccount && <Captcha onToken={setCaptcha} />}
-        <WoodButton className="sk-onb-btn" disabled={busy || !ready}>Continue</WoodButton>
-        {step === 'guest' && <button type="button" className="sk-onb-link" onClick={() => { setError(''); setWay('choose'); }}>Back</button>}
-        {step === 'details' && <button type="button" className="sk-onb-link" onClick={() => void a.signOut()}>Sign out</button>}
+        <Slab type="submit" tone="lantern" disabled={busy || !ready}>Continue</Slab>
+        {step === 'guest' && <button type="button" className="hg-link" onClick={() => { setError(''); setWay('choose'); }}>Back</button>}
+        {step === 'details' && <button type="button" className="hg-link" onClick={() => void a.signOut()}>Sign out</button>}
       </form>
     );
   } else if (step === 'parent') {
     body = (
-      <div className="sk-onb-stack">
-        <p className="sk-onb-text"><b>Please hand this to a parent or guardian.</b> Because of the age and country given, a parent needs to agree before this player can play.</p>
-        <ul className="sk-onb-notice">
+      <div className="hg-stack">
+        <p className="hg-text"><b>Please hand this to a parent or guardian.</b> Because of the age and country given, a parent needs to agree before this player can play.</p>
+        <ul className="hg-notice rc-well">
           {PARENT_NOTICE.map((line) => <li key={line}>{line}</li>)}
         </ul>
-        <p className="sk-onb-small">
+        <p className="hg-small">
           Read the <a href={legalHref('privacy')} target="_blank" rel="noopener">privacy policy</a> and the <a href={legalHref('terms')} target="_blank" rel="noopener">terms</a>.
         </p>
-        <WoodButton className="sk-onb-btn sk-onb-agree" disabled={busy} onClick={() => void finish(true)}>{PARENT_AGREE}</WoodButton>
-        <ClothButton className="sk-onb-btn" disabled={busy} onClick={() => setWay('declined')}>{PARENT_DECLINE}</ClothButton>
-        <button type="button" className="sk-onb-link" disabled={busy} onClick={() => { setError(''); setWay(account ? 'details' : 'guest'); }}>
+        <Slab tone="lantern" className="hg-tall" disabled={busy} onClick={() => void finish(true)}>{PARENT_AGREE}</Slab>
+        <Slab disabled={busy} onClick={() => setWay('declined')}>{PARENT_DECLINE}</Slab>
+        <button type="button" className="hg-link" disabled={busy} onClick={() => { setError(''); setWay(account ? 'details' : 'guest'); }}>
           ← Change my {account && gate === 'profile' ? 'username, country or age' : 'country or age'}
         </button>
       </div>
     );
   } else {
     body = (
-      <div className="sk-onb-stack">
-        <p className="sk-onb-text">Without a parent's OK this player can't play yet. Come back with a parent or guardian.</p>
-        <WoodButton className="sk-onb-btn" onClick={() => { setError(''); setWay(account ? 'details' : 'guest'); }}>Back</WoodButton>
+      <div className="hg-stack">
+        <p className="hg-text">Without a parent's OK this player can't play yet. Come back with a parent or guardian.</p>
+        <Slab tone="lantern" onClick={() => { setError(''); setWay(account ? 'details' : 'guest'); }}>Back</Slab>
       </div>
     );
   }
 
   return (
-    <div className="sk-post-scrim sk-onb-scrim" data-late={late || undefined} onClick={blocking ? undefined : onDone}>
-      <div ref={panel} role="dialog" aria-modal="true" aria-label={title} className="sk-guide sk-post sk-onb" onClick={(e) => e.stopPropagation()}>
-        <div className="sk-guide-head">
-          <SnowCap className="sk-guide-snow" />
-          <h2>{title}</h2>
-          {!blocking && <Chip className="sk-icon-chip" onClick={onDone} aria-label="Close"><CloseIcon size={16} /></Chip>}
-        </div>
-        <div className="sk-guide-body">
-          {notice && status !== 'ready' && <p role="status" className="sk-onb-note">{notice}</p>}
-          {error && <p role="alert" className="sk-onb-note" data-bad>{error}</p>}
+    <Scrim className={`hg-onb-scrim${late ? ' hg-late' : ''}`} onClose={blocking ? undefined : onDone}>
+      <Dialog title={title} label={title} onClose={blocking ? undefined : onDone} className="hg hg-onb" onClick={(e) => e.stopPropagation()}>
+        <div ref={panel} className="hg-onb-in">
+          {notice && status !== 'ready' && <InkCard role="status" tone="frost" size="sm" sub={notice} />}
+          {error && <InkCard role="alert" tone="barn" size="sm" sub={error} />}
           {body}
         </div>
-      </div>
-    </div>
+      </Dialog>
+    </Scrim>
   );
 }
 
@@ -219,16 +211,16 @@ function CountryAndAge({ answers, onChange }: { answers: Answers; onChange: (a: 
   const countries = useMemo(() => countryOptions(navigator.language || 'en'), []);
   return (
     <>
-      <label className="sk-onb-field">
+      <label className="hg-field">
         <span>Country</span>
-        <select className="sk-onb-input" aria-label="Country" required value={answers.country} onChange={(e) => onChange({ ...answers, country: e.target.value })}>
+        <select className="hg-input" aria-label="Country" required value={answers.country} onChange={(e) => onChange({ ...answers, country: e.target.value })}>
           <option value="" disabled>Choose your country</option>
           {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
       </label>
-      <label className="sk-onb-field">
+      <label className="hg-field">
         <span>Age</span>
-        <select className="sk-onb-input" aria-label="Age" required value={answers.age ?? ''} onChange={(e) => onChange({ ...answers, age: e.target.value === '' ? null : Number(e.target.value) })}>
+        <select className="hg-input" aria-label="Age" required value={answers.age ?? ''} onChange={(e) => onChange({ ...answers, age: e.target.value === '' ? null : Number(e.target.value) })}>
           <option value="" disabled>Choose your age</option>
           {AGE_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
@@ -253,35 +245,36 @@ function EmailForm({ busy, run, captcha, setCaptcha, onBack }: {
     setCaptcha(null);
   });
   return (
-    <form className="sk-onb-stack" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+    <form className="hg-stack" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
       {mode !== 'reset' && (
-        <div className="sk-onb-tabs" role="tablist" aria-label="Sign up or log in">
+        <div className="hg-tabs" role="tablist" aria-label="Sign up or log in">
           {([['up', 'Sign up'], ['in', 'Log in']] as const).map(([m, label]) => (
-            <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}>{label}</button>
+            <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
+              className={`hg-tab hm-slab hm-knit ${mode === m ? 'hm-slab--lantern' : ''}`}><span>{label}</span></button>
           ))}
         </div>
       )}
-      {mode === 'reset' && <p className="sk-onb-text">We will email you a link to choose a new password.</p>}
-      <label className="sk-onb-field">
+      {mode === 'reset' && <p className="hg-text">We will email you a link to choose a new password.</p>}
+      <label className="hg-field">
         <span>Email</span>
-        <input className="sk-onb-input" aria-label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className="hg-input" aria-label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </label>
       {mode !== 'reset' && (
-        <label className="sk-onb-field">
+        <label className="hg-field">
           <span>Password</span>
-          <input className="sk-onb-input" aria-label="Password" type="password" minLength={8} required autoComplete={mode === 'up' ? 'new-password' : 'current-password'}
+          <input className="hg-input" aria-label="Password" type="password" minLength={8} required autoComplete={mode === 'up' ? 'new-password' : 'current-password'}
             value={password} onChange={(e) => setPassword(e.target.value)} />
-          {mode === 'up' && <small className="sk-onb-help">At least 8 characters. You pick a username, country and age next.</small>}
+          {mode === 'up' && <small className="hg-help">At least 8 characters. You pick a username, country and age next.</small>}
         </label>
       )}
       <Captcha key={mode} onToken={onToken} />
-      <WoodButton className="sk-onb-btn" disabled={busy || needsCaptcha}>{mode === 'up' ? 'Create account' : mode === 'in' ? 'Log in' : 'Send the link'}</WoodButton>
-      {mode === 'in' && <button type="button" className="sk-onb-link" onClick={() => setMode('reset')}>Forgot your password?</button>}
-      {mode === 'reset' && <button type="button" className="sk-onb-link" onClick={() => setMode('in')}>Back to log in</button>}
+      <Slab type="submit" tone="lantern" disabled={busy || needsCaptcha}>{mode === 'up' ? 'Create account' : mode === 'in' ? 'Log in' : 'Send the link'}</Slab>
+      {mode === 'in' && <button type="button" className="hg-link" onClick={() => setMode('reset')}>Forgot your password?</button>}
+      {mode === 'reset' && <button type="button" className="hg-link" onClick={() => setMode('in')}>Back to log in</button>}
       {mode === 'up' && (
-        <p className="sk-onb-small">By signing up you agree to the <a href={legalHref('terms')} target="_blank" rel="noopener">terms</a> and the <a href={legalHref('privacy')} target="_blank" rel="noopener">privacy policy</a>.</p>
+        <p className="hg-small">By signing up you agree to the <a href={legalHref('terms')} target="_blank" rel="noopener">terms</a> and the <a href={legalHref('privacy')} target="_blank" rel="noopener">privacy policy</a>.</p>
       )}
-      <button type="button" className="sk-onb-link" onClick={onBack}>Back</button>
+      <button type="button" className="hg-link" onClick={onBack}>Back</button>
     </form>
   );
 }

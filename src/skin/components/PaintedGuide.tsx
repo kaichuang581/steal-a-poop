@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useStore } from '../../state/store';
 import { BASICS, FAQ, GLOSSARY } from '../../ui/guideContent';
-import { ClockIcon, CloseIcon, PlayIcon, SnowflakeIcon, TrophyIcon } from './Icons';
-import { WoolBall } from './Lives';
-import { Chip, ClothButton, WoodButton } from './Materials';
+import { Dialog, Scrim, Slab } from '../kit/modern';
+import { ScrollBox } from '../kit/surfaces';
+import { ClockIcon, PlayIcon, SnowflakeIcon, TrophyIcon } from './Icons';
 import { MiniTile, RulesCard } from './RulesCard';
-import { SnowCap } from './SnowCap';
+import './hud-guide.css';
 
 /**
  * The text is shared with the old look. Where this game differs, it says its own: Counting Sheep took the Daily
@@ -22,54 +22,53 @@ export const GUIDE_QUESTIONS = FAQ.map((f) => (f.q === 'Is my progress saved?'
 const TABS = ['Basics', 'Rules', 'Words', 'Questions'] as const;
 type Tab = (typeof TABS)[number];
 
-/** A small picture for each basic, in the same tiles and pixel icons as the table. */
+/** A small picture for each basic, as the rules card draws them: the letter tiles, the name tag's dots, pixel icons. */
 const ART: ReactNode[] = [
-  <span key="chain" className="flex items-center gap-1"><MiniTile ch="c" /><MiniTile ch="a" /><MiniTile ch="t" hot /></span>,
-  <span key="wool" className="flex gap-0.5"><WoolBall full size={22} /><WoolBall full size={22} /><WoolBall full size={22} /></span>,
-  <ClockIcon key="clock" size={30} />,
-  <TrophyIcon key="win" size={30} />,
+  <span key="chain" className="hb-tiles"><MiniTile ch="c" /><MiniTile ch="a" /><MiniTile ch="t" hot /></span>,
+  <span key="wool" className="np-lives"><i /><i /><i /></span>,
+  <ClockIcon key="clock" size={20} />,
+  <TrophyIcon key="win" size={20} />,
 ];
 
-/** How to play, in the farm's own look: a paper book under a snowy wooden header, with tabs like bookmarks. */
+/**
+ * How to play: the modern kit's dialog (the pen's board), the two ways to learn as slabs, the sections as joined slabs
+ * with the open one in lantern (the pen's Game length), each part on a raised tile in a list that scrolls inside itself.
+ * The dialog keeps one size, so changing section moves nothing.
+ */
 export function PaintedGuide({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('Basics');
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const acts = useRef<HTMLDivElement>(null);
   const startTour = useStore((s) => s.startTour);
   const start = useStore((s) => s.start);
   const ready = useStore((s) => s.dictStatus === 'ready');
+  const reduced = useStore((s) => s.reduceMotion);
 
   useEffect(() => {
-    closeRef.current?.focus();
+    acts.current?.closest('.md-dialog')?.querySelector<HTMLElement>('.md-dialog-close')?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="How to play" className="sk-guide" onClick={(e) => e.stopPropagation()}>
-        <div className="sk-guide-head">
-          <SnowCap className="sk-guide-snow" />
-          <h2>How to play</h2>
-          <Chip ref={closeRef} className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
+    <Scrim onClose={onClose}>
+      <Dialog title="How to play" onClose={onClose} className="hg hg-guide" onClick={(e) => e.stopPropagation()}>
+        <div ref={acts} className="md-row">
+          <Slab disabled={!ready} onClick={() => startTour('menu')}><PlayIcon size={14} /> Tutorial</Slab>
+          <Slab tone="lantern" disabled={!ready} onClick={() => start('practice')}>Practice game</Slab>
         </div>
-        <div className="flex gap-2 px-4 pt-3">
-          <ClothButton disabled={!ready} onClick={() => startTour('menu')} className="inline-flex flex-1 items-center justify-center gap-2">
-            <PlayIcon size={14} /> Tutorial
-          </ClothButton>
-          <WoodButton disabled={!ready} onClick={() => start('practice')} className="flex-1">Practice game</WoodButton>
-        </div>
-        <div role="tablist" aria-label="Guide sections" className="sk-guide-tabs">
+        <div role="tablist" aria-label="Guide sections" className="hg-tabs">
           {TABS.map((t) => (
-            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t}</button>
+            <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
+              className={`hg-tab hm-slab hm-knit ${tab === t ? 'hm-slab--lantern' : ''}`}><span>{t}</span></button>
           ))}
         </div>
-        <div role="tabpanel" tabIndex={0} className="sk-guide-body">
+        <ScrollBox className="hg-panel" reduced={reduced} role="tabpanel" tabIndex={0}>
           {tab === 'Basics' && (
-            <ol className="flex flex-col gap-2.5">
+            <ol className="hg-list">
               {BASICS.map((b, i) => (
-                <li key={b.title} className="sk-guide-basic">
-                  <span className="sk-guide-art" aria-hidden="true">{ART[i] ?? <SnowflakeIcon size={28} />}</span>
+                <li key={b.title} className="hg-tile hg-basic rc-tile">
+                  <span className="hg-art" aria-hidden="true">{ART[i] ?? <SnowflakeIcon size={20} />}</span>
                   <div>
                     <h3>{i + 1}. {b.title}</h3>
                     <p>{b.text}</p>
@@ -80,9 +79,9 @@ export function PaintedGuide({ onClose }: { onClose: () => void }) {
           )}
           {tab === 'Rules' && <RulesCard />}
           {tab === 'Words' && (
-            <dl className="flex flex-col gap-2">
+            <dl className="hg-list">
               {GUIDE_WORDS.map((g) => (
-                <div key={g.term} className="sk-guide-basic block">
+                <div key={g.term} className="hg-tile hg-def rc-tile">
                   <dt>{g.term}</dt>
                   <dd>{g.def}</dd>
                 </div>
@@ -90,17 +89,17 @@ export function PaintedGuide({ onClose }: { onClose: () => void }) {
             </dl>
           )}
           {tab === 'Questions' && (
-            <div className="flex flex-col gap-2">
+            <div className="hg-list">
               {GUIDE_QUESTIONS.map((f) => (
-                <details key={f.q} className="sk-guide-faq">
+                <details key={f.q} className="hg-tile hg-faq rc-tile">
                   <summary>{f.q}</summary>
                   <p>{f.a}</p>
                 </details>
               ))}
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </ScrollBox>
+      </Dialog>
+    </Scrim>
   );
 }

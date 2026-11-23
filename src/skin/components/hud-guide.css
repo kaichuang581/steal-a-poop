@@ -1,0 +1,135 @@
+/* Settings, How to play and the first-visit form (Brian, 2026-11-23: "address all of the outdated ui"): the modern kit's
+   Dialog (kit/modern.tsx) holding the pen's surfaces (kit/surfaces.css). Rows are raised tiles, fields and pictures sit
+   in wells, tabs and choices are joined slabs with the chosen one in lantern (the pen's Game length). Titles in Fraunces,
+   text in Nunito, small and quiet. No paper, wood, stitching, fair-isle band or hand font. */
+
+/* Home's sizes but never under 1 px (a phone reads at 1, as the table's boards do); a step is a whole pixel, as on the pen.
+   The body gives focus rings room: its scroll edge cut them off. */
+.md-dialog.hg { --u: clamp(1px, min(100vw / 1280, 100vh / 720), 1.5px); --s: max(1px, round(nearest, calc(3 * var(--u)), 1px)); }
+.hg .md-dialog-body { margin: -6px; padding: 6px; }
+.hg :where(h3, p, ol, ul, dl, dd) { margin: 0; padding: 0; }
+.hg :where(ol, ul) { list-style: none; }
+
+.hg-list { display: flex; flex-direction: column; gap: calc(4 * var(--u)); }
+.hg-stack { display: flex; flex-direction: column; gap: calc(10 * var(--u)); }
+/* A raised row: the tile's face, its side of 3 at the bottom. */
+.hg-tile { position: relative; isolation: isolate; display: flex; align-items: center; gap: calc(10 * var(--u)); min-height: calc(54 * var(--u)); padding: calc(7 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u)); box-sizing: border-box; }
+.hg-label { flex: 1; min-width: 0; font: 800 calc(14 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-wool); }
+.hg-sub, .hg-text, .hg-small { font: 700 calc(12.5 * var(--u))/1.45 var(--skin-font-body); color: var(--hm-frost); }
+.hg-text { font-size: calc(14 * var(--u)); color: var(--hm-wool); }
+.hg-end { flex: none; display: flex; align-items: center; gap: calc(6 * var(--u)); margin-left: auto; }
+.hg [data-bad] { color: var(--coral); }
+/* A link (the pen's): Nunito 800 in lantern-hi, underlined in the lantern's lip. */
+.hg-link, .hg-small a { font: 800 calc(13 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-lantern-hi); text-decoration: underline 2px var(--hm-lantern-lip); text-underline-offset: 3px; }
+.hg-small a { font-size: inherit; }
+.hg-link { align-self: center; min-height: 40px; padding: 0 calc(10 * var(--u)); border: 0; background: none; cursor: pointer; }
+.hg-link:disabled { opacity: 0.5; cursor: not-allowed; }
+.hg-link:focus-visible, .hg-small a:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
+.hg .md-card { display: flex; max-width: none; margin-bottom: calc(10 * var(--u)); }
+.hg-onb-in { display: flex; flex-direction: column; }
+.hg-onb-in > .hg-stack > .md-slab { width: 100%; }
+
+/* Tabs and choices: joined slabs, the open one in lantern. */
+/* Equal widths where the words allow, never a word cut short (Questions on a phone). */
+.hg-tabs { flex: none; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(min-content, 1fr); gap: calc(6 * var(--u)); }
+.hg .hg-tab { --depth: calc(4 * var(--u)); height: calc(32 * var(--u) + var(--depth)); min-height: 36px; padding: 0 calc(8 * var(--u)) var(--depth); font: 800 calc(14 * var(--u))/1 var(--skin-font-display); white-space: nowrap; }
+
+/* A switch (the pen's language): a sunk track with a square knob; on, the track is lantern and the knob ink. */
+.hg .kit-switch, .hg .kit-switch[aria-checked="true"] {
+  --w: round(nearest, calc(40 * var(--u)), 1px); --h: round(nearest, calc(22 * var(--u)), 1px);
+  width: var(--w); height: var(--h); border-radius: 0; background: none; box-shadow: none; isolation: isolate;
+}
+.hg .kit-switch::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-deep); box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-3); }
+.hg .kit-switch .kit-switch-knob { left: var(--s); top: var(--s); width: calc(var(--h) - 2 * var(--s)); height: calc(var(--h) - 2 * var(--s)); border-radius: 0; background: var(--hm-frost); box-shadow: inset 0 calc(-1 * var(--s)) 0 var(--hm-night-3); }
+.hg .kit-switch[aria-checked="true"]::before { background: var(--hm-lantern); box-shadow: inset 0 var(--s) 0 var(--hm-lantern-hi), inset 0 calc(-1 * var(--s)) 0 var(--hm-lantern-lip); }
+.hg .kit-switch[aria-checked="true"] .kit-switch-knob { translate: calc(var(--w) - var(--h)) 0; background: var(--hm-ink); box-shadow: none; }
+
+/* Fields: a well, wool text, a lantern ring inside it when focused. */
+.hg-field { display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
+.hg-field > span { font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.hg-input {
+  width: 100%; min-height: 44px; height: calc(44 * var(--u)); padding: 0 calc(12 * var(--u)); box-sizing: border-box; border: 0; border-radius: 0; clip-path: var(--px1);
+  background: var(--hm-night-deep); box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-2);
+  font: 700 calc(15 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-wool); color-scheme: dark; outline: 0;
+}
+.hg-input::placeholder { color: var(--hm-frost); opacity: 0.5; }
+.hg-input:focus-visible { box-shadow: inset 0 0 0 var(--s) var(--hm-lantern); }
+.hg-input[aria-invalid="true"] { box-shadow: inset 0 0 0 var(--s) var(--coral); }
+select.hg-input { appearance: none; padding-right: calc(34 * var(--u)); cursor: pointer;
+  background: var(--hm-night-deep) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='3' shape-rendering='crispEdges'%3E%3Cpath fill='%23B9C8E6' d='M0 0h5v1H0zM1 1h3v1H1zM2 2h1v1H2z'/%3E%3C/svg%3E") no-repeat right calc(14 * var(--u)) center / calc(10 * var(--u)) calc(6 * var(--u)); }
+select.hg-input option { background: var(--hm-night); color: var(--hm-wool); }
+textarea.hg-input { height: auto; padding: calc(8 * var(--u)) calc(10 * var(--u)); font-size: 12px; line-height: 1.4; resize: vertical; }
+
+/* ---------- How to play ---------- */
+/* One size whatever the section, so changing tab moves nothing; the section scrolls inside itself. */
+.md-dialog.hg-guide { width: min(calc(560 * var(--u)), calc(100vw - 32px)); height: min(calc(660 * var(--u)), calc(100dvh - 48px)); }
+.hg-guide .md-dialog-body { display: flex; flex-direction: column; gap: calc(10 * var(--u)); overflow: hidden; }
+.hg-guide .md-row { flex: none; }
+.hg-panel { flex: 1 1 0; min-height: 0; margin-top: calc(2 * var(--u)); }
+.hg-panel > .rc-scrollbox-in { outline: 0; }
+.hg-panel > .rc-scrollbox-in:focus-visible { box-shadow: inset 0 0 0 2px var(--hm-lantern); }
+/* The basics share the panel's height between them, so the short tab has no empty band under it. */
+.hg-panel ol.hg-list { min-height: 100%; }
+.hg-tile.hg-basic { flex: 1 0 auto; padding-left: calc(6 * var(--u)); }
+/* The picture column is the rules card's, so the two tabs line up. */
+.hg-art { flex: none; display: flex; align-items: center; justify-content: center; width: calc(56 * var(--u)); color: var(--hm-frost); }
+.hg-art svg { display: block; }
+.hg-guide :is(.hg-basic h3, .hg-def dt, .hg-faq summary) { font: 800 calc(15 * var(--u))/1.25 var(--skin-font-display); color: var(--hm-wool); }
+.hg-guide :is(.hg-basic p, .hg-def dd, .hg-faq p) { margin-top: calc(4 * var(--u)); font: 700 calc(13 * var(--u))/1.45 var(--skin-font-body); color: var(--hm-frost); }
+.hg-def { display: block; }
+.hg-faq { display: block; min-height: 0; padding-top: calc(12 * var(--u)); padding-bottom: calc(15 * var(--u)); }
+.hg-faq summary { display: flex; align-items: center; gap: calc(10 * var(--u)); cursor: pointer; list-style: none; }
+.hg-faq summary::-webkit-details-marker { display: none; }
+/* A small chevron in frost, turned when open. */
+.hg-faq summary::after { content: ''; flex: none; width: calc(10 * var(--u)); height: calc(6 * var(--u)); margin-left: auto;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='3' shape-rendering='crispEdges'%3E%3Cpath fill='%23B9C8E6' d='M0 0h5v1H0zM1 1h3v1H1zM2 2h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100%; }
+.hg-faq[open] summary::after { transform: scaleY(-1); }
+.hg-faq summary:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 4px; }
+
+/* ---------- Settings ---------- */
+/* The account panel's rows (its markup is the fenced src/ui's) as raised tiles. */
+.hg-account button::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-2) var(--felt) 0 0 / var(--felt-size);
+  box-shadow: inset 0 var(--s) 0 var(--hm-night-3), inset 0 calc(-3 * var(--u)) 0 var(--hm-night-deep);
+}
+/* It hangs from a fixed top and grows downward (Paste opens under it), near the middle of the window when closed. */
+.md-scrim.hg-top { align-items: flex-start; padding-top: max(16px, calc(50dvh - 280px)); }
+.md-dialog.hg-settings { width: min(calc(400 * var(--u)), calc(100vw - 32px)); max-height: calc(100dvh - max(16px, calc(50dvh - 280px)) - 16px); }
+.hg-account button { position: relative; isolation: isolate; min-height: calc(54 * var(--u)); padding: 0 calc(12 * var(--u)) calc(3 * var(--u)); border-radius: 0; background: none;
+  font: 800 calc(14 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-wool); }
+.hg-account button:hover:not(:disabled) { color: var(--hm-lantern-hi); }
+.hg-account button:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
+.hg-account > section { padding: 0; border: 0; border-radius: 0; font: 700 calc(13 * var(--u))/1.4 var(--skin-font-body); color: var(--hm-frost); }
+.hg-save { flex-direction: column; align-items: stretch; gap: calc(6 * var(--u)); }
+.hg-save-head { display: flex; align-items: center; gap: calc(10 * var(--u)); }
+.hg .hg-copy { min-width: calc(74 * var(--u)); }
+.hg-paste, .hg-plan { display: flex; flex-direction: column; align-items: flex-start; gap: calc(6 * var(--u)); margin-top: calc(4 * var(--u)); }
+.hg-plan ul { padding-left: calc(16 * var(--u)); list-style: square; }
+.hg-plan li::marker { color: var(--hm-night-3); }
+
+/* ---------- The first-visit form ---------- */
+.md-scrim.hg-onb-scrim { z-index: 58; }
+.md-dialog.hg-onb { width: min(calc(440 * var(--u)), calc(100vw - 32px)); }
+/* The ways in: a slab each, the name in Fraunces and a line under it. */
+.hg .hg-way { flex-direction: column; align-items: flex-start; justify-content: center; gap: calc(4 * var(--u)); width: 100%; height: auto; min-height: calc(62 * var(--u) + var(--depth));
+  padding: calc(10 * var(--u)) calc(16 * var(--u)) calc(10 * var(--u) + var(--depth)); text-align: left; white-space: normal; }
+.hg-way-name { font: 800 calc(18 * var(--u))/1.1 var(--skin-font-display); }
+.hg-way-sub { font: 700 calc(12.5 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-night); }
+.hm-slab--lantern .hg-way-sub { color: var(--hm-ink); }
+.hm-slab:disabled .hg-way-sub { color: var(--hm-frost); }
+.hg .hg-tall { height: auto; min-height: calc(56 * var(--u) + var(--depth)); padding: calc(8 * var(--u)) calc(14 * var(--u)) calc(8 * var(--u) + var(--depth)); white-space: normal; line-height: 1.2; text-align: center; }
+.hg-help { font: 700 calc(12 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+/* What the parent reads: in a well, the body face, so it reads as the terms it is. */
+.hg-notice { padding: calc(10 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u)) calc(28 * var(--u)); font: 700 calc(13 * var(--u))/1.45 var(--skin-font-body); color: var(--hm-wool); }
+.hg .hg-notice { list-style: square; }
+.hg-notice li::marker { color: var(--hm-lantern); }
+.hg-notice li + li { margin-top: calc(6 * var(--u)); }
+
+/* Eases in instead of appearing whole: on a first visit it waits for Home's entrance to finish (hg-late). */
+.hg-onb-scrim { animation: hg-onb-in 320ms ease-out both; }
+.hg-onb-scrim.hg-late { animation-duration: 420ms; animation-delay: 750ms; }
+.hg-onb-scrim .hg-onb { animation: hg-onb-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: inherit; }
+@keyframes hg-onb-in { from { opacity: 0; } }
+@keyframes hg-onb-rise { from { transform: translateY(18px); } }
+:root.reduce-motion :is(.hg-onb-scrim, .hg-onb-scrim .hg-onb) { animation: none; }
+@media (prefers-reduced-motion: reduce) { :is(.hg-onb-scrim, .hg-onb-scrim .hg-onb) { animation: none; } }

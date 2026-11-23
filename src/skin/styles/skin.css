@@ -124,7 +124,7 @@
 .sk-nail-bl { left: 7px; bottom: 7px; }
 .sk-nail-br { right: 7px; bottom: 7px; }
 /* Lines of a heading or a tip share the words evenly: no single word left on a line of its own (2026-11-20). */
-:root[data-skin="painted"] :is(h1, h2, h3, .sk-notice-title, .sk-notice-sub) { text-wrap: balance; }
+:root[data-skin="painted"] :is(h1, h2, h3, .md-card-title, .md-card-sub) { text-wrap: balance; }
 
 /* ---------- Cursors: the usual arrow and pointing hand, drawn as pixel art in the skin's palette ----------
    Cream with a wood outline and a soft shadow (src/skin/assets/cursors). SVG first (sharp at any pixel ratio), a PNG
@@ -163,11 +163,6 @@
 /* An accepted word: the trough flares gold and gives a little bounce. */
 .sk-accept-flash { animation: sk-accept 650ms var(--ease-out); }
 @keyframes sk-accept { 0% { transform: scale(1); } 25% { transform: scale(1.025); --ring: 0 0 0 4px var(--glow); } 100% { transform: scale(1); } }
-/* Word ideas in a learning game: a pinned note, each idea spelled in mini tiles. */
-.sk-ideas { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; margin: 0 auto 8px; width: fit-content; }
-.sk-idea { display: inline-flex; gap: 1px; padding: 3px 2px; border-radius: 3px; cursor: pointer; transition: translate var(--t-fast) var(--ease-out); }
-.sk-idea:hover { translate: 0 -2px; }
-.sk-message-slip { padding: 6px 18px 7px; font-size: 17px; }
 
 /* ---------- Word moments over the table ---------- */
 /* A played word: stamped big in gold, a burst of light and wool tufts behind it, then it floats off. */
@@ -199,24 +194,10 @@
 
 
 
-/* ---------- Signboards for the moments over the table (Notice) ---------- */
-/* The boards are the kit's Board heading (kit-plank, painted per moment); these rules only size and letter them. */
-.sk-notice {
-  display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 9px 30px 8px; text-align: center;
-  animation: sk-notice-in 420ms var(--ease-spring) both;
-}
-.sk-notice-nail-l { left: 10px; top: 50%; transform: translateY(-40%); }
-.sk-notice-nail-r { right: 10px; top: 50%; transform: translateY(-40%); }
-.sk-notice-title { display: inline-flex; align-items: center; gap: 8px; font-family: var(--skin-font-display); font-weight: 800; line-height: 1.05; }
-.sk-notice-icon { display: inline-grid; place-items: center; color: var(--glow); }
-.sk-notice-sub { font-family: var(--skin-font-hand); font-weight: 400; font-size: 16px; line-height: 1.15; color: var(--glow); text-shadow: 0 1px 0 rgba(30, 18, 8, 0.8); }
-.sk-notice-sm { min-height: 0; padding: 7px 24px 6px; } .sk-notice-sm .sk-notice-title { font-size: 15px; } .sk-notice-sm .sk-notice-sub { font-size: 13px; }
-.sk-notice-md .sk-notice-title { font-size: 20px; }
-.sk-notice-lg { padding: 12px 38px 10px; } .sk-notice-lg .sk-notice-title { font-size: 30px; } .sk-notice-lg .sk-notice-sub { font-size: 18px; }
+/* ---------- The moments over the table (Notice: the modern kit's small dark card); only its entrance here ---------- */
+.sk-notice { animation: sk-notice-in 420ms var(--ease-spring) both; }
 /* A dream board paints itself as a cloud: no end grain there. */
 .dr-board.kit-plank::before { display: none; }
-.sk-notice-ice .sk-notice-sub, .sk-notice-ice .sk-notice-icon { color: #E4F5FF; }
-.sk-notice-cold .sk-notice-sub, .sk-notice-cold .sk-notice-icon { color: var(--ice-light); }
 /* The turn call: rides in a touch bigger and leaves early, so it reads as a call, not a sign left hanging. */
 .sk-turn-call { animation: sk-turn-call 1200ms var(--ease-out) forwards; }
 @keyframes sk-turn-call {
@@ -229,30 +210,17 @@
 :root.reduce-motion .sk-turn-call { animation: sk-turn-call-still 1200ms linear forwards; }
 @media (prefers-reduced-motion: reduce) { .sk-turn-call { animation: sk-turn-call-still 1200ms linear forwards; } }
 @keyframes sk-turn-call-still { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
-.sk-notice-gold .sk-notice-sub, .sk-notice-gold .sk-notice-icon { color: var(--wood-ink); text-shadow: none; }
-@keyframes sk-notice-in { 0% { transform: translateY(-26px) rotate(-3deg); opacity: 0; } 60% { transform: translateY(3px) rotate(1deg); opacity: 1; } 100% { transform: none; } }
+@keyframes sk-notice-in { 0% { transform: translateY(-12px); opacity: 0; } 100% { transform: none; opacity: 1; } }
 :root.reduce-motion .sk-notice { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-notice { animation: none; } }
 
-/* ---------- Rules card, chain list, mini tiles ---------- */
-.sk-mini-tile {
-  display: inline-grid; place-items: center; width: 20px; height: 22px; border-radius: 4px; flex: none;
-  font-family: var(--skin-font-display); font-weight: 800; font-size: 13px; line-height: 1; color: var(--wood-ink);
-  background: linear-gradient(180deg, #F2CF98, #DDAE72); box-shadow: inset 0 -3px 0 var(--wood), inset 0 1px 0 rgba(255, 240, 210, 0.7);
-}
-.sk-mini-tile-hot { background: linear-gradient(180deg, #FFE7A8, var(--glow)); box-shadow: inset 0 -3px 0 var(--amber), 0 0 0 2px var(--amber); }
+/* ---------- Rows on a sheet (the credits). The rules card, chain list and mini tiles are hud-boards.css. ---------- */
 .sk-rules { color: var(--ink); }
 .sk-rules section + section { margin-top: 14px; }
 .sk-rules h3 { margin-bottom: 6px; font-family: var(--skin-font-display); font-weight: 800; font-size: 18px; color: var(--wood-ink); }
 .sk-rules ul { display: flex; flex-direction: column; gap: 6px; }
 .sk-rule-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px; background: rgba(231, 217, 184, 0.55); font-size: 15px; line-height: 1.35; }
 .sk-rule-row b { color: var(--wood-ink); }
-.sk-rule-icon { flex: none; display: grid; place-items: center; min-width: 40px; color: var(--wood-dark); }
-/* The chain on the clipboard's ruled paper: one line a word. */
-.sk-chain-list { display: flex; flex-direction: column; }
-.sk-chain-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; padding: 3px 4px 3px 10px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
-.sk-chain-word { display: flex; flex-wrap: wrap; gap: 2px; }
-.sk-chain-who { font-family: var(--skin-font-hand); font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
 
 /* Icon chips (the corner controls) and paper sheets. */
 /* A close or icon chip is a light peg (kit.css). */
@@ -318,9 +286,6 @@
    into it, the notes on a pinned sheet, the stats on small slates, the buttons along its bottom rail. */
 .sk-tally { margin-top: 40px; }
 .sk-tally-title { text-align: center; font-size: 26px; line-height: 1.1; }
-.sk-tally-line { margin-top: 2px; text-align: center; font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; color: var(--glow); text-shadow: 0 1px 0 rgba(30, 18, 8, 0.8); }
-.sk-tally-slate { display: flex; width: 100%; margin-top: 10px; }
-.sk-tally-winner { box-shadow: 0 0 0 2px var(--amber), 0 0 14px var(--glow); }
 /* A section of the results board: set off by a rule, part of the plate (not a pinned sheet). */
 .sk-tally-section { margin: 12px 0 0; padding-top: 10px; border-top: 3px solid rgba(40, 24, 10, 0.3); text-align: center; text-shadow: none; font-size: 17px; line-height: 1.35; }
 .sk-tally-longest { display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -340,129 +305,14 @@
 .sk-tally-actions > * { min-height: 46px; white-space: nowrap; }
 @media (max-width: 640px) { .sk-tally-actions > * { padding: 0 10px; font-size: 15px; } }
 
-/* The barn ledger: a chalk slate hung on two ropes at the top right, a row per sheep in standings order. */
-/* In a short window with many seats it gives up height and scrolls inside itself, so the column (top bar, board, word
-   bar) never grows past the screen and pushes the round tab and pegs off the top. It stays in the flow, exactly where
-   it was. The 3 px foot keeps the slate's own shadow inside the scrolling box. */
-.sk-ledger { position: relative; z-index: 30; width: 236px; margin: 70px 10px 0 auto; min-height: 0; padding-bottom: 3px; overflow: hidden auto; scrollbar-width: thin; }
-.sk-ledger .kit-slate { display: flex; width: 100%; }
-.sk-ledger-row { position: relative; gap: 6px; padding: 4px 2px; line-height: 1.1; color: var(--chalk); transition: opacity var(--t-feedback) var(--ease-out); }
-.sk-ledger-row[data-dim] { opacity: 0.5; }
-.sk-ledger-place { width: 14px; flex: none; text-align: center; font-family: var(--skin-font-display); font-weight: 800; font-size: 15px; opacity: 0.8; }
-.sk-ledger-who { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; }
-.sk-ledger-name { display: inline-flex; max-width: 100%; align-items: center; gap: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 3px; font-size: 18px; }
-.sk-ledger-badge { display: inline-flex; color: var(--chalk); opacity: 0.85; }
-.sk-ledger-sub { display: flex; gap: 5px; max-width: 100%; overflow: hidden; white-space: nowrap; padding-left: 3px; font-size: 13px; opacity: 0.7; }
-.sk-ledger-word { text-transform: uppercase; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; }
-.sk-ledger-ice { display: inline-flex; color: var(--ice-mid); }
-.sk-ledger-wool { margin-left: auto; display: inline-flex; }
-.sk-ledger-wool .kit-tally { margin-left: 0; }
-/* A phone: a strip of mini slates across the top. */
-/* Phones: a compact three-column grid (up to six sheep in two rows), not a squashed scroll row. */
-/* The row of names sits under the top bar and clears a notch at its sides as the bar does (plan file 14, change 5). */
-.sk-ledger-strip { position: relative; z-index: 30; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 6px; margin-top: 58px;
-  padding: 0 max(8px, env(safe-area-inset-right, 0px)) 6px max(8px, env(safe-area-inset-left, 0px)); }
-.sk-ledger-strip > li { min-width: 0; transition: opacity var(--t-feedback) var(--ease-out); }
-.sk-ledger-strip > li[data-dim] { opacity: 0.5; }
-.sk-ledger-strip .kit-slate-face { display: flex; align-items: center; gap: 4px; padding: 2px 6px; min-width: 0; font-family: var(--skin-font-hand); font-weight: 400; font-size: 15px; white-space: nowrap; }
-.sk-ledger-strip .kit-tally i { height: 11px; }
-.sk-ledger-strip .sk-ledger-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.sk-ledger-turn { box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.3), 0 0 0 2px var(--amber), 0 3px 0 rgba(40, 24, 10, 0.35); }
+/* The scoreboard (the barn ledger) is drawn by src/skin/components/hud-boards.css. */
 
 /* Over each head (PaintedGame's seat labels): the game's one name tag (kit/NamePlate: yours lantern, the speaker's
-   barn red), and over it, while a sheep speaks (or you type ahead), a cream wool speech bubble with the word. */
+   barn red), and over it, while a sheep speaks (or you type ahead), the speech bubble (components/hud-overlays.css). */
 .sk-head { display: flex; flex-direction: column; align-items: center; gap: 12px; pointer-events: none; }
-.sk-say {
-  --n: 6;
-  position: relative; display: inline-flex; align-items: center; min-height: 58px; min-width: 90px; max-width: min(86vw, 560px); padding: 6px 18px 8px;
-  border-radius: 4px; white-space: nowrap; background: var(--kit-stitch) 0 0 / 12px 12px, var(--wool);
-  outline: 2px dashed rgba(126, 36, 32, 0.32); outline-offset: -6px; box-shadow: 0 4px 0 var(--wool-edge), 0 7px 0 rgba(40, 24, 10, 0.22);
-  font: 800 38px/1 var(--skin-font-display); letter-spacing: 0.06em; color: var(--wood-ink);
-  animation: sk-say-in 200ms var(--ease-spring) both;
-}
-/* The tail: a stepped point under the bubble, toward the speaker's head. */
-.sk-say::before, .sk-say::after { content: ""; position: absolute; left: 50%; top: 100%; width: 20px; height: 13px; margin-left: -6px; clip-path: polygon(0 0, 100% 0, 15% 100%); }
-.sk-say::before { top: calc(100% + 3px); background: var(--wool-edge); }
-.sk-say::after { background: var(--wool); }
-.sk-say [data-first="ok"] { color: #B4681A; }
-.sk-say [data-first="bad"] { color: var(--berry); }
-.sk-say-ph { font: 400 26px/1 var(--skin-font-hand); letter-spacing: 0; color: var(--ink-soft); }
-.sk-say-caret { flex: none; width: 3px; height: 32px; margin-left: 4px; background: var(--berry); animation: sk-blink 1s steps(1) infinite; }
-.sk-say[data-wait] { opacity: 0.8; scale: 0.85; transform-origin: 50% 100%; }
-.sk-say.sk-tag-reject { color: var(--berry); animation: sk-say-shake 0.38s ease-in-out; }
 @keyframes sk-say-in { from { opacity: 0; transform: translateY(8px) scale(0.85); } }
-@keyframes sk-say-shake { 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
-:root.reduce-motion .sk-say { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-say { animation: none; } }
-@media (max-width: 640px) { .sk-say { font-size: 22px; min-height: 38px; padding: 5px 12px 6px; } .sk-say-ph { font-size: 18px; } .sk-head .np-plate { --np-h: 20; --np-font: 12; } }
+@media (max-width: 640px) { .sk-head .np-plate { --np-h: 20; --np-font: 12; } }
 
-/* The duel's fight card: two pinned slips and a carved VS. */
-.sk-vs-slip { flex-direction: column; gap: 0; padding: 6px 14px; font-family: var(--skin-font-display); font-weight: 700; font-size: 18px; }
-/* "farm sheep" and the bot's level: two tags side by side, a gap between them and no dot. */
-.sk-vs-tags { display: flex; gap: 8px; }
-.sk-vs-farm { font-family: var(--skin-font-hand); font-weight: 400; font-size: 13px; color: var(--ink-soft); text-transform: capitalize; }
-.sk-vs { font-family: var(--skin-font-display); font-weight: 800; font-size: 34px; color: var(--glow); text-shadow: 0 -2px 0 rgba(40, 24, 10, 0.8), 0 2px 0 rgba(40, 24, 10, 0.6); }
-.sk-run-plaque .kit-slate-face { min-height: 0; padding: 2px 12px; font-size: 24px; }
-.sk-run-plaque .kit-chalk-hand { font-size: 14px; }
-/* The round tab: tucked into the top-left corner in the ledger's dark wool, this round's twist stitched on under it. */
-.sk-hud-tab {
-  display: flex; flex-direction: column; align-items: stretch; margin: -8px 0 0 -8px; padding: 9px 16px 8px; border-radius: 0 0 4px 0;
-  background: var(--kit-stitch-dark) 0 0 / 12px 12px, var(--slate); outline: 1.5px dashed rgba(243, 240, 230, 0.4); outline-offset: -5px;
-  box-shadow: 0 3px 0 rgba(30, 18, 8, 0.35); color: var(--chalk);
-}
-.sk-hud-round { font: 400 17px/1.2 var(--skin-font-hand); white-space: nowrap; }
-.sk-hud-twist { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 2px dashed rgba(243, 240, 230, 0.25); color: var(--glow); animation: sk-twist-in 500ms var(--ease-out) both; }
-.sk-hud-twist-icon { display: inline-flex; flex: none; }
-.sk-hud-twist b { display: block; font: 800 19px/1.1 var(--skin-font-display); }
-.sk-hud-twist small { display: block; font: 400 14px/1.1 var(--skin-font-hand); color: var(--chalk); opacity: 0.8; }
-.sk-hud-twist[data-compact] b { font-size: 15px; }
-@keyframes sk-twist-in { from { opacity: 0; transform: translateY(-10px); } }
-:root.reduce-motion .sk-hud-twist { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-hud-twist { animation: none; } }
-/* The leave dialog and the sheets are clipboards; the chat keeps its ink card, squared. */
-/* With the keyboard up the sheet fits what can be seen (--vvh, the visual viewport): 120 px is the clipboard's frame
-   and title (plan file 14, change 4). */
-.sk-table-sheet .kit-clipboard-sheet { max-height: min(64vh, 560px, calc(var(--vvh, 100dvh) - 120px)); }
-.sk-chat-card { padding: 8px; border-radius: 3px; background: var(--ink); color: var(--button-text); }
-.sk-leave { max-width: 360px; }
-
-/* ---------- How to play (painted guide) ---------- */
-.sk-guide { display: flex; flex-direction: column; width: 100%; max-width: 36rem; max-height: 100%; background: var(--kit-paper-tex), var(--paper); color: var(--ink); }
-.sk-guide-head { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 6px 20px; border-bottom: 2px solid rgba(59, 48, 40, 0.14); }
-.sk-guide-snow { position: absolute; left: -6px; right: -4px; top: -12px; width: calc(100% + 10px); height: 26px; overflow: visible; pointer-events: none; }
-.sk-guide-head h2 { font-family: var(--skin-font-display); font-weight: 800; font-size: 26px; color: var(--ink); }
-.sk-guide-tabs { display: flex; gap: 6px; padding: 12px 16px 0; border-bottom: 3px solid var(--paper-edge); }
-.sk-guide-tabs button {
-  flex: 1; min-height: 40px; border-radius: 3px 3px 0 0; font-family: var(--skin-font-body); font-weight: 800; font-size: 14px;
-  color: var(--ink-soft); background: #EFE3C6; box-shadow: 2px -1px 0 rgba(59, 48, 40, 0.14);
-}
-.sk-guide-tabs button[aria-selected="true"] { color: var(--ink); background: var(--paper); translate: 0 3px; box-shadow: 2px -2px 0 rgba(59, 48, 40, 0.18); }
-.sk-guide-body { min-height: 0; flex: 1; overflow-y: auto; padding: 14px 16px 18px; }
-.sk-settings { max-width: 24rem; }
-.sk-settings-rows { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 6px 4px; }
-.sk-guide-basic { display: flex; align-items: center; gap: 14px; padding: 10px 4px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
-.sk-guide-basic h3, .sk-guide-basic dt { font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; color: var(--wood-ink); }
-.sk-guide-basic p, .sk-guide-basic dd { font-size: 15px; line-height: 1.4; color: var(--ink); }
-.sk-guide-art { flex: none; display: grid; place-items: center; width: 92px; min-height: 52px; color: var(--wood-dark); outline: 1px solid var(--ink-soft); outline-offset: -1px; box-shadow: 2px 2px 0 rgba(59, 48, 40, 0.12); }
-.sk-guide-faq { padding: 10px 4px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); }
-.sk-guide-faq summary { cursor: pointer; font-family: var(--skin-font-display); font-weight: 800; font-size: 16px; color: var(--wood-ink); }
-.sk-guide-faq p { margin-top: 6px; font-size: 15px; line-height: 1.4; }
-
-/* ---------- The first-time tips, in paper and wood (a classic component, painted here). The tutorial is no longer
-   one of these: the painted game has its own guide (src/skin/tour). ---------- */
-:root[data-skin="painted"] .coach-tip {
-  background: var(--paper) !important; color: var(--ink) !important; border: 3px solid var(--wood-dark) !important; border-radius: 3px !important;
-  box-shadow: inset 0 2px 0 #fff, 0 6px 0 rgba(40, 24, 10, 0.35), 0 14px 30px rgba(40, 24, 10, 0.4) !important;
-}
-:root[data-skin="painted"] .coach-tip-label {
-  font-family: var(--skin-font-hand) !important; font-size: 15px !important; font-weight: 400 !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--ink-soft) !important;
-}
-:root[data-skin="painted"] .coach-tip-text { color: var(--ink) !important; font-size: 15px !important; line-height: 1.45 !important; }
-:root[data-skin="painted"] .coach-tip-btn {
-  font-family: var(--skin-font-display) !important; font-weight: 800 !important; border-radius: 3px !important; color: var(--button-text) !important;
-  box-shadow: inset 0 -4px 0 rgba(40, 24, 10, 0.35), inset 0 2px 0 rgba(255, 240, 210, 0.3) !important;
-  background: var(--wood-dark) !important;
-}
 
 /* ---------- Table setup: a paper card under a snowy wooden header ---------- */
 .sk-setup { overflow: visible; }
@@ -709,11 +559,6 @@
 @media (prefers-reduced-motion: reduce) { .sk-jump, .sk-wordblast { display: none; } }
 
 
-/* A phone on its side gets the phone layout (usePhoneLayout in device.ts) in a window wider than 640 px. The row of
-   names runs five across there, so ten seats are two rows and the word bar stays on screen. */
-@media (max-height: 500px) and (pointer: coarse) and (min-width: 641px) {
-  .sk-ledger-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-}
 
 /* ---------- Rooms and the lobby (classic components, V6 6.5): a panel of planks, paper fields, brass and wood buttons ---------- */
 .sk-rooms main { color: var(--button-text); font-family: var(--skin-font-body); }
@@ -762,11 +607,6 @@
 .sk-rooms [role="note"] { border: 0; border-radius: 0; color: var(--ink); background: var(--kit-paper-tex), var(--paper); box-shadow: 2px 3px 0 rgba(40, 24, 10, 0.35); }
 .sk-rooms [role="note"] [class*="text-amber"], .sk-rooms [role="note"] [class*="text-white"] { color: var(--ink); }
 
-/* Settings' save code (plan v7 Part 6): a panel row that opens downwards when pasting. */
-:root[data-skin="painted"] .sk-save-row { flex-direction: column; align-items: stretch; gap: 2px; padding-block: 8px; }
-.sk-save-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.sk-save-label { font-family: var(--skin-font-hand); font-size: 19px; }
-
 /* The sound menu (SoundMenu.tsx): off the speaker button, a dark wool panel, a row each for the game's sounds and the
    music, each with a lever and a rope slider. */
 .sk-sound { position: relative; }
@@ -787,39 +627,8 @@
 @keyframes sk-podium-in { from { opacity: 0; } }
 /* The scoreboard: dark and see-through over the podium, white text, after a 5 s dance; hideable for a screenshot. */
 .sk-final-wrap { position: fixed; inset: 0; z-index: 45; display: flex; align-items: center; justify-content: flex-end; padding: 16px max(16px, 3vw); pointer-events: none; }
-.sk-final {
-  position: relative; display: flex; flex-direction: column; gap: 12px; width: min(420px, 100%); max-height: calc(100% - 16px); overflow-y: auto; padding: 22px 22px 18px;
-  pointer-events: auto; border-radius: 4px; color: #FFFFFF; background: rgba(14, 10, 8, 0.66); backdrop-filter: blur(6px);
-  outline: 1.5px dashed rgba(255, 255, 255, 0.22); outline-offset: -7px; animation: sk-final-in 450ms var(--ease-out) both;
-}
-@keyframes sk-final-in { from { opacity: 0; transform: translateY(14px); } }
-.sk-final-title { margin: 0 28px 0 0; font: 800 26px/1.15 var(--skin-font-display); text-wrap: balance; }
-.sk-final-close { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 4px; background: rgba(255, 255, 255, 0.12); color: #fff; cursor: pointer; }
-.sk-final-close:hover { background: rgba(255, 255, 255, 0.22); }
-.sk-final-close:focus-visible, .sk-final-show:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
-.sk-final-rows { display: flex; flex-direction: column; }
-.sk-final-rows .sk-ledger-row { color: #fff; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.sk-final-note { margin: 0; font: 400 17px/1.3 var(--skin-font-hand); color: rgba(255, 255, 255, 0.82); }
-.sk-final-stats { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
-.sk-final-stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 4px; background: rgba(255, 255, 255, 0.07); min-width: 0; }
-.sk-final-stat b { font: 800 26px/1 var(--skin-font-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sk-final-stat span { font: 400 14px/1.1 var(--skin-font-hand); color: rgba(255, 255, 255, 0.72); }
-.sk-final-stat[data-beat] b { color: #F4D27A; }
-.sk-final-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.sk-final-actions > * { white-space: nowrap; } /* "Back to the farm" broke onto two lines on a phone */
-.sk-final-show {
-  position: fixed; z-index: 45; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); padding: 10px 16px;
-  border: 0; border-radius: 4px; background: rgba(14, 10, 8, 0.66); color: #fff; font: 700 15px/1 var(--skin-font-body); cursor: pointer; backdrop-filter: blur(6px);
-}
-@media (max-width: 640px) {
-  .sk-final-wrap { align-items: flex-end; justify-content: center; padding: 10px; }
-  .sk-final { max-height: 52vh; padding: 16px 16px 14px; gap: 10px; }
-  .sk-final-rows { display: none; } /* the podium already shows every place on a phone */
-  .sk-final-stats { grid-template-columns: 1fr 1fr; } /* side by side: one a row pushed the buttons out of sight */
-  .sk-final-title { font-size: 21px; }
-}
-:root.reduce-motion .sk-podium, :root.reduce-motion .sk-final { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-podium, .sk-final { animation: none; } }
+:root.reduce-motion .sk-podium { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-podium { animation: none; } }
 
 /* Home's farm (FarmBackdrop): over a soft sky until the farm and the land round it are built, then it fades in. */
 .sk-farm-fade { opacity: 0; transition: opacity 700ms ease-out; }

@@ -2350,3 +2350,27 @@ src/engine/__tests__/announce.test.ts; fences re-pinned). Rooms get them from th
   `GameState.stuck`), never that letter or a corner letter (X, Z, Q, J, Y, K), before the next fuse; any word played
   starts the count again; a pass does not. Normal games only. The screen says "New letter: D" with why. The reset draws
   from the game's random stream, so seeded games differ after one.
+
+## The game's UI in the current look; sheep never shorn bare (Brian, 2026-11-23)
+"address all of the outdated ui. from that screenshot u sent me alone, i can see the ai generated wood textures on the
+popup for new letter d, the tip is just a plain white card, the buttons in the corner, etc. theres probably more. go do a
+run through" and "make it so that the sheep cant go naked".
+- The modern kit, src/skin/kit/modern.tsx + modern.css: `Dialog` (the pen's board: felt, frame and brackets, snow cap with
+  icicles, Fraunces title, square close slab; `closeLabel`), `Scrim`, `Slab` (Home's slab: wool, lantern for the one main
+  action, night), `IconSlab` and `Corner` (Home's square corner buttons), `InkCard` (small dark card, a coloured bar down
+  its left: lantern, frost, barn, pasture), `Tag`. Every piece brings Home's tokens (`hm rc`). New UI is built from these
+  and the pen's recipes, never from the old farm kit (Board, Clipboard, Slate, Paper, Peg, WoodButton, ClothButton, Brass,
+  Knit), which stays only where Brian approved it in its own style (the Trading Post, the fair machine, the profile room).
+- Converted: Notice (every moment over the table and in the dream: InkCard), the game's corner buttons, the round tab and
+  practice count (screens/game-hud.css), the duel's names, the sheets and leave dialog, the practice results and the
+  win scoreboard (Dialog; "You are the last sheep standing!", not "You is"); the scoreboard, the between-rounds board, How
+  to play's rules and the chain (components/hud-boards.css); the tutorial card, the alarm band, the round's twist sign, the
+  word bar's small words and buttons, the speech bubble and its placeholder, the message slip (components/hud-overlays.css);
+  the guide family: How to play on Home, Settings and its save code, the first-visit onboarding (components/hud-guide.css;
+  no `sk-guide` remains). The first-time tips are the painted `GameTips` (same tips and seen-store as the fenced classic
+  CoachTips, label without the middle dot). No hand font, plank, nail, paper, stitching or dashed outline in any of it.
+- Not converted, said to Brian: Credits (opens from Settings), the dream's word bar (its own approved kit), the account
+  panel when signed in and the email sign-in steps (not reachable without accounts here).
+- `coatLevel` (table/Sheep.tsx) never goes under 1: a sheep keeps a thin coat to its last wool ball; the wool balls on its
+  tag say what is left.
+- The kit audit's gradient budget is 2 (src/skin/audit/budget.json), down from 4: the old mini tiles' gradients went.

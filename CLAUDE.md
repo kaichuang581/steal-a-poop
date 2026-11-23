@@ -919,6 +919,9 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   (d) The odds are shown before every opening and are the real odds. The reveal shows the result honestly: no fake
       near-misses, no animation that suggests a better result than the one rolled.
   (e) No countdown timers, push notifications or "last chance" wording anywhere in the Trading Post.
+- Shorter first intro (approved by Brian, 2026-11-23): a game's round-1 intro is FIRST_INTRO_MS (1.2 s, was INTRO_MS 2.5 s)
+  in src/engine/game.ts; later rounds keep INTRO_MS. The painted table settles in (skin.css .sk-settle-in) as the loading
+  screen lifts, so the hand-over moves and the first fuse is lit right after. Rooms get it once the server is deployed.
 - Trading Post v2 as built, T0 to T3 (2026-11-12; T4, payments, is not approved and not built). Brian asked for a near-miss
   effect on the sacks; it was not built (plan decision 8.1, guardrail (d)): don't add one. Pure rules: src/skin/shop/sacks.ts
   (odds, pity, refunds, the pool: the one source the roll and the screen read), roll.ts (`rollSack`, crypto randomness),
@@ -2383,3 +2386,42 @@ night family in src/skin/styles/tokens.css is now deeper and richer (night #131D
 night-deep #0E152C, ink #090E20, frost #BBCCF0, dusk #4A54B8); the orange accent is unchanged. Hard-coded copies of the
 old blues were routed through tokens (--hm-disabled, --hm-disabled-lip are new), so a palette change is one place. The
 loading screen keeps its own colour (it must stand alone).
+- Home's cards, polished (Brian's plan of 2026-11-23, "Home's cards (Join party, Practice), polish"). SetupSheet.tsx and the
+  `.hm-setup*` / `.sk-code*` rules in home/home.css draw Set the table (Custom game), Practice and Join party. ONE slant: the
+  card is skewed by `--card-lean` (-11deg, -6deg on a phone; never `--lean`, the panel's edge) and nothing inside is skewed again; only text and icons are stood
+  upright (`.hm-setup-up`, about their own middle). So every row, choice, code tile and the action lean by the card's angle
+  and their left edges lie on one line; never add a skew or a counter-skewed container inside the card. Rows are a grid
+  (label column 116, controls, hint under the controls); a card under 470 wide stacks the label over the controls.
+  Its icons are the plan's grids (KeyIcon, BotIcon, ClockArt, TreeIcon, StopwatchIcon, GateIcon). Queue's Casual and Ranked
+  cards are PlayChooser, a different component: the plan said they share this one, they do not, and they were not changed.
+  Deviations: empty code tiles have an --ink face (the plan's --night-deep is the row's face and they vanished); choices and
+  the close button reach 44 px with invisible margins; Start run is focused on opening (Enter starts it) but its ring
+  shows only after keyboard use; French "Speed run" is "Contre la montre".
+- The profile and How ranks work, rebuilt (Brian, 2026-11-23: "ultra refine this, needs a ton of work, dont be generic";
+  his profile plan). Both are Boards in the current look (profile/profile.css, `pf-*`; Profile.tsx, FriendsSection.tsx,
+  ranked/ProfileRank.tsx, ranked/RankGuide.tsx; the plan's pixel art in profile/art.tsx, `SectionHead` in profile/parts.tsx).
+  No wood, paper, rope, dashes, gingham, round shapes, hand font or capital labels; the old `sk-prof*`, `sk-fr*` and
+  `sk-rg*` rules are deleted. The card has its own `--u` (fit to an 800-high screen): at 1280 x 800 and up nothing
+  scrolls, with three friends and a request (the friends list scrolls inside itself after three rows). Where the plan's
+  letter was changed, and why: (1) Practice is under the numbers and Friends under Ranked (the plan had them the other way;
+  the left column was 40 too tall and would have been 130 with three friends); one column keeps the plan's order. (2) No
+  middle dots: the plan wrote " · " in seven lines; Brian's rule of 2026-11-14 and typeRatchets.test.ts forbid them, so
+  they are commas. Ask him before changing either back. (3) The guide's rank icons are 24, not 32: the badge is 24 rows
+  and 32 blurred it. (4) The ranked record ("3 wins in 9 games, best Titan III") is kept, beside the rank's name. (5) The
+  footer note sits at the foot of the left column. Without a game server players never read "server": ranked says it is
+  not open yet, and a developer build shows a "Server off" tag. The XP standing card ("Your standing") is gone; signed
+  in, the top-100 list says where you are.
+- The profile and How ranks work, polish v2 (Brian, 2026-11-23, of v1: "bland", "poorly placed", "crammed rather than
+  fitting together"; his profile plan v2, which wins over v1 where they differ). Every section is one raised card with
+  its title inside (`Section` and `IconTile` in profile/parts.tsx), Home's colours in the icon tiles, the ranks' own
+  colours (`--rank-*` in profile.css), a night band behind the name, the longest word in letter tiles (`LetterTiles`),
+  the ranks on a staircase with locked ranks as silhouettes (`TierShape`), the rating above the practice grid, and the
+  rules as coloured words, tags and chips. The name is a title with "Rename" (Save and Cancel while editing; the same
+  save). Both columns end level (the last card of each column grows; the friends list has `contain: size` so it fills
+  what is left and scrolls inside). The card's scale is its own, fit to a 985-high screen: nothing scrolls at 1270 x 900,
+  1280 x 800, 1440 x 900 and 1920 x 1080. Middle dots: the v2 plan asked for them back on these two cards ("a middle dot,
+  not a comma"), so typeRatchets.test.ts allows them in Profile.tsx, FriendsSection.tsx, ProfileRank.tsx and
+  RankGuide.tsx only; the rule of 2026-11-14 stands everywhere else. Deviations: the rank icons in the guide stay 24
+  (32 blurs a 24-row badge); the French Points rule is written in RankGuide.tsx (its coloured words cannot be translated
+  word by word); French "Quick Game wins", "sheep in a night" and the streak label are shortened to fit one line; the
+  bundle limit was raised 2 kB (scripts/check-bundle-size.mjs).

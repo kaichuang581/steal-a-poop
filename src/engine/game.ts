@@ -1,6 +1,6 @@
 import { PERSONALITIES, bankThresholdFor } from './bots';
 import { hasPlayableWord } from './validation';
-import { INTRO_MS, MAX_PLAYERS, MIN_PLAYERS } from './constants';
+import { FIRST_INTRO_MS, MAX_PLAYERS, MIN_PLAYERS } from './constants';
 import { resolveSettings, startingWool } from './settings';
 import type { GameSettings } from './settings';
 import type { Dictionary } from './dictionary';
@@ -107,7 +107,7 @@ export function createGame(setup: GameSetup, dict: Dictionary): GameState {
     used: [],
     players,
     turn: null,
-    introEndsAt: setup.now + INTRO_MS,
+    introEndsAt: setup.now + FIRST_INTRO_MS,
     trap: null,
     history: [],
     events: [{ id: 1, at: setup.now, kind: 'roundStart', seat: null, text: 'Round 1', amount: 0 }],

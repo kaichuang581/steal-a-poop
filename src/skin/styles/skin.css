@@ -384,8 +384,15 @@
   35% { opacity: 1; }
   100% { transform: scale(1); filter: brightness(1); opacity: 1; }
 }
-:root.reduce-motion .sk-swoop-out, :root.reduce-motion .sk-swoop-in { animation: none; }
-@media (prefers-reduced-motion: reduce) { .sk-swoop-out, .sk-swoop-in { animation: none; } }
+/* A game coming out from behind the loading screen: the camera eases in from a little closer and lantern-bright,
+   under the screen's fade, so the hand-over moves instead of cutting to a still table. */
+.sk-settle-in { animation: sk-settle-in 1400ms cubic-bezier(0.3, 0.1, 0.25, 1) backwards; transform-origin: 50% 55%; }
+@keyframes sk-settle-in {
+  0% { transform: scale(1.12); filter: brightness(1.35) sepia(0.2); }
+  100% { transform: scale(1); filter: none; }
+}
+:root.reduce-motion .sk-swoop-out, :root.reduce-motion .sk-swoop-in, :root.reduce-motion .sk-settle-in { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-swoop-out, .sk-swoop-in, .sk-settle-in { animation: none; } }
 
 /* The loading screen (BarnDoors.tsx; docs/landing/LANDING-PLAN.md): Home's night, a few slow flakes, the name as a
    dotted line, and a red yarn ball that lays one strand of yarn along it as the game loads. The strand is the
@@ -1021,101 +1028,16 @@
 /* The profile: the Trading Post's room (the plank wall, the hung sign, paper and slate), a little narrower. A card pinned
    to the wall says who you are, a slate where you stand; then your numbers on six slips, your practice bests chalked by
    bot and starting clock, and the top 100 on a ruled sheet. */
-.sk-prof.sk-room { width: min(940px, 100%); }
-.sk-prof-content { display: flex; flex-direction: column; gap: 18px; padding-bottom: 22px; }
-.sk-prof-content > section { display: flex; flex-direction: column; gap: 10px; }
 /* A section's label on its board, and a line beside it saying what the numbers are. */
-.sk-prof-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; }
-.sk-prof-head .sk-room-hint { margin: 0; flex: 1; min-width: 12em; }
 /* A new player's line under the heading, in the hand face (plan file 11, change 2). */
-.sk-prof-empty { margin: 0; font-family: var(--skin-font-hand); }
-.sk-prof-top { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; align-items: stretch; margin-top: 6px; }
 /* The card. */
-.sk-prof-card { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; }
-.sk-prof-who { display: flex; align-items: center; gap: 14px; }
-.sk-prof-avatar { flex: none; width: 80px; height: 80px; display: inline-grid; place-items: center; cursor: pointer; }
-.sk-prof-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.sk-prof-name { display: flex; flex-direction: column; gap: 3px; }
-.sk-prof-name-row { display: flex; align-items: center; gap: 8px; }
-.sk-prof-name-input { flex: 1; min-width: 0; min-height: 40px; padding: 4px 10px; font-family: var(--skin-font-display); font-weight: 800; font-size: 21px; color: var(--ink); background: #fffaf0; border: 0; outline: 2px solid var(--paper-edge); outline-offset: -2px; box-shadow: inset 0 2px 0 rgba(59, 48, 40, 0.1); }
-.sk-prof-name-input:focus-visible { outline: 3px solid var(--amber); outline-offset: 0; }
-.sk-prof-msg { font-family: var(--skin-font-hand); font-size: 16px; color: var(--ink-soft); }
-.sk-prof-msg[data-bad] { color: var(--coral-dark); }
-.sk-prof-level { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
-.sk-prof-level .sk-level-badge { font-family: var(--skin-font-display); font-weight: 800; color: var(--wood-ink); }
-.sk-prof-xp { font-family: var(--skin-font-hand); font-size: 17px; line-height: 1.2; color: var(--ink-soft); }
-.sk-prof-band { display: block; }
-.sk-prof-acts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.sk-prof-acts .sk-prof-xp { margin-right: auto; }
 /* The slate. */
-.sk-prof-rank { display: flex; align-items: stretch; }
-.sk-prof-rank .kit-slate-face { flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 16px 18px; }
-.sk-prof-rank .kit-slate-face p { margin: 0; }
-.sk-prof-rank .kit-chalk-hand { font-size: 17px; line-height: 1.25; color: var(--chalk); }
-.sk-prof-rank-label { opacity: 0.75; }
-.sk-prof-rank-big { font-family: var(--skin-font-display); font-weight: 800; font-size: clamp(34px, 5vw, 48px); line-height: 1.05; color: var(--glow); }
-.sk-prof-rank-big[data-none] { font-size: clamp(28px, 4vw, 36px); color: var(--chalk); }
 /* The slips: a label, a number, a line under it. Always six. */
-.sk-prof-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 14px; }
-.sk-prof-stat { display: flex; flex-direction: column; gap: 1px; padding: 10px 14px 12px; container-type: inline-size; }
-.sk-prof-stat-label { font-family: var(--skin-font-body); font-size: 12px; font-weight: 800; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
-.sk-prof-stat-value { font-family: var(--skin-font-display); font-weight: 800; font-size: 32px; line-height: 1.1; color: var(--wood-ink); white-space: nowrap; }
 /* A long word is set smaller so it stays on one line: a wide capital of this face (M, W, O) is about 0.9 of its size across. */
-.sk-prof-stat-value[data-long] { font-size: clamp(11px, calc(100cqi / (var(--n) * 0.92)), 32px); line-height: 35px; white-space: normal; overflow-wrap: anywhere; }
-.sk-prof-stat-value[data-none], .sk-prof-rating-value[data-none] { color: var(--ink-soft); }
-.sk-prof-stat-note { font-family: var(--skin-font-hand); font-size: 16px; line-height: 1.2; color: var(--ink-soft); }
 /* Practice: the rating on a card, every setting's best chalked beside it. */
-.sk-prof-drill { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 9fr); gap: 18px; align-items: stretch; }
-.sk-prof-rating { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 12px 16px 14px; }
-.sk-prof-rating-value { font-family: var(--skin-font-display); font-weight: 800; font-size: 54px; line-height: 1; color: var(--wood-ink); }
-.sk-prof-rating-run { font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; line-height: 1.25; color: var(--ink); }
-.sk-prof-rating .sk-prof-stat-note { margin-top: 6px; }
-.sk-prof-sheet { display: flex; align-items: stretch; }
-.sk-prof-sheet .kit-slate-face { flex: 1; display: flex; padding: 8px 12px 10px; }
-.sk-prof-sheet table { flex: 1; width: 100%; border-collapse: collapse; table-layout: fixed; color: var(--chalk); }
-.sk-prof-sheet th { padding: 6px 8px; font-family: var(--skin-font-hand); font-weight: 400; font-size: 18px; line-height: 1.1; text-align: center; white-space: nowrap; }
-.sk-prof-sheet th i { margin-left: 6px; font-style: normal; font-size: 15px; opacity: 0.65; }
-.sk-prof-sheet thead th { border-bottom: 2px solid rgba(243, 240, 230, 0.45); }
-.sk-prof-sheet tbody th { width: 34%; text-align: left; border-right: 2px solid rgba(243, 240, 230, 0.45); }
-.sk-prof-bot { display: flex; align-items: center; gap: 8px; }
-.sk-prof-bot svg { flex: none; }
-.sk-prof-bot > span { display: flex; align-items: baseline; flex-wrap: wrap; }
-.sk-prof-sheet td { padding: 7px 4px; text-align: center; border-top: 1px dashed rgba(243, 240, 230, 0.22); }
-.sk-prof-sheet tbody tr:first-child td { border-top: 0; }
-.sk-prof-sheet td > span { display: inline-flex; flex-direction: column; align-items: center; min-width: 62px; padding: 2px 8px 3px; }
-.sk-prof-sheet td b { font-family: var(--skin-font-display); font-weight: 800; font-size: 26px; line-height: 1.05; }
-.sk-prof-sheet td small { font-family: var(--skin-font-hand); font-size: 14px; line-height: 1.1; opacity: 0.75; }
-.sk-prof-sheet td[data-none] b { opacity: 0.35; }
-.sk-prof-sheet td[data-top] b { color: var(--glow); }
-.sk-prof-sheet td[data-top] small { opacity: 1; color: var(--glow); }
 /* The top 100. */
-.sk-prof-board-sheet { padding: 4px 0; }
-.sk-prof-board-list { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow-y: auto; }
-.sk-prof-board-row { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) auto 7.5em; align-items: baseline; gap: 10px; padding: 6px 16px; border-bottom: 1px solid rgba(59, 48, 40, 0.14); font-family: var(--skin-font-hand); font-size: 18px; color: var(--ink); }
-.sk-prof-board-row:last-child { border-bottom: 0; }
-.sk-prof-board-row[data-you] { background: rgba(126, 168, 92, 0.24); }
-.sk-prof-board-place { font-family: var(--skin-font-display); font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; color: var(--wood-ink); }
-.sk-prof-board-name { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--skin-font-display); font-weight: 800; font-size: 17px; }
-.sk-prof-board-level { font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
-.sk-prof-board-xp { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 760px) {
-  .sk-prof-content { gap: 16px; }
-  .sk-prof-top, .sk-prof-drill { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .sk-prof-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; }
-  .sk-prof-stat { padding: 9px 12px 11px; }
-  .sk-prof-stat-value { font-size: 28px; }
-  .sk-prof-stat-value[data-long] { font-size: clamp(11px, calc(100cqi / (var(--n) * 0.92)), 28px); line-height: 31px; }
-  .sk-prof-rating-value { font-size: 46px; }
-  .sk-prof-sheet .kit-slate-face { padding: 6px 6px 8px; }
-  .sk-prof-sheet th { padding: 6px 4px; font-size: 17px; }
-  .sk-prof-sheet tbody th { width: 38%; }
-  .sk-prof-bot { gap: 6px; }
   /* On a phone a bot's weight goes under its name: beside it, it ran into the first column. */
-  .sk-prof-bot > span { flex-direction: column; align-items: flex-start; }
-  .sk-prof-bot > span i { margin-left: 0; }
-  .sk-prof-sheet td > span { min-width: 54px; padding: 2px 4px 3px; }
-  .sk-prof-board-row { grid-template-columns: 2.4em minmax(0, 1fr) 6em; padding: 6px 10px; }
-  .sk-prof-board-level { display: none; }
 }
 /* Frost in the last three seconds: ice creeping in from all four edges, thicker as the fuse burns down. */
 .sk-frost { position: fixed; inset: 0; z-index: 35; pointer-events: none; --t: calc(var(--frost) * 7vmin); }

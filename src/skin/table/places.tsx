@@ -49,10 +49,10 @@ function StreakPosts({ days }: { days: boolean[] }) {
 }
 
 /**
- * The tutorial's guide: a sheepdog sitting by the back door, wagging, pointing at the heap with its nose. Home sits the
+ * The tutorial's guide: a sheepdog standing by the back door, wagging, looking at the heap. Home stands the
  * same dog out in the pasture, minding the flock (`at`, `yaw`, `scale`).
  */
-export function Sheepdog({ reduced, at = [2.25, 0, BARN.maxZ - 1.2], yaw = Math.PI + 0.6, scale = 1 }: { reduced: boolean; at?: readonly [number, number, number]; yaw?: number; scale?: number }) {
+export function Sheepdog({ reduced, at = [2.0, 0, BARN.maxZ - 1.2], yaw = Math.PI + 0.6, scale = 1 }: { reduced: boolean; at?: readonly [number, number, number]; yaw?: number; scale?: number }) {
   const m = useMemo(() => sheepdogModel(), []);
   const mat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true })), []);
   const tail = useRef<Mesh>(null);
@@ -62,14 +62,16 @@ export function Sheepdog({ reduced, at = [2.25, 0, BARN.maxZ - 1.2], yaw = Math.
     if (reduced) return;
     const t = clock.elapsedTime;
     if (tail.current) tail.current.rotation.y = Math.sin(t * 9) * 0.5;
-    if (head.current) head.current.rotation.x = 0.15 + Math.sin(t * 0.7) * 0.05;
+    if (head.current) head.current.rotation.x = Math.sin(t * 0.7) * 0.05;
   });
   return (
     <group ref={root} position={[at[0], at[1], at[2]]} rotation={[0, yaw, 0]} scale={scale}>
       <mesh geometry={m.body.geo} position={m.body.pivot} material={mat} castShadow />
-      <mesh ref={head} geometry={withHat(m.head.geo)} position={m.head.pivot} material={mat} castShadow />
+      <mesh ref={head} geometry={withHat(m.head.geo)} position={m.head.pivot} material={mat} castShadow>
+        {/* The ears ride on the head, so they nod with it. */}
+        {m.ears.map((p, i) => <mesh key={i} geometry={p.geo} position={[p.pivot[0] - m.head.pivot[0], p.pivot[1] - m.head.pivot[1], p.pivot[2] - m.head.pivot[2]]} material={mat} />)}
+      </mesh>
       <mesh ref={tail} geometry={m.tail.geo} position={m.tail.pivot} material={mat} castShadow />
-      {m.ears.map((p, i) => <mesh key={i} geometry={p.geo} position={p.pivot} material={mat} />)}
       {m.legs.map((p, i) => <mesh key={i} geometry={p.geo} position={p.pivot} material={mat} castShadow />)}
     </group>
   );

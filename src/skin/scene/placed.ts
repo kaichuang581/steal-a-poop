@@ -91,8 +91,9 @@ export const FEET = {
   chicken: { across: 0.32, along: 0.24, tall: 0.52 },
 } as const;
 export type Species = keyof typeof FEET;
-/** The sheepdog sits: the rectangle round its body and paws, and the top of its body (`sheepdogModel()`), measured the same day. */
-export const SHEEPDOG_SITS = { across: 0.32, along: 0.64, tall: 0.64 } as const;
+/** The sheepdog stands (Brian's sheet, 2026-11-23): the rectangle round it from ear tip to ear tip and nose to tail, and the
+ *  top of its ears (`sheepdogModel()`). The name is from when it sat. */
+export const SHEEPDOG_SITS = { across: 0.44, along: 0.92, tall: 0.8 } as const;
 /** The sheep at coat level 3 (Home's doorway sheep): the top of `wools.3`. Its hooves are the same. */
 export const SHEEP_TALL_AT_3 = 0.68;
 
@@ -203,10 +204,10 @@ function table(): Placed[] {
   out.push(letterBoard('table', [HEAP[0], BARN.beamY - 0.15, 1.0], BARN.beamY, 'beam', 'the default hook of LetterBoard in table/BarnTable.tsx',
     { file: 'src/skin/table/BarnTable.tsx', text: 'export function LetterBoard({ letter, isTrap, reduced, beamY = BARN.beamY, hook = [HEAP[0], BARN.beamY - 0.15, 1.0] }: {' }));
   out.push({
-    id: 'table:sheepdog', scene: 'table', position: [2.25, 0, BARN.maxZ - 1.2], yaw: Math.PI + 0.6,
+    id: 'table:sheepdog', scene: 'table', position: [2.0, 0, BARN.maxZ - 1.2], yaw: Math.PI + 0.6,
     footprint: [SHEEPDOG_SITS.across, SHEEPDOG_SITS.along], height: SHEEPDOG_SITS.tall, support: 'floor',
     from: 'Sheepdog in table/places.tsx (the tutorial)',
-    copied: { file: 'src/skin/table/places.tsx', text: 'export function Sheepdog({ reduced, at = [2.25, 0, BARN.maxZ - 1.2], yaw = Math.PI + 0.6, scale = 1 }: { reduced: boolean; at?: readonly [number, number, number]; yaw?: number; scale?: number }) {' },
+    copied: { file: 'src/skin/table/places.tsx', text: 'export function Sheepdog({ reduced, at = [2.0, 0, BARN.maxZ - 1.2], yaw = Math.PI + 0.6, scale = 1 }: { reduced: boolean; at?: readonly [number, number, number]; yaw?: number; scale?: number }) {' },
   });
   // The ring, for every table size: each seat at rest, the same seat stepped in on its turn, and the bomb at its hooves.
   const sheep = stands('sheep', SHEEP_SCALE);

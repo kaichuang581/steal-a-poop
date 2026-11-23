@@ -22,6 +22,10 @@ const CSS_COLOUR_LIMIT = 275;
  *  (Brian, 2026-11-14). */
 const MIDDLE_DOT_LIMIT = 0;
 
+/** Brian's profile plan v2 (2026-11-23) asks for the middle dot back on these two cards ("a middle dot, not a comma",
+ *  F3), overriding his rule of 2026-11-14 there and only there. */
+const DOTS_ALLOWED = new Set(['src/skin/profile/Profile.tsx', 'src/skin/profile/FriendsSection.tsx', 'src/skin/ranked/ProfileRank.tsx', 'src/skin/ranked/RankGuide.tsx']);
+
 /** Dev-only pages: never shown to a player. */
 const DEV_ONLY = new Set(['src/skin/table/DevStats.tsx', 'src/skin/table/SheepPreview.tsx', 'src/skin/kit/KitPreview.tsx']);
 
@@ -83,7 +87,7 @@ function cssColours(): Set<string> {
 function middleDots(): string[] {
   const found: string[] = [];
   for (const f of code) {
-    if (DEV_ONLY.has(f)) continue;
+    if (DEV_ONLY.has(f) || DOTS_ALLOWED.has(f)) continue;
     readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
       if (!line.includes('\u00b7')) return;
       if (/^\s*(\/\/|\/\*|\*)/.test(line)) return;

@@ -2,6 +2,14 @@
 
 All user-visible changes, newest first.
 
+## 0.9.7
+
+- Your profile and How ranks work, polished: every section a card with its title inside, coloured icon tiles, a night scene behind your name, your longest word in letter tiles, the ranks on a staircase, the practice rating above its grid, and the rules as tags and chips. Rename your name from a title, not a form.
+- Your profile and How ranks work, rebuilt in the game's current look: one card with two columns that fits without scrolling, your rank on a ladder from Wood to Zenith, your numbers as tiles, a friend code in two easy groups, practice bests with the rating's sum written out, and ranks as tiles with short loss tags. In English and French.
+- Into a game without the wait: the loading screen lifts onto the table easing in from a warm close-up, and the first fuse drops as it settles, instead of a still, empty table for two and a half seconds.
+- The sheepdog is rebuilt from Brian's six-view sheet: a charcoal collie standing four-square, white blaze, muzzle, chest, socks and tail tip, a red bandana, folded ears. The tutorial's picture of it is baked again.
+- Home's cards (Set the table, Practice, Join party) polished: one slant for everything, labels and hints lined up, the main button inside the card and readable when it cannot be pressed, pixel icons throughout (a key, a gate, a clock, a bot, trees that grow with the bot, a stopwatch), code tiles that show where to type, with a caret and a shake for a refused code, and clearer wording in English and French.
+
 ## 0.9.6
 
 - The lobby and queue screen is clearer and lighter: the pen is the screen, with every player standing on their own straw mat; a slim panel says what is happening, who is here and what game it will be; the chat is a card that folds away; one button under the pen says why it can or cannot start.

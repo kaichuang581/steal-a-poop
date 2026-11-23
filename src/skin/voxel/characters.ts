@@ -1,6 +1,6 @@
 import { BufferGeometry } from 'three';
 import { buildGeometry } from './mesher';
-import { IRIS, PUPIL, T, WHITE, WOLF_EYE } from './palette';
+import { T, WHITE, WOLF_EYE } from './palette';
 import { shade, shadeRaw } from './paint';
 import type { Tone } from './palette';
 import { box, ellipsoid, Grid, hash3, helix, line, norm, ring, rng, taperedBox } from './primitives';
@@ -112,71 +112,82 @@ export function wolfEyes(): BufferGeometry {
 export interface SheepdogModel { body: Part; head: Part; tail: Part; ears: [Part, Part]; legs: [Part, Part, Part, Part] }
 let dog: SheepdogModel | null = null;
 
-/** Black-and-white collie with a red bandana, ~0.8 m long, built sitting upright; front is +z. */
+/**
+ * The sheepdog, cell for cell from Brian's six-view sheet (2026-11-23): a charcoal collie standing four-square, 7 cells
+ * wide, a white blaze, muzzle, chest, socks and tail tip, a red bandana knotted at the nape with its point on the chest,
+ * ears up and folded over at the tips, and the tail curling up behind. Cells are CHAR (0.04 m); front is +z.
+ */
 export function sheepdogModel(): SheepdogModel {
   if (dog) return dog;
-  const black = tone(T.face, 31), white = tone(T.wool, 33);
-  const above0: (p: Paint) => Paint = (p) => (x, y, z) => (y < 0 ? null : p(x, y, z));
-  const coat: Paint = (x, y, z) => {
-    const Y = y * s, axis = -0.1 + 0.2 * Math.min(1, Math.max(0, (Y - 0.2) / 0.3));
-    return Y > 0.2 && z * s > axis + 0.05 ? white(x, y, z) : black(x, y, z);
+  const COAT = '#484B50', WHITE_FUR = '#ECEBE6', INK = '#080808', MOUTH = '#9C9B97', BANDANA = '#C8321F';
+  const fill = (g: Grid, [x0, x1]: [number, number], [y0, y1]: [number, number], [z0, z1]: [number, number], hex: string) => {
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) g.set(x, y, z, shade(hex));
   };
+  const paint = (g: Grid, x: number, y: number, z: number, hex: string) => { if (g.has(x, y, z)) g.set(x, y, z, shade(hex)); };
 
+  // Body: rows 5 to 11 over the legs, the rump at z 0, the chest at z 11.
   const body = new Grid(s);
-  ellipsoid(body, [0, 0.16, -0.12], [0.16, 0.15, 0.18], above0(coat), 0.06, 35);
-  for (let i = 0; i <= 5; i++) {
-    const t = i / 5;
-    ellipsoid(body, [0, 0.2 + 0.3 * t, -0.1 + 0.2 * t], [0.13 - 0.02 * t, 0.12, 0.12 - 0.02 * t], coat, 0.05, 37);
+  fill(body, [-3, 3], [5, 11], [0, 11], COAT);
+  for (let y = 5; y <= 10; y++) for (let x = -2; x <= 2; x++) { // the white chest, narrower low down, wrapping one cell round
+    if (y <= 7 && Math.abs(x) === 2) continue;
+    paint(body, x, y, 11, WHITE_FUR); paint(body, x, y, 10, WHITE_FUR);
   }
-  belly(body);
-  const red = tone([RED, T.collar[1], T.collar[2]], 39);
-  ring(body, [0, 0.54, 0.1], 0.13, 0.13, 0.06, red);
-  for (let r = 0; r < 4; r++) for (let x = -3 + r; x <= 2 - r; x++) { // the bandana's point on the chest
-    const y = body.i(0.52) - r, z = frontZ(body, x, y);
-    if (z !== null) body.set(x, y, z + 1, red(x, y, z + 1)!);
-  }
+  for (const x of [-3, 3]) for (let y = 7; y <= 9; y++) for (let z = 10; z <= 11; z++) paint(body, x, y, z, WHITE_FUR); // the chest's white, seen from the side
+  for (const x of [-3, 3]) for (let z = 4; z <= 6; z++) paint(body, x, 5, z, WHITE_FUR); // a white flash under the belly
+  for (let z = 4; z <= 6; z++) for (let x = -2; x <= 2; x++) paint(body, x, 5, z, WHITE_FUR);
+  // The bandana: a band round the neck, its knot at the nape and its point down the chest (8, 5, 3 and 1 across).
+  for (let x = -3; x <= 3; x++) body.set(x, 11, 12, shade(BANDANA));
+  for (const x of [-4, 4]) for (let z = 8; z <= 12; z++) body.set(x, 11, z, shade(BANDANA));
+  for (let x = -3; x <= 3; x++) body.set(x, 12, 8, shade(BANDANA));
+  for (const [x, y] of [[-1, 13], [1, 13], [0, 12]] as const) body.set(x, y, 7, shade(BANDANA));
+  for (let y = 10, w = 2; w >= 0; y--, w--) for (let x = -w; x <= w; x++) body.set(x, y, 12, shade(BANDANA));
 
-  const headPivot: V3 = [0, 0.58, 0.1];
+  // Head: rows 12 to 17, z 9 to 14, its top row one in from each side; the white blaze runs up its middle and over.
+  const headPivot: V3 = [0, 12 * s, 11 * s];
   const head = new Grid(s);
-  ellipsoid(head, [0, 0.7, 0.12], [0.11, 0.1, 0.1], (x, y, z) => ((x === -1 || x === 0) && z * s > 0.14 ? white(x, y, z) : black(x, y, z)));
-  box(head, [-0.06, 0.6, 0.14], [0.06, 0.68, 0.32], white, 1); // muzzle, from z 0.14: the chamfer took its back row, which left it off the head
-  step(head, 1);
-  box(head, [-0.04, 0.66, 0.24], [0.04, 0.7, 0.34], tone(T.hoof, 41)); // nose, from z 0.24 (cell 6) so it sits on the muzzle's top
-  onFront(head, head, [[1, 18], [-2, 18]], IRIS);
-  head.set(1, 19, (frontZ(head, 1, 18) ?? 0) - 1, shade(PUPIL));
+  fill(head, [-3, 3], [12, 16], [9, 14], COAT);
+  fill(head, [-2, 2], [17, 17], [9, 14], COAT);
+  for (let y = 15; y <= 17; y++) paint(head, 0, y, 14, WHITE_FUR);
+  for (let z = 11; z <= 14; z++) paint(head, 0, 17, z, WHITE_FUR);
+  for (const x of [-2, 2]) head.set(x, 15, 14, shadeRaw(INK)); // eyes, raw: `shade` lifts them to the palette's floor, the coat's grey
+  // Muzzle: 5 across, the lowest row a cell shorter; the nose 3 across on its top front, the mouth's line under it.
+  fill(head, [-2, 2], [13, 14], [15, 17], WHITE_FUR);
+  fill(head, [-2, 2], [12, 12], [15, 16], WHITE_FUR);
+  for (let x = -1; x <= 1; x++) head.set(x, 14, 18, shadeRaw(INK)); // the nose stands out a cell, so it shows from the side
+  head.set(0, 13, 17, shade(MOUTH));
 
+  // Ears: up from the head's outer columns, folded over outward at the tips.
   const ears = ([-1, 1] as const).map((sx) => {
     const g = new Grid(s);
-    const x0 = sx > 0 ? 0.12 : -0.16;
-    box(g, [x0, 0.58, 0.06], [x0 + 0.04, 0.8, 0.18], black);
-    box(g, [sx > 0 ? 0.08 : -0.12, 0.76, 0.06], [sx > 0 ? 0.12 : -0.08, 0.82, 0.16], black); // fold over the skull
-    step(g, -1);
-    return part(g, [sx * 0.12, 0.8, 0.12]);
+    for (const [x, y] of [[3, 17], [5, 17], [2, 18], [3, 18], [4, 18], [5, 18], [2, 19], [3, 19], [4, 19]] as const) fill(g, [sx * x, sx * x], [y, y], [11, 12], COAT);
+    { const cells = [...g.map.values()]; g.map.clear(); for (const v of cells) g.set(v.x, v.y - 1, v.z, v.c); } // down with the head (below)
+    return part(g, [sx * 3 * s, 16 * s, 11.5 * s]);
   }) as [Part, Part];
 
-  const tailPivot: V3 = [0, 0.1, -0.28];
+  // Tail: three across at the root, stepping up and back, one across at the top with a white tip.
+  const tailPivot: V3 = [0, 10 * s, 0];
   const tail = new Grid(s);
-  for (let i = 0; i <= 6; i++) {
-    const t = i / 6;
-    ellipsoid(tail, [0, 0.08 + 0.14 * t * t, -0.3 - 0.22 * t], [0.05, 0.05, 0.06], t > 0.75 ? white : black, 0.1, 43 + i);
-  }
-  step(tail, -1);
+  fill(tail, [-1, 1], [9, 11], [-1, -1], COAT);
+  fill(tail, [-1, 1], [10, 12], [-2, -2], COAT);
+  fill(tail, [0, 0], [11, 13], [-3, -3], COAT);
+  fill(tail, [0, 0], [12, 13], [-4, -4], COAT);
+  fill(tail, [0, 0], [14, 15], [-4, -4], WHITE_FUR);
 
-  const legPaint: Paint = (x, y, z) => (y * s < 0.2 ? white(x, y, z) : black(x, y, z));
-  const front = ([-0.06, 0.06] as const).map((lx) => {
+  // Legs: 2 by 2, white socks three cells high; the hind legs widen into the haunch.
+  const leg = (x0: number, z0: number, hind: boolean) => {
     const g = new Grid(s);
-    box(g, [lx - 0.04, 0.04, 0.1], [lx + 0.04, 0.4, 0.18], legPaint);
-    step(g, -1); // the leg, before its foot is added
-    box(g, [lx - 0.04, 0, 0.1], [lx + 0.04, 0.04, 0.22], white);
-    return part(g, [lx, 0.4, 0.14]);
-  });
-  const back = ([-0.12, 0.12] as const).map((lx) => {
-    const g = new Grid(s);
-    box(g, [lx - 0.04, 0, 0], [lx + 0.04, 0.06, 0.14], white);
-    return part(g, [lx, 0.06, 0]);
-  });
+    fill(g, [x0, x0 + 1], [0, 2], [z0, z0 + 1], WHITE_FUR);
+    fill(g, [x0, x0 + 1], [0, 0], [z0 + 2, z0 + 2], WHITE_FUR); // the paw, a cell forward
+    fill(g, [x0, x0 + 1], [3, 3], [z0, z0 + 1], COAT);
+    if (hind) fill(g, [x0, x0 + 1], [3, 3], [z0 + 2, z0 + 3], COAT);
+    return part(g, [(x0 + 1) * s, 4 * s, (z0 + 1) * s]);
+  };
+  const legs = [leg(-3, 9, false), leg(2, 9, false), leg(-3, 0, true), leg(2, 0, true)] as [Part, Part, Part, Part];
 
-  dog = { body: part(body, [0, 0.3, 0]), head: part(head, headPivot), tail: part(tail, tailPivot), ears, legs: [front[0], front[1], back[0], back[1]] };
+  // Legs four cells high, as the sheet's stocky dog: everything above them was laid out on five, so it comes down one.
+  for (const g of [body, head, tail]) { const cells = [...g.map.values()]; g.map.clear(); for (const v of cells) g.set(v.x, v.y - 1, v.z, v.c); }
+  const down = (p: V3): V3 => [p[0], p[1] - s, p[2]];
+  dog = { body: part(body, [0, 7 * s, 6 * s]), head: part(head, down(headPivot)), tail: part(tail, down(tailPivot)), ears, legs };
   return dog;
 }
 

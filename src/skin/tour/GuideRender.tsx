@@ -37,7 +37,7 @@ export default function GuideRender() {
  *  ?mid= ?h= ?ry= ?rx= try other framings without editing this file. */
 const q = new URLSearchParams(location.search);
 const num = (k: string, d: number) => (q.has(k) ? Number(q.get(k)) : d);
-const FRAME = { midY: num('mid', 0.44), height: num('h', 0.96), ry: num('ry', 0.6), rx: num('rx', 0.12) };
+const FRAME = { midY: num('mid', 0.4), height: num('h', 1.0), ry: num('ry', 0.6), rx: num('rx', 0.12) };
 
 function Dog() {
   const m = useMemo(() => sheepdogModel(), []);
@@ -54,7 +54,7 @@ function Dog() {
   useFrame(() => { if (++frames.current === 6) window.__thumbReady = true; });
   return (
     <group position={[0, FRAME.midY, 0]} rotation={[FRAME.rx, FRAME.ry, 0]}>
-      <group position={[0, -FRAME.midY, 0]}>
+      <group position={[0, -FRAME.midY, -0.28]}>{/* the standing dog's middle, nose to tail, turns on the spot */}
         <mesh geometry={m.body.geo} position={m.body.pivot} material={mat} />
         <mesh geometry={m.head.geo} position={m.head.pivot} material={mat} rotation={[0.08, 0, 0]} />
         {m.ears.map((p, i) => <mesh key={i} geometry={p.geo} position={p.pivot} material={mat} />)}

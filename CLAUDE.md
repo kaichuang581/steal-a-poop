@@ -2388,7 +2388,7 @@ old blues were routed through tokens (--hm-disabled, --hm-disabled-lip are new),
 loading screen keeps its own colour (it must stand alone).
 - Home's cards, polished (Brian's plan of 2026-11-23, "Home's cards (Join party, Practice), polish"). SetupSheet.tsx and the
   `.hm-setup*` / `.sk-code*` rules in home/home.css draw Set the table (Custom game), Practice and Join party. ONE slant: the
-  card is skewed by `--lean` (-11deg, -6deg on a phone) and nothing inside is skewed again; only text and icons are stood
+  card is skewed by `--card-lean` (-11deg, -6deg on a phone; never `--lean`, the panel's edge) and nothing inside is skewed again; only text and icons are stood
   upright (`.hm-setup-up`, about their own middle). So every row, choice, code tile and the action lean by the card's angle
   and their left edges lie on one line; never add a skew or a counter-skewed container inside the card. Rows are a grid
   (label column 116, controls, hint under the controls); a card under 470 wide stacks the label over the controls.

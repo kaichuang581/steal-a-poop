@@ -273,12 +273,12 @@
 
 /* ---------- The setup cards: Set the table, Practice, Join party (SetupSheet.tsx) ----------
    The cards plan of 2026-11-23 (Home's cards, polish), from Brian's earlier choice of a sheet of its own leaning like the
-   menu. ONE slant: the card is skewed by --lean (11 degrees, 6 on a phone) and everything inside it stays in that skewed
+   menu. ONE slant: the card is skewed by --card-lean (not --lean: that is the panel's edge, a length; 11 degrees, 6 on a phone) and everything inside it stays in that skewed
    space, so every row, choice, code tile and the main button leans by exactly the card's angle and their left edges lie
    on lines parallel to its edge. Only text and icons are stood upright (`.hm-setup-up`, skewed back about their own
    middle, so they sit centred on those lines). Nothing inside is skewed again, and nothing crosses the card's edges. */
-.hm { --un: 11deg; --lean: -11deg; }
-.hm[data-phone] { --un: 6deg; --lean: -6deg; }
+.hm { --un: 11deg; --card-lean: -11deg; }
+.hm[data-phone] { --un: 6deg; --card-lean: -6deg; }
 .hm:not([data-phone]) .hm-panel-slot--lean {
   --setup-h: min(calc(var(--ph) * 0.86), calc(560 * var(--u)));
   /* The lean throws the corners out by a fifth of the card's height in all; width and place leave room for that.
@@ -291,7 +291,7 @@
   --side: calc(6 * var(--u)); --knit5: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' shape-rendering='crispEdges'%3E%3Cg fill='%23000' fill-opacity='.05'%3E%3Crect x='2' y='2' width='2' height='2'/%3E%3Crect x='4' y='4' width='2' height='2'/%3E%3Crect x='6' y='6' width='4' height='2'/%3E%3Crect x='10' y='4' width='2' height='2'/%3E%3Crect x='12' y='2' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E");
   position: relative; isolation: isolate; display: flex; flex-direction: column; max-height: calc(var(--ph) * 0.86);
   padding: calc(18 * var(--u)) calc(20 * var(--u)) calc(20 * var(--u) + var(--side));
-  transform: skewX(var(--lean)); transform-origin: 50% 50%; animation: hm-setup-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform: skewX(var(--card-lean)); transform-origin: 50% 50%; animation: hm-setup-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
   color: var(--hm-wool); font-family: var(--skin-font-body); }
 @keyframes hm-setup-in { from { opacity: 0; translate: 0 calc(12 * var(--u)); } }
 /* The Board recipe, no snow cap or brackets: night felt, one step of ink round it, a 3 lantern band on top, the lit and
@@ -363,7 +363,7 @@
 /* The menu behind: dimmed, but the item that opened the sheet stays lit. */
 .hm-menu-held .sk-menu-row { opacity: 0.4; }
 .hm-menu-held[data-held="lobby"] .sk-menu-row[data-id="lobby"], .hm-menu-held[data-held="practice"] .sk-menu-row[data-id="practice"] { opacity: 1; }
-/* A phone: the same card, full width less 24, leaning 6 degrees (--lean above). */
+/* A phone: the same card, full width less 24, leaning 6 degrees (--card-lean above). */
 .hm[data-phone] .hm-setup { max-height: none; width: calc(100% - 24px); margin: 0 auto; }
 .hm[data-phone] .hm-setup-rows { overflow: visible; }
 /* A card too narrow for the two columns (a phone, a narrow window): each row's label stands over its controls, and the

@@ -240,7 +240,7 @@ const mesh = async (load: Load, ...grids: Grid[]): Promise<BufferGeometry[]> => 
   return grids.map((g) => buildGeometry(g.map, g.size));
 };
 
-const THUMBS = 'tools/renderThumbs.mjs', STALL = 'tools/renderStall.mjs', YARN = 'tools/renderYarnBall.mjs', GUIDE = 'tools/renderGuide.mjs';
+const THUMBS = 'tools/renderThumbs.mjs', STALL = 'tools/renderStall.mjs', YARN = 'tools/renderYarnBall.mjs', GUIDE = 'tools/renderGuide.mjs', PLAY = 'tools/renderPlayArt.mjs';
 const THUMB_PAGE = 'src/skin/shop/ThumbRender.tsx', MODELS_3D = 'src/skin/shop/models3d.tsx', STALL_PAGE = 'src/skin/shop/StallRender.tsx';
 const YARN_PAGE = 'src/skin/loading/YarnBallRender.tsx', GUIDE_PAGE = 'src/skin/tour/GuideRender.tsx';
 const SACK_IDS = ['bomb', 'blast', 'tick'] as const;
@@ -422,30 +422,31 @@ const guidePlan = (): Plan => ({
   },
 });
 
+/** The Queue chooser's pictures, all drawn by tools/art/playArt.js, the size each is baked at, and whether it is clear round what it holds. */
+export const PLAY_LAYERS: Record<string, { size: [number, number]; alpha: boolean; model: string }> = {
+  casual: { size: [800, 880], alpha: false, model: 'the snow day, drawn pixel by pixel (drawPlayArt("casual") in tools/art/playArt.js)' },
+  'casual-snow': { size: [240, 240], alpha: true, model: 'a tile of falling snow (drawPlayArt("casual-snow") in tools/art/playArt.js)' },
+  ranked: { size: [800, 880], alpha: false, model: 'the night rink, drawn pixel by pixel (drawPlayArt("ranked") in tools/art/playArt.js)' },
+  'ranked-flash': { size: [800, 880], alpha: true, model: 'the rink\'s second frame of flashes and sparkle (drawPlayArt("ranked-flash") in tools/art/playArt.js)' },
+};
+
 /**
- * The two cards of the Queue chooser (src/skin/ranked/PlayChooser.tsx). No tool bakes them: each is a capture of one
- * of the game's own scenes, taken by hand, 800 x 500. CLAUDE.md, "Real people by default, the Play chooser", is all
- * that is written down about how: "the home tour's sheep-at-the-barn shot" by day, and "the practice duel on the ice
- * at night". Their model is that scene as the scene checker builds it for a computer, and the models that stand in it.
- * The `capture` text is the recipe, as last taken (2026-11-17, overhaul milestone 12): a production build (npx vite build
- * --outDir <dir>) served by serve() and opened by home() / duel() of tools/gate/lib/painted.mjs (pinned clock and seed,
- * reduced motion, ?dpr=1), every page element but the canvas hidden (visibility), the picture cut from a page screenshot,
- * scaled to 800 x 500 on a page canvas and encoded there with toDataURL('image/webp', 0.85).
+ * The Queue chooser's pictures (src/skin/ranked/PlayChooser.tsx), baked by tools/renderPlayArt.mjs (Brian, 2026-11-21:
+ * "rehash everything solely with pixel art"). They are pixel art drawn on a 2D canvas, so, as with the yarn ball, their
+ * model is the text of the code that draws them.
  */
-function playPlan(name: 'casual' | 'ranked'): Plan {
-  const casual = name === 'casual';
+function playPlan(name: string): Plan | null {
+  const layer = PLAY_LAYERS[name];
+  if (!layer) return null;
   return {
-    id: `play/${name}`, file: `public/play/${name}.webp`, tool: null, args: [], page: null, sources: [],
-    model: casual
-      ? 'the Home farm as the scene checker builds it for a computer (scene "farm", fine), with the sheep and its hat (models animal:sheep, hat)'
-      : 'the practice ice as the scene checker builds it for a computer (scene "duel", fine), with the sheep, its hat and the ice bomb (models animal:sheep, hat, bomb:bomb-ice)',
-    checked: 'check:scenes', alpha: false,
-    capture: casual
-      ? "the Home tour's shot of the sheep at the barn, by day, 800 x 500 (CLAUDE.md: \"the home tour's sheep-at-the-barn shot\"): home(browser, { pov: 6, hour: 'day', extraQuery: { gfx: 'high' }, viewport 1280 x 800 }), so ?pov=6&hour=day&gfx=high&dpr=1 (POV_SHOTS.desktop[6]), no interface, the whole canvas scaled to 800 x 500"
-      : `the practice duel on the ice at night, both sheep, the bomb and the letter board in the picture, 800 x 500 (CLAUDE.md: "the practice duel on the ice at night"): duel(browser, { query: { gfx: 'high' }, viewport 1280 x 800 }), the game's own clock and bot, your turn 2 s in, no interface, the canvas's 1067 x 667 window at (132, 75) scaled to 800 x 500`,
-    size: async () => [800, 500],
-    mirrors: [['src/skin/ranked/PlayChooser.tsx', ["const ART = (name: 'casual' | 'ranked') => `${import.meta.env.BASE_URL}play/${name}.webp`;"]]],
-    scene: casual ? { name: 'farm', models: ['animal:sheep', 'hat'] } : { name: 'duel', models: ['animal:sheep', 'hat', 'bomb:bomb-ice'] },
+    id: `play/${name}`, file: `public/play/${name}.webp`, tool: PLAY, args: [], page: null, sources: [PLAY],
+    model: layer.model, checked: 'npm test', alpha: layer.alpha,
+    size: async () => layer.size,
+    mirrors: [
+      [PLAY, ["export const LAYERS = ['casual', 'casual-snow', 'ranked', 'ranked-flash'];", "return out.toDataURL('image/webp', 1);"]],
+      ['tools/art/playArt.js', ['var PLAY_ART = { SCALE: 5, SCENE: { W: 160, H: 176 }, SNOW: { W: 48, H: 48 } };']],
+    ],
+    drawn: ['tools/art/playArt.js'],
   };
 }
 
@@ -458,7 +459,7 @@ export function planFor(file: string): Plan | null {
   if (dir === 'public/shop/stall') return stallPlan(name);
   if (dir === 'public/loading') return name === 'yarn-ball' ? yarnBallPlan() : null;
   if (dir === 'public/tour') return name === 'sheepdog' ? guidePlan() : null;
-  if (dir === 'public/play') return name === 'casual' || name === 'ranked' ? playPlan(name) : null;
+  if (dir === 'public/play') return playPlan(name);
   return null;
 }
 

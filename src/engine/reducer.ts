@@ -1,10 +1,10 @@
 import { BOT_PROFILES, PERSONALITIES, bankThresholdFor, pickBotWord } from './bots';
 import {
-  AFTERMATH_MS, BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_BOT_MS,
-  PRACTICE_TURN_MS, SOFT_GAME_PRESSURE, TURN_MS_BY_ROUND,
+  AFTERMATH_MS, ANNOUNCE_MS, ANNOUNCE_TAIL_MS, BASE_TURN_MS, BOT_PRESSURE_FAIL, CARRY_OPENING_TURN_MS, PASS_MIN_MS, FIRST_ROUND_TURN_MS, INTRO_MS, LAST_ROUND_TURN_MS, PRACTICE_BOT_MS,
+  CORNER_LETTERS, PRACTICE_TURN_MS, SOFT_GAME_PRESSURE, STUCK_LIMIT, TURN_MS_BY_ROUND,
 } from './constants';
 import type { Dictionary } from './dictionary';
-import { modifierForRound } from './game';
+import { ALL_MODIFIERS, modifierForRound } from './game';
 import { drawInt, drawPick, drawRandom } from './rng';
 import { computeWinners } from './standings';
 import { carriedTurnMs, practiceTurnMs, roundTurnMs, turnDurationMs, wordShiftMs } from './timer';
@@ -82,7 +82,7 @@ function concludeTurn(s: GameState, t: number, wait = 0) {
   s.turn = null;
   // Frozen players are skipped, so the round ends once every unfrozen player has used their turns.
   const next = nextSeat(s, turn.seat);
-  if (next === null) return endRound(s, t);
+  if (next === null) return endRound(s, t, wait);
   startTurn(s, next, t, wait);
 }
 
@@ -111,7 +111,22 @@ function checkLastSheep(s: GameState, t: number) {
   emit(s, t, 'gameOver', null, alive.length ? `${alive[0].name} is the last sheep standing` : 'Game over');
 }
 
-function endRound(s: GameState, t: number) {
+/**
+ * What a round's start announces (V3 alarms, Brian 2026-11-05 and 2026-11-23): faster turns when this round's turn is
+ * shorter than the last one's, and its twist. Normal games only: the tutorial and practice announce nothing.
+ */
+export function roundAnnouncements(s: GameState): { faster: boolean; twist: boolean } {
+  if (s.mode !== 'normal' || s.round <= 1) return { faster: false, twist: false };
+  return { faster: roundTurnMs(s.round) < roundTurnMs(s.round - 1), twist: ALL_MODIFIERS.includes(s.modifier) };
+}
+
+/**
+ * A round ends: the next one opens with its intro. The intro starts once the bomb that ended the round has finished
+ * going off (`wait`, the aftermath), and lasts long enough for every announcement to be read before the first fuse is
+ * lit (ANNOUNCE_MS each, then ANNOUNCE_TAIL_MS); a round with nothing to announce keeps the plain INTRO_MS from `t`.
+ * The roundStart event carries `wait` as its amount: when the screen should start announcing.
+ */
+function endRound(s: GameState, t: number, wait = 0) {
   s.pile = 0;
   s.trap = null;
   if (s.phase === 'gameOver') return;
@@ -123,8 +138,9 @@ function endRound(s: GameState, t: number) {
     p.turnsTaken = 0;
   }
   s.phase = 'intro';
-  s.introEndsAt = t + INTRO_MS;
-  emit(s, t, 'roundStart', null, `Round ${s.round}`);
+  const a = roundAnnouncements(s), n = Number(a.faster) + Number(a.twist);
+  s.introEndsAt = n ? t + wait + n * ANNOUNCE_MS + ANNOUNCE_TAIL_MS : t + Math.max(wait, INTRO_MS);
+  emit(s, t, 'roundStart', null, `Round ${s.round}`, n ? wait : 0);
 }
 
 // There are no traps (Brian, 2026-11-13: "idk why it says that getting someone killed will 'give you a wool ball' because
@@ -141,6 +157,7 @@ function recordWord(s: GameState, seat: number, word: string, points: number) {
   if (!p.bestWord || points > p.bestWord.points) p.bestWord = { word, points };
   s.used.push(word);
   s.chainLetter = word[word.length - 1];
+  s.stuck = null;
   if (s.settings.timeCarry === 'more') s.carryMs = wordShiftMs(word);
   else if (s.settings.timeCarry === 'less') s.carryMs = -wordShiftMs(word);
 }
@@ -159,13 +176,26 @@ function woolAtStake(s: GameState, seat: number): boolean {
   return true;
 }
 
-/** Only a turn with no word submitted ends this way. A bad word never costs a turn. Running out costs a wool ball. */
-function failTurn(s: GameState, seat: number, t: number) {
+/**
+ * Only a turn with no word submitted ends this way. A bad word never costs a turn. Running out costs a wool ball. When
+ * STUCK_LIMIT sheep in a row have run out on the same letter, the chain moves to a fresh one (normal games; Brian,
+ * 2026-11-23: "after 2 people die to the same thing, the bomb resets with a new letter").
+ */
+function failTurn(s: GameState, seat: number, t: number, ctx: EngineContext) {
   const p = s.players[seat];
   s.history.push({ round: s.round, seat, kind: 'timeout', word: null, points: 0 });
   s.carryMs = 0;
   emit(s, t, 'timeout', seat, `Time's up for ${p.name}`, 0);
   if (woolAtStake(s, seat)) loseWool(s, seat, t, '');
+  if (s.mode === 'normal' && s.phase !== 'gameOver') {
+    const letter = s.chainLetter;
+    s.stuck = s.stuck?.letter === letter ? { letter, count: s.stuck.count + 1 } : { letter, count: 1 };
+    if (s.stuck.count >= STUCK_LIMIT) {
+      // A fresh start: never the letter that was stuck, nor a corner letter (X, Z, Q, J, Y, K).
+      drawChainLetter(s, ctx, t, `${s.stuck.count} sheep in a row ran out on ${letter.toUpperCase()}`, [letter, ...CORNER_LETTERS]);
+      s.stuck = null;
+    }
+  }
   // The bomb has gone off: the table takes a beat before the next fuse is lit.
   concludeTurn(s, t, AFTERMATH_MS);
 }
@@ -182,13 +212,15 @@ function ensurePlayable(s: GameState, ctx: EngineContext, at: number) {
 }
 
 /** Moves the chain to a fresh seeded letter with legal words left, favouring letters with plenty of them. */
-function drawChainLetter(s: GameState, ctx: EngineContext, at: number, why: string) {
-  const options = ALPHABET.filter((l) => hasPlayableWord(ctx.dict, l, s.used, s.modifier));
+function drawChainLetter(s: GameState, ctx: EngineContext, at: number, why: string, avoid: readonly string[] = []) {
+  const allowed = ALPHABET.filter((l) => hasPlayableWord(ctx.dict, l, s.used, s.modifier));
+  const kept = allowed.filter((l) => !avoid.includes(l));
+  const options = kept.length ? kept : allowed;
   if (!options.length) return;
   const common = options.filter((l) => ctx.dict.startingWith(l).length >= 300);
   const pool = common.length ? common : options;
   s.chainLetter = pool[Math.floor(drawRandom(s) * pool.length)];
-  emit(s, at, 'chainReset', null, `${why}, so the chain letter is now ${s.chainLetter.toUpperCase()}`);
+  emit(s, at, 'chainReset', null, `${why}, so the chain letter is now ${s.chainLetter.toUpperCase()}`, 0, s.chainLetter);
 }
 
 type Due = { at: number; kind: 'botAct' | 'timeout' };
@@ -290,7 +322,7 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
     if (!due) break;
     switch (due.kind) {
       case 'timeout':
-        failTurn(s, s.turn.seat, due.at);
+        failTurn(s, s.turn.seat, due.at, ctx);
         break;
       case 'botAct':
         runBotTurn(s, ctx, due.at);

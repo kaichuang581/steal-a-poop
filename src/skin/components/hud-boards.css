@@ -1,0 +1,119 @@
+/* The scoreboard, the round tally, How to play and the chain history at the table (Ledger.tsx, TallyBoard.tsx,
+   RulesCard.tsx; Brian, 2026-11-23: "address all of the outdated ui"). Only the approved recipes: the pen's board, tile,
+   well and groove (kit/surfaces.css), the modern kit's dialog (kit/modern.css), the name tag's dots (kit/nameplate.css).
+   Rows are the pen's list of players: avatar square, name in Fraunces 15, small tags. Sizes are Home's pixels times --u,
+   never under 1 px (a phone reads at 1, as the pen's phone layout does); a step is a whole pixel, as on the pen. */
+
+.hm.rc.hb {
+  --u: clamp(1px, min(100vw / 1280, 100vh / 720), 1.5px);
+  --s: max(1px, round(nearest, calc(3 * var(--u)), 1px));
+}
+.hb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------- The scoreboard: a board at the top right ---------- */
+/* In a short window with many seats the board gives up height and its list scrolls inside it, so the column (top bar,
+   board, word bar) never grows past the screen. */
+.hb-ledger {
+  --side: calc(6 * var(--u)); --in: calc(5 * var(--s) + 6 * var(--u));
+  position: relative; z-index: 30; isolation: isolate; display: flex; flex-direction: column; box-sizing: border-box;
+  width: calc(264 * var(--u)); max-width: calc(100vw - 20px); min-height: 0; margin: 70px 10px 0 auto;
+  padding: calc(var(--in) + 2 * var(--u)) var(--in) calc(var(--in) + var(--side)); filter: var(--shadow);
+}
+.hb-rows { display: flex; flex-direction: column; min-height: 0; margin: 0; padding: 0; list-style: none; }
+.hb-ledger > .hb-rows { overflow: hidden auto; scrollbar-width: thin; scrollbar-color: var(--hm-night-3) transparent; }
+
+/* A row: a tile 34 high and a side of 3. The bar's room is kept on every row, so nothing moves when the turn does. */
+.hb-row {
+  --face: calc(34 * var(--u));
+  position: relative; isolation: isolate; flex: none; display: flex; align-items: center; gap: calc(6 * var(--u));
+  height: calc(var(--face) + 3 * var(--u)); padding: 0 calc(8 * var(--u)) calc(3 * var(--u)) calc(10 * var(--u)); box-sizing: border-box;
+  color: var(--hm-wool); transition: opacity 160ms ease-out;
+}
+/* The gap is the row's own, so the rows keep it in any list (the end scoreboard's). */
+.hb-row + .hb-row { margin-top: calc(3 * var(--u)); }
+.hb-row[data-dim], .hb-chip[data-dim] { opacity: 0.5; }
+/* The lantern bar inside the face (the pen's "your row"): 6 wide, its top-left corner cut as the face's. */
+.hb-bar { position: absolute; z-index: 0; left: 0; top: 0; bottom: calc(3 * var(--u)); width: calc(6 * var(--u)); background: var(--hm-lantern); pointer-events: none;
+  clip-path: polygon(0 var(--s), var(--s) var(--s), var(--s) 0, 100% 0, 100% 100%, 0 100%); }
+.hb-place { flex: none; width: calc(12 * var(--u)); text-align: center; font: 800 calc(13 * var(--u))/1 var(--skin-font-display); color: var(--hm-frost); font-variant-numeric: lining-nums tabular-nums; }
+.hb-avatar { flex: none; display: grid; place-items: center; width: calc(28 * var(--u)); height: calc(28 * var(--u)); clip-path: var(--px1); background: var(--hm-night); }
+.hb-avatar img { display: block; image-rendering: pixelated; }
+.hb-who { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: calc(3 * var(--u)); min-width: 0; margin-left: calc(2 * var(--u)); }
+.hb-line { display: flex; align-items: center; gap: calc(6 * var(--u)); min-width: 0; }
+.hb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(15 * var(--u))/1.2 var(--skin-font-display); color: var(--hm-wool); }
+:is(.hb-row, .hb-chip)[data-you] .hb-name { color: var(--hm-lantern-hi); }
+.hb-word { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(10.5 * var(--u))/1 var(--skin-font-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--hm-frost); }
+/* A small quiet tag ("bot"): the name tag's dark label, two-pixel corners. */
+.hb-tag {
+  flex: none; display: inline-flex; align-items: center; height: calc(16 * var(--u)); padding: 1px calc(5 * var(--u)) 0; box-sizing: border-box; background: var(--hm-ink);
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+  font: 800 calc(10 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost);
+}
+.hb-bomb { flex: none; display: inline-flex; }
+.hb-ice { flex: none; display: inline-flex; color: var(--hm-frost); }
+.hb-wool { flex: none; margin-left: auto; }
+/* A lost ball on a tile is a dark hole (the tag's night-3 dot is lost on a tile's face); on a well it stays night-3. */
+:is(.hb-row.rc-tile, .hb-chip.rc-tile, .hb-rule) .np-lives > i[data-off] { background: var(--hm-ink); }
+.hb-row .hb-wool { margin-left: calc(2 * var(--u)); }
+/* Frozen: sunk into the board (a well, not a tile), its words in frost. */
+:is(.hb-row, .hb-chip)[data-frozen] .hb-name { color: var(--hm-frost); }
+:is(.hb-row, .hb-chip)[data-frozen] :is(.hb-avatar, .hb-place, .hb-word) { opacity: 0.6; }
+
+/* ---------- A phone: small tiles across the top, three a row (five on a phone on its side) ---------- */
+.hb-strip {
+  position: relative; z-index: 30; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 6px; margin: 58px 0 0; list-style: none;
+  padding: 0 max(8px, env(safe-area-inset-right, 0px)) 6px max(8px, env(safe-area-inset-left, 0px));
+}
+@media (max-height: 500px) and (pointer: coarse) and (min-width: 641px) {
+  .hb-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+.hb-chip {
+  position: relative; isolation: isolate; display: flex; align-items: center; gap: 5px; min-width: 0; height: 31px; padding: 0 6px 3px 9px; box-sizing: border-box;
+  color: var(--hm-wool); filter: drop-shadow(0 2px 0 rgba(14, 21, 40, 0.38)); transition: opacity 160ms ease-out;
+}
+.hb-chip .hb-bar { bottom: 3px; width: 4px; }
+.hb-chip .hb-avatar { width: 25px; height: 24px; background: none; clip-path: none; }
+.hb-chip .hb-name { flex: 1 1 auto; font: 700 13px/1.2 var(--skin-font-display); }
+
+/* ---------- The round tally: the modern dialog's board ---------- */
+.hb-tally { animation: hb-drop 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.hb-tally .md-dialog-head { min-height: 0; margin-bottom: calc(6 * var(--u)); }
+.md-dialog-body > p.hb-tally-line { margin-bottom: calc(12 * var(--u)); font-size: calc(13 * var(--u)); }
+.hb-tally-line b { font: 800 calc(15 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); font-variant-numeric: lining-nums; }
+.hb-tally-actions { flex: none; margin-top: calc(16 * var(--u)); }
+@keyframes hb-drop { from { opacity: 0; transform: translateY(calc(-14 * var(--u))); } }
+:root.reduce-motion .hb-tally { animation: none; }
+@media (prefers-reduced-motion: reduce) { .hb-tally { animation: none; } }
+
+/* ---------- How to play: three sections between grooves, a tile a rule ---------- */
+.hb-rules { display: flex; flex-direction: column; gap: calc(10 * var(--u)); color: var(--hm-wool); }
+.hb-rules h3 { margin: 0 0 calc(6 * var(--u)); font: 800 calc(15 * var(--u))/1.2 var(--skin-font-display); color: var(--hm-wool); }
+.hb-rules ul { display: flex; flex-direction: column; gap: calc(3 * var(--u)); margin: 0; padding: 0; list-style: none; }
+.hb-rule {
+  position: relative; isolation: isolate; display: flex; align-items: center; gap: calc(10 * var(--u));
+  padding: calc(7 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u)) calc(6 * var(--u));
+  font: 700 calc(13 * var(--u))/1.45 var(--skin-font-body); color: var(--hm-frost);
+}
+.hb-rule b { font-weight: 800; color: var(--hm-wool); }
+.hb-rule-icon { flex: none; display: flex; align-items: center; justify-content: center; width: calc(56 * var(--u)); color: var(--hm-frost); }
+.hb-rule-icon svg { display: block; }
+.hb-gold { display: inline-flex; color: var(--hm-lantern); }
+.hb-tiles { display: inline-flex; gap: 2px; }
+/* A letter on a small dark tile (also How to play's basics on Home): whole pixels, so it reads anywhere. */
+.hb-mini-tile {
+  display: inline-grid; place-items: center; width: 16px; height: 18px; padding-top: 1px; box-sizing: border-box; background: var(--hm-ink); color: var(--hm-wool);
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+  font: 800 11px/1 var(--skin-font-display);
+}
+.hb-mini-tile[data-hot] { background: var(--hm-lantern); color: var(--hm-ink); }
+
+/* ---------- The chain history: a tile a word, newest first ---------- */
+.hb-chain { display: flex; flex-direction: column; gap: calc(3 * var(--u)); margin: 0; padding: 0; list-style: none; }
+.hb-chain-row {
+  position: relative; isolation: isolate; display: flex; align-items: center; justify-content: space-between; gap: calc(12 * var(--u));
+  height: calc(32 * var(--u)); padding: 0 calc(12 * var(--u)) calc(3 * var(--u)); box-sizing: border-box;
+}
+.hb-chain-word { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(15 * var(--u))/1 var(--skin-font-display); letter-spacing: 0.08em; color: var(--hm-wool); }
+.hb-chain-word [data-link] { color: var(--hm-lantern-hi); }
+.hb-chain-who { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.hb-empty { margin: 0; padding: calc(16 * var(--u)) 0; text-align: center; font: 700 calc(14 * var(--u))/1.4 var(--skin-font-body); color: var(--hm-frost); }

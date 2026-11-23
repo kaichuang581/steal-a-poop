@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { applyImport, exportSave, planImport } from '../../lib/savecode';
 import type { ImportPlan } from '../../lib/savecode';
-import { ClothButton, WoodButton } from './Materials';
+import { Slab } from '../kit/modern';
+import './hud-guide.css';
 
 const CHANGE: Record<string, string> = { new: 'added', merged: 'merged', same: 'already here', kept: 'kept yours' };
 
@@ -31,32 +32,32 @@ export function SaveCodeRow() {
   };
 
   return (
-    <section className="kit-panel-row sk-save-row" aria-label="Save code">
-      <div className="sk-save-head">
-        <span className="sk-save-label">Save code</span>
-        <span className="flex gap-2">
-          <WoodButton className="kit-btn--sm min-w-[5.6em]" onClick={copy}>{copied ? 'Copied' : 'Copy'}</WoodButton>
-          <WoodButton className="kit-btn--sm" onClick={() => { setPasting((p) => !p); setPlan(null); setDone(''); }} aria-expanded={pasting}>Paste</WoodButton>
+    <section className="hg-tile hg-save rc-tile" aria-label="Save code">
+      <div className="hg-save-head">
+        <span className="hg-label">Save code</span>
+        <span className="hg-end">
+          <Slab size="sm" className="hg-copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</Slab>
+          <Slab size="sm" onClick={() => { setPasting((p) => !p); setPlan(null); setDone(''); }} aria-expanded={pasting}>Paste</Slab>
         </span>
       </div>
-      <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>
+      <p className="hg-sub">
         {copied ? `Copied: ${copied.toLocaleString()} characters. Paste it into Settings on your other browser.` : 'Carry your records to another browser: your bests, your dream streak, your name and avatar.'}
       </p>
       {pasting && (
-        <div className="mt-2">
+        <div className="hg-paste">
           <textarea
-            className="sk-field w-full font-mono text-xs" rows={3} value={text} placeholder="FTW1.…" aria-label="Paste a save code" spellCheck={false}
+            className="hg-input hg-code" rows={3} value={text} placeholder="FTW1.…" aria-label="Paste a save code" spellCheck={false}
             onChange={(e) => { setText(e.target.value); setPlan(e.target.value.trim() ? planImport(e.target.value) : null); setDone(''); }}
           />
-          {plan && !plan.ok && <p role="alert" className="sk-hand text-base" style={{ color: 'var(--coral-dark)' }}>{plan.reason}</p>}
+          {plan && !plan.ok && <p role="alert" className="hg-sub" data-bad>{plan.reason}</p>}
           {plan?.ok && (
-            <div className="sk-hand text-sm" style={{ color: 'var(--ink-soft)' }}>
-              <p className="text-base" style={{ color: 'var(--ink)' }}>{plan.summary}</p>
-              <ul className="list-disc pl-5">
+            <div className="hg-plan">
+              <p className="hg-label">{plan.summary}</p>
+              <ul className="hg-sub">
                 {plan.rows.map((r) => <li key={r.key}>{r.label}: {CHANGE[r.change]}</li>)}
               </ul>
-              {done ? <p className="text-base" role="status">{done}</p> : (
-                <ClothButton className="kit-btn--sm mt-1" onClick={restore} disabled={!plan.rows.some((r) => r.change === 'new' || r.change === 'merged')}>Restore</ClothButton>
+              {done ? <p className="hg-label" role="status">{done}</p> : (
+                <Slab size="sm" tone="lantern" onClick={restore} disabled={!plan.rows.some((r) => r.change === 'new' || r.change === 'merged')}>Restore</Slab>
               )}
             </div>
           )}

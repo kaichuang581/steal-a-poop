@@ -10,9 +10,9 @@ const clamp = (v: number, a: number, b: number) => Math.min(Math.max(v, a), b);
  * Pins an HTML element (a seat's name plate and speech bubble) to this point in the scene every frame: centred on it,
  * or with `above` standing on it (its bottom centre there, kept below the top bar), hidden behind the camera, nearer
  * ones over farther ones. Used instead of drei's Html, whose first-mounted root came up empty under React 19's double
- * mount (the speaker's own slip never showed).
+ * mount (the speaker's own slip never showed). With `snap` the element lands on whole CSS pixels, so its text stays crisp.
  */
-export function ScreenAnchor({ el, position, above = false, cull = above }: { el: RefObject<HTMLDivElement | null>; position: readonly [number, number, number]; above?: boolean; cull?: boolean }) {
+export function ScreenAnchor({ el, position, above = false, cull = above, snap = false }: { el: RefObject<HTMLDivElement | null>; position: readonly [number, number, number]; above?: boolean; cull?: boolean; snap?: boolean }) {
   const g = useRef<Group>(null);
   const v = useMemo(() => new Vector3(), []);
   useFrame(({ camera, size }) => {
@@ -28,7 +28,9 @@ export function ScreenAnchor({ el, position, above = false, cull = above }: { el
     const px = clamp(((v.x + 1) / 2) * size.width, half, Math.max(half, size.width - half));
     const top = above ? node.offsetHeight + 64 : 0;
     const py = Math.max(top, ((1 - v.y) / 2) * size.height);
-    node.style.transform = `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0) translate(-50%, ${above ? '-100%' : '-50%'})`;
+    node.style.transform = snap
+      ? `translate3d(${Math.round(px - node.offsetWidth / 2)}px, ${Math.round(py - (above ? node.offsetHeight : node.offsetHeight / 2))}px, 0)`
+      : `translate3d(${px.toFixed(1)}px, ${py.toFixed(1)}px, 0) translate(-50%, ${above ? '-100%' : '-50%'})`;
     node.style.zIndex = String(Math.round((1 - v.z) * 10000));
   });
   return <group ref={g} position={[position[0], position[1], position[2]]} />;

@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { CloseIcon } from '../components/Icons';
 import { Chip, PaperPanel, WoodButton } from '../components/Materials';
-import { SheepIcon } from '../components/SheepIcon';
-import { AvatarIcon } from './AvatarIcon';
+import { AvatarIcon, SheepHead } from './AvatarIcon';
 import { CHARACTERS } from './catalog';
 import { setAvatar, useAvatar } from './store';
 
@@ -84,7 +83,7 @@ export function AvatarPicker({ onClose }: { onClose: () => void }) {
         </div>
         <div className="mt-3 flex items-center gap-2">
           <button type="button" aria-pressed={current === null} aria-label="The plain sheep" onClick={() => setAvatar(null)} className="sk-avatar-choice sk-avatar-choice-row">
-            <SheepIcon size={28} /><span className="sk-hand text-base">The plain sheep (no avatar)</span>
+            <SheepHead size={28} /><span className="sk-hand text-base">The plain sheep (no avatar)</span>
           </button>
           <WoodButton onClick={onClose} className="sk-btn ml-auto">Done</WoodButton>
         </div>

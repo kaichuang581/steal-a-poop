@@ -5,7 +5,7 @@ import { TIERS } from '../../../lib/ranked';
 import { describeError } from '../../../net/protocol';
 import { enterOnline, onlinePlay } from '../../rooms/enterOnline';
 import { BADGE_H, BADGE_W, badgeArt } from '../badge';
-import { PlayChooser } from '../PlayChooser';
+import { PlayChooser, rankProgress } from '../PlayChooser';
 import { RankBadge } from '../RankBadge';
 
 const noop = () => undefined;
@@ -58,17 +58,27 @@ describe('what Play opens', () => {
     expect(html).toContain('play/ranked.webp');
   });
 
-  it('says what each is, and never mentions bots', () => {
+  it('says what Casual is, and never mentions bots', () => {
     const html = chooser('play');
     expect(html).not.toMatch(/\bbots?\b|farm sheep/i);
-    expect(html).toMatch(/2 to 4 players/);
-    expect(html).toMatch(/Leaving a game counts as a loss/);
+    expect(html).toMatch(/Any number of players/);
+    expect(html).toMatch(/No account needed/);
   });
 
-  it('shows the whole ladder on the Ranked card, lowest rank first', () => {
+  it('shows only your own rank on the Ranked side, with a bar to the next (Brian, 2026-11-21)', () => {
     const html = chooser('play');
-    expect(html).toContain(`The ranks, lowest first: ${TIERS.map((t) => t.name).join(', ')}`);
-    expect((html.match(/<svg/g) ?? []).length).toBeGreaterThanOrEqual(TIERS.length);
+    expect(html).not.toContain('The ranks, lowest first');
+    expect(html).toContain('role="progressbar"');
+    expect(html).toContain(`${TIERS[0].name} I`);
+    expect(html).toContain(`100 to ${TIERS[0].name} II`);
+  });
+
+  it('measures how far through a rank you are, and what is left', () => {
+    expect(rankProgress({ rating: 0, games: 0, wins: 0, peak: 0 }, true)).toMatchObject({ tier: 0, label: `${TIERS[0].name} I`, share: 0, note: `100 to ${TIERS[0].name} II` });
+    expect(rankProgress({ rating: 345, games: 9, wins: 4, peak: 345 }, true)).toMatchObject({ tier: 1, label: `${TIERS[1].name} I`, share: 0.45, note: `55 to ${TIERS[1].name} II` });
+    expect(rankProgress({ rating: 280, games: 9, wins: 4, peak: 280 }, true)).toMatchObject({ label: `${TIERS[0].name} III`, note: `20 to ${TIERS[1].name} I` });
+    expect(rankProgress({ rating: 5000, games: 99, wins: 60, peak: 5000 }, true)).toMatchObject({ tier: TIERS.length - 1, share: 1, note: 'Top rank' });
+    expect(rankProgress(null, false)).toMatchObject({ share: 0, none: true });
   });
 
   it('asks a player with no account to sign in before ranked, and never offers them the queue', () => {

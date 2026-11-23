@@ -24,6 +24,12 @@ describe('the admin numbers', () => {
     expect(flat['All accounts']).toBe('1,500');
   });
 
+  it('show unique visitors under their own heading when the server counts them', () => {
+    const rows = numberRows({ ...data, site: { ...data.site, uniqueVisitors: { today: 30, yesterday: 41, thisWeek: 150, thisMonth: 900, total: 4000 }, uniqueSince: '2026-11-21' } });
+    expect(rows.map((g) => g.group)).toEqual(['Right now', 'Visits', 'Unique visitors', 'Accounts']);
+    expect(rows[2].rows).toEqual([['Today', '30'], ['Yesterday', '41'], ['This week', '150'], ['This month', '900'], ['All time', '4,000']]);
+  });
+
   it('say "rooms" for any number but one', () => {
     const flat = Object.fromEntries(numberRows({ ...data, online: { ...data.online, rooms: 0, playersInGames: 0 } }).flatMap((g) => g.rows));
     expect(flat['In a room']).toBe('0 in 0 rooms');

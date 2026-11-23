@@ -15,7 +15,7 @@ import { createPacer, newPace, noteSceneDrawn } from '../perf/governor';
 import type { Pace } from '../perf/governor';
 import { FailCard } from '../perf/ReportCard';
 import { watchScene } from '../perf/report';
-import { applyPendingTier, createSlowWatch, createTierJudge, exemptShot, getTier, proposeTier } from '../perf/tier';
+import { applyPendingTier, createSlowWatch, createTierJudge, exemptShot, getTier, oldLightShot, proposeTier } from '../perf/tier';
 import type { Tier } from '../perf/tier';
 import { BARN } from '../scene/layout';
 import { LOOK, PADDOCK_FOG, WARM_DAY_SKY } from '../look';
@@ -167,7 +167,7 @@ export function Atmosphere({ hour }: { hour: Hour }) {
   // The wendigo's paddock shot keeps the fog it had, colour and density; every other shot the diorama's.
   const was = useRef('');
   useFrame(() => {
-    const f = scene.fog as FogExp2 | null, exempt = exemptShot();
+    const f = scene.fog as FogExp2 | null, exempt = oldLightShot();
     // Home's haze is fitted to each shot (shotLight), set in the dip with the camera's jump.
     const density = exempt ? PADDOCK_FOG : shotNow?.haze ?? LOOK.fog, key = `${exempt}|${density}|${shotNow?.hazeColour ?? ''}`;
     if (!f || was.current === key) return;
@@ -244,7 +244,7 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
     const l = light.current;
     if (!l) return;
     const s = st.current, now = performance.now();
-    const exempt = place === 'home' && exemptShot();
+    const exempt = place === 'home' && oldLightShot();
     const colour = exempt ? TODAY_SUN[hour] : (place === 'home' ? shotNow?.sunColour : null) ?? look.sun;
     if (hour + colour !== s.colour) { s.colour = hour + colour; l.color.set(colour); }
     // The paddock shot's light is the light it had; every other shot's is the diorama's (the tour cuts in the dark).
@@ -281,7 +281,7 @@ export function Lights({ hour, phone, viewYaw, lampRef, place = 'table' }: { hou
       }
       s.owed = true;
     }
-    const plan = sunPlan(getTier(), phone, exempt, place);
+    const plan = sunPlan(getTier(), phone, place === 'home' && exemptShot(), place);
     let due = false;
     if (l.shadow.mapSize.x !== plan.size) { l.shadow.mapSize.set(plan.size, plan.size); due = true; }
     if (s.seq !== shotSeq) { s.seq = shotSeq; due = true; s.again = now + SHOT_AGAIN_MS; }
@@ -358,7 +358,10 @@ const GradeShader = {
  * works on a picture no wider than BLOOM_MAX_W whatever the screen. After: 60 frames a second at 1.5x and at the full
  * 2x, where it had been 41 at 1.5x. Shadows were measured too and cost next to nothing.
  */
-const samplesFor = (pixelRatio: number) => (pixelRatio > 1.4 ? 0 : pixelRatio > 1.1 ? 2 : 4);
+// From 1.5x up it had no samples at all, which on a Retina screen left the far pines' tier steps and the long shadows on
+// the back slopes blinking as Home's camera drifted (Brian, 2026-11-22: "z-fighting and flickering in the back"; with
+// the camera held still nothing changes, so it is crawl, not depth). Two samples there take nearly all of it away.
+const samplesFor = (pixelRatio: number) => (pixelRatio > 1.1 ? 2 : 4);
 const BLOOM_MAX_W = 720;
 /**
  * The composer by tier (plan file 02, change 3): High today's; Medium the bloom on a picture at most 480 px across;
@@ -434,19 +437,20 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
     return () => { gl.info.autoReset = true; };
   }, [gl]);
   useFrame(() => {
-    const exempt = home && exemptShot();
-    // The wendigo's paddock shot is drawn as it was: plain Lambert (voxel/material.ts) under the old tone mapping.
-    scene.userData.plainLight = exempt;
+    // The wendigo's paddock shot keeps its tier exemption (bloom and tilt-shift on every tier); it is drawn in its old
+    // light, plain Lambert (voxel/material.ts) under the old tone mapping, only while PADDOCK_OLD_LIGHT (look.ts) is on.
+    const exempt = home && exemptShot(), old = home && oldLightShot();
+    scene.userData.plainLight = old;
     // The golden afternoon (docs/depth/DEPTH-PLAN.md, A1 to A3): Home's shots set the soft shading's amounts, the
     // exposure and how bright the lamps burn; the paddock shot and every other scene keep the material's own.
-    const golden = home && !exempt && shotNow ? shotNow : null;
+    const golden = home && !old && shotNow ? shotNow : null;
     scene.userData.studio = golden ? { wrap: golden.softWrap, fill: golden.softFill } : undefined;
     scene.userData.glow = golden ? golden.glow : 1;
     gl.toneMappingExposure = golden ? golden.exposure : 1;
-    gl.toneMapping = exempt ? ACESFilmicToneMapping : (home ? shotNow?.toneMapping : null) ?? LOOK.toneMapping;
+    gl.toneMapping = old ? ACESFilmicToneMapping : (home ? shotNow?.toneMapping : null) ?? LOOK.toneMapping;
     for (const p of composer.passes) {
-      if (p instanceof UnrealBloomPass) p.threshold = exempt ? PADDOCK_BLOOM : BLOOM_THRESHOLD;
-      if (p instanceof ShaderPass && p.material.fragmentShader === GradeShader.fragmentShader) p.enabled = home && !exempt && !LOOK.noGrade;
+      if (p instanceof UnrealBloomPass) p.threshold = old ? PADDOCK_BLOOM : BLOOM_THRESHOLD;
+      if (p instanceof ShaderPass && p.material.fragmentShader === GradeShader.fragmentShader) p.enabled = home && !old && !LOOK.noGrade;
     }
     const want = effectsPlan(getTier(), exempt);
     if (home && !exempt && !LOOK.tilt) want.tiltShift = false; // ?tilt=0 (look.ts): off but on the wendigo's shot
@@ -600,7 +604,7 @@ const STALL_S = 0.25, STALLS_SLOW = 5;
 const QUIET_S = 1.5;
 
 /** The steady frame rate's judge, inside a canvas: it reports a new resolution, and the level it found too slow. */
-function AdaptiveDpr({ max, min, value, kept, pace, onChange }: { max: number; min: number; value: number; kept: Settled; pace: Pace; onChange: (next: Settled) => void }) {
+function AdaptiveDpr({ max, min, value, kept, pace, onChange }: { max: number; min: number; value: number; kept: Settled; pace: Pace; onChange: (next: Settled, keep?: boolean) => void }) {
   const st = useRef({ sum: 0, n: 0, worst: 0, stalls: 0, age: 0, quiet: QUIET_S, value, target: 0, w: 0, h: 0, streak: { slow: 0, fast: 0, ceiling: kept.ceiling, refusedAt: 0, tries: kept.tries } as DprStreak });
   useFrame(({ size }, dt) => {
     const s = st.current;
@@ -619,13 +623,14 @@ function AdaptiveDpr({ max, min, value, kept, pace, onChange }: { max: number; m
     }
     if (s.age < s.quiet) return;
     if (performance.now() < holdUntil || doorsShut()) { restart(); return; }
-    const report = (next: number) => {
+    const report = (next: number, keep = true) => {
       s.quiet = s.age + QUIET_S;
       restart();
-      if (next !== value) onChange({ dpr: next, ceiling: s.streak.ceiling, tries: s.streak.tries ?? 0 });
+      if (next !== value) onChange({ dpr: next, ceiling: s.streak.ceiling, tries: s.streak.tries ?? 0 }, keep);
     };
     if (dt > STALL_S) {
-      if (++s.stalls >= STALLS_SLOW) report(refuseDpr(value, s.streak, min, s.age));
+      // Stalls step down for now but are not kept: a reload, a tab switch or a load hitch is not the device being slow.
+      if (++s.stalls >= STALLS_SLOW) report(refuseDpr(value, s.streak, min, s.age), false);
       return;
     }
     s.stalls = 0;
@@ -754,9 +759,9 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, fps, judgeTier =
     const hint = memory ? deviceHint() : null;
     return { dpr: hint === null ? device : Math.max(minDpr, Math.min(device, hint)), ceiling: Infinity, tries: 0 };
   });
-  const onChange = (next: Settled) => {
+  const onChange = (next: Settled, keep = true) => {
     setState(next);
-    writeSettled(memory, next);
+    if (keep) writeSettled(memory, next);
   };
   // A scene change is one of the two places a tier earned elsewhere may come in (Home's dip is the other).
   useLayoutEffect(() => { applyPendingTier(); }, []);

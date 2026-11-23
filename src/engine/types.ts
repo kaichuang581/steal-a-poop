@@ -130,6 +130,8 @@ export interface GameState {
   players: Player[];
   turn: TurnState | null;
   introEndsAt: number | null;
+  /** How many sheep in a row have run out of time on `letter` (normal games): at STUCK_LIMIT the chain moves on. */
+  stuck?: { letter: string; count: number } | null;
   trap: Trap | null;
   history: ChainEntry[];
   events: GameEvent[];

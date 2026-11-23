@@ -11,10 +11,11 @@ import { hash3 } from '../voxel/primitives';
  * in unison. The star holds steady. Under reduced motion every bulb holds steady.
  */
 export function Festive({ geo, reduced }: { geo: FestiveGeometry; reduced: boolean }) {
-  const mat = useMemo(() => voxelMaterial(), []);
-  const star = useMemo(() => voxelMaterial({ emissive: BULB_COLORS[2], emissiveIntensity: 1.1, homeGlow: true }), []);
+  // Decorations hang flush on walls and roofs: they win every tie with what they hang on (voxel/material.ts, `layer`).
+  const mat = useMemo(() => voxelMaterial({ layer: -3 }), []);
+  const star = useMemo(() => voxelMaterial({ emissive: BULB_COLORS[2], emissiveIntensity: 1.1, homeGlow: true, layer: -3 }), []);
   const glow = useMemo(() => geo.bulbs.map((_, k) => ({
-    mat: voxelMaterial({ emissive: BULB_COLORS[Math.floor(k / BULB_GROUPS)], emissiveIntensity: 0.9, homeGlow: true }),
+    mat: voxelMaterial({ emissive: BULB_COLORS[Math.floor(k / BULB_GROUPS)], emissiveIntensity: 0.9, homeGlow: true, layer: -3 }),
     speed: 0.9 + hash3(k, 1, 0, 401) * 2.6,
     phase: hash3(k, 2, 0, 403) * Math.PI * 2,
   })), [geo]);

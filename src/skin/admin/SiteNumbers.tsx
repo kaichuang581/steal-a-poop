@@ -17,7 +17,10 @@ export interface SiteNumbersData {
     onSiteNow: number;
     visits: { today: number; yesterday: number; last7: number; last30: number; total: number };
     newBrowsers: { today: number; last7: number; total: number };
+    /** Absent from a server from before unique visitors were counted. */
+    uniqueVisitors?: { today: number; yesterday: number; thisWeek: number; thisMonth: number; total: number };
     since: string | null;
+    uniqueSince?: string | null;
   };
   accounts: { total: number; today: number; last7: number };
   online: { connections: number; guests: number; accounts: number; rooms: number; playersInGames: number };
@@ -65,6 +68,17 @@ export function numberRows(d: SiteNumbersData): Array<{ group: string; rows: Arr
         ['New browsers, all time', n(d.site.newBrowsers.total)],
       ],
     },
+    ...(d.site.uniqueVisitors ? [{
+      // Browsers, not visits: a browser that comes back ten times today is one (Brian, 2026-11-21).
+      group: 'Unique visitors',
+      rows: [
+        ['Today', n(d.site.uniqueVisitors.today)],
+        ['Yesterday', n(d.site.uniqueVisitors.yesterday)],
+        ['This week', n(d.site.uniqueVisitors.thisWeek)],
+        ['This month', n(d.site.uniqueVisitors.thisMonth)],
+        ['All time', n(d.site.uniqueVisitors.total)],
+      ] as Array<[string, string]>,
+    }] : []),
     {
       group: 'Accounts',
       rows: [
@@ -147,6 +161,7 @@ export function SiteNumbers() {
               ))}
               <p className="sk-nums-note">
                 {data.site.since ? `Visits counted since ${data.site.since}. ` : 'No visits counted yet. '}
+                {data.site.uniqueVisitors && (data.site.uniqueSince ? `Unique visitors counted since ${data.site.uniqueSince}. ` : 'No unique visitors counted yet. ')}
                 Only numbers are kept, never who. Updates every 15 seconds.
               </p>
             </div>

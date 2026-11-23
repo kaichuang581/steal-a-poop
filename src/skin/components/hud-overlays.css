@@ -1,0 +1,215 @@
+/* What lies over the barn table in the current look (Brian, 2026-11-23: "address all of the outdated ui ... the tip is just
+   a plain white card"): the tutorial's guide, the first-time tips, the alarm band, the word bar, the speech bubble and the
+   round's rule sign. Only the recipes he approved: the modern kit's ink card (kit/modern InkCard), Home's slab, the pen's
+   felt bar and the name tag's small dark label. No plank, paper, stitching, stripes or hand font. */
+
+/* ---------- The tutorial's guide (tour/PaintedTour.tsx): an ink card with the sheepdog on it, a ring round what it is
+   talking about, and a light dimming of everything else while a card is being read. Nothing blacks the table out. ---------- */
+.sk-tour { position: fixed; inset: 0; z-index: 45; pointer-events: none; }
+/* While a card is read, the screen dims a little everywhere but the ringed thing: one box at the ring, its shadow spread
+   over the rest. With nothing ringed, the whole screen. */
+.sk-tour-dim { position: absolute; border-radius: 2px; box-shadow: 0 0 0 200vmax rgba(10, 8, 18, 0.36); }
+.sk-tour-dim--all { inset: 0; border-radius: 0; box-shadow: none; background: rgba(10, 8, 18, 0.36); }
+/* The ring: lantern, two-pixel corners. */
+.sk-tour-ring {
+  position: absolute; border: 3px solid var(--hm-lantern); border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(14, 21, 40, 0.7), inset 0 0 0 2px rgba(14, 21, 40, 0.45);
+  animation: sk-tour-ring 1.4s ease-in-out infinite;
+}
+@keyframes sk-tour-ring { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+:root.reduce-motion .sk-tour-ring, :root.reduce-motion .sk-tour-text { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-tour-ring, .sk-tour-text { animation: none; } }
+/* The card: the modern kit's ink card (kit/modern InkCard), the sheepdog on a felt tile, quiet pips, a lantern slab. */
+.md-card.sk-tour-card { position: absolute; display: block; max-width: none; padding: 12px 14px 12px 20px; pointer-events: auto; }
+.sk-tour-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.sk-tour-dog {
+  flex: none; width: 44px; height: 44px; overflow: hidden; background: var(--hm-night-2);
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+.sk-tour-dog img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.sk-tour-meta { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.sk-tour-kicker { font: 800 11px/1 var(--skin-font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--hm-frost); white-space: nowrap; }
+.sk-tour-pips { display: flex; gap: 3px; }
+.sk-tour-pips i { width: 10px; height: 4px; background: var(--hm-night-3); }
+.sk-tour-pips i[data-on="done"] { background: var(--hm-frost); }
+.sk-tour-pips i[data-on="now"] { background: var(--hm-lantern); }
+.sk-tour-text { animation: sk-tour-in 180ms ease-out both; }
+@keyframes sk-tour-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.sk-tour-title { margin: 0; font: 700 19px/1.15 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-wool); text-wrap: balance; }
+.sk-tour-body { margin: 6px 0 0; font: 700 14px/1.45 var(--skin-font-body); color: var(--hm-wool); text-wrap: pretty; }
+.sk-tour-note { margin: 6px 0 0; font: 700 12.5px/1.4 var(--skin-font-body); color: var(--hm-frost); text-wrap: pretty; }
+.sk-tour-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 12px; }
+/* The card is sized in pixels, so are its slabs: Home's --u would make them 11 px type on a phone. */
+.sk-tour-actions .md-slab { padding-inline: 14px; font-size: 14px; }
+/* The key on the lantern slab: the name tag's small dark label. No keyboard, no key to show. */
+.sk-tour-key {
+  display: inline-flex; align-items: center; height: 19px; padding: 1px 5px 0; box-sizing: border-box; background: var(--hm-ink);
+  font: 800 11px/1 var(--skin-font-body); letter-spacing: 0.04em; color: var(--hm-lantern-hi);
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+@media (hover: none), (pointer: coarse) { .sk-tour-key { display: none; } }
+/* Skip: a quiet link, lantern words over a lantern-lip line. */
+.sk-tour-skip {
+  min-height: 32px; padding: 0 2px; border: 0; background: none; cursor: pointer;
+  font: 800 13px/1 var(--skin-font-body); color: var(--hm-lantern-hi);
+  text-decoration: underline 2px var(--hm-lantern-lip); text-underline-offset: 4px;
+}
+.sk-tour-skip:hover { color: var(--hm-wool); }
+.sk-tour-skip:focus-visible { outline: 2px solid var(--hm-lantern); outline-offset: 2px; }
+.sk-tour-leave { margin-left: auto; }
+/* A phone: the card lies across the top, under the bar, and is kept short. */
+.md-card.sk-tour-card[data-dock="top"] { padding: 9px 12px 10px 18px; }
+.sk-tour-card[data-dock="top"] .sk-tour-head { margin-bottom: 7px; gap: 9px; }
+.sk-tour-card[data-dock="top"] .sk-tour-dog { width: 36px; height: 36px; }
+.sk-tour-card[data-dock="top"] .sk-tour-meta { gap: 6px; }
+.sk-tour-card[data-dock="top"] .sk-tour-title { font-size: 17px; }
+.sk-tour-card[data-dock="top"] .sk-tour-body { font-size: 13.5px; margin-top: 4px; }
+.sk-tour-card[data-dock="top"] .sk-tour-note { font-size: 12px; margin-top: 4px; }
+.sk-tour-card[data-dock="top"] .sk-tour-actions { margin-top: 9px; }
+
+/* ---------- The first-time tips (src/ui/CoachTips.tsx, fenced: dressed from here). The ink card, a lantern bar down its
+   left, the tip's name in Fraunces, its line in Nunito, and a small wool slab to close it. Tailwind's utilities are in a
+   layer, so these plain rules win over them. ---------- */
+:root[data-skin="painted"] .coach-tip {
+  --c: 2px; position: relative; isolation: isolate; align-items: center; gap: 14px; max-width: min(92vw, 420px);
+  padding: 10px 12px 10px 20px; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--hm-wool);
+  filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35));
+}
+/* A phone: the classic spot (96 px up) lies over the word being typed, and the top holds the round's rule and the wool
+   that the tips talk about, so the tip sits just over the word bar (200 px and the bar's own bottom inset). */
+@media (max-width: 639px) {
+  :root[data-skin="painted"] div:has(> .coach-tip) { bottom: calc(200px + max(12px, env(safe-area-inset-bottom, 0px))); }
+}
+:root[data-skin="painted"] .coach-tip::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--hm-ink); box-shadow: inset 6px 0 0 var(--hm-lantern);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+:root[data-skin="painted"] .coach-tip-label {
+  margin-bottom: 4px; font: 700 15px/1.15 var(--skin-font-display); font-variation-settings: 'opsz' 24; letter-spacing: 0; text-transform: none; color: var(--hm-wool);
+}
+:root[data-skin="painted"] .coach-tip-text { margin: 0; font: 700 12.5px/1.4 var(--skin-font-body); color: var(--hm-frost); text-wrap: pretty; }
+/* "Got it": Home's slab, small and wool, drawn here because the button's markup is the classic one. */
+:root[data-skin="painted"] .coach-tip-btn {
+  --s: 2px; --depth: 4px; --drop: 0px;
+  position: relative; isolation: isolate; flex: none; align-self: center; min-height: 0; height: calc(30px + var(--depth)); padding: 0 12px var(--depth);
+  border: 0; border-radius: 0; background: none; color: var(--hm-ink); cursor: pointer;
+  font: 800 13px/1 var(--skin-font-display); filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.38));
+}
+:root[data-skin="painted"] .coach-tip-btn::before {
+  content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: var(--drop); bottom: 0; background-color: var(--hm-wool);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-1 * (var(--depth) - var(--drop) + var(--s))) 0 var(--hm-wool-lip), inset 0 calc(2 * var(--s)) 0 var(--hm-wool-hi);
+  clip-path: polygon(0 calc(2*var(--s)), var(--s) calc(2*var(--s)), var(--s) var(--s), calc(2*var(--s)) var(--s), calc(2*var(--s)) 0,
+    calc(100% - 2*var(--s)) 0, calc(100% - 2*var(--s)) var(--s), calc(100% - var(--s)) var(--s), calc(100% - var(--s)) calc(2*var(--s)), 100% calc(2*var(--s)),
+    100% calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) 100%,
+    calc(2*var(--s)) 100%, calc(2*var(--s)) calc(100% - var(--s)), var(--s) calc(100% - var(--s)), var(--s) calc(100% - 2*var(--s)), 0 calc(100% - 2*var(--s)));
+}
+:root[data-skin="painted"] .coach-tip-btn:hover { --drop: -2px; }
+:root[data-skin="painted"] .coach-tip-btn:active { --drop: 3px; }
+:root[data-skin="painted"] .coach-tip-btn:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 3px; }
+
+/* ---------- The alarm band (Alarm.tsx): the pen's felt bar right across the screen, a lantern rule along each edge (frost
+   for a new rule), a small caps line, the news in Fraunces, a line in Nunito. ---------- */
+.kit-alarm {
+  --alarm: var(--hm-lantern);
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: calc(5 * var(--u)); width: 100%; box-sizing: border-box;
+  padding: calc(16 * var(--u)) 16px calc(17 * var(--u)); text-align: center; color: var(--hm-wool);
+  background: var(--hm-night) var(--felt) 0 0 / var(--felt-size);
+  box-shadow: inset 0 calc(3 * var(--u)) 0 var(--alarm), inset 0 calc(3 * var(--u) + var(--s)) 0 var(--hm-ink),
+    inset 0 calc(-3 * var(--u)) 0 var(--alarm), inset 0 calc(-3 * var(--u) - var(--s)) 0 var(--hm-ink);
+  filter: var(--shadow);
+  animation: kit-alarm-in 240ms var(--ease-out) both;
+}
+.kit-alarm-twist { --alarm: var(--hm-frost); }
+.kit-alarm-label { font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--alarm); }
+.kit-alarm-title { font: 800 calc(30 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); text-wrap: balance; }
+.kit-alarm-sub { font: 700 calc(13 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-frost); }
+.kit-alarm-compact { gap: 4px; padding: 11px 12px 12px; }
+.kit-alarm-compact .kit-alarm-label { font-size: 11px; letter-spacing: 0.12em; }
+.kit-alarm-compact .kit-alarm-title { font-size: 21px; }
+.kit-alarm-compact .kit-alarm-sub { font-size: 12px; }
+@keyframes kit-alarm-in { from { opacity: 0; transform: translateY(-10px); } }
+:root.reduce-motion .kit-alarm { animation: none; }
+@media (prefers-reduced-motion: reduce) { .kit-alarm { animation: none; } }
+
+/* ---------- The word bar (InputStrip.tsx, `.sk-input`): the floating letters stay (kit.css, .kit-float), dressed for the
+   table here: an ink shadow under every word, the small words in Nunito, the key and the buttons as the small dark label
+   and Home's slab. The dream shares .kit-float and keeps its own. ---------- */
+.sk-input .kit-float { --glow-a: var(--hm-ink); --glow-b: rgba(14, 21, 40, 0.55); }
+.sk-input .sk-input-prompt {
+  margin-bottom: 8px; font: 800 14px/1.3 var(--skin-font-body); color: var(--hm-wool);
+  text-shadow: 0 2px 0 var(--hm-ink), 0 0 8px rgba(14, 21, 40, 0.7);
+}
+.sk-input .sk-input-prompt b { color: var(--hm-lantern-hi); }
+.sk-input .kit-float-need small { font: 800 14px/1 var(--skin-font-body); color: var(--hm-wool); }
+.sk-input .kit-float-ph { font: 800 clamp(17px, 1.5vw, 22px)/1.2 var(--skin-font-body); letter-spacing: 0.01em; color: var(--hm-wool); opacity: 0.85; }
+.sk-input .kit-float-rule { height: 2px; background: var(--hm-wool); opacity: 0.6; filter: none; box-shadow: 0 2px 0 var(--hm-ink); }
+.sk-input .kit-float-go { gap: 7px; min-height: 32px; font: 800 13px/1 var(--skin-font-body); color: var(--hm-wool); text-shadow: 0 2px 0 var(--hm-ink), 0 0 6px rgba(14, 21, 40, 0.7); }
+.sk-input .kit-float-go b {
+  display: inline-flex; align-items: center; height: 22px; padding: 1px 8px 0; box-sizing: border-box; border-radius: 0; background: var(--hm-ink); box-shadow: none; text-shadow: none;
+  font: 800 11px/1 var(--skin-font-body); letter-spacing: 0.04em; color: var(--hm-lantern-hi);
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+.sk-input .kit-float-go:focus-visible { outline: 2px solid var(--hm-lantern); outline-offset: 2px; border-radius: 0; }
+.sk-input .kit-float-row { gap: 12px; }
+.sk-input .sk-input-hint { filter: var(--shadow); }
+@media (max-width: 640px) { .sk-input .sk-input-prompt { font-size: 13px; } .sk-input .kit-float-need small { font-size: 13px; } }
+/* The message over the word ("not a word", a typo's fix): an ink card (MessageSlip.tsx). */
+.md-card.sk-message-slip { font: 700 14px/1.35 var(--skin-font-body); color: var(--hm-wool); }
+.sk-message-slip .sk-message-fix { color: var(--hm-lantern-hi); text-decoration: underline 2px var(--hm-lantern-lip); text-underline-offset: 3px; }
+.sk-message-slip .sk-message-hint { margin-left: 8px; font-size: 12.5px; color: var(--hm-frost); }
+/* Word ideas in the tutorial: the ink card, each idea spelled in mini tiles. */
+.md-card.sk-ideas { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; width: fit-content; margin: 0 auto 8px; }
+.sk-ideas-try { display: inline-flex; align-items: center; gap: 4px; font: 800 13px/1 var(--skin-font-body); color: var(--hm-frost); }
+.sk-idea { display: inline-flex; gap: 1px; padding: 3px 2px; border: 0; background: none; cursor: pointer; transition: translate var(--t-fast) var(--ease-out); }
+.sk-idea:hover { translate: 0 -2px; }
+
+/* ---------- The speech bubble over the speaker's head (PaintedGame's `.sk-say`): a wool face with two-pixel corners, a
+   hard shadow and a stepped point toward the head, the name tag's shape in wool. ---------- */
+.sk-say {
+  --c: 2px;
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; min-height: 46px; min-width: 80px; max-width: min(86vw, 520px);
+  padding: 4px 14px 5px; margin-bottom: 4px; box-sizing: border-box; white-space: nowrap;
+  font: 800 30px/1 var(--skin-font-display); letter-spacing: 0.06em; color: var(--hm-ink);
+  filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.38));
+  animation: sk-say-pop 200ms var(--ease-out) both;
+}
+.sk-say::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--hm-wool);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+.sk-say::after {
+  content: ''; position: absolute; z-index: -1; left: 50%; top: 100%; width: 12px; height: 6px; translate: -50% 0; background: var(--hm-wool);
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 75% 50%, 75% 100%, 25% 100%, 25% 50%, 0 50%);
+}
+.sk-say [data-first="ok"] { color: var(--hm-lantern-lip); }
+.sk-say [data-first="bad"] { color: var(--hm-barn); }
+.sk-say-ph { font: 800 15px/1 var(--skin-font-body); letter-spacing: 0; color: var(--hm-night-3); }
+.sk-say-caret { flex: none; width: 3px; height: 26px; margin-left: 4px; background: var(--hm-lantern-lip); animation: sk-blink 1s steps(1) infinite; }
+.sk-say[data-wait] { opacity: 0.85; scale: 0.85; transform-origin: 50% 100%; }
+.sk-say.sk-tag-reject { color: var(--hm-barn); animation: sk-say-shake 0.38s ease-in-out; }
+@keyframes sk-say-pop { from { opacity: 0; transform: translateY(6px) scale(0.9); } }
+@keyframes sk-say-shake { 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
+:root.reduce-motion .sk-say { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-say { animation: none; } }
+@media (max-width: 640px) {
+  .sk-say { min-height: 34px; min-width: 60px; padding: 3px 10px 4px; font-size: 21px; }
+  .sk-say-ph { font-size: 13px; }
+  .sk-say-caret { height: 19px; }
+}
+
+/* ---------- The round's rule in the round tab (TwistSign.tsx): the rule chip's small dark label, a step lighter than the
+   ink tab it sits in, the rule in lantern, "this round" small beside it. No icon: the rule chip has none. ---------- */
+.sk-hud-twist { display: flex; align-items: center; gap: 8px; margin-top: 4px; animation: sk-twist-in 400ms var(--ease-out) both; }
+.sk-hud-twist-chip {
+  display: inline-flex; align-items: center; height: 26px; padding: 1px 9px 0; box-sizing: border-box; background: var(--hm-night-2);
+  font: 700 14px/1 var(--skin-font-display); letter-spacing: 0.01em; color: var(--hm-lantern-hi); white-space: nowrap;
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+.sk-hud-twist small { font: 800 11.5px/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
+/* A phone: the rule over "this round", small, so the tab leaves the four corner buttons one row. */
+.sk-hud-twist[data-compact] { flex-direction: column; align-items: flex-start; gap: 4px; }
+.sk-hud-twist[data-compact] .sk-hud-twist-chip { height: 22px; padding: 1px 7px 0; font-size: 12px; }
+.sk-hud-twist[data-compact] small { font-size: 11px; }
+@keyframes sk-twist-in { from { opacity: 0; transform: translateY(-6px); } }
+:root.reduce-motion .sk-hud-twist { animation: none; }
+@media (prefers-reduced-motion: reduce) { .sk-hud-twist { animation: none; } }

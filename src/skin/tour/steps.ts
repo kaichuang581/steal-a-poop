@@ -91,7 +91,7 @@ export const TOUR_STEPS: TourStep[] = [
     body: () => 'It sits with whoever is up and counts down. Play a word before it goes off and it moves on to the next sheep.',
   },
   {
-    id: 'wool', kind: 'info', targets: ['.sk-plate:has(.sk-plate-you)', '[data-tour="me"]'],
+    id: 'wool', kind: 'info', targets: ['.sk-seat-plate[data-you]', '[data-tour="me"]'],
     title: 'Wool balls are lives',
     body: (c) => {
       const n = c.game.players[c.mySeat]?.lives ?? 0;

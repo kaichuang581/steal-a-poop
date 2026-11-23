@@ -130,27 +130,36 @@ export function pizz(k: Kit, midi: number, at: number, dur: number, vol: number)
   tone(k, f, { at, dur: Math.max(0.25, dur), vol, type: 'triangle', attack: 0.006, to: k.low });
   tone(k, f * 2, { at, dur: 0.12, vol: vol * 0.25, attack: 0.004, to: k.low });
 }
-/** A driving synth bass: a square and a saw through the low-pass, short and hard. */
+/**
+ * The barn band's upright bass, slapped: a round triangle with a thump of its octave, short. It was a square and a saw
+ * (an electronic synth bass), which a friend of Brian's found grating and out of place on a snowy farm (2026-11-22).
+ */
 export function synthBass(k: Kit, midi: number, at: number, dur: number, vol: number): void {
   const f = hz(midi);
-  tone(k, f, { at, dur, vol, type: 'square', attack: 0.004, to: k.low });
-  tone(k, f, { at, dur, vol: vol * 0.6, type: 'sawtooth', attack: 0.004, detune: 9, to: k.low });
+  tone(k, f, { at, dur: Math.max(0.12, dur), vol: vol * 1.1, type: 'triangle', attack: 0.004, to: k.low });
+  tone(k, f * 2, { at, dur: 0.06, vol: vol * 0.3, attack: 0.003, to: k.low });
 }
-/** A chord stabbed short: saws through the soft low-pass. */
+/** A guitar chord strummed short, low string first: plucked triangles, each a hair after the last (was sawtooth stabs). */
 export function stab(k: Kit, chord: readonly number[], at: number, dur: number, vol: number): void {
-  for (const midi of chord) tone(k, hz(midi), { at, dur, vol: vol / chord.length, type: 'sawtooth', attack: 0.005, to: k.soft });
+  chord.forEach((midi, j) => {
+    const f = hz(midi), v = vol / chord.length;
+    tone(k, f, { at: at + j * 0.011, dur: Math.max(0.16, dur * 1.4), vol: v * 1.3, type: 'triangle', attack: 0.003, to: k.soft });
+    tone(k, f * 2, { at: at + j * 0.011, dur: 0.07, vol: v * 0.3, attack: 0.002, to: k.soft });
+  });
 }
-/** A chip-tune voice: a thin square, for arps. */
+/** A mandolin's quick picked note, for runs and arps: a triangle with a bright, short partial (was a chip-tune square). */
 export function chip(k: Kit, midi: number, at: number, dur: number, vol: number, to: AudioNode = k.soft): void {
-  tone(k, hz(midi), { at, dur, vol, type: 'square', shape: 'hold', attack: 0.004, release: Math.min(0.05, dur * 0.4), to });
+  const f = hz(midi);
+  tone(k, f, { at, dur: Math.max(0.1, dur * 1.6), vol: vol * 1.15, type: 'triangle', attack: 0.002, to });
+  tone(k, f * 3, { at, dur: 0.04, vol: vol * 0.22, attack: 0.001, to });
 }
-/** A lead that sings: a square and a soft saw, a waver on long notes, into the echo. */
+/** A fiddle: a triangle and its octave swelling in like a bow, a waver on long notes, into the echo (was a square and a saw). */
 export function lead(k: Kit, midi: number, at: number, dur: number, vol: number): void {
   const f = hz(midi), long = dur > 0.3;
   for (const dest of [k.soft, k.echo]) {
-    const v = dest === k.echo ? vol * 0.45 : vol;
-    tone(k, f, { at, dur, vol: v, type: 'square', shape: 'hold', attack: 0.012, release: 0.06, vibrato: long ? 14 : 0, to: dest });
-    tone(k, f, { at, dur, vol: v * 0.5, type: 'sawtooth', shape: 'hold', attack: 0.012, release: 0.06, detune: 8, to: dest });
+    const v = dest === k.echo ? vol * 0.4 : vol;
+    tone(k, f, { at, dur, vol: v * 1.5, type: 'triangle', shape: 'hold', attack: 0.035, release: 0.07, vibrato: long ? 18 : 6, to: dest });
+    tone(k, f * 2, { at, dur, vol: v * 0.35, shape: 'hold', attack: 0.04, release: 0.07, vibrato: long ? 18 : 6, detune: 4, to: dest });
   }
 }
 /** Somebody whistling: a sine that swells, with a waver. */
@@ -182,12 +191,19 @@ export function rim(k: Kit, at: number, vol: number): void {
 export function snare(k: Kit, at: number, vol: number): void {
   tone(k, 165, { at, dur: 0.14, vol, type: 'triangle', from: 1.7, fall: 0.07, attack: 0.002 });
   tone(k, 880, { at, dur: 0.07, vol: vol * 0.4, type: 'triangle', from: 1.5, fall: 0.04, attack: 0.001 });
-  tone(k, 2300, { at, dur: 0.035, vol: vol * 0.18, type: 'square', from: 1.3, fall: 0.02, attack: 0.001 });
+  tone(k, 2300, { at, dur: 0.035, vol: vol * 0.12, type: 'triangle', from: 1.3, fall: 0.02, attack: 0.001 });
 }
 /** A hat: a tiny high blip, clean where noise would hiss. `open` lets it ring a little. */
 export function hat(k: Kit, at: number, vol: number, open = false, to: AudioNode = k.air): void {
   tone(k, 7300, { at, dur: open ? 0.11 : 0.03, vol, attack: 0.002, to });
   tone(k, 9600, { at, dur: open ? 0.07 : 0.02, vol: vol * 0.5, type: 'triangle', attack: 0.001, to });
+}
+/** Sleigh bells shaken once: three small high bells a hair apart, tones only. For the snowy songs. */
+export function sleigh(k: Kit, at: number, vol: number, to: AudioNode = k.air): void {
+  [5274, 6272, 7040].forEach((f, j) => {
+    tone(k, f, { at: at + j * 0.012, dur: 0.09, vol: vol * (1 - j * 0.2), attack: 0.002, to });
+    tone(k, f * 1.5, { at: at + j * 0.012, dur: 0.04, vol: vol * 0.25, attack: 0.001, to });
+  });
 }
 /** A tom, for fills: `pitch` 0 high, 1 mid, 2 low. */
 export function tom(k: Kit, at: number, vol: number, pitch: 0 | 1 | 2): void {

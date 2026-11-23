@@ -43,8 +43,12 @@ const PropPreview = DEV ? lazy(() => import('./scene/style/PropPreview').then((m
 const MiniPreview = DEV ? lazy(() => import('./scene/MiniPreview').then((m) => ({ default: m.MiniPreview }))) : null;
 const PropBoard = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PropBoard }))) : null;
 // ?preview=pen: the lobby's pen with four guests and no server, to look at the scene alone (development only).
-const PenPreview = DEV ? lazy(() => import('./rooms/PenStage').then((m) => ({ default: () => <m.PenStage guests={['sheep', 'cow', 'pig', 'chicken'].map((avatar, i) => ({ id: `p${i}`, name: ['Brian', 'Maple', 'Barley', 'Tansy'][i], avatar, you: i === 0, host: i === 0 }))} farmSheep={2} reduced={false} phone={innerWidth < 640} shift={[0, 0]} /> }))) : null;
+const RoomPreview = DEV ? lazy(() => import('./rooms/RoomPreview').then((m) => ({ default: m.RoomPreview }))) : null;
+const PenPreview = DEV ? lazy(() => import('./rooms/PenStage').then((m) => ({ default: () => <m.PenStage guests={['sheep', 'cow', 'pig', 'chicken'].map((avatar, i) => ({ id: `p${i}`, name: ['Brian', 'Maple', 'Barley', 'Tansy'][i], avatar, you: i === 0, host: i === 0 }))} max={10} reduced={false} phone={innerWidth < 640} frame={null} /> }))) : null;
 const PaletteSwatches = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PaletteSwatches }))) : null;
+// ?preview=boards: the leaderboards alone, without the farm under them, for photographing every tab and state quickly
+// (development only; the boards come from whatever server `sap:server` names, which a test browser can stand in for).
+const BoardsPreview = DEV ? lazy(() => import('./boards/Leaderboards').then((m) => ({ default: () => <div className="hm"><m.Leaderboards onClose={() => undefined} /></div> }))) : null;
 import { OnboardingGate } from './onboarding/Onboarding';
 import { startVisitReports } from '../lib/visit';
 import { BarnDoors, doorsShut, playBarnDoors, shutDoorsAtBoot, whenDoorsOpen, whenDoorsShut } from './components/BarnDoors';
@@ -186,11 +190,13 @@ export function PaintedApp() {
   if (PREVIEW === 'stall' && StallRender) return <Suspense fallback={null}><StallRender /></Suspense>;
   if (PREVIEW === 'guide' && GuideRender) return <Suspense fallback={null}><GuideRender /></Suspense>;
   // The diorama scenery's pages (docs/diorama/PLAN.md, 5.3 and 5.4).
+  if (PREVIEW === 'room' && RoomPreview) return <Suspense fallback={null}><RoomPreview /></Suspense>;
   if (PREVIEW === 'pen' && PenPreview) return <div style={{ position: 'fixed', inset: 0 }}><Suspense fallback={null}><PenPreview /></Suspense></div>;
   if (PREVIEW === 'mini' && MiniPreview) return <Suspense fallback={null}><MiniPreview /></Suspense>;
   if (PREVIEW === 'prop' && PropPreview) return <Suspense fallback={null}><PropPreview /></Suspense>;
   if (PREVIEW === 'props' && PropBoard) return <Suspense fallback={null}><PropBoard /></Suspense>;
   if (PREVIEW === 'palette' && PaletteSwatches) return <Suspense fallback={null}><PaletteSwatches /></Suspense>;
+  if (PREVIEW === 'boards' && BoardsPreview) return <Suspense fallback={null}><BoardsPreview /></Suspense>;
   if (PREVIEW === 'wendigo') return <div style={{ position: 'fixed', inset: 0 }}><WendigoPreviewCanvas /></div>;
   // A ?join=CODE address joins that room once the player is signed in and online.
   // The start screen is always the first thing: nothing to get through before it. The name is picked there, and signing

@@ -480,6 +480,20 @@ export class RoomManager {
     try { this.deps.onClosed?.(code); } catch { /* a listener must never break the rooms */ }
   }
 
+  /**
+   * How many people are in each mode right now, waiting or playing (Brian, 2026-11-21: the Queue chooser shows it).
+   * Casual: every table that is not ranked (the casual queue's and people's own lobbies); ranked: the ranked tables.
+   * People only: bots are not members. The Daily Table is a game of its own and counts in neither.
+   */
+  modeCounts(): { casual: number; ranked: number } {
+    let casual = 0, ranked = 0;
+    for (const r of this.rooms.values()) {
+      if (r.kind !== 'room') continue;
+      if (r.ranked) ranked += r.members.length; else casual += r.members.length;
+    }
+    return { casual, ranked };
+  }
+
   /** Counts for monitoring. */
   stats(): { rooms: number; players: number } {
     let players = 0;

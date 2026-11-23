@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import './hud-overlays.css';
 
 export type AlarmTone = 'speed' | 'twist';
 
 export interface AlarmSpec {
   id: number;
   tone: AlarmTone;
-  /** The small line over the title: what kind of alarm this is ("Round 3 · faster", "Round 2 · new rule"). */
+  /** The small line over the title: what kind of alarm this is ("Round 3: faster", "Round 2: new rule"). */
   label: string;
   title: ReactNode;
   sub?: ReactNode;
@@ -14,32 +15,17 @@ export interface AlarmSpec {
   ms?: number;
 }
 
-/** The barn's alarm lamp: a dome light on a base, with rays. */
-function LampIcon({ size = 26 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
-      <path d="M4 20h16v2H4z M6 18h12v2H6z" fill="currentColor" opacity="0.75" />
-      <path d="M7 18v-6a5 5 0 0 1 10 0v6z" fill="currentColor" />
-      <path d="M12 2v3M4.2 6.6l2.1 2.1M19.8 6.6l-2.1 2.1M2 13h3M19 13h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 /**
- * The alarm board: a dark plank with hazard stripes and two blinking lamps, dropped in over the table for the
- * moments that change the game's rules on the spot: faster turns and twists. The same carved display
- * lettering as the signboards, so it belongs to the barn, but no snow and no warm wood: this is a warning.
+ * The alarm band, dropped in over the table for the moments that change the game's rules on the spot: faster turns
+ * and a new rule. The pen's felt bar right across the screen with a lantern rule along each edge (frost for a rule), a
+ * small caps line, the news in Fraunces and a line in Nunito (Brian, 2026-11-23: the old striped plank was "outdated ui").
  */
 export function Alarm({ tone, label, title, sub, compact = false }: Omit<AlarmSpec, 'id' | 'ms'> & { compact?: boolean }) {
   return (
-    <div className={`kit-alarm kit-alarm-${tone} ${compact ? 'kit-alarm-compact' : ''}`} role="alert">
-      <span className="kit-alarm-lamp" aria-hidden="true"><LampIcon size={compact ? 20 : 26} /></span>
-      <span className="kit-alarm-body">
-        <span className="kit-alarm-label">{label}</span>
-        <span className="kit-alarm-title">{title}</span>
-        {sub && <span className="kit-alarm-sub">{sub}</span>}
-      </span>
-      <span className="kit-alarm-lamp kit-alarm-lamp-r" aria-hidden="true"><LampIcon size={compact ? 20 : 26} /></span>
+    <div className={`kit-alarm hm rc kit-alarm-${tone} ${compact ? 'kit-alarm-compact' : ''}`} role="alert">
+      <span className="kit-alarm-label">{label}</span>
+      <span className="kit-alarm-title">{title}</span>
+      {sub && <span className="kit-alarm-sub">{sub}</span>}
     </div>
   );
 }

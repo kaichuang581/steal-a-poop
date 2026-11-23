@@ -94,6 +94,7 @@ function arcSamples(cx: number, cy: number, rx: number, ry: number, rot: number,
 /** One wound wrap: a smooth round strand (at this size a ball's twist is not seen), a darker rim where it meets the
  *  next wrap, and a lighter core on the side toward the light. */
 function wrap(ctx: CanvasRenderingContext2D, pts: ArcPt[], k: number, sw: number) {
+  if (pts.length < 2) return;
   const path = new Path2D(); pts.forEach((p, i) => (i ? path.lineTo(p.x * k, p.y * k) : path.moveTo(p.x * k, p.y * k)));
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.strokeStyle = colour(PLY.base, 0.45); ctx.lineWidth = (sw + 1.6) * k; ctx.stroke(path);
@@ -103,18 +104,47 @@ function wrap(ctx: CanvasRenderingContext2D, pts: ArcPt[], k: number, sw: number
 }
 /** The ball's wraps, which turn as it rolls: wraps one way underneath, a band the other way on top, clipped to the
  *  ball. Drawn at (cx, cy) with radius r px; `spin` in degrees. */
-export function drawBallWraps(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, spin = 0) {
+export function drawBallWraps(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, spin = 0, roll = 0) {
   const k = r / 50, rot = (-35 + spin) * Math.PI / 180, sw = 9, tip = 28 * Math.PI / 180;
   ctx.save(); ctx.translate(cx, cy); ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
   ctx.fillStyle = colour(PLY.base, 0.5); ctx.fillRect(-r, -r, 2 * r, 2 * r);
-  for (let phi = -80; phi <= 80; phi += 13) {                 // underneath: wraps across an axis tipped 28 degrees
+  // `roll` (degrees) turns the ball about its wraps' own axes, so the wraps slide over its face as it unwinds instead of
+  // the whole picture spinning flat. At roll 0 it is the baked picture, wrap for wrap.
+  const under = ((roll % 13) + 13) % 13, over = (((roll * 0.77) % 10) + 10) % 10;
+  for (let phi = -80 - 13 + under; phi <= 80 + 13; phi += 13) {   // underneath: wraps across an axis tipped 28 degrees
+    if (Math.abs(phi) > 88) continue;
     const ph = phi * Math.PI / 180, yc = 50 * Math.sin(ph) * Math.cos(tip), rx = 52 * Math.cos(ph), ry = rx * Math.sin(tip);
     wrap(ctx, arcSamples(0, yc, rx, ry, rot, Math.PI, 0), k, sw);
   }
-  for (let l = -60; l <= 24; l += 10) {                       // on top: the band, pole to pole
+  for (let l = -60 - 10 + over; l <= 24 + 10; l += 10) {         // on top: the band, pole to pole, fading in and out at its edges
+    const edge = Math.min(1, (l + 70) / 10, (34 - l) / 10);
+    if (edge <= 0) continue;
     const rx = Math.max(0.5, Math.abs(50 * Math.sin(l * Math.PI / 180)));
+    ctx.globalAlpha = edge;
     wrap(ctx, arcSamples(0, 0, 52, rx, rot + Math.PI / 2, l < 0 ? 0 : Math.PI, l < 0 ? Math.PI : 2 * Math.PI), k, sw);
+    ctx.globalAlpha = 1;
   }
+  ctx.restore();
+}
+
+/**
+ * The strand coming off the ball (Brian, 2026-11-22: "make the yarn ball animation a little more like the yarn is
+ * actually unraveling"): the laid yarn reaches the ball's edge on the side it came from (`back`, radians, the way back
+ * along the strand) and climbs onto it as its loose outer wrap, over the top of the ball and away behind it, in the
+ * same twisted ply as the laid strand and as thick (`scale`: the ball's size now, 1 at the start; the ball is 38 word
+ * units in radius). `pull` (radians) is how far the ball has unwound: the wrap swings and tightens with it.
+ */
+export function drawPeel(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, back: number, pull: number, scale = 1) {
+  const k = r / 50, unit = 50 / 38 / scale;
+  const rot = back + 0.18 * Math.sin(pull), ry = 33 + 7 * Math.sin(pull * 0.6);
+  // Round the ball whichever way keeps it on the upper side, as a strand pulled off the top of a ball lies.
+  const side = Math.cos(rot) < 0 ? 1 : -1;
+  const pts = arcSamples(0, 0, 49, ry, rot, 0, side * Math.PI, PLY.step);
+  ctx.save(); ctx.translate(cx, cy); ctx.beginPath(); ctx.arc(0, 0, r * 1.04, 0, Math.PI * 2); ctx.clip();
+  // A soft shadow on the wraps under it, then the strand itself, which goes on behind the ball at the far edge.
+  const shade = new Path2D(); pts.forEach((p, i) => (i ? shade.lineTo((p.x + 1.8) * k, (p.y + 3) * k) : shade.moveTo((p.x + 1.8) * k, (p.y + 3) * k)));
+  ctx.strokeStyle = 'rgba(30,8,6,0.32)'; ctx.lineWidth = 11 * unit * k; ctx.lineCap = 'round'; ctx.stroke(shade);
+  plyStrand(ctx, pts, k, 0, pts[pts.length - 1].s, { width: PLY.width * unit, pitch: PLY.pitch * unit, fibreTwist: PLY.fibreTwist * unit, halo: false });
   ctx.restore();
 }
 /** The baked picture's numbers (3.3): 320 px square, the ball's radius 320 / 2.4, spin 0. */

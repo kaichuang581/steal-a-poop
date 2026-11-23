@@ -40,12 +40,12 @@
 .hm-slab > * { transform: translateY(var(--drop)); transition: transform 60ms linear; }
 .hm-knit::before { background-image: var(--knit); background-size: calc(16 * var(--u)) calc(12 * var(--u)); }
 .hm-slab--lantern { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); }
-.hm-slab--night { --face: var(--hm-night-2); --hi: var(--hm-night-3); --lip: #141D36; --txt: var(--hm-wool); }
-.hm-slab--ink { --face: var(--hm-ink); --hi: #1D2947; --lip: #05080F; --txt: var(--hm-wool); }
+.hm-slab--night { --face: var(--hm-night-2); --hi: var(--hm-night-3); --lip: var(--hm-night-deep); --txt: var(--hm-wool); }
+.hm-slab--ink { --face: var(--hm-ink); --hi: var(--hm-ink-hi); --lip: var(--hm-ink-side); --txt: var(--hm-wool); }
 .hm-slab:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 3px; }
 .hm-slab--sm:hover:not(:disabled) { --drop: calc(-2 * var(--u)); }
 .hm-slab:active:not(:disabled):not([data-busy]) { --drop: calc(4 * var(--u)); }
-.hm-slab:disabled { --face: #3A4664; --hi: #3A4664; --txt: var(--hm-frost); --side: calc(2 * var(--u)); cursor: not-allowed; }
+.hm-slab:disabled { --face: var(--hm-disabled); --hi: var(--hm-disabled); --txt: var(--hm-frost); --side: calc(2 * var(--u)); cursor: not-allowed; }
 .hm-slab:disabled::before { background-image: none; }
 .hm-slab[data-busy] { cursor: progress; }
 /* Over the scenery, a slab casts one hard shadow (a filter, which the pixel corners do not cut). */
@@ -100,7 +100,7 @@
 .hm-me-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(16 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); }
 .hm-me-lvl { display: flex; align-items: center; gap: calc(6 * var(--u)); font: 800 calc(10.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); white-space: nowrap; }
 .hm-xp { display: flex; gap: calc(2 * var(--u)); }
-.hm-xp i { width: calc(9 * var(--u)); height: calc(7 * var(--u)); background: #141D36; }
+.hm-xp i { width: calc(9 * var(--u)); height: calc(7 * var(--u)); background: var(--hm-night-deep); }
 .hm-xp i[data-on] { background: var(--hm-lantern); }
 
 /* The title: seven wool blocks, the last one fleeced. */
@@ -210,7 +210,8 @@
 /* ---------- The footer ---------- */
 .hm-foot { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; height: var(--foot); display: flex; align-items: center; gap: calc(18 * var(--u)); padding: 0 calc(20 * var(--u));
   background: var(--hm-ink); box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern); }
-.hm-tip { display: flex; flex: 1; align-items: center; gap: calc(10 * var(--u)); min-width: 0; margin: 0; }
+/* The tip sits centred in the space the small print leaves (Brian, 2026-11-21: "all the way to the left"). */
+.hm-tip { display: flex; flex: 1; align-items: center; justify-content: center; gap: calc(10 * var(--u)); min-width: 0; margin: 0; text-align: center; }
 .hm-tip-text { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font: 700 calc(12.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); }
 .hm-small { display: flex; flex: none; align-items: center; gap: calc(18 * var(--u)); font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); }
 .hm-small > * { display: inline-flex; align-items: center; min-height: 24px; color: var(--hm-wool); }
@@ -227,57 +228,126 @@
 .hm-close { width: calc(36 * var(--u)); height: calc(36 * var(--u) + var(--depth)); }
 .hm-close svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
 .hm-sheet p, .hm-sheet .sk-hand { font: 700 calc(14 * var(--u))/1.4 var(--skin-font-body); color: var(--hm-frost); }
-.hm-sheet .sk-display { font: 800 calc(16 * var(--u))/1.2 var(--skin-font-display); color: var(--hm-lantern-hi); }
-.hm-sheet legend, .hm-sheet summary { font: 800 calc(12 * var(--u))/1 var(--skin-font-body) !important; letter-spacing: 0; text-transform: none; color: var(--hm-lantern-hi); }
 .hm-sheet p[role="alert"] { color: var(--hm-lantern-hi); }
-.hm-rules { border-top: 2px solid var(--hm-night-3); border-bottom: 2px solid var(--hm-night-3); }
-.hm-rules summary { padding: calc(6 * var(--u)) 0; cursor: pointer; }
-/* Choices: small wool blocks; the chosen one is lantern. */
-.hm-sheet .sk-chip { --face: var(--hm-wool); --hi: var(--hm-wool-hi); --lip: var(--hm-wool-lip); --depth: calc(4 * var(--u));
-  position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: calc(6 * var(--u)); min-height: calc(34 * var(--u) + var(--depth)); padding: 0 calc(12 * var(--u)) var(--depth);
-  border: 0; border-radius: 0; outline: 0; clip-path: none; background: none; box-shadow: none; filter: none; font: 800 calc(14 * var(--u))/1 var(--skin-font-body); color: var(--hm-ink); }
-.hm-sheet .sk-chip::before { content: ''; position: absolute; z-index: -1; inset: 0; display: block; clip-path: var(--px); background: var(--face);
-  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-1 * (var(--depth) + var(--s))) 0 var(--lip), inset 0 calc(2 * var(--s)) 0 var(--hi); }
-.hm-sheet .sk-chip::after { display: none; }
-.hm-sheet .sk-chip[aria-pressed="true"] { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); }
-.hm-sheet .sk-chip:focus-visible, .hm-sheet .kit-tile:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
+.hm-sheet .kit-tile:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
 .hm-sheet .kit-tile { --tile-w: calc(36 * var(--u)); border-radius: 0; clip-path: var(--px); background: var(--hm-wool); color: var(--hm-night); text-shadow: none;
   box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-7 * var(--u)) 0 var(--hm-wool-lip); }
-.hm-sheet .kit-tile.kit-tile--lit { background: var(--hm-lantern); box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-7 * var(--u)) 0 var(--hm-lantern-lip); }
 .hm-sheet .sk-code .kit-tile { --tile-w: calc(40 * var(--u)); height: calc(44 * var(--u)); }
 .hm-sheet .sk-code .sk-code-next { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
-.hm-sheet .kit-slate { padding: 0; background: none; box-shadow: none; }
-.hm-sheet .kit-slate::after { display: none; }
-:root .sk-home .hm-sheet .kit-slate .kit-slate-face { --s: calc(2 * var(--u)); display: inline-flex; align-items: center; height: calc(24 * var(--u)); padding: 0 calc(9 * var(--u)); outline: 0; clip-path: var(--px);
-  font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); background: var(--hm-ink); box-shadow: none; text-shadow: none; }
 /* The panel's one action: a lantern slab 48 high. */
 .hm-act { width: 100%; height: calc(48 * var(--u) + var(--depth)); font: 800 calc(22 * var(--u))/1 var(--skin-font-display) !important; color: var(--hm-ink) !important; }
 
-/* Queue's chooser (Casual and Ranked), drawn in the same pieces. */
+/* The rank guide's overlay (RankGuide.tsx); the Queue chooser draws its own (ranked/chooser.css). */
 .hm .sk-play { background: rgba(14, 21, 40, 0.78); }
-.hm .sk-play-box { padding: calc(16 * var(--u)) calc(18 * var(--u)) calc(18 * var(--u)); clip-path: var(--px); background: var(--hm-night-2);
-  box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink); }
-.hm .sk-play-head h2 { font: 800 calc(26 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); text-shadow: none; }
-.hm .sk-play-error { clip-path: var(--px); border-radius: 0; font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-lantern-hi); background: var(--hm-ink); box-shadow: none; }
-.hm .sk-play-card, .hm .sk-play-card[data-mode] { clip-path: var(--px); border-radius: 0; color: var(--hm-wool); background: var(--hm-night); box-shadow: inset 0 0 0 var(--s) var(--hm-ink); }
-.hm .sk-play-card[data-mode] .sk-play-art { box-shadow: none; border-bottom: var(--s) solid var(--hm-ink); }
-.hm .sk-play-card[data-mode] h3 { font: 800 calc(28 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); text-transform: none; letter-spacing: 0; }
-.hm .sk-play-line, .hm .sk-play-facts, .hm .sk-play-note, .hm .sk-play-rank small { font: 700 calc(14 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
-.hm .sk-play-card[data-mode] .sk-play-facts { color: var(--hm-frost); }
-.hm .sk-play-facts li::before { border-radius: 0; background: var(--hm-lantern); opacity: 1; }
-.hm .sk-play-ladder { border-radius: 0; background: #141D36; box-shadow: none; }
-.hm .sk-play-ladder span { border-radius: 0; }
-.hm .sk-play-ladder span[data-on] { background: var(--hm-night-3); box-shadow: 0 0 0 2px var(--hm-lantern); }
-.hm .sk-play-rank b { color: var(--hm-lantern-hi); }
-.hm .sk-play-go { width: 100%; height: calc(48 * var(--u) + var(--depth)); min-height: 0; font: 800 calc(19 * var(--u))/1 var(--skin-font-display); }
 
 /* ---------- Entrance (the first Home of a visit) ---------- */
-.hm[data-enter] .hm-panel { animation: hm-panel-in 280ms ease-out both; }
-.hm[data-enter] .hm-block-l { animation: hm-drop 240ms ease-out both; animation-delay: calc(200ms + var(--i) * 45ms); }
-.hm[data-enter] .sk-menu-row { animation: hm-row-in 240ms ease-out both; animation-delay: calc(280ms + var(--n) * 40ms); }
+/* Held at its first frame behind the loading screen ("wait"), played as that lifts ("play"): the panel slides in while
+   the yarn screen dissolves, then the title's tiles drop and the rows come in. */
+.hm[data-enter] .hm-panel { animation: hm-panel-in 620ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both; }
+.hm[data-enter] .hm-block-l { animation: hm-drop 380ms cubic-bezier(0.34, 1.4, 0.64, 1) both; animation-delay: calc(420ms + var(--i) * 55ms); }
+.hm[data-enter] .sk-menu-row { animation: hm-row-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(520ms + var(--n) * 55ms); }
+.hm[data-enter="wait"] :is(.hm-panel, .hm-block-l, .sk-menu-row) { animation-play-state: paused; }
 @keyframes hm-panel-in { from { transform: translateX(-100%); } }
 @keyframes hm-drop { from { opacity: 0; transform: translateY(calc(-40 * var(--u))); } }
 @keyframes hm-row-in { from { opacity: 0; transform: translateX(calc(-40 * var(--u))); } }
+
+/* ---------- The setup sheets: Create lobby and Practice (SetupSheet.tsx) ----------
+   Brian, 2026-11-22, of the old cards: "poorly done, its just another plain card"; he chose layout B of three, "but
+   better"), then "i dont want it growing out of the menu ... now it just looks the same as the side bar": a sheet of its
+   own, floating in the middle of the scenery with a clear gap from the panel, leaning 11 degrees about its own middle, a
+   lighter face than the panel's with a lantern band on top and darker sunken rows. Rows and choices lean with it; their
+   text stands upright (`.hm-setup-up`). On a phone the sheet is upright in the bottom sheet and each row leans 6 degrees
+   by itself, as the phone's menu does. */
+.hm { --un: 11deg; }
+.hm[data-phone] { --un: 6deg; }
+.hm:not([data-phone]) .hm-panel-slot--lean {
+  --setup-h: min(calc(var(--ph) * 0.86), calc(560 * var(--u)));
+  /* The lean throws the corners out by a tenth of the sheet's height each side; width and place leave room for that.
+     Centred over the scenery; on a window too narrow for that it slides left over the dimmed menu only as far as it must. */
+  --setup-w: min(calc(600 * var(--u)), calc(100vw - 40 * var(--u) - 0.194 * var(--setup-h)));
+  left: min(calc((var(--mid) + 100vw) / 2), calc(100vw - var(--setup-w) / 2 - 20 * var(--u) - 0.097 * var(--setup-h)));
+  top: calc(50% - var(--foot) / 2); transform: translate(-50%, -50%); width: var(--setup-w); max-height: none; overflow: visible; }
+.hm:not([data-phone]) .hm-panel-slot--lean .hm-setup { max-height: var(--setup-h); }
+/* A narrow window leaves the sheet narrow: each row puts its name over its choices, as on a phone, and the title shrinks. */
+.hm-setup { container-type: inline-size; }
+@container (max-width: 500px) {
+  .hm-setup .hm-setup-row { flex-wrap: wrap; row-gap: calc(8 * var(--u)); }
+  .hm-setup .hm-setup-lead { width: 100%; }
+  .hm-setup .hm-setup-head h2 { font-size: calc(22 * var(--u)); }
+}
+@container (max-width: 360px) { .hm-setup .hm-setup-kicker { display: none; } }
+.hm-setup { position: relative; isolation: isolate; display: flex; flex-direction: column; max-height: calc(var(--ph) * 0.86); padding: calc(18 * var(--u)) calc(22 * var(--u)) calc(20 * var(--u));
+  transform: skewX(-11deg); transform-origin: 50% 50%; animation: hm-setup-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes hm-setup-in { from { opacity: 0; translate: 0 calc(12 * var(--u)); } }
+/* Its face: lighter than the panel, knitted, an ink outline, a lantern band on top and a dark foot; a hard shadow under it. */
+.hm-setup-face { position: absolute; z-index: -1; inset: 0; clip-path: var(--px); background: var(--hm-night-2) var(--knit); background-size: calc(16 * var(--u)) calc(12 * var(--u));
+  box-shadow: inset 0 calc(5 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-7 * var(--u)) 0 var(--hm-night-deep); }
+.hm:not([data-phone]) .hm-setup { filter: var(--shadow); }
+.hm-setup-up { display: inline-flex; align-items: center; gap: calc(8 * var(--u)); transform: skewX(var(--un)); }
+.hm-setup-head { position: relative; display: flex; align-items: center; gap: calc(12 * var(--u)); transform: skewX(var(--un)); transform-origin: 0 100%; }
+.hm-setup-kicker { flex: none; display: inline-flex; align-items: center; height: calc(24 * var(--u)); padding: 0 calc(10 * var(--u)); clip-path: var(--px);
+  font: 800 calc(12 * var(--u))/1 var(--skin-font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--hm-ink); background: var(--hm-lantern); }
+.hm-setup-head h2 { flex: 1; min-width: 0; margin: 0; font: 800 calc(28 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); }
+.hm-setup-note { position: relative; margin: calc(8 * var(--u)) 0 0; max-width: calc(520 * var(--u)); font: 700 calc(13.5 * var(--u))/1.4 var(--skin-font-body); color: var(--hm-frost); transform: skewX(var(--un)); transform-origin: 0 100%; }
+.hm-setup-note b { color: var(--hm-lantern-hi); }
+.hm-setup-rows { position: relative; flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: calc(8 * var(--u)); margin-top: calc(12 * var(--u)); padding: calc(2 * var(--u)) calc(4 * var(--u)) calc(4 * var(--u)) 0;
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--hm-night-3) transparent; }
+.hm-setup-rows > * { flex: none; }
+/* A row: a night block with an ink outline, a lit top step and a dark lip, like a menu block turned dark. */
+.hm-setup-row { position: relative; isolation: isolate; display: flex; align-items: center; gap: calc(12 * var(--u)); min-width: 0; margin: 0; padding: calc(9 * var(--u)) calc(12 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u)); border: 0; }
+.hm-setup-row::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px); background: var(--hm-night);
+  box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-night-deep), inset 0 calc(-2 * var(--u)) 0 var(--hm-night-3); }
+.hm-setup-lead { flex: none; width: calc(128 * var(--u)); gap: calc(10 * var(--u)); }
+.hm-setup-ico { --s: calc(2 * var(--u)); flex: none; display: grid; place-items: center; width: calc(36 * var(--u)); height: calc(36 * var(--u)); clip-path: var(--px); color: var(--hm-wool);
+  background: var(--hm-ink); box-shadow: inset 0 calc(-3 * var(--u)) 0 var(--hm-ink-side); }
+.hm-setup-ico > svg, .hm-setup-ico > img { width: calc(22 * var(--u)); height: calc(22 * var(--u)); object-fit: contain; image-rendering: pixelated; }
+.hm-setup-name { font: 800 calc(18 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); white-space: nowrap; }
+.hm-setup-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
+.hm-setup-choices { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: calc(6 * var(--u)); }
+.hm-setup-foot { min-height: calc(16 * var(--u)); gap: calc(6 * var(--u)); font: 700 calc(12.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); transform-origin: 0 100%; }
+.hm-setup-foot svg { width: calc(16 * var(--u)); height: auto; }
+/* The flock has a line of its own with room for ten, so picking more sheep never makes the row taller. */
+.hm-setup-foot:has(.hm-setup-flock) { flex-wrap: wrap; row-gap: calc(4 * var(--u)); }
+.hm-setup-flock { display: flex; width: 100%; min-height: calc(12 * var(--u)); gap: calc(2 * var(--u)); }
+.hm-setup-choice { --depth: calc(5 * var(--u)); min-width: 0; height: calc(38 * var(--u) + var(--depth)); padding: 0 calc(6 * var(--u)) var(--depth); white-space: nowrap;
+  font: 800 calc(15 * var(--u))/1 var(--skin-font-body); }
+.hm-setup-choice[data-big] { font: 800 calc(20 * var(--u))/1 var(--skin-font-display); }
+.hm-setup-choice svg { width: calc(15 * var(--u)); height: calc(15 * var(--u)); }
+.hm-slab > .hm-setup-up { transform: translateY(var(--drop)) skewX(var(--un)); }
+.hm-setup-choice:hover:not(:disabled), .hm-setup-go:hover:not(:disabled) { --drop: calc(-2 * var(--u)); }
+/* The action, drawn like Queue: a lit block with an icon tile, the label, and what was chosen. */
+.hm-setup-go { --depth: calc(7 * var(--u)); flex: none; width: 100%; height: calc(66 * var(--u) + var(--depth)); margin-top: calc(14 * var(--u)); justify-content: flex-start; padding: 0 calc(16 * var(--u)) var(--depth) calc(10 * var(--u)); }
+.hm-setup-go-in { gap: calc(14 * var(--u)); min-width: 0; }
+.hm-setup-go-ico { flex: none; display: grid; place-items: center; width: calc(48 * var(--u)); height: calc(48 * var(--u)); clip-path: var(--px); background: var(--hm-ink); }
+.hm-setup-go-ico img { width: calc(32 * var(--u)); height: calc(32 * var(--u)); object-fit: contain; }
+.hm-setup-go-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; text-align: left; }
+.hm-setup-go-text b { font: 800 calc(29 * var(--u))/1.05 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-ink); }
+.hm-setup-go-text small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(12.5 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-lantern-fold); }
+/* The menu behind: dimmed, but the item that opened the sheet stays lit. */
+.hm-menu-held .sk-menu-row { opacity: 0.4; }
+.hm-menu-held[data-held="lobby"] .sk-menu-row[data-id="lobby"], .hm-menu-held[data-held="practice"] .sk-menu-row[data-id="practice"] { opacity: 1; }
+/* A phone: the sheet stands upright in the bottom sheet; each row and the action lean 6 degrees by themselves. */
+.hm[data-phone] .hm-setup { transform: none; max-height: none; padding: 14px 14px 16px 18px; }
+.hm[data-phone] .hm-setup-rows { overflow: visible; }
+.hm[data-phone] .hm-setup-head, .hm[data-phone] .hm-setup-note { transform: none; }
+.hm[data-phone] .hm-setup-head { gap: 8px; }
+.hm[data-phone] .hm-setup-kicker { height: 20px; padding: 0 7px; font-size: 10px; letter-spacing: 0.08em; }
+.hm[data-phone] .hm-setup-head h2 { font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hm[data-phone] .hm-setup-choices { gap: 4px; }
+@media (max-width: 360px) { .hm[data-phone] .hm-setup-choices:has(> :nth-child(4):last-child) { grid-auto-flow: row; grid-template-columns: repeat(2, 1fr); } .hm[data-phone] .hm-setup-head h2 { font-size: 19px; } .hm[data-phone] .hm-setup-kicker { display: none; } .hm[data-phone] .hm-setup-go-text small { font-size: 11px; } .hm[data-phone] .hm-setup-go-in { gap: 8px; } .hm[data-phone] .hm-setup-go-ico { width: 36px; height: 36px; } .hm[data-phone] .hm-setup-go-ico img { width: 24px; height: 24px; } }
+.hm[data-phone] .hm-setup-row, .hm[data-phone] .hm-setup-go { width: calc(100% - 8px); transform: skewX(-6deg); transform-origin: 0 100%; }
+.hm[data-phone] .hm-setup-row { flex-wrap: wrap; gap: 8px; padding: 8px 10px 11px; }
+.hm[data-phone] .hm-setup-lead { width: 100%; }
+.hm[data-phone] .hm-setup-ico { width: 28px; height: 28px; }
+.hm[data-phone] .hm-setup-ico > svg, .hm[data-phone] .hm-setup-ico > img { width: 18px; height: 18px; }
+.hm[data-phone] .hm-setup-name { font-size: 16px; }
+.hm[data-phone] .hm-setup-choice { height: calc(36px + var(--depth)); padding: 0 2px var(--depth); font-size: 13px; }
+.hm[data-phone] .hm-setup-choice svg { width: 12px; height: 12px; }
+.hm[data-phone] .hm-setup-choice[data-big] { font-size: 17px; }
+.hm[data-phone] .hm-setup-go { height: calc(58px + var(--depth)); }
+.hm[data-phone] .hm-setup-go-text b { font-size: 24px; }
+:root[data-skin="painted"].reduce-motion .hm-setup { animation: none; }
+@media (prefers-reduced-motion: reduce) { .hm-setup { animation: none; } }
 
 /* ---------- A narrow computer window or a tablet: the panel takes half, so labels keep their words ---------- */
 @media (max-width: 960px) { .hm:not([data-phone]) { --mid: max(clamp(calc(380 * var(--u)), 36vw, calc(560 * var(--u))), 46vw); } }

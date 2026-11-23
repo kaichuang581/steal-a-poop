@@ -6,7 +6,7 @@ function memoryStorage() {
   return { getItem: (k: string) => (m.has(k) ? m.get(k)! : null), setItem: (k: string, v: string) => { m.set(k, String(v)); }, removeItem: (k: string) => { m.delete(k); } };
 }
 
-let sent: Array<{ url: string; body: { tab: string; open: boolean; first: boolean } }>;
+let sent: Array<{ url: string; body: { tab: string; open: boolean; first: boolean; unique?: { day: boolean; week: boolean; month: boolean } } }>;
 let visibility: 'visible' | 'hidden';
 let listeners: Array<() => void>;
 let admin = false;
@@ -39,6 +39,28 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('telling the server a tab is open', () => {
+  it('says whether an opening tab is the browser\'s first visit of the day, week and month, and keeps only the day', async () => {
+    vi.setSystemTime(Date.UTC(2026, 10, 18, 10)); // Wednesday 18 November
+    localStorage.setItem('sap:seen', '1');
+    localStorage.setItem('sap:last-visit', '2026-11-18');
+    (await load()).startVisitReports();
+    expect(sent[0].body.unique).toEqual({ day: false, week: false, month: false });
+    expect(localStorage.getItem('sap:last-visit')).toBe('2026-11-18');
+    sessionStorage.removeItem('sap:tab');
+    localStorage.setItem('sap:last-visit', '2026-11-16'); // Monday of the same week
+    (await load()).startVisitReports();
+    expect(sent[1].body.unique).toEqual({ day: true, week: false, month: false });
+    sessionStorage.removeItem('sap:tab');
+    localStorage.setItem('sap:last-visit', '2026-11-15'); // the Sunday before
+    (await load()).startVisitReports();
+    expect(sent[2].body.unique).toEqual({ day: true, week: true, month: false });
+    sessionStorage.removeItem('sap:tab');
+    localStorage.setItem('sap:last-visit', '2026-10-30');
+    (await load()).startVisitReports();
+    expect(sent[3].body.unique).toEqual({ day: true, week: true, month: true });
+    expect(localStorage.getItem('sap:last-visit')).toBe('2026-11-18');
+  });
+
   it('says "opened" once, with a code that is only a random string, and "new browser" the first time', async () => {
     const { startVisitReports } = await load();
     startVisitReports();
@@ -46,7 +68,8 @@ describe('telling the server a tab is open', () => {
     expect(sent[0].url).toBe('http://srv.test/api/site/ping');
     expect(sent[0].body).toMatchObject({ open: true, first: true });
     expect(sent[0].body.tab).toMatch(/^[0-9a-f]{24}$/);
-    expect(Object.keys(sent[0].body).sort()).toEqual(['first', 'open', 'tab']);
+    expect(Object.keys(sent[0].body).sort()).toEqual(['first', 'open', 'tab', 'unique']);
+    expect(sent[0].body).toMatchObject({ unique: { day: true, week: true, month: true } });
   });
 
   it('is not a new visit on a refresh in the same tab, and not a new browser the second time', async () => {

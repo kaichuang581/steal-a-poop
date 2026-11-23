@@ -23,8 +23,6 @@ beforeEach(() => { setMusicOverlay(null); setMusicScene('home'); stopPreviewTick
 
 /** Lets `seconds` go by, the player looking every tenth of a second as it does in the game. */
 const pass = (seconds: number) => { for (let i = 0; i < Math.round(seconds * 10); i++) { ctx.currentTime += 0.1; tick(); } };
-/** The oscillators started since a count was taken, by wave. */
-const since = (n: number) => ctx.oscs.slice(n).map((o) => o.type);
 /** The master's level as last asked for. */
 const master = () => ctx.gains[0].gain.events.filter((e) => e[0] === 'target').at(-1)![1];
 
@@ -33,7 +31,7 @@ describe('the music player', () => {
     pass(0.5);
     const first = ctx.oscs.length;
     expect(first).toBeGreaterThan(8);
-    expect(nowPlaying()).toBe('Lofi in the barn');
+    expect(nowPlaying()).toBe('Snow on the farm');
     // Nothing more until the next bar is nearly due: a bar of the lofi is over three seconds.
     pass(1);
     expect(ctx.oscs.length).toBe(first);
@@ -49,13 +47,11 @@ describe('the music player', () => {
     setMusicScene('battle', 1);
     pass(0.1);
     expect(nowPlaying()).toBe('Pass the bomb');
-    // The lofi's fader is sent to nothing, and the battle's own waves start: squares and saws the lofi never uses.
+    // The Home song's fader is sent to nothing, and the battle's own notes start, a moment after the change.
     expect(ctx.gains.some((g) => g.gain.events.some((e) => e[0] === 'target' && e[1] === 0 && Math.abs(e[2] - at) < 1e-6))).toBe(true);
-    expect(since(before)).toContain('square');
-    expect(since(before)).toContain('sawtooth');
-    expect(ctx.oscs.slice(0, before).some((o) => o.type === 'sawtooth')).toBe(false);
-    // Its first note is its first bar's, a moment after the change.
-    expect(Math.min(...ctx.oscs.slice(before).filter((o) => o.type === 'square').map((o) => o.startAt))).toBeCloseTo(at + 0.12, 1);
+    expect(Math.min(...ctx.oscs.slice(before).filter((o) => o.type === 'triangle').map((o) => o.startAt))).toBeCloseTo(at + 0.12, 1);
+    // A farm band, not a synth: nothing anywhere plays a square or a saw (2026-11-22).
+    expect(ctx.oscs.some((o) => o.type === 'square' || o.type === 'sawtooth')).toBe(false);
   });
 
   it('plays the Trading Post\'s song while it is open, and what was under it when it shuts', () => {
@@ -63,7 +59,7 @@ describe('the music player', () => {
     setMusicOverlay('shop'); pass(0.2);
     expect(nowPlaying()).toBe('The Trading Post shuffle');
     setMusicOverlay(null); pass(0.2);
-    expect(nowPlaying()).toBe('Lofi in the barn');
+    expect(nowPlaying()).toBe('Snow on the farm');
   });
 
   it('picks the lofi up where it was left, instead of playing its opening again; other songs start from the top', () => {

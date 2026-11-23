@@ -37,6 +37,42 @@ export function hasPlayableWord(dict: Dictionary, letter: string, used: readonly
   return dict.startingWith(letter).some((w) => validateWord(w, { dict, chainLetter: letter, used, modifier }).ok);
 }
 
+/**
+ * Which round rule (twist) a word breaks, or null: the modifier part of validateWord on its own, so a screen can warn
+ * while a word is being typed. `word` is already normalized.
+ */
+export function breaksRule(word: string, modifier: RoundModifier): RejectReason | null {
+  switch (modifier) {
+    case 'no_e':
+      if (word.includes('e')) return 'modifier_no_e';
+      break;
+    case 'six_plus':
+      if (word.length < 6) return 'modifier_six_plus';
+      break;
+    case 'double_letter':
+      if (!/(.)\1/.test(word)) return 'modifier_double_letter';
+      break;
+    case 'no_a':
+      if (word.includes('a')) return 'modifier_no_a';
+      break;
+    case 'no_s':
+      if (word.includes('s')) return 'modifier_no_s';
+      break;
+    case 'five_max':
+      if (word.length > 5) return 'modifier_five_max';
+      break;
+    case 'ends_vowel':
+      if (!/[aeiou]$/.test(word)) return 'modifier_ends_vowel';
+      break;
+    case 'has_o':
+      if (!word.includes('o')) return 'modifier_has_o';
+      break;
+    default:
+      break;
+  }
+  return null;
+}
+
 export function validateWord(raw: string, ctx: ValidationContext): ValidationResult {
   const word = normalizeWord(raw);
   if (!/^[a-z]+$/.test(word)) return { ok: false, reason: 'format' };
@@ -44,33 +80,7 @@ export function validateWord(raw: string, ctx: ValidationContext): ValidationRes
   if (word[0] !== ctx.chainLetter) return { ok: false, reason: 'wrong_start' };
   if (ctx.used.includes(word)) return { ok: false, reason: 'already_used' };
   if (!ctx.dict.has(word)) return { ok: false, reason: 'not_in_dictionary' };
-  switch (ctx.modifier) {
-    case 'no_e':
-      if (word.includes('e')) return { ok: false, reason: 'modifier_no_e' };
-      break;
-    case 'six_plus':
-      if (word.length < 6) return { ok: false, reason: 'modifier_six_plus' };
-      break;
-    case 'double_letter':
-      if (!/(.)\1/.test(word)) return { ok: false, reason: 'modifier_double_letter' };
-      break;
-    case 'no_a':
-      if (word.includes('a')) return { ok: false, reason: 'modifier_no_a' };
-      break;
-    case 'no_s':
-      if (word.includes('s')) return { ok: false, reason: 'modifier_no_s' };
-      break;
-    case 'five_max':
-      if (word.length > 5) return { ok: false, reason: 'modifier_five_max' };
-      break;
-    case 'ends_vowel':
-      if (!/[aeiou]$/.test(word)) return { ok: false, reason: 'modifier_ends_vowel' };
-      break;
-    case 'has_o':
-      if (!word.includes('o')) return { ok: false, reason: 'modifier_has_o' };
-      break;
-    default:
-      break;
-  }
+  const broken = breaksRule(word, ctx.modifier);
+  if (broken) return { ok: false, reason: broken };
   return { ok: true, word };
 }

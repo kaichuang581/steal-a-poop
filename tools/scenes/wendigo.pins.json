@@ -12,18 +12,45 @@
       "on": "2026-11-19",
       "what": "the countryside's total only (fine and coarse): 487,002 voxels to 451,526. The stand, the stand of every kind, the cone and the rays are the numbers of 2026-11-16, unchanged, and measured equal on this day. Recorded once more the same day: 451,526 voxels to 424,915, again the countryside's total only, with the stand, the stand of every kind, the cone and the rays measured equal to 2026-11-16's. And a third time that day: 424,915 voxels to 408,004, the countryside's total only, the stand, the stand of every kind, the cone and the rays again measured equal to 2026-11-16's.",
       "why": "Brian, 2026-11-19, asked whether the background pines and the worn tracks of scene/countryside.ts may change: \"yes, remodel\". Outside the wendigo's zone (scene/wendigoZone.ts: 17 m round it, and 20 degrees round the paddock camera's line to it) the forest's pines are the diorama's tiered pines, colours are flat and the tracks are gone; inside it every voxel is built as it was. Later that day he lifted every other limit (\"disregard all prior limits besides what i said about touching the wendigo. dont touch the wendigo unless i explicitly say to. continue remodeling\"): outside the zone the open ground lost its drifts, bare twigs and dead grass, and its bushes and rocks give way to the forecourt, the tractor's new place and the groves; snow is whiter. isClear's own answers are still those of the freeze (wendigoFence.test.ts). Later again that day: \"naturalize the layout of the farm, i dont like where and how everything is ... i told you that u can restructure the placement of basically everything in the world. also, make the natural elements more sensical, the snow on the roof for example\": outside the zone no bush, rock or forest pine stands on the farmstead's own ground (the windbreak to the pasture, the field's fence to the road), and a pine carries snow only on the shelf of each tier."
+    },
+    "again2": {
+      "on": "2026-11-22",
+      "what": "the countryside, the stand, the stand of every kind, the cone and the rays (fine and coarse), all re-recorded: countryside 408,004 voxels to 384,601; the stand 80,760 to 69,290; the rays 134, 136, 137 clear of 153 to 144, 144, 144. The wendigo's own entry, where it stands, its size, the paddock camera and how all this is measured are unchanged and measured equal.",
+      "why": "Brian, 2026-11-22, of the paddock shot's background pines crawling like static: \"yes, go ahead i dont care what happens as long as the wendigo itself isnt remodeled or changed. if youre attacking the background issue of all those trees being staticy then go ahead\". The zone's ragged pines (single snow cubes, broken rims) are the diorama's tiered pines now, and its bushes lost their snow speckle; every tree and bush keeps where it stands. The slimmer pines leave ten more of the 153 sight lines to the wendigo clear."
     }
   },
   "camera": {
-    "position": [21.2, 2.3, 6.2],
-    "target": [12.5, 0.9, -2.5],
+    "position": [
+      21.2,
+      2.3,
+      6.2
+    ],
+    "target": [
+      12.5,
+      0.9,
+      -2.5
+    ],
     "fov": 38,
-    "push": [-1.8, -0.2, 0.5],
-    "frame": [1280, 800],
-    "travel": [0, 0.5, 1]
+    "push": [
+      -1.8,
+      -0.2,
+      0.5
+    ],
+    "frame": [
+      1280,
+      800
+    ],
+    "travel": [
+      0,
+      0.5,
+      1
+    ]
   },
   "wendigo": {
-    "at": [-9.6, -36.1],
+    "at": [
+      -9.6,
+      -36.1
+    ],
     "ground": 9,
     "sunk": 0.05,
     "height": 3.4,
@@ -32,53 +59,64 @@
   "measure": {
     "standMetres": 12,
     "coneMargin": 0.08,
-    "grid": [9, 17],
+    "grid": [
+      9,
+      17
+    ],
     "rayFrom": 0.3,
     "rayStep": 0.05
   },
   "fine": {
     "countryside": {
-      "voxels": 408004,
-      "hash": "256d4db2213cdd03af78ee126e898552f2ab6a99c5c6a2b080083fedd95436dd"
+      "voxels": 384601,
+      "hash": "a160b2a39b2fa2e29b16b06a53580065756698f3178f2ab8300b46ef7e48f6b4"
     },
     "stand": {
-      "voxels": 80760,
-      "hash": "bdcf22a0552dbfb1cc1eebc7785e5a955fc98426301c51b70762efc67a361fe7"
+      "voxels": 69290,
+      "hash": "406b7bbac9b765204553bac8fbc7b8c61e549a3f1a911ece9407085e73e11f7d"
     },
     "standOfEveryKind": {
-      "voxels": 87124,
-      "hash": "8dc021dd2f34e71931269149eaa9fce74719a33b5c56d6e87c9be36fbdeb8c54"
+      "voxels": 75654,
+      "hash": "97f5cddcac72c1b6b0efced631c5f9a122894476bb9942f005f42b5cccafedeb"
     },
     "cone": {
-      "voxels": 89907,
-      "hash": "a1ef5934d9fbf66bf008697f2159963805adee8f356c47267c8e5e9cddbfe538",
-      "ofThePlansSixSets": 76449
+      "voxels": 80735,
+      "hash": "8e5620bea03a5f5c25b51d9b2404f038d662c9288bc7af1029e8c78708818192",
+      "ofThePlansSixSets": 67277
     },
     "rays": {
-      "clear": [134, 136, 137],
+      "clear": [
+        144,
+        144,
+        144
+      ],
       "of": 153
     }
   },
   "coarse": {
     "countryside": {
-      "voxels": 408004,
-      "hash": "256d4db2213cdd03af78ee126e898552f2ab6a99c5c6a2b080083fedd95436dd"
+      "voxels": 384601,
+      "hash": "a160b2a39b2fa2e29b16b06a53580065756698f3178f2ab8300b46ef7e48f6b4"
     },
     "stand": {
-      "voxels": 80760,
-      "hash": "bdcf22a0552dbfb1cc1eebc7785e5a955fc98426301c51b70762efc67a361fe7"
+      "voxels": 69290,
+      "hash": "406b7bbac9b765204553bac8fbc7b8c61e549a3f1a911ece9407085e73e11f7d"
     },
     "standOfEveryKind": {
-      "voxels": 81795,
-      "hash": "4efe54d31b3e12cbf55fbb37b1c5d37d6925fb36c00d00834f3ee48fbb91363f"
+      "voxels": 70325,
+      "hash": "104e4d261e9cc7eace7ce6b7fb193a6474bed3ae6ebc68841eec18977297dda2"
     },
     "cone": {
-      "voxels": 78779,
-      "hash": "e08ece2fb7b6255e72ca7c55601001346111fd967af226233e2dd0d2579a1877",
-      "ofThePlansSixSets": 76449
+      "voxels": 69607,
+      "hash": "0e806121c2a5bbc85f4caa0f20352744093b268963dd9d070cd7657cf8306ab8",
+      "ofThePlansSixSets": 67277
     },
     "rays": {
-      "clear": [134, 136, 137],
+      "clear": [
+        144,
+        144,
+        144
+      ],
       "of": 153
     }
   }

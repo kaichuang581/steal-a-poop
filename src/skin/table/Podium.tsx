@@ -1,4 +1,5 @@
 import { AdaptiveCanvas, MarkDrawn } from './Rendering';
+import { NamePlate } from '../kit/NamePlate';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -29,7 +30,7 @@ import { LOOK } from '../look';
  * crates), on a straw floor between stacked hay bales, in front of the barn's red doors under the hayloft beam and its
  * lanterns. Lantern beams sweep the stage, straw and a little confetti drift down, and the winner holds the trophy up.
  * Every animal has its own dance. Festive only in passing: a wreath on the doors and one short string of warm lights.
- * Names hang on black nameplates under the carved numbers. Its own small canvas over the table.
+ * Names hang on the game's one name tag (kit/NamePlate) under the carved numbers. Its own small canvas over the table.
  */
 export interface PodiumEntry { key: string; name: string; place: number; avatar: string | null; level: WoolLevel; isYou: boolean }
 
@@ -402,7 +403,7 @@ export function Podium({ entries, reduced, phone, aside = false }: { entries: Po
       </SceneBoundary>
       <SlipLayer refFor={anchors} seats={entries.map((e) => ({
         seat: e.place,
-        label: <span className="sk-pod-name" data-place={e.place}>{e.name}{e.isYou ? ' (you)' : ''}</span>,
+        label: <NamePlate tokens name={e.name} you={e.isYou} className="sk-pod-plate" />,
       }))} />
     </div>
   );

@@ -22,9 +22,10 @@ async function setup(key: string | null = KEY) {
   const routes = createSiteRoutes({
     stats, accounts: store, key: key ?? undefined, now: () => NOW,
     online: () => ({ connections: 9, guests: 4, rooms: 2, playersInGames: 6 }),
+    modes: () => ({ casual: 5, ranked: 2 }),
   });
   const call = (path: string, body: unknown, ip = '1.2.3.4') => {
-    const r = routes.find((x: Route) => x.path === path)!;
+    const r = routes.find((x: Route) => x.path === path && (path !== '/api/play/counts' || x.method === 'GET'))!;
     return r.handler({ params: {}, query: {}, body, user: null, session: null, ip } satisfies RouteRequest);
   };
   return { call, stats };
@@ -39,6 +40,16 @@ describe('the site ping', () => {
     expect(s.visits.total).toBe(1);
     expect(s.newBrowsers.total).toBe(1);
     expect(s.onSiteNow).toBe(1);
+  });
+
+  it('counts a returning browser as unique only for what it says, and ignores a malformed answer', async () => {
+    const { call, stats } = await setup();
+    await call('/api/site/ping', { tab: 'abcdefghijkl', open: true, first: false, unique: { day: true, week: true, month: false } });
+    await call('/api/site/ping', { tab: 'bcdefghijklm', open: true, first: false, unique: { day: 'yes', week: 1 } });
+    await call('/api/site/ping', { tab: 'cdefghijklmn', open: true, first: false, unique: 'all' });
+    const s = await stats.summary();
+    expect(s.visits.today).toBe(3);
+    expect(s.uniqueVisitors).toMatchObject({ today: 1, thisWeek: 1, thisMonth: 0 });
   });
 
   it('refuses a code that is not a tab code, and anything that is not an object', async () => {
@@ -56,6 +67,14 @@ describe('the site ping', () => {
   });
 });
 
+describe('the play counts', () => {
+  it('are public and only two numbers', async () => {
+    const { call } = await setup(null);
+    const r = await call('/api/play/counts', null);
+    expect(r).toEqual({ status: 200, json: { casual: 5, ranked: 2 } });
+  });
+});
+
 describe('the admin numbers', () => {
   it('need the right key, and the answer is only numbers', async () => {
     const { call } = await setup();
@@ -64,7 +83,7 @@ describe('the admin numbers', () => {
     expect(ok.status).toBe(200);
     expect(ok.json).toEqual({
       at: NOW,
-      site: { onSiteNow: 1, visits: { today: 1, yesterday: 0, last7: 1, last30: 1, total: 1 }, newBrowsers: { today: 1, last7: 1, total: 1 }, since: '2026-11-15' },
+      site: { onSiteNow: 1, visits: { today: 1, yesterday: 0, last7: 1, last30: 1, total: 1 }, newBrowsers: { today: 1, last7: 1, total: 1 }, uniqueVisitors: { today: 1, yesterday: 0, thisWeek: 1, thisMonth: 1, total: 1 }, since: '2026-11-15', uniqueSince: '2026-11-15' },
       accounts: { total: 3, today: 1, last7: 2 },
       online: { connections: 9, guests: 4, accounts: 5, rooms: 2, playersInGames: 6 },
     });

@@ -30,6 +30,19 @@ export const INTRO_MS = 2_500;
  * was already running under the blast, and a 5 s turn felt like 3 (Brian, 2026-11-13).
  */
 export const AFTERMATH_MS = 2_400;
+/**
+ * A round's announcements (a new rule, faster turns) hold the table, ANNOUNCE_MS each, before its first fuse is lit, so
+ * they can be read before the clock runs (Brian, 2026-11-23: the event "popups up WHILE the timer is ticking. thats nearly
+ * impossible when its 5s. make the event popup actually stall the timer").
+ */
+export const ANNOUNCE_MS = 2_600;
+/** And a short breath after the last announcement, before the first fuse. */
+export const ANNOUNCE_TAIL_MS = 400;
+/**
+ * When this many sheep in a row run out of time on the same letter, the chain moves to a fresh letter (Brian,
+ * 2026-11-23: "after 2 people die to the same thing, the bomb resets with a new letter").
+ */
+export const STUCK_LIMIT = 2;
 /** Human turn length in the tour, whose steps need reading time. Practice keeps the game's own clock. */
 export const PRACTICE_TURN_MS = 25_000;
 /** Practice runs: the starting clocks on offer, in seconds. */

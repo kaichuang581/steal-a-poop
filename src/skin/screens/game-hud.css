@@ -1,0 +1,90 @@
+/* The game screen's own pieces in the current look (Brian, 2026-11-23: "address all of the outdated ui"): the round tab
+   and the practice count as small dark cards, the duel's names as tags, the sheets and the boards at the end as the
+   modern kit's dialog (kit/modern). Only Home's slab and the pen's recipes: no plank, slate, paper, stitching or hand
+   font. */
+
+/* ---------- Top left: the round (or the practice count) ---------- */
+.sk-hud-card {
+  --c: 2px; position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 4px; padding: 8px 14px 9px; box-sizing: border-box;
+  color: var(--hm-wool); filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35));
+}
+.sk-hud-card::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--hm-ink);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+.sk-hud-card[data-best]::before { box-shadow: inset 4px 0 0 var(--hm-lantern); }
+.sk-hud-round { display: flex; flex-direction: column; gap: 3px; }
+.sk-hud-big { font: 700 16px/1.1 var(--skin-font-display); font-variation-settings: 'opsz' 24; white-space: nowrap; }
+.sk-hud-big b { font-weight: 800; color: var(--hm-lantern-hi); }
+.sk-hud-small { font: 800 12px/1.2 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
+.sk-hud-card[data-best] .sk-hud-big b { color: var(--hm-lantern); }
+
+/* ---------- The duel's names: two tags and VS between ---------- */
+.sk-vs-card {
+  --c: 2px; position: relative; isolation: isolate; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 14px 8px;
+  color: var(--hm-wool); filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35));
+}
+.sk-vs-card::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--hm-ink);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+.sk-vs-card b { font: 700 17px/1.1 var(--skin-font-display); font-variation-settings: 'opsz' 24; }
+.sk-vs-card[data-you] b { color: var(--hm-lantern-hi); }
+.sk-vs-tags { font: 800 11.5px/1 var(--skin-font-body); color: var(--hm-frost); }
+.sk-vs { font: 800 20px/1 var(--skin-font-display); color: var(--hm-wool); text-shadow: 0 2px 0 rgba(14, 21, 40, 0.6); }
+
+/* ---------- Sheets (How to play, the chain, the room's chat) and the leave dialog ---------- */
+.md-dialog.sk-table-sheet { width: min(calc(480 * var(--u)), calc(100vw - 24px)); max-height: min(76vh, calc(var(--vvh, 100dvh) - 40px)); }
+.md-dialog.sk-leave { width: min(calc(380 * var(--u)), calc(100vw - 32px)); }
+.sk-chat-card { padding: 8px; color: var(--hm-wool); }
+
+/* ---------- The end of a practice run ---------- */
+.md-dialog.sk-runover { width: min(calc(400 * var(--u)), calc(100vw - 24px)); margin: auto; }
+.sk-ro-score { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 12px 14px; text-align: center; }
+.sk-ro-score b { font: 800 56px/1 var(--skin-font-display); color: var(--hm-wool); font-variant-numeric: lining-nums; }
+.sk-ro-score[data-best] b { color: var(--hm-lantern-hi); }
+.sk-ro-score span { font: 800 13px/1.2 var(--skin-font-body); color: var(--hm-frost); }
+.sk-ro-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.sk-ro-stat { position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 6px 12px; text-align: center; }
+.sk-ro-stat b { font: 800 20px/1 var(--skin-font-display); color: var(--hm-wool); font-variant-numeric: lining-nums; }
+.sk-ro-stat span { font: 800 11.5px/1 var(--skin-font-body); color: var(--hm-frost); }
+.sk-ro-line { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding: 9px 12px 12px; }
+.sk-ro-line span { font: 800 12.5px/1 var(--skin-font-body); color: var(--hm-frost); }
+.sk-ro-line b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 800 18px/1 var(--skin-font-display); letter-spacing: 0.04em; color: var(--hm-lantern-hi); }
+.sk-ro-payout { margin-top: 10px; color: var(--hm-wool); }
+.sk-ro-note { margin: 10px 0 0; font: 700 13px/1.4 var(--skin-font-body); color: var(--hm-frost); text-align: center; }
+.sk-ro-actions { margin-top: 14px; }
+
+/* ---------- The scoreboard beside the podium ---------- */
+.md-dialog.sk-final { pointer-events: auto; width: min(calc(420 * var(--u)), 100%); max-height: calc(100% - 16px); animation: sk-final-in 450ms var(--ease-out) both; }
+@keyframes sk-final-in { from { opacity: 0; transform: translateY(14px); } }
+.sk-final .md-dialog-body { display: flex; flex-direction: column; gap: 10px; }
+.sk-final-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.sk-final-note { margin: 0; font: 700 13px/1.4 var(--skin-font-body); color: var(--hm-frost); }
+.sk-final-stats { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+.sk-final-stat { position: relative; isolation: isolate; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 9px 12px 12px; }
+.sk-final-stat b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 22px/1 var(--skin-font-display); color: var(--hm-wool); }
+.sk-final-stat span { font: 800 11.5px/1.2 var(--skin-font-body); color: var(--hm-frost); }
+.sk-final-stat[data-beat] b { color: var(--hm-lantern-hi); }
+.sk-final-streak { display: flex; align-items: center; gap: 10px; font: 800 12.5px/1 var(--skin-font-body); color: var(--hm-frost); }
+.sk-final-streak b { color: var(--hm-wool); }
+.sk-final-days { display: inline-flex; gap: 4px; }
+.sk-final-days i { width: 10px; height: 10px; background: var(--hm-night-3); }
+.sk-final-days i[data-on] { background: var(--hm-lantern); }
+.sk-final-days i[data-today] { box-shadow: 0 0 0 2px var(--hm-wool); }
+.sk-final-show { position: fixed; z-index: 45; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 640px) {
+  .sk-final-wrap { align-items: flex-end; justify-content: center; padding: 10px; }
+  .md-dialog.sk-final { max-height: 56vh; }
+  .sk-final-rows { display: none; } /* the podium already shows every place on a phone */
+  .sk-final-stats { grid-template-columns: 1fr 1fr; }
+  .sk-final .md-dialog-head h2 { font-size: 19px; }
+}
+:root.reduce-motion .md-dialog.sk-final { animation: none; }
+@media (prefers-reduced-motion: reduce) { .md-dialog.sk-final { animation: none; } }
+
+/* What a finished game paid, on the dark boards. */
+.md-dialog .sk-payout { gap: 4px; }
+.md-dialog .sk-payout-total { font: 800 16px/1 var(--skin-font-display); color: var(--hm-wool); }
+.md-dialog .sk-payout-lines { font: 700 12.5px/1.4 var(--skin-font-body); color: var(--hm-frost); }
+.md-dialog .sk-payout-level { font: 800 12.5px/1.3 var(--skin-font-body); color: var(--hm-lantern-hi); }

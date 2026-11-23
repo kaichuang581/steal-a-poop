@@ -67,7 +67,10 @@ lot of glitchy textures and a ton of just strange empty space"; branch `miniatur
   (`paddockBed` in scene/farmstead.ts); the sheep and the second cow are in the pasture with the flock, which a
   sheepdog minds (`LIVESTOCK`, `FLOCK_DOG` in scene/livestock.ts).
 - No seams or gaps between the barn's boards, outside or in: lines one cube wide crawled as the camera moved.
-- The paddock shot's own light is still the old one (a wendigo rule), so that shot stays greyer than the others.
+- The paddock shot's own light was the old one (a wendigo rule) until 2026-11-21, when Brian lifted that part: "brighten the
+  entire thing ... make it match the lighting of everything else". It now takes the other shots' light, sky and fog
+  (`PADDOCK_OLD_LIGHT` in src/skin/look.ts, false; true restores the old light). It keeps its tier exemption (shadow
+  map, bloom and tilt-shift on every tier), and the wendigo's geometry, stand, cone and rays are unchanged.
 
 Unchanged and still binding: every wendigo rule; the paddock shot draws today's light, haze, tone mapping, exposure,
 shadows and tilt-shift on every tier; nothing behind z = -16 changes; no cube of the country or the land is added or
@@ -1206,7 +1209,7 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   - The songs. home, "Lofi in the barn": 76 bpm, swung, eight chords (ii V I vi, IV iv iii VI), a walking bass, and a
     32-bar shape: the band comes in, a written tune on the vibes, its answer, then four bars with no drums. It was four
     chords with random notes. shop, "The Trading Post shuffle": a swung I vi ii V with a walking bass and a glockenspiel
-    tune. lobby, "Waiting at the gate": the battle's key at rest. battle, "Pass the bomb" (Quick play, rooms, daily): A
+    tune. lobby, "Waiting at the gate": the battle's key at rest; since 2026-11-22 (Brian: "too choppy and inconsistent, doesnt flow well") 92 bpm, eight chords, pads that overlap bar to bar, a held bass, a marimba rolling eighths the whole way, a vibes tune over bars 8-31, and a steady soft beat from the first bar. battle, "Pass the bomb" (Quick play, rooms, daily): A
     minor at 124 bpm, and it heats up with the round (`heatFor`): a galloping bass and an arp from round two, the tune
     from round three, 138 bpm and tom fills from round four; when the game is over it lets go to held chords.
     practice, "Clearing the ice": G major, a marimba, a whistled tune. tour, "Whistling for the sheepdog": C major, bass
@@ -1216,6 +1219,13 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
     lullaby is the quietest); the old lofi measured about 4 dB under the new one. The home and shop songs pick up where
     they were left, so flipping between them does not replay an opening.
   - The sound menu says which song is playing. The fuse-sample ducking (`musicDuck`) applies to every song.
+  - 2026-11-22 (a friend of Brian's: the sounds were "extremely annoying" and the music did not match the farm or move
+    well between screens): the battle is a barn band now, not a synth (musicKit's synthBass, stab, chip and lead are an
+    upright bass, a strummed guitar, a mandolin and a fiddle, all triangles and sines); Home is "Snow on the farm", the
+    same chords with a brushed beat and sleigh bells; songs crossfade over about two seconds. Every sound effect in
+    sound.ts is bells, wood and soft thumps in C major pentatonic: no square, no saw, no noise (the old bomb blast clipped).
+    The menu's hover sound (`menuTick`) is one soft tick, the same for every item (2026-11-22: a falling note per item read as "bubbles ... it should be the same sound"). The player schedules bars 1.2 s ahead (`AHEAD` in music.ts; it was 0.3 s, and busy 3D frames made the music stutter). Measured offline against the old versions: the
+    battle's energy above 3 kHz is a third of what it was; levels within about 1 dB of before. Not heard by me.
   - Tests: src/audio/__tests__/songs.test.ts (every note in key and in its bar, no two songs alike, none a short loop,
     the lofi's and the battle's shapes) and music.test.ts (the player, on a stand-in for Web Audio).
   - Checked by measurement and by spectrogram, not by ear. The notes are written to be right by the rules of harmony;
@@ -2006,6 +2016,18 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
   - Then (same day, "i didnt mean make the buttons smaller i meant make the icons smaller ... similarish tones"): the
     menu's blocks are back to the plan's sizes; the icons are smaller (24 in a 36 tile, Queue 34 in 50) and every tile is
     the same night blue (Queue's ink), so his differently coloured icons sit together.
+- The setup sheets (Brian, 2026-11-22, of Create lobby's and Practice's cards: "the popup ui is poorly done, its just another plain
+  card"; of three layouts drawn over Home he chose "B but better"): src/skin/home/SetupSheet.tsx, `.hm-setup*` in home.css. A
+  sheet of its own, NOT joined to the panel (he rejected that the same day: "i dont want it growing out of the menu, i never said
+  to do that. now it just looks the same as the side bar"): it floats centred over the scenery with a gap from the panel, leans 11
+  degrees about its middle, a lighter night face than the panel (night-2, knit) with a lantern band on top and a hard shadow, no
+  word chains, every setting a darker sunken row (icon tile, name, leaning choice slabs, a line saying what the choice means); the
+  action is drawn like Queue (icon tile, label, what was chosen) and stays in view while the rows scroll. The chosen menu item
+  stays lit behind it (`.hm-menu-held`). On a window too narrow for it beside the panel it slides left over the dimmed menu only
+  as far as it must, and its rows stack. Custom shows the three rules as rows; a length puts them away. On a phone it stands
+  upright in the bottom sheet, rows leaning 6 degrees. Join party keeps the old card. The dialog names ("Set the table",
+  "Practice run"), `.sk-sit` and the button texts are what the gate and the smoke tests find: keep them. Checked at 320 to 1920
+  wide and sideways: nothing clipped, every label inside its button, nothing under the footer, no press moves anything else.
 - French version (requested by Kai, 2026-11-20: "a button ... that says French ... everything is french, exactly the same ... use the
   french dictionary ... make the accents not so restrictive"). The language is src/lib/lang.ts (`sap:lang`, `?lang=fr`); the
   "French" / "English" button is first in Home's top bar and reloads the page. Words: public/words-fr.txt, built by
@@ -2099,3 +2121,265 @@ The redesign plan is docs/REDESIGN_PLAN.md. The discovery map is docs/skin/DISCO
     (3) Never naked: the game's sheep always wears its wool. No sheep is on this screen; if one is ever added to any
     loading screen it never uses the `sheared` part or coat level 0, not even for a moment.
   - Don't redesign the loading screen unless Brian asks.
+
+## The leaderboards, version 2 (Brian, 2026-11-21) — plan: docs/leaderboards/LEADERBOARDS-PLAN.md
+Brian's own request; it replaces "The leaderboards page", "The leaderboards' stage" and "The leaderboards in the sky"
+(2026-11-14) for how the screen looks; the boards, addresses and data are unchanged. His two rules for it: every part is
+specified in full, and nothing may look like a flat, empty, single-coloured card (every surface over 40 x 40 has a
+texture, a lit edge, a shaded edge or side, and a detail). Branch `ui/leaderboards-v2`, version 0.9.4.
+- Files: src/skin/boards/Leaderboards.tsx (the page), boards.css, art.tsx (every pixel grid of the plan: tab icons, the
+  "i", padlock, snowflake, brackets, rosettes, tier icons trimmed to 24 rows), BoardStage.tsx (the stage), island.ts (the
+  ground, pure). Tokens: the --hm-* additions in styles/tokens.css. The slab is Home's `.hm-slab` (home/home.css);
+  `.lb-static` takes its states off for pieces that are not buttons (title tag, plates, your row).
+- Recipes, by class: slab (`hm-slab`), board (`lb-board`), bar (`lb-bar`), tile (`lb-tile`), well (`lb-well`), ink card
+  (`lb-inkcard`), snow cap (`lb-snowcap`), ribbon (`lb-ribbon`). Each draws its block in `::before`, so nothing inside
+  is cut by its pixel corners. src/skin/boards/__tests__/surface.test.tsx renders every tab with made-up boards and fails
+  on any background the styles give an element that is neither a recipe's nor on a piece 40 or less on a side (sizes
+  read from the stylesheet: there is no browser in `npm test`). Name a new surface by its recipe, or it fails.
+- Banned here, besides Home's list: dashed or stitched borders, Patrick Hand, the kit's wood, paper, pegs and slates
+  (boards.test.tsx checks the markup, source and stylesheet). Numbers: lining tabular figures, `fmt` (Intl in the game's
+  language; French groups with a full no-break space, because the display face draws the narrow one almost invisible).
+- Layout: `screenOf` reads the plan's rule in its own pixels (at --u = 1): a computer's layout while the stage the board
+  leaves is 360 wide or more, else a phone's at scale 1. So a 768 x 1024 tablet is a phone (read at the 0.8 scale it was
+  a computer with 80 px crates in an empty sky). The list starts at fourth place everywhere; it shows whole rows only,
+  stops at the board's foot (computer) or the sheet's (phone), and scrolls past that with a drawn scroll bar.
+  Tab labels and the ribbon's title are fitted by measuring the text (`useFit`: 17 to 12 and 20 to 16), after the
+  French swap; a tab whose label will not fit at 12 drops its icon. On a computer the Wins toggle and the info button
+  move under the ribbon when the line cannot hold all three (French).
+- The stage: the podium's own crates (Podium.tsx's two builders, unchanged) on one island (`islandVoxels`: snow in two
+  tones with a ridge pattern, a mound against each crate, two soil layers, a stepped underside to a point; two pines, a
+  fence, two bales, a lantern with its light inside) and two pale far islands (`farIsland`, an unlit material). No cloud,
+  puff or sea. The camera is straight on, 10 degrees down, 28 degrees of view, solved in `Frame` from the window the
+  board leaves (70% of its width on a computer, 92% on a phone, less where the window is too short for the champion's
+  hat to stay 24 under the lowest bulb). The plates are placed there, on resize or camera change only: centred on each
+  crate's front, 10 over its foot, all three on one line. The crates' fronts are the same width to the pixel; the outer
+  two also show a few pixels of their inner sides at this lens (about 6% on a computer, 3% on a phone).
+- The trophy's own light is gone (it whitened the champion's wool); measured after, the champion's brightest wool is no
+  brighter than second place's. Third place sleeps at 0.76 of second place's size, centred on its crate: lying down it
+  is about 1.84 m nose to tail at full size, longer than the 1.4 m crate, so no move alone kept it on top. Its legs
+  still hang down the crate's front, as the pose has them.
+- Where the plan's letter was not followed: "Level 1 · Finish a game to get a place." is "Level 1", a thin rule, then the
+  sentence (no middle dot, Brian 2026-11-14); the "Show me on the leaderboards" choice (the only place to hide) lives in
+  the info card as a Shown / Hidden toggle, since the plan's rows had no place for it.
+- `?preview=boards` (development only) shows the screen without the farm; the boards come from whatever `sap:server`
+  names, which a test browser can stand in for.
+- The size budget was raised by 6,000 bytes for it (4.1 kB locally, room left for CI's larger gzip).
+
+## The leaderboards' stage, version 3, and the party (Brian, 2026-11-22) — plan: docs/leaderboards/LEADERBOARDS-PLAN-V3.md
+Brian's own plan; it replaces sections 8.1 and 8.4 of version 2 (the island, the sheep), and the interface stays as
+version 2 built it. Later the same day, with a picture of a champion with both arms raised, he asked for more: "make first
+place more like this with the trophy floating and glowing above his head, make the podiums to look more exciting ... the
+sizes of the models are too mismatched, the 3rd place looks so short while 1st looks massive ... make the trophy look
+cooler ... make the background scenery cooler as well (the sky i mean, not anything else) ... like an anime
+sky/day/night and give the vibes of more like a party", and "u dont have to copy the fingers, just make the arms like
+that". Where that message and the plan differ, the message wins: the trophy floats (it is not held), the podiums replace
+the crates here (the victory screen keeps its crates), all three places are one size, and the festival sky replaces
+"keep today's sky". Branch `ui/leaderboards-v3`, version 0.9.5.
+- Files (src/skin/boards): poses.ts (the three poses as data, `sample`, `rigOf`, `placement`), frame.ts (the camera, pure),
+  island.ts (the island, pure), podium.ts and cup.ts (the podiums and the trophy, pure voxels), sky.ts (the sky's colours),
+  FestivalSky.tsx, Prize.tsx and BoardStage.tsx (the scene). Tests: poses.test.ts, island.test.ts, party.test.ts and the
+  stage checks in boards.test.tsx. `?preview=boards&lbAnimal=cow&lbTime=0.4` (development only) puts one species in every
+  place and holds every loop at that time, for pictures. `?lbDemo` (development only) fills every board with made-up
+  players, so the stage can be seen on `npm run dev` with no game server (Home then shows its trophy button too):
+  `http://localhost:5173/steal-a-poop/?lbDemo`, or `?preview=boards&lbDemo` for the screen alone.
+- Poses: `lbChampion`, `lbGoodSport`, `lbNap` are data (a rest pose, keyframes, waves) handed whole to the Sheep component
+  through its `rig` prop (table/Sheep.tsx: `RigPose`; without the prop the Sheep is exactly as before). Each place runs
+  on its own clock, starting 0, 0.8 and 1.6 s in, standing still while the tab is hidden and at rest under reduced motion;
+  a new holder (a tab pressed) remounts and starts from 0. The hop, squash and pulse are a group about where the weight
+  bears (BoardStage, `Lounger`). Faces: idle for the first two, asleep for the nap; the Santa hat is part of the head,
+  so the plan's hat lines are skipped; eyes are painted cells, so the nap's eyes close with the lids the face already has.
+- What the models could not do, and what was done instead (a sheep's legs are 0.16 of its height):
+  - The champion's front legs swing up 178 degrees and turn OUT 42 (a V, as in his picture), not in: raised they reach
+    the chin, and turned in they met over the mouth. On the cow and the horse the V clears the head; on the sheep it
+    frames the face. Moving the shoulders up opened dark holes where the legs leave the wool: never move a leg's root.
+  - The second sits with its body's front on the top's front edge, so its hips are 0.10 to 0.25 m behind the edge, not
+    0.04 W (its belly is in front of its hips); its hind legs rest where they clear the top (`hindRest`: sheep 42, pig 66,
+    cow 74, goat 68, horse 78, chicken 48 degrees, not 40), still swinging 12 either way and never touching the front.
+  - Tails that hang lower than the rump or the belly (pig, goat, horse) rest their tips inside the top, behind the body.
+  - One size: every place of a species is drawn at the smallest size any of its three fits at (the nap's), so first is no
+    longer "massive" and third no longer "short" (`PLACE_SIZE` is 1, 1, 1).
+- The island (island.ts): as the plan's section 4, with these readings: the front reaches 1.8 m past the crates (the
+  ripples need it); the snow is 0.3 m thick behind the step, 0.2 m in front; soil-1's lowest 0.1 m is two steps darker
+  (one step rendered as the same colour), because 0.3 m of one colour was 28 px at 1440 x 900, past the plan's 24 (now 21); the underside bands are their own mesh with no
+  shadow, or both tones went one grey under the rim; stones and roots are on the front face; trails run along their
+  own direction. The island, the pines, the lantern and its glass are one connected piece (island.test.ts).
+- Then, the same day: "now the podiums look sloppy and all the background stuff looks poorly done. i like your vision,
+  but maybe try and spend a little more time on perfecting the smaller details. additionally, try and go more for the
+  vibe of like those anime festivals while still being somewhat cohesive". So the podiums are festival stages and the
+  sky a festival night; the marquee bulbs, studded frieze, star badges, searchlights and pink party sky are gone.
+- The podiums (podium.ts): festival stages with the crate's footprint and heights, so every pose, plate and drift still
+  fits. Dark corner posts the full height; a dark plinth with a band of the place's metal (gold, silver, bronze);
+  upright slats with a shadowed gap between each two and a rail halfway up (the farm's fences); a red-and-white striped
+  curtain round the top, its stripes laid out from each face's middle so both ends match; a twisted rope of the metal
+  over it with a tassel on each front post; the deck and a red carpet edged in the metal; the number (a drawn bold 5 x 7)
+  in the metal's light on a lacquered sign framed in the metal, hung over the curtain so no name plate covers it; and a
+  red paper lantern on an iron arm at each front corner, its paper lit and a soft glow round it. Palette steps only.
+- The trophy (cup.ts, Prize.tsx): a tall gold cup with a ruby, looped handles and a star on its rim, drawn at 0.72,
+  lit from within, with a halo, slow rays and six sparkles; it floats 0.06 H over the hat, bobs 0.08 m and turns a
+  little. No light of its own (one whitened the champion's wool in version 2): the stage's one point light is still the
+  lantern's.
+- The sky (sky.ts, FestivalSky.tsx): a festival night. Painted bands behind the picture (night blue, indigo, plum, and
+  the festival's warm glow rising behind the island); a moon in pixel art (32 x 32, magnified with no smoothing: Brian
+  found the painted one "so out of theme") with far island C over it (`MOON`); stars, thinning toward the glow, a few
+  with a cross of light; sky lanterns rising and swaying (added light, so a faint one is a dim glow, never grey); and
+  fireworks in the open sky either side of the stage, never over the moon, the trophy or the podiums: a rocket climbs as
+  a short spark, then a peony (with an inner ring
+  in a second colour), a chrysanthemum, a ring or a golden willow opens, its sparks trailing and drooping a little, the
+  glittering kinds flickering as they fade (a stronger pull read as rain). Everything is placed by spots of the window
+  and sized by shares of its width, so it composes the same at every size. The far islands mix toward the band at their
+  height, the barn's windows are lit, and a string of festival lamps runs along each island's front edge (`farLights`).
+  No clouds: the long thin bands read as "a lot of these weird lines" (Brian); do not bring back thin streaks in the sky.
+  Light: a warm key as from lanterns, a cool sky fill over a warm ground, the moon's blue on the edges, the festival's
+  glow from below, a thin plum haze.
+- Framing (frame.ts): the plan's 66% holds only where the window is tall enough. With the trophy floating over the
+  champion on the 2.9 m podium, the fill is 57% at 1440 x 900, 50% at 1280 x 720 and 1920 x 1080, 65% on a 390 x 844
+  phone; every species makes its whole hop. Where a crate is drawn narrow, its plate's rank badge steps out
+  (`data-narrow`), never the figure.
+- Cost, measured back to back with version 2 (software rendering, 1440 x 900): 305 ms a frame against 302, 103k
+  triangles against 128k, 107 draws against 78. What keeps it there: flat faces merged (`merge` in the island, podium
+  and far-island meshes), the podiums solid inside, the sky lanterns and the trophy's sparkles one draw each
+  (`spritePoints`, boards/points.ts), each podium's lantern glows one, cloud quads only as tall as the clouds, and no
+  shadow from the underside, the lantern's iron or the podiums' trim.
+- The size budget was raised by 15,000 bytes (15.2 kB locally, all in the stage's own lazy chunk).
+
+## The pen screen, clearer and lighter (Brian, 2026-11-22) — plan: docs/pen/PEN-PLAN.md
+Brian's own request, of the lobby and queue screen: it "looks too chunky and really unclear". The plan (his, written from
+a screenshot of the Casual queue) is docs/pen/PEN-PLAN.md, kept word for word. It overrides the "Keep" line of
+docs/diorama/PLAN.md 6.6 for the screen's layout and panels, the name planks and where the sheep stand; the rest of 6.6
+stands. Every function and rule stayed: queueing, joining and leaving, the invite link and the party code, who may
+start, min and max, the rules editor, chat and its moderation, pausing chat, the host's mute and kick.
+- One screen for the Casual queue, the Ranked queue and a created lobby (src/skin/rooms/PaintedRoom.tsx, pen.css): the
+  pen is the screen; a bar (Leave, the title tag, a state chip, Invite friends); a slim board on the left (what is
+  happening, who is here, what game); a chat card at the bottom right that folds (src/skin/rooms/PenChat.tsx, every
+  function of the classic ChatPanel, which is fenced in src/ui and untouched); one lantern button under the pen, or a
+  well for whoever is not the host. On a phone, or any window under 1000 x 640, the pen is a strip at the top and a
+  sheet holds the status card and three tabs. The words of every state are section 4's, read from the room's own min,
+  max, host and startAt; French for each is in public/i18n-fr*.json.
+- The leaderboard's surface recipes now live in the shared kit (src/skin/kit/surfaces.css and surfaces.tsx): each rule
+  answers to its old `lb-` name and a shared `rc-` name, and the leaderboard's markup did not change (photographed
+  before and after: pixel for pixel the same). A screen that uses them puts `rc` on its root. Nothing on the pen screen
+  is wood, paper, a gradient, a blur, a rounded corner, a dashed border or the hand font;
+  src/skin/rooms/__tests__/pen.test.tsx runs the surface test on every state.
+- The pen (scene/pen.ts, rooms/PenStage.tsx): every player stands on the straw mat of their seat (the order they
+  joined, as the list shows), facing the camera; the camera looks down 20 degrees and is fitted at run time so the
+  front row's animals fill 72% of the space between the panels and every plate and the gate fit in it (`Frame`). Mats
+  are 0.8 x 1.1 m, not the plan's 0.4 m square (a sheep as drawn stands 0.61 x 0.92 m and stood half on the snow), 1.2 m
+  apart as the plan has them; the rows are 5 m apart so the back row's faces show over the front row's heads and
+  plates (measured: at 4.4 m the front plates still covered the back row's chins). The pen is 7.6 x 9.2 m for it. Its
+  floor is trodden snow, so the straw mats read as places. The front side is short posts and one rail at 0.35 m with a
+  two-leaf gate that swings open when the game starts (it never delays the start: 849 ms from the press to the table
+  on the local server, the same path as before). Plates step up, by their own height and 4, over any plate or face they
+  would cover (`Unstack`, with each animal's face box). penWander.ts is gone: nobody wanders now.
+- The pixel art of section 9 is src/skin/rooms/penArt.tsx, grid for grid; the mute, unmute, kick and check marks there
+  are mine, drawn the same way, for controls the plan kept. Brian's own icons, when they come, go in
+  src/skin/assets/pen/ under the same names.
+- `?preview=room` (development only, rooms/RoomPreview.tsx) draws the screen with made-up players and no server:
+  `kind=queue|ranked|lobby&n=&bots=&host=0|1&chat=&fold=1&paused=1&phase=starting&auto=<seconds>&notice=1&offline=1`.
+- One new saved key: `sap:pen-chat-folded`, sessionStorage, whether the chat card is folded (the plan: "remembered for
+  the session"), pinned in src/skin/__tests__/fences.json.
+- Open choices (plan section 13), the defaults used: chat open, numbered mats, the gate swings, explanations shown.
+
+## The pen screen, polish (Brian, 2026-11-22) — plan: docs/pen/PEN-PLAN-V3.md
+Brian: the screen "already looks good", make it as good as possible: better use of space, tidier text, every small
+flaw fixed (his example: the chat rules banner with the check mark). The plan (version 3, filed word for word but for its
+long grid listings, which are in penArt.tsx) applies on top of docs/pen/PEN-PLAN.md as built, replaces its sections 6
+and 9 and parts of 7 and 8; "no function changes" still holds. Its standing rules for this screen (section 2) bind any
+later change here: headlines and the status card's line 2 never wrap; a name gives way last (Host loses its word, then
+You becomes a square, `useSqueeze`); each number once; numbers in Fraunces with their words in Nunito; the spacing
+scale 4/6/10/12/16 only; every icon a grid at a whole number of pixels per art pixel; one outline per surface, coloured
+bars inside their face; no stray pixels.
+- Whole pixels: `Pix` (kit/surfaces.tsx) rounds its art pixel to whole CSS pixels (`artPixel`), so every grid on every
+  screen, the leaderboard's too, is a whole multiple of itself (identical at --u 1). On the pen screen `--s` is a whole
+  pixel (`.pn.rc`) and snow, icicles and lights use `--ap`, a whole-pixel --u: at --u 1.125 the step was 3.375 px and
+  that alone made the stray light pixels, uneven steps and dotted brackets.
+- Avatars in the list are `PixelHead` (avatars/AvatarIcon.tsx): Brian's six heads cut back to their own pixel grid
+  (src/skin/assets/heads/px, 21 to 25 px, recovered from the sheet's ~6.3 px cells) and drawn at a whole multiple.
+  They load as files (`?no-inline`): inlined they cost 8 kB of the bundle.
+- Layout as built: the bar 60 (Leave, title tag with the room icon in a lobby, state chip, waiting time; the party
+  code as a sunk pill and Invite on the right); a status card of three lines (~94 at --u 1); Players with "N open
+  places" in its header and no open-places row or seat badges; Game with the die, Change rules as a small slab in its
+  header, two choices of one design and the rules as three chips with their explanations in ink-card tooltips; the chat
+  card sized to its content, the rules strip one ink strip with a lantern bar and the new shield. The panel's content
+  sits 6 inside its inner frame (`--in`). Only the player list gives way to a short window, in whole rows.
+- The pen (scene/pen.ts, rooms/PenStage.tsx, penPlates.css): no numbers on the mats; each model's feet centred on its
+  mat (`standOffset`; the sheep's hooves sat 0.085 m off its origin, the pig's 0.12 m), the placing a pure function
+  (`penStep`) tested for every n; plates HTML on whole pixels (ScreenAnchor's opt-in `snap`), 26 high, centred 0.12 H
+  over their own head (they no longer step over faces: that lifted the front row off their own heads); your plate's
+  crown in ink (lantern on lantern left a line); the small lantern on the front-right corner post, half the light,
+  2.5 m reach, no bloom; one flat snow floor with a 0.1 m drift inside the back and side fences; no green tufts; the
+  tan stalks in four clumps. The camera fits the front row to 84% of the space and stands the gate's foot 20 over the
+  button (the spare height goes to the sky). Tests: src/skin/rooms/__tests__/penScene.test.ts.
+- Deviations, for Brian: ten seats sit 3 apart, not 5 (16 px seats 5 apart did not fit beside "10 of 10" at --u 1);
+  seats shrink to 8 px where even that does not fit (under about 1100 px wide); the chat card is 25vw wide, not 24 (the
+  rules ran to three lines at 1920); the party code is no longer a button (the plan), but its text selects whole; long
+  French lines were shortened to stay one line. Headlines end in "…" but do not first shrink by 2 px.
+- Open choices (section 13), the defaults used: no mat numbers or seat badges; explanations in tooltips; the code in
+  the bar.
+
+## One name tag everywhere (Brian, 2026-11-23)
+"make the nametags more consistent across all the gamemodes ... the nametags for the coregameplay and this are completely
+different". Every tag over an animal is `NamePlate` (src/skin/kit/NamePlate.tsx, nameplate.css), at the barn table
+(Quick play, rooms, the daily table), practice on the ice, the tutorial (its "wool" step points at
+`.sk-seat-plate[data-you]`), the pen and the winning podium. The leaderboards' two-line crate plates are their own.
+- The look, chosen in three rounds the same day. A wool slab was "a random white bar"; five themed mock-ups (ear tag,
+  fair ribbon, night row, barn sign, snowy wool) were "too flashy", he wants "something more clean that can be used
+  widely"; four clean ones were "all generally fine but the 3 dots are really large and unsettling, same with all the
+  text inside". Built: a small flat dark tag (`--hm-ink`, two-pixel corners, no side, no texture) 22 high, with a
+  stepped point under it at its animal; the name Fraunces 700, 13, cream; yours in lantern; the animal whose turn it
+  is gets a lantern tag with ink letters, 24 high and 14; wool balls as 6 px octagonal dots after the name, lost ones
+  dimmed; a bot's badge or the host's crown (8 x 5 at one pixel) before it; frozen dimmed under its ice. Phones: 20 high.
+- Keep it quiet: no snow, ribbons, heads or thick sides on it, and nothing bigger than the name inside it. Don't add
+  another tag style: give NamePlate a slot instead. Where a page has no Home tokens, pass `tokens`.
+
+## Round announcements hold the clock; the rule stays in view; a stuck letter resets (Brian, 2026-11-23)
+Approved engine changes (src/engine: constants.ts, reducer.ts, types.ts, validation.ts; tests in
+src/engine/__tests__/announce.test.ts; fences re-pinned). Rooms get them from the server's engine once it is deployed.
+- "make the event popup actually stall the timer": a round's announcements (faster turns, its twist;
+  `roundAnnouncements`, normal games only) hold the table ANNOUNCE_MS (2.6 s) each, plus ANNOUNCE_TAIL_MS (0.4 s),
+  before the first fuse is lit, and the intro starts after the bomb that ended the round has gone off (the aftermath).
+  A round with nothing to announce keeps INTRO_MS from the round's end, as before. The roundStart event's `amount` is
+  that wait: the screen starts its alarms then, each up for exactly ANNOUNCE_MS (PaintedGame `alarmWaits`).
+  Before, the intro was 2.5 s from the time-out and two 3 s alarms queued, so the twist came up mid-turn.
+- "make it clearer what event is in play ... people kind of just forget about it": the round's rule sits beside
+  "starts with X" all round (InputStrip `rule`, `.sk-rule`: the name tag's dark label, lantern text), and turns barn red
+  with a shake while the word typed breaks it, for the rules that can be seen early (no E, no A, no S, five letters at
+  most; `LIVE_RULES`); the others are judged when the word is played, as before. `breaksRule` (validation.ts) is the
+  twist check on its own, used by validateWord and the screen. The corner sign stays.
+- "after 2 people die to the same thing, the bomb resets with a new letter": read as two time-outs in a row on the
+  same chain letter (a bomb going off; a freeze is one too). Then the chain moves to a fresh letter (STUCK_LIMIT 2,
+  `GameState.stuck`), never that letter or a corner letter (X, Z, Q, J, Y, K), before the next fuse; any word played
+  starts the count again; a pass does not. Normal games only. The screen says "New letter: D" with why. The reset draws
+  from the game's random stream, so seeded games differ after one.
+
+## The game's UI in the current look; sheep never shorn bare (Brian, 2026-11-23)
+"address all of the outdated ui. from that screenshot u sent me alone, i can see the ai generated wood textures on the
+popup for new letter d, the tip is just a plain white card, the buttons in the corner, etc. theres probably more. go do a
+run through" and "make it so that the sheep cant go naked".
+- The modern kit, src/skin/kit/modern.tsx + modern.css: `Dialog` (the pen's board: felt, frame and brackets, snow cap with
+  icicles, Fraunces title, square close slab; `closeLabel`), `Scrim`, `Slab` (Home's slab: wool, lantern for the one main
+  action, night), `IconSlab` and `Corner` (Home's square corner buttons), `InkCard` (small dark card, a coloured bar down
+  its left: lantern, frost, barn, pasture), `Tag`. Every piece brings Home's tokens (`hm rc`). New UI is built from these
+  and the pen's recipes, never from the old farm kit (Board, Clipboard, Slate, Paper, Peg, WoodButton, ClothButton, Brass,
+  Knit), which stays only where Brian approved it in its own style (the Trading Post, the fair machine, the profile room).
+- Converted: Notice (every moment over the table and in the dream: InkCard), the game's corner buttons, the round tab and
+  practice count (screens/game-hud.css), the duel's names, the sheets and leave dialog, the practice results and the
+  win scoreboard (Dialog; "You are the last sheep standing!", not "You is"); the scoreboard, the between-rounds board, How
+  to play's rules and the chain (components/hud-boards.css); the tutorial card, the alarm band, the round's twist sign, the
+  word bar's small words and buttons, the speech bubble and its placeholder, the message slip (components/hud-overlays.css);
+  the guide family: How to play on Home, Settings and its save code, the first-visit onboarding (components/hud-guide.css;
+  no `sk-guide` remains). The first-time tips are the painted `GameTips` (same tips and seen-store as the fenced classic
+  CoachTips, label without the middle dot). No hand font, plank, nail, paper, stitching or dashed outline in any of it.
+- Not converted, said to Brian: Credits (opens from Settings), the dream's word bar (its own approved kit), the account
+  panel when signed in and the email sign-in steps (not reachable without accounts here).
+- `coatLevel` (table/Sheep.tsx) never goes under 1: a sheep keeps a thin coat to its last wool ball; the wool balls on its
+  tag say what is left.
+- The kit audit's gradient budget is 2 (src/skin/audit/budget.json), down from 4: the old mini tiles' gradients went.
+
+## Midnight (Brian, 2026-11-23)
+"i feel like it should have an accent color, can u make everything not so blue": four other palettes (ember, pine,
+graphite with barn red, plum with gold) were shown on the real screens; he answered "nah ykw its fine. can u like change
+the toning on the blue", then picked "midnight" from four blue tones (midnight, slate, winter teal, indigo). The --hm-*
+night family in src/skin/styles/tokens.css is now deeper and richer (night #131D3B, night-2 #1B2A52, night-3 #283E74,
+night-deep #0E152C, ink #090E20, frost #BBCCF0, dusk #4A54B8); the orange accent is unchanged. Hard-coded copies of the
+old blues were routed through tokens (--hm-disabled, --hm-disabled-lip are new), so a palette change is one place. The
+loading screen keeps its own colour (it must stand alone).

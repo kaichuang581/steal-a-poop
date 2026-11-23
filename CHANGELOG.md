@@ -2,6 +2,34 @@
 
 All user-visible changes, newest first.
 
+## 0.9.6
+
+- The lobby and queue screen is clearer and lighter: the pen is the screen, with every player standing on their own straw mat; a slim panel says what is happening, who is here and what game it will be; the chat is a card that folds away; one button under the pen says why it can or cannot start.
+- Then polished to the pixel: the panel never scrolls and the bar's empty half now holds the waiting time and the party code; every number appears once; names are no longer cut while there is room; every icon is pixel art drawn on whole pixels, and the avatars are crisp; the chat rules are one short strip with a new shield; the rules are three chips with their explanations on hover; the snow has proper icicles and the lights are bright.
+- In the pen: bigger animals, each standing exactly on its mat, every name plate crisp and over its own head, no numbers on the mats, a softer lantern on the corner post, clean snow inside the fence.
+- The lobby's music flows, and no song stutters any more when the screen is busy. The menu's hover sound is one soft tick for every button.
+- A new round's announcements (faster turns, the new rule) now hold the clock: the first turn starts only once you have read them.
+- The round's rule stays beside the letter all round, and turns red while the word you are typing breaks it.
+- If two sheep in a row run out of time on the same letter, the bomb resets with a fresh, friendlier letter.
+- Name tags are one small, quiet design in every mode.
+- Every game screen is in the new look: notices, tips, the tutorial, the scoreboard, the boards between rounds and at the end, How to play, Settings, the welcome form and the corner buttons. No more wood planks, paper cards or stitched slates.
+- Sheep never get shorn bare: they keep a thin coat down to their last wool ball.
+- The interface blue is a deeper midnight navy, so the orange and cream stand out more.
+
+## 0.9.5
+
+- The leaderboards' top three have new poses, all drawn the same size: first stands with both arms raised in a V and hops, a new golden trophy with a ruby and a star floating and glowing over its head; second sits on its podium's edge, turned to the winner, clapping, its legs swinging; third naps curled up with its eyes shut, its "z"s drifting up.
+- The podiums are festival stages: dark posts and slatted walls, a red-and-white striped curtain under a rope of gold, silver or bronze, the place's number on a lacquered sign, and a lit paper lantern at each front corner.
+- A festival night sky: a pixel-art moon under a far island, stars, paper sky lanterns rising, and fireworks that climb and open as peonies, chrysanthemums, rings and golden willows. The far islands have lit windows and strings of festival lights.
+- The island under them is rebuilt: level snow with one step, drifts, wind ripples and footprints, a clean rim of snow over soil with stones, roots and icicles, banded rock underneath with two floating rocks; the pines, fence, bales and a smaller lantern are spread so each is in full view, and the pines sway. Three small islands far off, one with a little red barn.
+
+## 0.9.4
+
+- The leaderboards are redrawn in Home's style: a night-blue bar with snow and the season's lights, the three boards as blocks, and one night-blue board (a sheet on a phone) with a lantern ribbon for each board's title, the list from fourth place as tiles, and your own row pinned at the foot with your place, avatar and figure.
+- The top three stand on the podium's crates on one snowy island, with two pines, a fence, hay bales and a lantern, and two small islands far off; no clouds. The camera looks straight on, so the three crates look the same size, and each name plate sits on its crate's front, all three on one line.
+- First place no longer glows, and third place sleeps on its crate instead of hanging off it.
+- Numbers line up digit under digit and are grouped the French way in French. Who can see the boards is under the "i" button, on phones too.
+
 ## 0.9.3
 
 - A kitchen garden in front of the farmhouse: six raised beds of kale, cabbages, leeks and a cold frame inside a white fence, with a path through its gate.

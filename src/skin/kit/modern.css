@@ -1,0 +1,66 @@
+/* The modern kit (modern.tsx): Home's slab and the pen's board, tile, well and ink-card recipes, on any screen. */
+
+.md-scrim { position: fixed; inset: 0; z-index: 55; display: flex; align-items: center; justify-content: center; padding: 16px; background: color-mix(in srgb, var(--hm-ink) 60%, transparent); }
+
+/* The dialog: a board. Sizes are Home's pixels times --u. */
+.md-dialog {
+  --side: calc(6 * var(--u)); --in: calc(5 * var(--s) + 6 * var(--u));
+  position: relative; isolation: isolate; display: flex; flex-direction: column; box-sizing: border-box;
+  width: min(calc(440 * var(--u)), calc(100vw - 32px)); max-height: calc(100dvh - 48px);
+  padding: calc(24 * var(--u)) var(--in) calc(var(--in) + var(--side)); filter: var(--shadow);
+  color: var(--hm-wool); font: 700 calc(14 * var(--u))/1.4 var(--skin-font-body);
+}
+.md-dialog--wide { width: min(calc(560 * var(--u)), calc(100vw - 32px)); }
+.md-dialog-head { flex: none; display: flex; align-items: center; gap: calc(10 * var(--u)); min-height: calc(40 * var(--u)); margin-bottom: calc(12 * var(--u)); }
+.md-dialog-head h2 { flex: 1; min-width: 0; margin: 0; font: 800 calc(22 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); text-wrap: balance; }
+.md-dialog-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--hm-night-3) transparent; }
+.md-dialog-body > p { margin: 0 0 calc(12 * var(--u)); color: var(--hm-frost); font: 700 calc(14 * var(--u))/1.45 var(--skin-font-body); }
+
+/* Slabs: Home's slab at two sizes; a row of them shares the width. */
+.md-slab { --depth: calc(6 * var(--u)); min-height: 44px; height: calc(44 * var(--u) + var(--depth)); padding: 0 calc(18 * var(--u)) var(--depth); gap: calc(8 * var(--u)); font: 800 calc(16 * var(--u))/1 var(--skin-font-display); filter: var(--shadow); white-space: nowrap; }
+.md-slab--sm { --depth: calc(4 * var(--u)); min-height: 36px; height: calc(32 * var(--u) + var(--depth)); padding: 0 calc(12 * var(--u)) var(--depth); font-size: calc(13.5 * var(--u)); }
+.md-row { display: flex; gap: calc(10 * var(--u)); }
+.md-row > .md-slab { flex: 1 1 0; min-width: 0; }
+.md-stack { display: flex; flex-direction: column; gap: calc(10 * var(--u)); }
+
+/* Square icon slabs (Home's corner). */
+.md-icon { flex: none; }
+.md-icon svg { width: calc(17 * var(--u)); height: calc(17 * var(--u)); }
+.md-corner { display: flex; align-items: flex-start; gap: calc(8 * var(--u)); }
+.md-corner .hm-slab { filter: var(--shadow); }
+.md-dialog-close { margin-left: auto; }
+
+/* The small dark card: ink face, two-pixel corners, a coloured bar inside its left edge. */
+.md-card {
+  --bar: var(--hm-lantern); --c: 2px;
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 10px; max-width: min(92vw, 460px);
+  padding: 9px 16px 9px 20px; box-sizing: border-box; text-align: left; color: var(--hm-wool);
+  filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35));
+}
+.md-card::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--hm-ink); box-shadow: inset 6px 0 0 var(--bar);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+.md-card[data-tone="frost"] { --bar: var(--hm-frost); }
+.md-card[data-tone="barn"] { --bar: var(--hm-barn); }
+.md-card[data-tone="pasture"] { --bar: #7BC48E; }
+.md-card-icon { flex: none; display: grid; place-items: center; color: var(--bar); }
+.md-card-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.md-card-title { font: 700 17px/1.15 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-wool); }
+.md-card-sub { font: 700 12.5px/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.md-card--sm .md-card-title { font-size: 15px; }
+.md-card--sm { padding: 7px 14px 7px 18px; }
+.md-card--lg .md-card-title { font-size: 21px; }
+.md-card--lg { padding: 12px 20px 12px 24px; }
+
+/* The small dark label. */
+.md-tag {
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 1px 9px 0; box-sizing: border-box;
+  font: 700 13px/1 var(--skin-font-display); color: var(--hm-wool); white-space: nowrap;
+}
+.md-tag::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--hm-ink);
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+/* A disabled slab is grey on a grey side, never an orange lip under grey (the pen plan's C1, kit-wide here). */
+.md-slab.hm-slab:disabled, .md-icon.hm-slab:disabled { --lip: var(--hm-disabled-lip); }

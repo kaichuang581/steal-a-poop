@@ -1,0 +1,39 @@
+/* The name tag over an animal (NamePlate.tsx): a small flat dark tag, 22 high, with a stepped point under it at its animal;
+   the name Fraunces 700, 13, in cream; small wool-ball dots after it. Sizes are whole pixels (--u is 1.125 at 1440 x 900),
+   so the text and the edges stay crisp. A place can size it with --np-h and --np-font (the phone's pen, the phone table). */
+.np { display: inline-flex; font-family: var(--skin-font-body); }
+.np-plate {
+  --np-face: var(--hm-ink); --np-txt: var(--hm-wool); --np-c: round(calc(2 * var(--u)), 1px);
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: round(calc(6 * var(--u)), 1px);
+  height: round(calc(var(--np-h, 22) * var(--u)), 1px); padding: 0 round(calc(8 * var(--u)), 1px); margin-bottom: round(calc(4 * var(--u)), 1px);
+  box-sizing: border-box; max-width: 100%; white-space: nowrap; pointer-events: none; color: var(--np-txt);
+}
+/* The face, with two-pixel corners; and the point, a stepped triangle in the face's colour. */
+.np-plate::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; background: var(--np-face);
+  clip-path: polygon(0 var(--np-c), var(--np-c) var(--np-c), var(--np-c) 0, calc(100% - var(--np-c)) 0, calc(100% - var(--np-c)) var(--np-c), 100% var(--np-c),
+    100% calc(100% - var(--np-c)), calc(100% - var(--np-c)) calc(100% - var(--np-c)), calc(100% - var(--np-c)) 100%, var(--np-c) 100%, var(--np-c) calc(100% - var(--np-c)), 0 calc(100% - var(--np-c)));
+}
+.np-plate::after {
+  content: ''; position: absolute; left: 50%; top: 100%; width: round(calc(8 * var(--u)), 2px); height: round(calc(4 * var(--u)), 2px); translate: -50% 0; background: var(--np-face);
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 75% 50%, 75% 100%, 25% 100%, 25% 50%, 0 50%);
+}
+.np-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 700 round(calc(var(--np-font, 13) * var(--u)), 1px)/1 var(--skin-font-display); font-variation-settings: 'opsz' 14; letter-spacing: 0.01em; }
+.np-plate > svg, .np-plate > span { flex: none; }
+/* Yours: the name in lantern. The animal whose turn it is: a lantern tag, ink letters, a step bigger. */
+.np-plate[data-you] .np-name { color: var(--hm-lantern-hi); }
+.np-plate[data-tone="turn"] { --np-face: var(--hm-lantern); --np-txt: var(--hm-ink); --np-h: 24; --np-font: 14; }
+.np-plate[data-tone="turn"] .np-name { color: var(--hm-ink); }
+/* Wool balls: small octagonal dots, the lost ones dimmed. */
+.np-lives { display: inline-flex; gap: round(calc(2 * var(--u)), 1px); }
+.np-lives > i { width: round(calc(6 * var(--u)), 1px); height: round(calc(6 * var(--u)), 1px); background: var(--hm-wool); clip-path: polygon(25% 0, 75% 0, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0 75%, 0 25%); transition: background-color 300ms; }
+.np-lives > i[data-off] { background: var(--hm-night-3); }
+.np-plate[data-tone="turn"] .np-lives > i { background: var(--hm-ink); }
+.np-plate[data-tone="turn"] .np-lives > i[data-off] { background: var(--hm-lantern-lip); }
+/* Frozen: the ice over it, the tag dimmed. */
+.np-plate[data-frozen] { opacity: 0.6; }
+.np-plate > .kit-ice { position: absolute; inset: -2px; opacity: 0.85; }
+/* A bot's badge (offline tables, where you chose the bots). */
+.np-badge { display: inline-flex; opacity: 0.9; }
+/* Said to a screen reader; the colour says it to the eye. */
+.np-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

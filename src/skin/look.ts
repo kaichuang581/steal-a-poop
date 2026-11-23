@@ -18,6 +18,13 @@ import type { ToneMapping } from 'three';
 const q = import.meta.env.DEV && typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
 /** The fog the wendigo's paddock shot keeps (CLAUDE.md, the wendigo zone). */
 export const PADDOCK_FOG = 0.012;
+/**
+ * Whether the paddock shot keeps its old light (plain Lambert under ACES, the old fog, sun and sky). Off since Brian,
+ * 2026-11-21, of the grey snow there: "brighten the entire thing, it looks really dreary for some reason there, make it
+ * match the lighting of everything else". The shot keeps its tier exemption (shadow map, bloom and tilt-shift on every
+ * tier); only the light is the other shots'. True restores the old light.
+ */
+export const PADDOCK_OLD_LIGHT = false;
 const num = (k: string): number | null => { const v = q?.get(k); return v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null; };
 const TONE: Record<string, ToneMapping> = { aces: ACESFilmicToneMapping, neutral: NeutralToneMapping, agx: AgXToneMapping };
 

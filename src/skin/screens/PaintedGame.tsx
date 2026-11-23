@@ -15,7 +15,7 @@ import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
-import { previewBotTurn, rankPlayers, roundTurnMs, startingWool, utcDateKey } from '../../engine';
+import { ALL_MODIFIERS, ANNOUNCE_MS, breaksRule, normalizeWord, previewBotTurn, rankPlayers, roundTurnMs, startingWool, utcDateKey } from '../../engine';
 import { getDream } from '../../dream/daily';
 import { getPracticeBest } from '../../lib/practice';
 import { farmSheepLine } from '../../lib/record';
@@ -26,7 +26,7 @@ import { ChatPanel } from '../../ui/ChatPanel';
 import { AcornIcon, BookIcon, ChainIcon, ChatIcon, CloseIcon, GustIcon, LeafIcon, SeedlingIcon, SnowflakeIcon } from '../components/Icons';
 import { Notice } from '../components/Notice';
 import { ChainList, RulesCard } from '../components/RulesCard';
-import { CoachTips } from '../../ui/CoachTips';
+import { GameTips } from '../components/GameTips';
 import { useGameLoop } from '../../ui/hooks';
 import { usePhoneLayout } from '../device';
 import { RewardBanner } from '../../ui/social/RewardBanner';
@@ -37,9 +37,10 @@ import { TourMarks } from '../tour/TourMarks';
 import { useGameSounds } from '../../ui/useGameSounds';
 import { InputStrip } from '../components/InputStrip';
 import { Ledger } from '../components/Ledger';
-import { Lives } from '../components/Lives';
 import { TallyBoard } from '../components/TallyBoard';
-import { Board, Brass, Clipboard, ClothButton, Ice, Knit, Panel, Paper, Peg, Slate, WoodButton } from '../kit';
+import { Ice } from '../kit';
+import { Corner, Dialog, IconSlab, Scrim, Slab } from '../kit/modern';
+import './game-hud.css';
 import { TwistSign } from '../components/TwistSign';
 import { LedgerRow } from '../components/Ledger';
 import { Podium } from '../table/Podium';
@@ -61,6 +62,7 @@ import { BarnTable } from '../table/BarnTable';
 import type { BarnMoments } from '../table/BarnTable';
 import { DevLine } from '../table/DevStats';
 import { DuelTable } from '../table/DuelTable';
+import { NamePlate } from '../kit/NamePlate';
 import { PlaceExtras } from '../table/places';
 import { coatLevel } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
@@ -78,6 +80,8 @@ const FINALE = { bang: AFTERMATH_MS, winner: 2400 };
 const PREROLL_MS = 650;
 /** How long a practice run's end board waits for a worn Trading Post act to be seen, in ms. */
 const ACT_WATCH_MS = 1900;
+/** The rules a word can be seen to break while it is still being typed. */
+const LIVE_RULES = new Set(['no_e', 'no_a', 'no_s', 'five_max']);
 const BADGE = { easy: <SeedlingIcon size={12} />, medium: <LeafIcon size={12} />, hard: <AcornIcon size={12} /> } as const;
 interface Mood { state: SheepState; key: number }
 
@@ -113,6 +117,9 @@ export function PaintedGame() {
   const [fx, setFx] = useState<Fx[]>([]);
   const [sheet, setSheet] = useState<'cheat' | 'chain' | 'chat' | 'leave' | null>(null);
   const [alarm, pushAlarm, clearAlarms] = useAlarms(mobile ? 2600 : 3000);
+  // Announcements waiting for the bang that ended a round to play out (cleared with the alarms).
+  const alarmWaits = useRef<number[]>([]);
+  useEffect(() => () => alarmWaits.current.forEach((id) => window.clearTimeout(id)), []);
   // Each alarm jolts the barn once: the class comes off for a frame and back on, so the jolt restarts per alarm.
   const [shake, setShake] = useState(false);
   useEffect(() => {
@@ -128,6 +135,15 @@ export function PaintedGame() {
   const rel = (seat: number) => (seat - mySeat + n) % n;
   const name = (id: string) => game.players[Number(id)]?.name ?? '';
   const practice = storeMode === 'practice';
+  // The round's rule, said beside the letter all round long (Brian, 2026-11-23: "make it clearer what event is in play.
+  // after the popup, people kind of just forget about it"). Rules a word breaks as it is typed (a letter it must not
+  // have, too long) show red at once; the rest are checked when it is played, as before.
+  const twistNow = view.twist && view.twist !== 'vowelDouble' && ALL_MODIFIERS.includes(game.modifier) ? view.twist : null;
+  const typedNow = normalizeWord(input.typed);
+  const roundRule = twistNow ? {
+    text: TWIST_TEXT[twistNow],
+    broken: !!typedNow && LIVE_RULES.has(game.modifier) && breaksRule(typedNow, game.modifier) !== null,
+  } : undefined;
   // A practice run has its own place: the two of you, out on the ice.
   const Stage = practice ? LiveDuel : BarnTable;
   // Read once a run: the table renders often and this reads storage.
@@ -337,12 +353,25 @@ export function PaintedGame() {
         break;
       case 'roundStart':
         // The round's alarms, one after the other: faster turns (every round until the floor), then the twist.
+        // Each is up for ANNOUNCE_MS, starting once the bomb that ended the round has gone off; the engine holds the
+        // first fuse until they are done (Brian, 2026-11-23: the popup must "actually stall the timer").
         if (e.round > 1 && storeMode !== 'tour') {
-          if (e.faster) pushAlarm({ tone: 'speed', label: `Round ${e.round}: faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on' });
-          if (e.twist && e.twist !== 'vowelDouble') pushAlarm({ tone: 'twist', label: `Round ${e.round}: new rule`, title: TWIST_TEXT[e.twist], sub: 'for this round only' });
+          const announce = () => {
+            if (e.faster) pushAlarm({ tone: 'speed', label: `Round ${e.round}: faster`, title: `${e.turnSeconds}-second turns`, sub: 'the clock is shorter from here on', ms: ANNOUNCE_MS });
+            if (e.twist && e.twist !== 'vowelDouble') pushAlarm({ tone: 'twist', label: `Round ${e.round}: new rule`, title: TWIST_TEXT[e.twist], sub: 'for this round only', ms: ANNOUNCE_MS });
+          };
+          if (e.delayMs > 0) alarmWaits.current.push(window.setTimeout(announce, e.delayMs)); else announce();
+        }
+        break;
+      case 'chainReset':
+        // A fresh letter (two sheep in a row ran out on one): said once the bang has been seen.
+        if (!practice && storeMode !== 'tour') {
+          window.setTimeout(() => flash(<Notice tone="wood" size="sm" snow={false} icon={<MiniBomb size={22} />} title={`New letter: ${e.letter.toUpperCase()}`} sub={e.why} />, 2400), 700);
         }
         break;
       case 'gameEnd':
+        alarmWaits.current.forEach((id) => window.clearTimeout(id));
+        alarmWaits.current = [];
         clearAlarms();
         break;
       default:
@@ -414,8 +443,8 @@ export function PaintedGame() {
             return {
               seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.lives, maxLives), state: st.state, stateKey: st.key,
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou, avatar: avatarOf(p),
-              // Over each head: a knitted name plate (wool like the ledger, berry for the speaker) and, while a sheep
-              // speaks or you type ahead, a speech bubble with the word as it is typed.
+              // Over each head: the name tag every place shares (kit/NamePlate: yours lantern, the speaker's barn red)
+              // and, while a sheep speaks or you type ahead, a speech bubble with the word as it is typed.
               label: (() => {
                 const speaking = p.id === view.currentPlayerId;
                 const typed = p.isYou ? input.typed : speaking ? botTyped : '';
@@ -432,14 +461,13 @@ export function PaintedGame() {
                         {speaking && <i className="sk-say-caret" aria-hidden="true" />}
                       </div>
                     )}
-                    <div className="sk-plate">
-                      <span className="sk-plate-who">{p.name}</span>
-                      {/* Online, a filled seat is not marked (Brian, 2026-11-14: "dont say they are bots"); offline you chose the bots. */}
-                      {p.difficulty && !room && <span className="sk-plate-badge" role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
-                      <Lives lives={p.lives} max={maxLives} size={speaking ? 14 : 12} />
-                      {p.isYou && <span className="sk-plate-you">you</span>}
-                      {p.frozen && <Ice className="sk-plate-ice" />}
-                    </div>
+                    <NamePlate
+                      tokens name={p.name} you={p.isYou} turn={speaking} frozen={p.frozen} className="sk-seat-plate"
+                      // Online, a filled seat is not marked (Brian, 2026-11-14: "dont say they are bots"); offline you chose the bots.
+                      lead={p.difficulty && !room ? <span className="np-badge" role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span> : undefined}
+                      lives={{ left: p.lives, max: maxLives }}
+                      over={p.frozen ? <Ice /> : undefined}
+                    />
                   </div>
                 );
               })(),
@@ -459,34 +487,38 @@ export function PaintedGame() {
       <header className="pointer-events-none relative z-40 flex items-start justify-between gap-2 p-2 pt-[max(8px,env(safe-area-inset-top))] pr-[max(8px,env(safe-area-inset-right))] pl-[max(8px,env(safe-area-inset-left))]">
         <div className="flex flex-col items-start gap-1">
           {practice ? (
-            <Slate size="plaque" tone={runWords > runBest && runBest > 0 ? 'amber' : 'chalk'} className="sk-run-plaque">
-              <span>{runWords}<span className="kit-chalk-hand"> word{runWords === 1 ? '' : 's'}</span></span>
-              <span className="kit-chalk-hand">best {Math.max(runBest, runWords)}{game.turn ? `, ${Math.round(game.turn.durationMs / 1000)}s turns` : ''}</span>
-            </Slate>
+            <div className="sk-hud-card hm rc" data-best={runWords > runBest && runBest > 0 || undefined}>
+              <span className="sk-hud-big"><b>{runWords}</b> word{runWords === 1 ? '' : 's'}</span>
+              <span className="sk-hud-small">best {Math.max(runBest, runWords)}{game.turn ? `, ${Math.round(game.turn.durationMs / 1000)} s turns` : ''}</span>
+            </div>
           ) : (
-            <div className="sk-hud-tab">
+            <div className="sk-hud-tab sk-hud-card hm rc">
               <span className="sk-hud-round">{game.phase === 'gameOver'
-                ? `Game over after ${view.round} round${view.round === 1 ? '' : 's'}`
-                : `Round ${view.round}, ${game.players.filter((p) => !p.frozen).length} sheep left${mobile ? '' : game.turn ? `, ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)}s turns` : view.turnSeconds ? `, ${Math.round(view.turnSeconds)}s turns` : ''}`}</span>
+                ? <span className="sk-hud-big">Game over after {view.round} round{view.round === 1 ? '' : 's'}</span>
+                : <>
+                  <span className="sk-hud-big">Round <b>{view.round}</b></span>
+                  <span className="sk-hud-small">{`${game.players.filter((p) => !p.frozen).length} sheep left${mobile ? '' : game.turn ? `, ${Math.round((game.turn.endsAt - game.turn.startedAt) / 1000)} s turns` : view.turnSeconds ? `, ${Math.round(view.turnSeconds)} s turns` : ''}`}</span>
+                </>}</span>
               <TwistSign twist={view.twist} state={signState} compact={mobile} />
             </div>
           )}
         </div>
-        <div className="pointer-events-auto flex flex-wrap justify-end gap-1.5">
-          <Peg onClick={() => setSheet('cheat')} aria-label="How to play" title="How to play"><BookIcon size={22} /></Peg>
-          <Peg onClick={() => setSheet('chain')} aria-label="Chain history" title="Chain history"><ChainIcon size={18} /></Peg>
-          {storeMode === 'room' && <Peg onClick={() => setSheet('chat')} aria-label="Room chat" title="Room chat"><ChatIcon size={18} /></Peg>}
-          <SoundMenu peg />
-          <Peg onClick={() => setSheet('leave')} aria-label="Leave game" title="Leave game"><CloseIcon size={16} /></Peg>
-        </div>
+        {/* Home's corner: square wool slabs (Brian, 2026-11-23: the round wooden pegs were "outdated ui"). */}
+        <Corner className="pointer-events-auto flex-wrap justify-end">
+          <IconSlab onClick={() => setSheet('cheat')} aria-label="How to play" title="How to play"><BookIcon /></IconSlab>
+          <IconSlab onClick={() => setSheet('chain')} aria-label="Chain history" title="Chain history"><ChainIcon /></IconSlab>
+          {storeMode === 'room' && <IconSlab onClick={() => setSheet('chat')} aria-label="Room chat" title="Room chat"><ChatIcon /></IconSlab>}
+          <SoundMenu />
+          <IconSlab onClick={() => setSheet('leave')} aria-label="Leave game" title="Leave game"><CloseIcon /></IconSlab>
+        </Corner>
       </header>
 
       {practice ? (
         // The fight card: the two names either side of a carved VS.
         <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-[max(4rem,calc(env(safe-area-inset-top)+56px))]' : 'top-3'}`} aria-label="Who is playing">
-          <Paper kind="slip" className="sk-vs-slip">{game.players[0].name}</Paper>
+          <span className="sk-vs-card hm rc" data-you><b>{game.players[0].name}</b></span>
           <span className="sk-vs">VS</span>
-          <Paper kind="slip" className="sk-vs-slip">{game.players[1].name}<span className="sk-vs-tags"><span className="sk-vs-farm">farm sheep</span><span className="sk-vs-farm">{game.settings.botDifficulty}</span></span></Paper>
+          <span className="sk-vs-card hm rc"><b>{game.players[1].name}</b><span className="sk-vs-tags">farm sheep, {game.settings.botDifficulty}</span></span>
         </div>
       ) : (
         <Ledger players={ranked} turnId={view.currentPlayerId} maxLives={maxLives} compact={mobile}
@@ -531,6 +563,7 @@ export function PaintedGame() {
             turnName={(view.currentPlayerId || view.nextPlayerId) === '' ? 'Next sheep' : name(view.currentPlayerId || view.nextPlayerId)}
             onChange={input.onChange} onSubmit={input.submit} acceptKey={input.acceptKey} out={!!game.players[mySeat]?.frozen}
             message={input.message} turnKey={game.turn?.seat}
+            rule={roundRule}
             onPass={storeMode !== 'tour' && !practice && game.players[mySeat]?.passedRound !== game.round ? () => void useStore.getState().act({ type: 'pass', seat: mySeat }) : undefined}
             hints={input.learning ? { ideas: input.ideas, onHint: input.hintIdeas, onPick: input.useIdea } : undefined}
           />
@@ -538,7 +571,7 @@ export function PaintedGame() {
       )}
 
       {/* Coach tips only while a turn is running: never over the round tally or the end board. */}
-      {storeMode === 'tour' ? <PaintedTour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><CoachTips /></div>}
+      {storeMode === 'tour' ? <PaintedTour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><GameTips /></div>}
       {game.phase === 'gameOver' && (practice ? !watchingAct && <RunOver /> : finale === 'results' && (
         <Results players={ranked} podium={ranked.map((p, i) => ({ key: p.id, name: p.name, place: i + 1, avatar: avatarOf(p), level: coatLevel(Math.max(p.lives, 1), maxLives), isYou: p.isYou }))} />
       ))}
@@ -546,19 +579,19 @@ export function PaintedGame() {
         <Sheet title={{ cheat: 'How to play', chain: 'Chain history', chat: 'Room chat' }[sheet]} onClose={() => setSheet(null)}>
           {sheet === 'cheat' && <RulesCard />}
           {sheet === 'chain' && <ChainList game={game} />}
-          {sheet === 'chat' && <Panel className="p-2"><div className="sk-chat-card"><ChatPanel height="h-56" compact /></div></Panel>}
+          {sheet === 'chat' && <div className="sk-chat-card rc-well"><ChatPanel height="h-56" compact /></div>}
         </Sheet>
       )}
       {sheet === 'leave' && (
-        <div className="fixed inset-0 z-[55] flex items-center justify-center p-4" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={() => setSheet(null)}>
-          <Clipboard aria-label="Leave game" title="Leave this table?" className="sk-leave" onClick={(e) => e.stopPropagation()}>
+        <Scrim onClose={() => setSheet(null)}>
+          <Dialog label="Leave game" title="Leave this table?" className="sk-leave" onClick={(e) => e.stopPropagation()}>
             <p>{storeMode === 'daily' ? 'Your daily attempt is used.' : rankedRoom ? 'Leaving a ranked game counts as a loss: you are placed as if you had just frozen. A farm sheep takes your seat.' : 'This game will end.'}</p>
-            <div className="mt-3 flex gap-3">
-              <WoodButton autoFocus onClick={() => setSheet(null)} className="flex-1">Stay</WoodButton>
-              <Brass barn onClick={quit} className="flex-1">Leave</Brass>
+            <div className="md-row">
+              <Slab tone="lantern" autoFocus onClick={() => setSheet(null)}>Stay</Slab>
+              <Slab onClick={quit}>Leave</Slab>
             </div>
-          </Clipboard>
-        </div>
+          </Dialog>
+        </Scrim>
       )}
       <DevLine />
     </div>
@@ -601,9 +634,9 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
     // Laid over the part of the screen that can be seen (--vvtop, --vvh: the visual viewport, which the keyboard
     // shortens), so with the keyboard up the sheet stands above it, not behind it (plan file 14, change 4).
     <div className="fixed inset-x-0 z-50 flex items-end justify-center p-3 sm:items-center" style={{ top: 'var(--vvtop, 0px)', height: 'var(--vvh, 100dvh)', background: 'color-mix(in srgb, var(--ink) 45%, transparent)' }} onClick={onClose}>
-      <Clipboard aria-label={title} title={title} onClose={onClose} className="sk-table-sheet" onClick={(e) => e.stopPropagation()}>
+      <Dialog title={title} onClose={onClose} className="sk-table-sheet" onClick={(e) => e.stopPropagation()}>
         {children}
-      </Clipboard>
+      </Dialog>
     </div>
   );
 }
@@ -636,34 +669,27 @@ function RunOver() {
     <>
       <div className="sk-results-backdrop" aria-hidden="true" />
       <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto p-3 pt-16 sm:items-center sm:p-6">
-        {/* The run's board (V6 Part 6.3): the score chalked big on a slate, the clock, the bot and the best on three small ones. */}
-        <Board size="panel" hang="ropes" snow id="run-over" role="dialog" aria-label="Run over" className="sk-tally w-full max-w-sm">
-          <h2 className="sk-tally-title">{run?.isNew ? 'New best!' : RUN_OVER_TITLE}</h2>
-          <div className="mt-2 flex justify-center">
-            <Slate size="plaque" tone={run?.isNew ? 'amber' : 'chalk'} className="sk-score-plaque">
-              {score}<span className="kit-chalk-hand">{`word${score === 1 ? '' : 's'} before the clock ran out`}</span>
-            </Slate>
+        {/* The run's board: the modern kit's dialog (Brian, 2026-11-23: the old knitted board with ropes was outdated).
+            The score big in a well, the best, the clock and the bot on three tiles, then the longest word. */}
+        <Dialog id="run-over" label="Run over" title={run?.isNew ? 'New best!' : RUN_OVER_TITLE} className="sk-runover">
+          <div className="sk-ro-score rc-well" data-best={run?.isNew || undefined}>
+            <b>{score}</b><span>{`word${score === 1 ? '' : 's'} before the clock ran out`}</span>
           </div>
-          <div className="sk-plaques">
+          <div className="sk-ro-stats">
             {stats.map(([key, v]) => (
-              <Slate key={key} size="plaque"><span>{v}</span><span className="kit-chalk-hand">{key}</span></Slate>
+              <div key={key} className="sk-ro-stat rc-tile"><b>{v}</b><span>{key}</span></div>
             ))}
           </div>
-          {/* Sections of the board itself, not a sheet pinned to it (Brian, 2026-11-09: "longest word should not be on a
-              pin, it should be on the plate as a section"). */}
           {me.longestWord && (
-            <div className="sk-tally-section sk-tally-longest">
-              <span className="sk-hand">Longest word</span>
-              <b>{me.longestWord.toUpperCase()}</b>
-            </div>
+            <div className="sk-ro-line rc-tile sk-tally-longest"><span>Longest word</span><b>{me.longestWord.toUpperCase()}</b></div>
           )}
-          {payout && <PayoutLines payout={payout} className="sk-tally-section" />}
-          {dreamWaiting && <p className="sk-tally-section sk-hand">{DREAM_LINE}</p>}
-          <div className="sk-tally-actions">
-            <ClothButton autoFocus onClick={rematch} className="basis-full">Play again</ClothButton>
-            <WoodButton onClick={quit} className="flex-1">Back to the farm</WoodButton>
+          {payout && <PayoutLines payout={payout} className="sk-ro-payout" />}
+          {dreamWaiting && <p className="sk-ro-note">{DREAM_LINE}</p>}
+          <div className="md-stack sk-ro-actions">
+            <Slab tone="lantern" autoFocus onClick={rematch}>Play again</Slab>
+            <Slab onClick={quit}>Back to the farm</Slab>
           </div>
-        </Board>
+        </Dialog>
       </div>
     </>
   );
@@ -716,13 +742,13 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
     <>
       <Podium entries={podium} reduced={reducedMotion} phone={phone} aside={stats && !hidden} />
       {stats && hidden && (
-        <button type="button" className="sk-final-show" onClick={() => setHidden(false)}>Show the scoreboard</button>
+        <span className="sk-final-show hm rc"><Slab size="sm" onClick={() => setHidden(false)}>Show the scoreboard</Slab></span>
       )}
       {stats && !hidden && (
         <div className="sk-final-wrap">
-          <section className="sk-final" role="dialog" aria-modal="true" aria-label="Game over">
-            <button type="button" className="sk-final-close" onClick={() => setHidden(true)} aria-label="Hide the scoreboard" title="Hide the scoreboard"><CloseIcon size={16} /></button>
-            <h2 className="sk-final-title">{players.find((p) => game.winners?.map(String).includes(p.id))?.name ?? players[0].name} is the last sheep standing!</h2>
+          {/* The scoreboard: the modern kit's dialog (Brian, 2026-11-23: the dashed see-through box was outdated). */}
+          <Dialog label="Game over" className="sk-final" onClose={() => setHidden(true)} closeLabel="Hide the scoreboard"
+            title={(() => { const w = players.find((p) => game.winners?.map(String).includes(p.id)) ?? players[0]; return w.isYou ? 'You are the last sheep standing!' : `${w.name} is the last sheep standing!`; })()}>
             <ol className="sk-final-rows">
               {players.map((p, i) => <LedgerRow key={p.id} player={p} place={i + 1} maxLives={startingWool(game.settings)} ringed={game.winners?.map(String).includes(p.id)} />)}
             </ol>
@@ -731,29 +757,31 @@ function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEnt
             {dreamWaiting && <p className="sk-final-note">{DREAM_LINE}</p>}
             <div className="sk-final-stats">
               {tiles.map(([key, v, best, beat]) => (
-                <div key={key} className="sk-final-stat" data-beat={beat || undefined}>
+                <div key={key} className="sk-final-stat rc-tile" data-beat={beat || undefined}>
                   <b>{v}</b><span>{key}{best !== undefined ? `, ${beat ? 'new best!' : `best ${best}`}` : ''}</span>
                 </div>
               ))}
-              <div className="sk-final-stat" data-beat={result?.beat.longest || undefined}>
-                <b>{me.longestWord ? me.longestWord.toUpperCase() : '—'}</b>
+              <div className="sk-final-stat rc-tile" data-beat={result?.beat.longest || undefined}>
+                <b>{me.longestWord ? me.longestWord.toUpperCase() : '–'}</b>
                 <span>Longest word{result?.bests.longest ? `, ${result.beat.longest ? 'new best!' : `best ${result.bests.longest.toUpperCase()}`}` : ''}</span>
               </div>
             </div>
             {payout && <PayoutLines payout={payout} className="sk-final-note" />}
             {mode === 'room' && <RewardBanner />}
             {mode === 'daily' && (
-              <div className="sk-tally-streak" aria-label={`Daily streak: ${days.filter(Boolean).length} of the last 7 days played`}>
-                <Knit stitches={days.map((on, i) => (i === days.length - 1 && on ? 'today' : on ? 'played' : 'missed'))} />
-                <p className="sk-hand">Daily streak: {streak}</p>
+              <div className="sk-final-streak" aria-label={`Daily streak: ${days.filter(Boolean).length} of the last 7 days played`}>
+                <span className="sk-final-days" aria-hidden="true">{days.map((on, i) => <i key={i} data-on={on || undefined} data-today={i === days.length - 1 || undefined} />)}</span>
+                <span>Daily streak: <b>{streak}</b></span>
               </div>
             )}
-            <div className="sk-final-actions">
-              {mode === 'quick' && <ClothButton onClick={rematch} className="basis-full">Same table again</ClothButton>}
-              <Brass onClick={share} className="flex-1">{copied ? 'Copied!' : 'Share'}</Brass>
-              <WoodButton onClick={quit} className="flex-1">{mode === 'room' ? 'Leave room' : 'Back to the farm'}</WoodButton>
+            <div className="md-stack sk-final-actions">
+              {mode === 'quick' && <Slab tone="lantern" onClick={rematch}>Same table again</Slab>}
+              <div className="md-row">
+                <Slab onClick={share}>{copied ? 'Copied!' : 'Share'}</Slab>
+                <Slab onClick={quit}>{mode === 'room' ? 'Leave room' : 'Back to the farm'}</Slab>
+              </div>
             </div>
-          </section>
+          </Dialog>
         </div>
       )}
     </>

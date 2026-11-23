@@ -4,7 +4,7 @@ import { each, finish } from './slices';
 import type { Steps } from './slices';
 import { IRIS, lin, T } from '../voxel/palette';
 import { noteShade } from '../voxel/groundShade';
-import { muted, paint, seededPart, shade, solid } from '../voxel/paint';
+import { byPart, muted, paint, seededPart, shade, solid } from '../voxel/paint';
 import { ellipsoid, cone, Grid, hash3, line, ring, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { BARN, HEAP, SEAT_RING, seatPosition } from './layout';
@@ -21,9 +21,8 @@ const C = 0.04;
 export const CAT_SPOT: V3 = [-4.9, 1.5, 6.1];
 export const ROBIN_SPOT: V3 = [1.2, 4.6, 1.05]; // on the cross beam's top (y 4.6), over its middle (z 0.9 to 1.2)
 
-/** The steps the wall boards take, by board number: the same as `barnShell`'s (farmstead.ts), whose boards continue these. One
- * step for all: alternating reds striped the walls and crawled as the camera moved (Brian, 2026-11-21). */
-const BOARD_STEPS = [0, 0, 0, 0] as const;
+/** The steps the wall boards take, by board number (docs/miniature/01, section 5): the same in `barnShell` (farmstead.ts), whose boards continue these. */
+const BOARD_STEPS = [0, -1, 0, 1] as const;
 const I = (m: number) => Math.round(m / S);
 
 /** Inclusive index box; `chamfer` names the long axis whose four edges lose one voxel. */
@@ -138,7 +137,7 @@ function beams(): Grid {
   // rafters toward the ridge, back half only; roof boards only over z >= 4.0 so the camera's view stays open
   for (const z0 of [19, 35, 51, 67]) for (let x = -60; x <= 59; x++) fill(g, x, x, roofY(x) - 3, roofY(x) - 1, z0, z0 + 2, wood);
   fill(g, -1, 1, roofY(0) - 3, roofY(0) - 1, 19, 69, cross, 2);
-  const roof = paint('roofBrown', 0); // one colour: alternating boards striped it
+  const roof = byPart('roofBrown', [0, -1], (x) => Math.floor((x + 62) / 3)); // roof boards 0.3 m wide, seen from below
   for (let x = -62; x <= 61; x++) fill(g, x, x, roofY(x), roofY(x) + 1, 40, 71, roof);
 
   // rope coil hung on the right wall post at z -0.35

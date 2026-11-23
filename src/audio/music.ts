@@ -18,6 +18,8 @@ import { audioContext, musicDuck } from './sound';
  */
 const MUSIC_KEY = 'sap:music';
 const MUSIC_VOLUME_KEY = 'sap:musicVolume';
+/** How far ahead of the clock bars are scheduled, in seconds. */
+const AHEAD = 1.2;
 const LEVEL = 0.45; // full music volume still sits under the game's own sounds
 
 interface MusicStore { on: boolean; volume: number; toggle(): void; setVolume(v: number): void }
@@ -139,11 +141,11 @@ function level(): number {
 /** Fades a song out and takes its stage down once it is silent. */
 function retire(c: AudioContext, st: Stage): void {
   st.fader.gain.cancelScheduledValues(c.currentTime);
-  st.fader.gain.setTargetAtTime(0, c.currentTime, 0.18);
+  st.fader.gain.setTargetAtTime(0, c.currentTime, 0.6); // about two seconds to silence: a crossfade, not a cut
   window.setTimeout(() => {
     for (const o of st.lfos) { try { o.stop(); } catch { /* already stopped */ } }
     st.fader.disconnect();
-  }, 2500);
+  }, 5000);
 }
 
 function tick() {
@@ -157,13 +159,14 @@ function tick() {
     if (now) { retire(c, now); left[now.scene] = now.bar; }
     const st = stage(c, master, SONGS[scene], heat);
     st.fader.gain.setValueAtTime(0, c.currentTime);
-    st.fader.gain.linearRampToValueAtTime(1, c.currentTime + 0.5);
+    st.fader.gain.linearRampToValueAtTime(1, c.currentTime + 1.8);
     now = { ...st, scene, next: c.currentTime + 0.12, bar: scene === 'home' || scene === 'shop' ? left[scene] ?? 0 : 0 };
   }
   if (want === 0) { now.next = c.currentTime + 0.1; return; } // silent: hold the place, schedule nothing
   if (now.next < c.currentTime) now.next = c.currentTime + 0.1;
-  // A bar is scheduled whole, a moment before it starts.
-  while (now.next < c.currentTime + 0.3) now.next += playBar(now, now.next, now.bar++, heat);
+  // A bar is scheduled whole, over a second before it starts: a busy frame in the 3D scenes held the page long enough to
+  // miss a bar that was only 0.3 s ahead, and the song stuttered (Brian, 2026-11-22: "too choppy and inconsistent").
+  while (now.next < c.currentTime + AHEAD) now.next += playBar(now, now.next, now.bar++, heat);
 }
 
 /** Which scene's song is playing and the next bar it will play, or null before the music has started. */

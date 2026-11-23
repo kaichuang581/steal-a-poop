@@ -224,7 +224,7 @@ export function Farmstead({ world, reduced, phone, onReady }: { world: World; re
           <Sheep level={2} state={state} reduced={reduced} model={animal === 'sheep' ? undefined : animalModel(animal)} />
         </group>
       ))}
-      {!phone && <Sheepdog reduced={reduced} at={[FLOCK_DOG[0], 0, FLOCK_DOG[1]]} yaw={FLOCK_DOG[2]} scale={1.5} />}
+      {!phone && <Sheepdog reduced={reduced} at={[FLOCK_DOG[0], 0, FLOCK_DOG[1]]} yaw={FLOCK_DOG[2]} scale={1.15} />}
     </>
   );
 }

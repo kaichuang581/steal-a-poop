@@ -5,7 +5,8 @@ All user-visible changes, newest first.
 ## 0.9.7
 
 - Into a game without the wait: the loading screen lifts onto the table easing in from a warm close-up, and the first fuse drops as it settles, instead of a still, empty table for two and a half seconds.
-- Join party's code boxes are five even tiles again (the typing field had come loose and stretched across the card).
+- The sheepdog is rebuilt from Brian's six-view sheet: a charcoal collie standing four-square, white blaze, muzzle, chest, socks and tail tip, a red bandana, folded ears. The tutorial's picture of it is baked again.
+- Join party is laid out like Practice. Its code boxes are five even tiles again (the typing field had come loose and stretched across the card).
 
 ## 0.9.6
 

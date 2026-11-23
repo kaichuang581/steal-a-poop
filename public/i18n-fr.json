@@ -1006,7 +1006,7 @@
  "Bots": "Robots",
  "Your own table": "Ta propre table",
  "different words played": "mots différents joués",
- "Quick Game wins": "victoires en partie rapide",
+ "Quick Game wins": "parties gagnées",
  "longest word": "mot le plus long",
  "Best rating": "Meilleure note",
  "clock": "chrono",
@@ -1034,5 +1034,17 @@
  "wants to be friends": "veut être ton ami",
  "Rooms you join from now on show the new name.": "Les salons que tu rejoins désormais affichent le nouveau nom.",
  "Your name could not be saved. Try again in a moment.": "Ton nom n’a pas pu être enregistré. Réessaie dans un moment.",
- "Lamb": "Agneau"
+ "Lamb": "Agneau",
+ "Rename": "Renommer",
+ "words played": "mots joués",
+ "sheep in a night": "moutons par nuit",
+ "Your code": "Ton code",
+ "Sign in, then play a ranked game to start in Wood I.": "Connecte-toi, puis joue une partie classée pour commencer en Bois I.",
+ "Play a ranked game to start in Wood I.": "Joue une partie classée pour commencer en Bois I.",
+ "Each rank has three divisions. Fill one and you move up.": "Chaque rang a trois divisions. Remplis-en une et tu montes.",
+ "Losses cost less in the first three ranks:": "Les défaites coûtent moins dans les trois premiers rangs :",
+ "Coming first with no tie always gains at least 1 point.": "Finir premier sans égalité rapporte toujours au moins 1 point.",
+ "Same rules for all": "Mêmes règles pour tous",
+ "Account needed": "Compte requis",
+ "Leaving counts as a loss": "Partir compte comme une défaite"
 }

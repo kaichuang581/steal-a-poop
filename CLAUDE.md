@@ -2411,3 +2411,17 @@ loading screen keeps its own colour (it must stand alone).
   footer note sits at the foot of the left column. Without a game server players never read "server": ranked says it is
   not open yet, and a developer build shows a "Server off" tag. The XP standing card ("Your standing") is gone; signed
   in, the top-100 list says where you are.
+- The profile and How ranks work, polish v2 (Brian, 2026-11-23, of v1: "bland", "poorly placed", "crammed rather than
+  fitting together"; his profile plan v2, which wins over v1 where they differ). Every section is one raised card with
+  its title inside (`Section` and `IconTile` in profile/parts.tsx), Home's colours in the icon tiles, the ranks' own
+  colours (`--rank-*` in profile.css), a night band behind the name, the longest word in letter tiles (`LetterTiles`),
+  the ranks on a staircase with locked ranks as silhouettes (`TierShape`), the rating above the practice grid, and the
+  rules as coloured words, tags and chips. The name is a title with "Rename" (Save and Cancel while editing; the same
+  save). Both columns end level (the last card of each column grows; the friends list has `contain: size` so it fills
+  what is left and scrolls inside). The card's scale is its own, fit to a 985-high screen: nothing scrolls at 1270 x 900,
+  1280 x 800, 1440 x 900 and 1920 x 1080. Middle dots: the v2 plan asked for them back on these two cards ("a middle dot,
+  not a comma"), so typeRatchets.test.ts allows them in Profile.tsx, FriendsSection.tsx, ProfileRank.tsx and
+  RankGuide.tsx only; the rule of 2026-11-14 stands everywhere else. Deviations: the rank icons in the guide stay 24
+  (32 blurs a 24-row badge); the French Points rule is written in RankGuide.tsx (its coloured words cannot be translated
+  word by word); French "Quick Game wins", "sheep in a night" and the streak label are shortened to fit one line; the
+  bundle limit was raised 2 kB (scripts/check-bundle-size.mjs).

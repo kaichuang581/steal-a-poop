@@ -26,7 +26,7 @@ describe('how ranks work', () => {
 
   it('shows where an unranked player starts', () => {
     expect(html(null)).toContain('Start here');
-    expect(html(null)).toContain('0–299 points, losses are free');
+    expect(html(null)).toContain('0–299 points · losses are free');
   });
 
   it('marks your own rank, and none when you have none', () => {
@@ -38,6 +38,7 @@ describe('how ranks work', () => {
   it('says how points are won and lost, in four rules', () => {
     const page = html();
     for (const h of ['Climbing', 'Points', 'A gentle start', 'The games']) expect(page).toMatch(new RegExp(`</span>${h}</h3>`));
+    for (const c of ['2–4 players', 'Same rules for all', 'Account needed', 'Leaving counts as a loss']) expect(page).toContain(c);
   });
 
   it('opens from a button on the profile\'s ranked card, and Ranked is found under Queue', () => {

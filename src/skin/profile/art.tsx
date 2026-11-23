@@ -12,6 +12,11 @@ const GRIDS = {
   moon: ['....XXXX....', '..XXXX......', '.XXXX.......', '.XXX........', 'XXXX........', 'XXXX........', 'XXXX........', 'XXXXX.......', '.XXXXX....X.', '.XXXXXXXXXX.', '..XXXXXXXX..', '....XXXX....'],
   copy: ['..XXXXXX', '..X....X', 'XXXXXX.X', 'X....X.X', 'X....X.X', 'X....XXX', 'X....X..', 'XXXXXX..'],
   plusMinus: ['..XX........', '..XX........', 'XXXXXX......', 'XXXXXX......', '..XX........', '..XX........', '............', '............', '......XXXXXX', '......XXXXXX', '............', '............'],
+  bars: ['............', '.........XX.', '.........XX.', '.....XX..XX.', '.....XX..XX.', '.....XX..XX.', '.XX..XX..XX.', '.XX..XX..XX.', '.XX..XX..XX.', '.XX..XX..XX.', 'XXXXXXXXXXXX', '............'],
+  swap: ['..X......X..', '.XX......XX.', 'XXXXXXXXXXXX', 'XXXXXXXXXXXX', '.XX......XX.', '..X......X..'],
+  pineTall: ['....X....', '...XXX...', '..XXXXX..', '...XXX...', '..XXXXX..', '.XXXXXXX.', '..XXXXX..', '.XXXXXXX.', 'XXXXXXXXX', '....X....', '....X....'],
+  pineMid: ['...X...', '..XXX..', '.XXXXX.', '..XXX..', '.XXXXX.', 'XXXXXXX', '...X...', '...X...'],
+  pineSmall: ['..X..', '.XXX.', 'XXXXX', '.XXX.', 'XXXXX', '..X..'],
   shield: ['HHHHHHHH', 'XXXXXXXL', 'XXXXXKXL', 'XKXXKXXL', 'XXKKXXXL', '.XXXXXL.', '..XXXL..', '...XL...'],
 } as const;
 
@@ -24,3 +29,10 @@ export const PlusMinusArt = () => <Pix rows={GRIDS.plusMinus} colors={{ X: 'var(
 /** The small shield: in lantern by default; `quiet` draws it all in frost (the footer note). */
 export const ShieldArt = ({ quiet = false }: { quiet?: boolean }) =>
   <Pix rows={GRIDS.shield} colors={quiet ? { H: 'var(--hm-frost)', X: 'var(--hm-frost)', L: 'var(--hm-frost)', K: 'var(--hm-night)' } : { H: 'var(--hm-lantern-hi)', X: 'var(--hm-lantern)', L: 'var(--hm-lantern-lip)', K: 'var(--hm-ink)' }} />;
+/** The bar chart (v2, 9.1): Your numbers. */
+export const BarsArt = () => <Pix rows={GRIDS.bars} colors={{ X: 'var(--hm-wool)' }} />;
+/** The two-way arrow (v2, 9.3) between the two sheep of the empty friends list. */
+export const SwapArt = () => <Pix rows={GRIDS.swap} colors={{ X: 'var(--hm-night-3)' }} />;
+/** The night band's pines (v2, 9.2), at 3 px an art pixel. */
+export const PineArt = ({ size }: { size: 'tall' | 'mid' | 'small' }) =>
+  <Pix rows={size === 'tall' ? GRIDS.pineTall : size === 'mid' ? GRIDS.pineMid : GRIDS.pineSmall} colors={{ X: 'var(--hm-night)' }} px={3} />;

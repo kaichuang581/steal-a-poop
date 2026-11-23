@@ -23,7 +23,7 @@ import { CAT_SPOT, ROBIN_SPOT } from './barn';
 import { DUEL, duelSeat } from './duel';
 import { HOME_CAMERA } from './homePov';
 import { BARN, HEAP, HOME_GAME, homeGameSeat, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition } from './layout';
-import { PEN, penSpot } from './pen';
+import { MATS, matSpot, PEN } from './pen';
 
 type V3 = readonly [number, number, number];
 
@@ -293,12 +293,12 @@ function duel(): Placed[] {
 function pen(): Placed[] {
   const out: Placed[] = [];
   const sheep = stands('sheep', SHEEP_SCALE);
-  // Where each animal starts, on the pen's straw. After that it wanders (rooms/penWander.ts), which no entry follows.
+  // Each player's animal stands on its mat (docs/pen/PEN-PLAN.md, 8.1), ten at a full table.
   for (let i = 0; i < 10; i++) {
-    const p = penSpot(i);
+    const p = matSpot(i, 10);
     out.push({
-      id: `pen:animal ${i}`, scene: 'pen', position: [p.x, 0, p.z], yaw: p.yaw, ...sheep, support: 'bedding',
-      from: 'penSpot in scene/pen.ts, drawn at SHEEP_SCALE by Animal in rooms/PenStage.tsx',
+      id: `pen:animal ${i}`, scene: 'pen', position: [p.x, MATS.top, p.z], yaw: p.yaw, ...sheep, support: 'bedding',
+      from: 'matSpot in scene/pen.ts, drawn at SHEEP_SCALE by Animal in rooms/PenStage.tsx',
     });
   }
   // The tall lantern's glass hangs from its post's arm by an iron hanger one cell thick, on an iron lid as wide as the

@@ -2241,3 +2241,40 @@ the crates here (the victory screen keeps its crates), all three places are one 
   (`spritePoints`, boards/points.ts), each podium's lantern glows one, cloud quads only as tall as the clouds, and no
   shadow from the underside, the lantern's iron or the podiums' trim.
 - The size budget was raised by 15,000 bytes (15.2 kB locally, all in the stage's own lazy chunk).
+
+## The pen screen, clearer and lighter (Brian, 2026-11-22) — plan: docs/pen/PEN-PLAN.md
+Brian's own request, of the lobby and queue screen: it "looks too chunky and really unclear". The plan (his, written from
+a screenshot of the Casual queue) is docs/pen/PEN-PLAN.md, kept word for word. It overrides the "Keep" line of
+docs/diorama/PLAN.md 6.6 for the screen's layout and panels, the name planks and where the sheep stand; the rest of 6.6
+stands. Every function and rule stayed: queueing, joining and leaving, the invite link and the party code, who may
+start, min and max, the rules editor, chat and its moderation, pausing chat, the host's mute and kick.
+- One screen for the Casual queue, the Ranked queue and a created lobby (src/skin/rooms/PaintedRoom.tsx, pen.css): the
+  pen is the screen; a bar (Leave, the title tag, a state chip, Invite friends); a slim board on the left (what is
+  happening, who is here, what game); a chat card at the bottom right that folds (src/skin/rooms/PenChat.tsx, every
+  function of the classic ChatPanel, which is fenced in src/ui and untouched); one lantern button under the pen, or a
+  well for whoever is not the host. On a phone, or any window under 1000 x 640, the pen is a strip at the top and a
+  sheet holds the status card and three tabs. The words of every state are section 4's, read from the room's own min,
+  max, host and startAt; French for each is in public/i18n-fr*.json.
+- The leaderboard's surface recipes now live in the shared kit (src/skin/kit/surfaces.css and surfaces.tsx): each rule
+  answers to its old `lb-` name and a shared `rc-` name, and the leaderboard's markup did not change (photographed
+  before and after: pixel for pixel the same). A screen that uses them puts `rc` on its root. Nothing on the pen screen
+  is wood, paper, a gradient, a blur, a rounded corner, a dashed border or the hand font;
+  src/skin/rooms/__tests__/pen.test.tsx runs the surface test on every state.
+- The pen (scene/pen.ts, rooms/PenStage.tsx): every player stands on the straw mat of their seat (the order they
+  joined, as the list shows), facing the camera; the camera looks down 20 degrees and is fitted at run time so the
+  front row's animals fill 72% of the space between the panels and every plate and the gate fit in it (`Frame`). Mats
+  are 0.8 x 1.1 m, not the plan's 0.4 m square (a sheep as drawn stands 0.61 x 0.92 m and stood half on the snow), 1.2 m
+  apart as the plan has them; the rows are 5 m apart so the back row's faces show over the front row's heads and
+  plates (measured: at 4.4 m the front plates still covered the back row's chins). The pen is 7.6 x 9.2 m for it. Its
+  floor is trodden snow, so the straw mats read as places. The front side is short posts and one rail at 0.35 m with a
+  two-leaf gate that swings open when the game starts (it never delays the start: 849 ms from the press to the table
+  on the local server, the same path as before). Plates step up, by their own height and 4, over any plate or face they
+  would cover (`Unstack`, with each animal's face box). penWander.ts is gone: nobody wanders now.
+- The pixel art of section 9 is src/skin/rooms/penArt.tsx, grid for grid; the mute, unmute, kick and check marks there
+  are mine, drawn the same way, for controls the plan kept. Brian's own icons, when they come, go in
+  src/skin/assets/pen/ under the same names.
+- `?preview=room` (development only, rooms/RoomPreview.tsx) draws the screen with made-up players and no server:
+  `kind=queue|ranked|lobby&n=&bots=&host=0|1&chat=&fold=1&paused=1&phase=starting&auto=<seconds>&notice=1&offline=1`.
+- One new saved key: `sap:pen-chat-folded`, sessionStorage, whether the chat card is folded (the plan: "remembered for
+  the session"), pinned in src/skin/__tests__/fences.json.
+- Open choices (plan section 13), the defaults used: chat open, numbered mats, the gate swings, explanations shown.

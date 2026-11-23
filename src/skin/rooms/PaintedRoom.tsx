@@ -1,26 +1,35 @@
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { FESTIVE } from '../../config';
 import { DEFAULT_SETTINGS, PRESETS, estimateMinutes, presetOf } from '../../engine';
 import type { RoomSettingsDTO } from '../../net/protocol';
-import { useRoomStore } from '../../state/roomStore';
-import { ChatPanel } from '../../ui/ChatPanel';
-import { AvatarIcon } from '../avatars/AvatarIcon';
-import { Garland } from '../components/Garland';
-import { Paper, Slate, Tag } from '../kit';
-import { inviteLink } from '../share/JoinLink';
-import { useIsMobile } from '../../ui/hooks';
-import { useMotionLevel } from '../hooks/useAmbient';
-import { PenStage } from './PenStage';
 import { rankOf } from '../../lib/ranked';
+import { useRoomStore } from '../../state/roomStore';
+import { AvatarIcon } from '../avatars/AvatarIcon';
+import { MenuIcon } from '../home/HomeParts';
+import { useMotionLevel } from '../hooks/useAmbient';
+import { BoardFrame, Lights, Padlock, ScrollBox, SnowCap } from '../kit/surfaces';
 import { RankBadge } from '../ranked/RankBadge';
+import { inviteLink } from '../share/JoinLink';
+import { PenChat, useChatFold } from './PenChat';
+import { Crown, PenIcon, Seat, WoolBall } from './penArt';
+import { PenStage } from './PenStage';
+import type { PenFrame } from './PenStage';
+import { penUnit } from './unit';
+import '../home/home.css';
 import '../ranked/ranked.css';
-import './rooms.css';
+import './pen.css';
 
 const FALLBACK: RoomSettingsDTO = { turnsPerRound: 2, lives: 3, twists: true };
 const PRESET_IDS = ['quick', 'standard', 'long'] as const;
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-/** Whole seconds until a ranked table starts, counted against the server's clock; null while it waits for a second player. */
+/** The desktop layout needs this much room (section 5.1); anything smaller is the phone layout (5.2). */
+const WIDE = '(min-width: 1000px) and (min-height: 640px)';
+
+/** Whole seconds until a table starts by itself, counted against the server's clock; null when it is not counting down. */
 function useStartsIn(startAt: number | null | undefined): number | null {
   const skew = useRoomStore((s) => s.skew);
   const [, tick] = useState(0);
@@ -32,266 +41,412 @@ function useStartsIn(startAt: number | null | undefined): number | null {
   return startAt == null ? null : Math.max(0, Math.ceil((startAt - (Date.now() + skew)) / 1000));
 }
 
+/** Seconds since this screen came up: the waiting time beside the headline (section 4). */
+function useWaited(): number {
+  const [since] = useState(() => Date.now());
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return Math.floor((Date.now() - since) / 1000);
+}
+
+function useMatch(query: string): boolean {
+  const [on, setOn] = useState(() => typeof matchMedia === 'function' && matchMedia(query).matches);
+  useEffect(() => {
+    const m = matchMedia(query);
+    const f = () => setOn(m.matches);
+    m.addEventListener('change', f);
+    return () => m.removeEventListener('change', f);
+  }, [query]);
+  return on;
+}
+
 async function copyText(text: string, what: string) {
   try { await navigator.clipboard.writeText(text); } catch { window.prompt(`Copy the ${what}:`, text); }
 }
 
-/** One line of the Game board: what it sets on the left, the choice (or, for a guest, what was chosen) on the right. */
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return <div className="rm-row"><span className="rm-row-label">{label}</span>{children}</div>;
-}
-/** One choice out of a few, as the Trading Post's wooden tabs: the chosen one lit gold. */
-function Pick<T extends string | number | boolean>({ label, value, options, onPick, hook, off }: {
-  label: string; value: T | null; options: readonly { value: T; label: string }[]; onPick: (v: T) => void;
+/** Joined slabs, one of them chosen (lantern): the game length, who can join, the fine rules, the phone's tabs. */
+function Slabs<T extends string | number | boolean>({ label, value, options, onPick, locked, hook, className = '' }: {
+  label: string; value: T | null; options: readonly { value: T; label: ReactNode; sub?: string }[]; onPick: (v: T) => void;
+  /** Not yours to choose (you are not the host): the choices show their disabled look, the chosen one stays lit. */ locked?: boolean;
   /** Names each button `data-<hook>-<value>`, for the tests that press them. */ hook?: string;
-  /** Nothing to choose just now (no farm sheep to set a level for): the tabs stay where they are, and wait. */ off?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="rm-seg" role="group" aria-label={label}>
+    <div className={`pn-slabs ${className}`} role="group" aria-label={label}>
       {options.map((o) => {
         const on = o.value === value;
         return (
           <button
-            key={String(o.value)} type="button" aria-pressed={on} disabled={off} onClick={() => onPick(o.value)}
-            className={on ? 'rm-tab kit-lit' : 'rm-tab'} {...(hook ? { [`data-${hook}-${o.value}`]: '' } : {})}
+            key={String(o.value)} type="button" aria-pressed={on} disabled={locked && !on} aria-disabled={locked || undefined}
+            onClick={() => { if (!locked) onPick(o.value); }}
+            className={`pn-slab hm-slab hm-knit ${on ? 'hm-slab--lantern' : ''} ${locked ? 'rc-static' : ''}`}
+            {...(hook ? { [`data-${hook}-${o.value}`]: '' } : {})}
           >
-            {o.label}
+            <span className="pn-slab-in"><b>{o.label}</b>{o.sub && <small>{o.sub}</small>}</span>
           </button>
         );
       })}
     </div>
   );
 }
-/** A board's title on a small wooden sign, with a line beside it in the hint's hand: the profile's section heads. */
-function Head({ title, children, end }: { title: string; children?: ReactNode; end?: ReactNode }) {
-  return (
-    <div className="rm-head">
-      <span className="kit-plank kit-plank--label sk-room-heading"><h2>{title}</h2></span>
-      {children && <p className="rm-hint">{children}</p>}
-      {end}
-    </div>
-  );
-}
+
+type Phase = 'finding' | 'ready' | 'full' | 'starting';
 
 /**
- * The lobby is a pen on the winter farm (PenStage): everyone who is in stands inside the fence. Over it, the layout
- * Brian picked from three mock-ups (2026-11-14, "do layout 1"): a bar across the top (leave, the room's name, the party
- * code with its copy button), the pen in the middle, and three boards side by side along the bottom, each with its
- * title: Players, Game (the gate that starts it is at its foot) and Chat.
- *
- * It is made of the pieces the Trading Post and the profile are made of, because that is the game's look and nothing
- * invented for this screen passed for it: the plank wall (`kit-wall`), section titles on small wooden signs, wooden
- * tabs lit gold when chosen, and the table's dark stitched wool (`Slate`) for lists and the chat. He chose that from
- * three such mock-ups ("do something similar to B") after turning down a dozen that were not built from the game:
- * flat black, CSS wood ("slabs of cardboard"), wood and slate baked from voxels ("ugly blocky thing"), and ten
- * restyles in other colours ("none ... are coherent with theme"). His notes on B are met here: the chat has room and a
- * speaker's name is a tag apart from what they said; the rules and the table's count are not loose text on the wood
- * (the rules are on a plate, the count is on the gate sign); snow lies in real drifts (`kit-drift`); the top bar is a
- * strapped beam with the lights hung under it, not a slab.
+ * The pen screen (docs/pen/PEN-PLAN.md; Brian, 2026-11-22: the old one "looks too chunky and really unclear"): the
+ * Casual queue, the Ranked queue and a created lobby, one layout. The pen is the screen; the sheep in it are the
+ * players, each on its numbered mat. A slim panel on the left says what is happening, who is here and what game it
+ * will be; the chat is a card at the bottom right that folds; one button under the pen starts the game and always says
+ * why it can or cannot. Every function is the old screen's: the same store actions, the same rules read from the room.
  */
 export function PaintedRoom() {
   const room = useRoomStore((s) => s.room)!;
   const me = useRoomStore((s) => s.user?.userId);
   const notice = useRoomStore((s) => s.notice);
   const status = useRoomStore((s) => s.status);
+  const unread = useRoomStore((s) => s.unread);
   const { start, leave, clearNotice, mute, kick, setOptions } = useRoomStore.getState();
+  const wide = useMatch(WIDE);
+  const reduced = useMotionLevel() === 'reduced';
   const [confirmKick, setConfirmKick] = useState<string | null>(null);
   const [copied, setCopied] = useState<'link' | 'code' | null>(null);
-  // The Game board has two faces: the three everyday choices, and (behind "Change rules") the three fine rules.
   const [fine, setFine] = useState(false);
-  const isHost = room.hostId === me;
-  const people = room.members.length;
-  const rules = room.settings ?? FALLBACK;
-  const queue = !!room.queue;
-  // A ranked table: people only, the standard rules, nobody hosting, and it starts itself.
+  const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<'players' | 'game' | 'chat'>('players');
+  const [folded, setFolded] = useChatFold();
+  const waited = useWaited();
+
   const ranked = !!room.ranked;
+  const queue = !!room.queue;
   const lobby = !queue && !ranked;
-  // The casual queue counts down once its table is full (server/rooms.ts armQueue).
-  const startsIn = useStartsIn(ranked || queue ? room.startAt : null);
-  // Seats the server filled after a quiet spell (Brian, 2026-11-14: "remove the option to add bots. just add in the bots
-  // after the 15 sec thing ... dont say they are bots"): shown like everyone else, a name and a sheep, with nothing
-  // marking them. Never at a ranked table. Absent from an older server.
+  const isHost = !ranked && room.hostId === me;
+  const rules = room.settings ?? FALLBACK;
+  // Seats the server filled after a quiet spell are shown like everyone else (Brian, 2026-11-14: "dont say they are
+  // bots"). Never at a ranked table.
   const filled = ranked ? [] : (room.botNames ?? []);
-  const seats = people + filled.length;
-  const enough = ranked ? people >= room.min : seats >= 2;
-  const open = () => start();
-  const full = { ...DEFAULT_SETTINGS, ...rules };
-  const preset = presetOf(full);
-  const minutes = estimateMinutes({ ...full, botCount: Math.max(1, seats - 1), botDifficulty: rules.botLevel ?? 'medium' });
-  const phone = useIsMobile();
-  const reduced = useMotionLevel() === 'reduced';
-  const guests = [
-    ...room.members.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, you: m.userId === me, host: !ranked && m.userId === room.hostId })),
-    ...filled.map((name, k) => ({ id: `seat-${k}`, name, you: false, host: false })),
-  ];
+  const n = room.members.length + filled.length;
+  const { min, max } = room;
+  const need = Math.max(0, min - n);
+  const startsIn = useStartsIn(ranked || queue ? room.startAt : null);
   const hostName = room.members.find((m) => m.userId === room.hostId)?.name ?? 'the host';
+  const phase: Phase = room.phase !== 'lobby' || busy || startsIn === 0 ? 'starting' : n >= max ? 'full' : n >= min ? 'ready' : 'finding';
+  const canStart = isHost && phase !== 'starting' && n >= min;
+
+  // A start the server refused comes back as a notice: the button is itself again.
+  useEffect(() => { if (notice) setBusy(false); }, [notice]);
+  useEffect(() => {
+    if (!busy) return;
+    const t = window.setTimeout(() => setBusy(false), 5000);
+    return () => window.clearTimeout(t);
+  }, [busy]);
+  const open = useCallback(() => { if (canStart) { setBusy(true); start(); } }, [canStart, start]);
+  // Enter opens the gate when it can be opened and no text field has the keys (section 7.3).
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.repeat) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
+      if (canStart) { e.preventDefault(); open(); }
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [canStart, open]);
 
   const copy = (what: 'link' | 'code') => {
     void copyText(what === 'link' ? inviteLink(room.code) : room.code, what === 'link' ? 'party link' : 'party code');
     setCopied(what);
-    setTimeout(() => setCopied(null), 1800);
+    window.setTimeout(() => setCopied(null), 2000);
   };
 
-  // The line over the gate: who is at the table, or what it is waiting for.
-  const caption = ranked ? (startsIn === null ? 'Waiting for one more player. A ranked game needs two.' : startsIn > 0 ? `The gate opens in ${startsIn} second${startsIn === 1 ? '' : 's'}.` : 'Opening the gate…')
-    : queue && startsIn !== null ? (startsIn > 0 ? `The gate opens in ${startsIn} second${startsIn === 1 ? '' : 's'}.` : 'Opening the gate…')
-    : !isHost ? `Waiting for ${hostName} to open the gate.`
-    : !enough ? (queue ? 'Finding players…' : 'Waiting for players. Send the party link.')
-    : queue ? 'It starts by itself with four, or open the gate now.'
-    : 'Open the gate to start.';
+  // ---- Section 4: what the screen says ----
+  const auto = (ranked || queue) && startsIn !== null && startsIn > 0 ? `Starts by itself in ${clock(startsIn)}` : null;
+  const chip = phase === 'starting' ? 'Starting' : phase === 'full' ? 'Full' : phase === 'ready' ? 'Ready' : 'Finding players';
+  const lit = phase === 'ready' || phase === 'full' ? 'pasture' : 'lantern';
+  const needs = `Needs ${plural(need, 'more player', 'more players')}`;
+  const headline = phase === 'starting' ? 'Opening the gate…'
+    : phase === 'finding' ? 'Finding players…'
+    : phase === 'full' ? 'The pen is full'
+    : ranked ? 'Ready'
+    : isHost ? 'Ready when you are' : `Waiting for ${hostName}`;
+  const line2 = phase === 'starting' ? null
+    : ranked ? (phase === 'finding' ? `A ranked game needs ${plural(min, 'player', 'players')} and starts by itself. People only, no bots.` : 'More players can still join until it starts.')
+    : phase === 'finding' ? (isHost ? 'Others will join you here. Invite friends to fill it faster.' : `${hostName} opens the gate when enough players are here.`)
+    : phase === 'full' ? (isHost ? 'Open the gate to start.' : `Waiting for ${hostName}.`)
+    : isHost ? 'More players can still join until you open the gate.' : `${hostName} opens the gate to start. More can still join.`;
+  const underPen = ranked ? (phase === 'starting' ? 'Opening the gate…' : auto ?? needs)
+    : phase === 'starting' ? 'Opening the gate…'
+    : phase === 'finding' ? needs
+    : isHost ? `Start with ${plural(n, 'player', 'players')}` : `Waiting for ${hostName} to open the gate`;
+  const title = ranked ? 'Ranked game' : queue ? 'Casual game' : room.name || 'Your lobby';
 
-  const copyLink = (
-    <button type="button" className="rm-tab kit-lit" onClick={() => copy('link')} data-copy-link={lobby ? '' : undefined}>{copied === 'link' ? 'Copied!' : phone ? 'Copy link' : 'Copy invite link'}</button>
+  const full = { ...DEFAULT_SETTINGS, ...rules };
+  const preset = presetOf(full);
+  const minutes = (s: Partial<RoomSettingsDTO>) => estimateMinutes({ ...full, ...s, botCount: Math.max(1, n - 1), botDifficulty: rules.botLevel ?? 'medium' });
+  const guests = [
+    ...room.members.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, you: m.userId === me, host: !ranked && m.userId === room.hostId })),
+    ...filled.map((name, k) => ({ id: `seat-${k}`, name, avatar: undefined as string | undefined, you: false, host: false })),
+  ];
+
+  // ---- Where the pen goes: the space the panels leave (5.1), or the stage strip on a phone (5.2) ----
+  const root = useRef<HTMLElement>(null), bar = useRef<HTMLElement>(null), panel = useRef<HTMLElement>(null), chat = useRef<HTMLElement>(null), go = useRef<HTMLDivElement>(null), sheet = useRef<HTMLElement>(null);
+  const [frame, setFrame] = useState<PenFrame | null>(null);
+  // A tab opens at its top: typing in the chat scrolls the sheet to the field, and that scroll stayed for the next tab.
+  const body = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (body.current) body.current.scrollTop = 0; }, [tab]);
+  const [u, setU] = useState(() => penUnit(globalThis.innerWidth ?? 1280, globalThis.innerHeight ?? 720, wide));
+  useLayoutEffect(() => {
+    const measure = () => {
+      const k = penUnit(innerWidth, innerHeight, wide), lights = FESTIVE ? 28 * k : 0;
+      const b = bar.current?.getBoundingClientRect();
+      if (!b) return;
+      setU(k);
+      const top = b.bottom + lights + 24 * k;
+      let next: PenFrame;
+      if (wide) {
+        const p = panel.current?.getBoundingClientRect(), c = chat.current?.getBoundingClientRect(), g = go.current?.getBoundingClientRect();
+        if (!p || !c || !g) return;
+        next = { left: p.right, right: c.left, top, bottom: g.top - 24 * k };
+      } else {
+        const s = sheet.current?.getBoundingClientRect();
+        if (!s) return;
+        next = { left: 8, right: innerWidth - 8, top: b.bottom + lights + 8, bottom: s.top - 4 };
+      }
+      setFrame((f) => (f && Math.abs(f.left - next.left) + Math.abs(f.right - next.right) + Math.abs(f.top - next.top) + Math.abs(f.bottom - next.bottom) < 1 ? f : next));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    for (const r of [root, bar, panel, go, sheet]) if (r.current) ro.observe(r.current);
+    addEventListener('resize', measure);
+    return () => { ro.disconnect(); removeEventListener('resize', measure); };
+  }, [wide]);
+
+  // ---- The pieces ----
+  const notices = (status !== 'online' || notice) && (
+    <div className="pn-notes" aria-live="polite">
+      {status !== 'online' && <p className="pn-note rc-inkcard" role="status">Connection lost. Reconnecting… your place in the pen is held for a few seconds.</p>}
+      {notice && (
+        <p className="pn-note rc-inkcard" role="status">
+          <span>{notice}</span>
+          <button type="button" className="pn-link" onClick={clearNotice}>Dismiss</button>
+        </p>
+      )}
+    </div>
   );
-  return (
-    <main className="rm-screen">
-      <PenStage guests={guests} farmSheep={0} reduced={reduced} phone={phone} shift={phone ? [0, -0.16] : [0, -0.2]} />
-      <div className="rm-body">
-        {/* The bar: a beam strapped with iron, snow on it, the lights hung under it. The way out, where you are, and
-            how friends get in. */}
-        <header className="rm-bar kit-beam kit-drift">
-          <i className="kit-beam-strap" /><i className="kit-beam-strap" />
-          <button className="rm-tab rm-back" onClick={leave}>← {lobby ? 'Leave' : 'Leave queue'}</button>
-          <div className="rm-title">
-            <h1 className="rm-name">{ranked ? 'Ranked' : queue ? 'Casual' : room.name}</h1>
-            <Tag tone={ranked ? 'flame' : room.visibility === 'public' ? 'green' : 'gold'}>{ranked ? 'ranked queue' : queue ? 'in queue' : room.visibility === 'public' ? 'public' : 'friends only'}</Tag>
-          </div>
-          {lobby ? (
-            <div className="rm-code">
-              <Slate size="mini" className="rm-code-plate">
-                <span className="rm-kicker">Party code</span>
-                <button type="button" className="rm-code-v" onClick={() => copy('code')} data-room-code={room.code} data-ok={copied === 'code' || undefined} aria-label={`Party code ${room.code.split('').join(' ')}. Copy it.`}>
-                  {copied === 'code' ? 'Copied' : room.code}
-                </button>
-              </Slate>
-              {copyLink}
-            </div>
-          ) : (
-            <div className="rm-code" data-queue data-ranked={ranked || undefined}>
-              <Slate size="mini" className="rm-code-plate">
-                <span className="rm-kicker">{startsIn !== null ? 'Starting soon' : <>Finding players<i className="rm-dots" /></>}</span>
-                <span className="rm-code-v rm-count" aria-live="polite" aria-label={`${seats} of ${room.max} players`}>{seats}<small>/{room.max}</small></span>
-              </Slate>
-              {!ranked && copyLink}
-            </div>
-          )}
-          <Garland swags={phone ? 3 : 7} />
-        </header>
 
-        <div className="rm-dock">
-          {/* Who is at the table: a line each on the wool. */}
-          <section className="rm-panel rm-players kit-wall kit-drift" aria-label="Players">
-            <Head title="Players">
-              <span>{seats}{ranked ? ` of ${room.max}` : ''} {seats === 1 && !ranked ? 'player' : 'players'}</span>
-            </Head>
-            <Slate size="board" className="rm-wool">
-              <ul className="rm-seats">
-                {room.members.map((m) => {
-                  const muted = room.mutedIds.includes(m.userId);
-                  return (
-                    <li key={m.userId} className="rm-seat">
-                      {ranked ? <RankBadge rating={m.rating ?? 0} size={26} /> : <AvatarIcon id={m.avatar ?? 'sheep'} size={28} label="" />}
-                      <span className="rm-who">
-                        <b style={m.cosmetics?.color ? { color: m.cosmetics.color } : undefined}>{m.name}</b>
-                        {m.userId === me && <i> (you)</i>}
-                      </span>
-                      {ranked && <span className="rm-soft">{rankOf(m.rating ?? 0).label}</span>}
-                      {!ranked && m.userId === room.hostId && <Tag tone="gold">host</Tag>}
-                      {!ranked && isHost && m.userId !== me && (
-                        <span className="rm-seat-acts">
-                          <button className="rm-mini" onClick={() => mute(!muted, m.userId)} aria-pressed={muted} aria-label={`${muted ? 'Unmute' : 'Mute'} ${m.name}`}>{muted ? 'Unmute' : 'Mute'}</button>
-                          <button
-                            className="rm-mini"
-                            onClick={() => (confirmKick === m.userId ? (kick(m.userId), setConfirmKick(null)) : setConfirmKick(m.userId))}
-                            aria-label={confirmKick === m.userId ? `Confirm: remove ${m.name}` : `Remove ${m.name}`}
-                          >
-                            {confirmKick === m.userId ? 'Sure?' : 'Kick'}
-                          </button>
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-                {filled.map((name, k) => (
-                  <li key={`seat-${k}`} className="rm-seat">
-                    <AvatarIcon id="sheep" size={28} label="" />
-                    <span className="rm-who"><b>{name}</b></span>
-                  </li>
-                ))}
-              </ul>
-            </Slate>
-          </section>
-
-          {/* The game: the host's choices as tabs, the rules on a plate, and at the foot the gate that starts it. */}
-          <section className="rm-panel rm-game kit-wall kit-drift" aria-label="Game">
-            <Head title="Game" end={!ranked && isHost && <button type="button" className="rm-tab" onClick={() => setFine((f) => !f)} aria-expanded={fine}>{fine ? 'Back' : <>Change<i> rules</i></>}</button>}>about {minutes} min</Head>
-            <div className="rm-rows" aria-live="polite">
-              {ranked ? null : !isHost ? (
-                <>
-                  <Row label="Game length"><b className="rm-val">{cap(preset)}</b></Row>
-                  {lobby && <Row label="Who can join"><b className="rm-val">{room.visibility === 'public' ? 'Public' : 'Friends only'}</b></Row>}
-                </>
-              ) : fine ? (
-                <>
-                  <Row label="Turns"><Pick label="Turns per round" value={rules.turnsPerRound} onPick={(v) => setOptions({ turnsPerRound: v })} options={([2, 3, 5] as const).map((v) => ({ value: v, label: String(v) }))} /></Row>
-                  <Row label="Wool balls"><Pick label="Wool balls" value={rules.lives} onPick={(v) => setOptions({ lives: v })} options={([1, 2, 3, 5] as const).map((v) => ({ value: v, label: String(v) }))} /></Row>
-                  <Row label="Twists"><Pick label="Round twists" value={rules.twists} onPick={(v) => setOptions({ twists: v })} options={[{ value: true, label: 'On' }, { value: false, label: 'Off' }]} /></Row>
-                </>
-              ) : (
-                <>
-                  <Row label="Game length">
-                    <Pick
-                      label="Game length" value={preset === 'custom' ? null : preset}
-                      onPick={(id) => setOptions(PRESETS[id] as Partial<RoomSettingsDTO>)}
-                      options={PRESET_IDS.map((id) => ({ value: id, label: cap(id) }))}
-                    />
-                  </Row>
-                  {lobby && (
-                    <Row label="Who can join">
-                      <Pick
-                        label="Who can join" hook="set" value={room.visibility} onPick={(v) => setOptions({ visibility: v })}
-                        options={[{ value: 'private' as const, label: 'Friends only' }, { value: 'public' as const, label: 'Public' }]}
-                      />
-                    </Row>
-                  )}
-                </>
-              )}
-              {/* The rules, on a plate of their own: a label, what they are, and for the host the way to change them. */}
-              <Slate size="mini" className="rm-rules">
-                <span className="rm-rule"><b>{rules.turnsPerRound}</b> turns<i> a round</i></span>
-                <span className="rm-rule"><b>{rules.lives}</b> wool {rules.lives === 1 ? 'ball' : 'balls'}</span>
-                <span className="rm-rule">Twists <b>{rules.twists ? 'on' : 'off'}</b></span>
-              </Slate>
-              {ranked && <p className="rm-ranked-note">People only, no bots. Leaving once it starts counts as a loss.</p>}
-            </div>
-            <div className="rm-start">
-              <div aria-live="polite" className="flex flex-col gap-2">
-                {status !== 'online' && <Paper kind="slip" className="rm-slip" role="status">Connection lost. Reconnecting… your place in the pen is held for a few seconds.</Paper>}
-                {notice && (
-                  <Paper kind="slip" className="rm-slip" role="status">
-                    <span>{notice}</span>
-                    <button className="rm-mini" onClick={clearNotice}>Dismiss</button>
-                  </Paper>
-                )}
-              </div>
-              {!ranked && isHost ? (
-                // The gate, and written on it under its name who is going through it (or what it is waiting for).
-                <button onClick={open} disabled={!enough} className="kit-sign kit-drift kit-drift--small rm-go" data-start-game>
-                  <span>Open the gate</span>
-                  <small className="rm-caption" aria-live="polite">{caption}</small>
-                </button>
-              ) : (
-                <Slate size="mini" className="rm-wait"><p className="rm-caption" aria-live="polite" data-ranked-status={ranked || undefined}>{caption}</p></Slate>
-              )}
-            </div>
-          </section>
-
-          <section className="rm-panel rm-chat kit-wall kit-drift sk-rooms" aria-label="Chat">
-            <Head title="Chat" />
-            <Slate size="board" className="rm-wool"><ChatPanel compact height="h-24" /></Slate>
-          </section>
-        </div>
+  const statusCard = (
+    <section className="pn-status rc-tile" data-tone={lit} aria-label="What is happening">
+      <div className="pn-status-l1">
+        <PenIcon name="hourglass" color="var(--hm-lantern)" />
+        <h2 aria-live="polite">{headline}</h2>
+        {phase !== 'starting' && <span className="pn-waited" title="How long you have been waiting"><PenIcon name="clock" color="var(--hm-frost)" px={1} />{clock(waited)}</span>}
       </div>
+      {line2 && <p className="pn-status-l2">{line2}</p>}
+      {auto && phase !== 'starting' && <p className="pn-status-l2 pn-status-auto" aria-live="polite" data-ranked-status={ranked || undefined}>{auto}</p>}
+      <div className="pn-seatrow" style={{ '--min': min, '--max': max } as CSSProperties} data-small={max > 8 || undefined}>
+        <span className="pn-seats" role="img" aria-label={`${n} of ${max} places taken`}>
+          {Array.from({ length: max }, (_, i) => <span key={i} className="pn-seat"><Seat filled={i < n} /></span>)}
+          {n < min && <span className="pn-start-mark" aria-hidden="true"><i className="pn-caret" /><span>start</span></span>}
+        </span>
+        <b className="pn-count">{`${n} of ${max}`}</b>
+      </div>
+      {lobby && (
+        <div className="pn-code">
+          <span>Party code</span>
+          <button type="button" className="pn-tag pn-code-v" onClick={() => copy('code')} data-room-code={room.code} aria-label={`Party code ${room.code.split('').join(' ')}. Copy it.`}>
+            {copied === 'code' ? 'Copied' : room.code}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+
+  const players = (
+    <section className="pn-sec" aria-label="Players">
+      <header className="pn-head">
+        <Seat filled />
+        <h2>Players</h2>
+        <span className="pn-head-end">{`${n} of ${max}`}</span>
+      </header>
+      <ScrollBox className="pn-players" reduced={reduced}>
+        <ul className="pn-list">
+          {guests.map((g, i) => {
+            const m = room.members.find((x) => x.userId === g.id);
+            const muted = !!m && room.mutedIds.includes(g.id);
+            return (
+              <li key={g.id} className="pn-player rc-tile" data-you={g.you || undefined}>
+                {g.you && <i className="rc-tile-you" aria-hidden="true" />}
+                <span className="rc-badge" title={`Mat ${i + 1}`}>{i + 1}</span>
+                <span className="pn-avatar">{ranked ? <RankBadge rating={m?.rating ?? 0} size={24} /> : <AvatarIcon id={g.avatar ?? 'sheep'} size={24} label="" />}</span>
+                <b className="pn-name" style={m?.cosmetics?.color ? { color: m.cosmetics.color } : undefined}>{g.name}</b>
+                <span className="pn-tags">
+                  {g.you && <span className="rc-pennant">You</span>}
+                  {g.host && <span className="pn-tag pn-tag--host"><Crown />Host</span>}
+                  {ranked && m && <span className="pn-tag">{rankOf(m.rating ?? 0).label}</span>}
+                  {isHost && m && !g.you && (
+                    <>
+                      <button type="button" className="pn-ctl hm-slab hm-slab--night" onClick={() => mute(!muted, g.id)} aria-pressed={muted} aria-label={`${muted ? 'Unmute' : 'Mute'} ${g.name}`} title={muted ? `Let ${g.name} chat again` : `Stop ${g.name} chatting`}>
+                        <PenIcon name={muted ? 'unmute' : 'mute'} color="var(--hm-wool)" px={1.5} />
+                      </button>
+                      <button
+                        type="button" className="pn-ctl hm-slab hm-slab--night" data-sure={confirmKick === g.id || undefined}
+                        onClick={() => (confirmKick === g.id ? (kick(g.id), setConfirmKick(null)) : setConfirmKick(g.id))}
+                        aria-label={confirmKick === g.id ? `Confirm: remove ${g.name}` : `Remove ${g.name}`} title={`Remove ${g.name} from the pen`}
+                      >
+                        {confirmKick === g.id ? <span>Sure?</span> : <PenIcon name="kick" color="var(--hm-wool)" px={1.5} />}
+                      </button>
+                    </>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </ScrollBox>
+      {n < max && <p className="pn-open rc-well"><Seat filled={false} />{plural(max - n, 'open place', 'open places')}</p>}
+    </section>
+  );
+
+  const ruleLines = [
+    { icon: <PenIcon name="rounds" color="var(--hm-frost)" />, l1: `${rules.turnsPerRound} turns a round`, l2: 'How many turns each sheep takes in a round.' },
+    { icon: <WoolBall />, l1: plural(rules.lives, 'wool ball', 'wool balls'), l2: 'Your lives. Run out of time and you lose one.' },
+    { icon: <PenIcon name="twist" color="var(--hm-lantern)" />, l1: rules.twists ? 'Twists on' : 'Twists off', l2: rules.twists ? 'A new twist every round after the first.' : 'Every round has plain rules.' },
+  ];
+  const game = (
+    <section className="pn-sec" aria-label="Game">
+      <header className="pn-head">
+        <PenIcon name="gate" color="var(--hm-wool)" />
+        <h2>Game</h2>
+        {!isHost && <span className="pn-tag pn-head-end"><Padlock color="var(--hm-frost)" px={1.5} />{ranked ? 'Ranked rules' : 'Host chooses'}</span>}
+      </header>
+      {!ranked && (fine && isHost ? (
+        <div className="pn-fine" aria-live="polite">
+          <span className="pn-label">Turns a round</span>
+          <Slabs label="Turns per round" value={rules.turnsPerRound} onPick={(v) => setOptions({ turnsPerRound: v })} options={([2, 3, 5] as const).map((v) => ({ value: v, label: String(v) }))} />
+          <span className="pn-label">Wool balls</span>
+          <Slabs label="Wool balls" value={rules.lives} onPick={(v) => setOptions({ lives: v })} options={([1, 2, 3, 5] as const).map((v) => ({ value: v, label: String(v) }))} />
+          <span className="pn-label">Twists</span>
+          <Slabs label="Round twists" value={rules.twists} onPick={(v) => setOptions({ twists: v })} options={[{ value: true, label: 'On' }, { value: false, label: 'Off' }]} />
+        </div>
+      ) : (
+        <>
+          <span className="pn-label">Game length</span>
+          <Slabs
+            className="pn-length" label="Game length" value={preset === 'custom' ? null : preset} locked={!isHost}
+            onPick={(id) => setOptions(PRESETS[id] as Partial<RoomSettingsDTO>)}
+            options={PRESET_IDS.map((id) => ({ value: id, label: cap(id), sub: `about ${minutes(PRESETS[id] as Partial<RoomSettingsDTO>)} min` }))}
+          />
+          {lobby && (
+            <>
+              <span className="pn-label">Who can join</span>
+              <Slabs
+                label="Who can join" hook="set" value={room.visibility} locked={!isHost} onPick={(v) => setOptions({ visibility: v })}
+                options={[{ value: 'private' as const, label: 'Friends only' }, { value: 'public' as const, label: 'Public' }]}
+              />
+            </>
+          )}
+        </>
+      ))}
+      <ul className="pn-rules rc-well" aria-live="polite">
+        {ruleLines.map((r) => (
+          <li key={r.l2}>
+            <span className="pn-rule-ico">{r.icon}</span>
+            <span><b>{r.l1}</b><small>{r.l2}</small></span>
+          </li>
+        ))}
+      </ul>
+      {ranked && <p className="pn-note-line">Leaving once it starts counts as a loss.</p>}
+      {isHost && (
+        <button type="button" className="pn-change hm-slab hm-knit" onClick={() => setFine((f) => !f)} aria-expanded={fine}>
+          <PenIcon name="gear" />{fine ? 'Back' : 'Change rules'}
+        </button>
+      )}
+    </section>
+  );
+
+  const startButton = (
+    <div className="pn-go" ref={go}>
+      {isHost ? (
+        <button type="button" onClick={open} disabled={!canStart && phase !== 'starting'} data-busy={phase === 'starting' || undefined} className="pn-gate hm-slab hm-slab--lantern hm-knit" data-start-game aria-describedby="pn-gate-why">
+          <span className="pn-gate-in">
+            <PenIcon name="gate" />
+            <span><b>Open the gate</b>{phase === 'starting' ? <span className="hm-dots" aria-label="Opening the gate"><i /><i /><i /></span> : <small id="pn-gate-why">{underPen}</small>}</span>
+          </span>
+        </button>
+      ) : (
+        <p className="pn-wait rc-well" aria-live="polite" data-ranked-status={ranked || undefined}>{underPen}</p>
+      )}
+    </div>
+  );
+
+  const chatOpen = wide ? !folded : tab === 'chat';
+  const inviteLabel = copied === 'link' ? 'Link copied' : 'Invite friends';
+
+  return (
+    <main ref={root} className="pn hm rc" data-wide={wide || undefined} data-phone={!wide || undefined}>
+      <PenStage guests={guests} max={max} reduced={reduced} phone={!wide} frame={frame} opening={room.phase !== 'lobby'} fill={wide ? 0.72 : 0.92} />
+
+      <header ref={bar} className="pn-bar rc-bar">
+        <SnowCap />
+        <button type="button" className="pn-leave hm-slab hm-knit" onClick={leave} aria-label={lobby ? 'Leave lobby' : 'Leave queue'}>
+          <PenIcon name="back" />{wide && <span>{lobby ? 'Leave lobby' : 'Leave queue'}</span>}
+        </button>
+        <div className="pn-title rc-titletag hm-slab hm-knit rc-static">
+          {wide && <span className="pn-title-ico"><MenuIcon id="queue" /></span>}
+          <h1>{title}</h1>
+        </div>
+        <span className="pn-chip" data-tone={lit} data-blink={phase === 'finding' || undefined}><i className="pn-chip-dot" aria-hidden="true" />{chip}</span>
+        <span className="pn-bar-gap" />
+        {!ranked && (
+          <button type="button" className="pn-invite hm-slab hm-knit" onClick={() => copy('link')} data-copy-link={lobby ? '' : undefined} aria-label={inviteLabel} title="Copy invite link">
+            <PenIcon name={copied === 'link' ? 'check' : 'link'} />{wide && <span>{inviteLabel}</span>}
+          </button>
+        )}
+        {FESTIVE && <Lights u={u} reduced={reduced} prefix="rc" />}
+      </header>
+
+      {wide ? (
+        <>
+          <aside ref={panel} className="pn-board rc-board" aria-label="The pen">
+            <BoardFrame />
+            <SnowCap icicles />
+            <ScrollBox className="pn-board-in" reduced={reduced}>
+              {statusCard}
+              {notices}
+              <i className="rc-groove" aria-hidden="true" />
+              {players}
+              <i className="rc-groove" aria-hidden="true" />
+              {game}
+            </ScrollBox>
+          </aside>
+          <section ref={chat} className="pn-chatcard rc-board" data-folded={folded || undefined} aria-label="Chat">
+            <BoardFrame />
+            <PenChat open={chatOpen} reduced={reduced} fold={{ folded, set: setFolded }} unread={unread} />
+          </section>
+        </>
+      ) : (
+        <section ref={sheet} className="pn-sheet rc-board" aria-label="The pen">
+          <SnowCap icicles />
+          <div className="pn-sheet-top">
+            {statusCard}
+            {notices}
+            <div className="pn-tabs" role="tablist" aria-label="Show">
+              {(['players', 'game', 'chat'] as const).map((t) => (
+                <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`pn-tab hm-slab hm-knit ${tab === t ? 'hm-slab--lantern' : ''}`}>
+                  <span>{t === 'players' ? `Players ${n}` : t === 'game' ? 'Game' : 'Chat'}</span>
+                  {t === 'chat' && tab !== 'chat' && unread > 0 && <span className="pn-unread">{unread > 99 ? '99+' : String(unread)}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div ref={body} className="pn-sheet-body" data-tab={tab}>
+            {tab === 'players' ? players : tab === 'game' ? game : <PenChat open={chatOpen} reduced={reduced} unread={unread} />}
+          </div>
+        </section>
+      )}
+      {startButton}
     </main>
   );
 }

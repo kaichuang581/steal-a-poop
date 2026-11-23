@@ -2,6 +2,7 @@ import type { Shot } from './layout';
 import { buildGeometry, packGeometry } from '../voxel/mesher';
 import { lin, pick, T } from '../voxel/palette';
 import { meanOf } from '../voxel/paint';
+import { solid } from '../voxel/paint';
 import { box, ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import type { RGB } from '../voxel/primitives';
 import { detailed } from '../voxel/refine';
@@ -19,41 +20,61 @@ import { tieredPine } from './style/pine';
  * firstly no house, just make it more natural scenery everything needs to be better". So no buildings, and the camera
  * stands at a person's height, nearly level, so that the country behind the pen is in the picture and not just the
  * ground.
+ *
+ * Brian, 2026-11-22 (docs/pen/PEN-PLAN.md, section 8: the screen "looks too chunky and really unclear"): every player
+ * stands on a numbered straw mat, the front side is posts and one low rail with a two-leaf gate in it, and the camera
+ * looks down 20 degrees, so every face shows. The pen is drawn round its ten mats.
  */
 export const PEN = {
-  halfX: 5, halfZ: 3,
-  /** The gate in the front rail, shut until the game starts. */
-  gate: 1.8,
+  halfX: 3.8, halfZ: 4.6,
+  /** The gate in the middle of the front side: two leaves, shut until the game starts. */
+  gate: 1.6,
+  /** The front side's one rail, at this height (the other three sides keep three). */
+  frontRail: 0.35,
   /** The tall lantern post at the back-left corner, and the small lantern on the gate's right post. */
-  lamp: [-5, 2.6, 3] as const,
-  gateLamp: [0.9, 1.5, -3] as const,
-  rack: [1.9, 0, 2.45] as const,
-  trough: [-2.4, 0, 2.5] as const,
-  /** Where grass shows through the snow: the animals walk up to these and graze. */
-  grass: [[-3.7, -1.5], [-1.9, 0.5], [0.3, -1.9], [2.5, -0.8], [3.9, 0.8], [-3.9, 1.0], [1.1, 1.0], [-0.7, -0.5], [3.6, -2.0], [-2.5, -2.1]] as readonly (readonly [number, number])[],
+  lamp: [-3.8, 2.6, 4.6] as const,
+  gateLamp: [0.8, 1.05, -4.6] as const,
+  rack: [1.6, 0, 4.25] as const,
+  trough: [-2.0, 0, 4.3] as const,
+  /** Where grass shows through the snow: round the sides, clear of the mats. */
+  grass: [[-3.3, -3.8], [3.2, -3.9], [-3.3, 0.6], [3.3, 0.4], [-0.6, 4.2]] as readonly (readonly [number, number])[],
 };
-/** The ground the animals keep to: inside the rails, clear of the rack and the trough along the back. */
-export const PEN_WALK = { x: PEN.halfX - 0.75, z0: -PEN.halfZ + 0.75, z1: PEN.halfZ - 1.35 };
-
-/** Where the i-th animal starts (ten places: five in front, five behind, filled from the middle out), facing the gate. */
-export function penSpot(i: number): { x: number; z: number; yaw: number } {
-  const col = [0, -1, 1, -2, 2][i % 5];
-  const back = i >= 5;
-  // Spread over the whole pen from the start, so a full lobby does not open on a huddle in the middle.
-  const x = col * 1.9 + (back ? 0.4 : 0);
-  const z = back ? 0.9 : -1.2;
-  return { x, z, yaw: Math.PI - x * 0.06 + (hash3(i, 0, 0, 5) - 0.5) * 0.3 }; // the model's front is +z; the camera is at -z
-}
 
 /**
- * The shot: from a tall person's height and nearly level, far enough back that the pen takes the middle three fifths
- * of the width. The animals' backs and heads clear the front rail, and the ridge, the mountains and a strip of sky
- * stand over them. (Lower, and the fence hid the animals; higher, and there was no country in the picture.) A phone stands further back because it is narrow.
+ * The mats (section 8.1): two rows, the front one first, the back row set half a place over. A mat is 0.8 m across and
+ * 1.1 m deep, not the plan's 0.4 m square: a sheep as the pen draws it stands 0.61 x 0.92 m (scene/placed.ts), turned
+ * up to 10 degrees, and on a smaller mat it stood half on the snow. The places stay 1.2 m apart, the plan's 0.4 + 0.8. The
+ * rows are 5 m apart: from 20 degrees up, a face on the back row then shows over the heads and plates in front
+ * (measured at 1280 x 720 with ten players; at 4.4 m the front plates still reached the back row's chins).
  */
-export function penShot(phone: boolean): Shot {
-  return phone
-    ? { position: [0, 2.7, -31.4], target: [0, 2.2, 0], fov: 40 }
-    : { position: [0, 2.7, -19], target: [0, 2.18, 0], fov: 31 };
+export const MATS = { w: 0.8, d: 1.1, gap: 0.4, front: -2.0, back: 3.0, perRow: 5, top: 0.05 } as const;
+
+/**
+ * Mat `i` of `max` (0 is mat 1): the front row holds 1 to 5 from left to right, the back row 6 to 10. The rows are set
+ * half a place apart so a face on the back row shows between two heads in front. A sheep on it faces the camera,
+ * turned up to 10 degrees toward the pen's middle (the model's front is +z; the camera is at -z).
+ */
+export function matSpot(i: number, max: number): { x: number; z: number; yaw: number } {
+  const back = i >= MATS.perRow, rows = max > MATS.perRow;
+  const n = back ? max - MATS.perRow : Math.min(max, MATS.perRow), col = back ? i - MATS.perRow : i;
+  const step = MATS.w + MATS.gap;
+  // The camera looks along +z, so the screen's left is +x: mat 1 is at the largest x.
+  const x = -((col - (n - 1) / 2) * step + (rows ? (back ? 0.3 : -0.3) : 0));
+  return { x, z: back ? MATS.back : MATS.front, yaw: Math.PI + Math.max(-1, Math.min(1, x / 2.7)) * (10 * Math.PI) / 180 };
+}
+
+/** The camera looks down this much (section 8.2). */
+export const PEN_PITCH = (20 * Math.PI) / 180;
+/** Where the camera aims: the pen's middle, at a sheep's middle height. */
+export const PEN_AIM = [0, 0.45, 0] as const;
+
+/**
+ * The shot from `dist` metres off the aim, looking down PEN_PITCH. The pen screen fits `dist` (and slides the picture)
+ * so the pen and its plates fill the space between its panels (PenStage's `Frame`); `dist` here is its first guess.
+ */
+export function penShot(phone: boolean, dist = phone ? 17 : 14): Shot {
+  const [x, y, z] = PEN_AIM;
+  return { position: [x, y + Math.sin(PEN_PITCH) * dist, z - Math.cos(PEN_PITCH) * dist], target: [x, y, z], fov: phone ? 36 : 40 };
 }
 
 let built: ReturnType<typeof make> | null = null;
@@ -63,7 +84,7 @@ export function buildPen() {
 }
 
 function make() {
-  const made = { ground: ground(), land: land(), ...trees(), nature: nature(), mountains: mountains(), ...fence() };
+  const made = { ground: ground(), land: land(), ...trees(), nature: nature(), mountains: mountains(), ...fence(), ...gate() };
   for (const g of Object.values(made)) packGeometry(g); // half the bytes, the same picture (voxel/mesher.ts)
   return made;
 }
@@ -76,8 +97,9 @@ const EARTH = ['#8E7C68', '#7F6E5C', '#6F5F50'] as const;
 const GRASS = ['#86AB62', '#6E9A52', '#5D8746'] as const;
 
 /**
- * The ground. Inside the rails it is a pen floor: straw bedding with snow lying in it, earth showing where
- * the animals stand most (the gate, the trough, the rack). Outside, clean snow with soft drifts. Top surface at y = 0.
+ * The ground. Inside the rails it is a pen floor: snow trodden flat, in whole patches a shade apart, earth showing where
+ * the animals stand most (the gate, the trough, the rack), so the straw mats on it read as places (8.1). Outside,
+ * clean snow with soft drifts. Top surface at y = 0.
  */
 function ground() {
   const g = new Grid(0.2);
@@ -89,9 +111,9 @@ function ground() {
       const r = hash3(gx, 0, gz, 3);
       let c: RGB = pick(T.snow, r, [0.5, 0.85]);
       if (inside) {
-        // Bedded with straw, trodden, with snow lying in it here and there: a floor a white sheep shows against.
+        // Trodden snow: whole patches, one colour each, a shade apart.
         const patch = hash3(gx >> 2, 1, gz >> 2, 5);
-        c = patch > 0.35 ? mix(lin(STRAW[0]), lin(EARTH[1]), 0.3) : lin('#DCE4EE'); // whole patches, one colour each
+        c = patch > 0.45 ? lin('#C9D3E1') : lin('#D6DEEA');
         // Worn to earth by hooves: at the gate, along the trough and under the rack.
         const worn = near(x, z, 0, -PEN.halfZ + 0.4, 1.3) || near(x, z, PEN.trough[0], PEN.trough[2] - 0.7, 1.3) || near(x, z, PEN.rack[0], PEN.rack[2] - 0.8, 1.5);
         if (worn) c = mix(lin(EARTH[0]), lin('#C6D0DE'), 0.25);
@@ -199,9 +221,10 @@ function mountains() {
 }
 
 /**
- * The pen itself: posts every metre and a quarter, three rails, low enough to see the animals over; the gate shut across the
- * front, braced like a barn door; the hay rack and the water trough along the back; the tufts of grass; and two
- * lanterns, one on the tall post at the back corner and one on the gate post.
+ * The pen itself: posts every metre and a quarter, three rails at the back and the sides, and at the front (the side
+ * nearest the camera) short posts and one rail at PEN.frontRail, so every face shows over it; two posts for the gate
+ * (its leaves are `gate()`, apart, so they can swing); the hay rack and the water trough along the back; the tufts of
+ * grass; and two lanterns, one on the tall post at the back corner and one on the gate's right post.
  */
 function fence() {
   const g = new Grid(0.1);
@@ -213,13 +236,14 @@ function fence() {
   const X = PEN.halfX, Z = PEN.halfZ, G = PEN.gate / 2;
   const RAILS = [0.2, 0.45, 0.7];
   const post = (x: number, z: number, h = 0.9) => {
+    if (h <= 0) return;
     box(g, [x - 0.1, 0, z - 0.1], [x + 0.1, h, z + 0.1], dark);
     box(g, [x - 0.1, h, z - 0.1], [x + 0.1, h + 0.1, z + 0.1], (a, b, c) => pick(T.snow, hash3(a, b, c, 37)));
   };
-  // Snow lies along the top rail at the back and the sides; the front rail is bare, so it does not hide the animals.
-  const railX = (x0: number, x1: number, z: number, bare = false) => {
-    for (const y of RAILS) box(g, [x0, y, z - 0.05], [x1, y + 0.1, z + 0.05], wood);
-    if (!bare) box(g, [x0, 0.8, z - 0.05], [x1, 0.9, z + 0.05], snow);
+  // Snow lies along the top rail at the back and the sides; the front is one bare rail, low, so it hides nobody.
+  const railX = (x0: number, x1: number, z: number, front = false) => {
+    for (const y of front ? [PEN.frontRail - 0.05] : RAILS) box(g, [x0, y, z - 0.05], [x1, y + 0.1, z + 0.05], wood);
+    if (!front) box(g, [x0, 0.8, z - 0.05], [x1, 0.9, z + 0.05], snow);
   };
   const railZ = (z0: number, z1: number, x: number) => {
     for (const y of RAILS) box(g, [x - 0.05, y, z0], [x + 0.05, y + 0.1, z1], wood);
@@ -230,21 +254,13 @@ function fence() {
   railZ(-Z, Z, X);
   railX(-X, -G, -Z, true);
   railX(G, X, -Z, true);
-  for (let x = -X; x <= X + 0.01; x += 1.25) { post(x, Z); if (Math.abs(x) > G + 0.3) post(x, -Z); }
+  // Posts: at the back every 1.25 m; along the front, short ones, the two from the corners in to the gate's posts.
+  for (let x = -X; x <= X + 0.01; x += 1.25) post(x, Z);
+  for (const x of [-X + 1.5, -G - 0.75, G + 0.75, X - 1.5]) post(x, -Z, 0.5);
   for (let z = -Z + 1.2; z < Z - 0.3; z += 1.2) { post(-X, z); post(X, z); }
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) post(sx * X, sz * Z, 1.1);
-  // The gate: two tall posts, and between them a shut gate of three boards in a frame with a brace from corner to
-  // corner.
-  for (const s of [-1, 1]) post(s * G, -Z, 1.25);
-  const gz = -Z - 0.05;
-  box(g, [-G + 0.12, 0.12, gz - 0.05], [G - 0.12, 0.24, gz + 0.05], wood);
-  box(g, [-G + 0.12, 0.76, gz - 0.05], [G - 0.12, 0.88, gz + 0.05], wood);
-  for (const x of [-G + 0.12, G - 0.24]) box(g, [x, 0.12, gz - 0.05], [x + 0.12, 0.88, gz + 0.05], wood);
-  box(g, [-G + 0.24, 0.45, gz - 0.02], [G - 0.24, 0.55, gz + 0.04], wood);
-  for (let k = 0; k <= 14; k++) {
-    const t = k / 14, x = -G + 0.24 + t * (PEN.gate - 0.6), y = 0.24 + t * 0.44;
-    box(g, [x, y, gz - 0.08], [x + 0.14, y + 0.1, gz - 0.02], dark);
-  }
+  // The gate's posts, a little taller than its leaves; the lantern sits on the right one.
+  for (const s of [-1, 1]) post(s * G, -Z, 0.8);
   // Hay rack on the back rail: a slatted crib full of hay, snow on top, hay dropped under it.
   const [rx, , rz] = PEN.rack;
   for (const sx of [-1.0, 1.0]) for (const sz of [-0.25, 0.25]) box(g, [rx + sx - 0.05, 0, rz + sz - 0.05], [rx + sx + 0.05, 1.0, rz + sz + 0.05], dark);
@@ -281,4 +297,72 @@ function fence() {
   box(glow, [qx - 0.1, qy - 0.15, qz - 0.1], [qx + 0.1, qy + 0.1, qz + 0.1], (a, b, c) => pick(T.lantern, hash3(a, b, c, 48)));
   const fine = detailed(g.map, g.size);
   return { fence: buildGeometry(fine.map, fine.size), glow: buildGeometry(glow.map, glow.size) };
+}
+
+/**
+ * The gate's two leaves (section 8.2), 1.6 m across in all, as tall as the front rail with a board over it: a stile at
+ * each end, a bottom board, a board at the rail's height and a top board, a brace from the hinge's foot to the far top.
+ * Each is built about its hinge (local x = 0 at the post), the left leaf out along +x, the right along -x, so PenStage
+ * can swing them outward when the game starts.
+ */
+function gate() {
+  const leaf = (dir: 1 | -1) => {
+    const g = new Grid(0.1);
+    const wood = (a: number, b: number, c: number) => pick(T.beam, hash3(a >> 1, b, c >> 1, 31), [0.45, 0.85]);
+    const dark = (a: number, b: number, c: number) => pick(T.trunk, hash3(a >> 1, b, c >> 1, 32), [0.45, 0.85]);
+    const span = (x0: number, x1: number): [number, number] => (dir > 0 ? [x0, x1] : [-x1, -x0]);
+    const piece = (x0: number, y0: number, x1: number, y1: number, col = wood) => { const [a, b] = span(x0, x1); box(g, [a, y0, -0.05], [b, y1, 0.05], col); };
+    const W = PEN.gate / 2;
+    piece(0.1, 0, 0.2, 0.6); piece(W - 0.1, 0, W, 0.6); // the stiles reach the ground: the leaf stands, it does not hang in the air
+    piece(0.2, 0.1, W - 0.1, 0.2); piece(0.2, PEN.frontRail - 0.05, W - 0.1, PEN.frontRail + 0.05); piece(0.1, 0.5, W, 0.6);
+    for (let k = 0; k <= 4; k++) piece(0.2 + k * 0.1, 0.2 + k * 0.06, 0.3 + k * 0.1, 0.3 + k * 0.06, dark);
+    const fine = detailed(g.map, g.size);
+    return buildGeometry(fine.map, fine.size);
+  };
+  return { gateL: leaf(1), gateR: leaf(-1) };
+}
+
+/** A digit 4 x 6 (section 8.1: the mat's number, 0.15 m tall at 0.025 m a cell). */
+const DIGITS: Record<string, readonly string[]> = {
+  0: ['.XX.', 'X..X', 'X..X', 'X..X', 'X..X', '.XX.'], 1: ['.X..', 'XX..', '.X..', '.X..', '.X..', 'XXX.'],
+  2: ['.XX.', 'X..X', '...X', '..X.', '.X..', 'XXXX'], 3: ['XXX.', '...X', '.XX.', '...X', '...X', 'XXX.'],
+  4: ['X..X', 'X..X', 'XXXX', '...X', '...X', '...X'], 5: ['XXXX', 'X...', 'XXX.', '...X', '...X', 'XXX.'],
+  6: ['.XX.', 'X...', 'XXX.', 'X..X', 'X..X', '.XX.'], 7: ['XXXX', '...X', '..X.', '..X.', '.X..', '.X..'],
+  8: ['.XX.', 'X..X', '.XX.', 'X..X', 'X..X', '.XX.'], 9: ['.XX.', 'X..X', 'X..X', '.XXX', '...X', '.XX.'],
+};
+
+const matsBuilt = new Map<number, ReturnType<typeof makeMats>>();
+/** The `max` straw mats on the pen's floor, built once for each size of table (10, or 4 at a ranked one). */
+export function buildMats(max: number) {
+  let m = matsBuilt.get(max);
+  if (!m) matsBuilt.set(max, (m = makeMats(max)));
+  return m;
+}
+
+/**
+ * Each mat MATS.w x MATS.d and one small cell (0.05 m) thick, straw with a rim of straw a step darker; its number, in
+ * the darker straw, stands 0.15 m tall one small cell in front of its front edge, facing the camera, clear of a
+ * standing sheep's front hooves.
+ */
+function makeMats(max: number) {
+  const g = new Grid(0.05), num = new Grid(0.025);
+  const straw = solid('straw'), rim = solid('straw', -1);
+  const hw = MATS.w / 2, hd = MATS.d / 2;
+  for (let i = 0; i < max; i++) {
+    const { x, z } = matSpot(i, max);
+    box(g, [x - hw, 0, z - hd], [x + hw, MATS.top, z + hd], (a, _b, c) => {
+      const edge = Math.abs(a * 0.05 + 0.025 - x) > hw - 0.05 || Math.abs(c * 0.05 + 0.025 - z) > hd - 0.05;
+      return edge ? rim : straw;
+    });
+    const text = String(i + 1), wCells = text.length * 5 - 1;
+    [...text].forEach((d, k) => DIGITS[d].forEach((row, r) => [...row].forEach((ch, c) => {
+      if (ch !== 'X') return;
+      const px = x - (wCells * 0.025) / 2 + (k * 5 + c) * 0.025;
+      num.set(Math.round(px / 0.025), 5 - r, Math.round((z - hd - 0.05) / 0.025), rim);
+    })));
+  }
+  const out = { mats: buildGeometry(g.map, g.size), numbers: buildGeometry(num.map, num.size) };
+  packGeometry(out.mats);
+  packGeometry(out.numbers);
+  return out;
 }

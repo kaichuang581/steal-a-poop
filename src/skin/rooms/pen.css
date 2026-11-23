@@ -1,0 +1,240 @@
+/* The pen screen (docs/pen/PEN-PLAN.md; Brian, 2026-11-22: the old one "looks too chunky and really unclear"). The pen
+   is the screen; over it a bar along the top, a slim board on the left (what is happening, who is here, what game), a
+   chat card at the bottom right and one lantern button under the pen. Every surface is one of the recipes: Home's slab
+   and knit (home.css) and the leaderboard's board, bar, tile, well, ink card, snow and lights (kit/surfaces.css). Sizes
+   are the plan's pixels times --u. No wood, gradient, blur, glow, rounded corner, dashed border or hand font. */
+
+.pn {
+  --bar: calc(56 * var(--u));
+  --lights: 0px;
+  --panel: clamp(calc(300 * var(--u)), 25vw, calc(360 * var(--u)));
+  --chatw: clamp(calc(280 * var(--u)), 24vw, calc(340 * var(--u)));
+  position: fixed; inset: 0; overflow: hidden; color: var(--hm-wool); font-family: var(--skin-font-body);
+}
+:root[data-festive] .pn { --lights: calc(28 * var(--u)); }
+.pn :where(h1, h2, p, ul) { margin: 0; padding: 0; }
+.pn :where(ul) { list-style: none; }
+.pn-stage { position: absolute; inset: 0; }
+.pn-bar-gap { flex: 1; }
+
+/* ---------- The plates over the sheep (8.3) ---------- */
+.pn-plates { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.pn-plates > div { position: absolute; left: 0; top: 0; }
+.pn .pn-plate {
+  --depth: calc(3 * var(--u)); gap: calc(4 * var(--u)); height: calc(29 * var(--u)); padding: 0 calc(10 * var(--u)) var(--depth);
+  max-width: min(calc(150 * var(--u)), var(--plate-max, 999px)); box-sizing: border-box; filter: drop-shadow(0 calc(3 * var(--u)) 0 rgba(14, 21, 40, 0.38)); white-space: nowrap; animation: pn-fade 150ms 200ms both;
+}
+.pn-plate svg { flex: none; }
+.pn-plate b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 800 calc(13 * var(--u))/1 var(--skin-font-display); color: var(--hm-ink); }
+.pn-plate[data-reduced] { animation: none; }
+/* A phone's pen is drawn small (its strip is a third of the screen): its plates are smaller too, or ten of them stack
+   into the lights. */
+.pn[data-phone] .pn-plate { height: calc(24 * var(--u)); padding: 0 calc(8 * var(--u)) var(--depth); }
+.pn[data-phone] .pn-plate b { font-size: calc(11 * var(--u)); }
+@keyframes pn-fade { from { opacity: 0; } }
+
+/* ---------- The bar (7.1) ---------- */
+.pn-bar {
+  position: absolute; z-index: 4; left: 0; right: 0; top: 0; height: var(--bar); box-sizing: border-box;
+  display: flex; align-items: center; gap: calc(16 * var(--u)); padding: env(safe-area-inset-top, 0px) calc(16 * var(--u)) calc(6 * var(--u));
+}
+.pn-bar > .rc-snowcap { z-index: 0; left: 0; right: 0; top: 0; }
+.pn-bar > :not(.rc-snowcap, .rc-lights) { position: relative; z-index: 1; }
+.pn .rc-lights { position: absolute; left: 0; right: 0; top: 100%; height: calc(32 * var(--u)); pointer-events: none; }
+.pn .pn-leave, .pn .pn-invite { flex: none; gap: calc(6 * var(--u)); height: calc(40 * var(--u)); padding: 0 calc(14 * var(--u)) var(--depth) calc(10 * var(--u)); filter: var(--shadow); font: 800 calc(15 * var(--u))/1 var(--skin-font-display); white-space: nowrap; }
+.pn .pn-title { flex: 0 1 auto; min-width: 0; gap: calc(8 * var(--u)); }
+.pn-title h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(18 * var(--u)); }
+.pn-title-ico { display: grid; place-items: center; width: calc(24 * var(--u)); height: calc(24 * var(--u)); }
+.pn-title-ico img { width: 100%; height: 100%; image-rendering: pixelated; }
+.pn-bar > .pn-title { margin-left: 0; }
+/* The state chip: an ink tag with a dot, the dot blinking while players are being found. */
+.pn-chip {
+  flex: none; display: inline-flex; align-items: center; gap: calc(6 * var(--u)); height: calc(26 * var(--u)); padding: 0 calc(10 * var(--u));
+  clip-path: var(--px1); background: var(--hm-ink) var(--knit-ink) 0 0 / var(--knit-size); box-shadow: inset 0 var(--s) 0 var(--hm-ink-hi);
+  font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-wool); white-space: nowrap;
+}
+.pn-chip-dot { width: calc(6 * var(--u)); height: calc(6 * var(--u)); background: var(--hm-lantern); }
+.pn-chip[data-tone="pasture"] .pn-chip-dot { background: var(--hm-pasture); }
+.pn-chip[data-blink] .pn-chip-dot { animation: pn-blink 1.2s steps(1) infinite; }
+@keyframes pn-blink { 50% { opacity: 0; } }
+
+/* ---------- The left board (5.1, 6) ---------- */
+.pn-board {
+  --side: calc(6 * var(--u));
+  position: absolute; z-index: 2; left: calc(16 * var(--u)); top: calc(var(--bar) + var(--lights) + 16 * var(--u)); width: var(--panel);
+  max-height: calc(100% - var(--bar) - var(--lights) - 32 * var(--u)); box-sizing: border-box; display: flex; flex-direction: column;
+  padding: calc(24 * var(--u)) calc(16 * var(--u)) calc(16 * var(--u) + var(--side)); filter: var(--shadow); isolation: isolate;
+}
+.pn-board-in { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.pn-board-in > .rc-scrollbox-in { flex: 1 1 auto; height: auto; min-height: 0; max-height: none; display: flex; flex-direction: column; gap: calc(14 * var(--u)); }
+.pn-board-in > .rc-scroll { top: 0; bottom: 0; right: 0; }
+.pn-sec { display: flex; flex-direction: column; min-width: 0; }
+
+/* The status card (6.1): a raised tile with a lantern bar down its left (pasture when the pen is ready). */
+.pn-status { position: relative; isolation: isolate; flex: none; display: flex; flex-direction: column; gap: calc(6 * var(--u)); padding: calc(12 * var(--u)) calc(12 * var(--u)) calc(12 * var(--u) + 3 * var(--u)) calc(18 * var(--u)); }
+.pn-status::after { content: ''; position: absolute; left: var(--s); top: var(--s); bottom: calc(3 * var(--u) + var(--s)); width: calc(6 * var(--u)); background: var(--hm-lantern); }
+.pn-status[data-tone="pasture"]::after { background: var(--hm-pasture); }
+.pn-status-l1 { display: flex; align-items: center; gap: calc(8 * var(--u)); }
+.pn-status-l1 h2 { flex: 1; min-width: 0; font: 800 calc(18 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); }
+.pn-waited { flex: none; display: inline-flex; align-items: center; gap: calc(4 * var(--u)); font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); font-variant-numeric: tabular-nums; }
+.pn-status-l2 { font: 800 calc(13 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.pn-status-auto { color: var(--hm-lantern-hi); font-variant-numeric: tabular-nums; }
+/* The seat row: `max` seats, filled up to the players here; under seat `min`, a caret and "start". */
+.pn-seatrow { --seat: calc(16 * var(--u)); --gap: calc(6 * var(--u)); display: flex; align-items: flex-start; gap: calc(8 * var(--u)); margin-top: calc(4 * var(--u)); }
+.pn-seatrow[data-small] { --seat: calc(12 * var(--u)); }
+.pn-seats { position: relative; flex: 1; display: flex; flex-wrap: wrap; gap: var(--gap); min-width: 0; padding-bottom: calc(26 * var(--u)); }
+.pn-seat, .pn-seat svg { display: block; width: var(--seat) !important; height: var(--seat) !important; }
+.pn-start-mark { position: absolute; top: calc(var(--seat) + 4 * var(--u)); left: calc((var(--min) - 1) * (var(--seat) + var(--gap)) + var(--seat) / 2); display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); }
+.pn-caret { width: calc(3 * var(--s)); height: calc(2 * var(--s)); background: var(--hm-lantern); clip-path: polygon(var(--s) 0, calc(2 * var(--s)) 0, calc(2 * var(--s)) 50%, 100% 50%, 100% 100%, 0 100%, 0 50%, var(--s) 50%); }
+.pn-start-mark span { margin-top: calc(2 * var(--u)); font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); }
+.pn-count { flex: none; font: 800 calc(15 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); white-space: nowrap; font-variant-numeric: lining-nums tabular-nums; }
+.pn-code { display: flex; align-items: center; justify-content: space-between; gap: calc(8 * var(--u)); font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.pn-code-v { min-height: calc(28 * var(--u)); font: 800 calc(15 * var(--u))/1 var(--skin-font-display) !important; letter-spacing: 0.12em; color: var(--hm-lantern-hi) !important; cursor: pointer; }
+
+/* Section heads (6.2, 6.3): an icon, the name, what is on the right. */
+.pn-head { display: flex; align-items: center; gap: calc(8 * var(--u)); min-height: calc(28 * var(--u)); }
+.pn-head h2 { font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
+.pn-head-end { margin-left: auto; }
+span.pn-head-end:not(.pn-tag) { font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
+.pn-label { display: block; margin: calc(10 * var(--u)) 0 calc(6 * var(--u)); font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+
+/* A small ink tag: the host's crown, "Host chooses", a rank, the party code. */
+.pn-tag {
+  flex: none; display: inline-flex; align-items: center; gap: calc(4 * var(--u)); height: calc(20 * var(--u)); padding: 0 calc(7 * var(--u)); border: 0;
+  clip-path: var(--px1); background: var(--hm-ink) var(--knit-ink) 0 0 / var(--knit-size); box-shadow: inset 0 var(--s) 0 var(--hm-ink-hi);
+  font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap;
+}
+.pn-tag--host { color: var(--hm-lantern-hi); }
+
+/* Players (6.2): a tile each, five in view and the rest scrolled. */
+.pn-players { margin-top: calc(8 * var(--u)); max-height: calc(5 * 40 * var(--u)); }
+.pn-player {
+  --face: calc(34 * var(--u)); position: relative; isolation: isolate; display: flex; align-items: center; gap: calc(8 * var(--u));
+  height: calc(var(--face) + 3 * var(--u)); padding: 0 calc(6 * var(--u)) calc(3 * var(--u)); margin-bottom: calc(3 * var(--u)); box-sizing: border-box;
+}
+.pn-player > .rc-badge { flex: none; margin-left: calc(4 * var(--u)); }
+.pn-player .rc-badge, .pn .rc-badge { height: calc(28 * var(--u)); min-width: calc(28 * var(--u)); }
+.pn-avatar { flex: none; display: grid; place-items: center; width: calc(28 * var(--u)); height: calc(28 * var(--u)); clip-path: var(--px1); background: var(--hm-night); }
+.pn-avatar img, .pn-avatar svg { width: calc(24 * var(--u)) !important; height: calc(24 * var(--u)) !important; image-rendering: pixelated; }
+.pn-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(15 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); }
+.pn-tags { flex: none; display: flex; align-items: center; gap: calc(6 * var(--u)); }
+/* A host control on someone else's row: a small night slab with an icon (and a 44 click area round it). */
+.pn .pn-ctl { --depth: calc(3 * var(--u)); width: calc(28 * var(--u)); height: calc(31 * var(--u)); padding: 0 0 var(--depth); }
+.pn .pn-ctl[data-sure] { width: auto; padding: 0 calc(8 * var(--u)) var(--depth); font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); }
+.pn-ctl::after, .pn-link::after, .pn-act::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: 44px; transform: translate(-50%, -50%); }
+.pn-open { display: flex; align-items: center; gap: calc(8 * var(--u)); height: calc(34 * var(--u)); margin-top: calc(2 * var(--u)); padding: 0 calc(10 * var(--u)); box-sizing: border-box; font: 800 calc(13 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+
+/* Game (6.3): the length as three joined slabs, the rules explained in a well, Change rules. */
+.pn-slabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: calc(6 * var(--u)); }
+.pn .pn-slab { --depth: calc(6 * var(--u)); min-width: 0; height: calc(40 * var(--u) + var(--depth)); padding: 0 calc(4 * var(--u)) var(--depth); }
+.pn-length .pn-slab { height: calc(44 * var(--u) + var(--depth)); }
+.pn-slab-in { display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--u)); min-width: 0; }
+.pn-slab-in b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(15 * var(--u))/1 var(--skin-font-display); }
+.pn-slab-in small { font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-night); white-space: nowrap; }
+.pn-slab.hm-slab--lantern .pn-slab-in small { color: var(--hm-ink); }
+.pn-slab:disabled .pn-slab-in small { color: var(--hm-frost); }
+.pn-fine { display: flex; flex-direction: column; }
+.pn-rules { display: flex; flex-direction: column; margin-top: calc(10 * var(--u)); padding: calc(2 * var(--u)) 0; }
+.pn-rules > li { display: flex; align-items: center; gap: calc(10 * var(--u)); min-height: calc(46 * var(--u)); padding: calc(6 * var(--u)) calc(10 * var(--u)); box-sizing: border-box; }
+.pn-rules > li + li { box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(2 * var(--s)) 0 var(--hm-night-3); padding-top: calc(6 * var(--u) + 2 * var(--s)); }
+.pn-rule-ico { flex: none; display: grid; place-items: center; width: calc(24 * var(--u)); }
+.pn-rules b { display: block; font: 800 calc(15 * var(--u))/1.15 var(--skin-font-display); color: var(--hm-wool); }
+.pn-rules small { display: block; margin-top: calc(2 * var(--u)); font: 700 calc(12 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-frost); }
+.pn .pn-change { --depth: calc(4 * var(--u)); width: 100%; height: calc(34 * var(--u) + var(--depth)); margin-top: calc(10 * var(--u)); gap: calc(8 * var(--u)); font: 800 calc(14 * var(--u))/1 var(--skin-font-display); }
+.pn-note-line { margin-top: calc(8 * var(--u)); font: 700 calc(12 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+
+/* Notices: lost connection, and what the server said. */
+.pn-notes { display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
+.pn-note { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: space-between; gap: calc(8 * var(--u)); padding: calc(12 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u)); font: 800 calc(12.5 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-wool); }
+.pn-link { position: relative; flex: none; padding: 0; border: 0; background: none; cursor: pointer; font: 800 calc(12 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-lantern-hi); text-decoration: underline; text-underline-offset: var(--s); }
+
+/* ---------- The chat card (7.2) ---------- */
+.pn-chatcard {
+  --side: calc(6 * var(--u));
+  position: absolute; z-index: 2; right: calc(16 * var(--u)); bottom: calc(16 * var(--u)); width: var(--chatw); height: min(calc(360 * var(--u)), 45vh);
+  box-sizing: border-box; display: flex; flex-direction: column; padding: calc(4 * var(--u)) calc(14 * var(--u)) calc(14 * var(--u) + var(--side)); filter: var(--shadow); isolation: isolate;
+}
+.pn-chatcard[data-folded] { height: auto; padding-bottom: calc(4 * var(--u) + var(--side)); }
+.pn-chat { display: flex; flex: 1; flex-direction: column; gap: calc(8 * var(--u)); min-height: 0; }
+.pn-chat-head { flex: none; display: flex; align-items: center; gap: calc(8 * var(--u)); height: calc(48 * var(--u)); }
+.pn-chat-head h2 { font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
+.pn .pn-pause { --depth: calc(3 * var(--u)); gap: calc(4 * var(--u)); height: calc(31 * var(--u)); padding: 0 calc(8 * var(--u)) var(--depth) calc(4 * var(--u)); font: 800 calc(12 * var(--u))/1 var(--skin-font-body); white-space: nowrap; }
+.pn-pause::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
+.pn-flip { transform: scaleY(-1); }
+.pn-unread {
+  display: inline-flex; align-items: center; height: calc(18 * var(--u)); padding: 0 calc(6 * var(--u)); clip-path: var(--px1); background: var(--hm-ink);
+  font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi);
+}
+.pn-chatrules { position: relative; isolation: isolate; flex: none; display: flex; flex-wrap: wrap; align-items: flex-start; gap: calc(8 * var(--u)); padding: calc(10 * var(--u)) calc(10 * var(--u)) calc(9 * var(--u)); }
+.pn-chatrules > p { flex: 1; min-width: 0; font: 800 calc(12 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.pn-allrules { flex: 1 1 100%; font: 700 calc(12 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.pn-allrules ul { margin: 0 0 calc(4 * var(--u)); padding-left: calc(16 * var(--u)); list-style: square; }
+.pn-chat-note { position: relative; isolation: isolate; flex: none; display: flex; flex-direction: column; gap: calc(6 * var(--u)); padding: calc(10 * var(--u)); font: 800 calc(12 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-wool); }
+.pn-blocked { flex: none; font: 800 calc(12 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.pn-blocked summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.pn-blocked li { display: flex; align-items: center; justify-content: space-between; gap: calc(8 * var(--u)); min-height: 44px; }
+.pn-log { flex: 1; min-height: calc(60 * var(--u)); }
+.pn-log > .rc-scrollbox-in { padding: calc(8 * var(--u)) calc(10 * var(--u)); }
+.pn-log > .rc-scroll { top: calc(6 * var(--u)); bottom: calc(6 * var(--u)); right: calc(4 * var(--u)); }
+.pn-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(8 * var(--u)); min-height: 100%; text-align: center; font: 800 calc(13 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.pn-msg { display: flex; flex-direction: column; gap: calc(2 * var(--u)); }
+.pn-msg + .pn-msg { margin-top: calc(8 * var(--u)); }
+.pn-msg > p { overflow-wrap: anywhere; font: 700 calc(13 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-wool); }
+.pn-msg-name { font: 800 calc(13 * var(--u))/1.35 var(--skin-font-display); color: var(--hm-lantern-hi); }
+.pn-msg[data-me] .pn-msg-name { color: var(--hm-wool); }
+/* Report, Block (and the host's Mute, Kick): there on hover or focus, and always on a touch screen. */
+.pn-msg-acts { display: flex; gap: calc(12 * var(--u)); opacity: 0; }
+.pn-msg:is(:hover, :focus-within) .pn-msg-acts { opacity: 1; }
+@media (hover: none) { .pn-msg-acts { opacity: 1; } }
+.pn-act { position: relative; padding: 0; border: 0; background: none; cursor: pointer; font: 800 calc(11 * var(--u))/1.4 var(--skin-font-body); color: var(--hm-frost); text-decoration: underline; text-underline-offset: 2px; }
+.pn-send { flex: none; display: flex; gap: calc(8 * var(--u)); }
+/* Home's text field: an ink face, a step of night-3 round it, pixel corners. */
+.pn-input {
+  flex: 1; min-width: 0; height: calc(40 * var(--u)); padding: 0 calc(10 * var(--u)); border: 0; border-radius: 0; outline: 0; clip-path: var(--px1);
+  background: var(--hm-ink); box-shadow: inset 0 0 0 var(--s) var(--hm-night-3); color: var(--hm-wool); font: 700 calc(14 * var(--u))/1 var(--skin-font-body);
+}
+.pn-input::placeholder { color: var(--hm-frost); opacity: 1; }
+.pn-input:focus-visible { box-shadow: inset 0 0 0 var(--s) var(--hm-lantern); }
+.pn-input:disabled { opacity: 0.6; }
+.pn .pn-sendbtn { --depth: calc(4 * var(--u)); flex: none; height: calc(40 * var(--u) + var(--depth)); margin-top: calc(-2 * var(--u)); padding: 0 calc(14 * var(--u)) var(--depth); font: 800 calc(14 * var(--u))/1 var(--skin-font-display); }
+
+/* Every control is at least 44 high to the pointer (12.7): where a slab is drawn lower (--u under 1), a clear click area
+   44 high is laid over it. */
+.pn :is(.pn-slab, .pn-change, .pn-code-v, .pn-leave, .pn-invite, .pn-tab, .pn-sendbtn, .pn-gate)::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: max(100%, 44px); transform: translateY(-50%); }
+.pn-code-v { position: relative; }
+
+/* ---------- Under the pen: the gate (7.3) ---------- */
+.pn-go { position: absolute; z-index: 3; bottom: calc(24 * var(--u)); left: calc((var(--panel) + 100vw - var(--chatw)) / 2); transform: translateX(-50%); }
+.pn .pn-gate { --depth: calc(6 * var(--u)); width: calc(300 * var(--u)); height: calc(56 * var(--u) + var(--depth)); padding: 0 calc(16 * var(--u)) var(--depth); filter: var(--shadow); }
+.pn-gate-in { display: flex; align-items: center; gap: calc(10 * var(--u)); min-width: 0; text-align: left; }
+.pn-gate-in > span { display: flex; flex-direction: column; gap: calc(3 * var(--u)); min-width: 0; }
+.pn-gate-in b { font: 800 calc(20 * var(--u))/1.05 var(--skin-font-display); }
+.pn-gate-in small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 calc(12 * var(--u))/1.1 var(--skin-font-body); }
+.pn-gate:disabled .pn-gate-in svg rect { fill: var(--hm-frost); }
+.pn-wait { display: grid; place-items: center; width: calc(300 * var(--u)); min-height: 44px; height: calc(44 * var(--u)); padding: 0 calc(12 * var(--u)); box-sizing: border-box; text-align: center; font: 800 calc(13 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); }
+
+/* ---------- Phones and narrow windows (5.2, 5.3) ---------- */
+.pn[data-phone] { --u: clamp(0.8px, min(100vw / 390, 100vh / 844), 1.2px); --bar: calc(56 * var(--u)); }
+.pn[data-phone] .pn-bar { gap: calc(10 * var(--u)); padding: env(safe-area-inset-top, 0px) calc(12 * var(--u)) calc(6 * var(--u)); }
+.pn[data-phone] :is(.pn-leave, .pn-invite) { width: 44px; height: calc(38px + var(--depth)); padding: 0 0 var(--depth); }
+.pn[data-phone] .pn-title { --depth: calc(4 * var(--u)); height: calc(36 * var(--u) + var(--depth)); padding: 0 calc(10 * var(--u)) var(--depth); }
+.pn[data-phone] .pn-title h1 { font-size: calc(15 * var(--u)); }
+.pn[data-phone] .pn-chip { gap: calc(5 * var(--u)); padding: 0 calc(7 * var(--u)); font-size: calc(11.5 * var(--u)); }
+.pn-sheet {
+  --side: 0px; position: absolute; z-index: 2; left: 0; right: 0; top: calc(var(--bar) + var(--lights) + 34vh); bottom: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; padding: calc(24 * var(--u)) calc(12 * var(--u)) calc(56 * var(--u) + 6 * var(--u) + 24px + env(safe-area-inset-bottom, 0px)); isolation: isolate;
+}
+.pn-sheet-top { flex: none; display: flex; flex-direction: column; gap: calc(10 * var(--u)); }
+.pn-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(6 * var(--u)); }
+.pn .pn-tab { --depth: calc(6 * var(--u)); min-width: 0; height: calc(34 * var(--u) + var(--depth)); min-height: 44px; padding: 0 calc(6 * var(--u)) var(--depth); gap: calc(6 * var(--u)); font: 800 calc(15 * var(--u))/1 var(--skin-font-display); white-space: nowrap; }
+.pn-sheet-body { display: flex; flex: 1; flex-direction: column; min-height: 0; margin-top: calc(12 * var(--u)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.pn-sheet-body::-webkit-scrollbar { display: none; }
+.pn-sheet-body[data-tab="chat"] { overflow: hidden; }
+.pn-sheet-body .pn-players { max-height: none; }
+.pn[data-phone] .pn-go { left: calc(12 * var(--u)); right: calc(12 * var(--u)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); transform: none; }
+.pn[data-phone] :is(.pn-gate, .pn-wait) { width: 100%; }
+.pn[data-phone] .pn-status { padding-top: calc(10 * var(--u)); padding-bottom: calc(10 * var(--u) + 3 * var(--u)); }
+
+/* ---------- Reduced motion: nothing blinks or fades in ---------- */
+:root[data-skin="painted"].reduce-motion .pn :is(.pn-chip-dot, .pn-plate) { animation: none; }
+@media (prefers-reduced-motion: reduce) { .pn :is(.pn-chip-dot, .pn-plate) { animation: none; } }

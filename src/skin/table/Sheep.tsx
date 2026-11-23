@@ -48,7 +48,7 @@ export const DAZED_S = AFTERMATH_MS / 1000;
 const DURATION: Partial<Record<SheepState, number>> = { proud: 1.2, happy: 1.6, startled: 0.9, cold: 2, dazed: DAZED_S, freezing: 2.4, thawing: 1.2 };
 /** The dream's trot: ms per half-step at the slowest and the fastest run (V4 Part 7.2); `pace` 0..1 picks between. */
 const TROT_MS = { slow: 110, fast: 70 };
-/** The walk: seconds a half-step. At WALK_SPEED (rooms/penWander.ts) the hooves keep pace with the ground. */
+/** The walk: seconds a half-step. */
 export const WALK_HALF_STEP = 0.34;
 
 /** Reserved customisation slots (plan V3 Part 5.4): ids only, no UI, no store. */

@@ -17,7 +17,8 @@ import type { Board as LevelBoard } from '../profile/Profile';
 import { apiToken, useRanked } from '../ranked/rankedStore';
 import { levelOf } from '../shop/economy';
 import { useWallet } from '../shop/store';
-import { Bracket, Icon, InfoGlyph, Padlock, Rosette, Snowflake, TierIcon } from './art';
+import { Icon, InfoGlyph, Padlock, Rosette, Snowflake, TierIcon } from './art';
+import { BoardFrame, Lights, SnowCap } from '../kit/surfaces';
 import type { IconName } from './art';
 import '../home/home.css';
 import './boards.css';
@@ -266,7 +267,7 @@ export function Leaderboards({ onClose, start }: { onClose: () => void; start?: 
       </SceneBoundary>
 
       <header className="lb-bar">
-        <SnowCap />
+        <SnowCap prefix="lb" />
         {desk && <div className="lb-titletag hm-slab hm-knit lb-static"><Icon name="podium" /><h1>Leaderboards</h1></div>}
         <div role="tablist" aria-label="Boards" className="lb-tabs" onKeyDown={arrows}>
           {TABS.map((t) => (
@@ -278,16 +279,14 @@ export function Leaderboards({ onClose, start }: { onClose: () => void; start?: 
           ))}
         </div>
         <button ref={close} type="button" className="lb-close hm-slab hm-knit" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
-        {FESTIVE && <Lights u={u} reduced={reduced} />}
+        {FESTIVE && <Lights u={u} reduced={reduced} prefix="lb" />}
       </header>
 
       <div className="lb-window" ref={win} />
 
       <section className="lb-board" aria-label={at.title} data-board={showTab}>
-        <SnowCap icicles />
-        <i className="lb-frame" aria-hidden="true">
-          {(['tl', 'tr', 'bl', 'br'] as const).map((k) => <Bracket key={k} className={`lb-bracket lb-bracket--${k}`} />)}
-        </i>
+        <SnowCap icicles prefix="lb" />
+        <BoardFrame prefix="lb" />
         <div className="lb-head">
           <div className="lb-headline">
             <h2 className="lb-ribbon"><i className="lb-ribbon-face" aria-hidden="true" /><Icon name={at.icon} /><span ref={title}>{at.title}</span></h2>
@@ -519,86 +518,3 @@ function Rows({ board, tab, lines, busy, total, failed, reduced, icon, u }: { bo
   );
 }
 
-/**
- * Snow on an edge (section 9.1): white on its top row, wool under it with a few speckles of frost, a stepped edge with a
- * row of frost under it; on the board, icicles too. One piece an edge, never two. Drawn by the stylesheet.
- */
-function SnowCap({ icicles = false }: { icicles?: boolean }) {
-  return <i className={`lb-snowcap ${icicles ? 'lb-snowcap--icicles' : ''}`} aria-hidden="true" />;
-}
-
-const BULBS = ['#F07A5A', '#9CCB78', '#FFD08A'];
-/** `hex` mixed toward the ink by `k` (0 to 1): a bulb's darker side, and a bulb that is off. */
-function toInk(hex: string, k: number): string {
-  const a = parseInt(hex.slice(1), 16), ink = [0x0e, 0x15, 0x28];
-  const ch = [(a >> 16) & 255, (a >> 8) & 255, a & 255].map((v, i) => Math.round(v + (ink[i] - v) * k));
-  return `#${ch.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
-}
-const BULB_ART = ['.cc.', '.BB.', 'BhBB', 'BhBB', 'BBBs', 'BBss', '.ss.'];
-/** Today's twinkle, bulb by bulb (skin.css, `.sk-garland-wire i`): each on its own time, so the string never pulses. */
-const TWINKLE = [[2, 0], [2.9, -0.7], [1.7, -1.9], [3.4, -0.3], [2.3, -2.4]] as const;
-const sag = (x: number, L: number) => Math.round((8 * (1 - (2 * x / L - 1) ** 2)) / 2) * 2;
-
-/**
- * The season's lights (section 9.2): hooks every 120 under the bar's bottom edge, a wire two thick hanging between them
- * in two-pixel steps, a bulb every 30, red, green and gold in turn. A bulb that is off is its own colour darkened toward
- * the ink, never a glow. Drawn in the plan's pixels (times `u`) across the bar's whole width.
- */
-function Lights({ u, reduced }: { u: number; reduced: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [w, setW] = useState(0);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const on = () => setW(el.getBoundingClientRect().width / u);
-    on();
-    const ro = new ResizeObserver(on);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [u]);
-  const n = Math.max(1, Math.round(w / 120)), L = w / n;
-  const hooks: ReactNode[] = [], wire: ReactNode[] = [], bulbs: ReactNode[] = [];
-  if (w > 0) {
-    for (let k = 0; k <= n; k++) {
-      const x = Math.min(w - 6, Math.max(0, k * L - 3));
-      hooks.push(<g key={k}><rect x={x} y={0} width={6} height={6} fill="var(--hm-night-3)" /><rect x={x} y={0} width={6} height={3} fill="var(--hm-frost)" /></g>);
-    }
-    for (let k = 0; k < n; k++) {
-      // The wire, as runs of two-pixel steps at one drop.
-      for (let x = 0; x < L; ) {
-        const d = sag(x, L);
-        let e = x + 2;
-        while (e < L && sag(e, L) === d) e += 2;
-        wire.push(<rect key={`${k}:${x}`} x={k * L + x} y={4 + d} width={Math.min(e, L) - x} height={2} fill="var(--hm-ink)" />);
-        x = e;
-      }
-      for (let j = 0; j < 4; j++) {
-        const i = k * 4 + j, x = ((2 * j + 1) * L) / 8, B = BULBS[i % 3], [dur, delay] = TWINKLE[i % 5];
-        const on = { B, h: 'rgba(255,255,255,0.55)', s: toInk(B, 0.3), c: 'var(--hm-night-3)' };
-        const off = { B: toInk(B, 0.45), h: toInk(B, 0.45), s: toInk(toInk(B, 0.3), 0.45), c: 'var(--hm-night-3)' };
-        const at = `translate(${Math.round(k * L + x - 4)} ${4 + sag(x, L) + 2}) scale(2)`;
-        bulbs.push(
-          <g key={i} transform={at}>
-            <g>{pixel(BULB_ART, off)}</g>
-            <g className="lb-bulb-on" style={reduced ? undefined : { animationDuration: `${dur}s`, animationDelay: `${delay}s`, animationDirection: k % 2 ? 'reverse' : 'normal' }}>{pixel(BULB_ART, on)}</g>
-          </g>,
-        );
-      }
-    }
-  }
-  return (
-    <div className="lb-lights" ref={ref} aria-hidden="true">
-      {w > 0 && (
-        <svg viewBox={`0 0 ${w} 32`} preserveAspectRatio="none" shapeRendering="crispEdges">
-          {wire}{hooks}{bulbs}
-        </svg>
-      )}
-    </div>
-  );
-}
-/** A pixel grid as rects, for drawing inside another SVG (Pix draws a whole one). */
-function pixel(rows: readonly string[], colors: Record<string, string>): ReactNode[] {
-  const out: ReactNode[] = [];
-  rows.forEach((row, y) => [...row].forEach((ch, x) => { if (colors[ch]) out.push(<rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill={colors[ch]} />); }));
-  return out;
-}

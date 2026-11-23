@@ -1,0 +1,111 @@
+/* The surface recipes (docs/leaderboards/LEADERBOARDS-PLAN.md, section 4: "nothing flat"), moved here from the
+   leaderboard's stylesheet unchanged so other screens can use them (Brian, 2026-11-22, the pen plan: docs/pen/PEN-PLAN.md).
+   Every rule answers to its leaderboard name (`lb-`) and its shared name (`rc-`, for recipe): the leaderboard's markup
+   is untouched. A screen that uses them puts `rc` on its root for the tokens (felt, ink knit, pixel corners, the step). */
+
+.lb, .rc {
+  --s: calc(3 * var(--u));
+  --shadow: drop-shadow(0 calc(4 * var(--u)) 0 rgba(14, 21, 40, 0.38));
+  /* Home's knit (--knit, from .hm, which the page always sits in) for wool and lantern faces; the same stitch in white for
+     ink faces; and the felt of the dark boards: one-step squares in fixed places, pressed wool with no pattern. */
+  --knit-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' shape-rendering='crispEdges'%3E%3Cg fill='%23fff' fill-opacity='.04'%3E%3Crect x='2' y='2' width='2' height='2'/%3E%3Crect x='4' y='4' width='2' height='2'/%3E%3Crect x='6' y='6' width='4' height='2'/%3E%3Crect x='10' y='4' width='2' height='2'/%3E%3Crect x='12' y='2' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E");
+  --felt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' shape-rendering='crispEdges'%3E%3Cg fill='%23fff' fill-opacity='.05'%3E%3Crect x='3' y='6' width='3' height='3'/%3E%3Crect x='18' y='3' width='3' height='3'/%3E%3Crect x='33' y='9' width='3' height='3'/%3E%3Crect x='42' y='24' width='3' height='3'/%3E%3Crect x='27' y='18' width='3' height='3'/%3E%3Crect x='9' y='21' width='3' height='3'/%3E%3Crect x='15' y='36' width='3' height='3'/%3E%3Crect x='36' y='39' width='3' height='3'/%3E%3Crect x='24' y='30' width='3' height='3'/%3E%3Crect x='6' y='42' width='3' height='3'/%3E%3Crect x='45' y='12' width='3' height='3'/%3E%3Crect x='30' y='45' width='3' height='3'/%3E%3C/g%3E%3Cg fill='%23000' fill-opacity='.12'%3E%3Crect x='12' y='12' width='3' height='3'/%3E%3Crect x='39' y='30' width='3' height='3'/%3E%3Crect x='21' y='42' width='3' height='3'/%3E%3Crect x='30' y='0' width='3' height='3'/%3E%3Crect x='0' y='30' width='3' height='3'/%3E%3Crect x='42' y='45' width='3' height='3'/%3E%3C/g%3E%3C/svg%3E");
+  --felt-size: calc(48 * var(--u)) calc(48 * var(--u));
+  --knit-size: calc(16 * var(--u)) calc(12 * var(--u));
+  /* Pixel corners: Home's two-step corners, and one-step ones for the small pieces. */
+  --px: polygon(0 calc(2*var(--s)), var(--s) calc(2*var(--s)), var(--s) var(--s), calc(2*var(--s)) var(--s), calc(2*var(--s)) 0,
+    calc(100% - 2*var(--s)) 0, calc(100% - 2*var(--s)) var(--s), calc(100% - var(--s)) var(--s), calc(100% - var(--s)) calc(2*var(--s)), 100% calc(2*var(--s)),
+    100% calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - 2*var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) calc(100% - var(--s)), calc(100% - 2*var(--s)) 100%,
+    calc(2*var(--s)) 100%, calc(2*var(--s)) calc(100% - var(--s)), var(--s) calc(100% - var(--s)), var(--s) calc(100% - 2*var(--s)), 0 calc(100% - 2*var(--s)));
+  --px1: polygon(0 var(--s), var(--s) var(--s), var(--s) 0, calc(100% - var(--s)) 0, calc(100% - var(--s)) var(--s), 100% var(--s),
+    100% calc(100% - var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - var(--s)) 100%, var(--s) 100%, var(--s) calc(100% - var(--s)), 0 calc(100% - var(--s)));
+}
+
+.lb-snowcap, .rc-snowcap {
+  position: absolute; z-index: 3; left: var(--s); right: var(--s); top: calc(-2 * var(--s)); height: calc(12 * var(--u)); pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' shape-rendering='crispEdges'%3E%3Crect x='0' y='3' width='6' height='6' fill='%23FFFDF4'/%3E%3Crect x='6' y='3' width='6' height='3' fill='%23FFFDF4'/%3E%3Crect x='12' y='3' width='9' height='6' fill='%23FFFDF4'/%3E%3Crect x='21' y='3' width='3' height='3' fill='%23FFFDF4'/%3E%3Crect x='0' y='0' width='24' height='3' fill='%23FFFFFF'/%3E%3Cg fill='%23B9C8E6'%3E%3Crect x='0' y='9' width='6' height='3'/%3E%3Crect x='6' y='6' width='6' height='3'/%3E%3Crect x='12' y='9' width='9' height='3'/%3E%3Crect x='21' y='6' width='3' height='3'/%3E%3C/g%3E%3Cg fill='%23B9C8E6' fill-opacity='.45'%3E%3Crect x='3' y='3' width='3' height='3'/%3E%3Crect x='15' y='0' width='3' height='3'/%3E%3C/g%3E%3C/svg%3E") 0 0 / calc(24 * var(--u)) calc(12 * var(--u)) repeat-x;
+}
+
+.lb-snowcap--icicles::after, .rc-snowcap--icicles::after {
+  content: ''; position: absolute; left: 0; right: 0; top: calc(9 * var(--u)); height: calc(15 * var(--u));
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='15' shape-rendering='crispEdges'%3E%3Cg fill='%23FFFDF4'%3E%3Crect x='8' y='0' width='3' height='9'/%3E%3Crect x='30' y='0' width='3' height='15'/%3E%3Crect x='52' y='0' width='3' height='6'/%3E%3Crect x='74' y='0' width='3' height='12'/%3E%3C/g%3E%3Cg fill='%23B9C8E6'%3E%3Crect x='11' y='0' width='3' height='6'/%3E%3Crect x='33' y='0' width='3' height='9'/%3E%3Crect x='55' y='0' width='3' height='3'/%3E%3Crect x='77' y='0' width='3' height='6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / calc(96 * var(--u)) calc(15 * var(--u)) repeat-x;
+}
+
+.lb-bar, .rc-bar {
+  background-color: var(--hm-night); background-image: var(--felt); background-size: var(--felt-size);
+  box-shadow: inset 0 calc(-3 * var(--u)) 0 var(--hm-lantern), inset 0 calc(-3 * var(--u) - var(--s)) 0 var(--hm-ink), inset 0 var(--s) 0 var(--hm-night-3);
+}
+
+.lb-lights svg, .rc-lights svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+.lb-bulb-on, .rc-bulb-on { animation: lb-twinkle 2s ease-in-out infinite; }
+
+@keyframes lb-twinkle { 50% { opacity: 0; } }
+
+.lb-board::before, .rc-board::before {
+  content: ''; position: absolute; z-index: -2; inset: 0; clip-path: var(--px);
+  background-color: var(--hm-night); background-image: var(--felt); background-size: var(--felt-size);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-1 * (var(--s) + var(--side))) 0 var(--hm-night-deep),
+    inset 0 calc(2 * var(--s)) 0 var(--hm-night-3), inset calc(2 * var(--s)) 0 0 var(--hm-night-2),
+    inset 0 calc(-1 * (2 * var(--s) + var(--side))) 0 var(--hm-night-deep), inset calc(-2 * var(--s)) 0 0 var(--hm-night-deep);
+}
+
+.lb-frame, .rc-frame { position: absolute; z-index: -1; inset: calc(4 * var(--s)) calc(4 * var(--s)) calc(4 * var(--s) + var(--side)); pointer-events: none; box-shadow: inset 0 0 0 var(--s) var(--hm-night-2); }
+
+.lb-bracket, .rc-bracket { position: absolute; }
+
+.lb-bracket--tl, .rc-bracket--tl { left: 0; top: 0; }
+
+.lb-bracket--tr, .rc-bracket--tr { right: 0; top: 0; transform: scaleX(-1); }
+
+.lb-bracket--bl, .rc-bracket--bl { left: 0; bottom: 0; transform: scaleY(-1); }
+
+.lb-bracket--br, .rc-bracket--br { right: 0; bottom: 0; transform: scale(-1, -1); }
+
+.lb-inkcard::before, .rc-inkcard::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-ink) var(--felt) 0 0 / var(--felt-size);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-night-3), inset 0 calc(3 * var(--u) + var(--s)) 0 var(--hm-lantern), inset 0 calc(3 * var(--u) + 2 * var(--s)) 0 var(--hm-ink-hi), inset 0 calc(-3 * var(--u) - var(--s)) 0 var(--hm-ink-side);
+}
+
+.lb-inkcard-point, .rc-inkcard-point { position: absolute; right: calc(16 * var(--u) - 2 * var(--s)); bottom: 100%; width: calc(4 * var(--s)); height: calc(2 * var(--s)); background: var(--hm-lantern); box-shadow: inset var(--s) 0 0 var(--hm-night-3), inset calc(-1 * var(--s)) 0 0 var(--hm-night-3), inset 0 var(--s) 0 var(--hm-night-3);
+  clip-path: polygon(var(--s) 0, calc(100% - var(--s)) 0, calc(100% - var(--s)) var(--s), 100% var(--s), 100% 100%, 0 100%, 0 var(--s), var(--s) var(--s)); }
+
+.lb-divider, .rc-groove { position: relative; flex: none; height: calc(2 * var(--s)); background: var(--hm-night-3); box-shadow: inset 0 var(--s) 0 var(--hm-ink); }
+
+.lb-well, .rc-well { position: relative; isolation: isolate; }
+
+.lb-well::before, .rc-well::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-deep) var(--felt) 0 0 / var(--felt-size);
+  box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-2); }
+
+.lb-tile::before, .rc-tile::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-2) var(--felt) 0 0 / var(--felt-size);
+  box-shadow: inset 0 var(--s) 0 var(--hm-night-3), inset 0 calc(-3 * var(--u)) 0 var(--hm-night-deep); }
+
+.lb-badge, .rc-badge { grid-column: 2; }
+
+.lb-scroll, .rc-scroll { position: absolute; top: 0; bottom: calc(6 * var(--u)); right: calc(6 * var(--u)); width: calc(9 * var(--u)); }
+
+.lb-thumb, .rc-thumb { position: absolute; left: 0; top: 0; width: 100%; clip-path: var(--px1); background: var(--hm-night-3); box-shadow: inset 0 var(--s) 0 var(--hm-frost), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-2); cursor: grab; touch-action: none; }
+
+.lb-pennant, .rc-pennant { flex: none; display: inline-flex; align-items: center; height: calc(20 * var(--u)); padding: 0 calc(10 * var(--u)) calc(2 * var(--u)) calc(6 * var(--u)); box-sizing: border-box;
+  background: var(--hm-lantern) var(--knit) 0 0 / var(--knit-size); box-shadow: inset 0 calc(-2 * var(--u)) 0 var(--hm-lantern-lip);
+  clip-path: polygon(0 0, 100% 0, 100% 35%, calc(100% - var(--s)) 35%, calc(100% - var(--s)) 65%, 100% 65%, 100% 100%, 0 100%);
+  font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-ink); }
+
+/* The place badge: a mini ink slab with white knit, a lit row, a side of 3, one-step corners. */
+.lb-badge, .rc-badge { display: grid; place-items: center; box-sizing: border-box; min-width: calc(28 * var(--u)); height: calc(28 * var(--u)); padding: 0 calc(4 * var(--u)) calc(3 * var(--u)); clip-path: var(--px1);
+  background: var(--hm-ink) var(--knit-ink) 0 0 / var(--knit-size); box-shadow: inset 0 var(--s) 0 var(--hm-ink-hi), inset 0 calc(-3 * var(--u)) 0 var(--hm-ink-side);
+  font: 800 calc(14 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
+
+/* The title tag: a wool slab that is not a button. */
+.hm-slab.lb-titletag, .hm-slab.rc-titletag { --depth: calc(4 * var(--u)); flex: none; gap: calc(8 * var(--u)); height: calc(42 * var(--u)); padding: 0 calc(12 * var(--u)) var(--depth); filter: var(--shadow); }
+.lb-titletag h1, .rc-titletag h1 { font: 800 calc(19 * var(--u))/1 var(--skin-font-display); color: var(--hm-ink); white-space: nowrap; }
+
+/* You, where the list holds you: a lantern bar at the tile's left. */
+.lb-tile-you, .rc-tile-you { position: absolute; left: 0; top: 0; width: calc(6 * var(--u)); height: var(--face); background: var(--hm-lantern); }
+
+/* A list that scrolls inside itself (ScrollBox): the native bar hidden, the track and thumb above drawn at its right. */
+.rc-scrollbox { position: relative; min-height: 0; }
+.rc-scrollbox-in { height: 100%; max-height: inherit; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; box-sizing: border-box; }
+.rc-scrollbox-in::-webkit-scrollbar { display: none; }
+.rc-scrollbox[data-over] > .rc-scrollbox-in { padding-right: calc(18 * var(--u)); }
+.rc-scrollbox > .rc-scroll { right: 0; bottom: 0; }

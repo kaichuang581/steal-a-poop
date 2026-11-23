@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-import { pixelRects } from '../components/pixels';
 import { badgeArt, BADGE_W } from '../ranked/badge';
 import { TIERS } from '../../lib/ranked';
 
@@ -9,15 +7,9 @@ import { TIERS } from '../../lib/ranked';
  * screen's scale `--u`, with crisp edges. Brian's own art replaces the four icons when it arrives
  * (src/skin/assets/leaderboard/ranked.png, wins.png, level.png, podium.png).
  */
-export function Pix({ rows, colors, px = 2, className, style }: { rows: readonly string[]; colors: Record<string, string>; px?: number; className?: string; style?: CSSProperties }) {
-  const w = rows[0]?.length ?? 0, h = rows.length;
-  return (
-    <svg className={className} viewBox={`0 0 ${w} ${h}`} shapeRendering="crispEdges" aria-hidden="true" focusable="false"
-      style={{ width: `calc(${w * px} * var(--u))`, height: `calc(${h * px} * var(--u))`, flex: 'none', ...style }}>
-      {pixelRects(rows, colors)}
-    </svg>
-  );
-}
+export { Bracket, Padlock, Pix } from '../kit/surfaces';
+import { Pix } from '../kit/surfaces';
+import { pixelRects } from '../components/pixels';
 
 const INK = { X: 'var(--hm-ink)' };
 
@@ -89,14 +81,9 @@ export const Icon = ({ name, px = 2, color, className }: { name: IconName; px?: 
 /** The info button's "i", in wool (section 7.3). */
 export const InfoGlyph = () => <Pix rows={['.XX.', '.XX.', '....', 'XXX.', '.XX.', '.XX.', '.XX.', '.XX.', 'XXXX', 'XXXX']} colors={{ X: 'var(--hm-wool)' }} />;
 
-/** The padlock on the info card, in lantern (section 7.3). */
-export const Padlock = () => <Pix rows={['.XXXX.', '.X..X.', '.X..X.', 'XXXXXX', 'XX..XX', 'XX..XX', 'XXXXXX', 'XXXXXX']} colors={{ X: 'var(--hm-lantern)' }} />;
-
 /** The snowflake in the divider's gap (section 7.4). */
 export const Snowflake = () => <Pix rows={['....X....', '.X..X..X.', '..X.X.X..', '...XXX...', 'XXXXXXXXX', '...XXX...', '..X.X.X..', '.X..X..X.', '....X....']} colors={{ X: 'var(--hm-night-3)' }} />;
 
-/** A corner bracket of the board's inner frame, top left as drawn; the others are this one mirrored (section 4.3). */
-export const Bracket = ({ className }: { className?: string }) => <Pix className={className} px={3} rows={['AAAA', 'AB..', 'A...', 'A...']} colors={{ A: 'var(--hm-night-3)', B: 'var(--hm-frost)' }} />;
 
 /** The rosettes on the podium's name plates: gold, silver and bronze, or the plain wool of a place nobody holds. */
 const ROSETTE = [

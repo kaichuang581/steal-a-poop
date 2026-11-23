@@ -428,10 +428,10 @@ const PINS: Record<string, string[]> = {
   ],
   'src/skin/rooms/PenStage.tsx': [
     'const shot = penShot(phone);',
-    'camera.setViewOffset(size.width, size.height, -shift[0] * size.width, -shift[1] * size.height, size.width, size.height);',
+    'camera.setViewOffset(W, H, m.cx - (left + right) / 2, (m.t + m.b) / 2 - (top + bottom) / 2, W, H);',
   ],
   'src/skin/rooms/PaintedRoom.tsx': [
-    '<PenStage guests={guests} farmSheep={0} reduced={reduced} phone={phone} shift={phone ? [0, -0.16] : [0, -0.2]} />',
+    '<PenStage guests={guests} max={max} reduced={reduced} phone={!wide} frame={frame} opening={room.phase !== \'lobby\'} fill={wide ? 0.72 : 0.92} />',
   ],
   'src/skin/table/Podium.tsx': [
     'const tx = aside && !phone ? 2.7 : 0, ty = aside && phone ? -2.4 : 0;',
@@ -575,11 +575,11 @@ function pathsOf(game: Game): Path[] {
     paths.push({ scene: 'duel', details: BOTH, device, key: 'bot', name: `${device}, the bot's turn`, places: [hold(bot, 'where it holds'), ...move(open, bot, 'from the opening shot to the bot\'s turn'), ...move(you0, bot, 'from your turn to the bot\'s'), ...move(you1, bot, 'from your last moment to the bot\'s turn')] });
   }
 
-  // The lobby's pen: `Frame` in src/skin/rooms/PenStage.tsx, with the slide src/skin/rooms/PaintedRoom.tsx gives it.
+  // The lobby's pen: `Frame` in src/skin/rooms/PenStage.tsx. Since docs/pen/PEN-PLAN.md the distance and the slide are
+  // fitted at run time to the space the screen's panels leave; this is penShot's own first guess, unslid.
   for (const device of DEVICES) {
     const phone = device === 'phone';
-    const shift: [number, number] = phone ? [0, -0.16] : [0, -0.2];
-    paths.push({ scene: 'pen', details: BOTH, device, key: 'pen', name: `${device}, the pen's one shot`, places: [{ view: { ...game.pen.penShot(phone), aspect: ASPECT[device], shift }, note: 'where it holds', stop: true }] });
+    paths.push({ scene: 'pen', details: BOTH, device, key: 'pen', name: `${device}, the pen's one shot`, places: [{ view: { ...game.pen.penShot(phone), aspect: ASPECT[device] }, note: 'where it holds', stop: true }] });
   }
 
   // The winning screen: `Rig` in src/skin/table/Podium.tsx.

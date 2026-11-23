@@ -125,7 +125,6 @@
 .sk-nail-br { right: 7px; bottom: 7px; }
 /* Lines of a heading or a tip share the words evenly: no single word left on a line of its own (2026-11-20). */
 :root[data-skin="painted"] :is(h1, h2, h3, .sk-notice-title, .sk-notice-sub) { text-wrap: balance; }
-.sk-plate { display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 10px; font-family: var(--skin-font-body); font-weight: 800; }
 
 /* ---------- Cursors: the usual arrow and pointing hand, drawn as pixel art in the skin's palette ----------
    Cream with a wood outline and a soft shadow (src/skin/assets/cursors). SVG first (sharp at any pixel ratio), a PNG
@@ -370,23 +369,9 @@
 .sk-ledger-strip .sk-ledger-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sk-ledger-turn { box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.3), 0 0 0 2px var(--amber), 0 3px 0 rgba(40, 24, 10, 0.35); }
 
-/* Over each head (PaintedGame's seat labels): a knitted name plate, the ledger's dark wool for everyone and berry for
-   the speaker, and over it, while a sheep speaks (or you type ahead), a cream wool speech bubble with the word. */
+/* Over each head (PaintedGame's seat labels): the game's one name tag (kit/NamePlate: yours lantern, the speaker's
+   barn red), and over it, while a sheep speaks (or you type ahead), a cream wool speech bubble with the word. */
 .sk-head { display: flex; flex-direction: column; align-items: center; gap: 12px; pointer-events: none; }
-.sk-plate {
-  position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px 5px; white-space: nowrap; border-radius: 4px;
-  background: var(--kit-stitch-dark) 0 0 / 12px 12px, var(--slate); outline: 1.5px dashed rgba(243, 240, 230, 0.45); outline-offset: -4px;
-  box-shadow: 0 3px 0 rgba(30, 18, 8, 0.4); color: var(--chalk); opacity: 0.9;
-}
-.sk-plate-who { font-family: var(--skin-font-display); font-weight: 700; font-size: 15px; line-height: 1.1; }
-.sk-plate-badge { display: inline-flex; opacity: 0.85; }
-.sk-plate-you { font: 400 14px/1 var(--skin-font-hand); opacity: 0.8; }
-.sk-plate-ice { position: absolute; inset: -2px; opacity: 0.85; }
-.sk-head[data-speaker] .sk-plate {
-  background: var(--kit-stitch-light) 0 0 / 12px 12px, var(--berry); outline-color: rgba(255, 226, 160, 0.8); color: #FFF4E0; opacity: 1;
-  box-shadow: 0 3px 0 var(--berry-dark), 0 0 0 2px var(--amber); scale: 1.12;
-}
-.sk-head[data-frozen] .sk-plate { opacity: 0.6; }
 .sk-say {
   --n: 6;
   position: relative; display: inline-flex; align-items: center; min-height: 58px; min-width: 90px; max-width: min(86vw, 560px); padding: 6px 18px 8px;
@@ -409,7 +394,7 @@
 @keyframes sk-say-shake { 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
 :root.reduce-motion .sk-say { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-say { animation: none; } }
-@media (max-width: 640px) { .sk-say { font-size: 22px; min-height: 38px; padding: 5px 12px 6px; } .sk-say-ph { font-size: 18px; } .sk-plate-who { font-size: 13px; } }
+@media (max-width: 640px) { .sk-say { font-size: 22px; min-height: 38px; padding: 5px 12px 6px; } .sk-say-ph { font-size: 18px; } .sk-head .np-plate { --np-h: 24; --np-font: 13; } }
 
 /* The duel's fight card: two pinned slips and a carved VS. */
 .sk-vs-slip { flex-direction: column; gap: 0; padding: 6px 14px; font-family: var(--skin-font-display); font-weight: 700; font-size: 18px; }
@@ -800,11 +785,6 @@
 /* ---------- The winning screen (Podium.tsx, PaintedGame's Results) ---------- */
 .sk-podium { position: fixed; inset: 0; z-index: 40; animation: sk-podium-in 600ms var(--ease-out) both; }
 @keyframes sk-podium-in { from { opacity: 0; } }
-/* Each place: its name on a black nameplate in beige, under the number carved into its block. */
-.sk-pod-name {
-  padding: 5px 14px 6px; border-radius: 3px; white-space: nowrap; background: #0E0B09; color: #EADBC0;
-  font: 700 17px/1.1 var(--skin-font-display); letter-spacing: 0.02em; box-shadow: inset 0 0 0 1px rgba(234, 219, 192, 0.25), 0 3px 0 rgba(0, 0, 0, 0.45);
-}
 /* The scoreboard: dark and see-through over the podium, white text, after a 5 s dance; hideable for a screenshot. */
 .sk-final-wrap { position: fixed; inset: 0; z-index: 45; display: flex; align-items: center; justify-content: flex-end; padding: 16px max(16px, 3vw); pointer-events: none; }
 .sk-final {
@@ -837,7 +817,6 @@
   .sk-final-rows { display: none; } /* the podium already shows every place on a phone */
   .sk-final-stats { grid-template-columns: 1fr 1fr; } /* side by side: one a row pushed the buttons out of sight */
   .sk-final-title { font-size: 21px; }
-  .sk-pod-name { font-size: 13px; padding: 4px 9px; }
 }
 :root.reduce-motion .sk-podium, :root.reduce-motion .sk-final { animation: none; }
 @media (prefers-reduced-motion: reduce) { .sk-podium, .sk-final { animation: none; } }

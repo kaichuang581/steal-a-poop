@@ -1,0 +1,21 @@
+/* The name tag over an animal (NamePlate.tsx): 26 high in all, a 23 face and a 3 side, the name Fraunces 800 14, on whole
+   pixels so the text and the pixel art stay crisp. A place can size it with --np-h and --np-font (the phone's pen). */
+.np { display: inline-flex; font-family: var(--skin-font-body); }
+.hm-slab.np-plate {
+  --depth: round(calc(3 * var(--u)), 1px); position: relative; gap: round(calc(4 * var(--u)), 1px);
+  height: round(calc(var(--np-h, 26) * var(--u)), 1px); padding: 0 round(calc(10 * var(--u)), 1px) var(--depth); box-sizing: border-box;
+  filter: drop-shadow(0 round(calc(3 * var(--u)), 1px) 0 rgba(14, 21, 40, 0.38)); white-space: nowrap; pointer-events: none;
+}
+.np-plate > svg, .np-plate > span { flex: none; }
+.np-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 800 round(calc(var(--np-font, 14) * var(--u)), 1px)/1 var(--skin-font-display); color: var(--txt); }
+/* The animal whose turn it is: barn red with wool letters, a size up. */
+.hm-slab.np-plate[data-tone="turn"] { --face: var(--hm-barn); --hi: #D0675A; --lip: #7A2A22; --txt: var(--hm-wool-hi); --np-h: 30; --np-font: 16; }
+/* Frozen: the ice over it, the plate dimmed. */
+.np-plate[data-frozen] { opacity: 0.6; }
+.np-plate > .kit-ice { position: absolute; inset: -2px; opacity: 0.85; }
+/* Said to a screen reader; the lantern face says it to the eye. */
+.np-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* A bot's badge (offline tables, where you chose the bots). */
+.np-badge { display: inline-flex; opacity: 0.85; }
+/* What follows the name (the wool balls) sits in a small ink chip, as the pen's tags do: cream balls vanished on the wool face. */
+.np-trail { display: inline-flex; align-items: center; height: round(calc(17 * var(--u)), 1px); padding: 0 round(calc(3 * var(--u)), 1px); margin-right: round(calc(-4 * var(--u)), 1px); clip-path: var(--px1); background: var(--hm-ink); }

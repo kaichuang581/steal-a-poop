@@ -5,17 +5,12 @@
    so the text and the crown stay crisp. ---------- */
 .pn-plates { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
 .pn-plates > div { position: absolute; left: 0; top: 0; }
-.pn .pn-plate {
-  --depth: round(calc(3 * var(--u)), 1px); gap: round(calc(4 * var(--u)), 1px); height: round(calc(26 * var(--u)), 1px); padding: 0 round(calc(10 * var(--u)), 1px) var(--depth);
-  max-width: min(calc(150 * var(--u)), var(--plate-max, 999px)); box-sizing: border-box; filter: drop-shadow(0 round(calc(3 * var(--u)), 1px) 0 rgba(14, 21, 40, 0.38)); white-space: nowrap; animation: pn-fade 150ms 200ms both;
-}
-.pn-plate svg { flex: none; }
-.pn-plate b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 800 round(calc(14 * var(--u)), 1px)/1 var(--skin-font-display); color: var(--hm-ink); }
-.pn-plate[data-reduced] { animation: none; }
+/* The plate itself is the game's one name tag (kit/NamePlate, nameplate.css); here only where it goes and how it comes in. */
+.pn .pn-plate { max-width: min(calc(150 * var(--u)), var(--plate-max, 999px)); animation: pn-fade 150ms 200ms both; }
+.pn .pn-plate--still { animation: none; }
 /* A phone's pen is drawn small (its strip is a third of the screen): its plates are smaller too, or ten of them stack
    into the lights. */
-.pn[data-phone] .pn-plate { height: round(calc(24 * var(--u)), 1px); padding: 0 round(calc(8 * var(--u)), 1px) var(--depth); }
-.pn[data-phone] .pn-plate b { font-size: calc(11 * var(--u)); }
+.pn[data-phone] .pn-plate { --np-h: 24; --np-font: 11; padding-left: calc(8 * var(--u)); padding-right: calc(8 * var(--u)); }
 @keyframes pn-fade { from { opacity: 0; } }
 
 :root[data-skin="painted"].reduce-motion .pn .pn-plate { animation: none; }

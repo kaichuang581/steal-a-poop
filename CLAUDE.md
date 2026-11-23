@@ -2315,3 +2315,15 @@ bars inside their face; no stray pixels.
   French lines were shortened to stay one line. Headlines end in "…" but do not first shrink by 2 px.
 - Open choices (section 13), the defaults used: no mat numbers or seat badges; explanations in tooltips; the code in
   the bar.
+
+## One name tag everywhere (Brian, 2026-11-23)
+"make the nametags more consistent across all the gamemodes ... the nametags for the coregameplay and this are completely
+different". Every tag over an animal is `NamePlate` (src/skin/kit/NamePlate.tsx, nameplate.css): Home's slab, not a
+button, a knitted wool face, the name in ink Fraunces 800 14, 26 high (a 23 face, a 3 side), a hard shadow, on whole
+pixels. Yours is lantern; the animal whose turn it is is barn red with wool letters, a size up (the table's old berry
+plate meant the same); the wool balls sit in a small ink chip after the name; a bot's badge or the host's crown before it;
+a frozen animal's plate is dimmed under its ice. Used at the barn table (Quick play, rooms, the daily table), in practice
+on the ice, the tutorial (its "wool" step points at `.sk-seat-plate[data-you]`), the pen and the winning podium. The old
+dark stitched `.sk-plate`, its hand-font "you" and the podium's black `.sk-pod-name` are gone. The leaderboards' crate
+plates were already this slab (with a second line for the score) and are unchanged. Don't add another tag style: give
+NamePlate a slot instead. Where a page has no Home tokens, pass `tokens` (it wraps the plate in `.hm.rc`).

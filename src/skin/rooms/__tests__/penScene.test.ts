@@ -79,7 +79,7 @@ describe('plates (9.3)', () => {
       for (let n = 1; n <= max; n++) {
         const html = renderToStaticMarkup(createElement(PenPlates, { guests: guests(n), reduced: false, plateOf: () => ({ current: null }) }));
         expect(html.match(/data-anchor/g)?.length).toBe(n);
-        for (const g of guests(n)) expect(html).toContain(`<b>${g.name}</b>`);
+        for (const g of guests(n)) expect(html).toContain(`>${g.name}</b>`);
         expect(html.match(/<svg/g)?.length ?? 0).toBe(1); // the host's crown, once
       }
     }

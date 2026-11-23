@@ -20,6 +20,7 @@ import { SceneBoundary } from '../perf/SceneBoundary';
 import { Sheep } from '../table/Sheep';
 import { animalModel } from '../voxel/animals';
 import { voxelMaterial } from '../voxel/material';
+import { NamePlate } from '../kit/NamePlate';
 import { Crown } from './penArt';
 import { penUnit } from './unit';
 import { LOOK } from '../look';
@@ -83,9 +84,7 @@ export function PenPlates({ guests, reduced, plateOf, ref }: {
     <div className="pn-plates" aria-hidden="true" ref={ref}>
       {guests.map((g) => (
         <div key={g.id} ref={plateOf(g.id)} data-anchor>
-          <span className={`pn-plate hm-slab hm-knit rc-static ${g.you ? 'hm-slab--lantern' : ''}`} data-reduced={reduced || undefined}>
-            {g.host && <Crown onLantern={g.you} />}<b>{g.name}</b>
-          </span>
+          <NamePlate name={g.name} you={g.you} lead={g.host ? <Crown onLantern={g.you} /> : undefined} className={`pn-plate${reduced ? ' pn-plate--still' : ''}`} />
         </div>
       ))}
     </div>

@@ -61,6 +61,7 @@ import { BarnTable } from '../table/BarnTable';
 import type { BarnMoments } from '../table/BarnTable';
 import { DevLine } from '../table/DevStats';
 import { DuelTable } from '../table/DuelTable';
+import { NamePlate } from '../kit/NamePlate';
 import { PlaceExtras } from '../table/places';
 import { coatLevel } from '../table/Sheep';
 import type { SheepState } from '../table/Sheep';
@@ -414,8 +415,8 @@ export function PaintedGame() {
             return {
               seat: Number(p.id), index: rel(Number(p.id)), level: coatLevel(p.lives, maxLives), state: st.state, stateKey: st.key,
               dimmed: p.dimmed, scarf: winners.has(Number(p.id)) && winners.size === 1, thinking: p.id === view.currentPlayerId && !p.isYou, avatar: avatarOf(p),
-              // Over each head: a knitted name plate (wool like the ledger, berry for the speaker) and, while a sheep
-              // speaks or you type ahead, a speech bubble with the word as it is typed.
+              // Over each head: the name tag every place shares (kit/NamePlate: yours lantern, the speaker's barn red)
+              // and, while a sheep speaks or you type ahead, a speech bubble with the word as it is typed.
               label: (() => {
                 const speaking = p.id === view.currentPlayerId;
                 const typed = p.isYou ? input.typed : speaking ? botTyped : '';
@@ -432,14 +433,13 @@ export function PaintedGame() {
                         {speaking && <i className="sk-say-caret" aria-hidden="true" />}
                       </div>
                     )}
-                    <div className="sk-plate">
-                      <span className="sk-plate-who">{p.name}</span>
-                      {/* Online, a filled seat is not marked (Brian, 2026-11-14: "dont say they are bots"); offline you chose the bots. */}
-                      {p.difficulty && !room && <span className="sk-plate-badge" role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span>}
-                      <Lives lives={p.lives} max={maxLives} size={speaking ? 14 : 12} />
-                      {p.isYou && <span className="sk-plate-you">you</span>}
-                      {p.frozen && <Ice className="sk-plate-ice" />}
-                    </div>
+                    <NamePlate
+                      tokens name={p.name} you={p.isYou} turn={speaking} frozen={p.frozen} className="sk-seat-plate"
+                      // Online, a filled seat is not marked (Brian, 2026-11-14: "dont say they are bots"); offline you chose the bots.
+                      lead={p.difficulty && !room ? <span className="np-badge" role="img" aria-label={`${p.difficulty} bot`}>{BADGE[p.difficulty]}</span> : undefined}
+                      trail={<Lives lives={p.lives} max={maxLives} size={speaking ? 14 : 12} />}
+                      over={p.frozen ? <Ice /> : undefined}
+                    />
                   </div>
                 );
               })(),

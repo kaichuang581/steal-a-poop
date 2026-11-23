@@ -12,7 +12,7 @@ import { useIsMobile } from '../../ui/hooks';
 import { CloseIcon, GustIcon, MoonIcon } from '../components/Icons';
 import { Notice } from '../components/Notice';
 import { Board, Brass, Knit, Paper, Patch, Peg, Slate, Tally, WoodButton } from '../kit';
-import { SheepIcon } from '../components/SheepIcon';
+import { SheepHead } from '../avatars/AvatarIcon';
 import { localDateKey } from '../hooks/useToday';
 import { useMotionLevel } from '../hooks/useAmbient';
 import { PAINTED_TITLE } from '../screens/PaintedHome';
@@ -385,7 +385,7 @@ export function DreamScreen() {
           <div className="pointer-events-auto flex items-start gap-2">
             {/* The count in chalk on a slate: sheep counted, the best, and how far into the night with the bumps left. */}
             <Slate size="plaque" className="dr-count" aria-live="polite" aria-label={`${count} sheep counted`}>
-              <span className="dr-count-main"><SheepIcon size={20} /><b>{count}</b></span>
+              <span className="dr-count-main"><SheepHead size={20} /><b>{count}</b></span>
               {best > 0 ? <span className="kit-chalk-hand dr-count-sub">best {best}</span> : null}
               {length && (
                 <span className="kit-chalk-hand dr-count-sub" aria-label={`Fence ${fenceNow} of ${length.fences}, ${bumpsLeft} bumps left`}>

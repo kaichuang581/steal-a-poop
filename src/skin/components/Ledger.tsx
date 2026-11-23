@@ -1,11 +1,10 @@
 import { useRoomStore } from '../../state/roomStore';
 import type { PlayerView } from '../model/types';
-import { AvatarIcon } from '../avatars/AvatarIcon';
+import { AvatarIcon, SheepHead } from '../avatars/AvatarIcon';
 import { useAvatar } from '../avatars/store';
 import { Slate, Tally } from '../kit';
 import { MiniBomb } from './BombClock';
 import { AcornIcon, LeafIcon, SeedlingIcon, SnowflakeIcon } from './Icons';
-import { SheepIcon } from './SheepIcon';
 
 const BADGE = { easy: <SeedlingIcon size={13} />, medium: <LeafIcon size={13} />, hard: <AcornIcon size={13} /> } as const;
 
@@ -22,7 +21,7 @@ function useWorn(player: PlayerView): string | null {
 
 function Portrait({ player, size }: { player: PlayerView; size: number }) {
   const worn = useWorn(player);
-  return worn ? <AvatarIcon id={worn} size={size} /> : <SheepIcon size={size} bare={player.lives <= 1} />;
+  return worn ? <AvatarIcon id={worn} size={size} /> : <SheepHead size={size} />;
 }
 
 interface RowProps {

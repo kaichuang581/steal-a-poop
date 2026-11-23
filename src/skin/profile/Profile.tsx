@@ -11,11 +11,10 @@ import { getRecord } from '../../lib/record';
 import { useStore } from '../../state/store';
 import type { Stats } from '../../state/socialStore';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
-import { AvatarIcon } from '../avatars/AvatarIcon';
+import { AvatarIcon, SheepHead } from '../avatars/AvatarIcon';
 import { AvatarPicker } from '../avatars/AvatarPicker';
 import { useAvatar } from '../avatars/store';
 import { AcornIcon, CloseIcon, LeafIcon, SeedlingIcon } from '../components/Icons';
-import { SheepIcon } from '../components/SheepIcon';
 import { usePageHistory } from '../hooks/usePageHistory';
 import { useToday } from '../hooks/useToday';
 import { Board as Sign, Knit, Paper, Patch, Peg, Slate } from '../kit';
@@ -149,7 +148,7 @@ export function Profile({ onClose }: { onClose: () => void }) {
                 <Paper kind="note" className="sk-prof-card">
                   <div className="sk-prof-who">
                     <button type="button" className="sk-prof-avatar kit-peg kit-peg--light" onClick={() => setPicker(true)} aria-label="Change avatar" title="Change avatar">
-                      {avatar ? <AvatarIcon id={avatar} size={60} /> : <SheepIcon size={60} />}
+                      {avatar ? <AvatarIcon id={avatar} size={60} /> : <SheepHead size={60} />}
                     </button>
                     <div className="sk-prof-id">
                       <NameEditor signedIn={signedIn} accountName={profile?.nickname ?? ''} localName={settings.name} setLocalName={(name) => setSettings({ name })} />

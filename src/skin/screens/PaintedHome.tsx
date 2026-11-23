@@ -32,7 +32,7 @@ import { AcornIcon, ChainIcon, ClockIcon, CloseIcon, FlameIcon, GearIcon, GustIc
 import { AdminPanel } from '../components/AdminPanel';
 import { whenDoorsOpen } from '../components/BarnDoors';
 import { useAdmin } from '../../lib/admin';
-import { AvatarIcon } from '../avatars/AvatarIcon';
+import { AvatarIcon, SheepHead } from '../avatars/AvatarIcon';
 import { FeedbackDialog } from '../components/FeedbackDialog';
 import { Bazaar } from '../shop/Bazaar';
 import { Profile } from '../profile/Profile';
@@ -47,7 +47,6 @@ import type { MenuItem } from '../components/GameMenu';
 import { HomeSlab, HomeTitle, MenuIcon } from '../home/HomeParts';
 import { HourglassIcon, SetupChoice, SetupGo, SetupRow, SetupSheet, WoolBallIcon } from '../home/SetupSheet';
 import { WordOfDay } from '../wotd/WordOfDay';
-import { SheepIcon } from '../components/SheepIcon';
 import { useHour, useMotionLevel } from '../hooks/useAmbient';
 import { DevLine } from '../table/DevStats';
 import { FarmBackdrop } from '../table/FarmBackdrop';
@@ -269,7 +268,7 @@ export function PaintedHome() {
       type="button" className={`hm-me hm-slab hm-slab--night`} onClick={() => setProfile(true)} onPointerEnter={() => setHopKey((k) => k + 1)}
       aria-label={`Your profile${shownName ? `: ${shownName}` : ''}, level ${lvl.level}`} title="Your profile: stats, rank, name and avatar" data-profile
     >
-      <span className="hm-me-face" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={26} /> : <SheepIcon size={26} />}</span>
+      <span className="hm-me-face" aria-hidden="true">{avatar ? <AvatarIcon id={avatar} size={26} /> : <SheepHead size={26} />}</span>
       <span className="hm-me-id">
         <span className="hm-me-name">{shownName || 'Your name'}</span>
         <span className="hm-me-lvl">LV {lvl.level}<span className="hm-xp" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} data-on={i < filled || undefined} />)}</span></span>
@@ -313,8 +312,8 @@ export function PaintedHome() {
           <SetupChoice key={id} on={heldPreset(id)} onClick={() => { if (id === 'custom') setShowRules(true); else { setShowRules(false); setRule(PRESETS[id]); } }}>{cap(id)}</SetupChoice>
         ))}
       </SetupRow>
-      <SetupRow icon={<SheepIcon size={22} />} name="Sheep" label="Sheep at the table"
-        foot={<><span className="hm-setup-flock">{Array.from({ length: settings.playerCount }, (_, i) => <span key={i} className="sk-walk-in" style={{ animationDelay: `${i * 40}ms` }}><SheepIcon size={16} /></span>)}</span>{farmSheepLine(settings.playerCount - 1)}</>}>
+      <SetupRow icon={<SheepHead size={22} />} name="Sheep" label="Sheep at the table"
+        foot={<><span className="hm-setup-flock">{Array.from({ length: settings.playerCount }, (_, i) => <span key={i} className="sk-walk-in" style={{ animationDelay: `${i * 40}ms` }}><SheepHead size={16} /></span>)}</span>{farmSheepLine(settings.playerCount - 1)}</>}>
         {COUNTS.map((c) => <SetupChoice key={c} big on={settings.playerCount === c} onClick={() => setSettings({ playerCount: c })}>{c}</SetupChoice>)}
       </SetupRow>
       <SetupRow icon={DIFFS.find((d) => d.id === table.difficulty)?.icon} name="Bots" label="Bot difficulty">

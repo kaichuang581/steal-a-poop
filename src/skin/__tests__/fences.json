@@ -159,7 +159,7 @@
     "src/auth/countries.ts": "3997cb8c4b630e1c9aa456f1e1083059525e3e0c98cfca647ce8ec5e1e308bf0",
     "src/auth/guest.ts": "4e164674680eab501a91116e3647d043da1178a9c1cf4ab5e209a0b03dc325e6",
     "src/auth/supabase.ts": "f612c9f9624254bc7c4dd46dca278040c72a1aef790b827ade3d1309f3e74690",
-    "src/avatars/ids.ts": "737cf0e3368055eab3a9f7c6e43e24e2a39efda9fabcc78c814cc0f4af000459",
+    "src/avatars/ids.ts": "c965c22d7f291df62d7ab1c99b9b6a55df456da6a9d8d6a5add544b725d9699b",
     "src/config.ts": "38136971db2f10a6e96bf08dcf6cefcf97d2677e068e4220e9997947e4168714",
     "src/dream/__tests__/daily.test.ts": "2e9a07a26f0db1ee21ec32f00009d39915eac802e9615f02d7af9f9cef0e963c",
     "src/dream/__tests__/dream.test.ts": "99feb808ab03657478d368405e032899279c06132658f040d3addeb94889cdcf",

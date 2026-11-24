@@ -2425,3 +2425,14 @@ loading screen keeps its own colour (it must stand alone).
   (32 blurs a 24-row badge); the French Points rule is written in RankGuide.tsx (its coloured words cannot be translated
   word by word); French "Quick Game wins", "sheep in a night" and the streak label are shortened to fit one line; the
   bundle limit was raised 2 kB (scripts/check-bundle-size.mjs).
+- The fifth and sixth admin avatars (requested by Brian, 2026-11-24, with a face photo and a PSD of a bald head on a bodybuilder's body):
+  "Brian Sangwoo Lee" (`admin5`, the face) and "Ripped Brian" (`admin6`, head, neck and shoulders), both admin-only like the first
+  four and tall photos like them (src/skin/assets/admin5-forehead.png and admin6-forehead.png, 512 x 1339, the same three slices).
+  Each has six sliders in the admin panel, kept apart on this device (`sap:admin5-look`, `sap:admin6-look`): Forehead and Glare (0.1
+  to 6, 0 to 6, as the older ones), Orange and Red (0 to 100%), Eyes (-100% smaller to +100% bigger) and Jaw (-100% more chiselled to
+  +100% fatter). The maths is src/skin/avatars/faceTweaks.ts (`redden`, `warpFace`, and `FACES`, where each face's eyes and jaw sit in
+  its picture); AvatarDisc draws it on the same canvas texture as Juan's orange and the fourth's age (`warmedTexture(url, base, tint)`).
+  Names Brian first gave these as slurs about a real person (religion, sexual orientation, race); they were refused and he chose the
+  plain names above. Don't rename them to anything of that kind. The new sliders are this device's only: the room sees these two
+  avatars' default look (the ids are accepted by the server, so it needs deploying for them to show to others at all).
+

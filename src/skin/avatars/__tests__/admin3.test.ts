@@ -21,7 +21,7 @@ describe('the third admin avatar', () => {
   afterEach(() => { delete (globalThis as { localStorage?: unknown }).localStorage; });
 
   it('is an admin avatar the server accepts and the picker never offers', () => {
-    expect(ADMIN_AVATAR_IDS).toEqual([ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, 'admin4']);
+    for (const id of [ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, 'admin4']) expect(ADMIN_AVATAR_IDS).toContain(id);
     expect(isAvatarId(ADMIN3_AVATAR_ID)).toBe(true);
     expect(AVATAR_IDS).toContain(ADMIN3_AVATAR_ID);
     expect(isAdminAvatar(ADMIN3_AVATAR_ID)).toBe(true);

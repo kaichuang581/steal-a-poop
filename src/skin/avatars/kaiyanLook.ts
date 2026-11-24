@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { ADMIN4_AVATAR_ID, baseAvatarId } from '../../avatars/ids';
 import { DISC } from './discPose';
-import { EYES, JAW, RED } from './faceTweaks';
+import { EXPOSURE, EYES, GRAIN, JAW, RED, VIGNETTE } from './faceTweaks';
 import { AGE, ORANGE } from './orange';
 
 /**
@@ -13,7 +13,7 @@ import { AGE, ORANGE } from './orange';
  * (192..1041) and the face (1041..1339). Only the band grows or shrinks; the hair and face stay their own size.
  */
 /** `orange` (Juan's slider) is left out while it is 0, so a look with none still reads as just length and glare. */
-export interface KaiyanLook { length: number; glare: number; orange?: number; age?: number; red?: number; eyes?: number; jaw?: number }
+export interface KaiyanLook { length: number; glare: number; orange?: number; age?: number; red?: number; eyes?: number; jaw?: number; exposure?: number; vignette?: number; grain?: number }
 
 export const LENGTH = { min: 0.1, max: 6, step: 0.1, def: 1.8 } as const;
 export const GLARE = { min: 0, max: 6, step: 0.1, def: 2 } as const;
@@ -69,7 +69,8 @@ export function getKaiyanLook(id?: string | null): KaiyanLook {
     try {
       const v = JSON.parse(raw) as Partial<KaiyanLook>;
       const orange = clamp(v?.orange, ORANGE), age = clamp(v?.age, AGE), red = clamp(v?.red, RED), eyes = clamp(v?.eyes, EYES), jaw = clamp(v?.jaw, JAW);
-      look = { length: clamp(v?.length, r.length), glare: clamp(v?.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}), ...(red > 0 ? { red } : {}), ...(eyes !== 0 ? { eyes } : {}), ...(jaw !== 0 ? { jaw } : {}) };
+      const exposure = clamp(v?.exposure, EXPOSURE), vignette = clamp(v?.vignette, VIGNETTE), grain = clamp(v?.grain, GRAIN);
+      look = { length: clamp(v?.length, r.length), glare: clamp(v?.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}), ...(red > 0 ? { red } : {}), ...(eyes !== 0 ? { eyes } : {}), ...(jaw !== 0 ? { jaw } : {}), ...(exposure !== 0 ? { exposure } : {}), ...(vignette > 0 ? { vignette } : {}), ...(grain > 0 ? { grain } : {}) };
     } catch { /* a broken value: the defaults */ }
   }
   caches.set(key, { raw, look });
@@ -85,7 +86,8 @@ export function setKaiyanLook(next: Partial<KaiyanLook> | null, id?: string | nu
       const r = rangesFor(id);
       const orange = clamp(next.orange ?? cur.orange ?? 0, ORANGE), age = clamp(next.age ?? cur.age ?? 0, AGE);
       const red = clamp(next.red ?? cur.red ?? 0, RED), eyes = clamp(next.eyes ?? cur.eyes ?? 0, EYES), jaw = clamp(next.jaw ?? cur.jaw ?? 0, JAW);
-      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, r.length), glare: clamp(next.glare ?? cur.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}), ...(red > 0 ? { red } : {}), ...(eyes !== 0 ? { eyes } : {}), ...(jaw !== 0 ? { jaw } : {}) }));
+      const exposure = clamp(next.exposure ?? cur.exposure ?? 0, EXPOSURE), vignette = clamp(next.vignette ?? cur.vignette ?? 0, VIGNETTE), grain = clamp(next.grain ?? cur.grain ?? 0, GRAIN);
+      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, r.length), glare: clamp(next.glare ?? cur.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}), ...(red > 0 ? { red } : {}), ...(eyes !== 0 ? { eyes } : {}), ...(jaw !== 0 ? { jaw } : {}), ...(exposure !== 0 ? { exposure } : {}), ...(vignette > 0 ? { vignette } : {}), ...(grain > 0 ? { grain } : {}) }));
     }
   } catch { /* storage blocked */ }
   caches.delete(key);

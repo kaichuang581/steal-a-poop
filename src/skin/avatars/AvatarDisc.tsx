@@ -5,7 +5,7 @@ import type { SheepState } from '../table/Sheep';
 import { DISC, discPose } from './discPose';
 import { SLICE, sliceHeights, useKaiyanLook } from './kaiyanLook';
 import { ageOf, baseAvatarId, orangeOf } from '../../avatars/ids';
-import { FACES, redData, warpFace } from './faceTweaks';
+import { FACES, gradeData, redData, vignetteOf, warpFace } from './faceTweaks';
 import { ageData, warmData } from './orange';
 import { photoUrlFor } from './photos';
 
@@ -38,10 +38,10 @@ const photos = new Map<string, Texture>();
 const warmed = new Map<string, CanvasTexture>();
 const WARMED_KEEP = 4;
 /** What the sliders do to the picture: orange (Juan's), age (the fourth's), red, and the eyes and jaw warps (the fifth's and sixth's). */
-interface Tint { orange: number; age: number; red: number; eyes: number; jaw: number }
-const tinted = (t: Tint) => t.orange > 0 || t.age > 0 || t.red > 0 || t.eyes !== 0 || t.jaw !== 0;
+interface Tint { orange: number; age: number; red: number; eyes: number; jaw: number; exposure: number; vignette: number; grain: number }
+const tinted = (t: Tint) => t.orange > 0 || t.age > 0 || t.red > 0 || t.eyes !== 0 || t.jaw !== 0 || t.exposure !== 0 || t.vignette > 0 || t.grain > 0;
 function warmedTexture(url: string, base: string | null, t: Tint): CanvasTexture {
-  const key = `${url}|${Math.round(t.orange * 20)}|${Math.round(t.age * 20)}|${Math.round(t.red * 20)}|${Math.round(t.eyes * 20)}|${Math.round(t.jaw * 20)}`;
+  const key = `${url}|${Math.round(t.orange * 20)}|${Math.round(t.age * 20)}|${Math.round(t.red * 20)}|${Math.round(t.eyes * 20)}|${Math.round(t.jaw * 20)}|${Math.round(t.exposure * 20)}|${Math.round(t.vignette * 20)}|${Math.round(t.grain * 20)}`;
   const have = warmed.get(key);
   if (have) { warmed.delete(key); warmed.set(key, have); return have; }
   const canvas = document.createElement('canvas');
@@ -60,6 +60,7 @@ function warmedTexture(url: string, base: string | null, t: Tint): CanvasTexture
     if (t.orange > 0) warmData(px.data, t.orange);
     if (t.red > 0) redData(px.data, t.red);
     if (t.age > 0) ageData(px.data, 512, t.age);
+    if (face && (t.exposure !== 0 || t.vignette > 0 || t.grain > 0)) { const v = vignetteOf(face); gradeData(px.data, 512, t, v.centre, v.radius); }
     g.putImageData(px, 0, 0);
     tex.needsUpdate = true;
   };
@@ -132,16 +133,16 @@ function starTexture(): Texture {
 
 export function AvatarDisc({ state, stateKey = 0, reduced = false, still = false, dimmed = false, speaking = false, yaw = 0, pace = 0, avatar }: Props) {
   // Each admin avatar has its own forehead length and glare, and Juan's an orange amount (src/skin/avatars/kaiyanLook.ts).
-  const { length, glare, orange: ownOrange = 0, age: ownAge = 0, red = 0, eyes = 0, jaw = 0 } = useKaiyanLook(avatar);
+  const { length, glare, orange: ownOrange = 0, age: ownAge = 0, red = 0, eyes = 0, jaw = 0, exposure = 0, vignette = 0, grain = 0 } = useKaiyanLook(avatar);
   // Someone else's Juan or fourth avatar comes with the amount they chose on the id (src/avatars/ids.ts); yours is your own slider.
   const orange = orangeOf(avatar) ?? ownOrange;
   const age = ageOf(avatar) ?? ownAge;
   const url = photoUrlFor(avatar);
   const base = baseAvatarId(avatar);
   const tex = useMemo(() => {
-    const t: Tint = { orange, age, red, eyes, jaw };
+    const t: Tint = { orange, age, red, eyes, jaw, exposure, vignette, grain };
     return tinted(t) ? warmedTexture(url, base, t) : photoTexture(url);
-  }, [url, base, orange, age, red, eyes, jaw]);
+  }, [url, base, orange, age, red, eyes, jaw, exposure, vignette, grain]);
   const quad = useMemo(() => pictureGeometry(length), [length]);
   useEffect(() => () => quad.dispose(), [quad]);
   // Where the slices sit: the picture's foot stays on the snow however long the band is. It sways, leans and hops about

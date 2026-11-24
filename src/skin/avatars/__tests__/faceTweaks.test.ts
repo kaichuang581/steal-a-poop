@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ADMIN5_AVATAR_ID, ADMIN6_AVATAR_ID, ADMIN_AVATAR_IDS, isAdminAvatar, isAvatarId } from '../../../avatars/ids';
 import { SAVE_KEYS } from '../../../lib/savecode';
 import { byId } from '../catalog';
-import { EYES, FACES, JAW, RED, redData, redden, warpFace } from '../faceTweaks';
+import { EXPOSURE, EYES, FACES, GRAIN, JAW, MENACING, RED, VIGNETTE, gradeData, hash01, redData, redden, vignetteOf, warpFace } from '../faceTweaks';
 import type { FaceSpec } from '../faceTweaks';
 import { defaultLookFor, getKaiyanLook, rangesFor, setKaiyanLook } from '../kaiyanLook';
 import { photoUrlFor } from '../photos';
@@ -87,6 +87,64 @@ describe('the fifth and sixth admin avatars', () => {
       redData(d, 1);
       expect(d[3]).toBe(77);
       expect(d[7]).toBe(255);
+    });
+  });
+
+  describe('exposure, vignette and grain', () => {
+    const flat = (n: number, v: number) => { const d = new Uint8ClampedArray(n * n * 4); for (let i = 0; i < n * n; i++) d.set([v, v, v, 200], i * 4); return d; };
+    it('do nothing at 0', () => {
+      const d = flat(16, 120); const before = [...d];
+      gradeData(d, 16, { exposure: 0, vignette: 0, grain: 0 }, [8, 8], 8);
+      expect([...d]).toEqual(before);
+    });
+    it('exposure darkens below 0 and brightens above, in steps, and leaves alpha alone', () => {
+      let prev = 120;
+      for (const e of [-1, -0.5, 0.5, 1]) {
+        const d = flat(4, 120);
+        gradeData(d, 4, { exposure: e, vignette: 0, grain: 0 }, [2, 2], 4);
+        expect(d[3]).toBe(200);
+        if (e < 0) expect(d[0]).toBeLessThan(120); else expect(d[0]).toBeGreaterThan(120);
+        prev = d[0];
+      }
+      expect(prev).toBeLessThanOrEqual(255);
+    });
+    it('the vignette leaves the middle and darkens the edges, more the stronger it is', () => {
+      const n = 64, mid = (n / 2 * n + n / 2) * 4, edge = (n - 1) * 4;
+      const weak = flat(n, 200), strong = flat(n, 200);
+      gradeData(weak, n, { exposure: 0, vignette: 0.3, grain: 0 }, [n / 2, n / 2], n / 2);
+      gradeData(strong, n, { exposure: 0, vignette: 1, grain: 0 }, [n / 2, n / 2], n / 2);
+      expect(strong[mid]).toBe(200);
+      expect(weak[edge]).toBeLessThan(200);
+      expect(strong[edge]).toBeLessThan(weak[edge]);
+    });
+    it('grain is the same every time, varies pixel to pixel, grows with the amount and stays in range', () => {
+      expect(hash01(5, 9)).toBe(hash01(5, 9));
+      expect(hash01(5, 9)).not.toBe(hash01(6, 9));
+      const a = flat(16, 128), b = flat(16, 128), c = flat(16, 128);
+      gradeData(a, 16, { exposure: 0, vignette: 0, grain: 0.4 }, [8, 8], 99);
+      gradeData(b, 16, { exposure: 0, vignette: 0, grain: 0.4 }, [8, 8], 99);
+      gradeData(c, 16, { exposure: 0, vignette: 0, grain: 1 }, [8, 8], 99);
+      expect([...a]).toEqual([...b]);
+      const spread = (d: Uint8ClampedArray) => { let lo = 255, hi = 0; for (let i = 0; i < d.length; i += 4) { lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); } return hi - lo; };
+      expect(spread(a)).toBeGreaterThan(5);
+      expect(spread(c)).toBeGreaterThan(spread(a));
+    });
+    it('are centred on each face, inside its picture', () => {
+      for (const f of Object.values(FACES)) { const v = vignetteOf(f); expect(v.centre[0]).toBeGreaterThan(0); expect(v.centre[1]).toBeGreaterThan(1041); expect(v.radius).toBeGreaterThan(100); }
+    });
+    it('are kept per avatar, left out of the saved value at 0, and the Menacing look sets them', () => {
+      setKaiyanLook({ exposure: -0.5, vignette: 0.8, grain: 0.6 }, ADMIN5_AVATAR_ID);
+      expect(getKaiyanLook(ADMIN5_AVATAR_ID)).toMatchObject({ exposure: -0.5, vignette: 0.8, grain: 0.6 });
+      expect(getKaiyanLook(ADMIN6_AVATAR_ID)).toEqual(defaultLookFor(ADMIN6_AVATAR_ID));
+      setKaiyanLook({ exposure: 0, vignette: 0, grain: 0 }, ADMIN5_AVATAR_ID);
+      expect(JSON.parse(mem.get('sap:admin5-look')!)).toEqual({ length: 1.8, glare: 2 });
+      setKaiyanLook({ ...MENACING }, ADMIN6_AVATAR_ID);
+      expect(getKaiyanLook(ADMIN6_AVATAR_ID)).toMatchObject({ exposure: MENACING.exposure, vignette: MENACING.vignette, grain: MENACING.grain, red: MENACING.red });
+      expect(MENACING.exposure).toBeGreaterThanOrEqual(EXPOSURE.min);
+      expect(MENACING.vignette).toBeLessThanOrEqual(VIGNETTE.max);
+      expect(MENACING.grain).toBeLessThanOrEqual(GRAIN.max);
+      setKaiyanLook({ exposure: 9, vignette: 9, grain: 9 }, ADMIN6_AVATAR_ID);
+      expect(getKaiyanLook(ADMIN6_AVATAR_ID)).toMatchObject({ exposure: EXPOSURE.max, vignette: VIGNETTE.max, grain: GRAIN.max });
     });
   });
 

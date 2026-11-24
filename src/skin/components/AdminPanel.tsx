@@ -9,7 +9,7 @@ import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
 import { Brass, Switch, Slider } from '../kit';
 import { rangesFor, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
-import { EYES, JAW, RED } from '../avatars/faceTweaks';
+import { EXPOSURE, EYES, GRAIN, JAW, MENACING, RED, VIGNETTE } from '../avatars/faceTweaks';
 import { AGE, ORANGE } from '../avatars/orange';
 import { previewEnd } from '../admin/endPreview';
 import { SiteNumbers } from '../admin/SiteNumbers';
@@ -165,7 +165,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
 /** How long an avatar's forehead is and how hard it shines, on this device (src/skin/avatars/kaiyanLook.ts). */
 function HeadSliders({ avatar, title, orange = false, age = false, red = false, face = false }: { avatar: string; title: string; orange?: boolean; age?: boolean; red?: boolean; face?: boolean }) {
-  const { length, glare, orange: tint = 0, age: years = 0, red: flush = 0, eyes = 0, jaw = 0 } = useKaiyanLook(avatar);
+  const { length, glare, orange: tint = 0, age: years = 0, red: flush = 0, eyes = 0, jaw = 0, exposure = 0, vignette = 0, grain = 0 } = useKaiyanLook(avatar);
   const { length: LENGTH, glare: GLARE } = rangesFor(avatar);
   const row = (label: string, value: number, r: { min: number; max: number; step: number }, set: (v: number) => void, show: (v: number) => string = (v) => `×${v.toFixed(1)}`) => (
     <label className="mt-1 flex items-center gap-2">
@@ -178,7 +178,10 @@ function HeadSliders({ avatar, title, orange = false, age = false, red = false, 
     <section className="sk-paper mt-3 p-2" aria-label={title}>
       <div className="flex items-center justify-between gap-2">
         <b className="sk-display block text-base">{title}</b>
-        <ClothButton className="sk-btn" onClick={() => setKaiyanLook(null, avatar)}>Reset</ClothButton>
+        <div className="flex gap-1">
+          {face && <WoodButton className="sk-btn" onClick={() => setKaiyanLook({ ...MENACING }, avatar)}>Menacing</WoodButton>}
+          <ClothButton className="sk-btn" onClick={() => setKaiyanLook(null, avatar)}>Reset</ClothButton>
+        </div>
       </div>
       {row('Forehead', length, LENGTH, (v) => setKaiyanLook({ length: v }, avatar))}
       {row('Glare', glare, GLARE, (v) => setKaiyanLook({ glare: v }, avatar))}
@@ -186,6 +189,9 @@ function HeadSliders({ avatar, title, orange = false, age = false, red = false, 
       {orange && row('Orange', tint, ORANGE, (v) => setKaiyanLook({ orange: v }, avatar), (v) => `${Math.round(v * 100)}%`)}
       {red && row('Red', flush, RED, (v) => setKaiyanLook({ red: v }, avatar), (v) => `${Math.round(v * 100)}%`)}
       {face && row('Eyes', eyes, EYES, (v) => setKaiyanLook({ eyes: v }, avatar), (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`)}
+      {face && row('Exposure', exposure, EXPOSURE, (v) => setKaiyanLook({ exposure: v }, avatar), (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`)}
+      {face && row('Vignette', vignette, VIGNETTE, (v) => setKaiyanLook({ vignette: v }, avatar), (v) => `${Math.round(v * 100)}%`)}
+      {face && row('Grain', grain, GRAIN, (v) => setKaiyanLook({ grain: v }, avatar), (v) => `${Math.round(v * 100)}%`)}
       {face && row('Jaw', jaw, JAW, (v) => setKaiyanLook({ jaw: v }, avatar), (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`)}
     </section>
   );

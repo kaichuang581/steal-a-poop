@@ -9,6 +9,12 @@ import { skinWeight } from './orange';
 export const RED = { min: 0, max: 1, step: 0.05, def: 0 } as const;
 export const EYES = { min: -1, max: 1, step: 0.1, def: 0 } as const;
 export const JAW = { min: -1, max: 1, step: 0.1, def: 0 } as const;
+/** The photographic grade (requested by Brian, 2026-11-24: "exposure, vignette and grain adjustable, make him look evil"): exposure in stops (-1 darker to 1 brighter), the edges' darkening, and film grain. */
+export const EXPOSURE = { min: -1, max: 1, step: 0.05, def: 0 } as const;
+export const VIGNETTE = { min: 0, max: 1, step: 0.05, def: 0 } as const;
+export const GRAIN = { min: 0, max: 1, step: 0.05, def: 0 } as const;
+/** The look the "Menacing" button sets: dark, closed in at the edges, grainy and flushed. Nothing is drawn on the face. */
+export const MENACING = { exposure: -0.55, vignette: 0.85, grain: 0.6, red: 0.3 } as const;
 
 const clamp255 = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : v);
 
@@ -43,6 +49,40 @@ export const FACES: Record<string, FaceSpec> = {
   admin5: { eyes: [[197, 1089], [270, 1089]], eyeR: 40, jaw: { cx: 245, from: 1127, chin: 1212, end: 1240 } },
   admin6: { eyes: [[215, 1082], [303, 1082]], eyeR: 42, jaw: { cx: 263, from: 1127, chin: 1219, end: 1247 } },
 };
+
+/** A repeatable value in [0, 1) for a pixel, so the grain is the same every time the picture is drawn. */
+export function hash01(x: number, y: number): number {
+  let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+export interface Grade { exposure: number; vignette: number; grain: number }
+
+/**
+ * Exposure, vignette and grain over RGBA data (`w` wide), in place, alpha left alone. The vignette darkens with the distance
+ * from the face's middle (`centre`, `radius` in pixels), so the long forehead above it goes dark too.
+ */
+export function gradeData(data: Uint8ClampedArray, w: number, g: Grade, centre: [number, number], radius: number): void {
+  if (g.exposure === 0 && g.vignette <= 0 && g.grain <= 0) return;
+  const gain = 2 ** (g.exposure * 1.5);
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    const x = p % w, y = (p - x) / w;
+    const d = Math.hypot(x - centre[0], y - centre[1]) / radius;
+    const dark = 1 - 0.92 * g.vignette * smooth(0.4, 1.3, d);
+    const noise = g.grain > 0 ? (hash01(x, y) - 0.5) * 2 * g.grain * 70 : 0;
+    data[i] = clamp255(data[i] * gain * dark + noise);
+    data[i + 1] = clamp255(data[i + 1] * gain * dark + noise);
+    data[i + 2] = clamp255(data[i + 2] * gain * dark + noise);
+  }
+}
+
+/** Where each face's vignette is centred, and how far it reaches. */
+export function vignetteOf(spec: FaceSpec): { centre: [number, number]; radius: number } {
+  const eyeY = (spec.eyes[0][1] + spec.eyes[1][1]) / 2;
+  return { centre: [spec.jaw.cx, (eyeY + spec.jaw.chin) / 2], radius: 300 };
+}
 
 const smooth = (a: number, b: number, v: number) => {
   const t = Math.min(1, Math.max(0, (v - a) / (b - a)));

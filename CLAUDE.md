@@ -2435,4 +2435,11 @@ loading screen keeps its own colour (it must stand alone).
   Names Brian first gave these as slurs about a real person (religion, sexual orientation, race); they were refused and he chose the
   plain names above. Don't rename them to anything of that kind. The new sliders are this device's only: the room sees these two
   avatars' default look (the ids are accepted by the server, so it needs deploying for them to show to others at all).
+- Exposure, vignette and grain on the two Brian avatars, and a "Menacing" look (requested by Brian, 2026-11-24: "make the exposure,
+  vignette and grain adjustable, make him look evil as possible"). `admin5` and `admin6` gain three sliders each (`exposure` -100% to
+  +100%, `vignette` and `grain` 0 to 100%, saved in their `sap:admin5-look` / `sap:admin6-look`, left out while 0): `gradeData`,
+  `hash01`, `vignetteOf` in src/skin/avatars/faceTweaks.ts, drawn by AvatarDisc after the tints (the vignette is centred on the face,
+  so the long forehead goes dark too; the grain is a fixed hash, not animated). A "Menacing" button beside Reset sets `MENACING`
+  (exposure -55%, vignette 85%, grain 60%, red 30%): a dark, grainy, closed-in, flushed photo grade, nothing drawn on or added to the
+  face. Keep it a grade: no horns, demon eyes or other additions to a real person's face. This device only, like the other face sliders.
 

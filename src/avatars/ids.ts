@@ -13,7 +13,10 @@ export const ADMIN2_AVATAR_ID = 'admin2';
 export const ADMIN3_AVATAR_ID = 'admin3';
 /** The fourth admin avatar (requested by Brian, 2026-11-21): a tall photo whose sliders go to 12x, with an age slider (darker and wrinklier, 0 to 12x). */
 export const ADMIN4_AVATAR_ID = 'admin4';
-export const ADMIN_AVATAR_IDS = [ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, ADMIN4_AVATAR_ID] as const;
+/** The fifth and sixth (requested by Brian, 2026-11-24): "Brian Sangwoo Lee" (the face) and "Ripped Brian" (head and shoulders), each with sliders for forehead, glare, orange, red, eyes and jaw. */
+export const ADMIN5_AVATAR_ID = 'admin5';
+export const ADMIN6_AVATAR_ID = 'admin6';
+export const ADMIN_AVATAR_IDS = [ADMIN_AVATAR_ID, ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, ADMIN4_AVATAR_ID, ADMIN5_AVATAR_ID, ADMIN6_AVATAR_ID] as const;
 export const AVATAR_IDS = [...ANIMAL_AVATAR_IDS, ...ADMIN_AVATAR_IDS] as const;
 
 export type AvatarId = (typeof AVATAR_IDS)[number];

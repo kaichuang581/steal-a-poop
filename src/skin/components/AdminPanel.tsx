@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, ADMIN4_AVATAR_ID, ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
+import { ADMIN2_AVATAR_ID, ADMIN3_AVATAR_ID, ADMIN4_AVATAR_ID, ADMIN5_AVATAR_ID, ADMIN6_AVATAR_ID, ADMIN_AVATAR_ID, isAdminAvatar } from '../../avatars/ids';
+import type { AvatarId } from '../../avatars/ids';
 import { useAdmin } from '../../lib/admin';
 import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
@@ -8,6 +9,7 @@ import { CloseIcon, LockIcon } from './Icons';
 import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
 import { Brass, Switch, Slider } from '../kit';
 import { rangesFor, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
+import { EYES, JAW, RED } from '../avatars/faceTweaks';
 import { AGE, ORANGE } from '../avatars/orange';
 import { previewEnd } from '../admin/endPreview';
 import { SiteNumbers } from '../admin/SiteNumbers';
@@ -28,6 +30,8 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const wearing2 = avatar === ADMIN2_AVATAR_ID;
   const wearing3 = avatar === ADMIN3_AVATAR_ID;
   const wearing4 = avatar === ADMIN4_AVATAR_ID;
+  const wearing5 = avatar === ADMIN5_AVATAR_ID;
+  const wearing6 = avatar === ADMIN6_AVATAR_ID;
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -110,6 +114,21 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
               </div>
             </section>
             <HeadSliders avatar={ADMIN4_AVATAR_ID} title="Fourth avatar’s head" age />
+            {([[ADMIN5_AVATAR_ID, 'Brian Sangwoo Lee', wearing5], [ADMIN6_AVATAR_ID, 'Ripped Brian', wearing6]] as [AvatarId, string, boolean][]).map(([id, name, on]) => (
+              <div key={id}>
+                <section className="sk-paper mt-3 flex items-center gap-3 p-2" aria-label={name}>
+                  <PhotoAvatar size={72} avatar={id} label={name} />
+                  <div className="min-w-0 flex-1">
+                    <b className="sk-display block text-base">{name}</b>
+                    <p className="sk-hand text-sm leading-tight" style={{ color: 'var(--ink-soft)' }}>{on ? 'On. Others in a room see the default look.' : 'Forehead, glare, orange, red, eyes (small to big) and jaw (chiselled to fat). Only here, only for admin.'}</p>
+                    {on
+                      ? <WoodButton onClick={() => setAvatar(null)} className="sk-btn mt-1" aria-pressed>Unequip</WoodButton>
+                      : <ClothButton onClick={() => setAvatar(id)} className="sk-btn mt-1">Equip</ClothButton>}
+                  </div>
+                </section>
+                <HeadSliders avatar={id} title={`${name}’s head`} orange red face />
+              </div>
+            ))}
             {/* Jump straight to the end of a game to see the results screens; nothing is recorded. */}
             <section className="sk-paper mt-3 p-2" aria-label="See the end screens">
               <b className="sk-display block text-base">Skip to the end</b>
@@ -145,8 +164,8 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 }
 
 /** How long an avatar's forehead is and how hard it shines, on this device (src/skin/avatars/kaiyanLook.ts). */
-function HeadSliders({ avatar, title, orange = false, age = false }: { avatar: string; title: string; orange?: boolean; age?: boolean }) {
-  const { length, glare, orange: tint = 0, age: years = 0 } = useKaiyanLook(avatar);
+function HeadSliders({ avatar, title, orange = false, age = false, red = false, face = false }: { avatar: string; title: string; orange?: boolean; age?: boolean; red?: boolean; face?: boolean }) {
+  const { length, glare, orange: tint = 0, age: years = 0, red: flush = 0, eyes = 0, jaw = 0 } = useKaiyanLook(avatar);
   const { length: LENGTH, glare: GLARE } = rangesFor(avatar);
   const row = (label: string, value: number, r: { min: number; max: number; step: number }, set: (v: number) => void, show: (v: number) => string = (v) => `×${v.toFixed(1)}`) => (
     <label className="mt-1 flex items-center gap-2">
@@ -165,6 +184,9 @@ function HeadSliders({ avatar, title, orange = false, age = false }: { avatar: s
       {row('Glare', glare, GLARE, (v) => setKaiyanLook({ glare: v }, avatar))}
       {age && row('Older', years, AGE, (v) => setKaiyanLook({ age: v }, avatar))}
       {orange && row('Orange', tint, ORANGE, (v) => setKaiyanLook({ orange: v }, avatar), (v) => `${Math.round(v * 100)}%`)}
+      {red && row('Red', flush, RED, (v) => setKaiyanLook({ red: v }, avatar), (v) => `${Math.round(v * 100)}%`)}
+      {face && row('Eyes', eyes, EYES, (v) => setKaiyanLook({ eyes: v }, avatar), (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`)}
+      {face && row('Jaw', jaw, JAW, (v) => setKaiyanLook({ jaw: v }, avatar), (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`)}
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { ADMIN4_AVATAR_ID, baseAvatarId } from '../../avatars/ids';
 import { DISC } from './discPose';
+import { EYES, JAW, RED } from './faceTweaks';
 import { AGE, ORANGE } from './orange';
 
 /**
@@ -12,7 +13,7 @@ import { AGE, ORANGE } from './orange';
  * (192..1041) and the face (1041..1339). Only the band grows or shrinks; the hair and face stay their own size.
  */
 /** `orange` (Juan's slider) is left out while it is 0, so a look with none still reads as just length and glare. */
-export interface KaiyanLook { length: number; glare: number; orange?: number; age?: number }
+export interface KaiyanLook { length: number; glare: number; orange?: number; age?: number; red?: number; eyes?: number; jaw?: number }
 
 export const LENGTH = { min: 0.1, max: 6, step: 0.1, def: 1.8 } as const;
 export const GLARE = { min: 0, max: 6, step: 0.1, def: 2 } as const;
@@ -44,7 +45,7 @@ export function pictureHeight(length: number): number {
 }
 
 /** Each tall photo keeps its own look on this device. Kaiyan's key is the one it has always had. */
-const KEYS: Record<string, string> = { kaiyan: 'sap:kaiyan-look', admin2: 'sap:admin2-look', admin3: 'sap:admin3-look', admin4: 'sap:admin4-look' };
+const KEYS: Record<string, string> = { kaiyan: 'sap:kaiyan-look', admin2: 'sap:admin2-look', admin3: 'sap:admin3-look', admin4: 'sap:admin4-look', admin5: 'sap:admin5-look', admin6: 'sap:admin6-look' };
 const keyFor = (id?: string | null): string => {
   const base = baseAvatarId(id);
   return base && Object.hasOwn(KEYS, base) ? KEYS[base] : KEYS.kaiyan;
@@ -67,8 +68,8 @@ export function getKaiyanLook(id?: string | null): KaiyanLook {
   if (raw) {
     try {
       const v = JSON.parse(raw) as Partial<KaiyanLook>;
-      const orange = clamp(v?.orange, ORANGE), age = clamp(v?.age, AGE);
-      look = { length: clamp(v?.length, r.length), glare: clamp(v?.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}) };
+      const orange = clamp(v?.orange, ORANGE), age = clamp(v?.age, AGE), red = clamp(v?.red, RED), eyes = clamp(v?.eyes, EYES), jaw = clamp(v?.jaw, JAW);
+      look = { length: clamp(v?.length, r.length), glare: clamp(v?.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}), ...(red > 0 ? { red } : {}), ...(eyes !== 0 ? { eyes } : {}), ...(jaw !== 0 ? { jaw } : {}) };
     } catch { /* a broken value: the defaults */ }
   }
   caches.set(key, { raw, look });
@@ -83,7 +84,8 @@ export function setKaiyanLook(next: Partial<KaiyanLook> | null, id?: string | nu
       const cur = getKaiyanLook(id);
       const r = rangesFor(id);
       const orange = clamp(next.orange ?? cur.orange ?? 0, ORANGE), age = clamp(next.age ?? cur.age ?? 0, AGE);
-      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, r.length), glare: clamp(next.glare ?? cur.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}) }));
+      const red = clamp(next.red ?? cur.red ?? 0, RED), eyes = clamp(next.eyes ?? cur.eyes ?? 0, EYES), jaw = clamp(next.jaw ?? cur.jaw ?? 0, JAW);
+      localStorage.setItem(key, JSON.stringify({ length: clamp(next.length ?? cur.length, r.length), glare: clamp(next.glare ?? cur.glare, r.glare), ...(orange > 0 ? { orange } : {}), ...(age > 0 ? { age } : {}), ...(red > 0 ? { red } : {}), ...(eyes !== 0 ? { eyes } : {}), ...(jaw !== 0 ? { jaw } : {}) }));
     }
   } catch { /* storage blocked */ }
   caches.delete(key);

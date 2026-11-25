@@ -39,12 +39,12 @@
 }
 .tp-tag::before { content: ''; position: absolute; top: 3px; left: 50%; width: 4px; height: 4px; margin-left: -2px; background: var(--tp-ink); }
 .tp-tag--sack { width: calc(152px * var(--u)); min-height: calc(52px * var(--u)); }
-.tp-tag--sack b { font-size: calc(16px * var(--u)); }
+.tp-tag--sack b { font-size: max(11px, calc(16px * var(--u))); }
 .tp-tag--sack small, .tp-tag small { font-size: max(11px, calc(11px * var(--u))); color: var(--soft); }
 .tp-tag[data-on] { outline: 3px solid var(--lantern); outline-offset: -3px; }
 .tp-tag small[data-all] { color: var(--green); }
 .tp-tag--item { width: calc(116px * var(--u)); min-height: calc(44px * var(--u)); }
-.tp-tag--item b { font-size: calc(14px * var(--u)); }
+.tp-tag--item b { font-size: max(11px, calc(14px * var(--u))); }
 .tp-tag--small { font-size: max(11px, calc(12px * var(--u))); padding: 4px 10px; }
 .tp-tag--small::before, .tp-tag--mark::before, .tp-tag--close::before, .tp-tag--reveal::before { display: none; }
 .tp-rarity { display: inline-flex; align-items: center; gap: 4px; font-size: max(11px, calc(11px * var(--u))); color: var(--soft); }
@@ -58,20 +58,20 @@
 /* Signs and chalk. */
 .tp-sign { display: flex; align-items: center; justify-content: center; pointer-events: none !important; }
 .tp-sign span { font-family: var(--skin-font-display); font-size: calc(9px * var(--fit, 1)); color: var(--tp-ink); }
-.tp-chalk { color: var(--chalk); padding: calc(12px * var(--u)) calc(14px * var(--u)); font-size: calc(12px * var(--u)); pointer-events: none !important; display: flex; flex-direction: column; gap: calc(6px * var(--u)); }
-.tp-chalk h4 { font-size: calc(19px * var(--u)); }
+.tp-chalk { color: var(--chalk); padding: calc(12px * var(--u)) calc(14px * var(--u)); font-size: max(11px, calc(12px * var(--u))); pointer-events: none !important; display: flex; flex-direction: column; gap: calc(6px * var(--u)); }
+.tp-chalk h4 { font-size: max(11px, calc(19px * var(--u))); }
 .tp-chalk-sub { margin-top: -4px !important; }
 .tp-chalk ul { list-style: none; padding: 0; display: grid; gap: calc(6px * var(--u)); margin-top: calc(6px * var(--u)) !important; }
-.tp-chalk li { display: flex; align-items: center; gap: 8px; font-size: calc(14px * var(--u)); }
+.tp-chalk li { display: flex; align-items: center; gap: 8px; font-size: max(11px, calc(14px * var(--u))); }
 .tp-chalk li i { width: 8px; height: 8px; }
-.tp-chalk li b { margin-left: auto; font-size: calc(15px * var(--u)); }
+.tp-chalk li b { margin-left: auto; font-size: max(11px, calc(15px * var(--u))); }
 .tp-chalk hr { border: 0; border-top: 1px solid var(--chalk); width: 100%; margin: 2px 0; }
-.tp-chalk p { font-size: calc(12px * var(--u)); line-height: 1.25; }
+.tp-chalk p { font-size: max(11px, calc(12px * var(--u))); line-height: 1.25; }
 
 /* Tiles: a face, a 6 px side, an ink outline, a light line along the top. */
 .tp-btn {
   border: 1px solid var(--tp-ink); background: var(--lantern); box-shadow: inset 0 2px 0 var(--lantern-hi), 0 6px 0 var(--lantern-lip);
-  clip-path: var(--step); padding: 6px 14px; font-family: var(--skin-font-display) !important; font-weight: 800; font-size: calc(16px * var(--u));
+  clip-path: var(--step); padding: 6px 14px; font-family: var(--skin-font-display) !important; font-weight: 800; font-size: max(11px, calc(16px * var(--u)));
   display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-height: 44px;
 }
 .tp-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 2px 0 var(--lantern-hi), 0 3px 0 var(--lantern-lip); }
@@ -79,7 +79,7 @@
 .tp-btn--wool, .tp-btn--pale-ok { background: var(--woolt); box-shadow: inset 0 2px 0 var(--paper), 0 6px 0 var(--wool-side); }
 .tp-btn--tile { width: calc(160px * var(--u)); min-height: max(36px, calc(36px * var(--u))); flex-direction: row; gap: 6px; }
 .tp-btn--main { position: absolute; left: 50%; top: calc(772px * var(--u) + (100vh - 900px * var(--u)) - 27px * var(--u)); transform: translateX(-50%); width: calc(340px * var(--u)); min-height: calc(54px * var(--u)); }
-.tp-btn--main b { display: inline-flex; gap: 8px; align-items: center; font-size: calc(19px * var(--u)); }
+.tp-btn--main b { display: inline-flex; gap: 8px; align-items: center; font-size: max(11px, calc(19px * var(--u))); }
 .tp-btn--main small { font-family: var(--skin-font-body); font-weight: 800; font-size: max(11px, calc(11px * var(--u))); }
 .tp-btn--main:active:not(:disabled) { transform: translate(-50%, 3px); }
 .tp-tiles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
@@ -87,14 +87,14 @@
 
 /* The top: title, the yarn line of tabs, the wallet. */
 .tp-top { position: absolute; inset: 0 0 auto 0; height: 0; }
-.tp-title { position: absolute; left: 22px; top: 14px; font-size: calc(24px * var(--u)); color: var(--paper); text-shadow: 2px 2px 0 var(--tp-ink); }
+.tp-title { position: absolute; left: 22px; top: 14px; font-size: max(11px, calc(24px * var(--u))); color: var(--paper); text-shadow: 2px 2px 0 var(--tp-ink); }
 .tp-yarn { position: absolute; left: 50%; top: calc(22px * var(--u)); transform: translateX(-50%); display: flex; gap: 18px; padding: 0 60px; }
 .tp-yarn::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--yarn-shade); }
 .tp-yarn::after { content: ''; position: absolute; left: 0; right: 0; top: 1px; height: 2px; background: var(--yarn); }
 .tp-tab {
   position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(156px * var(--u)); height: calc(40px * var(--u)); min-height: 40px;
   margin-top: 10px; background: var(--paper); border: 1px solid var(--tp-ink); box-shadow: 0 3px 0 var(--lip); clip-path: var(--step);
-  font-family: var(--skin-font-display) !important; font-size: calc(17px * var(--u)); transform-origin: 50% -10px;
+  font-family: var(--skin-font-display) !important; font-size: max(11px, calc(17px * var(--u))); transform-origin: 50% -10px;
 }
 .tp-tab[data-on] { background: var(--lantern); box-shadow: inset 0 2px 0 var(--lantern-hi), 0 3px 0 var(--lantern-lip); margin-top: 16px; }
 .tp-peg { position: absolute; top: -1px; left: 50%; width: 8px; height: 8px; margin-left: -4px; background: var(--peg); }
@@ -113,7 +113,7 @@
 /* Notes and the strip. */
 .tp-note {
   position: absolute; left: 50%; bottom: calc(100px * var(--u)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
-  background: var(--paper); border: 1px solid var(--tp-ink); box-shadow: 0 3px 0 var(--lip); clip-path: var(--step); padding: 10px 16px; font-size: calc(13px * var(--u)); white-space: nowrap;
+  background: var(--paper); border: 1px solid var(--tp-ink); box-shadow: 0 3px 0 var(--lip); clip-path: var(--step); padding: 10px 16px; font-size: max(11px, calc(13px * var(--u))); white-space: nowrap;
 }
 .tp-note--wide { width: calc(660px * var(--u)); white-space: normal; }
 .tp-foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 6px; pointer-events: none; }
@@ -133,7 +133,7 @@
 /* The reveal's tag. */
 .tp-hang--reveal::before { display: none; }
 .tp-tag--reveal { min-width: calc(200px * var(--u)); padding: 10px 14px; outline: 2px solid var(--green); outline-offset: -4px; }
-.tp-tag--reveal b { font-size: calc(19px * var(--u)); }
+.tp-tag--reveal b { font-size: max(11px, calc(19px * var(--u))); }
 .tp-reveal-line { display: inline-flex; gap: 8px; align-items: center; }
 .tp-reveal-line em { font-style: normal; font-size: 12px; }
 .tp-new { color: var(--green); }
@@ -143,52 +143,52 @@
 .tp-shelf-tags { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .tp-price { display: inline-flex; gap: 4px; align-items: center; background: var(--brass); border: 1px solid var(--tp-ink); padding: 0 8px; height: 26px; font-family: var(--skin-font-display); font-size: 16px; clip-path: var(--step); }
 .tp-tag--shelf { width: calc(160px * var(--u)); min-height: calc(50px * var(--u)); }
-.tp-tag--shelf b { font-size: calc(16px * var(--u)); }
+.tp-tag--shelf b { font-size: max(11px, calc(16px * var(--u))); }
 
 /* Missions. */
-.tp-slip { display: grid; grid-template-columns: 34% 1fr; grid-template-rows: calc(70px * var(--u)) auto 1fr auto; gap: 2px 8px; padding: calc(12px * var(--u)) calc(12px * var(--u)) calc(8px * var(--u)); pointer-events: none !important; font-size: calc(12px * var(--u)); }
+.tp-slip { display: grid; grid-template-columns: 34% 1fr; grid-template-rows: calc(70px * var(--u)) auto 1fr auto; gap: 2px 8px; padding: calc(12px * var(--u)) calc(12px * var(--u)) calc(8px * var(--u)); pointer-events: none !important; font-size: max(11px, calc(12px * var(--u))); }
 .tp-slip-head { grid-column: 2; display: flex; flex-direction: column; }
-.tp-slip-head b { font-size: calc(19px * var(--u)); }
+.tp-slip-head b { font-size: max(11px, calc(19px * var(--u))); }
 .tp-slip-head small { color: var(--soft); }
 .tp-slip-goal { grid-column: 1 / 3; }
 .tp-slip .tp-knit, .tp-slip .tp-stamps { grid-column: 1 / 3; }
 .tp-stamps { display: flex; gap: 4px; }
 .tp-stamps i { width: calc(20px * var(--u)); height: calc(20px * var(--u)); border: 1px solid var(--soft); background: var(--paper-dim); display: inline-flex; align-items: center; justify-content: center; }
 .tp-stamps i[data-on] { background: var(--stamp); border-color: var(--stamp-dark); }
-.tp-slip-count { grid-column: 1 / 3; justify-self: end; font-family: var(--skin-font-display); font-size: calc(15px * var(--u)); }
+.tp-slip-count { grid-column: 1 / 3; justify-self: end; font-family: var(--skin-font-display); font-size: max(11px, calc(15px * var(--u))); }
 /* A red stamp (square: the kit allows no rounded corners) across the reward's picture (T6 section 2), never over the name. */
-.tp-stamp { position: absolute; left: calc(14px * var(--u)); top: calc(10px * var(--u)); width: calc(74px * var(--u)); height: calc(74px * var(--u)); display: grid; place-items: center; transform: rotate(-12deg); color: var(--stamp); border: 3px solid var(--stamp); background: color-mix(in srgb, var(--paper) 55%, transparent); font-family: var(--skin-font-display); font-size: calc(17px * var(--u)); }
-.tp-sheet { padding: calc(12px * var(--u)) calc(16px * var(--u)); pointer-events: none !important; font-size: calc(13px * var(--u)); }
-.tp-sheet h3 { font-size: calc(20px * var(--u)); margin-bottom: 4px !important; }
-.tp-sheet h3 small { font-family: var(--skin-font-body); font-size: calc(12px * var(--u)); color: var(--soft); margin-left: 8px; }
+.tp-stamp { position: absolute; left: calc(14px * var(--u)); top: calc(10px * var(--u)); width: calc(74px * var(--u)); height: calc(74px * var(--u)); display: grid; place-items: center; transform: rotate(-12deg); color: var(--stamp); border: 3px solid var(--stamp); background: color-mix(in srgb, var(--paper) 55%, transparent); font-family: var(--skin-font-display); font-size: max(11px, calc(17px * var(--u))); }
+.tp-sheet { padding: calc(12px * var(--u)) calc(16px * var(--u)); pointer-events: none !important; font-size: max(11px, calc(13px * var(--u))); }
+.tp-sheet h3 { font-size: max(11px, calc(20px * var(--u))); margin-bottom: 4px !important; }
+.tp-sheet h3 small { font-family: var(--skin-font-body); font-size: max(11px, calc(12px * var(--u))); color: var(--soft); margin-left: 8px; }
 .tp-sheet ul { list-style: none; padding: 0; }
 .tp-sheet li { position: relative; height: calc(30px * var(--u)); display: flex; align-items: center; border-top: 1px solid var(--rule); }
 .tp-sheet li > * { position: absolute; }
 .tp-ms-goal { left: 0; }
 .tp-ms-bar { left: 42%; width: 22%; display: flex; }
-.tp-ms-count { right: 21%; font-family: var(--skin-font-display); font-size: calc(14px * var(--u)); }
+.tp-ms-count { right: 21%; font-family: var(--skin-font-display); font-size: max(11px, calc(14px * var(--u))); }
 .tp-ms-pay { left: 81.5%; display: inline-flex; gap: 3px; align-items: center; font-family: var(--skin-font-display); }
 .tp-ms-bells { left: 91.5%; }
 .tp-sheet li[data-paid] { color: var(--paid); }
 
 /* The Barn Book. */
 .tp-marks { display: flex; gap: 8px; }
-.tp-tag--mark { width: calc(140px * var(--u)); height: calc(32px * var(--u)); min-height: 32px; font-family: var(--skin-font-display) !important; font-size: calc(15px * var(--u)); }
+.tp-tag--mark { width: calc(140px * var(--u)); height: calc(32px * var(--u)); min-height: 32px; font-family: var(--skin-font-display) !important; font-size: max(11px, calc(15px * var(--u))); }
 .tp-tag--mark[data-on] { background: var(--lantern); outline: 0; }
 .tp-book-head { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; pointer-events: none !important; }
-.tp-book-head b { font-size: calc(22px * var(--u)); }
-.tp-book-head small { font-size: calc(13px * var(--u)); color: var(--soft); }
+.tp-book-head b { font-size: max(11px, calc(22px * var(--u))); }
+.tp-book-head small { font-size: max(11px, calc(13px * var(--u))); color: var(--soft); }
 .tp-book-head--right { transform-origin: 0 0; }
 .tp-book-head--right > * { transform: translateX(-100%); }
 .tp-ledge { display: flex; flex-direction: column; align-items: center; width: 0; pointer-events: none !important; white-space: nowrap; }
-.tp-ledge b { font-size: calc(15px * var(--u)); margin-top: 4px; }
+.tp-ledge b { font-size: max(11px, calc(15px * var(--u))); margin-top: 4px; }
 /* Ten to a spread: three columns 0.57 m apart, so each line wraps inside its own column. */
 .tp-ledge--tight > * { width: max-content; max-width: calc(108px * var(--u)); white-space: normal; text-align: center; justify-content: center; }
 
 /* The close view. */
 .tp-dim { position: absolute; inset: 0; z-index: -1; background: none; border: 0; }
 .tp-tag--close { width: calc(260px * var(--u)); align-items: flex-start; text-align: left; white-space: normal; padding: 12px 14px; gap: 4px; }
-.tp-close-name { font-size: calc(22px * var(--u)); }
+.tp-close-name { font-size: max(11px, calc(22px * var(--u))); }
 .tp-close-kind { display: inline-flex; gap: 10px; align-items: center; font-size: 12px; color: var(--soft); }
 .tp-close-line { font-size: 13px; font-weight: 700; }
 .tp-tag--close .tp-tiles { justify-content: flex-start; }
@@ -237,8 +237,16 @@
 .tp[data-focus] .tp-layer > :not(.tp-closeat):not(.tp-dim) { opacity: 0.6; transition: opacity 200ms; }
 /* Six or seven bench items share 3.6 m: their tags narrow to fit the gap. */
 .tp-tag--item.tp-tag--tight { width: calc(104px * var(--u)); padding-left: 4px; padding-right: 4px; }
-.tp-tag--item.tp-tag--tight b { font-size: calc(13px * var(--u)); }
+.tp-tag--item.tp-tag--tight b { font-size: max(11px, calc(13px * var(--u))); }
 /* A fuse sound's Listen tile sits inside its bench tag, beside the rarity (the tag's stepped corners clip anything outside it). */
 .tp-tag--item .tp-listen--small { position: static; width: 22px; height: 22px; margin-top: 1px; }
 .tp-tag--item:has(.tp-listen) { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 6px; }
 .tp-tag--item:has(.tp-listen) b { flex-basis: 100%; }
+
+/* Nothing under 11 px (X2 check 7), however small the window scales the screen: a <small> is 0.8 of its line. */
+.tp small { font-size: max(11px, 0.8em); }
+
+/* Phones: the Barn Book's bookmarks in a row under the tabs (the camera frames one page). */
+.tp-marks-phone { position: absolute; left: 0; right: 0; top: 160px; display: flex; justify-content: center; z-index: 3; }
+.tp-marks-phone .tp-marks { gap: 6px; }
+.tp-page-turn { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 3; min-height: 44px; min-width: 140px; justify-content: center; }

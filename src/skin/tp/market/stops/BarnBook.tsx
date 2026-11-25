@@ -6,17 +6,19 @@ import { STOP_X } from '../world';
 import { At, Icon, Rarity, sourceLine } from '../pieces';
 
 /** Stop 4, the Barn Book (T6 section 3). */
-export function BookStop({ wallet, kind, items, setFocus, turn, phone, page }: { wallet: Wallet; kind: Kind; items: Item[]; setFocus: (i: Item) => void; turn: (k: Kind) => void; phone: boolean; page: number }) {
+export function BookStop({ wallet, kind, items, setFocus, turn, phone, page, flip }: { wallet: Wallet; kind: Kind; items: Item[]; setFocus: (i: Item) => void; turn: (k: Kind) => void; phone: boolean; page: number; flip?: () => void }) {
   const n: 8 | 10 = items.length > 8 ? 10 : 8;
   const found = items.filter((i) => wallet.owned.includes(i.id)).length, all = CATALOG.filter((i) => wallet.owned.includes(i.id)).length;
-  void page;
+  // The three bookmarks. On a phone the camera frames one page, so they sit in a row under the tabs instead.
+  const marks = (
+    <span className="tp-marks" role="tablist" aria-label="Barn Book pages">
+      {KINDS.map((k) => <button key={k} type="button" role="tab" aria-selected={k === kind} className="tp-tag tp-tag--mark" data-on={k === kind || undefined} onClick={() => turn(k)}>{KIND_LABEL[k]}</button>)}
+    </span>
+  );
   return (
     <>
-      <At p={[STOP_X.book, 3.0, -0.2]} className="tp-hang tp-hang--free">
-        <span className="tp-marks" role="tablist" aria-label="Barn Book pages">
-          {KINDS.map((k) => <button key={k} type="button" role="tab" aria-selected={k === kind} className="tp-tag tp-tag--mark" data-on={k === kind || undefined} onClick={() => turn(k)}>{KIND_LABEL[k]}</button>)}
-        </span>
-      </At>
+      {phone && <button type="button" className="tp-tag tp-tag--small tp-page-turn" onClick={flip}>{page ? 'Back a page' : 'Turn the page'}</button>}
+      {phone ? <div className="tp-marks-phone">{marks}</div> : <At p={[STOP_X.book, 3.0, -0.2]} className="tp-hang tp-hang--free">{marks}</At>}
       <At p={[STOP_X.book - 1.75, 2.78, -0.1]} className="tp-book-head"><b>{KIND_LABEL[kind]}</b><small>{`${found} of ${items.length} found`}</small></At>
       <At p={[STOP_X.book + 1.75, 2.78, -0.1]} className="tp-book-head tp-book-head--right"><b>{`${all} of ${CATALOG.length} found`}</b></At>
       {items.map((item, i) => {
@@ -33,7 +35,6 @@ export function BookStop({ wallet, kind, items, setFocus, turn, phone, page }: {
           </span>
         );
       })}
-      {phone && null}
     </>
   );
 }

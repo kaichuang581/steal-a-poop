@@ -67,7 +67,10 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   const reduced = useMotionLevel() === 'reduced';
   const [size, setSize] = useState({ W: innerWidth, H: innerHeight });
   useEffect(() => { const on = () => setSize({ W: innerWidth, H: innerHeight }); addEventListener('resize', on); return () => removeEventListener('resize', on); }, []);
-  const { W, H } = size, phone = W < 600;
+  // Phones, and any window taller than wide (a tablet held upright): the band at the top and the paper roll under it (T1
+  // section 7). The computer layout scales the row by min(W / 1440, H / 900), which left a portrait tablet a thin strip
+  // under an empty sky.
+  const { W, H } = size, phone = W < 600 || W < H;
   const [stop, setStop] = useState<StopId>(lastStop);
   const [sack, setSack] = useState<SackId>('bomb');
   const [bookKind, setBookKind] = useState<Kind>('bomb');
@@ -130,6 +133,8 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
 
   const go = (s: StopId) => { if (s === stop) return; if (s === 'book') pageTurn(); setStop(s); setSwing((n) => n + 1); if (s === 'missions') markSeen(); };
   const step = (d: number) => go(STOPS[(STOPS.indexOf(stop) + d + STOPS.length) % STOPS.length]);
+  // On a phone the Barn Book shows one page: a swipe turns to the other page before it walks on (T6 section 5).
+  const swiped = (d: number) => { if (stop === 'book' && (d > 0 ? bookPage === 0 : bookPage === 1)) { pageTurn(); setBookPage(d > 0 ? 1 : 0); } else step(d); };
   const markSeen = () => { const done = MISSIONS.filter((m) => wallet.owned.includes(m.itemId)).map((m) => m.id); setSeen(done); seenDone = done; };
   const missionDot = MISSIONS.some((m) => wallet.owned.includes(m.itemId) && !seen.includes(m.id));
   useEffect(() => {
@@ -202,7 +207,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   return (
     <div role="dialog" aria-modal="true" aria-label="The Trading Post" className="tp" data-phone={phone || undefined} data-reduced={reduced || undefined} data-focus={focus ? "" : undefined} style={{ ...TP_COLOURS, '--u': u } as CSSProperties}
       onPointerDown={(e) => { if (phone) swipe.current = e.clientX; }}
-      onPointerUp={(e) => { if (phone && swipe.current !== null && !reveal && !focus && Math.abs(e.clientX - swipe.current) > 60 && e.clientY < H * 0.45) step(e.clientX < swipe.current ? 1 : -1); swipe.current = null; }}>
+      onPointerUp={(e) => { if (phone && swipe.current !== null && !reveal && !focus && Math.abs(e.clientX - swipe.current) > 60 && (e.clientY < H * 0.45 || stop === 'book')) swiped(e.clientX < swipe.current ? 1 : -1); swipe.current = null; }}>
       <div className="tp-sky" aria-hidden="true" />
       <Canvas className="tp-canvas" camera={{ manual: true, near: 0.5, far: 300 }} dpr={[1, 1.5]} gl={{ alpha: false, antialias: true, outputColorSpace: SRGBColorSpace, toneMapping: NoToneMapping }} style={{ position: 'absolute', inset: 0 }}>
         <Driver world={worldObj} view={view} target={target} ticks={ticks} reduced={reduced} />
@@ -212,7 +217,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
           {stop === 'sacks' && <SacksStop {...{ wallet, sack, pool, pick, focus, setFocus, reveal, phone, listen }} />}
           {stop === 'bells' && <BellsStop {...{ wallet, items: shelfItems, buy, wear, busy, setFocus, phone }} />}
           {stop === 'missions' && !phone && <MissionsStop wallet={wallet} items={missionItems} />}
-          {stop === 'book' && <BookStop {...{ wallet, kind: bookKind, items: bookItems, setFocus, phone, page: bookPage }} turn={(k) => { if (k !== bookKind) { pageTurn(); setBookKind(k); setBookPage(0); } }} />}
+          {stop === 'book' && <BookStop {...{ wallet, kind: bookKind, items: bookItems, setFocus, phone, page: bookPage }} flip={() => { pageTurn(); setBookPage(bookPage ? 0 : 1); }} turn={(k) => { if (k !== bookKind) { pageTurn(); setBookKind(k); setBookPage(0); } }} />}
           {focus && <CloseView item={focus} wallet={wallet} world={world} stop={stop} phone={phone} onWear={wear} onListen={listen} onClose={() => setFocus(null)} />}
           {reveal && <RevealTag reveal={reveal} wallet={wallet} onWear={() => void wearRevealed()} onDone={finishReveal} phone={phone} />}
         </div>
@@ -274,8 +279,14 @@ function baseView(stop: StopId, W: number, H: number, phone: boolean, page: numb
   const c = MARKET.cameras[stop], k = Math.min(W / 1440, H / 900);
   const v: ShiftView = { A: c.A * k, W, H, eye: MARKET.eye_height_m, cam: MARKET.camera_distance_m, line: c.lane, cx: c.cx };
   if (!phone) return v;
-  if (stop === 'book') { const A = 0.5 * W * 0.62; return { ...v, A, cx: STOP_X.book + (page ? 0.95 : -0.95), line: 0.42 + (A * 0.75) / H }; }
-  return { ...v, A: 0.22 * W, line: 0.47 };
+  if (stop === 'book') {
+    // One page (1.85 m wide) fills the space between the bookmarks' row (under the tabs) and the level strip: from the
+    // page head (2.95 m) to the table's foot (0.25 m), as wide as the window allows (T6 section 5).
+    const top = 205, bottom = H - 64, A = Math.min((W * 0.94) / 1.9, (bottom - top) / 2.7);
+    return { ...v, A, cx: STOP_X.book + (page ? 0.95 : -0.95), line: (top + A * 2.95) / H };
+  }
+  // 0.22 x W on a phone (86 at 390); a tablet held upright is capped by its height, or the stall rises under the tabs.
+  return { ...v, A: Math.min(0.22 * W, 0.105 * H), line: 0.47 };
 }
 
 

@@ -30,7 +30,7 @@ const T = TIMINGS.practice;
 /** "Every 5 words, a second comes off." is said once a page session. */
 let toldStep = false;
 
-export function PracticeRink({ input, states, boomKey, reduced, phone, dreamWaiting, fps }: {
+export function PracticeRink({ input, states, boomKey, reduced, phone: phoneWide, dreamWaiting, fps }: {
   input: ReturnType<typeof useWordInput>;
   states: [Mood, Mood];
   boomKey: number | undefined;
@@ -39,6 +39,11 @@ export function PracticeRink({ input, states, boomKey, reduced, phone, dreamWait
   dreamWaiting: boolean;
   fps?: number;
 }) {
+  // A window taller than wide (a tablet held upright) takes the phone's framing and rack: the computer's scale,
+  // min(W / 1440, H / 900), left it a small rink between an empty sky and empty ice.
+  const [portrait, setPortrait] = useState(() => innerWidth < innerHeight);
+  useEffect(() => { const on = () => setPortrait(innerWidth < innerHeight); addEventListener('resize', on); return () => removeEventListener('resize', on); }, []);
+  const phone = phoneWide || portrait;
   const game = useStore((s) => s.game)!;
   const run = useStore((s) => s.practiceResult);
   const rematch = useStore((s) => s.rematch);

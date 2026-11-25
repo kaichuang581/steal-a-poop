@@ -82,7 +82,7 @@ function concludeTurn(s: GameState, t: number, wait = 0) {
   s.turn = null;
   // Frozen players are skipped, so the round ends once every unfrozen player has used their turns.
   const next = nextSeat(s, turn.seat);
-  if (next === null) return endRound(s, t, wait);
+  if (next === null) { s.lastSeat = turn.seat; return endRound(s, t, wait); }
   startTurn(s, next, t, wait);
 }
 
@@ -310,9 +310,9 @@ export function advance(state: GameState, ctx: EngineContext, now: number): Game
       s.introEndsAt = null;
       s.phase = 'playing';
       ensurePlayable(s, ctx, at);
-      // The first player rotates each round; a frozen seat passes to the next unfrozen one.
-      const n = s.players.length;
-      const first = nextSeat(s, (((s.round - 1) % n) + n - 1) % n);
+      // The order keeps going round the table across rounds (Brian, 2026-11-24: turns were being skipped): a round opens
+      // with the seat after the one that took the last turn. Round 1 opens with seat 0. Frozen seats are passed over.
+      const first = nextSeat(s, s.lastSeat ?? s.players.length - 1);
       if (first === null) checkLastSheep(s, at);
       else startTurn(s, first, at);
       continue;

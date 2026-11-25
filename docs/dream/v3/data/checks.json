@@ -1,0 +1,287 @@
+{
+ "text_contrast": [
+  {
+   "what": "letters on a sign or tray tile",
+   "text": "#0E1528",
+   "on": "#F2A444",
+   "ratio": 8.79,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "letters on a typed tile",
+   "text": "#0E1528",
+   "on": "#FFF4DC",
+   "ratio": 16.62,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "letters on a wrong-word tile",
+   "text": "#0E1528",
+   "on": "#F48C6E",
+   "ratio": 7.63,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "the count on the counter",
+   "text": "#FFFDF4",
+   "on": "#26365C",
+   "ratio": 11.68,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "\"Best 32\" on its tab",
+   "text": "#B9C8E6",
+   "on": "#0E1528",
+   "ratio": 10.78,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "\"New best\" on its tab",
+   "text": "#0E1528",
+   "on": "#F2A444",
+   "ratio": 8.79,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "the chip's text",
+   "text": "#FFF4DC",
+   "on": "#0E1528",
+   "ratio": 16.62,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "a card's title",
+   "text": "#FFF4DC",
+   "on": "#0E1528",
+   "ratio": 16.62,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "a card's second line",
+   "text": "#B9C8E6",
+   "on": "#0E1528",
+   "ratio": 10.78,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "the hint strip's text",
+   "text": "#B9C8E6",
+   "on": "#0E1528",
+   "ratio": 10.78,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "the hint's example word",
+   "text": "#FFD98A",
+   "on": "#0E1528",
+   "ratio": 13.44,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "\"Jump\" on its button",
+   "text": "#0E1528",
+   "on": "#F2A444",
+   "ratio": 8.79,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "results: text on the board",
+   "text": "#FFF4DC",
+   "on": "#1B2742",
+   "ratio": 13.58,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "results: small labels on the board",
+   "text": "#B9C8E6",
+   "on": "#1B2742",
+   "ratio": 8.81,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "results: text in a well",
+   "text": "#B9C8E6",
+   "on": "#141D36",
+   "ratio": 9.9,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "results: a word in the word list",
+   "text": "#FFF4DC",
+   "on": "#141D36",
+   "ratio": 15.27,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "results: the count on the pocket",
+   "text": "#0E1528",
+   "on": "#E6DFD3",
+   "ratio": 13.71,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "results: the title on its ribbon",
+   "text": "#0E1528",
+   "on": "#F2A444",
+   "ratio": 8.79,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "the snore, on the bedroom wall (its outline)",
+   "text": "#FFFDF4",
+   "on": "#0E1528",
+   "ratio": 17.82,
+   "pass_mark": 4.5,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 1's sky (top)",
+   "text": "#FFFDF4",
+   "on": "#0E1834",
+   "ratio": 17.19,
+   "pass_mark": 3.0,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 1's sky (mid)",
+   "text": "#FFFDF4",
+   "on": "#1C2B52",
+   "ratio": 13.59,
+   "pass_mark": 3.0,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 1's sky (horizon)",
+   "text": "#FFFDF4",
+   "on": "#2D406B",
+   "ratio": 10.02,
+   "pass_mark": 3.0,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 2's sky (top)",
+   "text": "#FFFDF4",
+   "on": "#0B1730",
+   "ratio": 17.47,
+   "pass_mark": 3.0,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 2's sky (mid)",
+   "text": "#FFFDF4",
+   "on": "#16304F",
+   "ratio": 13.13,
+   "pass_mark": 3.0,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 2's sky (horizon)",
+   "text": "#FFFDF4",
+   "on": "#235066",
+   "ratio": 8.55,
+   "pass_mark": 3.0,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 3's sky (top)",
+   "text": "#FFFDF4",
+   "on": "#1A1430",
+   "ratio": 17.37,
+   "pass_mark": 3.0,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 3's sky (mid)",
+   "text": "#FFFDF4",
+   "on": "#2C1F3F",
+   "ratio": 14.99,
+   "pass_mark": 3.0,
+   "pass": true
+  },
+  {
+   "what": "the count that pops up, over world 3's sky (horizon)",
+   "text": "#FFFDF4",
+   "on": "#5A3A4A",
+   "ratio": 9.64,
+   "pass_mark": 3.0,
+   "pass": true
+  }
+ ],
+ "worlds": {
+  "1": {
+   "track_band_rows": [
+    460,
+    493
+   ],
+   "track_lightness": 0.69,
+   "next_brightest_band": {
+    "lightness": 0.631,
+    "from_row": 330
+   },
+   "track_is_brightest": true,
+   "hard_edges_percent": 1.12,
+   "hard_edges_pass_mark": 2.5,
+   "strongest_colour_95th": 0.075,
+   "strongest_colour_pass_mark": 0.17,
+   "average_colour_strength": 0.043
+  },
+  "2": {
+   "track_band_rows": [
+    460,
+    493
+   ],
+   "track_lightness": 0.825,
+   "next_brightest_band": {
+    "lightness": 0.665,
+    "from_row": 495
+   },
+   "track_is_brightest": true,
+   "hard_edges_percent": 1.94,
+   "hard_edges_pass_mark": 2.5,
+   "strongest_colour_95th": 0.066,
+   "strongest_colour_pass_mark": 0.17,
+   "average_colour_strength": 0.043
+  },
+  "3": {
+   "track_band_rows": [
+    460,
+    493
+   ],
+   "track_lightness": 0.865,
+   "next_brightest_band": {
+    "lightness": 0.66,
+    "from_row": 495
+   },
+   "track_is_brightest": true,
+   "hard_edges_percent": 1.38,
+   "hard_edges_pass_mark": 2.5,
+   "strongest_colour_95th": 0.095,
+   "strongest_colour_pass_mark": 0.17,
+   "average_colour_strength": 0.05
+  }
+ },
+ "style": {
+  "models": 69,
+  "boxes": 2491,
+  "colours_not_in_the_ladder": [],
+  "models_over_six_materials": []
+ }
+}

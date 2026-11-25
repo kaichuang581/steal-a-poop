@@ -2443,3 +2443,356 @@ loading screen keeps its own colour (it must stand alone).
   (exposure -55%, vignette 85%, grain 60%, red 30%): a dark, grainy, closed-in, flushed photo grade, nothing drawn on or added to the
   face. Keep it a grade: no horns, demon eyes or other additions to a real person's face. This device only, like the other face sliders.
 
+- No skipped turns at a round change (requested by Brian, 2026-11-24: "fix the issue of skipping turns"), an engine change:
+  each round used to open one seat further on than the last (`(round - 1) % n`), but a round is whole laps of the table, so
+  its last turn is always the seat before its first, and the next round's start passed over one player (with A, B, C:
+  ...B, C | B, C, A...). Now a round opens with the seat after whoever took the last turn (`GameState.lastSeat`, set in
+  `concludeTurn`; round 1 opens with seat 0); frozen seats are passed over as before. Seen in a two-person room game on a
+  local server and pinned by src/engine/__tests__/turnOrder.test.ts. The fences were pinned again for it (fences.json).
+- Counting Sheep: a smooth ramp and no last fence (requested by Brian, 2026-11-24: "make the difficulty ramp up in counting
+  sheep more smooth, my friend said the part where u type in two words in one short span is way too quick, just make the
+  gameplay faster but overtime. also, make it go past 30, it should go infinitely ideally"), rules changes in src/dream and
+  src/skin/dream/run.ts. (1) Bales: a bale stood 300 to 350 px behind the obstacle before it (under half a gap), so the
+  time for its word fell off a cliff, 4.9 s to 2.0 s at the first one and 1.2 s by fence 30. It now stands a share of a
+  fence's gap behind, `baleShare`: 0.8 at the first bales, easing toward 0.62 (3.5 s at fence 9, 2.2 s at 31, 1.4 s at 150).
+  (2) Speed: `speedAt` is one curve, `start + (cap - start) * (1 - e^(-count / ease))` with 120 / 360 / 36, in place of 5 a
+  fence in a straight line stopping dead at 320: about the same through fence 24, a little gentler at 30 (253, was 265),
+  and still climbing at 100 (345). (3) The night has no end: fence `DREAM_LENGTH.fences` (30) puts the farmer out cold
+  (`Live.deepAt`, the `deep` event, a board saying "he's out cold. Keep counting!", the counter reads "out cold") and the
+  fences keep coming. A bump before the mark wakes him as before; a bump after it ends the dream with him still asleep
+  (`asleepAt`, the `asleep` event, the "drifted off" results), so both endings and the +20 coins for a night slept stay.
+  `dreamSummary` reads "Asleep after 30 fences, 47 sheep counted, longest word 9 letters". Coins for sheep stay capped at
+  30. A perfect typist is never bumped through fence 150 (run.test.ts). Seen in the browser: out cold at 30, played on to
+  36, bumped, "The farmer drifted off, 36 sheep". The fences were pinned again for it.
+
+## Counting Sheep, redesigned (Brian, 2026-11-24) — plan: docs/dream/ (pack version 2)
+"execute this", of the plan pack counting-sheep-plan.zip, saved whole as docs/dream/ (README.md first; 00 to 08, data/,
+reference/, tools/). It replaces PLAN_COUNTING_SHEEP.md version 1 completely. Where the pack's numbers and its text
+differ, data/ wins for numbers and the text for behaviour; its sketches lose to both.
+- Brian's decisions (docs/dream/00-overview.md, section 1): (1) everything on the Counting Sheep screens looks ugly to
+  him: the dream world, the farmer, the typing area and counters, the results card. (2) The farmer is rebuilt to match
+  his reference sheet, one to one. (3) The farmer sleeps in his bed along the bottom of the screen and the dream rises
+  above him as one big thought bubble. (4) The word you type appears as letter tiles in a tray. (5) The dream world: "do
+  whatever is most exciting, i want this to be as cool as geometry dash". (6) How the game plays is not novel enough for
+  him, but that comes later. (7) It must be high quality and fit the theme, "without just recycling the same stuff over
+  and over again". Earlier words that still bind this work: no blocky voxel clouds, no harsh colour contrasts, texture
+  and detail with shapes that look intended, no knitted texture across a whole screen, no element without a reason for
+  being there, the sheep never shown shorn.
+- The pack says "this plan changes no rule". In the same message Brian asked for two rule changes (the smooth ramp and
+  the night with no last fence: the bullet above this section), so those stand, and the pack's 30-fence things are read
+  with them: the night track and "of 30" count up to the fence that puts him out cold, the finale is the last five
+  fences before it, and after it the dream runs on in its third world until a bump.
+- How it runs: milestones CS1 to CS7 (docs/dream/08-run-order-and-checks.md), one local branch each (`dream/cs1-farmer`
+  ...), stacked, local commits, no push or pull request until Brian says. The pack stops for Brian after every
+  milestone. No stop is kept: the farmer's board and pictures were sent to him on 2026-11-24, he asked "r u done", and
+  then said "do all of it dont pause". The work goes on through CS7 and each milestone's pictures are sent as it lands.
+  He has not said anything about the farmer's likeness yet; a change to him can come at any time. The pack's check 2 (a recorded night
+  replayed to the millisecond after every milestone) is not built ahead of the work, by the same words; the existing
+  run and mapping tests are what holds the rules.
+- CS1, the farmer, as built (2026-11-24). src/skin/dream/farmer.ts is the model and the poses, pure: the pack's 106 boxes
+  (farmerBoxes.ts, a copy of docs/dream/data/farmer.boxes.json that a test holds equal) drawn as voxels of one unit,
+  0.02 m, coloured through `shade()` (so `harmonize()`, as for the animals). A box thinner than a unit (a stripe, a
+  button, the collar) is paint on the cell under it. His eyes and mouth are paint a fifth of a unit proud of his face,
+  one mesh a state (eyes closed, open, wide; mouth closed, open); his brows are a unit proud and slide. FarmerFigure.tsx
+  draws him as a jointed figure; FarmerInBed.tsx lays him in the bed with the quilt over him.
+  - The pack's twelve parts map to fifteen pieces: `body` is `lap` (below the waist, y < 25) and `torso` (he sits up
+    from the small of his back); `armL` / `armR` are the upper sleeve and `foreL` / `foreR` (below the elbow, y < 42,
+    so an arm can hang off the bed's side); head, cap, capTail, hands, legs and slippers keep their names. The old
+    farmer's parts (a 0.02 m head with lids, a 0.04 m body, a sitting body, a rubbing arm) and their motions (`stirAt`,
+    `settleAt`, `drowsyAt`) are gone, with their tests; nothing of the old rig was kept, since no part of it matched.
+  - Poses are data (`POSES`: stand, bedSleep, bedDeep, bedStir, bedJolt, bedUpright; the angles are this rig's, from
+    docs/dream/data/farmer.poses.json's words and numbers), eased in the frame loop (`blendPose`, `BLEND_MS`,
+    `breathAt`). `poseFor` in BedroomBubble.tsx picks one: asleep, deep asleep once a sign asks three letters or he is
+    out cold, stirring when an unanswered fence is 1.5 s off, the jolt on a bump, sitting up grumpy in the "woke up"
+    results, deep asleep in the "drifted off" results. He goes on breathing under reduced motion; poses cut there.
+  - In bed he lies on his back with his head at the headboard, so his right side faces the room (`lyingAt`, `IN_BED`:
+    the base of his neck 0.72 m down the bed, 0.2 m toward the room, so the deep-sleep arm clears the mattress's edge).
+    His head is lifted 8 units onto the pillow and sinks a few centimetres into it. Sitting up he shuffles 0.52 m toward
+    the headboard (`Pose.scoot`): sat where he sleeps, the results board hid him.
+  - The bedroom changed only where he needed it: the pillow is 0.8 m wide (was 0.5) and lies under his head; the quilt
+    over him is two pieces shaped to his body (`quiltOverGeometry`: the part over his chest lifts with him), and the
+    quilt he sits up out of is a roll across his lap and a step over his legs (`quiltSat`); the shelf has five standing
+    books in the quilt's five colours; a wicker knitting basket with the game's red yarn and two steel needles stands
+    on the floor beside the nightstand (`BASKET`); the slippers on the rug are the sheet's grey pair. The small bubble's
+    camera now looks from the room's side (it looked from the foot of the bed, where his face could not be seen).
+  - The farmer board: `?preview=farmer` (development only, FarmerBoard.tsx): six views beside the same views cut from
+    the sheet, the outline match and twelve colour points worked out in the page (window.__farmerMatch), and the five
+    bed poses in his bedroom from the bed's side (`&part=views|poses`). Measured: front outline overlap 0.914, back
+    0.905 (pass mark 0.88); the twelve colours are within 0.055 (OKLab) of the sheet's, the nightshirt and sleeve the
+    furthest (the sheet's cloth is shaded where it was sampled). The match is the board's own, not a test in `npm test`.
+  - Deviations, for Brian: the basket is built in the bedroom's own grid, not from the diorama's recipes and placement
+    list (the bedroom has neither); the cap's tail lies on the pillow on his far side, mostly hidden from the bed's
+    side; his "z"s, the "?" on a wrong word and the "!" on a bump are the bubble's old ones until CS2 and CS3 redo them.
+  - tools/scenes/build.ts mirrors the new components, and `npm run check:floating -- --scene bedroom` passes.
+- CS2, the layout and the interface, as built (2026-11-24; docs/dream/02-layout-and-interface.md). The old dream is shown
+  inside the new frame, moved up, until CS4 replaces its scenery.
+  - src/skin/dream/frame.ts lays the screen out, pure and tested (`dreamFrame`): on a computer (900 x 600 and up) the bed
+    strip along the bottom, the dream window inset 10 with its lowest bumps 6 above the strip, the tray centred on the
+    space right of the bed zone; anything else is the phone's (the dream, a 56 px strip, an 84 px tray, in the part of
+    the screen above the keyboard). Interface sizes are the plan's px times `--u`, which the dream's root sets from the
+    frame (a phone's is 1 px). `mobile` (under 640 wide) still picks the side view's span, as before.
+  - The dream window is one clip shape over the dream's canvas (`bubbleShape`: pixel corners, a bottom edge of stepped
+    half-ellipses 72, 48, 60 and 40 wide, a 6 px rim of wool and 4 of frost under it). The ground line is at 66% of the
+    window's height, 70% on a phone (`GROUND` in stage.ts; it was 68% and 55% of the screen). The tail is three pixel
+    puffs from the window's edge down to his nose (`tailPuffs`, `Tail` in Interface.tsx), his pixel "z"s rise along it
+    (quicker and bigger with the stage), and a "?" (wrong word) or "!" (bump) shows over his head.
+  - The bed strip is the bedroom's own canvas (BedroomBubble.tsx kept its name) through the camera `bedSide`
+    (`stripCamera`): 0.35 m above the mattress, looking straight along -z at the bed's long side, 20 degrees over the
+    strip's height, with a view offset that makes the strip a wide slice of what it sees, so the wall and the windows
+    stay square to the screen. The headboard is 24 px in and the foot of the bed 70 px short of the bed zone's edge.
+    Deviations from the pack's letter, for the picture's sake: the strip's bottom edge cuts the bed just under its side
+    rail (0.18 m: his face needs the room above it for the tail, and the floor in front of the bed was never going to
+    fit); his head is rolled 52 degrees toward the room, not 20 (from a camera level with him 20 showed his ear).
+  - The bedroom was rearranged for it, results included: the nightstand (lamp, a cream candle now, the alarm clock)
+    stands against the back wall past the foot of the bed with the knitting basket beside it, the five books stand on
+    a low shelf over the basket, and the rug and slippers lie before the nightstand. The window behind his pillow is
+    gone (his face, the tail and the z's need a plain wall); the back window has the moon. `stripWall` adds the wall and
+    floor the strip sees past the room's end, with a low window, snow on its sill and the moon in it, at the strip's
+    right end on screens 1200 wide or more.
+  - The interface is Interface.tsx, in the navy kit (`hm rc` on the dream's root) with the quilt band as this mode's
+    trim: the tray (the sign's letters as lantern tiles, yours as wool tiles, the next place ringed with a caret, Jump,
+    the fence meter, "Type ahead…"), one ink strip for the hint and the refusals (1.6 s), the mode chip, the night
+    track (pips grouped where `lettersAt` changes), the counter ("6 of 30"; the count alone with "out cold" after
+    fence 30), the announcement cards (stage 2, stage 3, the last five fences, bump, out cold, slept through it) and
+    the ready board with its three pictures. The floating letters, the dashed line, "Enter to jump", the paper slip
+    over a cleared sign, the parchment date tag, the slate counter and the wooden close peg are gone from this mode.
+  - The sign's board is HTML hung from its post's arm (`SignBoard` in DreamStage.tsx, `signPost` in world.ts): lantern
+    tiles, three sunk squares, the accepted word on a plank. The carved voxel plank and its tests are gone. The post is
+    taller, so the board hangs clear of the standing sheep; the sheep leaps through that height, so a jumped fence's
+    board fades to 30% until the fence is past. It blinks ember when an unanswered fence is 1.5 s off and is knocked
+    askew by a bump. On a window too short for it the word plank is dropped.
+  - A choice of mine, for Brian to overrule: with the sign's letters already standing in the tray and the caret after
+    them, a word may be typed whole (as before) or only from where the sign stops (`trayWord`; DreamScreen's `submit`
+    tries the word as typed, then the sign's letters with what was typed). Which words count is still the rules' own
+    `check`; src/dream is untouched.
+  - The mode chip reads "Tonight's dream: Nov 24", with a colon, not the pack's middle dot (his rule on middle dots).
+  - Not built here, each waiting for its milestone: the tiles flying to the sign and the tray emptying (CS3), the beat
+    the current pip is to blink on (it blinks on its own clock), the card for the finale's look (the card shows; the
+    finale is CS6), the results board (CS7: it is still the knitted card). The pack's surface test was not run on
+    these pieces. The size limit has 3.19 kB left after this milestone.
+- CS3, the beat and the shared effects, as built (2026-11-24; docs/dream/06-beat-and-effects.md), on the old scenery.
+  All of it is drawn only; nothing reads or changes the run.
+  - beat.ts (pure): a count of beats that grows by the stage's 96, 112 or 128 a minute on the dream's own clock
+    (`advance`, `phase`, `pulse`). DreamScreen's loop keeps it (`beat`) and sets `--dr-beat`, which the night track's
+    current pip blinks at. The stages' own things that move to it arrive with each stage.
+  - Fx.tsx is the dream's two flat canvases, drawn by `frame`, which the dream's loop calls (no loop of their own):
+    the sky, where your words hang as stars (starWords.ts and dotfont.ts: thirty places shuffled by the night, dot
+    letters, the newest lantern for 2 s, one dot in six dimmed each beat, a phone keeps the newest 10), and the
+    effects over the scene (a ring from the sign, pixel puffs at the hooves; 60 particles at most). Until CS4 the sky
+    canvas lies over the old scenery, so a word can cross an island.
+  - A word taken: the typed tiles fly from the tray to the sign's plank (fly.ts: plain DOM moved by its own frames,
+    asking each frame where the moving plank now is; a sign still off the right edge is met at that edge); as the first
+    lands the board flashes, a check pops on its corner, a ring spreads, the window swells 1.012 about the sign, the
+    sign's lantern lights, and the farmer lets out one larger "z". The plank's letters arrive with the tiles.
+  - The jump: five puffs at take-off, the roll (the sheep turns once, head first, about its middle while it is in the
+    air; the photo avatar only leans), the count popping at its upper right, six puffs and a 3 px dip of the window on
+    landing, and 100 ms later the word rising from the sign into its place in the sky.
+  - A bump shakes the window (6 px each way, four times, 240 ms) and shows an ember glow in two flat steps round its
+    inside edge, once; the camera's own shake is gone. A fence is "close" at `CLOSE_PX` (the meter's three segments of
+    eleven), which the sign's blink and the farmer's stir now share.
+  - The window's swell, dip and shake are short transforms on `.dr-bubble`, which holds the dream's canvas. That breaks
+    the letter of "the canvas must never sit inside a transformed element"; the rule is about the canvas being measured
+    while transformed, and these last 80 to 240 ms. If the dream ever comes up blurred after one, this is why.
+  - Under reduced motion: no beat, flying tiles, ring, puffs, roll, swell, dip, shake or glow; the word appears on the
+    plank and then in its place in the sky.
+  - The size limit was raised by 10,000 bytes here (scripts/check-bundle-size.mjs): the redesign was 7.2 kB by this
+    milestone, and Brian's choice of 2026-11-17 is to raise it when a milestone needs it.
+- CS4, stage 1 "his own farm", as built (2026-11-24; docs/dream/03-stage-1-his-own-farm.md). It is shown for the whole
+  night until CS5 and CS6 bring the other two.
+  - The biggest choice of the redesign, mine, for Brian to overrule: the dream's scenery is no longer voxel models in a
+    three.js scene. It is flat pixel art drawn every frame on the canvas behind the sheep (src/skin/dream/scene/:
+    `Painter` snaps every rectangle to whole device pixels; sizes are the pack's "on-screen px at 1440 x 900", scaled by
+    the dream's art scale). The pack's sketches are flat pixel art, its layers are given in px with scroll speeds, and a
+    side-on voxel layer looks the same as a drawn one; drawn, a stage is a few hundred lines and a gate is offsets and
+    fades. The pack speaks of meshes built from the diorama recipes and a triangle limit; neither applies now. The
+    sheep is still the voxel model (the worn avatar, the admin photo), on a see-through canvas between the two flat
+    ones, through the same side-on camera, so plan file 09's mapping is untouched.
+  - Fx.tsx's back canvas is the dream (`paintScene`: sky bands, stars, your words, the moon, the stage's world, the
+    lane, the obstacles and their signs' posts, the sheep's shadow); its front canvas has the speed streaks, rings
+    and puffs. DreamScreen's loop builds one `SceneState` a frame and hands it over; nothing in scene/ reads the run.
+  - Stage 1 (scene/stage1.ts): far hills in 60 px columns with a pine on each and the windmill, whose blades step an
+    eighth of a turn a beat; the farm on its ground band, one strip 2,400 long (barn, silo, pines, the farmhouse with
+    his lit bedroom window, which glows with his breath, and a chimney that puffs every second beat, scarecrow, bales,
+    coop, pond); the plank fence with its string of bulbs, one in four lit and walking along on the beat (the three
+    festive colours while `FESTIVE` is true); the snowy track with wheel ruts and hoofprints that fade in 2 s; a field
+    in shadow with crop rows; the dry-stone wall along the bottom edge; falling snow.
+  - Obstacles are drawn in the rules' box (`BOX`, the box ART times its size): gate with a brace, plank fence, brick
+    gatepost, log pile, hay bales, each with two lanterns that light when its word is taken. The game has one box
+    shape, so the pack's three "shapes of box" are five looks in one shape. A bumped one tips over about its far foot.
+    The sign's post is drawn behind it and its board (HTML) hangs centred over it (Signs.tsx: `placeSigns`, in the
+    dream's loop; `signLayout` for how high).
+  - Gone: world.ts (the cloud raft, sea, islands, hills, mountains, voxel obstacles, the sign's voxel post) and
+    DreamSky.tsx, with their tests; DreamStage.tsx is the sheep, its lights and the count's anchor. The dream's entries
+    in the lights register and the scene checker's dream scene went with them (tools/scenes/build.ts says why).
+    tools/scenes/lens.ts still describes the old bubble and dream cameras: its mirrors of BedroomBubble.tsx and
+    DreamStage.tsx no longer match (the first since CS1). It is part of the gate that was never finished.
+  - The moon does not drift (the pack's speed 0.01 would carry it off the screen over a night). On a phone it sits
+    under the counters' row, and the words start lower, for the same reason.
+  - Measured on this Mac through headless Chrome: 60 pictures a second at 1440 x 900 and at 390 x 544, the same with
+    the processor slowed four times; about 2,000 to 3,000 rectangles a frame. The bundle shrank by 3 kB (the old world).
+- CS5, the first gate and stage 2 "the farm lifts off", as built (2026-11-24; docs/dream/04).
+  - The stage is no longer `lettersAt(reached)`: it changes when the sheep passes a gate (DreamScreen's loop: `GATES`,
+    `arch`, `world`). A gate is placed halfway between the last fence of one stage and the first of the next, as that
+    first fence joins the queue (the letter counts still come from `lettersAt`, never from fence numbers). Passing it
+    sets the stage for the scenery, the beat, the farmer's sleep and the puffs, and 100 ms later shows the stage's card.
+  - The gate itself (`paintGate1`): two plank posts 3.2 sheep high, a beam, nine lanterns that light 40 ms apart as the
+    sheep goes under, and an ink banner. The banner carries the island picture, not the word "Dreaming…": text drawn on
+    a canvas would not go through the French layer, and the card says it 100 ms later.
+  - Lift-off (scene.ts `world`, 1,200 ms; `SceneState.gate`): the sky's colours blend over 600 ms, the crescent's dark
+    disc slides off and the moon grows, stage 1's hills sink and fade, its farm fades as the islands rise from the
+    ground (`alignIsles` starts the islands' strip so that one rises from where its own building stands, for whichever
+    building is nearest the middle of the window; the others rise beside theirs), the fence's posts and rails drop
+    away one after another while the string of bulbs stays and starts to wave, the field and the wall fall 260 px in
+    front of the lane's island as its soil and rock grow down (icicles last), the falling snow stops and the rising
+    snow starts at 450 ms, the northern light grows from 600 ms, and one ring spreads from the gate over the window.
+    Under reduced motion it is one 200 ms cross-fade (`Painter.mul`).
+  - Stage 2 (scene/stage2.ts): the northern light (bars across the middle of the sky, waving, 20% taller on the beat);
+    the farm in the air at speed 0.12, five islands built one way (snow top, soil, five stepped rows, three clods
+    trailing): barn with the silo leaning, windmill turning once every four beats, farmhouse with his window still
+    glowing with his breath, coop, pond spilling mist; fence pieces and pines on dark clods; the string of bulbs
+    floating in a slow wave with the same chase; the lane as a floating island (snow top, lip, icicles, two soils with
+    stones, roots, a stepped rock underside) over streaks of mist; rising snow; dark rocks along the bottom edge;
+    wool streaks behind the sheep; puffs that drift upward. Its obstacles are stage 1's, iced: paler, an ice crust
+    and icicles on top (the pack lists six separate iced things; these are the five farm looks treated one way).
+  - A fence's look belongs to its own place in the night (`SceneFence.stage`), so the first two-letter fence is
+    already iced as it comes in, before the gate is passed.
+- CS6, the second gate, stage 3 "under the quilt" and the finale, as built (2026-11-24; docs/dream/05).
+  - The second gate (`paintGate2`) is the footboard of his bed grown huge: two turned posts with knobs that light as
+    the sheep goes under, a rail, and an ink banner with his yarn on it (no words, as at the first gate).
+  - Tucked in (1,000 ms): the islands sink 40 px and fade as the pillow mountains fade in behind them, the clods fall
+    away, the string of bulbs drifts up out of the window, the northern light shrinks, the rising snow fades, the
+    quilt hills rise column by column from under the lane's line, the moon grows to 190 and moves, the bright stars
+    come down on threads 30 ms apart and turn into buttons, feathers start falling from 600 ms, and the quilt rolls
+    out along the lane from where the gate stood at 1,600 px a second (`SceneMemory.front`), each patch of its face
+    flipping in as the front passes. The islands do not turn into pillows standing in the same places (the pack's
+    words): the two strips scroll at different speeds, so they cross-fade.
+  - Stage 3 (scene/stage3.ts): small stars only; 22 buttons on threads (10 on a phone), swaying, one in four flipping
+    on each beat, each thread shortened clear of the moon and of the counters' row (`threadFor`: with no room at all
+    the button is not drawn); pillow mountains in six tiers with the pillowcase's stripes, and once in five the candle
+    as a lighthouse, its flame growing on the beat (the candle on his nightstand flickers on the same beats:
+    BedroomBubble's `beat`); quilt hills in 48 px columns of patches whose colours run in diagonals, with a large and
+    a small yarn ball that turn on the beat, his two needles crossed (they click every second beat) and a thread
+    spool; the lane as the turned-down sheet (sheet, fold, blanket stitch nudged by the beat, the quilt's face in 96 px
+    patches, binding, mattress ticking), the patch under the sheep pressed in 3 px and its neighbours 2; feathers
+    falling under the lane; bedpost knobs along the bottom edge; feathers at the hooves in place of puffs.
+  - Its obstacles: a knitted fence between two needles, three books, his alarm clock on two books, four thread spools,
+    three cushions in a striped case.
+  - The finale, on a counted night (DreamScreen's `finaleAt`; `SceneState.finale`, `counted`, `stream`): from five
+    fences before he is out cold the moon swells to 300 and moves to the sky's middle over 1.2 s, and the sheep
+    counted cross it, one setting off each beat on one long arc, four or five at a time; every fourth beat a shooting
+    star; half the buttons flip each beat. As he goes out cold every sheep counted streams across within 1.5 s. Since
+    the night runs on past fence 30 now, the big moon and its sheep stay until the bump that ends it.
+  - The moon at 300 across reaches the window's top and lies behind the night track and part of the counters' row;
+    those are the pack's numbers. A pressed patch comes back at once as the sheep moves on (the pack's 180 ms spring
+    is not drawn).
+- CS7, the opening, the endings and the results board, as built (2026-11-24; docs/dream/07). With it the pack's seven
+  milestones are built, on local branches `dream/cs1-farmer` to `dream/cs7-endings`, stacked, none pushed.
+  - The opening (`opening` in DreamScreen, `OPENING` in stage.ts): once the loading screen lifts, the tail's three
+    puffs pop up from his head 80 ms apart, the dream window opens out of the top puff as a growing circle (a clip, not
+    the pack's scale to 1.03: the dream's canvases are measured inside it), and the ready board and the tray come at
+    860 ms. Any key skips it. The tray's field takes the keys from the first moment (while it waited hidden it could
+    not, and nothing could be typed: keep it see-through, never `visibility: hidden`).
+  - The cloud curtains are gone (WakeClouds.tsx). A bump that wakes him (`WAKE`): at 350 ms the picture shrinks 6% and
+    fades in 160 ms while its rim flies off as 14 pixel puffs, at 730 the bedroom opens to the whole screen and its
+    camera goes to the results view, at 1,400 the board slides in. A bump he sleeps through (`DRIFT`): from 900 ms the
+    window shrinks into the tail's top puff and the puffs pop away, the room at 1,400, the board at 1,600. Both are
+    shorter than before (1.7 s and 2.65 s). The bedroom's canvas cannot go from the strip's slice to the whole room in
+    one move, so the room fades in (the pack allows a cross-fade).
+  - The results board is Results.tsx: a kit board 420 wide, 24 from the right (a sheet of at most 60% of the height
+    under him on a phone), the quilt band 10 high with blanket stitch, the title on a lantern ribbon, the count on the
+    nightshirt's pocket counting up in 600 ms, the facts one to a line, "Your night sky" (a small canvas: the sky of
+    the stage reached, its moon, and the night's words in dots, 40 ms apart; if they do not all fit, the newest that
+    do), the streak card (seven squares, a check on each night earned, tonight ringed; the pack's new blanket line),
+    the coins card with its rows coming in 80 ms apart, Share, Practice and Back to the farm as slabs, and "The next
+    dream arrives at 12:00 am." The bedroom's picture is slid by a view offset so the bed and the farmer sit in the
+    middle of what the board leaves uncovered; nothing covers him. Over his head: an "!" for the first second when he
+    woke, large "z"s when he drifted off (`RoomAnchors.head`). The knitted card, its slate, the knit stitches with
+    their "V" marks, the brass Share and the board hung from the beam's hook are gone from this mode.
+  - The facts follow the night with no last fence: "Asleep after 30 fences" and the longest word when he drifted off
+    (not the pack's "No bumps": the night now always ends on one); "Fence 8 of 30" and the longest word when he woke.
+  - Not built from the pack, each small: the five shooting stars as he goes out cold, the star words falling as loose
+    dots when the dream pops (it is gone in 160 ms), the candle dimming at the opening, the 1.03 overshoot.
+  - The pack's checks that were not run (file 08, section 2): the recorded night replayed after every milestone (2, 3),
+    the flash test on recorded frames (5), contrast measured in the built game (7), the kit's surface test on the new
+    pieces (8), the 23-step contact sheets at two sizes with clips (11). What was run: the type check, every test, the
+    build, the size check, the scene checker, and each milestone looked at in a browser at 1440 x 900 and on phone
+    sizes, a whole night to fence 33 once.
+- Words in the sky never lie over each other (found while making the results page, 2026-11-25): a new word takes the
+  first place where it touches no word already up (`clearPlace` in src/skin/dream/starWords.ts), is kept inside the
+  window (`wordCentre`), and when a small sky has no room the oldest words come down (a phone with its keyboard up
+  holds three to five). The pack's six columns are narrower than a word on a phone. The results board's "Your night
+  sky" stops its rows short of its moon.
+
+## Counting Sheep, version 3: the dream in voxels (Brian, 2026-11-25) — plan: docs/dream/v3/
+"execute this, but use the existing sheep model, not the crappy referece one. this is to refine the current model for
+the dream", of counting-sheep-voxel-plan.zip, saved whole as docs/dream/v3/ (README.md first; 00 to 10, data/,
+reference/, tools/). It replaces version 2's files on how the worlds look (its 03 to 05 and the layout parts of 02).
+The pack's pictures use a stand-in sheep: the game's own sheep is the one drawn, everywhere (the moon show included).
+The pack's stops for Brian (V1 to V7) were not kept, by his standing "do all of it dont pause" (2026-11-24).
+- Branch `dream/v3` (from `dream/cs7-endings`), local commits, nothing pushed. V1 and V6 (the interface) and section 4
+  of file 09 were built on `dream/v3-interface` and merged; sections 1 to 3 of file 09 (the farmer in bed) on
+  `dream/v3-farmer-bed`.
+- The models are data: tools/dream/packModels.mjs writes src/skin/dream/models.gen.ts from docs/dream/v3/data
+  (never edit it; models.test.ts fails if it differs). models.ts meshes a model cell for cell in a dense grid (the
+  first box to claim a cell keeps it, as the pack's renderer has it), with the house mesher's corner shade and face
+  shade (`FACE_SHADE`, now exported from voxel/mesher.ts) and flat runs joined, T-junctions closed. The house mesher
+  was too slow for a million cells. Corner shade only near the lane (z >= -12, islands -4); none on the quilt or the
+  bed's hanging quilt. `fir` joined LADDER (the depth plan's 8.4; the barn's wreath); paint.test.ts counts 27.
+- world3d/build.ts builds each world's strip (worlds.json) into one mesh per part that moves or changes on its own
+  (`Tag`), in 24 m pieces near the lane and for the quilt, islands and farm; DreamWorld.tsx lays copies end to end as
+  the lane runs, owns the sky (a quad), the 60 small stars, the moons, the lights, haze, obstacles (fitted to the rules'
+  box; lanterns not stretched), signposts, gates, snow, feathers, hoof puffs, the changes of world and the moon show.
+  Motion inside merged meshes is in the vertex shader (world3d/anim.ts: islands bob, grow and rise, the string of bulbs
+  waves and chases, quilt squares pop behind a wave, buttons turn and drop, a wave reveals one world's track and hides
+  the other's). Glows are added in linear terms (no sRGB curve), as the pack's renderer adds them.
+- The camera (camera.ts): level, lens-shifted, in the plan's metres (`PLAN_M` = 0.7406 game metres, read from the
+  obstacle's 1.05 m body filling the drawn rules box; `A` is about 90.5 at 1440 x 900, as the pack measured). The sheep,
+  in game metres, is scaled into them; at z = 0 the mapping is unchanged. The lane is at 76% of the window (72% phone).
+  Never call updateProjectionMatrix on it. Signs hang from the projected chain ends (`SIGNPOST`, placeSigns).
+- Which world: worlds.ts `worldAt`/`lapAt` from the rules' letters; gates are placed by DreamScreen's loop 3 m before
+  the first fence of each new world (world3d/state.ts holds what the loop tells the world). Lap 2 on starts each strip
+  32 m further on, and the bulbs chase the other way on even laps.
+- The voxel world and the models load in their own chunk (DreamWorld-*.js, 45.6 kB gzipped); the loading screen holds
+  for it ('dream-world'). The size budget was raised by 31,000 bytes for it.
+- Measured at 1440 x 900 on this Mac: about 56k, 90k and 70k triangles in view in worlds 1 to 3 (the plan's limit
+  90k); 43 to 57 draws (the plan's 40: the sheep alone is about ten; not cut, by the plan's own rule "never remove
+  from High to meet a number"; a moon show adds ten); 60 frames a second. The track's top measures #BDC2D3 against the
+  light target #C1C9E2 (within 8%); the other light targets were not measured.
+- Deviations: the sign hangs from 3.75 m and fades to 35% while the sheep overlaps it; the game's sheep leaps far
+  higher than the pack's 2.0 m, and raising the board until clear would put it under the top bar. The quilt's lift-off
+  of islands uses one grow timing for the track and the islands. The needles nod together on the beat rather than
+  leaning toward each other. The lining band appears with the wave rather than sliding in. Under reduced motion a
+  change of world is a plain cut (no 200 ms fade). Three worlds' meshes are built a moment after the dream opens and
+  kept, not two at a time. Low tier cuts follow each world's section 9.
+- Pack checks not run: the recorded night replayed to the millisecond, the flash test, the light targets beyond the
+  track's top, the harshness measure (tools/depth/measure.py), the style lint as a test, the 3x detail sheet.
+
+## Optimization pass (Brian, 2026-11-25: "optimize completely and then we'll deploy site")
+Measured first on the production build, real graphics chip, 1440 x 900 at 2x (scratch scripts, not kept): every 3D
+screen already held its 60-a-second cap but Home on Medium (about 48); the cost players feel was freezes while a
+screen opens. Changed, nothing visible:
+- A device that fell to Low starts on Low for LOW_KEPT_DAYS (7) (perf/tier.ts `readRemembered`; sap:gfx is now
+  `tier@time`, an old plain value still reads). Before, every visit started on Medium and lagged until it fell again.
+- Shaders compile off the page's thread (Rendering.tsx `holdForShaders`, `compileAhead`): a scene with a material
+  three has not compiled is given to compileAsync and the canvas keeps its last picture until it is ready (at most
+  4 s), then draws. MarkDrawn counts only frames drawn after. Opening Counting Sheep waited ~1.8 s on the driver
+  under load, Home ~0.3 s; both now nearly nothing. Needs KHR_parallel_shader_compile, else nothing changes.
+- The house mesher answers "is a voxel there" from a bit grid over the model's box (voxel/mesher.ts `solidOf`, a
+  Set when the box is too sparse) and makes no arrays per face: identical geometry (checked model by model on the
+  barn, farmstead, distance and sheep), meshing on Home's load about 1.4 s to 0.6 s. The dream's models.ts skips
+  empty cells before making anything (identical, 20% faster).
+- public/boot-check.js probes WebGL only when it shows a card (it made a context on every visit, ~70 ms).
+- Frozen time while opening, before and after: Home 2.4 s to 1.8, the table 0.27 to 0.19, practice 0.25 to 0.12,
+  Counting Sheep 0.63 to 0.40. Left: the Grid's string keys (primitives.ts, read by a dozen files), the first
+  AudioContext on the first click (~0.1 to 0.2 s, must be in that click), the 0.6 s build of the dream's first world
+  under its loading screen, and the 2.3 MB of JavaScript parsed at load.
+- The dream is a cloud (Brian, 2026-11-25: "make it so that in the dream, the bubble surrounding the gameplay is actually
+  like a dream cloud instead of a rounded square ... rn it just looks like a floating square on top of the guy"). This
+  replaces v3/08 section 2's cut corners and straight lower edge. `bubbleShape` in dream/frame.ts outlines `cloudPuffs`:
+  uneven puffs (PUFF_SIZES) along the top and sides, small round corners (the chip and the counter sit near them), and
+  wide circles along the bottom that dip at most CORNER_H (12 px, where the room's canvas stands behind) and shape only
+  the bottom band. Same rim, shade and clip as before; frame.test.ts checks the cloud's rules on every screen size.
+- The farmer, closer to the sheet (2026-11-25, while making his model page): the cap's tail and pom hang back-left
+  (z -13.5 to -7.5, pivot z -10), so they show behind his head from either side as on the sheet; and a jaw beard
+  either side (x +-8.5 to 9.5, y 58 to 64, z 1.5 to 9.5), where the model showed bare cheek. farmerBoxes.ts and the
+  pack's docs/dream/data/farmer.boxes.json changed together (108 boxes); the outline match stays 0.913 front, 0.904 back.

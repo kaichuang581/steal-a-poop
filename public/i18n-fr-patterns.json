@@ -138,6 +138,7 @@
 ["^(\\d+)-night streak$","Série de $1 nuits"],
 ["^mmf… one more wakes him$","mmf… encore un et il se réveille"],
 ["^mmf… (\\d+) bumps left$","mmf… encore $1 chocs"],
+["^Asleep after (\\d+) fences, (\\d+) sheep counted, longest word (\\d+) letters$","Endormi après $1 clôtures, $2 moutons comptés, mot le plus long $3 lettres"],
 ["^Asleep after (\\d+) fences, no bumps, longest word (\\d+) letters$","Endormi après $1 clôtures, sans choc, mot le plus long $2 lettres"],
 ["^Asleep after (\\d+) fences, one bump, longest word (\\d+) letters$","Endormi après $1 clôtures, un choc, mot le plus long $2 lettres"],
 ["^Asleep after (\\d+) fences, (\\w+) bumps, longest word (\\d+) letters$","Endormi après $1 clôtures, $2 chocs, mot le plus long $3 lettres"],
@@ -203,4 +204,14 @@
 ["^(Wood|Stone|Iron) · free$", "$1 · gratuit"],
 ["^(Wood|Stone|Iron) · (½|¾)$", "$1 · $2"],
 ["^(\\d+)–(\\d+) players$", "$1–$2 joueurs"],
-["^(\\d+) points each$", "$1 points chacune"]]
+["^(\\d+) points each$", "$1 points chacune"],
+["^of (\\d+)$", "sur $1"],
+["^best (\\d+)$", "record $1"],
+["^(\\d+) sheep counted, of (\\d+)$", "$1 moutons comptés, sur $2"],
+["^Asleep after (\\d+) fences$", "Endormi après $1 clôtures"],
+["^Fence (\\d+) of (\\d+)$", "Clôture $1 sur $2"],
+["^\\+(\\d+) Wool Coins$", "+$1 pièces de laine"],
+["^Fast asleep from sheep (\\d+)$", "Endormi pour de bon dès le mouton $1"],
+["^Longest: (\\d+)$", "Plus longue : $1"],
+["^Moon shows: (\\d+)$", "Spectacles de lune : $1"],
+["^\\+(\\d+) more$", "+$1 de plus"]]

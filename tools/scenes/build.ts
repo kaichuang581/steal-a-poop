@@ -833,44 +833,63 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     mirrors('src/skin/dream/BedroomBubble.tsx', [
       '<mesh geometry={b.room} material={vox} />',
       '<mesh geometry={b.glow} material={selfLit} />',
+      '<mesh geometry={far.solid} material={vox} />',
+      '<mesh geometry={far.glow} material={selfLit} />',
       '<mesh geometry={b.lampGlass} material={glassMat} />',
       '<group ref={clock} position={[CLOCK.x, CLOCK.y + 0.025, CLOCK.z]} rotation={[0, CLOCK.turn, 0]}>',
       '<mesh geometry={b.clock} material={vox} />',
       '<mesh ref={ring} geometry={b.ring} material={selfLit} visible={false} />',
-      '<group ref={bump} position={[0, BED.mattress.top, 0]}><mesh geometry={b.quiltBump} material={vox} position={[0, -BED.mattress.top, 0]} /></group>',
-      '<group position={[0.34, BED.pillowTop + 0.05, -0.02]} rotation={[0.3, -0.35, -0.95]}>',
-      '<group rotation={[0, Math.PI / 2, 0]}>',
-      '<group rotation={[-Math.PI / 2, 0, 0]}>',
-      '<group ref={lieBody}><mesh geometry={f.body} material={vox} /></group>',
-      '<group ref={lieHead} position={[0, HEAD_PIVOT, 0]}>',
-      '<group position={[0, -HEAD_PIVOT, 0]}>',
-      '<mesh ref={asleep} geometry={f.asleep} material={vox} />',
-      '<mesh ref={awake} geometry={f.awake} material={vox} visible={false} />',
-      '<mesh ref={lidA} geometry={f.lidA} material={vox} position={[0, EYE_TOP, 0]} visible={false} />',
-      '<mesh ref={lidB} geometry={f.lidB} material={vox} position={[0, EYE_TOP, 0]} visible={false} />',
-      '<mesh geometry={f.cap} material={vox} />',
+      '<FarmerInBed ref={farmer} material={vox} pose={POSES.bedSleep} />',
+    ]);
+    // The farmer and the quilt over him: FarmerInBed.tsx lays FarmerFigure.tsx on the bed (farmer.ts has the model and poses).
+    mirrors('src/skin/dream/FarmerInBed.tsx', [
+      '<group ref={over} position={[0, top, 0]} visible={!up}>',
+      '<mesh ref={legsMesh} geometry={b.quiltLegs} material={material} position={[0, -top, 0]} />',
+      '<group ref={chest} position={[WAIST_X, 0, IN_BED.z]}>',
+      '<mesh ref={chestMesh} geometry={b.quiltChest} material={material} position={[-WAIST_X, -top, -IN_BED.z]} />',
+      '<mesh ref={satMesh} geometry={sat} material={material} visible={up} position={[-pose.scoot, 0, 0]} />',
+      '<group ref={figure} position={[lying.position[0] - pose.scoot, lying.position[1], lying.position[2]]} quaternion={lying.quaternion}>',
+      '<FarmerFigure ref={farmer} material={material} pose={pose} />',
+    ]);
+    mirrors('src/skin/dream/FarmerFigure.tsx', [
+      '<group key={p} ref={(g) => { groups.current[p] = g; }} position={first[p].position} quaternion={first[p].quaternion} scale={first[p].scale} visible={p.startsWith(\'slipper\') ? pose.slippers : true}>',
+      '<mesh geometry={geo.pieces[p]} material={material} />',
     ]);
     const bedroom = await load<typeof import('../../src/skin/dream/bedroom')>('src/skin/dream/bedroom.ts');
-    const b = bedroom.bedroomGeometry(), f = bedroom.farmerGeometry();
+    const farmer = await load<typeof import('../../src/skin/dream/farmer')>('src/skin/dream/farmer.ts');
+    const { Euler } = await import('three');
+    const b = bedroom.bedroomGeometry(), f = farmer.farmerGeometry();
     const { CLOCK, BED } = bedroom;
     L.put(b.room, 'bedroom.room');
     L.put(b.glow, 'bedroom.glow');
     L.put(b.lampGlass, 'bedroom.lampGlass');
+    // The bed strip's more of the wall and floor, with its window, as a 1440 x 900 screen has them.
+    const far = bedroom.stripWall(11.5, 9.8);
+    L.put(far.solid, 'bedroom.stripWall');
+    L.put(far.glow, 'bedroom.stripGlow');
     L.thing('clock', { at: [CLOCK.x, CLOCK.y + 0.025, CLOCK.z], rotation: [0, CLOCK.turn, 0], moves: 'it shakes when it rings' }, (t) => {
       t.put(b.clock, 'bedroom.clock');
       t.put(b.ring, 'bedroom.ring');
     });
-    L.thing('quilt', { at: [0, BED.mattress.top, 0], moves: 'it rises and falls with his breath' }, (t) => t.put(b.quiltBump, 'bedroom.quiltBump', { at: [0, -BED.mattress.top, 0] }));
-    L.thing('farmer', [{ at: [0.34, BED.pillowTop + 0.05, -0.02], rotation: [0.3, -0.35, -0.95], moves: 'he breathes, stirs and sits up' }, { rotation: [0, Math.PI / 2, 0] }, { rotation: [-Math.PI / 2, 0, 0] }], (t) => {
-      t.put(f.body, 'farmer.body');
-      t.put(f.asleep, 'farmer.asleep');
-      t.put(f.cap, 'farmer.cap');
+    L.thing('quilt', { at: [0, BED.mattress.top, 0], moves: 'it rises and falls with his breath, and the part over his chest lifts with him' }, (t) => {
+      t.put(b.quiltLegs, 'bedroom.quiltLegs', { at: [0, -BED.mattress.top, 0] });
+      t.put(b.quiltChest, 'bedroom.quiltChest', { at: [0, -BED.mattress.top, 0] });
     });
-    L.skip(f.awake, 'farmer.awake', 'drawn in place of the sleeping head once he wakes');
-    L.skip(f.lidA, 'farmer.lidA', 'drawn only once he wakes');
-    L.skip(f.lidB, 'farmer.lidB', 'drawn only once he wakes');
+    // Asleep (`bedSleep`): every piece where that pose puts it, under the piece that carries it, on the bed.
+    const lying = farmer.lyingAt(BED.mattress.top), placed = farmer.placePose(farmer.POSES.bedSleep);
+    const turn = (q: { x: number; y: number; z: number; w: number }): [number, number, number] => { const e = new Euler().setFromQuaternion(q as never, 'XYZ'); return [e.x, e.y, e.z]; };
+    const chain = (p: (typeof farmer.PIECES)[number]): { at: [number, number, number]; rotation: [number, number, number] }[] => {
+      const up = farmer.PARENT[p], here = { at: placed[p].position.toArray() as [number, number, number], rotation: turn(placed[p].quaternion) };
+      return up ? [...chain(up), here] : [{ at: lying.position, rotation: turn(lying.quaternion) }, here];
+    };
+    for (const p of farmer.PIECES) {
+      if (p.startsWith('slipper')) { L.skip(f.pieces[p], `farmer.${p}`, 'on his feet only when he stands; in bed his slippers are the pair on the rug'); continue; }
+      const [first, ...rest] = chain(p);
+      L.thing(`farmer.${p}`, [{ ...first, moves: 'he breathes, stirs, starts up and sits up' }, ...rest], (t) => t.put(f.pieces[p], `farmer.${p}`));
+    }
+    for (const [name, g] of [...Object.entries(f.face.eyes), ...Object.entries(f.face.mouth), ...Object.entries(f.face.brows)]) L.skip(g, `farmer.face.${name}`, 'his eyes, mouth and brows: paint and small pieces on his face, shown by his pose');
     L.notes.push('the ring lines (bedroom.ring) are laid out with the clock, though the game shows them only while it rings');
-    L.notes.push('the farmer sitting up, his folded quilt and his rubbing arm (shown on the results) are not built');
+    L.notes.push('the farmer is built asleep (bedSleep); the quilt pushed down to his waist (shown once he sits up), the quilt he turns over under at gate 3 (quiltTurned) and his folded Warm Blankets are not built');
   },
 
   /**
@@ -878,78 +897,10 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
    * in the dream is moved by its group every frame, so everything here is a thing. The dream does not read the
    * pointer: its other build is for a narrow screen (`phone`), and that is what the coarse level builds.
    */
-  async dream(L, load, shared, detail) {
-    mirrors('src/skin/dream/DreamStage.tsx', [
-      'const view = useMemo(() => dreamView(Math.max(1, size.width), Math.max(1, size.height), phone), [size.width, size.height, phone]);',
-      'chunks: Array.from({ length: CHUNK.count }, (_, i) => raftChunk(i)),',
-      'const far = useMemo(() => ({ sea: seaLayer(view), hills: hillsLayer(view), mountains: mountainsLayer(view) }), [view]);',
-      'islands: ISLANDS.map((it, i) => { const p = islandPlace(it, phone, view); return { ...p, ...islandGeometry(it.kind, p.across, p.tall, i + 1) }; }),',
-      'wisps: WISPS.map((w, i) => ({ geo: wispGeometry(i + 1), at: [...frameToWorld(view, w.frame[0], w.frame[1]), w.z] as [number, number, number] })),',
-      'for (const p of chunkPlacements(scroll)) { const g = chunks.current[p.index]; if (g) g.position.x = p.x; }',
-      'g.position.x = islandX(it, scroll, p.x, p.across, view);',
-      'seaBank.current.position.x = -((scroll * SEA.factor) % SEA.period);',
-      '<group ref={seaBank}><mesh geometry={far.sea} material={voxMat} position={[0, 0, FAR_Z.sea]} /></group>',
-      '<group key={it.id} ref={(el) => { islandRefs.current[i] = el; }} position={[p.x, p.y, it.z]}>',
-      '<mesh geometry={p.body} material={islandMat} />',
-      '{p.props && <mesh geometry={p.props} material={voxMat} />}',
-      '{p.glow && <mesh geometry={p.glow} material={glowMat} />}',
-      "{it.kind === 'windmill' && <IslandWindmill />}",
-      '{sky.wisps.map((w, i) => <group key={i} ref={(el) => { wispRefs.current[i] = el; }} position={w.at}><mesh geometry={w.geo} material={voxMat} /></group>)}',
-      '<group ref={hillRange}><mesh geometry={far.hills} material={voxMat} position={[0, 0, FAR_Z.hills]} /></group>',
-      '<group ref={mountainRange}><mesh geometry={far.mountains} material={voxMat} position={[0, 0, FAR_Z.mountains]} /></group>',
-      '<mesh geometry={g} material={voxMat} receiveShadow />',
-      'return { body: w.distance.windmillBody.clone().translate(-x - 0.5, -baseY, -z - 0.5), blades: w.distance.windmillBlades, hub: [0, 9.5, h[2] - z - 0.5] as [number, number, number] };',
-      'return <group rotation={[0, Math.PI, 0]} scale={0.062}><Windmill body={parts.body} blades={parts.blades} hub={parts.hub} /></group>;',
-    ]);
-    const phone = detail === 'coarse';
-    const stage = await load<typeof import('../../src/skin/dream/stage')>('src/skin/dream/stage.ts');
-    // The side view's frame (plan file 09): the far layers, the islands and the wisps are built and placed for it.
-    const view = phone ? stage.dreamView(390, 844, true) : stage.dreamView(1920, 1080, false);
-    const world = await load<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts');
-    const distanceM = await load<Distance>('src/skin/scene/distance.ts');
-    const { DISTANCE } = await load<typeof import('../../src/skin/scene/layout')>('src/skin/scene/layout.ts');
-    const { CHUNK, ISLANDS, WISPS } = stage;
-    const raft = Array.from({ length: CHUNK.count }, (_, i) => world.raftChunk(i));
-    L.thing('raft', { moves: 'the lane scrolls under the sheep, chunk by chunk round a ring' }, (t) => {
-      for (const p of stage.chunkPlacements(0)) t.put(raft[p.index], `raft.chunk[${p.index}]`, { at: [p.x, 0, 0] });
-    });
-    const sea = world.seaLayer(view);
-    L.thing('cloud sea', { at: [0, 0, 0], moves: 'it scrolls slower than the lane and rises and falls' }, (t) => {
-      t.put(sea, 'sea', { at: [0, 0, world.FAR_Z.sea] });
-    });
-    // The dream draws the table world's windmill on island B. In a run that builds the table that world is there
-    // already (the page builds it once, too); a run of the dream alone builds the distance for the windmill only.
-    const distance = shared.farm?.distance ?? distanceM.buildDistance();
-    if (!shared.farm) {
-      for (const key of ['hills', 'backHills', 'mountains'] as const) L.skip(distance[key], `distance.${key}`, 'built here only because the windmill comes with it; it is laid out in the table and the farm');
-      L.skip(distance.windmillBody, 'distance.windmillBody', 'the dream draws a moved copy of it, laid out with island B');
-    }
-    ISLANDS.forEach((it, i) => {
-      const p = stage.islandPlace(it, phone, view), g = world.island(it.kind, p.across, p.tall, i + 1);
-      const at: V3 = [stage.islandX(it, 0, p.x, p.across, view), p.y, it.z];
-      L.thing(`island ${it.id}`, { at, moves: 'it drifts past and bobs' }, (t) => {
-        t.put(g.body, `island[${it.id}].body`);
-        if (g.props) t.put(g.props, `island[${it.id}].props`);
-        if (g.glow) t.put(g.glow, `island[${it.id}].glow`);
-        if (it.kind === 'windmill') {
-          const { x, z } = DISTANCE.windmill, h = distance.bladesHub, baseY = h[1] - 9.5;
-          t.put(distance.windmillBody.clone().translate(-x - 0.5, -baseY, -z - 0.5), `island[${it.id}].windmillBody`, { rotation: [0, Math.PI, 0], scale: 0.062 });
-        }
-      });
-      if (it.kind === 'windmill') {
-        const { z } = DISTANCE.windmill, h = distance.bladesHub;
-        L.thing(`island ${it.id} windmill blades`, [{ at, moves: 'they turn, and drift with their island' }, { rotation: [0, Math.PI, 0], scale: 0.062 }, { at: [0, 9.5, h[2] - z - 0.5] }], (t) => t.put(distance.windmillBlades, `island[${it.id}].windmillBlades`));
-      }
-    });
-    WISPS.forEach((w, i) => {
-      const at: V3 = [...stage.frameToWorld(view, w.frame[0], w.frame[1]), w.z];
-      L.put(world.wisp(i + 1), `wisp[${i}]`, { at, moves: 'it drifts across the sky' });
-    });
-    L.put(world.hills(view), 'dream.hills', { at: [0, 0, world.FAR_Z.hills], moves: 'the range scrolls slower than the lane' });
-    L.put(world.mountains(view), 'dream.mountains', { at: [0, 0, world.FAR_Z.mountains], moves: 'the range scrolls slower than the lane' });
-    L.notes.push(`built for ${phone ? 'a narrow screen (phone = true): a 390 x 844 frame and the phone\'s island boxes' : 'a computer (phone = false): a 1920 x 1080 frame'}`);
-    L.notes.push('the fences, bales and signs come and go with the night: they are models (fence:rail, bale, sign post...)');
-    L.notes.push('the sheep, its shadow disc, the bonk stars and the dust are not laid out');
+  async dream(L) {
+    // Since the redesign of 2026-11-24 (docs/dream) the dream's world is flat pixel art on a canvas (src/skin/dream/scene),
+    // and its three.js scene holds only the sheep, which is a model. There is no voxel scenery here to lay out.
+    L.notes.push('the dream\'s scenery is drawn on a flat canvas (dream/scene); its scene holds only the sheep, a model');
   },
 
   /**
@@ -1102,23 +1053,6 @@ async function modelSpecs(load: Load): Promise<ModelSpec[]> {
   });
   // The old tool's own props (tools/floatingVoxels.ts --props), under the names it gave them.
   specs.push({ id: 'bomb', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/voxel/bomb')>('src/skin/voxel/bomb.ts')).bombModel() });
-  // Each fence by its own look. (The old tool asked `lookOf('fence', index)`, which deals the looks in another order,
-  // so what it called fence:wall was the log and what it called fence:log was the wall.)
-  for (const look of ['rail', 'picket', 'wall', 'log'] as const) {
-    specs.push({ id: `fence:${look}`, kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).obstacle(look) });
-  }
-  specs.push({ id: 'bale', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).obstacle('bale') });
-  // The sign: its board and letters are built about the board's pivot and hung there by `Sign` in DreamStage.tsx.
-  mirrors('src/skin/dream/DreamStage.tsx', [
-    '<mesh geometry={geo.post} material={wood} castShadow />',
-    '<mesh geometry={geo.lantern} material={glass[view?.hot ? 1 : 0]} />',
-    '<group ref={boardRef} position={[SIGN.x, SIGN.pivot, 0]}>',
-    '<mesh geometry={geo.board} material={wood} castShadow />',
-    '<mesh geometry={geo.letters} material={ink} />',
-  ]);
-  const { SIGN } = await load<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts');
-  MODEL_AT['sign post'] = (mount) => (mount === 'board' || mount === 'letters' ? [SIGN.x, SIGN.pivot, 0] : null);
-  specs.push({ id: 'sign post', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).fenceSign(['G', 'R']) });
   return specs;
 }
 

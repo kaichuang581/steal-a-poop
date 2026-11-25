@@ -1,0 +1,193 @@
+{
+ "note": "Times in ms. 'from' says what the clock starts at. These mirror files 04 to 07; the text explains them.",
+ "beat": {
+  "bpm": {
+   "1": 96,
+   "2": 112,
+   "3": 128
+  },
+  "pulseDecayShareOfBeat": 0.35
+ },
+ "wordTaken": {
+  "tileFlight_ms": 320,
+  "tileStagger_ms": 30,
+  "arcRise_px": 120,
+  "tileFrom_px": 40,
+  "tileTo_px": 16,
+  "boardFlash": {
+   "alpha": 0.4,
+   "fade_ms": 160
+  },
+  "ring": {
+   "to_px": 240,
+   "ms": 400,
+   "alphaFrom": 0.5
+  },
+  "windowSwell": {
+   "scale": 1.012,
+   "ms": 140
+  }
+ },
+ "jump": {
+  "takeOffPuffs": 5,
+  "landingPuffs": 6,
+  "numberPop": {
+   "scale": [
+    0.6,
+    1.15,
+    1
+   ],
+   "ms": 220,
+   "rise_px": 24,
+   "fade_ms": 600
+  },
+  "landingDip": {
+   "px": 3,
+   "ms": 80
+  },
+  "wordRises": {
+   "after_ms": 100,
+   "ms": 700
+  }
+ },
+ "wrongWord": {
+  "shake_px": 5,
+  "times": 3,
+  "ms": 240,
+  "emberFace_ms": 300,
+  "message_ms": 1600
+ },
+ "fenceClose": {
+  "meterSegmentsLeft": 3,
+  "signOutlineBlinksPerSecond": 2
+ },
+ "bump": {
+  "shake_px": 6,
+  "times": 4,
+  "ms": 240,
+  "edgeGlow": {
+   "alpha": 0.2,
+   "fade_ms": 400
+  },
+  "starsCircle_ms": 600
+ },
+ "gate1_liftOff": {
+  "total_ms": 1200,
+  "groundDrops": {
+   "px": 260,
+   "ms": 900
+  },
+  "islandsRise": {
+   "px": [
+    40,
+    90
+   ],
+   "stagger_ms": 80,
+   "ms": 900
+  },
+  "hillsSink": {
+   "px": 120,
+   "ms": 900
+  },
+  "fencePostsFall_ms": 600,
+  "bulbWaveGrows_ms": 900,
+  "snowReverses_at_ms": 450,
+  "coloursBlend_ms": 600,
+  "moonFills_ms": 900,
+  "northernLightGrows": {
+   "from_ms": 600,
+   "to_ms": 1200
+  },
+  "card_at_ms": 100,
+  "ring_ms": 500
+ },
+ "gate2_tuckedIn": {
+  "total_ms": 1000,
+  "quiltWave_px_per_s": 1600,
+  "patchFlip_ms": 120,
+  "hillsRise": {
+   "px": 80,
+   "staggerPerColumn_ms": 40,
+   "ms": 900
+  },
+  "islandsToPillows": {
+   "crossFade_ms": 600,
+   "sink_px": 40
+  },
+  "starsToButtons": {
+   "from_ms": 300,
+   "threadDraw_ms": 200,
+   "flip_ms": 120,
+   "stagger_ms": 30
+  },
+  "coloursBlend_ms": 600,
+  "northernLightShrinks_ms": 400,
+  "moonGrows_ms": 900,
+  "feathersFrom_ms": 600,
+  "card_at_ms": 100,
+  "bulbStringLeaves_ms": 400,
+  "ring_ms": 500
+ },
+ "finale": {
+  "moonGrows": {
+   "to_px": 300,
+   "ms": 1200
+  },
+  "sheepCross": {
+   "oneEvery_beats": 1,
+   "crossing_beats": 4
+  },
+  "shootingStarEvery_beats": 4,
+  "last": {
+   "allCrossWithin_ms": 1500,
+   "perBeat": 3
+  }
+ },
+ "opening": {
+  "max_ms": 1200,
+  "fade_ms": 200,
+  "puffs": {
+   "from_ms": 200,
+   "stagger_ms": 80
+  },
+  "windowGrows": {
+   "from_ms": 440,
+   "to_ms": 860,
+   "overshoot": 1.03
+  }
+ },
+ "endOutCold": {
+  "burst_at_ms": 0,
+  "windowShrinks": {
+   "from_ms": 900,
+   "to_ms": 1400
+  },
+  "camera": {
+   "from_ms": 900,
+   "to_ms": 1600
+  },
+  "board_at_ms": 1600,
+  "boardSlide_ms": 240
+ },
+ "endWoken": {
+  "pop": {
+   "from_ms": 350,
+   "to_ms": 730,
+   "puffs": 14,
+   "fly_px": [
+    60,
+    140
+   ]
+  },
+  "camera": {
+   "from_ms": 730,
+   "to_ms": 1400
+  },
+  "board_at_ms": 1400
+ },
+ "safety": {
+  "maxPulsesPerSecond": 3,
+  "maxFrameToFrameBrightnessChange": 0.08,
+  "bumpGlowMaxAlpha": 0.2
+ }
+}

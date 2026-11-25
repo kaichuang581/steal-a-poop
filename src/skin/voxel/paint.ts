@@ -22,6 +22,8 @@ export const LADDER = {
   hay:        ['#CAA153', '#D4AC62', '#DEB870', '#E8C37F', '#F3CF8E'],
   straw:      ['#D0B476', '#DBBF84', '#E5CB91', '#F0D69F', '#FBE2AD'],
   pine:       ['#306A56', '#3D7460', '#497E6A', '#568875', '#62927F'],
+  /** The fir of PLAN_DEPTH_AND_LIGHT 8.4: Counting Sheep's barn wreath (docs/dream/v3). */
+  fir:        ['#30684C', '#3D7257', '#487C61', '#55866C', '#619076'],
   houseCream: ['#C2AA88', '#CDB594', '#D8C0A1', '#E2CCAD', '#EDD7BA'],
   tractorRed: ['#A73F30', '#B14C3C', '#BB5949', '#C46555', '#CE7161'],
   iron:       ['#382E2A', '#413633', '#4A403C', '#544945', '#5D534F'],

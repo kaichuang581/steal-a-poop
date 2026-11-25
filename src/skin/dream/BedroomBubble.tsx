@@ -6,15 +6,21 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { Color, MeshBasicMaterial, SRGBColorSpace, Vector3 } from 'three';
 import type { Group, Mesh, MeshLambertMaterial, PerspectiveCamera, PointLight } from 'three';
+import { FIELD } from '../../dream/dream';
+import { pulse } from './beat';
+import { BLEND_MS, blendPose, breathAt, POSES, turnPose } from './farmer';
+import type { Pose, PoseName } from './farmer';
+import type { FarmerHandle } from './FarmerFigure';
+import { FarmerInBed } from './FarmerInBed';
 import { voxelMaterial } from '../voxel/material';
-import { BEAM, BED, bedroomGeometry, CANDLE, CLOCK, drowsyAt, EYE_TOP, farmerGeometry, farmerRubArm, farmerSitting, foldedQuilt, HEAD_PIVOT, HIP, LAMP, quiltSat, roomOn, settleAt, SHOULDER, SITTING, smooth, STIR_MS, stirAt } from './bedroom';
+import { BED, bedroomGeometry, CANDLE, CLOCK, foldedQuilt, LAMP, roomOn, smooth, stripWall } from './bedroom';
+import { stripCamera, stripExtent } from './frame';
+import type { DreamFrame, StripCamera } from './frame';
 import type { Phase, StageLive } from './DreamStage';
-import { STUMBLE_MS } from '../../dream/dream';
+import { isClose } from './run';
 import { WAKE } from './stage';
 import { LOOK } from '../look';
 
-/** From the foot of the bed on the lamp side: his face left of centre, the window and the nightstand to his right. */
-const CAMERA = { position: [2.3, 1.4, 1.05] as const, target: [0.35, 1.0, -0.4] as const, fov: 29 };
 /**
  * The results shot (V6 Part 6.4.3): the room from the foot of the bed, a little to the side, the headboard and the window
  * at the left, the nightstand beside him, the back window at the top right, the beam along the top edge. A phone looks
@@ -24,31 +30,54 @@ const RESULTS = {
   desktop: { position: [3.4, 1.65, 3.1] as const, target: [1.0, 1.05, -0.4] as const, fov: 40 },
   phone: { position: [2.8, 1.8, 1.9] as const, target: [0.3, 1.85, -0.45] as const, fov: 58 },
 };
+/**
+ * The strip's light (docs/dream/01-farmer.md, section 4): the candle and a little moonlight. The room is dim, so the
+ * dream above is the bright thing, and his face is lit, so he reads.
+ */
+const STRIP_LIGHT = { fill: 0.5, face: 1.5, moon: 0.7, lamp: 0.45, candle: 1.1 } as const;
 const EASE_MS = 900;
 const NIGHT = '#141836';
 /** The lamp's light turned low while he sleeps and up once he is propped up in the room, and its chimney's glow with it. */
 const LAMP_LIGHT = { low: 1.1, high: 4.2 } as const;
 const GLASS = { low: 0.35, high: 1.6 } as const;
 
-/** The HTML that hangs in the room: the results board from the beam's hook. */
-export interface RoomAnchors { board: MutableRefObject<HTMLElement | null> }
+/** The HTML placed in the room: what is over his head (his "z"s, the "!"). */
+export interface RoomAnchors { head: MutableRefObject<HTMLElement | null> }
+/** Where his head is in the room, for what is drawn over it: asleep on the pillow, and sat up against the headboard. */
+const OVER_HEAD = { asleep: [0.5, 1.12, 0.3], upright: [0.74, 1.98, 0.2] } as const;
 
 /**
- * The farmer's bubble (V4.1 Part 7): a small canvas of its own, masked to a cloud, so he is always framed whatever the
- * dream camera does. It reads the run's clock and never writes it. The z's float over it as HTML. When the dream is over
- * the bubble opens to the whole screen and is the same bedroom seen whole (V6 Part 6.4): the camera comes down to the
- * bed, the lamp is turned up if a bump stirred him, and the results hang from the beam. A bump never wakes him outright:
- * he stirs in the bubble (`stirAt`) and is propped up, drowsy, in the room (`drowsyAt`). `data-woke` marks a stirred night.
+ * The bed strip (docs/dream/01-farmer.md, section 4): the farmer's bedroom in a canvas of its own along the bottom of the
+ * screen, seen from the bed's side through the camera `bedSide` (frame.ts `stripCamera`: 1.1 m over the mattress, looking
+ * down 18 degrees at the bed's long side, and the strip is a wide slice of what it sees, so the wall stays square). It
+ * reads the run's clock and never writes it. When the dream is over the canvas opens to the whole screen and is the
+ * same bedroom seen whole (V6 Part 6.4): the camera goes to the foot of the bed, the lamp is turned up if a bump woke
+ * him, and the results hang from the beam. The farmer is farmer.ts: he sleeps
+ * (`bedSleep`, or `bedDeep` once the fences ask three letters or he is out cold), stirs as an unanswered fence comes
+ * close (`bedStir`), starts up on a bump (`bedJolt`) and sits up, grumpy, in the room (`bedUpright`). `data-woke` marks a
+ * night that woke him.
  */
-export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, anchors }: {
+export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, anchors, depth = 1, frame, beat, turnAt = null }: {
   live: MutableRefObject<StageLive>; phase: Phase; reduced: boolean; phone: boolean; blankets?: number; anchors?: RoomAnchors;
+  /** How deep he sleeps: the letters on the fence's sign, 1 to 3 (plan file 00, section 4). */
+  depth?: number;
+  /** The screen's layout: where the strip is, and so where its camera stands. */
+  frame: DreamFrame;
+  /** The dream's beat: in its third stage his candle flickers on the same beats as the lighthouse made of it. */
+  beat?: MutableRefObject<{ beats: number }>;
+  /**
+   * Gate 3 (docs/dream/v3/07, section 3.3): the dream's clock (`live.current.t`, ms) at which he turns over, once:
+   * `bedTurn`, 900 ms, onto his far side and back, from whatever pose he is in. Null: no turn. A new time turns him
+   * again. Under reduced motion he does not turn.
+   */
+  turnAt?: number | null;
 }) {
   const woke = phase === 'crashed' || (phase === 'results' && live.current.asleepAt === null);
   const room = roomOn(phase);
+  const strip = useMemo(() => stripCamera(frame), [frame]);
+  const { x: bx, y: by, w: bw, h: bh } = frame.room;
   return (
-    <div className="dr-bubble" data-woke={woke || undefined} data-room={room || undefined}>
-      <div className="dr-bubble-rim" />
-      <div className="dr-bubble-view">
+    <div className="dr-room" data-woke={woke || undefined} data-room={room || undefined} style={room ? undefined : { left: bx, top: by, width: bw, height: bh }}>
         <SceneBoundary scene="the bedroom" size="note">
         <AdaptiveCanvas maxDpr={phone ? 1.5 : 2} memory="bedroom"
           // A man asleep in a small cloud: BUBBLE_FPS pictures a second. The full rate as he is woken (the alarm clock
@@ -56,132 +85,159 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
           fps={phase === 'crashed' || room ? undefined : BUBBLE_FPS}
           flat={false}
           gl={{ antialias: true, alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1 }}
-          camera={{ fov: CAMERA.fov, position: [...CAMERA.position], near: 0.05, far: 20 }}
-          onCreated={({ camera }) => camera.lookAt(...CAMERA.target)}
+          camera={{ fov: 20, position: [...strip.position], near: 0.05, far: 60 }}
         >
-          <Room live={live} phase={phase} reduced={reduced} phone={phone} blankets={blankets} anchors={anchors} />
+          <Room live={live} phase={phase} reduced={reduced} phone={phone} blankets={blankets} anchors={anchors} depth={depth} strip={strip} frame={frame} beat={beat} turnAt={turnAt} />
           <MarkDrawn />
         </AdaptiveCanvas>
         </SceneBoundary>
-      </div>
-      <span className="dr-bubble-zs" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="dream-z" data-i={i}>z</span>)}</span>
-      <span className="dr-bubble-bang" aria-hidden="true">hm?</span>
     </div>
   );
 }
 
-const ease = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
-/** A lid scaled to nothing is hidden, so the open eye shows clean. */
-const setLid = (m: Mesh | null, v: number) => { if (m) { m.visible = v > 0.03; m.scale.y = Math.max(0.03, v); } };
+/**
+ * Points a camera through the strip's `bedSide` (frame.ts `stripCamera`) for a canvas over the frame's room box: its
+ * place, turned down by its pitch (frame.ts `BED_SIDE`) and nothing else, and a view offset that puts its axis where
+ * the frame wants it, so the strip is a wide slice of what it sees. Returns the field of view set.
+ */
+export function aimStrip(camera: PerspectiveCamera, strip: StripCamera, frame: DreamFrame, size: { width: number; height: number }): number {
+  camera.position.set(...strip.position);
+  camera.rotation.set(-strip.pitch, 0, 0);
+  camera.fov = (2 * Math.atan(size.height / 2 / strip.focal) * 180) / Math.PI;
+  camera.setViewOffset(size.width, size.height, size.width / 2 - (strip.axis[0] - frame.room.x), size.height / 2 - (strip.axis[1] - frame.room.y), size.width, size.height);
+  return camera.fov;
+}
 
-function Room({ live, phase, reduced, phone, blankets, anchors }: { live: MutableRefObject<StageLive>; phase: Phase; reduced: boolean; phone: boolean; blankets: number; anchors?: RoomAnchors }) {
+/**
+ * Development only: `?bedPose=<pose>` (bedSleep, bedDeep, ...) or `?bedPose=turn:<ms>` holds him in that pose in the
+ * strip, for looking at each pose where the game shows him.
+ */
+const HELD: Pose | null = (() => {
+  if (!import.meta.env.DEV || typeof location === 'undefined') return null;
+  const q = new URLSearchParams(location.search).get('bedPose');
+  if (!q) return null;
+  if (q.startsWith('turn:')) return turnPose(Number(q.slice(5)));
+  return q in POSES ? POSES[q as PoseName] : null;
+})();
+
+const ease = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
+/** Deep asleep and stirring: the brows drop and the head comes round, but the arm stays hanging and the mouth open. */
+const DEEP_STIR: Pose = { ...POSES.bedDeep, headTurn: POSES.bedStir.headTurn, brows: POSES.bedStir.brows, breath: POSES.bedStir.breath };
+
+/** The pose the night calls for (docs/dream/01-farmer.md, section 3). */
+export function poseFor(L: StageLive, phase: Phase, depth: number): PoseName | 'deepStir' {
+  if (phase === 'results') return L.asleepAt !== null ? 'bedDeep' : 'bedUpright';
+  if (L.crashAt !== null) return 'bedJolt';
+  const deep = depth >= 3 || L.asleepAt !== null || (L.deepAt ?? null) !== null;
+  if (phase === 'running') {
+    const next = L.fences.find((fe) => !fe.passed && fe.x + FIELD.fenceW > FIELD.sheepX);
+    if (next && isClose(next)) return deep ? 'deepStir' : 'bedStir';
+  }
+  return deep ? 'bedDeep' : 'bedSleep';
+}
+
+function Room({ live, phase, reduced, phone, blankets, anchors, depth, strip, frame, beat, turnAt }: { live: MutableRefObject<StageLive>; phase: Phase; reduced: boolean; phone: boolean; blankets: number; anchors?: RoomAnchors; depth: number; strip: StripCamera; frame: DreamFrame; beat?: MutableRefObject<{ beats: number }>; turnAt: number | null }) {
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const size = useThree((s) => s.size);
   const b = useMemo(() => bedroomGeometry(), []);
-  const f = useMemo(() => farmerGeometry(), []);
+  // The strip sees further along the back wall than the room is long: more wall and floor, and the window it ends on.
+  const extent = useMemo(() => stripExtent(frame, strip), [frame, strip]);
+  const far = useMemo(() => stripWall(extent.x1, extent.windowX), [extent.x1, extent.windowX]);
   const vox = useMemo(() => voxelMaterial(), []);
   const glassMat = useMemo(() => voxelMaterial({ emissive: '#FFB45A', emissiveIntensity: GLASS.low }), []);
   const selfLit = useMemo(() => new MeshBasicMaterial({ vertexColors: true, toneMapped: false }), []);
   const room = roomOn(phase);
-  const r = useMemo(() => (room ? { sitting: farmerSitting(), arm: farmerRubArm(), quilt: quiltSat(), folds: [foldedQuilt(0), foldedQuilt(1)] } : null), [room]);
-  const sitting = room && live.current.asleepAt === null;
-  const bump = useRef<Group>(null);
+  const r = useMemo(() => (room ? { folds: [foldedQuilt(0), foldedQuilt(1)] } : null), [room]);
   const clock = useRef<Group>(null);
   const ring = useRef<Mesh>(null);
-  const asleep = useRef<Mesh>(null);
-  const awake = useRef<Mesh>(null);
-  const lidA = useRef<Mesh>(null);
-  const lidB = useRef<Mesh>(null);
-  const lieHead = useRef<Group>(null);
-  const lieBody = useRef<Group>(null);
-  const sitLean = useRef<Group>(null);
-  const sitHead = useRef<Group>(null);
-  const sitLidA = useRef<Mesh>(null);
-  const sitLidB = useRef<Mesh>(null);
-  const rubArm = useRef<Group>(null);
+  const farmer = useRef<FarmerHandle>(null);
+  // Where he is between poses: the pose he left, the one he is going to, and when he set off (the scene's clock, s).
+  const at = useMemo(() => ({ name: 'bedSleep' as PoseName | 'deepStir', from: POSES.bedSleep, now: POSES.bedSleep, since: 0, ms: 0 }), []);
   const lampLight = useRef<PointLight>(null);
   const candle = useRef<PointLight>(null);
   const shot = phone ? RESULTS.phone : RESULTS.desktop;
-  const cam = useMemo(() => ({ at: -1, from: new Vector3(), look: new Vector3(), p: new Vector3(), lamp: 0 }), []);
+  const cam = useMemo(() => ({ at: -1, from: new Vector3(), start: new Vector3(), look: new Vector3(), p: new Vector3(), lamp: 0, fov: 20, key: '' }), []);
   useEffect(() => { scene.background = new Color(NIGHT); }, [scene]);
   useEffect(() => () => { vox.dispose(); glassMat.dispose(); selfLit.dispose(); }, [vox, glassMat, selfLit]);
   useFrame(({ clock: ck }, dt) => {
     const t = ck.elapsedTime, L = live.current;
     const since = L.crashAt !== null ? L.t - L.crashAt : -1;
-    // A bump never wakes him: he stirs. The last bump plays the whole stir and leaves him peeking, drowsy; a bump short
-    // of the last (none while the night has one life) stirs him and lets him settle back. Reduced motion holds the peek.
-    const stumbleMs = L.t - (L.stumbleUntil - STUMBLE_MS);
-    const stirring = since >= 0 || (L.stumbleUntil > 0 && stumbleMs >= 0 && stumbleMs < 1700);
-    const st = since >= 0 ? stirAt(reduced ? STIR_MS : since) : stirring ? (reduced ? settleAt(0) : settleAt(stumbleMs)) : null;
-    if (asleep.current) asleep.current.visible = !st;
-    if (awake.current) awake.current.visible = !!st;
-    setLid(lidA.current, st ? st.lidA : 0);
-    setLid(lidB.current, st ? st.lidB : 0);
-    // Breathing: the quilt rises and falls, and his head and shoulders ride it.
-    const breath = reduced ? 0 : 0.5 - 0.5 * Math.cos((t / 3.8) * Math.PI * 2);
-    if (bump.current) bump.current.scale.y = 1 + 0.035 * breath + 0.07 * (st?.heave ?? 0);
-    if (lieHead.current) { lieHead.current.rotation.y = st?.roll ?? 0; lieHead.current.rotation.x = (st?.nod ?? 0) - 0.03 * breath; }
-    if (lieBody.current) { lieBody.current.rotation.y = 0.4 * (st?.roll ?? 0); }
+    // His pose: the one the night calls for, eased into over that pose's own time (a cut under reduced motion). He goes
+    // on breathing whatever the motion setting.
+    const want = poseFor(L, phase, depth);
+    if (want !== at.name) {
+      const leaving = at.name === 'deepStir' ? 'bedStir' : at.name, going = want === 'deepStir' ? 'bedStir' : want;
+      const calm = going === 'bedSleep' || going === 'bedDeep';
+      at.from = at.now; at.name = want; at.since = t;
+      at.ms = reduced ? 0 : calm ? BLEND_MS[leaving].out : BLEND_MS[going].in;
+    }
+    const to = at.name === 'deepStir' ? DEEP_STIR : POSES[at.name];
+    at.now = at.ms <= 0 ? to : blendPose(at.from, to, smooth(((t - at.since) * 1000) / at.ms));
+    // Gate 3: he turns over and back, from the pose he is in; the pose underneath goes on as before.
+    const turning = turnAt !== null && !reduced && !room ? L.t - turnAt : -1;
+    const shown = HELD ?? (turning > 0 ? turnPose(turning, at.now) : at.now);
+    farmer.current?.apply(shown, breathAt(t, shown.breath));
     // The lamp: low through the night; turned up, slowly, once he has propped himself up in the room.
     const up = phase === 'results' && L.asleepAt === null;
     cam.lamp = reduced ? (up ? 1 : 0) : Math.min(1, Math.max(0, cam.lamp + (up ? dt * 0.7 : -dt * 1.5)));
     const lamp = smooth(cam.lamp);
     const flicker = reduced ? 1 : 1 + 0.05 * Math.sin(t * 13.1) + 0.04 * Math.sin(t * 7.3 + 1.7);
-    if (lampLight.current) lampLight.current.intensity = (LAMP_LIGHT.low + (LAMP_LIGHT.high - LAMP_LIGHT.low) * lamp) * flicker;
+    if (lampLight.current) lampLight.current.intensity = (room ? LAMP_LIGHT.low + (LAMP_LIGHT.high - LAMP_LIGHT.low) * lamp : STRIP_LIGHT.lamp) * flicker;
     (glassMat as MeshLambertMaterial).emissiveIntensity = (GLASS.low + (GLASS.high - GLASS.low) * lamp) * flicker;
-    if (candle.current) candle.current.intensity = 0.5 * (reduced ? 1 : 1 + 0.12 * Math.sin(t * 17.3) + 0.08 * Math.sin(t * 5.1));
+    const onBeat = !room && !reduced && depth >= 3 && beat ? 0.45 * pulse(beat.current.beats) : 0;
+    if (candle.current) candle.current.intensity = (room ? 0.5 : STRIP_LIGHT.candle) * (reduced ? 1 : 1 + onBeat + 0.12 * Math.sin(t * 17.3) + 0.08 * Math.sin(t * 5.1));
     // The clock rattles with the alarm as the dream pops, swelling in and dying away; that is what makes him peek.
     const rang = since - WAKE.pop, ringing = !room && rang >= 0 && rang < 500;
     if (clock.current) clock.current.rotation.z = !reduced && ringing ? Math.sin(t * 30 * Math.PI * 2) * ((3 * Math.PI) / 180) * Math.sin((rang / 500) * Math.PI) : 0;
     if (ring.current) ring.current.visible = ringing && (reduced || Math.floor(t * 8) % 2 === 0);
 
-    // The camera: the bubble's shot until the dream is over, then down to the bed over 900 ms (a cut under reduced motion).
+    // The camera: `bedSide` until the dream is over, then to the foot of the bed over 900 ms (a cut under reduced motion).
     if (!room) {
-      // Back from the results (Practice starts a new dream in place): put the bubble's own shot back.
-      if (cam.at >= 0) {
-        camera.position.set(...CAMERA.position);
-        camera.fov = CAMERA.fov;
-        camera.updateProjectionMatrix();
-        camera.lookAt(...CAMERA.target);
+      // The strip is a wide slice of what `bedSide` sees (`aimStrip`). Set again whenever the canvas or the frame
+      // changes, and on coming back from the results (Practice starts a new dream in place).
+      const key = `${size.width}:${size.height}:${strip.axis[0]}:${strip.axis[1]}:${strip.focal}`;
+      if (cam.key !== key || cam.at >= 0) {
+        cam.key = key;
+        cam.fov = aimStrip(camera, strip, frame, size);
       }
       cam.at = -1;
       return;
     }
-    if (cam.at < 0) { cam.at = t; cam.from.copy(camera.position); }
-    // Propped up, drowsy: he pushes himself up as the camera comes down, rubs his eye, blinks slowly, nods off and catches himself.
-    const dz = drowsyAt(t - cam.at, reduced);
-    if (sitLean.current) sitLean.current.rotation.z = dz.lean;
-    if (sitHead.current) { sitHead.current.rotation.x = dz.droop; sitHead.current.rotation.z = dz.tilt; }
-    setLid(sitLidA.current, dz.lid);
-    setLid(sitLidB.current, dz.lid);
-    if (rubArm.current) { rubArm.current.rotation.x = dz.rub[1]; rubArm.current.rotation.z = dz.rub[0]; }
+    if (cam.at < 0) {
+      cam.at = t; cam.key = ''; cam.from.copy(camera.position); camera.clearViewOffset();
+      // Where the strip's camera was looking, at the plane z = 0: the way down to the results starts from there.
+      cam.start.set(cam.from.x, cam.from.y - cam.from.z * Math.tan(strip.pitch), 0);
+    }
     const k = reduced ? 1 : ease(((t - cam.at) * 1000) / EASE_MS);
     camera.position.lerpVectors(cam.from, cam.p.set(shot.position[0], shot.position[1], shot.position[2]), k);
-    cam.look.set(CAMERA.target[0] + (shot.target[0] - CAMERA.target[0]) * k, CAMERA.target[1] + (shot.target[1] - CAMERA.target[1]) * k, CAMERA.target[2] + (shot.target[2] - CAMERA.target[2]) * k);
-    if (camera.fov !== shot.fov) { camera.fov = CAMERA.fov + (shot.fov - CAMERA.fov) * k; camera.updateProjectionMatrix(); }
+    cam.look.lerpVectors(cam.start, cam.p.set(shot.target[0], shot.target[1], shot.target[2]), k);
+    if (camera.fov !== shot.fov) { camera.fov = cam.fov + (shot.fov - cam.fov) * k; camera.updateProjectionMatrix(); }
     camera.lookAt(cam.look);
-    // The board hangs from the beam's hook: project it every frame.
-    const put = (el: HTMLElement | null | undefined, x: number, y: number, z: number) => {
-      if (!el) return;
-      const v = cam.p.set(x, y, z).project(camera);
-      el.style.left = `${((v.x + 1) / 2) * size.width}px`;
-      el.style.top = `${((1 - v.y) / 2) * size.height}px`;
-    };
-    // A phone's frame is too narrow to show the beam and the bed together: there the board hangs from the top edge.
-    if (!phone) put(anchors?.board.current, BEAM.hookX + 0.05, BEAM.y, BEAM.z + 0.2);
+    // The board stands beside him, not over him (07, section 4.1): the picture is slid so that the bed and the farmer
+    // sit in the middle of the part of the screen it leaves uncovered (to the left of it; above it on a phone).
+    const sx = phone ? 0 : Math.round(Math.min(size.width * 0.34, 222 * frame.u) * k), sy = phone ? Math.round(size.height * 0.36 * k) : 0;
+    if (cam.key !== `${sx}:${sy}:${size.width}:${size.height}`) { cam.key = `${sx}:${sy}:${size.width}:${size.height}`; camera.setViewOffset(size.width, size.height, sx, sy, size.width, size.height); }
+    // What is over his head: project his head every frame.
+    const el = anchors?.head.current, over = L.asleepAt !== null ? OVER_HEAD.asleep : OVER_HEAD.upright;
+    if (el) {
+      const v = cam.p.set(over[0], over[1], over[2]).project(camera);
+      el.style.transform = `translate3d(${(((v.x + 1) / 2) * size.width).toFixed(1)}px, ${(((1 - v.y) / 2) * size.height).toFixed(1)}px, 0)`;
+    }
   });
   return (
     <>
       {/* Night in the room: a dim cool fill, moonlight falling in from the windows, the lamp and the candle warm. */}
-      <hemisphereLight args={['#7A80C0', '#4A3A30', 1.1]} />
+      <hemisphereLight args={['#7A80C0', '#4A3A30', room ? 1.1 : STRIP_LIGHT.fill]} />
       {/* The lamp's glow from the room side, so his face reads whichever way he lies. */}
-      <pointLight position={[1.4, 1.5, 0.9]} color="#FFD8B0" intensity={2.2} distance={4} decay={1.5} />
-      <directionalLight position={[-1, 3, -3.5]} color="#A9BCFF" intensity={1.1} />
+      <pointLight position={[1.4, 1.5, 0.9]} color="#FFD8B0" intensity={room ? 2.2 : STRIP_LIGHT.face} distance={4} decay={1.5} />
+      <directionalLight position={[-1, 3, -3.5]} color="#A9BCFF" intensity={room ? 1.1 : STRIP_LIGHT.moon} />
       <pointLight ref={lampLight} position={[LAMP.x + 0.08, LAMP.y + 0.3, LAMP.z + 0.12]} color="#FFC48A" intensity={LAMP_LIGHT.low} distance={6} decay={1.6} />
       <pointLight ref={candle} position={[CANDLE.x, CANDLE.y + 0.25, CANDLE.z + 0.15]} color="#FFB060" intensity={0.5} distance={2.2} decay={2} />
       <mesh geometry={b.room} material={vox} />
       <mesh geometry={b.glow} material={selfLit} />
+      <mesh geometry={far.solid} material={vox} />
+      <mesh geometry={far.glow} material={selfLit} />
       <mesh geometry={b.lampGlass} material={glassMat} />
       <group ref={clock} position={[CLOCK.x, CLOCK.y + 0.025, CLOCK.z]} rotation={[0, CLOCK.turn, 0]}>
         <mesh geometry={b.clock} material={vox} />
@@ -190,42 +246,7 @@ function Room({ live, phase, reduced, phone, blankets, anchors }: { live: Mutabl
       {r && [0, 1].slice(0, blankets).map((i) => (
         <mesh key={i} geometry={r.folds[i]} material={vox} position={[1.62 + i * 0.03, BED.mattress.top + 0.05 + i * 0.12, -0.12 + i * 0.05]} rotation={[0, i ? 0.12 : -0.05, 0]} />
       ))}
-      {sitting && r ? <mesh geometry={r.quilt} material={vox} /> : (
-        <group ref={bump} position={[0, BED.mattress.top, 0]}><mesh geometry={b.quiltBump} material={vox} position={[0, -BED.mattress.top, 0]} /></group>
-      )}
-      {sitting && r ? (
-        // Propped up against the headboard from his hips, turned toward the room, half-lidded, rubbing one eye, his nightcap askew.
-        <group ref={sitLean} position={[SITTING.x, SITTING.y - HIP, SITTING.z]}>
-          <group position={[0, HIP, 0]} rotation={[0, SITTING.turn, 0]}>
-            <mesh geometry={r.sitting} material={vox} />
-            <group ref={sitHead}>
-              <group ref={rubArm} position={SHOULDER}><mesh geometry={r.arm} material={vox} position={[-SHOULDER[0], -SHOULDER[1], -SHOULDER[2]]} /></group>
-              <mesh geometry={f.awake} material={vox} />
-              <mesh ref={sitLidA} geometry={f.lidA} material={vox} position={[0, EYE_TOP, 0]} />
-              <mesh ref={sitLidB} geometry={f.lidB} material={vox} position={[0, EYE_TOP, 0]} />
-              <mesh geometry={f.cap} material={vox} rotation={[0, 0, -0.12]} position={[0.01, 0.01, 0]} />
-            </group>
-          </group>
-        </group>
-      ) : (
-        // The farmer: built standing, laid down on the pillow, propped toward the foot of the bed so his face reads.
-        <group position={[0.34, BED.pillowTop + 0.05, -0.02]} rotation={[0.3, -0.35, -0.95]}>
-          <group rotation={[0, Math.PI / 2, 0]}>
-            <group rotation={[-Math.PI / 2, 0, 0]}>
-              <group ref={lieBody}><mesh geometry={f.body} material={vox} /></group>
-              <group ref={lieHead} position={[0, HEAD_PIVOT, 0]}>
-                <group position={[0, -HEAD_PIVOT, 0]}>
-                  <mesh ref={asleep} geometry={f.asleep} material={vox} />
-                  <mesh ref={awake} geometry={f.awake} material={vox} visible={false} />
-                  <mesh ref={lidA} geometry={f.lidA} material={vox} position={[0, EYE_TOP, 0]} visible={false} />
-                  <mesh ref={lidB} geometry={f.lidB} material={vox} position={[0, EYE_TOP, 0]} visible={false} />
-                  <mesh geometry={f.cap} material={vox} />
-                </group>
-              </group>
-            </group>
-          </group>
-        </group>
-      )}
+      <FarmerInBed ref={farmer} material={vox} pose={POSES.bedSleep} />
     </>
   );
 }

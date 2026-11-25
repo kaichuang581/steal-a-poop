@@ -2,6 +2,24 @@
 
 All user-visible changes, newest first.
 
+## 0.9.8
+
+- The farmer matches his sheet more closely: his nightcap's tail and pom hang back behind his left ear, and his beard runs along his jaw on both sides.
+- Counting Sheep's dream is drawn in a real thought cloud: big puffs along the top and sides and soft waves along the bottom, instead of a box with cut corners.
+- Lighter on slow computers: a computer that had to drop to the lowest graphics level starts there on its next visits for a week, instead of lagging until it drops again. Opening Counting Sheep, Home and a game freezes the page for less time: shaders are compiled in the background, and the voxel models are built about twice as fast.
+- Counting Sheep's dream is built in voxels like the rest of the farm: the barn, the farmhouse, the windmill and the fence stand at their own distances, pass at their own speeds and catch the moonlight, and a dry-stone wall slides past along the bottom. The farm lifts off on islands, then turns into the farmer's bed, and after the first night through the worlds go round for as long as you keep counting.
+- Counting Sheep is endless with a best score: the meter and "of 30" are gone, the counter shows your count and your best, and "New best" lights up when you pass it. Every 10 sheep the moon swells and ten sheep hop across it, and each sheep you count leaves a star in the sky.
+- Counting Sheep has a new farmer, rebuilt from Brian's sheet: a slim older man with a short grey beard, an off-white nightcap with one red band and a long striped nightshirt. He sleeps on his back, stirs when a fence gets close, starts up on a bump and sits up grumpy when he is woken. His bedroom gains a knitting basket and five books.
+- Counting Sheep gets harder smoothly: hay bales no longer turn up right on a fence's heels, and the sheep speeds up a little with every fence instead of in a straight line to a stop.
+- Counting Sheep no longer ends at 30. Fence 30 puts the farmer out cold, and the dream runs on for as long as you keep clearing fences. A bump after that ends the night with him still asleep.
+- No more skipped turns when a round ends: the next round carries on round the table from whoever went last, instead of jumping one seat ahead.
+- Counting Sheep's new screen: the farmer asleep in his bed along the bottom, the dream as one big thought bubble above him, and your word as letter tiles in a tray, with a fence meter, a night track and a board that shows how to play.
+- Counting Sheep answers you: your tiles fly to the sign, the sheep rolls in the air and kicks up snow, a bump shakes the dream, and every word you use rises into the sky and stays there as stars.
+- Counting Sheep's dream is the farmer's own farm at night: the barn and silo, his farmhouse with one window lit, a fence strung with bulbs that blink in time, a snowy track, and gates, log piles and hay bales to jump.
+- At the first two-letter fence the dream bends: the sheep runs under the farm gate, the ground drops away, the barn and the farmhouse float off on their own islands, the moon fills out and a northern light begins to dance.
+- At the first three-letter fence the dream turns into the farmer's bed: a quilt rolls out under the sheep, the hills are patchwork, the mountains are pillows, his yarn and needles sit on the hills and the stars are his nightshirt's buttons on threads. For the last five fences the moon swells and every sheep you have counted jumps across it.
+- Counting Sheep opens with the dream growing out of the farmer's head, and ends by popping when he wakes or sinking back into his head when he sleeps on. The results are on a new board beside him: the count on his nightshirt's pocket, your night's words as a sky of stars, your streak and your coins.
+
 ## 0.9.7
 
 - Your profile and How ranks work, polished: every section a card with its title inside, coloured icon tiles, a night scene behind your name, your longest word in letter tiles, the ranks on a staircase, the practice rating above its grid, and the rules as tags and chips. Rename your name from a title, not a form.
@@ -351,7 +369,7 @@ The visual overhaul is complete (milestones 0 to 12).
 - The land around the farm is alive: woods in natural clumps, an overgrown orchard, a dry stone wall, drifts, scrub and worn tracks, and sheep out on the open ground
 - The ice in Practice gets its own string of lights and a tree
 
-## Unreleased
+## 0.9.8
 
 ### Painted barn (shipped)
 

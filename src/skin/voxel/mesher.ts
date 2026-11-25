@@ -12,26 +12,51 @@ const FACES: { axis: 0 | 1 | 2; sign: 1 | -1; t1: 0 | 1 | 2; t2: 0 | 1 | 2 }[] =
   { axis: 2, sign: 1, t1: 0, t2: 1 }, { axis: 2, sign: -1, t1: 0, t2: 1 },
 ];
 /** A little per-face shading so a cube's faces read apart where the light is flat; the sun and sky fill do the rest. */
-const FACE_SHADE = (axis: number, sign: number) =>
+export const FACE_SHADE = (axis: number, sign: number) =>
   axis === 1 ? (sign > 0 ? 1.0 : 0.78) : axis === 0 ? (sign > 0 ? 0.93 : 0.88) : sign > 0 ? 0.91 : 0.86;
 /** How much each occluded corner darkens (0..3 corners). */
 const AO_STEP = LOOK.ao ?? 0.2; // ?ao= on a development server (look.ts), for the diorama's pairs
 
 const cellKey = (x: number, y: number, z: number) => (x + 8192) * 268435456 + (y + 8192) * 16384 + (z + 8192);
-const solids = new WeakMap<object, Set<number>>();
+/** Answers "is there a voxel at x, y, z" for a whole model. */
+interface Solid { has(x: number, y: number, z: number): boolean }
+const solids = new WeakMap<object, Solid>();
 /**
- * Every filled cell as a number, for neighbour lookups. A chunk of a bigger model names the whole model as `all`, so its
- * faces cull against its neighbours; the set is worked out once per model, however many chunks share it.
+ * Every filled cell, for neighbour lookups. A chunk of a bigger model names the whole model as `all`, so its faces cull
+ * against its neighbours; the lookup is worked out once per model, however many chunks share it. A bit for each cell of
+ * the model's box when that is no bigger than a set of its cells would be (about 30 bytes a voxel): a face asks up to 21
+ * times, and the bits answer several times faster than a set of numbers (2026-11-25, the mesher was the biggest cost of
+ * building Home).
  */
-function solidOf(vox: VoxelMap): Set<number> {
+function solidOf(vox: VoxelMap): Solid {
   const all = (vox as VoxelMap & { all?: VoxelMap }).all ?? vox;
-  let set = solids.get(all);
-  if (!set) {
-    set = new Set();
-    for (const v of all.values()) set.add(cellKey(v.x, v.y, v.z));
-    solids.set(all, set);
+  let solid = solids.get(all);
+  if (solid) return solid;
+  let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity, n = 0;
+  for (const v of all.values()) {
+    n++;
+    if (v.x < x0) x0 = v.x; if (v.x > x1) x1 = v.x;
+    if (v.y < y0) y0 = v.y; if (v.y > y1) y1 = v.y;
+    if (v.z < z0) z0 = v.z; if (v.z > z1) z1 = v.z;
   }
-  return set;
+  const h = y1 - y0 + 1, d = z1 - z0 + 1, cells = (x1 - x0 + 1) * h * d;
+  if (n > 0 && cells / 8 <= Math.max(65_536, n * 32)) {
+    const bits = new Uint32Array(Math.ceil(cells / 32));
+    for (const v of all.values()) { const i = ((v.x - x0) * h + (v.y - y0)) * d + (v.z - z0); bits[i >>> 5] |= 1 << (i & 31); }
+    solid = {
+      has: (x, y, z) => {
+        if (x < x0 || x > x1 || y < y0 || y > y1 || z < z0 || z > z1) return false;
+        const i = ((x - x0) * h + (y - y0)) * d + (z - z0);
+        return (bits[i >>> 5] & (1 << (i & 31))) !== 0;
+      },
+    };
+  } else {
+    const set = new Set<number>();
+    for (const v of all.values()) set.add(cellKey(v.x, v.y, v.z));
+    solid = { has: (x, y, z) => set.has(cellKey(x, y, z)) };
+  }
+  solids.set(all, solid);
+  return solid;
 }
 
 /** Counter-clockwise (outward-facing) corner order for each face, as offsets on (t1, t2). */
@@ -41,6 +66,7 @@ function cornersFor(axis: number, sign: number): [number, number][] {
   const rightHanded = axis !== 1;
   return (sign > 0) === rightHanded ? ccw : [...ccw].reverse();
 }
+const CORNERS = FACES.map((f) => cornersFor(f.axis, f.sign));
 
 /**
  * Coplanar faces of one tone merge into rectangles in the meshes that ask for it (`merge`): the far land, which is
@@ -89,8 +115,12 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
   (globalThis as { __voxelHook?: (vox: VoxelMap, size: number) => void }).__voxelHook?.(vox, size);
   const solid = solidOf(vox);
   // UVs are kept so a material may map a texture, but the voxel material carries none (plan V3.1 Part 1.1).
-  const has = (p: number[]) => solid.has(cellKey(p[0], p[1], p[2]));
-  const shut = near ? (p: number[]) => has(p) || near(p[0], p[1], p[2]) : has; // for corner shade only
+  const has = (p: number[]) => solid.has(p[0], p[1], p[2]);
+  const shutAt = near ? (x: number, y: number, z: number) => solid.has(x, y, z) || near(x, y, z) : solid.has; // for corner shade only
+  /** `test` at `p` moved d1 along axis t1 and d2 along t2, with no array made (the loop below asks millions of times). */
+  const moved = (test: (x: number, y: number, z: number) => boolean, p: number[], t1: number, d1: number, t2: number, d2: number) =>
+    test(p[0] + (t1 === 0 ? d1 : 0) + (t2 === 0 ? d2 : 0), p[1] + (t1 === 1 ? d1 : 0) + (t2 === 1 ? d2 : 0), p[2] + (t1 === 2 ? d1 : 0) + (t2 === 2 ? d2 : 0));
+  const c = [0, 0, 0];
   const pos: number[] = [], col: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [], bev: number[] = [];
   const merging = !!merge && MERGE_FLAT;
   const mergeable = typeof merge === 'function' ? merge : null;
@@ -100,39 +130,34 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
   const corner = new Set<number>();
   for (const v of vox.values()) {
     const P = [v.x, v.y, v.z];
-    for (const f of FACES) {
+    for (let fi = 0; fi < FACES.length; fi++) {
+      const f = FACES[fi];
       const N = [0, 0, 0];
       N[f.axis] = f.sign;
       const outside = [P[0] + N[0], P[1] + N[1], P[2] + N[2]];
       if (has(outside)) continue; // face culling: never emit a hidden face
       if (unseen?.(f.axis, f.sign, (P[f.axis] + (f.sign > 0 ? 1 : 0)) * size)) continue; // nor one no camera can face
-      const corners = cornersFor(f.axis, f.sign);
+      const corners = CORNERS[fi];
       // Rounded corners (rounded.ts): an edge of this face rounds when nothing stands beside the voxel that way, in its
       // own layer or one out, so coplanar runs of voxels stay one flat surface and concave steps stay sharp.
       let mask = 0;
       if (ROUND) {
-        const open = (t: number, d: number) => {
-          const q = [...P]; q[t] += d;
-          const o = [...outside]; o[t] += d;
-          return !has(q) && !has(o);
-        };
+        const open = (t: number, d: number) => !moved(solid.has, P, t, d, t, 0) && !moved(solid.has, outside, t, d, t, 0);
         mask = (open(f.t1, -1) ? EDGE.t1Lo : 0) | (open(f.t1, 1) ? EDGE.t1Hi : 0) | (open(f.t2, -1) ? EDGE.t2Lo : 0) | (open(f.t2, 1) ? EDGE.t2Hi : 0);
       }
       const aos: number[] = [];
       for (const [u, w] of corners) {
         // ambient occlusion: the two edge neighbours and the diagonal neighbour around this corner, one layer out
         const d1 = u ? 1 : -1, d2 = w ? 1 : -1;
-        const s1 = [...outside]; s1[f.t1] += d1;
-        const s2 = [...outside]; s2[f.t2] += d2;
-        const cn = [...outside]; cn[f.t1] += d1; cn[f.t2] += d2;
-        const a = shut(s1) ? 1 : 0, b = shut(s2) ? 1 : 0, cc = shut(cn) ? 1 : 0;
+        const a = moved(shutAt, outside, f.t1, d1, f.t2, 0) ? 1 : 0, b = moved(shutAt, outside, f.t2, d2, f.t1, 0) ? 1 : 0;
+        const cc = moved(shutAt, outside, f.t1, d1, f.t2, d2) ? 1 : 0;
         aos.push(a && b ? 3 : a + b + cc); // 0 open .. 3 fully occluded
       }
       const shade = FACE_SHADE(f.axis, f.sign);
       // One tone and no rounded edge: this face may join its neighbours in a rectangle, once every face is known.
       if (merging && mask === 0 && aos[0] === aos[1] && aos[1] === aos[2] && aos[2] === aos[3] && (!mergeable || mergeable((P[0] + 0.5) * size, (P[1] + 0.5) * size, (P[2] + 0.5) * size))) {
         const k = (1 - AO_STEP * (occlude ? aos[0] : 0)) * shade;
-        const key = `${FACES.indexOf(f)}|${P[f.axis]}`;
+        const key = `${fi}|${P[f.axis]}`;
         let cells = flat.get(key);
         if (!cells) flat.set(key, (cells = new Map()));
         cells.set(planeCell(P[f.t1], P[f.t2]), [P[f.t1], P[f.t2], v.c[0] * k, v.c[1] * k, v.c[2] * k]);
@@ -141,7 +166,6 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
       const base = pos.length / 3;
       for (let i = 0; i < 4; i++) {
         const [u, w] = corners[i];
-        const c = [0, 0, 0];
         c[f.axis] = f.sign > 0 ? 1 : 0;
         c[f.t1] = u;
         c[f.t2] = w;
@@ -195,8 +219,7 @@ export function buildGeometry(vox: VoxelMap, size: number, { ao: occlude = true,
   const beside = (x: number, y: number, z: number) => {
     if (!own) return false;
     for (let dx = -1; dx <= 0; dx++) for (let dy = -1; dy <= 0; dy++) for (let dz = -1; dz <= 0; dz++) {
-      const k = cellKey(x + dx, y + dy, z + dz);
-      if (solid.has(k) && !own.has(k)) return true;
+      if (solid.has(x + dx, y + dy, z + dz) && !own.has(cellKey(x + dx, y + dy, z + dz))) return true;
     }
     return false;
   };

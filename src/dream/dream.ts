@@ -7,8 +7,9 @@ import { foldAccents } from '../lib/lang';
  * Type any real word that starts with them and the sheep jumps it, and the farmer counts one more. Reach a fence without one and
  * the sheep bumps it. Fences start with one letter and ask for more as the count climbs. Like the offline dinosaur,
  * the fences stand about the same distance apart and the sheep keeps speeding up, so the same gap gives less and less
- * time, and hay bales start turning up close behind the fences. The nightly dream ends after `DREAM_LENGTH.fences` with
- * the farmer asleep, or on the last bump with him awake; practice has no end and one bump finishes it. Everything here
+ * time, and hay bales start turning up a little closer behind the fences. After `DREAM_LENGTH.fences` the farmer is out
+ * cold, and the night runs on for as long as the sheep keeps clearing fences: a bump before then wakes him, a bump
+ * after it only ends the dream. Practice has no such mark and one bump finishes it. Everything here
  * is pure and seeded, so the daily dream is the same for everyone; the screen (src/skin/dream) only plays it out.
  */
 
@@ -91,7 +92,12 @@ export let STARTS: Record<1 | 2 | 3, readonly string[]> = {
 /** A start used by any of the last this many fences is not asked again so soon. */
 const RECENT_STARTS = 8;
 
-/** The nightly dream's shape (V4 Part 15): this many fences puts the farmer to sleep, and this many bumps wakes him. */
+/**
+ * The nightly dream's shape (V4 Part 15): this many fences puts the farmer out cold, and this many bumps before then
+ * wake him. The night does not stop there (Brian, 2026-11-24: "make it go past 30, it should go infinitely ideally"):
+ * once he is out cold the fences keep coming, ever a little faster, until the sheep bumps one, and that bump ends the
+ * dream with him still asleep.
+ */
 export const DREAM_LENGTH: { fences: number; bumps: number } | null = { fences: 30, bumps: 1 };
 
 /** Bales start here, and may come two at a time from `BALE_PAIRS_FROM`; never three. */
@@ -100,6 +106,18 @@ export const BALE_PAIRS_FROM = 18;
 function baleRoll(seed: string, index: number): boolean {
   if (index < BALES_FROM) return false;
   return rng(`${seed}#bale#${index}`)() < Math.min(0.42, 0.16 + (index - BALES_FROM) * 0.012);
+}
+
+/**
+ * How close a bale stands behind the obstacle before it, as a share of a fence's gap (Brian, 2026-11-24: "the part
+ * where u type in two words in one short span is way too quick, just make the gameplay faster but overtime"). A bale
+ * used to stand 300 to 350 px behind, well under half a gap, so the time for its word fell off a cliff the first time
+ * one turned up (about 4.9 s to 1.9 s at fence 8, and 1.2 s by fence 30). Now the first bales are 0.8 of a gap behind
+ * and the share eases toward `BALE_SHARE.close` over many fences.
+ */
+export const BALE_SHARE = { open: 0.8, close: 0.62, ease: 30 } as const;
+export function baleShare(index: number): number {
+  return BALE_SHARE.close + (BALE_SHARE.open - BALE_SHARE.close) * Math.exp(-Math.max(0, index - BALES_FROM) / BALE_SHARE.ease);
 }
 
 /** What stands at position `index`: more and more often a bale as the dream goes on. */
@@ -150,7 +168,9 @@ function buildFence(seed: string, index: number): Fence {
   const pool = fresh.length ? fresh : all.filter((p) => !firsts.has(p[0])).length ? all.filter((p) => !firsts.has(p[0])) : all;
   const start = pool[Math.floor(r() * pool.length)];
   // The distance barely changes, so the rising speed is what closes the gap; a little more room for each letter asked.
-  const gap = kind === 'bale' ? 300 + r() * 50 : 760 + (k - 1) * 18 + r() * 80;
+  // A bale stands closer than a fence, by a share that tightens slowly over the night and never by a cliff.
+  const room = 760 + r() * 80;
+  const gap = kind === 'bale' ? room * baleShare(index) : room + (k - 1) * 18;
   return { index, kind, letters: [...start], source: FENCE_WORDS.find((w) => w.startsWith(start) && w.length > start.length) ?? '', gap };
 }
 
@@ -206,12 +226,17 @@ export const FIELD = { width: 320, ground: 104, sheepX: 78, sheepW: 20, fenceW: 
 export const JUMP_MS = 720;
 export const JUMP_HEIGHT = 28;
 
-/** Running speed in logical pixels a second after `count` fences, rising to a cap like the offline dinosaur. Brian,
- *  2026-11-09: "make the dream get progressively faster this is boring": 120 rising 5 a fence (was 110 rising 2.6),
- *  so the night's last fence comes at 265 and practice tops out at 320 after 40 fences (was 210 after 38). */
-export const SPEED = { start: 120, perFence: 5, cap: 320 } as const;
+/**
+ * Running speed in logical pixels a second after `count` fences. One smooth curve with no corner in it (Brian,
+ * 2026-11-24: "make the difficulty ramp up ... more smooth ... just make the gameplay faster but overtime"): it leaves
+ * `start` at about 6.7 a fence, as fast as before (Brian, 2026-11-09: "make the dream get progressively faster this is
+ * boring"), and every fence adds a little less than the one before, closing on `cap` without ever reaching it. So a
+ * night that runs on past fence 30 keeps getting faster for as long as it lasts: 178 at fence 10, 222 at 20, 256 at
+ * 30, 315 at 60, 345 at 100. It used to climb 5 a fence in a straight line and stop dead at 320 after 40 fences.
+ */
+export const SPEED = { start: 120, cap: 360, ease: 36 } as const;
 export function speedAt(count: number): number {
-  return Math.min(SPEED.cap, SPEED.start + count * SPEED.perFence);
+  return SPEED.start + (SPEED.cap - SPEED.start) * (1 - Math.exp(-Math.max(0, count) / SPEED.ease));
 }
 
 /** How long a bump holds the sheep up before the lane moves again (V4 Part 15). */
@@ -268,11 +293,12 @@ export function dreamGlyphs(count: number, bumped = true, run: { seed?: string; 
   return lines.join('\n');
 }
 
-const BUMP_WORDS = ['no bumps', 'one bump', 'two bumps'];
-/** "Asleep after 30 fences, one bump, longest word 9 letters": the line a finished night is told in. */
-export function dreamSummary(r: Pick<DreamResult, 'fences' | 'bumps' | 'longest'>): string {
-  const bumps = r.bumps?.length ?? 0;
-  return `Asleep after ${r.fences} fences, ${BUMP_WORDS[bumps] ?? `${bumps} bumps`}, longest word ${r.longest} letters`;
+/**
+ * "Asleep after 30 fences, 47 sheep counted, longest word 9 letters": the line a night that put him to sleep is told
+ * in. He is asleep from fence `DREAM_LENGTH.fences`; the count is how far the dream ran on.
+ */
+export function dreamSummary(r: Pick<DreamResult, 'count' | 'longest'>): string {
+  return `Asleep after ${DREAM_LENGTH?.fences ?? r.count} fences, ${r.count} sheep counted, longest word ${r.longest} letters`;
 }
 
 /** The spoiler-free result to share (V4 Part 13.2). */

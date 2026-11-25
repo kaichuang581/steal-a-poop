@@ -13,7 +13,6 @@
  * models (`FEET` below), and the place stage measures them again from the models it builds and stops if they differ.
  */
 import { CANDLE, CLOCK, LAMP } from '../dream/bedroom';
-import { ISLANDS, islandPlace } from '../dream/stage';
 import { barnSpot } from '../table/Bomb';
 import { HEN_Y, LIVESTOCK } from '../table/Farmstead';
 import { animalModel } from '../voxel/animals';
@@ -410,18 +409,8 @@ export const NOT_PLACED: Readonly<Record<PlacedScene, Readonly<Record<string, st
     quilt: 'it lies on the farmer, in the bed: none of the four supports is a thing tucked into another',
     farmer: 'he lies tilted in the bed, under the quilt and into the pillow: none of the four supports fits, and a tilted thing has no boxes',
   },
-  dream: {
-    raft: 'the lane and the farm on it drift on cloud by design; it is the ground of this scene',
-    'cloud sea': 'cloud, far below the lane, by design',
-    'island A': 'an island hanging in the sky by design',
-    'island B': 'an island hanging in the sky by design',
-    'island B windmill blades': 'they turn on the island windmill\'s hub, which DreamStage works out from buildDistance().bladesHub',
-    'island C': 'an island hanging in the sky by design',
-    'wisp[0]': 'a wisp of cloud crossing the sky',
-    'wisp[1]': 'a wisp of cloud crossing the sky',
-    'dream.hills': 'the far range, behind the cloud sea',
-    'dream.mountains': 'the far range, behind the cloud sea',
-  },
+  // Counting Sheep's world is flat pixel art on a canvas (dream/scene): the dream's scene holds only the sheep, a model.
+  dream: {},
   podium: {},
 };
 
@@ -480,7 +469,6 @@ export interface Light {
 const el = (file: string, text: string): Copied => ({ file: `src/skin/${file}`, text });
 const LANTERNS = el('table/Rendering.tsx', '<pointLight key={i} ref={(l) => lampRef?.(i, l)} position={[p[0], p[1] - 0.3, p[2]]}');
 const DUEL_LAMPS = el('table/DuelTable.tsx', '<pointLight key={i} position={[p[0], p[1], p[2]]}');
-const islandA = ISLANDS.find((it) => it.kind === 'pine-lantern')!;
 
 export const LIGHTS: readonly Light[] = [
   // The barn's two lanterns (Lights in table/Rendering.tsx), at the table and on Home. On Home the lights are let down
@@ -523,15 +511,6 @@ export const LIGHTS: readonly Light[] = [
     id: 'bedroom:candle', kind: 'point', element: el('dream/BedroomBubble.tsx', '<pointLight ref={candle} position={[CANDLE.x, CANDLE.y + 0.25, CANDLE.z + 0.15]}'),
     lamp: { scene: 'bedroom', position: [CANDLE.x, CANDLE.y + 0.25, CANDLE.z + 0.15], mounts: ['bedroom.glow'] },
   },
-  // Counting Sheep. Only the island with the lantern has a glow and a light.
-  {
-    id: `dream:island ${islandA.id} lantern`, kind: 'point', element: el('dream/DreamStage.tsx', '<pointLight position={[p.across * 0.21, 0.95, 0.3]}'),
-    lamp: {
-      scene: 'dream', thing: `island ${islandA.id}`, mounts: [`island[${islandA.id}].glow`],
-      position: [islandPlace(islandA).across * 0.21, 0.95, 0.3], coarse: [islandPlace(islandA, true).across * 0.21, 0.95, 0.3],
-    },
-  },
-  { id: 'dream:sign lantern', kind: 'point', element: el('dream/DreamStage.tsx', '<pointLight ref={lamp} color='), unseen: 'it is moved to the lantern of the sign in play, and the signs come and go with the night: they are models, not part of the scene' },
   // The winning screen.
   { id: 'podium:hayloft lanterns', kind: 'point', element: el('table/Podium.tsx', '<pointLight position={[0, -0.3, 0.2]}'), unseen: 'its three lanterns are three.js boxes on the hayloft beam, not voxels: the scene checker does not lay them out' },
   { id: 'podium:trophy', kind: 'point', element: el('table/Podium.tsx', '<pointLight position={[0, 0.5, 0.3]}'), unseen: 'it rides the winner\'s trophy, which is a model the winner holds up, not part of the scene' },

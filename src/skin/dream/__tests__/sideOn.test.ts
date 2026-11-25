@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { FIELD, JUMP_HEIGHT } from '../../../dream/dream';
 import {
-  A, ART, bumpOverlap, DISC_MAX_H, dreamLayout, dreamSpan, dreamView, fenceWarning, frameToWorld, GROUND, jumpClearance, PX, screenX, screenY,
-  SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, signScale, STRIP, worldX,
+  A, ART, bumpOverlap, DISC_MAX_H, dreamSpan, dreamView, fenceWarning, GROUND, jumpClearance, PX, screenX, screenY,
+  SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, STRIP, worldX,
 } from '../stage';
-import { signCap } from '../world';
 import { anchorsOf } from '../../voxel/animals/anchors';
 import { SHEEP_DRAW, sheepModel } from '../../voxel/sheep';
 
@@ -56,7 +55,6 @@ const viewOf = (w: number, h: number) => dreamView(w, h, phoneAt(w));
 const rest = anchorsOf(sheepModel());
 const SHEEP_HEAD = ((rest.crown[1] - rest.feet[1]) * SHEEP_SCALE * SHEEP_DRAW) / PX;
 const sheepPx = (v: ReturnType<typeof viewOf>) => ART * SHEEP_HEAD * v.s;
-const letterPx = (w: number, h: number) => signCap(3) * signScale(phoneAt(w)) * viewOf(w, h).zoom;
 
 describe('the side view\'s mapping (plan file 09, 4.2)', () => {
   it('gives each size its span, scale and left edge', () => {
@@ -72,7 +70,7 @@ describe('the side view\'s mapping (plan file 09, 4.2)', () => {
     expect(dreamSpan(5000, false)).toBe(320);
     expect(dreamSpan(390, true)).toBe(240);
   });
-  it('puts the runner\'s centre at 22% of the width (phone 20%) and the ground line at 68% (phone 55%)', () => {
+  it('puts the runner\'s centre at 22% of the width (phone 20%) and the ground line at 66% (phone 70%)', () => {
     for (const [w, h] of SIZES) {
       const v = viewOf(w, h), phone = phoneAt(w);
       expect(Math.abs(screenX(v, SHEEP_CENTRE) / v.s - (phone ? A.phone : A.computer) * v.span)).toBeLessThanOrEqual(0.5);
@@ -80,23 +78,20 @@ describe('the side view\'s mapping (plan file 09, 4.2)', () => {
       expect(screenX(v, v.l0 + v.span)).toBeCloseTo(w, 6);
     }
   });
-  it('agrees with the camera: the frame\'s centre, its edges and the ground line land where the helpers say', () => {
+  it('agrees with the camera: the frame\'s centre is where the camera stands, and the ground line is y = 0', () => {
     for (const [w, h] of SIZES) {
       const v = viewOf(w, h);
-      expect(frameToWorld(v, 50, 50)[0]).toBeCloseTo(v.camX, 9);
-      expect(frameToWorld(v, 50, 50)[1]).toBeCloseTo(v.camY, 9);
-      expect(frameToWorld(v, 0, 0)[0]).toBeCloseTo(worldX(v.l0), 9);
-      expect(frameToWorld(v, 100, (screenY(v, 0) / h) * 100)[1]).toBeCloseTo(0, 9);
-      expect(frameToWorld(v, (screenX(v, 200) / w) * 100, 0)[0]).toBeCloseTo(worldX(200), 9);
+      expect(v.camX).toBeCloseTo(worldX(v.l0 + v.span / 2), 9);
+      // The camera's middle is h / 2 down the frame; the ground line, world y = 0, is `ground` down it.
+      expect(v.camY * v.zoom).toBeCloseTo(screenY(v, 0) - h / 2, 6);
     }
   });
-  it('matches the table within 1 px: strip, sheep, sheep with its hat, letters', () => {
+  it('matches the table within 1 px: strip, sheep, sheep with its hat', () => {
     for (const [w, h] of SIZES) {
       const v = viewOf(w, h), row = TABLE[`${w}x${h}`];
       expect(Math.abs((STRIP.over + STRIP.under) * v.s - row.strip)).toBeLessThanOrEqual(1);
       expect(Math.abs(sheepPx(v) - row.sheep)).toBeLessThanOrEqual(1);
       expect(Math.abs(ART * SHEEP_ART.hat * v.s - row.hat)).toBeLessThanOrEqual(1);
-      expect(Math.abs(letterPx(w, h) - row.letters)).toBeLessThanOrEqual(1);
     }
   });
   it('keeps the sheep at least 80 px tall at 1280 x 800, measured from its model', () => {
@@ -109,9 +104,6 @@ describe('the side view\'s mapping (plan file 09, 4.2)', () => {
     }
     // The plan's own figures at 1280 x 800: 1.79 / 0.61 / 0.45 s.
     expect(SPEEDS.map((v) => +fenceWarning(viewOf(1280, 800), v).toFixed(2))).toEqual([1.79, 0.61, 0.45]);
-  });
-  it('draws the letters at least as tall as today at every size', () => {
-    for (const [w, h] of SIZES) expect(letterPx(w, h)).toBeGreaterThanOrEqual(TODAY[`${w}x${h}`].letters);
   });
   it('keeps the admin\'s photo inside the strip at the jump\'s apex', () => {
     expect(ART * JUMP_HEIGHT + (ART * DISC_MAX_H) / PX).toBeLessThanOrEqual(STRIP.over);
@@ -132,21 +124,5 @@ describe('the jump and the bump, drawn (plan file 09, 4.3)', () => {
     expect(bumpOverlap(200)).toBe(0);
     // The rules' bump: the fence at sheepX + sheepW - 3.
     expect(FIELD.sheepX + FIELD.sheepW - 3).toBe(95);
-  });
-});
-
-describe('the HTML over the side view (plan file 09, 4.6)', () => {
-  it('keeps the bubble and the thought trail off the play strip\'s sheep, and the bubble on screen', () => {
-    for (const [w, h] of SIZES) {
-      const v = viewOf(w, h), lay = dreamLayout(v), b = lay.bubble;
-      expect(b.shown).toBe(true);
-      expect(b.x).toBeGreaterThanOrEqual(0);
-      expect(b.y).toBeGreaterThanOrEqual(0);
-      expect(b.y + b.h).toBeLessThanOrEqual(h);
-      // Below the strip, or above it: never across it.
-      expect(b.y >= lay.stripBottom || b.y + b.h <= lay.stripTop).toBe(true);
-      const off = (r: { x: number; y: number; w: number; h: number }, o: typeof r) => r.x + r.w <= o.x || o.x + o.w <= r.x || r.y + r.h <= o.y || o.y + o.h <= r.y;
-      for (const p of lay.puffs) expect(off(p, lay.sheep)).toBe(true);
-    }
   });
 });

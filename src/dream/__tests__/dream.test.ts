@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDictionary } from '../../engine/dictionary';
 import { dreamStreakDays, getDream, getDreamBest, getDreamStreak, markDreamStarted, recordDream } from '../daily';
-import { BALE_PAIRS_FROM, BALES_FROM, check, formatHint, NO_REPEAT, STARTS, dreamSeed, dreamGlyphs, dreamShareText, dreamSummary, FENCE_WORDS, fenceAt, FIELD, JUMP_MS, jumpHeight, lettersAt, matched, signOf, speedAt, takeoffDistance } from '../dream';
+import { BALE_PAIRS_FROM, BALE_SHARE, BALES_FROM, baleShare, SPEED, check, formatHint, NO_REPEAT, STARTS, dreamSeed, dreamGlyphs, dreamShareText, dreamSummary, FENCE_WORDS, fenceAt, FIELD, JUMP_MS, jumpHeight, lettersAt, matched, signOf, speedAt, takeoffDistance } from '../dream';
 
 const words = readFileSync(new URL('../../../public/words.txt', import.meta.url), 'utf8').split('\n');
 const dict = createDictionary(words);
@@ -92,9 +92,19 @@ describe('fences', () => {
 });
 
 describe('running and jumping', () => {
-  it('speeds up with the count, up to a cap', () => {
-    expect(speedAt(0)).toBeLessThan(speedAt(10));
-    expect(speedAt(100)).toBe(speedAt(200));
+  // Brian, 2026-11-24: "make the difficulty ramp up ... more smooth ... just make the gameplay faster but overtime".
+  it('speeds up with every fence, each a little less than the last, and never stops or reaches the cap', () => {
+    expect(speedAt(0)).toBe(SPEED.start);
+    for (let c = 1; c < 400; c++) {
+      const step = speedAt(c) - speedAt(c - 1), before = speedAt(c - 1) - speedAt(Math.max(0, c - 2));
+      expect(step).toBeGreaterThan(0);
+      if (c > 1) expect(step).toBeLessThan(before);
+      expect(speedAt(c)).toBeLessThan(SPEED.cap);
+    }
+    // It leaves the start about as fast as it always did, and a night that runs on is still getting faster at 100.
+    expect(speedAt(1) - speedAt(0)).toBeGreaterThan(5);
+    expect(speedAt(30)).toBeGreaterThan(250);
+    expect(speedAt(100)).toBeGreaterThan(speedAt(60) + 20);
   });
 
   it('a jump taken at the take-off point clears the fence', () => {
@@ -218,7 +228,11 @@ describe('the pace, the bales and the night\'s ending', () => {
         if (f.kind !== 'bale') continue;
         if (i < 18) early++; else if (i < 28) late++;
         expect(f.letters).toHaveLength(1);
-        expect(f.gap).toBeLessThan(350);
+        // Closer than a fence, but never by a cliff: a share of a fence's gap that tightens slowly.
+        expect(f.gap).toBeLessThan(840 * BALE_SHARE.open + 1);
+        expect(f.gap).toBeGreaterThan(760 * BALE_SHARE.close - 1);
+        expect(seconds(s, i)).toBeGreaterThan(1.3);
+        if (i < 31) expect(seconds(s, i)).toBeGreaterThan(2);
         if (i < BALE_PAIRS_FROM) expect(fenceAt(s, i - 1).kind).toBe('fence');
         expect(fenceAt(s, i - 1).kind === 'bale' && fenceAt(s, i - 2).kind === 'bale').toBe(false);
       }
@@ -227,14 +241,22 @@ describe('the pace, the bales and the night\'s ending', () => {
     expect(late).toBeGreaterThan(early * 0.9);
   });
 
+  it('the first bale gives nearly a fence\'s time, and the share only ever tightens', () => {
+    expect(baleShare(BALES_FROM)).toBeCloseTo(BALE_SHARE.open, 6);
+    for (let i = BALES_FROM + 1; i < 300; i++) {
+      expect(baleShare(i)).toBeLessThan(baleShare(i - 1));
+      expect(baleShare(i)).toBeGreaterThan(BALE_SHARE.close);
+    }
+  });
+
   it('tells a finished night in one line, with each bump in its place and the link', () => {
-    const fences = 30, bumps = [11];
-    const text = dreamShareText({ date: '2026-11-07', count: 29, longest: 9, streak: 2, bumped: false, fences, bumps, seed: seeds[0], title: 'Finish the Word', url: 'https://example.test/game/' }).split('\n');
+    const fences = 48, bumps = [47];
+    const text = dreamShareText({ date: '2026-11-07', count: 47, longest: 9, streak: 2, bumped: false, fences, bumps, seed: seeds[0], title: 'Finish the Word', url: 'https://example.test/game/' }).split('\n');
     expect(text[0]).toBe('Finish the Word · Counting Sheep 2026-11-07');
-    expect(text[1]).toBe('Asleep after 30 fences, one bump, longest word 9 letters');
+    expect(text[1]).toBe('Asleep after 30 fences, 47 sheep counted, longest word 9 letters');
     expect([...text.slice(2, -2).join('').replace(/\s/g, '')].filter((c) => c === '⬛')).toHaveLength(1);
     expect(text.at(-1)).toBe('https://example.test/game/');
-    expect(dreamSummary({ fences: 30, bumps: [], longest: 7 })).toBe('Asleep after 30 fences, no bumps, longest word 7 letters');
+    expect(dreamSummary({ count: 30, longest: 7 })).toBe('Asleep after 30 fences, 30 sheep counted, longest word 7 letters');
     expect(dreamGlyphs(4, true, { bumps: [1, 5] }).replace(/\s/g, '')).toBe('🟩⬛🟩🟩🟩⬛');
   });
 

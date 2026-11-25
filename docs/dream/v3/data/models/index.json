@@ -1,0 +1,1109 @@
+{
+ "note": "Every voxel model of the dream. Sizes are width (along the lane), height, depth, in metres.",
+ "models": [
+  {
+   "id": "barn",
+   "file": "models/barn.json",
+   "group": "farm",
+   "what": "The red barn with white X doors and a snowy stepped roof",
+   "original": "Home's barn",
+   "cell_m": 0.1,
+   "size_m": [
+    8.0,
+    5.7,
+    5.9
+   ],
+   "boxes": 165,
+   "colours": 18,
+   "lights": 2
+  },
+  {
+   "id": "silo",
+   "file": "models/silo.json",
+   "group": "farm",
+   "what": "The grain silo with three hoops and a round snow cap",
+   "original": "Home's silo, beside the barn",
+   "cell_m": 0.1,
+   "size_m": [
+    2.4,
+    6.2,
+    2.4
+   ],
+   "boxes": 35,
+   "colours": 6,
+   "lights": 0
+  },
+  {
+   "id": "farmhouse",
+   "file": "models/farmhouse.json",
+   "group": "farm",
+   "what": "The cream farmhouse; its left window is lit: the farmer's bedroom",
+   "original": "Home's farmhouse",
+   "cell_m": 0.1,
+   "size_m": [
+    6.8,
+    5.8,
+    5.7
+   ],
+   "boxes": 77,
+   "colours": 20,
+   "lights": 1
+  },
+  {
+   "id": "windmill",
+   "file": "models/windmill.json",
+   "group": "farm",
+   "what": "The windmill: a stone foot, a pale tower, a brown cap, four sails",
+   "original": "Home's windmill",
+   "cell_m": 0.1,
+   "size_m": [
+    5.2,
+    7.4,
+    2.1
+   ],
+   "boxes": 32,
+   "colours": 10,
+   "lights": 0
+  },
+  {
+   "id": "coop",
+   "file": "models/coop.json",
+   "group": "farm",
+   "what": "The yellow hen coop on legs, with its ramp",
+   "original": "Home's chicken coop",
+   "cell_m": 0.1,
+   "size_m": [
+    3.0,
+    2.5,
+    3.2
+   ],
+   "boxes": 28,
+   "colours": 10,
+   "lights": 0
+  },
+  {
+   "id": "scarecrow",
+   "file": "models/scarecrow.json",
+   "group": "farm",
+   "what": "The scarecrow: a red coat, a straw head, a brown hat",
+   "original": "Home's scarecrow",
+   "cell_m": 0.05,
+   "size_m": [
+    1.5,
+    2.2,
+    0.6
+   ],
+   "boxes": 21,
+   "colours": 11,
+   "lights": 0
+  },
+  {
+   "id": "baleStack",
+   "file": "models/baleStack.json",
+   "group": "farm",
+   "what": "Three hay bales: two below, one on top, snow on them",
+   "original": "Home's bale stack",
+   "cell_m": 0.05,
+   "size_m": [
+    2.1,
+    1.3,
+    0.65
+   ],
+   "boxes": 15,
+   "colours": 4,
+   "lights": 0
+  },
+  {
+   "id": "pineSpire",
+   "file": "models/pineSpire.json",
+   "group": "farm",
+   "what": "A spire pine, 4.6 m, with snow on each shelf",
+   "original": "Home's pines (tieredPine with genes)",
+   "cell_m": 0.1,
+   "size_m": [
+    1.8,
+    4.7,
+    1.8
+   ],
+   "boxes": 23,
+   "colours": 6,
+   "lights": 0
+  },
+  {
+   "id": "pineCone",
+   "file": "models/pineCone.json",
+   "group": "farm",
+   "what": "A cone pine, 3.4 m, with snow on each shelf",
+   "original": "Home's pines (tieredPine with genes)",
+   "cell_m": 0.1,
+   "size_m": [
+    1.6,
+    3.5,
+    1.6
+   ],
+   "boxes": 18,
+   "colours": 6,
+   "lights": 0
+  },
+  {
+   "id": "pineRound",
+   "file": "models/pineRound.json",
+   "group": "farm",
+   "what": "A round pine, 2.4 m, with snow on each shelf",
+   "original": "Home's pines (tieredPine with genes)",
+   "cell_m": 0.1,
+   "size_m": [
+    1.4,
+    2.5,
+    1.4
+   ],
+   "boxes": 15,
+   "colours": 6,
+   "lights": 0
+  },
+  {
+   "id": "fenceBay",
+   "file": "models/fenceBay.json",
+   "group": "farm",
+   "what": "One 2.4 m bay of the farm fence: a post, two rails, a snow cap, and the string of bulbs",
+   "original": "Home's plank fences, and the season's bulbs",
+   "cell_m": 0.05,
+   "size_m": [
+    2.45,
+    0.95,
+    0.25
+   ],
+   "boxes": 13,
+   "colours": 9,
+   "lights": 3
+  },
+  {
+   "id": "wallBay",
+   "file": "models/wallBay.json",
+   "group": "farm",
+   "what": "One 2.4 m bay of dry-stone wall, two courses, snow on top",
+   "original": "Home's dry-stone wall along the lane",
+   "cell_m": 0.1,
+   "size_m": [
+    2.4,
+    0.6,
+    0.4
+   ],
+   "boxes": 16,
+   "colours": 5,
+   "lights": 0
+  },
+  {
+   "id": "pond",
+   "file": "models/pond.json",
+   "group": "farm",
+   "what": "The frozen pond: ice, three streaks of snow, a stone rim, reeds",
+   "original": "Home's pond",
+   "cell_m": 0.1,
+   "size_m": [
+    5.2,
+    1.3,
+    3.0
+   ],
+   "boxes": 47,
+   "colours": 6,
+   "lights": 0
+  },
+  {
+   "id": "gateFarm",
+   "file": "models/gateFarm.json",
+   "group": "farm",
+   "what": "Gate 1: the farm gate as a small roofed gateway the sheep runs through",
+   "original": "Home's gate arch over the lane (posts, beam, the board with a sheep cut in it)",
+   "cell_m": 0.1,
+   "size_m": [
+    3.6,
+    4.7,
+    4.1
+   ],
+   "boxes": 53,
+   "colours": 9,
+   "lights": 2
+  },
+  {
+   "id": "shrubMound",
+   "file": "models/shrubMound.json",
+   "group": "farm",
+   "what": "A buried shrub: a snow mound in two tiers with five twig tips",
+   "original": "Home's buried shrubs (PLAN_DEPTH_AND_LIGHT 6.6)",
+   "cell_m": 0.1,
+   "size_m": [
+    1.4,
+    0.7,
+    1.0
+   ],
+   "boxes": 7,
+   "colours": 3,
+   "lights": 0
+  },
+  {
+   "id": "stump",
+   "file": "models/stump.json",
+   "group": "farm",
+   "what": "A tree stump with a snow cap",
+   "original": "Home's stump west of the farmhouse (PLAN_DEPTH_AND_LIGHT 6.7)",
+   "cell_m": 0.05,
+   "size_m": [
+    0.5,
+    0.4,
+    0.5
+   ],
+   "boxes": 5,
+   "colours": 4,
+   "lights": 0
+  },
+  {
+   "id": "log",
+   "file": "models/log.json",
+   "group": "farm",
+   "what": "A fallen log, 1.6 m, with a line of snow along it",
+   "original": "Home's log on the pond's east bank (PLAN_DEPTH_AND_LIGHT 6.7)",
+   "cell_m": 0.05,
+   "size_m": [
+    1.7,
+    0.45,
+    0.25
+   ],
+   "boxes": 5,
+   "colours": 3,
+   "lights": 0
+  },
+  {
+   "id": "snowman",
+   "file": "models/snowman.json",
+   "group": "farm",
+   "what": "A small snowman: two balls, a carrot nose, a red scarf",
+   "original": "Home's snowman by the snow fort",
+   "cell_m": 0.05,
+   "size_m": [
+    0.85,
+    0.75,
+    0.6
+   ],
+   "boxes": 10,
+   "colours": 7,
+   "lights": 0
+  },
+  {
+   "id": "islandBarn",
+   "file": "models/islandBarn.json",
+   "group": "dream",
+   "what": "World 2: the island the barn and silo ride on",
+   "original": "The ground under Home's barn",
+   "cell_m": 0.1,
+   "size_m": [
+    12.4,
+    4.9,
+    7.6
+   ],
+   "boxes": 69,
+   "colours": 10,
+   "lights": 0
+  },
+  {
+   "id": "islandHouse",
+   "file": "models/islandHouse.json",
+   "group": "dream",
+   "what": "World 2: the island the farmhouse rides on",
+   "original": "The ground under Home's farmhouse",
+   "cell_m": 0.1,
+   "size_m": [
+    8.4,
+    4.2,
+    7.0
+   ],
+   "boxes": 45,
+   "colours": 10,
+   "lights": 0
+  },
+  {
+   "id": "islandMill",
+   "file": "models/islandMill.json",
+   "group": "dream",
+   "what": "World 2: the island the windmill rides on",
+   "original": "The windmill's hill",
+   "cell_m": 0.1,
+   "size_m": [
+    4.4,
+    2.8,
+    4.0
+   ],
+   "boxes": 23,
+   "colours": 10,
+   "lights": 0
+  },
+  {
+   "id": "islandYard",
+   "file": "models/islandYard.json",
+   "group": "dream",
+   "what": "World 2: an island for the scarecrow, the bales or the coop",
+   "original": "A piece of the farmyard",
+   "cell_m": 0.1,
+   "size_m": [
+    6.0,
+    2.8,
+    3.4
+   ],
+   "boxes": 32,
+   "colours": 10,
+   "lights": 0
+  },
+  {
+   "id": "laneBayFloat",
+   "file": "models/laneBayFloat.json",
+   "group": "dream",
+   "what": "World 2: one 2.4 m bay of the floating track, 1.4 m thick, its underside in uneven teeth",
+   "original": "The farm track of world 1, lifted",
+   "cell_m": 0.1,
+   "size_m": [
+    2.4,
+    1.9,
+    2.4
+   ],
+   "boxes": 22,
+   "colours": 10,
+   "lights": 0
+  },
+  {
+   "id": "clodSmall",
+   "file": "models/clodSmall.json",
+   "group": "dream",
+   "what": "World 2: a small floating clod, for a pine or for the foreground",
+   "original": "A piece of the farm's ground that broke off at lift-off",
+   "cell_m": 0.1,
+   "size_m": [
+    1.6,
+    1.0,
+    1.2
+   ],
+   "boxes": 7,
+   "colours": 5,
+   "lights": 0
+  },
+  {
+   "id": "clodWide",
+   "file": "models/clodWide.json",
+   "group": "dream",
+   "what": "World 2: a wide floating clod, for a fence bay",
+   "original": "A piece of the farm's ground that broke off at lift-off",
+   "cell_m": 0.1,
+   "size_m": [
+    3.0,
+    1.2,
+    1.4
+   ],
+   "boxes": 7,
+   "colours": 5,
+   "lights": 0
+  },
+  {
+   "id": "moonCrescent",
+   "file": "models/moonCrescent.json",
+   "group": "dream",
+   "what": "The crescent moon of world 1",
+   "original": "The moon in the bedroom's far window",
+   "cell_m": 1.0,
+   "size_m": [
+    26.0,
+    32.0,
+    2.0
+   ],
+   "boxes": 32,
+   "colours": 1,
+   "lights": 1
+  },
+  {
+   "id": "moonFull",
+   "file": "models/moonFull.json",
+   "group": "dream",
+   "what": "The full moon of worlds 2 and 3 (scaled up for world 3 and the moon show)",
+   "original": "The moon in the bedroom's far window",
+   "cell_m": 1.0,
+   "size_m": [
+    32.0,
+    32.0,
+    3.0
+   ],
+   "boxes": 44,
+   "colours": 2,
+   "lights": 1
+  },
+  {
+   "id": "quiltPatch0",
+   "file": "models/quiltPatch0.json",
+   "group": "dream",
+   "what": "A quilt square in scarfRed",
+   "original": "The patchwork quilt on his bed (the five colours of Home's clothesline quilts)",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 7,
+   "colours": 4,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatch1",
+   "file": "models/quiltPatch1.json",
+   "group": "dream",
+   "what": "A quilt square in coopYellow",
+   "original": "The patchwork quilt on his bed (the five colours of Home's clothesline quilts)",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 7,
+   "colours": 4,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatch2",
+   "file": "models/quiltPatch2.json",
+   "group": "dream",
+   "what": "A quilt square in giftGreen",
+   "original": "The patchwork quilt on his bed (the five colours of Home's clothesline quilts)",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 7,
+   "colours": 4,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatch3",
+   "file": "models/quiltPatch3.json",
+   "group": "dream",
+   "what": "A quilt square in trimWhite",
+   "original": "The patchwork quilt on his bed (the five colours of Home's clothesline quilts)",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 7,
+   "colours": 3,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatch4",
+   "file": "models/quiltPatch4.json",
+   "group": "dream",
+   "what": "A quilt square in slate",
+   "original": "The patchwork quilt on his bed (the five colours of Home's clothesline quilts)",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 7,
+   "colours": 4,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatchFar0",
+   "file": "models/quiltPatchFar0.json",
+   "group": "dream",
+   "what": "A quilt square in scarfRed, for the far rows",
+   "original": "The patchwork quilt on his bed",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 2,
+   "colours": 2,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatchFar1",
+   "file": "models/quiltPatchFar1.json",
+   "group": "dream",
+   "what": "A quilt square in coopYellow, for the far rows",
+   "original": "The patchwork quilt on his bed",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 2,
+   "colours": 2,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatchFar2",
+   "file": "models/quiltPatchFar2.json",
+   "group": "dream",
+   "what": "A quilt square in giftGreen, for the far rows",
+   "original": "The patchwork quilt on his bed",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 2,
+   "colours": 2,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatchFar3",
+   "file": "models/quiltPatchFar3.json",
+   "group": "dream",
+   "what": "A quilt square in trimWhite, for the far rows",
+   "original": "The patchwork quilt on his bed",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 2,
+   "colours": 2,
+   "lights": 0
+  },
+  {
+   "id": "quiltPatchFar4",
+   "file": "models/quiltPatchFar4.json",
+   "group": "dream",
+   "what": "A quilt square in slate, for the far rows",
+   "original": "The patchwork quilt on his bed",
+   "cell_m": 0.1,
+   "size_m": [
+    2.0,
+    0.5,
+    2.0
+   ],
+   "boxes": 2,
+   "colours": 2,
+   "lights": 0
+  },
+  {
+   "id": "candle",
+   "file": "models/candle.json",
+   "group": "dream",
+   "what": "His candle, as tall as a lighthouse, in its brass dish",
+   "original": "The candle on his nightstand",
+   "cell_m": 0.1,
+   "size_m": [
+    4.2,
+    6.9,
+    3.6
+   ],
+   "boxes": 22,
+   "colours": 7,
+   "lights": 1
+  },
+  {
+   "id": "yarnBall",
+   "file": "models/yarnBall.json",
+   "group": "dream",
+   "what": "A ball of his red yarn, 1.6 m across, with a loose end",
+   "original": "The red yarn in his knitting basket (the yarn of the loading screen)",
+   "cell_m": 0.1,
+   "size_m": [
+    3.0,
+    1.6,
+    1.7
+   ],
+   "boxes": 210,
+   "colours": 3,
+   "lights": 0
+  },
+  {
+   "id": "needles",
+   "file": "models/needles.json",
+   "group": "dream",
+   "what": "Two knitting needles stuck in the quilt, crossed",
+   "original": "The needles in his knitting basket",
+   "cell_m": 0.1,
+   "size_m": [
+    2.4,
+    4.3,
+    0.4
+   ],
+   "boxes": 42,
+   "colours": 2,
+   "lights": 0
+  },
+  {
+   "id": "spool",
+   "file": "models/spool.json",
+   "group": "dream",
+   "what": "A spool of thread, 1.7 m tall",
+   "original": "The spool of thread in his knitting basket",
+   "cell_m": 0.1,
+   "size_m": [
+    1.6,
+    1.8,
+    2.0
+   ],
+   "boxes": 29,
+   "colours": 4,
+   "lights": 0
+  },
+  {
+   "id": "buttonBrass",
+   "file": "models/buttonBrass.json",
+   "group": "dream",
+   "what": "A nightshirt button (brass) on a thread: a star of world 3",
+   "original": "The three buttons on his nightshirt",
+   "cell_m": 0.1,
+   "size_m": [
+    0.8,
+    0.8,
+    0.2
+   ],
+   "boxes": 24,
+   "colours": 3,
+   "lights": 0
+  },
+  {
+   "id": "buttonCream",
+   "file": "models/buttonCream.json",
+   "group": "dream",
+   "what": "A nightshirt button (trimWhite) on a thread: a star of world 3",
+   "original": "The three buttons on his nightshirt",
+   "cell_m": 0.1,
+   "size_m": [
+    0.8,
+    0.8,
+    0.2
+   ],
+   "boxes": 24,
+   "colours": 3,
+   "lights": 0
+  },
+  {
+   "id": "buttonRed",
+   "file": "models/buttonRed.json",
+   "group": "dream",
+   "what": "A nightshirt button (scarfRed) on a thread: a star of world 3",
+   "original": "The three buttons on his nightshirt",
+   "cell_m": 0.1,
+   "size_m": [
+    0.8,
+    0.8,
+    0.2
+   ],
+   "boxes": 24,
+   "colours": 3,
+   "lights": 0
+  },
+  {
+   "id": "bedpost",
+   "file": "models/bedpost.json",
+   "group": "dream",
+   "what": "A bedpost with its ball, 6.4 m tall",
+   "original": "The posts of his bed",
+   "cell_m": 0.1,
+   "size_m": [
+    1.2,
+    6.3,
+    1.2
+   ],
+   "boxes": 123,
+   "colours": 2,
+   "lights": 0
+  },
+  {
+   "id": "gateFootboard",
+   "file": "models/gateFootboard.json",
+   "group": "dream",
+   "what": "Gate 2: the foot of his bed, 6.6 m long, standing behind the track",
+   "original": "The footboard of his bed, with its two posts",
+   "cell_m": 0.1,
+   "size_m": [
+    7.0,
+    4.6,
+    1.0
+   ],
+   "boxes": 178,
+   "colours": 6,
+   "lights": 0
+  },
+  {
+   "id": "gateHeadboard",
+   "file": "models/gateHeadboard.json",
+   "group": "dream",
+   "what": "Gate 3: the head of his bed, taller, with his stocking and the garland",
+   "original": "The headboard of his bed, with his stocking and the garland of bulbs",
+   "cell_m": 0.1,
+   "size_m": [
+    7.0,
+    5.6,
+    1.0
+   ],
+   "boxes": 188,
+   "colours": 10,
+   "lights": 9
+  },
+  {
+   "id": "laneBayBed0",
+   "file": "models/laneBayBed0.json",
+   "group": "dream",
+   "what": "World 3: one 2.4 m bay of the track: the turned-down sheet, the quilt hanging over the bed's side, the mattress under it",
+   "original": "His bed, made: sheet, quilt, mattress",
+   "cell_m": 0.1,
+   "size_m": [
+    2.4,
+    3.0,
+    2.6
+   ],
+   "boxes": 24,
+   "colours": 9,
+   "lights": 0
+  },
+  {
+   "id": "laneBayBed1",
+   "file": "models/laneBayBed1.json",
+   "group": "dream",
+   "what": "World 3: one 2.4 m bay of the track: the turned-down sheet, the quilt hanging over the bed's side, the mattress under it",
+   "original": "His bed, made: sheet, quilt, mattress",
+   "cell_m": 0.1,
+   "size_m": [
+    2.4,
+    3.0,
+    2.6
+   ],
+   "boxes": 24,
+   "colours": 9,
+   "lights": 0
+  },
+  {
+   "id": "laneBayBed2",
+   "file": "models/laneBayBed2.json",
+   "group": "dream",
+   "what": "World 3: one 2.4 m bay of the track: the turned-down sheet, the quilt hanging over the bed's side, the mattress under it",
+   "original": "His bed, made: sheet, quilt, mattress",
+   "cell_m": 0.1,
+   "size_m": [
+    2.4,
+    3.0,
+    2.6
+   ],
+   "boxes": 24,
+   "colours": 9,
+   "lights": 0
+  },
+  {
+   "id": "laneBayBed3",
+   "file": "models/laneBayBed3.json",
+   "group": "dream",
+   "what": "World 3: one 2.4 m bay of the track: the turned-down sheet, the quilt hanging over the bed's side, the mattress under it",
+   "original": "His bed, made: sheet, quilt, mattress",
+   "cell_m": 0.1,
+   "size_m": [
+    2.4,
+    3.0,
+    2.6
+   ],
+   "boxes": 24,
+   "colours": 9,
+   "lights": 0
+  },
+  {
+   "id": "feather",
+   "file": "models/feather.json",
+   "group": "dream",
+   "what": "A pillow feather, 0.5 m long",
+   "original": "His pillow",
+   "cell_m": 0.05,
+   "size_m": [
+    0.5,
+    0.2,
+    0.05
+   ],
+   "boxes": 4,
+   "colours": 3,
+   "lights": 0
+  },
+  {
+   "id": "obGate",
+   "file": "models/obGate.json",
+   "group": "obstacles",
+   "what": "A five-bar farm gate with a brace",
+   "original": "Home's pen gates",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.1,
+    0.3
+   ],
+   "boxes": 29,
+   "colours": 8,
+   "lights": 2
+  },
+  {
+   "id": "obPlanks",
+   "file": "models/obPlanks.json",
+   "group": "obstacles",
+   "what": "A plank fence panel: five pointed planks on two rails",
+   "original": "Home's plank fences",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.25
+   ],
+   "boxes": 27,
+   "colours": 9,
+   "lights": 2
+  },
+  {
+   "id": "obBrick",
+   "file": "models/obBrick.json",
+   "group": "obstacles",
+   "what": "A brick gatepost with a stone cap",
+   "original": "The farmhouse's brick chimney",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.1,
+    0.8
+   ],
+   "boxes": 58,
+   "colours": 10,
+   "lights": 2
+  },
+  {
+   "id": "obLogs",
+   "file": "models/obLogs.json",
+   "group": "obstacles",
+   "what": "A log pile between two stakes, the cut ends showing",
+   "original": "Home's woodpile by the porch",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.75
+   ],
+   "boxes": 51,
+   "colours": 8,
+   "lights": 2
+  },
+  {
+   "id": "obBales",
+   "file": "models/obBales.json",
+   "group": "obstacles",
+   "what": "Three hay bales stacked, with straps",
+   "original": "Home's bale stack",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.1,
+    0.75
+   ],
+   "boxes": 22,
+   "colours": 8,
+   "lights": 2
+  },
+  {
+   "id": "obCrates",
+   "file": "models/obCrates.json",
+   "group": "obstacles",
+   "what": "Two crates stacked, each with a frame and a brace",
+   "original": "Home's crates in the tool shed",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.75
+   ],
+   "boxes": 36,
+   "colours": 7,
+   "lights": 2
+  },
+  {
+   "id": "obGateIced",
+   "file": "models/obGateIced.json",
+   "group": "obstacles",
+   "what": "A five-bar farm gate with a brace, iced over",
+   "original": "Home's pen gates",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.1,
+    0.45
+   ],
+   "boxes": 33,
+   "colours": 8,
+   "lights": 2
+  },
+  {
+   "id": "obPlanksIced",
+   "file": "models/obPlanksIced.json",
+   "group": "obstacles",
+   "what": "A plank fence panel: five pointed planks on two rails, iced over",
+   "original": "Home's plank fences",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.4
+   ],
+   "boxes": 31,
+   "colours": 8,
+   "lights": 2
+  },
+  {
+   "id": "obBrickIced",
+   "file": "models/obBrickIced.json",
+   "group": "obstacles",
+   "what": "A brick gatepost with a stone cap, iced over",
+   "original": "The farmhouse's brick chimney",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.1,
+    0.8
+   ],
+   "boxes": 63,
+   "colours": 9,
+   "lights": 2
+  },
+  {
+   "id": "obLogsIced",
+   "file": "models/obLogsIced.json",
+   "group": "obstacles",
+   "what": "A log pile between two stakes, the cut ends showing, iced over",
+   "original": "Home's woodpile by the porch",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.65
+   ],
+   "boxes": 56,
+   "colours": 8,
+   "lights": 2
+  },
+  {
+   "id": "obBalesIced",
+   "file": "models/obBalesIced.json",
+   "group": "obstacles",
+   "what": "Three hay bales stacked, with straps, iced over",
+   "original": "Home's bale stack",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.1,
+    0.75
+   ],
+   "boxes": 27,
+   "colours": 8,
+   "lights": 2
+  },
+  {
+   "id": "obCratesIced",
+   "file": "models/obCratesIced.json",
+   "group": "obstacles",
+   "what": "Two crates stacked, each with a frame and a brace, iced over",
+   "original": "Home's crates in the tool shed",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.75
+   ],
+   "boxes": 41,
+   "colours": 7,
+   "lights": 2
+  },
+  {
+   "id": "obBooks",
+   "file": "models/obBooks.json",
+   "group": "obstacles",
+   "what": "Four of his books in a pile",
+   "original": "The five books on his bedroom shelf",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.75
+   ],
+   "boxes": 25,
+   "colours": 15,
+   "lights": 2
+  },
+  {
+   "id": "obPillows",
+   "file": "models/obPillows.json",
+   "group": "obstacles",
+   "what": "Three pillows in a pile, each with its seam and two corner ears",
+   "original": "The pillow under his head",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.75
+   ],
+   "boxes": 23,
+   "colours": 8,
+   "lights": 2
+  },
+  {
+   "id": "obSpools",
+   "file": "models/obSpools.json",
+   "group": "obstacles",
+   "what": "Two spools of thread, one on the other",
+   "original": "The spool of thread in his knitting basket",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.1,
+    0.8
+   ],
+   "boxes": 39,
+   "colours": 10,
+   "lights": 2
+  },
+  {
+   "id": "obClock",
+   "file": "models/obClock.json",
+   "group": "obstacles",
+   "what": "His alarm clock: red, two brass bells, two feet",
+   "original": "The alarm clock on his nightstand",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.05,
+    0.55
+   ],
+   "boxes": 42,
+   "colours": 11,
+   "lights": 2
+  },
+  {
+   "id": "signpost",
+   "file": "models/signpost.json",
+   "group": "obstacles",
+   "what": "The post and arm the sign hangs from, 4.2 m tall. The board itself is interface (file 08)",
+   "original": "The dream's own signpost, as today, rebuilt in voxels",
+   "cell_m": 0.05,
+   "size_m": [
+    1.45,
+    4.25,
+    0.45
+   ],
+   "boxes": 13,
+   "colours": 5,
+   "lights": 0
+  }
+ ]
+}

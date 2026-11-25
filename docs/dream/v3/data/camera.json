@@ -1,0 +1,25 @@
+{
+ "note": "The camera of the dream (file 02). It looks level, straight across the track, and never turns. A_px_per_m is the game's own art scale: 90 is what the build shows at 1440 x 900; read the real value from the mapping.",
+ "A_px_per_m_at_1440x900": 90.0,
+ "CAM_m": 16.0,
+ "EYE_m": 2.4,
+ "lane_line_share_of_window_height": 0.76,
+ "sheep_x_share_of_window_width": 0.221,
+ "formula": {
+  "horizon_y_px": "lane_line_y_px - A * EYE",
+  "screen_x": "W/2 + A * (x - cam_x) * CAM / (CAM - z)",
+  "screen_y": "horizon_y_px - A * (y - EYE) * CAM / (CAM - z)",
+  "cam_x": "sheep_x + (0.5 - sheep_x_share) * W / A"
+ },
+ "frustum_at_near_plane_n": {
+  "left": "-(W/2) * n / (A*CAM)",
+  "right": "(W/2) * n / (A*CAM)",
+  "top": "horizon_y_px * n / (A*CAM)",
+  "bottom": "-(H - horizon_y_px) * n / (A*CAM)"
+ },
+ "near_m": 1.0,
+ "far_m": 600.0,
+ "phones": {
+  "lane_line_share_of_window_height": 0.72
+ }
+}

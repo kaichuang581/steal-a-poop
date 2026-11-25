@@ -1428,13 +1428,7 @@
         }
       },
       "props": {
-        "bale": 0,
         "bomb": 4,
-        "fence:log": 0,
-        "fence:picket": 0,
-        "fence:rail": 0,
-        "fence:wall": 0,
-        "sign post": 0,
         "trophy": 0
       },
       "things": {

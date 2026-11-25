@@ -1,0 +1,287 @@
+{
+ "note": "Every colour the dream uses. Scenery colours are tokens of the game's LADDER (src/skin/voxel/paint.ts): use solid(material, step); the hex values are here only so the pictures can be checked.",
+ "ladder_tokens_used": {
+  "barnRed:-1": "#AD4D3A",
+  "barnRed:-2": "#A3412D",
+  "barnRed:0": "#B75946",
+  "barnRed:1": "#C06653",
+  "brass:-1": "#E5AE54",
+  "brass:0": "#EFBA64",
+  "brass:1": "#F9C675",
+  "brass:2": "#FFD38F",
+  "carrot:0": "#DF8A4B",
+  "coopYellow:-1": "#D2AC6C",
+  "coopYellow:-2": "#C8A15E",
+  "coopYellow:0": "#DCB87A",
+  "coopYellow:1": "#E7C388",
+  "darkWood:-1": "#65432E",
+  "darkWood:-2": "#5B3923",
+  "darkWood:0": "#6E4D38",
+  "darkWood:1": "#775743",
+  "fir:0": "#487C61",
+  "giftGreen:-1": "#398060",
+  "giftGreen:-2": "#2A7656",
+  "giftGreen:0": "#478A6B",
+  "giftGreen:1": "#549476",
+  "glass:0": "#3E505C",
+  "hay:-1": "#D4AC62",
+  "hay:-2": "#CAA153",
+  "hay:0": "#DEB870",
+  "hay:1": "#E8C37F",
+  "houseCream:-1": "#CDB594",
+  "houseCream:-2": "#C2AA88",
+  "houseCream:0": "#D8C0A1",
+  "houseCream:1": "#E2CCAD",
+  "ice:0": "#B0D9E4",
+  "ice:1": "#BDE4EE",
+  "ice:2": "#CAF0F9",
+  "ink:0": "#362A2A",
+  "ink:1": "#3F3333",
+  "iron:-1": "#413633",
+  "iron:0": "#4A403C",
+  "iron:1": "#544945",
+  "pine:-1": "#3D7460",
+  "pine:-2": "#306A56",
+  "pine:0": "#497E6A",
+  "pine:1": "#568875",
+  "reed:0": "#797F55",
+  "roofBrown:-1": "#7A5542",
+  "roofBrown:0": "#84604D",
+  "roofBrown:1": "#8D6A58",
+  "scarfRed:-1": "#B65349",
+  "scarfRed:-2": "#AC473D",
+  "scarfRed:0": "#BF6055",
+  "scarfRed:1": "#C96C61",
+  "slate:-1": "#7B636B",
+  "slate:-2": "#715961",
+  "slate:0": "#856D75",
+  "slate:1": "#8E7780",
+  "snow:-1": "#E3DDD5",
+  "snow:-2": "#D8D2C9",
+  "snow:0": "#EEE9E1",
+  "snow:1": "#F3EEE6",
+  "snow:2": "#F3EEE7",
+  "stone:-1": "#90867C",
+  "stone:-2": "#867B71",
+  "stone:0": "#9A9087",
+  "stone:1": "#A59B92",
+  "straw:0": "#E5CB91",
+  "straw:1": "#F0D69F",
+  "trimWhite:-1": "#D9CCB8",
+  "trimWhite:-2": "#CEC0AC",
+  "trimWhite:0": "#E4D7C4",
+  "trimWhite:1": "#EFE3D0",
+  "trimWhite:2": "#F9EDDA",
+  "wood:-1": "#926540",
+  "wood:0": "#9B704C",
+  "wood:1": "#A57B58"
+ },
+ "glow": {
+  "bulbRed": "#F07A5A",
+  "bulbSage": "#9CCB78",
+  "bulbGold": "#FFD08A",
+  "lit": "#FFD38F",
+  "flame": "#FFE7B0",
+  "ember": "#F2A26A",
+  "moon": "#FFE9A8",
+  "moonDim": "#F2D58E",
+  "aurora1": "#7BC48E",
+  "aurora2": "#6FB7B0",
+  "aurora3": "#8C8FD8"
+ },
+ "quilt_order": {
+  "colours": [
+   "scarfRed:0",
+   "coopYellow:0",
+   "giftGreen:0",
+   "trimWhite:0",
+   "slate:0"
+  ],
+  "rule": "A square at column ix, row iz is cream (trimWhite:0) when ix + iz is even; otherwise it takes scarfRed, coopYellow, giftGreen, slate in turn by floor((ix + 3*iz) / 2) mod 4."
+ },
+ "interface_tokens": {
+  "night": "#1B2742",
+  "night2": "#26365C",
+  "night3": "#34497A",
+  "nightDeep": "#141D36",
+  "ink": "#0E1528",
+  "wool": "#FFF4DC",
+  "woolHi": "#FFFDF4",
+  "woolLip": "#D8C49A",
+  "lantern": "#F2A444",
+  "lanternHi": "#FFD98A",
+  "lanternLip": "#B96F1E",
+  "frost": "#B9C8E6",
+  "ember": "#F48C6E"
+ },
+ "sky": {
+  "1": {
+   "top": "#0E1834",
+   "mid": "#1C2B52",
+   "horizon": "#2D406B",
+   "below": "#2D406B",
+   "fog": "#2D406B"
+  },
+  "2": {
+   "top": "#0B1730",
+   "mid": "#16304F",
+   "horizon": "#235066",
+   "below": "#0F2238",
+   "fog": "#1E4459"
+  },
+  "3": {
+   "top": "#1A1430",
+   "mid": "#2C1F3F",
+   "horizon": "#5A3A4A",
+   "below": "#241A30",
+   "fog": "#4A3340"
+  }
+ },
+ "row_tints": {
+  "F2": 0.46,
+  "F1": 0.54,
+  "lane": 1.0,
+  "B1": 0.72,
+  "B2": 0.68,
+  "B3": 0.68,
+  "B4": 0.66,
+  "B5": 0.64
+ },
+ "light_targets": {
+  "note": "What an untinted block of each paint must look like on its top, front, left and right faces under each world's lights, before haze. Tune the game's lights until a block on the track comes within 8% of these on every face (file 02, section 5).",
+  "worlds": {
+   "1": {
+    "snow:2": {
+     "top": "#C1C9E2",
+     "front": "#9BA4C5",
+     "left": "#828AAC",
+     "right": "#8F98B8"
+    },
+    "snow:0": {
+     "top": "#BDC5DC",
+     "front": "#98A1BF",
+     "left": "#7F87A7",
+     "right": "#8C95B3"
+    },
+    "barnRed:0": {
+     "top": "#914A44",
+     "front": "#743B3A",
+     "left": "#603031",
+     "right": "#6A3635"
+    },
+    "trimWhite:2": {
+     "top": "#C6C9D6",
+     "front": "#9FA4B9",
+     "left": "#8589A2",
+     "right": "#9397AD"
+    },
+    "scarfRed:0": {
+     "top": "#975053",
+     "front": "#794047",
+     "left": "#65343D",
+     "right": "#6F3A42"
+    },
+    "giftGreen:0": {
+     "top": "#367468",
+     "front": "#2A5D5A",
+     "left": "#214E4E",
+     "right": "#265653"
+    },
+    "darkWood:0": {
+     "top": "#563F36",
+     "front": "#43322E",
+     "left": "#372927",
+     "right": "#3E2E2A"
+    }
+   },
+   "2": {
+    "snow:2": {
+     "top": "#B2D2DC",
+     "front": "#8FA8C0",
+     "left": "#788CA9",
+     "right": "#849CB5"
+    },
+    "snow:0": {
+     "top": "#AECED6",
+     "front": "#8CA4BB",
+     "left": "#7589A5",
+     "right": "#8198B0"
+    },
+    "barnRed:0": {
+     "top": "#854D42",
+     "front": "#6A3C38",
+     "left": "#583130",
+     "right": "#623734"
+    },
+    "trimWhite:2": {
+     "top": "#B7D1D0",
+     "front": "#93A7B5",
+     "left": "#7B8C9F",
+     "right": "#889BAA"
+    },
+    "scarfRed:0": {
+     "top": "#8B5450",
+     "front": "#6F4145",
+     "left": "#5C353C",
+     "right": "#663C40"
+    },
+    "giftGreen:0": {
+     "top": "#317965",
+     "front": "#265F57",
+     "left": "#1E4F4C",
+     "right": "#225852"
+    },
+    "darkWood:0": {
+     "top": "#4E4334",
+     "front": "#3E332C",
+     "left": "#322926",
+     "right": "#382F29"
+    }
+   },
+   "3": {
+    "snow:2": {
+     "top": "#EAD5BD",
+     "front": "#C4AEA9",
+     "left": "#9D8C99",
+     "right": "#B8A19C"
+    },
+    "snow:0": {
+     "top": "#E5D0B8",
+     "front": "#C0ABA5",
+     "left": "#9A8995",
+     "right": "#B49E98"
+    },
+    "barnRed:0": {
+     "top": "#B04E37",
+     "front": "#933F30",
+     "left": "#75312B",
+     "right": "#8A392C"
+    },
+    "trimWhite:2": {
+     "top": "#F0D4B2",
+     "front": "#C9AE9F",
+     "left": "#A18C90",
+     "right": "#BDA093"
+    },
+    "scarfRed:0": {
+     "top": "#B75544",
+     "front": "#99443C",
+     "left": "#7A3535",
+     "right": "#903E36"
+    },
+    "giftGreen:0": {
+     "top": "#447B56",
+     "front": "#37634C",
+     "left": "#2A4F44",
+     "right": "#335B46"
+    },
+    "darkWood:0": {
+     "top": "#69442C",
+     "front": "#573626",
+     "left": "#442921",
+     "right": "#513122"
+    }
+   }
+  }
+ }
+}

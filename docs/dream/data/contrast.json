@@ -1,0 +1,425 @@
+[
+ {
+  "stage": "1",
+  "pair": "sheep on the hills behind it",
+  "fg": "#F7F4FB",
+  "bg": "#22305A",
+  "ratio": 11.77,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "sheep on the horizon band",
+  "fg": "#F7F4FB",
+  "bg": "#4C629D",
+  "ratio": 5.45,
+  "need": 3.0,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "star words (frost at 85%) on sky band 0",
+  "fg": "#A0AECC",
+  "bg": "#141D36",
+  "ratio": 7.48,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "star words (frost at 85%) on sky band 1",
+  "fg": "#A1B0CF",
+  "bg": "#18254A",
+  "ratio": 6.86,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "star words (frost at 85%) on sky band 2",
+  "fg": "#A2B1D2",
+  "bg": "#1F2F5E",
+  "ratio": 6.0,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "newest star word (lantern-hi) on sky band 2",
+  "fg": "#FFD98A",
+  "bg": "#1F2F5E",
+  "ratio": 9.56,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "sign board against the sky behind it (its outline is ink)",
+  "fg": "#26365C",
+  "bg": "#2A3F78",
+  "ratio": 1.18,
+  "need": 1.0,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "counter text (wool on night-2)",
+  "fg": "#FFF4DC",
+  "bg": "#26365C",
+  "ratio": 10.9,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "lane brighter than hills",
+  "fg": "#EEF1FA",
+  "bg": "#22305A",
+  "ratio": 11.35,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "lane brighter than horizon band",
+  "fg": "#EEF1FA",
+  "bg": "#4C629D",
+  "ratio": 5.25,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "lane brighter than ground under the lane",
+  "fg": "#EEF1FA",
+  "bg": "#4A4258",
+  "ratio": 8.41,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "1",
+  "pair": "lane brighter than field in front",
+  "fg": "#EEF1FA",
+  "bg": "#6E7999",
+  "ratio": 3.83,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "sheep on the hills behind it",
+  "fg": "#F7F4FB",
+  "bg": "#2A2660",
+  "ratio": 12.49,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "sheep on the horizon band",
+  "fg": "#F7F4FB",
+  "bg": "#6555AA",
+  "ratio": 5.62,
+  "need": 3.0,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "star words (frost at 85%) on sky band 0",
+  "fg": "#A0ADCC",
+  "bg": "#15173A",
+  "ratio": 7.69,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "star words (frost at 85%) on sky band 1",
+  "fg": "#A2AFCF",
+  "bg": "#1D1F4E",
+  "ratio": 7.05,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "star words (frost at 85%) on sky band 2",
+  "fg": "#A3B0D3",
+  "bg": "#262A66",
+  "ratio": 6.05,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "newest star word (lantern-hi) on sky band 2",
+  "fg": "#FFD98A",
+  "bg": "#262A66",
+  "ratio": 9.68,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "sign board against the sky behind it (its outline is ink)",
+  "fg": "#26365C",
+  "bg": "#37347E",
+  "ratio": 1.11,
+  "need": 1.0,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "counter text (wool on night-2)",
+  "fg": "#FFF4DC",
+  "bg": "#26365C",
+  "ratio": 10.9,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "lane brighter than hills",
+  "fg": "#F1EEFB",
+  "bg": "#2A2660",
+  "ratio": 11.89,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "lane brighter than horizon band",
+  "fg": "#F1EEFB",
+  "bg": "#6555AA",
+  "ratio": 5.35,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "2",
+  "pair": "lane brighter than ground under the lane",
+  "fg": "#F1EEFB",
+  "bg": "#4B3A5E",
+  "ratio": 8.89,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "sheep on the hills behind it",
+  "fg": "#F7F4FB",
+  "bg": "#3A2060",
+  "ratio": 12.4,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "sheep on the horizon band",
+  "fg": "#F7F4FB",
+  "bg": "#A5599D",
+  "ratio": 4.27,
+  "need": 3.0,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "star words (frost at 85%) on sky band 0",
+  "fg": "#A1ACCB",
+  "bg": "#1A1030",
+  "ratio": 7.99,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "star words (frost at 85%) on sky band 1",
+  "fg": "#A4ADCE",
+  "bg": "#2A1646",
+  "ratio": 7.26,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "star words (frost at 85%) on sky band 2",
+  "fg": "#A6AED1",
+  "bg": "#3A1D5C",
+  "ratio": 6.35,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "newest star word (lantern-hi) on sky band 2",
+  "fg": "#FFD98A",
+  "bg": "#3A1D5C",
+  "ratio": 10.29,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "sign board against the sky behind it (its outline is ink)",
+  "fg": "#26365C",
+  "bg": "#582C78",
+  "ratio": 1.16,
+  "need": 1.0,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "counter text (wool on night-2)",
+  "fg": "#FFF4DC",
+  "bg": "#26365C",
+  "ratio": 10.9,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "lane brighter than hills",
+  "fg": "#FBEFF6",
+  "bg": "#3A2060",
+  "ratio": 12.07,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "lane brighter than horizon band",
+  "fg": "#FBEFF6",
+  "bg": "#A5599D",
+  "ratio": 4.16,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "lane brighter than ground under the lane",
+  "fg": "#FBEFF6",
+  "bg": "#523355",
+  "ratio": 9.56,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "lane brighter than quilt patch red",
+  "fg": "#FBEFF6",
+  "bg": "#994645",
+  "ratio": 5.66,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "lane brighter than quilt patch cream",
+  "fg": "#FBEFF6",
+  "bg": "#CBBEB2",
+  "ratio": 1.63,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "lane brighter than quilt patch green",
+  "fg": "#FBEFF6",
+  "bg": "#42614C",
+  "ratio": 6.17,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "lane brighter than quilt patch mustard",
+  "fg": "#FBEFF6",
+  "bg": "#B4874C",
+  "ratio": 2.88,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "3",
+  "pair": "lane brighter than quilt patch navy",
+  "fg": "#FBEFF6",
+  "bg": "#323963",
+  "ratio": 9.88,
+  "need": 1.5,
+  "ok": true
+ },
+ {
+  "stage": "all",
+  "pair": "sign and tray letters (ink on lantern)",
+  "fg": "#0E1528",
+  "bg": "#F2A444",
+  "ratio": 8.79,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "all",
+  "pair": "typed letters (ink on wool)",
+  "fg": "#0E1528",
+  "bg": "#FFF4DC",
+  "ratio": 16.62,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "all",
+  "pair": "card title (wool on ink)",
+  "fg": "#FFF4DC",
+  "bg": "#0E1528",
+  "ratio": 16.62,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "all",
+  "pair": "card line 2 and hints (frost on ink)",
+  "fg": "#B9C8E6",
+  "bg": "#0E1528",
+  "ratio": 10.78,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "all",
+  "pair": "hint example word (lantern-hi on ink)",
+  "fg": "#FFD98A",
+  "bg": "#0E1528",
+  "ratio": 13.44,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "all",
+  "pair": "refusal bar text (frost on ink)",
+  "fg": "#B9C8E6",
+  "bg": "#0E1528",
+  "ratio": 10.78,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "all",
+  "pair": "results count (ink on nightshirt cream)",
+  "fg": "#0E1528",
+  "bg": "#E6DFD3",
+  "ratio": 13.71,
+  "need": 4.5,
+  "ok": true
+ },
+ {
+  "stage": "all",
+  "pair": "tray label (frost on night)",
+  "fg": "#B9C8E6",
+  "bg": "#1B2742",
+  "ratio": 8.81,
+  "need": 4.5,
+  "ok": true
+ }
+]

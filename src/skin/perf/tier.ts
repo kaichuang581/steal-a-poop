@@ -8,8 +8,10 @@ export type Tier = 'low' | 'medium' | 'high';
 
 export const TIERS: readonly Tier[] = ['low', 'medium', 'high'];
 
-/** localStorage key: the tier this device earned last time. It only lets High's detail start building early. */
+/** localStorage key: the tier this device earned last time, as `tier@time`. High lets High's detail start building
+ *  early; Low is where the next sessions start, for LOW_KEPT_DAYS, so a slow device does not lag again until it falls. */
 export const GFX_KEY = 'sap:gfx';
+export const LOW_KEPT_DAYS = 7;
 
 const isTier = (v: unknown): v is Tier => v === 'low' || v === 'medium' || v === 'high';
 
@@ -20,17 +22,24 @@ export function pinnedTier(): Tier | null {
   return isTier(v) ? v : null;
 }
 
+/** The tier a stored value names, or null; a Low older than LOW_KEPT_DAYS (or with no time) is not believed. */
+export function readRemembered(raw: string | null, now: number = Date.now()): Tier | null {
+  const [v, at] = (raw ?? '').split('@');
+  if (!isTier(v)) return null;
+  if (v === 'low' && !(Math.abs(now - Number(at)) <= LOW_KEPT_DAYS * 86_400_000)) return null;
+  return v;
+}
+
 /** The tier this device earned in an earlier session, or null. */
 export function rememberedTier(): Tier | null {
   try {
-    const v = localStorage.getItem(GFX_KEY);
-    return isTier(v) ? v : null;
+    return readRemembered(localStorage.getItem(GFX_KEY));
   } catch {
     return null;
   }
 }
 
-let current: Tier = pinnedTier() ?? 'medium';
+let current: Tier = pinnedTier() ?? (rememberedTier() === 'low' ? 'low' : 'medium');
 /** The direction this session has moved, if any: a session never goes both ways. */
 let moved: 'up' | 'down' | null = null;
 const listeners = new Set<() => void>();
@@ -57,7 +66,7 @@ export function setTier(next: Tier): boolean {
   current = next;
   if (next === 'high' || next === 'low') {
     try {
-      localStorage.setItem(GFX_KEY, next);
+      localStorage.setItem(GFX_KEY, `${next}@${Date.now()}`);
     } catch {
       /* private mode: nothing remembered */
     }

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dreamSeed, FIELD } from '../../../dream/dream';
 import { activeFence, freshLive, SPAWN_X, TYPE_X, update } from '../run';
-import { FIRST_FENCE_AHEAD, WAKE } from '../stage';
-import { CLOUD_MS } from '../WakeClouds';
+import { DRIFT, FIRST_FENCE_AHEAD, OPENING, WAKE } from '../stage';
 
 const SEED = dreamSeed('2026-11-06');
 
@@ -34,19 +33,21 @@ describe('the run (V4 Part 7.1 and 14)', () => {
     expect(a.L.count).toBeGreaterThan(2);
     expect(play(dreamSeed('2026-11-07'), 20000).log).not.toEqual(a.log);
   });
-  it('bumps exactly once, then the run is over and the wake-up finishes at 1700 ms (600 under reduced motion)', () => {
+  it('bumps exactly once, then the run is over; the board is up 1.4 s after a bump that wakes him, 1.6 s after one he sleeps through', () => {
     const { L, bumps } = play(SEED, 9000);
     expect(bumps).toBe(1);
     expect(L.crashAt).not.toBeNull();
     expect(update(L, 16, SEED, { bump: () => { throw new Error('bumped twice'); } })).toBe(true);
-    expect(WAKE.finish).toBe(1700);
-    expect(WAKE.reducedFinish).toBe(600);
-    expect(WAKE.stir).toBe(350);
-    expect(WAKE.pop).toBe(600);
-    expect(WAKE.dark).toBe(1650);
-    // The dream is hidden only once the clouds cover it, and the results come up under them.
-    expect(WAKE.dark).toBeGreaterThanOrEqual(WAKE.pop + CLOUD_MS.covered);
-    expect(WAKE.finish).toBeGreaterThan(WAKE.dark);
+    // docs/dream/07, section 3: neither ending is more than 0.3 s longer than the old ones (1.7 s and 2.65 s).
+    expect(WAKE).toMatchObject({ stir: 350, pop: 350, room: 730, board: 1400 });
+    expect(WAKE.pop + WAKE.popMs).toBe(WAKE.room);
+    expect(DRIFT).toMatchObject({ sink: 900, room: 1400, board: 1600 });
+    expect(DRIFT.sink + DRIFT.sinkMs).toBe(DRIFT.room);
+    expect(WAKE.board).toBeLessThanOrEqual(1700 + 300);
+    expect(DRIFT.board).toBeLessThanOrEqual(2650 + 300);
+    // The opening is 1.2 s at most.
+    expect(OPENING.grown).toBeLessThanOrEqual(1200);
+    expect(OPENING.puffs + 2 * OPENING.puffGap).toBeLessThanOrEqual(OPENING.grow);
   });
 });
 
@@ -55,35 +56,54 @@ describe('the nightly dream (V4 Part 15)', () => {
   /** Clears every fence except those at `miss`. */
   function night(miss: number[], length: { fences: number; bumps: number } | null = NIGHT, dt = 16) {
     const L = freshLive(SEED);
-    const log = { stumbles: [] as number[], bumps: 0, asleep: 0 };
+    const log = { stumbles: [] as number[], bumps: 0, deep: 0, asleep: 0 };
     for (let t = 0; t < 900000; t += dt) {
       L.t += dt;
       const a = activeFence(L);
       if (a && !miss.includes(a.index)) { a.locked = true; a.word = a.f.source; }
-      const over = update(L, dt, SEED, { stumble: (n) => log.stumbles.push(n), bump: () => { log.bumps++; }, asleep: () => { log.asleep++; } }, length);
+      const over = update(L, dt, SEED, { stumble: (n) => log.stumbles.push(n), bump: () => { log.bumps++; }, deep: () => { log.deep++; }, asleep: () => { log.asleep++; } }, length);
       if (over) break;
     }
     return { L, log };
   }
 
-  it('puts the farmer to sleep at the last fence and spawns nothing past it', () => {
-    const { L, log } = night([]);
+  // Brian, 2026-11-24: "make it go past 30, it should go infinitely ideally".
+  it('puts the farmer out cold at fence 30 and keeps the fences coming: the night ends on a bump he sleeps through', () => {
+    const { L, log } = night([47]);
+    expect(L.deepAt).not.toBeNull();
     expect(L.asleepAt).not.toBeNull();
+    expect(L.asleepAt!).toBeGreaterThan(L.deepAt!);
     expect(L.crashAt).toBeNull();
-    expect(L.count).toBe(30);
-    expect(L.reached).toBe(30);
-    expect(L.next).toBe(30);
-    expect(log).toEqual({ stumbles: [], bumps: 0, asleep: 1 });
+    expect(L.count).toBe(47);
+    expect(L.reached).toBe(48);
+    expect(L.bumps).toEqual([47]);
+    expect(L.next).toBeGreaterThan(47);
+    expect(log).toEqual({ stumbles: [], bumps: 0, deep: 1, asleep: 1 });
     expect(update(L, 16, SEED, { asleep: () => { throw new Error('slept twice'); } }, NIGHT)).toBe(true);
   });
 
+  it('has no last fence: a night with every word right is still running at fence 120', () => {
+    const L = freshLive(SEED);
+    let over = false;
+    for (let t = 0; t < 900000 && L.count < 120 && !over; t += 16) {
+      L.t += 16;
+      const a = activeFence(L);
+      if (a) { a.locked = true; a.word = a.f.source; }
+      over = update(L, 16, SEED, {}, NIGHT);
+    }
+    expect(over).toBe(false);
+    expect(L.count).toBe(120);
+    expect(L.bumps).toEqual([]);
+  });
+
   it('survives two bumps: the fence goes flat, the sheep stops for a moment, the fence counts as reached but no sheep', () => {
-    const { L, log } = night([4, 12]);
+    const { L, log } = night([4, 12, 35]);
     expect(log.stumbles).toEqual([1, 2]);
-    expect(L.bumps).toEqual([4, 12]);
+    expect(L.bumps).toEqual([4, 12, 35]);
+    expect(L.deepAt).not.toBeNull();
     expect(L.asleepAt).not.toBeNull();
-    expect(L.reached).toBe(30);
-    expect(L.count).toBe(28);
+    expect(L.reached).toBe(36);
+    expect(L.count).toBe(33);
   });
 
   it('wakes the farmer on the third bump, where it happened', () => {
@@ -116,17 +136,17 @@ describe('the nightly dream (V4 Part 15)', () => {
         L.t += dt;
         const a = activeFence(L);
         if (a) { a.locked = true; a.word = a.f.source; }
-        if (update(L, dt, SEED, {}, NIGHT)) break;
+        if (update(L, dt, SEED, {}, NIGHT) || L.count >= 60) break;
       }
       expect(L.bumps).toEqual([]);
-      expect(L.count).toBe(30);
+      expect(L.count).toBe(60);
     }
   });
 
   it('keeps practice endless: no last fence, and the first bump ends it', () => {
     const { L, log } = night([35], null);
     expect(L.asleepAt).toBeNull();
-    expect(log).toEqual({ stumbles: [], bumps: 1, asleep: 0 });
+    expect(log).toEqual({ stumbles: [], bumps: 1, deep: 0, asleep: 0 });
     expect(L.count).toBe(35);
   });
 
@@ -137,10 +157,10 @@ describe('the nightly dream (V4 Part 15)', () => {
         L.t += 16;
         const a = activeFence(L);
         if (a) { a.locked = true; a.word = a.f.source; }
-        if (update(L, 16, seed, {}, NIGHT)) break;
+        if (update(L, 16, seed, {}, NIGHT) || L.count >= 150) break;
       }
       expect(L.bumps).toEqual([]);
-      expect(L.count).toBe(30);
+      expect(L.count).toBe(150);
     }
   });
 });

@@ -36,7 +36,8 @@ export const id = 'connect';
 export const needs = { scenes: 'all' as const, models: true };
 
 /** The models the old tool checked with --props, under the names it gave them. */
-export const PROPS = ['fence:rail', 'fence:picket', 'fence:wall', 'fence:log', 'bale', 'sign post', 'bomb', 'trophy'] as const;
+// The dream's fences, bale and sign post were voxel props until its redesign (docs/dream, 2026-11-24): they are drawn on a flat canvas now.
+export const PROPS = ['bomb', 'trophy'] as const;
 
 const EPS = 1e-4;
 /** The side of the sorting cells, in metres: the old tool's. */

@@ -261,6 +261,8 @@ export class MarketWorld {
       k.tie.position.y = 0; k.tie.scale.setScalar(1); k.body.visible = true; k.crate.visible = true;
       setMat(k.body, on ? this.mats.lit : this.back.lit); setMat(k.crate, on ? this.mats.lit : this.back.lit);
     }
+    // In a reveal the counter is the stage: the bench steps out of the camera's way.
+    this.bench.visible = !this.reveal;
     // The bench: each item drops in from 0.25 m above, 240 ms, 40 ms apart.
     for (const p of this.benchItems) {
       const t = motion ? ease((now - p.at) / 240) : 1;

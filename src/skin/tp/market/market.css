@@ -235,3 +235,10 @@
 
 /* The close view (T6 section 4): the rest of the stop dims to 60%, its words with its models; the item's own tag does not. */
 .tp[data-focus] .tp-layer > :not(.tp-closeat):not(.tp-dim) { opacity: 0.6; transition: opacity 200ms; }
+/* Six or seven bench items share 3.6 m: their tags narrow to fit the gap. */
+.tp-tag--item.tp-tag--tight { width: calc(104px * var(--u)); padding-left: 4px; padding-right: 4px; }
+.tp-tag--item.tp-tag--tight b { font-size: calc(13px * var(--u)); }
+/* A fuse sound's Listen tile sits inside its bench tag, beside the rarity (the tag's stepped corners clip anything outside it). */
+.tp-tag--item .tp-listen--small { position: static; width: 22px; height: 22px; margin-top: 1px; }
+.tp-tag--item:has(.tp-listen) { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 6px; }
+.tp-tag--item:has(.tp-listen) b { flex-basis: 100%; }

@@ -2786,3 +2786,9 @@ screen opens. Changed, nothing visible:
   Counting Sheep 0.63 to 0.40. Left: the Grid's string keys (primitives.ts, read by a dozen files), the first
   AudioContext on the first click (~0.1 to 0.2 s, must be in that click), the 0.6 s build of the dream's first world
   under its loading screen, and the 2.3 MB of JavaScript parsed at load.
+- The dream is a cloud (Brian, 2026-11-25: "make it so that in the dream, the bubble surrounding the gameplay is actually
+  like a dream cloud instead of a rounded square ... rn it just looks like a floating square on top of the guy"). This
+  replaces v3/08 section 2's cut corners and straight lower edge. `bubbleShape` in dream/frame.ts outlines `cloudPuffs`:
+  uneven puffs (PUFF_SIZES) along the top and sides, small round corners (the chip and the counter sit near them), and
+  wide circles along the bottom that dip at most CORNER_H (12 px, where the room's canvas stands behind) and shape only
+  the bottom band. Same rim, shade and clip as before; frame.test.ts checks the cloud's rules on every screen size.

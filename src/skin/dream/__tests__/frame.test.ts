@@ -67,22 +67,25 @@ describe('the layout', () => {
 });
 
 describe('the thought bubble', () => {
-  it('has a straight lower edge, every corner cut in three steps, and the rim 6 inside all round', () => {
+  it('is a cloud: puffs along the top, a low wavy bottom over the room, and the rim 6 inside all round', () => {
     for (const [w, h] of [...COMPUTERS, ...PHONES]) {
-      const f = dreamFrame(w, h), shape = bubbleShape(f.bubble.w, f.bubble.h);
+      const f = dreamFrame(w, h), W = f.bubble.w, H = f.bubble.h, shape = bubbleShape(W, H);
       const outer = points(shape.outer), inner = points(shape.inner);
-      // Every point on the outside's box, and the bottom edge one straight line from the first corner to the last.
-      expect(Math.max(...outer.map((p) => p[1]))).toBe(f.bubble.h);
-      const bottom = outer.filter((p) => p[1] === f.bubble.h).map((p) => p[0]);
-      expect([Math.min(...bottom), Math.max(...bottom)]).toEqual([12, f.bubble.w - 12]);
-      // Three steps of 4 at each of the four corners: 7 points each.
-      expect(outer.length).toBe(28);
-      for (const [x, y] of outer) expect(x % 4 === 0 || f.bubble.w - x === 0 || (f.bubble.w - x) % 4 === 0).toBe(true), expect(y === f.bubble.h || y % 4 === 0 || (f.bubble.h - y) % 4 === 0).toBe(true);
-      // The dream's clip is inside the rim on every side.
-      expect(Math.min(...inner.map((p) => p[0]))).toBe(RIM);
-      expect(Math.max(...inner.map((p) => p[0]))).toBe(f.bubble.w - RIM);
-      expect(Math.min(...inner.map((p) => p[1]))).toBe(RIM);
-      expect(Math.max(...inner.map((p) => p[1]))).toBe(f.bubble.h - RIM);
+      // Inside its box and touching every side of it.
+      for (const [x, y] of outer) { expect(x).toBeGreaterThanOrEqual(-0.1); expect(x).toBeLessThanOrEqual(W + 0.1); expect(y).toBeGreaterThanOrEqual(-0.1); expect(y).toBeLessThanOrEqual(H + 0.1); }
+      expect(Math.min(...outer.map((p) => p[1]))).toBeLessThan(1);
+      expect(Math.max(...outer.map((p) => p[1]))).toBeGreaterThan(H - 1);
+      expect(Math.min(...outer.map((p) => p[0]))).toBeLessThan(1);
+      expect(Math.max(...outer.map((p) => p[0]))).toBeGreaterThan(W - 1);
+      // Puffs along the top: the edge dips and rises again at least five times.
+      const top = outer.filter(([x, y]) => y < H / 3 && x > W * 0.1 && x < W * 0.9).sort((a, b) => a[0] - b[0]);
+      let dips = 0;
+      for (let i = 1; i < top.length - 1; i++) if (top[i][1] > top[i - 1][1] && top[i][1] >= top[i + 1][1] && top[i][1] > 4) dips++;
+      expect(dips).toBeGreaterThanOrEqual(5);
+      // The bottom, away from the corners, never rises past the 12 px where the room stands behind it.
+      for (const [x, y] of outer) if (y > H / 2 && x > 40 && x < W - 40 && Math.abs(y - H) < 60) expect(y).toBeGreaterThanOrEqual(H - 12.5);
+      // The dream's clip stays RIM inside the box.
+      for (const [x, y] of inner) { expect(x).toBeGreaterThanOrEqual(RIM - 0.1); expect(x).toBeLessThanOrEqual(W - RIM + 0.1); expect(y).toBeGreaterThanOrEqual(RIM - 0.1); expect(y).toBeLessThanOrEqual(H - RIM + 0.1); }
     }
   });
   it('draws a puff as a round disc in 2 px steps, the same on both sides', () => {

@@ -16,8 +16,6 @@ const clamp = (lo: number, v: number, hi: number) => Math.min(hi, Math.max(lo, v
 /** The dream window's rim of wool, and the shade of wool's lip under it (docs/dream/v3/08, section 2). */
 export const RIM = 6;
 export const SHADE = 4;
-/** Each corner is cut in three steps: 4 px each outside the rim, 2 px inside it (so the rim stays 6 thick round it). */
-const CORNER = { steps: 3, out: 4, in: 2 } as const;
 
 /** The tray's parts, in the plan's px (times `u`). */
 export const TRAY = {
@@ -86,29 +84,80 @@ export const meterSegments = (width: number, phone: boolean, u = 1): number => M
 
 // ---------- the bubble ----------
 
-/** How far up from its bottom the window's cut corners reach: the room's canvas starts that far up behind the rim. */
-const CORNER_H = CORNER.steps * CORNER.out;
+/** How far up from its bottom the window's lower edge may dip: the room's canvas starts that far up behind the rim. */
+const CORNER_H = 12;
 
 /**
- * The dream window as two polygons in its own box, `w` x `h`: `outer`, the rim's outside, and `inner`, the dream's clip,
- * the rim's width inside it. Every corner is cut in three pixel steps and the lower edge is straight (v3/08, section 2:
- * the old scalloped edge read as lace). The shade is `outer` again, SHADE lower, behind it.
+ * The dream window as a cloud (Brian, 2026-11-25: "make it so that in the dream, the bubble surrounding the gameplay is
+ * actually like a dream cloud instead of a rounded square ... rn it just looks like a floating square on top of the
+ * guy"; this replaces v3/08 section 2's cut corners). Big puffs of uneven size along the top and the sides, small round
+ * corners (the chip and the counter sit near them), and low wide waves along the bottom that never rise more than
+ * CORNER_H, where the room stands behind. Two polygons in the window's own box, `w` x `h`: `outer`, the rim's outside,
+ * and `inner`, the dream's clip, the same puffs RIM smaller. The shade is `outer` again, SHADE lower, behind it.
  */
 export function bubbleShape(w: number, h: number): { outer: string; inner: string } {
-  return { outer: corners(w, h, 0, CORNER.out), inner: corners(w, h, RIM, CORNER.in) };
+  const puffs = cloudPuffs(w, h);
+  const poly = (pts: [number, number][]) => `polygon(${pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(',')})`;
+  return { outer: poly(cloudOutline(w, h, puffs, 0)), inner: poly(cloudOutline(w, h, puffs, RIM)) };
 }
-/** A box `inset` in from a w x h box, each corner cut in CORNER.steps stair steps of `step` px, as a clip polygon. */
-function corners(w: number, h: number, inset: number, step: number): string {
-  // The top left corner's stair, clockwise from the left side to the top edge; the other three are it mirrored.
-  const stair: [number, number][] = [];
-  for (let k = 0; k < CORNER.steps; k++) stair.push([k * step, (CORNER.steps - k) * step], [(k + 1) * step, (CORNER.steps - k) * step]);
-  stair.push([CORNER.steps * step, 0]);
-  const back = stair.slice().reverse(), a = inset, b = w - inset, c = inset, d = h - inset;
-  const pts = [
-    ...stair.map(([x, y]) => [a + x, c + y]), ...back.map(([x, y]) => [b - x, c + y]),
-    ...stair.map(([x, y]) => [b - x, d - y]), ...back.map(([x, y]) => [a + x, d - y]),
-  ];
-  return `polygon(${pts.map(([x, y]) => `${x}px ${y}px`).join(',')})`;
+
+/** `low`: one of the bottom's wide circles, which shapes only the band along the bottom (it would flatten the sides). */
+interface Puff { x: number; y: number; r: number; low?: boolean }
+/** Puff sizes going round, as shares of an edge's radius: uneven, so it reads as a cloud and not as lace. */
+const PUFF_SIZES = [1, 0.84, 0.95, 0.78, 0.9, 0.82, 0.98, 0.8];
+/** The circles the cloud is the outline of (with the box between their centres filled in). */
+export function cloudPuffs(w: number, h: number): { puffs: Puff[]; core: Box; band: number } {
+  const k = Math.min(w, h);
+  const c = Math.round(clamp(16, k * 0.05, 36)); // the corners
+  const R = Math.round(clamp(24, k * 0.1, 70)); // the top and the sides
+  // The bottom: wide circles whose centres sit well inside, so between two the edge dips at most CORNER_H.
+  const B = 3 * R, sb = 2 * Math.sqrt(B * B - (B - CORNER_H) ** 2) * 0.95;
+  const puffs: Puff[] = [{ x: c, y: c, r: c }, { x: w - c, y: c, r: c }, { x: c, y: h - c, r: c }, { x: w - c, y: h - c, r: c }];
+  let i = 0;
+  const row = (from: number, to: number, step: number, at: (t: number) => [number, number], r: (j: number) => number) => {
+    const n = Math.max(1, Math.round((to - from) / step));
+    for (let j = 0; j <= n; j++) { const [x, y] = at(from + ((to - from) * j) / n); puffs.push({ x, y, r: r(i++) }); }
+  };
+  const size = (j: number) => R * PUFF_SIZES[j % PUFF_SIZES.length];
+  // Each puff's centre sits its own radius in, so the biggest touch the box's edge and the smaller ones stand back.
+  row(c + R * 0.7, w - c - R * 0.7, R * 1.45, (t) => [t, 0], size);
+  row(c + R * 0.7, h - c - R * 0.9, R * 1.45, (t) => [0, t], size);
+  row(c + R * 0.7, h - c - R * 0.9, R * 1.45, (t) => [w, t], size);
+  for (const p of puffs.slice(4)) { if (p.y === 0) p.y = p.r; else if (p.x === 0) p.x = p.r; else if (p.x === w) p.x = w - p.r; }
+  const from = puffs.length;
+  row(c + sb / 2, w - c - sb / 2, sb, (t) => [t, h - B], () => B);
+  for (const p of puffs.slice(from)) p.low = true;
+  return { puffs, core: { x: c, y: c, w: w - 2 * c, h: h - 2 * c }, band: h - c };
+}
+
+/**
+ * The outline of the puffs and their core, `inset` px in (each puff that much smaller), as points going round: from
+ * the middle, one ray toward every 3 px of the box's edge, out to the farthest puff or core edge it meets, never past
+ * the box. The cloud is star-shaped from its middle, so the rays find all of it.
+ */
+function cloudOutline(w: number, h: number, { puffs, core, band }: { puffs: Puff[]; core: Box; band: number }, inset: number): [number, number][] {
+  const cx = w / 2, cy = h / 2, out: [number, number][] = [];
+  const edge = 2 * (w + h), n = Math.ceil(edge / 3);
+  for (let i = 0; i < n; i++) {
+    let d = (i / n) * edge, tx: number, ty: number;
+    if (d < w) [tx, ty] = [d, 0]; else if ((d -= w) < h) [tx, ty] = [w, d]; else if ((d -= h) < w) [tx, ty] = [w - d, h]; else [tx, ty] = [0, h - (d - w)];
+    const len = Math.hypot(tx - cx, ty - cy), ux = (tx - cx) / len, uy = (ty - cy) / len;
+    // The core box, inset.
+    const bx = ux > 0 ? (core.x + core.w - inset - cx) / ux : ux < 0 ? (core.x + inset - cx) / ux : Infinity;
+    const by = uy > 0 ? (core.y + core.h - inset - cy) / uy : uy < 0 ? (core.y + inset - cy) / uy : Infinity;
+    let t = Math.min(bx, by);
+    for (const p of puffs) {
+      const r = p.r - inset, ox = p.x - cx, oy = p.y - cy, b = ox * ux + oy * uy, q = b * b - (ox * ox + oy * oy - r * r);
+      if (r <= 0 || q < 0) continue;
+      const far = b + Math.sqrt(q);
+      if (!p.low || cy + uy * far >= band) t = Math.max(t, far);
+    }
+    // Never past the box, inset.
+    const lim = Math.min(ux > 0 ? (w - inset - cx) / ux : ux < 0 ? (inset - cx) / ux : Infinity, uy > 0 ? (h - inset - cy) / uy : uy < 0 ? (inset - cy) / uy : Infinity);
+    t = Math.min(t, lim);
+    out.push([cx + ux * t, cy + uy * t]);
+  }
+  return out;
 }
 
 // ---------- the bed strip's camera ----------

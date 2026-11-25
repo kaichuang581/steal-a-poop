@@ -4,6 +4,7 @@ All user-visible changes, newest first.
 
 ## Unreleased
 
+- Counting Sheep's dream is drawn in a real thought cloud: big puffs along the top and sides and soft waves along the bottom, instead of a box with cut corners.
 - Lighter on slow computers: a computer that had to drop to the lowest graphics level starts there on its next visits for a week, instead of lagging until it drops again. Opening Counting Sheep, Home and a game freezes the page for less time: shaders are compiled in the background, and the voxel models are built about twice as fast.
 - Counting Sheep's dream is built in voxels like the rest of the farm: the barn, the farmhouse, the windmill and the fence stand at their own distances, pass at their own speeds and catch the moonlight, and a dry-stone wall slides past along the bottom. The farm lifts off on islands, then turns into the farmer's bed, and after the first night through the worlds go round for as long as you keep counting.
 - Counting Sheep is endless with a best score: the meter and "of 30" are gone, the counter shows your count and your best, and "New best" lights up when you pass it. Every 10 sheep the moon swells and ten sheep hop across it, and each sheep you count leaves a star in the sky.

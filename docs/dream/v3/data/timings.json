@@ -1,0 +1,232 @@
+{
+ "note": "Every time in the plan, in milliseconds unless it says beats. \"ease\" names: out = fast then slow, in = slow then fast, back = overshoots by 10% then settles.",
+ "beat": {
+  "bpm": {
+   "world1": 96,
+   "world2": 112,
+   "world3": 128
+  },
+  "note": "Unchanged from the build: the beat clock of version 2 stays."
+ },
+ "counter": {
+  "count_pop_ms": 180,
+  "count_pop_scale": 1.25,
+  "new_best_tab_swap_ms": 160,
+  "milestone_pop_scale": 1.6
+ },
+ "star_for_a_word": {
+  "rise_ms": 700,
+  "ease": "out",
+  "start": "the middle of the sign's word plank",
+  "twinkle_ms": 240,
+  "most_stars": 240
+ },
+ "gate1_lift_off": {
+  "total_ms": 1400,
+  "starts": "when the sheep passes the middle of gateFarm",
+  "steps": [
+   {
+    "at": 0,
+    "for": 900,
+    "what": "every ground mesh of world 1 (snow, banks, ripples, wall, mill hill, far hills, pond, low props) sinks 9 m",
+    "ease": "in"
+   },
+   {
+    "at": 0,
+    "for": 500,
+    "what": "the underside of every track bay (soil, stone teeth, icicles, roots) grows down from the snow top (scale y 0 to 1, pinned at the top)",
+    "ease": "out"
+   },
+   {
+    "at": 0,
+    "for": 600,
+    "what": "the fence posts and rails fall 6 m and turn 40 degrees; the string of bulbs stays",
+    "ease": "in"
+   },
+   {
+    "at": 100,
+    "for": 300,
+    "what": "under each building and tree an island grows down (scale y 0 to 1, pinned at the top); row B2 first, B3 100 ms later, B4 200 ms later",
+    "ease": "out"
+   },
+   {
+    "at": 400,
+    "for": 600,
+    "what": "each island moves from y 0.1 to its world 2 height",
+    "ease": "back"
+   },
+   {
+    "at": 400,
+    "for": 1000,
+    "what": "the sheets of the northern light rise one after another, left to right, 16 ms apart, each over 300 ms",
+    "ease": "out"
+   },
+   {
+    "at": 450,
+    "for": 0,
+    "what": "the snow turns and begins to rise"
+   },
+   {
+    "at": 0,
+    "for": 1200,
+    "what": "sky colours, haze colour and lights go from world 1 to world 2",
+    "ease": "linear"
+   },
+   {
+    "at": 300,
+    "for": 600,
+    "what": "the moon fills from crescent to full, one column of cells every 40 ms"
+   }
+  ]
+ },
+ "gate2_tucked_in": {
+  "total_ms": 1600,
+  "starts": "when the sheep passes the first post of gateFootboard",
+  "steps": [
+   {
+    "at": 0,
+    "for": 1300,
+    "what": "a wave runs along the lane from the footboard at 16 m a second; where it passes, each track bay changes from laneBayFloat to laneBayBed (120 ms, the new bay rising 0.3 m into place)",
+    "ease": "out"
+   },
+   {
+    "at": 0,
+    "for": 1300,
+    "what": "behind the same wave the lining band slides in from the back (z -5.2 to -1.2) and each quilt square pops up (scale y 0, 1.15, 1 over 220 ms), nearest rows first, each row 40 ms after the row before",
+    "ease": "back"
+   },
+   {
+    "at": 0,
+    "for": 900,
+    "what": "every island sinks 12 m and is removed",
+    "ease": "in"
+   },
+   {
+    "at": 0,
+    "for": 500,
+    "what": "the sheets of the northern light shrink upward and fade",
+    "ease": "in"
+   },
+   {
+    "at": 600,
+    "for": 800,
+    "what": "the buttons drop down their threads to their places, one every 60 ms, each with one small bounce",
+    "ease": "back"
+   },
+   {
+    "at": 800,
+    "for": 600,
+    "what": "the candle rises from behind the far folds",
+    "ease": "out"
+   },
+   {
+    "at": 0,
+    "for": 1200,
+    "what": "sky colours, haze colour and lights go from world 2 to world 3; the moon grows from 128 to 190 px across",
+    "ease": "linear"
+   },
+   {
+    "at": 450,
+    "for": 0,
+    "what": "the snow stops; feathers begin to fall"
+   }
+  ]
+ },
+ "gate3_he_turns_over": {
+  "total_ms": 1400,
+  "starts": "when the sheep passes the second post of gateHeadboard",
+  "steps": [
+   {
+    "at": 0,
+    "for": 1100,
+    "what": "a wave runs along the lane at 16 m a second; where it passes, each track bay changes from laneBayBed to the snowy track of world 1 and the quilt squares drop flat (scale y 1 to 0, 180 ms)",
+    "ease": "in"
+   },
+   {
+    "at": 200,
+    "for": 900,
+    "what": "world 1's ground rises 9 m into place, with its fence, wall and farm",
+    "ease": "out"
+   },
+   {
+    "at": 0,
+    "for": 600,
+    "what": "the buttons are pulled up their threads; the candle sinks behind the far folds",
+    "ease": "in"
+   },
+   {
+    "at": 0,
+    "for": 1200,
+    "what": "sky colours, haze colour and lights go from world 3 to world 1; the moon shrinks from 190 to 96 px and its right side empties to a crescent",
+    "ease": "linear"
+   },
+   {
+    "at": 0,
+    "for": 900,
+    "what": "in the bed strip the farmer rolls onto his other side and back (pose bedTurn), once",
+    "ease": "out"
+   }
+  ]
+ },
+ "moon_show": {
+  "starts": "when the count reaches 10, 20, 30 and every further 10",
+  "length_beats": 8,
+  "steps_beats": [
+   {
+    "at": 0,
+    "for": 2,
+    "what": "the moon grows to 1.6 times its size in that world; in world 1 the crescent also fills to a full disc",
+    "ease": "out"
+   },
+   {
+    "at": 1,
+    "for": 6,
+    "what": "ten small sheep (the game's own sheep model, drawn unlit in ink 0, each a fifth of the moon's width long) hop across the moon from left to right, one starting every half beat from beat 1; each crossing takes 1.5 beats and rises by a fifth of the moon's width in the middle; the last lands at beat 7"
+   },
+   {
+    "at": 7,
+    "for": 1,
+    "what": "the moon returns to its size (and, in world 1, to a crescent)",
+    "ease": "in"
+   }
+  ]
+ },
+ "effects": {
+  "hoof_puff": {
+   "cubes": 4,
+   "cube_m": 0.05,
+   "life_ms": 260,
+   "rise_m": 0.25,
+   "most_at_once": 24
+  },
+  "obstacle_lanterns_light_ms": 120,
+  "sign_fade_when_the_sheep_is_behind_it": {
+   "to_opacity": 0.35,
+   "ms": 100
+  }
+ },
+ "world2_motion": {
+  "island_bob": "y + 0.18 * sin(2*pi*beats/8 + phase), phase = 0, 2.1 or 4.2 by bob group",
+  "string_wave": "y = 0.35 + 0.30 * sin(x/3.0 - 2*pi*beats/8)",
+  "light_sheet_pulse": "height * (1 + 0.12 * pulse(beats - x/24))"
+ },
+ "world3_motion": {
+  "button_flip": "one half turn about its thread over 300 ms; button i flips on beat 4*k + (i mod 4)",
+  "yarn_roll_m_per_beat": 0.6,
+  "needles_click_degrees": 4,
+  "candle_flicker": "plus or minus 15%, 0.5 to 1.5 times a second, never a blink"
+ },
+ "world1_motion": {
+  "bulb_chase": "bulb i is at full glow when (i + whole beats) mod 4 is 0, otherwise at 45%",
+  "windmill": "one eighth of a turn per beat, each step over 120 ms",
+  "chimney": "three snow:2 cubes of 0.1 m every second beat, rising 1.2 m over 1.6 s and shrinking to nothing"
+ },
+ "bubble": {
+  "tail_bob_px": 2,
+  "tail_bob_period_ms": 2400,
+  "tail_delay_ms": 300,
+  "snore_rise_ms": 1800,
+  "snore_gap_ms": 600
+ },
+ "reduced_motion": "Gates cut over in a 200 ms fade. No bob, wave, flip, roll, pulse or moon show; the count still pops. The sheep, the obstacles and the track move as the game needs."
+}

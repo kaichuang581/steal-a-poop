@@ -1,0 +1,282 @@
+{
+ "note": "Pixel art for the interface of Counting Sheep, version 3. px is the size of one art pixel on screen at --u = 1. Never draw a grid at a size that is not a whole multiple. \".\" is transparent. Draw with crisp edges. Everything in the dream itself is now a voxel model (data/models), not pixel art.",
+ "grids": {
+  "z": {
+   "px": 2,
+   "use": "The farmer's snore: three of them, at 2, 3 and 4 px an art pixel (file 06, section 7); on the turn-over card at 4 px",
+   "colours": {
+    "X": "wool-hi"
+   },
+   "rows": [
+    "XXXXX",
+    "...X.",
+    "..X..",
+    ".X...",
+    "XXXXX"
+   ]
+  },
+  "bang": {
+   "px": 3,
+   "use": "Over the farmer on a bump",
+   "colours": {
+    "X": "lantern-hi"
+   },
+   "rows": [
+    ".X.",
+    ".X.",
+    ".X.",
+    ".X.",
+    ".X.",
+    "...",
+    ".X."
+   ]
+  },
+  "question": {
+   "px": 3,
+   "use": "Over the farmer on a wrong word",
+   "colours": {
+    "X": "lantern-hi"
+   },
+   "rows": [
+    ".XXX.",
+    "X...X",
+    "....X",
+    "...X.",
+    "..X..",
+    ".....",
+    "..X.."
+   ]
+  },
+  "return-key": {
+   "px": 2,
+   "use": "The Jump button",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "......XX",
+    "......XX",
+    "......XX",
+    "..X...XX",
+    ".XX...XX",
+    "XXXXXXXX",
+    ".XX.....",
+    "..X....."
+   ]
+  },
+  "bump-star": {
+   "px": 2,
+   "use": "Circling the sheep on a bump; the \"Bump!\" card",
+   "colours": {
+    "X": "lantern-hi"
+   },
+   "rows": [
+    "....X....",
+    "....X....",
+    "..XXXXX..",
+    "XXXXXXXXX",
+    "..XXXXX..",
+    "..XX.XX..",
+    ".XX...XX.",
+    ".X.....X."
+   ]
+  },
+  "star-plus": {
+   "px": 1,
+   "use": "Large stars in the sky",
+   "colours": {
+    "X": "frost"
+   },
+   "rows": [
+    "..X..",
+    "..X..",
+    "XXXXX",
+    "..X..",
+    "..X.."
+   ]
+  },
+  "candle": {
+   "px": 2,
+   "use": "The hint strip",
+   "colours": {
+    "X": "lantern-hi"
+   },
+   "rows": [
+    "...XX...",
+    "..XXX...",
+    "..XXXX..",
+    "...XX...",
+    "...X....",
+    ".XXXXXX.",
+    ".XXXXXX.",
+    ".XXXXXX.",
+    ".XXXXXX.",
+    ".XXXXXX.",
+    "XXXXXXXX",
+    "XXXXXXXX"
+   ]
+  },
+  "yarn-ball": {
+   "px": 2,
+   "use": "The \"Deep dream\" card",
+   "colours": {
+    "X": "scarfRed 0 #BF6055",
+    "-": "scarfRed -2 #AC473D"
+   },
+   "rows": [
+    "....XXXX....",
+    "..XX--XXXX..",
+    ".XXXX--XXXX.",
+    ".X-XXXX--XX.",
+    "XXX--XXXX-XX",
+    "XXXXX--XXXXX",
+    "X--XXXX--XXX",
+    "XXX--XXXX-XX",
+    ".XXXX--XXXX.",
+    ".XX-XXX--XX.",
+    "..XXXXXXXX..",
+    "....XXXX...."
+   ]
+  },
+  "island": {
+   "px": 2,
+   "use": "The \"Dreaming\u2026\" card",
+   "colours": {
+    "X": "wool"
+   },
+   "rows": [
+    "............",
+    "....X.......",
+    "...XXX......",
+    "....X...XX..",
+    "XXXXXXXXXXXX",
+    "XXXXXXXXXXXX",
+    ".XXXXXXXXXX.",
+    "..XXXXXXXX..",
+    "...XXXXXX...",
+    "....XXXX....",
+    ".....XX.....",
+    "............"
+   ]
+  },
+  "moon-small": {
+   "px": 2,
+   "use": "The mode chip",
+   "colours": {
+    "X": "lantern-hi"
+   },
+   "rows": [
+    "..XXX...",
+    ".XXX....",
+    "XXX.....",
+    "XXX.....",
+    "XXX.....",
+    "XXXX...X",
+    ".XXXXXX.",
+    "..XXXX.."
+   ]
+  },
+  "arrow-right": {
+   "px": 2,
+   "use": "Between the ready board's three pictures",
+   "colours": {
+    "X": "frost"
+   },
+   "rows": [
+    "....X...",
+    "....XX..",
+    "XXXXXXX.",
+    "XXXXXXXX",
+    "XXXXXXX.",
+    "....XX..",
+    "....X...",
+    "........"
+   ]
+  },
+  "sheep-head": {
+   "px": 2,
+   "use": "The counter. It replaces the soft, blurred sheep picture used today",
+   "colours": {
+    "X": "wool",
+    "p": "pink 0 #E8B1AC",
+    "o": "ink"
+   },
+   "rows": [
+    "...XXXXX...",
+    "..XXXXXXX..",
+    ".XXXXXXXXX.",
+    "ppXpppppXpp",
+    "..XpopopX..",
+    "..XpppppX..",
+    "...ppopp...",
+    "...ppppp...",
+    "....ppp...."
+   ]
+  },
+  "sheep-side": {
+   "px": 2,
+   "use": "The ready board's third picture, over the fence grid",
+   "colours": {
+    "X": "wool"
+   },
+   "rows": [
+    "..XXXXXX....",
+    ".XXXXXXXX.XX",
+    "XXXXXXXXXXXX",
+    "XXXXXXXXXXXX",
+    "XXXXXXXXX.X.",
+    ".XXXXXXXX...",
+    ".X.X..X.X...",
+    ".X.X..X.X..."
+   ]
+  },
+  "fence": {
+   "px": 2,
+   "use": "The ready board's third picture, under the sheep",
+   "colours": {
+    "X": "lantern"
+   },
+   "rows": [
+    ".X...X...X..",
+    "XXXXXXXXXXX.",
+    ".X...X...X..",
+    "XXXXXXXXXXX.",
+    ".X...X...X..",
+    ".X...X...X.."
+   ]
+  },
+  "moon-full": {
+   "px": 2,
+   "use": "The \"Moon show\" pips on the results board",
+   "colours": {
+    "X": "lantern-hi",
+    "o": "lantern"
+   },
+   "rows": [
+    "..XXXX..",
+    ".XXXXXX.",
+    "XXoXXXXX",
+    "XXXXXXXX",
+    "XXXXXoXX",
+    "XXXXXXXX",
+    ".XXXXXX.",
+    "..XXXX.."
+   ]
+  },
+  "check": {
+   "px": 2,
+   "use": "A night played, in the streak row",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    ".......X",
+    "......XX",
+    "X....XX.",
+    "XX..XX..",
+    ".XXXX...",
+    "..XX...."
+   ]
+  }
+ }
+}

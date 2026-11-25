@@ -1,0 +1,77 @@
+/* Practice's rink (docs/trading-post-practice P2, P3, P4, T7): wool and lantern tiles, chalk, nothing navy, no panel.
+   Corners are stepped in 2 px squares, never rounded. */
+.rk { position: absolute; inset: 0; overflow: hidden; --rk-ink: #2B2230; --rk-paper: #FFF6E0; --rk-lip: #DCC9A0; --rk-soft: #6B5B4B;
+  --rk-step: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px)); }
+.rk-pins { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+.rk-pin { position: absolute; left: 0; top: 0; transform: translate3d(-9999px, 0, 0); }
+.rk-head { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+/* A wool or lantern tile: face, an ink outline, a darker side under it, a lighter line along the top. */
+.rk-plate, .rk-bubble, .rk-coach, .rk-tile, .rk-pass, .rk-slip {
+  --face: var(--hm-wool); --hi: var(--hm-wool-hi); --lip: var(--hm-wool-lip);
+  background: var(--face); color: var(--rk-ink); clip-path: var(--rk-step);
+  box-shadow: inset 0 0 0 2px var(--rk-ink), inset 0 -6px 0 var(--lip), inset 0 4px 0 var(--hi);
+}
+.rk-plate { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 4px; font: 800 14px/1 var(--skin-font-display); white-space: nowrap; }
+.rk-plate[data-you] { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); }
+.rk-plate-rule { width: 2px; height: 14px; background: var(--rk-lip); }
+.rk-plate-level { font: 800 11px/1 var(--skin-font-body, Nunito, sans-serif); }
+.rk-bubble { padding: 8px 14px 12px; font: 800 17px/1 var(--skin-font-display); animation: rk-pop 160ms ease-out both; }
+.rk-dots { display: flex; gap: 5px; animation: none; padding: 12px 14px 16px; }
+.rk-dots i { width: 7px; height: 7px; background: var(--rk-lip); animation: rk-dot 900ms steps(1) infinite; }
+.rk-dots i:nth-child(2) { animation-delay: 300ms; } .rk-dots i:nth-child(3) { animation-delay: 600ms; }
+@keyframes rk-dot { 0%, 33% { background: var(--rk-ink); } 34%, 100% { background: var(--rk-lip); } }
+
+.rk-coach { display: flex; flex-direction: column; gap: 4px; max-width: 280px; padding: 10px 16px 14px; margin-right: 14px; animation: rk-pop 160ms ease-out both; position: relative; }
+.rk-coach b { font: 800 18px/1.1 var(--skin-font-display); }
+.rk-coach span { font: 800 12px/1.3 var(--skin-font-body, Nunito, sans-serif); color: var(--rk-ink); }
+.rk-coach[data-phone] { margin: 0 0 12px; max-width: 250px; }
+@keyframes rk-pop { from { opacity: 0; scale: 0.94; } }
+
+/* The rack: tiles 0.15 m square, 0.165 m apart (P2 section 3); past 13 the gap shrinks so the word fits the bay. */
+.rk-rack-pin { --rk-a: 300; }
+.rk-tiles { --t: calc(var(--rk-a) * 0.15px); --gap: calc(var(--rk-a) * 0.015px); display: flex; align-items: flex-end; gap: var(--gap); max-width: calc(var(--rk-a) * 2.2px); }
+.rk-tiles[data-shake] { animation: rk-shake 300ms linear; }
+@keyframes rk-shake { 0% { translate: 6px; } 20% { translate: -6px; } 40% { translate: 4px; } 60% { translate: -4px; } 80% { translate: 2px; } 100% { translate: 0; } }
+.rk-tile { flex: 0 1 var(--t); min-width: 0; width: var(--t); height: calc(var(--t) + 6px); padding-bottom: 6px; display: grid; place-items: center; box-sizing: border-box;
+  font: 800 calc(var(--t) * 0.66)/1 var(--skin-font-display); animation: rk-drop 80ms ease-out both; }
+.rk-tile[data-lantern] { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); animation: none; }
+.rk-tiles[data-shake] .rk-tile:not([data-lantern]) { animation: rk-ember 600ms steps(1) both; }
+@keyframes rk-ember { 0%, 99% { --face: #E9965B; --hi: #F2A26A; --lip: #B65349; } }
+@keyframes rk-drop { from { translate: 0 -6px; } }
+.rk-caret { width: calc(var(--t, 40px) * 0.5); height: calc(var(--t, 40px) + 6px); border-bottom: 4px solid var(--hm-lantern); position: relative; flex: none; }
+.rk-caret::before { content: ''; position: absolute; left: 4px; top: 18%; width: 3px; height: 56%; background: var(--hm-lantern); animation: rk-blink 1s steps(1) infinite; }
+@keyframes rk-blink { 50% { opacity: 0; } }
+
+.rk-pass { pointer-events: auto; --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 112px; height: 44px; padding-bottom: 6px; border: 0; font: 800 17px/1 var(--skin-font-display); cursor: pointer; }
+.rk-pass:active:not(:disabled) { translate: 0 3px; }
+.rk-pass:disabled { --face: #E9DDC3; --hi: #F4ECDA; --lip: #C9B99A; color: var(--rk-soft); cursor: default; }
+.rk-pass:focus-visible { outline: 3px solid var(--hm-lantern-hi); outline-offset: 2px; }
+
+/* The hidden field the tiles mirror: on screen (so a phone raises its keyboard) but not seen. */
+.rk-field { position: absolute; left: 50%; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
+
+/* Phones: the rack is a strip over the keyboard (P2 section 3). */
+.rk-strip { position: absolute; inset-inline: 0; top: calc(var(--vvtop, 0px) + var(--vvh, 100dvh) - 64px); height: 64px; z-index: 22; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px;
+  background: linear-gradient(var(--rk-paper) 0 calc(100% - 8px), var(--rk-lip) 0); box-shadow: inset 0 2px 0 var(--rk-ink); }
+.rk-strip .rk-tiles { --t: 32px; --gap: 3px; max-width: calc(100% - 130px); }
+.rk-strip .rk-pass { width: 104px; height: 42px; }
+
+/* The report: slips under the board, then two buttons (P4 section 3). */
+.rk-report-pin { pointer-events: auto; }
+.rk-report { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(760px, calc(100vw - 28px)); padding-top: 8px; }
+.rk-report > *, .rk-slip { animation: rk-in 240ms ease-out both; }
+@keyframes rk-in { from { opacity: 0; translate: 0 -6px; } }
+.rk-report-head { margin: 0; font: 800 13px/1 var(--skin-font-body, Nunito, sans-serif); color: var(--rk-paper); }
+.rk-slips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.rk-slip { height: 26px; padding: 0 9px 4px; display: inline-flex; align-items: center; font: 800 13px/1 var(--skin-font-body, Nunito, sans-serif); border: 0; }
+.rk-slip[data-lantern] { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); cursor: pointer; }
+.rk-actions { display: flex; flex-direction: column; align-items: center; gap: 18px; margin-top: 8px; }
+.rk-actions > button:first-child { width: 320px; }
+.rk-actions > button:nth-child(2) { width: 320px; }
+.rk[data-phone] .rk-actions > button { width: calc(100vw - 28px); }
+.rk-dream { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--rk-paper); color: var(--rk-ink); font: 800 11px/1 var(--skin-font-body, Nunito, sans-serif); clip-path: var(--rk-step); }
+.rk-art { display: block; flex: none; }
+
+.rk[data-reduced] *, :root.reduce-motion .rk * { animation-duration: 0ms !important; animation-delay: 0ms !important; }

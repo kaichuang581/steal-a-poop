@@ -82,7 +82,7 @@ export function buildRink(festive: boolean, low = false): Rink {
     glows.push({ at: [it.x, 2.35, it.z + 0.1], rgb: tokenColour('glow:lit', GLOW), radius: 1.1, strength: 0.55 });
   }
   for (const b of RINK.raw_boxes) {
-    if (!festive && /season/.test(b.note)) continue;
+    if (!festive && /season|bulb wire/.test(b.note)) continue; // the wire goes with its bulbs
     const g = isGlow(b.c), rgb = tokenColour(b.c, GLOW, festive);
     const t = b.tint ?? tintAt((b.b[2] + b.b[5]) / 2);
     if (g || b.unlit) { glow.box(b.b, rgb, 1, true); continue; }

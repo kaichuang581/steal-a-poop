@@ -28,7 +28,7 @@ describe('the Trading Post and Practice models (X2 S1)', () => {
     expect(readFileSync(OUT_RINK, 'utf8')).toBe(all.rink);
   });
   it('holds every model of the index, and every colour is LADDER, a named glow or a plain hex', () => {
-    expect(Object.keys(MODELS).sort()).toEqual(index.map((m) => m.id).sort());
+    expect(Object.keys(MODELS).sort()).toEqual([...index.map((m) => m.id), 'fenceBay'].sort()); // plus Home's fence bay, given form
     for (const c of COLOURS) {
       const [mat, step] = c.split(':');
       if (c.startsWith('#') || mat === 'lit') expect(c).toMatch(/^(lit:)?#[0-9A-F]{6}$/i);

@@ -235,6 +235,9 @@ function relightGeo(g: ReturnType<typeof toGeometry>, tint: number) {
   }
 }
 
+/** The sheepdog's size on the chair, and the middle of his length (metres, the model's own, from its hind end). */
+const COACH = { scale: 0.75, mid: 0.3 } as const;
+
 /** The coach: the game's sheepdog on the high chair's cushion, facing the ice, his whistle on its cord (P2 section 2). */
 function Coach({ coach, reduced }: { coach: RinkSceneProps['coach']; reduced: boolean }) {
   const lean = useRef<Group>(null), whistle = useRef<Group>(null), puffs = useRef<Group>(null);
@@ -255,7 +258,7 @@ function Coach({ coach, reduced }: { coach: RinkSceneProps['coach']; reduced: bo
       if (e >= 0 && e < up * 2 + hold) lift = Math.max(lift, e < up ? e / up : e < up + hold ? 1 : 1 - (e - up - hold) / up);
       if (e >= up && e < up + puff_ms) puffT = (e - up) / puff_ms;
     }
-    if (whistle.current) whistle.current.position.set(-1.77, 2.05 + lift * 0.12, -3.15);
+    if (whistle.current) whistle.current.position.set(-1.9, 2.0 + lift * 0.12, -3.2);
     if (puffs.current) {
       puffs.current.visible = puffT >= 0 && !reduced;
       cubes.forEach((m, i) => { m.position.set(0.18 + puffT * (0.15 + i * 0.05), 0.08 + puffT * (0.05 * (i - 1)), 0); (m.material as MeshBasicMaterial).opacity = 1 - puffT; });
@@ -264,7 +267,9 @@ function Coach({ coach, reduced }: { coach: RinkSceneProps['coach']; reduced: bo
   return (
     <>
       <group ref={lean} position={[-2.15, 1.75, -3.35]}>
-        <Sheepdog reduced={reduced} at={[0, 0, 0]} yaw={Math.PI / 2} scale={1.35} />
+        {/* He stands on the 0.7 m seat, not past it: the model is 0.92 m nose to tail from its hind end, so at 0.75 it is
+            0.69 m long, centred on the cushion (Brian, 2026-11-25: "the dog is floating"). */}
+        <Sheepdog reduced={reduced} at={[-COACH.mid * COACH.scale, 0, 0]} yaw={Math.PI / 2} scale={COACH.scale} />
       </group>
       <group ref={whistle}>
         <primitive object={w} />

@@ -45,7 +45,8 @@ const dreamPart = (...names: string[]) => names.reduce((m, n) => m | (1 << DREAM
 const DREAM_ID: Record<string, string> = { pine_spire: 'pineSpire', pine_cone: 'pineCone', pine_round: 'pineRound', barn: 'barn', silo: 'silo', farmhouse: 'farmhouse', fenceBay: 'fenceBay' };
 const PINE_H: Record<string, number> = { pine_spire: 7, pine_cone: 5.5, pine_round: 6.5 };
 function placed(id: string, parts?: readonly string[]) {
-  const did = DREAM_ID[id];
+  // The pack's own copy wins (the fence bay, given form by the packer); the rest of Home's farm is the dream's.
+  const did = MODELS[id] ? undefined : DREAM_ID[id];
   if (!did) return { mm: tpMesh(id, parts ? tpPart(...parts) : 0), scale: 1 };
   const m = DREAM.MODELS[did];
   const mm = meshModel(`tpd:${did}:${parts?.join() ?? ''}`, m, DREAM.COLOURS, DREAM.GLOW, { festive: FESTIVE, parts: parts ? dreamPart(...parts) : 0, ao: false });

@@ -5,6 +5,8 @@ import { LOOK } from '../look';
 import { Board } from '../dream/world3d/DreamPropBoard';
 import { COLOURS, MODELS } from './models';
 import { makeBomb } from './bomb';
+import { drawReport } from './reportChalk';
+import type { ReportData } from './reportChalk';
 import { makeBurst } from './burst';
 import { BURSTS, SKINS } from './models.gen';
 
@@ -23,6 +25,7 @@ const CELL = { w: 340, h: 360, label: 40 }, COLS = 4;
 export function ModelPreview() {
   const which = new URLSearchParams(location.search).get('board') ?? 'bombs';
   if (which === 'seconds' || which === 'bursts') return <ObjectPreview board={which} />;
+  if (which === 'report') return <ReportPreview />;
   const board = BOARDS[which] ?? BOARDS.bombs;
   const rows = Math.ceil(board.ids.length / COLS), H = 60 + rows * CELL.h;
   return (
@@ -92,4 +95,18 @@ function Objects({ cells, cols, cell }: { cells: { make: () => Group; size: numb
     gl.setScissorTest(false);
   }, 1);
   return null;
+}
+
+/** The chalk report alone on the board's green (P4): under 10 words, over 10, and a new best. */
+function ReportPreview() {
+  const runs: ReportData[] = [
+    { words: 7, best: 21, newBest: false, clockFrom: 15, clockTo: 14, bot: 'Easy', rating: 7 },
+    { words: 13, best: 21, newBest: false, clockFrom: 15, clockTo: 13, bot: 'Medium', rating: 20 },
+    { words: 23, best: 23, newBest: true, clockFrom: 15, clockTo: 11, bot: 'Easy', rating: 23 },
+  ];
+  return (
+    <div style={{ position: 'fixed', inset: 0, overflow: 'auto', background: '#ECEBE6', padding: 20, display: 'grid', gap: 20 }}>
+      {runs.map((r, i) => <canvas key={i} width={960} height={480} style={{ background: '#306A56', width: 960, height: 480 }} ref={(c) => { if (c) document.fonts.ready.then(() => drawReport(c.getContext('2d')!, 960, 480, r)); }} />)}
+    </div>
+  );
 }

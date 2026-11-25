@@ -20,6 +20,62 @@ export const OUT = join(root, 'src/skin/tp/models.gen.ts');
 export const OUT_MARKET = join(root, 'src/skin/tp/market.gen.ts');
 export const OUT_RINK = join(root, 'src/skin/tp/rink.gen.ts');
 const RINK_IDS = /^(rinkBoards|rinkBoardsFront|tileRack|snowBank|tallyBoard|coachChair|whistle|practiceCrate|broom|lightPost|iceBlock|bib[A-Z].*)$/;
+/**
+ * Form for the props (Brian, 2026-11-25: "a lot of the assets, wood poles, tables, etc, are very flat shapes"). The
+ * camera looks straight on, so a post or a table top that is one box reads as a flat rectangle. Every post, pole and
+ * leg gets a plinth at its foot, a cap (or, under whatever it carries, a collar), a band a third of the way up when it
+ * is tall, and its corners cut when it is three cells or more across; the front plank of a table, bench or counter
+ * gets a lip under its front edge. Each added part is one colour step from the part it sits on (VOXEL_GRAIN.md rule 3)
+ * and one cell (0.05 m) or more (rule 1). The pack's JSON is untouched; this runs as it is packed.
+ */
+const step = (c, d) => {
+  const m = /^([a-zA-Z]+):(-?\d)$/.exec(c);
+  if (!m || m[1] === 'glow' || m[1] === 'lit') return c;
+  let n = Number(m[2]) + d;
+  if (n > 2 || n < -2) n = Number(m[2]) - d;
+  return `${m[1]}:${n}`;
+};
+const POST = /\b(post|leg|handle)\b/, NOT_POST = /lantern|snow|foot|slat|board|frame|wall|beam/;
+const TOP = /plank|counter top|cap rail|rack shelf/;
+export function formModel(m) {
+  if (/^(bomb_|sound_|bib|whistle|sack_)/.test(m.id)) return m;
+  const out = [], boxes = m.boxes;
+  const hits = (b, q) => q !== b && boxes.some((o) => o !== b && o.b[0] < q[3] && q[0] < o.b[3] && o.b[1] < q[4] && q[1] < o.b[4] && o.b[2] < q[5] && q[2] < o.b[5]);
+  // The front plank of each run of planks at one height gets the lip.
+  const fronts = new Set();
+  const runs = new Map();
+  for (const b of boxes) if (TOP.test(b.n)) { const k = `${b.n.replace(/,.*$/, '')}|${b.b[1]}`; const f = runs.get(k); if (!f || b.b[5] > f.b[5]) runs.set(k, b); }
+  for (const b of runs.values()) fronts.add(b);
+  for (const b of boxes) {
+    let [x0, y0, z0, x1, y1, z1] = b.b, w = x1 - x0, h = y1 - y0, d = z1 - z0;
+    if (POST.test(b.n) && !NOT_POST.test(b.n) && h >= 6 && h >= 3 * Math.max(w, d)) {
+      // A tall pole two cells square is a stick on screen: it is made four across (the miniature plan's 0.2 m structure
+      // block), corners cut below, so it reads as a solid rounded post.
+      if (w === 2 && d === 2 && h >= 20 && !/handle/.test(b.n)) { x0 -= 1; x1 += 1; z0 -= 1; z1 += 1; w = 4; d = 4; }
+      const add = (n, bb, c) => out.push({ n: `${b.n}, ${n}`, part: b.part, c, season: false, b: bb });
+      if (w >= 3 && d >= 3) {
+        // Corners cut: a cross of two boxes instead of one square column.
+        add('core', [x0 + 1, y0, z0, x1 - 1, y1, z1], b.c);
+        add('core', [x0, y0, z0 + 1, x1, y1, z1 - 1], b.c);
+      } else out.push({ ...b, b: [x0, y0, z0, x1, y1, z1] });
+      add('plinth', [x0 - 1, y0, z0 - 1, x1 + 1, y0 + 2, z1 + 1], step(b.c, -1));
+      if (h >= 30) { const yb = y0 + Math.round(h / 3); add('band', [x0 - 1, yb, z0 - 1, x1 + 1, yb + 1, z1 + 1], step(b.c, -1)); }
+      const above = [x0, y1, z0, x1, y1 + 1, z1];
+      if (hits(b, above)) add('collar', [x0 - 1, y1 - 2, z0 - 1, x1 + 1, y1 - 1, z1 + 1], step(b.c, 1));
+      else add('cap', [x0 - 1, y1 - 1, z0 - 1, x1 + 1, y1, z1 + 1], step(b.c, 1));
+      continue;
+    }
+    out.push(b);
+    if (fronts.has(b) && x1 - x0 >= 16 && y0 >= 2) {
+      const lip = [x0 + 1, y0 - 1, z1 - 1, x1 - 1, y0, z1];
+      if (!hits(b, lip)) out.push({ n: `${b.n}, lip`, part: b.part, c: step(b.c, -2), season: false, b: lip });
+    }
+  }
+  const lo = [0, 1, 2].map((k) => Math.min(m.bounds_cells[k], ...out.map((b) => b.b[k])));
+  const hi = [3, 4, 5].map((k) => Math.max(m.bounds_cells[k], ...out.map((b) => b.b[k])));
+  return { ...m, boxes: out, bounds_cells: [...lo, ...hi], size_m: [0, 1, 2].map((k) => Math.round((hi[k] - lo[k]) * m.cell_m * 1e4) / 1e4) };
+}
+
 const where = (id) => (id.startsWith('bomb_') ? 'core' : RINK_IDS.test(id) ? 'rink' : 'market');
 
 const num = (v) => (Number.isInteger(v) ? String(v) : String(Math.round(v * 1e4) / 1e4));
@@ -35,7 +91,7 @@ export function renderAll() {
   const pi = (p) => { let i = parts.indexOf(p); if (i < 0) { i = parts.length; parts.push(p); } return i; };
   const rows = { core: [], market: [], rink: [] };
   for (const entry of [...index].sort((a, b) => a.id.localeCompare(b.id))) {
-    const m = read(entry.file);
+    const m = formModel(read(entry.file));
     // Where two boxes overlap the later one wins (VOXEL_GRAIN.md rule 9); the mesher keeps the first box to claim a
     // cell, so the boxes are written last first.
     const boxes = [...m.boxes].reverse().map((b) => row([...b.b, ci(b.c), pi(b.part), b.season ? 1 : 0])).join(',');

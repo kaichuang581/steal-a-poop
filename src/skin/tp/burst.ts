@@ -33,16 +33,50 @@ function piecesOf(boxes: readonly Box[]): Box[][] {
   return [...groups.values()];
 }
 
+type Num6 = [number, number, number, number, number, number];
+const boxesOf = (key: string): Num6[] => (BURSTS[key] ?? BURSTS.frost).boxes_at_fullest.map((b) => b.slice(0, 6) as Num6);
+
 /**
  * Where a piece stands on a display stand (VOXEL_GRAIN.md rule 8, T3 section 3): drawn in, never shrunk. Its middle
- * moves to `spread` of its distance from the burst's upright axis and from its lowest piece, which sits `lift` above
- * the stand; the piece keeps its full size.
+ * moves to `spread` of its distance from the burst's own middle (across) and from its lowest piece (up), which sits
+ * `lift` above the stand; the piece keeps its full size.
  */
 export function drawIn(key: string, spread: number, lift = 0.08): (p: readonly [number, number, number]) => [number, number, number] {
-  const data = BURSTS[key] ?? BURSTS.frost;
-  const low = Math.min(...data.boxes_at_fullest.map((b) => (b[1] as number) + (b[4] as number) / 2));
-  const half = Math.min(...data.boxes_at_fullest.map((b) => (b[4] as number) / 2));
-  return ([x, y, z]) => [x * spread, lift + half + (y - low) * spread, z * spread];
+  const bs = boxesOf(key);
+  const mid = (k: number) => (Math.min(...bs.map((b) => b[k])) + Math.max(...bs.map((b) => b[k] + b[k + 3]))) / 2;
+  const mx = mid(0), mz = mid(2);
+  const low = Math.min(...bs.map((b) => b[1] + b[4] / 2)), half = Math.min(...bs.map((b) => b[4] / 2));
+  return ([x, y, z]) => [(x - mx) * spread, lift + half + (y - low) * spread, (z - mz) * spread];
+}
+
+/**
+ * A piece's size on a stand. Pieces keep their size (rule 8), except a length past 0.25 m (Northern Lights' curtains
+ * stand up to 1.15 m), which draws in with the rest: the detail rule is about how narrow a part may be, not how long.
+ */
+export const LONG_M = 0.25;
+export const standSize = (d: number, spread: number): number => (d > LONG_M ? Math.max(LONG_M, d * spread) : d);
+
+/** How wide and tall a burst stands once drawn in by `spread`, metres, from the stand's top (its lift included). */
+export function drawnSize(key: string, spread: number): [number, number] {
+  const at = drawIn(key, spread);
+  let x0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y, z, w0, h0, d] of boxesOf(key)) {
+    const [cx, cy] = at([x + w0 / 2, y + h0 / 2, z + d / 2]), w = standSize(w0, spread), h = standSize(h0, spread);
+    x0 = Math.min(x0, cx - w / 2); x1 = Math.max(x1, cx + w / 2); y1 = Math.max(y1, cy + h / 2);
+  }
+  return [x1 - x0, y1];
+}
+
+/**
+ * The draw-in that makes a burst fit a box `w` by `h` metres: the plan's `most` (0.42 on the bench, 0.67 on the Bell
+ * Shelf) or less, so a wide or tall burst stays inside its frame. Pieces never shrink (VOXEL_GRAIN.md rule 8).
+ */
+export function fitSpread(key: string, w: number, h: number, most: number): number {
+  const fits = (s: number) => { const [sw, sh] = drawnSize(key, s); return sw <= w && sh <= h; };
+  if (fits(most)) return most;
+  let lo = 0, hi = most;
+  for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; }
+  return lo;
 }
 
 interface Piece { mesh: Group; home: [number, number, number]; i: number; n: number }
@@ -67,7 +101,10 @@ export function makeBurst(key: string, o: { lit?: Material; spread?: number } = 
     const lit = new Gather(), glow = new Gather();
     for (const b of boxes) {
       const col = new Color(data.colours[b[6]] ?? BURST_COLOURS[b[6]] ?? '#FFFFFF');
-      (b[7] ? glow : lit).box([b[0] - c[0], b[1] - c[1], b[2] - c[2], b[0] + b[3] - c[0], b[1] + b[4] - c[1], b[2] + b[5] - c[2]], [col.r, col.g, col.b], 1, b[7]);
+      // On a stand a long piece draws in with the rest (standSize); in a game every piece is its full size.
+      const [w, h, d] = [b[3], b[4], b[5]].map((v) => (o.spread ? standSize(v, o.spread) : v));
+      const [bx, by, bz] = [b[0] + b[3] / 2 - c[0], b[1] + b[4] / 2 - c[1], b[2] + b[5] / 2 - c[2]];
+      (b[7] ? glow : lit).box([bx - w / 2, by - h / 2, bz - d / 2, bx + w / 2, by + h / 2, bz + d / 2], [col.r, col.g, col.b], 1, b[7]);
     }
     const g = new Group();
     if (!lit.empty) g.add(new Mesh(lit.geometry(), o.lit ?? flatLit));

@@ -36,11 +36,13 @@ describe('the Trading Post and Practice models (X2 S1)', () => {
       else expect(mat in LADDER, c).toBe(true);
     }
   });
-  it("each built model's bounding box equals its size_m within 1 mm", () => {
+  it("each built model's bounding box equals its packed size within 1 mm, and the props' form (plinths, caps) adds at most a cell a side", () => {
     for (const { id, size_m } of index) {
       const mm = tpMesh(id, { festive: true, back: true });
       const e = extent([...mm.lit.pos, ...mm.glow.pos]);
-      e.forEach((v, k) => expect(Math.abs(v - size_m[k]), `${id} axis ${k}`).toBeLessThan(0.001));
+      e.forEach((v, k) => expect(Math.abs(v - MODELS[id].size[k]), `${id} axis ${k}`).toBeLessThan(0.001));
+      MODELS[id].size.forEach((v, k) => expect(v - size_m[k], `${id} axis ${k} grew`).toBeLessThanOrEqual(0.1 + 1e-6));
+      if (/^bomb_|^sound_/.test(id)) MODELS[id].size.forEach((v, k) => expect(Math.abs(v - size_m[k]), `${id} unchanged`).toBeLessThan(0.001));
     }
   });
   it('every bomb has shell, face, cap, fuse and spark, plus detail where the skin has one, and no mark (T2, VOXEL_GRAIN.md)', () => {

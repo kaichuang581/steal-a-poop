@@ -10,7 +10,7 @@ import { makeBurst, BURST_OF } from '../burst';
 import type { BurstObject } from '../burst';
 import { MARKET } from '../market.gen';
 import type { ShiftView } from '../camera';
-import { buildRow, glowSprite, itemGroup, itemHeight, modelGroup, rowMaterials, SPREAD, STOP_X, STOPS, stopAt, tpPart } from './world';
+import { buildRow, glowSprite, itemGroup, itemHeight, modelGroup, rowMaterials, spreadFor, STOP_X, STOPS, stopAt, tpPart } from './world';
 import type { StopId } from './world';
 
 /**
@@ -149,7 +149,7 @@ export class MarketWorld {
       const [x, y, z] = shelfPlace(i, items.length);
       // A burst here is drawn in at 67% over a stand 1.6 times as large, every piece its full size (VOXEL_GRAIN.md rule 8).
       const s = 1;
-      const inner = itemGroup(item, this.itemMats, false, SPREAD.shelf), g = new Group(); g.add(inner);
+      const inner = itemGroup(item, this.itemMats, false, 'shelf'), g = new Group(); g.add(inner);
       this.shelf.add(g);
       return { g, inner, item, x, y, z, s, at: -1e9 };
     });
@@ -180,7 +180,7 @@ export class MarketWorld {
     this.book.clear();
     this.bookItems = items.map(({ item, found }, i) => {
       const [x, y, z] = pocket(i, n);
-      const inner = itemGroup(item, this.itemMats, !found), g = new Group(); g.add(inner);
+      const inner = itemGroup(item, this.itemMats, !found, 'book'), g = new Group(); g.add(inner);
       this.book.add(g);
       return { g, inner, item, x, y, z, s: 0.8, at: now + i * 30 };
     });
@@ -219,8 +219,8 @@ export class MarketWorld {
     const p = this.placeOf(item.id);
     if (!p) return;
     this.stopShow();
-    const spread = this.shelfItems.includes(p) ? SPREAD.shelf : SPREAD.bench;
-    const burst = makeBurst(BURST_OF[item.id] ?? 'frost', { lit: this.focusMats.lit, spread });
+    const key = BURST_OF[item.id] ?? 'frost', slot = this.shelfItems.includes(p) ? 'shelf' : this.bookItems.includes(p) ? 'book' : 'bench';
+    const burst = makeBurst(key, { lit: this.focusMats.lit, spread: spreadFor(key, slot) });
     const holder = new Group(); holder.add(burst.group);
     holder.scale.setScalar(p.s);
     holder.position.set(p.x, p.y, p.z + 0.05);

@@ -5,7 +5,7 @@ import { Gather, meshModel, toGeometry, tokenColour } from '../../dream/models';
 import type { Arrays } from '../../dream/models';
 import * as DREAM from '../../dream/models.gen';
 import { makeBomb, SKIN_OF } from '../bomb';
-import { BURST_OF, drawIn } from '../burst';
+import { BURST_OF, drawIn, fitSpread, standSize } from '../burst';
 import { addModels, COLOURS, MODELS, PARTS } from '../models';
 
 addModels(MARKET_MODELS);
@@ -136,19 +136,29 @@ const SOUND_OF: Record<string, string> = {
 export const modelOf = (item: Item): string => item.kind === 'bomb' ? `bomb_${SKIN_OF[item.id] ?? 'ice'}` : item.kind === 'tick' ? `sound_${SOUND_OF[item.id] ?? 'iceChime'}` : '';
 
 const CUT = new Color('#CEC0AC');
-/** Bursts on a stand are drawn in, never shrunk (VOXEL_GRAIN.md rule 8): 42% on the bench and in the book, 67% on the Bell Shelf's stand, 1.6 times as large. */
-export const SPREAD = { bench: 0.42, shelf: 0.67 } as const;
+/**
+ * Where a burst is shown and the box it must fit, metres (VOXEL_GRAIN.md rule 8: drawn in, never shrunk; T3 section 3):
+ * a bench slot (seven share 3.6 m), a Barn Book frame (0.5 by 0.65 m, the item at 80%), the Bell Shelf's stand (1.6 times
+ * as large). `most` is the plan's draw-in; a wide or tall burst is drawn in further, to fit.
+ */
+export const SLOT = {
+  bench: { w: 0.48, h: 0.62, most: 0.42, stand: 1 },
+  book: { w: 0.6, h: 0.78, most: 0.42, stand: 1 },
+  shelf: { w: 0.9, h: 0.75, most: 0.67, stand: 1.6 },
+} as const;
+export type Slot = keyof typeof SLOT;
+export const spreadFor = (key: string, slot: Slot): number => fitSpread(key, SLOT[slot].w, SLOT[slot].h, SLOT[slot].most);
 const cache = new Map<string, { lit: Arrays; glow: Arrays }>();
 /** A burst at its fullest, drawn in over its stand (T3 section 3): a dark disc with a brass rim, 0.4 m across (x1.6 on the shelf). */
-function burstArrays(key: string, spread: number): { lit: Arrays; glow: Arrays } {
-  const lit = new Gather(), glow = new Gather(), k = spread / SPREAD.bench;
+function burstArrays(key: string, slot: Slot): { lit: Arrays; glow: Arrays } {
+  const lit = new Gather(), glow = new Gather(), k = SLOT[slot].stand, spread = spreadFor(key, slot);
   const iron = tokenColour('iron:-1', DREAM.GLOW), brass = tokenColour('brass:0', DREAM.GLOW);
   lit.box([-0.2 * k, 0, -0.2 * k, 0.2 * k, 0.03, 0.2 * k], brass);
   lit.box([-0.18 * k, 0.03, -0.18 * k, 0.18 * k, 0.045, 0.18 * k], iron);
   const data = BURSTS[key] ?? BURSTS.frost, at = drawIn(key, spread);
   for (const b of data.boxes_at_fullest) {
     const c = new Color(data.colours[b[6]] ?? BURST_COLOURS[b[6]] ?? '#FFFFFF');
-    const [w, h, d] = [b[3], b[4], b[5]], [x, y, z] = at([b[0] + w / 2, b[1] + h / 2, b[2] + d / 2]);
+    const [x, y, z] = at([b[0] + b[3] / 2, b[1] + b[4] / 2, b[2] + b[5] / 2]), [w, h, d] = [b[3], b[4], b[5]].map((v) => standSize(v, spread));
     (b[7] ? glow : lit).box([x - w / 2, y - h / 2, z - d / 2, x + w / 2, y + h / 2, z + d / 2], [c.r, c.g, c.b], 1, b[7]);
   }
   return { lit: lit.a, glow: glow.a };
@@ -158,13 +168,13 @@ function burstArrays(key: string, spread: number): { lit: Arrays; glow: Arrays }
  * An item as it stands in the market: the real model (a burst over its stand), or a flat paper cut-out of its own shape
  * (every box `trimWhite -2`, unshaded) for one not found in the Barn Book.
  */
-export function itemGroup(item: Item, mats: { lit: Material; glow: Material; flat: Material }, cut = false, spread: number = SPREAD.bench): Group {
+export function itemGroup(item: Item, mats: { lit: Material; glow: Material; flat: Material }, cut = false, slot: Slot = 'bench'): Group {
   // A bomb shows 10 on its face outside a game (T2, VOXEL_GRAIN.md): the built bomb, not the bare model.
   if (item.kind === 'bomb' && !cut) { const b = makeBomb(SKIN_OF[item.id] ?? 'ice', { rest: true, lit: mats.lit }); b.group.userData.item = item.id; return b.group; }
-  const key = `${item.id}|${cut}|${spread}`;
+  const key = `${item.id}|${cut}|${slot}`;
   let a = cache.get(key);
   if (!a) {
-    const full = item.kind === 'blast' ? burstArrays(BURST_OF[item.id] ?? 'frost', spread) : (() => { const mm = tpMesh(modelOf(item)); return { lit: mm.lit, glow: mm.glow }; })();
+    const full = item.kind === 'blast' ? burstArrays(BURST_OF[item.id] ?? 'frost', slot) : (() => { const mm = tpMesh(modelOf(item)); return { lit: mm.lit, glow: mm.glow }; })();
     if (cut) {
       const pos = [...full.lit.pos, ...full.glow.pos], n = full.lit.pos.length / 3;
       a = { lit: { pos, nor: [...full.lit.nor, ...full.glow.nor], col: pos.map((_, i) => [CUT.r, CUT.g, CUT.b][i % 3]), idx: [...full.lit.idx, ...full.glow.idx.map((i) => i + n)] }, glow: { pos: [], nor: [], col: [], idx: [] } };

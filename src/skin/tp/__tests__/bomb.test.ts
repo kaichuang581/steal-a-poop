@@ -38,3 +38,17 @@ describe('the bursts (T3)', () => {
     }
   });
 });
+
+describe('bursts on display (VOXEL_GRAIN.md rule 8, T3 section 3)', () => {
+  it('every burst fits its bench slot, Barn Book frame and Bell Shelf stand, drawn in at no more than the plan says', async () => {
+    const { drawnSize } = await import('../burst');
+    const { SLOT, spreadFor } = await import('../market/world');
+    const { BURSTS } = await import('../models.gen');
+    for (const key of Object.keys(BURSTS)) for (const slot of ['bench', 'book', 'shelf'] as const) {
+      const s = spreadFor(key, slot), [w, h] = drawnSize(key, s);
+      expect(s, `${key} ${slot}`).toBeLessThanOrEqual(SLOT[slot].most);
+      expect(w, `${key} ${slot} width`).toBeLessThanOrEqual(SLOT[slot].w + 1e-6);
+      expect(h, `${key} ${slot} height`).toBeLessThanOrEqual(SLOT[slot].h + 1e-6);
+    }
+  });
+});

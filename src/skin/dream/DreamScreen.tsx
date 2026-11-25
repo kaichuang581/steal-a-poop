@@ -330,6 +330,8 @@ export function DreamScreen() {
     // between the last fence of one stage and the first of the next; the dream changes as the sheep passes it.
     const GATES = ([2, 3] as const).map((to) => { let index = 0; while (lettersAt(index) < to && index < 500) index++; return { to, index }; });
     let world: StageN = 1, arch: { to: 2 | 3; dist: number; passedAt: number | null } | null = null, gate: { from: StageN; at: number } | null = null;
+    // The finale (05, section 11), on a counted night: the last five fences before he is out cold, and on from there.
+    let finaleAt: number | null = null;
 
     const events = {
       jump: () => {
@@ -337,7 +339,7 @@ export function DreamScreen() {
         const fe = live.current.fences.find((f) => f.jumped && !f.passed);
         over = fe ? { word: fe.word, index: fe.index } : null;
         // Five puffs fan out behind the hooves.
-        fx.current?.puffs(...hooves(), 5, world >= 2);
+        fx.current?.puffs(...hooves(), world === 3 ? 2 : 5, world);
       },
       count: (n: number) => { setCount(n); setReached(live.current.reached); setCounted({ n, key: Math.random() }); },
       stumble: () => {
@@ -388,7 +390,7 @@ export function DreamScreen() {
       if (ph === 'running') update(L, dt, seed, events, length);
       // The landing: six puffs, the window drops 3 px for 80 ms, and 100 ms later the word rises into the sky.
       if (wasAir && L.jumpAt === null && L.crashAt === null && ph === 'running') {
-        fx.current?.puffs(...hooves(), 6, world >= 2);
+        fx.current?.puffs(...hooves(), world === 3 ? 3 : 6, world);
         nudge([0, 3, 3, 0].map((y) => ({ transform: `translateY(${y}px)` })), 80);
         const up = over;
         over = null;
@@ -412,11 +414,13 @@ export function DreamScreen() {
       }
       if (arch && arch.passedAt !== null && arch.dist - L.dist < -160) arch = null;
       if (gate && L.t - gate.at > (reduced ? GATE_MS.reduced : GATE_MS[gate.from as 1 | 2])) gate = null;
+      if (finaleAt === null && length && world === 3 && L.reached >= length.fences - 5 && ph === 'running') finaleAt = L.t;
       // The scenery's frame: the fences (each sign's board is moved to its fence on the way), the sheep, the clocks.
       const v = viewRef.current, k = v.s / S0, running = ph === 'running' && L.speed > 0;
       const scene: SceneState = {
         W: v.w / k, H: v.h / k, lane: v.ground / k, scroll: L.dist * S0, t: L.t, beats: beat.current.beats, u: 1 / k, stage: world, gate: gate && { from: gate.from, ms: L.t - gate.at },
-        arch: arch && { to: arch.to, x: (arch.dist - L.dist - v.l0) * S0, since: arch.passedAt === null ? -1 : L.t - arch.passedAt }, finale: 0, counted: L.count,
+        arch: arch && { to: arch.to, x: (arch.dist - L.dist - v.l0) * S0, since: arch.passedAt === null ? -1 : L.t - arch.passedAt },
+        finale: finaleAt === null ? 0 : reduced ? 1 : Math.min(1, Math.max(0.001, (L.t - finaleAt) / 1200)), counted: L.count, stream: L.deepAt === null ? -1 : L.t - L.deepAt,
         seed, phone: sceneRef.current.phone, low: sceneRef.current.low, reduced, festive: FESTIVE, breath: 0.5 - 0.5 * Math.cos((L.t / 3200) * Math.PI * 2),
         fences: placeSigns(L, v, signsRef.current.hang, signTags, signState, reduced),
         sheep: { x: (SHEEP_CENTRE - v.l0) * S0, lift: L.jumpAt === null ? 0 : drawnLift(L.t - L.jumpAt) * S0, w: ART * SHEEP_ART.length * S0, running },
@@ -534,7 +538,7 @@ export function DreamScreen() {
 
   return (
     <main ref={setRoot} className="dr-root hm rc" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-phone={frame.phone || undefined} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} onPointerDown={focus} style={{ ...rootVars, ...(fitKeys ? { height: vh! } : {}) }}>
-      <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} depth={deep ? 3 : stage} frame={frame} />
+      <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} depth={deep ? 3 : stage} frame={frame} beat={beat} />
       {playing && (
         <div ref={bubbleEl} className="dr-bubble" style={{ left: frame.bubble.x, top: frame.bubble.y, width: frame.bubble.w, height: frame.bubble.h }}>
           <i className="dr-bubble-shade" style={{ clipPath: shape.outer }} />

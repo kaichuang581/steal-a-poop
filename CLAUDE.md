@@ -2656,4 +2656,33 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
     and icicles on top (the pack lists six separate iced things; these are the five farm looks treated one way).
   - A fence's look belongs to its own place in the night (`SceneFence.stage`), so the first two-letter fence is
     already iced as it comes in, before the gate is passed.
+- CS6, the second gate, stage 3 "under the quilt" and the finale, as built (2026-11-24; docs/dream/05).
+  - The second gate (`paintGate2`) is the footboard of his bed grown huge: two turned posts with knobs that light as
+    the sheep goes under, a rail, and an ink banner with his yarn on it (no words, as at the first gate).
+  - Tucked in (1,000 ms): the islands sink 40 px and fade as the pillow mountains fade in behind them, the clods fall
+    away, the string of bulbs drifts up out of the window, the northern light shrinks, the rising snow fades, the
+    quilt hills rise column by column from under the lane's line, the moon grows to 190 and moves, the bright stars
+    come down on threads 30 ms apart and turn into buttons, feathers start falling from 600 ms, and the quilt rolls
+    out along the lane from where the gate stood at 1,600 px a second (`SceneMemory.front`), each patch of its face
+    flipping in as the front passes. The islands do not turn into pillows standing in the same places (the pack's
+    words): the two strips scroll at different speeds, so they cross-fade.
+  - Stage 3 (scene/stage3.ts): small stars only; 22 buttons on threads (10 on a phone), swaying, one in four flipping
+    on each beat, each thread shortened clear of the moon and of the counters' row (`threadFor`: with no room at all
+    the button is not drawn); pillow mountains in six tiers with the pillowcase's stripes, and once in five the candle
+    as a lighthouse, its flame growing on the beat (the candle on his nightstand flickers on the same beats:
+    BedroomBubble's `beat`); quilt hills in 48 px columns of patches whose colours run in diagonals, with a large and
+    a small yarn ball that turn on the beat, his two needles crossed (they click every second beat) and a thread
+    spool; the lane as the turned-down sheet (sheet, fold, blanket stitch nudged by the beat, the quilt's face in 96 px
+    patches, binding, mattress ticking), the patch under the sheep pressed in 3 px and its neighbours 2; feathers
+    falling under the lane; bedpost knobs along the bottom edge; feathers at the hooves in place of puffs.
+  - Its obstacles: a knitted fence between two needles, three books, his alarm clock on two books, four thread spools,
+    three cushions in a striped case.
+  - The finale, on a counted night (DreamScreen's `finaleAt`; `SceneState.finale`, `counted`, `stream`): from five
+    fences before he is out cold the moon swells to 300 and moves to the sky's middle over 1.2 s, and the sheep
+    counted cross it, one setting off each beat on one long arc, four or five at a time; every fourth beat a shooting
+    star; half the buttons flip each beat. As he goes out cold every sheep counted streams across within 1.5 s. Since
+    the night runs on past fence 30 now, the big moon and its sheep stay until the bump that ends it.
+  - The moon at 300 across reaches the window's top and lies behind the night track and part of the counters' row;
+    those are the pack's numbers. A pressed patch comes back at once as the sheep moves on (the pack's 180 ms spring
+    is not drawn).
 

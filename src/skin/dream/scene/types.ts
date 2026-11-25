@@ -44,8 +44,10 @@ export interface SceneState {
   gate: { from: StageN; ms: number } | null;
   /** The gate standing on the lane, if one is near: which stage it opens, and its middle across the window, art px. */
   arch: { to: 2 | 3; x: number; since: number } | null;
-  /** How far into the finale's swell the moon is, 0 to 1, and the sheep counted so far; 0 outside the finale. */
+  /** How far into the finale's swell the moon is, 0 to 1 (0 outside the finale), and the sheep counted so far. */
   finale: number; counted: number;
+  /** Ms since he went out cold, when every counted sheep streams across the moon; -1 before. */
+  stream: number;
   seed: string;
   phone: boolean; low: boolean; reduced: boolean; festive: boolean;
   /** The farmer's breath, 0 to 1: his bedroom window on the farmhouse glows with it. */
@@ -60,7 +62,9 @@ export interface SceneMemory {
   prints: { wx: number; t: number }[]; strideAt: number; squish: Map<number, number>; lastT: number;
   /** Where stage 2's strip of islands starts along its own scroll: set as the first gate opens, so that an island rises from where a building of the farm stands. */
   isles: number | null;
+  /** Where along the lane the second gate stood, art px of scroll: the quilt rolls out from there. Null with no gate played. */
+  front: number | null;
 }
-export const freshMemory = (): SceneMemory => ({ prints: [], strideAt: 0, squish: new Map(), lastT: 0, isles: null });
+export const freshMemory = (): SceneMemory => ({ prints: [], strideAt: 0, squish: new Map(), lastT: 0, isles: null, front: null });
 /** How long a gate lasts, ms: the first, "Lift-off"; the second, "Tucked in". Under reduced motion, a 200 ms cross-fade. */
 export const GATE_MS = { 1: 1200, 2: 1000, reduced: 200 } as const;

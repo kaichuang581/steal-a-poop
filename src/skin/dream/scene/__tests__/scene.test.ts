@@ -8,12 +8,13 @@ import { luma, mix, QUILT, STAGE_COLOURS } from '../palette';
 import { paintFront, paintScene } from '../scene';
 import { bulbLit, FARM, FENCE, hillHeight, HOUSE, sag, STAGE1 } from '../stage1';
 import { alignIsles, ISLE_ROWS, isleLift, ISLES, LANE2, northernBar, rockDepth, STAGE2, stringY } from '../stage2';
+import { buttonsOf, HILLS3, LANE3, patchOf, PILLOWS, quiltHeight, STAGE3, threadFor } from '../stage3';
 import { BOX, freshMemory, GATE_MS, lookOf, S0 } from '../types';
 import type { SceneState } from '../types';
 
 /** The dream's flat scenery (docs/dream/03 to 05). */
 const state = (over: Partial<SceneState> = {}): SceneState => ({
-  W: 1408, H: 648, lane: 428, scroll: 0, t: 0, beats: 0, u: 1, stage: 1, gate: null, arch: null, finale: 0, counted: 0, seed: '2026-11-24',
+  W: 1408, H: 648, lane: 428, scroll: 0, t: 0, beats: 0, u: 1, stage: 1, gate: null, arch: null, stream: -1, finale: 0, counted: 0, seed: '2026-11-24',
   phone: false, low: false, reduced: false, festive: true, breath: 0, fences: [], sheep: { x: 310, lift: 0, w: 113, running: true }, ...over,
 });
 /** A canvas that only writes down what it is asked to fill. */
@@ -214,6 +215,64 @@ describe('stage 2, the farm lifts off (04)', () => {
     expect(ring({ arch: { to: 2, x: 300, since: 600 } })).toBe(0);
     expect(ring({ arch: { to: 2, x: 300, since: -1 } })).toBe(0);
     expect(ring({ arch: { to: 2, x: 300, since: 200 }, reduced: true })).toBe(0);
+  });
+});
+
+describe('stage 3, under the quilt (05)', () => {
+  it('keeps the sheet the brightest band, over every patch of the quilt under it', () => {
+    const sheet = luma(STAGE3.C.sheet);
+    for (const other of [...STAGE3.FACE, ...STAGE3.HILL, STAGE3.C.fold, STAGE3.C.binding, STAGE3.C.tick, STAGE3.C.below, STAGE3.C.pillow, ...STAGE_COLOURS[3].sky]) expect(sheet).toBeGreaterThan(luma(other));
+    // By 1.6 times over the cream patch, as the pack measured, and far more over the others.
+    expect(sheet / luma(STAGE3.FACE[1])).toBeGreaterThan(1.5);
+  });
+  it('runs the quilt\'s colours in diagonals, and steps its hills in twelves', () => {
+    expect(patchOf(0, 0)).toBe(0);
+    expect(patchOf(1, 0)).toBe(1);
+    expect(patchOf(0, 1)).toBe(2);
+    // A patch is never the colour of the one beside it or the one above it.
+    for (let c = -5; c < 5; c++) for (let r = 0; r < 5; r++) { expect(patchOf(c, r)).not.toBe(patchOf(c + 1, r)); expect(patchOf(c, r)).not.toBe(patchOf(c, r + 1)); }
+    for (let c = -100; c < 100; c++) { expect(quiltHeight(c) % 12).toBe(0); expect(quiltHeight(c)).toBeGreaterThanOrEqual(12); expect(quiltHeight(c)).toBeLessThanOrEqual(96); }
+    expect(HILLS3.period % HILLS3.col).toBe(0);
+    expect(LANE3).toEqual({ sheet: 12, fold: 3, stitch: 6, face: 47, binding: 6, mattress: 32, patch: 96 });
+    expect(PILLOWS.tiers * PILLOWS.tier).toBe(108);
+  });
+  it('hangs 22 buttons on threads (10 on a phone), none over the moon or in the counters\' row', () => {
+    const st = state({ stage: 3, beats: 0.5 }), list = buttonsOf(st), moon = moonAt(st);
+    expect(list.length).toBe(22);
+    expect(buttonsOf(state({ stage: 3, phone: true })).length).toBe(10);
+    expect(buttonsOf(st)).toEqual(list);
+    for (const b of list) {
+      const len = threadFor(b, moon, st);
+      if (len === 0) continue;
+      expect(len).toBeGreaterThanOrEqual(84);
+      expect(len).toBeLessThanOrEqual(260);
+      expect(Math.hypot(b.x - moon.cx, len - moon.cy)).toBeGreaterThanOrEqual(moon.r);
+    }
+    expect(list.filter((b) => threadFor(b, moon, st) > 0).length).toBeGreaterThanOrEqual(18);
+    // In the finale the moon is at the sky's middle and far bigger: the threads over it shorten out of its way, and
+    // where it leaves no room the button is drawn up out of sight.
+    const fin = state({ stage: 3, finale: 1, beats: 0.5 }), big = moonAt(fin);
+    for (const b of buttonsOf(fin)) { const len = threadFor(b, big, fin); if (len > 0) expect(Math.hypot(b.x - big.cx, len - big.cy)).toBeGreaterThanOrEqual(big.r); }
+  });
+  it('paints the stage, the gate into it, the finale and the stream of counted sheep, on whole pixels', () => {
+    const fences = (['rail', 'picket', 'wall', 'log', 'bale'] as const).map((look, i) => ({ index: 20 + i, look, stage: 3 as const, x: 420 + i * 170, lit: i % 2 === 0, tilt: i === 2 ? 1.2 : 0, signX: 456 + i * 170, signTop: 150 }));
+    const count = (over: Partial<SceneState>) => {
+      const { c, rects } = canvas();
+      paintScene(new Painter(c, 1.3), state({ stage: 3, scroll: 61000, t: 90000, beats: 150.3, fences, ...over }), freshMemory(), () => {});
+      for (const r of rects) for (const v of [r.x, r.y, r.w, r.h]) expect(Number.isInteger(v)).toBe(true);
+      expect(rects.length).toBeLessThan(9000);
+      return rects.length;
+    };
+    const still = count({});
+    expect(still).toBeGreaterThan(400);
+    count({ gate: { from: 2, ms: 0 }, arch: { to: 3, x: 300, since: 0 } });
+    count({ gate: { from: 2, ms: 500 }, arch: { to: 3, x: 200, since: 500 } });
+    count({ gate: { from: 2, ms: 60 }, reduced: true });
+    count({ low: true, phone: true });
+    // The finale adds the counted sheep on the moon; as he goes out cold all of them stream across.
+    expect(count({ finale: 1, counted: 27 })).toBeGreaterThan(still);
+    expect(count({ finale: 1, counted: 30, stream: 500 })).toBeGreaterThan(still);
+    expect(count({ finale: 1, counted: 0 })).toBeLessThan(count({ finale: 1, counted: 27 }));
   });
 });
 

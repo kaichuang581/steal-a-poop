@@ -7,6 +7,7 @@ import type { MutableRefObject } from 'react';
 import { Color, MeshBasicMaterial, SRGBColorSpace, Vector3 } from 'three';
 import type { Group, Mesh, MeshLambertMaterial, PerspectiveCamera, PointLight } from 'three';
 import { FIELD } from '../../dream/dream';
+import { pulse } from './beat';
 import { BLEND_MS, blendPose, breathAt, POSES } from './farmer';
 import type { Pose, PoseName } from './farmer';
 import type { FarmerHandle } from './FarmerFigure';
@@ -54,12 +55,14 @@ export interface RoomAnchors { board: MutableRefObject<HTMLElement | null> }
  * close (`bedStir`), starts up on a bump (`bedJolt`) and sits up, grumpy, in the room (`bedUpright`). `data-woke` marks a
  * night that woke him.
  */
-export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, anchors, depth = 1, frame }: {
+export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, anchors, depth = 1, frame, beat }: {
   live: MutableRefObject<StageLive>; phase: Phase; reduced: boolean; phone: boolean; blankets?: number; anchors?: RoomAnchors;
   /** How deep he sleeps: the letters on the fence's sign, 1 to 3 (plan file 00, section 4). */
   depth?: number;
   /** The screen's layout: where the strip is, and so where its camera stands. */
   frame: DreamFrame;
+  /** The dream's beat: in its third stage his candle flickers on the same beats as the lighthouse made of it. */
+  beat?: MutableRefObject<{ beats: number }>;
 }) {
   const woke = phase === 'crashed' || (phase === 'results' && live.current.asleepAt === null);
   const room = roomOn(phase);
@@ -76,7 +79,7 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
           gl={{ antialias: true, alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1 }}
           camera={{ fov: 20, position: [...strip.position], near: 0.05, far: 60 }}
         >
-          <Room live={live} phase={phase} reduced={reduced} phone={phone} blankets={blankets} anchors={anchors} depth={depth} strip={strip} frame={frame} />
+          <Room live={live} phase={phase} reduced={reduced} phone={phone} blankets={blankets} anchors={anchors} depth={depth} strip={strip} frame={frame} beat={beat} />
           <MarkDrawn />
         </AdaptiveCanvas>
         </SceneBoundary>
@@ -100,7 +103,7 @@ export function poseFor(L: StageLive, phase: Phase, depth: number): PoseName | '
   return deep ? 'bedDeep' : 'bedSleep';
 }
 
-function Room({ live, phase, reduced, phone, blankets, anchors, depth, strip, frame }: { live: MutableRefObject<StageLive>; phase: Phase; reduced: boolean; phone: boolean; blankets: number; anchors?: RoomAnchors; depth: number; strip: StripCamera; frame: DreamFrame }) {
+function Room({ live, phase, reduced, phone, blankets, anchors, depth, strip, frame, beat }: { live: MutableRefObject<StageLive>; phase: Phase; reduced: boolean; phone: boolean; blankets: number; anchors?: RoomAnchors; depth: number; strip: StripCamera; frame: DreamFrame; beat?: MutableRefObject<{ beats: number }> }) {
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const size = useThree((s) => s.size);
@@ -146,7 +149,8 @@ function Room({ live, phase, reduced, phone, blankets, anchors, depth, strip, fr
     const flicker = reduced ? 1 : 1 + 0.05 * Math.sin(t * 13.1) + 0.04 * Math.sin(t * 7.3 + 1.7);
     if (lampLight.current) lampLight.current.intensity = (room ? LAMP_LIGHT.low + (LAMP_LIGHT.high - LAMP_LIGHT.low) * lamp : STRIP_LIGHT.lamp) * flicker;
     (glassMat as MeshLambertMaterial).emissiveIntensity = (GLASS.low + (GLASS.high - GLASS.low) * lamp) * flicker;
-    if (candle.current) candle.current.intensity = (room ? 0.5 : STRIP_LIGHT.candle) * (reduced ? 1 : 1 + 0.12 * Math.sin(t * 17.3) + 0.08 * Math.sin(t * 5.1));
+    const onBeat = !room && !reduced && depth >= 3 && beat ? 0.45 * pulse(beat.current.beats) : 0;
+    if (candle.current) candle.current.intensity = (room ? 0.5 : STRIP_LIGHT.candle) * (reduced ? 1 : 1 + onBeat + 0.12 * Math.sin(t * 17.3) + 0.08 * Math.sin(t * 5.1));
     // The clock rattles with the alarm as the dream pops, swelling in and dying away; that is what makes him peek.
     const rang = since - WAKE.pop, ringing = !room && rang >= 0 && rang < 500;
     if (clock.current) clock.current.rotation.z = !reduced && ringing ? Math.sin(t * 30 * Math.PI * 2) * ((3 * Math.PI) / 180) * Math.sin((rang / 500) * Math.PI) : 0;

@@ -1,0 +1,335 @@
+{
+ "about": "The eight bomb skins: where the face is, the colour of its digits, the fuse and spark colours, the maker's mark shown in the Trading Post. Cells are 0.025 m. \"lit:\" colours give light.",
+ "fuse_path_steps": [
+  [
+   0,
+   1
+  ],
+  [
+   0,
+   1
+  ],
+  [
+   1,
+   1
+  ],
+  [
+   0,
+   1
+  ],
+  [
+   1,
+   1
+  ],
+  [
+   1,
+   0
+  ],
+  [
+   1,
+   1
+  ],
+  [
+   1,
+   0
+  ],
+  [
+   1,
+   0
+  ],
+  [
+   1,
+   -1
+  ],
+  [
+   1,
+   0
+  ],
+  [
+   1,
+   -1
+  ]
+ ],
+ "skins": {
+  "ice": {
+   "key": "ice",
+   "name": "Ice",
+   "source": "Starter",
+   "line": "The classic frozen bomb.",
+   "face": {
+    "centre_cells": [
+     0,
+     10,
+     10
+    ],
+    "radius_cells": 4,
+    "rim_radius_cells": 5
+   },
+   "digit": "#1F3A66",
+   "danger_digit": "#B3261E",
+   "face_colour": "#EEF6FB",
+   "fuse": [
+    "#EEF6FB",
+    "#BFDDF0"
+   ],
+   "spark": [
+    "#BFEFFF",
+    "#FFFFFF"
+   ],
+   "cap_top_cells": 22,
+   "emblem": [
+    "..XX..",
+    "X.XX.X",
+    ".XXXX.",
+    ".XXXX.",
+    "X.XX.X",
+    "..XX.."
+   ]
+  },
+  "ember": {
+   "key": "ember",
+   "name": "Ember",
+   "source": "Oat Sack, common",
+   "line": "Banked coals in an iron shell.",
+   "face": {
+    "centre_cells": [
+     0,
+     10,
+     10
+    ],
+    "radius_cells": 4,
+    "rim_radius_cells": 5
+   },
+   "digit": "#3A2418",
+   "danger_digit": "#A3200F",
+   "face_colour": "lit:#FFD08A",
+   "fuse": [
+    "#5A4842",
+    "#8A6A58"
+   ],
+   "spark": [
+    "#F28A3C",
+    "#FFC773"
+   ],
+   "cap_top_cells": 22,
+   "emblem": [
+    "..X...",
+    "..XX..",
+    ".XXX.X",
+    "XXXXXX",
+    "XXXXXX",
+    ".XXXX."
+   ]
+  },
+  "peppermint": {
+   "key": "peppermint",
+   "name": "Peppermint",
+   "source": "Oat Sack, common",
+   "line": "A boiled sweet with a short temper.",
+   "face": {
+    "centre_cells": [
+     0,
+     10,
+     10
+    ],
+    "radius_cells": 4,
+    "rim_radius_cells": 5
+   },
+   "digit": "#7A211C",
+   "danger_digit": "#B3261E",
+   "face_colour": "#FFFBF2",
+   "fuse": [
+    "#C8453C",
+    "#F7F0E6"
+   ],
+   "spark": [
+    "#F2A26A",
+    "#FFE7B0"
+   ],
+   "cap_top_cells": 22,
+   "emblem": [
+    ".XXXX.",
+    "X....X",
+    "X.XX.X",
+    "X.X..X",
+    "X.XXXX",
+    ".X...."
+   ]
+  },
+  "plum": {
+   "key": "plum",
+   "name": "Plum",
+   "source": "Oat Sack, uncommon",
+   "line": "Ripe, with a leaf still on.",
+   "face": {
+    "centre_cells": [
+     0,
+     10,
+     10
+    ],
+    "radius_cells": 4,
+    "rim_radius_cells": 5
+   },
+   "digit": "#3B2548",
+   "danger_digit": "#B3261E",
+   "face_colour": "#F6ECD6",
+   "fuse": [
+    "#6B4A32",
+    "#7FA86A"
+   ],
+   "spark": [
+    "#F2A26A",
+    "#FFE7B0"
+   ],
+   "cap_top_cells": 22,
+   "emblem": [
+    "...XXX",
+    "..XXXX",
+    ".XXXXX",
+    "XXXXX.",
+    "XXXX..",
+    "X....."
+   ]
+  },
+  "gold": {
+   "key": "gold",
+   "name": "Gold",
+   "source": "Oat Sack, rare",
+   "line": "Polished. Heavier than it looks.",
+   "face": {
+    "centre_cells": [
+     0,
+     10,
+     10
+    ],
+    "radius_cells": 4,
+    "rim_radius_cells": 5
+   },
+   "digit": "#4A3312",
+   "danger_digit": "#A3200F",
+   "face_colour": "#FAE9B0",
+   "fuse": [
+    "#B88A2C",
+    "#F7E3A0"
+   ],
+   "spark": [
+    "#FFD08A",
+    "#FFF8DC"
+   ],
+   "cap_top_cells": 22,
+   "emblem": [
+    "......",
+    "X.XX.X",
+    "X.XX.X",
+    "XXXXXX",
+    "XXXXXX",
+    "XXXXXX"
+   ]
+  },
+  "diamond": {
+   "key": "diamond",
+   "name": "Diamond",
+   "source": "Oat Sack, legendary",
+   "line": "Cut, not round. Every face catches light.",
+   "face": {
+    "centre_cells": [
+     0,
+     11,
+     10
+    ],
+    "radius_cells": 4,
+    "rim_radius_cells": 5
+   },
+   "digit": "#1E4D59",
+   "danger_digit": "#B3261E",
+   "face_colour": "#F2FDFE",
+   "fuse": [
+    "#C6D5DC",
+    "#FFFFFF"
+   ],
+   "spark": [
+    "#DFFBFF",
+    "#FFFFFF"
+   ],
+   "cap_top_cells": 20,
+   "emblem": [
+    ".XXXX.",
+    "XX..XX",
+    "XXXXXX",
+    ".XXXX.",
+    "..XX..",
+    "......"
+   ]
+  },
+  "brassBell": {
+   "key": "brassBell",
+   "name": "Brass Bell",
+   "source": "Bell Shelf, 30 Bells",
+   "line": "Rings once. Loudly.",
+   "face": {
+    "centre_cells": [
+     0,
+     9,
+     8
+    ],
+    "radius_cells": 4,
+    "rim_radius_cells": 5
+   },
+   "digit": "#4A3312",
+   "danger_digit": "#A3200F",
+   "face_colour": "#F8ECC8",
+   "fuse": [
+    "#99702A",
+    "#F2CE7C"
+   ],
+   "spark": [
+    "#FFD08A",
+    "#FFF8DC"
+   ],
+   "cap_top_cells": 22,
+   "emblem": [
+    "..XX..",
+    ".XXXX.",
+    ".XXXX.",
+    ".XXXX.",
+    "XXXXXX",
+    "..XX.."
+   ]
+  },
+  "aurora": {
+   "key": "aurora",
+   "name": "Aurora",
+   "source": "Mission: count sheep 7 nights in a row",
+   "line": "A piece of the night sky.",
+   "face": {
+    "centre_cells": [
+     0,
+     10,
+     10
+    ],
+    "radius_cells": 4,
+    "rim_radius_cells": 5
+   },
+   "digit": "lit:#C8F5D6",
+   "danger_digit": "lit:#FF9C8A",
+   "face_colour": "#101830",
+   "fuse": [
+    "#6FB7B0",
+    "#8C8FD8"
+   ],
+   "spark": [
+    "#7BC48E",
+    "#D6FFE4"
+   ],
+   "cap_top_cells": 22,
+   "emblem": [
+    "..XX..",
+    "..XX..",
+    "XXXXXX",
+    ".XXXX.",
+    ".XXXX.",
+    "XX..XX"
+   ]
+  }
+ }
+}

@@ -14,7 +14,7 @@ import type { ModelData } from './models.gen';
  * numbers. Boxes that give light (`glow:<name>`) are meshed apart, unlit, in their own colour.
  */
 
-/** Colours as linear RGB, from a token: "material:step" of LADDER, or "glow:<name>" from the pack's glows. */
+/** Colours as linear RGB, from a token: "material:step" of LADDER, "glow:<name>" from the pack's glows, or "#hex" / "lit:#hex". */
 const tokenCache = new Map<string, [number, number, number]>();
 export function tokenColour(token: string, glow: Record<string, string>, festive = true): [number, number, number] {
   // Out of season every coloured bulb burns plain (v3/03, section 9, check 5).
@@ -22,13 +22,15 @@ export function tokenColour(token: string, glow: Record<string, string>, festive
   let c = tokenCache.get(t);
   if (!c) {
     const [mat, step] = t.split(':');
-    if (mat === 'glow') { const k = new Color(glow[step]); c = [k.r, k.g, k.b]; }
+    // A plain hex (the Trading Post pack's bomb skins and bursts, kept out of LADDER), lit or not.
+    if (t.startsWith('#') || mat === 'lit') { const k = new Color(t.startsWith('#') ? t : step); c = [k.r, k.g, k.b]; }
+    else if (mat === 'glow') { const k = new Color(glow[step]); c = [k.r, k.g, k.b]; }
     else c = solid(mat as Mat, Number(step));
     tokenCache.set(t, c);
   }
   return c;
 }
-export const isGlow = (token: string): boolean => token.startsWith('glow:');
+export const isGlow = (token: string): boolean => token.startsWith('glow:') || token.startsWith('lit:');
 
 /** One mesh's arrays: positions in metres (the model's own origin), normals, colours, triangle indices. */
 export interface Arrays { pos: number[]; nor: number[]; col: number[]; idx: number[] }

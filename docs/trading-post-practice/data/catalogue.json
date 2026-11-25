@@ -1,0 +1,158 @@
+{
+ "about": "The 26 items, as today. Names, rarities, prices and where each comes from are read from the code; nothing here changes them. Which burst is the starter and which seven are in the Corn Sack is as the catalogue has it (the pictures show seven of them).",
+ "bomb_skins": [
+  {
+   "id": "ice",
+   "name": "Ice",
+   "from": "Starter",
+   "model": "models/bomb_ice.json"
+  },
+  {
+   "id": "ember",
+   "name": "Ember",
+   "from": "Oat Sack, common",
+   "model": "models/bomb_ember.json"
+  },
+  {
+   "id": "peppermint",
+   "name": "Peppermint",
+   "from": "Oat Sack, common",
+   "model": "models/bomb_peppermint.json"
+  },
+  {
+   "id": "plum",
+   "name": "Plum",
+   "from": "Oat Sack, uncommon",
+   "model": "models/bomb_plum.json"
+  },
+  {
+   "id": "gold",
+   "name": "Gold",
+   "from": "Oat Sack, rare",
+   "model": "models/bomb_gold.json"
+  },
+  {
+   "id": "diamond",
+   "name": "Diamond",
+   "from": "Oat Sack, legendary",
+   "model": "models/bomb_diamond.json"
+  },
+  {
+   "id": "brassBell",
+   "name": "Brass Bell",
+   "from": "Bell Shelf, 30 Bells",
+   "model": "models/bomb_brassBell.json"
+  },
+  {
+   "id": "aurora",
+   "name": "Aurora",
+   "from": "Mission: count sheep 7 nights in a row",
+   "model": "models/bomb_aurora.json"
+  }
+ ],
+ "bursts": [
+  {
+   "id": "confetti",
+   "name": "Confetti",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "snowfall",
+   "name": "Snowfall",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "hay",
+   "name": "Hay",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "lantern",
+   "name": "Lantern Glow",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "frost",
+   "name": "Frost",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "northern",
+   "name": "Northern Lights",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "starlight",
+   "name": "Starlight",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "ember",
+   "name": "Ember",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "bubblegum",
+   "name": "Bubblegum",
+   "pieces_file": "bursts.json"
+  },
+  {
+   "id": "solstice",
+   "name": "Solstice",
+   "pieces_file": "bursts.json"
+  }
+ ],
+ "fuse_sounds": [
+  {
+   "id": "iceChime",
+   "name": "Ice chime",
+   "model": "models/sound_iceChime.json"
+  },
+  {
+   "id": "eightBit",
+   "name": "8-bit",
+   "model": "models/sound_eightBit.json"
+  },
+  {
+   "id": "woodBlock",
+   "name": "Wood block",
+   "model": "models/sound_woodBlock.json"
+  },
+  {
+   "id": "cowbell",
+   "name": "Cowbell",
+   "model": "models/sound_cowbell.json"
+  },
+  {
+   "id": "sleighBells",
+   "name": "Sleigh bells",
+   "model": "models/sound_sleighBells.json"
+  },
+  {
+   "id": "musicBox",
+   "name": "Music box",
+   "model": "models/sound_musicBox.json"
+  },
+  {
+   "id": "owl",
+   "name": "Owl",
+   "model": "models/sound_owl.json"
+  },
+  {
+   "id": "lullaby",
+   "name": "Lullaby",
+   "model": "models/sound_lullaby.json"
+  }
+ ],
+ "odds": {
+  "common": 62,
+  "uncommon": 28,
+  "rare": 8,
+  "legendary": 2
+ },
+ "pity": {
+  "rare_or_better_within": 10,
+  "legendary_within": 40
+ },
+ "sack_price_wool_coins": 250
+}

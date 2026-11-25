@@ -1,0 +1,616 @@
+{
+ "about": "Every new model. Home's own barn, silo, farmhouse, fence and pines are placed as they are and are not copied here.",
+ "models": [
+  {
+   "id": "bomb_ice",
+   "file": "models/bomb_ice.json",
+   "group": "bomb skin",
+   "what": "Ice: The classic frozen bomb.",
+   "cell_m": 0.025,
+   "size_m": [
+    0.575,
+    0.775,
+    0.5
+   ],
+   "boxes": 515
+  },
+  {
+   "id": "bomb_ember",
+   "file": "models/bomb_ember.json",
+   "group": "bomb skin",
+   "what": "Ember: Banked coals in an iron shell.",
+   "cell_m": 0.025,
+   "size_m": [
+    0.575,
+    0.775,
+    0.5
+   ],
+   "boxes": 548
+  },
+  {
+   "id": "bomb_peppermint",
+   "file": "models/bomb_peppermint.json",
+   "group": "bomb skin",
+   "what": "Peppermint: A boiled sweet with a short temper.",
+   "cell_m": 0.025,
+   "size_m": [
+    0.575,
+    0.775,
+    0.5
+   ],
+   "boxes": 519
+  },
+  {
+   "id": "bomb_plum",
+   "file": "models/bomb_plum.json",
+   "group": "bomb skin",
+   "what": "Plum: Ripe, with a leaf still on.",
+   "cell_m": 0.025,
+   "size_m": [
+    0.575,
+    0.775,
+    0.5
+   ],
+   "boxes": 463
+  },
+  {
+   "id": "bomb_gold",
+   "file": "models/bomb_gold.json",
+   "group": "bomb skin",
+   "what": "Gold: Polished. Heavier than it looks.",
+   "cell_m": 0.025,
+   "size_m": [
+    0.575,
+    0.775,
+    0.5
+   ],
+   "boxes": 511
+  },
+  {
+   "id": "bomb_diamond",
+   "file": "models/bomb_diamond.json",
+   "group": "bomb skin",
+   "what": "Diamond: Cut, not round. Every face catches light.",
+   "cell_m": 0.025,
+   "size_m": [
+    0.575,
+    0.725,
+    0.5
+   ],
+   "boxes": 530
+  },
+  {
+   "id": "bomb_brassBell",
+   "file": "models/bomb_brassBell.json",
+   "group": "bomb skin",
+   "what": "Brass Bell: Rings once. Loudly.",
+   "cell_m": 0.025,
+   "size_m": [
+    0.575,
+    0.775,
+    0.5
+   ],
+   "boxes": 398
+  },
+  {
+   "id": "bomb_aurora",
+   "file": "models/bomb_aurora.json",
+   "group": "bomb skin",
+   "what": "Aurora: A piece of the night sky.",
+   "cell_m": 0.025,
+   "size_m": [
+    0.575,
+    0.775,
+    0.5
+   ],
+   "boxes": 572
+  },
+  {
+   "id": "sound_iceChime",
+   "file": "models/sound_iceChime.json",
+   "group": "fuse sound",
+   "what": "Ice chime",
+   "cell_m": 0.025,
+   "size_m": [
+    0.45,
+    0.525,
+    0.15
+   ],
+   "boxes": 19
+  },
+  {
+   "id": "sound_eightBit",
+   "file": "models/sound_eightBit.json",
+   "group": "fuse sound",
+   "what": "8-bit",
+   "cell_m": 0.025,
+   "size_m": [
+    0.3,
+    0.475,
+    0.125
+   ],
+   "boxes": 15
+  },
+  {
+   "id": "sound_woodBlock",
+   "file": "models/sound_woodBlock.json",
+   "group": "fuse sound",
+   "what": "Wood block",
+   "cell_m": 0.025,
+   "size_m": [
+    0.4,
+    0.25,
+    0.225
+   ],
+   "boxes": 8
+  },
+  {
+   "id": "sound_cowbell",
+   "file": "models/sound_cowbell.json",
+   "group": "fuse sound",
+   "what": "Cowbell",
+   "cell_m": 0.025,
+   "size_m": [
+    0.3,
+    0.5,
+    0.175
+   ],
+   "boxes": 20
+  },
+  {
+   "id": "sound_sleighBells",
+   "file": "models/sound_sleighBells.json",
+   "group": "fuse sound",
+   "what": "Sleigh bells",
+   "cell_m": 0.025,
+   "size_m": [
+    0.55,
+    0.35,
+    0.125
+   ],
+   "boxes": 22
+  },
+  {
+   "id": "sound_musicBox",
+   "file": "models/sound_musicBox.json",
+   "group": "fuse sound",
+   "what": "Music box",
+   "cell_m": 0.025,
+   "size_m": [
+    0.5,
+    0.4,
+    0.275
+   ],
+   "boxes": 14
+  },
+  {
+   "id": "sound_owl",
+   "file": "models/sound_owl.json",
+   "group": "fuse sound",
+   "what": "Owl",
+   "cell_m": 0.025,
+   "size_m": [
+    0.5,
+    0.475,
+    0.2
+   ],
+   "boxes": 27
+  },
+  {
+   "id": "sound_lullaby",
+   "file": "models/sound_lullaby.json",
+   "group": "fuse sound",
+   "what": "Lullaby",
+   "cell_m": 0.025,
+   "size_m": [
+    0.45,
+    0.55,
+    0.15
+   ],
+   "boxes": 33
+  },
+  {
+   "id": "feedStall",
+   "file": "models/feedStall.json",
+   "group": "trading post",
+   "what": "The feed stall: counter, back wall with stock, red and cream awning",
+   "cell_m": 0.05,
+   "size_m": [
+    4.5,
+    3.05,
+    2.45
+   ],
+   "boxes": 200
+  },
+  {
+   "id": "sampleBench",
+   "file": "models/sampleBench.json",
+   "group": "trading post",
+   "what": "The low bench in front of the counter where a sack shows what it holds",
+   "cell_m": 0.05,
+   "size_m": [
+    4.0,
+    0.35,
+    0.6
+   ],
+   "boxes": 7
+  },
+  {
+   "id": "oddsBoard",
+   "file": "models/oddsBoard.json",
+   "group": "trading post",
+   "what": "The chalk board that stands by the stall and states the odds",
+   "cell_m": 0.05,
+   "size_m": [
+    1.1,
+    1.6,
+    0.4
+   ],
+   "boxes": 8
+  },
+  {
+   "id": "barrel",
+   "file": "models/barrel.json",
+   "group": "trading post",
+   "what": "A barrel at the stall end",
+   "cell_m": 0.05,
+   "size_m": [
+    0.7,
+    0.85,
+    0.7
+   ],
+   "boxes": 18
+  },
+  {
+   "id": "stallLantern",
+   "file": "models/stallLantern.json",
+   "group": "trading post",
+   "what": "The lantern that hangs over the picked sack",
+   "cell_m": 0.05,
+   "size_m": [
+    0.25,
+    0.5,
+    0.25
+   ],
+   "boxes": 4
+  },
+  {
+   "id": "bigBell",
+   "file": "models/bigBell.json",
+   "group": "trading post",
+   "what": "The big brass bell that hangs at the Bell Shelf",
+   "cell_m": 0.04,
+   "size_m": [
+    0.8,
+    1.08,
+    0.8
+   ],
+   "boxes": 299
+  },
+  {
+   "id": "bellStand",
+   "file": "models/bellStand.json",
+   "group": "trading post",
+   "what": "The Bell Shelf: two display steps under a green and cream awning",
+   "cell_m": 0.05,
+   "size_m": [
+    3.4,
+    3.05,
+    2.15
+   ],
+   "boxes": 87
+  },
+  {
+   "id": "noticeBoard",
+   "file": "models/noticeBoard.json",
+   "group": "trading post",
+   "what": "The mission board: cork under a little roof, with paper slips pinned to it",
+   "cell_m": 0.05,
+   "size_m": [
+    3.9,
+    2.95,
+    0.55
+   ],
+   "boxes": 23
+  },
+  {
+   "id": "barnBook8",
+   "file": "models/barnBook8.json",
+   "group": "trading post",
+   "what": "The Barn Book: a big book standing open on a table, a ledge on its pages for every item",
+   "cell_m": 0.05,
+   "size_m": [
+    4.1,
+    2.95,
+    0.9
+   ],
+   "boxes": 29
+  },
+  {
+   "id": "barnBook10",
+   "file": "models/barnBook10.json",
+   "group": "trading post",
+   "what": "The Barn Book: a big book standing open on a table, a ledge on its pages for every item",
+   "cell_m": 0.05,
+   "size_m": [
+    4.1,
+    2.95,
+    0.9
+   ],
+   "boxes": 33
+  },
+  {
+   "id": "rowPost",
+   "file": "models/rowPost.json",
+   "group": "trading post",
+   "what": "A post of the market row, with a lantern: the string of bulbs runs from post to post",
+   "cell_m": 0.05,
+   "size_m": [
+    0.2,
+    3.45,
+    0.2
+   ],
+   "boxes": 6
+  },
+  {
+   "id": "sack_oat",
+   "file": "models/sack_oat.json",
+   "group": "trading post",
+   "what": "Oat Sack: burlap, tied with yarn, its stencil says what it holds (bomb skins)",
+   "cell_m": 0.05,
+   "size_m": [
+    0.7,
+    0.85,
+    0.75
+   ],
+   "boxes": 337
+  },
+  {
+   "id": "sack_corn",
+   "file": "models/sack_corn.json",
+   "group": "trading post",
+   "what": "Corn Sack: burlap, tied with yarn, its stencil says what it holds (bursts)",
+   "cell_m": 0.05,
+   "size_m": [
+    0.7,
+    0.85,
+    0.75
+   ],
+   "boxes": 345
+  },
+  {
+   "id": "sack_barley",
+   "file": "models/sack_barley.json",
+   "group": "trading post",
+   "what": "Barley Sack: burlap, tied with yarn, its stencil says what it holds (fuse sounds)",
+   "cell_m": 0.05,
+   "size_m": [
+    0.7,
+    0.85,
+    0.75
+   ],
+   "boxes": 339
+  },
+  {
+   "id": "sackCrate_straw",
+   "file": "models/sackCrate_straw.json",
+   "group": "trading post",
+   "what": "An open crate that holds one sack, with loose grain round the sack",
+   "cell_m": 0.05,
+   "size_m": [
+    1.0,
+    0.35,
+    0.6
+   ],
+   "boxes": 14
+  },
+  {
+   "id": "sackCrate_brass",
+   "file": "models/sackCrate_brass.json",
+   "group": "trading post",
+   "what": "An open crate that holds one sack, with loose grain round the sack",
+   "cell_m": 0.05,
+   "size_m": [
+    1.0,
+    0.35,
+    0.6
+   ],
+   "boxes": 14
+  },
+  {
+   "id": "sackCrate_wood",
+   "file": "models/sackCrate_wood.json",
+   "group": "trading post",
+   "what": "An open crate that holds one sack, with loose grain round the sack",
+   "cell_m": 0.05,
+   "size_m": [
+    1.0,
+    0.35,
+    0.6
+   ],
+   "boxes": 14
+  },
+  {
+   "id": "rinkBoards",
+   "file": "models/rinkBoards.json",
+   "group": "practice",
+   "what": "One 2.4 m bay of the rink boards around the swept pond, 0.6 m tall",
+   "cell_m": 0.05,
+   "size_m": [
+    2.45,
+    0.75,
+    0.25
+   ],
+   "boxes": 8
+  },
+  {
+   "id": "rinkBoardsFront",
+   "file": "models/rinkBoardsFront.json",
+   "group": "practice",
+   "what": "One 2.4 m bay of the front boards, 0.3 m tall, so both sheep and the bomb show over them",
+   "cell_m": 0.05,
+   "size_m": [
+    2.45,
+    0.45,
+    0.25
+   ],
+   "boxes": 7
+  },
+  {
+   "id": "snowBank",
+   "file": "models/snowBank.json",
+   "group": "practice",
+   "what": "The snow pushed off the pond when it was swept: a stepped bank, 2.4 m long",
+   "cell_m": 0.05,
+   "size_m": [
+    2.4,
+    0.65,
+    0.8
+   ],
+   "boxes": 8
+  },
+  {
+   "id": "broom",
+   "file": "models/broom.json",
+   "group": "practice",
+   "what": "The broom that swept the ice, leaning on the boards",
+   "cell_m": 0.05,
+   "size_m": [
+    0.35,
+    1.5,
+    0.15
+   ],
+   "boxes": 4
+  },
+  {
+   "id": "tallyBoard",
+   "file": "models/tallyBoard.json",
+   "group": "practice",
+   "what": "The chalkboard behind the rink: your count and tally marks in chalk, the letter card, the clock card",
+   "cell_m": 0.05,
+   "size_m": [
+    2.9,
+    3.05,
+    0.45
+   ],
+   "boxes": 33
+  },
+  {
+   "id": "coachChair",
+   "file": "models/coachChair.json",
+   "group": "practice",
+   "what": "The coach's high chair: an umpire's chair beside the board, 1.6 m to the seat",
+   "cell_m": 0.05,
+   "size_m": [
+    0.8,
+    2.5,
+    0.8
+   ],
+   "boxes": 19
+  },
+  {
+   "id": "tileRack",
+   "file": "models/tileRack.json",
+   "group": "practice",
+   "what": "The rack on the middle bay of the front boards: the letters you type stand on it as tiles",
+   "cell_m": 0.05,
+   "size_m": [
+    2.3,
+    0.15,
+    0.15
+   ],
+   "boxes": 3
+  },
+  {
+   "id": "iceBlock",
+   "file": "models/iceBlock.json",
+   "group": "practice",
+   "what": "The ice the bomb leaves round a sheep: a fitted block, clear, frost on its edges, three icicles",
+   "cell_m": 0.05,
+   "size_m": [
+    1.5,
+    1.6,
+    0.9
+   ],
+   "boxes": 20
+  },
+  {
+   "id": "practiceCrate",
+   "file": "models/practiceCrate.json",
+   "group": "practice",
+   "what": "A crate of spare practice bombs: corks in their fuses, chalk tick on the side",
+   "cell_m": 0.05,
+   "size_m": [
+    0.9,
+    0.85,
+    0.7
+   ],
+   "boxes": 28
+  },
+  {
+   "id": "whistle",
+   "file": "models/whistle.json",
+   "group": "practice",
+   "what": "The coach's whistle on its cord: an accessory for the sheepdog",
+   "cell_m": 0.025,
+   "size_m": [
+    0.275,
+    0.25,
+    0.05
+   ],
+   "boxes": 9
+  },
+  {
+   "id": "bibEasy",
+   "file": "models/bibEasy.json",
+   "group": "practice",
+   "what": "The practice partner's bib, easy: a knitted tabard over the bot's back",
+   "cell_m": 0.04,
+   "size_m": [
+    0.4,
+    0.56,
+    0.68
+   ],
+   "boxes": 20
+  },
+  {
+   "id": "bibMedium",
+   "file": "models/bibMedium.json",
+   "group": "practice",
+   "what": "The practice partner's bib, medium: a knitted tabard over the bot's back",
+   "cell_m": 0.04,
+   "size_m": [
+    0.4,
+    0.56,
+    0.68
+   ],
+   "boxes": 23
+  },
+  {
+   "id": "bibHard",
+   "file": "models/bibHard.json",
+   "group": "practice",
+   "what": "The practice partner's bib, hard: a knitted tabard over the bot's back",
+   "cell_m": 0.04,
+   "size_m": [
+    0.4,
+    0.56,
+    0.68
+   ],
+   "boxes": 25
+  },
+  {
+   "id": "lightPost",
+   "file": "models/lightPost.json",
+   "group": "practice",
+   "what": "A post at a corner of the rink with a lantern, and the string of bulbs to the next post",
+   "cell_m": 0.05,
+   "size_m": [
+    0.3,
+    2.6,
+    0.3
+   ],
+   "boxes": 6
+  }
+ ]
+}

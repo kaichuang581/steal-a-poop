@@ -1,0 +1,323 @@
+{
+ "note": "Pixel art for the interface of Counting Sheep, version 3. px is the size of one art pixel on screen at --u = 1. Never draw a grid at a size that is not a whole multiple. \".\" is transparent. Draw with crisp edges. Everything in the dream itself is now a voxel model (data/models), not pixel art.",
+ "grids": {
+  "return-key": {
+   "px": 2,
+   "use": "The Pass tile",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "......XX",
+    "......XX",
+    "......XX",
+    "..X...XX",
+    ".XX...XX",
+    "XXXXXXXX",
+    ".XX.....",
+    "..X....."
+   ]
+  },
+  "book": {
+   "use": "Practice, top right: how Practice works. Also the Barn Book tab",
+   "colours": {
+    "X": "ink",
+    "o": "#8A7F78"
+   },
+   "rows": [
+    "XXXX..XXXX",
+    "XooXX.XooX",
+    "XXXXX.XXXX",
+    "XooXX.XooX",
+    "XXXXX.XXXX",
+    "XooXX.XooX",
+    "XXXXX.XXXX",
+    ".XXXXXXXX."
+   ]
+  },
+  "list": {
+   "use": "Practice, top right: the word log",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "XX.XXXXXXX",
+    "XX.XXXXXXX",
+    "..........",
+    "XX.XXXXXXX",
+    "XX.XXXXXXX",
+    "..........",
+    "XX.XXXXXXX",
+    "XX.XXXXXXX"
+   ]
+  },
+  "speaker": {
+   "use": "Sound; and Listen on a fuse sound",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "....X.....",
+    "...XX..X..",
+    "XXXXX...X.",
+    "XXXXX.X.X.",
+    "XXXXX.X.X.",
+    "XXXXX...X.",
+    "...XX..X..",
+    "....X....."
+   ]
+  },
+  "cross": {
+   "use": "Close; leave",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "XX....XX",
+    "XXX..XXX",
+    ".XXXXXX.",
+    "..XXXX..",
+    "..XXXX..",
+    ".XXXXXX.",
+    "XXX..XXX",
+    "XX....XX"
+   ]
+  },
+  "easy": {
+   "use": "Easy bot: a sprout (plate, bib, Home card)",
+   "colours": {
+    "X": "giftGreen -1"
+   },
+   "rows": [
+    "XX...XX",
+    "XXX.XXX",
+    ".XX.XX.",
+    "...X...",
+    "...X...",
+    "...X...",
+    "..XXX.."
+   ]
+  },
+  "medium": {
+   "use": "Medium bot: a sapling",
+   "colours": {
+    "X": "coopYellow -2"
+   },
+   "rows": [
+    "..XXX..",
+    ".XXXXX.",
+    "XXXXXXX",
+    ".XXXXX.",
+    "...X...",
+    "...X...",
+    "..XXX.."
+   ]
+  },
+  "hard": {
+   "use": "Hard bot: a full pine",
+   "colours": {
+    "X": "scarfRed -2"
+   },
+   "rows": [
+    "...X...",
+    "..XXX..",
+    ".XXXXX.",
+    "..XXX..",
+    ".XXXXX.",
+    "XXXXXXX",
+    "...X..."
+   ]
+  },
+  "rosette": {
+   "use": "New best: pinned to the chalkboard",
+   "colours": {
+    "X": "lantern",
+    "o": "lanternHi",
+    "r": "scarfRed 0",
+    "k": "ink"
+   },
+   "rows": [
+    "..XXXXXX..",
+    ".XooooooX.",
+    "XooXXXXooX",
+    "XoXooooXoX",
+    "XoXooooXoX",
+    "XooXXXXooX",
+    ".XooooooX.",
+    "..XXXXXX..",
+    "..rr..rr..",
+    "..rr..rr..",
+    ".rr....rr."
+   ]
+  },
+  "moon-small": {
+   "px": 2,
+   "use": "The report's tag about tonight's dream",
+   "colours": {
+    "X": "#C98A1E"
+   },
+   "rows": [
+    "..XXX...",
+    ".XXX....",
+    "XXX.....",
+    "XXX.....",
+    "XXX.....",
+    "XXXX...X",
+    ".XXXXXX.",
+    "..XXXX.."
+   ]
+  },
+  "sack": {
+   "use": "Tab: Feed Sacks",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "..XXXX..",
+    "...XX...",
+    "..XXXX..",
+    ".XXXXXX.",
+    "XXXXXXXX",
+    "XXXXXXXX",
+    "XXXXXXXX",
+    ".XXXXXX."
+   ]
+  },
+  "bell": {
+   "use": "Golden Bells (wallet, prices, tab)",
+   "colours": {
+    "X": "#E0A93A",
+    "o": "#F7DE95",
+    "k": "#8A5F16"
+   },
+   "rows": [
+    "....kk....",
+    "...XXXX...",
+    "..XoXXXX..",
+    "..XoXXXX..",
+    "..XXXXXX..",
+    ".XXXXXXXX.",
+    "kkkkkkkkkk",
+    "....kk...."
+   ]
+  },
+  "pin": {
+   "use": "Tab: Missions (a pinned slip)",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "XXXXXXXX",
+    "X......X",
+    "X.XXXX.X",
+    "X......X",
+    "X.XXXX.X",
+    "X......X",
+    "X.XX...X",
+    "XXXXXXXX"
+   ]
+  },
+  "coin": {
+   "use": "Wool Coins (wallet, prices)",
+   "colours": {
+    "X": "#E0A93A",
+    "o": "#F7DE95",
+    "k": "#8A5F16"
+   },
+   "rows": [
+    "..XXXXXX..",
+    ".XooooooX.",
+    "XooXXXXooX",
+    "XoXooooXoX",
+    "XoXoXXoXoX",
+    "XoXoXooXoX",
+    "XoXooXXooX",
+    "XooXooooXk",
+    ".XooXXXXk.",
+    "..kkkkkk.."
+   ]
+  },
+  "yarn": {
+   "use": "The level strip: the ball the knitted row grows from",
+   "colours": {
+    "X": "scarfRed 0",
+    "o": "scarfRed +2",
+    "k": "scarfRed -2"
+   },
+   "rows": [
+    "..XXXXXX..",
+    ".XXoXXXXX.",
+    "XXoXXXoXXX",
+    "XoXXXoXXXX",
+    "XXXXoXXXoX",
+    "XXXoXXXoXX",
+    "XXoXXXoXXk",
+    "XoXXXoXXXk",
+    ".XXXXXXXk.",
+    "..kkkkkk.."
+   ]
+  },
+  "lock": {
+   "use": "Not found yet",
+   "colours": {
+    "X": "#6B5B4B"
+   },
+   "rows": [
+    "..XXXX..",
+    ".X....X.",
+    ".X....X.",
+    "XXXXXXXX",
+    "XXXXXXXX",
+    "XXX..XXX",
+    "XXX..XXX",
+    "XXXXXXXX"
+   ]
+  },
+  "tick": {
+   "use": "Found; done",
+   "colours": {
+    "X": "#4E9A6A"
+   },
+   "rows": [
+    ".......X",
+    "......XX",
+    "X....XX.",
+    "XX..XX..",
+    ".XXXX...",
+    "..XX...."
+   ]
+  },
+  "note": {
+   "use": "Fuse sound",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "...XXXXX",
+    "...X...X",
+    "...X...X",
+    "...X...X",
+    ".XXX.XXX",
+    "XXXX.XXX",
+    ".XX...X."
+   ]
+  },
+  "play": {
+   "use": "Try a burst; listen to a fuse sound",
+   "colours": {
+    "X": "ink"
+   },
+   "rows": [
+    "X.....",
+    "XXX...",
+    "XXXXX.",
+    "XXXXXX",
+    "XXXXXX",
+    "XXXXX.",
+    "XXX...",
+    "X....."
+   ]
+  }
+ },
+ "about": "Every icon in the Trading Post and Practice. Crisp edges, 2 px per art pixel unless a file says otherwise. Colour keys name kit tokens, LADDER tokens or a hex."
+}

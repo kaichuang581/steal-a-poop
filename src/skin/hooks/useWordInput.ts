@@ -24,6 +24,8 @@ export function useWordInput() {
   const [fix, setFix] = useState<{ from: string; to: string } | null>(null);
   // Bumps on every accepted word of yours, for the bar's flash.
   const [acceptKey, setAcceptKey] = useState(0);
+  // The last word sent back and why (the engine's reason), for Practice's coach to say so.
+  const [reject, setReject] = useState<{ reason: string; word: string; key: number } | null>(null);
 
   const playing = game.phase === 'playing' && !!game.turn;
   // Yours once your fuse is lit: in the beat after a bomb has gone off a word can be typed ahead, not sent.
@@ -48,7 +50,7 @@ export function useWordInput() {
       return;
     }
     setFix(null);
-    if (res?.reason) setHint(rejectMessage(res.reason, game.chainLetter));
+    if (res?.reason) { setHint(rejectMessage(res.reason, game.chainLetter)); if (!res.accepted) setReject({ reason: res.reason, word, key: Date.now() }); }
     if (res?.accepted) {
       setTyped('');
       if (!res.reason) setAcceptKey((k) => k + 1);
@@ -69,7 +71,7 @@ export function useWordInput() {
       : null;
 
   return {
-    game, typed, onChange, submit, message, ideas, learning, myTurn, acceptKey,
+    game, typed, onChange, submit, message, ideas, learning, myTurn, acceptKey, reject,
     // Everyday words when the tutorial has its list in (tour/ideas.ts); the engine's picker until then.
     hintIdeas: () => setIdeas((dict && everydayIdeas(dict, game, 3)) || suggest(3)),
     useIdea: (w: string) => setTyped(w),

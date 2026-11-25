@@ -106,6 +106,8 @@ interface Props {
    * with the clock's time and read at once. The state still runs the blink, the face and the idle layer underneath.
    */
   rig?: (t: number) => RigPose;
+  /** Practice draws its own fitted ice block (docs/trading-post-practice P3 section 7): false leaves this one out. */
+  block?: boolean;
 }
 
 /** The ears hang 20 degrees below level. */
@@ -768,7 +770,7 @@ function flavour(p: Float32Array, f: Face, species: string, live: SheepState, e:
  * model; only level, state and seat differ. Each coat level is its own fleece built to fit the head and legs, so
  * growing or losing wool swaps the fleece rather than scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model, contact = true, rig }: Props) {
+export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model, contact = true, rig, block = true }: Props) {
   const m = model ?? sheepModel();
   // Low tier: no animal casts a shadow; it stands on its contact patch instead (plan file 02, change 5).
   const low = useTier() === 'low';
@@ -787,6 +789,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
   const fx = useMemo(() => freezeFx(m), [m]);
+  fx.block.userData.on = block;
   const r = useRef<Record<string, Object3D | null>>({});
   const root = useRef<Group>(null);
   const set = (k: string) => (o: Object3D | null) => { r.current[k] = o; };
@@ -1254,7 +1257,7 @@ function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: numbe
   if (fx.snow.visible) fx.snow.position.y = -((e * 0.6) % 2);
   // The block forms 1.2 to 2.0 s, bounces 2.0 to 2.4 s, stays while frozen, breaks on the thaw.
   const blockOn = frozen || (freezing && e >= 1.2);
-  fx.block.visible = blockOn && !thawing;
+  fx.block.visible = blockOn && !thawing && fx.block.userData.on !== false;
   if (fx.block.visible) {
     const grow = frozen ? 1 : reduced ? 1 : 0.2 + 0.8 * easeOut((e - 1.2) / 0.8);
     const bounce = freezing && e > 2 ? 1 + Math.sin(((e - 2) / 0.4) * Math.PI) * 0.02 : 1;

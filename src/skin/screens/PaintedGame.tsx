@@ -1,5 +1,5 @@
 import { MiniBomb } from '../components/BombClock';
-import { CHEERS, RUN_OVER_TITLE } from '../season';
+import { CHEERS } from '../season';
 import { BOMB_TOSS_S } from '../voxel/bomb';
 import { BLAST_PALETTE, burstExplodes } from '../shop/catalog';
 import { payEarly, PayoutLines, usePayout } from '../shop/Payout';
@@ -14,10 +14,9 @@ import { Jumpscare, WordBlast } from '../components/Jumpscare';
 import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ALL_MODIFIERS, ANNOUNCE_MS, breaksRule, normalizeWord, previewBotTurn, rankPlayers, roundTurnMs, startingWool, utcDateKey } from '../../engine';
 import { getDream } from '../../dream/daily';
-import { getPracticeBest } from '../../lib/practice';
 import { farmSheepLine } from '../../lib/record';
 import { useRoomStore } from '../../state/roomStore';
 import { useStore } from '../../state/store';
@@ -61,7 +60,7 @@ import { streakDays, useTableView } from '../model/useTableView';
 import { BarnTable } from '../table/BarnTable';
 import type { BarnMoments } from '../table/BarnTable';
 import { DevLine } from '../table/DevStats';
-import { DuelTable } from '../table/DuelTable';
+import { PracticeRink } from '../tp/rink/PracticeRink';
 import { NamePlate } from '../kit/NamePlate';
 import { PlaceExtras } from '../table/places';
 import { coatLevel } from '../table/Sheep';
@@ -145,10 +144,8 @@ export function PaintedGame() {
     broken: !!typedNow && LIVE_RULES.has(game.modifier) && breaksRule(typedNow, game.modifier) !== null,
   } : undefined;
   // A practice run has its own place: the two of you, out on the ice.
-  const Stage = practice ? LiveDuel : BarnTable;
-  // Read once a run: the table renders often and this reads storage.
-  const runBest = useMemo(() => (practice ? getPracticeBest(game.settings.practiceClock ?? 15, game.settings.botDifficulty) : 0), [practice, game.seed]); // eslint-disable-line react-hooks/exhaustive-deps
-  const runWords = game.players[0].wordsPlayed;
+  const Stage = BarnTable;
+  const dreamWaiting = useDreamWaiting();
   // Wool balls are lives: every sheep shows them, with an empty ring for each one lost.
   const maxLives = startingWool(game.settings);
   const k = () => Math.random();
@@ -308,7 +305,7 @@ export function PaintedGame() {
       case 'accepted':
         setMoments((m) => ({ ...m, tuftIn: { key: k(), from: rel(Number(e.playerId)) } }));
         if (e.word.length >= 8) mood(e.playerId, 'proud');
-        burst(e.word, name(e.playerId), Number(e.playerId) === mySeat);
+        if (!practice) burst(e.word, name(e.playerId), Number(e.playerId) === mySeat); // on the rink the bubble and the board say it
         // Your word lands with a crunch (it breaks the frost) and, on a phone, a tiny buzz.
         if (Number(e.playerId) === mySeat) { playSound('crunch'); buzz(12); }
         break;
@@ -325,8 +322,11 @@ export function PaintedGame() {
           const words = wordsSinceBoom(useStore.getState().game?.history ?? [], true);
           const power = bombSize(words);
           const glow = softGlow.current;
-          if (glow) jolt(8, 1, false); else { jolt(70 + 34 * power, 1.25 + 0.12 * power); setBoom(k() + 1); }
-          setBlast({ key: k() + 1, words: words.slice(-14), power, glow });
+          // On the rink the worn burst, the coach's whistles and a 6 px shake are the bang (P3 section 7).
+          if (!practice) {
+            if (glow) jolt(8, 1, false); else { jolt(70 + 34 * power, 1.25 + 0.12 * power); setBoom(k() + 1); }
+            setBlast({ key: k() + 1, words: words.slice(-14), power, glow });
+          }
           setMoments((m) => ({ ...m, boom: { key: k(), at: rel(Number(e.playerId)), power } }));
         }
         // The sheep it went off beside is dazed for the table's beat (a sheep that froze is busy freezing instead).
@@ -337,7 +337,7 @@ export function PaintedGame() {
           break; // learning: no loss
         }
         setMoments((m) => ({ ...m, gust: { key: k(), at: rel(Number(e.playerId)) } }));
-        flash(
+        if (!practice) flash(
           <Notice tone="cold" icon={<GustIcon size={22} />} title="BOOM! Time’s up!"
             sub={`${name(e.playerId)} lost a wool ball`} />,
           1500,
@@ -346,7 +346,7 @@ export function PaintedGame() {
       case 'frozen':
         mood(e.playerId, 'freezing');
         setMoments((m) => ({ ...m, freeze: { key: k(), at: rel(Number(e.playerId)) } }));
-        flash(<Notice tone="ice" size="lg" icon={<SnowflakeIcon size={26} />} title={`${name(e.playerId)} is frozen solid!`} sub="out of wool, out of the game" />, 2000);
+        if (!practice) flash(<Notice tone="ice" size="lg" icon={<SnowflakeIcon size={26} />} title={`${name(e.playerId)} is frozen solid!`} sub="out of wool, out of the game" />, 2000);
         break;
       case 'thawed':
         mood(e.playerId, 'thawing');
@@ -433,6 +433,11 @@ export function PaintedGame() {
       {blast && !reduced && <WordBlast key={`w${blast.key}`} words={blast.words} power={blast.power} />}
       {hit > 0 && <div key={hit} className="sk-hit-flash" aria-hidden="true" />}
       <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
+        {practice ? (
+          // Practice's own place (docs/trading-post-practice P1 to P4): the rink, its board, its coach and its report.
+          <PracticeRink input={input} reduced={reduced} phone={mobile} fps={tableFps} boomKey={moments.boom?.key} dreamWaiting={dreamWaiting}
+            states={[0, 1].map((seat) => stateOf(view.players.find((p) => Number(p.id) === seat)!)) as [Mood, Mood]} />
+        ) : (
         <Stage
           fps={tableFps}
           bombSize={bombSz} pile={view.pile} speaker={speaker} dazed={dazedSeat === null ? null : rel(dazedSeat)}
@@ -480,21 +485,17 @@ export function PaintedGame() {
           <PlaceExtras mode={view.mode} reduced={reduced} streak={view.streakDays} />
           {storeMode === 'tour' && <TourMarks speaker={speaker} n={n} />}
         </Stage>
+        )}
       </div>
 
       {/* A soft vignette holds the eye on the pile (plan V3.2 Part 2). */}
-      <div className="pointer-events-none absolute inset-0 z-[5]" style={{ background: 'radial-gradient(ellipse at center, transparent 58%, rgba(59, 48, 40, 0.28) 100%)' }} aria-hidden="true" />
+      {!practice && <div className="pointer-events-none absolute inset-0 z-[5]" style={{ background: 'radial-gradient(ellipse at center, transparent 58%, rgba(59, 48, 40, 0.28) 100%)' }} aria-hidden="true" />}
 
       {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. Clear of a notch
           (plan file 14, change 5): every inset is 0 on a computer, so nothing moves there. */}
       <header className="pointer-events-none relative z-40 flex items-start justify-between gap-2 p-2 pt-[max(8px,env(safe-area-inset-top))] pr-[max(8px,env(safe-area-inset-right))] pl-[max(8px,env(safe-area-inset-left))]">
         <div className="flex flex-col items-start gap-1">
-          {practice ? (
-            <div className="sk-hud-card hm rc" data-best={runWords > runBest && runBest > 0 || undefined}>
-              <span className="sk-hud-big"><b>{runWords}</b> word{runWords === 1 ? '' : 's'}</span>
-              <span className="sk-hud-small">best {Math.max(runBest, runWords)}{game.turn ? `, ${Math.round(game.turn.durationMs / 1000)} s turns` : ''}</span>
-            </div>
-          ) : (
+          {practice ? null : (
             <div className="sk-hud-tab sk-hud-card hm rc">
               <span className="sk-hud-round">{game.phase === 'gameOver'
                 ? <span className="sk-hud-big">Game over after {view.round} round{view.round === 1 ? '' : 's'}</span>
@@ -516,14 +517,7 @@ export function PaintedGame() {
         </Corner>
       </header>
 
-      {practice ? (
-        // The fight card: the two names either side of a carved VS.
-        <div className={`pointer-events-none absolute inset-x-0 z-30 flex items-center justify-center gap-3 ${mobile ? 'top-[max(4rem,calc(env(safe-area-inset-top)+56px))]' : 'top-3'}`} aria-label="Who is playing">
-          <span className="sk-vs-card hm rc" data-you><b>{game.players[0].name}</b></span>
-          <span className="sk-vs">VS</span>
-          <span className="sk-vs-card hm rc"><b>{game.players[1].name}</b><span className="sk-vs-tags">farm sheep, {game.settings.botDifficulty}</span></span>
-        </div>
-      ) : (
+      {practice ? null : (
         <Ledger players={ranked} turnId={view.currentPlayerId} maxLives={maxLives} compact={mobile}
           lastWords={Object.fromEntries(ranked.map((p) => [p.id, game.players[Number(p.id)].lastWord]))} />
       )}
@@ -559,7 +553,7 @@ export function PaintedGame() {
       )}
 
       {/* The input strip leaves with the game: the end board is the only thing to act on. */}
-      {game.phase !== 'gameOver' && (
+      {game.phase !== 'gameOver' && !practice && (
         <div className="relative z-20 mt-auto">
           <InputStrip
             letter={view.letter ?? ''} typed={input.typed} myTurn={input.myTurn}
@@ -575,7 +569,7 @@ export function PaintedGame() {
 
       {/* Coach tips only while a turn is running: never over the round tally or the end board. */}
       {storeMode === 'tour' ? <PaintedTour /> : <div className={game.phase === 'playing' ? '' : 'hidden'}><GameTips /></div>}
-      {game.phase === 'gameOver' && (practice ? !watchingAct && <RunOver /> : finale === 'results' && (
+      {game.phase === 'gameOver' && (practice ? null : finale === 'results' && (
         <Results players={ranked} podium={ranked.map((p, i) => ({ key: p.id, name: p.name, place: i + 1, avatar: avatarOf(p), level: coatLevel(Math.max(p.lives, 1), maxLives), isYou: p.isYou }))} />
       ))}
       {sheet && sheet !== 'leave' && (
@@ -621,16 +615,6 @@ function Frost() {
   );
 }
 
-/**
- * The ice under a practice run. Its camera, its lamp and its red edge follow the fraction of the turn left as props
- * (table/DuelTable.tsx), so this small wrapper, and nothing above it, takes the clock and renders every frame.
- */
-function LiveDuel(props: ComponentProps<typeof DuelTable>) {
-  useStore((s) => s.now);
-  const { secondsLeft, fraction } = turnClock();
-  return <DuelTable {...props} fraction={fraction} secondsLeft={secondsLeft} />;
-}
-
 /** A clipboard for the rules, the chain and the chat (V6 Part 6.2): paper under a brass clip on a light board. */
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
@@ -652,51 +636,6 @@ const useDreamWaiting = () => useMemo(() => !getDream(localDateKey(new Date())),
 const wordsOf = (game: GameState, seat: number) => game.history.filter((h) => h.seat === seat && h.kind === 'play' && h.word).map((h) => h.word!);
 const quickReward = (game: GameState, seat: number): GameReward => ({ mode: 'quick', won: !!game.winners?.includes(seat), words: wordsOf(game, seat) });
 const practiceReward = (game: GameState, score: number): GameReward => ({ mode: 'practice', score, words: wordsOf(game, 0) });
-
-/** The end of a practice run: the score, the best for this clock and bot, and straight back in. */
-function RunOver() {
-  const game = useStore((s) => s.game)!;
-  const run = useStore((s) => s.practiceResult);
-  const rematch = useStore((s) => s.rematch);
-  const quit = useStore((s) => s.quit);
-  const dreamWaiting = useDreamWaiting();
-  const me = game.players[0];
-  const score = run?.score ?? me.wordsPlayed;
-  const payout = usePayout(`practice:${game.seed}`, practiceReward(game, score));
-  const stats: [string, string | number][] = [
-    ['Best', run?.best ?? score],
-    ['Clock', `${game.settings.practiceClock ?? 15} s`],
-    ['Bot', game.settings.botDifficulty[0].toUpperCase() + game.settings.botDifficulty.slice(1)],
-  ];
-  return (
-    <>
-      <div className="sk-results-backdrop" aria-hidden="true" />
-      <div className="fixed inset-0 z-40 flex items-end justify-center overflow-y-auto p-3 pt-16 sm:items-center sm:p-6">
-        {/* The run's board: the modern kit's dialog (Brian, 2026-11-23: the old knitted board with ropes was outdated).
-            The score big in a well, the best, the clock and the bot on three tiles, then the longest word. */}
-        <Dialog id="run-over" label="Run over" title={run?.isNew ? 'New best!' : RUN_OVER_TITLE} className="sk-runover">
-          <div className="sk-ro-score rc-well" data-best={run?.isNew || undefined}>
-            <b>{score}</b><span>{`word${score === 1 ? '' : 's'} before the clock ran out`}</span>
-          </div>
-          <div className="sk-ro-stats">
-            {stats.map(([key, v]) => (
-              <div key={key} className="sk-ro-stat rc-tile"><b>{v}</b><span>{key}</span></div>
-            ))}
-          </div>
-          {me.longestWord && (
-            <div className="sk-ro-line rc-tile sk-tally-longest"><span>Longest word</span><b>{me.longestWord.toUpperCase()}</b></div>
-          )}
-          {payout && <PayoutLines payout={payout} className="sk-ro-payout" />}
-          {dreamWaiting && <p className="sk-ro-note">{DREAM_LINE}</p>}
-          <div className="md-stack sk-ro-actions">
-            <Slab tone="lantern" autoFocus onClick={rematch}>Play again</Slab>
-            <Slab onClick={quit}>Back to the farm</Slab>
-          </div>
-        </Dialog>
-      </div>
-    </>
-  );
-}
 
 function Results({ players, podium }: { players: PlayerView[]; podium: PodiumEntry[] }) {
   const game = useStore((s) => s.game)!;

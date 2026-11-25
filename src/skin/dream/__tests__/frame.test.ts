@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ART, dreamView, SHEEP_ART, signRows, signScale } from '../stage';
+import { signLayout } from '../Signs';
+import { ART, dreamView, SHEEP_ART } from '../stage';
 import {
   BED_BOX, BED_SIDE, bubbleBottom, bubbleShape, dreamFrame, isPhoneLayout, meterSegments, RIM, scallopRow, SIGN_BOARD, signHeight, stripCamera, stripExtent, stripPoint,
   tailPuffs, tileFit, TRAY, unitOf,
@@ -187,15 +188,18 @@ describe('the sign\'s board', () => {
     for (const u of [0.8, 1, 1.125, 1.5]) expect((SIGN_BOARD.computer.tile + SIGN_BOARD.computer.side) * u).toBeGreaterThanOrEqual(26);
     expect(SIGN_BOARD.phone.tile + SIGN_BOARD.phone.side).toBeGreaterThanOrEqual(26);
   });
-  it('hangs clear of the standing sheep\'s head', () => {
+  it('hangs clear of the standing sheep\'s head, and drops the word plank where the window is too short for it', () => {
     for (const [w, h] of [[1440, 900], [900, 600], [390, 544]] as const) {
-      const f = dreamFrame(w, h), phone = w < 640, v = dreamView(f.view.w, f.view.h, phone), scale = signScale(phone);
-      const board = signHeight(f.phone, f.u), rows = signRows(v, board, 12, scale);
-      const hangPx = rows * 0.1 * scale * v.zoom;
-      expect(hangPx - board).toBeGreaterThanOrEqual(ART * SHEEP_ART.hat * v.s + 12);
-      // And no higher than a cell above what it needs.
-      expect(hangPx - board - (ART * SHEEP_ART.hat * v.s + 12)).toBeLessThan(0.1 * scale * v.zoom + 0.001);
+      const f = dreamFrame(w, h), v = dreamView(f.view.w, f.view.h, w < 640), lay = signLayout(v, f);
+      expect(lay.plank).toBe(true);
+      // The board's bottom, above the ground line, clears the sheep with its hat.
+      expect(lay.hang - signHeight(f.phone, f.u)).toBeGreaterThanOrEqual(ART * SHEEP_ART.hat * v.s + 10);
+      // And the whole board is inside the window, under the counters.
+      expect(lay.hang).toBeLessThan(v.ground - 40);
     }
+    const small = dreamFrame(360, 380), v = dreamView(small.view.w, small.view.h, true);
+    expect(signLayout(v, small).plank).toBe(false);
+    expect(signLayout(v, small).hang).toBeLessThan(v.ground);
   });
 });
 

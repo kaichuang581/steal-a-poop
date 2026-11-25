@@ -2597,4 +2597,37 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
     plank and then in its place in the sky.
   - The size limit was raised by 10,000 bytes here (scripts/check-bundle-size.mjs): the redesign was 7.2 kB by this
     milestone, and Brian's choice of 2026-11-17 is to raise it when a milestone needs it.
+- CS4, stage 1 "his own farm", as built (2026-11-24; docs/dream/03-stage-1-his-own-farm.md). It is shown for the whole
+  night until CS5 and CS6 bring the other two.
+  - The biggest choice of the redesign, mine, for Brian to overrule: the dream's scenery is no longer voxel models in a
+    three.js scene. It is flat pixel art drawn every frame on the canvas behind the sheep (src/skin/dream/scene/:
+    `Painter` snaps every rectangle to whole device pixels; sizes are the pack's "on-screen px at 1440 x 900", scaled by
+    the dream's art scale). The pack's sketches are flat pixel art, its layers are given in px with scroll speeds, and a
+    side-on voxel layer looks the same as a drawn one; drawn, a stage is a few hundred lines and a gate is offsets and
+    fades. The pack speaks of meshes built from the diorama recipes and a triangle limit; neither applies now. The
+    sheep is still the voxel model (the worn avatar, the admin photo), on a see-through canvas between the two flat
+    ones, through the same side-on camera, so plan file 09's mapping is untouched.
+  - Fx.tsx's back canvas is the dream (`paintScene`: sky bands, stars, your words, the moon, the stage's world, the
+    lane, the obstacles and their signs' posts, the sheep's shadow); its front canvas has the speed streaks, rings
+    and puffs. DreamScreen's loop builds one `SceneState` a frame and hands it over; nothing in scene/ reads the run.
+  - Stage 1 (scene/stage1.ts): far hills in 60 px columns with a pine on each and the windmill, whose blades step an
+    eighth of a turn a beat; the farm on its ground band, one strip 2,400 long (barn, silo, pines, the farmhouse with
+    his lit bedroom window, which glows with his breath, and a chimney that puffs every second beat, scarecrow, bales,
+    coop, pond); the plank fence with its string of bulbs, one in four lit and walking along on the beat (the three
+    festive colours while `FESTIVE` is true); the snowy track with wheel ruts and hoofprints that fade in 2 s; a field
+    in shadow with crop rows; the dry-stone wall along the bottom edge; falling snow.
+  - Obstacles are drawn in the rules' box (`BOX`, the box ART times its size): gate with a brace, plank fence, brick
+    gatepost, log pile, hay bales, each with two lanterns that light when its word is taken. The game has one box
+    shape, so the pack's three "shapes of box" are five looks in one shape. A bumped one tips over about its far foot.
+    The sign's post is drawn behind it and its board (HTML) hangs centred over it (Signs.tsx: `placeSigns`, in the
+    dream's loop; `signLayout` for how high).
+  - Gone: world.ts (the cloud raft, sea, islands, hills, mountains, voxel obstacles, the sign's voxel post) and
+    DreamSky.tsx, with their tests; DreamStage.tsx is the sheep, its lights and the count's anchor. The dream's entries
+    in the lights register and the scene checker's dream scene went with them (tools/scenes/build.ts says why).
+    tools/scenes/lens.ts still describes the old bubble and dream cameras: its mirrors of BedroomBubble.tsx and
+    DreamStage.tsx no longer match (the first since CS1). It is part of the gate that was never finished.
+  - The moon does not drift (the pack's speed 0.01 would carry it off the screen over a night). On a phone it sits
+    under the counters' row, and the words start lower, for the same reason.
+  - Measured on this Mac through headless Chrome: 60 pictures a second at 1440 x 900 and at 390 x 544, the same with
+    the processor slowed four times; about 2,000 to 3,000 rectangles a frame. The bundle shrank by 3 kB (the old world).
 

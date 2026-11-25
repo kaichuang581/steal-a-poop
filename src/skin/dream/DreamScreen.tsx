@@ -1,6 +1,6 @@
 import { useLoadingHold } from '../components/BarnDoors';
 import { foldAccents, getLang } from '../../lib/lang';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { streakRow } from './streakRow';
@@ -30,7 +30,13 @@ import { Counter, DreamCard, Hint, ModeChip, NightTrack, ReadyBoard, Tail, Tray,
 import type { CardKind } from './Interface';
 import { activeFence, freshLive, MAX_TYPED, TYPE_X, update } from './run';
 import type { Live } from './run';
-import { ART, DRIFT, dreamView, moonFrame, screenX, SHEEP_ART, SHEEP_CENTRE, WAKE } from './stage';
+import { FESTIVE } from '../../config';
+import { useTier } from '../perf/tier';
+import { MOONS } from './scene/common';
+import { S0 } from './scene/types';
+import type { SceneState } from './scene/types';
+import { placeSigns, signLayout, Signs, SLOTS } from './Signs';
+import { ART, DRIFT, drawnLift, dreamView, screenX, SHEEP_ART, SHEEP_CENTRE, WAKE } from './stage';
 import { STAR_WORDS } from './starWords';
 import { CLOUD_MS, WakeClouds } from './WakeClouds';
 import type { CloudState } from './WakeClouds';
@@ -120,6 +126,16 @@ export function DreamScreen() {
   const bubbleEl = useRef<HTMLDivElement>(null), stageEl = useRef<HTMLDivElement>(null), flyLayer = useRef<HTMLDivElement>(null);
   const reducedRef = useRef(reduced);
   reducedRef.current = reduced;
+  // The signs' boards: one tag a slot, moved to its fence every frame; how high they hang in this view.
+  const signTags = useMemo(() => Array.from({ length: SLOTS }, () => createRef<HTMLDivElement>()), []);
+  const signRoot = useRef<HTMLDivElement>(null);
+  const signs = useMemo(() => signLayout(view, frame), [view, frame]);
+  const signsRef = useRef(signs);
+  signsRef.current = signs;
+  useEffect(() => { signRoot.current?.toggleAttribute('data-compact', !signs.plank); });
+  const low = useTier() === 'low';
+  const sceneRef = useRef({ low, phone: frame.phone });
+  sceneRef.current = { low, phone: frame.phone };
   /** A short move of the whole dream window (a swell, a dip, a shake): never under reduced motion. */
   const nudge = useCallback((frames: Keyframe[], ms: number, origin = '50% 50%') => {
     const el = bubbleEl.current;
@@ -309,6 +325,7 @@ export function DreamScreen() {
     // The fence the sheep is in the air over: its word rises into the sky once it has landed.
     let over: { word: string; index: number } | null = null;
     const hooves = (): [number, number] => { const v = viewRef.current; return [screenX(v, SHEEP_CENTRE) - ART * SHEEP_ART.tail * v.s * 0.55, v.ground - 4]; };
+    const signState: string[] = [];
 
     const events = {
       jump: () => {
@@ -377,7 +394,15 @@ export function DreamScreen() {
         }, 100);
       }
       wasAir = L.jumpAt !== null;
-      fx.current?.frame(L.t, beat.current.beats, ph === 'running' ? L.speed * viewRef.current.s : 0);
+      // The scenery's frame: the fences (each sign's board is moved to its fence on the way), the sheep, the clocks.
+      const v = viewRef.current, k = v.s / S0, running = ph === 'running' && L.speed > 0;
+      const scene: SceneState = {
+        W: v.w / k, H: v.h / k, lane: v.ground / k, scroll: L.dist * S0, t: L.t, beats: beat.current.beats, u: 1 / k, stage: 1, gate: null, finale: 0, counted: L.count,
+        seed, phone: sceneRef.current.phone, low: sceneRef.current.low, reduced, festive: FESTIVE, breath: 0.5 - 0.5 * Math.cos((L.t / 3200) * Math.PI * 2),
+        fences: placeSigns(L, v, signsRef.current.hang, signTags, signState, reduced),
+        sheep: { x: (SHEEP_CENTRE - v.l0) * S0, lift: L.jumpAt === null ? 0 : drawnLift(L.t - L.jumpAt) * S0, w: ART * SHEEP_ART.length * S0, running },
+      };
+      fx.current?.frame(scene, running ? L.speed * v.s : 0);
       // The farmer's alarm, low, as the dream pops.
       if (L.crashAt !== null && !alarmed && L.t - L.crashAt >= WAKE.pop) { alarmed = true; playSound('alarm', 0.35); }
       if (L.crashAt === null) alarmed = false;
@@ -403,7 +428,7 @@ export function DreamScreen() {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [seed, finish, reduced, length, show, jolt, nudge, signRect]);
+  }, [seed, finish, reduced, length, show, jolt, nudge, signRect, signTags]);
 
   // The dream changes with the letters: a card says so as the second and third stages begin, and, on a counted night,
   // as the last five fences before he is out cold do.
@@ -470,7 +495,7 @@ export function DreamScreen() {
   const small = tail.puffs[tail.puffs.length - 1], popAt: [number, number] = [small.x + small.w / 2, small.y + small.h / 2];
   const px = (v: number) => `${Math.round(v)}px`;
   // What a star word must not sit under: the moon.
-  const keepOut = useMemo(() => { const [mx, my] = moonFrame(view.w / view.h); return [{ x: (mx / 100) * view.w - 50, y: (my / 100) * view.h - 50, w: 100, h: 100 }]; }, [view]);
+  const keepOut = useMemo(() => { const k = view.s / S0, m = MOONS[1], r = (m.across / 2) * k * (frame.phone ? 1.6 : 1), cy = frame.phone ? Math.max(m.y * view.ground, 66 + r) : m.y * view.ground; return [{ x: m.x * view.w - r, y: cy - r, w: 2 * r, h: 2 * r }]; }, [view, frame.phone]);
   const rootVars = {
     '--u': `${frame.u}px`, '--dr-beat': `${(60 / bpmOf(deep ? 3 : stage)).toFixed(3)}s`, '--dr-pop-x': px(popAt[0]), '--dr-pop-y': px(popAt[1]),
     '--dr-org-x': px(popAt[0] - frame.view.x), '--dr-org-y': px(popAt[1] - frame.view.y),
@@ -498,8 +523,10 @@ export function DreamScreen() {
           <i className="dr-bubble-rim" style={{ clipPath: shape.outer }} />
           <div className="dr-window" style={{ clipPath: shape.inner }}>
             <div ref={stageEl} className="dr-stage" style={{ inset: RIM }} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} data-reduced={reduced || undefined}>
-              <DreamStage live={live} fences={fences} pop={counted} phase={phase} reduced={reduced} phone={mobile} fps={stageFps} ui={frame} />
-              <Fx ref={fx} w={view.w} h={view.h} lane={view.ground} seed={seed} phone={frame.phone} reduced={reduced} keepOut={keepOut} keeps={frame.phone ? STAR_WORDS.phoneKeeps : STAR_WORDS.across * STAR_WORDS.down} />
+              <Fx ref={fx} w={view.w} h={view.h} lane={view.ground} seed={seed} phone={frame.phone} reduced={reduced} keepOut={keepOut} keeps={frame.phone ? STAR_WORDS.phoneKeeps : STAR_WORDS.across * STAR_WORDS.down} k={view.s / S0}>
+                <DreamStage live={live} pop={counted} phase={phase} reduced={reduced} phone={mobile} fps={stageFps} />
+              </Fx>
+              <Signs fences={fences} tags={signTags} root={signRoot} />
             </div>
             {glow > 0 && <i key={glow} className="dr-glow" aria-hidden="true" />}
             {/* The counters, inside the top of the dream window (section 7). */}

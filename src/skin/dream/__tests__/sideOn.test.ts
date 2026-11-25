@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FIELD, JUMP_HEIGHT } from '../../../dream/dream';
 import {
-  A, ART, bumpOverlap, DISC_MAX_H, dreamSpan, dreamView, fenceWarning, frameToWorld, GROUND, jumpClearance, PX, screenX, screenY,
+  A, ART, bumpOverlap, DISC_MAX_H, dreamSpan, dreamView, fenceWarning, GROUND, jumpClearance, PX, screenX, screenY,
   SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, STRIP, worldX,
 } from '../stage';
 import { anchorsOf } from '../../voxel/animals/anchors';
@@ -78,14 +78,12 @@ describe('the side view\'s mapping (plan file 09, 4.2)', () => {
       expect(screenX(v, v.l0 + v.span)).toBeCloseTo(w, 6);
     }
   });
-  it('agrees with the camera: the frame\'s centre, its edges and the ground line land where the helpers say', () => {
+  it('agrees with the camera: the frame\'s centre is where the camera stands, and the ground line is y = 0', () => {
     for (const [w, h] of SIZES) {
       const v = viewOf(w, h);
-      expect(frameToWorld(v, 50, 50)[0]).toBeCloseTo(v.camX, 9);
-      expect(frameToWorld(v, 50, 50)[1]).toBeCloseTo(v.camY, 9);
-      expect(frameToWorld(v, 0, 0)[0]).toBeCloseTo(worldX(v.l0), 9);
-      expect(frameToWorld(v, 100, (screenY(v, 0) / h) * 100)[1]).toBeCloseTo(0, 9);
-      expect(frameToWorld(v, (screenX(v, 200) / w) * 100, 0)[0]).toBeCloseTo(worldX(200), 9);
+      expect(v.camX).toBeCloseTo(worldX(v.l0 + v.span / 2), 9);
+      // The camera's middle is h / 2 down the frame; the ground line, world y = 0, is `ground` down it.
+      expect(v.camY * v.zoom).toBeCloseTo(screenY(v, 0) - h / 2, 6);
     }
   });
   it('matches the table within 1 px: strip, sheep, sheep with its hat', () => {

@@ -897,78 +897,10 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
    * in the dream is moved by its group every frame, so everything here is a thing. The dream does not read the
    * pointer: its other build is for a narrow screen (`phone`), and that is what the coarse level builds.
    */
-  async dream(L, load, shared, detail) {
-    mirrors('src/skin/dream/DreamStage.tsx', [
-      'const view = useMemo(() => dreamView(Math.max(1, size.width), Math.max(1, size.height), phone), [size.width, size.height, phone]);',
-      'chunks: Array.from({ length: CHUNK.count }, (_, i) => raftChunk(i)),',
-      'const far = useMemo(() => ({ sea: seaLayer(view), hills: hillsLayer(view), mountains: mountainsLayer(view) }), [view]);',
-      'islands: ISLANDS.map((it, i) => { const p = islandPlace(it, phone, view); return { ...p, ...islandGeometry(it.kind, p.across, p.tall, i + 1) }; }),',
-      'wisps: WISPS.map((w, i) => ({ geo: wispGeometry(i + 1), at: [...frameToWorld(view, w.frame[0], w.frame[1]), w.z] as [number, number, number] })),',
-      'for (const p of chunkPlacements(scroll)) { const g = chunks.current[p.index]; if (g) g.position.x = p.x; }',
-      'g.position.x = islandX(it, scroll, p.x, p.across, view);',
-      'seaBank.current.position.x = -((scroll * SEA.factor) % SEA.period);',
-      '<group ref={seaBank}><mesh geometry={far.sea} material={voxMat} position={[0, 0, FAR_Z.sea]} /></group>',
-      '<group key={it.id} ref={(el) => { islandRefs.current[i] = el; }} position={[p.x, p.y, it.z]}>',
-      '<mesh geometry={p.body} material={islandMat} />',
-      '{p.props && <mesh geometry={p.props} material={voxMat} />}',
-      '{p.glow && <mesh geometry={p.glow} material={glowMat} />}',
-      "{it.kind === 'windmill' && <IslandWindmill />}",
-      '{sky.wisps.map((w, i) => <group key={i} ref={(el) => { wispRefs.current[i] = el; }} position={w.at}><mesh geometry={w.geo} material={voxMat} /></group>)}',
-      '<group ref={hillRange}><mesh geometry={far.hills} material={voxMat} position={[0, 0, FAR_Z.hills]} /></group>',
-      '<group ref={mountainRange}><mesh geometry={far.mountains} material={voxMat} position={[0, 0, FAR_Z.mountains]} /></group>',
-      '<mesh geometry={g} material={voxMat} receiveShadow />',
-      'return { body: w.distance.windmillBody.clone().translate(-x - 0.5, -baseY, -z - 0.5), blades: w.distance.windmillBlades, hub: [0, 9.5, h[2] - z - 0.5] as [number, number, number] };',
-      'return <group rotation={[0, Math.PI, 0]} scale={0.062}><Windmill body={parts.body} blades={parts.blades} hub={parts.hub} /></group>;',
-    ]);
-    const phone = detail === 'coarse';
-    const stage = await load<typeof import('../../src/skin/dream/stage')>('src/skin/dream/stage.ts');
-    // The side view's frame (plan file 09): the far layers, the islands and the wisps are built and placed for it.
-    const view = phone ? stage.dreamView(390, 844, true) : stage.dreamView(1920, 1080, false);
-    const world = await load<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts');
-    const distanceM = await load<Distance>('src/skin/scene/distance.ts');
-    const { DISTANCE } = await load<typeof import('../../src/skin/scene/layout')>('src/skin/scene/layout.ts');
-    const { CHUNK, ISLANDS, WISPS } = stage;
-    const raft = Array.from({ length: CHUNK.count }, (_, i) => world.raftChunk(i));
-    L.thing('raft', { moves: 'the lane scrolls under the sheep, chunk by chunk round a ring' }, (t) => {
-      for (const p of stage.chunkPlacements(0)) t.put(raft[p.index], `raft.chunk[${p.index}]`, { at: [p.x, 0, 0] });
-    });
-    const sea = world.seaLayer(view);
-    L.thing('cloud sea', { at: [0, 0, 0], moves: 'it scrolls slower than the lane and rises and falls' }, (t) => {
-      t.put(sea, 'sea', { at: [0, 0, world.FAR_Z.sea] });
-    });
-    // The dream draws the table world's windmill on island B. In a run that builds the table that world is there
-    // already (the page builds it once, too); a run of the dream alone builds the distance for the windmill only.
-    const distance = shared.farm?.distance ?? distanceM.buildDistance();
-    if (!shared.farm) {
-      for (const key of ['hills', 'backHills', 'mountains'] as const) L.skip(distance[key], `distance.${key}`, 'built here only because the windmill comes with it; it is laid out in the table and the farm');
-      L.skip(distance.windmillBody, 'distance.windmillBody', 'the dream draws a moved copy of it, laid out with island B');
-    }
-    ISLANDS.forEach((it, i) => {
-      const p = stage.islandPlace(it, phone, view), g = world.island(it.kind, p.across, p.tall, i + 1);
-      const at: V3 = [stage.islandX(it, 0, p.x, p.across, view), p.y, it.z];
-      L.thing(`island ${it.id}`, { at, moves: 'it drifts past and bobs' }, (t) => {
-        t.put(g.body, `island[${it.id}].body`);
-        if (g.props) t.put(g.props, `island[${it.id}].props`);
-        if (g.glow) t.put(g.glow, `island[${it.id}].glow`);
-        if (it.kind === 'windmill') {
-          const { x, z } = DISTANCE.windmill, h = distance.bladesHub, baseY = h[1] - 9.5;
-          t.put(distance.windmillBody.clone().translate(-x - 0.5, -baseY, -z - 0.5), `island[${it.id}].windmillBody`, { rotation: [0, Math.PI, 0], scale: 0.062 });
-        }
-      });
-      if (it.kind === 'windmill') {
-        const { z } = DISTANCE.windmill, h = distance.bladesHub;
-        L.thing(`island ${it.id} windmill blades`, [{ at, moves: 'they turn, and drift with their island' }, { rotation: [0, Math.PI, 0], scale: 0.062 }, { at: [0, 9.5, h[2] - z - 0.5] }], (t) => t.put(distance.windmillBlades, `island[${it.id}].windmillBlades`));
-      }
-    });
-    WISPS.forEach((w, i) => {
-      const at: V3 = [...stage.frameToWorld(view, w.frame[0], w.frame[1]), w.z];
-      L.put(world.wisp(i + 1), `wisp[${i}]`, { at, moves: 'it drifts across the sky' });
-    });
-    L.put(world.hills(view), 'dream.hills', { at: [0, 0, world.FAR_Z.hills], moves: 'the range scrolls slower than the lane' });
-    L.put(world.mountains(view), 'dream.mountains', { at: [0, 0, world.FAR_Z.mountains], moves: 'the range scrolls slower than the lane' });
-    L.notes.push(`built for ${phone ? 'a narrow screen (phone = true): a 390 x 844 frame and the phone\'s island boxes' : 'a computer (phone = false): a 1920 x 1080 frame'}`);
-    L.notes.push('the fences, bales and signs come and go with the night: they are models (fence:rail, bale, sign post...)');
-    L.notes.push('the sheep, its shadow disc, the bonk stars and the dust are not laid out');
+  async dream(L) {
+    // Since the redesign of 2026-11-24 (docs/dream) the dream's world is flat pixel art on a canvas (src/skin/dream/scene),
+    // and its three.js scene holds only the sheep, which is a model. There is no voxel scenery here to lay out.
+    L.notes.push('the dream\'s scenery is drawn on a flat canvas (dream/scene); its scene holds only the sheep, a model');
   },
 
   /**
@@ -1121,18 +1053,6 @@ async function modelSpecs(load: Load): Promise<ModelSpec[]> {
   });
   // The old tool's own props (tools/floatingVoxels.ts --props), under the names it gave them.
   specs.push({ id: 'bomb', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/voxel/bomb')>('src/skin/voxel/bomb.ts')).bombModel() });
-  // Each fence by its own look. (The old tool asked `lookOf('fence', index)`, which deals the looks in another order,
-  // so what it called fence:wall was the log and what it called fence:log was the wall.)
-  for (const look of ['rail', 'picket', 'wall', 'log'] as const) {
-    specs.push({ id: `fence:${look}`, kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).obstacle(look) });
-  }
-  specs.push({ id: 'bale', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).obstacle('bale') });
-  // The sign's post, arm and lantern (`Sign` in DreamStage.tsx); the board that hangs from the arm is HTML.
-  mirrors('src/skin/dream/DreamStage.tsx', [
-    '<mesh geometry={geo.post} material={wood} castShadow />',
-    '<mesh geometry={geo.lantern} material={glass[hot ? 1 : 0]} />',
-  ]);
-  specs.push({ id: 'sign post', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).signPost(22, 6) });
   return specs;
 }
 

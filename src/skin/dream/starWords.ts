@@ -41,8 +41,8 @@ export interface Place { x: number; y: number }
  * from 8% to 92% across and from 64 px under the window's top to 130 px above the lane, each moved up by as much as 20
  * px, in an order shuffled by the night. A place under one of `keepOut` (the counters, the moon) is skipped.
  */
-export function starPlaces(w: number, lane: number, seed: string, keepOut: readonly { x: number; y: number; w: number; h: number }[] = []): Place[] {
-  const S = STAR_WORDS, y0 = S.top, y1 = Math.max(y0 + 10, lane - S.aboveLane), all: Place[] = [];
+export function starPlaces(w: number, lane: number, seed: string, keepOut: readonly { x: number; y: number; w: number; h: number }[] = [], top: number = STAR_WORDS.top): Place[] {
+  const S = STAR_WORDS, y0 = top, y1 = Math.max(y0 + 10, lane - S.aboveLane), all: Place[] = [];
   for (let r = 0; r < S.down; r++) for (let c = 0; c < S.across; c++) {
     const i = r * S.across + c;
     all.push({ x: (S.from + ((S.to - S.from) * (c + 0.5)) / S.across) * w, y: y0 + ((y1 - y0) * (r + 0.5)) / S.down - hash01(seed, i) * S.nudge });

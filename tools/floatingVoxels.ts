@@ -143,9 +143,6 @@ const scenes: Record<string, () => Promise<unknown>> = {
 };
 // Props that stand alone: each should be a single piece.
 const props: Record<string, () => Promise<unknown>> = {
-  ...Object.fromEntries((['rail', 'picket', 'wall', 'log'] as const).map((look) => [`fence:${look}`, async () => { const w = await import('../src/skin/dream/world'); w.obstacle(w.lookOf('fence', ['rail', 'picket', 'wall', 'log'].indexOf(look))); }])),
-  'bale': async () => { const w = await import('../src/skin/dream/world'); w.obstacle(w.lookOf('bale', 0)); },
-  'sign post': async () => { const w = await import('../src/skin/dream/world'); w.signPost(22, 6); },
   'bomb': async () => { const b = await import('../src/skin/voxel/bomb'); b.bombModel(); },
   'trophy': async () => { const t = await import('../src/skin/voxel/trophy'); t.trophyGeometry(); },
 };

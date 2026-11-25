@@ -22,7 +22,7 @@ import { dropBuild, queueBuild } from '../scene/slices';
 import { coarseDevice, coarseFor, inDetail } from '../voxel/refine';
 import { getTier, subscribeTier } from '../perf/tier';
 import type { Steps } from '../scene/slices';
-import { bonkStar } from '../dream/world';
+import { bonkStar } from '../dream/bonk';
 import { tuftGeometry } from '../voxel/characters';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
@@ -441,7 +441,7 @@ function SpeakerCamera({ speaker, n, phone, reduced, moments, fade, headY }: { s
 
 /**
  * The stars round a dazed animal's head: three of them circling just over it, bobbing, for as long as it is dazed. The
- * dream's own bonk stars (dream/world.ts), with the lanterns' glow. Mounted in every seat (hidden), so the first bang
+ * dream's own bonk stars (dream/bonk.ts), with the lanterns' glow. Mounted in every seat (hidden), so the first bang
  * builds nothing. Inside the seat's group, at its plate point (`platePoint`, model units), so they follow the step;
  * `scale` is the group's, so the circle and the stars keep their size in metres.
  */

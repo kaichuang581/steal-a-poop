@@ -129,6 +129,8 @@ export interface GameState {
   used: string[];
   players: Player[];
   turn: TurnState | null;
+  /** The seat that took the last turn of the round before: the next round opens with the seat after it. */
+  lastSeat?: number;
   introEndsAt: number | null;
   /** How many sheep in a row have run out of time on `letter` (normal games): at STUCK_LIMIT the chain moves on. */
   stuck?: { letter: string; count: number } | null;

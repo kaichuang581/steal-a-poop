@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## Unreleased
+
+- No more skipped turns when a round ends: the next round carries on round the table from whoever went last, instead of jumping one seat ahead.
+
 ## 0.9.7
 
 - Your profile and How ranks work, polished: every section a card with its title inside, coloured icon tiles, a night scene behind your name, your longest word in letter tiles, the ranks on a staircase, the practice rating above its grid, and the rules as tags and chips. Rename your name from a title, not a form.

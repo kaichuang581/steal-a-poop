@@ -2443,3 +2443,9 @@ loading screen keeps its own colour (it must stand alone).
   (exposure -55%, vignette 85%, grain 60%, red 30%): a dark, grainy, closed-in, flushed photo grade, nothing drawn on or added to the
   face. Keep it a grade: no horns, demon eyes or other additions to a real person's face. This device only, like the other face sliders.
 
+- No skipped turns at a round change (requested by Brian, 2026-11-24: "fix the issue of skipping turns"), an engine change:
+  each round used to open one seat further on than the last (`(round - 1) % n`), but a round is whole laps of the table, so
+  its last turn is always the seat before its first, and the next round's start passed over one player (with A, B, C:
+  ...B, C | B, C, A...). Now a round opens with the seat after whoever took the last turn (`GameState.lastSeat`, set in
+  `concludeTurn`; round 1 opens with seat 0); frozen seats are passed over as before. Seen in a two-person room game on a
+  local server and pinned by src/engine/__tests__/turnOrder.test.ts. The fences were pinned again for it (fences.json).

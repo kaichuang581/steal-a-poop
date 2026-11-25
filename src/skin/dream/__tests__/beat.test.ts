@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { advance, BPM, bpmOf, phase, pulse, whole } from '../beat';
 import { DOT_FONT } from '../dotfont';
-import { MOST_PARTICLES } from '../Fx';
 import { FLIGHT } from '../fly';
 import { CLOSE_PX, isClose, TYPE_X } from '../run';
 import { clearPlace, STAR_WORDS, starPlaces, wordCentre, wordDots } from '../starWords';
@@ -103,7 +102,6 @@ describe('the star words', () => {
 describe('the effects\' numbers', () => {
   it('keeps to the pack\'s timings and limits', () => {
     expect(FLIGHT).toEqual({ ms: 320, stagger: 30, rise: 120, to: 16 });
-    expect(MOST_PARTICLES).toBe(60);
     expect(STAR_WORDS.rise).toBe(700);
   });
   it('calls a fence close when the meter would be at three of its eleven segments', () => {

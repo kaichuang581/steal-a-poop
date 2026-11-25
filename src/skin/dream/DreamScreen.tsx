@@ -29,16 +29,16 @@ import { Counter, DreamCard, Hint, ModeChip, NightTrack, ReadyBoard, Tail, Tray,
 import type { CardKind } from './Interface';
 import { activeFence, freshLive, MAX_TYPED, TYPE_X, update } from './run';
 import type { Live } from './run';
-import { FESTIVE } from '../../config';
 import { useTier } from '../perf/tier';
-import { MOONS } from './scene/common';
-import { GATE_MS, S0 } from './scene/types';
-import type { SceneState, StageN } from './scene/types';
+import type { StageN } from './scene/types';
+import { freshWorldState, CHANGE_MS } from './world3d/DreamWorld';
+import type { DreamWorldState, WorldN } from './world3d/DreamWorld';
+import { lapAt, worldAt } from './worlds';
+import { PLAN_M, projectDream } from './camera';
 import { Art } from './Interface';
 import { Results } from './Results';
 import { placeSigns, signLayout, Signs, SLOTS } from './Signs';
-import { ART, DRIFT, drawnLift, dreamView, OPENING, screenX, SHEEP_ART, SHEEP_CENTRE, WAKE } from './stage';
-import { STAR_WORDS } from './starWords';
+import { DRIFT, dreamView, OPENING, PX, SHEEP_CENTRE, WAKE, worldX } from './stage';
 import './dream.css';
 
 /**
@@ -208,6 +208,18 @@ export function DreamScreen() {
   const headAnchor = useRef<HTMLDivElement>(null);
   const anchors = useRef<RoomAnchors>({ head: headAnchor }).current;
   const live = useRef<Live>(freshLive(seed));
+  // Which world each fence stands in (docs/dream/v3/01, section 5): read from the rules' letters, never typed.
+  const worldOf = useMemo(() => {
+    let F3 = 0;
+    while (lettersAt(F3) < 3 && F3 < 500) F3++;
+    return (i: number): WorldN => worldAt(i + 1, lettersAt(i) as 1 | 2 | 3, F3 + 1);
+  }, []);
+  const lapOf = useMemo(() => {
+    let F3 = 0;
+    while (lettersAt(F3) < 3 && F3 < 500) F3++;
+    return (i: number): number => lapAt(i + 1, F3 + 1);
+  }, []);
+  const worldState = useRef<DreamWorldState>(freshWorldState(worldOf));
   const phaseRef = useRef<Phase>('ready');
   phaseRef.current = phase;
   // The night has a shape; practice is the endless version ("How far can you run?").
@@ -318,27 +330,23 @@ export function DreamScreen() {
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
-    let hudKey = '', fenceKey = '', alarmed = false, stageNow = 1, wasAir = false;
-    // The fence the sheep is in the air over: its word rises into the sky once it has landed.
-    let over: { word: string; index: number } | null = null;
-    const hooves = (): [number, number] => { const v = viewRef.current; return [screenX(v, SHEEP_CENTRE) - ART * SHEEP_ART.tail * v.s * 0.55, v.ground - 4]; };
+    let hudKey = '', fenceKey = '', alarmed = false, stageNow = 1;
     const signState: string[] = [];
-    // The stages and their gates (docs/dream/00, section 4; 04 and 05, section 1). A gate stands on the lane halfway
-    // between the last fence of one stage and the first of the next; the dream changes as the sheep passes it.
-    const GATES = ([2, 3] as const).map((to) => { let index = 0; while (lettersAt(index) < to && index < 500) index++; return { to, index }; });
-    let world: StageN = 1, arch: { to: 2 | 3; dist: number; passedAt: number | null } | null = null, gate: { from: StageN; at: number } | null = null;
-    // The finale (05, section 11), on a counted night: the last five fences before he is out cold, and on from there.
-    let finaleAt: number | null = null;
-
+    // The worlds and their gates (v3/01, section 5; 07): a gate stands 3.0 m before the first fence of the world it
+    // opens, and the world changes as the sheep passes its mark. Nothing on screen says when.
+    const W = worldState.current = freshWorldState(worldOf);
+    if (import.meta.env.DEV) Object.assign(window, { __dreamWorld: W });
+    const GATE_AHEAD = (3.0 * PLAN_M) / PX, POSTS = (6.6 * PLAN_M) / PX;
+    const gated = new Set<number>();
     const events = {
       jump: () => {
         playSound('play'); // the bell at take-off
-        const fe = live.current.fences.find((f) => f.jumped && !f.passed);
-        over = fe ? { word: fe.word, index: fe.index } : null;
-        // Five puffs fan out behind the hooves.
-        fx.current?.puffs(...hooves(), world === 3 ? 2 : 5, world);
       },
-      count: (n: number) => { setCount(n); setReached(live.current.reached); setCounted({ n, key: Math.random() }); },
+      count: (n: number) => {
+        setCount(n); setReached(live.current.reached); setCounted({ n, key: Math.random() });
+        // Every 10 sheep the moon puts on a show (v3/07, section 5).
+        if (n % 10 === 0) W.moonShowAt = live.current.t;
+      },
       stumble: () => {
         // A bump short of the last: the fence goes flat, the farmer stirs, and the run carries on.
         playSound('trap', 0.6);
@@ -388,44 +396,33 @@ export function DreamScreen() {
       const ph = phaseRef.current;
       if (ph === 'running' || ph === 'ready' || ph === 'crashed' || ph === 'drifting') { L.t += dt; beat.current.beats = advance(beat.current.beats, dt, stageNow); }
       if (ph === 'running') update(L, dt, seed, events, length);
-      // The landing: six puffs, the window drops 3 px for 80 ms, and 100 ms later the word rises into the sky.
-      if (wasAir && L.jumpAt === null && L.crashAt === null && ph === 'running') {
-        fx.current?.puffs(...hooves(), world === 3 ? 3 : 6, world);
-        nudge([0, 3, 3, 0].map((y) => ({ transform: `translateY(${y}px)` })), 80);
-        const up = over;
-        over = null;
-        if (up?.word) setTimeout(() => {
-          const r = signRect(up.index), st = stageEl.current?.getBoundingClientRect(), v = viewRef.current;
-          fx.current?.word(up.word, r && st ? Math.max(8, r.left + r.width / 2 - st.left) : 8, r && st ? r.top + r.height / 2 - st.top : v.ground - 160);
-        }, 100);
+      // A gate for each fence that opens a new world, as it joins the queue.
+      for (const fe of L.fences) {
+        if (fe.index < 1 || gated.has(fe.index) || worldOf(fe.index) === worldOf(fe.index - 1)) continue;
+        gated.add(fe.index);
+        const to = worldOf(fe.index), type = to === 2 ? 1 : to === 3 ? 2 : 3;
+        W.gates.push({ type, dist: L.dist + fe.x + FIELD.fenceW / 2 - GATE_AHEAD, to, lap: lapOf(fe.index), passed: false });
       }
-      wasAir = L.jumpAt !== null;
-      // The gate ahead: placed as the next stage's first fence joins the queue; passed when the sheep reaches it.
-      if (!arch) {
-        const next = GATES.find((g) => g.to === world + 1), b = next && L.fences.find((fe) => fe.index === next.index), a = next && L.fences.find((fe) => fe.index === next.index - 1);
-        if (next && b) arch = { to: next.to, dist: L.dist + (a ? (a.x + b.x) / 2 : b.x - 380) + FIELD.fenceW / 2, passedAt: null };
+      // Passing one: gate 1 at its middle, gate 2 at the footboard's first post, gate 3 at the headboard's second.
+      const sheepAt = L.dist + SHEEP_CENTRE;
+      for (const g of W.gates) {
+        const mark = g.dist + (g.type === 3 ? POSTS : 0);
+        if (g.passed || ph !== 'running' || sheepAt < mark) continue;
+        g.passed = true;
+        W.change = { from: W.world, to: g.to, dist: g.dist, at: L.t };
+        W.world = g.to;
+        W.laps[g.to] = g.lap;
+        const kind = g.to === 2 ? (g.lap > 1 ? 'lift' : 'stage2') : g.to === 3 ? (g.lap > 1 ? 'quilt' : 'stage3') : 'turn';
+        setTimeout(() => show(kind as CardKind), 100);
+        if (g.type === 1 && !reduced) { const v = viewRef.current, [gx] = projectDream(v, worldX(SHEEP_CENTRE) / PLAN_M, 0, 0); fx.current?.ring(gx, v.ground - 110, true); }
       }
-      if (arch && arch.passedAt === null && ph === 'running' && arch.dist - L.dist <= SHEEP_CENTRE) {
-        arch.passedAt = L.t;
-        gate = { from: world, at: L.t };
-        world = arch.to;
-        const kind = world === 2 ? 'stage2' : 'stage3';
-        setTimeout(() => show(kind), 100);
-      }
-      if (arch && arch.passedAt !== null && arch.dist - L.dist < -160) arch = null;
-      if (gate && L.t - gate.at > (reduced ? GATE_MS.reduced : GATE_MS[gate.from as 1 | 2])) gate = null;
-      if (finaleAt === null && length && world === 3 && L.reached >= length.fences - 5 && ph === 'running') finaleAt = L.t;
-      // The scenery's frame: the fences (each sign's board is moved to its fence on the way), the sheep, the clocks.
-      const v = viewRef.current, k = v.s / S0, running = ph === 'running' && L.speed > 0;
-      const scene: SceneState = {
-        W: v.w / k, H: v.h / k, lane: v.ground / k, scroll: L.dist * S0, t: L.t, beats: beat.current.beats, u: 1 / k, stage: world, gate: gate && { from: gate.from, ms: L.t - gate.at },
-        arch: arch && { to: arch.to, x: (arch.dist - L.dist - v.l0) * S0, since: arch.passedAt === null ? -1 : L.t - arch.passedAt },
-        finale: finaleAt === null ? 0 : reduced ? 1 : Math.min(1, Math.max(0.001, (L.t - finaleAt) / 1200)), counted: L.count, stream: L.deepAt === null ? -1 : L.t - L.deepAt,
-        seed, phone: sceneRef.current.phone, low: sceneRef.current.low, reduced, festive: FESTIVE, breath: 0.5 - 0.5 * Math.cos((L.t / 3200) * Math.PI * 2),
-        fences: placeSigns(L, v, signsRef.current.hang, signTags, signState, reduced),
-        sheep: { x: (SHEEP_CENTRE - v.l0) * S0, lift: L.jumpAt === null ? 0 : drawnLift(L.t - L.jumpAt) * S0, w: ART * SHEEP_ART.length * S0, running },
-      };
-      fx.current?.frame(scene, running ? L.speed * v.s : 0);
+      W.gates = W.gates.filter((g) => g.dist - L.dist > -2000);
+      if (W.change && L.t - W.change.at > CHANGE_MS[W.change.to] + 100) W.change = null;
+      W.beats = beat.current.beats;
+      W.breath = 0.5 - 0.5 * Math.cos((L.t / 3200) * Math.PI * 2);
+      const world = W.world;
+      placeSigns(L, viewRef.current, signTags, signState);
+      fx.current?.frame(L.t);
       // The farmer's alarm, low, as the dream pops.
       if (L.crashAt !== null && !alarmed && L.t - L.crashAt >= WAKE.pop) { alarmed = true; playSound('alarm', 0.35); }
       if (L.crashAt === null) alarmed = false;
@@ -440,7 +437,7 @@ export function DreamScreen() {
         hudKey = hk;
         setHud({ letters: a ? a.f.letters : [], typed: L.typed, say, wrong, active: !!a, index: a?.index ?? -1, left });
       }
-      if (world !== stageNow) { stageNow = world; setStage(world); }
+      if (world !== stageNow) { stageNow = world; setStage(world as StageN); }
       const fk = L.fences.map((fe) => `${fe.index}:${fe.locked ? fe.word : ''}:${fe === a}:${fe === a && wrong}`).join('|');
       if (fk !== fenceKey) {
         fenceKey = fk;
@@ -450,13 +447,8 @@ export function DreamScreen() {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [seed, finish, reduced, length, show, jolt, nudge, signRect, signTags]);
+  }, [seed, finish, reduced, length, show, jolt, nudge, signTags, worldOf, lapOf]);
 
-  // On a counted night a card says when the last five fences before he is out cold begin. (The stages' own cards are
-  // shown by their gates, in the loop above.)
-  useEffect(() => {
-    if (length && phaseRef.current === 'running' && reached === length.fences - 5) show('finale');
-  }, [reached, length, show]);
 
   // ---------- results ----------
   const streakNow = streak || getDreamStreak(today);
@@ -515,11 +507,6 @@ export function DreamScreen() {
   }, [frame]);
   const small = tail.puffs[tail.puffs.length - 1], popAt: [number, number] = [small.x + small.w / 2, small.y + small.h / 2];
   const px = (v: number) => `${Math.round(v)}px`;
-  // What a star word must not sit under: the moon.
-  const keepOut = useMemo(() => ([1, 2, 3] as const).map((n) => {
-    const k = view.s / S0, m = MOONS[n], r = (m.across / 2) * k * (frame.phone ? 1.6 : 1), cy = frame.phone ? Math.max(m.y * view.ground, 66 + r) : m.y * view.ground;
-    return { x: m.x * view.w - r, y: cy - r, w: 2 * r, h: 2 * r };
-  }), [view, frame.phone]);
   const rootVars = {
     '--u': `${frame.u}px`, '--dr-beat': `${(60 / bpmOf(deep ? 3 : stage)).toFixed(3)}s`, '--dr-pop-x': px(popAt[0]), '--dr-pop-y': px(popAt[1]),
     '--dr-org-x': px(popAt[0] - frame.bubble.x), '--dr-org-y': px(popAt[1] - frame.bubble.y), '--dr-org-bx': px(popAt[0] - frame.bubble.x),
@@ -547,8 +534,8 @@ export function DreamScreen() {
           <i className="dr-bubble-rim" style={{ clipPath: shape.outer }} />
           <div className="dr-window" style={{ clipPath: shape.inner }}>
             <div ref={stageEl} className="dr-stage" style={{ inset: RIM }}>
-              <Fx ref={fx} w={view.w} h={view.h} lane={view.ground} seed={seed} phone={frame.phone} reduced={reduced} keepOut={keepOut} keeps={frame.phone ? STAR_WORDS.phoneKeeps : STAR_WORDS.across * STAR_WORDS.down} k={view.s / S0}>
-                <DreamStage live={live} pop={counted} phase={phase} reduced={reduced} phone={mobile} fps={stageFps} />
+              <Fx ref={fx} w={view.w} h={view.h} reduced={reduced}>
+                <DreamStage live={live} pop={counted} phase={phase} reduced={reduced} phone={mobile} fps={stageFps} world={worldState} seed={seed} low={low} />
               </Fx>
               <Signs fences={fences} tags={signTags} root={signRoot} />
             </div>

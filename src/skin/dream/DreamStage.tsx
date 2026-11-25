@@ -3,8 +3,8 @@ import { SceneBoundary } from '../perf/SceneBoundary';
 import { useFrame, useThree } from '@react-three/fiber';
 import { createRef, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject, RefObject } from 'react';
-import { SRGBColorSpace } from 'three';
-import type { Group, Mesh, OrthographicCamera } from 'three';
+import { PCFShadowMap, SRGBColorSpace } from 'three';
+import type { Group, Mesh } from 'three';
 import { FIELD, JUMP_MS, takeoffDistance } from '../../dream/dream';
 import type { Obstacle } from '../../dream/dream';
 import { ScreenAnchor } from '../table/Anchors';
@@ -21,8 +21,11 @@ import type { SheepState } from '../table/Sheep';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { bonkStar } from './bonk';
-import { ART, CAMERA_Z, DISC_MAX_H, drawnLift, dreamView, leapPitch, PX, RECOIL, SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, WAKE, worldX } from './stage';
-import type { DreamView } from './stage';
+import { ART, DISC_MAX_H, drawnLift, dreamView, leapPitch, PX, RECOIL, SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, WAKE, worldX } from './stage';
+import { PLAN_M } from './camera';
+import { DreamWorld } from './world3d/DreamWorld';
+import type { DreamWorldState } from './world3d/DreamWorld';
+import { FESTIVE } from '../../config';
 import { LOOK } from '../look';
 
 const LAND_MS = 200;
@@ -62,6 +65,10 @@ interface Props {
   phone: boolean;
   /** How many pictures a second the sheep is drawn at (the frame governor): 0 once the bedroom covers the dream whole. */
   fps?: number;
+  /** Which world, where the gates are, the moon show: the dream's loop says (world3d/DreamWorld.tsx). */
+  world: MutableRefObject<DreamWorldState>;
+  seed: string;
+  low: boolean;
 }
 
 /**
@@ -75,9 +82,9 @@ export function DreamStage(props: Props) {
   return (
     <>
     <SceneBoundary scene="the dream">
-    <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="dream" fps={props.fps}
-      gl={{ alpha: true, outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1, antialias: true }}
-      orthographic camera={{ position: [0, 0, CAMERA_Z], near: 0.1, far: 100, zoom: 100 }}
+    <AdaptiveCanvas maxDpr={props.phone ? 1.5 : 2} memory="dream" fps={props.fps} shadows={{ type: PCFShadowMap }}
+      gl={{ alpha: false, outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping, toneMappingExposure: 1, antialias: true }}
+      camera={{ manual: true, position: [0, 2.4, 16], near: 1, far: 600, fov: 30 }}
     >
       <Scene {...props} tag={pop} />
       <MarkDrawn />
@@ -91,7 +98,7 @@ export function DreamStage(props: Props) {
   );
 }
 
-function Scene({ live, phase, reduced, phone, tag }: Props & { tag: RefObject<HTMLDivElement | null> }) {
+function Scene({ live, phase, reduced, phone, tag, world, seed, low }: Props & { tag: RefObject<HTMLDivElement | null> }) {
   const size = useThree((s) => s.size);
   const view = useMemo(() => dreamView(Math.max(1, size.width), Math.max(1, size.height), phone), [size.width, size.height, phone]);
   const glowMat = useMemo(() => voxelMaterial({ emissive: T.lantern[0], emissiveIntensity: 1.2 }), []);
@@ -171,12 +178,13 @@ function Scene({ live, phase, reduced, phone, tag }: Props & { tag: RefObject<HT
 
   return (
     <>
-      <DreamCamera view={view} live={live} />
-      {/* A night's light on the wool: a cool fill from the sky and the snow, and the moon from the upper right. */}
-      <hemisphereLight args={['#8E9FD8', '#C9D4F2', 1.5]} />
-      <directionalLight position={[6, 9, 7]} color="#F2F0FF" intensity={3.4} />
+      <DevLive live={live} />
+      {/* The dream itself: the voxel worlds, their sky and light, what the sheep jumps, the gates (docs/dream/v3). */}
+      <DreamWorld live={live} state={world} view={view} festive={FESTIVE} low={low} reduced={reduced} phone={phone} seed={seed} />
       {/* The sheep faces +x and runs on the spot; the world does the moving. It stands on the rules' box centre, drawn
-          ART times its size about its feet, its own drawn middle on that centre (plan file 09, 4.2). */}
+          ART times its size about its feet, its own drawn middle on that centre (plan file 09, 4.2). The dream is in
+          the plan's metres; the sheep, in the game's, is scaled into them. */}
+      <group scale={1 / PLAN_M}>
       <group ref={sheep}>
         <group ref={roll} position={[0, ROLL_ABOUT, 0]}>
         <group position={[0, -ROLL_ABOUT, 0]} scale={ART}>
@@ -196,22 +204,13 @@ function Scene({ live, phase, reduced, phone, tag }: Props & { tag: RefObject<HT
         {/* The count pops at the sheep's upper right. */}
         <ScreenAnchor el={tag} position={[0.62, ART * headY - 0.05, 0]} cull={false} />
       </group>
+      </group>
     </>
   );
 }
 
-/**
- * The side view (plan file 09, 4.2): an orthographic camera looking along -z, its zoom the stage's CSS px per metre and
- * its place the frame's centre, from the stage's size. It never shakes: on a bump the dream window does (06, section 4).
- */
-function DreamCamera({ view, live }: { view: DreamView; live: MutableRefObject<StageLive> }) {
-  const camera = useThree((s) => s.camera) as OrthographicCamera;
-  useEffect(() => {
-    camera.zoom = view.zoom;
-    camera.position.set(view.camX, view.camY, CAMERA_Z);
-    camera.rotation.set(0, 0, 0);
-    camera.updateProjectionMatrix();
-    if (devOn()) Object.assign(window, { __dreamLive: live });
-  }, [camera, view, live]);
+/** Development only: the run, on window, for the capture scripts. */
+function DevLive({ live }: { live: MutableRefObject<StageLive> }) {
+  useEffect(() => { if (devOn()) Object.assign(window, { __dreamLive: live }); }, [live]);
   return null;
 }

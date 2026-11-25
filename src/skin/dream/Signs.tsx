@@ -1,13 +1,13 @@
 import type { CSSProperties, RefObject } from 'react';
-import { FIELD, lettersAt } from '../../dream/dream';
+import { FIELD } from '../../dream/dream';
 import { CheckIcon } from '../components/Icons';
 import type { FenceView, StageLive } from './DreamStage';
 import { FLIGHT } from './fly';
 import { signHeight } from './frame';
 import { isClose } from './run';
-import { BOX, lookOf, S0 } from './scene/types';
-import type { SceneFence, StageN } from './scene/types';
-import { ART, screenX, SHEEP_ART } from './stage';
+import { PLAN_M, projectDream } from './camera';
+import { ART, SHEEP_ART, worldX } from './stage';
+import { SIGNPOST } from './world3d/DreamWorld';
 import type { DreamView } from './stage';
 
 /**
@@ -62,25 +62,22 @@ export function signLayout(v: DreamView, ui: { u: number; phone: boolean }): { h
 }
 
 const FW = FIELD.fenceW, near = FIELD.sheepX + FIELD.sheepW;
-const easeOut = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 /**
- * One frame of the fences: moves each sign's board to its fence and says what its fence is doing (close, knocked,
- * being leapt), and returns the fences as the scenery draws them, in art px. Reads the run; writes only the DOM.
+ * One frame of the signs: moves each fence's board to the point the camera gives for its signpost's chain ends
+ * (docs/dream/v3/08, section 5: hung level from 3.75 m, so the jumping sheep passes under it) and says what its fence
+ * is doing (close, knocked, being leapt). Reads the run; writes only the DOM.
  */
-export function placeSigns(L: StageLive & { fences: (StageLive['fences'][number] & { f: { kind: 'fence' | 'bale' } })[] }, v: DreamView, hang: number, tags: readonly RefObject<HTMLDivElement | null>[], state: string[], reduced: boolean): SceneFence[] {
-  const used = new Set<number>(), out: SceneFence[] = [], k = v.s / S0;
+export function placeSigns(L: StageLive, v: DreamView, tags: readonly RefObject<HTMLDivElement | null>[], state: string[]): void {
+  const used = new Set<number>();
   for (const fe of L.fences) {
-    const slot = fe.index % SLOTS, mid = screenX(v, fe.x + FW / 2), top = v.ground - hang;
+    const slot = fe.index % SLOTS, mid = worldX(fe.x + FW / 2) / PLAN_M;
     used.add(slot);
-    // A bump tips the fence over about its far foot: to 78 degrees in 400 ms, then it settles at 70.
-    const hitAt = fe.knockedAt ?? (L.crashAt !== null && !fe.passed && !fe.jumped && fe.x < near && fe.x + FW > FIELD.sheepX ? L.crashAt : null);
-    const e = hitAt === null ? 0 : (L.t - hitAt) / 1000;
-    const deg = hitAt === null ? 0 : reduced ? 70 : e < 0.4 ? 78 * easeOut(e / 0.4) : e < 0.55 ? 78 - 8 * ((e - 0.4) / 0.15) : 70;
-    out.push({ index: fe.index, look: lookOf(fe.f.kind, fe.index), stage: lettersAt(fe.index) as StageN, x: mid / k - BOX.w / 2, lit: fe.locked, tilt: (deg * Math.PI) / 180, signX: mid / k, signTop: top / k });
+    const [x, y] = projectDream(v, mid + SIGNPOST.dx + SIGNPOST.hangX, SIGNPOST.hangY, SIGNPOST.z + SIGNPOST.hangZ);
     const tag = tags[slot].current;
     if (!tag) continue;
-    tag.style.transform = `translate3d(${mid.toFixed(1)}px, ${top.toFixed(1)}px, 0)`;
-    const hit = hitAt !== null, close = isClose(fe) && !hit, clear = fe.jumped && !fe.passed, s = `${hit ? 'k' : ''}${close ? 'c' : ''}${clear ? 'j' : ''}`;
+    tag.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+    const hit = fe.knockedAt !== null || (L.crashAt !== null && !fe.passed && !fe.jumped && fe.x < near && fe.x + FW > FIELD.sheepX);
+    const close = isClose(fe) && !hit, clear = fe.jumped && !fe.passed, s = `${hit ? 'k' : ''}${close ? 'c' : ''}${clear ? 'j' : ''}`;
     if (state[slot] !== s) {
       state[slot] = s;
       tag.toggleAttribute('data-knock', hit);
@@ -89,5 +86,4 @@ export function placeSigns(L: StageLive & { fences: (StageLive['fences'][number]
     }
   }
   tags.forEach((tag, i) => { if (!used.has(i) && tag.current && state[i] !== 'off') { state[i] = 'off'; tag.current.style.transform = 'translate3d(-9999px, 0, 0)'; } });
-  return out;
 }

@@ -12,7 +12,7 @@ const FACES: { axis: 0 | 1 | 2; sign: 1 | -1; t1: 0 | 1 | 2; t2: 0 | 1 | 2 }[] =
   { axis: 2, sign: 1, t1: 0, t2: 1 }, { axis: 2, sign: -1, t1: 0, t2: 1 },
 ];
 /** A little per-face shading so a cube's faces read apart where the light is flat; the sun and sky fill do the rest. */
-const FACE_SHADE = (axis: number, sign: number) =>
+export const FACE_SHADE = (axis: number, sign: number) =>
   axis === 1 ? (sign > 0 ? 1.0 : 0.78) : axis === 0 ? (sign > 0 ? 0.93 : 0.88) : sign > 0 ? 0.91 : 0.86;
 /** How much each occluded corner darkens (0..3 corners). */
 const AO_STEP = LOOK.ao ?? 0.2; // ?ao= on a development server (look.ts), for the diorama's pairs

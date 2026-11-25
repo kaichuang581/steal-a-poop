@@ -346,3 +346,10 @@
 .tp .tp-tag--mark { background: var(--hm-wool); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 4px 0 var(--hm-wool-hi), inset 0 -6px 0 var(--hm-wool-lip); padding: 5px 16px 9px; font: 800 max(13px, calc(15px * var(--u)))/1 var(--skin-font-display); }
 .tp .tp-tag--mark[data-on] { background: var(--hm-lantern); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 4px 0 var(--hm-lantern-hi), inset 0 -6px 0 var(--hm-lantern-lip); }
 .tp .tp-page-turn { background: var(--hm-wool); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -6px 0 var(--hm-wool-lip); padding: 6px 16px 10px; }
+/* The odds board: a night board; the sack's name in wool, the odds in the lantern's light, the quiet lines in frost. */
+.tp-chalk { color: var(--hm-wool); }
+.tp-chalk h4 { color: var(--hm-wool); }
+.tp-chalk-sub, .tp-chalk p { color: var(--hm-frost); font-weight: 700; }
+.tp-chalk p b { color: var(--hm-wool); font-family: var(--skin-font-body); font-weight: 800; }
+.tp-chalk li b { color: var(--hm-lantern-hi); }
+.tp-chalk hr { border-top: 2px solid var(--hm-night-3); }

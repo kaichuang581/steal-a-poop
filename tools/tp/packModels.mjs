@@ -63,6 +63,8 @@ function restyle(m) {
       box('fascia end', [-post, y0 - 1, z0, -post + 2, y1 + 1, z1], trim), box('fascia end', [post - 2, y0 - 1, z0, post, y1 + 1, z1], trim),
       box('fascia name', [face[0], y0, z1 - 1, face[3], y1, z1], c, 'sign')] };
   }
+  // The odds board's face is a night board too, so its words are the kit's (wool, with the odds in the lantern's light).
+  if (m.id === 'oddsBoard') return { ...m, boxes: m.boxes.map((b) => (b.part === 'face' ? { ...b, c: '#131D3B' } : b)) };
   if (m.id.startsWith('sack_')) return { ...m, boxes: m.boxes.map((b) => (b.part === 'patch' ? { ...b, c: 'hay:2' } : b)) };
   // The notice board's face is a night board and its slips raised tiles (Midnight's own tones), so its words are the
   // kit's wool on dark, like every other board in the game, not ink on cream paper.

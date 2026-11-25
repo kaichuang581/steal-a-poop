@@ -2685,4 +2685,36 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
   - The moon at 300 across reaches the window's top and lies behind the night track and part of the counters' row;
     those are the pack's numbers. A pressed patch comes back at once as the sheep moves on (the pack's 180 ms spring
     is not drawn).
+- CS7, the opening, the endings and the results board, as built (2026-11-24; docs/dream/07). With it the pack's seven
+  milestones are built, on local branches `dream/cs1-farmer` to `dream/cs7-endings`, stacked, none pushed.
+  - The opening (`opening` in DreamScreen, `OPENING` in stage.ts): once the loading screen lifts, the tail's three
+    puffs pop up from his head 80 ms apart, the dream window opens out of the top puff as a growing circle (a clip, not
+    the pack's scale to 1.03: the dream's canvases are measured inside it), and the ready board and the tray come at
+    860 ms. Any key skips it. The tray's field takes the keys from the first moment (while it waited hidden it could
+    not, and nothing could be typed: keep it see-through, never `visibility: hidden`).
+  - The cloud curtains are gone (WakeClouds.tsx). A bump that wakes him (`WAKE`): at 350 ms the picture shrinks 6% and
+    fades in 160 ms while its rim flies off as 14 pixel puffs, at 730 the bedroom opens to the whole screen and its
+    camera goes to the results view, at 1,400 the board slides in. A bump he sleeps through (`DRIFT`): from 900 ms the
+    window shrinks into the tail's top puff and the puffs pop away, the room at 1,400, the board at 1,600. Both are
+    shorter than before (1.7 s and 2.65 s). The bedroom's canvas cannot go from the strip's slice to the whole room in
+    one move, so the room fades in (the pack allows a cross-fade).
+  - The results board is Results.tsx: a kit board 420 wide, 24 from the right (a sheet of at most 60% of the height
+    under him on a phone), the quilt band 10 high with blanket stitch, the title on a lantern ribbon, the count on the
+    nightshirt's pocket counting up in 600 ms, the facts one to a line, "Your night sky" (a small canvas: the sky of
+    the stage reached, its moon, and the night's words in dots, 40 ms apart; if they do not all fit, the newest that
+    do), the streak card (seven squares, a check on each night earned, tonight ringed; the pack's new blanket line),
+    the coins card with its rows coming in 80 ms apart, Share, Practice and Back to the farm as slabs, and "The next
+    dream arrives at 12:00 am." The bedroom's picture is slid by a view offset so the bed and the farmer sit in the
+    middle of what the board leaves uncovered; nothing covers him. Over his head: an "!" for the first second when he
+    woke, large "z"s when he drifted off (`RoomAnchors.head`). The knitted card, its slate, the knit stitches with
+    their "V" marks, the brass Share and the board hung from the beam's hook are gone from this mode.
+  - The facts follow the night with no last fence: "Asleep after 30 fences" and the longest word when he drifted off
+    (not the pack's "No bumps": the night now always ends on one); "Fence 8 of 30" and the longest word when he woke.
+  - Not built from the pack, each small: the five shooting stars as he goes out cold, the star words falling as loose
+    dots when the dream pops (it is gone in 160 ms), the candle dimming at the opening, the 1.03 overshoot.
+  - The pack's checks that were not run (file 08, section 2): the recorded night replayed after every milestone (2, 3),
+    the flash test on recorded frames (5), contrast measured in the built game (7), the kit's surface test on the new
+    pieces (8), the 23-step contact sheets at two sizes with clips (11). What was run: the type check, every test, the
+    build, the size check, the scene checker, and each milestone looked at in a browser at 1440 x 900 and on phone
+    sizes, a whole night to fence 33 once.
 

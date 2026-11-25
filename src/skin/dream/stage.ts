@@ -121,12 +121,19 @@ export function bumpOverlap(ms: number): number {
   return Math.max(0, nose - face);
 }
 
-/** The wake-up timeline (V4.1 Part 7.4), in ms from the bump. */
-/** The wake-up, in ms from the bump: the farmer stirs, the dream pops and the clouds roll in (WakeClouds, covered
- *  CLOUD_MS.covered later), the dream is hidden once they cover it, the results come up under them, and `reveal` after
- *  that they part. */
-export const WAKE = { stir: 350, pop: 600, popMs: 500, dark: 1650, finish: 1700, reveal: 450, reducedFinish: 600, shakeMs: 300, shake: 0.03 } as const;
-/** The drift-off (V4 Part 15), in ms from the last fence: when the clouds roll in, and when the results come up under them. */
-export const DRIFT = { clouds: 900, finish: 2650, reducedFinish: 600 } as const; // clouds: gentle ones, covered 1,700 ms later
+/**
+ * The woken ending (docs/dream/07, section 3.2), ms from the bump: the farmer starts up and the bonk stars come out
+ * (`stir`), the dream pops (`pop`, over `popMs`), the bedroom opens to the whole screen and its camera goes to the
+ * results view (`room`), and the results board slides in (`board`). Under reduced motion there is no pop: the room
+ * and the board come at once.
+ */
+export const WAKE = { stir: 350, pop: 350, popMs: 380, room: 730, board: 1400, reducedRoom: 300, reducedBoard: 600 } as const;
+/**
+ * The out-cold ending (07, section 3.1), ms from the bump he sleeps through: the dream sinks into his head (`sink`,
+ * over `sinkMs`), then the room and the board.
+ */
+export const DRIFT = { sink: 900, sinkMs: 500, room: 1400, board: 1600, reducedRoom: 300, reducedBoard: 600 } as const;
+/** The opening (07, section 2), ms from the dream coming up: the tail's puffs pop up, the window grows, the ready board. */
+export const OPENING = { puffs: 200, puffGap: 80, grow: 440, grown: 860 } as const;
 /** Where the first fence waits before the first key, in logical pixels ahead of the sheep's nose. */
 export const FIRST_FENCE_AHEAD = 560; // about 5 s before the first jump (Brian: "you get barely any time")

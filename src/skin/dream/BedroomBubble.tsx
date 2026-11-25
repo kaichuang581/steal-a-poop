@@ -13,7 +13,7 @@ import type { Pose, PoseName } from './farmer';
 import type { FarmerHandle } from './FarmerFigure';
 import { FarmerInBed } from './FarmerInBed';
 import { voxelMaterial } from '../voxel/material';
-import { BEAM, BED, bedroomGeometry, CANDLE, CLOCK, foldedQuilt, LAMP, roomOn, smooth, stripWall } from './bedroom';
+import { BED, bedroomGeometry, CANDLE, CLOCK, foldedQuilt, LAMP, roomOn, smooth, stripWall } from './bedroom';
 import { stripCamera, stripExtent } from './frame';
 import type { DreamFrame, StripCamera } from './frame';
 import type { Phase, StageLive } from './DreamStage';
@@ -41,8 +41,10 @@ const NIGHT = '#141836';
 const LAMP_LIGHT = { low: 1.1, high: 4.2 } as const;
 const GLASS = { low: 0.35, high: 1.6 } as const;
 
-/** The HTML that hangs in the room: the results board from the beam's hook. */
-export interface RoomAnchors { board: MutableRefObject<HTMLElement | null> }
+/** The HTML placed in the room: what is over his head (his "z"s, the "!"). */
+export interface RoomAnchors { head: MutableRefObject<HTMLElement | null> }
+/** Where his head is in the room, for what is drawn over it: asleep on the pillow, and sat up against the headboard. */
+const OVER_HEAD = { asleep: [0.5, 1.12, 0.3], upright: [0.74, 1.98, 0.2] } as const;
 
 /**
  * The bed strip (docs/dream/01-farmer.md, section 4): the farmer's bedroom in a canvas of its own along the bottom of the
@@ -178,15 +180,16 @@ function Room({ live, phase, reduced, phone, blankets, anchors, depth, strip, fr
     cam.look.set(cam.from.x + (shot.target[0] - cam.from.x) * k, cam.from.y + (shot.target[1] - cam.from.y) * k, shot.target[2] * k);
     if (camera.fov !== shot.fov) { camera.fov = cam.fov + (shot.fov - cam.fov) * k; camera.updateProjectionMatrix(); }
     camera.lookAt(cam.look);
-    // The board hangs from the beam's hook: project it every frame.
-    const put = (el: HTMLElement | null | undefined, x: number, y: number, z: number) => {
-      if (!el) return;
-      const v = cam.p.set(x, y, z).project(camera);
-      el.style.left = `${((v.x + 1) / 2) * size.width}px`;
-      el.style.top = `${((1 - v.y) / 2) * size.height}px`;
-    };
-    // A phone's frame is too narrow to show the beam and the bed together: there the board hangs from the top edge.
-    if (!phone) put(anchors?.board.current, BEAM.hookX + 0.05, BEAM.y, BEAM.z + 0.2);
+    // The board stands beside him, not over him (07, section 4.1): the picture is slid so that the bed and the farmer
+    // sit in the middle of the part of the screen it leaves uncovered (to the left of it; above it on a phone).
+    const sx = phone ? 0 : Math.round(Math.min(size.width * 0.34, 222 * frame.u) * k), sy = phone ? Math.round(size.height * 0.36 * k) : 0;
+    if (cam.key !== `${sx}:${sy}:${size.width}:${size.height}`) { cam.key = `${sx}:${sy}:${size.width}:${size.height}`; camera.setViewOffset(size.width, size.height, sx, sy, size.width, size.height); }
+    // What is over his head: project his head every frame.
+    const el = anchors?.head.current, over = L.asleepAt !== null ? OVER_HEAD.asleep : OVER_HEAD.upright;
+    if (el) {
+      const v = cam.p.set(over[0], over[1], over[2]).project(camera);
+      el.style.transform = `translate3d(${(((v.x + 1) / 2) * size.width).toFixed(1)}px, ${(((1 - v.y) / 2) * size.height).toFixed(1)}px, 0)`;
+    }
   });
   return (
     <>

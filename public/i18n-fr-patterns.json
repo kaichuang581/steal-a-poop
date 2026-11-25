@@ -207,4 +207,7 @@
 ["^(\\d+) points each$", "$1 points chacune"],
 ["^of (\\d+)$", "sur $1"],
 ["^best (\\d+)$", "record $1"],
-["^(\\d+) sheep counted, of (\\d+)$", "$1 moutons comptés, sur $2"]]
+["^(\\d+) sheep counted, of (\\d+)$", "$1 moutons comptés, sur $2"],
+["^Asleep after (\\d+) fences$", "Endormi après $1 clôtures"],
+["^Fence (\\d+) of (\\d+)$", "Clôture $1 sur $2"],
+["^\\+(\\d+) Wool Coins$", "+$1 pièces de laine"]]

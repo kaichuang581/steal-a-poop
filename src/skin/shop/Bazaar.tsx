@@ -100,7 +100,10 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
     w.setBook(bookKind, bookItems.map((item) => ({ item, found: wallet.owned.includes(item.id) })), now());
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const worldObj = useMemo(() => { const w = new MarketWorld(); onScene(w); return w; }, []);
+  const worldObj = useMemo(() => new MarketWorld(), []);
+  // The world the canvas draws is the one the page drives: React may build the memo twice in development, and filling
+  // the ref inside it pointed the page at a copy nobody saw (the Barn Book kept its first page's models).
+  if (world.current !== worldObj) onScene(worldObj);
   useEffect(() => { world.current?.setPicked(sack, now()); world.current?.setBench(pool, now()); }, [sack, pool]);
   useEffect(() => { world.current?.setBook(bookKind, bookItems.map((item) => ({ item, found: wallet.owned.includes(item.id) })), now()); }, [bookKind, bookItems, ownedKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (world.current) world.current.focus = focus ? { id: focus.id, at: now() } : null; if (!focus) world.current?.stopShow(); }, [focus]);
@@ -195,7 +198,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   const anchors = useMemo(() => ({ add: (t: Tick) => { ticks.add(t); return () => { ticks.delete(t); }; }, view: () => view.current }), [ticks]);
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="The Trading Post" className="tp" data-phone={phone || undefined} data-reduced={reduced || undefined} style={{ ...TP_COLOURS, '--u': u } as CSSProperties}
+    <div role="dialog" aria-modal="true" aria-label="The Trading Post" className="tp" data-phone={phone || undefined} data-reduced={reduced || undefined} data-focus={focus ? "" : undefined} style={{ ...TP_COLOURS, '--u': u } as CSSProperties}
       onPointerDown={(e) => { if (phone) swipe.current = e.clientX; }}
       onPointerUp={(e) => { if (phone && swipe.current !== null && !reveal && !focus && Math.abs(e.clientX - swipe.current) > 60 && e.clientY < H * 0.45) step(e.clientX < swipe.current ? 1 : -1); swipe.current = null; }}>
       <div className="tp-sky" aria-hidden="true" />

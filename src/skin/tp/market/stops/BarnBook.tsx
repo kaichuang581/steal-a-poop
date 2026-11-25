@@ -25,7 +25,7 @@ export function BookStop({ wallet, kind, items, setFocus, turn, phone, page }: {
         return (
           <span key={item.id}>
             <At as="button" box={[x - 0.3, y, x + 0.3, y + 0.62, 0]} className="tp-hit" aria-label={`Look at ${item.name}`} onClick={() => setFocus(item)} />
-            <At p={[x, y, 0]} className="tp-ledge">
+            <At p={[x, y, 0]} className={n === 10 ? "tp-ledge tp-ledge--tight" : "tp-ledge"}>
               <b>{item.name}</b>
               <Rarity item={item} />
               {worn ? <span className="tp-green"><Icon name="tick" size={12} />Wearing</span> : owned ? <span className="tp-green"><Icon name="tick" size={12} />Found. Wear it</span> : <span className="tp-from"><Icon name="lock" size={11} />{sourceLine(item)}</span>}

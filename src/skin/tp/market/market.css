@@ -181,6 +181,8 @@
 .tp-book-head--right > * { transform: translateX(-100%); }
 .tp-ledge { display: flex; flex-direction: column; align-items: center; width: 0; pointer-events: none !important; white-space: nowrap; }
 .tp-ledge b { font-size: calc(15px * var(--u)); margin-top: 4px; }
+/* Ten to a spread: three columns 0.57 m apart, so each line wraps inside its own column. */
+.tp-ledge--tight > * { width: max-content; max-width: calc(108px * var(--u)); white-space: normal; text-align: center; justify-content: center; }
 
 /* The close view. */
 .tp-dim { position: absolute; inset: 0; z-index: -1; background: none; border: 0; }
@@ -229,3 +231,6 @@
 .tp[data-phone] .tp-ledge b { font-size: 12px; }
 
 .tp[data-reduced] *, .tp[data-reduced] { animation: none !important; }
+
+/* The close view (T6 section 4): the rest of the stop dims to 60%, its words with its models; the item's own tag does not. */
+.tp[data-focus] .tp-layer > :not(.tp-closeat):not(.tp-dim) { opacity: 0.6; transition: opacity 200ms; }

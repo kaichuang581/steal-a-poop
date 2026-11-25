@@ -254,8 +254,10 @@ export function PaintedHome() {
       caption: 'You against one bot, on one life. Chain as many words as you can.', onSelect: () => setStep('practice'),
     },
     { id: 'tutorial', label: 'Tutorial', icon: <MenuIcon id="tutorial" />, caption: 'A guided first game with the sheepdog, who shows you every rule as it comes up.', disabled: !ready, onSelect: () => startTour('menu') },
-    // The Trading Post and the leaderboards are in the top bar (the wallet and the trophy) since the "Word chain" Home
-    // (Brian, 2026-11-20, picked from the mock-ups): before, they were the menu's last two items (2026-11-14).
+    // The Trading Post is also the menu's last row (Brian, 2026-11-25: "make the shop accessible from the core menu as
+    // well instead of just the plus sign"); the wallet and the plus in the top bar still open it. The leaderboards stay
+    // in the top bar (the trophy) since the "Word chain" Home (2026-11-20).
+    { id: 'shop', label: 'Trading Post', icon: <MenuIcon id="shop" />, caption: 'Feed Sacks, the Bell Shelf, Missions and the Barn Book. Only for show: nothing there changes a game.', onSelect: () => setBazaar(true) },
   ];
   // The name plate opens the profile, where the name, the avatar and the stats live.
   const shownName = (signedIn ? accountName : settings.name) || '';

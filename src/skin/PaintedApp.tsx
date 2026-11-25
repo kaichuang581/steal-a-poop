@@ -45,6 +45,8 @@ const PropBoard = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) 
 // ?preview=pen: the lobby's pen with four guests and no server, to look at the scene alone (development only).
 const RoomPreview = DEV ? lazy(() => import('./rooms/RoomPreview').then((m) => ({ default: m.RoomPreview }))) : null;
 const PenPreview = DEV ? lazy(() => import('./rooms/PenStage').then((m) => ({ default: () => <m.PenStage guests={['sheep', 'cow', 'pig', 'chicken'].map((avatar, i) => ({ id: `p${i}`, name: ['Brian', 'Maple', 'Barley', 'Tansy'][i], avatar, you: i === 0, host: i === 0 }))} max={10} reduced={false} phone={innerWidth < 640} frame={null} /> }))) : null;
+// ?preview=farmer: the farmer board (docs/dream/01-farmer.md, section 2): the model beside Brian's sheet, the match, his poses.
+const FarmerBoard = DEV ? lazy(() => import('./dream/FarmerBoard').then((m) => ({ default: m.FarmerBoard }))) : null;
 const PaletteSwatches = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PaletteSwatches }))) : null;
 // ?preview=boards: the leaderboards alone, without the farm under them, for photographing every tab and state quickly
 // (development only; the boards come from whatever server `sap:server` names, which a test browser can stand in for).
@@ -195,6 +197,7 @@ export function PaintedApp() {
   if (PREVIEW === 'mini' && MiniPreview) return <Suspense fallback={null}><MiniPreview /></Suspense>;
   if (PREVIEW === 'prop' && PropPreview) return <Suspense fallback={null}><PropPreview /></Suspense>;
   if (PREVIEW === 'props' && PropBoard) return <Suspense fallback={null}><PropBoard /></Suspense>;
+  if (PREVIEW === 'farmer' && FarmerBoard) return <Suspense fallback={null}><FarmerBoard /></Suspense>;
   if (PREVIEW === 'palette' && PaletteSwatches) return <Suspense fallback={null}><PaletteSwatches /></Suspense>;
   if (PREVIEW === 'boards' && BoardsPreview) return <Suspense fallback={null}><BoardsPreview /></Suspense>;
   if (PREVIEW === 'wendigo') return <div style={{ position: 'fixed', inset: 0 }}><WendigoPreviewCanvas /></div>;

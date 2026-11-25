@@ -837,21 +837,26 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       '<group ref={clock} position={[CLOCK.x, CLOCK.y + 0.025, CLOCK.z]} rotation={[0, CLOCK.turn, 0]}>',
       '<mesh geometry={b.clock} material={vox} />',
       '<mesh ref={ring} geometry={b.ring} material={selfLit} visible={false} />',
-      '<group ref={bump} position={[0, BED.mattress.top, 0]}><mesh geometry={b.quiltBump} material={vox} position={[0, -BED.mattress.top, 0]} /></group>',
-      '<group position={[0.34, BED.pillowTop + 0.05, -0.02]} rotation={[0.3, -0.35, -0.95]}>',
-      '<group rotation={[0, Math.PI / 2, 0]}>',
-      '<group rotation={[-Math.PI / 2, 0, 0]}>',
-      '<group ref={lieBody}><mesh geometry={f.body} material={vox} /></group>',
-      '<group ref={lieHead} position={[0, HEAD_PIVOT, 0]}>',
-      '<group position={[0, -HEAD_PIVOT, 0]}>',
-      '<mesh ref={asleep} geometry={f.asleep} material={vox} />',
-      '<mesh ref={awake} geometry={f.awake} material={vox} visible={false} />',
-      '<mesh ref={lidA} geometry={f.lidA} material={vox} position={[0, EYE_TOP, 0]} visible={false} />',
-      '<mesh ref={lidB} geometry={f.lidB} material={vox} position={[0, EYE_TOP, 0]} visible={false} />',
-      '<mesh geometry={f.cap} material={vox} />',
+      '<FarmerInBed ref={farmer} material={vox} pose={POSES.bedSleep} />',
+    ]);
+    // The farmer and the quilt over him: FarmerInBed.tsx lays FarmerFigure.tsx on the bed (farmer.ts has the model and poses).
+    mirrors('src/skin/dream/FarmerInBed.tsx', [
+      '<group ref={over} position={[0, top, 0]} visible={!up}>',
+      '<mesh geometry={b.quiltLegs} material={material} position={[0, -top, 0]} />',
+      '<group ref={chest} position={[WAIST_X, 0, IN_BED.z]}>',
+      '<mesh geometry={b.quiltChest} material={material} position={[-WAIST_X, -top, -IN_BED.z]} />',
+      '<mesh ref={satMesh} geometry={sat} material={material} visible={up} position={[-pose.scoot, 0, 0]} />',
+      '<group ref={figure} position={[lying.position[0] - pose.scoot, lying.position[1], lying.position[2]]} quaternion={lying.quaternion}>',
+      '<FarmerFigure ref={farmer} material={material} pose={pose} />',
+    ]);
+    mirrors('src/skin/dream/FarmerFigure.tsx', [
+      '<group key={p} ref={(g) => { groups.current[p] = g; }} position={first[p].position} quaternion={first[p].quaternion} scale={first[p].scale} visible={p.startsWith(\'slipper\') ? pose.slippers : true}>',
+      '<mesh geometry={geo.pieces[p]} material={material} />',
     ]);
     const bedroom = await load<typeof import('../../src/skin/dream/bedroom')>('src/skin/dream/bedroom.ts');
-    const b = bedroom.bedroomGeometry(), f = bedroom.farmerGeometry();
+    const farmer = await load<typeof import('../../src/skin/dream/farmer')>('src/skin/dream/farmer.ts');
+    const { Euler } = await import('three');
+    const b = bedroom.bedroomGeometry(), f = farmer.farmerGeometry();
     const { CLOCK, BED } = bedroom;
     L.put(b.room, 'bedroom.room');
     L.put(b.glow, 'bedroom.glow');
@@ -860,17 +865,25 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
       t.put(b.clock, 'bedroom.clock');
       t.put(b.ring, 'bedroom.ring');
     });
-    L.thing('quilt', { at: [0, BED.mattress.top, 0], moves: 'it rises and falls with his breath' }, (t) => t.put(b.quiltBump, 'bedroom.quiltBump', { at: [0, -BED.mattress.top, 0] }));
-    L.thing('farmer', [{ at: [0.34, BED.pillowTop + 0.05, -0.02], rotation: [0.3, -0.35, -0.95], moves: 'he breathes, stirs and sits up' }, { rotation: [0, Math.PI / 2, 0] }, { rotation: [-Math.PI / 2, 0, 0] }], (t) => {
-      t.put(f.body, 'farmer.body');
-      t.put(f.asleep, 'farmer.asleep');
-      t.put(f.cap, 'farmer.cap');
+    L.thing('quilt', { at: [0, BED.mattress.top, 0], moves: 'it rises and falls with his breath, and the part over his chest lifts with him' }, (t) => {
+      t.put(b.quiltLegs, 'bedroom.quiltLegs', { at: [0, -BED.mattress.top, 0] });
+      t.put(b.quiltChest, 'bedroom.quiltChest', { at: [0, -BED.mattress.top, 0] });
     });
-    L.skip(f.awake, 'farmer.awake', 'drawn in place of the sleeping head once he wakes');
-    L.skip(f.lidA, 'farmer.lidA', 'drawn only once he wakes');
-    L.skip(f.lidB, 'farmer.lidB', 'drawn only once he wakes');
+    // Asleep (`bedSleep`): every piece where that pose puts it, under the piece that carries it, on the bed.
+    const lying = farmer.lyingAt(BED.mattress.top), placed = farmer.placePose(farmer.POSES.bedSleep);
+    const turn = (q: { x: number; y: number; z: number; w: number }): [number, number, number] => { const e = new Euler().setFromQuaternion(q as never, 'XYZ'); return [e.x, e.y, e.z]; };
+    const chain = (p: (typeof farmer.PIECES)[number]): { at: [number, number, number]; rotation: [number, number, number] }[] => {
+      const up = farmer.PARENT[p], here = { at: placed[p].position.toArray() as [number, number, number], rotation: turn(placed[p].quaternion) };
+      return up ? [...chain(up), here] : [{ at: lying.position, rotation: turn(lying.quaternion) }, here];
+    };
+    for (const p of farmer.PIECES) {
+      if (p.startsWith('slipper')) { L.skip(f.pieces[p], `farmer.${p}`, 'on his feet only when he stands; in bed his slippers are the pair on the rug'); continue; }
+      const [first, ...rest] = chain(p);
+      L.thing(`farmer.${p}`, [{ ...first, moves: 'he breathes, stirs, starts up and sits up' }, ...rest], (t) => t.put(f.pieces[p], `farmer.${p}`));
+    }
+    for (const [name, g] of [...Object.entries(f.face.eyes), ...Object.entries(f.face.mouth), ...Object.entries(f.face.brows)]) L.skip(g, `farmer.face.${name}`, 'his eyes, mouth and brows: paint and small pieces on his face, shown by his pose');
     L.notes.push('the ring lines (bedroom.ring) are laid out with the clock, though the game shows them only while it rings');
-    L.notes.push('the farmer sitting up, his folded quilt and his rubbing arm (shown on the results) are not built');
+    L.notes.push('the farmer is built asleep (bedSleep); the quilt pushed down to his waist (shown once he sits up) and his folded Warm Blankets are not built');
   },
 
   /**

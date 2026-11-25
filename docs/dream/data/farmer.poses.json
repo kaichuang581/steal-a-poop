@@ -1,0 +1,146 @@
+{
+ "note": "Poses are data, blended in the frame loop. Angles are in degrees from the pose 'stand'. In bed he lies on his back with his head at the headboard end (screen left), so his RIGHT side faces the camera: 'near' means his right, 'far' means his left. face.eyes: closed | open | wide. face.mouth: closed | open. face.brows: units moved (minus is down).",
+ "parts": [
+  "body",
+  "head",
+  "cap",
+  "capTail",
+  "armL",
+  "armR",
+  "handL",
+  "handR",
+  "legL",
+  "legR",
+  "slipperL",
+  "slipperR"
+ ],
+ "poses": {
+  "stand": {
+   "when": "the farmer board only",
+   "lying": false,
+   "face": {
+    "eyes": "open",
+    "mouth": "closed",
+    "brows": 0
+   }
+  },
+  "bedSleep": {
+   "when": "stages 1 and 2",
+   "lying": true,
+   "head": {
+    "turnTowardCamera": 20
+   },
+   "armNear": "on the quilt, along his side",
+   "armFar": "under the quilt",
+   "quiltTo": "armpits",
+   "capTail": "lying on the pillow, toward the headboard",
+   "face": {
+    "eyes": "closed",
+    "mouth": "closed",
+    "brows": 0
+   },
+   "breath": {
+    "every_s": 3.2,
+    "chestRise": 0.04,
+    "beardRise_units": 0.5
+   }
+  },
+  "bedDeep": {
+   "when": "stage 3, the finale, the 'drifted off' results",
+   "lying": true,
+   "head": {
+    "turnTowardCamera": 20,
+    "rollBack": 8
+   },
+   "cap": {
+    "slipTowardBrows_units": 3
+   },
+   "armNear": "hanging off the bed's side, 70 down",
+   "armFar": "under the quilt",
+   "face": {
+    "eyes": "closed",
+    "mouth": "open",
+    "brows": 0
+   },
+   "breath": {
+    "every_s": 4.0,
+    "chestRise": 0.05,
+    "hitch_s": 0.2
+   }
+  },
+  "bedStir": {
+   "when": "the fence is close",
+   "lying": true,
+   "head": {
+    "turnTowardCamera": 30
+   },
+   "handNear": {
+    "turn": 30,
+    "note": "grips the quilt"
+   },
+   "face": {
+    "eyes": "closed",
+    "mouth": "closed",
+    "brows": -1
+   },
+   "breath": {
+    "every_s": 1.6,
+    "chestRise": 0.04
+   },
+   "blendIn_ms": 250,
+   "blendOut_ms": 400
+  },
+  "bedJolt": {
+   "when": "a bump",
+   "lying": true,
+   "body": {
+    "rise": 25
+   },
+   "capTail": "swings up 40",
+   "face": {
+    "eyes": "wide",
+    "mouth": "open",
+    "brows": 2
+   },
+   "blendIn_ms": 120,
+   "hold_ms": 300,
+   "mark": "bang"
+  },
+  "bedUpright": {
+   "when": "the 'woke up' results",
+   "lying": false,
+   "sitting": true,
+   "body": {
+    "upright": 80
+   },
+   "hands": "flat on the quilt, one each side",
+   "cap": {
+    "lean": 12
+   },
+   "face": {
+    "eyes": "open",
+    "mouth": "closed",
+    "brows": "inner ends 1 lower"
+   },
+   "rule": "no arm ever crosses his face or beard"
+  }
+ },
+ "snore": {
+  "glyph": "z",
+  "rises": "from his nose, along the bubble's tail, into the smallest puff",
+  "colour": "wool-hi",
+  "stage1": {
+   "every_s": 0.8,
+   "px": 2
+  },
+  "stage2": {
+   "every_s": 0.6,
+   "px": 3
+  },
+  "stage3": {
+   "every_s": 0.45,
+   "px": 4
+  },
+  "onWordTaken": "one extra z, one size larger"
+ }
+}

@@ -1,0 +1,134 @@
+{
+ "note": "Colours for the Counting Sheep redesign. stages[n].sky runs from the top of the sky to the horizon.",
+ "tokens": {
+  "night": "#1B2742",
+  "night2": "#26365C",
+  "night3": "#34497A",
+  "nightDeep": "#141D36",
+  "ink": "#0E1528",
+  "wool": "#FFF4DC",
+  "woolHi": "#FFFDF4",
+  "woolLip": "#D8C49A",
+  "lantern": "#F2A444",
+  "lanternHi": "#FFD98A",
+  "lanternLip": "#B96F1E",
+  "frost": "#B9C8E6",
+  "ember": "#F48C6E",
+  "pastureHi": "#7BC48E"
+ },
+ "stages": {
+  "1": {
+   "name": "Dozing off",
+   "world": "His own farm, at night",
+   "bpm": 96,
+   "moon": {
+    "shape": "crescent",
+    "across": 96
+   },
+   "snow": "#EEF1FA",
+   "sky": [
+    "#141D36",
+    "#18254A",
+    "#1F2F5E",
+    "#2A3F78",
+    "#3A5290"
+   ],
+   "glow": "#5B6FA8",
+   "far": "#2B3A66",
+   "mid": "#22305A",
+   "shade": "#B9C8E6",
+   "soil": "#4A4258",
+   "soil2": "#3A3348",
+   "rock": "#2A2A48",
+   "mist": "#5B6FA8",
+   "northernLight": null,
+   "snowfall": "falls"
+  },
+  "2": {
+   "name": "Dreaming",
+   "world": "The farm lifts off",
+   "bpm": 112,
+   "moon": {
+    "shape": "full",
+    "across": 128
+   },
+   "snow": "#F1EEFB",
+   "sky": [
+    "#15173A",
+    "#1D1F4E",
+    "#262A66",
+    "#37347E",
+    "#4B3F8F"
+   ],
+   "glow": "#7B67C0",
+   "far": "#342F73",
+   "mid": "#2A2660",
+   "shade": "#C4BCEB",
+   "soil": "#4B3A5E",
+   "soil2": "#3C2E4D",
+   "rock": "#2B2450",
+   "mist": "#7B67C0",
+   "northernLight": [
+    "#9CCB78",
+    "#6FC7D6",
+    "#7B67C0"
+   ],
+   "snowfall": "rises"
+  },
+  "3": {
+   "name": "Deep dream",
+   "world": "Under the quilt",
+   "bpm": 128,
+   "moon": {
+    "shape": "full",
+    "across": 190,
+    "finaleAcross": 300
+   },
+   "snow": "#FBEFF6",
+   "sky": [
+    "#1A1030",
+    "#2A1646",
+    "#3A1D5C",
+    "#582C78",
+    "#7A3E8F"
+   ],
+   "glow": "#C96FA8",
+   "far": "#4A2A70",
+   "mid": "#3A2060",
+   "shade": "#DDB9DD",
+   "soil": "#523355",
+   "soil2": "#41284A",
+   "rock": "#2E1A44",
+   "mist": "#C96FA8",
+   "northernLight": null,
+   "snowfall": "none (feathers fall)"
+  }
+ },
+ "quilt": [
+  "#A84A42",
+  "#E6DCC6",
+  "#3F6B4A",
+  "#C99A4A",
+  "#2B3A66"
+ ],
+ "quiltNames": [
+  "red",
+  "cream",
+  "green",
+  "mustard",
+  "navy"
+ ],
+ "moon": {
+  "face": "#FFE9A8",
+  "crater": "#F2D58E"
+ },
+ "yarnRed": "#C44A3A",
+ "needle": "#B8B0A6",
+ "yarnRedDark": "#933529",
+ "yarnRedLight": "#D97A66",
+ "nightshirt": {
+  "face": "#E6DFD3",
+  "stripe": "#8F97AC"
+ },
+ "pillow": "#F4F0EA"
+}

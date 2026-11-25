@@ -51,6 +51,8 @@ export interface StageLive {
   stumbleUntil: number;
   /** When the dream ended with the farmer still asleep (a bump he slept through). */
   asleepAt: number | null;
+  /** When he went out cold (the night's fence mark): from then on he sleeps deep. */
+  deepAt?: number | null;
   speed: number;
   fences: { index: number; x: number; locked: boolean; passed: boolean; jumped: boolean; knockedAt: number | null }[];
 }

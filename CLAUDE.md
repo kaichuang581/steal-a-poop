@@ -2464,3 +2464,62 @@ loading screen keeps its own colour (it must stand alone).
   `dreamSummary` reads "Asleep after 30 fences, 47 sheep counted, longest word 9 letters". Coins for sheep stay capped at
   30. A perfect typist is never bumped through fence 150 (run.test.ts). Seen in the browser: out cold at 30, played on to
   36, bumped, "The farmer drifted off, 36 sheep". The fences were pinned again for it.
+
+## Counting Sheep, redesigned (Brian, 2026-11-24) — plan: docs/dream/ (pack version 2)
+"execute this", of the plan pack counting-sheep-plan.zip, saved whole as docs/dream/ (README.md first; 00 to 08, data/,
+reference/, tools/). It replaces PLAN_COUNTING_SHEEP.md version 1 completely. Where the pack's numbers and its text
+differ, data/ wins for numbers and the text for behaviour; its sketches lose to both.
+- Brian's decisions (docs/dream/00-overview.md, section 1): (1) everything on the Counting Sheep screens looks ugly to
+  him: the dream world, the farmer, the typing area and counters, the results card. (2) The farmer is rebuilt to match
+  his reference sheet, one to one. (3) The farmer sleeps in his bed along the bottom of the screen and the dream rises
+  above him as one big thought bubble. (4) The word you type appears as letter tiles in a tray. (5) The dream world: "do
+  whatever is most exciting, i want this to be as cool as geometry dash". (6) How the game plays is not novel enough for
+  him, but that comes later. (7) It must be high quality and fit the theme, "without just recycling the same stuff over
+  and over again". Earlier words that still bind this work: no blocky voxel clouds, no harsh colour contrasts, texture
+  and detail with shapes that look intended, no knitted texture across a whole screen, no element without a reason for
+  being there, the sheep never shown shorn.
+- The pack says "this plan changes no rule". In the same message Brian asked for two rule changes (the smooth ramp and
+  the night with no last fence: the bullet above this section), so those stand, and the pack's 30-fence things are read
+  with them: the night track and "of 30" count up to the fence that puts him out cold, the finale is the last five
+  fences before it, and after it the dream runs on in its third world until a bump.
+- How it runs: milestones CS1 to CS7 (docs/dream/08-run-order-and-checks.md), one local branch each (`dream/cs1-farmer`
+  ...), stacked, local commits, no push or pull request until Brian says. The pack stops for Brian after every
+  milestone; by his standing words for plans ("get done with the milestones", 2026-11-16) the work goes on to the next
+  one and each milestone's pictures are sent to him as it lands. The pack's check 2 (a recorded night replayed to the
+  millisecond after every milestone) is not built ahead of the work, by the same words; the existing run and mapping
+  tests are what holds the rules.
+- CS1, the farmer, as built (2026-11-24). src/skin/dream/farmer.ts is the model and the poses, pure: the pack's 106 boxes
+  (farmerBoxes.ts, a copy of docs/dream/data/farmer.boxes.json that a test holds equal) drawn as voxels of one unit,
+  0.02 m, coloured through `shade()` (so `harmonize()`, as for the animals). A box thinner than a unit (a stripe, a
+  button, the collar) is paint on the cell under it. His eyes and mouth are paint a fifth of a unit proud of his face,
+  one mesh a state (eyes closed, open, wide; mouth closed, open); his brows are a unit proud and slide. FarmerFigure.tsx
+  draws him as a jointed figure; FarmerInBed.tsx lays him in the bed with the quilt over him.
+  - The pack's twelve parts map to fifteen pieces: `body` is `lap` (below the waist, y < 25) and `torso` (he sits up
+    from the small of his back); `armL` / `armR` are the upper sleeve and `foreL` / `foreR` (below the elbow, y < 42,
+    so an arm can hang off the bed's side); head, cap, capTail, hands, legs and slippers keep their names. The old
+    farmer's parts (a 0.02 m head with lids, a 0.04 m body, a sitting body, a rubbing arm) and their motions (`stirAt`,
+    `settleAt`, `drowsyAt`) are gone, with their tests; nothing of the old rig was kept, since no part of it matched.
+  - Poses are data (`POSES`: stand, bedSleep, bedDeep, bedStir, bedJolt, bedUpright; the angles are this rig's, from
+    docs/dream/data/farmer.poses.json's words and numbers), eased in the frame loop (`blendPose`, `BLEND_MS`,
+    `breathAt`). `poseFor` in BedroomBubble.tsx picks one: asleep, deep asleep once a sign asks three letters or he is
+    out cold, stirring when an unanswered fence is 1.5 s off, the jolt on a bump, sitting up grumpy in the "woke up"
+    results, deep asleep in the "drifted off" results. He goes on breathing under reduced motion; poses cut there.
+  - In bed he lies on his back with his head at the headboard, so his right side faces the room (`lyingAt`, `IN_BED`:
+    the base of his neck 0.72 m down the bed, 0.2 m toward the room, so the deep-sleep arm clears the mattress's edge).
+    His head is lifted 8 units onto the pillow and sinks a few centimetres into it. Sitting up he shuffles 0.52 m toward
+    the headboard (`Pose.scoot`): sat where he sleeps, the results board hid him.
+  - The bedroom changed only where he needed it: the pillow is 0.8 m wide (was 0.5) and lies under his head; the quilt
+    over him is two pieces shaped to his body (`quiltOverGeometry`: the part over his chest lifts with him), and the
+    quilt he sits up out of is a roll across his lap and a step over his legs (`quiltSat`); the shelf has five standing
+    books in the quilt's five colours; a wicker knitting basket with the game's red yarn and two steel needles stands
+    on the floor beside the nightstand (`BASKET`); the slippers on the rug are the sheet's grey pair. The small bubble's
+    camera now looks from the room's side (it looked from the foot of the bed, where his face could not be seen).
+  - The farmer board: `?preview=farmer` (development only, FarmerBoard.tsx): six views beside the same views cut from
+    the sheet, the outline match and twelve colour points worked out in the page (window.__farmerMatch), and the five
+    bed poses in his bedroom from the bed's side (`&part=views|poses`). Measured: front outline overlap 0.914, back
+    0.905 (pass mark 0.88); the twelve colours are within 0.055 (OKLab) of the sheet's, the nightshirt and sleeve the
+    furthest (the sheet's cloth is shaded where it was sampled). The match is the board's own, not a test in `npm test`.
+  - Deviations, for Brian: the basket is built in the bedroom's own grid, not from the diorama's recipes and placement
+    list (the bedroom has neither); the cap's tail lies on the pillow on his far side, mostly hidden from the bed's
+    side; his "z"s, the "?" on a wrong word and the "!" on a bump are the bubble's old ones until CS2 and CS3 redo them.
+  - tools/scenes/build.ts mirrors the new components, and `npm run check:floating -- --scene bedroom` passes.

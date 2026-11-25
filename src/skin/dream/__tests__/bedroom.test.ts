@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bedroomGeometry, farmerGeometry, farmerSitting, quiltSat } from '../bedroom';
+import { bedroomGeometry, quiltSat } from '../bedroom';
 
 const tris = (g: { index: { count: number } | null }) => (g.index?.count ?? 0) / 3;
 
@@ -11,10 +11,7 @@ describe("the farmer's bedroom", () => {
     expect(tris(b.room)).toBeLessThan(70_000);
     expect(tris(b.room) + tris(b.glow)).toBeLessThan(100_000);
   });
-  it('gives the farmer two different faces, and builds him sitting up', () => {
-    const f = farmerGeometry();
-    expect(f.asleep.getAttribute('position').count).not.toBe(f.awake.getAttribute('position').count);
-    expect(tris(farmerSitting())).toBeGreaterThan(0);
+  it('builds the quilt he sits up out of', () => {
     expect(tris(quiltSat())).toBeGreaterThan(0);
   });
 });

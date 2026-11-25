@@ -6,6 +6,7 @@ import { meanOf } from '../voxel/paint';
 import { box, ellipsoid, Grid, hash3 } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { CHAR } from '../voxel/sheep';
+import { IN_BED, PIVOT, UNIT } from './farmer';
 
 /**
  * The farmer's bedroom on Christmas night (V4.1 Part 7, V6 Part 6.4), the real world under the dream, drawn in its own
@@ -14,8 +15,8 @@ import { CHAR } from '../voxel/sheep';
  * candle and holly on the sill and the moon beyond, gingham curtains, lights along the headboard, a knitted stocking on
  * the bedpost, a rag rug and slippers, a shelf, a framed sheep, a second window toward the foot of the bed and the beam
  * the results hang from (the bubble's camera sees only the corner by the bed; the results see the room). Grids: 0.05 m for the room and its furniture (the plan's 0.10 m made the board seams and trim a hand wide), 0.10 m
- * for the ceiling and beam, 0.025 m for the small things on the nightstand, the sill and the post, 0.04 m for the farmer's
- * body and 0.02 m for his head and the arm that rubs his eye. All in the room's own frame: the bed runs along +x with the headboard at x = 0, the
+ * for the ceiling and beam, 0.025 m for the small things on the nightstand, the sill and the post, 0.02 m for the farmer
+ * (farmer.ts). All in the room's own frame: the bed runs along +x with the headboard at x = 0, the
  * nightstand and the window on the -z side, the floor at y = 0.
  */
 export const BED = {
@@ -51,9 +52,13 @@ const STAND = { x0: 0.1, x1: 0.5, z0: -1.1, z1: -0.75, top: 0.6 } as const;
 export const LAMP = { x: 0.2, y: 0.6, z: -0.98 } as const;
 export const CLOCK = { x: 0.4, y: 0.6, z: -0.84, turn: 0.75 } as const;
 /** The candle on the window sill. */
+/** The knitting basket on the floor beside the nightstand: its middle. */
+export const BASKET = { x: 0.72, z: -0.92 } as const;
 export const CANDLE = { x: 0.62, y: WINDOW.y0 - 0.05, z: -1.2 } as const;
 /** The beam across the room and the hook the results board hangs from. */
 export const BEAM = { y: 2.2, z: 0.4, hookX: 2.15 } as const;
+/** The pillow, across the bed: under his head where he lies (farmer.ts `IN_BED`), with room for the cap's tail beside it. */
+const PILLOW = { z0: -0.3, z1: 0.5 } as const;
 
 /** The dream is over: the bubble opens to the whole room and the camera comes down to the bed. */
 export const roomOn = (phase: string) => phase === 'results';
@@ -165,8 +170,9 @@ export interface BedroomGeo {
   glow: BufferGeometry;
   /** The lamp's chimney and flame, turned low while he sleeps and up when he wakes. */
   lampGlass: BufferGeometry;
-  /** The quilt over him, which breathes. */
-  quiltBump: BufferGeometry;
+  /** The quilt over him, which breathes: the part over his chest (it lifts with him) and the part over his legs. */
+  quiltChest: BufferGeometry;
+  quiltLegs: BufferGeometry;
   /** The alarm clock about its own base, face toward +z, and the ring lines it throws when it goes off. */
   clock: BufferGeometry;
   ring: BufferGeometry;
@@ -232,7 +238,7 @@ export function bedroomGeometry(): BedroomGeo {
   for (const sz of [-1, 1]) box(g, [0, 0.2, sz > 0 ? m.w / 2 - D : -m.w / 2], [m.l, 0.35, sz > 0 ? m.w / 2 : -m.w / 2 + D], wood(19));
   box(g, [0, 0.35, -m.w / 2 + D], [m.l, m.top, m.w / 2 - D], (_x, y, z) => lin(mod(z, 3) === 0 ? '#C9D4E8' : TRIM[y === 10 ? 0 : 1]));
   // The pillow, a pale ticking with a blue stripe, chamfered.
-  box(g, [0.05, m.top, -0.25], [0.65, BED.pillowTop, 0.25], (_x, y, z) => lin(y >= i(BED.pillowTop) - 1 && mod(z, 3) === 0 ? '#C9D4E8' : '#EEF1F6'), 1);
+  box(g, [0.05, m.top, PILLOW.z0], [0.65, BED.pillowTop, PILLOW.z1], (_x, y, z) => lin(y >= i(BED.pillowTop) - 1 && mod(z, 3) === 0 ? '#C9D4E8' : '#EEF1F6'), 1);
   // The quilt from his waist to the foot, draped over the sides, and the sheet turned down over its top edge.
   const qz0 = -hw - 1, qPaint = quiltPaint(D, qz0);
   box(g, [0.95, m.top, qz0 * D], [m.l, m.top + D, (hw + 1) * D], qPaint);
@@ -342,8 +348,31 @@ export function bedroomGeometry(): BedroomGeo {
       const cuff = y === 4 || (y === 3 && z < z0 + 4 && (x === x0 || x === x0 + 3 || z === z0));
       if (y === 3 && z < z0 + 4 && !cuff) continue;
       if ((x === x0 || x === x0 + 3) && z === z0 + 9) continue;
-      fine.set(x, y, z, lin(cuff ? TRIM[0] : y === 2 ? '#7A2A26' : '#B5443C'));
+      fine.set(x, y, z, lin(cuff ? '#C9C1B6' : y === 2 ? '#9E968C' : '#B8B0A6'));
     }
+  }
+
+  // ---- the knitting basket on the floor beside the nightstand: 0.3 m of wicker, a ball of the game's red yarn in it and
+  // two steel needles standing crossed. The dream's third world is made of these.
+  {
+    const kx = Math.round(BASKET.x / S), kz = Math.round(BASKET.z / S), r = 6;
+    const WICKER = ['#B98B52', '#A0733F', '#8A6034'] as const;
+    for (let y = 0; y < 7; y++) for (let dx = -r; dx < r; dx++) for (let dz = -r; dz < r; dz++) {
+      const d = Math.max(Math.abs(dx + 0.5), Math.abs(dz + 0.5)), round = Math.hypot(dx + 0.5, dz + 0.5);
+      if (round > r + 0.3 - (y === 0 ? 1 : 0)) continue;
+      const wall = round > r - 1.4 - (y === 0 ? 1 : 0) || d > r - 1;
+      if (y > 0 && !wall) continue; // hollow above its floor
+      // A weave: bands that step every other row; a darker rim on top.
+      fine.set(kx + dx, y, kz + dz, lin(y === 6 ? WICKER[2] : WICKER[(Math.floor((dx + dz + 40) / 2) + y) % 2]));
+    }
+    ellipsoid(fine, [(kx - 1) * S, 0.17, (kz + 0.5) * S], [0.085, 0.08, 0.085], (x, y, z) => lin((x + y * 2 + z) % 4 === 0 ? '#A63C30' : '#C44A3A'));
+    // The needles: thin steel, crossed, leaning out of the yarn.
+    for (let k = 0; k < 13; k++) {
+      fine.set(kx + 3 - Math.round(k * 0.3), 5 + k, kz - 2 + Math.round(k * 0.22), lin('#B9BEC8'));
+      fine.set(kx - 4 + Math.round(k * 0.3), 5 + k, kz - 1 + Math.round(k * 0.12), lin('#C9CED8'));
+    }
+    fine.set(kx + 3 - Math.round(12 * 0.3), 18, kz - 2 + Math.round(12 * 0.22), lin('#8F949E'));
+    fine.set(kx - 4 + Math.round(12 * 0.3), 18, kz - 1 + Math.round(12 * 0.12), lin('#8F949E'));
   }
 
   // ---- the shelf over the window: a knitted sheep, two jars of preserves, a stack of books
@@ -360,9 +389,12 @@ export function bedroomGeometry(): BedroomGeo {
     box(fine, [x0 * S, fy * S, (fz - 1) * S], [(x0 + 3) * S, (fy + 4) * S, (fz + 2) * S], c(col));
     box(fine, [x0 * S, (fy + 4) * S, (fz - 1) * S], [(x0 + 3) * S, (fy + 5) * S, (fz + 2) * S], c('#E9D9B8'));
   }
-  for (const [k, col] of [[0, '#3D5A8A'], [1, '#B5443C'], [2, '#4F7A55']] as const) {
-    const x0 = Math.round(0.14 / S) + (k === 1 ? 1 : 0);
-    box(fine, [x0 * S, (fy + k * 1.5) * S, (fz - 2) * S], [(x0 + 7) * S, (fy + k * 1.5 + 1.5) * S, (fz + 2) * S], c(col));
+  // Five books standing on the shelf, in the quilt's five colours (docs/dream/01-farmer.md, section 4): red, mustard,
+  // green, navy, cream. Each its own height and thickness, a pale band across its spine.
+  let bx = Math.round(0.12 / S);
+  for (const [col, w, h] of [['#A84A42', 3, 9], ['#C99A4A', 2, 8], ['#3F6B4A', 3, 10], ['#2B3A66', 2, 9], ['#E6DCC6', 3, 8]] as const) {
+    box(fine, [bx * S, fy * S, (fz - 2) * S], [(bx + w) * S, (fy + h) * S, (fz + 3) * S], (_x, y) => lin(y === fy + h - 2 ? (col === '#E6DCC6' ? '#C99A4A' : '#E6DCC6') : col));
+    bx += w + (col === '#3F6B4A' ? 1 : 0);
   }
   // A framed sheep on the side wall: a cream fleece on a night-blue ground, read from the room (its right is -z).
   const SHEEP = ['..........', '...####...', '..######h.', '.#######hh', '..######..', '...#..#...', '..........'];
@@ -373,349 +405,78 @@ export function bedroomGeometry(): BedroomGeo {
     fine.set(px, py + y, pz - x, lin(ch === 'F' ? T.brass[2] : ch === '#' ? TRIM[0] : ch === 'h' ? '#3A2E2A' : y < 2 ? '#4F7A55' : '#2A3366'));
   }
 
+  const over = quiltOverGeometry(qPaint);
   bedroomCache = {
     room: cullUnseen(mergeGeometries([buildGeometry(g.map, D), buildGeometry(big.map, B), buildGeometry(fine.map, S), buildGeometry(lamp.map, S)], false)!),
     glow: cullUnseen(mergeGeometries([buildGeometry(glow.map, D, { ao: false }), buildGeometry(glowFine.map, S, { ao: false })], false)!),
     lampGlass: buildGeometry(lampGlass.map, S, { ao: false }),
-    quiltBump: quiltBumpGeometry(qPaint),
+    quiltChest: over.chest,
+    quiltLegs: over.legs,
     clock: buildGeometry(clock.map, S),
     ring: buildGeometry(ring.map, S, { ao: false }),
   };
   return bedroomCache;
 }
 
+/** Where his waist is along the bed: the quilt over his chest lifts with him from here. */
+export const WAIST_X = IN_BED.neckX + (PIVOT.head[1] - PIVOT.torso[1]) * UNIT;
+/** The quilt's top edge: his armpits. */
+const QUILT_EDGE = IN_BED.neckX + (PIVOT.head[1] - 42) * UNIT;
+const step = (t: number) => { const u = Math.min(1, Math.max(0, t)); return u * u * (3 - 2 * u); };
 /**
- * The quilt over him, which rises and falls about the mattress top: a big round mound over his belly, his legs lower
- * toward the foot, and a cream sheet turned down at his chin.
+ * How high the quilt lies over him, above the mattress, at a place on the bed: a plateau over his body, hugging his
+ * near side so that arm can lie out on the flat of the quilt, wider on the far side where the other arm is under it,
+ * falling away toward his feet.
  */
-function quiltBumpGeometry(qPaint: Paint): BufferGeometry {
-  const m = BED.mattress, g = new Grid(D), hw = Math.round(m.w / 2 / D);
-  const over: Paint = (x, y, z) => (y * D < m.top ? null : x < 14 ? lin(TRIM[0]) : qPaint(x, y, z));
-  ellipsoid(g, [1.45, m.top, 0], [0.4, 0.14, 0.27], over, 0, 4);
-  // The belly, far enough down the bed that the hand he lies with rests on its slope rather than in it.
-  ellipsoid(g, [1.08, m.top, 0], [0.38, 0.27, 0.36], over, 0, 4);
-  box(g, [0.65, m.top, (-hw - 1) * D], [0.95, m.top + D, (hw + 1) * D], (x, y, z) => (x < 14 ? lin(TRIM[0]) : qPaint(x, y, z)));
-  box(g, [0.65, m.top + D, -0.32], [0.7, m.top + 2 * D, 0.32], () => lin(TRIM[0]));
-  return buildGeometry(g.map, D);
+function quiltHeight(x: number, z: number): number {
+  const u = z - IN_BED.z;
+  const across = u >= 0 ? 1 - step((u - 0.24) / 0.1) : 1 - step((-u - 0.42) / 0.12);
+  const along = 1 - 0.62 * step((x - (WAIST_X + 0.3)) / 0.28);
+  return 0.31 * across * along;
 }
-
-// ---------- the farmer ----------
-
-/** Weathered, ruddy skin, light to shade, and the creases at his eyes. */
-const SKIN = ['#EFB993', '#E3A57F', '#D3916D'] as const;
-const CREASE = '#B8755A';
-/** The cap's cuff and pom stay warm cream wool. */
-const WHISKER = ['#FCF8F0', '#F2EBDF', '#E6DCCB'] as const;
-/** Grizzled hair and whiskers: warm greys from near white to pewter, and a few dark flecks. */
-const GREY = ['#F2EEE8', '#DCD6CE', '#C0BAB2', '#9C958D'] as const;
-const BLUSH = '#E58C78';
-const NOSE = ['#E48A74', '#CC6A58'] as const;
-const IRIS = ['#5C3E31', '#3F2A23'] as const;
-const GLINT = '#FFF4E4';
-const LASH = '#8E5A48';
-const LIDSKIN = '#E8B08F';
-/** The head's grid, and the top of his eyes, where the lids hinge (head frame, metres). */
-const HS = 0.02;
-export const EYE_TOP = 0.2;
-/** The point the head turns about on the pillow (head frame, metres above the base of the neck). */
-export const HEAD_PIVOT = 0.13;
-/** The eyes' columns on the 0.02 m grid: the +x eye and the -x eye, two cells wide, rows 7 to 9. */
-const EYES = { a: [2, 3], b: [-4, -3] } as const;
-
-export interface FarmerGeo {
-  /** The head with both lids shut, baked in, for the long sleep: one draw. */
-  asleep: BufferGeometry;
-  /** The head with his eyes open; the lids close over it. */
-  awake: BufferGeometry;
-  /** Each eye's upper lid, hinged at `EYE_TOP` (its top edge at y = 0): scale y 0 is open, 1 is shut. */
-  lidA: BufferGeometry;
-  lidB: BufferGeometry;
-  cap: BufferGeometry;
-  body: BufferGeometry;
-}
-let farmerCache: FarmerGeo | null = null;
-
-/** The frontmost filled cell in a column of the grid, or null. */
-function frontZ(g: Grid, x: number, y: number): number | null {
-  for (let z = 20; z >= -20; z--) if (g.has(x, y, z)) return z;
-  return null;
-}
-
-/** One eye's upper lid, in cells under its hinge: skin over the eye and a cell past it each side, the lash line curving down. */
-function lidCells(head: Grid, cols: readonly number[]): Grid {
-  const g = new Grid(HS), c0 = cols[0] - 1;
-  for (let c = 0; c < 4; c++) {
-    const x = c0 + c, rows = c === 0 || c === 3 ? 2 : 3;
-    const z = Math.max(...[7, 8, 9].map((y) => frontZ(head, x, y) ?? 0)) + 1;
-    for (let r = 1; r <= rows; r++) g.set(x, -r, z, lin(r === rows ? LASH : r === 1 ? SKIN[0] : LIDSKIN));
-  }
-  return g;
-}
-
 /**
- * The farmer, built standing (face toward +z, crown at +y) about the base of his neck; the stage lays him down on the
- * pillow or props him up. A round head (an egg, plump at the cheeks and jowls, stepped by the voxels), small kind eyes
- * with a glint, a round red nose, a bushy moustache over a full, scruffy grey beard, bushy brows that droop at the ends,
- * ruddy cheeks, laugh lines at his eyes and grey tufts sticking out under his cap: plump and grizzled, still kind.
- * The lids are meshes of their own so a blink can ease. 0.02 m, not the plan's 0.04 m: a face that reads at bubble
- * size needs a head 15 voxels wide, and at 0.04 m it is 7.
+ * The quilt over him, in two pieces that rise and fall about the mattress top: the part over his chest (from his
+ * armpits to his waist, with the cream sheet turned down along its top edge), which lifts with him when he starts up,
+ * and the part over his legs.
  */
-export function farmerGeometry(): FarmerGeo {
-  if (farmerCache) return farmerCache;
-  const s = HS;
-  const skin: Paint = (x, y, z) => (y < 0 ? null : pick(SKIN, hash3(x >> 1, y >> 1, z >> 1, 5), [0.72, 0.97]));
-  /** Grizzled: mostly pale greys, some pewter, a dark fleck here and there; `paler` shifts the mix (below 0, darker). */
-  // One grey a part: the average of the mix its cubes were drawn from, one by one (docs/miniature/07, treatment B).
-  const grey = (paler = 0): Paint => {
-    const cut = (t: number) => Math.min(1, Math.max(0, t + paler)), share = [cut(0.42), cut(0.72) - cut(0.42), cut(0.92) - cut(0.72), 1 - cut(0.92)];
-    const c = [0, 1, 2].map((k) => GREY.reduce((n, hex, i) => n + lin(hex)[k] * share[i], 0)) as RGB;
-    return () => c;
-  };
-  const white = grey();
-  const g = new Grid(s);
-  // The head: a rounded block (a superellipsoid, so the face is broad and flat enough for its features and every edge
-  // rounds off in steps), plump through the cheeks and jowls.
-  for (let x = -9; x < 9; x++) for (let y = 0; y < 16; y++) for (let z = -9; z < 9; z++) {
-    const cy = y + 0.5, full = Math.max(0, 1 - Math.abs(cy - 4.5) / 5.5), a = 7.4 * (1 + 0.13 * full);
-    if (Math.abs((x + 0.5) / a) ** 3 + Math.abs((cy - 7.5) / 8) ** 3 + Math.abs((z + 0.75) / (6.25 * (1 + 0.05 * full))) ** 3 <= 1) g.set(x, y, z, skin(x, y, z)!);
+function quiltOverGeometry(qPaint: Paint): { chest: BufferGeometry; legs: BufferGeometry } {
+  const m = BED.mattress, chest = new Grid(D), legs = new Grid(D), hw = Math.round(m.w / 2 / D);
+  const x0 = Math.round(QUILT_EDGE / D), xw = Math.round(WAIST_X / D), x1 = Math.round(m.l / D), y0 = Math.round(m.top / D);
+  for (let x = x0; x < x1; x++) for (let z = -hw; z < hw; z++) {
+    const rows = Math.round(quiltHeight((x + 0.5) * D, (z + 0.5) * D) / D);
+    const g = x < xw ? chest : legs;
+    // Only the top two rows: what is under them is him.
+    for (let r = Math.max(0, rows - 2); r < rows; r++) g.set(x, y0 + r, z, x < x0 + 2 ? lin(TRIM[0]) : qPaint(x, y0 + r, z)!);
+    // The mound's own sides and ends, so it is closed wherever it stands above the flat of the quilt.
+    const edge = rows > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => Math.round(quiltHeight((x + dx + 0.5) * D, (z + dz + 0.5) * D) / D) < rows - 1 || x + dx < x0);
+    if (edge) for (let r = 0; r < rows; r++) g.set(x, y0 + r, z, x < x0 + 2 ? lin(TRIM[0]) : qPaint(x, y0 + r, z)!);
   }
-  // Hair: grey at the temples and round the back under the cap, down into bushy sideburns.
-  for (const v of g.map.values()) {
-    const ax = v.x < 0 ? -v.x - 1 : v.x;
-    if ((ax >= 6 && v.y >= 4 && v.y <= 11 && v.z <= 3) || (v.z <= -4 && v.y >= 7)) v.c = white(v.x, v.y, v.z)!;
-  }
-  // Tufts of grey hair sticking out from under the cap's cuff, over the ears and round the back.
-  for (let x = -10; x < 10; x++) for (let z = -10; z < 4; z++) for (const y of [10, 11]) {
-    const d = ((x + 0.5) / 8.4) ** 2 + ((z + 0.5) / 7.4) ** 2, tuft = hash3(x >> 1, y, z >> 1, 31);
-    if (d > 1 && d <= (y === 11 ? 1.3 : 1.18) && tuft < 0.6) g.set(x, y, z, white(x, y, z)!);
-  }
-  // Round ears.
-  for (const sx of [-1, 1]) ellipsoid(g, [sx * 0.158, 0.14, -0.01], [0.024, 0.038, 0.028], (_x, y) => lin(y === 7 ? SKIN[2] : SKIN[1]));
-  // A full, scruffy beard round the jowls and chin, its front a cell proud of the face with stray whiskers standing out
-  // of it and a ragged edge, so it reads as a few days' grizzle grown long, not a tidy mat.
-  for (const v of [...g.map.values()]) if (v.y <= 3 && v.z >= -3) v.c = white(v.x, v.y, v.z)!;
-  for (const [y, w] of [[3, 7], [2, 8], [1, 8], [0, 8], [-1, 7], [-2, 6], [-3, 4]] as const) for (let x = -w; x < w; x++) {
-    const ax = x < 0 ? -x - 1 : x, ragged = hash3(x, y, 0, 21);
-    if (ax === w - 1 && ragged < 0.35) continue;
-    const front = (ax >= w - 2 ? 5 : 6) + (ragged > 0.86 ? 1 : 0);
-    for (let z = -3; z <= front; z++) g.set(x, y, z, white(x, y, z)!);
-  }
-  for (const [x, y] of [[-2, -4], [1, -4], [-5, -3], [4, -3]] as const) g.set(x, y, 4, white(x, y, 4)!);
-  // Stubble creeping up the cheeks above the beard line.
-  for (let x = -9; x < 9; x++) for (const y of [4, 5]) {
-    const ax = x < 0 ? -x - 1 : x;
-    if (ax < 5 || hash3(x, y, 0, 23) > (y === 4 ? 0.7 : 0.3)) continue;
-    const z = frontZ(g, x, y);
-    if (z !== null) g.set(x, y, z, grey(-0.1)(x, y, z)!);
-  }
-  // The nose, round and red from the cold, lighter on top.
-  ellipsoid(g, [0, 0.112, 0.124], [0.03, 0.028, 0.028], (_x, y) => lin(NOSE[y >= 6 ? 0 : 1]));
-  // Full ruddy apple cheeks under the outer corners of the eyes, the middle of each a cell proud.
-  for (const sx of [-1, 1]) for (let x = -9; x < 9; x++) for (let y = 4; y <= 7; y++) {
-    const d = (x + 0.5 - sx * 5) ** 2 + (y + 0.5 - 5.6) ** 2;
-    if (d > 3.2) continue;
-    const z = frontZ(g, x, y);
-    if (z !== null) g.set(x, y, z + (d <= 1.3 ? 1 : 0), lin(BLUSH));
-  }
-  // The eyes: a warm brown, darker above, a glint low on the same side of each, so it shows under a heavy lid.
-  for (const cols of [EYES.a, EYES.b]) for (const x of cols) for (const y of [7, 8, 9]) {
-    g.set(x, y, frontZ(g, x, y)!, lin(y === 7 && x === cols[1] ? GLINT : IRIS[y === 7 ? 0 : 1]));
-  }
-  // Laugh lines: two creases fanning out from each eye's outer corner, and a soft crease under each eye.
-  for (const sx of [1, -1]) {
-    for (const [u, y] of [[2, 9], [3, 10], [2, 7], [3, 6]] as const) {
-      const x = sx > 0 ? 3 + u : -4 - u, z = frontZ(g, x, y);
-      if (z !== null) g.set(x, y, z, lin(CREASE));
-    }
-    for (const x of sx > 0 ? EYES.a : EYES.b) { const z = frontZ(g, x, 6); if (z !== null) g.set(x, 6, z, lin(SKIN[2])); }
-  }
-  // Bushy grey brows, two cells proud and a row deep, drooping at the outer ends, a few hairs standing out.
-  const brow = grey(-0.12);
-  for (const sx of [1, -1]) for (const [u, y, proud] of [[0, 11, 1], [1, 11, 2], [2, 11, 2], [3, 11, 1], [3, 10, 2], [4, 10, 1], [1, 12, 1], [2, 12, 1]] as const) {
-    const x = sx > 0 ? 1 + u : -2 - u, z = frontZ(g, x, y)!;
-    for (let k = 0; k <= proud; k++) g.set(x, y, z + k, brow(x, y, z + k)!);
-  }
-  // The moustache: two bushy lobes a cell proud of the beard, curling down past the mouth, paler than the beard.
-  const MOUSTACHE: [number, [number, number][]][] = [[4, [[-4, 3]]], [3, [[-6, 5]]], [2, [[-7, -3], [2, 6]]], [1, [[-7, -5], [4, 6]]]];
-  const stache = grey(0.18);
-  for (const [y, spans] of MOUSTACHE) for (const [a, b] of spans) for (let x = a; x <= b; x++) {
-    for (let z = frontZ(g, x, y)!; z <= 7 + (y === 3 && hash3(x, y, 0, 15) < 0.3 ? 1 : 0); z++) g.set(x, y, z, stache(x, y, z)!);
-  }
-  // A small soft mouth under it.
-  for (const x of [-1, 0]) g.set(x, 1, frontZ(g, x, 1)!, lin('#C9786A'));
-  const lidA = lidCells(g, EYES.a), lidB = lidCells(g, EYES.b);
-  // Asleep: the same head with both lids shut.
-  const shut = new Grid(s);
-  for (const [k, v] of g.map) shut.map.set(k, v);
-  for (const lid of [lidA, lidB]) for (const v of lid.map.values()) shut.set(v.x, v.y + Math.round(EYE_TOP / s), v.z, v.c);
-
-  // The nightcap: a rounded cream cuff, then a long striped cone that flops over to the +x side and down, a fluffy pom.
-  const cap = new Grid(s);
-  const path = (t: number): V3 => {
-    const a = Math.min(1, t * 1.6), u = Math.max(0, t * 1.6 - 0.6);
-    return [0.02 + 0.2 * a ** 2 + 0.12 * u, 0.28 + 0.16 * Math.sin(a * Math.PI * 0.6) - 0.22 * u ** 1.3, 0];
-  };
-  const N = 40, along = Array.from({ length: N + 1 }, (_, k) => path(k / N));
-  for (let k = 0; k <= N; k++) {
-    const r = 0.15 * (1 - k / N) + 0.025;
-    ellipsoid(cap, along[k], [r, Math.max(0.03, r * 0.75), r], (_x, y) => (y < 15 && k < 12 ? null : [0, 0, 0]));
-  }
-  // Each cell takes the stripe of the nearest point along the cap, so the bands run round it cleanly.
-  for (const v of cap.map.values()) {
-    let best = 0, bd = Infinity;
-    along.forEach((p, k) => { const d = ((v.x + 0.5) * s - p[0]) ** 2 + ((v.y + 0.5) * s - p[1]) ** 2 + ((v.z + 0.5) * s - p[2]) ** 2; if (d < bd) { bd = d; best = k; } });
-    v.c = lin(BED.cap[Math.floor((best / N) * 7) % 2]);
-  }
-  for (let x = -9; x < 9; x++) for (let z = -9; z < 9; z++) for (let y = 12; y <= 14; y++) {
-    const rx = y === 12 ? 8.6 : 8.2, rz = y === 12 ? 7.6 : 7.2;
-    if (((x + 0.5) / rx) ** 2 + ((z + 0.5) / rz) ** 2 <= 1) cap.set(x, y, z, pick(WHISKER, hash3(x, y, z, 11), [0.6, 0.95]));
-  }
-  const tip = path(1);
-  ellipsoid(cap, [tip[0] + 0.02, tip[1] - 0.04, 0], [0.05, 0.05, 0.05], (x, y, z) => pick(WHISKER, hash3(x, y, z, 13), [0.6, 0.95]), 0.25, 8);
-  // Broad, round shoulders in a striped flannel nightshirt under the turned-down sheet, a thick neck and a double chin
-  // under the beard, one plump hand out on the quilt.
-  const body = new Grid(s);
-  const flannel: Paint = (x) => lin(mod(x, 3) === 0 ? '#F3EAD6' : '#7F9CC9');
-  for (const sx of [-1, 1]) ellipsoid(body, [sx * 0.23, -0.1, 0], [0.17, 0.095, 0.115], flannel, 0.05, 2);
-  ellipsoid(body, [0, -0.02, 0.01], [0.13, 0.05, 0.11], handSkin);
-  box(body, [-0.13, -0.07, -0.07], [0.13, -0.03, 0.07], () => lin(TRIM[1]));
-  ellipsoid(body, [0.23, -0.22, 0.14], [0.07, 0.042, 0.065], handSkin);
-  box(body, [0.13, -0.21, -0.03], [0.33, -0.09, 0.12], flannel);
-  farmerCache = {
-    asleep: buildGeometry(shut.map, s), awake: buildGeometry(g.map, s),
-    lidA: buildGeometry(lidA.map, s), lidB: buildGeometry(lidB.map, s),
-    cap: buildGeometry(cap.map, s), body: buildGeometry(body.map, s),
-  };
-  return farmerCache;
+  return { chest: buildGeometry(chest.map, D), legs: buildGeometry(legs.map, D) };
 }
 
-/** Where the farmer sits up: the base of his neck, his torso turned this far toward the camera. */
-export const SITTING = { x: 0.42, y: 1.08, z: 0.02, turn: 0.55 } as const;
-/** He props himself up from his hips (this far under the base of his neck), and rubs his eye from the shoulder. */
-export const HIP = 0.5;
-export const SHOULDER: V3 = [0.25, -0.1, 0];
-const STRIPE = meanOf([...Array(17).fill('#7F9CC9'), ...Array(3).fill('#6F8DBB')]); // the blue stripe, one colour
-const shirt: Paint = (x) => (mod(x, 2) === 0 ? lin('#F3EAD6') : STRIPE);
-const handSkin: Paint = (x, y, z) => pick(SKIN, hash3(x, y, z, 5), [0.72, 0.97]);
-function limb(g: Grid, pts: V3[], r: number, paint: Paint) {
-  for (let k = 0; k < pts.length - 1; k++) for (let j = 0; j <= 6; j++) {
-    const t = j / 6, p = [0, 1, 2].map((n) => pts[k][n] + (pts[k + 1][n] - pts[k][n]) * t) as V3;
-    ellipsoid(g, p, [r, r, r], paint);
-  }
-}
-let sitCache: BufferGeometry | null = null;
-/**
- * The farmer propped up against the headboard, about the base of his neck like the heads: a striped flannel nightshirt
- * stretched over broad shoulders and a round belly, a placket of buttons down its front, a thick neck, one chunky arm
- * down with the hand on the quilt. The other arm, rubbing his
- * eye, is `farmerRubArm`. 0.04 m voxels.
- */
-export function farmerSitting(): BufferGeometry {
-  if (sitCache) return sitCache;
-  const g = new Grid(CHAR);
-  box(g, [-0.24, -0.52, -0.13], [0.24, -0.12, 0.13], shirt, 1);
-  ellipsoid(g, [0, -0.37, 0.06], [0.25, 0.18, 0.17], shirt);
-  ellipsoid(g, [0, -0.12, 0], [0.27, 0.1, 0.13], shirt);
-  // The collar and placket, cream, down the belly's curve, with three brass buttons.
-  for (let y = -12; y <= -2; y++) {
-    const z = frontZ(g, 0, y)!;
-    g.set(0, y, z, lin(TRIM[1]));
-    if (y === -4 || y === -7 || y === -10) g.set(0, y, z + 1, lin(T.brass[0]));
-  }
-  for (const x of [-2, -1, 1]) g.set(x, -2, frontZ(g, x, -2)!, lin(TRIM[0]));
-  box(g, [-0.12, -0.08, -0.08], [0.12, 0.02, 0.08], handSkin);
-  limb(g, [[-0.27, -0.1, 0], [-0.31, -0.26, 0.06], [-0.29, -0.4, 0.13]], 0.065, shirt);
-  ellipsoid(g, [-0.29, -0.46, 0.16], [0.055, 0.04, 0.065], handSkin);
-  return (sitCache = buildGeometry(g.map, CHAR));
-}
-
-let rubCache: BufferGeometry | null = null;
-/**
- * The arm that rubs his eye: up from the shoulder, elbow out and forward, a cream cuff, a loose fist with its knuckles in
- * his +x eye. In the sitting frame, carried by the head so the fist stays at the eye as he nods. 0.02 m, finer than the
- * body's 0.04 m: at 0.04 m the fist is two voxels and melts into his cheek.
- */
-export function farmerRubArm(): BufferGeometry {
-  if (rubCache) return rubCache;
-  const g = new Grid(HS);
-  const fist: Paint = (x, y, z) => (z >= 9 && mod(x, 2) === 0 && y >= 7 ? lin('#B9735A') : pick(['#E5A47F', '#D8936F', '#C88262'], hash3(x, y, z, 3), [0.6, 0.95]));
-  limb(g, [[0.25, -0.1, 0], [0.35, -0.13, 0.14], [0.18, 0.05, 0.2]], 0.06, (x, y) => (mod(x + y, 4) < 2 ? lin('#F3EAD6') : STRIPE));
-  ellipsoid(g, [0.165, 0.065, 0.195], [0.06, 0.032, 0.06], () => meanOf([...Array(7).fill(TRIM[0]), ...Array(3).fill(TRIM[1])]));
-  limb(g, [[0.16, 0.08, 0.19], [0.14, 0.12, 0.18]], 0.038, fist);
-  ellipsoid(g, [0.115, 0.152, 0.168], [0.055, 0.05, 0.042], fist);
-  return (rubCache = buildGeometry(g.map, HS));
-}
-
-// ---------- how he moves (pure, so it can be tested) ----------
+// ---------- how he moves ----------
 
 const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 /** Cubic ease in and out: every move starts and lands at rest, so nothing snaps. */
 export const smooth = (t: number) => { const u = clamp01(t); return u < 0.5 ? 4 * u ** 3 : 1 - (-2 * u + 2) ** 3 / 2; };
 
-/** The stir on a bump, lying down: the head turns on the pillow (roll) and nods, each lid 1 shut .. 0 open, the quilt heaves. */
-export interface Stir { roll: number; nod: number; lidA: number; lidB: number; heave: number }
-/** [ms after the bump, roll, nod, lidA, lidB, heave]: a flinch, a toss toward the window, then one eye cracks open ("hm?"). */
-const STIR_KEYS = [
-  [0, 0, 0, 1, 1, 0],
-  [300, 0.14, -0.05, 1, 1, 0.6],
-  [600, -0.2, 0.04, 1, 1, 1],
-  [880, -0.14, -0.07, 1, 0.5, 0.35],
-  [1300, -0.11, -0.09, 0.85, 0.55, 0.15],
-] as const;
-export const STIR_MS = STIR_KEYS[STIR_KEYS.length - 1][0];
-export function stirAt(ms: number): Stir {
-  let k = 0;
-  while (k < STIR_KEYS.length - 2 && ms >= STIR_KEYS[k + 1][0]) k++;
-  const a = STIR_KEYS[k], b = STIR_KEYS[k + 1], u = smooth((ms - a[0]) / (b[0] - a[0]));
-  const at = (i: number) => a[i] + (b[i] - a[i]) * u;
-  return { roll: at(1), nod: at(2), lidA: at(3), lidB: at(4), heave: at(5) };
-}
-/** A bump that does not end the night: the same stir up to the peek, then he settles back to sleep. */
-export function settleAt(ms: number): Stir {
-  const p = stirAt(Math.min(ms, 880)), k = 1 - smooth((ms - 950) / 700);
-  return { roll: p.roll * k, nod: p.nod * k, lidA: 1 - (1 - p.lidA) * k, lidB: 1 - (1 - p.lidB) * k, heave: p.heave * k };
-}
-
-/** Propped up in the results: lean back from the hips, head droop and tilt, both lids (0 open .. 1 shut), the rub's offset. */
-export interface Drowsy { lean: number; droop: number; tilt: number; lid: number; rub: [number, number] }
-/** Half-lidded at rest. */
-export const DROWSY_LID = 0.45;
-const DOZE = { every: 9, from: 3.5, sink: 1.6, hold: 0.7, catch: 0.5 } as const;
-const BLINK = { every: 3.7, ms: 0.38 } as const;
-const RUB = { every: 9, from: 0.8, for: 2.6, hz: 1.4 } as const;
-const wrap = (t: number, n: number) => t - Math.floor(t / n) * n;
-/**
- * `since` is seconds since the room arrived. He pushes himself up groggily over 1.6 s, rubbing his eye, then breathes,
- * sways, blinks slowly, nods off now and then and catches himself. Reduced motion: the settled pose, held.
- */
-export function drowsyAt(since: number, reduced: boolean): Drowsy {
-  if (reduced) return { lean: 0.14, droop: 0.06, tilt: -0.07, lid: DROWSY_LID, rub: [0, 0] };
-  const rise = smooth(since / 1.6), breath = Math.sin((since / 4.2) * Math.PI * 2);
-  let lean = 0.36 - 0.22 * rise + 0.012 * breath, droop = 0.22 - 0.16 * rise + 0.01 * breath;
-  const tilt = -0.07 + 0.025 * Math.sin((since / 7.3) * Math.PI * 2);
-  let lid = DROWSY_LID + (1 - DROWSY_LID) * (1 - rise) * 0.8;
-  // Nodding off: the lids sink and the head drops, then he catches himself, a little quicker.
-  const d = since - DOZE.from, du = wrap(d, DOZE.every);
-  const doze = d < 0 ? 0 : du < DOZE.sink ? smooth(du / DOZE.sink) : du < DOZE.sink + DOZE.hold ? 1 : 1 - smooth((du - DOZE.sink - DOZE.hold) / DOZE.catch);
-  droop += 0.12 * doze; lean += 0.04 * doze;
-  lid = Math.max(lid, DROWSY_LID + (1 - DROWSY_LID) * 0.92 * doze);
-  // A slow blink, eased shut and open, when he is not dozing.
-  const bu = wrap(since, BLINK.every) / BLINK.ms;
-  if (since > 1.6 && doze === 0 && bu < 1) lid = Math.max(lid, DROWSY_LID + (1 - DROWSY_LID) * Math.sin(bu * Math.PI) ** 2);
-  // Rubbing the eye: small circles of the fist, faded in and out.
-  const r = since - RUB.from, ru = wrap(r, RUB.every);
-  const env = r < 0 || ru > RUB.for ? 0 : Math.sin((ru / RUB.for) * Math.PI) ** 2, w = since * RUB.hz * Math.PI * 2;
-  return { lean, droop, tilt, lid, rub: [0.05 * env * Math.sin(w), 0.035 * env * Math.cos(w)] };
-}
-
 let quiltSatCache: BufferGeometry | null = null;
-/** The quilt pushed down to his waist: a fold along the bed at the waist and his legs under the rest. */
+/**
+ * The quilt once he has sat up, pushed down to his waist: a thick roll of it across his lap with the cream sheet on
+ * top, then his legs under the rest, one step lower. Three plain shapes, each a body part. Built where he sleeps; the
+ * bed slides it up with him as he shuffles toward the headboard (`Pose.scoot`).
+ */
 export function quiltSat(): BufferGeometry {
   if (quiltSatCache) return quiltSatCache;
   const m = BED.mattress, g = new Grid(D), hw = Math.round(m.w / 2 / D), qPaint = quiltPaint(D, -hw - 1);
-  box(g, [0.5, m.top, (-hw - 1) * D], [0.95, m.top + D, (hw + 1) * D], qPaint);
-  box(g, [0.55, m.top + D, (-hw - 1) * D], [0.8, m.top + 3 * D, (hw + 1) * D], (x, y, z) => (y === 12 ? lin(TRIM[0]) : qPaint(x, y, z)), 1);
-  ellipsoid(g, [1.4, m.top + 0.05, 0], [0.55, 0.1, 0.22], (x, y, z) => (y * D < m.top + 0.05 ? null : qPaint(x, y, z)));
+  const x0 = Math.round((WAIST_X + 0.2) / D), y0 = Math.round(m.top / D);
+  const roll = x0 + 4, legs = roll + 8, feet = legs + 6;
+  for (let x = x0; x < feet; x++) for (let z = -hw; z < hw; z++) {
+    const u = Math.abs((z + 0.5) * D - IN_BED.z);
+    if (u > 0.33) continue;
+    const full = x < roll ? 7 : x < legs ? 5 : 3, rows = u > 0.27 || x === feet - 1 ? full - 1 : full;
+    for (let r = 0; r < rows; r++) g.set(x, y0 + r, z, x < roll && r >= rows - 2 ? lin(TRIM[0]) : qPaint(x, y0 + r, z)!);
+  }
   return (quiltSatCache = buildGeometry(g.map, D));
 }
 

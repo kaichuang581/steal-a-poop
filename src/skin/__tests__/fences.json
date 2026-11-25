@@ -151,7 +151,7 @@
     "src/audio/musicKit.ts": "3fa9c59aa2ddcf80e6ea228f7b7b576daaef841ad538d38e8313e3fa853ccbfe",
     "src/audio/scene.ts": "b7a5d6f6f584193e66df7aa680fd42830897152284d2938b5b7567448f3f2474",
     "src/audio/songs.ts": "2fc783a90e893cdd0fde4553be7353f4ed789f02e8d8ac5d16796063dd6d0d8b",
-    "src/audio/sound.ts": "61bc5b50942eb3107db025235059f254123c5e1758fab5a3f47d5f6b8f710fda",
+    "src/audio/sound.ts": "bfec2f8d19d19d0de249193052208f84542686328fb4972421fa7b7aee2782cc",
     "src/auth/__tests__/authStore.test.ts": "21f8b7b8ef663a0f25d4ecf04be070ecc4cca328b6a4f144be729c1656ad9f66",
     "src/auth/__tests__/guest.test.ts": "f1088f568bcd2e7bea035d9d8a046ed8cc8f4a45eda8e940e952d848897bca1e",
     "src/auth/authStore.ts": "2ba668cce9220ad1ead2415bdaed91bd0f26ff0525d8e2475e20c3995672a99b",

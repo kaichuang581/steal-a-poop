@@ -106,7 +106,10 @@ interface Props {
    * with the clock's time and read at once. The state still runs the blink, the face and the idle layer underneath.
    */
   rig?: (t: number) => RigPose;
-  /** Practice draws its own fitted ice block (docs/trading-post-practice P3 section 7): false leaves this one out. */
+  /**
+   * Practice draws its own fitted ice block (docs/trading-post-practice P3 section 7): false leaves out this one and the
+   * wind curls, streaks and shards round it. The animal still frosts over and holds its frozen pose.
+   */
   block?: boolean;
 }
 
@@ -789,7 +792,6 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
   const fx = useMemo(() => freezeFx(m), [m]);
-  fx.block.userData.on = block;
   const r = useRef<Record<string, Object3D | null>>({});
   const root = useRef<Group>(null);
   const set = (k: string) => (o: Object3D | null) => { r.current[k] = o; };
@@ -1036,6 +1038,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     body.traverse((x) => { const role = x.userData.shadow as ShadowRole | undefined; if (role) x.castShadow = cast && !inStandIn(role); });
 
     runFreezeFx(fx, live, e, reduced, gustFrom, state === 'thawing');
+    if (!block) fx.root.visible = false;
     (o.frost as Mesh).visible = level > 0 && ((live === 'freezing' && e >= 0.8 && !reduced) || live === 'frozen') && drawn((o.frost as Mesh).geometry);
     (o.frost as Mesh).scale.setScalar(live === 'freezing' ? clamp01((e - 0.8) / 0.8) : 1);
   });
@@ -1257,7 +1260,7 @@ function runFreezeFx(fx: ReturnType<typeof freezeFx>, live: SheepState, e: numbe
   if (fx.snow.visible) fx.snow.position.y = -((e * 0.6) % 2);
   // The block forms 1.2 to 2.0 s, bounces 2.0 to 2.4 s, stays while frozen, breaks on the thaw.
   const blockOn = frozen || (freezing && e >= 1.2);
-  fx.block.visible = blockOn && !thawing && fx.block.userData.on !== false;
+  fx.block.visible = blockOn && !thawing;
   if (fx.block.visible) {
     const grow = frozen ? 1 : reduced ? 1 : 0.2 + 0.8 * easeOut((e - 1.2) / 0.8);
     const bounce = freezing && e > 2 ? 1 + Math.sin(((e - 2) / 0.4) * Math.PI) * 0.02 : 1;

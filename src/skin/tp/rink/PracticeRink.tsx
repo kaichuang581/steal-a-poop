@@ -149,7 +149,8 @@ export function PracticeRink({ input, states, boomKey, reduced, phone, dreamWait
   const [report, setReport] = useState<number | null>(null);
   useEffect(() => {
     if (!over) { setReport(null); cam.current.craneAt = null; return; }
-    const wait = Math.max(0, boomAt + T.report.starts_after_burst_ms - performance.now());
+    // The run ends on the bang itself: the report begins 1,100 ms after it.
+    const wait = T.report.starts_after_burst_ms;
     const id = setTimeout(() => {
       const at = performance.now();
       cam.current.craneAt = at;
@@ -218,7 +219,7 @@ export function PracticeRink({ input, states, boomKey, reduced, phone, dreamWait
   return (
     <div className="rk" data-phone={phone || undefined} data-reduced={reduced || undefined}>
       <RinkTable states={states2} avatar={avatar} bot={bot} holder={holder} bomb={bomb} blast={blast} boomKey={boomKey}
-        frozenSeat={over && game.players[0].frozen ? 0 : null} frozenAt={boomAt} board={board} cam={cam} coach={coach} pins={pins} reduced={reduced} phone={phone} fps={fps} />
+        frozenSeat={over ? 0 : null} frozenAt={boomAt} board={board} cam={cam} coach={coach} pins={pins} reduced={reduced} phone={phone} fps={fps} />
       <div className="rk-pins" aria-live="polite">
         {[0, 1].map((seat) => {
           const p = game.players[seat];
@@ -251,7 +252,7 @@ export function PracticeRink({ input, states, boomKey, reduced, phone, dreamWait
         </div>
       </div>
       {phone && report === null && (
-        <div className="rk-strip">
+        <div className="rk-strip" onPointerDown={(e) => { e.preventDefault(); field.current?.focus(); }} onClick={() => field.current?.focus()}>
           <Tiles word={shown} letterLocked={!!L} shakeKey={shakeKey} caret={playing} />
           <PassTile ready={mine} onPass={() => input.submit()} />
         </div>
@@ -298,7 +299,7 @@ function Report({ words, phone, skipped, onAgain, onFarm, dream }: { words: stri
   }, [skipped]); // eslint-disable-line react-hooks/exhaustive-deps
   const d = (ms: number) => ({ animationDelay: `${skipped ? 0 : ms}ms` });
   return (
-    <div className="rk-report" data-skipped={skipped || undefined}>
+    <div className="rk-report hm" data-skipped={skipped || undefined}>
       <p className="rk-report-head" style={d(slipsAt)}>Your words</p>
       <div className="rk-slips">
         {(log ? words : shown).map((w, i) => <span key={i} className="rk-slip" style={d(slipsAt + i * 30)}>{w}</span>)}

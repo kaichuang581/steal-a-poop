@@ -19,7 +19,7 @@ import { animalModel } from '../../voxel/animals';
 import { tokenColour, toGeometry } from '../../dream/models';
 import { GLOW } from '../../dream/models.gen';
 import { makeBomb, skinOf } from '../bomb';
-import { burstKeyOf, makeBurst, TOTAL_MS } from '../burst';
+import { burstKeyOf, makeBurst } from '../burst';
 import { placeShiftCamera } from '../camera';
 import { partBit, tpMesh, tpObject } from '../models';
 import { RINK, TIMINGS } from '../models.gen';
@@ -39,6 +39,8 @@ export const RINK_CAM = { CAM: 9, run: { eye: 2.7, A: 210, line: 0.7 }, report: 
 /** The phone's tile strip over the keyboard, px: the scene is laid out in the height above it. */
 export const PHONE_RACK_PX = 64;
 const SIDE = RINK.sheep_x_m;
+/** The night's stars in the top of the sky: fixed places on a golden-angle walk, so the sky is the same every run. */
+const STARS: [number, number, number][] = Array.from({ length: 30 }, (_, i) => [((i * 61.8) % 100), 2 + ((i * 38.2) % 40), i % 4 ? 2 : 3]);
 
 export interface RinkCamState {
   /** performance.now() the crane up to the report began, or null during the run. */
@@ -91,6 +93,7 @@ export interface Pin { el: RefObject<HTMLElement | null>; at: () => readonly [nu
 export function RinkTable(p: RinkSceneProps) {
   return (
     <div className="absolute inset-0" style={{ background: `linear-gradient(${RINK.sky.top}, ${RINK.sky.mid} 55%, ${RINK.sky.horizon})` }}>
+      {STARS.map(([x, y, s], i) => <i key={i} className="rk-star" style={{ left: `${x}%`, top: `${y}%`, width: s, height: s }} />)}
       <SceneBoundary scene="the rink">
         <AdaptiveCanvas maxDpr={p.phone ? 1.5 : 2} memory="rink" fps={p.fps}
           resize={{ offsetSize: true }}
@@ -271,7 +274,7 @@ function Coach({ coach, reduced }: { coach: RinkSceneProps['coach']; reduced: bo
 }
 
 /** You and the bot, face to face, the bot in its bib (P3 section 1), each standing in its chalk ring. */
-function Duellists({ states, avatar, bot, frozenSeat, frozenAt, reduced }: RinkSceneProps) {
+function Duellists({ states, avatar, bot, frozenSeat, frozenAt, reduced, cam }: RinkSceneProps) {
   const you = byId(avatar ?? undefined);
   const youModel = !isAdminAvatar(avatar) && you ? animalModel(you.animal) : undefined;
   const bib = useMemo(() => tpObject(`bib${bot[0].toUpperCase()}${bot.slice(1)}`, { festive: true }, flat), [bot]);
@@ -290,13 +293,13 @@ function Duellists({ states, avatar, bot, frozenSeat, frozenAt, reduced }: RinkS
           </group>
         );
       })}
-      <IceBlock seat={frozenSeat} at={frozenAt} reduced={reduced} />
+      <IceBlock seat={frozenSeat} at={frozenAt} reduced={reduced} cam={cam} />
     </>
   );
 }
 
 /** The fitted ice block (P3 section 7): frost edges, a snow cap and icicles, clear faces at 22% of ice 0; it grows from the hooves up in 260 ms. */
-function IceBlock({ seat, at, reduced }: { seat: number | null; at: number; reduced: boolean }) {
+function IceBlock({ seat, at, reduced, cam }: { seat: number | null; at: number; reduced: boolean; cam: RefObject<RinkCamState> }) {
   const g = useMemo(() => {
     const root = new Group();
     root.add(tpObject('iceBlock', { festive: true }, flat));
@@ -306,8 +309,10 @@ function IceBlock({ seat, at, reduced }: { seat: number | null; at: number; redu
     return root;
   }, []);
   useFrame(() => {
-    g.visible = seat !== null;
-    if (seat === null) return;
+    // Gone once the camera has craned up to the report: its snow cap would otherwise clip the window's lower corner.
+    const crane = cam.current!.craneAt;
+    g.visible = seat !== null && (crane === null || performance.now() - crane < TIMINGS.practice.report.camera_crane_ms * 0.5);
+    if (!g.visible || seat === null) return;
     g.position.set(seat === 0 ? -SIDE : SIDE, 0, 0);
     const k = reduced ? 1 : Math.min(1, (performance.now() - at) / TIMINGS.practice.frozen.ice_grows_ms);
     g.scale.set(1, Math.max(0.001, k), 1);
@@ -323,12 +328,12 @@ function RinkBomb({ holder, bomb, blast, boomKey, cam, coach, reduced }: RinkSce
     const m = new MeshBasicMaterial({ color: new Color(...tokenColour('ice:2', GLOW)), toneMapped: false });
     return [-0.5, -0.32, -0.15, 0.15, 0.32, 0.5].map(() => new Mesh(new BoxGeometry(0.05, 0.05, 0.05), m));
   }, []);
-  const st = useRef({ seat: holder, from: 0, to: 0, at: -1e9, boom: boomKey, boomAt: -1e9, bx: 0 });
+  const st = useRef({ seat: holder, from: 0, to: 0, at: -1e9, boom: boomKey, boomAt: -1e9, bx: 0, spent: false });
   const spotX = (seat: number | null) => (seat === 1 ? RINK.bomb_at_m.bot[0] : RINK.bomb_at_m.player[0]);
   useFrame(() => {
     const s = st.current, now = performance.now(), P = TIMINGS.practice.pass;
     if (boomKey !== s.boom) {
-      s.boom = boomKey; s.boomAt = now; s.bx = b.group.position.x;
+      s.boom = boomKey; s.boomAt = now; s.bx = b.group.position.x; s.spent = true;
       cam.current!.shakeAt = now;
       coach.current!.blowAt = now; coach.current!.blows = 2;
     }
@@ -339,7 +344,9 @@ function RinkBomb({ holder, bomb, blast, boomKey, cam, coach, reduced }: RinkSce
     // The bang: the bomb is gone, the burst plays where it stood.
     burst.group.position.set(s.bx, 0, RINK.bomb_at_m.player[2]);
     burst.at(sinceBoom, reduced);
-    const gone = sinceBoom < TOTAL_MS + 600 && holder === null;
+    // Gone from the bang until someone holds a fresh bomb (a run ends on it, so for good there).
+    if (holder !== null) s.spent = false;
+    const gone = s.spent;
     b.group.visible = !gone;
     const e = now - s.at, u = Math.min(1, e / P.hop_ms);
     let x = s.to, y = 0, sx = 1, sy = 1, ry = 0;

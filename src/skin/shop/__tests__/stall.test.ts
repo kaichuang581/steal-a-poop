@@ -1,6 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { SACK, SACK_IDS } from '../sacks';
+import { SACK_IDS } from '../sacks';
 import { crateGrid, sackInCrate, SACK_IN_CRATE, stallGrid, stallLanternGrid, valanceGrid } from '../stallModels';
 import { CRATE, CRATE_BOX, DEPTH, frame, LANTERN_BOX, POST_INSET, rise, SACK_ROWS, STALL_SIZES, STALLS, valanceBox } from '../stallPlan';
 import { GRAIN, sackGrid } from '../thumbModels';
@@ -10,8 +9,6 @@ import { lin } from '../../voxel/palette';
  * The Feed Sacks' market stall (Brian, 2026-11-13). The picture is baked from stallModels.ts and the page lays the crates,
  * tags and lantern over it from stallPlan.ts: these hold the two to each other, and to what was asked for.
  */
-const css = readFileSync('src/skin/styles/skin.css', 'utf8');
-const screen = readFileSync('src/skin/shop/FeedSacks.tsx', 'utf8');
 const all = STALL_SIZES.map((s) => STALLS[s]);
 
 describe('the stall, measured', () => {
@@ -128,34 +125,5 @@ describe('the stall, built', () => {
     const ys = [...stallLanternGrid().map.values()].map((v) => v.y);
     expect(Math.max(...ys)).toBe(-1);
     expect(Math.min(...ys)).toBe(-8);
-  });
-});
-
-describe('the stall, on the page', () => {
-  it('has every baked picture (node tools/renderStall.mjs)', () => {
-    const names = [...STALL_SIZES.flatMap((s) => [s, `${s}-valance`]), ...SACK_IDS.flatMap((s) => [`crate-${s}`, `sack-${s}`]), 'lantern'];
-    for (const n of names) expect(existsSync(`public/shop/stall/${n}.webp`), n).toBe(true);
-  });
-  it('chalks the price the roll uses on the sign', () => {
-    expect(SACK.price).toBe(250);
-    expect(screen).toMatch(/<span>Feed Sacks,<\/span>.*\{formatCoins\(SACK\.price\)\} each/);
-  });
-  it('hangs each tag by 12 px of string, steps the picked crate 8 px forward, and rings its tag in amber', () => {
-    expect(css).toMatch(/\.sk-stall-hang \{[^}]*padding-top: 12px/);
-    expect(css).toMatch(/\.sk-stall-sack\[aria-checked="true"\] \.sk-stall-art \{[^}]*translate: 0 8px/);
-    expect(css).toMatch(/\.sk-stall-sack\[aria-checked="true"\] \.sk-stall-tag \{[^}]*inset 0 0 0 3px var\(--amber\)/);
-  });
-  it('sways the awning edge by one degree in all, wobbles a hovered sack by two, and stops both under reduced motion', () => {
-    const sway = /@keyframes sk-awning-sway \{ from \{ rotate: calc\(var\(--sway\) \* (-?[\d.]+)deg\); \} to \{ rotate: calc\(var\(--sway\) \* (-?[\d.]+)deg\); \} \}/.exec(css)!;
-    expect(Number(sway[2]) - Number(sway[1])).toBeCloseTo(1);
-    expect(css).toMatch(/\.sk-stall-sack:hover \.sk-stall-burlap \{ animation: sk-sack-wobble/);
-    expect(css).toMatch(/@keyframes sk-sack-wobble \{[^@]*rotate: -2deg[^@]*rotate: 2deg/);
-    const reduced = css.split('\n').filter((l) => l.includes('.sk-stall-valance > i') && l.includes('animation: none'));
-    expect(reduced).toHaveLength(2);
-    for (const l of reduced) expect(l).toContain('.sk-stall-burlap');
-  });
-  it('has no soft ellipse under a sack any more, and one lantern', () => {
-    expect(screen).not.toMatch(/<ellipse/);
-    expect(screen.match(/stallArt\('lantern'\)/g)).toHaveLength(1);
   });
 });

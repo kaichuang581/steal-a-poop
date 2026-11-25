@@ -34,6 +34,7 @@ import { BookStop } from '../tp/market/stops/BarnBook';
 import { CloseView } from '../tp/market/stops/CloseView';
 import { TIMINGS } from '../tp/models.gen';
 import { MARKET } from '../tp/market.gen';
+import { getLang } from '../../lib/lang';
 import '../tp/market/market.css';
 
 /**
@@ -205,7 +206,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   const anchors = useMemo(() => ({ add: (t: Tick) => { ticks.add(t); return () => { ticks.delete(t); }; }, view: () => view.current }), [ticks]);
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="The Trading Post" className="tp" data-phone={phone || undefined} data-reduced={reduced || undefined} data-focus={focus ? "" : undefined} style={{ ...TP_COLOURS, '--u': u } as CSSProperties}
+    <div role="dialog" aria-modal="true" aria-label="The Trading Post" className="tp" data-phone={phone || undefined} data-reduced={reduced || undefined} data-focus={focus ? "" : undefined} data-lang={getLang()} style={{ ...TP_COLOURS, '--u': u } as CSSProperties}
       onPointerDown={(e) => { if (phone) swipe.current = e.clientX; }}
       onPointerUp={(e) => { if (phone && swipe.current !== null && !reveal && !focus && Math.abs(e.clientX - swipe.current) > 60 && (e.clientY < H * 0.45 || stop === 'book')) swiped(e.clientX < swipe.current ? 1 : -1); swipe.current = null; }}>
       <div className="tp-sky" aria-hidden="true" />

@@ -253,3 +253,9 @@
 /* Six on the bench: a fuse sound's tag keeps its three lines tight, so it clears the Open button. */
 .tp-tag--item.tp-tag--tight:has(.tp-listen) { padding-top: 2px; padding-bottom: 2px; line-height: 1.1; row-gap: 0; }
 .tp-tag--item .tp-listen--small { width: 20px; height: 20px; }
+
+/* Longer words (French): tabs and sack tags grow with their words rather than cut them, and an item's name may take
+   two lines. Sizes in English are unchanged: these are minimums there. */
+.tp[data-lang="fr"]:not([data-phone]) .tp-tab { width: auto; min-width: calc(156px * var(--u)); padding-left: 10px; padding-right: 10px; white-space: nowrap; }
+.tp[data-lang="fr"]:not([data-phone]) .tp-tag--sack { width: auto; min-width: calc(152px * var(--u)); white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+.tp[data-lang="fr"] .tp-tag--item b { white-space: normal; text-align: center; line-height: 1.05; }

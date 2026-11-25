@@ -35,6 +35,14 @@ import { CloseView } from '../tp/market/stops/CloseView';
 import { TIMINGS } from '../tp/models.gen';
 import { MARKET } from '../tp/market.gen';
 import { getLang } from '../../lib/lang';
+import { FESTIVE } from '../../config';
+import { CloseIcon } from '../components/Icons';
+import { Lights, SnowCap } from '../kit/surfaces';
+import { useUnit } from '../profile/Profile';
+import '../home/home.css';
+import '../kit/modern.css';
+import '../kit/surfaces.css';
+import '../boards/boards.css';
 import '../tp/market/market.css';
 
 /**
@@ -82,7 +90,8 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   revealRef.current = reveal;
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-  const [swing, setSwing] = useState(0);
+  const bar = useRef<HTMLElement>(null);
+  const barU = useUnit(bar);
   const [seen, setSeen] = useState<string[]>(seenDone);
   const now = () => performance.now();
 
@@ -132,7 +141,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
     return { v, ms };
   }, [stop, W, H, phone, bookPage, reveal, focus]);
 
-  const go = (s: StopId) => { if (s === stop) return; if (s === 'book') pageTurn(); setStop(s); setSwing((n) => n + 1); if (s === 'missions') markSeen(); };
+  const go = (s: StopId) => { if (s === stop) return; if (s === 'book') pageTurn(); setStop(s); if (s === 'missions') markSeen(); };
   const step = (d: number) => go(STOPS[(STOPS.indexOf(stop) + d + STOPS.length) % STOPS.length]);
   // On a phone the Barn Book shows one page: a swipe turns to the other page before it walks on (T6 section 5).
   const swiped = (d: number) => { if (stop === 'book' && (d > 0 ? bookPage === 0 : bookPage === 1)) { pageTurn(); setBookPage(d > 0 ? 1 : 0); } else step(d); };
@@ -225,25 +234,28 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
       </Anchors.Provider>
       {focus && <button type="button" className="tp-dim" aria-label="Step back" onClick={() => setFocus(null)} />}
 
-      <header className="tp-top">
-        {!phone && <h2 className="tp-title">The Trading Post</h2>}
-        <div className="tp-yarn" role="tablist" aria-label="The Trading Post" key={swing} data-swing={swing > 0 || undefined}>
+      {/* The top bar is the leaderboards' own: the snowy night bar with its lantern edge, a title tag, slab tabs with
+          the open one in lantern, the purse as Home's coin slabs, a square close slab and the string of lights.
+          (Brian, 2026-11-25: the row of flat cream rectangles read as "a bunch of squares on top of each other".) */}
+      <header ref={bar} className="tp-bar hm rc rc-bar" data-phone={phone || undefined}>
+        <SnowCap />
+        {!phone && <div className="rc-titletag hm-slab hm-knit rc-static tp-titletag"><Icon name="sack" size={22} /><h1>The Trading Post</h1></div>}
+        <div className="tp-tabs" role="tablist" aria-label="The Trading Post">
           {TABS.map((t) => (
-            <button key={t.id} type="button" role="tab" aria-selected={stop === t.id} tabIndex={stop === t.id ? 0 : -1} className="tp-tab" data-on={stop === t.id || undefined} onClick={() => go(t.id)}
+            <button key={t.id} type="button" role="tab" aria-selected={stop === t.id} tabIndex={stop === t.id ? 0 : -1} className={`tp-tab hm-slab hm-knit ${stop === t.id ? 'hm-slab--lantern' : ''}`} data-on={stop === t.id || undefined} onClick={() => go(t.id)}
               onKeyDown={(e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); step(e.key === 'ArrowRight' ? 1 : -1); } }}>
-              <i className="tp-peg" aria-hidden="true" />
-              <Icon name={t.icon} size={phone ? 18 : 16} /><span>{t.label}</span>
+              <Icon name={t.icon} size={phone ? 16 : 18} /><span>{t.label}</span>
               {t.id === 'missions' && missionDot && <b className="tp-dot" aria-label="A mission is done" />}
             </button>
           ))}
         </div>
         <div className="tp-wallet">
-          <span className="tp-wool" aria-label={`${wallet.coins} Wool Coins`} title="Wool Coins"><Icon name="coin" size={20} />{formatCoins(coins)}</span>
-          <span className="tp-wool" aria-label={`${wallet.bells} Golden Bells`} title="Golden Bells"><Icon name="bell" size={20} />{formatCoins(bells)}</span>
-          {admin && <span className="tp-wool tp-admin" title="Unlimited Wool Coins and Golden Bells in this browser">Admin</span>}
-          <button type="button" className="tp-wool tp-close" onClick={onClose} aria-label="Close"><Icon name="cross" size={16} /></button>
-          {phone && <span className="tp-today-phone">{`${today} / ${DAILY_CAP} today`}</span>}
+          <span className="tp-purse hm-slab hm-slab--ink hm-slab--sm rc-static" aria-label={`${wallet.coins} Wool Coins`} title="Wool Coins"><Icon name="coin" size={18} /><b>{formatCoins(coins)}</b></span>
+          <span className="tp-purse hm-slab hm-slab--ink hm-slab--sm rc-static" aria-label={`${wallet.bells} Golden Bells`} title="Golden Bells"><Icon name="bell" size={18} /><b>{formatCoins(bells)}</b></span>
+          {admin && <span className="md-tag tp-admin" title="Unlimited Wool Coins and Golden Bells in this browser">Admin</span>}
+          <button type="button" className="tp-x hm-slab hm-knit hm-slab--sm hm-square" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
         </div>
+        {FESTIVE && !phone && <Lights u={barU} reduced={reduced} />}
       </header>
 
       {!reveal && !focus && !phone && stop === 'sacks' && <OpenButton wallet={wallet} sack={sack} busy={busy} onOpen={() => void open()} />}
@@ -258,14 +270,13 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      <footer className="tp-foot">
-        <div className="tp-strip">
-          <span className="tp-level">{`Level ${lv.level}: ${titleFor(lv.level)}`}</span>
-          <Icon name="yarn" size={18} />
-          <Knit value={lv.into / lv.need} label={`${lv.need - lv.into} XP to level ${lv.level + 1}`} />
-          {!phone && <span className="tp-xp">{`${formatCoins(lv.need - lv.into)} XP to level ${lv.level + 1}`}</span>}
-          {!phone && <span className="tp-today"><Icon name="coin" size={16} />{`${today} / ${DAILY_CAP} from games today`}</span>}
-        </div>
+      {/* The foot is Home's: a night bar across the bottom, the level on a lantern pennant, the wool meter, and the
+          one line of small print in frost. */}
+      <footer className="tp-foot hm rc" data-phone={phone || undefined}>
+        <span className="rc-pennant tp-level">{`Level ${lv.level}: ${titleFor(lv.level)}`}</span>
+        <Knit value={lv.into / lv.need} label={`${lv.need - lv.into} XP to level ${lv.level + 1}`} />
+        <span className="tp-xp"><b>{formatCoins(lv.need - lv.into)}</b>{` XP to level ${lv.level + 1}`}</span>
+        <span className="tp-today"><Icon name="coin" size={16} /><b>{`${today} / ${DAILY_CAP}`}</b>{phone ? ' today' : ' from games today'}</span>
         {!phone && <p className="tp-fine">Only for show: nothing here changes how a game plays. Wool Coins and Golden Bells are earned by playing, never bought.</p>}
       </footer>
       {note && <p role="status" className="tp-toast">{note}</p>}

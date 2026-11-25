@@ -169,7 +169,7 @@ export class MarketWorld {
       const cx = slip.x0 + 0.2, cy = slip.y1 - 0.22, z = slip.z + 0.03;
       {
         // Every reward on the same dark square: one of three on a tile and two on bare paper read as three makes.
-        const sq = new Mesh(new BoxGeometry(0.32, 0.32, 0.02), new MeshBasicMaterial({ color: '#413633' }));
+        const sq = new Mesh(new BoxGeometry(0.32, 0.32, 0.02), new MeshBasicMaterial({ color: '#0E152C' }));
         sq.position.set(cx, cy, z);
         this.missions.add(sq);
       }

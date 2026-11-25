@@ -32,12 +32,12 @@ export function SacksStop({ wallet, sack, pool, pick, setFocus, reveal, phone, l
             <span key={s}>
               <At as="button" box={[x - 0.36, 1.05, x + 0.36, 2.2, 0.1]} className="tp-hit tp-hit--sack" role="radio" aria-checked={sack === s} aria-label={`${SACKS[s].name}: ${KIND_LABEL[s].toLowerCase()}, ${found} of ${items.length} found`} onClick={() => pick(s)} tabIndex={-1} />
               {/* The sack's name is a label on its own crate's front, not a card hung over the stall's sign. */}
-              <At p={[x, 1.225, 0.02]} className="tp-hang tp-hang--plaque">
+              {!reveal && <At p={[x, 1.225, 0.02]} className="tp-hang tp-hang--plaque">
                 <button type="button" className="tp-tag tp-tag--sack" data-on={sack === s || undefined} onClick={() => pick(s)} aria-pressed={sack === s}>
                   <b>{SACKS[s].name}</b>
                   {!phone && <small data-all={all || undefined}>{all ? <>{`All ${items.length}`} <Icon name="tick" size={12} /></> : `${found} of ${items.length}`}</small>}
                 </button>
-              </At>
+              </At>}
             </span>
           );
         })}

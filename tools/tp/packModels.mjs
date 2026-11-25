@@ -64,7 +64,9 @@ function restyle(m) {
       box('fascia name', [face[0], y0, z1 - 1, face[3], y1, z1], c, 'sign')] };
   }
   if (m.id.startsWith('sack_')) return { ...m, boxes: m.boxes.map((b) => (b.part === 'patch' ? { ...b, c: 'hay:2' } : b)) };
-  if (m.id === 'noticeBoard') return { ...m, boxes: m.boxes.filter((b) => b.n !== 'pin') };
+  // The notice board's face is a night board and its slips raised tiles (Midnight's own tones), so its words are the
+  // kit's wool on dark, like every other board in the game, not ink on cream paper.
+  if (m.id === 'noticeBoard') return { ...m, boxes: m.boxes.filter((b) => b.n !== 'pin').map((b) => (b.n === 'cork' ? { ...b, c: '#131D3B' } : b.part === 'slip' ? { ...b, c: '#1B2A52' } : b)) };
   return m;
 }
 

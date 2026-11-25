@@ -90,32 +90,6 @@
 .tp-tiles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
 .tp-wearing { color: var(--green); display: inline-flex; gap: 4px; align-items: center; font-size: 13px; min-height: 36px; }
 
-/* The top: title, the yarn line of tabs, the wallet. */
-.tp-top { position: absolute; inset: 0 0 auto 0; height: 0; }
-.tp-title { position: absolute; left: 22px; top: 14px; font-size: max(11px, calc(24px * var(--u))); color: var(--paper); text-shadow: 2px 2px 0 var(--tp-ink); }
-.tp-yarn { position: absolute; left: 50%; top: calc(22px * var(--u)); transform: translateX(-50%); display: flex; gap: 18px; padding: 0 60px; }
-.tp-yarn::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--yarn-shade); }
-.tp-yarn::after { content: ''; position: absolute; left: 0; right: 0; top: 1px; height: 2px; background: var(--yarn); }
-.tp-tab {
-  position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-width: calc(156px * var(--u)); padding: 0 12px; white-space: nowrap; height: calc(40px * var(--u)); min-height: 40px;
-  margin-top: 10px; background: var(--paper); border: 1px solid var(--tp-ink); box-shadow: 0 3px 0 var(--lip); clip-path: var(--step);
-  font-family: var(--skin-font-display) !important; font-size: max(11px, calc(17px * var(--u))); transform-origin: 50% -10px;
-}
-/* Narrow windows: tighter tabs, so the row of four stays clear of the coin and bell counts on the right. */
-@media (max-width: 1200px) { .tp:not([data-phone]) .tp-yarn { gap: 10px; } .tp:not([data-phone]) .tp-tab { padding: 0 8px; gap: 5px; } }
-.tp-tab[data-on] { background: var(--lantern); box-shadow: inset 0 2px 0 var(--lantern-hi), 0 3px 0 var(--lantern-lip); margin-top: 16px; }
-.tp-peg { position: absolute; top: -1px; left: 50%; width: 8px; height: 8px; margin-left: -4px; background: var(--peg); }
-.tp-dot { position: absolute; right: 6px; top: 6px; width: 8px; height: 8px; background: var(--stamp); }
-.tp-yarn[data-swing] .tp-tab { animation: tp-swing 400ms ease-out; }
-@keyframes tp-swing { 30% { transform: rotate(6deg); } 65% { transform: rotate(-3deg); } }
-.tp-wallet { position: absolute; right: 18px; top: 18px; display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
-.tp-wool {
-  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; background: var(--woolt); border: 1px solid var(--tp-ink);
-  box-shadow: 0 4px 0 var(--wool-side); clip-path: var(--step); font-family: var(--skin-font-display); font-size: 18px; font-variant-numeric: tabular-nums;
-}
-.tp-close { width: 44px; min-height: 34px; justify-content: center; padding: 0; }
-.tp-admin { font-size: 12px; font-family: var(--skin-font-body); }
-.tp-today-phone { flex-basis: 100%; text-align: right; font-size: 11px; color: var(--paper); text-shadow: 1px 1px 0 var(--tp-ink); }
 
 /* Notes and the strip. */
 .tp-note {
@@ -123,17 +97,8 @@
   background: var(--paper); border: 1px solid var(--tp-ink); box-shadow: 0 3px 0 var(--lip); clip-path: var(--step); padding: 10px 16px; font-size: max(11px, calc(13px * var(--u))); white-space: nowrap;
 }
 .tp-note--wide { width: calc(660px * var(--u)); white-space: normal; }
-.tp-foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 6px; pointer-events: none; }
-.tp-foot > * { pointer-events: auto; }
-.tp-strip {
-  display: flex; align-items: center; gap: 10px; width: min(calc(1040px * var(--u)), calc(100% - 36px)); height: 30px; padding: 0 10px 0 4px; margin-bottom: calc(28px * var(--u) - 6px);
-  background: var(--paper); border: 1px solid var(--tp-ink); box-shadow: 0 3px 0 var(--lip); clip-path: var(--step); font-size: 12px;
-}
-.tp-level { background: var(--lantern); padding: 2px 10px; font-family: var(--skin-font-display); font-size: 14px; white-space: nowrap; }
 .tp-knit { position: relative; flex: 1; min-width: 40px; height: 12px; background: var(--paper-dim); display: inline-block; vertical-align: middle; }
 .tp-knit i { position: absolute; inset: 0 auto 0 0; background: var(--stitch) 0 0 / 8px 12px repeat-x; }
-.tp-xp, .tp-today { white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
-.tp-fine { font-family: var(--skin-font-body); font-weight: 700; font-size: 11px; color: var(--tp-ink); }
 .tp-toast { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); background: var(--paper); border: 1px solid var(--tp-ink); padding: 8px 14px; clip-path: var(--step); }
 .tp-skip { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); color: var(--paper); text-shadow: 1px 1px 0 var(--tp-ink); }
 
@@ -209,10 +174,6 @@
 .tp-close-phone .tp-tag--close { width: 100%; }
 
 /* Phones: the band on top, one paper roll under it. */
-.tp[data-phone] .tp-yarn { top: 92px; gap: 6px; padding: 0 14px; }
-.tp[data-phone] .tp-tab { min-width: 0; padding: 0; white-space: normal; width: 84px; height: 50px; flex-direction: column; gap: 2px; font-size: 12px; margin-top: 8px; }
-.tp[data-phone] .tp-tab[data-on] { margin-top: 12px; }
-.tp[data-phone] .tp-wallet { left: 14px; right: 14px; top: 14px; justify-content: center; }
 .tp[data-phone] .tp-tag--sack { width: 92px; min-height: 22px; padding: 2px 4px; }
 .tp[data-phone] .tp-tag--sack b { font-size: 12px; }
 .tp-roll-wrap { position: absolute; left: 14px; right: 14px; top: 47%; bottom: 52px; display: flex; flex-direction: column; gap: 14px; }
@@ -239,7 +200,6 @@
 .tp-roll-ms-row { display: flex; align-items: center; gap: 6px; }
 .tp-roll-ms li[data-paid] { color: var(--paid); }
 .tp[data-phone] .tp-btn--main { position: static; transform: none; width: 100%; }
-.tp[data-phone] .tp-strip { margin-bottom: 10px; width: calc(100% - 36px); }
 .tp[data-phone] .tp-ledge b { font-size: 12px; }
 
 .tp[data-reduced] *, .tp[data-reduced] { animation: none !important; }
@@ -267,9 +227,122 @@
 
 /* Longer words (French): tabs and sack tags grow with their words rather than cut them, and an item's name may take
    two lines. Sizes in English are unchanged: these are minimums there. */
-.tp[data-lang="fr"]:not([data-phone]) .tp-tab { width: auto; min-width: calc(156px * var(--u)); padding-left: 10px; padding-right: 10px; white-space: nowrap; }
 .tp[data-lang="fr"]:not([data-phone]) .tp-tag--sack { width: auto; min-width: calc(152px * var(--u)); white-space: nowrap; padding-left: 8px; padding-right: 8px; }
 .tp[data-lang="fr"] .tp-tag--item b { white-space: normal; text-align: center; line-height: 1.05; }
 
 /* The Bell Shelf's price sits inside the item's one card. */
 .tp-price-in { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-family: var(--skin-font-display); color: var(--tp-ink); font-size: max(11px, calc(14px * var(--u))); vertical-align: middle; }
+
+
+/* ================================================================================================================
+   The market in the game's own kit (Brian, 2026-11-25: "everything just looks awful and terribly low effort. like
+   youre literally just putting a bunch of squares on top of each other"; "the entire market"). Its interface was its
+   own: flat cream rectangles with a hairline of ink, one on another. It is now the leaderboards' and Home's: the night
+   bar with its lantern edge and string of lights, slab tabs and buttons with a lit top and a side, ink labels with wool
+   words, dark tiles, lantern meters. One language with every other screen.
+   ================================================================================================================ */
+
+/* ---- The top bar (kit units: inside .hm, --u is a length). ---- */
+.tp-bar { position: absolute; z-index: 4; left: 0; right: 0; top: 0; height: calc(64 * var(--u)); box-sizing: border-box; display: flex; align-items: center; gap: calc(14 * var(--u));
+  padding: env(safe-area-inset-top, 0px) calc(20 * var(--u)) calc(6 * var(--u)); color: var(--hm-wool); --shadow: drop-shadow(0 calc(4 * var(--u)) 0 rgba(14, 21, 40, 0.38)); }
+.tp-bar > .rc-snowcap { z-index: 0; left: 0; right: 0; top: 0; }
+.tp-bar > :is(.tp-titletag, .tp-tabs, .tp-wallet) { position: relative; z-index: 1; }
+.tp-bar .rc-lights { position: absolute; left: 0; right: 0; top: 100%; height: calc(32 * var(--u)); pointer-events: none; }
+.tp-titletag h1 { margin: 0; }
+.tp-tabs { display: flex; gap: calc(8 * var(--u)); margin: 0 auto; }
+.tp-bar .tp-tab { --depth: calc(6 * var(--u)); position: relative; flex: none; gap: calc(8 * var(--u)); min-width: calc(136 * var(--u)); height: calc(44 * var(--u)); padding: 0 calc(14 * var(--u)) var(--depth);
+  filter: var(--shadow); font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-ink); white-space: nowrap; }
+.tp-bar .tp-tab > span { position: relative; }
+.tp-dot { position: absolute; right: calc(6 * var(--u)); top: calc(5 * var(--u)); width: calc(8 * var(--u)); height: calc(8 * var(--u)); background: var(--hm-barn); box-shadow: 0 0 0 calc(2 * var(--u)) var(--hm-wool); }
+.tp-wallet { display: flex; align-items: center; gap: calc(8 * var(--u)); }
+.tp-bar .tp-purse { --depth: calc(4 * var(--u)); gap: calc(7 * var(--u)); height: calc(36 * var(--u) + var(--depth)); min-width: calc(74 * var(--u)); padding: 0 calc(12 * var(--u)) var(--depth) calc(10 * var(--u)); justify-content: flex-start; filter: var(--shadow); }
+.tp-bar .tp-purse b { font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); font-variant-numeric: tabular-nums; }
+.tp-bar .tp-x { --depth: calc(6 * var(--u)); width: calc(44 * var(--u)); height: calc(44 * var(--u)); padding: 0 0 var(--depth); filter: var(--shadow); }
+.tp-bar .tp-x svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
+@media (max-width: 1180px) { .tp-bar .tp-tab { min-width: 0; padding: 0 calc(10 * var(--u)) var(--depth); } .tp-bar .tp-titletag { display: none; } }
+/* Phones: the purse and the close on the bar; the four tabs share the row under it. */
+.tp-bar[data-phone] { height: auto; flex-wrap: wrap; row-gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 12px; }
+.tp-bar[data-phone] .tp-wallet { order: 1; width: 100%; justify-content: flex-end; }
+.tp-bar[data-phone] .tp-tabs { order: 2; width: 100%; margin: 0; gap: 6px; }
+.tp-bar[data-phone] .tp-tab { flex: 1 1 0; min-width: 0; height: 48px; padding: 0 2px 6px; flex-direction: column; gap: 3px; font-size: 12px; white-space: normal; text-align: center; }
+
+/* ---- The foot: a night bar, as Home's. ---- */
+.tp-foot { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: calc(14 * var(--u)); height: calc(40 * var(--u)); min-height: 36px; box-sizing: border-box; padding: 0 calc(20 * var(--u));
+  background: var(--hm-night) var(--felt) 0 0 / var(--felt-size); box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern), inset 0 calc(3 * var(--u) + var(--s)) 0 var(--hm-ink);
+  color: var(--hm-wool); font: 700 max(12px, calc(12.5 * var(--u)))/1 var(--skin-font-body); white-space: nowrap; }
+.tp-foot .tp-level { height: calc(24 * var(--u)); min-height: 22px; font: 800 max(12px, calc(13 * var(--u)))/1 var(--skin-font-display); }
+.tp-foot .tp-knit { flex: 0 1 calc(260 * var(--u)); min-width: 60px; height: calc(12 * var(--u)); min-height: 10px; }
+.tp-foot :is(.tp-xp, .tp-today) { display: inline-flex; align-items: center; gap: 5px; color: var(--hm-frost); }
+.tp-foot :is(.tp-xp, .tp-today) b { font: 800 max(13px, calc(14 * var(--u)))/1 var(--skin-font-display); color: var(--hm-wool); }
+.tp-foot .tp-fine { margin: 0 0 0 auto; overflow: hidden; text-overflow: ellipsis; font: 700 max(11px, calc(11.5 * var(--u)))/1.2 var(--skin-font-body); color: var(--hm-frost); }
+.tp-foot[data-phone] { gap: 8px; padding: 0 10px; }
+.tp-foot[data-phone] .tp-xp { display: none; }
+
+/* ---- In the scene: labels are the kit's ink labels (the name tags' make), wool words on ink, one lit row on top. ---- */
+.tp { --soft: var(--hm-frost); --green: #7BC48E; --paper-dim: var(--hm-night-deep); }
+.tp-hang::before, .tp-tag::before { display: none !important; }
+.tp-hang > :first-child { margin-top: calc(6px * var(--u)); }
+.tp-tag { background: var(--hm-ink); border: 0; color: var(--hm-wool); box-shadow: inset 0 3px 0 var(--hm-ink-hi), inset 0 -3px 0 var(--hm-ink-side); filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35)); }
+.tp-tag b { color: var(--hm-wool); }
+.tp-tag small, .tp-tag--sack small { color: var(--hm-frost); }
+.tp-tag small[data-all] { color: var(--green); }
+.tp-tag[data-on] { outline: 0; background: var(--hm-lantern); box-shadow: inset 0 3px 0 var(--hm-lantern-hi), inset 0 -3px 0 var(--hm-lantern-lip); }
+.tp-tag[data-on] :is(b, small) { color: var(--hm-ink); }
+.tp-rarity, .tp-from { color: var(--hm-frost); }
+.tp-price-in { color: var(--hm-lantern-hi); }
+.tp-listen { border: 0; background: var(--hm-wool); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -4px 0 var(--hm-wool-lip); }
+.tp-listen[data-on] { background: var(--hm-lantern); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -4px 0 var(--hm-lantern-lip); }
+/* The Barn Book's words are written on its paper pages, so they keep the page's ink. */
+.tp-ledge, .tp-ledge :is(.tp-rarity, .tp-from), .tp-book-head small { color: var(--tp-ink); }
+.tp-ledge .tp-green { color: #2F7A4C; }
+.tp-book-head small, .tp-ledge :is(.tp-rarity, .tp-from) { opacity: 0.78; }
+
+/* ---- Buttons are slabs: a face with a lit top row, a side under it, an ink edge, a shadow on the ground. ---- */
+.tp-btn { border: 0; background: var(--hm-lantern); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 5px 0 var(--hm-lantern-hi), inset 0 -8px 0 var(--hm-lantern-lip); padding: 4px 16px 10px;
+  filter: drop-shadow(0 4px 0 rgba(14, 21, 40, 0.38)); transition: transform 80ms steps(2); }
+.tp-btn:hover:not(:disabled):not([data-pale]) { transform: translateY(-2px); }
+.tp-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 5px 0 var(--hm-lantern-hi), inset 0 -5px 0 var(--hm-lantern-lip); }
+.tp-btn[data-pale], .tp-btn:disabled { background: var(--hm-disabled); color: var(--hm-frost); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -8px 0 var(--hm-disabled-lip); cursor: default; }
+.tp-btn--wool, .tp-btn--pale-ok { background: var(--hm-wool); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 5px 0 var(--hm-wool-hi), inset 0 -8px 0 var(--hm-wool-lip); }
+.tp-btn--main { min-height: calc(60px * var(--u)); }
+.tp-btn--main:hover:not(:disabled):not([data-pale]) { transform: translate(-50%, -2px); }
+.tp-btn--main small { color: inherit; opacity: 0.85; }
+.tp-wearing { color: var(--green); }
+.tp-back { color: var(--hm-lantern-hi); }
+
+/* ---- Notes and the toast: the kit's ink card, a lantern bar down its left. ---- */
+.tp-note, .tp-toast { background: var(--hm-ink); border: 0; color: var(--hm-wool); box-shadow: inset 6px 0 0 var(--hm-lantern), inset 0 3px 0 var(--hm-ink-hi); padding: 10px 18px 10px 22px; filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35));
+  font: 700 max(12.5px, calc(13px * var(--u)))/1.4 var(--skin-font-body); }
+.tp-note { bottom: calc(40px * var(--u) + 26px); }
+.tp-skip { bottom: calc(40px * var(--u) + 40px); font: 800 14px/1 var(--skin-font-body); }
+
+/* ---- Meters: a sunk well filled in lantern. ---- */
+.tp-knit { background: var(--hm-night-deep); box-shadow: inset 0 2px 0 var(--hm-ink), inset 0 -2px 0 var(--hm-night-3); }
+.tp-knit i { background: var(--hm-lantern); box-shadow: inset 0 2px 0 var(--hm-lantern-hi), inset 0 -2px 0 var(--hm-lantern-lip); }
+
+/* ---- Missions: the notice board's face is a night board, its slips raised tiles (the packer paints the board to
+   match), so the words are wool and frost. ---- */
+.tp-slip, .tp-sheet { color: var(--hm-wool); }
+.tp-slip-head small, .tp-sheet h3 small, .tp-slip-goal { color: var(--hm-frost); }
+.tp-slip-goal { font-weight: 700; }
+.tp-sheet li[data-paid] { color: var(--hm-frost); }
+.tp-ms-pay { color: var(--hm-lantern-hi); }
+
+/* ---- Phones: the roll is a board. ---- */
+.tp-roll { background: var(--hm-night); border: 0; color: var(--hm-wool); box-shadow: inset 0 0 0 3px var(--hm-ink), inset 0 6px 0 var(--hm-night-3); clip-path: none; padding: 16px 16px 18px; font-size: 13px; }
+.tp-roll h3 small, .tp-roll-rows li small { color: var(--hm-frost); }
+.tp-roll-rows li, .tp-roll-ms li, .tp-roll-shelf, .tp-roll-slip { border-color: var(--hm-night-3); }
+.tp-roll-ms li[data-paid] { color: var(--hm-frost); }
+.tp-roll-wrap { top: 49%; bottom: 46px; }
+.tp-bar .tp-x { color: var(--hm-ink); }
+.tp-foot .tp-knit { flex: 0 1 calc(170 * var(--u)); }
+.tp-foot .tp-fine { font-size: max(11px, calc(11 * var(--u))); }
+@media (max-width: 1320px) { .tp-foot:not([data-phone]) .tp-today { display: none; } }
+.tp-note .tp-icon, .tp-toast .tp-icon { display: none; }
+/* A slab's words are ink on its face whatever it sits on (`.tp button` would hand it the label's wool). */
+.tp .tp-btn { color: var(--hm-ink); }
+.tp .tp-btn[data-pale], .tp .tp-btn:disabled { color: var(--hm-frost); }
+/* The Barn Book's three bookmarks are small slabs: wool, the open one in lantern. */
+.tp .tp-tag--mark { background: var(--hm-wool); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 4px 0 var(--hm-wool-hi), inset 0 -6px 0 var(--hm-wool-lip); padding: 5px 16px 9px; font: 800 max(13px, calc(15px * var(--u)))/1 var(--skin-font-display); }
+.tp .tp-tag--mark[data-on] { background: var(--hm-lantern); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 4px 0 var(--hm-lantern-hi), inset 0 -6px 0 var(--hm-lantern-lip); }
+.tp .tp-page-turn { background: var(--hm-wool); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -6px 0 var(--hm-wool-lip); padding: 6px 16px 10px; }

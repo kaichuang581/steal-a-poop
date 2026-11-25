@@ -22,5 +22,13 @@ export const ART_GRIDS = {
   island: { px: 2, rows: ["............", "....X.......", "...XXX......", "....X...XX..", "XXXXXXXXXXXX", "XXXXXXXXXXXX", ".XXXXXXXXXX.", "..XXXXXXXX..", "...XXXXXX...", "....XXXX....", ".....XX.....", "............"] },
   'moon-small': { px: 2, rows: ["..XXX...", ".XXX....", "XXX.....", "XXX.....", "XXX.....", "XXXX...X", ".XXXXXX.", "..XXXX.."] },
   'arrow-right': { px: 2, rows: ["....X...", "....XX..", "XXXXXXX.", "XXXXXXXX", "XXXXXXX.", "....XX..", "....X...", "........"] },
+  // Version 3's grids (docs/dream/v3/data/pixel-art.json), beside the ones above that the flat scenery still draws.
+  'sheep-head': { px: 2, rows: ["...XXXXX...", "..XXXXXXX..", ".XXXXXXXXX.", "ppXpppppXpp", "..XpopopX..", "..XpppppX..", "...ppopp...", "...ppppp...", "....ppp...."] },
+  'sheep-side': { px: 2, rows: ["..XXXXXX....", ".XXXXXXXX.XX", "XXXXXXXXXXXX", "XXXXXXXXXXXX", "XXXXXXXXX.X.", ".XXXXXXXX...", ".X.X..X.X...", ".X.X..X.X..."] },
+  fence: { px: 2, rows: [".X...X...X..", "XXXXXXXXXXX.", ".X...X...X..", "XXXXXXXXXXX.", ".X...X...X..", ".X...X...X.."] },
+  'moon-full': { px: 2, rows: ["..XXXX..", ".XXXXXX.", "XXoXXXXX", "XXXXXXXX", "XXXXXoXX", "XXXXXXXX", ".XXXXXX.", "..XXXX.."] },
+  check: { px: 2, rows: [".......X", "......XX", "X....XX.", "XX..XX..", ".XXXX...", "..XX...."] },
+  // Not in the pack: the close button's cross, 14 px with 2 px strokes (v3/08, section 3).
+  cross: { px: 2, rows: ["X.....X", ".X...X.", "..X.X..", "...X...", "..X.X..", ".X...X.", "X.....X"] },
 } as const satisfies Record<string, Art>;
 export type ArtName = keyof typeof ART_GRIDS;

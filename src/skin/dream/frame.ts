@@ -13,30 +13,26 @@ export const isPhoneLayout = (w: number, h: number): boolean => !(w >= 900 && h 
 
 const clamp = (lo: number, v: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** The bubble's rim, and the scallops along its bottom edge: their widths in turn, each half as tall as it is wide. */
+/** The dream window's rim of wool, and the shade of wool's lip under it (docs/dream/v3/08, section 2). */
 export const RIM = 6;
 export const SHADE = 4;
-export const SCALLOPS = { computer: [72, 48, 60, 40], phone: [48, 32, 40, 28] } as const;
-const OVERLAP = 6, STEP = 3;
-/** The top corners' pixel steps, outside and inside the rim. */
-const CORNER = { out: 4, in: 2 } as const;
+/** Each corner is cut in three steps: 4 px each outside the rim, 2 px inside it (so the rim stays 6 thick round it). */
+const CORNER = { steps: 3, out: 4, in: 2 } as const;
 
 /** The tray's parts, in the plan's px (times `u`). */
 export const TRAY = {
-  computer: { tile: 40, side: 6, gap: 6, sizes: [40, 36, 32, 28], padX: 16, padTop: 14, padBottom: 12, band: 6, jump: 96, jumpGap: 14, meter: 8, meterGap: 8, slots: 7, bottom: 14 },
-  phone: { tile: 28, side: 4, gap: 5, sizes: [28, 24, 20], padX: 10, padTop: 9, padBottom: 8, band: 5, jump: 64, jumpGap: 8, meter: 6, meterGap: 6, slots: 0, bottom: 6 },
+  computer: { tile: 40, side: 6, gap: 6, sizes: [40, 36, 32, 28], padX: 16, padTop: 14, padBottom: 12, band: 8, jump: 96, jumpGap: 14, meter: 8, meterGap: 8, slots: 7, bottom: 14 },
+  phone: { tile: 28, side: 4, gap: 5, sizes: [28, 24, 20], padX: 10, padTop: 9, padBottom: 8, band: 8, jump: 76, jumpGap: 8, meter: 6, meterGap: 6, slots: 0, bottom: 6 },
 } as const;
 
 export interface DreamFrame {
   w: number; h: number; phone: boolean; u: number;
   /** The bed strip, and how much of its left is the bed's. */
   strip: Box; bedZone: number;
-  /** The bedroom's canvas: the strip, and the wall on up behind the bumps of the bubble's bottom edge. */
+  /** The bedroom's canvas: the strip, and the wall on up behind the window's cut bottom corners. */
   room: Box;
-  /** The dream window: its outer box (its bottom the lowest points of its edge) and the dream's own box inside the rim. */
+  /** The dream window: its outer box (the rim's outside; its shade hangs SHADE under it) and the dream's own box inside the rim. */
   bubble: Box; view: Box;
-  /** The scallops' baseline, px down the bubble's box; the widths in turn. */
-  baseline: number; scallops: readonly number[];
   tray: Box;
   /** Where the tiles go in the tray: how wide, and how many fit at each size. */
   tiles: number;
@@ -51,28 +47,27 @@ export function dreamFrame(w: number, h: number): DreamFrame {
     const T = TRAY.phone;
     const tray = { x: 6, y: h - T.bottom - 84, w: w - 12, h: 84 };
     const strip = { x: 0, y: tray.y - 56, w, h: 56 };
-    const bubble = { x: 6, y: 6, w: w - 12, h: Math.max(120, h - 150) };
-    const sc = SCALLOPS.phone[0] / 2, baseline = bubble.h - sc;
+    // The window's straight lower edge meets the strip; its shade lies on the strip's wall.
+    const bubble = { x: 6, y: 6, w: w - 12, h: Math.max(120, strip.y - 6) };
     const view = { x: bubble.x + RIM, y: bubble.y + RIM, w: bubble.w - 2 * RIM, h: bubble.h - 2 * RIM };
-    const room = { x: 0, y: bubble.y + baseline, w, h: tray.y - (bubble.y + baseline) };
+    const room = { x: 0, y: bubble.y + bubble.h - CORNER_H, w, h: tray.y - (bubble.y + bubble.h - CORNER_H) };
     return {
-      w, h, phone, u, strip, bedZone: 0.46 * w, room, bubble, view, baseline, scallops: SCALLOPS.phone, tray,
+      w, h, phone, u, strip, bedZone: 0.46 * w, room, bubble, view, tray,
       tiles: tray.w - 2 * T.padX - T.jump - T.jumpGap,
-      hint: { x: bubble.x + RIM + 6, w: bubble.w - 2 * RIM - 12, bottom: h - (bubble.y + baseline) + 4 },
+      hint: { x: bubble.x + RIM + 6, w: bubble.w - 2 * RIM - 12, bottom: h - (bubble.y + bubble.h - RIM) + 4 },
     };
   }
   const T = TRAY.computer;
   const bed = clamp(160, 0.24 * h, 240), bedZone = clamp(380, 0.36 * w, 590);
   const strip = { x: 0, y: h - bed, w, h: bed };
   const bubble = { x: 10, y: 10, w: w - 20, h: h - bed - 6 - 10 };
-  const sc = SCALLOPS.computer[0] / 2, baseline = bubble.h - sc;
   const view = { x: bubble.x + RIM, y: bubble.y + RIM, w: bubble.w - 2 * RIM, h: bubble.h - 2 * RIM };
-  const room = { x: 0, y: bubble.y + baseline, w, h: h - (bubble.y + baseline) };
+  const room = { x: 0, y: bubble.y + bubble.h - CORNER_H, w, h: h - (bubble.y + bubble.h - CORNER_H) };
   const tiles = T.slots * (T.tile + T.gap) - T.gap;
   const tw = (2 * T.padX + tiles + T.jumpGap + T.jump) * u;
   const th = (T.band + T.padTop + T.tile + T.side + T.meterGap + T.meter + T.padBottom + T.side) * u;
   const tray = { x: Math.round((bedZone + w) / 2 - tw / 2), y: Math.round(h - T.bottom * u - th), w: Math.round(tw), h: Math.round(th) };
-  return { w, h, phone, u, strip, bedZone, room, bubble, view, baseline, scallops: SCALLOPS.computer, tray, tiles: tiles * u, hint: { x: tray.x, w: tray.w, bottom: h - tray.y + 8 * u } };
+  return { w, h, phone, u, strip, bedZone, room, bubble, view, tray, tiles: tiles * u, hint: { x: tray.x, w: tray.w, bottom: h - tray.y + 8 * u } };
 }
 
 /**
@@ -91,54 +86,29 @@ export const meterSegments = (width: number, phone: boolean, u = 1): number => M
 
 // ---------- the bubble ----------
 
-/** Where each scallop's middle is along `width`, and its half width: the widths in turn, overlapping, fitted to the width. */
-export function scallopRow(width: number, widths: readonly number[]): { c: number; r: number }[] {
-  const out: number[] = [];
-  let total = 0;
-  for (let k = 0; total < width; k++) { const s = widths[k % widths.length]; out.push(s); total += s - (k ? OVERLAP : 0); }
-  // Too long by a part of a scallop: close them up evenly, so the first and the last end on the corners.
-  const lap = out.length > 1 ? OVERLAP + (total - width) / (out.length - 1) : 0;
-  let x = 0;
-  return out.map((s, k) => { const c = x + s / 2; x += s - lap; return { c: k === out.length - 1 && out.length > 1 ? width - s / 2 : c, r: s / 2 }; });
-}
-
-/** How far under the baseline the bottom edge hangs at `x`, in whole steps; `inset` draws the rim's inner edge. */
-function hang(row: { c: number; r: number }[], x: number, inset: number): number {
-  let d = 0;
-  for (const { c, r } of row) {
-    const a = r - inset, t = (x - c) / a;
-    if (a > 0 && Math.abs(t) < 1) d = Math.max(d, a * Math.sqrt(1 - t * t));
-  }
-  return Math.round(d / STEP) * STEP;
-}
-
-/** A top corner's stair, from the side down to the top edge, `n` steps of the bubble's step. */
-const stair = (n: number): [number, number][] => { const o: [number, number][] = [[0, n * STEP]]; for (let k = 1; k <= n; k++) o.push([k * STEP, (n - k + 1) * STEP], [k * STEP, (n - k) * STEP]); return o; };
+/** How far up from its bottom the window's cut corners reach: the room's canvas starts that far up behind the rim. */
+const CORNER_H = CORNER.steps * CORNER.out;
 
 /**
- * The thought bubble as two polygons in its own box (`w` wide; `baseline` is where the scallops hang from): `outer`, the
- * rim's outside, and `inner`, the dream's clip, the rim's width inside it. Pixel corners at the top; along the bottom,
- * half-ellipses side by side drawn in steps, never smooth. `depth` is how far the lowest point hangs under the baseline.
+ * The dream window as two polygons in its own box, `w` x `h`: `outer`, the rim's outside, and `inner`, the dream's clip,
+ * the rim's width inside it. Every corner is cut in three pixel steps and the lower edge is straight (v3/08, section 2:
+ * the old scalloped edge read as lace). The shade is `outer` again, SHADE lower, behind it.
  */
-export function bubbleShape(w: number, baseline: number, widths: readonly number[]): { outer: string; inner: string; depth: number } {
-  const row = scallopRow(w, widths), depth = Math.max(...widths) / 2;
-  const edge = (inset: number): string => {
-    const n = inset ? CORNER.in : CORNER.out, x0 = inset, x1 = w - inset, y0 = inset;
-    const pts: [number, number][] = [];
-    for (const [x, y] of stair(n)) pts.push([x0 + x, y0 + y]);
-    for (const [x, y] of stair(n).reverse()) pts.push([x1 - x, y0 + y]);
-    // Along the bottom from right to left, a column a step.
-    for (let x = x1; x > x0; x -= STEP) {
-      const xa = Math.max(x0, x - STEP), y = baseline + hang(row, (x + xa) / 2, inset);
-      pts.push([x, y], [xa, y]);
-    }
-    return `polygon(${pts.map(([x, y]) => `${Math.round(x * 10) / 10}px ${Math.round(y * 10) / 10}px`).join(',')})`;
-  };
-  return { outer: edge(0), inner: edge(RIM), depth };
+export function bubbleShape(w: number, h: number): { outer: string; inner: string } {
+  return { outer: corners(w, h, 0, CORNER.out), inner: corners(w, h, RIM, CORNER.in) };
 }
-/** The bubble's bottom edge at `x` (px along its box): how far down its box the rim's outside reaches there. */
-export function bubbleBottom(f: DreamFrame, x: number): number {
-  return f.baseline + hang(scallopRow(f.bubble.w, f.scallops), x, 0);
+/** A box `inset` in from a w x h box, each corner cut in CORNER.steps stair steps of `step` px, as a clip polygon. */
+function corners(w: number, h: number, inset: number, step: number): string {
+  // The top left corner's stair, clockwise from the left side to the top edge; the other three are it mirrored.
+  const stair: [number, number][] = [];
+  for (let k = 0; k < CORNER.steps; k++) stair.push([k * step, (CORNER.steps - k) * step], [(k + 1) * step, (CORNER.steps - k) * step]);
+  stair.push([CORNER.steps * step, 0]);
+  const back = stair.slice().reverse(), a = inset, b = w - inset, c = inset, d = h - inset;
+  const pts = [
+    ...stair.map(([x, y]) => [a + x, c + y]), ...back.map(([x, y]) => [b - x, c + y]),
+    ...stair.map(([x, y]) => [b - x, d - y]), ...back.map(([x, y]) => [a + x, d - y]),
+  ];
+  return `polygon(${pts.map(([x, y]) => `${x}px ${y}px`).join(',')})`;
 }
 
 // ---------- the bed strip's camera ----------
@@ -198,36 +168,59 @@ export function stripExtent(f: DreamFrame, c: StripCamera = stripCamera(f)): { x
   return { x1, windowX };
 }
 
-/** The bubble's tail: three puffs stepping down and left from the window's bottom edge to just over his nose. */
-export const TAIL = { computer: [42, 26, 16], phone: [26, 18, 12] } as const;
+/**
+ * The tip of his cap as he lies asleep (`bedSleep`), measured from the model (farmer.ts `worldOf`, the cap's top at its
+ * front edge): the tail's puffs, his snores and the "?" and "!" are placed from it (v3/08, sections 2 and 7). Always put
+ * through `stripPoint`, so it follows the strip's camera wherever that goes.
+ */
+export const CAP_TIP = { x: 0.19, y: 0.96, z: 0.29 } as const;
+
+/**
+ * The bubble's tail (v3/08, section 2): three round wool puffs, 40, 26 and 16 px across (a phone's 26, 18 and 12). The
+ * smallest's middle is 14 above and 6 right of the tip of his cap, the middle one's 24 above and 14 right of that, the
+ * largest's 32 above and 26 right of the middle one's (a phone's steps in proportion). If the largest does not reach the
+ * window's shade, all three move up together until it overlaps the shade by 4. Largest first.
+ */
+export const TAIL = { computer: [40, 26, 16], phone: [26, 18, 12] } as const;
 export function tailPuffs(f: DreamFrame, c: StripCamera = stripCamera(f)): Box[] {
-  const sizes = f.phone ? TAIL.phone : TAIL.computer, [nx, ny] = stripPoint(c, NOSE.x, NOSE.y, NOSE.z);
-  // The smallest sits 12 above him; each one up overlaps the one under it by a third and steps right.
-  const out: Box[] = [];
-  let x = nx + sizes[2] * 0.4, bottom = ny - (f.phone ? 10 : 24);
-  for (let k = 2; k >= 0; k--) {
-    const s = sizes[k];
-    out.unshift({ x: Math.round(x - s / 2), y: Math.round(bottom - s), w: s, h: s });
-    bottom -= s * 0.72;
-    x += s * 0.5 + (k ? sizes[k - 1] * 0.32 : 0);
+  const sizes = f.phone ? TAIL.phone : TAIL.computer, k = sizes[0] / TAIL.computer[0], [cx, cy] = stripPoint(c, CAP_TIP.x, CAP_TIP.y, CAP_TIP.z);
+  const small: [number, number] = [cx + 6 * k, cy - 14 * k], mid: [number, number] = [small[0] + 14 * k, small[1] - 24 * k], large: [number, number] = [mid[0] + 26 * k, mid[1] - 32 * k];
+  const shade = f.bubble.y + f.bubble.h + SHADE, lift = Math.max(0, large[1] - sizes[0] / 2 - (shade - 4));
+  return [large, mid, small].map(([x, y], i) => ({ x: Math.round(x - sizes[i] / 2), y: Math.round(y - lift - sizes[i] / 2), w: sizes[i], h: sizes[i] }));
+}
+
+/**
+ * A round pixel disc `d` px across drawn in 2 px steps, as a clip polygon in its own d x d box: the tail's puffs and the
+ * pop's (v3/08, section 2).
+ */
+export function pixelDisc(d: number): string {
+  const r = d / 2, right: [number, number][] = [];
+  for (let y = 0; y < d; y += 2) {
+    // The widest point of this 2 px row, rounded to whole 2 px steps.
+    const dy = y <= r && r <= y + 2 ? 0 : Math.min(Math.abs(y - r), Math.abs(y + 2 - r)), half = Math.min(r, Math.max(2, Math.round(Math.sqrt(Math.max(0, r * r - dy * dy)) / 2) * 2));
+    right.push([r + half, y], [r + half, Math.min(d, y + 2)]);
   }
-  return out;
+  const left = right.map(([x, y]) => [d - x, y] as [number, number]).reverse();
+  return `polygon(${[...right, ...left].map(([x, y]) => `${x}px ${y}px`).join(',')})`;
 }
 
 // ---------- the sign ----------
 
-/** The sign's board, in the plan's px (times `u`): what `signHang` and the stylesheet both lay out. */
+/**
+ * The sign's board (v3/08, section 5), in the plan's px (times `u`): what `signHeight` and the stylesheet both lay out.
+ * Its top is where the post's chains end: no bar or chains of its own. `dot`, `dgap`: the three sunk squares.
+ */
 export const SIGN_BOARD = {
-  computer: { tile: 42, side: 6, gap: 8, pad: 8, plank: 18, plankGap: 6, bar: 5, chain: 12, dots: 38 },
-  phone: { tile: 30, side: 4, gap: 5, pad: 5, plank: 14, plankGap: 4, bar: 4, chain: 8, dots: 30 },
+  computer: { tile: 42, side: 6, gap: 8, padTop: 12, padX: 20, padBottom: 10, plank: 20, plankGap: 8, dot: 10, dgap: 4, depth: 6, min: 150 },
+  phone: { tile: 30, side: 4, gap: 5, padTop: 8, padX: 12, padBottom: 8, plank: 16, plankGap: 6, dot: 8, dgap: 3, depth: 4, min: 150 },
 } as const;
-/** The board's height, hanger and chains included; `plank` false on a window too short for the word plank. */
+/** The board's height, its side included; `plank` false on a window too short for the word plank. */
 export function signHeight(phone: boolean, u: number, plank = true): number {
   const S = phone ? SIGN_BOARD.phone : SIGN_BOARD.computer;
-  return (S.bar + S.chain + 2 * S.pad + S.tile + S.side + (plank ? S.plankGap + S.plank : 0)) * u;
+  return (S.padTop + S.tile + S.side + (plank ? S.plankGap + S.plank : 0) + S.padBottom + S.depth) * u;
 }
-/** The board's width for `n` letters. */
+/** The board's width for `n` letters: what they and the sunk squares need, and never under 150. */
 export function signWidth(n: number, phone: boolean, u: number): number {
   const S = phone ? SIGN_BOARD.phone : SIGN_BOARD.computer;
-  return (2 * S.pad + n * S.tile + (n - 1) * S.gap + S.gap + S.dots) * u;
+  return Math.max(S.min, 2 * S.padX + n * S.tile + n * S.gap + 3 * S.dot + 2 * S.dgap) * u;
 }

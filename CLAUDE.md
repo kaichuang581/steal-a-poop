@@ -2484,10 +2484,12 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
   fences before it, and after it the dream runs on in its third world until a bump.
 - How it runs: milestones CS1 to CS7 (docs/dream/08-run-order-and-checks.md), one local branch each (`dream/cs1-farmer`
   ...), stacked, local commits, no push or pull request until Brian says. The pack stops for Brian after every
-  milestone; by his standing words for plans ("get done with the milestones", 2026-11-16) the work goes on to the next
-  one and each milestone's pictures are sent to him as it lands. The pack's check 2 (a recorded night replayed to the
-  millisecond after every milestone) is not built ahead of the work, by the same words; the existing run and mapping
-  tests are what holds the rules.
+  milestone. CS1's stop is kept as written ("Brian compares the board with his sheet before anything else is built":
+  whether the farmer is his farmer is his call, and the board and pictures were sent to him on 2026-11-24). For the
+  later stops his standing words for plans apply ("get done with the milestones", 2026-11-16): the work goes on and
+  each milestone's pictures are sent as it lands, unless he says otherwise. The pack's check 2 (a recorded night
+  replayed to the millisecond after every milestone) is not built ahead of the work, by the same words; the existing
+  run and mapping tests are what holds the rules.
 - CS1, the farmer, as built (2026-11-24). src/skin/dream/farmer.ts is the model and the poses, pure: the pack's 106 boxes
   (farmerBoxes.ts, a copy of docs/dream/data/farmer.boxes.json that a test holds equal) drawn as voxels of one unit,
   0.02 m, coloured through `shade()` (so `harmonize()`, as for the animals). A box thinner than a unit (a stripe, a

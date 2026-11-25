@@ -2,7 +2,7 @@
 
 All user-visible changes, newest first.
 
-## Unreleased
+## 0.9.8
 
 - The farmer matches his sheet more closely: his nightcap's tail and pom hang back behind his left ear, and his beard runs along his jaw on both sides.
 - Counting Sheep's dream is drawn in a real thought cloud: big puffs along the top and sides and soft waves along the bottom, instead of a box with cut corners.
@@ -369,7 +369,7 @@ The visual overhaul is complete (milestones 0 to 12).
 - The land around the farm is alive: woods in natural clumps, an overgrown orchard, a dry stone wall, drifts, scrub and worn tracks, and sheep out on the open ground
 - The ice in Practice gets its own string of lights and a tree
 
-## Unreleased
+## 0.9.8
 
 ### Painted barn (shipped)
 

@@ -1,32 +1,33 @@
-import { useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { CheckIcon } from '../components/Icons';
 import { Slab } from '../kit/modern';
 import { CoinArt } from '../shop/art';
 import { itemById } from '../shop/catalog';
 import { usePayout } from '../shop/Payout';
 import { grantStreak } from '../shop/store';
-import { QuiltBand } from './Interface';
-import { moonAt, paintMoon, paintSky, paintStars, skyOf, starsOf } from './scene/common';
-import { Painter } from './scene/painter';
-import type { SceneState, StageN } from './scene/types';
-import { wordDots } from './starWords';
+import { Art, QuiltBand } from './Interface';
+import { starPlace } from './SkyStars';
 import type { StreakSlot } from './streakRow';
 
 /**
- * The results board (docs/dream/07-opening-endings-results.md, section 4): a board from the kit with this mode's trim,
- * beside the farmer in his bedroom (a sheet under him on a phone). From the top: the quilt band and its blanket
- * stitch, the title on a ribbon, the count on the nightshirt's pocket with the night's facts, the night's words as
- * stars, the streak, the coins, the buttons, and when the next dream arrives.
+ * The results board (docs/dream/v3/09, section 4): a board from the kit with this mode's trim, beside the farmer in
+ * his bedroom (a sheet under him on a phone). From the top: the quilt band and its blanket stitch, the title on a
+ * ribbon, the count and the best as two tiles side by side with the night's facts, the night sky with one star for
+ * each sheep over the night's words, readable, the streak, the coins, the buttons, and when the next dream arrives.
  */
 interface Props {
   title: string;
   count: number;
+  /** The best this run is measured against, and whether it beat it: the right tile shows the best, or "New best". */
+  best: number; newBest: boolean;
   /** The night's facts, one to a line. */
   facts: readonly string[];
-  /** Every word of the night, in the order they were used, and the stage it reached. */
-  words: readonly string[]; stage: StageN; seed: string;
-  /** Not on a practice run: the streak, its best, and the seven places toward the next Warm Blanket. */
+  /** Every word of the night in the order it was used, and the night's seed (where each sheep's star goes). */
+  words: readonly string[]; seed: string;
+  /** Lines the word list may take: three, two on a phone. */
+  lines: number;
+  /** Not on a practice run: the streak, its longest, and the seven places toward the next Warm Blanket. */
   streak: { now: number; best: number; days: readonly StreakSlot[] } | null;
   /** What the night pays: the game it is, for the Trading Post's wallet. */
   pay: { id: string; sheep: number; slept: boolean; bestStreak: number };
@@ -52,68 +53,57 @@ function useCountUp(to: number, ms: number, still: boolean): number {
   return n;
 }
 
+/** The most stars the board's sky draws: the newest. */
+export const BOARD_STARS = 60;
+
 /**
- * "Your night sky": the sky of the stage the night reached, with its moon, and every word of the night in stars (dots
- * 2 x 2, 3 apart), fading in one after another, 40 ms apart. Its own small canvas, drawn until the last word is in.
+ * "Your night sky": a strip in world 1's sky colours with the small moon at its right and one star for each sheep
+ * counted, each in its place in the window's sky (SkyStars.tsx), scaled to the strip.
  */
-function NightSky({ words, stage, seed, reduced }: { words: readonly string[]; stage: StageN; seed: string; reduced: boolean }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const el = ref.current, c = el?.getContext('2d');
-    if (!el || !c) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1), w = el.clientWidth, h = el.clientHeight;
-    el.width = Math.round(w * dpr); el.height = Math.round(h * dpr);
-    // Laid out in rows from the top left, the newest last; if the night had more words than fit, the newest that do.
-    const pitch = 3, rowH = 5 * pitch + 9, rows = Math.max(1, Math.floor((h - 8) / rowH));
-    const laid: { dots: [number, number][]; x: number; y: number }[] = [];
-    const place = (list: readonly string[]) => {
-      laid.length = 0;
-      let x = 10, row = 0;
-      for (const word of list) {
-        const d = wordDots(word), width = d.cols * pitch;
-        // The rows stop short of the moon at the sky's right end (22 across, 34 in from the edge).
-        if (x + width > w - 62) { x = 10; row++; }
-        if (row >= rows) return false;
-        laid.push({ dots: d.dots, x, y: 8 + row * rowH });
-        x += width + 14;
-      }
-      return true;
-    };
-    let list = [...words];
-    while (list.length > 1 && !place(list)) list = list.slice(1);
-    if (list.length === 1) place(list);
-    const st: SceneState = {
-      W: w, H: h, lane: h + 46, scroll: 0, t: 0, beats: 0.5, u: 1, stage, gate: null, arch: null, finale: 0, counted: 0, stream: -1, seed,
-      phone: false, low: true, reduced: true, festive: false, breath: 0, fences: [], sheep: { x: 0, lift: 0, w: 0, running: false },
-    };
-    let raf = 0;
-    const t0 = performance.now();
-    const draw = (now: number) => {
-      c.setTransform(1, 0, 0, 1, 0, 0);
-      const p = new Painter(c, dpr), sky = skyOf(stage);
-      paintSky(p, st, sky);
-      paintStars(p, st, starsOf(st, 26), stage !== 3);
-      // The stage's moon, small, at the sky's right end.
-      const m = moonAt(st);
-      paintMoon(p, st, { ...m, cx: w - 34, cy: h * 0.42, r: 22 }, sky.bands[1]);
-      p.done();
-      c.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const since = reduced ? 1e6 : now - t0;
-      laid.forEach((word, i) => {
-        const a = Math.min(1, Math.max(0, (since - i * 40) / 160));
-        if (a <= 0) return;
-        c.fillStyle = `rgba(187,204,240,${0.9 * a})`;
-        for (const [dx, dy] of word.dots) c.fillRect(word.x + dx * pitch, word.y + dy * pitch, 2, 2);
-      });
-      if (since < laid.length * 40 + 200) raf = requestAnimationFrame(draw);
-    };
-    raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
-  }, [words, stage, seed, reduced]);
-  return <canvas ref={ref} className="dr-res-sky rc-well" aria-hidden="true" />;
+function NightStrip({ count, seed }: { count: number; seed: string }) {
+  const first = Math.max(1, count - BOARD_STARS + 1);
+  return (
+    <div className="dr-res-strip" aria-hidden="true">
+      {Array.from({ length: Math.max(0, count - first + 1) }, (_, i) => {
+        const [fx, fy] = starPlace(seed, first + i);
+        // Clear of the moon's end of the strip (its last 56 px).
+        return <Art key={i} name="star-plus" px={2} className="dr-res-star" style={{ left: `calc(6px + (100% - 62px) * ${fx.toFixed(3)})`, top: `calc(4px + (100% - 18px) * ${fy.toFixed(3)})` }} />;
+      })}
+      <Art name="moon-small" px={2} className="dr-res-moon" />
+    </div>
+  );
 }
 
-export function Results({ title, count, facts, words, stage, seed, streak, pay, next, copied, reduced, onShare, onPractice, onClose, note }: Props) {
+/**
+ * The night's words, readable: the longest first as letter tiles, then the rest in order, newest last, wrapped to
+ * `lines` lines; what does not fit is counted as "+N more".
+ */
+function WordList({ words, lines }: { words: readonly string[]; lines: number }) {
+  const longest = words.reduce((a, w) => (w.length > a.length ? w : a), '');
+  const rest = words.filter((w) => w !== longest);
+  const [shown, setShown] = useState(rest.length);
+  const box = useRef<HTMLParagraphElement>(null);
+  useEffect(() => setShown(rest.length), [rest.length]);
+  // Take words off the end until the list fits its lines.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (el && shown > 0 && el.scrollHeight > el.clientHeight + 1) setShown(shown - 1);
+  });
+  if (!longest) return null;
+  return (
+    <>
+      <span className="dr-res-longest" aria-label={`Longest word: ${longest}`}>{[...longest.toUpperCase()].map((ch, i) => <span key={i} className="dr-tile">{ch}</span>)}</span>
+      {rest.length > 0 && (
+        <p ref={box} className="dr-res-words" style={{ '--lines': lines } as CSSProperties}>
+          {rest.slice(0, shown).map((w, i) => <span key={i}>{w.toUpperCase()}</span>)}
+          {shown < rest.length && <span className="dr-res-more">{`+${rest.length - shown} more`}</span>}
+        </p>
+      )}
+    </>
+  );
+}
+
+export function Results({ title, count, best, newBest, facts, words, seed, lines, streak, pay, next, copied, reduced, onShare, onPractice, onClose, note }: Props) {
   const shown = useCountUp(count, 600, reduced);
   const payout = usePayout(pay.id, { mode: 'dream', sheep: pay.sheep, slept: pay.slept });
   const [granted, setGranted] = useState<string[]>([]);
@@ -130,20 +120,26 @@ export function Results({ title, count, facts, words, stage, seed, streak, pay, 
       <h2 className="dr-res-ribbon"><span>{title}</span></h2>
       <div className="dr-res-scroll">
         <div className="dr-res-top">
-          {/* The nightshirt's pocket: cream with a thin blue stripe, as on him. */}
-          <div className="dr-res-pocket" aria-label={`${count} sheep`}><b>{shown}</b><span>sheep</span></div>
+          <div className="dr-res-tiles">
+            {/* The nightshirt's pocket: cream with a thin blue stripe, as on him. */}
+            <div className="dr-res-pocket" aria-label={`${count} sheep`}><b>{shown}</b><span>sheep</span></div>
+            <div className="dr-res-best rc-tile" data-new={newBest || undefined}><span>{newBest ? 'New best' : 'Best'}</span><b>{best}</b></div>
+          </div>
           <div className="dr-res-facts">{facts.map((f) => <p key={f}>{f}</p>)}</div>
         </div>
         {note && <p className="dr-res-note">{note}</p>}
-        {words.length > 0 && (
+        {count > 0 || words.length > 0 ? (
           <div className="dr-res-part">
             <p className="dr-res-label">Your night sky</p>
-            <NightSky words={words} stage={stage} seed={seed} reduced={reduced} />
+            <div className="dr-res-sky rc-well">
+              <NightStrip count={count} seed={seed} />
+              {words.length > 0 && <div className="dr-res-list"><WordList words={words} lines={lines} /></div>}
+            </div>
           </div>
-        )}
+        ) : null}
         {streak && (
           <div className="dr-res-card rc-tile">
-            <p className="dr-res-head"><b>{`${streak.now}-night streak`}</b><span>{`best ${streak.best}`}</span></p>
+            <p className="dr-res-head"><b>{`${streak.now}-night streak`}</b><span>{`Longest: ${streak.best}`}</span></p>
             {/* The seven places toward the next Warm Blanket: earned ones lit with a check, tonight's ringed. */}
             <div className="dr-res-days" aria-hidden="true">
               {streak.days.map((d, i) => <i key={i} data-s={d === 'empty' || d === 'missed' ? undefined : 'on'} data-today={i === tonight || undefined}>{d !== 'empty' && d !== 'missed' && <CheckIcon size={12} />}</i>)}

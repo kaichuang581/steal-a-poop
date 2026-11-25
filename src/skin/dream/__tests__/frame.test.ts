@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { signLayout } from '../Signs';
 import { ART, dreamView, SHEEP_ART } from '../stage';
 import {
-  BED_BOX, BED_SIDE, bubbleBottom, bubbleShape, dreamFrame, isPhoneLayout, meterSegments, RIM, scallopRow, SIGN_BOARD, signHeight, stripCamera, stripExtent, stripPoint,
-  tailPuffs, tileFit, TRAY, unitOf,
+  BED_BOX, BED_SIDE, bubbleShape, CAP_TIP, dreamFrame, isPhoneLayout, meterSegments, pixelDisc, RIM, SHADE, SIGN_BOARD, signHeight, signWidth, stripCamera, stripExtent,
+  stripPoint, tailPuffs, tileFit, TRAY, unitOf,
 } from '../frame';
 import { trayWord } from '../Interface';
 import { ART_GRIDS } from '../pixelArt';
@@ -27,7 +27,7 @@ describe('the layout', () => {
       expect(f.strip.h).toBe(Math.min(240, Math.max(160, 0.24 * h)));
       expect(f.strip.y + f.strip.h).toBe(h);
       expect(f.bedZone).toBe(Math.min(590, Math.max(380, 0.36 * w)));
-      // Inset 10 from the top, left and right; the lowest points of its bottom edge 6 above the strip.
+      // Inset 10 from the top, left and right; its straight lower edge 6 above the strip.
       expect([f.bubble.x, f.bubble.y, f.bubble.w]).toEqual([10, 10, w - 20]);
       expect(f.bubble.y + f.bubble.h).toBe(f.strip.y - 6);
       // The tray: centred on the middle of the space right of the bed zone, 14 above the bottom, on the strip alone.
@@ -36,8 +36,8 @@ describe('the layout', () => {
       expect(f.tray.y).toBeGreaterThanOrEqual(f.strip.y);
       expect(f.tray.x).toBeGreaterThanOrEqual(f.bedZone);
       expect(f.tray.x + f.tray.w).toBeLessThanOrEqual(w);
-      // The bedroom's canvas runs on up behind the bumps of the bubble's edge, so no gap shows.
-      expect(f.room.y).toBeLessThanOrEqual(f.bubble.y + f.baseline);
+      // The bedroom's canvas runs on up behind the window's cut bottom corners, so the wall shows right up to its shade.
+      expect(f.room.y).toBeLessThanOrEqual(f.bubble.y + f.bubble.h - 12);
       expect(f.room.y + f.room.h).toBe(h);
     }
   });
@@ -46,12 +46,12 @@ describe('the layout', () => {
       const f = dreamFrame(w, h);
       expect(f.phone).toBe(true);
       expect(f.u).toBe(1);
-      expect([f.bubble.x, f.bubble.y, f.bubble.w, f.bubble.h]).toEqual([6, 6, w - 12, h - 150]);
+      expect([f.bubble.x, f.bubble.y, f.bubble.w, f.bubble.h]).toEqual([6, 6, w - 12, h - 152]);
       expect(f.strip.h).toBe(56);
       expect([f.tray.w, f.tray.h, h - (f.tray.y + f.tray.h)]).toEqual([w - 12, 84, 6]);
-      // Top to bottom, each ends where the next begins (the bubble's lowest bumps reach 2 px into the strip's wall).
+      // Top to bottom, each ends where the next begins (the window's shade lies on the strip's wall).
       expect(f.strip.y + f.strip.h).toBe(f.tray.y);
-      expect(f.bubble.y + f.bubble.h).toBeLessThanOrEqual(f.strip.y + 2);
+      expect(f.bubble.y + f.bubble.h).toBe(f.strip.y);
       // The hint is inside the dream window, along its bottom edge.
       expect(h - f.hint.bottom).toBeLessThanOrEqual(f.bubble.y + f.bubble.h);
       expect(f.hint.x).toBeGreaterThanOrEqual(f.bubble.x + RIM);
@@ -67,30 +67,33 @@ describe('the layout', () => {
 });
 
 describe('the thought bubble', () => {
-  it('lays the scallops side by side from corner to corner, in the plan\'s widths', () => {
-    for (const [w, widths] of [[1420, [72, 48, 60, 40]], [378, [48, 32, 40, 28]], [868, [72, 48, 60, 40]]] as const) {
-      const row = scallopRow(w, widths);
-      expect(row[0].c - row[0].r).toBeCloseTo(0, 6);
-      expect(row[row.length - 1].c + row[row.length - 1].r).toBeCloseTo(w, 6);
-      row.forEach((s, k) => expect(s.r * 2).toBe(widths[k % widths.length]));
-      // Each overlaps the next, by the plan's 6 or a little more.
-      for (let k = 1; k < row.length; k++) expect(row[k - 1].c + row[k - 1].r - (row[k].c - row[k].r)).toBeGreaterThanOrEqual(5.99);
-    }
-  });
-  it('draws its edge in steps of 3, the lowest bumps on the box\'s bottom, the rim 6 inside all round', () => {
+  it('has a straight lower edge, every corner cut in three steps, and the rim 6 inside all round', () => {
     for (const [w, h] of [...COMPUTERS, ...PHONES]) {
-      const f = dreamFrame(w, h), shape = bubbleShape(f.bubble.w, f.baseline, f.scallops);
+      const f = dreamFrame(w, h), shape = bubbleShape(f.bubble.w, f.bubble.h);
       const outer = points(shape.outer), inner = points(shape.inner);
+      // Every point on the outside's box, and the bottom edge one straight line from the first corner to the last.
       expect(Math.max(...outer.map((p) => p[1]))).toBe(f.bubble.h);
-      expect(shape.depth).toBe(f.scallops[0] / 2);
-      // Pixel steps: below the baseline every point sits a whole number of steps under it.
-      for (const [, y] of outer) if (y > f.baseline) expect(Math.abs((y - f.baseline) / 3 - Math.round((y - f.baseline) / 3))).toBeLessThan(1e-6);
+      const bottom = outer.filter((p) => p[1] === f.bubble.h).map((p) => p[0]);
+      expect([Math.min(...bottom), Math.max(...bottom)]).toEqual([12, f.bubble.w - 12]);
+      // Three steps of 4 at each of the four corners: 7 points each.
+      expect(outer.length).toBe(28);
+      for (const [x, y] of outer) expect(x % 4 === 0 || f.bubble.w - x === 0 || (f.bubble.w - x) % 4 === 0).toBe(true), expect(y === f.bubble.h || y % 4 === 0 || (f.bubble.h - y) % 4 === 0).toBe(true);
       // The dream's clip is inside the rim on every side.
       expect(Math.min(...inner.map((p) => p[0]))).toBe(RIM);
       expect(Math.max(...inner.map((p) => p[0]))).toBe(f.bubble.w - RIM);
       expect(Math.min(...inner.map((p) => p[1]))).toBe(RIM);
-      expect(Math.max(...inner.map((p) => p[1]))).toBeLessThanOrEqual(f.bubble.h - RIM + 3);
-      expect(bubbleBottom(f, f.bubble.w / 2)).toBeGreaterThan(f.baseline);
+      expect(Math.max(...inner.map((p) => p[1]))).toBe(f.bubble.h - RIM);
+    }
+  });
+  it('draws a puff as a round disc in 2 px steps, the same on both sides', () => {
+    for (const d of [12, 16, 26, 40]) {
+      const pts = points(pixelDisc(d));
+      for (const [x, y] of pts) { expect(x).toBeGreaterThanOrEqual(0); expect(x).toBeLessThanOrEqual(d); expect(y % 2).toBe(0); }
+      const right = pts.slice(0, pts.length / 2), left = pts.slice(pts.length / 2).reverse();
+      right.forEach(([x, y], i) => { expect(left[i][1]).toBe(y); expect(left[i][0]).toBeCloseTo(d - x, 6); });
+      // Widest at its middle, narrowest at the top.
+      expect(Math.max(...right.map((p) => p[0]))).toBe(d);
+      expect(right[0][0]).toBeLessThan(d);
     }
   });
 });
@@ -166,19 +169,21 @@ describe('the bed strip\'s camera', () => {
     }
     expect(stripExtent(dreamFrame(390, 544)).windowX).toBeNull();
   });
-  it('brings the tail down from the window\'s edge to just over his face, three puffs, the smallest last', () => {
+  it('brings the tail up from the tip of his cap to the window\'s shade, three round puffs, the smallest last', () => {
     for (const [w, h] of [...COMPUTERS, ...PHONES]) {
-      const f = dreamFrame(w, h), puffs = tailPuffs(f);
-      expect(puffs.map((p) => p.w)).toEqual(f.phone ? [26, 18, 12] : [42, 26, 16]);
-      // Stepping down and left.
-      expect(puffs[0].y).toBeLessThan(puffs[1].y);
-      expect(puffs[1].y).toBeLessThan(puffs[2].y);
-      expect(puffs[0].x).toBeGreaterThan(puffs[1].x);
-      expect(puffs[1].x).toBeGreaterThan(puffs[2].x);
-      // The largest reaches the bubble's bottom edge; the smallest is on the strip's side of it.
-      expect(puffs[0].y).toBeLessThanOrEqual(f.bubble.y + f.bubble.h);
-      expect(puffs[2].y + puffs[2].h).toBeGreaterThan(f.room.y);
-      expect(puffs[2].x).toBeGreaterThan(0);
+      const f = dreamFrame(w, h), c = stripCamera(f), puffs = tailPuffs(f, c), [cx, cy] = stripPoint(c, CAP_TIP.x, CAP_TIP.y, CAP_TIP.z);
+      expect(puffs.map((p) => p.w)).toEqual(f.phone ? [26, 18, 12] : [40, 26, 16]);
+      const mid = puffs.map((p) => [p.x + p.w / 2, p.y + p.h / 2] as const), k = f.phone ? 26 / 40 : 1;
+      // The plan's steps between their middles: 24 up and 14 right, then 32 up and 26 right.
+      expect(Math.abs(mid[1][0] - mid[2][0] - 14 * k)).toBeLessThanOrEqual(1);
+      expect(Math.abs(mid[2][1] - mid[1][1] - 24 * k)).toBeLessThanOrEqual(1);
+      expect(Math.abs(mid[0][0] - mid[1][0] - 26 * k)).toBeLessThanOrEqual(1);
+      expect(Math.abs(mid[1][1] - mid[0][1] - 32 * k)).toBeLessThanOrEqual(1);
+      // The smallest is 6 right of the cap's tip and at least 14 above it (more if all three moved up to the shade).
+      expect(Math.abs(mid[2][0] - cx - 6 * k)).toBeLessThanOrEqual(1);
+      expect(cy - mid[2][1]).toBeGreaterThanOrEqual(14 * k - 1);
+      // The largest overlaps the window's shade by 4 at least.
+      expect(puffs[0].y).toBeLessThanOrEqual(f.bubble.y + f.bubble.h + SHADE - 4);
     }
   });
 });
@@ -187,6 +192,14 @@ describe('the sign\'s board', () => {
   it('keeps the letters\' tiles at least 26 px tall at every unit', () => {
     for (const u of [0.8, 1, 1.125, 1.5]) expect((SIGN_BOARD.computer.tile + SIGN_BOARD.computer.side) * u).toBeGreaterThanOrEqual(26);
     expect(SIGN_BOARD.phone.tile + SIGN_BOARD.phone.side).toBeGreaterThanOrEqual(26);
+  });
+  it('is as wide as its letters need and never under 150, and on a phone under 46% of the window', () => {
+    expect(signWidth(1, false, 1)).toBe(150);
+    expect(signWidth(3, false, 1)).toBe(40 + 3 * 42 + 3 * 8 + 3 * 10 + 2 * 4);
+    for (const [w, h] of PHONES) {
+      const f = dreamFrame(w, h);
+      if (f.view.w >= 360) expect(signWidth(3, true, 1)).toBeLessThanOrEqual(0.46 * f.view.w);
+    }
   });
   it('hangs clear of the standing sheep\'s head, and drops the word plank where the window is too short for it', () => {
     for (const [w, h] of [[1440, 900], [900, 600], [390, 544]] as const) {
@@ -204,15 +217,17 @@ describe('the sign\'s board', () => {
 });
 
 describe('the pixel art', () => {
-  it('is the pack\'s, grid for grid', () => {
-    const pack = JSON.parse(readFileSync('docs/dream/data/pixel-art.json', 'utf8')).grids as Record<string, { px: number; rows: string[] }>;
-    expect(Object.keys(ART_GRIDS)).toEqual(Object.keys(pack));
-    for (const [name, g] of Object.entries(pack)) {
+  it('is the packs\', grid for grid: version 3\'s, and version 2\'s that the flat scenery still draws', () => {
+    const v3 = JSON.parse(readFileSync('docs/dream/v3/data/pixel-art.json', 'utf8')).grids as Record<string, { px: number; rows: string[] }>;
+    const v2 = JSON.parse(readFileSync('docs/dream/data/pixel-art.json', 'utf8')).grids as Record<string, { px: number; rows: string[] }>;
+    const own = ['cross'];
+    expect(Object.keys(ART_GRIDS).sort()).toEqual([...new Set([...Object.keys(v3), ...Object.keys(v2), ...own])].sort());
+    for (const [name, g] of Object.entries({ ...v2, ...v3 })) {
       const mine = ART_GRIDS[name as keyof typeof ART_GRIDS];
       expect(mine.px).toBe(g.px);
       expect([...mine.rows]).toEqual(g.rows);
-      // Every row of a grid is as wide as the first.
-      for (const row of g.rows) expect(row.length).toBe(g.rows[0].length);
     }
+    // Every row of a grid is as wide as the first.
+    for (const g of Object.values(ART_GRIDS)) for (const row of g.rows) expect(row.length).toBe(g.rows[0].length);
   });
 });

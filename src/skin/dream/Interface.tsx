@@ -1,32 +1,58 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, RefObject } from 'react';
-import { SheepHead } from '../avatars/AvatarIcon';
-import { CloseIcon } from '../components/Icons';
-import { IconSlab } from '../kit/modern';
 import { Pix } from '../kit/surfaces';
-import { meterSegments, tileFit, TRAY } from './frame';
+import { meterSegments, pixelDisc, tileFit, TRAY } from './frame';
 import type { Box, DreamFrame } from './frame';
 import { ART_GRIDS } from './pixelArt';
 import type { ArtName } from './pixelArt';
 
 /**
- * Counting Sheep's interface (docs/dream/02-layout-and-interface.md): the tray of letter tiles, the hint strip, the
- * counters inside the top of the dream window, the announcement cards and the ready board. All of it is the game's
- * navy kit (slabs, boards, wells, ink cards) with this mode's one trim, the quilt band. Sizes are the plan's px times
- * `--u`; a phone's are its own.
+ * Counting Sheep's interface (docs/dream/v3/08-interface.md): the tray of letter tiles, the hint strip, the top bar
+ * inside the dream window (the chip, the counter with its best tab, the close button), the announcement cards, the
+ * ready board, and over the farmer the bubble's tail, his snores and his marks. All of it is the game's navy kit
+ * (slabs, boards, wells, ink cards) with this mode's one trim, the quilt band. Sizes are the plan's px times `--u`; a
+ * phone's are its own.
  */
 
-const ART_COLOR: Partial<Record<ArtName, string>> = {
-  bang: 'var(--hm-lantern-hi)', question: 'var(--hm-lantern-hi)', 'bump-star': 'var(--hm-lantern-hi)', candle: 'var(--hm-lantern-hi)', 'moon-small': 'var(--hm-lantern-hi)',
-  'return-key': 'var(--hm-ink)', 'star-plus': 'var(--hm-frost)', 'arrow-right': 'var(--hm-frost)', island: 'var(--hm-wool)', 'yarn-ball': '#C44A3A', 'sheep-shadow': 'var(--hm-ink)',
+const ART_COLORS: Partial<Record<ArtName, Record<string, string>>> = {
+  bang: { X: 'var(--hm-lantern-hi)' }, question: { X: 'var(--hm-lantern-hi)' }, 'bump-star': { X: 'var(--hm-lantern-hi)' }, candle: { X: 'var(--hm-lantern-hi)' },
+  'moon-small': { X: 'var(--hm-lantern-hi)' }, 'moon-full': { X: 'var(--hm-lantern-hi)', o: 'var(--hm-lantern)' },
+  'return-key': { X: 'var(--hm-ink)' }, check: { X: 'var(--hm-ink)' }, 'star-plus': { X: 'var(--hm-frost)' }, 'arrow-right': { X: 'var(--hm-frost)' },
+  island: { X: 'var(--hm-wool)' }, 'yarn-ball': { X: '#BF6055', '-': '#AC473D' }, 'sheep-shadow': { X: 'var(--hm-ink)' },
+  'sheep-head': { X: 'var(--hm-wool)', p: '#E8B1AC', o: 'var(--hm-ink)' }, 'sheep-side': { X: 'var(--hm-wool)' }, fence: { X: 'var(--hm-lantern)' }, cross: { X: 'var(--hm-wool)' },
 };
 /** One of the pack's pixel grids, at `px` of the plan's pixels an art pixel (its own size when not given). */
 export function Art({ name, px, color, className, style }: { name: ArtName; px?: number; color?: string; className?: string; style?: CSSProperties }) {
   const a = ART_GRIDS[name];
-  return <Pix rows={a.rows} colors={{ X: color ?? ART_COLOR[name] ?? 'var(--hm-wool-hi)', '-': '#933529' }} px={px ?? a.px} className={className} style={style} />;
+  return <Pix rows={a.rows} colors={color ? { X: color } : ART_COLORS[name] ?? { X: 'var(--hm-wool-hi)' }} px={px ?? a.px} className={className} style={style} />;
 }
 
-/** This mode's trim: a strip of patches in the quilt's five colours along a board's top (section 2). */
-export const QuiltBand = ({ className = '' }: { className?: string }) => <i className={`dr-quilt-bar ${className}`} aria-hidden="true" />;
+/**
+ * This mode's trim (v3/08, section 11): whole squares along a board's top edge, inside its outline, in the quilt's order
+ * (red, cream, mustard, cream, green, cream, mauve, cream). As many as the board's width over 26, rounded, each an equal
+ * share of the width, so the band begins and ends on a square's edge.
+ */
+const QUILT = ['#BF6055', '#E4D7C4', '#DCB87A', '#E4D7C4', '#478A6B', '#E4D7C4', '#856D75', '#E4D7C4'] as const;
+export const quiltSquares = (width: number): number => Math.max(1, Math.round(width / 26));
+export function QuiltBand({ className = '' }: { className?: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const [n, setN] = useState(12);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const on = () => setN(quiltSquares(el.clientWidth));
+    on();
+    const ro = new ResizeObserver(on);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return <i ref={ref} className={`dr-quilt-bar ${className}`} aria-hidden="true">{Array.from({ length: n }, (_, i) => <b key={i} style={{ '--q': QUILT[i % QUILT.length] } as CSSProperties} />)}</i>;
+}
+
+/** A round wool puff drawn in 2 px steps, its shade of wool's lip 4 px under it (v3/08, section 2). */
+export function Puff({ d, i, className, style }: { d: number; i?: number; className?: string; style?: CSSProperties }) {
+  return <i className={`dr-puff ${className ?? ''}`} data-i={i} style={{ width: d, height: d, ...style }}><b style={{ clipPath: pixelDisc(d) }} /></i>;
+}
 
 // ---------- the tray ----------
 
@@ -42,6 +68,15 @@ export function trayWord(sign: readonly string[], typed: string): { rest: string
   return { rest: t, word: s + t };
 }
 
+/**
+ * The one message of a moment (v3/08, section 6), in its rank: a refusal, else a hint, else nothing in the strip over
+ * the tray; and "Type ahead…" in the meter's row only when no fence is coming and the strip is empty.
+ */
+export function trayMessage(refusal: string, hint: boolean, fenceComing: boolean): { strip: 'no' | 'hint' | null; typeAhead: boolean } {
+  const strip = refusal ? 'no' : hint ? 'hint' : null;
+  return { strip, typeAhead: !strip && !fenceComing };
+}
+
 interface TrayProps {
   frame: DreamFrame;
   /** The sign's letters when a fence is coming; none while typing ahead. */
@@ -50,6 +85,8 @@ interface TrayProps {
   wrong: boolean;
   /** How much of the meter is left, 0 to 1; null with no fence coming. */
   left: number | null;
+  /** "Type ahead…" under the tiles: only when nothing shows in the strip over the tray. */
+  typeAhead: boolean;
   /** The night has ended: the tray drops away. */
   over: boolean;
   canJump: boolean;
@@ -59,11 +96,11 @@ interface TrayProps {
 }
 
 /**
- * The tray (section 4): a small board with the quilt band along its top. The sign's letters stand in it as lantern
- * tiles, yours arrive as wool tiles, the next place has the orange ring and a caret, and the meter under them runs
- * down as the fence nears the sheep.
+ * The tray: a small board with the quilt band along its top. The sign's letters stand in it as lantern tiles, yours
+ * arrive as wool tiles, the next place has the orange ring and a caret, and the meter under them runs down as the
+ * fence nears the sheep.
  */
-export function Tray({ frame, sign, typed, wrong, left, over, canJump, onJump, children }: TrayProps) {
+export function Tray({ frame, sign, typed, wrong, left, typeAhead, over, canJump, onJump, children }: TrayProps) {
   const { phone, u } = frame, T = phone ? TRAY.phone : TRAY.computer;
   const { rest } = trayWord(sign, typed);
   // At rest there are always three places after the sign's letters: the next one and two more.
@@ -92,7 +129,7 @@ export function Tray({ frame, sign, typed, wrong, left, over, canJump, onJump, c
       </div>
       <div className="dr-meter" aria-hidden="true">
         {Array.from({ length: n }, (_, i) => <i key={i} data-on={i < lit || undefined} data-low={lit <= 3 || undefined} />)}
-        {left === null && <span>Type ahead…</span>}
+        {typeAhead && <span>Type ahead…</span>}
       </div>
       {children}
     </div>
@@ -101,7 +138,7 @@ export function Tray({ frame, sign, typed, wrong, left, over, canJump, onJump, c
 
 // ---------- the hint and the messages ----------
 
-/** One ink strip (section 5): a hint with the candle and a lantern bar, or a refusal with an ember bar. */
+/** One ink strip: a hint with the candle and a lantern bar, or a refusal with an ember bar. */
 export function Hint({ kind, style, children }: { kind: 'hint' | 'no'; style?: CSSProperties; children: ReactNode }) {
   return (
     <p className="dr-hint dr-inkcard" data-kind={kind} style={style} role={kind === 'no' ? 'alert' : undefined}>
@@ -111,61 +148,57 @@ export function Hint({ kind, style, children }: { kind: 'hint' | 'no'; style?: C
   );
 }
 
-// ---------- the counters ----------
+// ---------- the top bar ----------
 
-/** Top left: which dream this is. */
+/** Top left: which dream this is (v3/08, section 3). */
 export function ModeChip({ children }: { children: ReactNode }) {
   return <span className="dr-chip"><Art name="moon-small" /><span>{children}</span></span>;
 }
 
 /**
- * The night track (section 7): one pip a fence, in groups split where the sign's letter count changes, each group's
- * count on a small tag before it. Cleared pips are lit, the fence being met blinks, and the fence that ended the night
- * is ember.
+ * The best tab under the counter (v3/01, section 4): hidden while the best is 0, "Best 32" otherwise, and "New best"
+ * from the first count above a best over 0, for the rest of the night.
  */
-export function NightTrack({ groups, reached, ended }: { groups: readonly { letters: number; count: number }[]; reached: number; ended: number | null }) {
-  let at = 0;
-  return (
-    <div className="dr-track" aria-hidden="true">
-      {groups.map((g) => (
-        <span key={g.letters} className="dr-track-group">
-          <b>{g.letters}</b>
-          {Array.from({ length: g.count }, () => {
-            const i = at++;
-            return <i key={i} data-s={i === ended ? 'end' : i < reached ? 'done' : i === reached && ended === null ? 'now' : undefined} />;
-          })}
-        </span>
-      ))}
-    </div>
-  );
+export function bestTab(count: number, best: number): { text: string; beaten: boolean } | null {
+  if (best <= 0) return null;
+  return count > best ? { text: 'New best', beaten: true } : { text: `Best ${best}`, beaten: false };
 }
 
-/** Top right: sheep counted, and how far into the night. */
-export function Counter({ count, of, note, onClose }: { count: number; of: number | null; note?: string; onClose: () => void }) {
+/**
+ * Top right (v3/08, section 3): the counter (the sheep's head, the count) with the best tab hung under it, and the quiet
+ * close button. Nothing in the middle.
+ */
+export function Counter({ count, best, phone, onClose }: { count: number; best: number; phone: boolean; onClose: () => void }) {
+  const tab = bestTab(count, best);
   return (
     <div className="dr-corner">
-      <div className="dr-counter hm-slab hm-slab--night" aria-live="polite" aria-label={of ? `${count} sheep counted, of ${of}` : `${count} sheep counted`}>
-        <SheepHead size={24} />
-        <b key={count} className="dr-counter-n">{count}</b>
-        {of ? <span>{` of ${of}`}</span> : note ? <span>{` ${note}`}</span> : null}
+      <div className="dr-counter-at">
+        <div className="dr-counter hm-slab hm-slab--night" aria-live="polite" aria-label={`${count} sheep counted`}>
+          <Art name="sheep-head" px={phone ? 2 : 3} />
+          <b key={count} className="dr-counter-n">{count}</b>
+        </div>
+        {tab && <span className="dr-best" data-beaten={tab.beaten || undefined}>{tab.text}</span>}
       </div>
-      <IconSlab className="dr-close" onClick={onClose} aria-label="Leave the dream" title="Leave the dream (Esc)"><CloseIcon size={14} /></IconSlab>
+      <button type="button" className="dr-close hm-slab hm-slab--night" onClick={onClose} aria-label="Leave the dream" title="Leave the dream (Esc)"><Art name="cross" /></button>
     </div>
   );
 }
 
 // ---------- cards ----------
 
-export type CardKind = 'stage2' | 'stage3' | 'finale' | 'bump' | 'deep' | 'slept';
+export type CardKind = 'stage2' | 'stage3' | 'lift' | 'quilt' | 'turn' | 'bump' | 'deep' | 'slept';
 const CARDS: Record<CardKind, { tone: 'lantern' | 'ember'; art: ArtName; px: number; title: string; sub: string }> = {
   stage2: { tone: 'lantern', art: 'island', px: 2, title: 'Dreaming…', sub: 'Two letters now' },
   stage3: { tone: 'lantern', art: 'yarn-ball', px: 2, title: 'Deep dream', sub: 'Three letters now' },
-  finale: { tone: 'lantern', art: 'z', px: 4, title: 'Nearly out cold', sub: 'Five fences to go' },
+  // After the first lap (v3/07, section 3.4): the letters no longer change at a gate, so the card says where he is.
+  lift: { tone: 'lantern', art: 'island', px: 2, title: 'Dreaming…', sub: 'The farm lifts off' },
+  quilt: { tone: 'lantern', art: 'yarn-ball', px: 2, title: 'Deep dream', sub: 'Under the quilt' },
+  turn: { tone: 'lantern', art: 'z', px: 4, title: 'He turns over', sub: 'Back to the farm' },
   bump: { tone: 'ember', art: 'bump-star', px: 2, title: 'Bump!', sub: 'The farmer stirs…' },
   deep: { tone: 'lantern', art: 'z', px: 4, title: 'Zzz…', sub: 'He’s out cold. Keep counting!' },
   slept: { tone: 'lantern', art: 'z', px: 4, title: 'Zzz…', sub: 'He slept right through it' },
 };
-/** One announcement (section 8): an ink card with a bar, an icon in a 24 box, a title and a second line. */
+/** One announcement: an ink card with a bar, an icon in a 24 box, a title and a second line. */
 export function DreamCard({ kind }: { kind: CardKind }) {
   const c = CARDS[kind];
   return (
@@ -178,8 +211,8 @@ export function DreamCard({ kind }: { kind: CardKind }) {
 
 // ---------- the ready board ----------
 
-/** Before the first key (section 9): what to do, in three pictures. */
-export function ReadyBoard({ practice }: { practice: boolean }) {
+/** Before the first key (v3/08, section 10): what to do, in three pictures, over the sky so the track shows under it. */
+export function ReadyBoard({ practice, touch }: { practice: boolean; touch: boolean }) {
   return (
     <div className="dr-ready dr-inkcard">
       <QuiltBand />
@@ -196,38 +229,34 @@ export function ReadyBoard({ practice }: { practice: boolean }) {
         </figure>
         <Art name="arrow-right" className="dr-ready-arrow" />
         <figure>
-          <div className="dr-ready-pic rc-well"><span className="dr-ready-leap"><Art name="sheep-shadow" color="var(--hm-wool-hi)" /><i /></span></div>
+          <div className="dr-ready-pic rc-well"><span className="dr-ready-leap"><Art name="sheep-side" /><Art name="fence" /></span></div>
           <figcaption>Press Enter to jump</figcaption>
         </figure>
       </div>
-      <p className="dr-ready-foot">Press any key to start</p>
+      <p className="dr-ready-foot">{touch ? 'Tap to start' : 'Press any key to start'}</p>
     </div>
   );
 }
 
-// ---------- the bubble's tail, and what rises along it ----------
+// ---------- over the farmer: the bubble's tail, his snores, his marks ----------
 
 /**
- * The tail: three pixel puffs from the window's bottom edge down to the farmer (section 3.3), his "z"s rising from his
- * nose into the smallest one (docs/dream/01-farmer.md, section 3: quicker and bigger the deeper he sleeps), and the
- * "!" of a bump or the "?" of a wrong word over his head.
+ * Over the farmer (v3/08, sections 2 and 7): the tail's three wool puffs; his three snores to the right of his head,
+ * their top left corners 56, 74 and 98 px right of the tip of his cap (the first level with it, the second 20 above,
+ * the third 46 above), shown in turn small to large over 1.8 s, then a 0.6 s rest, a size larger in his deep sleep; and
+ * the "?" of a wrong word or the "!" of a bump, 18 px above his cap.
  */
-export function Tail({ puffs, nose, depth, mark, asleep, extra = 0 }: { puffs: readonly Box[]; nose: readonly [number, number]; depth: number; mark: 'bang' | 'question' | null; asleep: boolean;
-  /** Changes when a word is taken: he lets out one extra "z", a size larger. */
-  extra?: number;
-}) {
-  const last = puffs[puffs.length - 1], every = depth >= 3 ? 0.45 : depth === 2 ? 0.6 : 0.8;
-  const to = { '--zx': `${Math.round(last.x + last.w / 2 - nose[0])}px`, '--zy': `${Math.round(last.y + last.h / 2 - nose[1])}px` } as CSSProperties;
+export function Tail({ puffs, cap, deep, mark, asleep, u }: { puffs: readonly Box[]; cap: readonly [number, number]; deep: boolean; mark: 'bang' | 'question' | null; asleep: boolean; u: number }) {
+  const at = [[56, 0], [74, -20], [98, -46]] as const, base = deep ? 3 : 2;
   return (
     <div className="dr-tail" aria-hidden="true">
-      {puffs.map((p, i) => <i key={i} className="dr-puff" data-i={i} style={{ left: p.x, top: p.y, width: p.w, height: p.h }} />)}
-      {asleep && !mark && [0, 1, 2].map((i) => (
-        <span key={`${depth}:${i}`} className="dr-z" style={{ left: nose[0], top: nose[1], animationDuration: `${every * 3}s`, animationDelay: `${-every * i}s`, ...to }}>
-          <Art name="z" px={Math.min(4, depth + 1)} />
+      {puffs.map((p, i) => <Puff key={i} i={i} d={p.w} className="dr-tail-puff" style={{ left: p.x, top: p.y, '--i': i } as CSSProperties} />)}
+      {asleep && !mark && at.map(([dx, dy], i) => (
+        <span key={`${deep}:${i}`} className="dr-z dr-outlined" data-i={i} style={{ left: Math.round(cap[0] + dx * u), top: Math.round(cap[1] + dy * u) }}>
+          <Art name="z" px={base + i} />
         </span>
       ))}
-      {asleep && !mark && extra > 0 && <span key={extra} className="dr-z dr-z--once" style={{ left: nose[0], top: nose[1], ...to }}><Art name="z" px={Math.min(5, depth + 2)} /></span>}
-      {mark && <span key={mark} className="dr-mark" style={{ left: nose[0], top: last.y }}><Art name={mark} /></span>}
+      {mark && <span key={mark} className="dr-mark dr-outlined" style={{ left: Math.round(cap[0]), top: Math.round(cap[1] - 18 * u) }}><Art name={mark} px={4} /></span>}
     </div>
   );
 }

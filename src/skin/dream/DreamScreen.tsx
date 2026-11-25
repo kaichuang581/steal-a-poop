@@ -4,8 +4,10 @@ import { createRef, useCallback, useEffect, useMemo, useRef, useState } from 're
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { playSound, playTick } from '../../audio/sound';
 import { streakRow } from './streakRow';
-import { dreamStreakDays, getDreamBest, getDreamStreak, loadStreak, markDreamStarted, recordBest, recordDream } from '../../dream/daily';
+import { dreamStreakDays, getDreamBest, getDreamStreak, loadStreak, markDreamStarted, recordDream } from '../../dream/daily';
+import { getPracticeBest, recordPracticeBest } from './practiceBest';
 import { check, DREAM_LENGTH, dreamGlyphs, dreamSeed, dreamShareText, dreamSummary, fenceAt, FIELD, formatHint, lettersAt, matched } from '../../dream/dream';
+import { useMediaQuery } from '../../ui/hooks';
 import { useStore } from '../../state/store';
 import { useIsMobile } from '../../ui/hooks';
 import { Paper } from '../kit';
@@ -24,8 +26,8 @@ import { dreamLink, useDreamUi } from './dreamStore';
 import { flyTiles } from './fly';
 import { Fx } from './Fx';
 import type { FxHandle } from './Fx';
-import { bubbleShape, dreamFrame, isPhoneLayout, meterSegments, NOSE, RIM, stripCamera, stripPoint, tailPuffs } from './frame';
-import { Counter, DreamCard, Hint, ModeChip, NightTrack, ReadyBoard, Tail, Tray, trayWord } from './Interface';
+import { bubbleShape, CAP_TIP, dreamFrame, isPhoneLayout, meterSegments, RIM, stripCamera, stripPoint, tailPuffs } from './frame';
+import { Art, Counter, DreamCard, Hint, ModeChip, Puff, ReadyBoard, Tail, Tray, trayMessage, trayWord } from './Interface';
 import type { CardKind } from './Interface';
 import { activeFence, freshLive, MAX_TYPED, TYPE_X, update } from './run';
 import type { Live } from './run';
@@ -34,11 +36,12 @@ import type { StageN } from './scene/types';
 import { freshWorldState, CHANGE_MS } from './world3d/DreamWorld';
 import type { DreamWorldState, WorldN } from './world3d/DreamWorld';
 import { lapAt, worldAt } from './worlds';
-import { PLAN_M, projectDream } from './camera';
-import { Art } from './Interface';
+import { horizonOf, moonIn, PLAN_M, projectDream } from './camera';
 import { Results } from './Results';
 import { placeSigns, signLayout, Signs, SLOTS } from './Signs';
-import { DRIFT, dreamView, OPENING, PX, SHEEP_CENTRE, WAKE, worldX } from './stage';
+import { DRIFT, dreamView, OPENING, PX, screenX, SHEEP_CENTRE, WAKE, worldX } from './stage';
+import { SkyStars } from './SkyStars';
+import type { KeepOut } from './SkyStars';
 import './dream.css';
 
 /**
@@ -53,7 +56,7 @@ const SAYS: Record<string, string> = { short: 'Three letters or more', letters: 
 /** `left` is the meter's lit segments, -1 with no fence coming. */
 interface Hud { letters: string[]; typed: string; say: string; wrong: boolean; active: boolean; index: number; left: number }
 /** A refusal stays up this long, and the "?" over the farmer this long (docs/dream/data/timings.json). */
-const SAY_MS = 1600, MARK_MS = 800;
+const SAY_MS = 1600, MARK_MS = 1000;
 /** A card drops in, stays and fades (section 8): 160 + 1400 + 160 ms. */
 const CARD_MS = 1720;
 
@@ -149,7 +152,6 @@ export function DreamScreen() {
     return (plank && plank.width > 0 ? plank : tag?.querySelector('.dr-sign-board')?.getBoundingClientRect()) ?? null;
   }, []);
   const [glow, setGlow] = useState(0);
-  const [bigZ, setBigZ] = useState(0);
   /** A bump: the window shakes 6 px each way four times in 240 ms, and an ember glow shows round its inside edge, once. */
   const jolt = useCallback(() => {
     nudge([0, 6, -6, 6, -6, 6, -6, 6, -6, 0].map((x) => ({ transform: `translateX(${x}px)` })), 240);
@@ -167,7 +169,12 @@ export function DreamScreen() {
   // Over the results the bedroom covers the dream whole: once it has faded in, the dream stops drawing.
   const stageFps = useCoveredFps(phase === 'results', 'bedroom');
   const [count, setCount] = useState(0);
-  const [best, setBest] = useState(() => getDreamBest());
+  // The best to beat (v3/01, section 4): the night's best, or practice's own, as it stood when this run began. It is
+  // saved once, with the result, so it never moves during the run.
+  const [best, setBest] = useState(() => (practice ? getPracticeBest() : getDreamBest()));
+  // One star for each sheep (v3/08, section 9): how many are up, the one on its way, and the moon shows' wave.
+  const [sky, setSky] = useState<{ count: number; rising: { n: number; from: [number, number] } | null; wave: number }>({ count: 0, rising: null, wave: 0 });
+  const touch = useMediaQuery('(pointer: coarse)');
   const [streak, setStreak] = useState(0);
   const [copied, setCopied] = useState(false);
   const [hud, setHud] = useState<Hud>({ letters: [], typed: '', say: '', wrong: false, active: false, index: -1, left: -1 });
@@ -183,7 +190,7 @@ export function DreamScreen() {
   }, []);
   const [fences, setFences] = useState<FenceView[]>([]);
   const [counted, setCounted] = useState<{ n: number; key: number } | null>(null);
-  const [reached, setReached] = useState(0);
+  const [, setReached] = useState(0);
   // Out cold (the night's fence mark is behind him): the dream runs on, and for a moment a card says so.
   const [deep, setDeep] = useState(false);
   // How the dream ends (07, section 3): it pops when a bump wakes him, or sinks into his head when he sleeps on.
@@ -237,18 +244,13 @@ export function DreamScreen() {
     return true;
   }, [dict, practice, seed, night]);
 
-  const record = useCallback(() => {
-    const L = live.current;
-    if (practice) return recordBest(L.count);
-    return recordDream(recordOf(L, night, !!repair));
-  }, [practice, night, repair]);
-
+  // Saved once, at the end: a practice run its own best only, a night its record (which keeps the night's best).
   const finish = useCallback(() => {
     const L = live.current;
     setPhase('results');
-    if (practice) setBest(recordBest(L.count));
-    else { setStreak(record()); setBest(getDreamBest()); }
-  }, [practice, record]);
+    if (practice) recordPracticeBest(L.count);
+    else setStreak(recordDream(recordOf(L, night, !!repair)));
+  }, [practice, night, repair]);
 
   // Leaving mid-dream still uses up the night's attempt, with what was counted so far.
   useEffect(() => () => {
@@ -295,8 +297,6 @@ export function DreamScreen() {
         nudge([1, 1.012, 1].map((k) => ({ transform: `scale(${k})` })), 140, `${Math.round(cx - bb.left)}px ${Math.round(cy - bb.top)}px`);
       };
       if (layer && !reduced) flyTiles(layer, [...layer.parentElement!.querySelectorAll('.dr-tray .dr-tile--typed')].map((el) => ({ ch: el.textContent ?? '', from: el.getBoundingClientRect() })), () => signRect(index), landed);
-      // In the bed, the farmer lets out one larger "z".
-      setBigZ(Math.random() + 1);
       a.locked = true;
       a.word = w;
       L.used.add(w);
@@ -330,7 +330,7 @@ export function DreamScreen() {
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
-    let hudKey = '', fenceKey = '', alarmed = false, stageNow = 1;
+    let hudKey = '', fenceKey = '', alarmed = false, stageNow = 1, wasAir = false;
     const signState: string[] = [];
     // The worlds and their gates (v3/01, section 5; 07): a gate stands 3.0 m before the first fence of the world it
     // opens, and the world changes as the sheep passes its mark. Nothing on screen says when.
@@ -396,6 +396,9 @@ export function DreamScreen() {
       const ph = phaseRef.current;
       if (ph === 'running' || ph === 'ready' || ph === 'crashed' || ph === 'drifting') { L.t += dt; beat.current.beats = advance(beat.current.beats, dt, stageNow); }
       if (ph === 'running') update(L, dt, seed, events, length);
+      // The landing: the window drops 3 px for 80 ms (the puffs at the hooves are the voxel dream's).
+      if (wasAir && L.jumpAt === null && L.crashAt === null && ph === 'running') nudge([0, 3, 3, 0].map((y) => ({ transform: `translateY(${y}px)` })), 80);
+      wasAir = L.jumpAt !== null;
       // A gate for each fence that opens a new world, as it joins the queue.
       for (const fe of L.fences) {
         if (fe.index < 1 || gated.has(fe.index) || worldOf(fe.index) === worldOf(fe.index - 1)) continue;
@@ -449,10 +452,19 @@ export function DreamScreen() {
     return () => cancelAnimationFrame(raf);
   }, [seed, finish, reduced, length, show, jolt, nudge, signTags, worldOf, lapOf]);
 
+  // One star for each sheep: as a sheep is counted its star sets off from its sign's plank (or from over the sheep, if
+  // the sign has gone), and every tenth sheep is a moon show, when the stars all twinkle in a wave.
+  useEffect(() => {
+    if (!counted) return;
+    const fe = live.current.fences.filter((f) => f.locked && f.passed).pop(), r = fe ? signRect(fe.index) : null, st = stageEl.current?.getBoundingClientRect(), v = viewRef.current;
+    const from: [number, number] = r && st ? [r.left + r.width / 2 - st.left, r.top + r.height / 2 - st.top] : [screenX(v, SHEEP_CENTRE), v.ground - 80];
+    setSky((s) => ({ count: counted.n, rising: reduced ? null : { n: counted.n, from }, wave: counted.n % 10 === 0 && !reduced ? s.wave + 1 : s.wave }));
+  }, [counted, signRect, reduced]);
 
   // ---------- results ----------
   const streakNow = streak || getDreamStreak(today);
   const blankets = loadStreak().blankets;
+  const newBest = best > 0 && count > best;
   const share = async () => {
     const L = live.current;
     const asleep = L.asleepAt !== null;
@@ -460,7 +472,7 @@ export function DreamScreen() {
     await shareCard({
       title: `Counting Sheep, ${night}`,
       headline: asleep ? 'The farmer drifted off' : `The farmer counted ${count} sheep`,
-      lines: [asleep ? dreamSummary({ count, longest: L.longest }) : L.longest > 0 ? `Longest word: ${L.longest} letters` : '', streakNow > 1 ? `${streakNow}-night streak` : ''].filter(Boolean),
+      lines: [newBest ? 'A new best' : '', asleep ? dreamSummary({ count, longest: L.longest }) : L.longest > 0 ? `Longest word: ${L.longest} letters` : '', streakNow > 1 ? `${streakNow}-night streak` : ''].filter(Boolean),
       count, unit: 'sheep',
       stitches: practice ? undefined : streakRow(dreamStreakDays(today), streakNow),
       glyphs: dreamGlyphs(count, !asleep, { seed, bumps: L.bumps }),
@@ -477,6 +489,7 @@ export function DreamScreen() {
     setBoardUp(false);
     setOpening(reduced ? 'done' : 'play');
     setCount(0); setCounted(null); setStreak(0); setReached(0); setDeep(false); setCard(null); setMark(null); setStage(1); setGlow(0);
+    setBest(getPracticeBest()); setSky({ count: 0, rising: null, wave: 0 });
     fx.current?.reset();
     beat.current.beats = 0;
     setFences([]);
@@ -498,27 +511,32 @@ export function DreamScreen() {
   const row = phase === 'results' && !practice ? streakRow(dreamStreakDays(today), streakNow) : [];
   const tonight = row.filter((st) => st !== 'empty').length - 1;
   const days = row.map((st, i) => (i === tonight && st === 'played' ? 'today' as const : st));
-  const fenceNow = length ? Math.min(reached + 1, length.fences) : 0;
-  // The frame (frame.ts): the bubble's shape, its tail down to the farmer's nose, and the point the dream pops toward.
-  const shape = useMemo(() => bubbleShape(frame.bubble.w, frame.baseline, frame.scallops), [frame]);
+  // The frame (frame.ts): the bubble's shape, its tail down from the tip of his cap, and the point the dream pops toward.
+  const shape = useMemo(() => bubbleShape(frame.bubble.w, frame.bubble.h), [frame]);
   const tail = useMemo(() => {
     const cam = stripCamera(frame), puffs = tailPuffs(frame, cam);
-    return { puffs, nose: stripPoint(cam, NOSE.x, NOSE.y, NOSE.z) };
+    return { puffs, cap: stripPoint(cam, CAP_TIP.x, CAP_TIP.y, CAP_TIP.z) };
   }, [frame]);
   const small = tail.puffs[tail.puffs.length - 1], popAt: [number, number] = [small.x + small.w / 2, small.y + small.h / 2];
   const px = (v: number) => `${Math.round(v)}px`;
+  // The stars keep out of the chip (top left) and the counter, its tab and the close button (top right), and away from
+  // every world's moon: they stay all night, whichever world comes.
+  const starKeep = useMemo(() => {
+    const u = frame.u, top = 12 * u;
+    const keepOut: KeepOut[] = frame.phone
+      ? [{ x: 0, y: 0, w: top + 130, h: top + 34 }, { x: view.w - top - 170, y: 0, w: top + 170, h: top + 74 }]
+      : [{ x: 0, y: 0, w: (12 + 270) * u, h: (12 + 38) * u }, { x: view.w - (12 + 230) * u, y: 0, w: (12 + 230) * u, h: (12 + 40 + 4 + 22 + 8) * u }];
+    return { keepOut, moons: ([1, 2, 3] as const).map((n) => moonIn(view, n)), horizon: horizonOf(view) };
+  }, [view, frame]);
   const rootVars = {
     '--u': `${frame.u}px`, '--dr-beat': `${(60 / bpmOf(deep ? 3 : stage)).toFixed(3)}s`, '--dr-pop-x': px(popAt[0]), '--dr-pop-y': px(popAt[1]),
-    '--dr-org-x': px(popAt[0] - frame.bubble.x), '--dr-org-y': px(popAt[1] - frame.bubble.y), '--dr-org-bx': px(popAt[0] - frame.bubble.x),
+    '--dr-org-x': px(popAt[0] - frame.bubble.x), '--dr-org-y': px(popAt[1] - frame.bubble.y), '--dr-org-bx': px(popAt[0] - frame.bubble.x), '--dr-vw': px(view.w),
   } as React.CSSProperties;
-  // The night track's groups: where the sign's letter count changes, read from the rules.
-  const groups = useMemo(() => {
-    const out: { letters: number; count: number }[] = [];
-    for (let i = 0; length && i < length.fences; i++) { const n = lettersAt(i); if (out[out.length - 1]?.letters === n) out[out.length - 1].count++; else out.push({ letters: n, count: 1 }); }
-    return out;
-  }, [length]);
-  const bumpedAt = live.current.bumps[live.current.bumps.length - 1];
-  const ended = length && bumpedAt !== undefined && bumpedAt < length.fences ? bumpedAt : null;
+  // The count that pops over the sheep (v3/08, section 8): gold, and 1.6 times the size, at every tenth sheep (a moon
+  // show); gold at the first sheep past the best.
+  const popTone = !counted ? undefined : counted.n % 10 === 0 ? 'moon' : best > 0 && counted.n === best + 1 ? 'gold' : undefined;
+  // The one message of the moment (v3/08, section 6).
+  const msg = trayMessage(hud.say, !!caption, hud.left >= 0);
   const playing = phase !== 'results';
   const over = phase === 'crashed' || phase === 'drifting';
   const chip = practice ? (frame.phone ? 'Practice' : 'Practice dream') : frame.phone ? shortDate(night) : repair ? `Last night's dream: ${shortDate(night)}` : `Tonight's dream: ${shortDate(night)}`;
@@ -526,7 +544,7 @@ export function DreamScreen() {
   if (!dict) return <main className="dr-root"><Paper kind="slip" className="dr-loading">Loading the word list...</Paper></main>;
 
   return (
-    <main ref={setRoot} className="dr-root hm rc" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-phone={frame.phone || undefined} data-pop={pop !== 'none' ? pop : undefined} data-opening={phase === 'ready' && opening !== 'done' ? opening : undefined} onPointerDown={focus} style={{ ...rootVars, ...(fitKeys ? { height: vh! } : {}) }}>
+    <main ref={setRoot} className="dr-root hm rc" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-phone={frame.phone || undefined} data-pop={pop !== 'none' ? pop : undefined} data-count={popTone} data-opening={phase === 'ready' && opening !== 'done' ? opening : undefined} onPointerDown={focus} style={{ ...rootVars, ...(fitKeys ? { height: vh! } : {}) }}>
       <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} depth={deep ? 3 : stage} frame={frame} beat={beat} />
       {playing && (
         <div ref={bubbleEl} className="dr-bubble" style={{ left: frame.bubble.x, top: frame.bubble.y, width: frame.bubble.w, height: frame.bubble.h }}>
@@ -536,33 +554,33 @@ export function DreamScreen() {
             <div ref={stageEl} className="dr-stage" style={{ inset: RIM }}>
               <Fx ref={fx} w={view.w} h={view.h} reduced={reduced}>
                 <DreamStage live={live} pop={counted} phase={phase} reduced={reduced} phone={mobile} fps={stageFps} world={worldState} seed={seed} low={low} />
+                <SkyStars seed={seed} count={sky.count} w={view.w} horizon={starKeep.horizon} keepOut={starKeep.keepOut} moons={starKeep.moons} rising={sky.rising} wave={sky.wave} />
               </Fx>
               <Signs fences={fences} tags={signTags} root={signRoot} />
             </div>
             {glow > 0 && <i key={glow} className="dr-glow" aria-hidden="true" />}
-            {/* The counters, inside the top of the dream window (section 7). */}
+            {/* The top bar (v3/08, section 3): the chip, and the counter with its best tab and the close button. Nothing in the middle. */}
             <header className="dr-top">
               <ModeChip>{chip}</ModeChip>
-              {length && <NightTrack groups={groups} reached={reached} ended={ended} />}
-              <Counter count={count} of={length && !deep ? length.fences : null} note={deep ? 'out cold' : best > 0 && practice ? `best ${best}` : undefined} onClose={close} />
+              <Counter count={count} best={best} phone={frame.phone} onClose={close} />
             </header>
             <div className="dr-cards" aria-live="polite">{card && <DreamCard key={card.key} kind={card.kind} />}</div>
-            {phase === 'ready' && <ReadyBoard practice={!length} />}
-            {frame.phone && (hud.say || caption) && <Hint kind={hud.say ? 'no' : 'hint'} style={{ left: frame.hint.x - frame.bubble.x, width: frame.hint.w, bottom: frame.hint.bottom - (frame.h - frame.bubble.y - frame.bubble.h) }}>{hud.say || caption}</Hint>}
+            {phase === 'ready' && <ReadyBoard practice={!length} touch={touch} />}
+            {frame.phone && msg.strip && <Hint kind={msg.strip} style={{ left: frame.hint.x - frame.bubble.x, width: frame.hint.w, bottom: Math.max(frame.hint.bottom, frame.h - tail.puffs[0].y + 6) - (frame.h - frame.bubble.y - frame.bubble.h) }}>{hud.say || caption}</Hint>}
           </div>
         </div>
       )}
-      {playing && <Tail puffs={tail.puffs} nose={tail.nose} depth={deep ? 3 : stage} mark={mark} asleep={phase !== 'crashed'} extra={bigZ} />}
+      {playing && <Tail puffs={tail.puffs} cap={tail.cap} deep={deep} mark={mark} asleep={phase !== 'crashed'} u={frame.u} />}
       <div ref={flyLayer} className="dr-fly" aria-hidden="true" />
       {pop === 'pop' && !reduced && (
-        // The dream pops: its rim breaks into 14 pixel puffs that fly 60 to 140 px outward, through the three frames.
+        // The dream pops: its rim breaks into 14 round wool puffs, 12 to 24 px across, that fly 60 to 140 px outward and fade.
         <div className="dr-burst" aria-hidden="true">
           {Array.from({ length: 14 }, (_, i) => {
-            const a = (i / 14) * Math.PI * 2, b = frame.bubble, far = 60 + ((i * 37) % 81);
+            const a = (i / 14) * Math.PI * 2, b = frame.bubble, far = 60 + ((i * 37) % 81), d = 12 + 2 * ((i * 5) % 7);
             const x = b.x + b.w / 2 + (Math.cos(a) * b.w) / 2, y = b.y + b.h / 2 + (Math.sin(a) * b.h) / 2;
             return (
               <span key={i} style={{ left: Math.min(b.x + b.w, Math.max(b.x, x)), top: Math.min(b.y + b.h, Math.max(b.y, y)), '--dx': `${Math.round(Math.cos(a) * far)}px`, '--dy': `${Math.round(Math.sin(a) * far)}px` } as React.CSSProperties}>
-                <Art name="puff-1" px={4} /><Art name="puff-2" px={4} /><Art name="puff-3" px={4} />
+                <Puff d={d} style={{ left: -d / 2, top: -d / 2 }} />
               </span>
             );
           })}
@@ -570,12 +588,12 @@ export function DreamScreen() {
       )}
       <DevLine />
 
-      {playing && !frame.phone && (hud.say || caption) && <Hint kind={hud.say ? 'no' : 'hint'} style={{ left: frame.hint.x, width: frame.hint.w, bottom: frame.hint.bottom }}>{hud.say || caption}</Hint>}
+      {playing && !frame.phone && msg.strip && <Hint kind={msg.strip} style={{ left: frame.hint.x, width: frame.hint.w, bottom: frame.hint.bottom }}>{hud.say || caption}</Hint>}
       {playing && (
-        // The tray (section 4): the sign's letters stand in it, yours arrive as tiles, and Jump does what Enter does.
+        // The tray: the sign's letters stand in it, yours arrive as tiles, and Jump does what Enter does.
         <Tray frame={frame} sign={hud.active ? hud.letters : phase === 'ready' ? fenceAt(seed, 0).letters : []} typed={hud.typed} wrong={hud.wrong}
           left={hud.active && hud.left >= 0 && phase === 'running' ? hud.left / segments.current : phase === 'ready' ? 1 : null}
-          over={over} canJump={phase === 'ready' || (phase === 'running' && hud.typed.length > 0)} onJump={submit}>
+          typeAhead={msg.typeAhead && phase === 'running'} over={over} canJump={phase === 'ready' || (phase === 'running' && hud.typed.length > 0)} onJump={submit}>
           <input
             ref={ghost} className="sk-input-ghost dr-ghost" autoFocus aria-label="Your word" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false}
             enterKeyHint="go" onChange={(e) => onInput(e.target.value)} disabled={over}
@@ -597,12 +615,14 @@ export function DreamScreen() {
             <div className="dr-res-at">
               <Results
                 title={practice ? 'Practice dream' : asleep ? 'The farmer drifted off' : 'The farmer woke up!'}
-                count={count}
+                count={count} best={Math.max(best, count)} newBest={newBest}
                 facts={[
-                  ...(asleep && length ? [`Asleep after ${length.fences} fences`] : length ? [`Fence ${fenceNow} of ${length.fences}`] : []),
                   `Longest word: ${longest > 0 ? `${longest} letters` : 'none yet'}`,
+                  ...(asleep && length ? [`Fast asleep from sheep ${length.fences}`] : []),
+                  // A moon show at every tenth sheep (none under reduced motion).
+                  ...(!reduced && count >= 10 ? [`Moon shows: ${Math.floor(count / 10)}`] : []),
                 ]}
-                words={[...live.current.used]} stage={deep ? 3 : stage} seed={seed}
+                words={[...live.current.used]} seed={seed} lines={frame.phone ? 2 : 3}
                 streak={practice ? null : { now: streakNow, best: loadStreak().best, days }}
                 pay={{ id: `dream:${seed}`, sheep: count, slept: asleep, bestStreak: practice ? 0 : loadStreak().best }}
                 next={practice ? null : midnightLabel()}

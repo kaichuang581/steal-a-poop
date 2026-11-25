@@ -1,12 +1,11 @@
 import type { CSSProperties, RefObject } from 'react';
 import { FIELD } from '../../dream/dream';
-import { CheckIcon } from '../components/Icons';
 import type { FenceView, StageLive } from './DreamStage';
 import { FLIGHT } from './fly';
 import { signHeight } from './frame';
 import { isClose } from './run';
 import { PLAN_M, projectDream } from './camera';
-import { ART, SHEEP_ART, worldX } from './stage';
+import { ART, drawnLift, screenX, SHEEP_ART, SHEEP_CENTRE, worldX } from './stage';
 import { SIGNPOST } from './world3d/DreamWorld';
 import type { DreamView } from './stage';
 
@@ -17,15 +16,15 @@ import type { DreamView } from './stage';
 export const SLOTS = 4;
 
 /**
- * A sign's board, the same in every stage because it is the thing you read: a bar on two chains, the letters your
- * word must start with as lantern tiles, three sunk squares for the letters that are yours, and a plank your accepted
- * word lands on. It has no cap.
+ * A sign's board (docs/dream/v3/08, section 5), the same in every world because it is the thing you read: level, its
+ * top at the post's chain ends; the letters your word must start with as lantern tiles, three sunk squares for the
+ * letters that are yours, and a plank your accepted word lands on. No tick badge: the filled plank and the obstacle's
+ * lit lanterns say the word counted.
  */
 export function SignBoard({ view }: { view: FenceView }) {
   const word = view.locked ? view.word.toUpperCase() : '';
   return (
     <div className="dr-sign" data-wrong={view.wrong || undefined} data-done={view.locked || undefined}>
-      <i className="dr-sign-bar" /><i className="dr-sign-chain" /><i className="dr-sign-chain" data-r />
       <div className="dr-sign-board">
         <div className="dr-sign-letters">
           {view.letters.map((ch, i) => <span key={i} className="dr-tile dr-tile--lantern">{ch.toUpperCase()}</span>)}
@@ -35,7 +34,6 @@ export function SignBoard({ view }: { view: FenceView }) {
         <div className="dr-sign-plank" style={{ '--n': Math.max(1, word.length) } as CSSProperties}>
           {[...word].map((ch, i) => <span key={i} className="dr-sign-word" style={{ animationDelay: `${FLIGHT.ms + Math.max(0, i - view.letters.length) * FLIGHT.stagger}ms` }}>{ch}</span>)}
         </div>
-        {view.locked && <span className="dr-sign-check"><CheckIcon size={12} /></span>}
       </div>
     </div>
   );
@@ -63,6 +61,19 @@ export function signLayout(v: DreamView, ui: { u: number; phone: boolean }): { h
 
 const FW = FIELD.fenceW, near = FIELD.sheepX + FIELD.sheepW;
 /**
+ * The last guard of v3/08, section 5: whether the drawn sheep's box (its hat included, at its height in the leap) and
+ * a board hung at `mid`, `top` overlap on screen, so the board fades to 35% while they do. The board's size is read
+ * from the page only when the sheep is near it.
+ */
+function overSheep(L: StageLive, v: DreamView, mid: number, top: number, tag: HTMLElement): boolean {
+  const x0 = screenX(v, SHEEP_CENTRE - ART * SHEEP_ART.tail), x1 = screenX(v, SHEEP_CENTRE + ART * SHEEP_ART.nose);
+  if (Math.abs(mid - (x0 + x1) / 2) > (x1 - x0) / 2 + 200) return false;
+  const lift = L.jumpAt === null ? 0 : drawnLift(L.t - L.jumpAt), board = tag.firstElementChild as HTMLElement | null;
+  if (!board) return false;
+  const w = board.offsetWidth, h = board.offsetHeight, y0 = v.ground - (lift + ART * SHEEP_ART.hat) * v.s;
+  return mid - w / 2 < x1 && mid + w / 2 > x0 && top < v.ground - lift * v.s && top + h > y0;
+}
+/**
  * One frame of the signs: moves each fence's board to the point the camera gives for its signpost's chain ends
  * (docs/dream/v3/08, section 5: hung level from 3.75 m, so the jumping sheep passes under it) and says what its fence
  * is doing (close, knocked, being leapt). Reads the run; writes only the DOM.
@@ -77,7 +88,7 @@ export function placeSigns(L: StageLive, v: DreamView, tags: readonly RefObject<
     if (!tag) continue;
     tag.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
     const hit = fe.knockedAt !== null || (L.crashAt !== null && !fe.passed && !fe.jumped && fe.x < near && fe.x + FW > FIELD.sheepX);
-    const close = isClose(fe) && !hit, clear = fe.jumped && !fe.passed, s = `${hit ? 'k' : ''}${close ? 'c' : ''}${clear ? 'j' : ''}`;
+    const close = isClose(fe) && !hit, clear = overSheep(L, v, x, y, tag), s = `${hit ? 'k' : ''}${close ? 'c' : ''}${clear ? 'j' : ''}`;
     if (state[slot] !== s) {
       state[slot] = s;
       tag.toggleAttribute('data-knock', hit);

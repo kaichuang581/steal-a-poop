@@ -136,7 +136,9 @@ const SOUND_OF: Record<string, string> = {
 /** The pack's model of a catalogue item. */
 export const modelOf = (item: Item): string => item.kind === 'bomb' ? `bomb_${SKIN_OF[item.id] ?? 'ice'}` : item.kind === 'tick' ? `sound_${SOUND_OF[item.id] ?? 'iceChime'}` : '';
 
-const CUT = new Color('#CEC0AC');
+// A step darker than the pack's `trimWhite -2`: on the book's paper that was nearly the page, and six of eight pockets
+// read as blank cards (Brian, 2026-11-25).
+const CUT = new Color('#B5A286');
 /**
  * Where a burst is shown and the box it must fit, metres (ITEMS_REMODEL.md rule 7: drawn in, never shrunk; T3 section 3):
  * a bench slot (seven share 3.6 m), a Barn Book frame (0.5 by 0.65 m, the item at 80%), the Bell Shelf's stand (1.6 times

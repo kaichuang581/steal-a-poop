@@ -22,7 +22,6 @@ export function BellsStop({ wallet, items, buy, wear, busy, setFocus, phone }: {
           </span>
         );
       })}
-      {!phone && <At p={[STOP_X.bells, 1.7, -0.55]} className="tp-hang tp-hang--free"><span className="tp-tag tp-tag--small">More on the way</span></At>}
     </>
   );
 }
@@ -30,8 +29,7 @@ export function ShelfTags({ item, wallet, buy, wear, busy }: { item: Item; walle
   const owned = wallet.owned.includes(item.id), worn = wallet.equipped[item.kind] === item.id, need = (item.price ?? 0) - wallet.bells;
   return (
     <span className="tp-shelf-tags">
-      {!owned && <span className="tp-price"><Icon name="bell" size={16} />{formatCoins(item.price ?? 0)}</span>}
-      <span className="tp-tag tp-tag--shelf"><b>{item.name}</b><small>{KIND_ONE[item.kind]}</small></span>
+      <span className="tp-tag tp-tag--shelf"><b>{item.name}</b><small>{KIND_ONE[item.kind]}{!owned && <span className="tp-price-in" aria-label={`${item.price} Golden Bells`}><Icon name="bell" size={14} />{formatCoins(item.price ?? 0)}</span>}</small></span>
       {worn ? <span className="tp-tag tp-tag--small tp-wearing"><Icon name="tick" size={14} />Wearing</span>
         : owned ? <button type="button" className="tp-btn tp-btn--lantern tp-btn--tile" onClick={() => wear(item)}>Wear it</button>
         : need > 0 ? <button type="button" className="tp-btn tp-btn--tile" data-pale disabled>{`${need} more Bells`}</button>

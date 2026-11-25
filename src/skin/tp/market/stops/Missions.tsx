@@ -17,10 +17,7 @@ export function MissionsStop({ wallet, items }: { wallet: Wallet; items: Item[] 
           <At key={m.id} box={[slip.x0, slip.y0, slip.x1, slip.y1, slip.z]} className="tp-slip" data-done={d || undefined}>
             <span className="tp-slip-head"><b>{item.name}</b><small>{KIND_ONE[item.kind]}</small></span>
             <span className="tp-slip-goal">{m.label}</span>
-            {m.need <= 7
-              ? <span className="tp-stamps" role="img" aria-label={`${have} of ${m.need}`}>{Array.from({ length: m.need }, (_, k) => <i key={k} data-on={k < have || undefined}>{k < have && <Icon name="tick" size={12} />}</i>)}</span>
-              : <Knit value={have / m.need} label={`${have} of ${m.need}`} />}
-            <span className="tp-slip-count">{`${formatCoins(have)} / ${formatCoins(m.need)}`}</span>
+            <span className="tp-slip-prog"><Knit value={have / m.need} label={`${have} of ${m.need}`} /><span className="tp-slip-count">{`${formatCoins(have)} / ${formatCoins(m.need)}`}</span></span>
             {d && <span className="tp-stamp" aria-label="Done">Done</span>}
           </At>
         );

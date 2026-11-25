@@ -29,7 +29,11 @@
 .tp-hang > * { position: relative; flex: none; }
 .tp-hang::before { content: ''; position: absolute; left: -1px; top: 0; width: 2px; height: calc(10px * var(--u)); background: var(--yarn-shade); }
 .tp-hang > :first-child { margin-top: calc(10px * var(--u)); }
-.tp-hang--free::before, .tp-hang--shelf::before { display: none; }
+.tp-hang--free::before, .tp-hang--shelf::before, .tp-hang--plaque::before { display: none; }
+.tp-hang--plaque > :first-child { margin-top: 0; transform: translateY(-50%); }
+.tp-tag--sack::before { display: none; }
+/* One line, so the label stays on the crate's front and clear of the fuses of the things on the bench below. */
+.tp:not([data-phone]) .tp-tag--sack { flex-direction: row; align-items: baseline; gap: calc(8px * var(--u)); width: auto; min-width: calc(128px * var(--u)); min-height: 0; padding: calc(5px * var(--u)) calc(12px * var(--u)); }
 .tp-hang--free > :first-child { margin-top: 0; transform: translateY(-100%); }
 .tp-hang--shelf > :first-child { margin-top: calc(-14px * var(--u)); }
 .tp-tag {
@@ -58,7 +62,7 @@
 
 /* Signs and chalk. */
 .tp-sign { display: flex; align-items: center; justify-content: center; pointer-events: none !important; }
-.tp-sign span { font-family: var(--skin-font-display); font-size: calc(9px * var(--fit, 1)); color: var(--tp-ink); }
+.tp-sign span { font-family: var(--skin-font-display); font-size: calc(9px * var(--fit, 1)); color: var(--paper); text-shadow: 0 calc(0.45px * var(--fit, 1)) 0 rgba(43, 34, 48, 0.5); letter-spacing: 0.02em; }
 .tp-chalk { color: var(--chalk); padding: calc(12px * var(--u)) calc(14px * var(--u)); font-size: max(11px, calc(12px * var(--u))); pointer-events: none !important; display: flex; flex-direction: column; gap: calc(6px * var(--u)); }
 .tp-chalk h4 { font-size: max(11px, calc(19px * var(--u))); }
 .tp-chalk-sub { margin-top: -4px !important; }
@@ -158,7 +162,9 @@
 .tp-stamps { display: flex; gap: 4px; }
 .tp-stamps i { width: calc(20px * var(--u)); height: calc(20px * var(--u)); border: 1px solid var(--soft); background: var(--paper-dim); display: inline-flex; align-items: center; justify-content: center; }
 .tp-stamps i[data-on] { background: var(--stamp); border-color: var(--stamp-dark); }
-.tp-slip-count { grid-column: 1 / 3; justify-self: end; font-family: var(--skin-font-display); font-size: max(11px, calc(15px * var(--u))); }
+.tp-slip-goal { min-height: 2.3em; line-height: 1.15; align-self: start; }
+.tp-slip-prog { grid-column: 1 / 3; display: flex; align-items: center; gap: calc(10px * var(--u)); align-self: end; }
+.tp-slip-count { flex: none; font-family: var(--skin-font-display); font-size: max(11px, calc(15px * var(--u))); }
 /* A red stamp (square: the kit allows no rounded corners) across the reward's picture (T6 section 2), never over the name. */
 .tp-stamp { position: absolute; left: calc(14px * var(--u)); top: calc(10px * var(--u)); width: calc(74px * var(--u)); height: calc(74px * var(--u)); display: grid; place-items: center; transform: rotate(-12deg); color: var(--stamp); border: 3px solid var(--stamp); background: color-mix(in srgb, var(--paper) 55%, transparent); font-family: var(--skin-font-display); font-size: max(11px, calc(17px * var(--u))); }
 .tp-sheet { padding: calc(12px * var(--u)) calc(16px * var(--u)); pointer-events: none !important; font-size: max(11px, calc(13px * var(--u))); }
@@ -241,8 +247,8 @@
 /* The close view (T6 section 4): the rest of the stop dims to 60%, its words with its models; the item's own tag does not. */
 .tp[data-focus] .tp-layer > :not(.tp-closeat):not(.tp-dim) { opacity: 0.6; transition: opacity 200ms; }
 /* Six or seven bench items share 3.6 m: their tags narrow to fit the gap. */
-.tp-tag--item.tp-tag--tight { width: calc(104px * var(--u)); padding-left: 4px; padding-right: 4px; }
-.tp-tag--item.tp-tag--tight b { font-size: max(11px, calc(13px * var(--u))); }
+.tp-tag--item.tp-tag--tight { width: calc(114px * var(--u)); padding-left: 3px; padding-right: 3px; }
+.tp-tag--item.tp-tag--tight b { font-size: max(11px, calc(12.5px * var(--u))); letter-spacing: -0.01em; }
 /* A fuse sound's Listen tile sits inside its bench tag, beside the rarity (the tag's stepped corners clip anything outside it). */
 .tp-tag--item .tp-listen--small { position: static; width: 22px; height: 22px; margin-top: 1px; }
 .tp-tag--item:has(.tp-listen) { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 6px; }
@@ -264,3 +270,6 @@
 .tp[data-lang="fr"]:not([data-phone]) .tp-tab { width: auto; min-width: calc(156px * var(--u)); padding-left: 10px; padding-right: 10px; white-space: nowrap; }
 .tp[data-lang="fr"]:not([data-phone]) .tp-tag--sack { width: auto; min-width: calc(152px * var(--u)); white-space: nowrap; padding-left: 8px; padding-right: 8px; }
 .tp[data-lang="fr"] .tp-tag--item b { white-space: normal; text-align: center; line-height: 1.05; }
+
+/* The Bell Shelf's price sits inside the item's one card. */
+.tp-price-in { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-family: var(--skin-font-display); color: var(--tp-ink); font-size: max(11px, calc(14px * var(--u))); vertical-align: middle; }

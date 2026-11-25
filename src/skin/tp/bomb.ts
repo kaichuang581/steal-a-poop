@@ -18,7 +18,8 @@ export const SKIN_OF: Record<string, string> = {
 };
 export const skinOf = (itemId: string): SkinData => SKINS[SKIN_OF[itemId] ?? 'ice'] ?? SKINS.ice;
 
-export const CELL = 0.025;
+/** The bomb's cube: 16 across (the packer's `BOMB_CELL`; Brian, 2026-11-25: the pack's 20 were "a tad bit too high voxelrate"). */
+export const CELL = 0.03125;
 export const FUSE_PIECES = 12;
 /** The share of a turn left to the fuse pieces shown (T2 section 1): ceil(12 s), at least 1 while any is left. */
 export const fusePiecesFor = (share: number): number => Math.max(share > 0 ? 1 : 0, Math.min(FUSE_PIECES, Math.ceil(FUSE_PIECES * share - 1e-9)));
@@ -129,7 +130,7 @@ export function makeBomb(skinKey: string, o: { rest?: boolean; lit?: Material } 
   };
 
   const api: BombObject = {
-    group, skin, centreY: 10 * CELL,
+    group, skin, centreY: 8 * CELL,
     setSeconds(n, danger = false) {
       if (n === null) { if (o.rest) draw(10, false); else if (digits) digits.visible = false; return; }
       draw(Math.max(0, Math.ceil(n)), danger);

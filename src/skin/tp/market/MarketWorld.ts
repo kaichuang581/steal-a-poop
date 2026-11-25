@@ -41,6 +41,8 @@ export function pocket(i: number, n: 8 | 10): [number, number, number] {
 }
 /** The three mission slips and the milestone sheet on the notice board, metres (the model's notes). */
 const NB = { x: STOP_X.missions, z: -0.3 };
+/** An item's size in a Barn Book pocket: the pack's 0.8, or less where a tall one (a bomb with its fuse) would stand out of the pocket's 0.62 m. */
+const bookScale = (item: Item): number => Math.min(0.8, 0.6 / itemHeight(item));
 export const SLIPS = [[-31, -11], [-10, 10], [11, 31]].map(([a, b]) => ({ x0: NB.x + a * 0.05, x1: NB.x + b * 0.05, y0: 1.6, y1: 2.35, z: NB.z }));
 export const SHEET = { x0: NB.x - 1.55, x1: NB.x + 1.55, y0: 0.35, y1: 1.5, z: NB.z };
 
@@ -110,7 +112,10 @@ export class MarketWorld {
     const bellModel = modelGroup('bigBell', this.mats);
     bellModel.position.y = -24 * 0.04;
     this.bell.add(bellModel);
-    this.bell.position.set(bb.x, bb.y + 24 * 0.04, bb.z);
+    // At the pack's size it was 0.8 m across and hung over the post it hangs beside; at 0.62 it clears the post and
+    // still reads as the stall's bell. Its top stays on the bracket.
+    this.bell.scale.setScalar(0.62);
+    this.bell.position.set(bb.x + 0.1, bb.y + 24 * 0.04, bb.z);
     this.stops.bells.add(this.bell);
     // The book: one model a page count.
     this.bookModels = { 8: modelGroup('barnBook8', this.mats), 10: modelGroup('barnBook10', this.mats) };
@@ -155,14 +160,15 @@ export class MarketWorld {
     });
   }
 
-  /** The mission rewards' pictures, on each slip's top left: bursts on a dark square, the others on paper. */
+  /** The mission rewards' pictures, on each slip's top left, each on a dark square. */
   setMissions(items: Item[]): void {
     this.missions.clear();
     items.forEach((item, i) => {
       const slip = SLIPS[i];
       if (!slip) return;
       const cx = slip.x0 + 0.2, cy = slip.y1 - 0.22, z = slip.z + 0.03;
-      if (item.kind === 'blast') {
+      {
+        // Every reward on the same dark square: one of three on a tile and two on bare paper read as three makes.
         const sq = new Mesh(new BoxGeometry(0.32, 0.32, 0.02), new MeshBasicMaterial({ color: '#413633' }));
         sq.position.set(cx, cy, z);
         this.missions.add(sq);
@@ -182,12 +188,12 @@ export class MarketWorld {
       const [x, y, z] = pocket(i, n);
       const inner = itemGroup(item, this.itemMats, !found, 'book'), g = new Group(); g.add(inner);
       this.book.add(g);
-      return { g, inner, item, x, y, z, s: 0.8, at: now + i * 30 };
+      return { g, inner, item, x, y, z, s: bookScale(item), at: now + i * 30 };
     });
     void kind;
   }
   bookPlaces(): { item: Item; x: number; y: number; z: number; h: number }[] {
-    return this.bookItems.map((p) => ({ item: p.item, x: p.x, y: p.y, z: p.z, h: itemHeight(p.item) * 0.8 }));
+    return this.bookItems.map((p) => ({ item: p.item, x: p.x, y: p.y, z: p.z, h: itemHeight(p.item) * bookScale(p.item) }));
   }
 
   swingBell(now: number, hopId = ''): void { this.bellAt = now; this.hopId = hopId; this.hopAt = now; }

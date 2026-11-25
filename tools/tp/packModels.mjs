@@ -39,6 +39,35 @@ const POST = /\b(post|leg|handle)\b/, NOT_POST = /lantern|snow|foot|slat|board|f
 const TOP = /plank|counter top|cap rail|rack shelf/;
 /** Long wooden runs, split into boards (pack v2's grain rule 4, kept for scenery: at most 0.4 m, two tones taking turns). */
 const RUN = /board|rail|plank|beam|kick|footing|rung|edge|shelf/, RUN_MAT = /^(wood|darkWood|barnRed):/, BOARD = 8;
+/**
+ * The market's look, where the pack's own read as shapes with words put on them (Brian, 2026-11-25: signs "poorly
+ * made, looks like u copy and pasted a bunch of random shapes and then just slapped some text on it", "weird blank
+ * cards"). Done here so the pack's data stays the pack's.
+ * - A stall's sign was a cream plate with a border, set across the middle of the awning. It is the stall's fascia now:
+ *   one board from post to post in the awning's own colour, cream rails over and under it and a cream block at each end.
+ *   The name is lettered on its middle (the `sign` part, which the screen reads for where the words go).
+ * - A sack's label was a white square. It is a paler patch of the sack's own burlap, with the stencil on it.
+ * - The notice board's slips have no pins (his rule of 2026-11-13: no fake fasteners).
+ */
+const FASCIA = { feedStall: 'scarfRed:-1', bellStand: 'giftGreen:-1' };
+function restyle(m) {
+  if (FASCIA[m.id]) {
+    const sign = m.boxes.filter((b) => b.part === 'sign'), face = sign.find((b) => /board/.test(b.n)).b;
+    const post = Math.max(...m.boxes.filter((b) => /front post/.test(b.n)).map((b) => b.b[3]));
+    const [, y0, , , y1, z1] = face, z0 = z1 - 3, c = FASCIA[m.id], trim = 'trimWhite:1';
+    const box = (n, b, col, part = 'body') => ({ n, part, c: col, season: false, b });
+    return { ...m, boxes: [...m.boxes.filter((b) => b.part !== 'sign'),
+      box('fascia', [-post, y0 - 1, z0, post, y1 + 1, z1 - 1], c),
+      box('fascia face', [-post + 2, y0, z1 - 1, post - 2, y1, z1], c),
+      box('fascia trim', [-post, y1, z0, post, y1 + 1, z1], trim), box('fascia trim', [-post, y0 - 1, z0, post, y0, z1], trim),
+      box('fascia end', [-post, y0 - 1, z0, -post + 2, y1 + 1, z1], trim), box('fascia end', [post - 2, y0 - 1, z0, post, y1 + 1, z1], trim),
+      box('fascia name', [face[0], y0, z1 - 1, face[3], y1, z1], c, 'sign')] };
+  }
+  if (m.id.startsWith('sack_')) return { ...m, boxes: m.boxes.map((b) => (b.part === 'patch' ? { ...b, c: 'hay:2' } : b)) };
+  if (m.id === 'noticeBoard') return { ...m, boxes: m.boxes.filter((b) => b.n !== 'pin') };
+  return m;
+}
+
 export function formModel(m) {
   if (/^(bomb_|sound_|bib|whistle|sack_)/.test(m.id)) return m;
   const out = [], boxes = m.boxes;
@@ -73,7 +102,8 @@ export function formModel(m) {
       if (w === 2 && d === 2) { x0 -= 1; x1 += 1; z0 -= 1; z1 += 1; }
       out.push({ ...b, b: [x0, y0, z0, x1, y1, z1] });
       const iron = boxes.find((o) => /base|roof/.test(o.n))?.c ?? 'iron:0';
-      for (const [cx, cz] of [[x0, z0], [x1 - 1, z0], [x0, z1 - 1], [x1 - 1, z1 - 1]]) out.push({ n: `${b.n}, frame bar`, part: b.part, c: iron, season: false, b: [cx, y0, cz, cx + 1, y1, cz + 1] });
+      // Under four across there is no room for bars and panes both: the stall's lanterns read as two dark strokes.
+      if (x1 - x0 >= 4) for (const [cx, cz] of [[x0, z0], [x1 - 1, z0], [x0, z1 - 1], [x1 - 1, z1 - 1]]) out.push({ n: `${b.n}, frame bar`, part: b.part, c: iron, season: false, b: [cx, y0, cz, cx + 1, y1, cz + 1] });
       continue;
     }
     // A long wooden run is boards, not one strip: BOARD cells each, two tones taking turns, the joints of one row
@@ -100,6 +130,74 @@ export function formModel(m) {
   return { ...m, boxes: out, bounds_cells: [...lo, ...hi], size_m: [0, 1, 2].map((k) => Math.round((hi[k] - lo[k]) * m.cell_m * 1e4) / 1e4) };
 }
 
+/**
+ * The bombs at 16 cubes across, not the pack's 20 (Brian, 2026-11-25: "the bombs are a tad bit too high voxelrate").
+ * One row in five is merged into its neighbour, the same rows on both sides of the middle, so the shape keeps its
+ * symmetry and every feature stays whole cubes: nothing is blurred or resampled. Where two cubes merge, the one that
+ * matters more is kept (the face's rim, then the face, a named motif, a raised or painted detail, the cap, the shell),
+ * then the outer one, which is the one seen. The fuse is laid again as twelve 2 x 2 x 2 pieces of the new cube, and the
+ * spark and its glow move with its tip. The cube is 0.03125 m, so a bomb is the size it was.
+ */
+export const BOMB_CELL = 0.03125;
+const T = (s) => (s >= 0 ? s - Math.floor((s + 2) / 5) : -T(-s - 1) - 1);   // a cell along x or z: 20 across become 16
+const TY = (s) => T(s - 10) + 8;                                              // a cell's height: the ball's middle (10) stays its middle (8)
+const B = (b) => T(b - 1) + 1, BY = (b) => TY(b - 1) + 1;                    // a plane between two cells
+export function coarsenBomb(m, skin) {
+  const key = (x, y, z) => `${x},${y},${z}`;
+  const src = new Map();
+  m.boxes.forEach((b, i) => { for (let x = b.b[0]; x < b.b[3]; x++) for (let y = b.b[1]; y < b.b[4]; y++) for (let z = b.b[2]; z < b.b[5]; z++) src.set(key(x, y, z), { x, y, z, b, i }); });
+  const rank = (b) => (b.part === 'face' ? (b.c === skin.face_colour ? 5 : 6) : b.part === 'detail' ? (b.n !== 'detail' ? 4 : 3) : b.part === 'cap' ? (b.n !== 'cap' ? 2 : 1) : 0);
+  const out2 = (c) => c.x * c.x + (c.y - 10) * (c.y - 10) + c.z * c.z;
+  const dst = new Map();
+  for (const c of src.values()) {
+    if (c.b.part === 'fuse' || c.b.part === 'spark') continue;
+    const k = key(T(c.x), TY(c.y), T(c.z)), was = dst.get(k), r = rank(c.b);
+    if (!was || r > was.r || (r === was.r && (out2(c) > out2(was.c) || (out2(c) === out2(was.c) && c.i > was.c.i)))) dst.set(k, { r, c, x: T(c.x), y: TY(c.y), z: T(c.z) });
+  }
+  // The fuse: twelve pieces of two cubes, from the first piece's place, standing on whatever is under it.
+  const n = skin.fuse_piece_cells, [sx, sy, sz] = skin.fuse_start_cells;
+  let fy = TY(sy);
+  if (TY(sy - 1) === fy) fy += 1;
+  const start = [T(sx), fy, T(sz)];
+  const pieceOf = (k) => { const [dx, dy] = skin.fuse_pieces[k]; return [sx + dx * n, sy + dy * n, sz]; };
+  const cells = [];
+  skin.fuse_pieces.forEach(([dx, dy], k) => {
+    const [ox, oy, oz] = pieceOf(k), from = src.get(key(ox, oy, oz)) ?? [...src.values()].find((c) => c.b.part === 'fuse');
+    for (let x = 0; x < n; x++) for (let y = 0; y < n; y++) for (let z = 0; z < n; z++) cells.push({ x: start[0] + dx * n + x, y: start[1] + dy * n + y, z: start[2] + z, b: from.b });
+  });
+  // The spark and the glow keep their place beside the last piece.
+  const last = skin.fuse_pieces.length - 1, [lx, ly, lz] = pieceOf(last), [ldx, ldy] = skin.fuse_pieces[last];
+  const shift = [start[0] + ldx * n - lx, start[1] + ldy * n - ly, start[2] - lz];
+  for (const c of src.values()) if (c.b.part === 'spark') cells.push({ x: c.x + shift[0], y: c.y + shift[1], z: c.z + shift[2], b: c.b });
+  for (const d of dst.values()) cells.push({ x: d.x, y: d.y, z: d.z, b: d.c.b });
+  // Cells back into boxes: runs along x, then equal runs joined up y, then z. No two overlap, so their order is free.
+  const at = new Map();
+  for (const c of cells) at.set(key(c.x, c.y, c.z), c);
+  const same = (a, b) => a && b && a.b.c === b.b.c && a.b.part === b.b.part && a.b.n === b.b.n;
+  const done = new Set(), boxes = [];
+  const sorted = [...at.values()].sort((a, b) => a.z - b.z || a.y - b.y || a.x - b.x);
+  for (const c of sorted) {
+    if (done.has(key(c.x, c.y, c.z))) continue;
+    let x1 = c.x + 1;
+    while (same(c, at.get(key(x1, c.y, c.z))) && !done.has(key(x1, c.y, c.z))) x1++;
+    const rowOk = (y, z) => { for (let x = c.x; x < x1; x++) { const o = at.get(key(x, y, z)); if (!same(c, o) || done.has(key(x, y, z))) return false; } return true; };
+    let y1 = c.y + 1;
+    while (rowOk(y1, c.z)) y1++;
+    const slabOk = (z) => { for (let y = c.y; y < y1; y++) if (!rowOk(y, z)) return false; return true; };
+    let z1 = c.z + 1;
+    while (slabOk(z1)) z1++;
+    for (let x = c.x; x < x1; x++) for (let y = c.y; y < y1; y++) for (let z = c.z; z < z1; z++) done.add(key(x, y, z));
+    boxes.push({ n: c.b.n, part: c.b.part, c: c.b.c, season: false, b: [c.x, c.y, c.z, x1, y1, z1] });
+  }
+  const lo = [0, 1, 2].map((k) => Math.min(...boxes.map((b) => b.b[k]))), hi = [0, 1, 2].map((k) => Math.max(...boxes.map((b) => b.b[k + 3])));
+  const lights = (m.lights ?? []).map((l) => ({ ...l, at: [l.at[0] + shift[0], l.at[1] + shift[1], l.at[2] + shift[2]] }));
+  const [fx, fyc, fz] = skin.face.centre_cells;
+  const disc = [...dst.values()].filter((d) => d.c.b.part === 'face' && d.c.b.c === skin.face_colour);
+  const discW = disc.length ? Math.max(...disc.map((d) => d.x)) - Math.min(...disc.map((d) => d.x)) + 1 : 6;
+  const newSkin = { ...skin, face: { ...skin.face, centre_cells: [B(fx), BY(fyc), B(fz)], size_m: discW * BOMB_CELL, disc_cells: `${discW} across` }, fuse_start_cells: start };
+  return { model: { ...m, cell_m: BOMB_CELL, boxes, lights, bounds_cells: [...lo, ...hi], size_m: [0, 1, 2].map((k) => Math.round((hi[k] - lo[k]) * BOMB_CELL * 1e4) / 1e4) }, skin: newSkin };
+}
+
 const where = (id) => (id.startsWith('bomb_') ? 'core' : RINK_IDS.test(id) ? 'rink' : 'market');
 
 const num = (v) => (Number.isInteger(v) ? String(v) : String(Math.round(v * 1e4) / 1e4));
@@ -114,13 +212,15 @@ export function renderAll() {
   const ci = (c) => { let i = colours.indexOf(c); if (i < 0) { i = colours.length; colours.push(c); } return i; };
   const pi = (p) => { let i = parts.indexOf(p); if (i < 0) { i = parts.length; parts.push(p); } return i; };
   const rows = { core: [], market: [], rink: [] };
+  const skinsData = read('skins.json');
   for (const entry of [...index].sort((a, b) => a.id.localeCompare(b.id))) {
-    const m = formModel(read(entry.file));
+    let m = formModel(restyle(read(entry.file)));
+    if (m.id.startsWith('bomb_')) { const k = m.id.slice(5), r = coarsenBomb(m, skinsData.skins[k]); m = r.model; skinsData.skins[k] = r.skin; }
     // Where two boxes overlap the later one wins (ITEMS_REMODEL.md rule 8); the mesher keeps the first box to claim a
     // cell, so the boxes are written last first.
     const boxes = [...m.boxes].reverse().map((b) => row([...b.b, ci(b.c), pi(b.part), b.season ? 1 : 0])).join(',');
     const lights = (m.lights ?? []).map((l) => row([...l.at, ci(l.c), l.radius_m, l.strength])).join(',');
-    rows[where(m.id)].push(`  ${JSON.stringify(m.id)}: { cell: ${num(m.cell_m)}, size: ${row(m.size_m)}, bounds: ${row(m.bounds_cells)}, lights: [${lights}], boxes: [${boxes}] },`);
+    rows[where(m.id)].push(`  ${JSON.stringify(m.id)}: { cell: ${m.cell_m}, size: ${row(m.size_m)}, bounds: ${row(m.bounds_cells)}, lights: [${lights}], boxes: [${boxes}] },`);
   }
   // Home's fence bay, from the dream's pack, given the same form (posts with plinths, rails in boards) and without its
   // bulb string: both scenes place it with its bulbs off (T1 section 3, P1 section 3).
@@ -130,7 +230,7 @@ export function renderAll() {
   const fenceRow = `  "fenceBay": { cell: ${num(fenceFormed.cell_m)}, size: ${row(fenceFormed.size_m)}, bounds: ${row(fenceFormed.bounds_cells)}, lights: [], boxes: [${fenceBoxes}] },`;
   rows.market.push(fenceRow); rows.rink.push(fenceRow);
   const head = (what) => [`// Generated by tools/tp/packModels.mjs from docs/trading-post-practice/data (${what}). Do not edit: change the data and run it again.`, '/* eslint-disable */'];
-  const skins = read('skins.json'), bursts = read('bursts.json');
+  const skins = skinsData, bursts = read('bursts.json');
   const glow = JSON.parse(readFileSync(join(root, 'docs/dream/v3/data/palette.json'), 'utf8')).glow;
   const core = [
     ...head('the bombs, skins, bursts, timings and icons; the colour and part lists every model file shares'),

@@ -42,7 +42,17 @@ describe('the Trading Post and Practice models (X2 S1)', () => {
       const e = extent([...mm.lit.pos, ...mm.glow.pos]);
       e.forEach((v, k) => expect(Math.abs(v - MODELS[id].size[k]), `${id} axis ${k}`).toBeLessThan(0.001));
       MODELS[id].size.forEach((v, k) => expect(v - size_m[k], `${id} axis ${k} grew`).toBeLessThanOrEqual(0.1 + 1e-6));
-      if (/^bomb_|^sound_/.test(id)) MODELS[id].size.forEach((v, k) => expect(Math.abs(v - size_m[k]), `${id} unchanged`).toBeLessThan(0.001));
+      if (/^sound_/.test(id)) MODELS[id].size.forEach((v, k) => expect(Math.abs(v - size_m[k]), `${id} unchanged`).toBeLessThan(0.001));
+      // The bombs are packed 16 cubes across, not the pack's 20 (`coarsenBomb`): the same size to within three cubes.
+      if (/^bomb_/.test(id)) { expect(MODELS[id].cell).toBe(0.03125); MODELS[id].size.forEach((v, k) => expect(Math.abs(v - size_m[k]), `${id} near its size`).toBeLessThan(0.1)); }
+    }
+  });
+  it('a bomb is 16 cubes across and as wide on both sides of its middle (Brian, 2026-11-25: "a tad bit too high voxelrate")', () => {
+    for (const id of ['bomb_ice', 'bomb_ember', 'bomb_plum', 'bomb_aurora']) {
+      const shell = MODELS[id].boxes.filter((b) => PARTS[b[7]] === 'shell');
+      const x0 = Math.min(...shell.map((b) => b[0])), x1 = Math.max(...shell.map((b) => b[3]));
+      expect(x1 - x0, id).toBeLessThanOrEqual(16);
+      expect(x0, id).toBe(-x1);
     }
   });
   it('every bomb has shell, face, cap, fuse and spark, plus detail where the skin has one, and no mark (T2, ITEMS_REMODEL.md)', () => {

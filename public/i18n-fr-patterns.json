@@ -1,4 +1,6 @@
 [["^(Bomb skins|Bursts|Fuse sounds): (\\d+) of (\\d+) found$","$1 : $2 sur $3 trouvés"],
+["^(\\d+) of (\\d+)$","$1 sur $2"],
+["^All (\\d+)$","Les $1"],
 ["^All (\\d+) found$","Les $1 trouvés"],
 ["^([\\d,]+) Wool Coins\\. One at a time\\.$","$1 pièces de laine. Un sac à la fois."],
 ["^Open an? (Oat Sack|Corn Sack|Barley Sack) for ([\\d,]+) Wool Coins$","Ouvrir : $1, pour $2 pièces de laine"],

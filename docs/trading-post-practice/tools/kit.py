@@ -141,7 +141,7 @@ def _two(mat, base):
 def tile(m, x0, y0, z0, x1, y1, z1, mat, base=0, long='x', across='y', L=None, W=4, name='plank', part='body', season=False, colour=None):
     """Boards, the house style of PLAN_DIORAMA_SCENERY 3.2 and the miniature plan: the box is cut across `across` into
     boards W cells wide that run its whole length along `long`, through its full depth. Boards alternate between the
-    material's base step and one step darker, each board one flat colour (VOXEL_GRAIN.md, rule 4). colour(i, j) may
+    material's base step and one step darker, each board one flat colour (ITEMS_REMODEL.md: structure is built of boards). colour(i, j) may
     override (i is always 0; j counts boards). L is ignored: boards are never cut short into patchwork."""
     ax = {'x': 0, 'y': 1, 'z': 2}
     lo = [x0, y0, z0]; hi = [x1, y1, z1]

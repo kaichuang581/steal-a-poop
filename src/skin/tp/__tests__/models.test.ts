@@ -45,7 +45,7 @@ describe('the Trading Post and Practice models (X2 S1)', () => {
       if (/^bomb_|^sound_/.test(id)) MODELS[id].size.forEach((v, k) => expect(Math.abs(v - size_m[k]), `${id} unchanged`).toBeLessThan(0.001));
     }
   });
-  it('every bomb has shell, face, cap, fuse and spark, plus detail where the skin has one, and no mark (T2, VOXEL_GRAIN.md)', () => {
+  it('every bomb has shell, face, cap, fuse and spark, plus detail where the skin has one, and no mark (T2, ITEMS_REMODEL.md)', () => {
     const six = ['cap', 'detail', 'face', 'fuse', 'shell', 'spark'];
     for (const id of Object.keys(MODELS).filter((k) => k.startsWith('bomb_'))) {
       const parts = new Set(MODELS[id].boxes.map((b) => PARTS[b[7]]));

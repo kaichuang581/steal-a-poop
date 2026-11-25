@@ -15,7 +15,7 @@ This replaces `practice-voxel` (the plan of earlier today). That plan left the T
 ## The items are remodelled
 
 - **8 bomb skins** (`T2`): one anatomy, eight characters. Each has a flat face where the seconds show in a game.
-- **One detail size** (`VOXEL_GRAIN.md`): on every model, the bombs and the stalls alike, nothing you can see is narrower than 0.05 m, and no big surface is one plain block.
+- **Chunky structure, tiny detail** (`ITEMS_REMODEL.md`): every item you can buy is built of tiny 0.025 m cubes with raised parts, as the site draws its bombs today; stalls and scenery are chunky 0.2 m parts.
 - **10 bursts** (`T3`): shaped voxel pieces, at most 24, at most three colours, one timing.
 - **8 fuse sounds** (`T4`): each shown as the thing that makes the sound.
 - **3 feed sacks** (`T5`): clean burlap, a yarn bow, a stencil of what is inside.
@@ -26,7 +26,7 @@ Every one is exact boxes in `data/`. Claude Code loads them; it models nothing b
 
 | File | What it settles |
 |---|---|
-| `VOXEL_GRAIN.md` | One detail size for every model: the rules, and what changed per model |
+| `ITEMS_REMODEL.md` | The 26 buyable items (bombs, fuse sounds, bursts): the rules, what was wrong with each, and each remodel part by part |
 | `T0-what-is-wrong-at-the-trading-post.md` | 31 flaws in today's Trading Post and what replaces each |
 | `T1-the-market-row.md` | The place, the camera, the four stops, every placement, light, season, phones, cost |
 | `T2-the-bombs.md` | The bomb's anatomy and the eight skins |
@@ -57,4 +57,4 @@ Every one is exact boxes in `data/`. Claude Code loads them; it models nothing b
 
 ## What the pictures can and cannot show
 
-They are drawn by a small box renderer from `data/`, so every size, place and colour is exact. They do not show the game's own soft light and shading, its real sheep and sheepdog, or anything moving. `tools/checks.py` passes 379 checks: colours, parts, the detail size (`VOXEL_GRAIN.md`), the contrast of the seconds on all eight bombs, piece and colour counts of the ten bursts, the odds, the clock arithmetic, and text contrast.
+They are drawn by a small box renderer from `data/`, so every size, place and colour is exact. They do not show the game's own soft light and shading, its real sheep and sheepdog, or anything moving. `tools/checks.py` passes 380 checks: colours, parts, the items' cubes and speckle (`ITEMS_REMODEL.md`), the contrast of the seconds on all eight bombs, piece and colour counts of the ten bursts, the odds, the clock arithmetic, and text contrast.

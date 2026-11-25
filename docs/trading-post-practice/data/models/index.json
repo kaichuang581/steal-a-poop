@@ -10,9 +10,9 @@
    "size_m": [
     0.6,
     0.8,
-    0.55
+    0.575
    ],
-   "boxes": 494
+   "boxes": 554
   },
   {
    "id": "bomb_ember",
@@ -21,11 +21,11 @@
    "what": "Ember: Banked coals in an iron shell.",
    "cell_m": 0.025,
    "size_m": [
-    0.6,
+    0.625,
     0.8,
-    0.55
+    0.625
    ],
-   "boxes": 551
+   "boxes": 620
   },
   {
    "id": "bomb_peppermint",
@@ -34,11 +34,11 @@
    "what": "Peppermint: A boiled sweet with a short temper.",
    "cell_m": 0.025,
    "size_m": [
-    0.6,
-    0.8,
-    0.55
+    0.7,
+    0.775,
+    0.525
    ],
-   "boxes": 487
+   "boxes": 542
   },
   {
    "id": "bomb_plum",
@@ -47,11 +47,11 @@
    "what": "Plum: Ripe, with a leaf still on.",
    "cell_m": 0.025,
    "size_m": [
-    0.6,
-    0.8,
-    0.55
+    0.625,
+    0.775,
+    0.575
    ],
-   "boxes": 441
+   "boxes": 482
   },
   {
    "id": "bomb_gold",
@@ -60,11 +60,11 @@
    "what": "Gold: Polished. Heavier than it looks.",
    "cell_m": 0.025,
    "size_m": [
-    0.6,
-    0.8,
-    0.55
+    0.625,
+    0.775,
+    0.625
    ],
-   "boxes": 515
+   "boxes": 591
   },
   {
    "id": "bomb_diamond",
@@ -75,9 +75,9 @@
    "size_m": [
     0.6,
     0.75,
-    0.55
+    0.575
    ],
-   "boxes": 519
+   "boxes": 529
   },
   {
    "id": "bomb_brassBell",
@@ -86,11 +86,11 @@
    "what": "Brass Bell: Rings once. Loudly.",
    "cell_m": 0.025,
    "size_m": [
-    0.6,
+    0.625,
     0.825,
-    0.5
+    0.575
    ],
-   "boxes": 383
+   "boxes": 484
   },
   {
    "id": "bomb_aurora",
@@ -101,9 +101,9 @@
    "size_m": [
     0.6,
     0.8,
-    0.55
+    0.575
    ],
-   "boxes": 542
+   "boxes": 583
   },
   {
    "id": "sound_iceChime",
@@ -113,10 +113,10 @@
    "cell_m": 0.025,
    "size_m": [
     0.6,
-    0.65,
+    0.675,
     0.2
    ],
-   "boxes": 20
+   "boxes": 29
   },
   {
    "id": "sound_eightBit",
@@ -125,11 +125,11 @@
    "what": "8-bit",
    "cell_m": 0.025,
    "size_m": [
-    0.5,
-    0.6,
+    0.45,
+    0.575,
     0.2
    ],
-   "boxes": 14
+   "boxes": 44
   },
   {
    "id": "sound_woodBlock",
@@ -138,11 +138,11 @@
    "what": "Wood block",
    "cell_m": 0.025,
    "size_m": [
-    0.4,
-    0.3,
-    0.2
+    0.425,
+    0.325,
+    0.25
    ],
-   "boxes": 8
+   "boxes": 27
   },
   {
    "id": "sound_cowbell",
@@ -152,10 +152,10 @@
    "cell_m": 0.025,
    "size_m": [
     0.35,
-    0.65,
-    0.25
+    0.675,
+    0.3
    ],
-   "boxes": 84
+   "boxes": 108
   },
   {
    "id": "sound_sleighBells",
@@ -164,11 +164,11 @@
    "what": "Sleigh bells",
    "cell_m": 0.025,
    "size_m": [
-    0.75,
+    0.7,
     0.5,
     0.15
    ],
-   "boxes": 113
+   "boxes": 89
   },
   {
    "id": "sound_musicBox",
@@ -177,11 +177,11 @@
    "what": "Music box",
    "cell_m": 0.025,
    "size_m": [
-    0.5,
-    0.45,
-    0.35
+    0.575,
+    0.525,
+    0.4
    ],
-   "boxes": 12
+   "boxes": 37
   },
   {
    "id": "sound_owl",
@@ -191,10 +191,10 @@
    "cell_m": 0.025,
    "size_m": [
     0.6,
-    0.65,
-    0.2
+    0.675,
+    0.225
    ],
-   "boxes": 165
+   "boxes": 241
   },
   {
    "id": "sound_lullaby",
@@ -203,11 +203,11 @@
    "what": "Lullaby",
    "cell_m": 0.025,
    "size_m": [
-    0.55,
-    0.65,
-    0.1
+    0.575,
+    0.725,
+    0.15
    ],
-   "boxes": 59
+   "boxes": 109
   },
   {
    "id": "feedStall",

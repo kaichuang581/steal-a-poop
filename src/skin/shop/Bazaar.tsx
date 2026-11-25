@@ -218,7 +218,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
           {stop === 'sacks' && <SacksStop {...{ wallet, sack, pool, pick, focus, setFocus, reveal, phone, listen }} />}
           {stop === 'bells' && <BellsStop {...{ wallet, items: shelfItems, buy, wear, busy, setFocus, phone }} />}
           {stop === 'missions' && !phone && <MissionsStop wallet={wallet} items={missionItems} />}
-          {stop === 'book' && <BookStop {...{ wallet, kind: bookKind, items: bookItems, setFocus, phone, page: bookPage }} flip={() => { pageTurn(); setBookPage(bookPage ? 0 : 1); }} turn={(k) => { if (k !== bookKind) { pageTurn(); setBookKind(k); setBookPage(0); } }} />}
+          {stop === 'book' && <BookStop {...{ wallet, kind: bookKind, items: bookItems, setFocus, phone, page: bookPage }} short={!phone && H < 820} flip={() => { pageTurn(); setBookPage(bookPage ? 0 : 1); }} turn={(k) => { if (k !== bookKind) { pageTurn(); setBookKind(k); setBookPage(0); } }} />}
           {focus && <CloseView item={focus} wallet={wallet} world={world} stop={stop} phone={phone} onWear={wear} onListen={listen} onClose={() => setFocus(null)} />}
           {reveal && <RevealTag reveal={reveal} wallet={wallet} onWear={() => void wearRevealed()} onDone={finishReveal} phone={phone} />}
         </div>

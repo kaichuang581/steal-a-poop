@@ -1,5 +1,5 @@
 {
- "about": "The eight bomb skins: where the face is, the colour of its seconds, the fuse and spark colours. Cells are 0.025 m; every part is at least 2 cells (0.05 m), as VOXEL_GRAIN.md says. \"lit:\" colours give light. The fuse is 12 pieces of 2 x 2 x 2 cells; with a share s of the turn left, show ceil(12 x s) of them.",
+ "about": "The eight bomb skins: where the face is, the colour of its seconds, the fuse and spark colours. Cubes are 0.025 m, the items' tiny cubes (ITEMS_REMODEL.md). \"lit:\" colours give light. The fuse is 12 pieces of 2 x 2 x 2 cells; with a share s of the turn left, show ceil(12 x s) of them.",
  "fuse_pieces_cells": [
   [
    0,
@@ -62,7 +62,7 @@
      10,
      12
     ],
-    "disc_cells": "8 across, round",
+    "disc_cells": "8 across inside a 10-across bezel",
     "size_m": 0.2
    },
    "digit": "#1F3A66",
@@ -142,9 +142,9 @@
     "centre_cells": [
      0,
      10,
-     12
+     13
     ],
-    "disc_cells": "8 across, round",
+    "disc_cells": "8 across inside a 10-across bezel",
     "size_m": 0.2
    },
    "digit": "#3A2418",
@@ -223,10 +223,10 @@
    "face": {
     "centre_cells": [
      0,
-     10,
-     12
+     9,
+     11
     ],
-    "disc_cells": "8 across, round",
+    "disc_cells": "8 across inside a 10-across bezel",
     "size_m": 0.2
    },
    "digit": "#7A211C",
@@ -242,7 +242,7 @@
    ],
    "fuse_start_cells": [
     -1,
-    24,
+    23,
     -1
    ],
    "fuse_pieces": [
@@ -308,7 +308,7 @@
      10,
      12
     ],
-    "disc_cells": "8 across, round",
+    "disc_cells": "8 across inside a 10-across bezel",
     "size_m": 0.2
    },
    "digit": "#3B2548",
@@ -323,8 +323,8 @@
     "#FFE7B0"
    ],
    "fuse_start_cells": [
-    -1,
-    24,
+    0,
+    23,
     -1
    ],
    "fuse_pieces": [
@@ -388,9 +388,9 @@
     "centre_cells": [
      0,
      10,
-     12
+     13
     ],
-    "disc_cells": "8 across, round",
+    "disc_cells": "8 across inside a 10-across bezel",
     "size_m": 0.2
    },
    "digit": "#4A3312",
@@ -406,7 +406,7 @@
    ],
    "fuse_start_cells": [
     -1,
-    24,
+    23,
     -1
    ],
    "fuse_pieces": [
@@ -469,10 +469,10 @@
    "face": {
     "centre_cells": [
      0,
-     10,
+     9,
      12
     ],
-    "disc_cells": "8 across, round",
+    "disc_cells": "8 across inside a 10-across bezel",
     "size_m": 0.2
    },
    "digit": "#1E4D59",
@@ -552,9 +552,9 @@
     "centre_cells": [
      0,
      8,
-     10
+     11
     ],
-    "disc_cells": "8 across, round",
+    "disc_cells": "8 across inside a 10-across bezel",
     "size_m": 0.2
    },
    "digit": "#4A3312",
@@ -636,7 +636,7 @@
      10,
      12
     ],
-    "disc_cells": "8 across, round",
+    "disc_cells": "8 across inside a 10-across bezel",
     "size_m": 0.2
    },
    "digit": "lit:#C8F5D6",

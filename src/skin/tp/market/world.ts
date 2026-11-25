@@ -138,7 +138,7 @@ export const modelOf = (item: Item): string => item.kind === 'bomb' ? `bomb_${SK
 
 const CUT = new Color('#CEC0AC');
 /**
- * Where a burst is shown and the box it must fit, metres (VOXEL_GRAIN.md rule 8: drawn in, never shrunk; T3 section 3):
+ * Where a burst is shown and the box it must fit, metres (ITEMS_REMODEL.md rule 7: drawn in, never shrunk; T3 section 3):
  * a bench slot (seven share 3.6 m), a Barn Book frame (0.5 by 0.65 m, the item at 80%), the Bell Shelf's stand (1.6 times
  * as large). `most` is the plan's draw-in; a wide or tall burst is drawn in further, to fit.
  */
@@ -170,7 +170,7 @@ function burstArrays(key: string, slot: Slot): { lit: Arrays; glow: Arrays } {
  * (every box `trimWhite -2`, unshaded) for one not found in the Barn Book.
  */
 export function itemGroup(item: Item, mats: { lit: Material; glow: Material; flat: Material }, cut = false, slot: Slot = 'bench'): Group {
-  // A bomb shows 10 on its face outside a game (T2, VOXEL_GRAIN.md): the built bomb, not the bare model.
+  // A bomb shows 10 on its face outside a game (T2, ITEMS_REMODEL.md): the built bomb, not the bare model.
   if (item.kind === 'bomb' && !cut) { const b = makeBomb(SKIN_OF[item.id] ?? 'ice', { rest: true, lit: mats.lit }); b.group.userData.item = item.id; return b.group; }
   const key = `${item.id}|${cut}|${slot}`;
   let a = cache.get(key);

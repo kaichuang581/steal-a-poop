@@ -9,7 +9,7 @@ describe('the bomb (T2)', () => {
     expect(fusePiecesFor(0.01)).toBe(1);
     expect(fusePiecesFor(0)).toBe(0);
   });
-  it('each fuse piece is one 2 x 2 x 2 block of the model, and the twelve hold every fuse box (VOXEL_GRAIN.md)', async () => {
+  it('each fuse piece is one 2 x 2 x 2 block of the model, and the twelve hold every fuse box (ITEMS_REMODEL.md)', async () => {
     const { MODELS, PARTS } = await import('../models');
     const { fuseCube } = await import('../bomb');
     for (const s of Object.values(SKINS)) {
@@ -39,7 +39,7 @@ describe('the bursts (T3)', () => {
   });
 });
 
-describe('bursts on display (VOXEL_GRAIN.md rule 8, T3 section 3)', () => {
+describe('bursts on display (ITEMS_REMODEL.md rule 7, T3 section 3)', () => {
   it('every burst fits its bench slot, Barn Book frame and Bell Shelf stand, drawn in at no more than the plan says', async () => {
     const { drawnSize } = await import('../burst');
     const { SLOT, spreadFor } = await import('../market/world');

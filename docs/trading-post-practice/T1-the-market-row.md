@@ -91,4 +91,4 @@ The row is the same. The camera is closer: A = 0.22 × W (86 at 390), the y 0 li
 
 ## 8. Cost
 
-The whole row is about 15,700 boxes in the pictures; about a quarter of that is the eight bombs at 380 to 550 each. Build every model once as one merged mesh with vertex colours and hidden faces removed. Draw only the stop on screen and its neighbours. Targets: at most 40 draw calls, 60,000 triangles on the High tier, 30,000 on Low (Low drops the far farm, the pines and the back-shelf stock). Frame time no worse than Home's.
+The whole row is about 17,300 boxes in the pictures; about a quarter of that is the bombs on show at 480 to 620 each. Build every model once as one merged mesh with vertex colours and hidden faces removed. Draw only the stop on screen and its neighbours. Targets: at most 40 draw calls, 60,000 triangles on the High tier, 30,000 on Low (Low drops the far farm, the pines and the back-shelf stock). Frame time no worse than Home's.

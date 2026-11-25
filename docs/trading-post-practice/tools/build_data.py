@@ -81,7 +81,7 @@ def main():
     json.dump({'about': "Every new model. Home's own barn, silo, farmhouse, fence and pines are placed as they are and are not copied here.", 'models': idx},
               open(os.path.join(md, 'index.json'), 'w'), indent=1)
     json.dump({'about': 'The eight bomb skins: where the face is, the colour of its seconds, the fuse and spark colours. '
-                        'Cells are 0.025 m; every part is at least 2 cells (0.05 m), as VOXEL_GRAIN.md says. "lit:" colours give light. '
+                        'Cubes are 0.025 m, the items\' tiny cubes (ITEMS_REMODEL.md). "lit:" colours give light. '
                         'The fuse is 12 pieces of 2 x 2 x 2 cells; with a share s of the turn left, show ceil(12 x s) of them.', 'fuse_pieces_cells': skins.FUSE, 'skins': sk}, open(os.path.join(D, 'skins.json'), 'w'), indent=1)
     bj = {}
     for k in bursts.ORDER:
@@ -89,7 +89,7 @@ def main():
         bj[k] = {'name': b['name'], 'colours': {c: bursts.C[c] for c in b['colours']}, 'pieces': b['pieces'], 'move': b['move'], 'sound': b['sound'],
                  'boxes_at_fullest': [[round(v, 3) for v in p[:6]] + [p[6], bool(p[7] or p[6] in bursts.LIT)] for p in bursts.pieces(k)]}
     json.dump({'about': 'The ten bursts at their fullest (300 ms). Each box: x, y, z of its lower-left-back corner in metres from the bomb\'s spot on the ground, '
-                        'then width, height, depth, colour key, gives light. One piece cube is %.2f m, the detail size of VOXEL_GRAIN.md. In the Trading Post a burst stands over its stand '
+                        'then width, height, depth, colour key, gives light. One cube is %.3f m, the tiny cube of every item (ITEMS_REMODEL.md). In the Trading Post a burst stands over its stand '
                         'with its positions drawn in to 42%% toward its middle (0.6 m up) and its pieces at full size.' % bursts.P,
                'all_colours': bursts.C, 'bursts': bj}, open(os.path.join(D, 'bursts.json'), 'w'), indent=1)
     L = market.market('oat')

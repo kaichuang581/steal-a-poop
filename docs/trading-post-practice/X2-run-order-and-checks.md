@@ -4,7 +4,7 @@
 
 | Step | What | Done when |
 |---|---|---|
-| **S1** | **Models in.** `scripts/packModels.mjs` reads every file in `data/models/index.json`, `data/skins.json` and `data/bursts.json` and writes generated TypeScript. A developer page `?preview=models` shows every model on a plain floor | The page, side by side with `reference/models-bombs.png`, `models-fuse-sounds.png`, `models-market.png`, matches box for box; each mesh's bounding box equals `size_m` within 1 mm |
+| **S1** | **Models in.** `scripts/packModels.mjs` reads every file in `data/models/index.json`, `data/skins.json` and `data/bursts.json` and writes generated TypeScript. A developer page `?preview=models` shows every model on a plain floor | The page, side by side with `reference/models-bombs.png`, `models-fuse-sounds.png`, `models-bursts.png`, `models-market.png`, matches box for box; each mesh's bounding box equals `size_m` within 1 mm |
 | **S2** | **The bombs, everywhere.** The eight skins replace today's bombs in every mode: the face with the seconds, the burning 12-piece fuse, the last-3-seconds colour and wobble (`T2`). Old thumbnails removed | The fuse test passes; a 3x sheet shows every skin at 12 s, 3 s and 1 s with readable seconds |
 | **S3** | **The bursts.** The ten bursts rebuilt from their tables with the one timing (`T3`) | A recording of all ten; at the 300 ms frame each matches `reference/models-bursts.png` |
 | **S4** | **The market row.** The scene, the shared shift camera, walking between stops, the yarn-line tabs, wallet, level strip, footer (`T1`, `T7`). Stops stand empty. The old panel is deleted | Screenshots of the four stops match the reference pictures' scenery within 10 px; the camera test of `T1` passes |
@@ -18,8 +18,8 @@
 ## 2. Checks for every step
 
 1. Type check, all tests and the build pass. **No rule changed:** run the existing shop tests (odds within 0.2 points over a million rolls, pity at 10 and 40, duplicate refunds, Bells never open a sack) and the practice tests; none may be edited to pass.
-2. `python3 tools/checks.py` passes against the data shipped, including the detail-size checks of `VOXEL_GRAIN.md`; `python3 tools/grain_audit.py` prints nothing.
-3. **Colours:** scenery from LADDER tokens and named glows only; skins and bursts only from `data/skins.json` and `data/bursts.json`; interface only from the tokens of `T7`. No navy board, wooden interface panel, painted plank texture, rope, dashed border, gingham or handwriting font is left on either screen (grep, and look). Boards built as real parts of a model (`VOXEL_GRAIN.md`, rule 4) are not a texture and stay.
+2. `python3 tools/checks.py` passes against the data shipped, including the item checks of `ITEMS_REMODEL.md`; `python3 tools/grain_audit.py` prints nothing.
+3. **Colours:** scenery from LADDER tokens and named glows only; skins and bursts only from `data/skins.json` and `data/bursts.json`; interface only from the tokens of `T7`. No navy board, wooden interface panel, painted plank texture, rope, dashed border, gingham or handwriting font is left on either screen (grep, and look). Boards built as real parts of a model are not a texture and stay.
 4. **No recycling:** nothing is copied in from Counting Sheep's dream, the lobby pen or the barn table. The market row and the rink share only the camera helper, Home's far farm and the lantern glow.
 5. **Nothing random:** no model, pattern or burst uses a random number. The same screen looks the same every time.
 6. Nothing floats: every box rests on the ground or another box, except bulbs on their wire, hanging tags, lanterns and bells on their hooks, and effects.
@@ -32,7 +32,7 @@
 
 - The Trading Post becomes a full screen instead of a panel over Home.
 - Every bomb gets a flat face for the seconds; outside a game it shows 10.
-- Every model follows one detail size (`VOXEL_GRAIN.md`): nothing narrower than 0.05 m, big surfaces built from boards, snow in whole caps and steps.
+- Every buyable item is remodelled in tiny cubes with raised parts (`ITEMS_REMODEL.md`); big surfaces are built from boards, snow in whole caps and steps.
 - The Barn Book's "Found / Not found" chips are removed; the coloured squares on the sack tags are removed.
 - "Try it", "Listen" and "See it lit" in the close view, if today's preview does not have them.
 - Practice: the coach, the countdown, the bib, the rating and word list in the report, and sprout / sapling / pine as the three level icons (also on Home's Practice card).
@@ -57,4 +57,4 @@
 
 ## 6. The prompt for Claude Code
 
-> Read `README.md` and `VOXEL_GRAIN.md`, then every `T`, `P` and `X` file in order, then the files in `data/`. Rebuild the Trading Post and Practice as they say, in steps S1 to S10 of `X2`, one pull request per step, stopping after each for approval. Load every model, skin and burst from its JSON with the packer of S1; model nothing by hand and change no animal model. Change no price, odd, pity count, refund, reward, timer, score or stored value; where a number in these files disagrees with the code's rules, keep the code's and tell me. Where a file disagrees with `data/`, the data wins. Use no random numbers in any model, pattern or effect. Attach the screenshots each step asks for, beside the matching picture in `reference/`.
+> Read `README.md` and `ITEMS_REMODEL.md`, then every `T`, `P` and `X` file in order, then the files in `data/`. Rebuild the Trading Post and Practice as they say, in steps S1 to S10 of `X2`, one pull request per step, stopping after each for approval. Load every model, skin and burst from its JSON with the packer of S1; model nothing by hand and change no animal model. Change no price, odd, pity count, refund, reward, timer, score or stored value; where a number in these files disagrees with the code's rules, keep the code's and tell me. Where a file disagrees with `data/`, the data wins. Use no random numbers in any model, pattern or effect. Attach the screenshots each step asks for, beside the matching picture in `reference/`.

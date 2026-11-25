@@ -147,7 +147,7 @@ export class MarketWorld {
     this.shelf.clear();
     this.shelfItems = items.map((item, i) => {
       const [x, y, z] = shelfPlace(i, items.length);
-      // A burst here is drawn in at 67% over a stand 1.6 times as large, every piece its full size (VOXEL_GRAIN.md rule 8).
+      // A burst here is drawn in at 67% over a stand 1.6 times as large, every piece its full size (ITEMS_REMODEL.md rule 7).
       const s = 1;
       const inner = itemGroup(item, this.itemMats, false, 'shelf'), g = new Group(); g.add(inner);
       this.shelf.add(g);

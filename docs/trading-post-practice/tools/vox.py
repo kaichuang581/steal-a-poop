@@ -49,5 +49,7 @@ class Vox:
         return out
 
     def into(self, model, name=''):
+        """A part written 'detail:rivet' becomes part 'detail' with the name 'rivet', so motifs keep their names."""
         for (x0, y0, z0, x1, y1, z1, c, part) in self.boxes():
-            model.b(x0, y0, z0, x1, y1, z1, c, name or part, part)
+            p, _, n = part.partition(':')
+            model.b(x0, y0, z0, x1, y1, z1, c, n or name or p, p)

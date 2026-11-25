@@ -25,7 +25,7 @@ const RINK_IDS = /^(rinkBoards|rinkBoardsFront|tileRack|snowBank|tallyBoard|coac
  * camera looks straight on, so a post or a table top that is one box reads as a flat rectangle. Every post, pole and
  * leg gets a plinth at its foot, a cap (or, under whatever it carries, a collar), a band a third of the way up when it
  * is tall, and its corners cut when it is three cells or more across; the front plank of a table, bench or counter
- * gets a lip under its front edge. Each added part is one colour step from the part it sits on (VOXEL_GRAIN.md rule 3)
+ * gets a lip under its front edge. Each added part is one colour step from the part it sits on (pack v2's grain rule 3, kept for scenery)
  * and one cell (0.05 m) or more (rule 1). The pack's JSON is untouched; this runs as it is packed.
  */
 const step = (c, d) => {
@@ -37,7 +37,7 @@ const step = (c, d) => {
 };
 const POST = /\b(post|leg|handle)\b/, NOT_POST = /lantern|snow|foot|slat|board|frame|wall|beam/;
 const TOP = /plank|counter top|cap rail|rack shelf/;
-/** Long wooden runs, split into boards (VOXEL_GRAIN.md rule 4: at most 0.4 m, two tones taking turns). */
+/** Long wooden runs, split into boards (pack v2's grain rule 4, kept for scenery: at most 0.4 m, two tones taking turns). */
 const RUN = /board|rail|plank|beam|kick|footing|rung|edge|shelf/, RUN_MAT = /^(wood|darkWood|barnRed):/, BOARD = 8;
 export function formModel(m) {
   if (/^(bomb_|sound_|bib|whistle|sack_)/.test(m.id)) return m;
@@ -116,7 +116,7 @@ export function renderAll() {
   const rows = { core: [], market: [], rink: [] };
   for (const entry of [...index].sort((a, b) => a.id.localeCompare(b.id))) {
     const m = formModel(read(entry.file));
-    // Where two boxes overlap the later one wins (VOXEL_GRAIN.md rule 9); the mesher keeps the first box to claim a
+    // Where two boxes overlap the later one wins (ITEMS_REMODEL.md rule 8); the mesher keeps the first box to claim a
     // cell, so the boxes are written last first.
     const boxes = [...m.boxes].reverse().map((b) => row([...b.b, ci(b.c), pi(b.part), b.season ? 1 : 0])).join(',');
     const lights = (m.lights ?? []).map((l) => row([...l.at, ci(l.c), l.radius_m, l.strength])).join(',');
@@ -140,7 +140,7 @@ export function renderAll() {
     `export const GLOW: Record<string, string> = ${JSON.stringify(glow)};`,
     '/** A model: its cell and size in metres, its bounds in cells, its glows [x, y, z, colour, radius_m, strength], its boxes [x0, y0, z0, x1, y1, z1, colour, part, season]. */',
     'export interface ModelData { cell: number; size: readonly number[]; bounds: readonly number[]; lights: readonly (readonly number[])[]; boxes: readonly (readonly number[])[] }',
-    '/** A bomb skin (T2, VOXEL_GRAIN.md): its face (middle in cells, size in metres), digit, danger and face colours, its fuse (first piece\'s corner in cells, the 12 pieces in 2-cell steps) and spark. */',
+    '/** A bomb skin (T2, ITEMS_REMODEL.md): its face (middle in cells, size in metres), digit, danger and face colours, its fuse (first piece\'s corner in cells, the 12 pieces in 2-cell steps) and spark. */',
     'export interface SkinData { key: string; name: string; source: string; line: string; face: { centre_cells: readonly number[]; size_m: number; disc_cells?: string }; digit: string; danger_digit: string; face_colour: string; fuse: readonly string[]; spark: readonly string[]; fuse_start_cells: readonly number[]; fuse_pieces: readonly (readonly number[])[]; fuse_piece_cells: number }',
     '/** A burst (T3) at its fullest: boxes [x, y, z, w, h, d, colour key, lit] in metres from the bomb\'s spot. */',
     'export interface BurstData { name: string; colours: Record<string, string>; pieces: number; move: string; sound?: string; boxes_at_fullest: readonly (readonly [number, number, number, number, number, number, string, boolean])[] }',

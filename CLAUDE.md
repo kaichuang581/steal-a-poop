@@ -2809,6 +2809,15 @@ from its JSON; nothing random in a model, pattern or effect; the data wins over 
 - Pack version 2 (2026-11-25, same day): VOXEL_GRAIN.md, one detail size. Every visible part is at least 0.05 m, big
   surfaces are boards, the data is rebuilt to it, and the pack's `tools/checks.py` (379) and `tools/grain_audit.py` must
   pass (they need numpy and scipy). Where boxes overlap the later one wins: the packer writes boxes last first.
+- Pack version 3 (2026-11-25, same day): ITEMS_REMODEL.md replaces VOXEL_GRAIN.md (deleted). The 26 items (bombs,
+  fuse sounds, bursts) are tiny 0.025 m cubes with raised parts and named motifs; scenery stays chunky, and the
+  packer's form pass (posts, boards, lips) still runs on scenery only, never on items. Checks: 380, grain audit clean.
+  The size budget went up 11,000 for it. The Barn Book's names stay on one line on the 10-item pages, and in a
+  window under 820 px tall the 8-item pages show the rarity's square and a short source (Oat Sack, Bell Shelf,
+  Mission) on one line, or the labels ran into the cards below.
+- Depth offsets (2026-11-25, Brian: flicker "especially on the barn"): `voxelMaterial({ layer })` and the animals'
+  face layers use a fixed polygon offset (units) only. Never a slope factor: it pulls faces seen edge-on through
+  whatever is in front of them, as blinking hairlines.
 - The bomb (T2) everywhere: src/skin/tp/bomb.ts (`makeBomb`: a mesh per part, no maker's mark; the face shows the
   seconds in a game and 10 at rest (`rest: true`: the shop, the Barn Book, Home's demo game); 12 fuse pieces, each one
   2 x 2 x 2 block from `fuse_start_cells` and `fuse_pieces`, burning ceil(12 s), the lit spark replacing the last).

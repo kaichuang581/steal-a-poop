@@ -276,7 +276,7 @@ def sheets():
         m = skins.bomb(k)
         img, cam = studio.shot(m, fill=0.74, glow=0.4)
         cells.append((img, m.meta['name'], m.meta['source']))
-    studio.sheet(os.path.join(REF, 'models-bombs.png'), cells, 4, 'The eight bombs: round outlines, every part at least 0.05 m (face left plain here; the game paints the seconds on it)')
+    studio.sheet(os.path.join(REF, 'models-bombs.png'), cells, 4, 'The eight bombs: tiny cubes, raised detail (face left plain; the game paints the seconds)')
     cells = []
     for m in sounds.all_models():
         img, cam = studio.shot(m, W=300, H=300, fill=0.62)

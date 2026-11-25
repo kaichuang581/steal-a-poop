@@ -57,7 +57,7 @@ for e in idx:
         ok(len(mats) <= 6 or m['id'] in ('feedStall', 'bellStand'), f"{m['id']}: {len(mats)} materials", quiet=True)
 print(f'      ({len(idx)} models checked for colours and parts)')
 
-# ---- one detail size (VOXEL_GRAIN.md) ----------------------------------------------------------------
+# ---- cube size by role, plain areas, speckle (ITEMS_REMODEL.md) ----------------------------------------------------------------
 import grain_audit
 for e in idx:
     m = json.load(open(os.path.join(D, e['file'])))
@@ -66,9 +66,9 @@ for e in idx:
     occ = grain_audit.voxels(m)
     slabs = grain_audit.plain_regions(occ, m['cell_m'])
     ok(not slabs, f"{m['id']}: no plain area holding a square over 0.4 m {slabs[:2] if slabs else ''}", quiet=True)
-    thin = grain_audit.thin_parts(m)
-    ok(not thin, f"{m['id']}: seen from the front, no part under 0.05 m (only the fuse's sparks are smaller) {thin[:3] if thin else ''}", quiet=True)
-print(f'      ({len(idx)} models checked for their cell, plain areas and the 0.05 m detail size)')
+    sp = grain_audit.specks(m)
+    ok(len(sp) <= 6, f"{m['id']}: no speckle: at most 6 lone cubes seen from the front that belong to no motif ({len(sp)})", quiet=True)
+print(f'      ({len(idx)} models checked for their cube size, plain areas and speckle)')
 
 def screen_px(cell, scale, A, z, cam=9.0):
     return cell * scale * A * cam / (cam - z)
@@ -76,25 +76,29 @@ def screen_px(cell, scale, A, z, cam=9.0):
 mk = json.load(open(os.path.join(D, 'market.json')))
 rk = json.load(open(os.path.join(D, 'rink.json')))
 cells = {e['id']: e['cell_m'] for e in idx}
-grain_rows = []
+ITEM = ('bomb_', 'sound_')
+item_rows, scene_rows = [], []
 for it in mk['items']:
     if it['model'] in cells and it['z'] > -4.5:
         stop = min(mk['stops_x_m'], key=lambda k: abs(mk['stops_x_m'][k] - it['x']))
-        grain_rows.append((it['model'], screen_px(max(cells[it['model']], 0.05), it.get('scale', 1.0), mk['cameras'][stop]['A'], it['z'])))
+        px = screen_px(cells[it['model']], it.get('scale', 1.0), mk['cameras'][stop]['A'], it['z'])
+        (item_rows if it['model'].startswith(ITEM) else scene_rows).append((it['model'], px))
 for sh in mk['shown']:
     stop = min(mk['stops_x_m'], key=lambda k: abs(mk['stops_x_m'][k] - sh['x']))
-    cell = 0.05 if sh['kind'] == 'burst' else 0.05 * sh['scale']          # the detail size (0.05 m) on screen
-    grain_rows.append((sh['kind'] + ' ' + sh['key'], screen_px(cell, 1.0, mk['cameras'][stop]['A'], sh['z'])))
+    cell = 0.025 * (1.0 if sh['kind'] == 'burst' else sh['scale'])
+    item_rows.append((sh['kind'] + ' ' + sh['key'], screen_px(cell, 1.0, mk['cameras'][stop]['A'], sh['z'])))
 for it in rk['items']:
     if it['model'] in cells and it['z'] > -4.5:
-        grain_rows.append((it['model'], screen_px(max(cells[it['model']], 0.05), 1.0, 210.0, it['z'])))
-grain_rows.append(('the worn bomb (Practice)', screen_px(0.05, 1.0, 210.0, 0.35)))
+        scene_rows.append((it['model'], screen_px(cells[it['model']], 1.0, 210.0, it['z'])))
+item_rows.append(('the worn bomb (Practice)', screen_px(0.025, 1.0, 210.0, 0.35)))
 scales = [it.get('scale', 1.0) for it in mk['items'] if it['model'] in cells] + [sh['scale'] for sh in mk['shown'] if sh['kind'] != 'burst']
 ok(all(0.8 - 1e-9 <= s <= 1.0 + 1e-9 for s in scales), f'no model is shrunk below 0.8 or blown up past 1.0 (scales used: {sorted(set(scales))}); bursts are drawn in, never shrunk')
-lo, hi = min(r[1] for r in grain_rows), max(r[1] for r in grain_rows)
-ok(lo >= 6 and hi <= 15, f'one detail size on screen: every placed model\'s smallest part (0.05 m, or its cell where that is larger) is {lo:.1f} to {hi:.1f} px at 1440 x 900 (6 to 15)')
-for name, px in grain_rows:
-    ok(6 <= px <= 15, f'  {name}: {px:.1f} px', quiet=True)
+lo, hi = min(r[1] for r in item_rows), max(r[1] for r in item_rows)
+ok(3.5 <= lo and hi <= 7, f"items' tiny cubes on screen: {lo:.1f} to {hi:.1f} px at 1440 x 900 (3.5 to 7; today's site draws its bombs at about 4 to 5)")
+lo2, hi2 = min(r[1] for r in scene_rows), max(r[1] for r in scene_rows)
+ok(5 <= lo2 and hi2 <= 15, f"scenery cubes on screen: {lo2:.1f} to {hi2:.1f} px (5 to 15): chunky structure, as on Home")
+for name, px in item_rows + scene_rows:
+    ok(px <= 15, f'  {name}: {px:.1f} px', quiet=True)
 
 sk = json.load(open(os.path.join(D, 'skins.json')))['skins']
 for k, s in sk.items():
@@ -107,8 +111,8 @@ bj = json.load(open(os.path.join(D, 'bursts.json')))['bursts']
 ok(len(bj) == 10, 'ten bursts')
 for k, b in bj.items():
     ok(b['pieces'] <= 24 and len(b['colours']) <= 3, f"{b['name']}: {b['pieces']} pieces, {len(b['colours'])} colours (at most 24 and 3)")
-    bad = [p for p in bursts.pieces(k) if any(abs(s / 0.05 - round(s / 0.05)) > 1e-6 or s < 0.05 - 1e-9 for s in p[3:6])]
-    ok(not bad, f"{b['name']}: every box is whole 0.05 m cells" + (f" ({len(bad)} are not)" if bad else ''), quiet=True)
+    bad = [p for p in bursts.pieces(k) if any(abs(s / 0.025 - round(s / 0.025)) > 1e-6 or s < 0.025 - 1e-9 for s in p[3:6])]
+    ok(not bad, f"{b['name']}: every box is whole 0.025 m cubes, the items' cube" + (f" ({len(bad)} are not)" if bad else ''), quiet=True)
 
 cat = json.load(open(os.path.join(D, 'catalogue.json')))
 ok(sum(cat['odds'].values()) == 100, 'the odds add up to 100')

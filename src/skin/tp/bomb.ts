@@ -34,7 +34,7 @@ export function fuseCentre(skin: SkinData, k: number): [number, number] {
   return [at[0] + size / 2, at[1] + size / 2];
 }
 
-/** Each fuse box goes to the piece whose cube holds it (VOXEL_GRAIN.md: every piece one 2 x 2 x 2 block). */
+/** Each fuse box goes to the piece whose cube holds it (ITEMS_REMODEL.md: every piece one 2 x 2 x 2 block). */
 function fusePieces(id: string, skin: SkinData): ModelData[] {
   const m = MODELS[id], fuse = PARTS.indexOf('fuse');
   const cubes = Array.from({ length: FUSE_PIECES }, (_, k) => fuseCube(skin, k));
@@ -67,7 +67,7 @@ export interface BombObject {
 
 /**
  * A bomb of a skin. In a game its face shows the seconds; outside one (`rest`: the Trading Post, the Barn Book, the
- * lobby) it shows 10, the bomb as a turn starts (T2, VOXEL_GRAIN.md: there is no maker's mark). `lit` lets a scene
+ * lobby) it shows 10, the bomb as a turn starts (T2, ITEMS_REMODEL.md: there is no maker's mark). `lit` lets a scene
  * with real lights pass its own material for the shaded parts.
  */
 export function makeBomb(skinKey: string, o: { rest?: boolean; lit?: Material } = {}): BombObject {

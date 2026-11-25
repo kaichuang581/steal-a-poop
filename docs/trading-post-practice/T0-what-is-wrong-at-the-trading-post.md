@@ -16,8 +16,8 @@ Seen in `reference/build-today/shop-*.jpg` (computer 1440 x 900, phone 390 x 844
 
 | # | Flaw | Change |
 |---|---|---|
-| B1 | Every bomb skin is a blob: stair-stepped sides and random speckle (Ember's brown-and-orange noise, Peppermint's scattered green) | Clean round shells with bold patterns made by rules, every part at least 0.05 m: bands, cracks, belts (`T2`) |
-| B2 | Skins differ almost only by colour. Only Plum's leaf and the Brass Bell have a shape of their own | Eight characters: a snow-capped Ice, a cracked Ember, a striped Peppermint, a Plum with stem and leaf, a belted Gold, a cut Diamond, a real Bell, a night-sky Aurora |
+| B1 | Every bomb skin is a blob: stair-stepped sides and random speckle (Ember's brown-and-orange noise, Peppermint's scattered green) | Clean shapes in tiny cubes, with raised parts and named motifs instead of random speckle (`T2`, `ITEMS_REMODEL.md`) |
+| B2 | Skins differ almost only by colour. Only Plum's leaf and the Brass Bell have a shape of their own | Eight characters with their own outlines: a snow-capped Ice, a riveted, cracked Ember, a wrapped Peppermint, a Plum with stem and leaf, a belted Gold, a cut Diamond, a real Bell, a night-sky Aurora |
 | B3 | The fuse is a fat pale stick with a white block on top | A twisted two-colour yarn fuse of 12 pieces, in each skin's own colours, with a lit tip and sparks |
 | B4 | In a game the seconds are painted across the curve and break up | Every skin has a flat round face on its front; the seconds sit on it, whole. In the Trading Post the face shows 10, the bomb as a turn starts |
 | B5 | A bomb you have not found is a washed-out beige picture with a lock | In a sack's line-up it is shown in full colour (you see what you could get). In the Barn Book it is a paper cut-out of its true shape |

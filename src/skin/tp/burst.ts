@@ -37,7 +37,7 @@ type Num6 = [number, number, number, number, number, number];
 const boxesOf = (key: string): Num6[] => (BURSTS[key] ?? BURSTS.frost).boxes_at_fullest.map((b) => b.slice(0, 6) as Num6);
 
 /**
- * Where a piece stands on a display stand (VOXEL_GRAIN.md rule 8, T3 section 3): drawn in, never shrunk. Its middle
+ * Where a piece stands on a display stand (ITEMS_REMODEL.md rule 7, T3 section 3): drawn in, never shrunk. Its middle
  * moves to `spread` of its distance from the burst's own middle (across) and from its lowest piece (up), which sits
  * `lift` above the stand; the piece keeps its full size.
  */
@@ -69,7 +69,7 @@ export function drawnSize(key: string, spread: number): [number, number] {
 
 /**
  * The draw-in that makes a burst fit a box `w` by `h` metres: the plan's `most` (0.42 on the bench, 0.67 on the Bell
- * Shelf) or less, so a wide or tall burst stays inside its frame. Pieces never shrink (VOXEL_GRAIN.md rule 8).
+ * Shelf) or less, so a wide or tall burst stays inside its frame. Pieces never shrink (ITEMS_REMODEL.md rule 7).
  */
 export function fitSpread(key: string, w: number, h: number, most: number): number {
   const fits = (s: number) => { const [sw, sh] = drawnSize(key, s); return sw <= w && sh <= h; };

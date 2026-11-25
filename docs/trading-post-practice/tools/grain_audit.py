@@ -46,7 +46,7 @@ def outside(occ):
 
 def plain_regions(occ, cell=0.05, side_m=0.45):
     """Plain areas: on every exposed face plane, a one-colour area that holds a solid square of side_m (0.4 m: 8 cells at
-    0.05 m is 9 cells, so a 0.4 m stripe passes). A board 0.2 m wide passes however long it is; a 0.5 m plain block does not (VOXEL_GRAIN.md, rule 3)."""
+    0.05 m is 9 cells, so a 0.4 m stripe passes). A board 0.2 m wide passes however long it is; a 0.5 m plain block does not (ITEMS_REMODEL.md)."""
     S = max(1, int(round(side_m / cell)))
     bad = []
     out = outside(occ)
@@ -105,50 +105,38 @@ def front_image(m):
     return img
 
 
-def thin_parts(m):
-    """Cells, seen from the front, of colour patches narrower than 0.05 m (rule 1: one detail size). Sparks, glints, stars
-    and the face are accents and are not counted. Returns the thin cells."""
-    k = max(1, int(round(0.05 / m['cell_m'])))
-    if k == 1:
-        return []
-    img = front_image(m)
-    xs = [p[0] for p in img]; ys = [p[1] for p in img]
-    X0, Y0 = min(xs), min(ys)
-    W, H = max(xs) - X0 + 1, max(ys) - Y0 + 1
-    thin = []
-    from scipy.ndimage import binary_opening
-    free = np.ones((W + 2, H + 2), bool)                       # outside the model, the face and the accents count as any colour:
-    for (x, y), v in img.items():                              # an outline or a face edge is not a sliver
-        if v[2] not in ACCENT_PARTS and not v[3].startswith(ACCENT_NAMES):
-            free[x - X0 + 1, y - Y0 + 1] = False
-    for col in {v[1] for v in img.values()}:
-        mask = free.copy()
-        for (x, y), v in img.items():
-            if v[1] == col:
-                mask[x - X0 + 1, y - Y0 + 1] = True
-        kept = binary_opening(mask, structure=np.ones((k, k), bool))
-        for (x, y), v in img.items():
-            if v[1] == col and not kept[x - X0 + 1, y - Y0 + 1] and v[2] not in ACCENT_PARTS and not v[3].startswith(ACCENT_NAMES):
-                thin.append((x, y, col, v[3]))
-    return thin
-
-
 def audit(m):
     c = m['cell_m']
     dims = [min(b['b'][3] - b['b'][0], b['b'][4] - b['b'][1], b['b'][5] - b['b'][2]) * c for b in m['boxes']]
     occ = voxels(m)
     bad = plain_regions(occ, c)
-    thin = thin_parts(m)
+    sp = specks(m)
     return dict(id=m['id'], cell=c, thinnest=round(min(dims), 3), median=round(float(np.median(dims)), 3), boxes=len(m['boxes']),
-                cells=len(occ), slabs=len(bad), thin=len(thin), worst=max(bad, key=lambda t: t[2] * t[3]) if bad else None)
+                cells=len(occ), slabs=len(bad), specks=len(sp), worst=max(bad, key=lambda t: t[2] * t[3]) if bad else None)
 
 
-ANIMAL_WORN = {'bibEasy', 'bibMedium', 'bibHard', 'whistle'}   # on the animals' 0.04 m grid (VOXEL_GRAIN.md, rule 2)
+MOTIF = ('rivet', 'crown', 'sparkle', 'stitch', 'pixel', 'star', 'eye', 'keyhole', 'stud', 'spark', 'tooth', 'slot', 'select', 'start', 'button', 'tip')
+
+
+def specks(m):
+    """Lone cubes seen from the front: a cube whose colour none of its 8 neighbours shares, outside a named motif
+    (rivets, stitches, screen pixels, stars, eyes, studs...). Speckle is what made the old items look fussy."""
+    img = front_image(m)
+    out = []
+    for (x, y), v in img.items():
+        if v[3].startswith(MOTIF) or v[2] in ('spark', 'face'):
+            continue
+        if all(img.get((x + a, y + b), (0, None))[1] != v[1] for a in (-1, 0, 1) for b in (-1, 0, 1) if (a, b) != (0, 0)):
+            out.append((x, y, v[1], v[3]))
+    return out
+
+
+ANIMAL_WORN = {'bibEasy', 'bibMedium', 'bibHard', 'whistle'}   # on the animals' 0.04 m grid (ITEMS_REMODEL.md, section 1)
 
 
 def cell_for(mid):
-    """The cell each model must declare (VOXEL_GRAIN.md, rule 2): small round things in the hand are XS, so their outline
-    is round; what animals wear is on the animals' grid; everything else is S."""
+    """The cube each model must declare (ITEMS_REMODEL.md, section 1): items you can buy are tiny 0.025 m cubes; what
+    animals wear is on the animals' 0.04 m grid; structure and scenery are 0.05 m."""
     if mid.startswith(('bomb_', 'sound_')):
         return 0.025
     return 0.04 if mid in ANIMAL_WORN else 0.05
@@ -168,9 +156,9 @@ if __name__ == '__main__':
         r = audit(m); r['group'] = e['group']; r['on_grain'] = grain_ok(r); rows.append(r)
     for r in rows:
         w = r['worst']
-        if r['slabs'] == 0 and r['thin'] == 0 and r['on_grain'] and '-v' not in sys.argv:
+        if r['slabs'] == 0 and r['specks'] <= 6 and r['on_grain'] and '-v' not in sys.argv:
             continue
-        print(f"{r['group']:13s} {r['id']:20s} cell {r['cell']:.3f}  thinnest {r['thinnest']:.3f}  median {r['median']:.3f}  boxes {r['boxes']:4d}  plain {r['slabs']:3d}  thin {r['thin']:3d}  {'' if r['on_grain'] else 'OFF GRAIN  '}{('worst %s %s %dx%d' % w) if w else ''}")
+        print(f"{r['group']:13s} {r['id']:20s} cell {r['cell']:.3f}  thinnest {r['thinnest']:.3f}  median {r['median']:.3f}  boxes {r['boxes']:4d}  plain {r['slabs']:3d}  specks {r['specks']:3d}  {'' if r['on_grain'] else 'OFF GRAIN  '}{('worst %s %s %dx%d' % w) if w else ''}")
     out = [a for a in sys.argv[1:] if a.endswith('.json')]
     if out:
         json.dump(rows, open(out[0], 'w'), indent=1, default=str)

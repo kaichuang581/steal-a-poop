@@ -244,9 +244,12 @@
 .tp-tag--item:has(.tp-listen) b { flex-basis: 100%; }
 
 /* Nothing under 11 px (X2 check 7), however small the window scales the screen: a <small> is 0.8 of its line. */
-.tp small { font-size: max(11px, 0.8em); }
+:where(.tp) small { font-size: max(11px, 0.8em); } /* weightless: a rule that sets its own size wins */
 
 /* Phones: the Barn Book's bookmarks in a row under the tabs (the camera frames one page). */
 .tp-marks-phone { position: absolute; left: 0; right: 0; top: 160px; display: flex; justify-content: center; z-index: 3; }
 .tp-marks-phone .tp-marks { gap: 6px; }
 .tp-page-turn { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 3; min-height: 44px; min-width: 140px; justify-content: center; }
+/* Six on the bench: a fuse sound's tag keeps its three lines tight, so it clears the Open button. */
+.tp-tag--item.tp-tag--tight:has(.tp-listen) { padding-top: 2px; padding-bottom: 2px; line-height: 1.1; row-gap: 0; }
+.tp-tag--item .tp-listen--small { width: 20px; height: 20px; }

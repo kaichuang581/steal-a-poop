@@ -82,7 +82,7 @@ export function OpenButton({ wallet, sack, busy, onOpen }: { wallet: Wallet; sac
   const complete = sackComplete(sack, wallet.owned), short = wallet.coins < SACK.price, name = SACKS[sack].name;
   const off = complete || short || busy;
   return (
-    <button type="button" className="tp-btn tp-btn--main" data-pale={complete || short || undefined} disabled={off} onClick={onOpen} aria-label={complete ? `All found in the ${name}` : short ? `Need ${SACK.price} Wool Coins` : `Open an ${name} for ${SACK.price} Wool Coins`}>
+    <button type="button" className="tp-btn tp-btn--main" data-pale={complete || short || undefined} disabled={off} onClick={onOpen} aria-label={complete ? `All found in the ${name}` : short ? `Need ${SACK.price} Wool Coins` : `Open ${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${name} for ${SACK.price} Wool Coins`}>
       {complete ? <><b>All found</b><small>Nothing left to find in this sack.</small></>
         : short ? <><b>{`Need ${formatCoins(SACK.price)} Wool Coins`}</b><small>{`You have ${formatCoins(wallet.coins)}.`}</small></>
         : <><b><Icon name="coin" size={20} />{`Open ${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${name}`}</b><small>{`${formatCoins(SACK.price)} Wool Coins. One at a time.`}</small></>}

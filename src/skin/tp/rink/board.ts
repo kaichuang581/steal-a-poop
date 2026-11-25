@@ -1,3 +1,6 @@
+import { toFrench } from '../../i18n/translate';
+/** The board's words in French when the game is (the page translator cannot reach a canvas); English otherwise. */
+const t = (en: string): string => toFrench(en) ?? en;
 import { PIXEL_ART } from '../models.gen';
 import { LADDER } from '../../voxel/paint';
 import type { Mat } from '../../voxel/paint';
@@ -115,10 +118,10 @@ function drawRun(ctx: CanvasRenderingContext2D, s: RunBoard, now: number, reduce
   }
   if (!s.phone) {
     ctx.font = `800 ${Math.round(BOARD_H * 0.085)}px ${DISPLAY}`;
-    ctx.fillText(s.next, cx, py(30) - BOARD_H * 0.21);
+    ctx.fillText(t(s.next), cx, py(30) - BOARD_H * 0.21);
     ctx.fillStyle = CHALK_DIM;
     ctx.font = `800 ${Math.round(BOARD_H * 0.075)}px ${SMALL}`;
-    ctx.fillText(`best ${s.best}`, cx, py(30) - BOARD_H * 0.08);
+    ctx.fillText(t(`best ${s.best}`), cx, py(30) - BOARD_H * 0.08);
   }
   // The letter card.
   const lf = prog(now, s.letterAt, 200, reduced);
@@ -127,7 +130,7 @@ function drawRun(ctx: CanvasRenderingContext2D, s: RunBoard, now: number, reduce
     c.fillStyle = red ? RED : INK; c.textAlign = 'center'; c.textBaseline = 'middle';
     const size = txt.length > 2 ? 0.34 : txt.length > 1 ? 0.5 : 0.72;
     c.font = `800 ${Math.round((py(34) - py(50)) * size)}px ${DISPLAY}`;
-    c.fillText(txt.toUpperCase(), (px(-6) + px(6)) / 2, (py(50) + py(34)) / 2 + 10);
+    c.fillText(t(txt).toUpperCase(), (px(-6) + px(6)) / 2, (py(50) + py(34)) / 2 + 10);
   };
   const isOut = s.letter === 'OUT';
   card(ctx, px(-6), py(50), px(6), py(34), letterIn(s.letter, isOut), s.prevLetter && s.prevLetter !== s.letter ? letterIn(s.prevLetter) : null, lf, [px(-4), px(3)]);
@@ -166,22 +169,22 @@ function drawReport(ctx: CanvasRenderingContext2D, s: ReportBoard, now: number, 
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = s.titleBest ? LANTERN_HI : CHALK;
   ctx.font = `800 ${Math.round(H * 0.15)}px ${DISPLAY}`;
-  ctx.fillText(s.title, W * 0.05, H * 0.07 + H * 0.13);
+  ctx.fillText(t(s.title), W * 0.05, H * 0.07 + H * 0.13);
   ctx.fillStyle = CHALK;
   ctx.fillRect(W * 0.05, H * 0.27, W * 0.9, 4);
   ctx.font = `800 ${Math.round(H * 0.4)}px ${DISPLAY}`;
   ctx.fillText(String(s.count), W * 0.05, H * 0.27 + H * 0.4);
   const countW = ctx.measureText(String(s.count)).width;
   ctx.font = `800 ${Math.round(H * 0.11)}px ${DISPLAY}`;
-  ctx.fillText(s.count === 1 ? 'word' : 'words', W * 0.05 + countW + 24, H * 0.27 + H * 0.38);
+  ctx.fillText(t(s.count === 1 ? 'word' : 'words'), W * 0.05 + countW + 24, H * 0.27 + H * 0.38);
   ctx.strokeStyle = CHALK; ctx.lineWidth = 7;
   tally(ctx, s.count, W * 0.05 + 10, H * 0.8 - H * 0.07, H * 0.13, 1, 0.24);
   s.facts.forEach(([k, v], i) => {
     const y = H * (0.33 + 0.105 * i) + H * 0.06;
     ctx.textAlign = 'left'; ctx.fillStyle = CHALK_DIM; ctx.font = `800 ${Math.round(H * 0.06)}px ${SMALL}`;
-    ctx.fillText(k, W * 0.6, y);
+    ctx.fillText(t(k), W * 0.6, y);
     ctx.textAlign = 'right'; ctx.fillStyle = CHALK; ctx.font = `800 ${Math.round(H * 0.07)}px ${DISPLAY}`;
-    ctx.fillText(v, W * 0.95, y);
+    ctx.fillText(t(v), W * 0.95, y);
   });
   ctx.restore();
   // The rosette drops in from 40 px above with a small bounce (350 ms), pinned to the top right corner.

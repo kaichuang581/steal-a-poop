@@ -229,3 +229,10 @@
 .tp[data-phone] .tp-ledge b { font-size: 12px; }
 
 .tp[data-reduced] *, .tp[data-reduced] { animation: none !important; }
+/* Six or seven bench items share 3.6 m: their tags narrow to fit the gap. */
+.tp-tag--item.tp-tag--tight { width: calc(104px * var(--u)); padding-left: 4px; padding-right: 4px; }
+.tp-tag--item.tp-tag--tight b { font-size: calc(13px * var(--u)); }
+/* A fuse sound's Listen tile sits inside its bench tag, beside the rarity (the tag's stepped corners clip anything outside it). */
+.tp-tag--item .tp-listen--small { position: static; width: 22px; height: 22px; margin-top: 1px; }
+.tp-tag--item:has(.tp-listen) { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 6px; }
+.tp-tag--item:has(.tp-listen) b { flex-basis: 100%; }

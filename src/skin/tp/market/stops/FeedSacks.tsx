@@ -48,7 +48,7 @@ export function SacksStop({ wallet, sack, pool, pick, setFocus, reveal, phone, l
             <At as="button" box={[x - w / 2, BENCH.y, x + w / 2, BENCH.y + 0.8, BENCH.z + 0.25]} className="tp-hit" aria-label={`Look at ${item.name}`} onClick={() => setFocus(item)} />
             {!phone && (
               <At p={[x, BENCH.y, 0.9]} className="tp-hang tp-hang--bench">
-                <span className="tp-tag tp-tag--item">
+                <span className={`tp-tag tp-tag--item${places.length > 5 ? ' tp-tag--tight' : ''}`}>
                   <b>{item.name}</b>
                   <Rarity item={item} tick={found} />
                   {item.kind === 'tick' && <ListenTile item={item} onListen={listen} small />}

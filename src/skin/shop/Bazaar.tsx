@@ -73,6 +73,8 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   const [bookPage, setBookPage] = useState(0);
   const [focus, setFocus] = useState<Item | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
+  const revealRef = useRef(reveal);
+  revealRef.current = reveal;
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [swing, setSwing] = useState(0);
@@ -99,8 +101,9 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
     w.setPicked(sack, now()); w.setBench(pool, now()); w.setShelf(shelfItems); w.setMissions(missionItems);
     w.setBook(bookKind, bookItems.map((item) => ({ item, found: wallet.owned.includes(item.id) })), now());
   };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const worldObj = useMemo(() => { const w = new MarketWorld(); onScene(w); return w; }, []);
+  // StrictMode builds a memo twice and keeps one: point the ref at the one kept.
+  const worldObj = useMemo(() => new MarketWorld(), []);
+  if (world.current !== worldObj) onScene(worldObj);
   useEffect(() => { world.current?.setPicked(sack, now()); world.current?.setBench(pool, now()); }, [sack, pool]);
   useEffect(() => { world.current?.setBook(bookKind, bookItems.map((item) => ({ item, found: wallet.owned.includes(item.id) })), now()); }, [bookKind, bookItems, ownedKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (world.current) world.current.focus = focus ? { id: focus.id, at: now() } : null; if (!focus) world.current?.stopShow(); }, [focus]);
@@ -111,7 +114,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
     let ms: number = Math.abs(STOPS.indexOf(stop) - STOPS.indexOf(stopAtX(view.current.cx))) > 1 ? TIMINGS.trading_post.walk_between_stops.further_ms : TIMINGS.trading_post.walk_between_stops.next_door_ms;
     if (reveal) {
       const A = v.A * 1.6;
-      return { v: { ...v, A, cx: 0.25, line: (phone ? 0.3 : 0.55) + (A * 1.3) / H }, ms: 250 };
+      return { v: { ...v, A, cx: 0.25, line: (phone ? 0.38 : 0.55) + (A * 1.3) / H }, ms: 250 };
     }
     const at = focus && world.current?.whereIs(focus.id, stop);
     if (at) {
@@ -164,15 +167,14 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(t);
   }, [reveal]); // eslint-disable-line react-hooks/exhaustive-deps
   const land = () => {
-    setReveal((r) => {
-      if (!r || r.done) return r;
-      world.current?.startReveal({ sack, item: r.item, tier: r.entry.tier, duplicate: r.entry.duplicate, at: now() - 1600 });
-      releaseWalletView();
-      // One sound for every rarity: the light's colour already says how rare it is (T5 section 5).
-      reelDing(0);
-      if (r.item.kind === 'tick') setTimeout(() => listenTo(r.item.id), 400);
-      return { ...r, done: true };
-    });
+    const r = revealRef.current;
+    if (!r || r.done) return;
+    world.current?.startReveal({ sack, item: r.item, tier: r.entry.tier, duplicate: r.entry.duplicate, at: now() - 1600 });
+    releaseWalletView();
+    // One sound for every rarity: the light's colour already says how rare it is (T5 section 5).
+    reelDing(0);
+    if (r.item.kind === 'tick') setTimeout(() => listenTo(r.item.id), 400);
+    setReveal({ ...r, done: true });
   };
   const finishReveal = () => { world.current?.endReveal(); stopListening(); setReveal(null); };
   const wearRevealed = async () => { if (!reveal) return; await equipItem(reveal.item.id); setNote(`${reveal.item.name} is on.`); finishReveal(); };

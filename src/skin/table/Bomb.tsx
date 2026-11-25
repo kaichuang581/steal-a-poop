@@ -7,13 +7,12 @@ import { boardHang, FRAMING, HEAP, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, sh
 import type { ScreenBox, SpeakerBody } from '../scene/layout';
 import { anchorsOf } from '../voxel/animals/anchors';
 import { animalModel } from '../voxel/animals';
-import { digitGeometry } from '../voxel/characters';
-import { BOMB_FUSE_LENGTH, BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S } from '../voxel/bomb';
+import { BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S } from '../voxel/bomb';
 import { bombLook } from '../voxel/bombSkins';
 import { voxelMaterial } from '../voxel/material';
-import { Blast } from './Blast';
-import { BombAura, useBombGlow } from './BombAura';
-import { BLAST_PALETTE, BOMB_TINT, BURST_SHAPE } from '../shop/catalog';
+import { TpBlast } from './TpBlast';
+import { makeBomb, SKIN_OF } from '../tp/bomb';
+import { burstKeyOf } from '../tp/burst';
 import { auraOf } from '../shop/bombAura';
 import { useWallet } from '../shop/store';
 
@@ -107,39 +106,27 @@ interface Ring { mesh: Mesh | null; x: number; z: number; size: number; at: numb
  * under it. Cold vapour spills off it while it sits there, its fuse burns down with a blue spark, and its seconds glow
  * on its face. The table makes the speaker flinch as it lands (see BOMB_TOSS_S).
  *
- * A Trading Post skin is the same bomb doing the same things as another object: its own model (voxel/bombSkins.ts) and
- * its own way of sitting there (shop/bombAura.ts, BombAura.tsx), a coal shedding embers, a bell that rocks and rings.
- * Only how it looks.
+ * The bomb is the worn skin's model (docs/trading-post-practice/T2, src/skin/tp/bomb.ts): its seconds on its flat face,
+ * its 12-piece fuse burning down, the danger colour, wobble and bigger spark in the last 3 seconds. When it goes off
+ * the worn burst plays where it stood (T3, TpBlast). Only how it looks.
  */
 export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, power, spotAt = barnSpot }: { spotAt?: (index: number, n: number, phone: boolean) => BombSpot; phone?: boolean; speaker: number | null; n: number; fraction: number; red: boolean; reduced: boolean; boomKey: number | undefined; secondsLeft: number | null; size: number; power: number }) {
-  const body = useMemo(() => voxelMaterial({ emissive: '#3f97d6', emissiveIntensity: 0.1 }), []);
-  // Trading Post cosmetics: the skin's own model, glow and way of sitting there, and the burst's colours. Only how it looks.
+  // The worn skin (docs/trading-post-practice/T2): its own model with the seconds on its flat face and a fuse of 12
+  // pieces that burns down, built once per skin. Its mark is hidden in a game. Only how it looks.
   const equipped = useWallet().equipped;
-  const tint = BOMB_TINT[equipped.bomb] ?? BOMB_TINT['bomb-ice'];
   const look = useMemo(() => bombLook(equipped.bomb), [equipped.bomb]);
   const aura = auraOf(equipped.bomb);
-  const glowMat = useBombGlow(equipped.bomb);
-  const palette = BLAST_PALETTE[equipped.blast];
-  useEffect(() => { body.emissive.set(tint.emissive); }, [body, tint]);
-  const fuseMat = useMemo(() => voxelMaterial({ emissive: '#9fd8ff', emissiveIntensity: 0.15 }), []);
-  const sparkMat = useMemo(() => voxelMaterial({ emissive: '#5fd0ff', emissiveIntensity: 2 }), []);
-  const digitMat = useMemo(() => voxelMaterial({ emissive: '#8fe4ff', emissiveIntensity: 0.35 }), []);
+  const lit = useMemo(() => voxelMaterial({}), []);
+  const skin = useMemo(() => makeBomb(SKIN_OF[equipped.bomb] ?? 'ice', { lit }), [equipped.bomb, lit]);
   const ringMats = useMemo(() => [0, 1].map(() => voxelMaterial({ transparent: true, opacity: 0, color: '#ffffff', emissive: '#bfe6ff', emissiveIntensity: 0.25 })), []);
-  // The skin's fuse and spark glow, the glow of the mark it leaves on the floor (its own: a scorch, coins, a pool of
-  // light; see bombSkins.ts) and the puff where it lands, in its own colours.
+  // The glow of the frost it leaves on the floor and the puff where it lands, in the skin's own colours.
   const puffTone = useMemo(() => new Color(), []);
   useEffect(() => {
-    fuseMat.emissive.set(aura.fuseGlow);
-    sparkMat.emissive.set(aura.sparkGlow);
     for (const m of ringMats) m.emissive.set(aura.ring.emissive);
     puffTone.set(aura.puff);
-  }, [aura, fuseMat, sparkMat, ringMats, puffTone]);
+  }, [aura, ringMats, puffTone]);
   const group = useRef<Group>(null);
-  const label = useRef<Group>(null);
-  const digits = useRef<Mesh>(null);
-  const shown = useRef('');
-  const fuse = useRef<Group>(null);
-  const spark = useRef<Mesh>(null);
+  const face = useRef<Group>(null);
   const glow = useRef<PointLight>(null);
   const rings = useRef<Ring[]>([0, 1].map(() => ({ mesh: null, x: 0, z: 0, size: 1, at: -99, leftAt: -99 })));
   const ringNext = useRef(0);
@@ -147,8 +134,6 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
   const grown = useRef({ cur: size, last: size, pop: 0 });
   // The bomb's radius now, and what its aura needs to know: where it is, how big, and whether it is sitting still.
   const rNow = useRef(BOMB_RADIUS * 1.5);
-  const auraOn = useRef(false);
-  const auraSees = useMemo(() => ({ at: () => group.current?.position ?? null, radius: () => rNow.current, active: () => auraOn.current }), []);
   // It went off: the next one is a fresh bomb, dropped from above, however long the table's beat lasts before it comes.
   const lastBoom = useRef({ key: boomKey, at: -9999 });
   const spent = useRef(false);
@@ -160,28 +145,10 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
     if (performance.now() - goneAt.current < 800) return goneFrom.current;
     return group.current?.position ?? null;
   });
-  // Where the bomb last rested before the turn moved on, and how a bomb of any radius rests beside that holder (see
-  // BombSpot). Noted by the frame loop the moment the spot changes, before the bomb is moved: `origin` reads the
-  // bomb's position, which may already be the next sheep's by the time a burst asks.
-  const seenSpot = useRef<BombSpot | null>(null);
-  const left = useRef({ from: new Vector3(), spot: null as BombSpot | null, at: -9999 });
-  const beside = useRef(new Vector3());
-  // Where a Trading Post act happens (a haystack, a snow cloud): the place the bomb went off at, or, given `room`
-  // (a radius in metres), where something that wide stands clear of the holder's fleece, as a bomb grown that big
-  // would: a haystack comes up beside the sheep, not through it.
-  const stage = useRef((room: number): Vector3 | null => {
-    const recent = performance.now() - left.current.at < 800;
-    const at = recent ? left.current.from : group.current?.position ?? null;
-    const held = recent ? left.current.spot : seenSpot.current;
-    if (!at) return null;
-    if (!room || !held) return beside.current.copy(at);
-    const [x, z] = held(room);
-    return beside.current.set(x, at.y, z);
-  });
   const spot = useMemo(() => (speaker === null ? null : spotAt(speaker, n, phone)), [speaker, n, phone, spotAt]);
 
   // The puff where it lands: square bits of frost, drawn additive so they fade to nothing. (What comes off it while it
-  // sits there, the ice bomb's cold vapour or a skin's own, is BombAura.)
+  // sits there is the skin's own model now.)
   const fx = useMemo(() => {
     const cloud = (count: number) => {
       const geo = new BufferGeometry();
@@ -209,12 +176,7 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
 
   useFrame(({ clock, camera }, rawDt) => {
     const g = group.current;
-    if (spot !== seenSpot.current) {
-      if (g && seenSpot.current) { left.current.from.copy(g.position); left.current.spot = seenSpot.current; left.current.at = performance.now(); }
-      seenSpot.current = spot;
-    }
     if (g) g.visible = spot !== null;
-    auraOn.current = false;
     if (!g || !spot) return;
     const dt = Math.min(rawDt, 1 / 20);
     const now = clock.elapsedTime;
@@ -230,7 +192,6 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
     const scale = 1.5 * gr.cur * (1 + gr.pop * 0.5);
     const r = BOMB_RADIUS * scale;
     rNow.current = r;
-    auraOn.current = st.current.phase === 'rest';
     const [rx, rz] = spot(r);
     const rest = new Vector3(rx, r, rz);
     if (s.pending) {
@@ -282,26 +243,20 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
     // The clock, read from the store as the bomb is drawn (model/turnClock.ts): the screen above renders a few times a
     // second, not every frame, so the `fraction` and `secondsLeft` it passes are only as fresh as its last render.
     const { fraction, secondsLeft } = turnClockDrawn();
-    // The seconds left, in glowing voxel digits on the bomb's face, turned to the camera so they read from any seat.
-    if (label.current) {
-      const text = secondsLeft === null ? '' : String(Math.max(0, Math.ceil(secondsLeft)));
-      if (text !== shown.current && digits.current) { shown.current = text; digits.current.geometry = digitGeometry(text, 0.03); }
-      label.current.visible = text !== '';
-      label.current.quaternion.copy(g.quaternion).invert().multiply(camera.quaternion);
-      const d = camera.position.clone().sub(g.position).normalize().multiplyScalar(aura.face ?? 0.21).applyQuaternion(g.quaternion.clone().invert());
-      label.current.position.copy(d);
-      digitMat.color.set(red ? '#ff6f55' : aura.digits[0]);
-      digitMat.emissive.set(red ? '#ff5a3a' : aura.digits[1]);
-    }
-    // Close to bursting, the ice glows from inside.
-    body.emissiveIntensity = red && !reduced ? 0.35 + 0.35 * (0.5 + 0.5 * Math.sin(now * 16)) : 0.1;
-    if (fuse.current) fuse.current.scale.y = Math.max(0.02, Math.min(1, fraction));
-    if (spark.current) {
-      spark.current.position.y = BOMB_FUSE_LENGTH * Math.max(0.02, Math.min(1, fraction));
-      spark.current.visible = reduced || Math.sin(now * 30) > -0.5;
+    // The seconds on the face (T2): in the skin's danger colour for the last 3, when it also wobbles and its spark
+    // grows. The skin turns about its own upright to face the camera, so its face reads from any seat.
+    const danger = secondsLeft !== null && secondsLeft <= 3;
+    skin.setSeconds(secondsLeft, danger);
+    skin.setFuse(Math.max(0, Math.min(1, fraction)));
+    skin.setSpark(danger ? 1.6 : 1);
+    if (face.current) {
+      const d = camera.position.clone().sub(g.position).applyQuaternion(g.quaternion.clone().invert());
+      const wob = danger && !reduced ? (1.5 * Math.PI / 180) * Math.sin(now * Math.PI * 8) : 0;
+      face.current.rotation.set(0, Math.atan2(d.x, d.z), wob);
     }
     if (glow.current) {
       glow.current.position.copy(g.position);
+      glow.current.position.y += BOMB_RADIUS * scale;
       glow.current.intensity = (s.phase === 'rest' || reduced ? 1.4 : 1) * (red ? 1.6 : 1) * (reduced ? 1 : 0.85 + 0.15 * Math.sin(now * 23));
     }
 
@@ -360,20 +315,16 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
 
   return (
     <>
-      <Blast boomKey={boomKey} origin={origin.current} stage={stage.current} reduced={reduced} power={power} palette={equipped.blast === 'blast-frost' ? undefined : palette} shape={BURST_SHAPE[equipped.blast] ?? 'ball'} chunk={look.chunk} chunkGlow={tint.emissive} />
-      <BombAura id={equipped.bomb} at={auraSees.at} radius={auraSees.radius} active={auraSees.active} glow={glowMat} light={glow} reduced={reduced} />
+      <TpBlast boomKey={boomKey} origin={origin.current} burst={burstKeyOf(equipped.blast)} reduced={reduced} scale={(2 * BOMB_RADIUS * 1.5 * power) / 0.5} />
       {rings.current.map((r, i) => (
         <mesh key={i} ref={(mm) => { r.mesh = mm; }} geometry={look.ground} material={ringMats[i]} visible={false} renderOrder={1} />
       ))}
       {!reduced && <points geometry={fx.puff.geo} material={fx.puffMat} frustumCulled={false} />}
       <pointLight ref={glow} color={aura.light} intensity={0} distance={3} decay={2} />
       <group ref={group} scale={1.5}>
-        <mesh geometry={look.body} material={body} castShadow />
-        {look.glow && glowMat && <mesh geometry={look.glow} material={glowMat} />}
-        <group ref={label}><mesh ref={digits} material={digitMat} /></group>
-        <group ref={fuse} position={[0, BOMB_NECK_Y, 0]}>
-          <mesh geometry={look.fuse} material={fuseMat} />
-          <mesh ref={spark} geometry={look.spark} material={sparkMat} />
+        {/* The pack's bomb is 0.5 m across with its middle 0.25 m up; here the group's origin is the middle and its radius BOMB_RADIUS. */}
+        <group ref={face} scale={BOMB_RADIUS / 0.25}>
+          <primitive object={skin.group} position={[0, -skin.centreY, 0]} />
         </group>
       </group>
     </>

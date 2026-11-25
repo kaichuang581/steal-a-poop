@@ -111,13 +111,10 @@ describe('every item is its own thing, and is used by the game', () => {
     for (const i of of('tick')) expect(TICK_VOICE[i.id], i.id).toBeTruthy();
     expect(new Set(of('tick').map((i) => TICK_VOICE[i.id])).size).toBe(of('tick').length);
   });
-  it('the table draws what is worn: the shell, its chunks, the burst\'s palette and shape, and the fuse voice', () => {
+  it('the table draws what is worn: the skin\'s model (T2), its burst (T3), and the fuse voice', () => {
     const bomb = readFileSync('src/skin/table/Bomb.tsx', 'utf8'), app = readFileSync('src/skin/PaintedApp.tsx', 'utf8');
-    expect(bomb).toMatch(/bombLook\(equipped\.bomb/);
-    expect(bomb).toMatch(/chunk=\{look\.chunk\}/);
-    expect(bomb).toMatch(/<BombAura id=\{equipped\.bomb\}/);
-    expect(bomb).toMatch(/BLAST_PALETTE\[equipped\.blast\]/);
-    expect(bomb).toMatch(/BURST_SHAPE\[equipped\.blast\]/);
+    expect(bomb).toMatch(/makeBomb\(SKIN_OF\[equipped\.bomb\]/);
+    expect(bomb).toMatch(/burstKeyOf\(equipped\.blast\)/);
     expect(app).toMatch(/setTickVoice\(TICK_VOICE\[tick\]/);
   });
 });

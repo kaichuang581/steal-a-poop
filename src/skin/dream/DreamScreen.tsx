@@ -609,12 +609,14 @@ export function DreamScreen() {
             <div className="dr-res-at">
               <Results
                 title={practice ? 'Practice dream' : asleep ? 'The farmer drifted off' : 'The farmer woke up!'}
-                count={count}
+                count={count} best={Math.max(best, count)} newBest={newBest}
                 facts={[
                   `Longest word: ${longest > 0 ? `${longest} letters` : 'none yet'}`,
                   ...(asleep && length ? [`Fast asleep from sheep ${length.fences}`] : []),
+                  // A moon show at every tenth sheep (none under reduced motion).
+                  ...(!reduced && count >= 10 ? [`Moon shows: ${Math.floor(count / 10)}`] : []),
                 ]}
-                words={[...live.current.used]} stage={deep ? 3 : stage} seed={seed}
+                words={[...live.current.used]} seed={seed} lines={frame.phone ? 2 : 3}
                 streak={practice ? null : { now: streakNow, best: loadStreak().best, days }}
                 pay={{ id: `dream:${seed}`, sheep: count, slept: asleep, bestStreak: practice ? 0 : loadStreak().best }}
                 next={practice ? null : midnightLabel()}

@@ -302,7 +302,7 @@
   padding: calc(34 * var(--u)) calc(20 * var(--u)) calc(22 * var(--u)); filter: var(--shadow); color: var(--hm-wool); animation: dr-res-in 240ms ease-out both;
 }
 @keyframes dr-res-in { from { translate: 60px 0; opacity: 0; } }
-.dr-res .dr-res-band { height: calc(10 * var(--u)); background-size: calc(120 * var(--u)) 100%; }
+.dr-res .dr-res-band { height: calc(10 * var(--u)); }
 /* Blanket stitch: ticks of wool hanging under the band, one every 9. */
 .dr-res-stitch { position: absolute; z-index: 1; left: calc(2 * var(--s)); right: calc(2 * var(--s)); top: calc(var(--s) + 10 * var(--u)); height: calc(4 * var(--u)); background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='4' preserveAspectRatio='none' shape-rendering='crispEdges'%3E%3Crect width='2' height='4' fill='%23FFF4DC'/%3E%3C/svg%3E") 0 0 / calc(9 * var(--u)) 100% repeat-x; }
 /* The title ribbon: lantern, overhanging the board's left edge with its fold, its right end a stepped V. */
@@ -312,18 +312,36 @@
 .dr-res-ribbon::after { content: ''; position: absolute; z-index: -2; left: 0; top: 100%; width: calc(9 * var(--u)); height: calc(6 * var(--u)); background: var(--hm-lantern-fold); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 100%, 50% 50%, 0 50%); }
 .dr-res-scroll { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: calc(14 * var(--u)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .dr-res-scroll::-webkit-scrollbar { display: none; }
+/* The count and the best (v3/09, section 4): two tiles side by side, 12 apart, 108 x 96 (96 wide on a phone), and the
+   night's facts to their right (under them on a phone). */
 .dr-res-top { flex: none; display: flex; align-items: center; gap: calc(16 * var(--u)); }
+.dr-res-tiles { flex: none; display: flex; gap: calc(12 * var(--u)); }
 /* The nightshirt's pocket: cream, a thin blue stripe every 16, an ink outline. */
-.dr-res-pocket { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(2 * var(--u)); width: calc(100 * var(--u)); height: calc(88 * var(--u)); box-sizing: border-box;
+.dr-res-pocket { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(2 * var(--u)); width: calc(108 * var(--u)); height: calc(96 * var(--u)); box-sizing: border-box;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='8' preserveAspectRatio='none' shape-rendering='crispEdges'%3E%3Crect width='16' height='8' fill='%23E6DFD3'/%3E%3Crect x='15' width='1' height='8' fill='%238F97AC'/%3E%3C/svg%3E") 0 0 / calc(16 * var(--u)) 100% repeat-x; box-shadow: inset 0 0 0 var(--s) var(--hm-ink); }
-.dr-res-pocket b { font: 800 calc(44 * var(--u))/1 var(--skin-font-display); font-variant-numeric: tabular-nums; color: var(--hm-ink); }
+.dr-res-pocket b { font: 800 calc(40 * var(--u))/1 var(--skin-font-display); font-variant-numeric: tabular-nums; color: var(--hm-ink); }
 .dr-res-pocket span { font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: #4A4258; }
-.dr-res-facts { display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
-.dr-res-facts p, .dr-res-note { margin: 0; font: 800 calc(12.5 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-wool); }
-.dr-res-note { flex: none; color: var(--hm-frost); }
+/* The best: a night tile with a lit top row; on a new best its face is lantern and its words ink. */
+.dr-res-best { position: relative; isolation: isolate; flex: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(4 * var(--u)); width: calc(108 * var(--u)); height: calc(96 * var(--u)); padding-bottom: calc(3 * var(--u)); }
+.dr-res-best span { font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
+.dr-res-best b { font: 800 calc(32 * var(--u))/1 var(--skin-font-display); font-variant-numeric: tabular-nums; color: var(--hm-wool-hi); }
+.dr-res-best[data-new]::before { background: var(--hm-lantern); box-shadow: inset 0 var(--s) 0 var(--hm-lantern-hi), inset 0 calc(-3 * var(--u)) 0 var(--hm-lantern-lip); }
+.dr-res-best[data-new] span, .dr-res-best[data-new] b { color: var(--hm-ink); }
+.dr-res-facts { min-width: 0; display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
+.dr-res-facts p, .dr-res-note { margin: 0; font: 800 calc(14 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-wool); }
+.dr-res-note { flex: none; font-size: calc(12.5 * var(--u)); color: var(--hm-frost); }
 .dr-res-part { flex: none; display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
 .dr-res-label { margin: 0; font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
-.dr-res-sky { display: block; width: 100%; height: calc(96 * var(--u)); }
+/* "Your night sky": a well in two parts. Above, a strip 44 high in world 1's sky, in flat bands, the small moon at its
+   right and one star for each sheep; below, the night's words, the longest first as wool tiles. */
+.dr-res-sky { display: flex; flex-direction: column; gap: calc(10 * var(--u)); padding: calc(4 * var(--u)) calc(4 * var(--u)) calc(10 * var(--u)); }
+.dr-res-strip { position: relative; height: 44px; overflow: hidden; background: #2D406B; box-shadow: inset 0 11px 0 #0E1834, inset 0 22px 0 #15213F, inset 0 33px 0 #1C2B52; }
+.dr-res-star { position: absolute; color: var(--hm-frost); }
+.dr-res-moon { position: absolute; right: 18px; top: 50%; translate: 0 -50%; }
+.dr-res-list { display: flex; flex-direction: column; gap: calc(8 * var(--u)); padding: 0 calc(8 * var(--u)); }
+.dr-res-longest { --t: calc(16 * var(--u)); --d: calc(3 * var(--u)); display: flex; flex-wrap: wrap; gap: calc(2 * var(--u)); }
+.dr-res-words { --lh: calc(13 * 1.35 * var(--u)); margin: 0; display: flex; flex-wrap: wrap; column-gap: calc(10 * var(--u)); row-gap: 0; max-height: calc(var(--lines, 3) * var(--lh)); overflow: hidden; font: 800 calc(13 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-wool); }
+.dr-res-more { color: var(--hm-frost); }
 /* A raised card on the board: the streak, the coins. */
 .dr-res-card { position: relative; isolation: isolate; flex: none; display: flex; flex-direction: column; gap: calc(8 * var(--u)); padding: calc(12 * var(--u)) calc(14 * var(--u)) calc(14 * var(--u)); }
 .dr-res-head { margin: 0; display: flex; align-items: center; gap: calc(8 * var(--u)); }
@@ -343,13 +361,16 @@
 .dr-res-foot { flex: none; margin: 0; font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
 /* What is over his head in the room: large "z"s when he drifted off, an "!" for the first second when he woke. */
 .dr-res-head-at { position: absolute; z-index: 35; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
-.dr-z--room { --zx: 46px; --zy: -110px; left: 0; top: 0; animation-duration: 1.35s; }
+.dr-z--room { --zx: 46px; --zy: -110px; left: 0; top: 0; margin: -6px 0 0 -5px; animation: dr-z-rise 1.35s linear infinite; }
+@keyframes dr-z-rise { 0% { opacity: 0; translate: 0 0; } 12% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; translate: var(--zx) var(--zy); } }
 .dr-mark--once { left: 0; top: 0; animation: dr-mark 160ms steps(3) both, dr-mark-out 200ms linear 1s forwards; }
 @keyframes dr-mark-out { to { opacity: 0; } }
 .dr-root[data-phone] .dr-res-at { left: 0; right: 0; top: auto; bottom: 0; align-items: flex-end; justify-content: center; }
 .dr-root[data-phone] .dr-res { width: 100%; max-height: 60vh; padding: 28px 14px 16px; gap: 10px; animation-name: dr-res-up; }
 @keyframes dr-res-up { from { translate: 0 60px; opacity: 0; } }
 .dr-root[data-phone] .dr-res-ribbon { margin-left: -6px; font-size: 18px; }
+.dr-root[data-phone] .dr-res-top { flex-wrap: wrap; gap: 10px; }
+.dr-root[data-phone] .dr-res-pocket, .dr-root[data-phone] .dr-res-best { width: 96px; }
 .dr-root[data-phone] .dr-res-ribbon::after { display: none; }
 .dr-root[data-phone] .dr-res-buttons { flex-wrap: wrap; }
 .dr-root[data-phone] .dr-res-buttons > :first-child { flex-basis: 100%; }

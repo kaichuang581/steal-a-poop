@@ -30,10 +30,15 @@ import { DreamSky } from './DreamSky';
 import { ART, CAMERA_Z, CHUNK, chunkPlacements, DISC_MAX_H, DREAM_FOG, drawnLift, dreamView, frameToWorld, islandPlace, ISLANDS, islandX, LAYER, leapPitch, PX, RECOIL, scrollOf, SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, signRows, signScale, WAKE, WISPS, worldX } from './stage';
 import type { DreamView } from './stage';
 import { bonkStar, FAR_Z, hills as hillsLayer, HILLS, island as islandGeometry, lookOf, mountains as mountainsLayer, MOUNTAINS, obstacle, raftChunk, SEA, seaLayer, shadowDisc, signPost, wisp as wispGeometry } from './world';
+import { CheckIcon } from '../components/Icons';
+import { FLIGHT } from './fly';
 import { signHeight, signWidth } from './frame';
+import { isClose } from './run';
 import { LOOK } from '../look';
 
 const SLOTS = 4;
+/** The sheep's middle, metres above its feet as drawn: what it rolls about in the air. */
+const ROLL_ABOUT = (ART * SHEEP_ART.hat * PX) / 2 * 0.82;
 const LAND_MS = 200;
 const WOOD_TINT = '#FFD7A6';
 const SX = FIELD.sheepX, SW = FIELD.sheepW, FW = FIELD.fenceW;
@@ -101,7 +106,7 @@ export function DreamStage(props: Props) {
     </SceneBoundary>
     <div ref={tags.root} className="dr-tags" aria-hidden="true">
       <div ref={tags.pop} className="dr-tag">{props.pop && <span key={props.pop.key} className="dr-pop sk-display">{props.pop.n}</span>}</div>
-      {slotViews.map((f, slot) => <div key={slot} ref={tags.signs[slot]} className="dr-tag dr-sign-tag">{f && <SignBoard view={f} />}</div>)}
+      {slotViews.map((f, slot) => <div key={slot} ref={tags.signs[slot]} className="dr-tag dr-sign-tag" data-fence={f?.index}>{f && <SignBoard view={f} />}</div>)}
     </div>
     </>
   );
@@ -124,9 +129,11 @@ function SignBoard({ view }: { view: FenceView }) {
           {view.letters.map((ch, i) => <span key={i} className="dr-tile dr-tile--lantern">{ch.toUpperCase()}</span>)}
           <span className="dr-sign-dots"><i /><i /><i /></span>
         </div>
+        {/* Your word lands here: the sign's own letters with the first tile to arrive, then each tile as it flies in. */}
         <div className="dr-sign-plank" style={{ '--n': Math.max(1, word.length) } as React.CSSProperties}>
-          {[...word].map((ch, i) => <span key={i} className="dr-sign-word">{ch}</span>)}
+          {[...word].map((ch, i) => <span key={i} className="dr-sign-word" style={{ animationDelay: `${FLIGHT.ms + Math.max(0, i - view.letters.length) * FLIGHT.stagger}ms` }}>{ch}</span>)}
         </div>
+        {view.locked && <span className="dr-sign-check"><CheckIcon size={12} /></span>}
       </div>
     </div>
   );
@@ -168,6 +175,7 @@ function Scene({ live, fences, phase, reduced, phone, tags, ui }: Props & { tags
   const hillRange = useRef<Group>(null);
   const mountainRange = useRef<Group>(null);
   const sheep = useRef<Group>(null);
+  const roll = useRef<Group>(null);
   const sheepShadow = useRef<Mesh>(null);
   const stars = useRef<(Mesh | null)[]>([]);
   const slots = useRef<(Group | null)[]>([]);
@@ -258,8 +266,12 @@ function Scene({ live, fences, phase, reduced, phone, tags, ui }: Props & { tags
           pitch = -0.14 * k;
         }
       }
-      sheep.current.rotation.z = admin ? pitch * DISC_PITCH : pitch;
+      // The roll (06, section 3): in the air the sheep turns once, head first, about its body's middle, like a ball of
+      // wool; the turn takes exactly the time in the air. The rules' box does not turn, and the photo only leans.
+      const rolling = j >= 0 && !reduced && !admin && JUMP_MS >= 300;
+      sheep.current.rotation.z = admin ? pitch * DISC_PITCH : rolling ? 0 : pitch;
       sheep.current.scale.set(long, tall, 1);
+      if (roll.current) roll.current.rotation.z = rolling ? -Math.PI * 2 * j : 0;
     }
     if (sheepShadow.current) { const k = ART * (1 - 0.4 * Math.min(1, air / (ART * 28 * PX))); sheepShadow.current.scale.set(k, 1, k); }
     // Bonk stars orbit 0.25 m above the head from 350 ms.
@@ -297,7 +309,7 @@ function Scene({ live, fences, phase, reduced, phone, tags, ui }: Props & { tags
         const sx = (g.position.x + SIGN_AT[0] + post.hang[0] * sign.scale - view.camX) * view.zoom + view.w / 2;
         const sy = view.ground - post.hang[1] * sign.scale * view.zoom;
         tag.style.transform = `translate3d(${sx.toFixed(1)}px, ${sy.toFixed(1)}px, 0)`;
-        const close = !fe.locked && !fe.passed && L.speed > 0 && (fe.x - (SX + SW)) / L.speed < CLOSE_S;
+        const close = isClose(fe);
         const state = `${hit ? 'k' : ''}${close && !hit ? 'c' : ''}${fe.jumped && !fe.passed ? 'j' : ''}`;
         if (signState.current[slot] !== state) {
           signState.current[slot] = state;
@@ -327,7 +339,7 @@ function Scene({ live, fences, phase, reduced, phone, tags, ui }: Props & { tags
 
   return (
     <>
-      <DreamCamera view={view} reduced={reduced} live={live} />
+      <DreamCamera view={view} live={live} />
       {/* The plan's 1.4 and 0.5 assume the old light units, and its dark ground colour turns every shaded side navy; these
           land the layers on the value ladder. */}
       <hemisphereLight args={['#6E5FB5', '#A79BE6', 1.7]} />
@@ -375,14 +387,15 @@ function Scene({ live, fences, phase, reduced, phone, tags, ui }: Props & { tags
                 </group>
               </group>
             </group>
-            <Sign hot={!!f?.hot} rows={sign.rows} half={sign.half(f?.letters.length ?? 1)} scale={sign.scale} />
+            <Sign hot={!!f?.hot || !!f?.locked} rows={sign.rows} half={sign.half(f?.letters.length ?? 1)} scale={sign.scale} />
           </group>
         ))}
 
         {/* The sheep faces +x and runs on the spot; the world does the moving. It stands on the rules' box centre, drawn
             ART times its size about its feet, its own drawn middle on that centre (plan file 09, 4.2). */}
         <group ref={sheep}>
-          <group scale={ART}>
+          <group ref={roll} position={[0, ROLL_ABOUT, 0]}>
+          <group position={[0, -ROLL_ABOUT, 0]} scale={ART}>
             {admin ? (
               // Facing the camera, which looks straight across the lane.
               <group scale={discScale}>
@@ -395,7 +408,9 @@ function Scene({ live, fences, phase, reduced, phone, tags, ui }: Props & { tags
             )}
             {[0, 1, 2].map((i) => <mesh key={i} ref={(el) => { stars.current[i] = el; }} geometry={geo.star} material={glowMat} visible={false} />)}
           </group>
-          <ScreenAnchor el={tags.pop} position={[0, ART * headY + 0.45, 0]} cull={false} />
+          </group>
+          {/* The count pops at the sheep's upper right. */}
+          <ScreenAnchor el={tags.pop} position={[0.62, ART * headY - 0.05, 0]} cull={false} />
         </group>
         <mesh ref={sheepShadow} geometry={geo.shadow} material={shadowMat} position={[worldX(SHEEP_CENTRE), 0.005, 0]} />
         <SnowBursts anim={anim} />
@@ -423,9 +438,6 @@ const shadowMat = new MeshLambertMaterial({ vertexColors: true, transparent: tru
 
 /** Where each sign stands against its obstacle: just past it, on the far side of the lane. */
 const SIGN_AT = [0.1, 0, -1.34] as const;
-/** An unanswered fence this many seconds off is close: its sign's outline blinks (the farmer stirs at the same mark). */
-const CLOSE_S = 1.5;
-
 /**
  * The sign's post (docs/dream/02-layout-and-interface.md, section 6): the same post and arm as before, taller, with its
  * lantern lit on the active sign. The board that hangs from the arm is `SignBoard`, HTML over the canvas.
@@ -444,10 +456,9 @@ function Sign({ hot, rows, half, scale }: { hot: boolean; rows: number; half: nu
 
 /**
  * The side view (plan file 09, 4.2): an orthographic camera looking along -z, its zoom the stage's CSS px per metre and
- * its place the frame's centre, from the stage's size. On the bump it shakes ±0.03 m for 300 ms (off under reduced
- * motion).
+ * its place the frame's centre, from the stage's size. It never shakes: on a bump the dream window does (06, section 4).
  */
-function DreamCamera({ view, reduced, live }: { view: DreamView; reduced: boolean; live: MutableRefObject<StageLive> }) {
+function DreamCamera({ view, live }: { view: DreamView; live: MutableRefObject<StageLive> }) {
   const camera = useThree((s) => s.camera) as OrthographicCamera;
   useEffect(() => {
     camera.zoom = view.zoom;
@@ -456,12 +467,6 @@ function DreamCamera({ view, reduced, live }: { view: DreamView; reduced: boolea
     camera.updateProjectionMatrix();
     if (devOn()) Object.assign(window, { __dreamLive: live });
   }, [camera, view, live]);
-  useFrame(() => {
-    const L = live.current;
-    const since = L.crashAt !== null ? L.t - L.crashAt : 9999;
-    const sh = !reduced && since < WAKE.shakeMs ? WAKE.shake : 0;
-    camera.position.set(view.camX + (Math.random() - 0.5) * 2 * sh, view.camY + (Math.random() - 0.5) * 2 * sh, CAMERA_Z);
-  });
   return null;
 }
 

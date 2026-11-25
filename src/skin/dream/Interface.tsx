@@ -212,7 +212,10 @@ export function ReadyBoard({ practice }: { practice: boolean }) {
  * nose into the smallest one (docs/dream/01-farmer.md, section 3: quicker and bigger the deeper he sleeps), and the
  * "!" of a bump or the "?" of a wrong word over his head.
  */
-export function Tail({ puffs, nose, depth, mark, asleep }: { puffs: readonly Box[]; nose: readonly [number, number]; depth: number; mark: 'bang' | 'question' | null; asleep: boolean }) {
+export function Tail({ puffs, nose, depth, mark, asleep, extra = 0 }: { puffs: readonly Box[]; nose: readonly [number, number]; depth: number; mark: 'bang' | 'question' | null; asleep: boolean;
+  /** Changes when a word is taken: he lets out one extra "z", a size larger. */
+  extra?: number;
+}) {
   const last = puffs[puffs.length - 1], every = depth >= 3 ? 0.45 : depth === 2 ? 0.6 : 0.8;
   const to = { '--zx': `${Math.round(last.x + last.w / 2 - nose[0])}px`, '--zy': `${Math.round(last.y + last.h / 2 - nose[1])}px` } as CSSProperties;
   return (
@@ -223,6 +226,7 @@ export function Tail({ puffs, nose, depth, mark, asleep }: { puffs: readonly Box
           <Art name="z" px={Math.min(4, depth + 1)} />
         </span>
       ))}
+      {asleep && !mark && extra > 0 && <span key={extra} className="dr-z dr-z--once" style={{ left: nose[0], top: nose[1], ...to }}><Art name="z" px={Math.min(5, depth + 2)} /></span>}
       {mark && <span key={mark} className="dr-mark" style={{ left: nose[0], top: last.y }}><Art name={mark} /></span>}
     </div>
   );

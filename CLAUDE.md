@@ -2570,3 +2570,31 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
     the current pip is to blink on (it blinks on its own clock), the card for the finale's look (the card shows; the
     finale is CS6), the results board (CS7: it is still the knitted card). The pack's surface test was not run on
     these pieces. The size limit has 3.19 kB left after this milestone.
+- CS3, the beat and the shared effects, as built (2026-11-24; docs/dream/06-beat-and-effects.md), on the old scenery.
+  All of it is drawn only; nothing reads or changes the run.
+  - beat.ts (pure): a count of beats that grows by the stage's 96, 112 or 128 a minute on the dream's own clock
+    (`advance`, `phase`, `pulse`). DreamScreen's loop keeps it (`beat`) and sets `--dr-beat`, which the night track's
+    current pip blinks at. The stages' own things that move to it arrive with each stage.
+  - Fx.tsx is the dream's two flat canvases, drawn by `frame`, which the dream's loop calls (no loop of their own):
+    the sky, where your words hang as stars (starWords.ts and dotfont.ts: thirty places shuffled by the night, dot
+    letters, the newest lantern for 2 s, one dot in six dimmed each beat, a phone keeps the newest 10), and the
+    effects over the scene (a ring from the sign, pixel puffs at the hooves; 60 particles at most). Until CS4 the sky
+    canvas lies over the old scenery, so a word can cross an island.
+  - A word taken: the typed tiles fly from the tray to the sign's plank (fly.ts: plain DOM moved by its own frames,
+    asking each frame where the moving plank now is; a sign still off the right edge is met at that edge); as the first
+    lands the board flashes, a check pops on its corner, a ring spreads, the window swells 1.012 about the sign, the
+    sign's lantern lights, and the farmer lets out one larger "z". The plank's letters arrive with the tiles.
+  - The jump: five puffs at take-off, the roll (the sheep turns once, head first, about its middle while it is in the
+    air; the photo avatar only leans), the count popping at its upper right, six puffs and a 3 px dip of the window on
+    landing, and 100 ms later the word rising from the sign into its place in the sky.
+  - A bump shakes the window (6 px each way, four times, 240 ms) and shows an ember glow in two flat steps round its
+    inside edge, once; the camera's own shake is gone. A fence is "close" at `CLOSE_PX` (the meter's three segments of
+    eleven), which the sign's blink and the farmer's stir now share.
+  - The window's swell, dip and shake are short transforms on `.dr-bubble`, which holds the dream's canvas. That breaks
+    the letter of "the canvas must never sit inside a transformed element"; the rule is about the canvas being measured
+    while transformed, and these last 80 to 240 ms. If the dream ever comes up blurred after one, this is why.
+  - Under reduced motion: no beat, flying tiles, ring, puffs, roll, swell, dip, shake or glow; the word appears on the
+    plank and then in its place in the sky.
+  - The size limit was raised by 10,000 bytes here (scripts/check-bundle-size.mjs): the redesign was 7.2 kB by this
+    milestone, and Brian's choice of 2026-11-17 is to raise it when a milestone needs it.
+

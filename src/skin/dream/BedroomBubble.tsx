@@ -16,6 +16,7 @@ import { BEAM, BED, bedroomGeometry, CANDLE, CLOCK, foldedQuilt, LAMP, roomOn, s
 import { stripCamera, stripExtent } from './frame';
 import type { DreamFrame, StripCamera } from './frame';
 import type { Phase, StageLive } from './DreamStage';
+import { isClose } from './run';
 import { WAKE } from './stage';
 import { LOOK } from '../look';
 
@@ -84,8 +85,6 @@ export function BedroomBubble({ live, phase, reduced, phone, blankets = 0, ancho
 }
 
 const ease = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
-/** An unanswered fence this many seconds off stirs him. */
-const STIR_WITHIN_S = 1.5;
 /** Deep asleep and stirring: the brows drop and the head comes round, but the arm stays hanging and the mouth open. */
 const DEEP_STIR: Pose = { ...POSES.bedDeep, headTurn: POSES.bedStir.headTurn, brows: POSES.bedStir.brows, breath: POSES.bedStir.breath };
 
@@ -96,7 +95,7 @@ export function poseFor(L: StageLive, phase: Phase, depth: number): PoseName | '
   const deep = depth >= 3 || L.asleepAt !== null || (L.deepAt ?? null) !== null;
   if (phase === 'running') {
     const next = L.fences.find((fe) => !fe.passed && fe.x + FIELD.fenceW > FIELD.sheepX);
-    if (next && !next.locked && L.speed > 0 && (next.x - (FIELD.sheepX + FIELD.sheepW)) / L.speed < STIR_WITHIN_S) return deep ? 'deepStir' : 'bedStir';
+    if (next && isClose(next)) return deep ? 'deepStir' : 'bedStir';
   }
   return deep ? 'bedDeep' : 'bedSleep';
 }

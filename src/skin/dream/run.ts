@@ -18,6 +18,12 @@ const { sheepX: SX, sheepW: SW, fenceW: FW, fenceH: FH } = FIELD;
 export const SPAWN_X = W + 24;
 export const TYPE_X = W + 520;
 export const MAX_TYPED = 16;
+/**
+ * An unanswered fence this near the sheep is close (docs/dream/06-beat-and-effects.md, section 4: the meter at 3 of its
+ * 11 segments or less): the sign blinks and the farmer stirs. Logical px from the sheep's nose.
+ */
+export const CLOSE_PX = Math.round(((TYPE_X - (SX + SW)) * 3) / 11);
+export const isClose = (fe: { x: number; locked: boolean; passed: boolean }): boolean => !fe.locked && !fe.passed && fe.x - (SX + SW) <= CLOSE_PX;
 
 export interface LiveFence { f: Fence; index: number; x: number; locked: boolean; passed: boolean; jumped: boolean; word: string; knockedAt: number | null }
 export interface Live extends StageLive {

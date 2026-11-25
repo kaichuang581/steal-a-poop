@@ -16,17 +16,22 @@ import { PAINTED_TITLE } from '../screens/PaintedHome';
 import { shareCard } from '../share/card';
 import { DevLine } from '../table/DevStats';
 import { useCoveredFps } from '../perf/governor';
+import { advance, bpmOf } from './beat';
 import { BedroomBubble } from './BedroomBubble';
 import type { RoomAnchors } from './BedroomBubble';
 import { DreamStage } from './DreamStage';
 import type { FenceView, Phase } from './DreamStage';
 import { dreamLink, useDreamUi } from './dreamStore';
+import { flyTiles } from './fly';
+import { Fx } from './Fx';
+import type { FxHandle } from './Fx';
 import { bubbleShape, dreamFrame, isPhoneLayout, meterSegments, NOSE, RIM, stripCamera, stripPoint, tailPuffs } from './frame';
 import { Counter, DreamCard, Hint, ModeChip, NightTrack, ReadyBoard, Tail, Tray, trayWord } from './Interface';
 import type { CardKind } from './Interface';
 import { activeFence, freshLive, MAX_TYPED, TYPE_X, update } from './run';
 import type { Live } from './run';
-import { DRIFT, WAKE } from './stage';
+import { ART, DRIFT, dreamView, moonFrame, screenX, SHEEP_ART, SHEEP_CENTRE, WAKE } from './stage';
+import { STAR_WORDS } from './starWords';
 import { CLOUD_MS, WakeClouds } from './WakeClouds';
 import type { CloudState } from './WakeClouds';
 import './dream.css';
@@ -105,6 +110,36 @@ export function DreamScreen() {
   const frame = useMemo(() => dreamFrame(Math.max(1, box.w), Math.max(1, fitKeys ? vh! : box.h)), [box.w, box.h, vh, fitKeys]);
   const segments = useRef(11);
   segments.current = meterSegments(frame.tiles, frame.phone, frame.u);
+  // The side view of the dream's own box, as the stage has it: where the sheep's hooves and the ground line are.
+  const view = useMemo(() => dreamView(Math.max(1, frame.view.w), Math.max(1, frame.view.h), mobile), [frame, mobile]);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  // The effects (06): the two flat canvases, the beat's count, and the pieces of the screen they move.
+  const fx = useRef<FxHandle>(null);
+  const beat = useRef({ beats: 0 });
+  const bubbleEl = useRef<HTMLDivElement>(null), stageEl = useRef<HTMLDivElement>(null), flyLayer = useRef<HTMLDivElement>(null);
+  const reducedRef = useRef(reduced);
+  reducedRef.current = reduced;
+  /** A short move of the whole dream window (a swell, a dip, a shake): never under reduced motion. */
+  const nudge = useCallback((frames: Keyframe[], ms: number, origin = '50% 50%') => {
+    const el = bubbleEl.current;
+    if (!el || reducedRef.current || typeof el.animate !== 'function') return;
+    el.style.transformOrigin = origin;
+    el.animate(frames, { duration: ms, easing: 'linear' });
+  }, []);
+  /** Where a fence's sign is on screen: its word plank, or its board where the window is too short for a plank. */
+  const signRect = useCallback((index: number): DOMRect | null => {
+    const tag = stageEl.current?.querySelector(`.dr-sign-tag[data-fence="${index}"]`);
+    const plank = tag?.querySelector('.dr-sign-plank')?.getBoundingClientRect();
+    return (plank && plank.width > 0 ? plank : tag?.querySelector('.dr-sign-board')?.getBoundingClientRect()) ?? null;
+  }, []);
+  const [glow, setGlow] = useState(0);
+  const [bigZ, setBigZ] = useState(0);
+  /** A bump: the window shakes 6 px each way four times in 240 ms, and an ember glow shows round its inside edge, once. */
+  const jolt = useCallback(() => {
+    nudge([0, 6, -6, 6, -6, 6, -6, 6, -6, 0].map((x) => ({ transform: `translateX(${x}px)` })), 240);
+    setGlow(Math.random() + 1);
+  }, [nudge]);
   // The night this dream belongs to, fixed when the screen opens: a dream begun before midnight is still that night's.
   const [today] = useState(() => localDateKey(new Date()));
   const night = repair ?? today;
@@ -224,6 +259,19 @@ export function DreamScreen() {
     const w = tries.find((t) => check(dict, a!.f, t, L.used).ok) ?? tries[0] ?? typed;
     const v = a ? check(dict, a.f, w, L.used) : ({ ok: false, reason: 'wait' } as const);
     if (a && v.ok) {
+      // The typed tiles fly to the sign's plank (06, section 2); as the first lands a ring spreads from the sign and
+      // the window swells about it. Under reduced motion the word simply appears on the plank.
+      const index = a.index, layer = flyLayer.current;
+      const landed = () => {
+        const r = signRect(index), st = stageEl.current?.getBoundingClientRect(), bb = bubbleEl.current?.getBoundingClientRect();
+        if (!r || !st || !bb) return;
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        fx.current?.ring(cx - st.left, cy - st.top);
+        nudge([1, 1.012, 1].map((k) => ({ transform: `scale(${k})` })), 140, `${Math.round(cx - bb.left)}px ${Math.round(cy - bb.top)}px`);
+      };
+      if (layer && !reduced) flyTiles(layer, [...layer.parentElement!.querySelectorAll('.dr-tray .dr-tile--typed')].map((el) => ({ ch: el.textContent ?? '', from: el.getBoundingClientRect() })), () => signRect(index), landed);
+      // In the bed, the farmer lets out one larger "z".
+      setBigZ(Math.random() + 1);
       a.locked = true;
       a.word = w;
       L.used.add(w);
@@ -257,16 +305,26 @@ export function DreamScreen() {
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
-    let hudKey = '', fenceKey = '', alarmed = false, stageNow = 1;
+    let hudKey = '', fenceKey = '', alarmed = false, stageNow = 1, wasAir = false;
+    // The fence the sheep is in the air over: its word rises into the sky once it has landed.
+    let over: { word: string; index: number } | null = null;
+    const hooves = (): [number, number] => { const v = viewRef.current; return [screenX(v, SHEEP_CENTRE) - ART * SHEEP_ART.tail * v.s * 0.55, v.ground - 4]; };
 
     const events = {
-      jump: () => playSound('play'), // the bell at take-off
+      jump: () => {
+        playSound('play'); // the bell at take-off
+        const fe = live.current.fences.find((f) => f.jumped && !f.passed);
+        over = fe ? { word: fe.word, index: fe.index } : null;
+        // Five puffs fan out behind the hooves.
+        fx.current?.puffs(...hooves(), 5);
+      },
       count: (n: number) => { setCount(n); setReached(live.current.reached); setCounted({ n, key: Math.random() }); },
       stumble: () => {
         // A bump short of the last: the fence goes flat, the farmer stirs, and the run carries on.
         playSound('trap', 0.6);
         setReached(live.current.reached);
         show('bump');
+        jolt();
       },
       deep: () => {
         // The night's mark: he is out cold. Nothing stops; the fences keep coming for as long as the sheep clears them.
@@ -281,6 +339,7 @@ export function DreamScreen() {
         setCount(live.current.count);
         setReached(live.current.reached);
         show('slept');
+        jolt();
         setPhase('drifting');
         if (!reduced) setTimeout(() => setClouds({ state: 'in', gentle: true }), DRIFT.clouds);
         setTimeout(finish, reduced ? DRIFT.reducedFinish : DRIFT.finish);
@@ -292,6 +351,7 @@ export function DreamScreen() {
         setCount(live.current.count);
         show('bump');
         setMark('bang');
+        jolt();
         setTimeout(() => { setPopStage('pop'); if (!reduced) setClouds({ state: 'in', gentle: false }); }, reduced ? 0 : WAKE.pop);
         setTimeout(() => setPopStage('gone'), reduced ? 150 : WAKE.dark);
         setTimeout(finish, reduced ? WAKE.reducedFinish : WAKE.finish);
@@ -303,8 +363,21 @@ export function DreamScreen() {
       last = now;
       const L = live.current;
       const ph = phaseRef.current;
-      if (ph === 'running' || ph === 'ready' || ph === 'crashed' || ph === 'drifting') L.t += dt;
+      if (ph === 'running' || ph === 'ready' || ph === 'crashed' || ph === 'drifting') { L.t += dt; beat.current.beats = advance(beat.current.beats, dt, stageNow); }
       if (ph === 'running') update(L, dt, seed, events, length);
+      // The landing: six puffs, the window drops 3 px for 80 ms, and 100 ms later the word rises into the sky.
+      if (wasAir && L.jumpAt === null && L.crashAt === null && ph === 'running') {
+        fx.current?.puffs(...hooves(), 6);
+        nudge([0, 3, 3, 0].map((y) => ({ transform: `translateY(${y}px)` })), 80);
+        const up = over;
+        over = null;
+        if (up?.word) setTimeout(() => {
+          const r = signRect(up.index), st = stageEl.current?.getBoundingClientRect(), v = viewRef.current;
+          fx.current?.word(up.word, r && st ? Math.max(8, r.left + r.width / 2 - st.left) : 8, r && st ? r.top + r.height / 2 - st.top : v.ground - 160);
+        }, 100);
+      }
+      wasAir = L.jumpAt !== null;
+      fx.current?.frame(L.t, beat.current.beats, ph === 'running' ? L.speed * viewRef.current.s : 0);
       // The farmer's alarm, low, as the dream pops.
       if (L.crashAt !== null && !alarmed && L.t - L.crashAt >= WAKE.pop) { alarmed = true; playSound('alarm', 0.35); }
       if (L.crashAt === null) alarmed = false;
@@ -330,7 +403,7 @@ export function DreamScreen() {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [seed, finish, reduced, length, show]);
+  }, [seed, finish, reduced, length, show, jolt, nudge, signRect]);
 
   // The dream changes with the letters: a card says so as the second and third stages begin, and, on a counted night,
   // as the last five fences before he is out cold do.
@@ -365,7 +438,9 @@ export function DreamScreen() {
     setSeed(s);
     live.current = freshLive(s);
     setPopStage('none');
-    setCount(0); setCounted(null); setStreak(0); setReached(0); setDeep(false); setCard(null); setMark(null); setStage(1);
+    setCount(0); setCounted(null); setStreak(0); setReached(0); setDeep(false); setCard(null); setMark(null); setStage(1); setGlow(0);
+    fx.current?.reset();
+    beat.current.beats = 0;
     setFences([]);
     setPhase('ready');
     ghost.current?.focus();
@@ -394,8 +469,10 @@ export function DreamScreen() {
   }, [frame]);
   const small = tail.puffs[tail.puffs.length - 1], popAt: [number, number] = [small.x + small.w / 2, small.y + small.h / 2];
   const px = (v: number) => `${Math.round(v)}px`;
+  // What a star word must not sit under: the moon.
+  const keepOut = useMemo(() => { const [mx, my] = moonFrame(view.w / view.h); return [{ x: (mx / 100) * view.w - 50, y: (my / 100) * view.h - 50, w: 100, h: 100 }]; }, [view]);
   const rootVars = {
-    '--u': `${frame.u}px`, '--dr-pop-x': px(popAt[0]), '--dr-pop-y': px(popAt[1]),
+    '--u': `${frame.u}px`, '--dr-beat': `${(60 / bpmOf(deep ? 3 : stage)).toFixed(3)}s`, '--dr-pop-x': px(popAt[0]), '--dr-pop-y': px(popAt[1]),
     '--dr-org-x': px(popAt[0] - frame.view.x), '--dr-org-y': px(popAt[1] - frame.view.y),
   } as React.CSSProperties;
   // The night track's groups: where the sign's letter count changes, read from the rules.
@@ -416,13 +493,15 @@ export function DreamScreen() {
     <main ref={setRoot} className="dr-root hm rc" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-phone={frame.phone || undefined} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} onPointerDown={focus} style={{ ...rootVars, ...(fitKeys ? { height: vh! } : {}) }}>
       <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} depth={deep ? 3 : stage} frame={frame} />
       {playing && (
-        <div className="dr-bubble" style={{ left: frame.bubble.x, top: frame.bubble.y, width: frame.bubble.w, height: frame.bubble.h }}>
+        <div ref={bubbleEl} className="dr-bubble" style={{ left: frame.bubble.x, top: frame.bubble.y, width: frame.bubble.w, height: frame.bubble.h }}>
           <i className="dr-bubble-shade" style={{ clipPath: shape.outer }} />
           <i className="dr-bubble-rim" style={{ clipPath: shape.outer }} />
           <div className="dr-window" style={{ clipPath: shape.inner }}>
-            <div className="dr-stage" style={{ inset: RIM }} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} data-reduced={reduced || undefined}>
+            <div ref={stageEl} className="dr-stage" style={{ inset: RIM }} data-pop={pop !== 'none' || undefined} data-gone={pop === 'gone' || undefined} data-reduced={reduced || undefined}>
               <DreamStage live={live} fences={fences} pop={counted} phase={phase} reduced={reduced} phone={mobile} fps={stageFps} ui={frame} />
+              <Fx ref={fx} w={view.w} h={view.h} lane={view.ground} seed={seed} phone={frame.phone} reduced={reduced} keepOut={keepOut} keeps={frame.phone ? STAR_WORDS.phoneKeeps : STAR_WORDS.across * STAR_WORDS.down} />
             </div>
+            {glow > 0 && <i key={glow} className="dr-glow" aria-hidden="true" />}
             {/* The counters, inside the top of the dream window (section 7). */}
             <header className="dr-top">
               <ModeChip>{chip}</ModeChip>
@@ -435,7 +514,8 @@ export function DreamScreen() {
           </div>
         </div>
       )}
-      {playing && <Tail puffs={tail.puffs} nose={tail.nose} depth={deep ? 3 : stage} mark={mark} asleep={phase !== 'crashed'} />}
+      {playing && <Tail puffs={tail.puffs} nose={tail.nose} depth={deep ? 3 : stage} mark={mark} asleep={phase !== 'crashed'} extra={bigZ} />}
+      <div ref={flyLayer} className="dr-fly" aria-hidden="true" />
       {pop === 'pop' && !reduced && (
         <div className="dr-burst" aria-hidden="true">
           {Array.from({ length: 20 }, (_, i) => <i key={i} style={{ '--dx': `${Math.cos(i * 0.31 * 2) * (60 + (i % 5) * 28)}px`, '--dy': `${Math.sin(i * 0.31 * 2) * (50 + (i % 4) * 24)}px`, animationDelay: `${(i % 4) * 30}ms` } as React.CSSProperties} />)}

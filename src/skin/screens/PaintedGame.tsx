@@ -13,7 +13,7 @@ import { buzz } from '../hooks/buzz';
 import { Jumpscare, WordBlast } from '../components/Jumpscare';
 import { bombSize, wordsSinceBoom } from '../model/bombCharge';
 import { shareCard } from '../share/card';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ALL_MODIFIERS, ANNOUNCE_MS, breaksRule, normalizeWord, previewBotTurn, rankPlayers, roundTurnMs, startingWool, utcDateKey } from '../../engine';
 import { getDream } from '../../dream/daily';
@@ -60,7 +60,8 @@ import { streakDays, useTableView } from '../model/useTableView';
 import { BarnTable } from '../table/BarnTable';
 import type { BarnMoments } from '../table/BarnTable';
 import { DevLine } from '../table/DevStats';
-import { PracticeRink } from '../tp/rink/PracticeRink';
+// The rink (docs/trading-post-practice P1) loads with a practice run, behind the loading screen.
+const PracticeRink = lazy(() => import('../tp/rink/PracticeRink').then((m) => ({ default: m.PracticeRink })));
 import { NamePlate } from '../kit/NamePlate';
 import { PlaceExtras } from '../table/places';
 import { coatLevel } from '../table/Sheep';
@@ -435,8 +436,8 @@ export function PaintedGame() {
       <div className={`absolute inset-0 ${shake ? 'sk-alarm-shake' : ''}`} data-table>
         {practice ? (
           // Practice's own place (docs/trading-post-practice P1 to P4): the rink, its board, its coach and its report.
-          <PracticeRink input={input} reduced={reduced} phone={mobile} fps={tableFps} boomKey={moments.boom?.key} dreamWaiting={dreamWaiting}
-            states={[0, 1].map((seat) => stateOf(view.players.find((p) => Number(p.id) === seat)!)) as [Mood, Mood]} />
+          <Suspense fallback={null}><PracticeRink input={input} reduced={reduced} phone={mobile} fps={tableFps} boomKey={moments.boom?.key} dreamWaiting={dreamWaiting}
+            states={[0, 1].map((seat) => stateOf(view.players.find((p) => Number(p.id) === seat)!)) as [Mood, Mood]} /></Suspense>
         ) : (
         <Stage
           fps={tableFps}

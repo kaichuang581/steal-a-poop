@@ -1,7 +1,7 @@
 import type { Item, Kind } from '../../../shop/catalog';
 import { CATALOG, KIND_LABEL, KINDS } from '../../../shop/catalog';
 import type { Wallet } from '../../../shop/economy';
-import { MARKET } from '../../models.gen';
+import { MARKET } from '../../market.gen';
 import { STOP_X } from '../world';
 import { At, Icon, Rarity, sourceLine } from '../pieces';
 

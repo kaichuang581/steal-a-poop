@@ -1,10 +1,9 @@
 import { CanvasTexture, Group, LinearFilter, Mesh, MeshBasicMaterial, PlaneGeometry, SRGBColorSpace } from 'three';
 import type { Material } from 'three';
 import { meshModel, toGeometry } from '../dream/models';
-import { GLOW } from '../dream/models.gen';
 import type { ModelData } from './models.gen';
 import { COLOURS, MODELS, PARTS, flatGlow, flatLit, partBit } from './models';
-import { FUSE_STEPS, SKINS } from './models.gen';
+import { FUSE_STEPS, GLOW, SKINS } from './models.gen';
 import type { SkinData } from './models.gen';
 
 /**

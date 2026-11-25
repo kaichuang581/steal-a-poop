@@ -8,7 +8,7 @@ import { makeBomb, SKIN_OF } from '../bomb';
 import type { BombObject } from '../bomb';
 import { makeBurst, BURST_OF } from '../burst';
 import type { BurstObject } from '../burst';
-import { MARKET } from '../models.gen';
+import { MARKET } from '../market.gen';
 import type { ShiftView } from '../camera';
 import { buildRow, glowSprite, itemGroup, itemHeight, modelGroup, rowMaterials, STOP_X, STOPS, stopAt, tpPart } from './world';
 import type { StopId } from './world';

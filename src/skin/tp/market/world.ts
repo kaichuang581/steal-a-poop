@@ -6,8 +6,11 @@ import type { Arrays } from '../../dream/models';
 import * as DREAM from '../../dream/models.gen';
 import { SKIN_OF } from '../bomb';
 import { BURST_OF } from '../burst';
-import { COLOURS, MODELS, PARTS } from '../models';
-import { BURST_COLOURS, BURSTS, MARKET } from '../models.gen';
+import { addModels, COLOURS, MODELS, PARTS } from '../models';
+
+addModels(MARKET_MODELS);
+import { BURST_COLOURS, BURSTS } from '../models.gen';
+import { MARKET, MARKET_MODELS } from '../market.gen';
 import type { Item } from '../../shop/catalog';
 
 /**

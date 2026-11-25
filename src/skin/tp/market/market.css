@@ -156,8 +156,8 @@
 .tp-stamps i { width: calc(20px * var(--u)); height: calc(20px * var(--u)); border: 1px solid var(--soft); background: var(--paper-dim); display: inline-flex; align-items: center; justify-content: center; }
 .tp-stamps i[data-on] { background: var(--stamp); border-color: var(--stamp-dark); }
 .tp-slip-count { grid-column: 1 / 3; justify-self: end; font-family: var(--skin-font-display); font-size: calc(15px * var(--u)); }
-/* A round red stamp across the reward's picture (T6 section 2), never over the name. */
-.tp-stamp { position: absolute; left: calc(14px * var(--u)); top: calc(10px * var(--u)); width: calc(74px * var(--u)); height: calc(74px * var(--u)); display: grid; place-items: center; border-radius: 50%; transform: rotate(-12deg); color: var(--stamp); border: 3px solid var(--stamp); background: color-mix(in srgb, var(--paper) 55%, transparent); font-family: var(--skin-font-display); font-size: calc(17px * var(--u)); }
+/* A red stamp (square: the kit allows no rounded corners) across the reward's picture (T6 section 2), never over the name. */
+.tp-stamp { position: absolute; left: calc(14px * var(--u)); top: calc(10px * var(--u)); width: calc(74px * var(--u)); height: calc(74px * var(--u)); display: grid; place-items: center; transform: rotate(-12deg); color: var(--stamp); border: 3px solid var(--stamp); background: color-mix(in srgb, var(--paper) 55%, transparent); font-family: var(--skin-font-display); font-size: calc(17px * var(--u)); }
 .tp-sheet { padding: calc(12px * var(--u)) calc(16px * var(--u)); pointer-events: none !important; font-size: calc(13px * var(--u)); }
 .tp-sheet h3 { font-size: calc(20px * var(--u)); margin-bottom: 4px !important; }
 .tp-sheet h3 small { font-family: var(--skin-font-body); font-size: calc(12px * var(--u)); color: var(--soft); margin-left: 8px; }

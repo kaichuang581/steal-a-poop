@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import pkg from '../../../package.json';
 import { useAuth } from '../../auth/authStore';
@@ -34,7 +34,8 @@ import { whenDoorsOpen } from '../components/BarnDoors';
 import { useAdmin } from '../../lib/admin';
 import { AvatarIcon, SheepHead } from '../avatars/AvatarIcon';
 import { FeedbackDialog } from '../components/FeedbackDialog';
-import { Bazaar } from '../shop/Bazaar';
+// The Trading Post is its own place (docs/trading-post-practice T1): its scene and models load when it opens.
+const Bazaar = lazy(() => import('../shop/Bazaar').then((m) => ({ default: m.Bazaar })));
 import { Profile } from '../profile/Profile';
 import { BOARDS_DEMO, Leaderboards } from '../boards/Leaderboards';
 import { useWallet } from '../shop/store';
@@ -483,7 +484,7 @@ export function PaintedHome() {
       {gear && <PaintedSettings onClose={() => setGear(false)} />}
       {legal && <LegalDialog initial={legal} onClose={() => setLegal(null)} />}
       {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
-      {bazaar && <Bazaar onClose={() => setBazaar(false)} />}
+      {bazaar && <Suspense fallback={null}><Bazaar onClose={() => setBazaar(false)} /></Suspense>}
       {profile && <Profile onClose={() => setProfile(false)} />}
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       <DevLine />

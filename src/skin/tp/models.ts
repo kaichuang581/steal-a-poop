@@ -2,14 +2,17 @@ import { Group, Mesh, MeshBasicMaterial } from 'three';
 import type { Material } from 'three';
 import { meshModel, toGeometry } from '../dream/models';
 import type { MeshOptions, ModelMesh } from '../dream/models';
-import { GLOW } from '../dream/models.gen';
-import { COLOURS, MODELS, PARTS } from './models.gen';
+import { COLOURS, GLOW, MODELS as CORE, PARTS } from './models.gen';
+import type { ModelData } from './models.gen';
 
 /**
  * The Trading Post and Practice models (docs/trading-post-practice, T2 to T5 and P1 to P3): the pack's boxes, cell for
  * cell, meshed by the dream's grid mesher (dream/models.ts) with the dream's glows. Nothing here is modelled by hand.
  */
-export { COLOURS, MODELS, PARTS };
+export { COLOURS, PARTS };
+/** Every model loaded so far: the bombs ship with the game; the market and the rink add theirs when their screens load. */
+export const MODELS: Record<string, ModelData> = { ...CORE };
+export function addModels(more: Record<string, ModelData>): void { Object.assign(MODELS, more); }
 
 /** A part's bit, for `MeshOptions.parts`. */
 export const partBit = (...names: string[]): number => names.reduce((m, n) => { const i = PARTS.indexOf(n); return i < 0 ? m : m | (1 << i); }, 0);

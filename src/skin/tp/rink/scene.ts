@@ -3,8 +3,10 @@ import { Gather, isGlow, meshModel, tokenColour } from '../../dream/models';
 import type { Arrays } from '../../dream/models';
 import { COLOURS as DREAM_COLOURS, GLOW, MODELS as DREAM_MODELS, PARTS as DREAM_PARTS } from '../../dream/models.gen';
 import { FACE_SHADE } from '../../voxel/mesher';
-import { MODELS as TP_MODELS, tpMesh } from '../models';
-import { RINK } from '../models.gen';
+import { addModels, MODELS as TP_MODELS, tpMesh } from '../models';
+import { RINK, RINK_MODELS } from '../rink.gen';
+
+addModels(RINK_MODELS);
 
 /**
  * The rink (docs/trading-post-practice/P1): every placement of data/rink.json, merged into one lit mesh and one glow

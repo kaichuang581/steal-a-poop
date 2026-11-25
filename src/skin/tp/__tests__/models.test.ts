@@ -1,10 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error the packer is a plain script
-import { OUT, render } from '../../../../tools/tp/packModels.mjs';
-import { GLOW } from '../../dream/models.gen';
+import { OUT, OUT_MARKET, OUT_RINK, renderAll } from '../../../../tools/tp/packModels.mjs';
+import { GLOW } from '../models.gen';
+import { MARKET_MODELS } from '../market.gen';
+import { RINK_MODELS } from '../rink.gen';
 import { LADDER } from '../../voxel/paint';
-import { COLOURS, MODELS, PARTS, tpMesh } from '../models';
+import { addModels, COLOURS, MODELS, PARTS, tpMesh } from '../models';
+
+addModels(MARKET_MODELS);
+addModels(RINK_MODELS);
 
 const index = JSON.parse(readFileSync('docs/trading-post-practice/data/models/index.json', 'utf8')).models as { id: string; size_m: number[] }[];
 
@@ -16,8 +21,11 @@ function extent(pos: number[]): number[] {
 }
 
 describe('the Trading Post and Practice models (X2 S1)', () => {
-  it('models.gen.ts is exactly what the packer makes from the pack', () => {
-    expect(readFileSync(OUT, 'utf8')).toBe(render());
+  it('the three generated files are exactly what the packer makes from the pack', () => {
+    const all = renderAll();
+    expect(readFileSync(OUT, 'utf8')).toBe(all.core);
+    expect(readFileSync(OUT_MARKET, 'utf8')).toBe(all.market);
+    expect(readFileSync(OUT_RINK, 'utf8')).toBe(all.rink);
   });
   it('holds every model of the index, and every colour is LADDER, a named glow or a plain hex', () => {
     expect(Object.keys(MODELS).sort()).toEqual(index.map((m) => m.id).sort());

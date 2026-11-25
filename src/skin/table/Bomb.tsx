@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, Group, Mesh, PointLight, PointsMaterial, Quaternion, Vector3 } from 'three';
+import { Group, PointLight, Quaternion, Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import { turnClockDrawn } from '../model/turnClock';
 import { boardHang, FRAMING, HEAP, SHEEP_SCALE, SPEAKER_CAMERA, seatPosition, shotCamera, speakerShot, TABLE_SCREENS, tableFrame } from '../scene/layout';
@@ -8,12 +8,10 @@ import type { ScreenBox, SpeakerBody } from '../scene/layout';
 import { anchorsOf } from '../voxel/animals/anchors';
 import { animalModel } from '../voxel/animals';
 import { BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S } from '../voxel/bomb';
-import { bombLook } from '../voxel/bombSkins';
 import { voxelMaterial } from '../voxel/material';
 import { TpBlast } from './TpBlast';
 import { makeBomb, SKIN_OF } from '../tp/bomb';
 import { burstKeyOf } from '../tp/burst';
-import { auraOf } from '../shop/bombAura';
 import { useWallet } from '../shop/store';
 
 /** Where the bomb comes to rest beside a holder, given its radius in metres. */
@@ -96,10 +94,6 @@ export function barnSide(index: number, n: number, phone = false, body: SpeakerB
   return { side: ok.find((s) => Math.abs(centreX(s)) >= BOMB_OFF_CENTRE) ?? ok[0], today, clearUpTo };
 }
 
-const PUFF = 40;
-
-interface Ring { mesh: Mesh | null; x: number; z: number; size: number; at: number; leftAt: number }
-
 /**
  * The ice bomb. On every turn it is tossed in a tumbling arc to the new speaker (a fresh one drops from above), hits the
  * floor beside them with a squash and a frosty puff, skids to a stop and wobbles still, and frost spreads on the floor
@@ -114,22 +108,11 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
   // The worn skin (docs/trading-post-practice/T2): its own model with the seconds on its flat face and a fuse of 12
   // pieces that burns down, built once per skin. Its mark is hidden in a game. Only how it looks.
   const equipped = useWallet().equipped;
-  const look = useMemo(() => bombLook(equipped.bomb), [equipped.bomb]);
-  const aura = auraOf(equipped.bomb);
   const lit = useMemo(() => voxelMaterial({}), []);
   const skin = useMemo(() => makeBomb(SKIN_OF[equipped.bomb] ?? 'ice', { lit }), [equipped.bomb, lit]);
-  const ringMats = useMemo(() => [0, 1].map(() => voxelMaterial({ transparent: true, opacity: 0, color: '#ffffff', emissive: '#bfe6ff', emissiveIntensity: 0.25 })), []);
-  // The glow of the frost it leaves on the floor and the puff where it lands, in the skin's own colours.
-  const puffTone = useMemo(() => new Color(), []);
-  useEffect(() => {
-    for (const m of ringMats) m.emissive.set(aura.ring.emissive);
-    puffTone.set(aura.puff);
-  }, [aura, ringMats, puffTone]);
   const group = useRef<Group>(null);
   const face = useRef<Group>(null);
   const glow = useRef<PointLight>(null);
-  const rings = useRef<Ring[]>([0, 1].map(() => ({ mesh: null, x: 0, z: 0, size: 1, at: -99, leftAt: -99 })));
-  const ringNext = useRef(0);
   const st = useRef({ phase: 'none' as 'none' | 'toss' | 'drop' | 'rest', t: 0, from: new Vector3(), land: new Vector3(), dir: new Vector3(), landedAt: -99, pending: false });
   const grown = useRef({ cur: size, last: size, pop: 0 });
   // The bomb's radius now, and what its aura needs to know: where it is, how big, and whether it is sitting still.
@@ -147,26 +130,12 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
   });
   const spot = useMemo(() => (speaker === null ? null : spotAt(speaker, n, phone)), [speaker, n, phone, spotAt]);
 
-  // The puff where it lands: square bits of frost, drawn additive so they fade to nothing. (What comes off it while it
-  // sits there is the skin's own model now.)
-  const fx = useMemo(() => {
-    const cloud = (count: number) => {
-      const geo = new BufferGeometry();
-      geo.setAttribute('position', new BufferAttribute(new Float32Array(count * 3), 3));
-      geo.setAttribute('color', new BufferAttribute(new Float32Array(count * 3), 3));
-      return { geo, vel: new Float32Array(count * 3), age: new Float32Array(count).fill(99), life: new Float32Array(count).fill(1), count };
-    };
-    return { puff: cloud(PUFF), puffMat: new PointsMaterial({ size: 0.11, vertexColors: true, transparent: true, depthWrite: false, blending: AdditiveBlending }) };
-  }, []);
-
   useEffect(() => {
     if (!spot || !group.current) return;
     const s = st.current;
     const justExploded = spent.current;
     spent.current = false;
     if (justExploded && performance.now() - lastBoom.current.at < 600) { goneFrom.current.copy(group.current.position); goneAt.current = performance.now(); }
-    // The frost it leaves behind thaws away.
-    for (const r of rings.current) if (r.leftAt < r.at) r.leftAt = performance.now() / 1000;
     if (reduced) { s.phase = 'rest'; s.landedAt = -99; s.pending = true; return; }
     s.phase = s.phase === 'none' || justExploded ? 'drop' : 'toss';
     s.t = 0;
@@ -233,10 +202,7 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
       const wob = e < 1.2 ? 0.32 * Math.exp(-e * 5) * Math.sin(e * 16) : 0;
       // Near the end it rattles on the floor.
       const rattle = red && !reduced ? Math.sin(now * 40) * 0.07 : 0;
-      // A bell rocks from side to side once it has settled, its lip lifting a little each way.
-      const rock = aura.rock && !reduced ? Math.sin(e * 2.6) * aura.rock * Math.min(1, Math.max(0, e - 0.8)) : 0;
-      g.position.y += Math.abs(rock) * r * 0.6;
-      g.quaternion.setFromAxisAngle(axis, wob).multiply(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), rattle + rock));
+      g.quaternion.setFromAxisAngle(axis, wob).multiply(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), rattle));
     }
     g.scale.set(scale * sx, scale * sy, scale * sx);
 
@@ -260,67 +226,18 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
       glow.current.intensity = (s.phase === 'rest' || reduced ? 1.4 : 1) * (red ? 1.6 : 1) * (reduced ? 1 : 0.85 + 0.15 * Math.sin(now * 23));
     }
 
-    // The frost on the floor: it spreads out from under the bomb as it lands, and thaws once the bomb has gone.
-    for (let i = 0; i < rings.current.length; i++) {
-      const ring = rings.current[i];
-      if (!ring.mesh) continue;
-      const grow = Math.min(1, (wall - ring.at) / 0.5);
-      const gone = ring.leftAt >= ring.at ? Math.min(1, (wall - ring.leftAt) / 0.9) : 0;
-      const op = (1 - (1 - grow) ** 2) * (1 - gone) * 0.85;
-      ringMats[i].opacity = op;
-      ring.mesh.visible = op > 0.01;
-      ring.mesh.position.set(ring.x, 0.006 + i * 0.002, ring.z);
-      ring.mesh.scale.setScalar(ring.size * (0.3 + 0.7 * (1 - (1 - grow) ** 3)));
-    }
-    stepFx(dt);
   });
 
-  function land(rest: Vector3) {
+  function land(_rest: Vector3) {
     const s = st.current;
     s.phase = 'rest';
     s.landedAt = performance.now() / 1000;
-    const ring = rings.current[ringNext.current];
-    ringNext.current = (ringNext.current + 1) % rings.current.length;
-    Object.assign(ring, { x: rest.x, z: rest.z, size: 1.1 * (rest.y / BOMB_RADIUS / 1.5), at: s.landedAt, leftAt: -99 });
-    // The puff: frost kicked out low along the floor in a ring.
-    const p = fx.puff.geo.getAttribute('position') as BufferAttribute;
-    for (let i = 0; i < PUFF; i++) {
-      const a = (i / PUFF) * Math.PI * 2 + Math.random() * 0.3, sp = 0.9 + Math.random() * 1.3;
-      p.setXYZ(i, s.land.x + Math.cos(a) * 0.12, 0.04 + Math.random() * 0.1, s.land.z + Math.sin(a) * 0.12);
-      fx.puff.vel.set([Math.cos(a) * sp, 0.4 + Math.random() * 1.1, Math.sin(a) * sp], i * 3);
-      fx.puff.age[i] = -Math.random() * 0.05;
-      fx.puff.life[i] = 0.45 + Math.random() * 0.35;
-    }
-    p.needsUpdate = true;
-  }
-
-  function stepFx(dt: number) {
-    // The landing puff: thrown out and up, slowed by the air, falling back.
-    const pf = fx.puff;
-    const pp = pf.geo.getAttribute('position') as BufferAttribute, pc = pf.geo.getAttribute('color') as BufferAttribute;
-    for (let i = 0; i < PUFF; i++) {
-      pf.age[i] += dt;
-      const k = pf.age[i] / pf.life[i];
-      if (k < 0 || k > 1) { pc.setXYZ(i, 0, 0, 0); continue; }
-      const drag = Math.exp(-dt * 4);
-      pf.vel[i * 3] *= drag; pf.vel[i * 3 + 2] *= drag;
-      pf.vel[i * 3 + 1] -= 3.2 * dt;
-      pp.setXYZ(i, pp.getX(i) + pf.vel[i * 3] * dt, Math.max(0.02, pp.getY(i) + pf.vel[i * 3 + 1] * dt), pp.getZ(i) + pf.vel[i * 3 + 2] * dt);
-      const f = 1 - k;
-      pc.setXYZ(i, puffTone.r * f, puffTone.g * f, puffTone.b * f);
-    }
-    pp.needsUpdate = true;
-    pc.needsUpdate = true;
   }
 
   return (
     <>
       <TpBlast boomKey={boomKey} origin={origin.current} burst={burstKeyOf(equipped.blast)} reduced={reduced} scale={(2 * BOMB_RADIUS * 1.5 * power) / 0.5} />
-      {rings.current.map((r, i) => (
-        <mesh key={i} ref={(mm) => { r.mesh = mm; }} geometry={look.ground} material={ringMats[i]} visible={false} renderOrder={1} />
-      ))}
-      {!reduced && <points geometry={fx.puff.geo} material={fx.puffMat} frustumCulled={false} />}
-      <pointLight ref={glow} color={aura.light} intensity={0} distance={3} decay={2} />
+      <pointLight ref={glow} color={skin.skin.spark[0].replace(/^lit:/, '')} intensity={0} distance={3} decay={2} />
       <group ref={group} scale={1.5}>
         {/* The pack's bomb is 0.5 m across with its middle 0.25 m up; here the group's origin is the middle and its radius BOMB_RADIUS. */}
         <group ref={face} scale={BOMB_RADIUS / 0.25}>

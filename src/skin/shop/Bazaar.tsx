@@ -32,7 +32,8 @@ import { BellShelfRoll, BellsStop } from '../tp/market/stops/BellShelf';
 import { MissionsRoll, MissionsStop } from '../tp/market/stops/Missions';
 import { BookStop } from '../tp/market/stops/BarnBook';
 import { CloseView } from '../tp/market/stops/CloseView';
-import { MARKET, TIMINGS } from '../tp/models.gen';
+import { TIMINGS } from '../tp/models.gen';
+import { MARKET } from '../tp/market.gen';
 import '../tp/market/market.css';
 
 /**

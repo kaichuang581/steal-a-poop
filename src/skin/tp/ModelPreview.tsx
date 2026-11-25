@@ -3,7 +3,12 @@ import { useMemo } from 'react';
 import { Color, Group, PerspectiveCamera, Scene, SRGBColorSpace } from 'three';
 import { LOOK } from '../look';
 import { Board } from '../dream/world3d/DreamPropBoard';
-import { COLOURS, MODELS } from './models';
+import { addModels, COLOURS, MODELS } from './models';
+import { MARKET_MODELS } from './market.gen';
+import { RINK_MODELS } from './rink.gen';
+
+addModels(MARKET_MODELS);
+addModels(RINK_MODELS);
 import { makeBomb } from './bomb';
 import { makeBurst } from './burst';
 import { BURSTS, SKINS } from './models.gen';

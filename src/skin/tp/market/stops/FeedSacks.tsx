@@ -7,7 +7,7 @@ import { RARITIES, RARITY_COLOR, RARITY_LABEL } from '../../../shop/rarity';
 import { liveGuarantees, sackComplete } from '../../../shop/roll';
 import { poolFor, SACK, SACKS } from '../../../shop/sacks';
 import type { SackId } from '../../../shop/sacks';
-import { MARKET } from '../../models.gen';
+import { MARKET } from '../../market.gen';
 import { REVEAL_STAND, BENCH } from '../MarketWorld';
 import { itemWidth, partRect } from '../world';
 import { At, Icon, ListenTile, Rarity, rarityOf } from '../pieces';

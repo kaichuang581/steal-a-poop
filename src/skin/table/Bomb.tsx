@@ -236,7 +236,7 @@ export function Bomb({ speaker, n, phone = false, red, reduced, boomKey, size, p
 
   return (
     <>
-      <TpBlast boomKey={boomKey} origin={origin.current} burst={burstKeyOf(equipped.blast)} reduced={reduced} scale={(2 * BOMB_RADIUS * 1.5 * power) / 0.5} />
+      <TpBlast boomKey={boomKey} origin={origin.current} burst={burstKeyOf(equipped.blast)} reduced={reduced} scale={(2 * 2 * BOMB_RADIUS * 1.5 * power) / 0.5} />
       <pointLight ref={glow} color={skin.skin.spark[0].replace(/^lit:/, '')} intensity={0} distance={3} decay={2} />
       <group ref={group} scale={1.5}>
         {/* The pack's bomb is 0.5 m across with its middle 0.25 m up; here the group's origin is the middle and its radius BOMB_RADIUS. */}

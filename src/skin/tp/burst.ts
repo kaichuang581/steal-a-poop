@@ -1,4 +1,4 @@
-import { Color, Group, Mesh } from 'three';
+import { AdditiveBlending, CanvasTexture, Color, Group, Mesh, PointLight, Sprite, SpriteMaterial } from 'three';
 import type { Material } from 'three';
 import { Gather } from '../dream/models';
 import { flatGlow, flatLit } from './models';
@@ -79,7 +79,7 @@ export function fitSpread(key: string, w: number, h: number, most: number): numb
   return lo;
 }
 
-interface Piece { mesh: Group; home: [number, number, number]; i: number; n: number }
+interface Piece { mesh: Group; home: [number, number, number]; i: number; n: number; delay?: number }
 export interface BurstObject {
   group: Group;
   key: string;
@@ -112,12 +112,48 @@ export function makeBurst(key: string, o: { lit?: Material; spread?: number } = 
     group.add(g);
     return { mesh: g, home: o.spread ? drawIn(key, o.spread)(c) : c, i, n: all.length };
   });
+  // In a game a burst plays with two echoes of itself, so it fills the air (Brian, 2026-11-25: "weak, small, and
+  // flimsy"): its mirror image 70 ms later, and a tighter copy at 60% of the distance 140 ms later. Fixed copies of
+  // fixed places: still nothing random.
+  if (!o.spread) {
+    const base = [...pieces];
+    for (const { mirror, k, delay } of [{ mirror: true, k: 1, delay: 70 }, { mirror: false, k: 0.6, delay: 140 }]) {
+      for (const p of base) {
+        const mesh = p.mesh.clone();
+        group.add(mesh);
+        const [hx, hy, hz] = p.home;
+        pieces.push({ mesh, home: [ORIGIN[0] + (hx - ORIGIN[0]) * k * (mirror ? -1 : 1), ORIGIN[1] + (hy - ORIGIN[1]) * k, hz * k], i: p.i + (mirror ? 1 : 2), n: p.n, delay });
+      }
+    }
+  }
   const hold = HOLD[key] ?? 0;
+  // The bang (in a game only, not on a stand): a flash of the burst's own light that swells and fades in 350 ms, and a
+  // light that lights the sheep for a moment (Brian, 2026-11-25: the bursts were "weak, small, and flimsy").
+  const flashColour = new Color(data.colours[data.boxes_at_fullest.find((b) => b[7])?.[6] ?? data.boxes_at_fullest[0][6]] ?? '#FFFFFF').lerp(new Color('#FFFFFF'), 0.55);
+  let flash: Sprite | null = null, light: PointLight | null = null;
+  if (!o.spread && typeof document !== 'undefined') {
+    flash = new Sprite(new SpriteMaterial({ map: flashTexture(), color: flashColour, blending: AdditiveBlending, transparent: true, depthWrite: false, toneMapped: false }));
+    flash.position.set(ORIGIN[0], ORIGIN[1] + 0.2, 0.1);
+    light = new PointLight(flashColour, 0, 7, 1.6);
+    light.position.set(0, 0.6, 0.4);
+    group.add(flash, light);
+  }
 
   function at(ms: number, reduced = false): void {
     group.visible = ms >= 0 && ms < TOTAL_MS;
     if (!group.visible) return;
-    for (const p of pieces) pose(p, reduced ? (ms < 400 ? OUT_MS : OUT_MS + (ms - 400) * 4) : ms, reduced ? Math.max(0, 1 - Math.max(0, ms - 400) / 200) : 1);
+    if (flash && light) {
+      const f = Math.max(0, 1 - ms / 350);
+      flash.visible = f > 0;
+      flash.scale.setScalar(1 + 2.6 * (1 - f * f));
+      flash.material.opacity = f;
+      light.intensity = 9 * Math.max(0, 1 - ms / 450);
+    }
+    for (const p of pieces) {
+      const t = reduced ? (ms < 400 ? OUT_MS : OUT_MS + (ms - 400) * 4) : ms - (p.delay ?? 0);
+      p.mesh.visible = t >= 0;
+      if (t >= 0) pose(p, t, reduced ? Math.max(0, 1 - Math.max(0, ms - 400) / 200) : 1);
+    }
   }
 
   function pose(p: Piece, ms: number, fadeIn: number): void {
@@ -126,7 +162,8 @@ export function makeBurst(key: string, o: { lit?: Material; spread?: number } = 
     const ph = i / Math.max(1, n); // each piece's own beat, from its place in the list
     const [ox, oy] = o.spread ? drawIn(key, o.spread)([ORIGIN[0], ORIGIN[1], 0]) : ORIGIN;
     let x = ox + (hx - ox) * out, y = oy + (hy - oy) * out, z = hz * out;
-    let s = 0.3 + 0.7 * out, rx = 0, rz = 0;
+    // In a game the pieces burst out half again their size and settle by the fullest moment.
+    let s = (0.3 + 0.7 * out) * (o.spread ? 1 : 1 + 0.5 * Math.sin(Math.min(1, ms / OUT_MS) * Math.PI)), rx = 0, rz = 0;
     const after = Math.max(0, ms - OUT_MS - hold), span = TOTAL_MS - OUT_MS - hold, u = Math.min(1, after / span);
     switch (key) {
       case 'confetti': y -= 0.9 * u * u; x += 0.06 * Math.sin(u * 9 + ph * 6); rx = u * Math.PI * (3 + (i % 3)); break;
@@ -151,4 +188,16 @@ export function makeBurst(key: string, o: { lit?: Material; spread?: number } = 
 
   at(OUT_MS);
   return { group, key, at };
+}
+
+/** A soft round glow for the flash, drawn once. */
+let flashTex: CanvasTexture | null = null;
+function flashTexture(): CanvasTexture {
+  if (flashTex) return flashTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!, r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.35, 'rgba(255,255,255,0.7)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  return (flashTex = new CanvasTexture(c));
 }

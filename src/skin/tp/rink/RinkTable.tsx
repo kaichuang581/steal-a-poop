@@ -349,6 +349,7 @@ function RinkBomb({ holder, bomb, blast, boomKey, cam, coach, reduced }: RinkSce
     const sinceBoom = now - s.boomAt;
     // The bang: the bomb is gone, the burst plays where it stood.
     burst.group.position.set(s.bx, 0, RINK.bomb_at_m.player[2]);
+    burst.group.scale.setScalar(1.9); // bigger than the plan's, so the bang carries (Brian, 2026-11-25)
     burst.at(sinceBoom, reduced);
     // Gone from the bang until someone holds a fresh bomb (a run ends on it, so for good there).
     if (holder !== null) s.spent = false;

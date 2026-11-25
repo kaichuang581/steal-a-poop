@@ -190,13 +190,14 @@ describe('the bed strip\'s camera', () => {
       const f = dreamFrame(w, h), c = stripCamera(f), puffs = tailPuffs(f, c), [cx, cy] = stripPoint(c, CAP_TIP.x, CAP_TIP.y, CAP_TIP.z);
       expect(puffs.map((p) => p.w)).toEqual(f.phone ? [26, 18, 12] : [40, 26, 16]);
       const mid = puffs.map((p) => [p.x + p.w / 2, p.y + p.h / 2] as const), k = f.phone ? 26 / 40 : 1;
-      // The plan's steps between their middles: 24 up and 14 right, then 32 up and 26 right.
-      expect(Math.abs(mid[1][0] - mid[2][0] - 14 * k)).toBeLessThanOrEqual(1);
+      // The plan's steps between their middles: 24 up and 14 across, then 32 up and 26 across, toward the headboard
+      // (left), where his face is not.
+      expect(Math.abs(mid[2][0] - mid[1][0] - 14 * k)).toBeLessThanOrEqual(1);
       expect(Math.abs(mid[2][1] - mid[1][1] - 24 * k)).toBeLessThanOrEqual(1);
-      expect(Math.abs(mid[0][0] - mid[1][0] - 26 * k)).toBeLessThanOrEqual(1);
+      expect(Math.abs(mid[1][0] - mid[0][0] - 26 * k)).toBeLessThanOrEqual(1);
       expect(Math.abs(mid[1][1] - mid[0][1] - 32 * k)).toBeLessThanOrEqual(1);
-      // The smallest is 6 right of the cap's tip and at least 14 above it (more if all three moved up to the shade).
-      expect(Math.abs(mid[2][0] - cx - 6 * k)).toBeLessThanOrEqual(1);
+      // The smallest is 6 left of the cap's tip and at least 14 above it (more if all three moved up to the shade).
+      expect(Math.abs(cx - mid[2][0] - 6 * k)).toBeLessThanOrEqual(1);
       expect(cy - mid[2][1]).toBeGreaterThanOrEqual(14 * k - 1);
       // The largest overlaps the window's shade by 4 at least.
       expect(puffs[0].y).toBeLessThanOrEqual(f.bubble.y + f.bubble.h + SHADE - 4);

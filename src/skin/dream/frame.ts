@@ -213,7 +213,9 @@ export function stripExtent(f: DreamFrame, c: StripCamera = stripCamera(f)): { x
 export const TAIL = { computer: [40, 26, 16], phone: [26, 18, 12] } as const;
 export function tailPuffs(f: DreamFrame, c: StripCamera = stripCamera(f)): Box[] {
   const sizes = f.phone ? TAIL.phone : TAIL.computer, k = sizes[0] / TAIL.computer[0], [cx, cy] = stripPoint(c, CAP_TIP.x, CAP_TIP.y, CAP_TIP.z);
-  const small: [number, number] = [cx + 6 * k, cy - 14 * k], mid: [number, number] = [small[0] + 14 * k, small[1] - 24 * k], large: [number, number] = [mid[0] + 26 * k, mid[1] - 32 * k];
+  // The plan's offsets run up and to the right of the cap; with his head turned toward the room (v3/09) his face is
+  // there, so the puffs rise the same way on the headboard's side, clear of it.
+  const small: [number, number] = [cx - 6 * k, cy - 14 * k], mid: [number, number] = [small[0] - 14 * k, small[1] - 24 * k], large: [number, number] = [mid[0] - 26 * k, mid[1] - 32 * k];
   const shade = f.bubble.y + f.bubble.h + SHADE, lift = Math.max(0, large[1] - sizes[0] / 2 - (shade - 4));
   return [large, mid, small].map(([x, y], i) => ({ x: Math.round(x - sizes[i] / 2), y: Math.round(y - lift - sizes[i] / 2), w: sizes[i], h: sizes[i] }));
 }

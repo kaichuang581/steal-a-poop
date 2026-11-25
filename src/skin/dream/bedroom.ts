@@ -2,11 +2,13 @@ import type { BufferGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { buildGeometry } from '../voxel/mesher';
 import { lin, pick, pickBy, T } from '../voxel/palette';
-import { meanOf } from '../voxel/paint';
+import { meanOf, solid } from '../voxel/paint';
 import { box, ellipsoid, Grid, hash3 } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
 import { CHAR } from '../voxel/sheep';
-import { IN_BED, PIVOT, UNIT } from './farmer';
+import { Matrix4, Vector3 } from 'three';
+import { blendPose, farmerCells, IN_BED, lyingAt, PIVOT, POSES, UNIT, worldOf } from './farmer';
+import type { Piece, Pose } from './farmer';
 
 /**
  * The farmer's bedroom on Christmas night (V4.1 Part 7, V6 Part 6.4), the real world under the dream, drawn in its own
@@ -20,8 +22,6 @@ import { IN_BED, PIVOT, UNIT } from './farmer';
  * nightstand and the window on the -z side, the floor at y = 0.
  */
 export const BED = {
-  /** The quilt's patches: barn red, cream, holly green, mustard and navy wool. */
-  quilt: ['#B5443C', '#F3EAD6', '#4F7A55', '#D9A84A', '#3D5A8A'] as const,
   cap: ['#C24E45', '#F3EAD6'] as const,
   mattress: { w: 1.1, h: 0.3, l: 2.0, top: 0.55 },
   pillowTop: 0.7,
@@ -29,8 +29,6 @@ export const BED = {
 const D = 0.05, B = 0.1, S = 0.025;
 const PINE = ['#BE9670', '#AF8862', '#987452'] as const;
 const SEAM = '#8A6342';
-/** Each patch's own colour a shade darker, for the stitched seams between them. */
-const QUILT_SEAM = ['#8E342E', '#CBBE9F', '#3B5E41', '#B48A38', '#2C4369'] as const;
 const SAGE = ['#86A27F', '#789672', '#617D5D'] as const;
 const TRIM = ['#F1E8D4', '#E3D8C0', '#CBBE9F'] as const;
 const FLOOR = ['#7E5636', '#704B2E', '#5C3D25'] as const;
@@ -62,13 +60,18 @@ export const CANDLE = { x: 3.34, y: 0.6, z: -1.0 } as const;
 /** The knitting basket on the floor beside the nightstand: its middle. */
 export const BASKET = { x: 3.86, z: -0.92 } as const;
 /** The low shelf on the wall over the basket: his five books stand on it. */
-const BOOKSHELF = { x0: 3.3, x1: 4.05, y: 1.0 } as const;
+const BOOKSHELF = { x0: 3.3, x1: 4.05, y: 0.75 } as const; // 0.75 (was 1.0): the books clear the dream window's straight rim from 1280 wide (v3/09, check 4)
 /** The low window the bed strip ends on (the strip sees further along the wall than the room is long). */
 export const STRIP_WINDOW = { w: 0.8, y0: 0.9, y1: 1.45 } as const;
 /** The beam across the room and the hook the results board hangs from. */
 export const BEAM = { y: 2.2, z: 0.4, hookX: 2.15 } as const;
-/** The pillow, across the bed: under his head where he lies (farmer.ts `IN_BED`), with room for the cap's tail beside it. */
-const PILLOW = { z0: -0.3, z1: 0.5 } as const;
+/**
+ * The pillow, across the bed: under his head where he lies (farmer.ts `IN_BED`: its middle is his), with room for the
+ * cap's tail beside it, and reaching under his neck.
+ */
+const PILLOW = { x0: 0.05, x1: 0.7, z0: -0.3, z1: 0.5 } as const;
+/** The poses in which his head lies on the pillow: the pillow gives under his head in each (`pillowDent`). */
+const ON_PILLOW: readonly Pose[] = [POSES.bedSleep, POSES.bedDeep, POSES.bedStir];
 
 /** The dream is over: the bubble opens to the whole room and the camera comes down to the bed. */
 export const roomOn = (phase: string) => phase === 'results';
@@ -186,13 +189,6 @@ export interface BedroomGeo {
   ring: BufferGeometry;
 }
 
-const quiltPaint = (cell: number, z0: number): Paint => (x, _y, z) => {
-  const n = Math.round(0.3 / cell), px = Math.floor(x / n), pz = Math.floor((z - z0) / n);
-  const onSeam = mod(x, n) === 0 || mod(z - z0, n) === 0;
-  const k = mod(px * 2 + pz * 3 + (px * pz) % 2, BED.quilt.length);
-  return lin(onSeam ? QUILT_SEAM[k] : BED.quilt[k]);
-};
-
 let bedroomCache: BedroomGeo | null = null;
 export function bedroomGeometry(): BedroomGeo {
   if (bedroomCache) return bedroomCache;
@@ -242,12 +238,9 @@ export function bedroomGeometry(): BedroomGeo {
   }
   for (const sz of [-1, 1]) box(g, [0, 0.2, sz > 0 ? m.w / 2 - D : -m.w / 2], [m.l, 0.35, sz > 0 ? m.w / 2 : -m.w / 2 + D], wood(19));
   box(g, [0, 0.35, -m.w / 2 + D], [m.l, m.top, m.w / 2 - D], (_x, y, z) => lin(mod(z, 3) === 0 ? '#C9D4E8' : TRIM[y === 10 ? 0 : 1]));
-  // The pillow, a pale ticking with a blue stripe, chamfered.
-  box(g, [0.05, m.top, PILLOW.z0], [0.65, BED.pillowTop, PILLOW.z1], (_x, y, z) => lin(y >= i(BED.pillowTop) - 1 && mod(z, 3) === 0 ? '#C9D4E8' : '#EEF1F6'), 1);
-  // The quilt from his waist to the foot, draped over the sides, and the sheet turned down over its top edge.
-  const qz0 = -hw - 1, qPaint = quiltPaint(D, qz0);
-  box(g, [0.95, m.top, qz0 * D], [m.l, m.top + D, (hw + 1) * D], qPaint);
-  for (const sz of [-1, 1]) box(g, [0.65, 0.3, sz > 0 ? hw * D : qz0 * D], [m.l, m.top, sz > 0 ? (hw + 1) * D : (qz0 + 1) * D], (x, y, z) => (y === 6 ? lin(TRIM[1]) : qPaint(x, y, z)));
+  // The pillow, a pale ticking with a blue stripe, chamfered, pressed down a cell where his head lies.
+  box(g, [PILLOW.x0, m.top, PILLOW.z0], [PILLOW.x1, BED.pillowTop, PILLOW.z1], (_x, y, z) => lin(y >= i(BED.pillowTop) - 1 && mod(z, 3) === 0 ? '#C9D4E8' : '#EEF1F6'), 1);
+  for (const key of pillowDent()) { const [x, z] = key.split(',').map(Number); g.del(x, i(BED.pillowTop) - 1, z); }
 
   // ---- the nightstand: walnut, legs, a drawer with a brass knob, an overhanging top
   const s = STAND;
@@ -354,8 +347,9 @@ export function bedroomGeometry(): BedroomGeo {
     }
   }
 
-  // ---- the knitting basket on the floor beside the nightstand: 0.3 m of wicker, a ball of the game's red yarn in it and
-  // two steel needles standing crossed. The dream's third world is made of these.
+  // ---- the knitting basket on the floor beside the nightstand: 0.3 m of wicker, and in it the three things the dream's
+  // third world is made of (docs/dream/v3/09, section 3): a ball of the game's red yarn, two knitting needles standing
+  // crossed, brass with cream knobs, and a spool of mauve thread on a wooden spool.
   {
     const kx = Math.round(BASKET.x / S), kz = Math.round(BASKET.z / S), r = 6;
     const WICKER = ['#B98B52', '#A0733F', '#8A6034'] as const;
@@ -367,14 +361,21 @@ export function bedroomGeometry(): BedroomGeo {
       // A weave: bands that step every other row; a darker rim on top.
       fine.set(kx + dx, y, kz + dz, lin(y === 6 ? WICKER[2] : WICKER[(Math.floor((dx + dz + 40) / 2) + y) % 2]));
     }
-    ellipsoid(fine, [(kx - 1) * S, 0.17, (kz + 0.5) * S], [0.085, 0.08, 0.085], (x, y, z) => lin((x + y * 2 + z) % 4 === 0 ? '#A63C30' : '#C44A3A'));
-    // The needles: thin steel, crossed, leaning out of the yarn.
-    for (let k = 0; k < 13; k++) {
-      fine.set(kx + 3 - Math.round(k * 0.3), 5 + k, kz - 2 + Math.round(k * 0.22), lin('#B9BEC8'));
-      fine.set(kx - 4 + Math.round(k * 0.3), 5 + k, kz - 1 + Math.round(k * 0.12), lin('#C9CED8'));
+    const yarn = solid('scarfRed', 0), needle = solid('brass', 0), knob = solid('trimWhite', 0);
+    ellipsoid(fine, [(kx - 1) * S, 0.17, (kz + 0.5) * S], [0.085, 0.08, 0.085], () => yarn);
+    // The needles: crossed, leaning out of the yarn, each with a cream knob on its top end.
+    for (const [x0, z0, dx, dz] of [[3, -2, -0.3, 0.22], [-4, -1, 0.3, 0.12]] as const) {
+      for (let k = 0; k < 13; k++) fine.set(kx + x0 + Math.round(k * dx), 5 + k, kz + z0 + Math.round(k * dz), needle);
+      const tx = kx + x0 + Math.round(12 * dx), tz = kz + z0 + Math.round(12 * dz);
+      for (const [ox, oz] of [[0, 0], [1, 0], [0, 1], [1, 1]]) for (const y of [18, 19]) fine.set(tx + ox - (dx < 0 ? 1 : 0), y, tz + oz, knob);
     }
-    fine.set(kx + 3 - Math.round(12 * 0.3), 18, kz - 2 + Math.round(12 * 0.22), lin('#8F949E'));
-    fine.set(kx - 4 + Math.round(12 * 0.3), 18, kz - 1 + Math.round(12 * 0.12), lin('#8F949E'));
+    // The spool, at the basket's front corner toward the room, standing on its rim against the yarn: wooden ends, the
+    // mauve thread wound between them.
+    const spool = solid('wood', 1), thread = solid('slate', 0), sx = kx + 3, sz = kz + 3;
+    for (let y = 6; y < 11; y++) for (let ox = -2; ox < 2; ox++) for (let oz = -2; oz < 2; oz++) {
+      const end = y === 6 || y === 10, r2 = (ox + 0.5) ** 2 + (oz + 0.5) ** 2;
+      if (end ? r2 <= 4.5 : r2 <= 2) fine.set(sx + ox, y, sz + oz, end ? spool : thread);
+    }
   }
 
   // ---- the shelf high on the wall by the headboard: a knitted sheep and two jars of preserves
@@ -412,9 +413,9 @@ export function bedroomGeometry(): BedroomGeo {
     fine.set(px, py + y, pz - x, lin(ch === 'F' ? T.brass[2] : ch === '#' ? TRIM[0] : ch === 'h' ? '#3A2E2A' : y < 2 ? '#4F7A55' : '#2A3366'));
   }
 
-  const over = quiltOverGeometry(qPaint);
+  const over = quiltOverGeometry();
   bedroomCache = {
-    room: cullUnseen(mergeGeometries([buildGeometry(g.map, D), buildGeometry(big.map, B), buildGeometry(fine.map, S), buildGeometry(lamp.map, S)], false)!),
+    room: cullUnseen(mergeGeometries([buildGeometry(g.map, D), buildGeometry(big.map, B), buildGeometry(fine.map, S), buildGeometry(lamp.map, S), quiltSides()], false)!),
     glow: cullUnseen(mergeGeometries([buildGeometry(glow.map, D, { ao: false }), buildGeometry(glowFine.map, S, { ao: false })], false)!),
     lampGlass: buildGeometry(lampGlass.map, S, { ao: false }),
     quiltChest: over.chest,
@@ -458,38 +459,157 @@ export function stripWall(x1: number, windowX: number | null): { solid: BufferGe
 
 /** Where his waist is along the bed: the quilt over his chest lifts with him from here. */
 export const WAIST_X = IN_BED.neckX + (PIVOT.head[1] - PIVOT.torso[1]) * UNIT;
-/** The quilt's top edge: his armpits. */
-const QUILT_EDGE = IN_BED.neckX + (PIVOT.head[1] - 42) * UNIT;
-const step = (t: number) => { const u = Math.min(1, Math.max(0, t)); return u * u * (3 - 2 * u); };
 /**
- * How high the quilt lies over him, above the mattress, at a place on the bed: a plateau over his body, hugging his
- * near side so that arm can lie out on the flat of the quilt, wider on the far side where the other arm is under it,
- * falling away toward his feet.
+ * The quilt over him (docs/dream/v3/09, section 3), on a grid of its own, 0.02 m (the farmer's unit), so that its
+ * 0.2 m squares, the 0.12 m sheet and the stitch every 0.06 m all land on whole cells. Its cells are counted from the
+ * mattress's top (y) and from 0.01 m along z (`Z0`), so the bed's sides (z = ±0.55) and the 0.1 m margins fall on
+ * cell edges too.
+ *
+ * - `edge`: its top edge lies across his chest at his armpits, so his neck, collar and both shoulders are out of it.
+ * - `band`: the sheet turned down over that edge, `trimWhite +2`, with red blanket stitch (`scarfRed 0`) along the
+ *   band's lower edge, one stitch every `stitch`.
+ * - `inset`: each step runs the bed's width less this at each side, where the quilt falls to the mattress, and down
+ *   each side it hangs `hang` (0.24: the grid's nearest to the plan's 0.25).
+ * - `over`: how thick it lies on him. Where his body stands higher than the plan's step (his chest, his belly, his
+ *   legs: the model is 0.28 m deep, the steps 0.06 to 0.16), it lies on him, this much over him.
  */
-function quiltHeight(x: number, z: number): number {
-  const u = z - IN_BED.z;
-  const across = u >= 0 ? 1 - step((u - 0.24) / 0.1) : 1 - step((-u - 0.42) / 0.12);
-  const along = 1 - 0.62 * step((x - (WAIST_X + 0.3)) / 0.28);
-  return 0.31 * across * along;
+export const QUILT = { cell: 0.02, edge: 0.88, band: 0.12, stitch: 0.06, square: 0.2, inset: 0.1, side: 0.55, hang: 0.24, over: 0.04, foot: 2.0 } as const;
+const Q = QUILT.cell, Z0 = 0.01;
+/** The plan's steps along his length, from the armpits: each `to` this x, `h` above the mattress. */
+const STEPS = [{ to: WAIST_X, h: 0.08 }, { to: 1.46, h: 0.1 }, { to: 1.56, h: 0.08 }, { to: 1.7, h: 0.06 }, { to: QUILT.foot, h: 0.1 }] as const;
+/** The two toes' bump at the foot: over each foot (the legs' middles), this high. */
+const TOES = { x0: 1.76, x1: 1.86, half: 0.05, h: 0.16 } as const;
+/** The quilt's colours (docs/dream/v3/03, section 5): cream between, then these in turn. */
+const SQUARES = ['scarfRed', 'coopYellow', 'giftGreen', 'slate'] as const;
+const CREAM = solid('trimWhite', 0), SHEET = solid('trimWhite', 2), STITCH = solid('scarfRed', 0);
+/**
+ * One square's colour. `u` is how far the cloth runs from the near side's top edge across the bed and on down the far
+ * side (the side hanging down the near side runs on below 0): the squares carry on over the edge as one cloth does.
+ */
+function squareAt(x: number, u: number): RGB {
+  return patch(Math.floor((x - QUILT.edge - QUILT.band + 1e-6) / QUILT.square), Math.floor(u / QUILT.square + 1e-6));
 }
+/** The quilt's rule for the square in column `ix`, row `iz`: cream when ix + iz is even, else the four in turn. */
+const patch = (ix: number, iz: number): RGB => (mod(ix + iz, 2) === 0 ? CREAM : solid(SQUARES[mod(Math.floor((ix + 3 * iz) / 2), 4)], 0));
+/** The quilt's paint at a cell's middle (x, z in metres, `u` the cloth's run there): the sheet's band, its stitch, a square. */
+export function quiltColour(x: number, u: number): RGB {
+  const into = x - QUILT.edge;
+  if (into < QUILT.band) {
+    // A stitch: two cells long, reaching from the band's lower edge into it, one every `stitch` along the edge.
+    const k = Math.floor(u / Q + 1e-6);
+    return into >= QUILT.band - 2 * Q && mod(k, Math.round(QUILT.stitch / Q)) === 1 ? STITCH : SHEET;
+  }
+  return squareAt(x, u);
+}
+
+/**
+ * Where some of his pieces are, as he lies in a pose on the bed: for each column of a grid (`cell` m square, the
+ * key "i,k", z counted from `-z0`), the lowest and highest point of those pieces over it, in the room's metres.
+ */
+export function farmerColumns(pose: Pose, pieces: readonly Piece[], cell: number, z0 = 0): Map<string, { lo: number; hi: number }> {
+  const out = new Map<string, { lo: number; hi: number }>();
+  const lying = lyingAt(BED.mattress.top), at = new Matrix4().compose(new Vector3(...lying.position), lying.quaternion, new Vector3(1, 1, 1));
+  const world = worldOf(pose), cells = farmerCells(), half = new Vector3(), c = new Vector3();
+  for (const p of pieces) {
+    const m = at.clone().multiply(world[p]), e = m.elements;
+    // A voxel turned with its piece: its box in the room is its middle, give or take half of each turned edge.
+    half.set(Math.abs(e[0]) + Math.abs(e[4]) + Math.abs(e[8]), Math.abs(e[1]) + Math.abs(e[5]) + Math.abs(e[9]), Math.abs(e[2]) + Math.abs(e[6]) + Math.abs(e[10])).multiplyScalar(UNIT / 2);
+    for (const v of cells.get(p)!.map.values()) {
+      c.set((v.x - PIVOT[p][0]) * UNIT, (v.y + 0.5 - PIVOT[p][1]) * UNIT, (v.z - PIVOT[p][2]) * UNIT).applyMatrix4(m);
+      // Columns it covers, less a hair: a voxel tipped a few degrees reaches a hair past its own column.
+      for (let i = Math.floor((c.x - half.x + 0.003) / cell); i <= Math.floor((c.x + half.x - 0.003) / cell); i++) {
+        for (let k = Math.floor((c.z - half.z + z0 + 0.003) / cell); k <= Math.floor((c.z + half.z + z0 - 0.003) / cell); k++) {
+          const key = `${i},${k}`, was = out.get(key);
+          out.set(key, { lo: Math.min(was?.lo ?? Infinity, c.y - half.y), hi: Math.max(was?.hi ?? -Infinity, c.y + half.y) });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/** The pillow's top cells (the room's grid, "x,z") that his head or cap would pass through as he lies: pressed down. */
+export function pillowDent(): string[] {
+  const out = new Set<string>(), top = BED.pillowTop;
+  for (const pose of ON_PILLOW) for (const [key, { lo }] of farmerColumns(pose, ['head', 'cap', 'capTail'], D)) if (lo < top) out.add(key);
+  return [...out];
+}
+
+/** What of him lies under the quilt: all but the near arm, which lies on it. */
+const UNDER: readonly Piece[] = ['lap', 'torso', 'legL', 'legR', 'armL', 'foreL', 'handL'];
+/** His turn at gate 3 goes through the quilt in steps of this many degrees of his roll (`quiltCells`). */
+export const TURN_STEP = 10;
+const heights = new Map<number, (i: number, k: number) => number>();
+/**
+ * How many cells high the quilt stands over a column (cell `i` along x, `k` along z), above the mattress: the plan's
+ * step, or where he lies higher, his body and `over` on top. His body is read from the model as he sleeps
+ * (`bedSleep`); for `step` 1 to 4, as he turns over at gate 3, rolled from `step - 1` to `step` times `TURN_STEP`
+ * degrees, so the quilt is pushed up over his near side as he turns under it. 0 off the quilt.
+ */
+export function quiltCells(step = 0): (i: number, k: number) => number {
+  const hit = heights.get(step);
+  if (hit) return hit;
+  const top = BED.mattress.top, body = new Map<string, number>();
+  // Turning, he is on the way from `bedSleep` to `bedTurn`, as far as his roll has gone; the quilt rides over his near
+  // arm too as it slides down to his side.
+  const turns = [step - 1, step - 0.5, step].map((n) => blendPose(POSES.bedSleep, POSES.bedTurn, (n * TURN_STEP * Math.PI) / 180 / POSES.bedTurn.roll));
+  for (const pose of step ? turns : [POSES.bedSleep]) {
+    for (const [key, { hi }] of farmerColumns(pose, step ? [...UNDER, 'armR', 'foreR', 'handR'] : UNDER, Q, Z0)) body.set(key, Math.max(body.get(key) ?? 0, hi - top));
+  }
+  const legs = [-1, 1].map((s) => IN_BED.z + s * PIVOT.legL[0] * UNIT);
+  const h = (i: number, k: number) => {
+    const x = (i + 0.5) * Q, z = (k + 0.5) * Q - Z0;
+    if (x < QUILT.edge || x > QUILT.foot || Math.abs(z) > QUILT.side + Q) return 0;
+    if (Math.abs(z) > QUILT.side - QUILT.inset) return 1;
+    const plan = x >= TOES.x0 && x < TOES.x1 && legs.some((lz) => Math.abs(z - lz) <= TOES.half) ? TOES.h : STEPS.find((s) => x < s.to)?.h ?? 0;
+    const him = body.get(`${i},${k}`);
+    return Math.round(Math.max(plan, him === undefined ? 0 : him + QUILT.over) / Q);
+  };
+  heights.set(step, h);
+  return h;
+}
+/** How high the quilt's top lies above the mattress at a point of the bed, metres (0 off the quilt). */
+export const quiltTop = (x: number, z: number): number => quiltCells()(Math.floor(x / Q), Math.floor((z + Z0) / Q)) * Q;
+
 /**
  * The quilt over him, in two pieces that rise and fall about the mattress top: the part over his chest (from his
- * armpits to his waist, with the cream sheet turned down along its top edge), which lifts with him when he starts up,
- * and the part over his legs.
+ * armpits to his waist, with the sheet turned down along its top edge), which lifts with him when he starts up, and
+ * the part over his legs. Where he is under it only its top two rows are built (under them is him), closed at its
+ * sides. The parts hanging down the bed's sides are the room's (`quiltSides`): they never move.
  */
-function quiltOverGeometry(qPaint: Paint): { chest: BufferGeometry; legs: BufferGeometry } {
-  const m = BED.mattress, chest = new Grid(D), legs = new Grid(D), hw = Math.round(m.w / 2 / D);
-  const x0 = Math.round(QUILT_EDGE / D), xw = Math.round(WAIST_X / D), x1 = Math.round(m.l / D), y0 = Math.round(m.top / D);
-  for (let x = x0; x < x1; x++) for (let z = -hw; z < hw; z++) {
-    const rows = Math.round(quiltHeight((x + 0.5) * D, (z + 0.5) * D) / D);
-    const g = x < xw ? chest : legs;
-    // Only the top two rows: what is under them is him.
-    for (let r = Math.max(0, rows - 2); r < rows; r++) g.set(x, y0 + r, z, x < x0 + 2 ? lin(TRIM[0]) : qPaint(x, y0 + r, z)!);
-    // The mound's own sides and ends, so it is closed wherever it stands above the flat of the quilt.
-    const edge = rows > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => Math.round(quiltHeight((x + dx + 0.5) * D, (z + dz + 0.5) * D) / D) < rows - 1 || x + dx < x0);
-    if (edge) for (let r = 0; r < rows; r++) g.set(x, y0 + r, z, x < x0 + 2 ? lin(TRIM[0]) : qPaint(x, y0 + r, z)!);
+function quiltOverGeometry(step = 0): { chest: BufferGeometry; legs: BufferGeometry } {
+  const h = quiltCells(step), chest = new Grid(Q), legs = new Grid(Q);
+  const i0 = Math.floor(QUILT.edge / Q), iw = Math.round(WAIST_X / Q), i1 = Math.round(QUILT.foot / Q), kk = Math.round((QUILT.side + Z0) / Q);
+  for (let i = i0; i < i1; i++) for (let k = -kk; k < kk + 1; k++) {
+    const rows = h(i, k);
+    if (rows <= 0) continue;
+    const low = Math.min(...[[1, 0], [-1, 0], [0, 1], [0, -1]].map(([di, dk]) => h(i + di, k + dk)));
+    const from = rows > 5 ? Math.min(rows - 2, low) : 0;
+    const x = (i + 0.5) * Q, u = QUILT.side - ((k + 0.5) * Q - Z0);
+    for (let r = Math.max(0, from); r < rows; r++) (i < iw ? chest : legs).set(i, r, k, quiltColour(x, u));
   }
-  return { chest: buildGeometry(chest.map, D), legs: buildGeometry(legs.map, D) };
+  const place = (g: Grid) => buildGeometry(g.map, Q).translate(0, BED.mattress.top, -Z0);
+  return { chest: place(chest), legs: place(legs) };
+}
+const turned = new Map<number, { chest: BufferGeometry; legs: BufferGeometry }>();
+/**
+ * The quilt over him as he turns over at gate 3, rolled up to `step` times `TURN_STEP` degrees (1 to 4; `quiltCells`):
+ * each built the first time it is asked for.
+ */
+export function quiltTurned(step: number): { chest: BufferGeometry; legs: BufferGeometry } {
+  let hit = turned.get(step);
+  if (!hit) turned.set(step, (hit = quiltOverGeometry(step)));
+  return hit;
+}
+/** The quilt hanging down both sides of the bed from its edge to the foot, `hang` deep, the squares running on. */
+function quiltSides(): BufferGeometry {
+  const g = new Grid(Q), kk = Math.round((QUILT.side + Z0) / Q), drop = Math.round(QUILT.hang / Q);
+  for (let i = Math.floor(QUILT.edge / Q); i < Math.round(QUILT.foot / Q); i++) for (const k of [kk, -kk]) for (let r = -drop; r < 0; r++) {
+    // The cloth's run: past the near side's edge it goes on below 0; down the far side, on past the bed's width.
+    const u = k > 0 ? (r + 0.5) * Q : 2 * QUILT.side - (r + 0.5) * Q;
+    g.set(i, r, k, quiltColour((i + 0.5) * Q, u));
+  }
+  return buildGeometry(g.map, Q).translate(0, BED.mattress.top, -Z0);
 }
 
 // ---------- how he moves ----------
@@ -506,14 +626,14 @@ let quiltSatCache: BufferGeometry | null = null;
  */
 export function quiltSat(): BufferGeometry {
   if (quiltSatCache) return quiltSatCache;
-  const m = BED.mattress, g = new Grid(D), hw = Math.round(m.w / 2 / D), qPaint = quiltPaint(D, -hw - 1);
+  const m = BED.mattress, g = new Grid(D), hw = Math.round(m.w / 2 / D);
   const x0 = Math.round((WAIST_X + 0.2) / D), y0 = Math.round(m.top / D);
   const roll = x0 + 4, legs = roll + 8, feet = legs + 6;
   for (let x = x0; x < feet; x++) for (let z = -hw; z < hw; z++) {
     const u = Math.abs((z + 0.5) * D - IN_BED.z);
     if (u > 0.33) continue;
     const full = x < roll ? 7 : x < legs ? 5 : 3, rows = u > 0.27 || x === feet - 1 ? full - 1 : full;
-    for (let r = 0; r < rows; r++) g.set(x, y0 + r, z, x < roll && r >= rows - 2 ? lin(TRIM[0]) : qPaint(x, y0 + r, z)!);
+    for (let r = 0; r < rows; r++) g.set(x, y0 + r, z, x < roll && r >= rows - 2 ? SHEET : squareAt((x + 0.5) * D, QUILT.side - (z + 0.5) * D));
   }
   return (quiltSatCache = buildGeometry(g.map, D));
 }
@@ -530,8 +650,8 @@ export function foldedQuilt(seed: number): BufferGeometry {
   const g = new Grid(CHAR);
   for (let y = 0; y < 3; y++) for (let x = -6; x < 6 + (y === 1 ? 1 : 0); x++) for (let z = -5; z < 5; z++) {
     const stitch = y === 2 && z === 4 && x % 2 === 0;
-    const tone = BED.quilt[(Math.floor((x + 6) / 4) + Math.floor((z + 5) / 5) * 2 + y + seed) % BED.quilt.length];
-    g.set(x, y, z, lin(stitch ? T.linen[0] : tone));
+    const ix = Math.floor((x + 6) / 4) + y + seed, iz = Math.floor((z + 5) / 5);
+    g.set(x, y, z, stitch ? lin(T.linen[0]) : patch(ix, iz));
   }
   const geo = buildGeometry(g.map, CHAR);
   folded.set(seed, geo);

@@ -4,6 +4,8 @@ All user-visible changes, newest first.
 
 ## Unreleased
 
+- Counting Sheep's dream is built in voxels like the rest of the farm: the barn, the farmhouse, the windmill and the fence stand at their own distances, pass at their own speeds and catch the moonlight, and a dry-stone wall slides past along the bottom. The farm lifts off on islands, then turns into the farmer's bed, and after the first night through the worlds go round for as long as you keep counting.
+- Counting Sheep is endless with a best score: the meter and "of 30" are gone, the counter shows your count and your best, and "New best" lights up when you pass it. Every 10 sheep the moon swells and ten sheep hop across it, and each sheep you count leaves a star in the sky.
 - Counting Sheep has a new farmer, rebuilt from Brian's sheet: a slim older man with a short grey beard, an off-white nightcap with one red band and a long striped nightshirt. He sleeps on his back, stirs when a fence gets close, starts up on a bump and sits up grumpy when he is woken. His bedroom gains a knitting basket and five books.
 - Counting Sheep gets harder smoothly: hay bales no longer turn up right on a fence's heels, and the sheep speeds up a little with every fence instead of in a straight line to a stop.
 - Counting Sheep no longer ends at 30. Fence 30 puts the farmer out cold, and the dream runs on for as long as you keep clearing fences. A bump after that ends the night with him still asleep.

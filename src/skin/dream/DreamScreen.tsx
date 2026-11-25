@@ -186,6 +186,8 @@ export function DreamScreen() {
   const [stage, setStage] = useState<StageN>(1);
   const [card, setCard] = useState<{ kind: CardKind; key: number } | null>(null);
   const [mark, setMark] = useState<'bang' | 'question' | null>(null);
+  // When he rolls over at gate 3, on the dream's clock.
+  const [turnAt, setTurnAt] = useState<number | null>(null);
   const sayUntil = useRef(0);
   const show = useCallback((kind: CardKind) => {
     const key = Math.random();
@@ -419,6 +421,8 @@ export function DreamScreen() {
         W.change = { from: W.world, to: g.to, dist: g.dist, at: L.t };
         W.world = g.to;
         W.laps[g.to] = g.lap;
+        // At the head of his bed he rolls onto his other side and back, once (v3/07, section 3.3).
+        if (g.type === 3) setTurnAt(L.t);
         const kind = g.to === 2 ? (g.lap > 1 ? 'lift' : 'stage2') : g.to === 3 ? (g.lap > 1 ? 'quilt' : 'stage3') : 'turn';
         setTimeout(() => show(kind as CardKind), 100);
         if (g.type === 1 && !reduced) { const v = viewRef.current, [gx] = projectDream(v, worldX(SHEEP_CENTRE) / PLAN_M, 0, 0); fx.current?.ring(gx, v.ground - 110, true); }
@@ -492,7 +496,7 @@ export function DreamScreen() {
     setPopStage('none');
     setBoardUp(false);
     setOpening(reduced ? 'done' : 'play');
-    setCount(0); setCounted(null); setStreak(0); setReached(0); setDeep(false); setCard(null); setMark(null); setStage(1); setGlow(0);
+    setCount(0); setTurnAt(null); setCounted(null); setStreak(0); setReached(0); setDeep(false); setCard(null); setMark(null); setStage(1); setGlow(0);
     setBest(getPracticeBest()); setSky({ count: 0, rising: null, wave: 0 });
     fx.current?.reset();
     beat.current.beats = 0;
@@ -549,7 +553,7 @@ export function DreamScreen() {
 
   return (
     <main ref={setRoot} className="dr-root hm rc" onKeyDown={onKey} aria-label="Counting Sheep" data-phase={phase} data-phone={frame.phone || undefined} data-pop={pop !== 'none' ? pop : undefined} data-count={popTone} data-opening={phase === 'ready' && opening !== 'done' ? opening : undefined} onPointerDown={focus} style={{ ...rootVars, ...(fitKeys ? { height: vh! } : {}) }}>
-      <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} depth={deep ? 3 : stage} frame={frame} beat={beat} />
+      <BedroomBubble live={live} phase={phase} reduced={reduced} phone={mobile} blankets={blankets} anchors={anchors} depth={deep ? 3 : stage} frame={frame} beat={beat} turnAt={turnAt} />
       {playing && (
         <div ref={bubbleEl} className="dr-bubble" style={{ left: frame.bubble.x, top: frame.bubble.y, width: frame.bubble.w, height: frame.bubble.h }}>
           <i className="dr-bubble-shade" style={{ clipPath: shape.outer }} />

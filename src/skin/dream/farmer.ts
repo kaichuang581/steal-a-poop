@@ -165,6 +165,8 @@ export interface Pose {
   torso: number;
   /** In bed: how far he has shuffled up toward the headboard from where he sleeps, in metres (he sits up against the pillow). */
   scoot: number;
+  /** In bed: his whole body turned about its long line, onto his far side (+), radians (`bedTurn`). */
+  roll: number;
   /** His head: turned toward his right (the bed's camera), chin toward his chest (+) or rolled back (-), tipped to a shoulder. */
   headTurn: number; headPitch: number; headTilt: number;
   /** His head lifted off the line of his back, onto the pillow, in units. */
@@ -191,50 +193,50 @@ export interface Pose {
 const NONE: Turn = [0, 0, 0];
 const deg = (d: number) => (d * Math.PI) / 180;
 const STAND: Pose = {
-  torso: 0, scoot: 0, headTurn: 0, headPitch: 0, headTilt: 0, headLift: 0, capSlip: 0, capLean: 0, tailTo: null, tailSwing: 0,
+  torso: 0, scoot: 0, roll: 0, headTurn: 0, headPitch: 0, headTilt: 0, headLift: 0, capSlip: 0, capLean: 0, tailTo: null, tailSwing: 0,
   shoulderNear: NONE, elbowNear: NONE, wristNear: NONE, shoulderFar: NONE, elbowFar: NONE, wristFar: NONE,
   eyes: 'open', mouth: 'closed', brows: 0, grumpy: false, slippers: true, breath: { every: 3.2, rise: 0, hitch: 0 },
 };
-/** On his back in bed, the base of every lying pose: his head on the pillow, the near arm out on the quilt along his side. */
 /**
- * How far his head is rolled toward the room as he sleeps, degrees. The pack says 20, written for a camera above the
- * bed; the bed strip's camera is level with him (docs/dream/01-farmer.md, section 4), and from there 20 showed his ear
- * and the side of his cap. At 52 his closed eyes, his nose and his beard face the room.
+ * On his back in bed, the base of every lying pose (docs/dream/v3/09, section 2): his head turned 35 degrees toward the
+ * room, his chin lifted 10, the back of his head on the middle of the pillow; his neck, collar and both shoulders out of
+ * the quilt, whose edge lies at his armpits; the near arm on the quilt, bent: the upper arm along his side, the forearm
+ * across his body at 80 degrees to it, the hand resting on his chest.
  */
-const HEAD_TURN = 52;
+const HEAD_TURN = 35, CHIN_UP = -10;
+const NEAR_ARM: { shoulder: Turn; elbow: Turn; wrist: Turn } = { shoulder: [deg(-36), deg(6), deg(-17)], elbow: [deg(-49), deg(-25), deg(53)], wrist: [deg(84.5), deg(-24.4), deg(76.9)] };
 const LIE: Pose = {
   ...STAND,
-  // His head lies back into the pillow: lifted onto it from the line of his back, his chin only a little toward his chest.
-  torso: 0, headTurn: deg(HEAD_TURN), headPitch: deg(6), headLift: 8,
+  torso: deg(6), headTurn: deg(HEAD_TURN), headPitch: deg(CHIN_UP), headLift: 10,
   // The tail lies on the pillow, toward the headboard and away from the camera.
-  tailTo: [0.62, 0.74, -0.26],
-  shoulderNear: [deg(3), 0, deg(-3)], elbowNear: [deg(2), 0, 0],
+  tailTo: [0.85, 0.45, -0.28],
+  shoulderNear: NEAR_ARM.shoulder, elbowNear: NEAR_ARM.elbow, wristNear: NEAR_ARM.wrist,
   eyes: 'closed', slippers: false, breath: { every: 3.2, rise: 0.04, hitch: 0 },
 };
 
-export type PoseName = 'stand' | 'bedSleep' | 'bedDeep' | 'bedStir' | 'bedJolt' | 'bedUpright';
-/** The poses of docs/dream/data/farmer.poses.json, as numbers for this rig. */
+export type PoseName = 'stand' | 'bedSleep' | 'bedDeep' | 'bedStir' | 'bedJolt' | 'bedUpright' | 'bedTurn';
+/** The poses of docs/dream/data/farmer.poses.json, as numbers for this rig, with docs/dream/v3/09's changes. */
 export const POSES: Record<PoseName, Pose> = {
   stand: STAND,
-  // Stages 1 and 2: asleep on his back, head turned 20 degrees toward the camera, breathing every 3.2 s.
+  // Asleep on his back, breathing every 3.2 s.
   bedSleep: LIE,
-  // Stage 3, the finale and the "drifted off" results: mouth open, head rolled back 8 degrees, the cap slipped 3 units
-  // over his brows, the near arm hanging off the side of the bed 70 degrees down, a snore's hitch every 4 s.
+  // From 30 sheep on and the "drifted off" results: mouth open, head rolled back 8 degrees more, the cap slipped 3
+  // units over his brows, the near arm hanging off the side of the bed 70 degrees down, a snore's hitch every 4 s.
   bedDeep: {
-    ...LIE, headPitch: deg(6 - 8), capSlip: 3, mouth: 'open',
+    ...LIE, headPitch: deg(CHIN_UP - 8), headLift: 12, capSlip: 3, mouth: 'open',
     shoulderNear: [0, 0, deg(-86)], elbowNear: [deg(70), 0, 0], wristNear: [0, deg(-20), 0],
     breath: { every: 4, rise: 0.05, hitch: 0.2 },
   },
   // The fence is close: brows down a unit, the head 10 degrees further round, the near hand gripping the quilt, quick breaths.
   bedStir: {
     ...LIE, headTurn: deg(HEAD_TURN + 10), brows: -1,
-    elbowNear: [deg(-6), 0, 0], wristNear: [0, deg(30), 0],
+    wristNear: [NEAR_ARM.wrist[0], NEAR_ARM.wrist[1], NEAR_ARM.wrist[2] + deg(10)],
     breath: { every: 1.6, rise: 0.04, hitch: 0 },
   },
   // A bump: up 25 degrees off the pillow, eyes wide, brows up 2, mouth open, the cap's tail swung up 40 degrees.
   bedJolt: {
     ...LIE, torso: deg(25), headPitch: deg(4), headLift: 0, headTurn: deg(HEAD_TURN - 12), tailTo: null, tailSwing: deg(40),
-    shoulderNear: [deg(-22), 0, deg(-14)], elbowNear: [deg(-30), 0, 0],
+    shoulderNear: [deg(-22), 0, deg(-14)], elbowNear: [deg(-30), 0, 0], wristNear: NONE,
     shoulderFar: [deg(-22), 0, deg(14)], elbowFar: [deg(-30), 0, 0],
     eyes: 'wide', mouth: 'open', brows: 2, breath: { every: 3.2, rise: 0, hitch: 0 },
   },
@@ -246,12 +248,28 @@ export const POSES: Record<PoseName, Pose> = {
     shoulderFar: [deg(8), 0, deg(10)], elbowFar: [deg(-48), 0, 0], wristFar: [deg(-30), 0, 0],
     eyes: 'open', grumpy: true, slippers: false, breath: { every: 3.6, rise: 0.02, hitch: 0 },
   },
+  // Gate 3 (docs/dream/v3/07, section 3.3): the top of his turn, rolled 40 degrees onto his far side about his long
+  // line, the near arm slid down to his side (the quilt rides over it as he turns: bedroom.ts `quiltCells`), eyes
+  // shut. `turnPose` takes him there and back.
+  bedTurn: { ...LIE, roll: deg(40), shoulderNear: [deg(-4), 0, deg(-2)], elbowNear: [deg(2), 0, 0], wristNear: NONE },
 };
 /** How long he takes to reach a pose and to leave it again, in ms (the plan's blend times; 400 where it names none). */
 export const BLEND_MS: Record<PoseName, { in: number; out: number }> = {
   stand: { in: 0, out: 0 }, bedSleep: { in: 400, out: 400 }, bedDeep: { in: 900, out: 600 },
-  bedStir: { in: 250, out: 400 }, bedJolt: { in: 120, out: 500 }, bedUpright: { in: 700, out: 400 },
+  bedStir: { in: 250, out: 400 }, bedJolt: { in: 120, out: 500 }, bedUpright: { in: 700, out: 400 }, bedTurn: { in: 450, out: 450 },
 };
+/** The turn at gate 3 takes this long, there and back (docs/dream/v3/09, section 2). */
+export const TURN_MS = 900;
+/**
+ * The turn at gate 3, `ms` into it: from `from` (his pose as it starts) over to `bedTurn` and back, eased so it leaves
+ * and lands at rest. His mouth, cap and head's tilt stay his own (deep asleep, his mouth stays open). Outside 0 to
+ * `TURN_MS` it is `from`.
+ */
+export function turnPose(ms: number, from: Pose = POSES.bedSleep): Pose {
+  if (!(ms > 0 && ms < TURN_MS)) return from;
+  const to: Pose = { ...POSES.bedTurn, mouth: from.mouth, capSlip: from.capSlip, headPitch: from.headPitch, headLift: from.headLift, breath: from.breath };
+  return blendPose(from, to, 0.5 - 0.5 * Math.cos((ms / TURN_MS) * Math.PI * 2));
+}
 /** A bump holds the jolt this long before the waking goes on. */
 export const JOLT_HOLD_MS = 300;
 
@@ -263,7 +281,7 @@ export function blendPose(a: Pose, b: Pose, t: number): Pose {
   if (t >= 1) return b;
   const late = t >= 0.5 ? b : a;
   return {
-    torso: mix(a.torso, b.torso, t), scoot: mix(a.scoot, b.scoot, t), headTurn: mix(a.headTurn, b.headTurn, t), headPitch: mix(a.headPitch, b.headPitch, t),
+    torso: mix(a.torso, b.torso, t), scoot: mix(a.scoot, b.scoot, t), roll: mix(a.roll, b.roll, t), headTurn: mix(a.headTurn, b.headTurn, t), headPitch: mix(a.headPitch, b.headPitch, t),
     headTilt: mix(a.headTilt, b.headTilt, t), headLift: mix(a.headLift, b.headLift, t),
     capSlip: mix(a.capSlip, b.capSlip, t), capLean: mix(a.capLean, b.capLean, t),
     tailTo: a.tailTo && b.tailTo ? [mix(a.tailTo[0], b.tailTo[0], t), mix(a.tailTo[1], b.tailTo[1], t), mix(a.tailTo[2], b.tailTo[2], t)] : late.tailTo,
@@ -304,19 +322,19 @@ const restAt = (p: Piece): Vector3 => {
 export function placePose(pose: Pose, breath = 0): Record<Piece, Placed> {
   const one = () => new Vector3(1, 1, 1);
   const at = (p: Piece, q = new Quaternion(), scale = one()): Placed => ({ position: restAt(p), quaternion: q, scale });
-  const torsoQ = turned([pose.torso, 0, 0]);
+  const lapQ = turned([0, pose.roll, 0]), torsoQ = turned([pose.torso, 0, 0]);
   // His head: turned about his neck, then nodded and tipped.
   const headQ = turned([pose.headPitch, -pose.headTurn, pose.headTilt]);
   const capQ = turned([0, 0, pose.capLean]);
   let tailQ: Quaternion;
   if (pose.tailTo) {
     // The tail lies along a direction given in the standing frame: undo what carries it (the bed does not turn it).
-    const carried = torsoQ.clone().multiply(headQ).multiply(capQ).invert();
+    const carried = lapQ.clone().multiply(torsoQ).multiply(headQ).multiply(capQ).invert();
     tailQ = new Quaternion().setFromUnitVectors(DOWN, new Vector3(...pose.tailTo).normalize().applyQuaternion(carried));
   } else tailQ = turned([0, 0, pose.tailSwing]);
   const mirror = (t: Turn): Turn => [t[0], -t[1], -t[2]];
   const placed: Record<Piece, Placed> = {
-    lap: at('lap'),
+    lap: at('lap', lapQ),
     torso: at('torso', torsoQ, new Vector3(1, 1, 1 + pose.breath.rise * breath)),
     head: at('head', headQ), cap: at('cap', capQ), capTail: at('capTail', tailQ),
     // The pose names the near (his right) arm's turns as they are; the far arm's are the same pose mirrored.
@@ -324,6 +342,10 @@ export function placePose(pose: Pose, breath = 0): Record<Piece, Placed> {
     armL: at('armL', turned(mirror(pose.shoulderFar))), foreL: at('foreL', turned(mirror(pose.elbowFar))), handL: at('handL', turned(mirror(pose.wristFar))),
     legL: at('legL'), legR: at('legR'), slipperL: at('slipperL'), slipperR: at('slipperR'),
   };
+  // Rolled about his middle, his far side would go down into the mattress: he rises by half of that (the mattress
+  // gives the rest) as the far edge of his back takes his weight.
+  const r = Math.abs(pose.roll);
+  placed.lap.position.z += 0.5 * (10.5 * Math.sin(r) + 6.5 * (Math.cos(r) - 1)) * UNIT;
   placed.head.position.z += (pose.headLift + 0.5 * breath * (pose.breath.rise > 0 ? 1 : 0)) * UNIT;
   placed.cap.position.y -= pose.capSlip * UNIT;
   // A slipped cap also comes forward a little, over his brows.
@@ -345,8 +367,8 @@ export function worldOf(pose: Pose, breath = 0): Record<Piece, Matrix4> {
 
 // ---------- in bed ----------
 
-/** Where he lies: the base of his neck this far down the bed from the headboard, and this far toward the room's side. */
-export const IN_BED = { neckX: 0.72, z: 0.2 } as const;
+/** Where he lies: the base of his neck this far down the bed from the headboard, and this far toward the room's side (his head on the middle of the pillow). */
+export const IN_BED = { neckX: 0.72, z: 0.1 } as const;
 /**
  * Lying on his back with his head at the headboard: the standing frame's up runs toward the headboard (-x in the
  * room), his front faces the ceiling, and so his right side faces the room, where the bed's camera is. Returns the

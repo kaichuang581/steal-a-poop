@@ -113,67 +113,96 @@ function corners(w: number, h: number, inset: number, step: number): string {
 
 // ---------- the bed strip's camera ----------
 
-/** The bed, in the bedroom's frame (bedroom.ts): the outside of its head and foot posts, its near side, the mattress's top. */
-export const BED_BOX = { headX: -0.15, footX: 2.15, nearZ: 0.6, top: 0.55, midX: 1.0 } as const;
-/** The camera `bedSide`: on the room's open side, this far above the mattress, looking straight at the bed's long side. */
-export const BED_SIDE = { lift: 0.35, fov: 20, cut: 0.18 } as const;
-/** His face as he lies asleep: the tip of his nose, where his z's leave from and the bubble's tail comes down to. */
-export const NOSE = { x: 0.5, y: 1.0, z: 0.34 } as const;
+/**
+ * The bed, in the bedroom's frame (bedroom.ts): the outside of its head and foot posts, its near side, the mattress's
+ * top. `headTop`, `headFront`: the top and the front of the near headboard post's knob, its outer edge's highest point.
+ */
+export const BED_BOX = { headX: -0.15, headTop: 1.35, headFront: 0.7, footX: 2.15, nearZ: 0.6, top: 0.55, midX: 1.0 } as const;
+/**
+ * The camera `bedSide` (docs/dream/v3/09, section 2): on the room's open side, 1.1 m above the mattress's top, the
+ * strip's height its 20 degrees. `cut`: the strip's bottom edge cuts the bed's near side this high, just under its side
+ * rail.
+ *
+ * `pitch`, how far the camera is turned down: the plan says 18 degrees; it is 0. The strip is a wide slice of what the
+ * camera sees, shifted (a view offset), so turning the camera changes nothing about where it sees him from: what the
+ * height gives (his face, shoulders and the quilt's top seen from above) is the same either way. Turned, every upright
+ * leaned the further it stood from the camera (the window at the strip's right end leaned like a falling picture);
+ * level, the walls stay square to the screen. 18 here puts the turn back.
+ */
+export const BED_SIDE = { lift: 1.1, pitch: 0, fov: 20, cut: 0.18 } as const;
+/**
+ * His face as he lies asleep (`bedSleep`): the tip of his nose, where his z's leave from; and the tip of his cap, the
+ * top of its crown, which the bubble's puffs are placed from. In the bedroom's frame; bedroom.test.ts holds them to the
+ * model as it lies.
+ */
+export const NOSE = { x: 0.56, y: 1.1, z: 0.22 } as const;
+export const CAP_TIP = { x: 0.22, y: 0.91, z: 0.1 } as const;
 
 export interface StripCamera {
-  /** The camera's place; it looks along -z with no turn. */
+  /** The camera's place; it looks along -z, turned down by `pitch` (radians), with no turn to either side. */
   position: [number, number, number];
-  /** Px on screen per metre at the bed's near side, and the focal length in px (px per unit of slope). */
+  pitch: number;
+  /** Px on screen per metre at the bed's near side (the mattress's top, halfway along), and the focal length in px. */
   scale: number; focal: number;
   /** Where the camera's own axis meets the screen, CSS px. */
   axis: [number, number];
 }
 
+const DEG = Math.PI / 180;
+/** The slope a phone's strip camera looks down at his face with: the computer's, from 1.1 m up at its distance. */
+const PHONE_LOOK = 0.2;
+/** How far in front of the camera a point is, along its axis (`camera` stands at `c`, turned down `pitch`). */
+const depthAt = (c: readonly number[], pitch: number, y: number, z: number) => -(y - c[1]) * Math.sin(pitch) - (z - c[2]) * Math.cos(pitch);
+
 /**
- * The strip's camera for a frame. On a computer the headboard's outside is 24 px from the strip's left and the foot of
- * the bed ends 70 px before the bed zone's right edge; the strip's height is the camera's 20 degrees; its bottom edge
- * cuts the bed just under its side rail, which is what leaves his face room for the bubble's tail above it. A phone
+ * The strip's camera for a frame. On a computer it stands halfway along the bed, `lift` over the mattress, turned
+ * down `pitch`, as far from the bed as the strip's camera always has (the bed's length from 24 px to 70 px short of
+ * the bed zone), with the headboard's outer edge 24 px from the strip's left; the strip's bottom edge cuts the bed's
+ * near side at `cut`. The nightstand, the basket and the books stand past the bed zone, left of the tray. A phone
  * moves in to his head and shoulders across the left 46%.
  */
 export function stripCamera(f: DreamFrame): StripCamera {
-  const k = 2 * Math.tan((BED_SIDE.fov * Math.PI) / 360), camY = BED_BOX.top + BED_SIDE.lift;
-  if (f.phone) {
-    // His head and shoulders across the bed zone, and never so close that his head is taller than the strip.
-    const scale = Math.min(f.bedZone / 1.3, f.strip.h / 0.42), d = f.strip.h / scale / k, camX = 0.5;
-    return { position: [camX, camY, BED_BOX.nearZ + d], scale, focal: scale * d, axis: [6 + (camX - BED_BOX.headX) * scale, f.strip.y + f.strip.h - (camY - 0.7) * scale] };
-  }
-  const scale = (f.bedZone - 24 - 70) / (BED_BOX.footX - BED_BOX.headX), d = f.strip.h / scale / k;
-  return {
-    position: [BED_BOX.midX, camY, BED_BOX.nearZ + d], scale, focal: scale * d,
-    axis: [24 + (BED_BOX.midX - BED_BOX.headX) * scale, f.strip.y + f.strip.h - (camY - BED_SIDE.cut) * scale],
+  const pitch = BED_SIDE.pitch * DEG, focal = f.strip.h / (2 * Math.tan((BED_SIDE.fov * DEG) / 2));
+  const H = BED_BOX, bottom = f.strip.y + f.strip.h, HEADBOARD = [H.headX, H.headTop, H.headFront], CUT = [H.midX, BED_SIDE.cut, H.nearZ];
+  // Stood at `pos`: `pin` lands `left` px from the strip's left, and `cut` at `cutY` px down the screen.
+  const build = (pos: [number, number, number], pin: readonly number[], left: number, cut: readonly number[], cutY: number): StripCamera => {
+    const ax = left - (focal * (pin[0] - pos[0])) / depthAt(pos, pitch, pin[1], pin[2]);
+    const up = (cut[1] - pos[1]) * Math.cos(pitch) - (cut[2] - pos[2]) * Math.sin(pitch);
+    const ay = cutY + (focal * up) / depthAt(pos, pitch, cut[1], cut[2]);
+    return { position: pos, pitch, focal, scale: focal / depthAt(pos, pitch, H.top, H.nearZ), axis: [ax, ay] };
   };
+  if (f.phone) {
+    // His head and shoulders across the bed zone, never so close that his head is taller than the strip: the tip of his
+    // cap 36 px in (so close, the headboard's knob, half a metre nearer the camera, would throw everything right), his
+    // head in the strip's middle. So close, 1.1 m over the mattress would look straight down on him: the camera is
+    // raised only as far as sees his face from the angle the computer's strip does.
+    const scale = Math.min(f.bedZone / 1.6, f.strip.h / 0.6), head = [0.5, 0.92, 0.1] as const, d = focal / scale;
+    return build([0.5, head[1] + d * PHONE_LOOK, head[2] + d], [CAP_TIP.x, CAP_TIP.y, CAP_TIP.z], 36, head, f.strip.y + f.strip.h / 2);
+  }
+  // As far from the bed as before (the bed's length from 24 px to 70 px short of the bed zone), so he stays as big.
+  const scale = (f.bedZone - 24 - 70) / (H.footX - H.headX);
+  return build([H.midX, H.top + BED_SIDE.lift, H.nearZ + focal / scale], HEADBOARD, 24, CUT, bottom);
 }
 /** Where a point of the bedroom lands on screen through the strip's camera, CSS px. */
 export function stripPoint(c: StripCamera, x: number, y: number, z: number): [number, number] {
-  const k = c.focal / (c.position[2] - z);
-  return [c.axis[0] + (x - c.position[0]) * k, c.axis[1] - (y - c.position[1]) * k];
+  const k = c.focal / depthAt(c.position, c.pitch, y, z), up = (y - c.position[1]) * Math.cos(c.pitch) - (z - c.position[2]) * Math.sin(c.pitch);
+  return [c.axis[0] + (x - c.position[0]) * k, c.axis[1] - up * k];
 }
-/** The bedroom x that lands at screen `px` on the back wall (z = `z`). */
-export const stripX = (c: StripCamera, px: number, z: number): number => c.position[0] + ((px - c.axis[0]) * (c.position[2] - z)) / c.focal;
+/** The bedroom x that lands at screen `px` at height `y` on the plane z = `z` (the back wall, say). */
+export const stripX = (c: StripCamera, px: number, z: number, y = 0): number => c.position[0] + ((px - c.axis[0]) * depthAt(c.position, c.pitch, y, z)) / c.focal;
 
-/** The back wall's z, and how far along it the strip's low window is wide (bedroom.ts). */
-const BACK_Z = -1.3, WINDOW_W = 0.8;
+/** The back wall's z, and how far along it the strip's low window is wide, and its middle's height (bedroom.ts). */
+const BACK_Z = -1.3, WINDOW_W = 0.8, WINDOW_Y = 1.15;
 /**
- * How far along the wall the strip sees, and where its window goes: its right side 44 px in from the screen's right, on
- * screens 1200 wide or more.
+ * How far along the wall the strip sees (at the floor, where it sees furthest), and where its window goes: its right
+ * side 44 px in from the screen's right, on screens 1200 wide or more.
  */
 export function stripExtent(f: DreamFrame, c: StripCamera = stripCamera(f)): { x1: number; windowX: number | null } {
-  const x1 = Math.ceil(stripX(c, f.w, BACK_Z) * 2) / 2 + 0.5;
-  const windowX = !f.phone && f.w >= 1200 ? Math.round((stripX(c, f.w - 44, BACK_Z) - WINDOW_W) * 20) / 20 : null;
+  const x1 = Math.ceil(stripX(c, f.w, BACK_Z, 0) * 2) / 2 + 0.5;
+  const windowX = !f.phone && f.w >= 1200 ? Math.round((stripX(c, f.w - 44, BACK_Z, WINDOW_Y) - WINDOW_W) * 20) / 20 : null;
   return { x1, windowX };
 }
 
-/**
- * The tip of his cap as he lies asleep (`bedSleep`), measured from the model (farmer.ts `worldOf`, the cap's top at its
- * front edge): the tail's puffs, his snores and the "?" and "!" are placed from it (v3/08, sections 2 and 7). Always put
- * through `stripPoint`, so it follows the strip's camera wherever that goes.
- */
-export const CAP_TIP = { x: 0.19, y: 0.96, z: 0.29 } as const;
 
 /**
  * The bubble's tail (v3/08, section 2): three round wool puffs, 40, 26 and 16 px across (a phone's 26, 18 and 12). The

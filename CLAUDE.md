@@ -2722,3 +2722,47 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
   window (`wordCentre`), and when a small sky has no room the oldest words come down (a phone with its keyboard up
   holds three to five). The pack's six columns are narrower than a word on a phone. The results board's "Your night
   sky" stops its rows short of its moon.
+
+## Counting Sheep, version 3: the dream in voxels (Brian, 2026-11-25) — plan: docs/dream/v3/
+"execute this, but use the existing sheep model, not the crappy referece one. this is to refine the current model for
+the dream", of counting-sheep-voxel-plan.zip, saved whole as docs/dream/v3/ (README.md first; 00 to 10, data/,
+reference/, tools/). It replaces version 2's files on how the worlds look (its 03 to 05 and the layout parts of 02).
+The pack's pictures use a stand-in sheep: the game's own sheep is the one drawn, everywhere (the moon show included).
+The pack's stops for Brian (V1 to V7) were not kept, by his standing "do all of it dont pause" (2026-11-24).
+- Branch `dream/v3` (from `dream/cs7-endings`), local commits, nothing pushed. V1 and V6 (the interface) and section 4
+  of file 09 were built on `dream/v3-interface` and merged; sections 1 to 3 of file 09 (the farmer in bed) on
+  `dream/v3-farmer-bed`.
+- The models are data: tools/dream/packModels.mjs writes src/skin/dream/models.gen.ts from docs/dream/v3/data
+  (never edit it; models.test.ts fails if it differs). models.ts meshes a model cell for cell in a dense grid (the
+  first box to claim a cell keeps it, as the pack's renderer has it), with the house mesher's corner shade and face
+  shade (`FACE_SHADE`, now exported from voxel/mesher.ts) and flat runs joined, T-junctions closed. The house mesher
+  was too slow for a million cells. Corner shade only near the lane (z >= -12, islands -4); none on the quilt or the
+  bed's hanging quilt. `fir` joined LADDER (the depth plan's 8.4; the barn's wreath); paint.test.ts counts 27.
+- world3d/build.ts builds each world's strip (worlds.json) into one mesh per part that moves or changes on its own
+  (`Tag`), in 24 m pieces near the lane and for the quilt, islands and farm; DreamWorld.tsx lays copies end to end as
+  the lane runs, owns the sky (a quad), the 60 small stars, the moons, the lights, haze, obstacles (fitted to the rules'
+  box; lanterns not stretched), signposts, gates, snow, feathers, hoof puffs, the changes of world and the moon show.
+  Motion inside merged meshes is in the vertex shader (world3d/anim.ts: islands bob, grow and rise, the string of bulbs
+  waves and chases, quilt squares pop behind a wave, buttons turn and drop, a wave reveals one world's track and hides
+  the other's). Glows are added in linear terms (no sRGB curve), as the pack's renderer adds them.
+- The camera (camera.ts): level, lens-shifted, in the plan's metres (`PLAN_M` = 0.7406 game metres, read from the
+  obstacle's 1.05 m body filling the drawn rules box; `A` is about 90.5 at 1440 x 900, as the pack measured). The sheep,
+  in game metres, is scaled into them; at z = 0 the mapping is unchanged. The lane is at 76% of the window (72% phone).
+  Never call updateProjectionMatrix on it. Signs hang from the projected chain ends (`SIGNPOST`, placeSigns).
+- Which world: worlds.ts `worldAt`/`lapAt` from the rules' letters; gates are placed by DreamScreen's loop 3 m before
+  the first fence of each new world (world3d/state.ts holds what the loop tells the world). Lap 2 on starts each strip
+  32 m further on, and the bulbs chase the other way on even laps.
+- The voxel world and the models load in their own chunk (DreamWorld-*.js, 45.6 kB gzipped); the loading screen holds
+  for it ('dream-world'). The size budget was raised by 31,000 bytes for it.
+- Measured at 1440 x 900 on this Mac: about 56k, 90k and 70k triangles in view in worlds 1 to 3 (the plan's limit
+  90k); 43 to 57 draws (the plan's 40: the sheep alone is about ten; not cut, by the plan's own rule "never remove
+  from High to meet a number"; a moon show adds ten); 60 frames a second. The track's top measures #BDC2D3 against the
+  light target #C1C9E2 (within 8%); the other light targets were not measured.
+- Deviations: the sign hangs from 3.75 m and fades to 35% while the sheep overlaps it; the game's sheep leaps far
+  higher than the pack's 2.0 m, and raising the board until clear would put it under the top bar. The quilt's lift-off
+  of islands uses one grow timing for the track and the islands. The needles nod together on the beat rather than
+  leaning toward each other. The lining band appears with the wave rather than sliding in. Under reduced motion a
+  change of world is a plain cut (no 200 ms fade). Three worlds' meshes are built a moment after the dream opens and
+  kept, not two at a time. Low tier cuts follow each world's section 9.
+- Pack checks not run: the recorded night replayed to the millisecond, the flash test, the light targets beyond the
+  track's top, the harshness measure (tools/depth/measure.py), the style lint as a test, the 3x detail sheet.

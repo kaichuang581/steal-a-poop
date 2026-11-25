@@ -2449,3 +2449,18 @@ loading screen keeps its own colour (it must stand alone).
   ...B, C | B, C, A...). Now a round opens with the seat after whoever took the last turn (`GameState.lastSeat`, set in
   `concludeTurn`; round 1 opens with seat 0); frozen seats are passed over as before. Seen in a two-person room game on a
   local server and pinned by src/engine/__tests__/turnOrder.test.ts. The fences were pinned again for it (fences.json).
+- Counting Sheep: a smooth ramp and no last fence (requested by Brian, 2026-11-24: "make the difficulty ramp up in counting
+  sheep more smooth, my friend said the part where u type in two words in one short span is way too quick, just make the
+  gameplay faster but overtime. also, make it go past 30, it should go infinitely ideally"), rules changes in src/dream and
+  src/skin/dream/run.ts. (1) Bales: a bale stood 300 to 350 px behind the obstacle before it (under half a gap), so the
+  time for its word fell off a cliff, 4.9 s to 2.0 s at the first one and 1.2 s by fence 30. It now stands a share of a
+  fence's gap behind, `baleShare`: 0.8 at the first bales, easing toward 0.62 (3.5 s at fence 9, 2.2 s at 31, 1.4 s at 150).
+  (2) Speed: `speedAt` is one curve, `start + (cap - start) * (1 - e^(-count / ease))` with 120 / 360 / 36, in place of 5 a
+  fence in a straight line stopping dead at 320: about the same through fence 24, a little gentler at 30 (253, was 265),
+  and still climbing at 100 (345). (3) The night has no end: fence `DREAM_LENGTH.fences` (30) puts the farmer out cold
+  (`Live.deepAt`, the `deep` event, a board saying "he's out cold. Keep counting!", the counter reads "out cold") and the
+  fences keep coming. A bump before the mark wakes him as before; a bump after it ends the dream with him still asleep
+  (`asleepAt`, the `asleep` event, the "drifted off" results), so both endings and the +20 coins for a night slept stay.
+  `dreamSummary` reads "Asleep after 30 fences, 47 sheep counted, longest word 9 letters". Coins for sheep stay capped at
+  30. A perfect typist is never bumped through fence 150 (run.test.ts). Seen in the browser: out cold at 30, played on to
+  36, bumped, "The farmer drifted off, 36 sheep". The fences were pinned again for it.

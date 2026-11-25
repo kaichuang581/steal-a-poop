@@ -80,7 +80,7 @@ function useBoxSize(el: HTMLElement | null): { w: number; h: number } {
 
 /** The night as saved: what the home screen's ticket and its share read back. */
 function recordOf(L: Live, night: string, repaired: boolean) {
-  return { date: night, status: 'done' as const, count: L.count, longest: L.longest, repaired: repaired ? true : undefined, reached: L.reached, bumps: L.bumps, asleep: L.asleepAt !== null };
+  return { date: night, status: 'done' as const, count: L.count, longest: L.longest, repaired: repaired ? true : undefined, reached: L.reached, bumps: L.bumps, asleep: L.deepAt !== null };
 }
 
 export function DreamScreen() {
@@ -117,6 +117,9 @@ export function DreamScreen() {
   const [bumps, setBumps] = useState(0);
   const [reached, setReached] = useState(0);
   const [stirred, setStirred] = useState(0);
+  // Out cold (the night's fence mark is behind him): the dream runs on, and for a moment a board says so.
+  const [deep, setDeep] = useState(false);
+  const [deepNote, setDeepNote] = useState(false);
   // The wake-up (V4.1 Part 7.4): none, the dream popping, then gone.
   const [pop, setPopStage] = useState<'none' | 'pop' | 'gone'>('none');
   // The clouds between the dream and the bedroom: null, or rolling in, holding while the room is built, and parting.
@@ -242,10 +245,20 @@ export function DreamScreen() {
         setStirred(Math.random() + 1);
         setTimeout(() => setStirred(0), 1400);
       },
-      asleep: () => {
-        // The last fence: no pop, the farmer sleeps on and the dream softens.
+      deep: () => {
+        // The night's mark: he is out cold. Nothing stops; the fences keep coming for as long as the sheep clears them.
         playSound('roundEnd', 0.7);
         setReached(live.current.reached);
+        setDeep(true);
+        setDeepNote(true);
+        setTimeout(() => setDeepNote(false), 2600);
+      },
+      asleep: () => {
+        // A bump he sleeps through: no pop, the fence goes flat, the farmer sleeps on and the dream softens.
+        playSound('trap', 0.4);
+        setCount(live.current.count);
+        setReached(live.current.reached);
+        setDeepNote(false);
         setPhase('drifting');
         if (!reduced) setTimeout(() => setClouds({ state: 'in', gentle: true }), DRIFT.clouds);
         setTimeout(finish, reduced ? DRIFT.reducedFinish : DRIFT.finish);
@@ -303,7 +316,7 @@ export function DreamScreen() {
     await shareCard({
       title: `Counting Sheep, ${night}`,
       headline: asleep ? 'The farmer drifted off' : `The farmer counted ${count} sheep`,
-      lines: [asleep ? dreamSummary({ fences: L.reached, bumps: L.bumps, longest: L.longest }) : L.longest > 0 ? `Longest word: ${L.longest} letters` : '', streakNow > 1 ? `${streakNow}-night streak` : ''].filter(Boolean),
+      lines: [asleep ? dreamSummary({ count, longest: L.longest }) : L.longest > 0 ? `Longest word: ${L.longest} letters` : '', streakNow > 1 ? `${streakNow}-night streak` : ''].filter(Boolean),
       count, unit: 'sheep',
       stitches: practice ? undefined : streakRow(dreamStreakDays(today), streakNow),
       glyphs: dreamGlyphs(count, !asleep, { seed, bumps: L.bumps }),
@@ -317,7 +330,7 @@ export function DreamScreen() {
     setSeed(s);
     live.current = freshLive(s);
     setPopStage('none');
-    setCount(0); setCounted(null); setBump(0); setStreak(0); setBumps(0); setReached(0); setStirred(0);
+    setCount(0); setCounted(null); setBump(0); setStreak(0); setBumps(0); setReached(0); setStirred(0); setDeep(false); setDeepNote(false);
     setFences([]);
     setPhase('ready');
     ghost.current?.focus();
@@ -387,11 +400,12 @@ export function DreamScreen() {
             <Slate size="plaque" className="dr-count" aria-live="polite" aria-label={`${count} sheep counted`}>
               <span className="dr-count-main"><SheepHead size={20} /><b>{count}</b></span>
               {best > 0 ? <span className="kit-chalk-hand dr-count-sub">best {best}</span> : null}
-              {length && (
+              {length && !deep && (
                 <span className="kit-chalk-hand dr-count-sub" aria-label={`Fence ${fenceNow} of ${length.fences}, ${bumpsLeft} bumps left`}>
                   {fenceNow}/{length.fences} <Tally have={bumpsLeft} of={length.bumps} />
                 </span>
               )}
+              {deep && <span className="kit-chalk-hand dr-count-sub">out cold</span>}
             </Slate>
             <Peg onClick={close} aria-label="Leave the dream" title="Leave the dream (Esc)"><CloseIcon size={18} /></Peg>
           </div>
@@ -404,7 +418,8 @@ export function DreamScreen() {
           <Notice tone="wood" snow={false} size={mobile ? 'sm' : 'lg'} title={length ? 'Count sheep to keep the farmer asleep' : 'How far can you run?'} sub={<span className="dr-blink">Type a word that starts with the letters on the sign, or press any key</span>} />
         )}
         {stirred > 0 && phase === 'running' && <Notice key={stirred} tone="wood" snow={false} size="lg" icon={<GustIcon size={26} />} title="Bump!" sub={`mmf… ${bumpsLeft === 1 ? 'one more wakes him' : `${bumpsLeft} bumps left`}`} />}
-        {phase === 'drifting' && <Notice tone="wood" snow={false} size="lg" title="Zzz…" sub="he’s out cold" />}
+        {deepNote && phase === 'running' && <Notice tone="wood" snow={false} size="lg" title="Zzz…" sub="he’s out cold. Keep counting!" />}
+        {phase === 'drifting' && <Notice tone="wood" snow={false} size="lg" title="Zzz…" sub="he slept right through it" />}
         {bump > 0 && phase === 'crashed' && <Notice key={bump} tone="wood" snow={false} size="lg" icon={<GustIcon size={26} />} title="Bump!" sub="the farmer stirs…" />}
       </div>
 
@@ -453,7 +468,7 @@ export function DreamScreen() {
                     should be on the plate as a section"). */}
                 <div className="dr-results-facts">
                   {asleep
-                    ? <p>{dreamSummary({ fences: live.current.reached, bumps: live.current.bumps, longest })}</p>
+                    ? <p>{dreamSummary({ count, longest })}</p>
                     : <>
                         <p>Longest word: {longest > 0 ? `${longest} letters` : 'none yet'}</p>
                         {length ? <p>{`fence ${fenceNow} of ${length.fences}`}</p> : null}

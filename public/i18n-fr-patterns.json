@@ -138,6 +138,7 @@
 ["^(\\d+)-night streak$","Série de $1 nuits"],
 ["^mmf… one more wakes him$","mmf… encore un et il se réveille"],
 ["^mmf… (\\d+) bumps left$","mmf… encore $1 chocs"],
+["^Asleep after (\\d+) fences, (\\d+) sheep counted, longest word (\\d+) letters$","Endormi après $1 clôtures, $2 moutons comptés, mot le plus long $3 lettres"],
 ["^Asleep after (\\d+) fences, no bumps, longest word (\\d+) letters$","Endormi après $1 clôtures, sans choc, mot le plus long $2 lettres"],
 ["^Asleep after (\\d+) fences, one bump, longest word (\\d+) letters$","Endormi après $1 clôtures, un choc, mot le plus long $2 lettres"],
 ["^Asleep after (\\d+) fences, (\\w+) bumps, longest word (\\d+) letters$","Endormi après $1 clôtures, $2 chocs, mot le plus long $3 lettres"],

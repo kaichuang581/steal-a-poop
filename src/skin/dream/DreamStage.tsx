@@ -49,7 +49,7 @@ export interface StageLive {
   crashAt: number | null;
   /** A bump short of the last one holds the sheep until this time, and the farmer stirs. */
   stumbleUntil: number;
-  /** When the farmer drifted off. */
+  /** When the dream ended with the farmer still asleep (a bump he slept through). */
   asleepAt: number | null;
   speed: number;
   fences: { index: number; x: number; locked: boolean; passed: boolean; jumped: boolean; knockedAt: number | null }[];

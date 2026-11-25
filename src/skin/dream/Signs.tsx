@@ -1,12 +1,12 @@
 import type { CSSProperties, RefObject } from 'react';
-import { FIELD } from '../../dream/dream';
+import { FIELD, lettersAt } from '../../dream/dream';
 import { CheckIcon } from '../components/Icons';
 import type { FenceView, StageLive } from './DreamStage';
 import { FLIGHT } from './fly';
 import { signHeight } from './frame';
 import { isClose } from './run';
 import { BOX, lookOf, S0 } from './scene/types';
-import type { SceneFence } from './scene/types';
+import type { SceneFence, StageN } from './scene/types';
 import { ART, screenX, SHEEP_ART } from './stage';
 import type { DreamView } from './stage';
 
@@ -76,7 +76,7 @@ export function placeSigns(L: StageLive & { fences: (StageLive['fences'][number]
     const hitAt = fe.knockedAt ?? (L.crashAt !== null && !fe.passed && !fe.jumped && fe.x < near && fe.x + FW > FIELD.sheepX ? L.crashAt : null);
     const e = hitAt === null ? 0 : (L.t - hitAt) / 1000;
     const deg = hitAt === null ? 0 : reduced ? 70 : e < 0.4 ? 78 * easeOut(e / 0.4) : e < 0.55 ? 78 - 8 * ((e - 0.4) / 0.15) : 70;
-    out.push({ index: fe.index, look: lookOf(fe.f.kind, fe.index), x: mid / k - BOX.w / 2, lit: fe.locked, tilt: (deg * Math.PI) / 180, signX: mid / k, signTop: top / k });
+    out.push({ index: fe.index, look: lookOf(fe.f.kind, fe.index), stage: lettersAt(fe.index) as StageN, x: mid / k - BOX.w / 2, lit: fe.locked, tilt: (deg * Math.PI) / 180, signX: mid / k, signTop: top / k });
     const tag = tags[slot].current;
     if (!tag) continue;
     tag.style.transform = `translate3d(${mid.toFixed(1)}px, ${top.toFixed(1)}px, 0)`;

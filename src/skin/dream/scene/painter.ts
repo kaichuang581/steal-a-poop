@@ -6,12 +6,15 @@
 export class Painter {
   /** An origin, in device px, for a piece drawn about a pivot (a fence knocked over). */
   ox = 0; oy = 0;
+  /** Everything drawn is this much there, 0 to 1: one whole world faded over another (a gate under reduced motion). */
+  mul = 1;
   private alpha = 1;
   private fill = '';
   constructor(readonly c: CanvasRenderingContext2D, readonly K: number) { this.c.globalAlpha = 1; }
   /** A rectangle in art px, from its top left. */
   r(x: number, y: number, w: number, h: number, color: string, alpha = 1): void {
     const K = this.K, x0 = Math.round(x * K), y0 = Math.round(y * K), x1 = Math.round((x + w) * K), y1 = Math.round((y + h) * K);
+    alpha *= this.mul;
     if (x1 <= x0 || y1 <= y0 || alpha <= 0) return;
     if (alpha !== this.alpha) { this.alpha = alpha; this.c.globalAlpha = alpha; }
     if (color !== this.fill) { this.fill = color; this.c.fillStyle = color; }

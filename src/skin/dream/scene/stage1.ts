@@ -17,20 +17,37 @@ import type { SceneFence, SceneMemory, SceneState } from './types';
 const S = STAGE_COLOURS[1];
 const F = (hex: string) => mix(hex, S.mid, 0.35);
 const FIELD_C = mix(S.snow, S.sky[2], 0.62);
+/**
+ * The farm's own colours, set back into a stage's night by `tint`: stage 1 mixes each 35% toward its `mid`; stage 2,
+ * whose islands carry the same buildings, 50% toward its sky.
+ */
+export function farmColours(tint: (hex: string) => string, snow: string, shade: string, smoke: string) {
+  return {
+    barn: tint(LADDER.barnRed[2]), barnDark: tint(LADDER.barnRed[0]), trim: tint(LADDER.trimWhite[3]), roofSnow: tint(snow), roofSnowShade: tint(shade),
+    stone: tint(LADDER.stone[2]), stoneDark: tint(LADDER.stone[0]), pine: tint(LADDER.pine[1]), pineDark: tint(LADDER.pine[0]), trunk: tint(LADDER.darkWood[1]),
+    house: tint(LADDER.houseCream[2]), houseDark: tint(LADDER.houseCream[0]), roof: tint(LADDER.roofBrown[1]), roofDark: tint(LADDER.roofBrown[0]),
+    straw: tint(LADDER.straw[2]), hay: tint(LADDER.hay[2]), hayDark: tint(LADDER.hay[0]), wood: tint(LADDER.wood[1]), darkWood: tint(LADDER.darkWood[1]),
+    coop: tint(LADDER.coopYellow[2]), coopDark: tint(LADDER.coopYellow[0]), ice: tint(LADDER.ice[2]), reed: tint(LADDER.reed[1]), smoke, mill: tint(LADDER.trimWhite[2]),
+  };
+}
+export type FarmColours = ReturnType<typeof farmColours>;
+const B = farmColours(F, S.snow, S.shade, mix(S.shade, S.sky[3], 0.2));
+/** What an obstacle on the lane is made of: the farm's things in stage 1, the same iced over in stage 2. */
+export function obstacleColours(tint: (hex: string) => string, snow: string, dim: string) {
+  return {
+    post: tint(LADDER.darkWood[1]), postLit: tint(LADDER.darkWood[3]), rail: tint(LADDER.wood[0]), snow, bulbOff: dim,
+    brick: tint(LADDER.barnRed[1]), brickDark: tint(LADDER.barnRed[0]), mortar: tint(LADDER.trimWhite[0]), log: tint(LADDER.wood[1]), logEnd: tint(LADDER.wood[4]), logRing: tint(LADDER.wood[2]),
+    bale: tint(LADDER.hay[2]), baleDark: tint(LADDER.hay[0]), twine: tint(LADDER.darkWood[2]),
+  };
+}
+export type ObstacleColours = ReturnType<typeof obstacleColours>;
+const O = obstacleColours((h) => h, S.snow, mix(TOKEN.lantern, S.sky[2], 0.5));
 const C = {
+  ...B, ...O, shade: S.shade,
   far: S.far, farPine: darker(S.far, 0.15), mill: mix(LADDER.trimWhite[2], S.far, 0.4),
   ground: mix(S.snow, S.mid, 0.55),
-  barn: F(LADDER.barnRed[2]), barnDark: F(LADDER.barnRed[0]), trim: F(LADDER.trimWhite[3]), roofSnow: F(S.snow), roofSnowShade: F(S.shade),
-  stone: F(LADDER.stone[2]), stoneDark: F(LADDER.stone[0]), pine: F(LADDER.pine[1]), pineDark: F(LADDER.pine[0]), trunk: F(LADDER.darkWood[1]),
-  house: F(LADDER.houseCream[2]), houseDark: F(LADDER.houseCream[0]), roof: F(LADDER.roofBrown[1]), roofDark: F(LADDER.roofBrown[0]),
-  straw: F(LADDER.straw[2]), hay: F(LADDER.hay[2]), hayDark: F(LADDER.hay[0]), wood: F(LADDER.wood[1]), darkWood: F(LADDER.darkWood[1]),
-  coop: F(LADDER.coopYellow[2]), coopDark: F(LADDER.coopYellow[0]), ice: F(LADDER.ice[2]), reed: F(LADDER.reed[1]), smoke: mix(S.shade, S.sky[3], 0.2),
-  post: LADDER.darkWood[1], postLit: LADDER.darkWood[3], rail: LADDER.wood[0], snow: S.snow, shade: S.shade,
-  bulbOff: mix(TOKEN.lantern, S.sky[2], 0.5),
   field: FIELD_C, ridge: mix(FIELD_C, S.snow, 0.35), furrow: mix(FIELD_C, S.sky[1], 0.35),
   wallStone: mix(LADDER.stone[2], S.sky[1], 0.55), wallStoneDark: mix(LADDER.stone[0], S.sky[1], 0.6), wallSnow: mix(S.snow, S.sky[2], 0.3),
-  brick: LADDER.barnRed[1], brickDark: LADDER.barnRed[0], mortar: LADDER.trimWhite[0], log: LADDER.wood[1], logEnd: LADDER.wood[4], logRing: LADDER.wood[2],
-  bale: LADDER.hay[2], baleDark: LADDER.hay[0], twine: LADDER.darkWood[2],
 } as const;
 const FESTIVE_BULBS = ['#F07A5A', '#9CCB78', '#FFD08A'] as const;
 const easeIn = (k: number) => k * k;
@@ -77,7 +94,7 @@ export const FARM = { period: 2400, speed: 0.35, band: 30, barn: 70, silo: 250, 
 /** The farmhouse's own numbers: stage 2's island carries the same house, and the chimney and the window move with it. */
 export const HOUSE = { w: 160, h: 92, roof: 50, chimney: [112, 16, 40], window: [28, 30, 34, 36] } as const;
 
-export function barn(u: Brush): void {
+export function barn(u: Brush, C: FarmColours = B): void {
   u(0, 0, 180, 120, C.barn);
   for (let x = 0; x < 180; x += 30) u(x, 0, 3, 120, C.barnDark, 0.35);
   // A snow roof 56 high, stepped; its eave overhangs.
@@ -88,12 +105,12 @@ export function barn(u: Brush): void {
   for (let k = 0; k < 11; k++) { u(68 + k * 4, 4 + k * 4.9, 5, 6, C.trim); u(108 - k * 4, 4 + k * 4.9, 5, 6, C.trim); }
   u(88, 4, 4, 54, C.trim);
 }
-export function silo(u: Brush, lean = 0): void {
+export function silo(u: Brush, lean = 0, C: FarmColours = B): void {
   for (let y = 0; y < 150; y += 10) u(lean * (y / 150), y, 50, 10, y % 30 === 20 ? C.stoneDark : C.stone);
   // A round snow cap, stepped.
   u(lean - 2, 150, 54, 8, C.roofSnow); u(lean + 5, 158, 40, 8, C.roofSnow); u(lean + 14, 166, 22, 6, C.roofSnow);
 }
-export function farmhouse(u: Brush, st: SceneState): void {
+export function farmhouse(u: Brush, st: SceneState, C: FarmColours = B): void {
   const H = HOUSE;
   u(0, 0, H.w, H.h, C.house);
   u(0, 0, H.w, 6, C.houseDark);
@@ -139,14 +156,14 @@ function bales(u: Brush): void {
   }
   u(21, 52, 40, 5, C.roofSnow);
 }
-export function coop(u: Brush): void {
+export function coop(u: Brush, C: FarmColours = B): void {
   u(8, 0, 6, 12, C.darkWood); u(76, 0, 6, 12, C.darkWood);
   u(0, 12, 90, 42, C.coop);
   u(0, 12, 90, 5, C.coopDark);
   u(36, 18, 18, 22, C.roofDark);
   for (let i = 0; i < 3; i++) u(-6 + i * 14, 54 + i * 7, 102 - i * 28, 7, i === 0 ? C.roofSnowShade : C.roofSnow);
 }
-export function pond(u: Brush): void {
+export function pond(u: Brush, C: FarmColours = B): void {
   u(0, 0, 140, 5, C.stoneDark);
   u(6, 3, 128, 6, C.ice);
   u(20, 6, 40, 2, lighter(C.ice, 0.25)); u(84, 5, 26, 2, lighter(C.ice, 0.25));
@@ -247,7 +264,7 @@ function field(p: Painter, st: SceneState, out: number): void {
 
 // ---------- obstacles: farm things, each filling its box ----------
 
-function obstacle(p: Painter, st: SceneState, f: SceneFence): void {
+export function obstacle(p: Painter, st: SceneState, f: SceneFence, C: ObstacleColours = O, drift = true, after?: (u: Brush) => void): void {
   const W = BOX.w, H = BOX.h;
   inBox(p, st, f, (u) => {
     if (f.look === 'rail') {
@@ -286,13 +303,18 @@ function obstacle(p: Painter, st: SceneState, f: SceneFence): void {
       u(0, H - 4, W, 5, C.snow);
     }
     // A stepped drift, two cells high, against its foot.
-    u(-10, 0, 12, 4, C.snow); u(-5, 4, 7, 4, C.snow); u(W - 2, 0, 12, 4, C.snow); u(W - 2, 4, 7, 4, C.snow);
+    if (drift) { u(-10, 0, 12, 4, C.snow); u(-5, 4, 7, 4, C.snow); u(W - 2, 0, 12, 4, C.snow); u(W - 2, 4, 7, 4, C.snow); }
+    after?.(u);
   });
   if (f.tilt <= 0.001) { lantern(p, f.x - 2, st.lane - BOX.h - 12, f.lit, C.bulbOff); lantern(p, f.x + W - 4, st.lane - BOX.h - 12, f.lit, C.bulbOff); }
 }
 
-/** Everything of stage 1 behind the sheep. */
-export function paintStage1(p: Painter, st: SceneState, m: SceneMemory, out = 0): void {
+/**
+ * Everything of stage 1 behind the sheep. `part` splits it for the gate: `back` is what stands behind the lane, `front`
+ * the field and the wall, which fall away in front of stage 2's island as it grows.
+ */
+export function paintStage1(p: Painter, st: SceneState, m: SceneMemory, out = 0, part: 'all' | 'back' | 'front' = 'all'): void {
+  if (part === 'front') { if (out < 1) field(p, st, out); return; }
   // Snow falls: 46 flakes, each at its own pace, drifting left at a fifth of the lane's speed. It stops at the gate.
   if (!st.reduced || out === 0) {
     const n = st.low ? 20 : 46, a = 0.78 * (1 - Math.min(1, out / 0.5));
@@ -304,11 +326,25 @@ export function paintStage1(p: Painter, st: SceneState, m: SceneMemory, out = 0)
   hills(p, st, out);
   farm(p, st, out);
   fence(p, st, out);
-  if (out < 1) field(p, st, out);
+  if (part === 'all' && out < 1) field(p, st, out);
   if (out === 0) lane(p, st, m);
 }
-/** The obstacles and their signs' posts, on the lane. */
-export function paintObstacles1(p: Painter, st: SceneState): void {
-  for (const f of st.fences) { signPost(p, st, f, C.post, C.postLit); obstacle(p, st, f); }
+/** One of stage 1's obstacles and its sign's post, on the lane. */
+export function paintObstacle1(p: Painter, st: SceneState, f: SceneFence): void {
+  signPost(p, st, f, C.post, C.postLit);
+  obstacle(p, st, f);
+}
+/** The first gate (04, section 1): the farm's boundary gate, two plank posts 3.2 sheep high and a beam with nine lanterns. */
+export function paintGate1(p: Painter, st: SceneState, x: number, lit: number): void {
+  const tall = st.sheep.w * 0.62 * 3.2, L = st.lane, w = 150;
+  p.r(x - w / 2 - 7, L - tall, 14, tall, C.post); p.r(x + w / 2 - 7, L - tall, 14, tall, C.post);
+  p.r(x - w / 2 + 3, L - tall, 4, tall, C.postLit); p.r(x + w / 2 + 3, L - tall, 4, tall, C.postLit);
+  p.r(x - w / 2 - 16, L - tall - 12, w + 32, 12, C.rail);
+  p.r(x - w / 2 - 16, L - tall - 16, w + 32, 4, C.snow);
+  // Nine lanterns along the beam, lit one after another as the sheep goes under.
+  for (let i = 0; i < 9; i++) lantern(p, x - w / 2 + 6 + i * ((w - 18) / 8), L - tall + 4, i < lit, C.bulbOff);
+  // The banner: an ink tag hung from the beam, with the island that is coming on it.
+  p.r(x - 34, L - tall + 18, 68, 26, TOKEN.ink);
+  p.r(x - 12, L - tall + 28, 24, 4, TOKEN.wool); p.r(x - 9, L - tall + 32, 18, 4, TOKEN.wool); p.r(x - 5, L - tall + 36, 10, 3, TOKEN.wool); p.r(x - 4, L - tall + 23, 3, 5, TOKEN.wool);
 }
 export const STAGE1 = { shadow: mix(S.snow, S.sky[2], 0.45), puff: TOKEN.woolHi, C } as const;

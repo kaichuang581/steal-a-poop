@@ -2630,4 +2630,30 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
     under the counters' row, and the words start lower, for the same reason.
   - Measured on this Mac through headless Chrome: 60 pictures a second at 1440 x 900 and at 390 x 544, the same with
     the processor slowed four times; about 2,000 to 3,000 rectangles a frame. The bundle shrank by 3 kB (the old world).
+- CS5, the first gate and stage 2 "the farm lifts off", as built (2026-11-24; docs/dream/04).
+  - The stage is no longer `lettersAt(reached)`: it changes when the sheep passes a gate (DreamScreen's loop: `GATES`,
+    `arch`, `world`). A gate is placed halfway between the last fence of one stage and the first of the next, as that
+    first fence joins the queue (the letter counts still come from `lettersAt`, never from fence numbers). Passing it
+    sets the stage for the scenery, the beat, the farmer's sleep and the puffs, and 100 ms later shows the stage's card.
+  - The gate itself (`paintGate1`): two plank posts 3.2 sheep high, a beam, nine lanterns that light 40 ms apart as the
+    sheep goes under, and an ink banner. The banner carries the island picture, not the word "Dreaming…": text drawn on
+    a canvas would not go through the French layer, and the card says it 100 ms later.
+  - Lift-off (scene.ts `world`, 1,200 ms; `SceneState.gate`): the sky's colours blend over 600 ms, the crescent's dark
+    disc slides off and the moon grows, stage 1's hills sink and fade, its farm fades as the islands rise from the
+    ground (`alignIsles` starts the islands' strip so that one rises from where its own building stands, for whichever
+    building is nearest the middle of the window; the others rise beside theirs), the fence's posts and rails drop
+    away one after another while the string of bulbs stays and starts to wave, the field and the wall fall 260 px in
+    front of the lane's island as its soil and rock grow down (icicles last), the falling snow stops and the rising
+    snow starts at 450 ms, the northern light grows from 600 ms, and one ring spreads from the gate over the window.
+    Under reduced motion it is one 200 ms cross-fade (`Painter.mul`).
+  - Stage 2 (scene/stage2.ts): the northern light (bars across the middle of the sky, waving, 20% taller on the beat);
+    the farm in the air at speed 0.12, five islands built one way (snow top, soil, five stepped rows, three clods
+    trailing): barn with the silo leaning, windmill turning once every four beats, farmhouse with his window still
+    glowing with his breath, coop, pond spilling mist; fence pieces and pines on dark clods; the string of bulbs
+    floating in a slow wave with the same chase; the lane as a floating island (snow top, lip, icicles, two soils with
+    stones, roots, a stepped rock underside) over streaks of mist; rising snow; dark rocks along the bottom edge;
+    wool streaks behind the sheep; puffs that drift upward. Its obstacles are stage 1's, iced: paler, an ice crust
+    and icicles on top (the pack lists six separate iced things; these are the five farm looks treated one way).
+  - A fence's look belongs to its own place in the night (`SceneFence.stage`), so the first two-letter fence is
+    already iced as it comes in, before the gate is passed.
 

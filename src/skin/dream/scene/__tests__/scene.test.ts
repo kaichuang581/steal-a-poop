@@ -7,12 +7,13 @@ import { hash2, Painter, wrap } from '../painter';
 import { luma, mix, QUILT, STAGE_COLOURS } from '../palette';
 import { paintFront, paintScene } from '../scene';
 import { bulbLit, FARM, FENCE, hillHeight, HOUSE, sag, STAGE1 } from '../stage1';
-import { BOX, freshMemory, lookOf, S0 } from '../types';
+import { alignIsles, ISLE_ROWS, isleLift, ISLES, LANE2, northernBar, rockDepth, STAGE2, stringY } from '../stage2';
+import { BOX, freshMemory, GATE_MS, lookOf, S0 } from '../types';
 import type { SceneState } from '../types';
 
 /** The dream's flat scenery (docs/dream/03 to 05). */
 const state = (over: Partial<SceneState> = {}): SceneState => ({
-  W: 1408, H: 648, lane: 428, scroll: 0, t: 0, beats: 0, u: 1, stage: 1, gate: null, finale: 0, counted: 0, seed: '2026-11-24',
+  W: 1408, H: 648, lane: 428, scroll: 0, t: 0, beats: 0, u: 1, stage: 1, gate: null, arch: null, finale: 0, counted: 0, seed: '2026-11-24',
   phone: false, low: false, reduced: false, festive: true, breath: 0, fences: [], sheep: { x: 310, lift: 0, w: 113, running: true }, ...over,
 });
 /** A canvas that only writes down what it is asked to fill. */
@@ -111,7 +112,7 @@ describe('the scenery\'s measures', () => {
 });
 
 describe('painting a frame', () => {
-  const FENCES = (['rail', 'picket', 'wall', 'log', 'bale'] as const).map((look, i) => ({ index: i, look, x: 500 + i * 160, lit: i % 2 === 0, tilt: i === 4 ? 1.2 : 0, signX: 536 + i * 160, signTop: 150 }));
+  const FENCES = (['rail', 'picket', 'wall', 'log', 'bale'] as const).map((look, i) => ({ index: i, look, stage: 1 as const, x: 500 + i * 160, lit: i % 2 === 0, tilt: i === 4 ? 1.2 : 0, signX: 536 + i * 160, signTop: 150 }));
   it('lands every edge on a whole device pixel, at any scale', () => {
     for (const K of [1, 0.886, 0.358 * 2, 1.5 * 2]) {
       const { c, rects } = canvas();
@@ -150,3 +151,69 @@ describe('painting a frame', () => {
     expect(m.prints.length).toBe(0);
   });
 });
+
+describe('stage 2, the farm lifts off (04)', () => {
+  it('keeps the lane the brightest band', () => {
+    const C = STAGE2.C, top = luma(C.snow);
+    for (const other of [C.shade, C.soil, C.soil2, C.rock, C.below, C.isleSnow, C.clod, ...STAGE_COLOURS[2].sky]) expect(top).toBeGreaterThan(luma(other));
+  });
+  it('builds every island the same way: five stepped rows, each narrower, and a top wide enough for what stands on it', () => {
+    expect([...ISLE_ROWS]).toEqual([0.86, 0.66, 0.5, 0.3, 0.14]);
+    expect(ISLES.tops).toEqual({ barn: 140, windmill: 150, farmhouse: 130, coop: 90, pond: 120 });
+    // Three islands are on screen at a time on a computer.
+    expect(Math.round(1408 / ISLES.gap)).toBe(3);
+    // None enters the top 70 px: the highest top still leaves its building under the counters.
+    for (let n = -20; n < 20; n++) { const lift = isleLift(n, 428); expect(428 - lift).toBeGreaterThan(70 + 100); expect(lift).toBeGreaterThan(90); }
+  });
+  it('raises an island from where its own building stands on the farm as the gate opens', () => {
+    const st = state({ scroll: 5000, stage: 2 }), phase = alignIsles(st), period = ISLES.gap * ISLES.kinds.length;
+    expect(phase).toBeGreaterThanOrEqual(0);
+    expect(phase).toBeLessThan(period);
+    // Some island's left edge is then where a building of the farm's strip is on screen.
+    const farm = (home: number) => wrap(home - st.scroll * 0.35, 2400);
+    const homes = [70, 700, 1380, 1600].map(farm), islands = ISLES.kinds.map((_, i) => wrap(i * ISLES.gap - st.scroll * ISLES.speed + phase, period));
+    expect(homes.some((h) => islands.some((x) => Math.abs(x - h) < 1e-6 || Math.abs(Math.abs(x - h) - period) < 1e-6))).toBe(true);
+  });
+  it('waves the northern light and the string of bulbs, and steps the rock under the lane in eights', () => {
+    for (let x = 0; x < 1400; x += 37) for (const t of [0, 1.3, 9]) {
+      const b = northernBar(x, t);
+      expect(b.h).toBeGreaterThanOrEqual(0);
+      expect(b.h).toBeLessThanOrEqual(92);
+      expect(b.top).toBeGreaterThanOrEqual(224);
+      expect(b.top).toBeLessThanOrEqual(276);
+      expect(Math.abs(stringY(x, t, 14) + 46)).toBeLessThanOrEqual(14);
+      expect(stringY(x, t, 0)).toBe(-46);
+      expect(rockDepth(x) % 8).toBe(0);
+      expect(rockDepth(x)).toBeGreaterThanOrEqual(8);
+      expect(rockDepth(x)).toBeLessThanOrEqual(72);
+    }
+    expect(LANE2).toEqual({ top: 12, lip: 4, soil: 24, soil2: 22 });
+  });
+  it('paints the stage, the gate into it, and the gate under reduced motion, on whole pixels', () => {
+    const fences = [{ index: 6, look: 'wall' as const, stage: 2 as const, x: 700, lit: true, tilt: 0, signX: 736, signTop: 150 }];
+    for (const over of [
+      { stage: 2 as const },
+      { stage: 2 as const, gate: { from: 1 as const, ms: 0 }, arch: { to: 2 as const, x: 300, since: 0 } },
+      { stage: 2 as const, gate: { from: 1 as const, ms: 500 }, arch: { to: 2 as const, x: 240, since: 500 } },
+      { stage: 2 as const, gate: { from: 1 as const, ms: 1100 } },
+      { stage: 2 as const, gate: { from: 1 as const, ms: 100 }, reduced: true },
+      { stage: 2 as const, low: true, phone: true },
+    ]) {
+      const { c, rects } = canvas();
+      paintScene(new Painter(c, 1.3), state({ scroll: 9000, t: 30000, beats: 40.2, fences, ...over }), freshMemory(), () => {});
+      expect(rects.length).toBeGreaterThan(200);
+      expect(rects.length).toBeLessThan(6000);
+      for (const r of rects) for (const v of [r.x, r.y, r.w, r.h]) expect(Number.isInteger(v)).toBe(true);
+      for (const r of rects) { expect(r.alpha).toBeGreaterThan(0); expect(r.alpha).toBeLessThanOrEqual(1); }
+    }
+    expect(GATE_MS).toEqual({ 1: 1200, 2: 1000, reduced: 200 });
+  });
+  it('spreads one ring from the gate over the window for half a second, and never under reduced motion', () => {
+    const ring = (over: Partial<SceneState>) => { const { c, rects } = canvas(); paintFront(new Painter(c, 1), state({ stage: 2, low: true, ...over })); return rects.length; };
+    expect(ring({ arch: { to: 2, x: 300, since: 200 } })).toBeGreaterThan(50);
+    expect(ring({ arch: { to: 2, x: 300, since: 600 } })).toBe(0);
+    expect(ring({ arch: { to: 2, x: 300, since: -1 } })).toBe(0);
+    expect(ring({ arch: { to: 2, x: 300, since: 200 }, reduced: true })).toBe(0);
+  });
+});
+

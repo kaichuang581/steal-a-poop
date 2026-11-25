@@ -11,6 +11,7 @@ All user-visible changes, newest first.
 - Counting Sheep's new screen: the farmer asleep in his bed along the bottom, the dream as one big thought bubble above him, and your word as letter tiles in a tray, with a fence meter, a night track and a board that shows how to play.
 - Counting Sheep answers you: your tiles fly to the sign, the sheep rolls in the air and kicks up snow, a bump shakes the dream, and every word you use rises into the sky and stays there as stars.
 - Counting Sheep's dream is the farmer's own farm at night: the barn and silo, his farmhouse with one window lit, a fence strung with bulbs that blink in time, a snowy track, and gates, log piles and hay bales to jump.
+- At the first two-letter fence the dream bends: the sheep runs under the farm gate, the ground drops away, the barn and the farmhouse float off on their own islands, the moon fills out and a northern light begins to dance.
 
 ## 0.9.7
 

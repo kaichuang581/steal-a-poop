@@ -21,8 +21,8 @@ export interface FxHandle {
   frame(st: SceneState, lane: number): void;
   /** A ring spreading from a point (a word taken). */
   ring(x: number, y: number): void;
-  /** Pixel puffs at the hooves: `n` of them, fanning out behind. */
-  puffs(x: number, y: number, n: number): void;
+  /** Pixel puffs at the hooves: `n` of them, fanning out behind. With `up` they drift upward as they fade (stage 2). */
+  puffs(x: number, y: number, n: number, up?: boolean): void;
   /** A word rises from a point into its place in the sky, and stays. */
   word(text: string, x: number, y: number): void;
   /** One of the night's words, already in its place (a run picked up again). */
@@ -48,7 +48,7 @@ interface Props {
 
 interface Star { text: string; dots: [number, number][]; cols: number; place: Place; from: [number, number]; at: number }
 interface Ring { x: number; y: number; at: number }
-interface Puff { x: number; y: number; vx: number; vy: number; at: number }
+interface Puff { x: number; y: number; vx: number; vy: number; at: number; g: number }
 
 const RING = { to: 240, ms: 400, alpha: 0.5 } as const;
 const PUFF_MS = 300;
@@ -70,12 +70,12 @@ export const Fx = forwardRef<FxHandle, Props>(function Fx({ w, h, lane, seed, ph
 
   useImperativeHandle(ref, () => ({
     ring(x, y) { if (!reduced) S.rings.push({ x, y, at: S.t }); },
-    puffs(x, y, n) {
+    puffs(x, y, n, up = false) {
       if (reduced) return;
       for (let i = 0; i < n && S.puffs.length < MOST_PARTICLES; i++) {
         // A fan behind the hooves: back and a little up, each its own way.
         const a = Math.PI * (0.62 + (0.5 * i) / Math.max(1, n - 1));
-        S.puffs.push({ x: x - 4 * i, y, vx: Math.cos(a) * (50 + 22 * (i % 3)), vy: -Math.abs(Math.sin(a)) * (30 + 14 * (i % 2)), at: S.t });
+        S.puffs.push({ x: x - 4 * i, y, vx: Math.cos(a) * (50 + 22 * (i % 3)), vy: -Math.abs(Math.sin(a)) * (30 + 14 * (i % 2)), at: S.t, g: up ? -70 : 60 });
       }
     },
     word(text, x, y) {
@@ -138,7 +138,7 @@ export const Fx = forwardRef<FxHandle, Props>(function Fx({ w, h, lane, seed, ph
       o.fillStyle = 'rgba(255,253,244,0.9)';
       for (const p of S.puffs) {
         // Left behind: it goes back with the lane as it spreads, through the pack's three frames.
-        p.x += (p.vx - laneSpeed) * dt; p.y += p.vy * dt; p.vy += 60 * dt;
+        p.x += (p.vx - laneSpeed) * dt; p.y += p.vy * dt; p.vy += p.g * dt;
         const rows = PUFFS[Math.min(2, Math.floor(((t - p.at) / PUFF_MS) * 3))];
         rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'X') o.fillRect(Math.round(p.x) + (x - 4) * 2, Math.round(p.y) + (y - 4) * 2, 2, 2); }));
       }

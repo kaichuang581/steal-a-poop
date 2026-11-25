@@ -19,6 +19,8 @@ export type StageN = 1 | 2 | 3;
 
 export interface SceneFence {
   index: number; look: Look;
+  /** The stage whose thing it is: the letters a fence asks at its place in the night. */
+  stage: StageN;
   /** The box's left edge, art px across the window. */
   x: number;
   /** Its word is taken: its lanterns are lit. */
@@ -38,8 +40,10 @@ export interface SceneState {
   /** Art px to one CSS px: what the small things that keep their size on every screen (stars, snow) are sized by. */
   u: number;
   stage: StageN;
-  /** The stage being left and how far through its gate the dream is, 0 to 1; null between gates. */
-  gate: { from: StageN; k: number; ms: number; x: number } | null;
+  /** The stage being left and how long ago the sheep passed its gate, ms; null between gates. */
+  gate: { from: StageN; ms: number } | null;
+  /** The gate standing on the lane, if one is near: which stage it opens, and its middle across the window, art px. */
+  arch: { to: 2 | 3; x: number; since: number } | null;
   /** How far into the finale's swell the moon is, 0 to 1, and the sheep counted so far; 0 outside the finale. */
   finale: number; counted: number;
   seed: string;
@@ -52,5 +56,11 @@ export interface SceneState {
 }
 
 /** What the scenery remembers between frames of one run: where the hooves came down. */
-export interface SceneMemory { prints: { wx: number; t: number }[]; strideAt: number; squish: Map<number, number>; lastT: number }
-export const freshMemory = (): SceneMemory => ({ prints: [], strideAt: 0, squish: new Map(), lastT: 0 });
+export interface SceneMemory {
+  prints: { wx: number; t: number }[]; strideAt: number; squish: Map<number, number>; lastT: number;
+  /** Where stage 2's strip of islands starts along its own scroll: set as the first gate opens, so that an island rises from where a building of the farm stands. */
+  isles: number | null;
+}
+export const freshMemory = (): SceneMemory => ({ prints: [], strideAt: 0, squish: new Map(), lastT: 0, isles: null });
+/** How long a gate lasts, ms: the first, "Lift-off"; the second, "Tucked in". Under reduced motion, a 200 ms cross-fade. */
+export const GATE_MS = { 1: 1200, 2: 1000, reduced: 200 } as const;

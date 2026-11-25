@@ -383,6 +383,8 @@ export function PaintedHome() {
     <>
       <span className="hm-version">v{pkg.version}</span>
       <button onClick={() => setFeedback(true)}>Feedback</button>
+      {/* A plain page about the game (public/about/), so search engines have words to read and a link to follow. */}
+      <a href="about/">About</a>
       {(['privacy', 'terms', 'child-safety'] as const).map((slug) => (
         <button key={slug} onClick={() => setLegal(slug)} aria-label={LEGAL_TITLES[slug]}>{SHORT_LEGAL[slug]}</button>
       ))}

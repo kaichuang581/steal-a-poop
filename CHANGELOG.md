@@ -2,6 +2,10 @@
 
 All user-visible changes, newest first.
 
+## Unreleased
+
+- Easier to find on Google: the page title says what the game is ("Fleeced | Free Multiplayer Word Chain Game"), the page names fleeced.io as its one address, search engines get a sitemap, a robots file and a description of the game, and a new About page (linked in the small print) explains how to play.
+
 ## 0.9.8
 
 - The farmer matches his sheet more closely: his nightcap's tail and pom hang back behind his left ear, and his beard runs along his jaw on both sides.

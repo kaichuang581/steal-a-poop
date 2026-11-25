@@ -4,8 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0b1030" />
-    <title>Fleeced</title>
-    <meta name="description" content="A free word-chain game: chain words against the clock and be the last sheep standing." />
+    <title>Fleeced | Free Multiplayer Word Chain Game</title>
+    <meta name="description" content="Fleeced is a free word chain game in your browser. Type a word starting with the last letter before the ice bomb goes off. Play friends, ranked or bots." />
+    <!-- One address for search engines: the root copy and the /steal-a-poop/ copy both name fleeced.io (src/skin/seo.ts). -->
+    <link rel="canonical" href="https://fleeced.io/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <!-- The tab icon is the sheep's head from the avatars (public/favicon-*.png, cut from Brian's sheet). Page-relative,
          like the preloads below: the dev server doubles a %BASE_URL% prefix. -->
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
@@ -18,18 +21,49 @@
     <link rel="preload" as="font" type="font/woff2" href="fonts/patrick-hand-latin.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="fonts/fraunces-latin.woff2" crossorigin />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Fleeced" />
+    <meta property="og:url" content="https://fleeced.io/" />
     <meta property="og:title" content="Fleeced" />
     <meta property="og:description" content="Chain words. Keep your wool. Be the last sheep standing." />
-    <meta property="og:image" content="https://kaichuang581.github.io/steal-a-poop/og.png" />
+    <meta property="og:image" content="https://fleeced.io/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Fleeced" />
     <meta name="twitter:description" content="Chain words. Keep your wool. Be the last sheep standing." />
-    <meta name="twitter:image" content="https://kaichuang581.github.io/steal-a-poop/og.png" />
+    <meta name="twitter:image" content="https://fleeced.io/og.png" />
+    <!-- Structured data for search results: the site's name and the game. A data block, never run, so the page's policy
+         (no inline script) does not apply to it. -->
+    <script type="application/ld+json">
+      [
+        { "@context": "https://schema.org", "@type": "WebSite", "name": "Fleeced", "url": "https://fleeced.io/" },
+        {
+          "@context": "https://schema.org",
+          "@type": "VideoGame",
+          "name": "Fleeced",
+          "url": "https://fleeced.io/",
+          "image": "https://fleeced.io/og.png",
+          "description": "A free word chain game in the browser: type a word that starts with the last letter of the one before, pass the ice bomb before it goes off, and be the last sheep standing.",
+          "genre": ["Word game", "Party game"],
+          "gamePlatform": "Web browser",
+          "applicationCategory": "GameApplication",
+          "operatingSystem": "Any",
+          "playMode": ["MultiPlayer", "SinglePlayer"],
+          "inLanguage": ["en", "fr"],
+          "isAccessibleForFree": true,
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        }
+      ]
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- For a reader without scripts (and the first pass of a search engine's crawler): what the page is, and a page of plain text. -->
+    <noscript>
+      <h1>Fleeced: a free multiplayer word chain game</h1>
+      <p>Type a word that starts with the last letter of the word before it, before the ice bomb goes off. Lose your wool and you are out; be the last sheep standing. Fleeced needs JavaScript to play.</p>
+      <p><a href="about/">About Fleeced and how to play</a></p>
+    </noscript>
     <!-- The loading screen at its start (the night, the dotted word and the yarn ball) is written in here by vite.config.ts
          (src/skin/loading/bootDoors.ts), so it is on screen with the page's first frame, before the game's code has arrived. -->
     <!--boot-doors-->

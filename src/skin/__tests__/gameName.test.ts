@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { PAINTED_GAME_TITLE } from '../../config';
+import { PAGE_TITLE } from '../seo';
 
 // The painted game's name lives in src/config.ts. Every place a player can see it reads that value, so a rename is one
 // edit; this test fails if a page title, a link preview or a stray copy of the old name is left behind.
@@ -21,7 +22,9 @@ describe('the game has one name', () => {
   const title = (re: RegExp) => html.match(re)?.[1];
 
   it('the page title and the link previews say the painted name', () => {
-    expect(title(/<title>([^<]*)<\/title>/)).toBe(PAINTED_GAME_TITLE);
+    // The tab and search results read PAGE_TITLE (the name, then what the game is); the game sets the same one.
+    expect(title(/<title>([^<]*)<\/title>/)).toBe(PAGE_TITLE);
+    expect(PAGE_TITLE.startsWith(`${PAINTED_GAME_TITLE} `)).toBe(true);
     expect(title(/property="og:title" content="([^"]*)"/)).toBe(PAINTED_GAME_TITLE);
     expect(title(/name="twitter:title" content="([^"]*)"/)).toBe(PAINTED_GAME_TITLE);
   });

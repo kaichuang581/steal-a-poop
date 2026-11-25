@@ -32,7 +32,7 @@ export function ShelfTags({ item, wallet, buy, wear, busy }: { item: Item; walle
     <span className="tp-shelf-tags">
       {!owned && <span className="tp-price"><Icon name="bell" size={16} />{formatCoins(item.price ?? 0)}</span>}
       <span className="tp-tag tp-tag--shelf"><b>{item.name}</b><small>{KIND_ONE[item.kind]}</small></span>
-      {worn ? <span className="tp-wearing"><Icon name="tick" size={14} />Wearing</span>
+      {worn ? <span className="tp-tag tp-tag--small tp-wearing"><Icon name="tick" size={14} />Wearing</span>
         : owned ? <button type="button" className="tp-btn tp-btn--lantern tp-btn--tile" onClick={() => wear(item)}>Wear it</button>
         : need > 0 ? <button type="button" className="tp-btn tp-btn--tile" data-pale disabled>{`${need} more Bells`}</button>
         : <button type="button" className="tp-btn tp-btn--lantern tp-btn--tile" disabled={busy} onClick={() => buy(item)} aria-label={`Buy ${item.name} for ${item.price} Golden Bells`}>Buy</button>}

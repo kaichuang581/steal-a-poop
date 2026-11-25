@@ -8,15 +8,18 @@
 import { Canvas, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SRGBColorSpace, Vector3 } from 'three';
-import type { OrthographicCamera, PerspectiveCamera } from 'three';
+import type { Material, OrthographicCamera, PerspectiveCamera } from 'three';
 import sheetUrl from '../../../docs/dream/reference/farmer-sheet.png';
 import { LOOK } from '../look';
 import { voxelMaterial } from '../voxel/material';
-import { BED, bedroomGeometry } from './bedroom';
-import { farmerCells, PIECES, POSES, UNIT } from './farmer';
-import type { PoseName } from './farmer';
+import { aimStrip } from './BedroomBubble';
+import { bedroomGeometry, CLOCK } from './bedroom';
+import { farmerCells, PIECES, POSES, TURN_MS, turnPose, UNIT } from './farmer';
+import type { Pose, PoseName } from './farmer';
 import { FarmerFigure } from './FarmerFigure';
+import type { FarmerHandle } from './FarmerFigure';
 import { FarmerInBed } from './FarmerInBed';
+import { dreamFrame, stripCamera } from './frame';
 
 const PAPER = '#E8E8E2';
 /** On the sheet the front figure is 340 px tall, and he is 84 units: so many sheet pixels a unit. */
@@ -208,19 +211,20 @@ function MatchPanel() {
 
 // ---------- the poses, in his bed ----------
 
-/** The bed's side camera (plan file 01, section 4): on the room's open side, 0.35 m above the mattress, looking straight at the bed's long side. */
+/** The bed strip as a 1440 x 900 screen has it: its camera `bedSide` (frame.ts), over the bed zone and a little past it. */
+const STRIP_FRAME = dreamFrame(1440, 900), STRIP = stripCamera(STRIP_FRAME), STRIP_SIZE = { width: Math.round(STRIP_FRAME.bedZone + 40), height: Math.round(STRIP_FRAME.room.h) };
 function BedCamera() {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const invalidate = useThree((s) => s.invalidate);
-  useEffect(() => { camera.position.set(1.0, BED.mattress.top + 0.35, 4.6); camera.lookAt(1.0, BED.mattress.top + 0.35, 0); camera.updateProjectionMatrix(); invalidate(); }, [camera, invalidate]);
+  useEffect(() => { aimStrip(camera, STRIP, STRIP_FRAME, STRIP_SIZE); invalidate(); }, [camera, invalidate]);
   return null;
 }
-function BedView({ pose }: { pose: PoseName }) {
+function BedView({ pose }: { pose: Pose }) {
   const b = useMemo(() => bedroomGeometry(), []);
   const vox = useMemo(() => voxelMaterial(), []);
   const mark = useRef(0);
   return (
-    <Canvas frameloop="demand" dpr={1.5} style={{ width: 760, height: 380, background: '#141836' }}
+    <Canvas frameloop="demand" dpr={1.5} style={{ ...STRIP_SIZE, background: '#141836' }}
       gl={{ antialias: true, outputColorSpace: SRGBColorSpace, toneMapping: LOOK.toneMapping }} camera={{ fov: 20, near: 0.1, far: 30 }}
       onCreated={({ invalidate }) => { mark.current = window.setTimeout(() => invalidate(), 300); }}>
       <BedCamera />
@@ -228,8 +232,8 @@ function BedView({ pose }: { pose: PoseName }) {
       <hemisphereLight args={['#B4B8F0', '#6A5A50', 2.1]} />
       <directionalLight position={[2, 3, 4]} color="#FFE2C4" intensity={1.6} />
       <mesh geometry={b.room} material={vox} />
-      <mesh geometry={b.clock} material={vox} position={[0.4, 0.625, -0.84]} rotation={[0, 0.75, 0]} />
-      <FarmerInBed material={vox} pose={POSES[pose]} />
+      <mesh geometry={b.clock} material={vox} position={[CLOCK.x, CLOCK.y + 0.025, CLOCK.z]} rotation={[0, CLOCK.turn, 0]} />
+      <BedPose pose={pose} material={vox} />
     </Canvas>
   );
 }
@@ -239,12 +243,20 @@ const CAP: React.CSSProperties = { font: '13px system-ui', color: '#444', margin
 const TH: React.CSSProperties = { textAlign: 'left', padding: '2px 10px 2px 0', borderBottom: '1px solid #bbb' };
 const TD: React.CSSProperties = { padding: '2px 10px 2px 0' };
 const SW: React.CSSProperties = { display: 'inline-block', width: 14, height: 14, marginRight: 6, verticalAlign: -2, border: '1px solid #0002' };
-const BED_POSES: { pose: PoseName; says: string }[] = [
-  { pose: 'bedSleep', says: 'bedSleep: stages 1 and 2' },
-  { pose: 'bedDeep', says: 'bedDeep: stage 3, the finale, the “drifted off” results' },
-  { pose: 'bedStir', says: 'bedStir: the fence is close' },
-  { pose: 'bedJolt', says: 'bedJolt: a bump' },
-  { pose: 'bedUpright', says: 'bedUpright: the “woke up” results' },
+/** Him in a pose on the bed, set through `apply` as the game sets him (the quilt follows his pose there). */
+function BedPose({ pose, material }: { pose: Pose; material: Material }) {
+  const ref = useRef<FarmerHandle>(null);
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => { ref.current?.apply(pose); invalidate(); }, [pose, invalidate]);
+  return <FarmerInBed ref={ref} material={material} pose={pose} />;
+}
+const BED_POSES: { pose: Pose; says: string }[] = [
+  { pose: POSES.bedSleep, says: 'bedSleep: asleep' },
+  { pose: POSES.bedDeep, says: 'bedDeep: from 30 sheep on, and the “drifted off” results' },
+  { pose: POSES.bedStir, says: 'bedStir: the fence is close' },
+  { pose: POSES.bedJolt, says: 'bedJolt: a bump' },
+  { pose: POSES.bedUpright, says: 'bedUpright: the “woke up” results' },
+  ...[225, 450, 675].map((ms) => ({ pose: turnPose(ms), says: `bedTurn: gate 3, ${ms} of ${TURN_MS} ms` })),
 ];
 
 export function FarmerBoard() {
@@ -271,9 +283,9 @@ export function FarmerBoard() {
       {only !== 'views' && (
         <>
           <h1 style={{ font: '700 20px system-ui', color: '#222', margin: '24px 0 12px' }}>His poses, in his bed, from the bed's side</h1>
-          <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 760px)', gap: 16 }}>
+          <section style={{ display: 'grid', gridTemplateColumns: `repeat(2, ${STRIP_SIZE.width}px)`, gap: 16 }}>
             {BED_POSES.map((p) => (
-              <figure key={p.pose} style={{ margin: 0 }}>
+              <figure key={p.says} style={{ margin: 0 }}>
                 <BedView pose={p.pose} />
                 <figcaption style={CAP}>{p.says}</figcaption>
               </figure>

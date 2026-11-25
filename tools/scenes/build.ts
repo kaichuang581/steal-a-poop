@@ -844,9 +844,9 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     // The farmer and the quilt over him: FarmerInBed.tsx lays FarmerFigure.tsx on the bed (farmer.ts has the model and poses).
     mirrors('src/skin/dream/FarmerInBed.tsx', [
       '<group ref={over} position={[0, top, 0]} visible={!up}>',
-      '<mesh geometry={b.quiltLegs} material={material} position={[0, -top, 0]} />',
+      '<mesh ref={legsMesh} geometry={b.quiltLegs} material={material} position={[0, -top, 0]} />',
       '<group ref={chest} position={[WAIST_X, 0, IN_BED.z]}>',
-      '<mesh geometry={b.quiltChest} material={material} position={[-WAIST_X, -top, -IN_BED.z]} />',
+      '<mesh ref={chestMesh} geometry={b.quiltChest} material={material} position={[-WAIST_X, -top, -IN_BED.z]} />',
       '<mesh ref={satMesh} geometry={sat} material={material} visible={up} position={[-pose.scoot, 0, 0]} />',
       '<group ref={figure} position={[lying.position[0] - pose.scoot, lying.position[1], lying.position[2]]} quaternion={lying.quaternion}>',
       '<FarmerFigure ref={farmer} material={material} pose={pose} />',
@@ -889,7 +889,7 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     }
     for (const [name, g] of [...Object.entries(f.face.eyes), ...Object.entries(f.face.mouth), ...Object.entries(f.face.brows)]) L.skip(g, `farmer.face.${name}`, 'his eyes, mouth and brows: paint and small pieces on his face, shown by his pose');
     L.notes.push('the ring lines (bedroom.ring) are laid out with the clock, though the game shows them only while it rings');
-    L.notes.push('the farmer is built asleep (bedSleep); the quilt pushed down to his waist (shown once he sits up) and his folded Warm Blankets are not built');
+    L.notes.push('the farmer is built asleep (bedSleep); the quilt pushed down to his waist (shown once he sits up), the quilt he turns over under at gate 3 (quiltTurned) and his folded Warm Blankets are not built');
   },
 
   /**

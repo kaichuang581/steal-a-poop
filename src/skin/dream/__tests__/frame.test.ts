@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { signLayout } from '../Signs';
 import { ART, dreamView, SHEEP_ART } from '../stage';
 import {
-  BED_BOX, BED_SIDE, bubbleBottom, bubbleShape, dreamFrame, isPhoneLayout, meterSegments, RIM, scallopRow, SIGN_BOARD, signHeight, stripCamera, stripExtent, stripPoint,
+  BED_BOX, BED_SIDE, bubbleBottom, CAP_TIP, NOSE, bubbleShape, dreamFrame, isPhoneLayout, meterSegments, RIM, scallopRow, SIGN_BOARD, signHeight, stripCamera, stripExtent, stripPoint,
   tailPuffs, tileFit, TRAY, unitOf,
 } from '../frame';
 import { trayWord } from '../Interface';
@@ -130,17 +130,33 @@ describe('the tray', () => {
 });
 
 describe('the bed strip\'s camera', () => {
-  it('frames the bed: the headboard 24 px in, the foot 70 px short of the bed zone, the strip its 20 degrees', () => {
+  it('frames the bed: from 1.1 m over the mattress, the headboard 24 px in, the foot short of the bed zone, the strip its 20 degrees', () => {
     for (const [w, h] of COMPUTERS) {
       const f = dreamFrame(w, h), c = stripCamera(f);
-      expect(stripPoint(c, BED_BOX.headX, 0.5, BED_BOX.nearZ)[0]).toBeCloseTo(24, 6);
-      expect(stripPoint(c, BED_BOX.footX, 0.5, BED_BOX.nearZ)[0]).toBeCloseTo(f.bedZone - 70, 6);
-      // 0.35 m above the mattress, looking straight at the bed's long side.
-      expect(c.position[1]).toBeCloseTo(BED_BOX.top + BED_SIDE.lift, 9);
+      // The outer edge of the headboard's knob.
+      expect(stripPoint(c, BED_BOX.headX, BED_BOX.headTop, BED_BOX.headFront)[0]).toBeCloseTo(24, 6);
+      const foot = stripPoint(c, BED_BOX.footX, BED_BOX.top, BED_BOX.nearZ)[0];
+      expect(foot).toBeLessThan(f.bedZone - 50);
+      expect(foot).toBeGreaterThan(f.bedZone - 110);
+      expect(c.position[1]).toBeCloseTo(BED_BOX.top + 1.1, 9);
       expect(c.position[0]).toBe(BED_BOX.midX);
       expect((2 * Math.atan(f.strip.h / 2 / c.focal) * 180) / Math.PI).toBeCloseTo(BED_SIDE.fov, 6);
       // The strip's bottom edge cuts the bed just under its side rail.
       expect(stripPoint(c, 1, BED_SIDE.cut, BED_BOX.nearZ)[1]).toBeCloseTo(h, 6);
+      // From up there he is seen from above: his nose lands higher on the screen than the near edge of the mattress.
+      expect(stripPoint(c, NOSE.x, NOSE.y, NOSE.z)[1]).toBeLessThan(stripPoint(c, NOSE.x, BED_BOX.top, BED_BOX.nearZ)[1]);
+    }
+  });
+  it('keeps his head and the tip of his cap in a phone\'s strip', () => {
+    for (const [w, h] of PHONES) {
+      const f = dreamFrame(w, h), c = stripCamera(f);
+      for (const p of [NOSE, CAP_TIP]) {
+        const [x, y] = stripPoint(c, p.x, p.y, p.z);
+        expect(x).toBeGreaterThan(0);
+        expect(x).toBeLessThan(f.bedZone);
+        expect(y).toBeGreaterThan(f.strip.y);
+        expect(y).toBeLessThan(f.strip.y + f.strip.h);
+      }
     }
   });
   it('shows what the dream is made of clear of the tray on screens 1280 wide or more', () => {

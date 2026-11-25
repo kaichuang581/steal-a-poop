@@ -786,10 +786,11 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const mat = useMemo(() => animalMaterial(), []);
   // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice. They sit flush on the
   // head, in the plane of its own faces, so they are pulled a hair toward the camera: without it the head and the eye
-  // fought for those pixels, and a turned head swallowed an eye (Brian, 2026-11-25: "my chicken dont got eyes").
-  const faceMat = useMemo(() => Object.assign(animalMaterial(), { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), []);
+  // fought for those pixels, and a turned head swallowed an eye (Brian, 2026-11-25: "my chicken dont got eyes"). A fixed
+  // offset only: one that grows with slope pulls faces seen edge-on through whatever is in front (see voxelMaterial).
+  const faceMat = useMemo(() => Object.assign(animalMaterial(), { polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -4 }), []);
   // A lid lies in its eye's cells (rig.ts, lidsAndBrows), so it is pulled further than the eye, to win over it.
-  const lidMat = useMemo(() => Object.assign(animalMaterial(), { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }), []);
+  const lidMat = useMemo(() => Object.assign(animalMaterial(), { polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 }), []);
   const breathMat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 })), []);
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);

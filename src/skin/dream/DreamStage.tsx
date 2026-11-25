@@ -1,7 +1,7 @@
 import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
 import { SceneBoundary } from '../perf/SceneBoundary';
 import { useFrame, useThree } from '@react-three/fiber';
-import { createRef, useEffect, useMemo, useRef, useState } from 'react';
+import { createRef, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject, RefObject } from 'react';
 import { PCFShadowMap, SRGBColorSpace } from 'three';
 import type { Group, Mesh } from 'three';
@@ -23,8 +23,9 @@ import { T } from '../voxel/palette';
 import { bonkStar } from './bonk';
 import { ART, DISC_MAX_H, drawnLift, dreamView, leapPitch, PX, RECOIL, SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, WAKE, worldX } from './stage';
 import { PLAN_M } from './camera';
-import { DreamWorld } from './world3d/DreamWorld';
-import type { DreamWorldState } from './world3d/DreamWorld';
+import type { DreamWorldState } from './world3d/state';
+// The voxel worlds and their models load with the dream, in their own chunk (docs/dream/v3/03, section 2).
+const DreamWorld = lazy(() => import('./world3d/DreamWorld').then((m) => ({ default: m.DreamWorld })));
 import { FESTIVE } from '../../config';
 import { LOOK } from '../look';
 
@@ -180,7 +181,7 @@ function Scene({ live, phase, reduced, phone, tag, world, seed, low }: Props & {
     <>
       <DevLive live={live} />
       {/* The dream itself: the voxel worlds, their sky and light, what the sheep jumps, the gates (docs/dream/v3). */}
-      <DreamWorld live={live} state={world} view={view} festive={FESTIVE} low={low} reduced={reduced} phone={phone} seed={seed} />
+      <Suspense fallback={null}><DreamWorld live={live} state={world} view={view} festive={FESTIVE} low={low} reduced={reduced} phone={phone} seed={seed} /></Suspense>
       {/* The sheep faces +x and runs on the spot; the world does the moving. It stands on the rules' box centre, drawn
           ART times its size about its feet, its own drawn middle on that centre (plan file 09, 4.2). The dream is in
           the plan's metres; the sheep, in the game's, is scaled into them. */}

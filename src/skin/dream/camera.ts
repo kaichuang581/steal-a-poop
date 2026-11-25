@@ -58,3 +58,6 @@ export function moonIn(v: DreamView, world: 1 | 2 | 3): { x: number; y: number; 
   const m = MOON[world];
   return { x: m.x * v.w, y: m.y * horizonOf(v), d: (m.across * artScale(v)) / 90 };
 }
+
+/** The signpost: 0.45 m behind the lane's middle, 0.62 m left of its obstacle's middle; the board hangs from its chains. */
+export const SIGNPOST = { dx: -0.62, z: -0.45, hangX: (-21.5 - 5.5) / 2 * 0.05, hangY: 3.75, hangZ: 2.5 * 0.05 } as const;

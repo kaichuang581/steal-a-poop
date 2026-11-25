@@ -9,7 +9,7 @@ import type { PerspectiveCamera, Scene } from 'three';
 import { FIELD } from '../../../dream/dream';
 import { hash3 } from '../../voxel/primitives';
 import type { StageLive } from '../DreamStage';
-import { artScale, camXOf, DREAM_CAM, horizonOf, moonIn, PLAN_M, placeDreamCamera } from '../camera';
+import { artScale, camXOf, DREAM_CAM, horizonOf, moonIn, PLAN_M, placeDreamCamera, SIGNPOST } from '../camera';
 import { meshModel, toGeometry, tokenColour } from '../models';
 import { COLOURS, GLOW, MODELS, PARTS, STRIP_M } from '../models.gen';
 import { PX, worldX } from '../stage';
@@ -27,27 +27,9 @@ import type { Look } from '../scene/types';
  * This draws only. The dream's loop (DreamScreen) says which world it is, where the gates stand and when a change of
  * world began, in `state`.
  */
-export type WorldN = 1 | 2 | 3;
-export interface DreamWorldState {
-  /** The world the sheep is in, and the lap each world was last entered on (v3/01, section 5). */
-  world: WorldN;
-  laps: Record<WorldN, number>;
-  /** A change of world under way: from, to, the lane distance of the gate's mark (logical px), and when (dream ms). */
-  change: { from: WorldN; to: WorldN; dist: number; at: number } | null;
-  /** The gates on the lane: which (1 the farm gate, 2 the foot of his bed, 3 its head) and where (logical px). */
-  gates: { type: 1 | 2 | 3; dist: number; to: WorldN; lap: number; passed: boolean }[];
-  /** When the moon show began (dream ms), or null (v3/07, section 5). */
-  moonShowAt: number | null;
-  beats: number;
-  /** The farmer's breath, 0 to 1: his window on the farmhouse glows with it. */
-  breath: number;
-  /** Each fence's world, by its index: what the sheep jumps there. */
-  worldOf: (index: number) => WorldN;
-}
-export const freshWorldState = (worldOf: (index: number) => WorldN): DreamWorldState => ({ world: 1, laps: { 1: 1, 2: 1, 3: 1 }, change: null, gates: [], moonShowAt: null, beats: 0, breath: 0, worldOf });
-
-/** World ms for each change of world (v3/data/timings.json). */
-export const CHANGE_MS: Record<WorldN, number> = { 2: 1400, 3: 1600, 1: 1400 };
+import type { DreamWorldState, WorldN } from './state';
+import { CHANGE_MS } from './state';
+export type { DreamWorldState, WorldN } from './state';
 /** Each world's sky fill, main light and haze (v3/02, section 5), the light's strengths in this renderer's units. */
 const LIGHT: Record<WorldN, { sky: string; ground: string; fill: number; sun: string; power: number; from: [number, number, number] }> = {
   1: { sky: '#9FB4E8', ground: '#3A4670', fill: 0.6, sun: '#DDE6FF', power: 0.9, from: [-0.3, 0.8, 0.52] },
@@ -77,8 +59,6 @@ const ruleBox = () => {
   const w = Math.round(((1.35 * FIELD.fenceW * PX) / PLAN_M) / 0.05) * 0.05, h = Math.round(((1.35 * FIELD.fenceH * PX) / PLAN_M) / 0.05) * 0.05;
   return { w, h, sx: w / BODY.w, sy: h / BODY.h };
 };
-/** The signpost: 0.45 m behind the lane's middle, 0.62 m left of its obstacle's middle; the board hangs from its chains. */
-export const SIGNPOST = { dx: -0.62, z: -0.45, hangX: (-21.5 - 5.5) / 2 * 0.05, hangY: 3.75, hangZ: 2.5 * 0.05 } as const;
 
 interface Props {
   live: MutableRefObject<StageLive>;
@@ -168,7 +148,8 @@ export function DreamWorld({ live, state, view, festive, low, reduced, phone, se
     const tNow = L.t;
     const ch = S.change, chT = ch ? (tNow - ch.at) / 1000 : 1e4, changing = !!ch && chT * 1000 < CHANGE_MS[ch.to];
     const shown = new Set<WorldN>([S.world]);
-    if (changing && ch) shown.add(ch.from);
+    // Under reduced motion a change of world is a cut (v3/07, section 3.5): the old world is gone at once.
+    if (changing && ch && !reduced) shown.add(ch.from);
     const sceneX = (dist: number) => worldX(dist - L.dist) / PLAN_M;
     const gateX = ch ? sceneX(ch.dist) : 0;
     const beats = S.beats;
@@ -446,9 +427,21 @@ function moonSheepKit(): { group: Group; sheep: Group[] } {
   import('../../voxel/animals').then(({ animalModel }) => {
     const m = animalModel('sheep');
     const parts = [m.wools[2], m.head, m.hood, m.tail, ...m.legs, ...m.ears];
+    // One mesh a sheep: its parts' positions gathered at their pivots (a dark shape needs nothing else).
+    const pos: number[] = [], idx: number[] = [];
+    for (const p of parts) {
+      const at = p.geo.getAttribute('position'), base = pos.length / 3, ix = p.geo.getIndex();
+      for (let i = 0; i < at.count; i++) pos.push(at.getX(i) + p.pivot[0], at.getY(i) + p.pivot[1], at.getZ(i) + p.pivot[2]);
+      if (ix) for (let i = 0; i < ix.count; i++) idx.push(base + ix.getX(i));
+      else for (let i = 0; i < at.count; i++) idx.push(base + i);
+    }
+    const one = new BufferGeometry();
+    one.setAttribute('position', new Float32BufferAttribute(pos, 3));
+    one.setIndex(idx);
+    one.computeBoundingSphere();
     for (let i = 0; i < 10; i++) {
       const g = new Group();
-      for (const p of parts) { const mesh = new Mesh(p.geo, mat); mesh.position.set(p.pivot[0], p.pivot[1], p.pivot[2]); g.add(mesh); }
+      g.add(new Mesh(one, mat));
       g.rotation.y = Math.PI / 2;
       const holder = new Group();
       holder.add(g);

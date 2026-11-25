@@ -4,9 +4,8 @@ import type { FenceView, StageLive } from './DreamStage';
 import { FLIGHT } from './fly';
 import { signHeight } from './frame';
 import { isClose } from './run';
-import { PLAN_M, projectDream } from './camera';
+import { PLAN_M, projectDream, SIGNPOST } from './camera';
 import { ART, drawnLift, screenX, SHEEP_ART, SHEEP_CENTRE, worldX } from './stage';
-import { SIGNPOST } from './world3d/DreamWorld';
 import type { DreamView } from './stage';
 
 /**

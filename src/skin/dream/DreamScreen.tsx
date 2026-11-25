@@ -33,8 +33,8 @@ import { activeFence, freshLive, MAX_TYPED, TYPE_X, update } from './run';
 import type { Live } from './run';
 import { useTier } from '../perf/tier';
 import type { StageN } from './scene/types';
-import { freshWorldState, CHANGE_MS } from './world3d/DreamWorld';
-import type { DreamWorldState, WorldN } from './world3d/DreamWorld';
+import { freshWorldState, CHANGE_MS } from './world3d/state';
+import type { DreamWorldState, WorldN } from './world3d/state';
 import { lapAt, worldAt } from './worlds';
 import { horizonOf, moonIn, PLAN_M, projectDream } from './camera';
 import { Results } from './Results';
@@ -104,6 +104,10 @@ function recordOf(L: Live, night: string, repaired: boolean) {
 export function DreamScreen() {
   const dict = useStore((s) => s.dict);
   useLoadingHold('words', !dict, 'Fetching the word list');
+  // The voxel worlds come in their own chunk: the loading screen waits for them (docs/dream/v3/03, section 2).
+  const [worldReady, setWorldReady] = useState(false);
+  useEffect(() => { let on = true; void import('./world3d/DreamWorld').then(() => { if (on) setWorldReady(true); }); return () => { on = false; }; }, []);
+  useLoadingHold('dream-world', !worldReady, 'Building the dream');
   const practice = useDreamUi((s) => s.practice);
   const repair = useDreamUi((s) => s.repair);
   const close = useDreamUi((s) => s.close);

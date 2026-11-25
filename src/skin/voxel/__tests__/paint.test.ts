@@ -8,8 +8,8 @@ const light = (hex: string) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt
 const mats = Object.keys(LADDER) as Mat[];
 
 describe('the paint ladders', () => {
-  it('have 25 materials of five valid colours each, none pure black or pure white', () => {
-    expect(mats).toHaveLength(26);
+  it('have 27 materials of five valid colours each, none pure black or pure white', () => {
+    expect(mats).toHaveLength(27); // 26, and fir (the depth plan's 8.4) for Counting Sheep's wreath (docs/dream/v3)
     for (const m of mats) {
       expect(LADDER[m]).toHaveLength(5);
       for (const hex of LADDER[m]) { expect(hex).toMatch(/^#[0-9A-F]{6}$/); expect(['#000000', '#FFFFFF']).not.toContain(hex); }
@@ -34,7 +34,7 @@ describe('the paint ladders', () => {
 
 // docs/depth/DEPTH-PLAN.md, section 3.6: the palette's rules on every colour, and the neighbours that touch.
 const LARGE: Mat[] = ['snow', 'barnRed', 'trimWhite', 'slate', 'wood', 'darkWood', 'roofBrown', 'stone', 'pine', 'houseCream', 'wool', 'ice'];
-const MEDIUM: Mat[] = ['hay', 'straw', 'coopYellow', 'tractorRed', 'giftGreen', 'reed', 'glass', 'iron'];
+const MEDIUM: Mat[] = ['hay', 'straw', 'coopYellow', 'tractorRed', 'giftGreen', 'reed', 'glass', 'iron', 'fir'];
 const ACCENT: Mat[] = ['scarfRed', 'carrot', 'brass', 'pink', 'faceDark', 'ink'];
 const L = (m: Mat, k: number) => oklch(LADDER[m][k + 2])[0];
 // R4 by area; R5 lets the reds (hue 25 to 35) reach 0.13 and holds the greens (150 to 175) to 0.085.

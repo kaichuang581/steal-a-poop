@@ -53,7 +53,7 @@ export function tintAt(z: number): number {
   return ROW_LIST[ROW_LIST.length - 1].tint;
 }
 /** Corner shade near the lane only; far back it cannot be seen and only splits faces apart. */
-const aoAt = (id: string, z: number, parts = 0) => z >= -12 && !id.startsWith('quilt') && !(id.startsWith('laneBayBed') && parts === mask('hang'));
+const aoAt = (id: string, z: number, parts = 0) => (ISLANDS.has(id) ? z >= -4 : z >= -12) && !id.startsWith('quilt') && !(id.startsWith('laneBayBed') && parts === mask('hang'));
 const CHUNK_M = 24;
 const CHUNKED = new Set<Tag>(['quilt', 'islands', 'farm', 'things']);
 

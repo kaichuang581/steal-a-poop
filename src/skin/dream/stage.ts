@@ -31,12 +31,12 @@ export const SPAN = { max: 320, min: 300, pxPer: 3.35 } as const;
 /** The rules' box centre, logical: where the drawn sheep stands. */
 export const SHEEP_CENTRE = FIELD.sheepX + FIELD.sheepW / 2;
 /**
- * Where the rules' box centre sits across the frame, and the ground line down it: the lane's top is at 66% of the dream
- * window's height, 70% on a phone (docs/dream/02-layout-and-interface.md, section 3). The whole play strip moved up
- * with it, as one piece, from 68% and 55% of the screen.
+ * Where the rules' box centre sits across the frame, and the ground line down it: the lane is 76% of the way down the
+ * dream window, 72% on a phone (docs/dream/v3/02, section 3: less empty foreground, more farm and sky). The whole play
+ * strip moved down with it, as one piece, from 66% and 70%.
  */
 export const A = { computer: 0.22, phone: 0.2 } as const;
-export const GROUND = { computer: 0.66, phone: 0.7 } as const;
+export const GROUND = { computer: 0.76, phone: 0.72 } as const;
 /** The camera's distance in front of the sheep. */
 export const CAMERA_Z = 8.8;
 

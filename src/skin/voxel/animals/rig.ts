@@ -301,7 +301,7 @@ export function faceEye(head: Grid, x0: number, rowY: number, n = 2): EyePlace {
  * horse, the goat), set back to `zFront`; with `front`, on the face's front either side of the bridge, `front` columns
  * out from the centre (the sheep, the cow), where they read from the table's camera.
  */
-export interface SmallEyeOpts { front?: number; proud?: boolean; rows?: number; cols?: number; oval?: boolean; glint?: boolean; glintColour?: string }
+export interface SmallEyeOpts { front?: number; proud?: boolean; rows?: number; cols?: number; oval?: boolean; glint?: boolean; glintColour?: string; /** A front eye also shows on the head's side, this many cells behind the front. */ wrap?: number }
 export function smallEyes(head: Grid, rowY: number, zFront: number, iris: string, face: Tones, pivot: V3, opts: SmallEyeOpts = {}): { eyes: [CPart, CPart]; lids: Record<Lids, Part>; brows: Record<Brows, Part> } {
   const { front, proud = false, oval = false } = opts;
   const rows = opts.rows ?? (oval ? 4 : 2), cols = opts.cols ?? (oval ? 3 : 2);
@@ -331,6 +331,16 @@ export function smallEyes(head: Grid, rowY: number, zFront: number, iris: string
     const g = new Grid(S);
     // On the face's front the glint takes each eye's outer top corner, so it never sits against the pale bridge.
     eyePlate(g, place, 2, iris, glint, rows, front !== undefined && i === 1 ? cols - 1 : 0, cols, oval, opts.glintColour);
+    // An eye on the face's front cannot be seen from the side, and the side is how Practice and the table's side shots
+    // see a head (Brian, 2026-11-25: "my chicken dont got eyes, double check each model": the chicken, the pig and the
+    // cow had none from the side). So the eye wraps the head: one cell of it on the head's side, at its own height, a
+    // cell behind the front. Where the eye already sits at the head's edge (the goat), it shows from the side already.
+    if (front !== undefined && rows === 1 && cols === 1 && opts.wrap) {
+      const e = [...g.map.values()][0], sign = i === 0 ? -1 : 1, z = e.z - opts.wrap;
+      const xs = [...head.map.values()].filter((v) => v.y === e.y && v.z === z).map((v) => v.x);
+      const outer = xs.length ? (sign > 0 ? Math.max(...xs) : Math.min(...xs)) : null;
+      if (outer !== null && sign * outer > sign * e.x) g.set(outer, e.y, z, e.c);
+    }
     if (!proud) for (const v of g.map.values()) head.del(v.x, v.y, v.z); // the eye takes the surface voxels' place
     const cs = [...g.map.values()];
     const c = (k: 'x' | 'y' | 'z') => (cs.reduce((a, v) => a + v[k], 0) / cs.length + 0.5) * S;

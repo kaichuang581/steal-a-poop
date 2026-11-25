@@ -56,7 +56,7 @@ export function chickenModel(_ch: Character, _faces?: Faces): AnimalModel {
   cube(hg, [-4, 8, -4], [4, 11, 4], () => white);
   cube(hg, [-3, 12, -3], [3, 12, 4], () => white);
   step(hg, 1);
-  const { eyes, lids, brows } = smallEyes(hg, 10, 4, '#141212', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
+  const { eyes, lids, brows } = smallEyes(hg, 10, 4, '#141212', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false, wrap: 1 });
   const beakG = new Grid(S);
   cube(beakG, [-1, 8, 5], [1, 9, 6], (_x, y) => shade(y === 9 ? BEAK[0] : BEAK[1]));
   const wattle = new Grid(S);

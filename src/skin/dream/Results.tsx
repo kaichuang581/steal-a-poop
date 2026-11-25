@@ -71,7 +71,8 @@ function NightSky({ words, stage, seed, reduced }: { words: readonly string[]; s
       let x = 10, row = 0;
       for (const word of list) {
         const d = wordDots(word), width = d.cols * pitch;
-        if (x + width > w - 10) { x = 10; row++; }
+        // The rows stop short of the moon at the sky's right end (22 across, 34 in from the edge).
+        if (x + width > w - 62) { x = 10; row++; }
         if (row >= rows) return false;
         laid.push({ dots: d.dots, x, y: 8 + row * rowH });
         x += width + 14;

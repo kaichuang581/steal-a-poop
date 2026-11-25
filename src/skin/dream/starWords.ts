@@ -51,3 +51,23 @@ export function starPlaces(w: number, lane: number, seed: string, keepOut: reado
   // Shuffled by the night: each place's own number from the seed, sorted.
   return free.map((p, i) => ({ p, k: hash01(seed, 1000 + i) })).sort((a, b) => a.k - b.k).map((v) => v.p);
 }
+
+/** Where a word `cols` wide really sits when hung at a place: its centre, kept 6 px inside a window `w` wide. */
+export function wordCentre(place: Place, cols: number, pitch: number, w: number): number {
+  const half = (cols * pitch) / 2;
+  return Math.min(Math.max(half + 6, place.x), Math.max(half + 6, w - half - 6));
+}
+
+/**
+ * The place for a new word: the first, from `start` on round the list, where it touches no word already up (a phone's
+ * six columns are narrower than a word, so the next place in turn can lie under its neighbour). -1 if none is clear:
+ * the caller takes the oldest word down and asks again (a phone's sky with the keyboard up holds four or five words).
+ */
+export function clearPlace(places: readonly Place[], start: number, up: readonly { place: Place; cols: number }[], cols: number, pitch: number, w: number): number {
+  const n = places.length, row = 5 * pitch + 6;
+  for (let i = 0; i < n; i++) {
+    const at = (start + i) % n, p = places[at], x = wordCentre(p, cols, pitch, w);
+    if (!up.some((s) => Math.abs(s.place.y - p.y) < row && Math.abs(wordCentre(s.place, s.cols, pitch, w) - x) < ((s.cols + cols) / 2) * pitch + 8)) return at;
+  }
+  return -1;
+}

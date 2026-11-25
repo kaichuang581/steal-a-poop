@@ -6,7 +6,7 @@ import { Painter } from './scene/painter';
 import { paintFront, paintScene } from './scene/scene';
 import { freshMemory } from './scene/types';
 import type { SceneState } from './scene/types';
-import { hash01, STAR_WORDS, starPlaces, wordDots } from './starWords';
+import { clearPlace, hash01, STAR_WORDS, starPlaces, wordCentre, wordDots } from './starWords';
 import type { Place } from './starWords';
 
 /**
@@ -46,7 +46,7 @@ interface Props {
   children?: ReactNode;
 }
 
-interface Star { text: string; dots: [number, number][]; cols: number; place: Place; from: [number, number]; at: number }
+interface Star { text: string; dots: [number, number][]; cols: number; place: Place; pi: number; from: [number, number]; at: number }
 interface Ring { x: number; y: number; at: number }
 interface Puff { x: number; y: number; vx: number; vy: number; at: number; g: number; feather: boolean }
 
@@ -67,7 +67,8 @@ export const Fx = forwardRef<FxHandle, Props>(function Fx({ w, h, lane, seed, ph
   // The backing store: the screen's own pixels, at most twice the box (section 3's limit).
   const dpr = typeof window === 'undefined' ? 1 : Math.min(2, window.devicePixelRatio || 1);
   // A resize moves the places: every word goes to its place in the new frame.
-  useEffect(() => { S.stars.forEach((s, i) => { s.place = places[(S.n - S.stars.length + i) % Math.max(1, places.length)] ?? s.place; }); }, [S, places]);
+  useEffect(() => { S.stars.forEach((s) => { s.place = places[s.pi % Math.max(1, places.length)] ?? s.place; }); }, [S, places]);
+  const pitch = phone ? STAR_WORDS.pitch.phone : STAR_WORDS.pitch.computer;
 
   useImperativeHandle(ref, () => ({
     ring(x, y) { if (!reduced) S.rings.push({ x, y, at: S.t }); },
@@ -82,16 +83,19 @@ export const Fx = forwardRef<FxHandle, Props>(function Fx({ w, h, lane, seed, ph
     word(text, x, y) {
       if (!places.length) return;
       const { dots, cols } = wordDots(text);
-      S.stars.push({ text, dots, cols, place: places[S.n % places.length], from: [x, y], at: reduced ? S.t - STAR_WORDS.rise : S.t });
-      S.n++;
-      // Only the newest stay (a phone keeps 10); an older one in the same place gives way.
-      while (S.stars.length > Math.min(keeps, places.length)) S.stars.shift();
+      // Only the newest stay (a phone keeps 10); the oldest gives way first, so the new word has its room.
+      while (S.stars.length >= Math.min(keeps, places.length)) S.stars.shift();
+      let pi = clearPlace(places, S.n, S.stars, cols, pitch, w);
+      // No room left in a small sky: the oldest words come down until there is.
+      while (pi < 0 && S.stars.length) { S.stars.shift(); pi = clearPlace(places, S.n, S.stars, cols, pitch, w); }
+      if (pi < 0) pi = S.n % places.length;
+      S.stars.push({ text, dots, cols, place: places[pi], pi, from: [x, y], at: reduced ? S.t - STAR_WORDS.rise : S.t });
+      S.n = pi + 1;
     },
     reset() { S.stars = []; S.rings = []; S.puffs = []; S.n = 0; S.memory = freshMemory(); },
     frame(st, laneSpeed) {
       const t = st.t, beats = st.beats, dt = Math.min(0.05, Math.max(0, (t - S.t) / 1000));
       S.t = t;
-      const pitch = phone ? STAR_WORDS.pitch.phone : STAR_WORDS.pitch.computer;
       // ---- behind the sheep: the dream's whole scenery, your words among its stars
       const c = sky.current?.getContext('2d');
       const newest = S.stars[S.stars.length - 1];
@@ -101,7 +105,7 @@ export const Fx = forwardRef<FxHandle, Props>(function Fx({ w, h, lane, seed, ph
         const beat = reduced ? 0 : whole(beats);
         S.stars.forEach((s, si) => {
           const age = t - s.at, k = easeOut(age / STAR_WORDS.rise);
-          const width = s.cols * pitch, x0 = s.place.x - width / 2, y0 = s.place.y;
+          const width = s.cols * pitch, x0 = wordCentre(s.place, s.cols, pitch, w) - width / 2, y0 = s.place.y;
           // The newest word is lantern for two seconds, then cools to frost.
           const warm = s === newest ? 1 - Math.min(1, Math.max(0, (age - STAR_WORDS.rise - STAR_WORDS.newFor) / 500)) : 0;
           const col = FROST.map((f, i) => Math.round(f + (LANTERN_HI[i] - f) * warm));

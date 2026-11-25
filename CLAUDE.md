@@ -2717,4 +2717,8 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
     pieces (8), the 23-step contact sheets at two sizes with clips (11). What was run: the type check, every test, the
     build, the size check, the scene checker, and each milestone looked at in a browser at 1440 x 900 and on phone
     sizes, a whole night to fence 33 once.
-
+- Words in the sky never lie over each other (found while making the results page, 2026-11-25): a new word takes the
+  first place where it touches no word already up (`clearPlace` in src/skin/dream/starWords.ts), is kept inside the
+  window (`wordCentre`), and when a small sky has no room the oldest words come down (a phone with its keyboard up
+  holds three to five). The pack's six columns are narrower than a word on a phone. The results board's "Your night
+  sky" stops its rows short of its moon.

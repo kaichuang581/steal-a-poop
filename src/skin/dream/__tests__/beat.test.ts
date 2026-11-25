@@ -5,7 +5,7 @@ import { DOT_FONT } from '../dotfont';
 import { MOST_PARTICLES } from '../Fx';
 import { FLIGHT } from '../fly';
 import { CLOSE_PX, isClose, TYPE_X } from '../run';
-import { STAR_WORDS, starPlaces, wordDots } from '../starWords';
+import { clearPlace, STAR_WORDS, starPlaces, wordCentre, wordDots } from '../starWords';
 
 /** The beat and the effects (docs/dream/06-beat-and-effects.md). */
 describe('the beat', () => {
@@ -70,6 +70,33 @@ describe('the star words', () => {
     const clear = starPlaces(1408, 428, '2026-11-24', [moon]);
     expect(clear.length).toBeLessThan(30);
     for (const p of clear) expect(p.x > moon.x - 60 && p.x < moon.x + moon.w + 60 && p.y > moon.y - 14 && p.y < moon.y + moon.h + 14).toBe(false);
+  });
+  it('never hangs a word over another, on a phone\'s narrow sky either, and keeps every word inside the window', () => {
+    // A phone: six columns 55 px apart, and seven-letter words about 120 px wide. With the keyboard up its sky is 46 px deep.
+    const pitch = STAR_WORDS.pitch.phone;
+    for (const [w, lane, least] of [[374, 400, 6], [374, 280, 3]] as const) {
+      const places = starPlaces(w, lane, '2026-11-24', [], 104);
+      let up: { place: { x: number; y: number }; cols: number }[] = [], n = 0;
+      for (const word of ['haars', 'wabbles', 'habber', 'taharet', 'cabals', 'moaners', 'seabeds', 'rabats', 'nabbers', 'fablers']) {
+        const { cols } = wordDots(word);
+        up = up.slice(-(STAR_WORDS.phoneKeeps - 1));
+        let at = clearPlace(places, n, up, cols, pitch, w);
+        // As the effects do: the oldest come down until the new word has room.
+        while (at < 0 && up.length) { up.shift(); at = clearPlace(places, n, up, cols, pitch, w); }
+        expect(at).toBeGreaterThanOrEqual(0);
+        const x = wordCentre(places[at], cols, pitch, w);
+        for (const s of up) {
+          const apart = Math.abs(wordCentre(s.place, s.cols, pitch, w) - x) >= ((s.cols + cols) / 2) * pitch || Math.abs(s.place.y - places[at].y) >= 5 * pitch;
+          expect(apart, `${word} over another word`).toBe(true);
+        }
+        expect(x - (cols * pitch) / 2).toBeGreaterThanOrEqual(0);
+        expect(x + (cols * pitch) / 2).toBeLessThanOrEqual(w);
+        up.push({ place: places[at], cols }); n = at + 1;
+      }
+      expect(up.length).toBeGreaterThanOrEqual(least);
+    }
+    // With the sky clear, a word takes the next place in turn, as before.
+    expect(clearPlace(starPlaces(374, 400, '2026-11-24'), 7, [], 30, pitch, 374)).toBe(7);
   });
 });
 

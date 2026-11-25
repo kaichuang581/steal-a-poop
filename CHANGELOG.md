@@ -8,6 +8,7 @@ All user-visible changes, newest first.
 - Counting Sheep gets harder smoothly: hay bales no longer turn up right on a fence's heels, and the sheep speeds up a little with every fence instead of in a straight line to a stop.
 - Counting Sheep no longer ends at 30. Fence 30 puts the farmer out cold, and the dream runs on for as long as you keep clearing fences. A bump after that ends the night with him still asleep.
 - No more skipped turns when a round ends: the next round carries on round the table from whoever went last, instead of jumping one seat ahead.
+- Counting Sheep's new screen: the farmer asleep in his bed along the bottom, the dream as one big thought bubble above him, and your word as letter tiles in a tray, with a fence meter, a night track and a board that shows how to play.
 
 ## 0.9.7
 

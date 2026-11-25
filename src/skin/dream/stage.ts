@@ -50,9 +50,13 @@ export const PHONE_SPAN = 240;
 export const SPAN = { max: 320, min: 300, pxPer: 3.35 } as const;
 /** The rules' box centre, logical: where the drawn sheep stands. */
 export const SHEEP_CENTRE = FIELD.sheepX + FIELD.sheepW / 2;
-/** Where the rules' box centre sits across the frame, and the ground line down it. */
+/**
+ * Where the rules' box centre sits across the frame, and the ground line down it: the lane's top is at 66% of the dream
+ * window's height, 70% on a phone (docs/dream/02-layout-and-interface.md, section 3). The whole play strip moved up
+ * with it, as one piece, from 68% and 55% of the screen.
+ */
 export const A = { computer: 0.22, phone: 0.2 } as const;
-export const GROUND = { computer: 0.68, phone: 0.55 } as const;
+export const GROUND = { computer: 0.66, phone: 0.7 } as const;
 /** The camera's distance in front of the lane: today's, so the fog falls on each layer as it did. */
 export const CAMERA_Z = 8.8;
 
@@ -208,45 +212,21 @@ export const LAYER = { hills: 0.02, mountains: 0.01 } as const;
  *  CLOUD_MS.covered later), the dream is hidden once they cover it, the results come up under them, and `reveal` after
  *  that they part. */
 export const WAKE = { stir: 350, pop: 600, popMs: 500, dark: 1650, finish: 1700, reveal: 450, reducedFinish: 600, shakeMs: 300, shake: 0.03 } as const;
-/**
- * The HTML laid over the side view, CSS px (plan file 09, 4.6): the play strip; the drawn sheep's box; the farmer's
- * bubble, kept clear of the strip (on a phone below it, above the word bar, or in the sky over it when the keyboard
- * leaves no room, and hidden only when neither fits); the thought trail from the bubble to the near ridge under the
- * sheep, clear of the sheep; and the point the dream pops toward, the last puff.
- */
+/** The play strip and the drawn sheep's box in the side view, CSS px (plan file 09, 4.6). */
 export interface Rect { x: number; y: number; w: number; h: number }
-export interface DreamLayout { stripTop: number; stripBottom: number; sheep: Rect; bubble: Rect & { shown: boolean }; puffs: Rect[]; pop: [number, number] }
-/** The phone's word bar and keyboard leave this much under the bubble; the HUD's header takes this much at the top. */
-const PHONE_BAR = 150, HEADER = 56, GAP = 8;
+export interface DreamLayout { stripTop: number; stripBottom: number; sheep: Rect }
 export function dreamLayout(v: DreamView): DreamLayout {
-  const { w, h, s, ground } = v;
-  const stripTop = ground - STRIP.over * s, stripBottom = ground + STRIP.under * s;
+  const { s, ground } = v;
   const sw = ART * SHEEP_ART.length * s, sh = ART * SHEEP_ART.hat * s;
-  const sheep = { x: screenX(v, SHEEP_CENTRE) - ART * SHEEP_ART.tail * s, y: ground - sh, w: sw, h: sh };
-  let bw: number, bh: number, by: number, below = true;
-  if (v.phone) {
-    bw = Math.min(0.42 * w, 240);
-    bh = Math.min(bw / 1.5, h - PHONE_BAR - stripBottom - GAP);
-    by = h - PHONE_BAR - bh;
-    if (bh < 60) { below = false; bh = Math.min(bw / 1.5, stripTop - HEADER - GAP); by = HEADER; }
-  } else {
-    bw = Math.min(0.26 * w, 420);
-    bh = Math.min(bw / 1.5, 0.98 * h - stripBottom - GAP);
-    by = 0.98 * h - bh;
-  }
-  bh = Math.max(0, bh);
-  const bubble = { x: 0.02 * w, y: by, w: bh * 1.5, h: bh, shown: bh >= 40 };
-  // The trail: from the bubble's shoulder to the near ridge under the sheep's tail, its last puff inside the strip's
-  // lower band; or, from a bubble in the sky, to just over the strip.
-  const sizes = [0.03, 0.045, 0.06].map((k) => Math.min(k * w, ((stripBottom - ground - 4) * 3) / 2));
-  const from: [number, number] = below ? [bubble.x + bubble.w * 0.9, bubble.y + bubble.h * 0.12] : [bubble.x + bubble.w * 0.9, bubble.y + bubble.h * 0.85];
-  const last = sizes[2];
-  const to: [number, number] = below ? [sheep.x + sw * 0.1, ground + 4 + last / 3] : [sheep.x + sw * 0.1, stripTop - last / 3 - 2];
-  const puffs = [0.3, 0.62, 1].map((f, i) => {
-    const cx = from[0] + (to[0] - from[0]) * f, cy = from[1] + (to[1] - from[1]) * f;
-    return { x: cx - sizes[i] / 2, y: cy - sizes[i] / 3, w: sizes[i], h: (sizes[i] * 2) / 3 };
-  });
-  return { stripTop, stripBottom, sheep, bubble, puffs, pop: to };
+  return { stripTop: ground - STRIP.over * s, stripBottom: ground + STRIP.under * s, sheep: { x: screenX(v, SHEEP_CENTRE) - ART * SHEEP_ART.tail * s, y: ground - sh, w: sw, h: sh } };
+}
+/**
+ * How high a sign's board hangs: `rows` cells of the post (0.1 m, drawn `scale` times), so that the board's bottom
+ * clears the standing sheep by `gap` px with the board `board` px tall, hanger and chains included. The sheep leaps
+ * through that height, so the board gives way to it (DreamStage fades a jumped fence's board).
+ */
+export function signRows(v: DreamView, board: number, gap: number, scale: number): number {
+  return Math.max(6, Math.ceil((ART * SHEEP_ART.hat * v.s + gap + board) / (0.1 * scale * v.zoom)));
 }
 /** The drift-off (V4 Part 15), in ms from the last fence: when the clouds roll in, and when the results come up under them. */
 export const DRIFT = { clouds: 900, finish: 2650, reducedFinish: 600 } as const; // clouds: gentle ones, covered 1,700 ms later

@@ -77,10 +77,11 @@ describe('the dream\'s world (V4.1 Parts 5 and 6)', () => {
     expect(lookOf('bale', 12)).toBe('bale');
     expect(new Set(Array.from({ length: 30 }, (_, i) => lookOf('fence', i))).size).toBe(4);
   });
-  it('holds the far voxels under 1.6% of the frame\'s height (Part 5.3)', () => {
+  // 1.65%: a phone's ground line went from 55% to 70% of the frame (docs/dream/02), and its sky's steps with it.
+  it('holds the far voxels under 1.65% of the frame\'s height (Part 5.3)', () => {
     for (const [w, h] of SIZES) {
       const v = viewAt(w, h), tall = frameMetres(v)[1];
-      for (const cell of Object.values(farCells(v))) expect(cell / tall).toBeLessThan(0.016);
+      for (const cell of Object.values(farCells(v))) expect(cell / tall).toBeLessThan(0.0165);
     }
   });
   it('shapes the ranges inside the plan\'s heights, repeating without a seam', () => {

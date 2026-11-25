@@ -4,7 +4,6 @@ import { lin, pick, T } from '../voxel/palette';
 import { average } from '../voxel/paint';
 import { ellipsoid, Grid, hash3, rng } from '../voxel/primitives';
 import type { Paint, RGB, V3 } from '../voxel/primitives';
-import { letterMask } from '../voxel/table';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { dropFaces } from '../scene/yard';
 import { CHUNK, dreamView, FAR, frameMetres, ISLAND_TONES, RAFT, RAFT_TONES } from './stage';
@@ -476,124 +475,41 @@ const OBSTACLES: Partial<Record<ObstacleLook, BufferGeometry>> = {};
 export function obstacle(look: ObstacleLook): BufferGeometry {
   return (OBSTACLES[look] ??= look === 'rail' ? railFence() : look === 'picket' ? picketFence() : look === 'wall' ? stoneWall() : look === 'log' ? fallenLog() : hayBales());
 }
-// ---------- the fence sign (V6 Part 5.1): letters carved into a plank hung on ropes from a post and crossbar ----------
-/**
- * The sign's cell (m) for `n` letters: 0.02 m, as fine as the table's letter board, so the letters are the title's own
- * face (Fraunces) cut into the plank rather than a 5 x 7 bitmap; five letters and more shrink the board a little.
- */
-export const signCell = (n: number) => (n >= 5 ? 0.0175 : 0.02);
-/** A letter's height in cells (0.28 m at 0.02 m, the old signs' cap height, so the readability gate holds). */
-export const SIGN_GLYPH_H = 14;
-/** Each letter has a slot this wide, centred in it, so a sign's width depends only on how many letters it has. */
-const SIGN_SLOT = 14;
-/** After the letters: a space and three dots (`GR…`: the word starts with them and goes on; Brian, 2026-11-09). */
-const SIGN_TAIL = 12;
-/** The letters' baseline, in cells from the board's bottom edge (the dots sit on it). */
-export const SIGN_BASE = 4;
-/** The board in cells: the letter slots, the gaps, and a margin each side; the letters with four cells above and below. */
-export const signCells = (n: number) => ({ w: n * SIGN_SLOT + SIGN_TAIL + 12, h: SIGN_GLYPH_H + 8 });
-export function signWidth(n: number): number {
-  return signCells(n).w * signCell(n);
-}
-/**
- * Where the parts sit, in the sign's frame (the post's base at the origin, the camera at +z). The board's centre is at
- * the height the dream camera was tuned for (the old letters' 0.80 m), so the crossbar's underside is a rope's length
- * above the board: the post is 1.1 m with the crossbar on top, a little over the plan's 1.0 m.
- */
-export const SIGN = { centre: 0.8, post: 11, pivot: 1.1, boardZ: 0.1, x: 0.05 } as const;
-/** The letters' cap height in metres, for the readability gate (V6 Part 7.5). */
-export const signCap = (n: number) => SIGN_GLYPH_H * signCell(n);
-
-export interface FenceSignGeo {
-  /** Post, crossbar, snow, icicle and the lantern's iron, about the post's base. */
+// ---------- the fence sign's post (docs/dream/02-layout-and-interface.md, section 6) ----------
+/** Where the board hangs on the post, in the sign's frame (the post's base at the origin, the camera at +z). */
+export const SIGN = { x: 0.05 } as const;
+export interface SignPostGeo {
+  /** Post, arm, snow, icicle and the lantern's iron, about the post's base. */
   post: BufferGeometry;
-  /** The plank, its rim, nails, snow and ropes, about the crossbar's underside (the swing's pivot). */
-  board: BufferGeometry;
-  /** The paint in the bottom of each carved letter, about the same pivot. */
-  letters: BufferGeometry;
   /** The lantern's glass, lit on the active sign. */
   lantern: BufferGeometry;
   /** Where the lantern's light goes, about the post's base. */
   lanternAt: V3;
+  /** The arm's underside, where the board hangs from, about the post's base. */
+  hang: V3;
 }
-
-/** The glyph cells of a sign's letters, in board cells (x from the board's left edge, y from its bottom). */
-export function signGlyphCells(letters: readonly string[]): { x: number; y: number }[] {
-  const out: { x: number; y: number }[] = [];
-  let x = 6;
-  letters.forEach((ch, i) => {
-    const mask = letterMask(ch, SIGN_GLYPH_H), w = mask[0]?.length ?? 0;
-    const x0 = x + Math.floor((SIGN_SLOT - w) / 2);
-    mask.forEach((row, r) => row.forEach((on, c) => { if (on) out.push({ x: x0 + c, y: SIGN_BASE + (SIGN_GLYPH_H - 1 - r) }); }));
-    x += SIGN_SLOT;
-    // After the last letter, three square dots on the baseline, two cells each: the rest of the word.
-    if (i === letters.length - 1) for (const dx of [1, 4, 7]) for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) out.push({ x: x + dx + a, y: SIGN_BASE + b });
-  });
-  return out;
-}
-
+const posts = new Map<string, SignPostGeo>();
 /**
- * The board's cells: `wood` front and back layers with the letters cut through the front, `ink` the floor of each cut,
- * painted cream as the table's letter board is. Two planks with a groove between them, a darker rim, bevelled top
- * corners, brass nails, snow along the top and the two ropes.
+ * The post a sign hangs from: `rows` cells of 0.1 m tall, an arm across its top reaching `half` cells each way (as wide
+ * as the board under it), an icicle at one end and the lantern off the other. No snow on the arm: the sign has no cap. The board itself is no
+ * longer a voxel plank with carved letters: it is HTML hung from `hang`, so its letters are crisp at any size
+ * (DreamStage's `SignBoard`).
  */
-export function signBoardCells(letters: readonly string[]): { wood: Grid; ink: Grid; w: number; h: number } {
-  const n = Math.max(1, letters.length), c = signCell(n), { w: W, h: H } = signCells(n);
-  const beam = T.beam.map(lin), snow = lin(T.snow[0]), cream = lin('#F3E7CC');
-  const glyph = new Set(signGlyphCells(letters).map((v) => `${v.x},${v.y}`));
-  const b = new Grid(c), ink = new Grid(c);
-  const tones = [lin('#93653F'), lin('#8A5D39')];
-  const seamY = Math.floor(H / 2);
-  for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
-    const fromTop = H - 1 - y, edge = Math.min(x, W - 1 - x);
-    if (fromTop + edge < 2) continue; // the top corners bevelled off
-    const rim = x === 0 || y === 0 || x === W - 1 || fromTop === 0 || fromTop + edge === 2;
-    // Grain along each plank: one tone per plank, each row a few percent lighter or darker.
-    const base = tones[y < seamY ? 0 : 1], f = 0.99; // the grain's own average: no row lighter or darker than the next
-    const face: RGB = rim ? beam[2] : [base[0] * f, base[1] * f, base[2] * f];
-    b.set(x, y, 0, face);
-    // A letter is a hole one cell deep: the front layer is left empty and its floor, in the back layer, is painted.
-    if (glyph.has(`${x},${y}`)) { b.del(x, y, 0); ink.set(x, y, 0, cream); continue; }
-    if (y === seamY && !rim) continue; // the groove between the planks
-    b.set(x, y, 1, face);
-  }
-  // Two brass nails in from the rim at the top corners, standing proud.
-  for (const x of [2, W - 3]) b.set(x, H - 3, 2, lin(T.brass[1]));
-  // Snow along the top with gaps, and the two ropes up to the crossbar from the top corners.
-  for (let x = 1; x < W - 1; x++) if (hash3(x, H, 0, 41) > 0.3) { b.set(x, H, 0, snow); b.set(x, H, 1, snow); }
-  for (const x of [2, W - 3]) for (let y = H; y < H + 4; y++) b.set(x, y, 0, lin(T.hay[2]));
-  return { wood: b, ink, w: W, h: H };
-}
-
-const signs = new Map<string, FenceSignGeo>();
-export function fenceSign(letters: readonly string[]): FenceSignGeo {
-  // A sign built before the display face loaded used the bitmap fallback; build it again once the face is in.
-  const key = letters.join('') + (typeof document !== 'undefined' && document.fonts?.check('800 100px Fraunces') ? ':f' : '');
-  const hit = signs.get(key);
+export function signPost(rows: number, half: number): SignPostGeo {
+  const key = `${rows}:${half}`, hit = posts.get(key);
   if (hit) return hit;
-  const n = Math.max(1, letters.length), c = signCell(n);
-  const { wood: b, ink, w: W, h: H } = signBoardCells(letters);
-  const beam = T.beam.map(lin), snow = lin(T.snow[0]);
-  // About the pivot: the board's centre at SIGN.centre, its back against the post's front.
-  const shift = (g: BufferGeometry) => g.translate(SIGN.x - (W / 2) * c, SIGN.centre - (H / 2) * c - SIGN.pivot, SIGN.boardZ);
-  const board = shift(buildGeometry(b.map, c));
-  const letters3d = shift(buildGeometry(ink.map, c));
-
-  // ---- the post and crossbar on the 0.10 m grid; the crossbar reaches past the board, so the ropes hang straight and the lantern hangs clear
+  const beam = T.beam.map(lin), k = half;
   const p = new Grid(F);
-  const k = Math.ceil((W * c) / 2 / F);
-  for (let y = 0; y < SIGN.post; y++) p.set(0, y, 0, wood(0, y, 0)!);
+  for (let y = 0; y < rows; y++) p.set(0, y, 0, wood(0, y, 0)!);
   for (let x = -k - 1; x <= k + 2; x++) for (const z of [0, 1]) {
-    p.set(x, SIGN.post, z, beam[(x & 1) || z ? 1 : 0]);
-    if (hash3(x, SIGN.post, z, 9) > 0.25) p.set(x, SIGN.post + 1, z, snow);
+    p.set(x, rows, z, beam[(x & 1) || z ? 1 : 0]);
   }
   const post = buildGeometry(p.map, F);
-
-  // ---- the lantern off the crossbar's other end, on the 0.05 m grid: a hook, an iron cap and base, glass between
+  // ---- the lantern off the arm's far end, on the 0.05 m grid: a hook, an iron cap and base, glass between
   const iron = new Grid(D), glass = new Grid(D), dark = lin(T.face[1]);
-  const lx = Math.round(((k + 3) * F) / D) - 2, top = Math.round((SIGN.post * F) / D), lz = 2;
+  const lx = Math.round(((k + 3) * F) / D) - 2, top = Math.round((rows * F) / D), lz = 2;
   iron.set(lx, top - 1, lz, dark);
-  // An icicle off the crossbar's camera side, at the end away from the lantern.
+  // An icicle off the arm's camera side, at the end away from the lantern.
   const ix = Math.round((-k - 1) * F / D) + 1;
   for (let y = 1; y <= 3; y++) iron.set(ix, top - y, 3, lin(T.ice[y - 1]));
   for (let dx = 0; dx < 2; dx++) for (let dz = 0; dz < 2; dz++) {
@@ -601,12 +517,13 @@ export function fenceSign(letters: readonly string[]): FenceSignGeo {
     iron.set(lx + dx, top - 6, lz + dz, dark);
     for (let y = top - 5; y <= top - 3; y++) glass.set(lx + dx, y, lz + dz, lin(T.lantern[(dx + dz + y) % 2]));
   }
-  const out: FenceSignGeo = {
+  const out: SignPostGeo = {
     post: mergeGeometries([post, buildGeometry(iron.map, D)], false)!,
-    board, letters: letters3d, lantern: buildGeometry(glass.map, D),
+    lantern: buildGeometry(glass.map, D),
     lanternAt: [(lx + 1) * D, (top - 4) * D, (lz + 1) * D + 0.15],
+    hang: [SIGN.x, rows * F, 2 * F],
   };
-  signs.set(key, out);
+  posts.set(key, out);
   return out;
 }
 /** A flat shadow disc 0.5 x 0.3 m on the 0.04 m grid, about its centre, for the sheep and the fences. */

@@ -43,18 +43,28 @@ const c = (hex: string): Paint => () => lin(hex);
 /** The two walls' planes and the room's far reaches. */
 const SIDE_X = -0.5, BACK_Z = -1.3;
 const ROOM_X1 = 4.6, ROOM_Z1 = 2.4, ROOM_H = 2.7;
-/** The window over the nightstand (in the back wall, z = BACK_Z), x and y extents. The bubble looks out of it. */
-const WINDOW = { x0: 0.1, x1: 0.8, y0: 1.0, y1: 1.65 } as const;
-/** The window in the back wall toward the foot of the bed, beside the hanging board: only the desktop results see it. */
+/**
+ * The window in the back wall toward the foot of the bed, beside the hanging board, the moon in it. The window that was
+ * behind his pillow is gone (the bed strip, 2026-11-24): seen from the bed's side it stood right behind his head, and
+ * his face, the bubble's tail and his z's need a plain wall behind them.
+ */
 const ROOM_WINDOW = { x0: 2.35, x1: 3.15, y0: 1.3, y1: 2.3 } as const;
-/** The nightstand on the window side of the bed, and what stands on it. */
-const STAND = { x0: 0.1, x1: 0.5, z0: -1.1, z1: -0.75, top: 0.6 } as const;
-export const LAMP = { x: 0.2, y: 0.6, z: -0.98 } as const;
-export const CLOCK = { x: 0.4, y: 0.6, z: -0.84, turn: 0.75 } as const;
-/** The candle on the window sill. */
+/**
+ * The nightstand, against the back wall past the foot of the bed, and what stands on it: the oil lamp, the candle and
+ * the alarm clock. It stood by his pillow until the bed strip (docs/dream/01-farmer.md, section 4): seen from the bed's
+ * side, everything the dream is made of has to stand clear of the bed.
+ */
+const STAND = { x0: 3.1, x1: 3.55, z0: -1.1, z1: -0.75, top: 0.6 } as const;
+export const LAMP = { x: 3.2, y: 0.6, z: -0.98 } as const;
+export const CLOCK = { x: 3.45, y: 0.6, z: -0.84, turn: -0.2 } as const;
+/** The candle on the nightstand, between the lamp and the clock. */
+export const CANDLE = { x: 3.34, y: 0.6, z: -1.0 } as const;
 /** The knitting basket on the floor beside the nightstand: its middle. */
-export const BASKET = { x: 0.72, z: -0.92 } as const;
-export const CANDLE = { x: 0.62, y: WINDOW.y0 - 0.05, z: -1.2 } as const;
+export const BASKET = { x: 3.86, z: -0.92 } as const;
+/** The low shelf on the wall over the basket: his five books stand on it. */
+const BOOKSHELF = { x0: 3.3, x1: 4.05, y: 1.0 } as const;
+/** The low window the bed strip ends on (the strip sees further along the wall than the room is long). */
+export const STRIP_WINDOW = { w: 0.8, y0: 0.9, y1: 1.45 } as const;
 /** The beam across the room and the hook the results board hangs from. */
 export const BEAM = { y: 2.2, z: 0.4, hookX: 2.15 } as const;
 /** The pillow, across the bed: under his head where he lies (farmer.ts `IN_BED`), with room for the cap's tail beside it. */
@@ -98,8 +108,7 @@ function wallTone(u: number, y: number, seed: number): RGB {
   return lin(PINE[r < 0.45 ? 0 : r < 0.85 ? 1 : 2]);
 }
 
-function buildWall(g: Grid, at: Wall, u0: number, u1: number, seed: number, holes: Hole[]) {
-  const top = Math.round(ROOM_H / D);
+function buildWall(g: Grid, at: Wall, u0: number, u1: number, seed: number, holes: Hole[], top = Math.round(ROOM_H / D)) {
   for (let u = u0; u <= u1; u++) for (let y = 0; y < top; y++) {
     if (holes.some((h) => u >= h.u0 && u < h.u1 && y >= h.y0 && y < h.y1)) continue;
     g.set(...at(u, y, 0), wallTone(u, y, seed));
@@ -110,8 +119,7 @@ function buildWall(g: Grid, at: Wall, u0: number, u1: number, seed: number, hole
 
 /** Night sky behind a window, self-lit: deep blue to the hills, snow on them, a few pines, stars, and a moon if asked. */
 /** `lift` raises the hills: the window over the nightstand keeps them low, so its lower panes stay night blue. */
-function sky(glow: Grid, at: Wall, h: Hole, moon: [number, number] | null, seed: number, lift: number) {
-  const m = 26;
+function sky(glow: Grid, at: Wall, h: Hole, moon: [number, number] | null, seed: number, lift: number, depth = -12, m = 26) {
   for (let u = h.u0 - m; u < h.u1 + m; u++) {
     const hill = h.y0 + lift + Math.round(1.6 * Math.sin(u * 0.21 + seed) + 1.1 * Math.sin(u * 0.53 + seed * 2));
     const pine = hash3(Math.floor(u / 5), 0, seed, 61) < 0.35 ? 5 - Math.abs(mod(u, 5) - 2) * 2 : 0;
@@ -122,7 +130,7 @@ function sky(glow: Grid, at: Wall, h: Hole, moon: [number, number] | null, seed:
       else if (moon && (u - moon[0]) ** 2 + (y - moon[1]) ** 2 <= 10 && (u - moon[0] + 2) ** 2 + (y - moon[1] - 1) ** 2 > 8) col = '#F6F0CC';
       else if (hash3(u, y, seed, 67) < 0.025 && y > Math.max(hill + 7, h.y0 + 9)) col = hash3(u, y, seed, 69) < 0.5 ? '#FFF6D8' : '#CFDBFF';
       else { const k = (y - hill) / (h.y1 + m - hill); col = k > 0.6 ? '#121530' : k > 0.3 ? '#171D42' : '#1B234A'; }
-      glow.set(...at(u, y, -12), lin(col));
+      glow.set(...at(u, y, depth), lin(col));
     }
   }
 }
@@ -193,15 +201,12 @@ export function bedroomGeometry(): BedroomGeo {
   const i = (m: number) => Math.round(m / D);
 
   // ---- the walls, the floor, the ceiling and the beam
-  const nightHole: Hole = { u0: i(WINDOW.x0), u1: i(WINDOW.x1), y0: i(WINDOW.y0), y1: i(WINDOW.y1) };
   const backHole: Hole = { u0: i(ROOM_WINDOW.x0), u1: i(ROOM_WINDOW.x1), y0: i(ROOM_WINDOW.y0), y1: i(ROOM_WINDOW.y1) };
   buildWall(g, sideWall, i(BACK_Z) - 1, i(ROOM_Z1), 3, []);
-  buildWall(g, backWall, i(SIDE_X) - 1, i(ROOM_X1), 5, [nightHole, backHole]);
-  windowIn(g, glow, backWall, nightHole, 1);
+  buildWall(g, backWall, i(SIDE_X) - 1, i(ROOM_X1), 5, [backHole]);
   windowIn(g, glow, backWall, backHole, 2);
-  // The moon sits where every camera sees it through the window over the nightstand; the back window has only stars.
-  sky(glow, backWall, nightHole, [nightHole.u0 - 2, nightHole.y1 - 2], 1, -2);
-  sky(glow, backWall, backHole, null, 2, 2);
+  // The moon sits toward the window's left, where the results' camera, off to the right, sees it through the glass.
+  sky(glow, backWall, backHole, [backHole.u0 + 1, backHole.y1 - 5], 2, 2);
   // Floorboards 0.15 m wide along the bed, butt joints staggered.
   for (let x = i(SIDE_X); x < i(ROOM_X1); x++) for (let z = i(BACK_Z); z < i(ROOM_Z1); z++) {
     const row = Math.floor(z / 3), off = mod(row * 17, 40);
@@ -249,15 +254,16 @@ export function bedroomGeometry(): BedroomGeo {
   for (const [lx, lz] of [[s.x0, s.z0], [s.x1 - D, s.z0], [s.x0, s.z1 - D], [s.x1 - D, s.z1 - D]]) box(g, [lx, 0, lz], [lx + D, 0.15, lz + D], c(WALNUT[2]));
   box(g, [s.x0, 0.15, s.z0], [s.x1, s.top - D, s.z1], wood(23));
   box(g, [s.x0 - D, s.top - D, s.z0 - D], [s.x1 + D, s.top, s.z1 + D], c(WALNUT[0]));
-  for (let z = i(s.z0) + 1; z < i(s.z1) - 1; z++) for (let y = 6; y <= 10; y++) {
-    const edge = y === 6 || y === 10 || z === i(s.z0) + 1 || z === i(s.z1) - 2;
-    if (edge) g.set(i(s.x1), y, z, lin(WALNUT[2]));
+  // The drawer is on the stand's front, toward the room.
+  for (let x = i(s.x0) + 1; x < i(s.x1) - 1; x++) for (let y = 6; y <= 10; y++) {
+    const edge = y === 6 || y === 10 || x === i(s.x0) + 1 || x === i(s.x1) - 2;
+    if (edge) g.set(x, y, i(s.z1), lin(WALNUT[2]));
   }
   // The knob runs back to the stand's face: the drawer is only an outline frame, and a knob at the frame's face hung in
   // the air in front of it (Brian, 2026-11-09: "a lot of them are floating").
-  for (let dx = 0; dx <= 2; dx++) {
-    fine.set(Math.round(s.x1 / S) + dx, 16, Math.round(((s.z0 + s.z1) / 2) / S), lin(T.brass[0]));
-    fine.set(Math.round(s.x1 / S) + dx, 16, Math.round(((s.z0 + s.z1) / 2) / S) - 1, lin(T.brass[1]));
+  for (let dz = 0; dz <= 2; dz++) {
+    fine.set(Math.round(((s.x0 + s.x1) / 2) / S), 16, Math.round(s.z1 / S) + dz, lin(T.brass[0]));
+    fine.set(Math.round(((s.x0 + s.x1) / 2) / S) - 1, 16, Math.round(s.z1 / S) + dz, lin(T.brass[1]));
   }
 
   // ---- the oil lamp: a brass foot and collar, an amber oil font (the chimney and flame are `lampGlass`)
@@ -285,17 +291,12 @@ export function bedroomGeometry(): BedroomGeo {
   for (const fx of [-2, 1]) clock.set(fx, -1, 0, lin(T.brass[2]));
   for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) { ring.set(sx * (5 + k) + (sx < 0 ? -1 : 0), 7 + k, 0, lin(GLOW.gold)); ring.set(sx * (6 + k) + (sx < 0 ? -1 : 0), 4 + k, 0, lin(GLOW.gold)); }
 
-  // ---- on the sill: a red candle in a brass dish, ringed with holly
+  // ---- on the nightstand: a cream candle in a brass dish. The dream's third world has it as a lighthouse.
   const cx = Math.round(CANDLE.x / S), cy = Math.round(CANDLE.y / S), cz = Math.round(CANDLE.z / S);
   for (let x = cx - 2; x < cx + 2; x++) for (let z = cz - 2; z < cz + 2; z++) fine.set(x, cy, z, lin(T.brass[1]));
-  for (let x = cx - 1; x < cx + 1; x++) for (let z = cz - 1; z < cz + 1; z++) for (let y = cy + 1; y < cy + 7; y++) fine.set(x, y, z, lin(y === cy + 6 ? '#E07068' : '#C8342E'));
+  for (let x = cx - 1; x < cx + 1; x++) for (let z = cz - 1; z < cz + 1; z++) for (let y = cy + 1; y < cy + 7; y++) fine.set(x, y, z, lin(y === cy + 6 ? '#FFFDF4' : '#F4F0EA'));
   fine.set(cx, cy + 7, cz - 1, lin(T.hoof[0]));
   glowFine.set(cx, cy + 8, cz - 1, lin(GLOW.flame)); glowFine.set(cx, cy + 9, cz - 1, lin(GLOW.core)); glowFine.set(cx - 1, cy + 8, cz - 1, lin(GLOW.ember));
-  for (let a = 0; a < 12; a++) {
-    const ang = (a / 12) * Math.PI * 2, x = cx - 0.5 + Math.cos(ang) * 2.2, z = cz - 0.5 + Math.sin(ang) * 2.2;
-    fine.set(Math.round(x), cy + 1, Math.round(z), lin(a % 4 === 0 ? '#D8342C' : a % 2 ? T.pine[0] : T.pine[2]));
-    if (a % 3 === 1) fine.set(Math.round(x), cy + 2, Math.round(z), lin(T.pine[1]));
-  }
 
   // ---- lights along the headboard's top, sagging between the posts and the middle
   const hbTop = (z: number) => (20 + 2.4 * (1 - (z / (hw * D)) ** 2)) * D;
@@ -333,22 +334,23 @@ export function bedroomGeometry(): BedroomGeo {
   }));
   fine.set(-3, 47, sz0, lin(TRIM[1])); fine.set(-2, 48, sz0, lin(TRIM[1]));
 
-  // ---- the rag rug by the bed, braided rings, and his slippers on it
-  for (let x = i(0.55); x < i(1.75); x++) for (let z = i(0.7); z < i(1.45); z++) {
-    const d = Math.hypot((x + 0.5 - i(1.15)) / 12, (z + 0.5 - i(1.07)) / 7.5);
+  // ---- the rag rug before the nightstand, braided rings, and his slippers on it, side on to the room
+  for (let x = i(2.55); x < i(3.85); x++) for (let z = i(-0.72); z < i(0.03); z++) {
+    const d = Math.hypot((x + 0.5 - i(3.2)) / 13, (z + 0.5 - i(-0.35)) / 7.5);
     if (d > 1) continue;
     const band = Math.min(4, Math.floor(d * 5));
     const tone = ['#C24E45', '#E3D8C0', '#4F7A55', '#D9A84A', '#3D5A8A'][band];
     g.set(x, 0, z, lin(tone));
   }
-  for (const sx of [0.78, 0.94]) {
-    const x0 = Math.round(sx / S), z0 = Math.round(0.62 / S);
-    for (let x = x0; x < x0 + 4; x++) for (let z = z0; z < z0 + 10; z++) for (let y = 2; y < 5; y++) {
-      if (y === 4 && z < z0 + 4) continue;
-      const cuff = y === 4 || (y === 3 && z < z0 + 4 && (x === x0 || x === x0 + 3 || z === z0));
-      if (y === 3 && z < z0 + 4 && !cuff) continue;
-      if ((x === x0 || x === x0 + 3) && z === z0 + 9) continue;
-      fine.set(x, y, z, lin(cuff ? '#C9C1B6' : y === 2 ? '#9E968C' : '#B8B0A6'));
+  for (const sz of [-0.5, -0.34]) {
+    const x0 = Math.round(2.74 / S), z0 = Math.round(sz / S);
+    // `k` runs from the heel to the toe; the toes point at the bed.
+    for (let k = 0; k < 10; k++) for (let z = z0; z < z0 + 4; z++) for (let y = 2; y < 5; y++) {
+      if (y === 4 && k < 4) continue;
+      const cuff = y === 4 || (y === 3 && k < 4 && (z === z0 || z === z0 + 3 || k === 0));
+      if (y === 3 && k < 4 && !cuff) continue;
+      if ((z === z0 || z === z0 + 3) && k === 9) continue;
+      fine.set(x0 + 9 - k, y, z, lin(cuff ? '#C9C1B6' : y === 2 ? '#9E968C' : '#B8B0A6'));
     }
   }
 
@@ -375,7 +377,7 @@ export function bedroomGeometry(): BedroomGeo {
     fine.set(kx - 4 + Math.round(12 * 0.3), 18, kz - 1 + Math.round(12 * 0.12), lin('#8F949E'));
   }
 
-  // ---- the shelf over the window: a knitted sheep, two jars of preserves, a stack of books
+  // ---- the shelf high on the wall by the headboard: a knitted sheep and two jars of preserves
   const shy = i(1.95), sx0 = i(SIDE_X), sx1 = i(0.5), wz = i(BACK_Z);
   for (let x = sx0; x < sx1; x++) for (const d of [0, 1, 2]) g.set(x, shy, wz + d, lin(WALNUT[0]));
   for (const x of [sx0 + 2, sx1 - 3]) for (const y of [shy - 1, shy - 2]) g.set(x, y, wz, lin(WALNUT[2]));
@@ -389,11 +391,16 @@ export function bedroomGeometry(): BedroomGeo {
     box(fine, [x0 * S, fy * S, (fz - 1) * S], [(x0 + 3) * S, (fy + 4) * S, (fz + 2) * S], c(col));
     box(fine, [x0 * S, (fy + 4) * S, (fz - 1) * S], [(x0 + 3) * S, (fy + 5) * S, (fz + 2) * S], c('#E9D9B8'));
   }
-  // Five books standing on the shelf, in the quilt's five colours (docs/dream/01-farmer.md, section 4): red, mustard,
-  // green, navy, cream. Each its own height and thickness, a pale band across its spine.
-  let bx = Math.round(0.12 / S);
+  // ---- the low shelf over the basket, and five books standing on it in the quilt's five colours
+  // (docs/dream/01-farmer.md, section 4): red, mustard, green, navy, cream. Each its own height and thickness, a pale
+  // band across its spine. The dream's third world has them as obstacles.
+  const by0 = i(BOOKSHELF.y);
+  for (let x = i(BOOKSHELF.x0); x < i(BOOKSHELF.x1); x++) for (const d of [0, 1, 2]) g.set(x, by0, wz + d, lin(WALNUT[0]));
+  for (const x of [i(BOOKSHELF.x0) + 1, i(BOOKSHELF.x1) - 2]) for (const y of [by0 - 1, by0 - 2]) g.set(x, y, wz, lin(WALNUT[2]));
+  const bfy = Math.round((by0 + 1) * D / S);
+  let bx = Math.round((BOOKSHELF.x0 + 0.14) / S);
   for (const [col, w, h] of [['#A84A42', 3, 9], ['#C99A4A', 2, 8], ['#3F6B4A', 3, 10], ['#2B3A66', 2, 9], ['#E6DCC6', 3, 8]] as const) {
-    box(fine, [bx * S, fy * S, (fz - 2) * S], [(bx + w) * S, (fy + h) * S, (fz + 3) * S], (_x, y) => lin(y === fy + h - 2 ? (col === '#E6DCC6' ? '#C99A4A' : '#E6DCC6') : col));
+    box(fine, [bx * S, bfy * S, (fz - 2) * S], [(bx + w) * S, (bfy + h) * S, (fz + 3) * S], (_x, y) => lin(y === bfy + h - 2 ? (col === '#E6DCC6' ? '#C99A4A' : '#E6DCC6') : col));
     bx += w + (col === '#3F6B4A' ? 1 : 0);
   }
   // A framed sheep on the side wall: a cream fleece on a night-blue ground, read from the room (its right is -z).
@@ -416,6 +423,37 @@ export function bedroomGeometry(): BedroomGeo {
     ring: buildGeometry(ring.map, S, { ao: false }),
   };
   return bedroomCache;
+}
+
+const stripWalls = new Map<string, { solid: BufferGeometry; glow: BufferGeometry }>();
+/**
+ * More of the back wall and the floor past the room's end, to `x1`, for the bed strip, which sees further along the
+ * wall than the room is long (docs/dream/01-farmer.md, section 4: "extend their meshes if they are too short"); and,
+ * with `windowX` (its left side), the low window the strip ends on, snow on its sill and the moon in it. The wall only
+ * as high as the strip sees, the floor only as far forward.
+ */
+export function stripWall(x1: number, windowX: number | null): { solid: BufferGeometry; glow: BufferGeometry } {
+  const i = (m: number) => Math.round(m / D), key = `${i(x1)}:${windowX === null ? '' : i(windowX)}`;
+  const hit = stripWalls.get(key);
+  if (hit) return hit;
+  for (const old of stripWalls.values()) { old.solid.dispose(); old.glow.dispose(); }
+  stripWalls.clear();
+  const g = new Grid(D), glow = new Grid(D), u0 = i(ROOM_X1) + 1, u1 = Math.max(u0, i(x1));
+  const hole: Hole | null = windowX === null ? null : { u0: i(windowX), u1: i(windowX + STRIP_WINDOW.w), y0: i(STRIP_WINDOW.y0), y1: i(STRIP_WINDOW.y1) };
+  buildWall(g, backWall, u0, u1, 5, hole ? [hole] : [], i(1.9));
+  if (hole) {
+    // The sky right behind the glass: the strip looks along this wall at a slant, and a sky set back would slide away.
+    sky(glow, backWall, hole, [Math.round((hole.u0 + hole.u1) / 2) + 3, hole.y1 - 4], 3, -1, -1, 1);
+    windowIn(g, glow, backWall, hole, 3);
+  }
+  for (let x = i(ROOM_X1); x <= u1; x++) for (let z = i(BACK_Z); z < i(0.8); z++) {
+    const row = Math.floor(z / 3), off = mod(row * 17, 40);
+    const seam = mod(z, 3) === 0 || mod(x + off, 40) === 0;
+    g.set(x, -1, z, seam ? lin(FLOOR[2]) : pickBy(FLOOR, hash3(Math.floor((x + off) / 40), row, 0, 7), [0.5, 0.95]));
+  }
+  const out = { solid: buildGeometry(g.map, D), glow: buildGeometry(glow.map, D, { ao: false }) };
+  stripWalls.set(key, out);
+  return out;
 }
 
 /** Where his waist is along the bed: the quilt over his chest lifts with him from here. */

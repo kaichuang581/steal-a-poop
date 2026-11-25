@@ -204,4 +204,7 @@
 ["^(Wood|Stone|Iron) · free$", "$1 · gratuit"],
 ["^(Wood|Stone|Iron) · (½|¾)$", "$1 · $2"],
 ["^(\\d+)–(\\d+) players$", "$1–$2 joueurs"],
-["^(\\d+) points each$", "$1 points chacune"]]
+["^(\\d+) points each$", "$1 points chacune"],
+["^of (\\d+)$", "sur $1"],
+["^best (\\d+)$", "record $1"],
+["^(\\d+) sheep counted, of (\\d+)$", "$1 moutons comptés, sur $2"]]

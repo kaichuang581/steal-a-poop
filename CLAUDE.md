@@ -2484,10 +2484,9 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
   fences before it, and after it the dream runs on in its third world until a bump.
 - How it runs: milestones CS1 to CS7 (docs/dream/08-run-order-and-checks.md), one local branch each (`dream/cs1-farmer`
   ...), stacked, local commits, no push or pull request until Brian says. The pack stops for Brian after every
-  milestone. CS1's stop is kept as written ("Brian compares the board with his sheet before anything else is built":
-  whether the farmer is his farmer is his call, and the board and pictures were sent to him on 2026-11-24). For the
-  later stops his standing words for plans apply ("get done with the milestones", 2026-11-16): the work goes on and
-  each milestone's pictures are sent as it lands, unless he says otherwise. The pack's check 2 (a recorded night
+  milestone. No stop is kept: the farmer's board and pictures were sent to him on 2026-11-24, he asked "r u done", and
+  then said "do all of it dont pause". The work goes on through CS7 and each milestone's pictures are sent as it lands.
+  He has not said anything about the farmer's likeness yet; a change to him can come at any time. The pack's check 2 (a recorded night
   replayed to the millisecond after every milestone) is not built ahead of the work, by the same words; the existing
   run and mapping tests are what holds the rules.
 - CS1, the farmer, as built (2026-11-24). src/skin/dream/farmer.ts is the model and the poses, pure: the pack's 106 boxes
@@ -2525,3 +2524,49 @@ differ, data/ wins for numbers and the text for behaviour; its sketches lose to 
     list (the bedroom has neither); the cap's tail lies on the pillow on his far side, mostly hidden from the bed's
     side; his "z"s, the "?" on a wrong word and the "!" on a bump are the bubble's old ones until CS2 and CS3 redo them.
   - tools/scenes/build.ts mirrors the new components, and `npm run check:floating -- --scene bedroom` passes.
+- CS2, the layout and the interface, as built (2026-11-24; docs/dream/02-layout-and-interface.md). The old dream is shown
+  inside the new frame, moved up, until CS4 replaces its scenery.
+  - src/skin/dream/frame.ts lays the screen out, pure and tested (`dreamFrame`): on a computer (900 x 600 and up) the bed
+    strip along the bottom, the dream window inset 10 with its lowest bumps 6 above the strip, the tray centred on the
+    space right of the bed zone; anything else is the phone's (the dream, a 56 px strip, an 84 px tray, in the part of
+    the screen above the keyboard). Interface sizes are the plan's px times `--u`, which the dream's root sets from the
+    frame (a phone's is 1 px). `mobile` (under 640 wide) still picks the side view's span, as before.
+  - The dream window is one clip shape over the dream's canvas (`bubbleShape`: pixel corners, a bottom edge of stepped
+    half-ellipses 72, 48, 60 and 40 wide, a 6 px rim of wool and 4 of frost under it). The ground line is at 66% of the
+    window's height, 70% on a phone (`GROUND` in stage.ts; it was 68% and 55% of the screen). The tail is three pixel
+    puffs from the window's edge down to his nose (`tailPuffs`, `Tail` in Interface.tsx), his pixel "z"s rise along it
+    (quicker and bigger with the stage), and a "?" (wrong word) or "!" (bump) shows over his head.
+  - The bed strip is the bedroom's own canvas (BedroomBubble.tsx kept its name) through the camera `bedSide`
+    (`stripCamera`): 0.35 m above the mattress, looking straight along -z at the bed's long side, 20 degrees over the
+    strip's height, with a view offset that makes the strip a wide slice of what it sees, so the wall and the windows
+    stay square to the screen. The headboard is 24 px in and the foot of the bed 70 px short of the bed zone's edge.
+    Deviations from the pack's letter, for the picture's sake: the strip's bottom edge cuts the bed just under its side
+    rail (0.18 m: his face needs the room above it for the tail, and the floor in front of the bed was never going to
+    fit); his head is rolled 52 degrees toward the room, not 20 (from a camera level with him 20 showed his ear).
+  - The bedroom was rearranged for it, results included: the nightstand (lamp, a cream candle now, the alarm clock)
+    stands against the back wall past the foot of the bed with the knitting basket beside it, the five books stand on
+    a low shelf over the basket, and the rug and slippers lie before the nightstand. The window behind his pillow is
+    gone (his face, the tail and the z's need a plain wall); the back window has the moon. `stripWall` adds the wall and
+    floor the strip sees past the room's end, with a low window, snow on its sill and the moon in it, at the strip's
+    right end on screens 1200 wide or more.
+  - The interface is Interface.tsx, in the navy kit (`hm rc` on the dream's root) with the quilt band as this mode's
+    trim: the tray (the sign's letters as lantern tiles, yours as wool tiles, the next place ringed with a caret, Jump,
+    the fence meter, "Type ahead…"), one ink strip for the hint and the refusals (1.6 s), the mode chip, the night
+    track (pips grouped where `lettersAt` changes), the counter ("6 of 30"; the count alone with "out cold" after
+    fence 30), the announcement cards (stage 2, stage 3, the last five fences, bump, out cold, slept through it) and
+    the ready board with its three pictures. The floating letters, the dashed line, "Enter to jump", the paper slip
+    over a cleared sign, the parchment date tag, the slate counter and the wooden close peg are gone from this mode.
+  - The sign's board is HTML hung from its post's arm (`SignBoard` in DreamStage.tsx, `signPost` in world.ts): lantern
+    tiles, three sunk squares, the accepted word on a plank. The carved voxel plank and its tests are gone. The post is
+    taller, so the board hangs clear of the standing sheep; the sheep leaps through that height, so a jumped fence's
+    board fades to 30% until the fence is past. It blinks ember when an unanswered fence is 1.5 s off and is knocked
+    askew by a bump. On a window too short for it the word plank is dropped.
+  - A choice of mine, for Brian to overrule: with the sign's letters already standing in the tray and the caret after
+    them, a word may be typed whole (as before) or only from where the sign stops (`trayWord`; DreamScreen's `submit`
+    tries the word as typed, then the sign's letters with what was typed). Which words count is still the rules' own
+    `check`; src/dream is untouched.
+  - The mode chip reads "Tonight's dream: Nov 24", with a colon, not the pack's middle dot (his rule on middle dots).
+  - Not built here, each waiting for its milestone: the tiles flying to the sign and the tray emptying (CS3), the beat
+    the current pip is to blink on (it blinks on its own clock), the card for the finale's look (the card shows; the
+    finale is CS6), the results board (CS7: it is still the knitted card). The pack's surface test was not run on
+    these pieces. The size limit has 3.19 kB left after this milestone.

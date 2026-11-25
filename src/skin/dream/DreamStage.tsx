@@ -27,11 +27,10 @@ import type { SheepState } from '../table/Sheep';
 import { voxelMaterial } from '../voxel/material';
 import { T } from '../voxel/palette';
 import { DreamSky } from './DreamSky';
-import { ART, CAMERA_Z, CHUNK, chunkPlacements, DISC_MAX_H, DREAM_FOG, drawnLift, dreamView, frameToWorld, islandPlace, ISLANDS, islandX, LAYER, leapPitch, PX, RECOIL, scrollOf, SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, signScale, WAKE, WISPS, worldX } from './stage';
+import { ART, CAMERA_Z, CHUNK, chunkPlacements, DISC_MAX_H, DREAM_FOG, drawnLift, dreamView, frameToWorld, islandPlace, ISLANDS, islandX, LAYER, leapPitch, PX, RECOIL, scrollOf, SHEEP_ART, SHEEP_CENTRE, SHEEP_SCALE, signRows, signScale, WAKE, WISPS, worldX } from './stage';
 import type { DreamView } from './stage';
-import { bonkStar, FAR_Z, fenceSign, hills as hillsLayer, HILLS, island as islandGeometry, lookOf, mountains as mountainsLayer, MOUNTAINS, obstacle, raftChunk, SEA, seaLayer, shadowDisc, SIGN, wisp as wispGeometry } from './world';
-import { Paper } from '../kit';
-import { CheckIcon } from '../components/Icons';
+import { bonkStar, FAR_Z, hills as hillsLayer, HILLS, island as islandGeometry, lookOf, mountains as mountainsLayer, MOUNTAINS, obstacle, raftChunk, SEA, seaLayer, shadowDisc, signPost, wisp as wispGeometry } from './world';
+import { signHeight, signWidth } from './frame';
 import { LOOK } from '../look';
 
 const SLOTS = 4;
@@ -72,6 +71,8 @@ interface Props {
   phone: boolean;
   /** How many pictures a second the dream is drawn at (the frame governor): 0 once the bedroom covers it whole. */
   fps?: number;
+  /** The interface's unit and whether it is the phone's layout: the signs' boards are laid out with them. */
+  ui: { u: number; phone: boolean };
 }
 
 /**
@@ -80,9 +81,10 @@ interface Props {
  */
 export function DreamStage(props: Props) {
   // Orthographic, looking along -z; DreamCamera sets its zoom and place from the stage's size (plan file 09, 4.2).
-  // The count over the sheep and the cleared words' slips are HTML laid over the canvas, pinned by ScreenAnchor: drei's
-  // Html unmounted its own roots while React was rendering and threw on leaving the dream.
-  const tags = useMemo<Tags>(() => ({ pop: createRef(), slips: Array.from({ length: SLOTS }, () => createRef<HTMLDivElement>()) }), []);
+  // The count over the sheep and the signs' boards are HTML laid over the canvas (drei's Html unmounted its own roots
+  // while React was rendering and threw on leaving the dream): the count pinned by ScreenAnchor, each board moved by the
+  // frame loop to its post's arm.
+  const tags = useMemo<Tags>(() => ({ root: createRef(), pop: createRef(), signs: Array.from({ length: SLOTS }, () => createRef<HTMLDivElement>()) }), []);
   const slotViews = Array.from({ length: SLOTS }, (_, slot) => props.fences.find((v) => v.index % SLOTS === slot) ?? null);
   return (
     <>
@@ -97,24 +99,40 @@ export function DreamStage(props: Props) {
       <DevStats />
     </AdaptiveCanvas>
     </SceneBoundary>
-    <div className="dr-tags" aria-hidden="true">
+    <div ref={tags.root} className="dr-tags" aria-hidden="true">
       <div ref={tags.pop} className="dr-tag">{props.pop && <span key={props.pop.key} className="dr-pop sk-display">{props.pop.n}</span>}</div>
-      {slotViews.map((f, slot) => {
-        const word = f?.locked ? f.word : '';
-        return (
-          <div key={slot} ref={tags.slips[slot]} className="dr-tag">
-            {word ? <Paper kind="slip" className="dr-slip" style={{ fontSize: word.length > 10 ? 12 : 16 }}><CheckIcon size={14} />{word.toUpperCase()}</Paper> : null}
-          </div>
-        );
-      })}
+      {slotViews.map((f, slot) => <div key={slot} ref={tags.signs[slot]} className="dr-tag dr-sign-tag">{f && <SignBoard view={f} />}</div>)}
     </div>
     </>
   );
 }
 
-interface Tags { pop: RefObject<HTMLDivElement | null>; slips: RefObject<HTMLDivElement | null>[] }
+interface Tags { root: RefObject<HTMLDivElement | null>; pop: RefObject<HTMLDivElement | null>; signs: RefObject<HTMLDivElement | null>[] }
 
-function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Tags }) {
+/**
+ * A sign's board (docs/dream/02-layout-and-interface.md, section 6), the same in every stage because it is the thing
+ * you read: a bar on two chains, the letters your word must start with as lantern tiles, three sunk squares for the
+ * letters that are yours, and a plank your accepted word lands on. It has no cap.
+ */
+function SignBoard({ view }: { view: FenceView }) {
+  const word = view.locked ? view.word.toUpperCase() : '';
+  return (
+    <div className="dr-sign" data-wrong={view.wrong || undefined} data-done={view.locked || undefined}>
+      <i className="dr-sign-bar" /><i className="dr-sign-chain" /><i className="dr-sign-chain" data-r />
+      <div className="dr-sign-board">
+        <div className="dr-sign-letters">
+          {view.letters.map((ch, i) => <span key={i} className="dr-tile dr-tile--lantern">{ch.toUpperCase()}</span>)}
+          <span className="dr-sign-dots"><i /><i /><i /></span>
+        </div>
+        <div className="dr-sign-plank" style={{ '--n': Math.max(1, word.length) } as React.CSSProperties}>
+          {[...word].map((ch, i) => <span key={i} className="dr-sign-word">{ch}</span>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Scene({ live, fences, phase, reduced, phone, tags, ui }: Props & { tags: Tags }) {
   const scene = useThree((s) => s.scene);
   const size = useThree((s) => s.size);
   const view = useMemo(() => dreamView(Math.max(1, size.width), Math.max(1, size.height), phone), [size.width, size.height, phone]);
@@ -154,7 +172,17 @@ function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Ta
   const stars = useRef<(Mesh | null)[]>([]);
   const slots = useRef<(Group | null)[]>([]);
   const fenceMeshes = useRef<(Group | null)[]>([]);
-  const boards = useRef<(Group | null)[]>([]);
+  // The signs' posts: tall enough that the board hangs clear of the sheep's head. A window too short for the whole
+  // board (a small phone with its keyboard up) drops the word plank.
+  const sign = useMemo(() => {
+    const scale = signScale(phone), gap = ui.phone ? 10 : 16 * ui.u;
+    const roomy = view.ground - (ui.phone ? 52 : 60 * ui.u) >= ART * SHEEP_ART.hat * view.s + gap + signHeight(ui.phone, ui.u, true);
+    const rows = signRows(view, signHeight(ui.phone, ui.u, roomy), gap, scale);
+    const half = (n: number) => Math.max(1, Math.ceil(signWidth(n, ui.phone, ui.u) / 2 / (0.1 * scale * view.zoom)) - 1);
+    return { scale, rows, plank: roomy, half };
+  }, [view, phone, ui.phone, ui.u]);
+  const signState = useRef<string[]>([]);
+  useEffect(() => { tags.root.current?.toggleAttribute('data-compact', !sign.plank); }, [tags, sign.plank]);
   const lamp = useRef<PointLight>(null);
   const hotSlot = useRef(-1);
   const [sheepState, setSheepState] = useState<SheepState>('grazing');
@@ -261,21 +289,36 @@ function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Ta
         f.rotation.z = -(ang * Math.PI) / 180;
         if (hit && anim.fenceSnowFor !== fe.index) { anim.fenceSnowFor = fe.index; anim.fenceSnowAt = t; anim.fenceSnowX = g.position.x; }
       }
-      // The sign's board swings on its ropes: a little in the wind, hard for 1.2 s when its fence is bumped.
-      const board = boards.current[slot];
-      if (board) {
-        const e = hitAt !== null ? (L.t - hitAt) / 1000 : 9;
-        const knock = reduced || e > 1.2 ? 0 : 15 * Math.sin(e * Math.PI * 2 * 1.4) * (1 - e / 1.2);
-        board.rotation.z = ((reduced ? 0 : 1.5 * Math.sin(t * 0.4 * Math.PI * 2 + slot)) + knock) * (Math.PI / 180);
+      // The sign's board, HTML hung from the post's arm: where the arm is on screen, and what its fence is doing. It
+      // blinks when an unanswered fence is close, is knocked askew by a bump, and gives way to the sheep leaping past it.
+      const tag = tags.signs[slot].current;
+      if (tag) {
+        const n = slotViews[slot]?.letters.length ?? 1, post = signPost(sign.rows, sign.half(n));
+        const sx = (g.position.x + SIGN_AT[0] + post.hang[0] * sign.scale - view.camX) * view.zoom + view.w / 2;
+        const sy = view.ground - post.hang[1] * sign.scale * view.zoom;
+        tag.style.transform = `translate3d(${sx.toFixed(1)}px, ${sy.toFixed(1)}px, 0)`;
+        const close = !fe.locked && !fe.passed && L.speed > 0 && (fe.x - (SX + SW)) / L.speed < CLOSE_S;
+        const state = `${hit ? 'k' : ''}${close && !hit ? 'c' : ''}${fe.jumped && !fe.passed ? 'j' : ''}`;
+        if (signState.current[slot] !== state) {
+          signState.current[slot] = state;
+          tag.toggleAttribute('data-knock', hit);
+          tag.toggleAttribute('data-close', close && !hit);
+          tag.toggleAttribute('data-clear', fe.jumped && !fe.passed);
+        }
       }
     }
-    slots.current.forEach((g, i) => { if (g && !used.has(i)) g.visible = false; });
+    slots.current.forEach((g, i) => {
+      if (!g || used.has(i)) return;
+      g.visible = false;
+      const tag = tags.signs[i].current;
+      if (tag && signState.current[i] !== 'off') { signState.current[i] = 'off'; tag.style.transform = 'translate3d(-9999px, 0, 0)'; }
+    });
     if (L.dist < 1) anim.fenceSnowFor = -1;
     // One lantern light, on the active sign's post.
     const hot = hotSlot.current, hg = hot >= 0 ? slots.current[hot] : null;
     if (lamp.current) {
       lamp.current.intensity = hg?.visible ? 0.8 : 0;
-      if (hg) { const at = fenceSign(slotViews[hot]?.letters ?? ['']).lanternAt; const k = signScale(phone); lamp.current.position.set(hg.position.x + SIGN_AT[0] + at[0] * k, at[1] * k, SIGN_AT[2] + at[2] * k); }
+      if (hg) { const at = signPost(sign.rows, sign.half(slotViews[hot]?.letters.length ?? 1)).lanternAt, k = sign.scale; lamp.current.position.set(hg.position.x + SIGN_AT[0] + at[0] * k, at[1] * k, SIGN_AT[2] + at[2] * k); }
     }
   });
 
@@ -332,7 +375,7 @@ function Scene({ live, fences, phase, reduced, phone, tags }: Props & { tags: Ta
                 </group>
               </group>
             </group>
-            <Sign view={f} scale={signScale(phone)} boardRef={(el) => { boards.current[slot] = el; }} slip={tags.slips[slot]} />
+            <Sign hot={!!f?.hot} rows={sign.rows} half={sign.half(f?.letters.length ?? 1)} scale={sign.scale} />
           </group>
         ))}
 
@@ -380,33 +423,21 @@ const shadowMat = new MeshLambertMaterial({ vertexColors: true, transparent: tru
 
 /** Where each sign stands against its obstacle: just past it, on the far side of the lane. */
 const SIGN_AT = [0.1, 0, -1.34] as const;
-// The cut letters are painted cream, as on the table's letter board; warm on the active sign, green once cleared, red on a bounce.
-const INK = '#F3E7CC';
+/** An unanswered fence this many seconds off is close: its sign's outline blinks (the farmer stirs at the same mark). */
+const CLOSE_S = 1.5;
 
 /**
- * The fence sign (V6 Part 5.1): letters carved into a plank hung from a crossbar. The active one has its lantern lit
- * and its letters warm; a bounce reddens the cuts for a moment, a clear turns them green and pins the word on a slip.
+ * The sign's post (docs/dream/02-layout-and-interface.md, section 6): the same post and arm as before, taller, with its
+ * lantern lit on the active sign. The board that hangs from the arm is `SignBoard`, HTML over the canvas.
  */
-function Sign({ view, scale, boardRef, slip }: { view: FenceView | null; scale: number; boardRef: (g: Group | null) => void; slip: RefObject<HTMLDivElement | null> }) {
-  const key = view?.letters.join('') ?? '';
-  const geo = useMemo(() => fenceSign(view?.letters ?? ['']), [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  const ink = useMemo(() => new MeshLambertMaterial({ color: INK }), []);
+function Sign({ hot, rows, half, scale }: { hot: boolean; rows: number; half: number; scale: number }) {
+  const geo = useMemo(() => signPost(rows, half), [rows, half]);
   const wood = useMemo(() => voxelMaterial({ color: WOOD_TINT }), []);
   const glass = useMemo(() => [voxelMaterial({ color: '#9A8A70' }), voxelMaterial({ emissive: '#FFC24B', emissiveIntensity: 0.9 })], []);
-  useEffect(() => {
-    ink.color.set(view?.locked ? '#9BD49F' : view?.wrong ? '#FF8F7A' : INK);
-    ink.emissive.set(view?.hot && !view.wrong ? '#3A2A14' : '#000000');
-  }, [view?.locked, view?.wrong, view?.hot, ink]);
   return (
     <group position={[...SIGN_AT]} scale={scale}>
       <mesh geometry={geo.post} material={wood} castShadow />
-      <mesh geometry={geo.lantern} material={glass[view?.hot ? 1 : 0]} />
-      <group ref={boardRef} position={[SIGN.x, SIGN.pivot, 0]}>
-        <mesh geometry={geo.board} material={wood} castShadow />
-        <mesh geometry={geo.letters} material={ink} />
-      </group>
-      {/* The cleared word's slip (DreamStage's tags) is pinned here. */}
-      <ScreenAnchor el={slip} position={[SIGN.x, SIGN.pivot + 0.32, 0.1]} cull={false} />
+      <mesh geometry={geo.lantern} material={glass[hot ? 1 : 0]} />
     </group>
   );
 }

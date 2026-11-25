@@ -833,6 +833,8 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     mirrors('src/skin/dream/BedroomBubble.tsx', [
       '<mesh geometry={b.room} material={vox} />',
       '<mesh geometry={b.glow} material={selfLit} />',
+      '<mesh geometry={far.solid} material={vox} />',
+      '<mesh geometry={far.glow} material={selfLit} />',
       '<mesh geometry={b.lampGlass} material={glassMat} />',
       '<group ref={clock} position={[CLOCK.x, CLOCK.y + 0.025, CLOCK.z]} rotation={[0, CLOCK.turn, 0]}>',
       '<mesh geometry={b.clock} material={vox} />',
@@ -861,6 +863,10 @@ const SCENES_BUILT: Record<SceneName, (L: Layout, load: Load, shared: Shared, de
     L.put(b.room, 'bedroom.room');
     L.put(b.glow, 'bedroom.glow');
     L.put(b.lampGlass, 'bedroom.lampGlass');
+    // The bed strip's more of the wall and floor, with its window, as a 1440 x 900 screen has them.
+    const far = bedroom.stripWall(11.5, 9.8);
+    L.put(far.solid, 'bedroom.stripWall');
+    L.put(far.glow, 'bedroom.stripGlow');
     L.thing('clock', { at: [CLOCK.x, CLOCK.y + 0.025, CLOCK.z], rotation: [0, CLOCK.turn, 0], moves: 'it shakes when it rings' }, (t) => {
       t.put(b.clock, 'bedroom.clock');
       t.put(b.ring, 'bedroom.ring');
@@ -1121,17 +1127,12 @@ async function modelSpecs(load: Load): Promise<ModelSpec[]> {
     specs.push({ id: `fence:${look}`, kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).obstacle(look) });
   }
   specs.push({ id: 'bale', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).obstacle('bale') });
-  // The sign: its board and letters are built about the board's pivot and hung there by `Sign` in DreamStage.tsx.
+  // The sign's post, arm and lantern (`Sign` in DreamStage.tsx); the board that hangs from the arm is HTML.
   mirrors('src/skin/dream/DreamStage.tsx', [
     '<mesh geometry={geo.post} material={wood} castShadow />',
-    '<mesh geometry={geo.lantern} material={glass[view?.hot ? 1 : 0]} />',
-    '<group ref={boardRef} position={[SIGN.x, SIGN.pivot, 0]}>',
-    '<mesh geometry={geo.board} material={wood} castShadow />',
-    '<mesh geometry={geo.letters} material={ink} />',
+    '<mesh geometry={geo.lantern} material={glass[hot ? 1 : 0]} />',
   ]);
-  const { SIGN } = await load<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts');
-  MODEL_AT['sign post'] = (mount) => (mount === 'board' || mount === 'letters' ? [SIGN.x, SIGN.pivot, 0] : null);
-  specs.push({ id: 'sign post', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).fenceSign(['G', 'R']) });
+  specs.push({ id: 'sign post', kind: 'prop', build: async (l) => (await l<typeof import('../../src/skin/dream/world')>('src/skin/dream/world.ts')).signPost(22, 6) });
   return specs;
 }
 

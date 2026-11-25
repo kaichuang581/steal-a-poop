@@ -1,15 +1,38 @@
-/* Counting Sheep (V4): the farmer's dream. The scene is the game's own three.js world; the HUD is cut from the farm kit
-   (V6 Parts 5.4 and 6.4): a burlap patch for the night, a slate for the count, a peg to leave, a wooden trough for the
-   word bar with the fence's letters hanging on a rope, and the results hung from the bedroom's beam. What is here is
-   only layout and the dream's own light, never a surface of its own. */
-.dr-root { position: relative; display: flex; height: 100%; flex-direction: column; overflow: hidden; outline: none; user-select: none; background: #14112A; }
+/* Counting Sheep (docs/dream/02-layout-and-interface.md): the farmer's bed strip along the bottom of the screen, the
+   dream rising from it as one thought bubble, the tray of letter tiles over the strip. The interface is the game's navy
+   kit (Home's slabs, the pen's board, well and ink card: `hm rc` on the root brings their tokens) with this mode's one
+   trim, the quilt band. No snow cap, icicle or festive light is on it: those belong to the outdoor screens. Sizes are
+   the plan's px times --u (the root sets it from the frame; a phone's is 1 px); frame.ts lays the big pieces out. */
+.dr-root {
+  --dr-ember: #F48C6E; --dr-ember-hi: #F9B49F; --dr-sky: #7E6FC4; --c: 2px;
+  --sg-t: 42; --sg-d: 6; --sg-gap: 8; --sg-pad: 8; --sg-plank: 18; --sg-pgap: 6; --sg-bar: 5; --sg-chain: 12; --sg-dot: 10; --sg-dgap: 4;
+  position: relative; display: block; height: 100%; overflow: hidden; outline: none; user-select: none; background: var(--hm-ink);
+}
+.dr-root[data-phone] { --sg-t: 30; --sg-d: 4; --sg-gap: 5; --sg-pad: 5; --sg-plank: 14; --sg-pgap: 4; --sg-bar: 4; --sg-chain: 8; --sg-dot: 8; --sg-dgap: 3; }
+.dr-loading { margin: auto; }
 
-/* The dream's canvas. It pops toward the last puff when the farmer wakes (V4.1 Part 7.4); it is only ever transformed
-   after it has been measured, so the renderer's size is not disturbed. */
-.dr-stage { position: absolute; inset: 0; transform-origin: var(--dr-pop-x, 22%) var(--dr-pop-y, 72%); }
+/* ---------- The bed strip: the bedroom's own canvas. Once the dream is over it opens to the whole screen and is his
+   bedroom (V6 Part 6.4). No transform here, ever: the canvas inside is measured. */
+.dr-room { position: absolute; z-index: 1; overflow: hidden; pointer-events: none; background: var(--hm-night-deep); }
+.dr-room[data-room] { inset: 0; z-index: 30; animation: dr-room-in 400ms ease-out both; }
+@keyframes dr-room-in { from { opacity: 0; } }
+
+/* ---------- The dream window: one clip shape over the dream's canvas (frame.ts `bubbleShape`), a rim of wool round it
+   and a row of frost under its bottom edge. */
+.dr-bubble { position: absolute; z-index: 5; }
+.dr-bubble-shade, .dr-bubble-rim, .dr-window { position: absolute; inset: 0; }
+.dr-bubble-shade { background: var(--hm-frost); translate: 0 4px; }
+.dr-bubble-rim { background: var(--hm-wool-hi); }
+.dr-window { overflow: hidden; background: var(--hm-ink); }
+/* The dream's canvas. It pops toward the tail's last puff when the farmer wakes (V4.1 Part 7.4); it is only ever
+   transformed after it has been measured, so the renderer's size is not disturbed. */
+.dr-stage { position: absolute; transform-origin: var(--dr-org-x, 22%) var(--dr-org-y, 100%); }
 .dr-stage[data-pop] { animation: dr-pop-away 900ms ease-in-out forwards; }
 @keyframes dr-pop-away { to { transform: scale(1.04); filter: blur(10px) brightness(1.3) saturate(0.7); opacity: 0.8; } }
-/* The count over the sheep and the cleared words' slips, laid over the canvas and moved by the stage every frame. */
+.dr-stage[data-gone] { visibility: hidden; }
+.dr-stage[data-pop][data-reduced] { animation: dr-fade-away 150ms linear forwards; }
+@keyframes dr-fade-away { to { opacity: 0; } }
+/* The count over the sheep and the signs' boards, laid over the canvas and moved by the stage every frame. */
 .dr-tags { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
 .dr-tag { position: absolute; left: 0; top: 0; transform: translate3d(-9999px, 0, 0); }
 /* The waking clouds (WakeClouds.tsx): in from both sides over the blurring dream, a hold while the bedroom is built
@@ -30,82 +53,188 @@
 .dr-clouds[data-state="out"] .dr-clouds-fill { opacity: 1; animation: dr-cloud-unfill 420ms 80ms ease-in forwards; }
 @keyframes dr-cloud-out { from { transform: none; opacity: 1; } 80% { opacity: 1; } to { transform: translate(calc(var(--dx) * 1.15), var(--dy)) scale(1.18); opacity: 0; } }
 @keyframes dr-cloud-unfill { to { opacity: 0; } }
-.dr-stage[data-gone] { visibility: hidden; }
-.dr-stage[data-pop][data-reduced] { animation: dr-fade-away 150ms linear forwards; }
-@keyframes dr-fade-away { to { opacity: 0; } }
 
-/* The farmer's bubble: its own canvas, masked to a cloud with a pale rim (V4.1 Part 7.1). */
-.dr-bubble { --cloud: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 100' preserveAspectRatio='none'%3E%3Cg fill='black'%3E%3Cellipse cx='75' cy='50' rx='62' ry='37'/%3E%3Ccircle cx='24' cy='34' r='16'/%3E%3Ccircle cx='52' cy='19' r='15'/%3E%3Ccircle cx='84' cy='15' r='15'/%3E%3Ccircle cx='114' cy='24' r='16'/%3E%3Ccircle cx='132' cy='50' r='15'/%3E%3Ccircle cx='116' cy='76' r='16'/%3E%3Ccircle cx='84' cy='85' r='14'/%3E%3Ccircle cx='50' cy='82' r='15'/%3E%3Ccircle cx='20' cy='64' r='16'/%3E%3C/g%3E%3C/svg%3E");
-  position: absolute; left: var(--dr-bub-l, 2%); top: var(--dr-bub-t, auto); bottom: auto; z-index: 12; width: var(--dr-bub-w, min(26%, 420px)); aspect-ratio: 3 / 2; pointer-events: none; visibility: var(--dr-bub-vis, visible); transition: width 300ms ease-out; }
-/* The breath is the rim's only: the bubble's canvas never sits inside a transformed element (CLAUDE.md, plan file 09, 4.5). */
-.dr-bubble-rim { animation: dr-breathe 4s ease-in-out infinite; transform-origin: 0 100%; }
-@keyframes dr-breathe { 50% { transform: scale(1.012); } }
-.dr-bubble-rim, .dr-bubble-view { position: absolute; -webkit-mask: var(--cloud) center / 100% 100% no-repeat; mask: var(--cloud) center / 100% 100% no-repeat; }
-.dr-bubble-rim { inset: -3px; background: #EDE8F9; opacity: 0.85; }
-.dr-bubble-view { inset: 0; overflow: hidden; }
-/* The dream is over: the bubble opens to the whole screen and is his bedroom (V6 Part 6.4). No transform here, ever:
-   the canvas inside is measured. */
-.dr-bubble[data-room] { left: 0; top: 0; bottom: 0; width: 100%; height: 100%; aspect-ratio: auto; z-index: 30; visibility: visible; animation: dr-room-in 400ms ease-out both; transition: none; }
-.dr-bubble[data-room] .dr-bubble-view { -webkit-mask: none; mask: none; }
-.dr-bubble[data-room] .dr-bubble-rim, .dr-bubble[data-room] .dr-bubble-zs, .dr-bubble[data-room] .dr-bubble-bang { display: none; }
-@keyframes dr-room-in { from { opacity: 0; } }
-/* The z's rise from the tip of his nightcap toward the first puff. */
-.dream-z { position: absolute; left: 47%; top: 32%; color: #EDE8F9; opacity: 0; font: 700 18px/1 var(--skin-font-display); animation: dr-z 2.2s linear infinite; }
-.dream-z[data-i="1"] { font-size: 24px; animation-delay: 0.73s; }
-.dream-z[data-i="2"] { font-size: 30px; animation-delay: 1.46s; }
-@keyframes dr-z { 0% { opacity: 0; transform: translate(0, 0); } 8% { opacity: 0.9; } 60% { opacity: 0.9; } 100% { opacity: 0; transform: translate(9%, -55%); } }
-/* A bump only stirs him: the z's fade out, and a sleepy "hm?" drifts up as he peeks (the stir itself is in BedroomBubble). */
-.dr-bubble-zs { position: absolute; inset: 0; transition: opacity 450ms ease-in-out; }
-.dr-bubble[data-woke] .dr-bubble-zs { opacity: 0; }
-.dr-bubble-bang { position: absolute; left: 40%; top: 8%; opacity: 0; color: #EDE8F9; font: italic 700 30px/1 var(--skin-font-display); text-shadow: 0 2px 0 #1E1A33; }
-.dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm 1100ms 700ms ease-in-out both; }
-@keyframes dr-hm { 0% { opacity: 0; transform: translate(-6px, 10px) rotate(-6deg); } 35% { opacity: 1; transform: translate(0, 0) rotate(-3deg); } 100% { opacity: 0.85; transform: translate(4px, -10px) rotate(-2deg); } }
-@keyframes dr-hm-fade { 0% { opacity: 0; } 100% { opacity: 0.85; } }
-
-/* The thought trail: three clouds from the bubble to the raft (V4.1 Part 7.3). */
-.dream-puff { position: absolute; z-index: 13; pointer-events: none; opacity: 0.92; animation: dr-bob 5s ease-in-out infinite; transition: transform 200ms ease-in; }
-.dream-puff svg { display: block; width: 100%; height: auto; }
-.dream-puff[data-i="1"] { animation-delay: -1.6s; }
-.dream-puff[data-i="2"] { animation-delay: -3.2s; }
-@keyframes dr-bob { 50% { translate: 0 -3px; } }
-.dr-root[data-pop] .dream-puff { transform: scale(0); }
-.dr-root[data-pop] .dream-puff[data-i="2"] { transition-delay: 0ms; }
-.dr-root[data-pop] .dream-puff[data-i="1"] { transition-delay: 120ms; }
-.dr-root[data-pop] .dream-puff[data-i="0"] { transition-delay: 240ms; }
+/* ---------- The bubble's tail: three pixel puffs down to the farmer, and what rises along it. */
+.dr-tail { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.dr-puff { position: absolute; clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c))); background: var(--hm-wool-hi); filter: drop-shadow(0 3px 0 var(--hm-frost)); animation: dr-bob 2.4s steps(1) infinite; transition: scale 200ms ease-in; }
+.dr-puff::before { content: ''; position: absolute; inset: 4px; clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c))); background: var(--dr-sky); }
+.dr-puff[data-i="1"] { animation-delay: 0.3s; }
+.dr-puff[data-i="2"] { animation-delay: 0.6s; }
+.dr-puff[data-i="2"]::before { inset: 3px; }
+@keyframes dr-bob { 50% { translate: 0 -2px; } }
+.dr-root[data-pop] .dr-puff { scale: 0; }
+.dr-root[data-pop] .dr-puff[data-i="1"] { transition-delay: 120ms; }
+.dr-root[data-pop] .dr-puff[data-i="0"] { transition-delay: 240ms; }
+/* His "z"s: from his nose into the smallest puff, where they fade. */
+.dr-z { position: absolute; margin: -6px 0 0 -5px; opacity: 0; animation: dr-z linear infinite; }
+@keyframes dr-z { 0% { opacity: 0; translate: 0 0; } 12% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; translate: var(--zx) var(--zy); } }
+.dr-root[data-pop] .dr-z { display: none; }
+.dr-mark { position: absolute; translate: -50% -100%; animation: dr-mark 160ms steps(3) both; }
+@keyframes dr-mark { from { opacity: 0; translate: -50% -60%; } }
 
 /* Twenty cloud puffs burst from the trail as the dream pops: square tufts, like the voxel clouds. */
 .dr-burst { position: absolute; z-index: 11; pointer-events: none; left: var(--dr-pop-x, 22%); top: var(--dr-pop-y, 72%); width: 0; height: 0; }
 .dr-burst i { position: absolute; width: 18px; height: 14px; border-radius: 3px; background: #EDE8F9; opacity: 0; animation: dr-burst 650ms ease-out forwards; }
 @keyframes dr-burst { 0% { opacity: 0.95; transform: translate(0, 0) scale(0.5); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.3); } }
 
-/* ---------- The HUD ---------- */
-.dr-loading { margin: auto; }
-.dr-night-patch { pointer-events: auto; }
-.dr-hud .dr-count .kit-slate-face { min-height: 0; padding: 4px 12px 6px; gap: 0; }
-.dr-count-main { display: inline-flex; align-items: center; gap: 6px; font-size: 30px; line-height: 1; }
-.dr-count-sub { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; line-height: 1.2; }
-.dr-count-sub .kit-tally i { height: 12px; }
 
-/* The board keeps to the top of the sky (V4.1 Part 8). */
-.dr-boards .sk-notice { max-width: 44%; }
+/* ---------- The tile: a letter on a slab. Wool for yours, lantern for the sign's. --t is its face, --d its side. */
+.dr-tile {
+  --face: var(--hm-wool); --hi: var(--hm-wool-hi); --lip: var(--hm-wool-lip);
+  position: relative; isolation: isolate; flex: none; display: grid; place-items: center; box-sizing: border-box; width: var(--t); height: calc(var(--t) + var(--d)); padding-bottom: var(--d);
+  font: 800 calc(var(--t) * 0.65)/1 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-ink);
+}
+.dr-tile::before {
+  content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--face) var(--knit) 0 0 / var(--knit-size);
+  box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-1 * (var(--d) + var(--s))) 0 var(--lip), inset 0 calc(2 * var(--s)) 0 var(--hi);
+}
+.dr-tile--lantern { --face: var(--hm-lantern); --hi: var(--hm-lantern-hi); --lip: var(--hm-lantern-lip); }
+.dr-tile--typed { animation: dr-tile-in 120ms ease-out both; }
+@keyframes dr-tile-in { from { scale: 1.08; } }
+
+/* ---------- The quilt band: patches in the quilt's five colours, 18 wide and 2 apart on the ink, a lighter top row. */
+.dr-quilt-bar { position: absolute; z-index: 1; left: calc(2 * var(--s)); right: calc(2 * var(--s)); top: var(--s); height: calc(6 * var(--u)); background: var(--hm-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='6' preserveAspectRatio='none' shape-rendering='crispEdges'%3E%3Crect width='18' height='6' fill='%23A84A42'/%3E%3Crect width='18' height='2' fill='%23BE7771'/%3E%3Crect x='20' width='18' height='6' fill='%23E6DCC6'/%3E%3Crect x='20' width='18' height='2' fill='%23ECE5D4'/%3E%3Crect x='40' width='18' height='6' fill='%233F6B4A'/%3E%3Crect x='40' width='18' height='2' fill='%236F9077'/%3E%3Crect x='60' width='18' height='6' fill='%23C99A4A'/%3E%3Crect x='60' width='18' height='2' fill='%23D6B377'/%3E%3Crect x='80' width='18' height='6' fill='%232B3A66'/%3E%3Crect x='80' width='18' height='2' fill='%23606B8C'/%3E%3C/svg%3E") 0 0 / calc(100 * var(--u)) 100% repeat-x; }
+.dr-root[data-phone] .dr-quilt-bar { height: 5px; background-size: 80px 100%; }
+
+/* ---------- The tray: a small board, the tiles, Jump, and the fence meter under them. */
+.dr-tray {
+  --side: calc(6 * var(--u)); --t: calc(40 * var(--u)); --d: calc(6 * var(--u));
+  position: absolute; z-index: 20; isolation: isolate; box-sizing: border-box; display: flex; flex-direction: column; gap: calc(8 * var(--u));
+  padding: calc(20 * var(--u)) calc(16 * var(--u)) calc(18 * var(--u)); filter: var(--shadow); transition: translate 200ms ease-in, opacity 200ms ease-in;
+}
+.dr-tray[data-over] { translate: 0 20px; opacity: 0; }
+.dr-tray-row { display: flex; align-items: flex-end; gap: calc(14 * var(--u)); }
+.dr-tray-tiles { flex: 1; min-width: 0; height: calc(46 * var(--u)); display: flex; align-items: flex-end; gap: calc(6 * var(--u)); overflow: hidden; }
+/* A place with nothing in it yet: a sunk square with a dash. The next one has the orange ring and the caret. */
+.dr-slot { position: relative; flex: none; box-sizing: border-box; width: var(--t); height: calc(var(--t) + var(--d)); display: grid; place-items: center; }
+.dr-slot::before { content: ''; position: absolute; inset: 0; clip-path: var(--px1); background: var(--hm-night-deep); box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-2); }
+.dr-slot::after { content: ''; position: absolute; left: 50%; bottom: calc(var(--t) * 0.22); width: calc(var(--t) * 0.4); height: calc(3 * var(--u)); translate: -50% 0; background: var(--hm-night-3); }
+.dr-slot--next { outline: calc(2 * var(--u)) solid var(--hm-lantern); outline-offset: calc(-2 * var(--u)); }
+.dr-caret { position: relative; z-index: 1; width: calc(3 * var(--u)); height: calc(var(--t) * 0.6); background: var(--hm-lantern-hi); animation: dr-caret 1.06s steps(1) infinite; }
+@keyframes dr-caret { 50% { opacity: 0; } }
+.dr-more { display: flex; align-items: center; justify-content: center; gap: calc(3 * var(--u)); }
+.dr-more::after { display: none; }
+.dr-more i { position: relative; width: calc(4 * var(--u)); height: calc(4 * var(--u)); background: var(--hm-frost); }
+/* A wrong word: the tiles shake and turn ember, and stay, so the word can be fixed. */
+.dr-tray[data-wrong] .dr-tile--typed { --face: var(--dr-ember); --hi: var(--dr-ember-hi); --lip: var(--hm-barn); }
+.dr-tray[data-wrong] .dr-tray-tiles { animation: dr-shake 240ms linear; }
+@keyframes dr-shake { 17%, 50%, 83% { translate: -5px 0; } 33%, 67% { translate: 5px 0; } }
+.dr-jump.hm-slab { --depth: calc(6 * var(--u)); position: relative; z-index: 2; flex: none; width: calc(96 * var(--u)); height: calc(46 * var(--u)); min-height: 44px; gap: calc(6 * var(--u)); font: 800 calc(17 * var(--u))/1 var(--skin-font-display); font-variation-settings: 'opsz' 24; }
+.dr-jump.hm-slab:disabled { --lip: var(--hm-disabled-lip); }
+.dr-meter { position: relative; display: flex; align-items: center; gap: calc(5 * var(--u)); height: calc(8 * var(--u)); }
+.dr-meter i { flex: none; width: calc(22 * var(--u)); height: 100%; background: var(--hm-night-deep); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-ink); }
+.dr-meter i[data-on] { background: var(--hm-lantern); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-lantern-hi); }
+.dr-meter i[data-on][data-low] { background: var(--dr-ember); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--dr-ember-hi); }
+.dr-meter span { position: absolute; right: 0; top: 50%; translate: 0 -50%; padding-left: calc(8 * var(--u)); background: var(--hm-night); font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
+.dr-ghost.sk-input-ghost { z-index: 1; }
+.dr-root[data-phone] .dr-tray { --side: 4px; gap: 6px; padding: 14px 10px 12px; }
+.dr-root[data-phone] .dr-tray-row { gap: 8px; }
+.dr-root[data-phone] .dr-tray-tiles { height: 32px; gap: 5px; }
+.dr-root[data-phone] .dr-jump.hm-slab { --depth: 4px; width: 64px; height: 44px; }
+.dr-root[data-phone] .dr-jump span { display: none; }
+.dr-root[data-phone] .dr-meter { height: 6px; gap: 4px; }
+.dr-root[data-phone] .dr-meter i { width: 16px; }
+
+/* ---------- The ink card: this mode's messages. A felt ink face with two-pixel corners and a bar inside its left edge. */
+.dr-inkcard { --bar: var(--hm-lantern); position: relative; isolation: isolate; box-sizing: border-box; color: var(--hm-wool); filter: var(--shadow); }
+.dr-inkcard::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c))); background: var(--hm-ink) var(--felt) 0 0 / var(--felt-size); box-shadow: inset calc(6 * var(--u)) 0 0 var(--bar); }
+/* The hint and the refusals: one strip, two lines at most. */
+.dr-hint { position: absolute; z-index: 19; margin: 0; display: flex; align-items: center; gap: calc(8 * var(--u)); padding: calc(8 * var(--u)) calc(12 * var(--u)) calc(8 * var(--u)) calc(16 * var(--u)); font: 700 calc(12.5 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); pointer-events: none; }
+.dr-hint > span { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.dr-hint b { font-weight: 800; color: var(--hm-lantern-hi); }
+.dr-hint[data-kind="no"] { --bar: var(--dr-ember); }
+/* An announcement: at the top centre, 12 under the track; it drops in, stays, and fades. */
+.dr-cards { position: absolute; z-index: 4; left: 0; right: 0; top: calc(62 * var(--u)); display: flex; justify-content: center; pointer-events: none; }
+.dr-card { display: inline-flex; align-items: center; gap: calc(10 * var(--u)); padding: calc(8 * var(--u)) calc(16 * var(--u)) calc(8 * var(--u)) calc(18 * var(--u)); animation: dr-card 1720ms linear both; }
+.dr-card[data-tone="ember"] { --bar: var(--dr-ember); }
+@keyframes dr-card { 0% { opacity: 0; translate: 0 -8px; } 9.3% { opacity: 1; translate: 0 0; } 90.7% { opacity: 1; } 100% { opacity: 0; } }
+.dr-card-icon { flex: none; display: grid; place-items: center; width: calc(24 * var(--u)); height: calc(24 * var(--u)); }
+.dr-card-text { display: flex; flex-direction: column; gap: calc(3 * var(--u)); }
+.dr-card-text b { font: 800 calc(17 * var(--u))/1.1 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-wool); }
+.dr-card-text span { font: 800 calc(12 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); }
+
+/* ---------- The counters, inside the top of the dream window. */
+.dr-top { position: absolute; z-index: 3; left: calc(16 * var(--u) + 6px); right: calc(16 * var(--u) + 6px); top: calc(16 * var(--u) + 6px); display: flex; align-items: flex-start; justify-content: space-between; gap: calc(10 * var(--u)); pointer-events: none; }
+.dr-chip { position: relative; isolation: isolate; flex: none; display: inline-flex; align-items: center; gap: calc(6 * var(--u)); height: calc(28 * var(--u)); padding: 0 calc(10 * var(--u)); font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-wool); white-space: nowrap; }
+.dr-chip::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c))); background: var(--hm-ink); }
+.dr-track { display: flex; align-items: center; gap: calc(10 * var(--u)); height: calc(28 * var(--u)); }
+.dr-track-group { display: flex; align-items: center; gap: calc(4 * var(--u)); }
+.dr-track-group b { display: grid; place-items: center; width: calc(16 * var(--u)); height: calc(16 * var(--u)); background: var(--hm-ink); font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.dr-track-group i { width: calc(8 * var(--u)); height: calc(8 * var(--u)); background: var(--hm-night-deep); box-shadow: 0 0 0 max(1px, calc(1.5 * var(--u))) var(--hm-ink); }
+.dr-track-group i[data-s="done"] { background: var(--hm-lantern); box-shadow: 0 0 0 max(1px, calc(1.5 * var(--u))) var(--hm-ink), inset 0 calc(2 * var(--u)) 0 var(--hm-lantern-hi); }
+.dr-track-group i[data-s="now"] { background: var(--hm-lantern-hi); animation: dr-pip 0.625s steps(1) infinite; }
+.dr-track-group i[data-s="end"] { background: var(--dr-ember); }
+@keyframes dr-pip { 50% { opacity: 0.3; } }
+.dr-corner { flex: none; display: flex; align-items: flex-start; gap: calc(8 * var(--u)); pointer-events: auto; }
+.dr-counter.hm-slab { --depth: calc(6 * var(--u)); height: calc(46 * var(--u)); padding: 0 calc(12 * var(--u)) var(--depth) calc(10 * var(--u)); gap: calc(8 * var(--u)); align-items: center; cursor: default; filter: var(--shadow); white-space: nowrap; }
+.dr-counter.hm-slab > * { transform: none; }
+.dr-counter img { width: calc(24 * var(--u)); height: calc(24 * var(--u)); }
+.dr-counter-n { font: 800 calc(24 * var(--u))/1 var(--skin-font-display); font-variation-settings: 'opsz' 24; font-variant-numeric: tabular-nums; color: var(--hm-wool); animation: dr-count 180ms ease-out; }
+@keyframes dr-count { 50% { scale: 1.25; } }
+.dr-counter span { align-self: flex-end; margin: 0 0 calc(11 * var(--u)) calc(-4 * var(--u)); font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); white-space: pre; }
+.dr-close.hm-slab { --depth: calc(6 * var(--u)); width: max(44px, calc(40 * var(--u))); height: max(44px, calc(46 * var(--u))); filter: var(--shadow); }
+.dr-root[data-phone] .dr-top { left: 12px; right: 12px; top: 12px; }
+.dr-root[data-phone] .dr-track { position: absolute; left: 0; top: 50px; height: 6px; gap: 8px; }
+.dr-root[data-phone] .dr-track-group { gap: 3px; }
+.dr-root[data-phone] .dr-track-group b { display: none; }
+.dr-root[data-phone] .dr-track-group i { width: 6px; height: 6px; }
+.dr-root[data-phone] .dr-counter.hm-slab { --depth: 4px; height: 40px; padding: 0 10px 4px 8px; }
+.dr-root[data-phone] .dr-counter-n { font-size: 20px; }
+.dr-root[data-phone] .dr-counter span { margin-bottom: 9px; }
+.dr-root[data-phone] .dr-cards { top: 74px; }
+
+/* ---------- The sign's board: hung from the post's arm, the same in every stage. */
+.dr-sign-tag { z-index: 2; transition: opacity 120ms linear; }
+.dr-sign { position: absolute; left: 0; top: 0; translate: -50% 0; transform-origin: 50% 0; display: flex; flex-direction: column; align-items: stretch; animation: dr-sway 1.1s ease-in-out infinite alternate; }
+@keyframes dr-sway { from { rotate: -2deg; } to { rotate: 2deg; } }
+.dr-sign-bar { height: calc(var(--sg-bar) * var(--u)); background: var(--hm-lantern-lip); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-lantern), inset 0 0 0 1px var(--hm-ink); }
+.dr-sign-chain { position: absolute; left: calc(12 * var(--u)); top: calc(var(--sg-bar) * var(--u)); width: 2px; height: calc(var(--sg-chain) * var(--u)); background: var(--hm-frost); }
+.dr-sign-chain[data-r] { left: auto; right: calc(12 * var(--u)); }
+.dr-sign-board { position: relative; isolation: isolate; margin-top: calc(var(--sg-chain) * var(--u)); padding: calc(var(--sg-pad) * var(--u)); display: flex; flex-direction: column; gap: calc(var(--sg-pgap) * var(--u)); }
+.dr-sign-board::before, .dr-sign-board::after { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); }
+.dr-sign-board::before { background: var(--hm-night-2) var(--felt) 0 0 / var(--felt-size); box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(2 * var(--s)) 0 var(--hm-night-3); }
+.dr-sign-board::after { box-shadow: inset 0 0 0 var(--s) var(--dr-ember); opacity: 0; }
+.dr-sign-letters { --t: calc(var(--sg-t) * var(--u)); --d: calc(var(--sg-d) * var(--u)); display: flex; align-items: center; gap: calc(var(--sg-gap) * var(--u)); }
+.dr-sign-dots { display: flex; gap: calc(var(--sg-dgap) * var(--u)); }
+.dr-sign-dots i { width: calc(var(--sg-dot) * var(--u)); height: calc(var(--sg-dot) * var(--u)); background: var(--hm-night-deep); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-ink); }
+.dr-sign-plank { container-type: inline-size; position: relative; height: calc(var(--sg-plank) * var(--u)); display: flex; align-items: center; justify-content: center; gap: 1px; background: var(--hm-night-deep); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-ink), inset 0 calc(-1 * var(--u)) 0 var(--hm-night-3); }
+.dr-sign-word { flex: none; display: grid; place-items: center; width: min(calc((var(--sg-plank) - 4) * var(--u)), calc((100cqw - 6px) / var(--n) - 1px)); height: calc((var(--sg-plank) - 4) * var(--u)); background: var(--hm-wool); font: 800 min(calc((var(--sg-plank) - 7) * var(--u)), calc(140cqw / var(--n)))/1 var(--skin-font-display); color: var(--hm-ink); animation: dr-tile-in 120ms ease-out both; }
+.dr-tags[data-compact] .dr-sign-plank { display: none; }
+/* An unanswered fence is close: the board's outline blinks ember, twice a second. */
+.dr-sign-tag[data-close] .dr-sign-board::after { animation: dr-close 0.5s steps(1) infinite; }
+@keyframes dr-close { 0% { opacity: 1; } 50% { opacity: 0; } }
+/* A bump knocks it askew; a sheep leaping its fence passes through where it hangs, so it gives way. */
+.dr-sign-tag[data-knock] .dr-sign { animation: dr-knock 1.2s ease-out both; }
+@keyframes dr-knock { 0% { rotate: 0deg; } 15% { rotate: 15deg; } 40% { rotate: -9deg; } 65% { rotate: 11deg; } 100% { rotate: 7deg; } }
+.dr-sign-tag[data-clear] { opacity: 0.3; }
+
+/* ---------- The ready board: before the first key, in the middle of the dream window. */
+.dr-ready { --bar: transparent; position: absolute; z-index: 4; left: 50%; top: 46%; translate: -50% -50%; width: calc(440 * var(--u)); padding: calc(26 * var(--u)) calc(16 * var(--u)) calc(16 * var(--u)); display: flex; flex-direction: column; align-items: center; gap: calc(14 * var(--u)); text-align: center; pointer-events: none; }
+.dr-ready .dr-quilt-bar { left: var(--c); right: var(--c); top: var(--c); }
+.dr-ready h2 { margin: 0; font: 800 calc(20 * var(--u))/1.15 var(--skin-font-display); font-variation-settings: 'opsz' 24; color: var(--hm-wool); text-wrap: balance; }
+.dr-ready-steps { align-self: stretch; display: flex; align-items: flex-start; justify-content: space-between; gap: calc(4 * var(--u)); }
+.dr-ready-steps figure { flex: 1 1 0; min-width: 0; margin: 0; display: flex; flex-direction: column; align-items: center; gap: calc(6 * var(--u)); }
+.dr-ready-pic { width: 100%; max-width: calc(120 * var(--u)); height: calc(64 * var(--u)); display: grid; place-items: center; --t: calc(18 * var(--u)); --d: calc(3 * var(--u)); }
+.dr-ready-arrow { margin-top: calc(24 * var(--u)); }
+.dr-ready-sign { display: flex; align-items: center; gap: calc(4 * var(--u)); --t: calc(30 * var(--u)); --d: calc(4 * var(--u)); }
+.dr-ready-sign i { width: calc(7 * var(--u)); height: calc(7 * var(--u)); background: var(--hm-night-3); }
+.dr-ready-word { display: flex; gap: calc(2 * var(--u)); }
+.dr-ready-leap { display: flex; flex-direction: column; align-items: center; gap: calc(6 * var(--u)); }
+.dr-ready-leap > svg { rotate: -14deg; }
+.dr-ready-leap i { width: calc(22 * var(--u)); height: calc(12 * var(--u)); border: solid var(--hm-lantern-lip); border-width: calc(3 * var(--u)) calc(3 * var(--u)) 0; box-shadow: inset 0 calc(3 * var(--u)) 0 transparent, inset 0 calc(6 * var(--u)) 0 var(--hm-lantern-lip); }
+.dr-ready figcaption { font: 800 calc(11.5 * var(--u))/1.25 var(--skin-font-body); color: var(--hm-frost); text-wrap: balance; }
+.dr-ready-foot { margin: 0; font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); animation: dr-blink 1s steps(1) infinite; }
 @keyframes dr-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.35; } }
-.dr-blink { animation: dr-blink 1s steps(1) infinite; }
-
-/* The word bar: a light plank trough with a raised front lip, lit by the lantern ring when it wants a word. */
-/* Each typed letter rises into place over the snow. */
-.dr-typed { animation: dr-letter-in 160ms var(--ease-out) both; }
-@keyframes dr-letter-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
-
-/* The fence's letters hang on a rope strung between two nails at the bar's left end; a knot ends it. */
-@keyframes dr-shake { 25% { translate: -3px 0; } 50% { translate: 3px 0; } 75% { translate: -2px 0; } }
-
-/* A cleared fence's word, on a paper slip pinned over its sign; it slides down from the pin. */
-.dr-slip.kit-paper { white-space: nowrap; color: var(--cloth-dark); animation: dr-slip 300ms var(--ease-out) both; }
-@keyframes dr-slip { from { translate: 0 -10px; opacity: 0; } }
+.dr-root[data-phone] .dr-ready { width: calc(100% - 24px); padding: 20px 10px 12px; gap: 10px; top: 52%; }
+.dr-root[data-phone] .dr-ready h2 { font-size: 17px; }
+.dr-root[data-phone] .dr-ready-pic { height: 52px; --t: 14px; --d: 3px; }
+.dr-root[data-phone] .dr-ready-sign { --t: 26px; }
+.dr-root[data-phone] .dr-ready-arrow { margin-top: 18px; }
 
 /* The count popping over the sheep as it lands: Fraunces 800 at 26 px, paper on a dark outline, rising and fading over 1.2 s. */
 .dr-pop { display: inline-block; font-size: 26px; font-weight: 800; color: var(--paper); text-shadow: 0 2px 0 rgba(40, 24, 10, 0.8), -1px 0 0 rgba(40, 24, 10, 0.6), 1px 0 0 rgba(40, 24, 10, 0.6); animation: dr-pop 1200ms var(--ease-out) both; }
 @keyframes dr-pop { 0% { opacity: 0; transform: translateY(6px) scale(0.7); } 20% { opacity: 1; transform: translateY(0) scale(1.1); } 100% { opacity: 0; transform: translateY(-40px) scale(1); } }
+
 
 /* The seven mini nights on the home screen's ticket (Home moves them to knitted stitches in its own milestone). */
 .dr-nights { display: flex; gap: 6px; justify-content: center; align-items: center; }
@@ -114,6 +243,7 @@
 .dr-night[data-status="blanket"] { background: var(--glow); color: var(--ink); box-shadow: inset 0 0 0 2px var(--amber); }
 .dr-night[data-status="today"] { box-shadow: inset 0 0 0 2px var(--amber); }
 .dr-nights[data-mini] .dr-night { width: 10px; height: 10px; font-size: 0; box-shadow: inset 0 0 0 1.5px rgba(140, 90, 46, 0.4); }
+
 
 /* ---------- The results, hung in the bedroom (V6 Part 6.4.5) ---------- */
 .dr-results { position: fixed; inset: 0; z-index: 40; pointer-events: none; }
@@ -137,12 +267,8 @@
 /* The next dream's time: the board's last line, under the buttons, set off by the same rule as the rail. */
 .dr-results-next { margin: 0; padding-top: 8px; border-top: 3px solid rgba(40, 24, 10, 0.35); text-align: center; font: 400 17px/1.2 var(--skin-font-hand); }
 
-/* ---------- Phones ---------- */
+
 @media (max-width: 640px) {
-  .dr-boards .sk-notice { max-width: 92%; }
-  .dream-z { font-size: 12px; } .dream-z[data-i="1"] { font-size: 15px; } .dream-z[data-i="2"] { font-size: 18px; }
-  .dr-bubble-bang { font-size: 18px; }
-  .dr-count-main { font-size: 24px; }
   .dr-results-anchor { top: 4%; }
   .dr-results .dr-results-board { padding: 12px 12px 10px; gap: 8px; }
   .dr-results-title { font-size: 21px; }
@@ -157,35 +283,23 @@
   .dr-results-rail > :first-child { flex-basis: 100%; }
   .dr-results-streak { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 4px 10px; }
 }
-:root.reduce-motion .dr-pop, :root.reduce-motion .dr-slip, :root.reduce-motion .dr-fence-tile, :root.reduce-motion .dr-typed, :root.reduce-motion .dr-blink, :root.reduce-motion .dr-bubble-rim, :root.reduce-motion .dream-puff { animation: none; }
-:root.reduce-motion .dream-z { animation: none; opacity: 0.9; }
-:root.reduce-motion .dream-z[data-i="1"] { transform: translate(6%, -22%); }
-:root.reduce-motion .dream-z[data-i="2"] { transform: translate(12%, -44%); }
-:root.reduce-motion .dr-burst { display: none; }
-:root.reduce-motion .dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm-fade 400ms ease-in-out both; }
-:root.reduce-motion .dr-bubble-zs { transition-duration: 300ms; }
-/* The same for a reduced-motion setting on the device: three still z's at fixed heights. */
-@media (prefers-reduced-motion: reduce) {
-  .dr-pop, .dr-slip, .dr-fence-tile, .dr-typed, .dr-blink, .dr-bubble-rim, .dream-puff { animation: none; }
-  .dream-z { animation: none; opacity: 0.9; }
-  .dream-z[data-i="1"] { transform: translate(6%, -22%); }
-  .dream-z[data-i="2"] { transform: translate(12%, -44%); }
-  .dr-burst { display: none; }
-  .dr-bubble[data-woke] .dr-bubble-bang { animation: dr-hm-fade 400ms ease-in-out both; }
-  .dr-bubble-zs { transition-duration: 300ms; }
-}
 
-/* A short wide screen (a phone on its side, 844 x 390): the side view's ground line is at 68%, 265 px down, and the
-   fence, its sign and the sheep all stand above it. The floating letters keep their order (what the word needs, the
-   word, the dotted line, Enter's key) and are set smaller and closer, so the whole bar fits under the ground line,
-   over the lane's lower band only (plan file 09, 4.6; milestone 11). 15 px caption, 24 px letters, 27 px word.
-   `.kit-float[data-scene="dream"]` in kit.css sets the letters' size at three classes' weight, so these are heavier. */
-@media (max-height: 500px) and (min-width: 640px) {
-  .dr-bar { padding-top: 0; }
-  .dr-bar .sk-input-prompt { min-height: 0; margin: 0; font-size: 15px; line-height: 1.05; }
-  .dr-bar .kit-float { gap: 2px; padding-bottom: 0; }
-  .dr-bar .kit-float[data-scene="dream"] .kit-float-need { min-height: 24px; font-size: 24px; }
-  .dr-bar .kit-float-word { font-size: min(27px, calc(min(92vw, 760px) * 1.45 / var(--len, 6))); }
-  .dr-bar .kit-float[data-scene="dream"] .kit-float-ph { font-size: 20px; }
-  .dr-bar .kit-float-go { min-height: 24px; font-size: 18px; }
+/* ---------- Reduced motion: nothing moves that is not the game's own. */
+:root.reduce-motion .dr-pop, :root.reduce-motion .dr-puff, :root.reduce-motion .dr-sign, :root.reduce-motion .dr-tile--typed, :root.reduce-motion .dr-sign-word, :root.reduce-motion .dr-ready-foot,
+:root.reduce-motion .dr-caret, :root.reduce-motion .dr-counter-n, :root.reduce-motion .dr-track-group i, :root.reduce-motion .dr-tray-tiles, :root.reduce-motion .dr-mark, :root.reduce-motion .dr-sign-tag[data-knock] .dr-sign { animation: none; }
+:root.reduce-motion .dr-sign-tag[data-knock] .dr-sign { rotate: 7deg; }
+:root.reduce-motion .dr-sign-tag[data-close] .dr-sign-board::after { animation: none; opacity: 1; }
+:root.reduce-motion .dr-z { animation: none; opacity: 0; }
+:root.reduce-motion .dr-z:first-of-type { opacity: 1; translate: var(--zx) var(--zy); }
+:root.reduce-motion .dr-card { animation: dr-card-still 1720ms steps(1) both; }
+:root.reduce-motion .dr-burst { display: none; }
+@keyframes dr-card-still { 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .dr-pop, .dr-puff, .dr-sign, .dr-tile--typed, .dr-sign-word, .dr-ready-foot, .dr-caret, .dr-counter-n, .dr-track-group i, .dr-tray-tiles, .dr-mark, .dr-sign-tag[data-knock] .dr-sign { animation: none; }
+  .dr-sign-tag[data-knock] .dr-sign { rotate: 7deg; }
+  .dr-sign-tag[data-close] .dr-sign-board::after { animation: none; opacity: 1; }
+  .dr-z { animation: none; opacity: 0; }
+  .dr-z:first-of-type { opacity: 1; translate: var(--zx) var(--zy); }
+  .dr-card { animation: dr-card-still 1720ms steps(1) both; }
+  .dr-burst { display: none; }
 }

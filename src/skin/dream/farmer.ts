@@ -196,10 +196,16 @@ const STAND: Pose = {
   eyes: 'open', mouth: 'closed', brows: 0, grumpy: false, slippers: true, breath: { every: 3.2, rise: 0, hitch: 0 },
 };
 /** On his back in bed, the base of every lying pose: his head on the pillow, the near arm out on the quilt along his side. */
+/**
+ * How far his head is rolled toward the room as he sleeps, degrees. The pack says 20, written for a camera above the
+ * bed; the bed strip's camera is level with him (docs/dream/01-farmer.md, section 4), and from there 20 showed his ear
+ * and the side of his cap. At 52 his closed eyes, his nose and his beard face the room.
+ */
+const HEAD_TURN = 52;
 const LIE: Pose = {
   ...STAND,
   // His head lies back into the pillow: lifted onto it from the line of his back, his chin only a little toward his chest.
-  torso: 0, headTurn: deg(20), headPitch: deg(6), headLift: 8,
+  torso: 0, headTurn: deg(HEAD_TURN), headPitch: deg(6), headLift: 8,
   // The tail lies on the pillow, toward the headboard and away from the camera.
   tailTo: [0.62, 0.74, -0.26],
   shoulderNear: [deg(3), 0, deg(-3)], elbowNear: [deg(2), 0, 0],
@@ -221,13 +227,13 @@ export const POSES: Record<PoseName, Pose> = {
   },
   // The fence is close: brows down a unit, the head 10 degrees further round, the near hand gripping the quilt, quick breaths.
   bedStir: {
-    ...LIE, headTurn: deg(30), brows: -1,
+    ...LIE, headTurn: deg(HEAD_TURN + 10), brows: -1,
     elbowNear: [deg(-6), 0, 0], wristNear: [0, deg(30), 0],
     breath: { every: 1.6, rise: 0.04, hitch: 0 },
   },
   // A bump: up 25 degrees off the pillow, eyes wide, brows up 2, mouth open, the cap's tail swung up 40 degrees.
   bedJolt: {
-    ...LIE, torso: deg(25), headPitch: deg(4), headLift: 0, headTurn: deg(26), tailTo: null, tailSwing: deg(40),
+    ...LIE, torso: deg(25), headPitch: deg(4), headLift: 0, headTurn: deg(HEAD_TURN - 12), tailTo: null, tailSwing: deg(40),
     shoulderNear: [deg(-22), 0, deg(-14)], elbowNear: [deg(-30), 0, 0],
     shoulderFar: [deg(-22), 0, deg(14)], elbowFar: [deg(-30), 0, 0],
     eyes: 'wide', mouth: 'open', brows: 2, breath: { every: 3.2, rise: 0, hitch: 0 },

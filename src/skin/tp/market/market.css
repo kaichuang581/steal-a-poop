@@ -62,7 +62,7 @@
 
 /* Signs and chalk. */
 .tp-sign { display: flex; align-items: center; justify-content: center; pointer-events: none !important; }
-.tp-sign span { font-family: var(--skin-font-display); font-size: calc(9px * var(--fit, 1)); color: var(--paper); text-shadow: 0 calc(0.45px * var(--fit, 1)) 0 rgba(43, 34, 48, 0.5); letter-spacing: 0.02em; }
+.tp-sign span { font-family: var(--skin-font-display); font-size: calc(9px * var(--fit, 1)); color: var(--paper); text-shadow: 0 calc(0.45px * var(--fit, 1)) 0 color-mix(in srgb, var(--tp-ink) 50%, transparent); letter-spacing: 0.02em; }
 .tp-chalk { color: var(--chalk); padding: calc(12px * var(--u)) calc(14px * var(--u)); font-size: max(11px, calc(12px * var(--u))); pointer-events: none !important; display: flex; flex-direction: column; gap: calc(6px * var(--u)); }
 .tp-chalk h4 { font-size: max(11px, calc(19px * var(--u))); }
 .tp-chalk-sub { margin-top: -4px !important; }

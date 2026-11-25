@@ -3,12 +3,17 @@ import { nowPlaying, useMusic } from '../../audio/music';
 import { useStore } from '../../state/store';
 import { Switch, Peg, Slider } from '../kit';
 import { SpeakerIcon } from './Icons';
+import { IconTile, Ribbon } from '../kit/modern';
+import { BoardFrame, Pix } from '../kit/surfaces';
+
+/** Two joined notes, in pixels. */
+const NoteGlyph = () => <Pix rows={['...XXXXXX', '...X....X', '...X....X', '...X....X', '.XXX..XXX', 'XXXX.XXXX', '.XX...XX.']} colors={{ X: 'var(--hm-wool)' }} />;
 
 /**
  * The speaker button and its sound menu (Brian, 2026-11-08: "put all the music stuff in the sound menu and make all the
- * stuff adjustable"): two rows on a little dark wool panel, the game's sounds and the music, each with its own switch
- * and volume, and under them which song is playing (every screen and game mode has its own). Closes on a click outside
- * or Escape.
+ * stuff adjustable"): a small board of the kit (the ribbon, two raised rows): the game's sounds and the music, each
+ * with its icon tile, its switch and its volume; the music's row names the song playing (every screen and game mode
+ * has its own). Closes on a click outside or Escape.
  */
 export function SoundMenu({ peg = false, size = 18 }: { peg?: boolean; size?: number }) {
   const [open, setOpen] = useState(false);
@@ -33,18 +38,27 @@ export function SoundMenu({ peg = false, size = 18 }: { peg?: boolean; size?: nu
       {peg ? <Peg {...button}><SpeakerIcon size={size} muted={silent} /></Peg>
         : <button type="button" className="sk-icon-btn" {...button}><SpeakerIcon muted={silent} /></button>}
       {open && (
-        <div className="sk-sound-menu" role="dialog" aria-label="Sound and music">
-          <div className="sk-sound-row">
-            <span className="sk-sound-name">Game sounds</span>
-            <Switch checked={!muted} onChange={toggleMute} label="Game sounds" />
-            <Slider min={0} max={100} value={Math.round(volume * 100)} onChange={(e) => setVolume(Number(e.target.value) / 100)} aria-label="Game sounds volume" disabled={muted} />
+        <div className="sk-sound-menu md-dialog md-pop hm rc rc-board" role="dialog" aria-label="Sound and music">
+          <BoardFrame corners={['bl', 'br']} />
+          <header className="md-dialog-head"><Ribbon icon={<SpeakerIcon size={20} />}>Sound</Ribbon></header>
+          <div className="md-group-rows">
+            <div className="md-rowtile md-rowtile--stack rc-tile">
+              <div className="md-rowline">
+                <IconTile tone="lantern"><SpeakerIcon size={20} muted={muted} /></IconTile>
+                <span className="md-rowtext"><b>Game sounds</b><small>{muted ? 'Off' : `${Math.round(volume * 100)}%`}</small></span>
+                <span className="md-rowend"><Switch checked={!muted} onChange={toggleMute} label="Game sounds" /></span>
+              </div>
+              <Slider min={0} max={100} value={Math.round(volume * 100)} onChange={(e) => setVolume(Number(e.target.value) / 100)} aria-label="Game sounds volume" disabled={muted} style={{ ['--fill' as string]: `${Math.round(volume * 100)}%` }} />
+            </div>
+            <div className="md-rowtile md-rowtile--stack rc-tile">
+              <div className="md-rowline">
+                <IconTile tone="dusk"><NoteGlyph /></IconTile>
+                <span className="md-rowtext"><b>Music</b><small>{music.on ? nowPlaying() : 'Off'}</small></span>
+                <span className="md-rowend"><Switch checked={music.on} onChange={music.toggle} label="Music" /></span>
+              </div>
+              <Slider min={0} max={100} value={Math.round(music.volume * 100)} onChange={(e) => music.setVolume(Number(e.target.value) / 100)} aria-label="Music volume" disabled={!music.on} style={{ ['--fill' as string]: `${Math.round(music.volume * 100)}%` }} />
+            </div>
           </div>
-          <div className="sk-sound-row">
-            <span className="sk-sound-name">Music</span>
-            <Switch checked={music.on} onChange={music.toggle} label="Music" />
-            <Slider min={0} max={100} value={Math.round(music.volume * 100)} onChange={(e) => music.setVolume(Number(e.target.value) / 100)} aria-label="Music volume" disabled={!music.on} />
-          </div>
-          <p className="sk-sound-note">{music.on ? `Playing: ${nowPlaying()}` : 'Music is off'}</p>
         </div>
       )}
     </div>

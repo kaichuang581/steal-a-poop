@@ -34,16 +34,6 @@
 .hg-tabs { flex: none; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(min-content, 1fr); gap: calc(6 * var(--u)); }
 .hg .hg-tab { --depth: calc(4 * var(--u)); height: calc(32 * var(--u) + var(--depth)); min-height: 36px; padding: 0 calc(8 * var(--u)) var(--depth); font: 800 calc(14 * var(--u))/1 var(--skin-font-display); white-space: nowrap; }
 
-/* A switch (the pen's language): a sunk track with a square knob; on, the track is lantern and the knob ink. */
-.hg .kit-switch, .hg .kit-switch[aria-checked="true"] {
-  --w: round(nearest, calc(40 * var(--u)), 1px); --h: round(nearest, calc(22 * var(--u)), 1px);
-  width: var(--w); height: var(--h); border-radius: 0; background: none; box-shadow: none; isolation: isolate;
-}
-.hg .kit-switch::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-deep); box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-3); }
-.hg .kit-switch .kit-switch-knob { left: var(--s); top: var(--s); width: calc(var(--h) - 2 * var(--s)); height: calc(var(--h) - 2 * var(--s)); border-radius: 0; background: var(--hm-frost); box-shadow: inset 0 calc(-1 * var(--s)) 0 var(--hm-night-3); }
-.hg .kit-switch[aria-checked="true"]::before { background: var(--hm-lantern); box-shadow: inset 0 var(--s) 0 var(--hm-lantern-hi), inset 0 calc(-1 * var(--s)) 0 var(--hm-lantern-lip); }
-.hg .kit-switch[aria-checked="true"] .kit-switch-knob { translate: calc(var(--w) - var(--h)) 0; background: var(--hm-ink); box-shadow: none; }
-
 /* Fields: a well, wool text, a lantern ring inside it when focused. */
 .hg-field { display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
 .hg-field > span { font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
@@ -70,12 +60,13 @@ textarea.hg-input { height: auto; padding: calc(8 * var(--u)) calc(10 * var(--u)
 .hg-panel > .rc-scrollbox-in:focus-visible { box-shadow: inset 0 0 0 2px var(--hm-lantern); }
 /* The basics share the panel's height between them, so the short tab has no empty band under it. */
 .hg-panel ol.hg-list { min-height: 100%; }
-.hg-tile.hg-basic { flex: 1 0 auto; padding-left: calc(6 * var(--u)); }
+.hg-basic { flex: 1 0 auto; }
+.hg-num { font: 800 calc(18 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
 /* The picture column is the rules card's, so the two tabs line up. */
-.hg-art { flex: none; display: flex; align-items: center; justify-content: center; width: calc(56 * var(--u)); color: var(--hm-frost); }
+.hg-art { flex: none; display: flex; align-items: center; justify-content: center; width: calc(56 * var(--u)); color: var(--hm-lantern-hi); }
 .hg-art svg { display: block; }
 .hg-guide :is(.hg-basic h3, .hg-def dt, .hg-faq summary) { font: 800 calc(15 * var(--u))/1.25 var(--skin-font-display); color: var(--hm-wool); }
-.hg-guide :is(.hg-basic p, .hg-def dd, .hg-faq p) { margin-top: calc(4 * var(--u)); font: 700 calc(13 * var(--u))/1.45 var(--skin-font-body); color: var(--hm-frost); }
+.hg-guide :is(.hg-basic p, .hg-def dd, .hg-faq p) { margin-top: calc(4 * var(--u)); font: 700 max(13px, calc(13.5 * var(--u)))/1.45 var(--skin-font-body); color: var(--hm-frost); }
 .hg-def { display: block; }
 .hg-faq { display: block; min-height: 0; padding-top: calc(12 * var(--u)); padding-bottom: calc(15 * var(--u)); }
 .hg-faq summary { display: flex; align-items: center; gap: calc(10 * var(--u)); cursor: pointer; list-style: none; }
@@ -93,15 +84,17 @@ textarea.hg-input { height: auto; padding: calc(8 * var(--u)) calc(10 * var(--u)
   box-shadow: inset 0 var(--s) 0 var(--hm-night-3), inset 0 calc(-3 * var(--u)) 0 var(--hm-night-deep);
 }
 /* It hangs from a fixed top and grows downward (Paste opens under it), near the middle of the window when closed. */
-.md-scrim.hg-top { align-items: flex-start; padding-top: max(16px, calc(50dvh - 280px)); }
-.md-dialog.hg-settings { width: min(calc(400 * var(--u)), calc(100vw - 32px)); max-height: calc(100dvh - max(16px, calc(50dvh - 280px)) - 16px); }
+.md-scrim.hg-top { align-items: flex-start; padding-top: max(16px, calc(50dvh - 400px)); }
+.md-dialog.hg-settings { width: min(calc(470 * var(--u)), calc(100vw - 32px)); max-height: calc(100dvh - max(16px, calc(50dvh - 400px)) - 16px); }
 .hg-account button { position: relative; isolation: isolate; min-height: calc(54 * var(--u)); padding: 0 calc(12 * var(--u)) calc(3 * var(--u)); border-radius: 0; background: none;
   font: 800 calc(14 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-wool); }
 .hg-account button:hover:not(:disabled) { color: var(--hm-lantern-hi); }
 .hg-account button:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
 .hg-account > section { padding: 0; border: 0; border-radius: 0; font: 700 calc(13 * var(--u))/1.4 var(--skin-font-body); color: var(--hm-frost); }
-.hg-save { flex-direction: column; align-items: stretch; gap: calc(6 * var(--u)); }
-.hg-save-head { display: flex; align-items: center; gap: calc(10 * var(--u)); }
+.hg-save { flex-direction: column; align-items: stretch; gap: calc(8 * var(--u)); }
+.hg-save-head { display: flex; align-items: center; gap: calc(12 * var(--u)); }
+.hg-groups { display: flex; flex-direction: column; }
+.hg-aa { font: 800 calc(15 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
 .hg .hg-copy { min-width: calc(74 * var(--u)); }
 .hg-paste, .hg-plan { display: flex; flex-direction: column; align-items: flex-start; gap: calc(6 * var(--u)); margin-top: calc(4 * var(--u)); }
 .hg-plan ul { padding-left: calc(16 * var(--u)); list-style: square; }
@@ -133,3 +126,26 @@ textarea.hg-input { height: auto; padding: calc(8 * var(--u)) calc(10 * var(--u)
 @keyframes hg-onb-rise { from { transform: translateY(18px); } }
 :root.reduce-motion :is(.hg-onb-scrim, .hg-onb-scrim .hg-onb) { animation: none; }
 @media (prefers-reduced-motion: reduce) { :is(.hg-onb-scrim, .hg-onb-scrim .hg-onb) { animation: none; } }
+
+/* The feedback form. */
+.md-dialog.hg-feedback { width: min(calc(460 * var(--u)), calc(100vw - 32px)); }
+.hg-feedback .hg-field > span { font: 800 max(12px, calc(13 * var(--u)))/1.2 var(--skin-font-body); color: var(--hm-wool); }
+textarea.hg-input.hg-message { font-size: max(14px, calc(14 * var(--u))); min-height: calc(110 * var(--u)); }
+.hg-count { text-align: right; margin-top: calc(-6 * var(--u)); }
+.hg-feedback form > .md-slab { width: 100%; }
+
+/* The legal pages: a long read, so wool words at a comfortable size in a sunk well, headings in the lantern's light. */
+.md-dialog.hg-legal { width: min(calc(760 * var(--u)), calc(100vw - 32px)); height: min(calc(680 * var(--u)), calc(100dvh - 48px)); }
+.hg-legal .md-dialog-body { display: flex; flex-direction: column; gap: calc(10 * var(--u)); overflow: hidden; }
+.hg-legal .md-card { margin: 0; }
+.hg-legal-text { flex: 1 1 0; min-height: 0; overflow-y: auto; padding: calc(14 * var(--u)) calc(16 * var(--u)); font: 600 max(14px, calc(14 * var(--u)))/1.6 var(--skin-font-body); color: var(--hm-wool); scrollbar-width: thin; scrollbar-color: var(--hm-night-3) transparent; }
+.hg-legal-text :is(h1, h2, h3) { margin: 1.1em 0 0.35em; font-family: var(--skin-font-display); font-weight: 800; color: var(--hm-lantern-hi); line-height: 1.2; }
+.hg-legal-text h1 { margin-top: 0; font-size: 1.5em; } .hg-legal-text h2 { font-size: 1.2em; } .hg-legal-text h3 { font-size: 1.05em; }
+.hg-legal-text p { margin: 0 0 0.7em; } .hg-legal-text :is(ul, ol) { margin: 0 0 0.7em; padding-left: 1.3em; list-style: disc; } .hg-legal-text ol { list-style: decimal; }
+.hg-legal-text a { color: var(--hm-lantern-hi); text-decoration: underline; }
+.hg-legal-text table { width: 100%; margin: 0.4em 0 1em; border-collapse: collapse; font-size: 0.93em; }
+.hg-legal-text :is(th, td) { padding: 6px 8px; border: 1px solid var(--hm-night-3); text-align: left; vertical-align: top; }
+.hg-legal-text th { background: var(--hm-night-2); color: var(--hm-wool); }
+.hg-legal-text em { color: var(--hm-frost); }
+.hg-legal-text :is(mark, span[class*="bg-"]) { background: var(--hm-lantern) !important; color: var(--hm-ink) !important; padding: 0 3px; }
+.hg-legal-text th { background: var(--hm-night-2) !important; color: var(--hm-wool) !important; }

@@ -11,8 +11,55 @@
   color: var(--hm-wool); font: 700 calc(14 * var(--u))/1.4 var(--skin-font-body);
 }
 .md-dialog--wide { width: min(calc(560 * var(--u)), calc(100vw - 32px)); }
-.md-dialog-head { flex: none; display: flex; align-items: center; gap: calc(10 * var(--u)); min-height: calc(40 * var(--u)); margin-bottom: calc(12 * var(--u)); }
-.md-dialog-head h2 { flex: 1; min-width: 0; margin: 0; font: 800 calc(22 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); text-wrap: balance; }
+.md-dialog-head { flex: none; display: flex; align-items: center; gap: calc(10 * var(--u)); min-height: calc(44 * var(--u)); margin-bottom: calc(14 * var(--u)); }
+.md-dialog-head h2:not(.md-ribbon) { flex: 1; min-width: 0; margin: 0; font: 800 calc(22 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); text-wrap: balance; }
+
+/* The ribbon (the profile's): a lantern tag with a V cut in its right end, hung over the board's left edge with a fold
+   behind it. The title of every snowy board. */
+.md-ribbon {
+  --v: polygon(0 0, 100% 0, 100% 25%, calc(100% - var(--s)) 25%, calc(100% - var(--s)) 40%, calc(100% - 2 * var(--s)) 40%, calc(100% - 2 * var(--s)) 60%, calc(100% - var(--s)) 60%, calc(100% - var(--s)) 75%, 100% 75%, 100% 100%, 0 100%);
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: calc(9 * var(--u)); min-width: 0; height: calc(40 * var(--u)); min-height: 36px;
+  margin: 0 auto 0 calc(-1 * var(--in) - 2 * var(--s)); padding: 0 calc(26 * var(--u)) 0 calc(16 * var(--u)); box-sizing: border-box;
+  color: var(--hm-ink); font: 800 calc(20 * var(--u))/1 var(--skin-font-display); white-space: nowrap;
+}
+.md-ribbon::before { content: ''; position: absolute; z-index: -2; inset: 0; clip-path: var(--v); background: var(--hm-ink); }
+.md-ribbon-face { position: absolute; z-index: -1; inset: var(--s); clip-path: var(--v); background: var(--hm-lantern) var(--knit) 0 0 / var(--knit-size); box-shadow: inset 0 var(--s) 0 var(--hm-lantern-hi), inset 0 calc(-1 * var(--s)) 0 var(--hm-lantern-lip); }
+.md-ribbon::after { content: ''; position: absolute; z-index: -3; left: 0; top: 100%; width: calc(3 * var(--s)); height: calc(3 * var(--s)); background: var(--hm-lantern-lip);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, calc(2 * var(--s)) 100%, calc(2 * var(--s)) calc(2 * var(--s)), var(--s) calc(2 * var(--s)), var(--s) var(--s), 0 var(--s)); }
+.md-ribbon > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.md-ribbon-icon { flex: none; display: grid; place-items: center; width: calc(22 * var(--u)); height: calc(22 * var(--u)); color: var(--hm-ink); }
+.md-ribbon-icon svg { width: 100%; height: 100%; }
+
+/* Icon tiles (the profile's): a coloured square, its top step lighter and its bottom step darker. */
+.md-itile { --t: max(1px, round(nearest, calc(2 * var(--u)), 1px)); flex: none; display: grid; place-items: center; width: calc(36 * var(--u)); height: calc(36 * var(--u)); min-width: 32px; min-height: 32px; color: var(--hm-wool); background: var(--tile);
+  clip-path: polygon(0 var(--t), var(--t) var(--t), var(--t) 0, calc(100% - var(--t)) 0, calc(100% - var(--t)) var(--t), 100% var(--t), 100% calc(100% - var(--t)), calc(100% - var(--t)) calc(100% - var(--t)), calc(100% - var(--t)) 100%, var(--t) 100%, var(--t) calc(100% - var(--t)), 0 calc(100% - var(--t)));
+  box-shadow: inset 0 var(--t) 0 color-mix(in srgb, var(--tile) 72%, white), inset 0 calc(-1 * var(--t)) 0 color-mix(in srgb, var(--tile) 68%, var(--hm-ink)); }
+.md-itile svg { width: calc(20 * var(--u)); height: calc(20 * var(--u)); min-width: 18px; min-height: 18px; }
+
+/* Groups and rows. Words never under 12 px, and the quiet line is frost at full strength: it has to be read. */
+.md-group { display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
+.md-group + .md-group { margin-top: calc(14 * var(--u)); }
+.md-group-title { margin: 0 0 0 calc(2 * var(--u)); font: 800 max(12px, calc(12.5 * var(--u)))/1.2 var(--skin-font-body); color: var(--hm-lantern-hi); }
+.md-group-rows { display: flex; flex-direction: column; gap: calc(6 * var(--u)); }
+.md-rowtile { position: relative; isolation: isolate; display: flex; align-items: center; gap: calc(12 * var(--u)); min-height: calc(54 * var(--u)); padding: calc(7 * var(--u)) calc(12 * var(--u)) calc(10 * var(--u)); box-sizing: border-box; }
+.md-rowtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(2 * var(--u)); }
+.md-rowtext b { font: 800 max(14px, calc(15 * var(--u)))/1.25 var(--skin-font-body); color: var(--hm-wool); }
+.md-rowtext small { font: 700 max(12px, calc(12.5 * var(--u)))/1.35 var(--skin-font-body); color: var(--hm-frost); text-wrap: pretty; }
+.md-rowend { flex: none; display: flex; align-items: center; gap: calc(6 * var(--u)); margin-left: auto; }
+
+/* The switch on a board: a wide sunk track, a wool knob; on, the track is lantern with a tick cut in it. Told apart by
+   place, by colour and by the tick, so it reads at a glance. */
+.md-dialog .kit-switch, .md-dialog .kit-switch[aria-checked="true"] {
+  --w: round(nearest, calc(54 * var(--u)), 1px); --h: round(nearest, calc(28 * var(--u)), 1px);
+  position: relative; flex: none; width: var(--w); height: var(--h); min-width: 48px; min-height: 26px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; isolation: isolate; cursor: pointer;
+}
+.md-dialog .kit-switch::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-deep); box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-3); }
+.md-dialog .kit-switch::after { content: ''; position: absolute; left: 22%; top: 50%; width: 16%; height: 30%; translate: -50% -60%; rotate: -45deg; border-left: var(--s) solid var(--hm-ink); border-bottom: var(--s) solid var(--hm-ink); opacity: 0; }
+.md-dialog .kit-switch .kit-switch-knob { position: absolute; left: var(--s); top: var(--s); bottom: var(--s); width: 44%; height: auto; border-radius: 0; background: var(--hm-frost); box-shadow: inset 0 calc(-1 * var(--s)) 0 var(--hm-night-3), inset 0 var(--s) 0 var(--hm-wool-hi); transition: translate 120ms steps(3); }
+.md-dialog .kit-switch[aria-checked="true"]::before { background: var(--hm-lantern); box-shadow: inset 0 var(--s) 0 var(--hm-lantern-hi), inset 0 calc(-1 * var(--s)) 0 var(--hm-lantern-lip); }
+.md-dialog .kit-switch[aria-checked="true"]::after { opacity: 1; }
+.md-dialog .kit-switch[aria-checked="true"] .kit-switch-knob { translate: none; left: auto; right: var(--s); background: var(--hm-wool); box-shadow: inset 0 calc(-1 * var(--s)) 0 var(--hm-wool-lip), inset 0 var(--s) 0 var(--hm-wool-hi); }
+.md-dialog .kit-switch:focus-visible { outline: 3px solid var(--hm-lantern-hi); outline-offset: 2px; }
 .md-dialog-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--hm-night-3) transparent; }
 .md-dialog-body > p { margin: 0 0 calc(12 * var(--u)); color: var(--hm-frost); font: 700 calc(14 * var(--u))/1.45 var(--skin-font-body); }
 
@@ -64,3 +111,43 @@
 }
 /* A disabled slab is grey on a grey side, never an orange lip under grey (the pen plan's C1, kit-wide here). */
 .md-slab.hm-slab:disabled, .md-icon.hm-slab:disabled { --lip: var(--hm-disabled-lip); }
+
+/* A row that holds a second line under its first (a volume under its switch, a field under its buttons). */
+.md-rowtile--stack { flex-direction: column; align-items: stretch; gap: calc(8 * var(--u)); }
+.md-rowline { display: flex; align-items: center; gap: calc(12 * var(--u)); min-width: 0; }
+
+/* A board that drops from a corner button (the sound menu): the dialog's board, small, with no snow (it hangs under a button). */
+.md-dialog.md-pop { --u: clamp(1px, min(100vw / 1280, 100vh / 720), 1.5px); --s: max(1px, round(nearest, calc(3 * var(--u)), 1px));
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; width: min(calc(330 * var(--u)), calc(100vw - 24px)); max-height: none;
+  padding-top: calc(16 * var(--u)); text-align: left; animation: sk-say-in 180ms var(--ease-out) both; }
+.md-pop .md-dialog-head { margin-bottom: calc(10 * var(--u)); }
+
+/* The slider on a board: a sunk track filled in lantern up to the handle (--fill), a wool handle with its lip. */
+.md-dialog .kit-slider { --fill: 50%; width: 100%; height: calc(26 * var(--u)); min-height: 24px; margin: 0; }
+.md-dialog .kit-slider::-webkit-slider-runnable-track { height: calc(10 * var(--u)); border-radius: 0; background: linear-gradient(to right, var(--hm-lantern) var(--fill), var(--hm-night-deep) var(--fill)); box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-3); }
+.md-dialog .kit-slider::-moz-range-track { height: calc(10 * var(--u)); border-radius: 0; background: linear-gradient(to right, var(--hm-lantern) var(--fill), var(--hm-night-deep) var(--fill)); box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-3); }
+.md-dialog .kit-slider::-webkit-slider-thumb { -webkit-appearance: none; width: calc(16 * var(--u)); height: calc(24 * var(--u)); margin-top: calc(-7 * var(--u)); border-radius: 0; background: var(--hm-wool); box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-2 * var(--s)) 0 var(--hm-wool-lip); }
+.md-dialog .kit-slider::-moz-range-thumb { width: calc(16 * var(--u)); height: calc(24 * var(--u)); border: 0; border-radius: 0; background: var(--hm-wool); box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-2 * var(--s)) 0 var(--hm-wool-lip); }
+.md-dialog .kit-slider:disabled { opacity: 0.45; }
+
+/* Older pieces inside a board (the admin panel's avatar rows, the account form): the same markup, drawn with the
+   board's own parts, so no cream paper, wood or hand font is left on a snowy board. */
+.md-legacy { --ink-soft: var(--hm-frost); --cloth-dark: var(--hm-lantern-hi); --coral-dark: var(--coral); }
+.md-legacy .sk-display { font-family: var(--skin-font-display); color: var(--hm-wool); }
+.md-legacy .sk-hand { font: 700 max(12.5px, calc(13 * var(--u)))/1.4 var(--skin-font-body) !important; }
+.md-legacy :where(ul, ol) { color: var(--hm-frost); font: 700 max(12.5px, calc(13 * var(--u)))/1.45 var(--skin-font-body); }
+.md-legacy .sk-paper { position: relative; isolation: isolate; border: 0; border-radius: 0; background: none; box-shadow: none; padding: calc(9 * var(--u)) calc(12 * var(--u)) calc(12 * var(--u)) !important; }
+.md-legacy .sk-paper::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-2) var(--felt) 0 0 / var(--felt-size); box-shadow: inset 0 var(--s) 0 var(--hm-night-3), inset 0 calc(-3 * var(--u)) 0 var(--hm-night-deep); }
+.md-legacy .sk-paper::after { content: none; }
+.md-dialog.md-legacy :is(.kit-btn, .sk-btn, .kit-btn-wood, .kit-btn-cloth, .kit-brass) { min-height: 38px; padding: 0 calc(14 * var(--u)) 4px; border: 0; border-radius: 0; outline: 0; background: var(--hm-wool) !important; color: var(--hm-ink) !important; letter-spacing: 0; text-shadow: none;
+  font: 800 max(13px, calc(14 * var(--u)))/1 var(--skin-font-display); box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-4px - var(--s)) 0 var(--hm-wool-lip), inset 0 calc(2 * var(--s)) 0 var(--hm-wool-hi); filter: none; }
+.md-dialog.md-legacy :is(.kit-btn, .sk-btn, .kit-btn-wood, .kit-btn-cloth, .kit-brass)::before, .md-legacy :is(.kit-btn, .sk-btn)::after { content: none; }
+.md-dialog.md-legacy :is(.kit-brass, .kit-btn-cloth) { background: var(--hm-lantern) !important; box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-4px - var(--s)) 0 var(--hm-lantern-lip), inset 0 calc(2 * var(--s)) 0 var(--hm-lantern-hi); }
+.md-dialog.md-legacy :is(.kit-btn, .sk-btn, .kit-btn-wood, .kit-btn-cloth, .kit-brass)[aria-pressed="true"] { background: var(--hm-night-3) !important; color: var(--hm-wool) !important; box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-4px - var(--s)) 0 var(--hm-night-deep); }
+.md-dialog.md-legacy :is(.kit-btn, .sk-btn, .kit-btn-wood, .kit-btn-cloth, .kit-brass):disabled { opacity: 1; background: var(--hm-disabled) !important; color: var(--hm-frost) !important; box-shadow: inset 0 0 0 var(--s) var(--hm-ink), inset 0 calc(-4px - var(--s)) 0 var(--hm-disabled-lip); }
+.md-dialog.md-legacy :is(.kit-btn, .sk-btn, .kit-btn-wood, .kit-btn-cloth, .kit-brass):focus-visible { outline: 3px solid var(--hm-lantern-hi); outline-offset: 2px; }
+.md-legacy label { color: var(--hm-wool); font: 800 max(12px, calc(13 * var(--u)))/1.2 var(--skin-font-body) !important; }
+.md-legacy :is(.sk-field, input[type="text"], input[type="password"], input[type="email"], input[type="number"], select) { width: 100%; min-height: 44px; padding: 0 calc(12 * var(--u)); box-sizing: border-box; border: 0; border-radius: 0; outline: 0; clip-path: var(--px1);
+  background: var(--hm-night-deep); box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-2); font: 700 max(15px, calc(15 * var(--u)))/1.2 var(--skin-font-body); color: var(--hm-wool); color-scheme: dark; }
+.md-legacy :is(.sk-field, input, select):focus-visible { box-shadow: inset 0 0 0 var(--s) var(--hm-lantern); outline: 0; }
+.md-dialog.hg-admin { width: min(calc(440 * var(--u)), calc(100vw - 32px)); }

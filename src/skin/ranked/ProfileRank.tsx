@@ -42,7 +42,7 @@ export function ProfileRank() {
   let title = 'Unranked', line: string;
   if (played) {
     title = rank.label;
-    line = `${me.rating.toLocaleString()} points · ${rank.toNext !== null ? `${rank.toNext} to ${rank.next}` : 'top rank'}`;
+    line = `${me.rating.toLocaleString()} points, ${rank.toNext !== null ? `${rank.toNext} to ${rank.next}` : 'top rank'}`;
   } else if (!server) line = 'Ranked play isn’t open yet.';
   else if (status === 'error') line = 'Your rank can’t be loaded right now. Try again in a moment.';
   else if (status === 'off') line = 'Sign in, then play a ranked game to start in Wood I.';

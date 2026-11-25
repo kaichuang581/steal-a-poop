@@ -489,7 +489,9 @@ export function PaintedGame() {
       </div>
 
       {/* A soft vignette holds the eye on the pile (plan V3.2 Part 2). */}
-      {!practice && <div className="pointer-events-none absolute inset-0 z-[5]" style={{ background: 'radial-gradient(ellipse at center, transparent 58%, rgba(59, 48, 40, 0.28) 100%)' }} aria-hidden="true" />}
+      {!practice && (
+        <div className="pointer-events-none absolute inset-0 z-[5]" style={{ background: 'radial-gradient(ellipse at center, transparent 58%, rgba(59, 48, 40, 0.28) 100%)' }} aria-hidden="true" />
+      )}
 
       {/* Top row: round and twist (left), controls (right). The letter and the clock live in the scene. Clear of a notch
           (plan file 14, change 5): every inset is 0 on a computer, so nothing moves there. */}

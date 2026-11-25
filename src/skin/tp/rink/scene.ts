@@ -56,7 +56,8 @@ export function buildRink(festive: boolean, low = false): Rink {
   };
   for (const it of RINK.items) {
     const id = it.model;
-    if (id === 'dogStandIn' || id === 'whistle') continue; // the game's own sheepdog sits there (RinkTable), whistle and all
+    // The game's own sheepdog sits on the chair, whistle and all, and the board is drawn with its face (RinkTable).
+    if (id === 'dogStandIn' || id === 'whistle' || id === 'tallyBoard') continue;
     const pine = /^pine_(\w+)_([\d.]+)$/.exec(id);
     if (pine) {
       if (low) continue;

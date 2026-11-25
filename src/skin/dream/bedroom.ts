@@ -553,7 +553,9 @@ export function quiltCells(step = 0): (i: number, k: number) => number {
   // Turning, he is on the way from `bedSleep` to `bedTurn`, as far as his roll has gone; the quilt rides over his near
   // arm too as it slides down to his side.
   const turns = [step - 1, step - 0.5, step].map((n) => blendPose(POSES.bedSleep, POSES.bedTurn, (n * TURN_STEP * Math.PI) / 180 / POSES.bedTurn.roll));
-  for (const pose of step ? turns : [POSES.bedSleep]) {
+  // At rest it lies over him asleep and deep asleep both: shaped for `bedSleep` alone, his chest came through it in
+  // the deep pose, which the results room sees from above.
+  for (const pose of step ? turns : [POSES.bedSleep, POSES.bedDeep]) {
     for (const [key, { hi }] of farmerColumns(pose, step ? [...UNDER, 'armR', 'foreR', 'handR'] : UNDER, Q, Z0)) body.set(key, Math.max(body.get(key) ?? 0, hi - top));
   }
   const legs = [-1, 1].map((s) => IN_BED.z + s * PIVOT.legL[0] * UNIT);
@@ -562,7 +564,10 @@ export function quiltCells(step = 0): (i: number, k: number) => number {
     if (x < QUILT.edge || x > QUILT.foot || Math.abs(z) > QUILT.side + Q) return 0;
     if (Math.abs(z) > QUILT.side - QUILT.inset) return 1;
     const plan = x >= TOES.x0 && x < TOES.x1 && legs.some((lz) => Math.abs(z - lz) <= TOES.half) ? TOES.h : STEPS.find((s) => x < s.to)?.h ?? 0;
-    const him = body.get(`${i},${k}`);
+    // One cell of room round him: with none, the quilt's sides stood in the plane of his own and his nightshirt
+    // flickered through them, seen from the room.
+    let him: number | undefined;
+    for (let di = -1; di <= 1; di++) for (let dk = -1; dk <= 1; dk++) { const b = body.get(`${i + di},${k + dk}`); if (b !== undefined) him = Math.max(him ?? b, b); }
     return Math.round(Math.max(plan, him === undefined ? 0 : him + QUILT.over) / Q);
   };
   heights.set(step, h);

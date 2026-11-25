@@ -2,7 +2,7 @@
 Every colour is a token of the game's LADDER or a named glow (ladder.py)."""
 import math
 
-from kit import Model, boards_x, courses_y, octagon, PAT
+from kit import Model, boards_x, courses_y, octagon, tile, PAT
 
 M = 0.1     # structure step
 S = 0.05    # prop step
@@ -15,7 +15,7 @@ def rink_boards(id='rinkBoards', h=12, what='One 2.4 m bay of the rink boards ar
     m = Model(id, S, what, "Home's plank fence, made solid and low, as boards round a farm rink", 'S')
     m.b(-1, 0, -2, 2, h + 2, 1, 'darkWood:-1', 'post')
     m.b(-2, h + 2, -3, 3, h + 3, 2, 'snow:1', 'snow cap on the post')
-    courses_y(m, 2, 47, 0, h, -1, 0, 'wood', h=4, pat=(0, 1, -1), name='board')
+    tile(m, 2, 0, -1, 47, h, 0, 'wood', 0, long='x', across='y', L=12, W=4, name='board')
     m.b(2, h, -2, 47, h + 1, 1, 'trimWhite:0', 'cap rail')
     m.b(2, h + 1, -2, 47, h + 2, 1, 'snow:0', 'snow on the cap rail')
     m.b(2, 0, -2, 47, 1, -1, 'wood:-2', 'kick board')
@@ -31,9 +31,9 @@ def rink_boards_front():
 
 def snow_bank(id='snowBank', w=48, d=16):
     m = Model(id, S, 'The snow pushed off the pond when it was swept: a stepped bank, 2.4 m long', 'New: the sweeping that made the rink', 'S')
-    steps = [(0, 4, 0), (2, 8, 1), (5, 11, 1), (8, 13, 2)]          # (inset from the front, top, step) — four terraces, front lowest
-    for i, (inset, top, st) in enumerate(steps):
-        m.b(0, 0, -d, w, top, -inset, f'snow:{st - 1}', 'bank terrace %d' % (i + 1))
+    steps = [(0, 4, -1), (2, 8, 0), (5, 11, 1), (8, 13, 2)]         # (inset from the front, top, step): four terraces, front lowest
+    for i, (inset, top, st) in enumerate(steps):                  # each terrace one whole piece of snow, one step lighter than the one below
+        m.b(0, 0, -d, w, top, -inset, f'snow:{st}', 'bank terrace %d' % (i + 1))
     for x in range(4, w, 12):                                     # shovel scoops: a notch every 0.6 m on the top terrace, the same each bay
         m.b(x, 12, -d, x + 4, 13, -8, 'snow:-1', 'shovel scoop')
     m.notes.append('One bay is 2.4 m long. Terraces step up away from the ice: 0.2, 0.4, 0.55, 0.65 m. Scoops: one 0.2 m notch every 0.6 m on the top terrace, in the same places in every bay.')
@@ -95,11 +95,11 @@ def coach_chair():
     for y in (7, 14, 21, 28):
         m.b(-6, y, 4, 6, y + 1, 6, 'wood:1', 'rung')
     m.b(-7, 32, -7, 7, 34, 7, 'wood:1', 'seat')
-    m.b(-6, 34, -6, 6, 35, 6, 'scarfRed:0', 'cushion')
-    m.b(-7, 34, -7, 7, 48, -6, 'wood:0', 'back')
+    m.b(-6, 34, -6, 0, 35, 6, 'scarfRed:0', 'cushion, left pad'); m.b(0, 34, -6, 6, 35, 6, 'scarfRed:-1', 'cushion, right pad')
+    tile(m, -7, 34, -7, 7, 48, -6, 'wood', 0, long='y', across='x', L=12, W=3, name='back slat')
     m.b(-7, 48, -8, 7, 49, -5, 'trimWhite:0', 'back rail'); m.b(-7, 49, -8, 7, 50, -5, 'snow:1', 'snow on the rail')
     for x in (-7, 6):
-        m.b(x, 34, -6, x + 1, 40, 6, 'wood:0', 'arm side'); m.b(x, 40, -6, x + 1, 41, 7, 'wood:2', 'arm rest')
+        tile(m, x, 34, -6, x + 1, 40, 6, 'wood', 0, long='z', across='y', L=6, W=3, name='arm side'); m.b(x, 40, -6, x + 1, 41, 7, 'wood:2', 'arm rest')
     m.b(-8, 0, -8, -4, 1, -4, 'snow:1', 'snow at the foot'); m.b(4, 0, 4, 8, 1, 8, 'snow:1', 'snow at the foot')
     return m
 
@@ -123,7 +123,8 @@ def ice_block():
         m.b(x0, y, z0, x0 + 1, y + 1, z1, 'ice:1', 'edge'); m.b(x1 - 1, y, z0, x1, y + 1, z1, 'ice:1', 'edge')
     for (x, y) in ((x0, y1 - 4), (x1 - 4, y1 - 4), (x0, 0), (x1 - 4, 0)):
         m.b(x, y, z1 - 1, x + 4, y + 4, z1, 'ice:2', 'frost corner')
-    m.b(x0, y1, z0, x1, y1 + 1, z1, 'snow:1', 'snow on top')
+    for k, c in enumerate(('snow:0', 'snow:1', 'snow:2')):     # a stepped mound of snow on top: three whole layers, each 3 cells in from the last
+        m.b(x0 + 3 * k, y1 + k, z0 + 3 * k, x1 - 3 * k, y1 + k + 1, z1 - 3 * k, c, 'snow on top, layer %d' % (k + 1))
     for (x, L) in ((-9, 4), (-1, 6), (8, 3)):
         m.b(x, y1 - 1 - L, z1 - 1, x + 2, y1 - 1, z1, 'ice:2', 'icicle')
     m.notes.append('The faces between the edges are clear ice: draw them as glass at 22% of ice 0, so the sheep and its face stay visible. Margin round the sheep: 5 voxels.')
@@ -136,6 +137,8 @@ def practice_crate():
     m = Model('practiceCrate', S, 'A crate of spare practice bombs: corks in their fuses, chalk tick on the side', 'New: says this is practice; the bombs here cannot go off', 'S')
     m.b(-8, 0, -6, 8, 9, 6, 'wood:0', 'crate core')
     boards_x(m, -8, 8, 0, 9, 6, 7, 'wood', w=4, pat=(0, -1, 0, 1), name='crate board')
+    tile(m, -8, 0, -6, -7, 9, 6, 'wood', 0, long='z', across='y', W=3, name='crate side board')
+    tile(m, 7, 0, -6, 8, 9, 6, 'wood', 0, long='z', across='y', W=3, name='crate side board')
     m.b(-9, 0, 6, -7, 10, 7, 'darkWood:0', 'crate corner')
     m.b(7, 0, 6, 9, 10, 7, 'darkWood:0', 'crate corner')
     m.b(-9, 8, 6, 9, 10, 7, 'darkWood:0', 'crate rim')
@@ -153,13 +156,12 @@ def practice_crate():
 
 
 def whistle():
-    m = Model('whistle', D, "The coach's whistle on its cord: an accessory for the sheepdog", 'New accessory; the sheepdog itself is unchanged', 'D')
-    m.b(0, 0, -1, 4, 3, 1, 'brass:0', 'whistle body')
-    m.b(4, 1, -1, 7, 3, 1, 'brass:1', 'mouthpiece')
-    m.b(1, 3, -1, 2, 4, 1, 'brass:-1', 'ring')
-    for i in range(6):
-        m.b(1 - i, 4 + i, 0, 2 - i, 5 + i, 1, 'scarfRed:0', 'cord')
-    m.notes.append("Hangs at the sheepdog's chest on its cord; when blown it rises to the mouth for 0.3 s (file 06).")
+    m = Model('whistle', 0.04, "The coach's whistle on its cord: an accessory for the sheepdog, on the animals' 0.04 m grid", 'New accessory; the sheepdog itself is unchanged', 'animal grid')
+    m.b(0, 0, -1, 3, 2, 1, 'brass:0', 'whistle body')
+    m.b(3, 1, -1, 5, 2, 1, 'brass:1', 'mouthpiece')
+    for i in range(4):
+        m.b(1 - i, 2 + i, 0, 2 - i, 3 + i, 1, 'scarfRed:0', 'cord')
+    m.notes.append("Hangs at the sheepdog's chest on its cord; when blown it rises to the mouth for 0.3 s.")
     return m
 
 
@@ -170,7 +172,7 @@ def bib(level):
         for k, y in enumerate(range(14, 25, 2)):          # knitted rows: the colour's own two steps, alternating
             m.b(-6, y, z0, 4, y + 2, z1, colour if k % 2 == 0 else colour.split(':')[0] + ':' + str(int(colour.split(':')[1]) + 1), 'bib knit row', 'bib')
         m.b(-6, 13, z0, 4, 14, z1, colour.split(':')[0] + ':-2', 'bib rib hem', 'bib')
-    m.b(-6, 26, -8, 4, 27, 8, colour, 'bib over the back', 'bib')
+    tile(m, -6, 26, -8, 4, 27, 8, colour.split(':')[0], int(colour.split(':')[1]), long='z', across='x', L=8, W=2, name='bib over the back, knit rows', part='bib')
     rows = {'easy': ['..X.X..', '...X...', '...X...', '...X...'],
             'medium': ['.X.X.X.', '..XXX..', '...X...', '...X...'],
             'hard': ['...X...', '..XXX..', '.XXXXX.', '...X...']}[level]

@@ -80,15 +80,17 @@ def main():
         save(scene.MODELS[mid], 'practice')
     json.dump({'about': "Every new model. Home's own barn, silo, farmhouse, fence and pines are placed as they are and are not copied here.", 'models': idx},
               open(os.path.join(md, 'index.json'), 'w'), indent=1)
-    json.dump({'about': 'The eight bomb skins: where the face is, the colour of its digits, the fuse and spark colours, the maker\'s mark shown in the Trading Post. '
-                        'Cells are 0.025 m. "lit:" colours give light.', 'fuse_path_steps': skins.PATH, 'skins': sk}, open(os.path.join(D, 'skins.json'), 'w'), indent=1)
+    json.dump({'about': 'The eight bomb skins: where the face is, the colour of its seconds, the fuse and spark colours. '
+                        'Cells are 0.025 m; every part is at least 2 cells (0.05 m), as VOXEL_GRAIN.md says. "lit:" colours give light. '
+                        'The fuse is 12 pieces of 2 x 2 x 2 cells; with a share s of the turn left, show ceil(12 x s) of them.', 'fuse_pieces_cells': skins.FUSE, 'skins': sk}, open(os.path.join(D, 'skins.json'), 'w'), indent=1)
     bj = {}
     for k in bursts.ORDER:
         b = bursts.BURSTS[k]
         bj[k] = {'name': b['name'], 'colours': {c: bursts.C[c] for c in b['colours']}, 'pieces': b['pieces'], 'move': b['move'], 'sound': b['sound'],
                  'boxes_at_fullest': [[round(v, 3) for v in p[:6]] + [p[6], bool(p[7] or p[6] in bursts.LIT)] for p in bursts.pieces(k)]}
     json.dump({'about': 'The ten bursts at their fullest (300 ms). Each box: x, y, z of its lower-left-back corner in metres from the bomb\'s spot on the ground, '
-                        'then width, height, depth, colour key, gives light. One piece cell is %.2f m. In the Trading Post a burst is shown at 34%% of this size over its stand.' % bursts.P,
+                        'then width, height, depth, colour key, gives light. One piece cube is %.2f m, the detail size of VOXEL_GRAIN.md. In the Trading Post a burst stands over its stand '
+                        'with its positions drawn in to 42%% toward its middle (0.6 m up) and its pieces at full size.' % bursts.P,
                'all_colours': bursts.C, 'bursts': bj}, open(os.path.join(D, 'bursts.json'), 'w'), indent=1)
     L = market.market('oat')
     mj = {'about': 'The market row, in metres. x along the row, y up, z toward the camera; the snow is y 0. Shown: what stands on the bench, the shelf and in the book in the pictures.',

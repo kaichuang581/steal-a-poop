@@ -131,3 +131,25 @@ def octagon(m, r, y0, y1, c, name='', part='body', cx=0, cz=0):
     m.b(cx - r, y0, cz - a, cx + r, y1, cz + a, c, name, part)
     m.b(cx - b_, y0, cz - b_, cx + b_, y1, cz + b_, c, name, part)
     m.b(cx - a, y0, cz - r, cx + a, y1, cz + r, c, name, part)
+
+
+def _two(mat, base):
+    """The material's base step and its neighbour one step darker (one lighter at the bottom of the ladder)."""
+    return (f'{mat}:{base}', f'{mat}:{base - 1 if base - 1 >= -2 else base + 1}')
+
+
+def tile(m, x0, y0, z0, x1, y1, z1, mat, base=0, long='x', across='y', L=None, W=4, name='plank', part='body', season=False, colour=None):
+    """Boards, the house style of PLAN_DIORAMA_SCENERY 3.2 and the miniature plan: the box is cut across `across` into
+    boards W cells wide that run its whole length along `long`, through its full depth. Boards alternate between the
+    material's base step and one step darker, each board one flat colour (VOXEL_GRAIN.md, rule 4). colour(i, j) may
+    override (i is always 0; j counts boards). L is ignored: boards are never cut short into patchwork."""
+    ax = {'x': 0, 'y': 1, 'z': 2}
+    lo = [x0, y0, z0]; hi = [x1, y1, z1]
+    b = ax[across]
+    tones = _two(mat, base)
+    for j, c0 in enumerate(range(lo[b], hi[b], W)):
+        c1 = min(c0 + W, hi[b])
+        q0, q1 = list(lo), list(hi)
+        q0[b], q1[b] = c0, c1
+        col = colour(0, j) if colour else tones[j % 2]
+        m.b(q0[0], q0[1], q0[2], q1[0], q1[1], q1[2], col, name, part, season)

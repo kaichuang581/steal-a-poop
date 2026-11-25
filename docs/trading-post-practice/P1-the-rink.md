@@ -17,7 +17,7 @@ A level shift-lens camera: it looks straight at the scene and shifts the picture
 | Scale A (px per m at z 0) | 210 × min(W/1440, H/900) | 0.21 × W | 420 × min(W/1440, H/900); phones 0.577 × W |
 | Line where y 0, z 0 lands | 70% of the height | 70% of the **visible** height (above the keyboard) | 175% (off screen); phones 109% |
 
-Screen x = W/2 + A·x·9/(9 − z). Screen y = horizon − A·(y − eye)·9/(9 − z), horizon = line − A·eye. **Test:** at 1440 x 900 the middle of the bomb's face (−0.62, 0.25, 0.625) lands at (580, 616) ± 3 px.
+Screen x = W/2 + A·x·9/(9 − z). Screen y = horizon − A·(y − eye)·9/(9 − z), horizon = line − A·eye. **Test:** at 1440 x 900 the middle of the bomb's face (−0.62, 0.25, 0.60) lands at (580, 616) ± 3 px.
 
 Framing: both sheep wholly on screen on a computer; on a 390 px phone each sheep may lose at most 15% of its length at the edge.
 

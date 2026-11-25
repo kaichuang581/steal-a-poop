@@ -8,7 +8,7 @@ import bursts
 import models_farm
 import skins
 import sounds
-from kit import Model, boards_x, octagon
+from kit import Model, boards_x, octagon, tile
 from ladder import tok
 from render import Camera, Scene, render, sky_gradient, srgb_to_lin, hexrgb
 from vox import Vox
@@ -33,7 +33,7 @@ def awning(m, hw, c1, c2, y_back=58, z_back=-36, z_front=12, stripe=8, sign=None
         for i, x in enumerate(range(-hw, hw, stripe)):
             m.b(x, y, z0, min(x + stripe, hw), y + 2, z0 + dz, c1 if i % 2 == 0 else c2, 'awning stripe', 'awning')
         if k < 2:
-            m.b(-hw, y + 2, z0, hw, y + 3, z0 + dz - 3, 'snow:1', 'snow on the awning', 'awning')
+            m.b(-hw, y + 2, z0, hw, y + 3, z0 + dz - 4, 'snow:1', 'snow on the awning', 'awning')
     yv = y_back - (n - 1) * 2
     for i, x in enumerate(range(-hw, hw, stripe)):          # the valance: one tab per stripe, its lower corners stepped
         col = c1 if i % 2 == 0 else c2
@@ -77,15 +77,17 @@ def feed_stall():
     hw = 43
     posts(m, hw, 58, 52, -36, 9)
     m.b(-hw, 0, -36, hw, 2, -34, 'stone:-1', 'footing')
-    boards_x(m, -40, 40, 2, 56, -35, -34, 'wood', w=5, pat=(-1, -2, -1, 0), name='back wall board')
+    tile(m, -40, 2, -35, 40, 56, -34, 'wood', -1, long='y', across='x', L=12, W=5, name='back wall board')
     for y in (30, 42):
         m.b(-40, y, -34, 40, y + 1, -28, 'darkWood:0', 'shelf')
         stock_row(m, -38, 38, y + 1, -33, start=0 if y == 30 else 3)
-    m.b(-40, 19, -15, 40, 21, 2, 'wood:1', 'counter top')
-    m.b(-40, 20, 1, 40, 21, 2, 'wood:2', 'counter top, lit edge')
-    boards_x(m, -40, 40, 2, 19, 0, 1, 'wood', w=5, name='counter front board')
+    tile(m, -40, 19, -15, 40, 21, 1, 'wood', 1, long='x', across='z', L=12, W=4, name='counter top plank')
+    m.b(-40, 19, 1, 40, 21, 2, 'wood:2', 'counter top, lit edge')
+    tile(m, -40, 2, 0, 40, 19, 1, 'wood', 0, long='y', across='x', L=12, W=5, name='counter front board')
     m.b(-40, 0, -1, 40, 2, 2, 'darkWood:0', 'counter plinth')
-    m.b(-40, 2, -15, 40, 19, 0, 'wood:-2', 'counter body')
+    m.b(-39, 2, -14, 39, 19, 0, 'wood:-2', 'counter body (hidden)')
+    for x0 in (-40, 39):
+        tile(m, x0, 2, -15, x0 + 1, 19, 0, 'wood', -1, long='y', across='z', L=12, W=5, name='counter end board')
     awning(m, hw + 2, 'scarfRed:0', 'trimWhite:1', sign=16)
     return m
 
@@ -95,7 +97,8 @@ def crate(grain):
     boards_x(m, -9, 9, 0, 6, 5, 6, 'wood', w=3, name='crate board')
     m.b(-9, 0, -6, 9, 5, 5, 'wood:-1', 'crate body')
     m.b(-10, 0, 5, -9, 7, 6, 'darkWood:0', 'crate corner'); m.b(9, 0, 5, 10, 7, 6, 'darkWood:0', 'crate corner')
-    m.b(-9, 5, -6, 9, 6, 5, grain, 'grain')
+    gm, gs = grain.split(':')
+    tile(m, -9, 5, -6, 9, 6, 5, gm, int(gs), long='x', across='z', L=6, W=4, name='grain')
     for (x, z) in ((-7, 2), (5, 3), (-2, 4), (7, 0)):
         m.b(x, 6, z, x + 2, 7, z + 1, grain, 'grain heap')
     return m
@@ -127,9 +130,9 @@ def sack(key):
 
 def bench():
     m = Model('sampleBench', S, 'The low bench in front of the counter where a sack shows what it holds', 'New: replaces the "Inside the sack" cards', 'S')
-    m.b(-40, 4, 7, 40, 6, 19, 'wood:1', 'bench top')
-    m.b(-39, 6, 8, 39, 7, 18, 'trimWhite:1', 'cloth runner')
-    m.b(-39, 3, 18, 39, 6, 19, 'trimWhite:0', 'cloth, front drop')
+    tile(m, -40, 4, 7, 40, 6, 19, 'wood', 1, long='x', across='z', L=12, W=4, name='bench plank')
+    tile(m, -39, 6, 8, 39, 7, 18, 'trimWhite', 1, long='x', across='z', W=5, name='cloth runner panel')
+    tile(m, -39, 3, 18, 39, 6, 19, 'trimWhite', 0, long='x', across='y', L=12, W=3, name='cloth, front drop')
     for x in (-39, -14, 11, 36):
         m.b(x, 0, 8, x + 3, 4, 18, 'darkWood:0', 'bench leg')
     return m
@@ -146,19 +149,18 @@ def a_board():
 
 
 def barrel():
-    m = Model('barrel', S, 'A barrel at the stall end', "Today's barrel, rebuilt", 'S')
+    m = Model('barrel', S, 'A barrel at the stall end: staves two cells wide in turn, two iron hoops', "Today's barrel, rebuilt", 'S')
     for (y0, y1, r) in ((0, 3, 6), (3, 13, 7), (13, 16, 6)):
-        octagon(m, r, y0, y1, 'wood:0', 'staves')
+        a, b_ = max(1, int(round(r * 0.45))), max(1, int(round(r * 0.75)))
+        for (hx, hz) in ((r, a), (b_, b_), (a, r)):       # the eight-sided body, each of its three boxes cut into 2-cell staves
+            tile(m, -hx, y0, -hz, hx, y1, hz, 'wood', 0, long='y', across='x', L=16, W=2, name='stave',
+                 colour=lambda i_, j_: 'wood:%d' % (0 if j_ % 2 == 0 else -1))
     octagon(m, 7, 4, 5, 'iron:0', 'hoop'); octagon(m, 7, 11, 12, 'iron:0', 'hoop')
-    octagon(m, 6, 16, 17, 'wood:2', 'lid')
-    return m
-
-
-def scale_():
-    m = Model('brassScale', S, 'The brass scale on the counter', "Today's scale", 'S')
-    m.b(-4, 0, -2, 4, 1, 2, 'brass:-1', 'base'); m.b(-1, 1, -1, 1, 13, 1, 'brass:0', 'post'); m.b(-9, 12, -1, 9, 13, 1, 'brass:1', 'beam')
-    for x in (-9, 6):
-        m.b(x + 1, 6, 0, x + 2, 12, 1, 'iron:1', 'chain'); m.b(x - 1, 5, -2, x + 4, 6, 2, 'brass:0', 'pan')
+    for x in range(-6, 6):                                  # the lid: four boards 3 cells wide, two tones in turn
+        for z in range(-6, 6):
+            ax, az = abs(x + .5), abs(z + .5)
+            if ax <= 6 and az <= 6 and ax + az <= 8.6:
+                m.b(x, 16, z, x + 1, 17, z + 1, 'wood:1' if ((x + 6) // 3) % 2 == 0 else 'wood:0', 'lid board')
     return m
 
 
@@ -169,13 +171,16 @@ def lantern():
     return m
 
 
+BIG_BELL = [8.0, 8.0, 7.4, 6.9, 6.5, 6.2, 5.9, 5.8, 5.6, 5.5, 5.4, 5.3, 5.1, 4.8, 4.3, 3.4]   # radius by row, 0.05 m cells
+
+
 def big_bell():
-    m = Model('bigBell', 0.04, 'The big brass bell that hangs at the Bell Shelf', 'New: names the stand; rings when Bells are spent', 'S')
+    m = Model('bigBell', S, 'The big brass bell that hangs at the Bell Shelf', 'New: names the stand; rings when Bells are spent', 'S')
     v = Vox()
-    v.fill(((-10, 10), (0, 19), (-10, 10)), lambda x, y, z: x * x + z * z <= skins.bell_r(y) ** 2,
-           lambda x, y, z: 'brass:-2' if (y < 2 or 13 <= y < 14) else ('brass:2' if 1.95 < math.atan2(z, x) < 2.45 and 4 <= y < 13 else 'brass:0'))
+    v.fill(((-8, 8), (0, 16), (-8, 8)), lambda x, y, z: x * x + z * z <= BIG_BELL[int(y)] ** 2 + 0.5,
+           lambda x, y, z: 'brass:-2' if (y < 1 or 10 <= y < 11) else ('brass:2' if 1.95 < math.atan2(z, x) < 2.6 and 3 <= y < 10 else ('brass:-1' if y < 3 else 'brass:0')))
     v.into(m)
-    m.b(-1, 19, -1, 1, 24, 1, 'iron:0', 'hanger'); m.b(-1, -3, -1, 1, 0, 1, 'iron:1', 'clapper')
+    m.b(-1, 16, -1, 1, 20, 1, 'iron:0', 'hanger'); m.b(-1, -2, -1, 1, 0, 1, 'iron:1', 'clapper')
     return m
 
 
@@ -183,11 +188,15 @@ def bell_stand():
     m = Model('bellStand', S, 'The Bell Shelf: two display steps under a green and cream awning', "Today's Bell Shelf, made a stand in the row", 'S')
     hw = 32
     posts(m, hw, 58, 52, -30, 9)
-    boards_x(m, -29, 29, 2, 56, -29, -28, 'wood', w=5, pat=(-1, -2, -1, 0), name='back wall board')
-    m.b(-29, 0, -12, 29, 18, 4, 'wood:-1', 'lower step'); m.b(-29, 18, -12, 29, 19, 4, 'trimWhite:1', 'cloth')
-    m.b(-29, 15, 4, 29, 19, 5, 'trimWhite:0', 'cloth, front drop')
-    m.b(-29, 0, -28, 29, 32, -12, 'wood:-2', 'upper step'); m.b(-29, 32, -28, 29, 33, -12, 'trimWhite:1', 'cloth')
-    m.b(-29, 29, -12, 29, 33, -11, 'trimWhite:0', 'cloth, front drop')
+    tile(m, -29, 2, -29, 29, 56, -28, 'wood', -1, long='y', across='x', L=12, W=5, name='back wall board')
+    tile(m, -29, 0, 3, 29, 15, 4, 'wood', -1, long='y', across='x', L=12, W=5, name='lower step, front board')
+    tile(m, -29, 0, -12, 29, 18, 3, 'wood', -1, long='y', across='z', L=12, W=5, name='lower step')
+    tile(m, -29, 18, -12, 29, 19, 4, 'trimWhite', 1, long='x', across='z', W=4, name='cloth panel')
+    tile(m, -29, 15, 4, 29, 19, 5, 'trimWhite', 0, long='x', across='y', L=12, W=4, name='cloth, front drop')
+    tile(m, -29, 0, -13, 29, 29, -12, 'wood', -2, long='y', across='x', L=12, W=5, name='upper step, front board')
+    tile(m, -29, 0, -28, 29, 32, -13, 'wood', -2, long='y', across='z', L=12, W=5, name='upper step')
+    tile(m, -29, 32, -28, 29, 33, -12, 'trimWhite', 1, long='x', across='z', W=4, name='cloth panel')
+    tile(m, -29, 29, -12, 29, 33, -11, 'trimWhite', 0, long='x', across='y', L=12, W=4, name='cloth, front drop')
     m.b(-hw, 46, 6, -hw + 14, 48, 8, 'darkWood:0', 'bell bracket')
     awning(m, hw + 2, 'giftGreen:0', 'trimWhite:1', z_back=-30, sign=14)
     return m
@@ -201,7 +210,7 @@ def notice_board():
     for (x0, x1, y0, y1) in ((-34, 34, 48, 50), (-34, 34, 4, 6), (-34, -32, 6, 48), (32, 34, 6, 48)):
         m.b(x0, y0, -2, x1, y1, 0, 'barnRed:-1', 'frame')
     m.b(-39, 54, -6, 39, 56, 5, 'darkWood:0', 'roof board'); m.b(-36, 56, -5, 36, 58, 4, 'darkWood:1', 'roof ridge')
-    m.b(-39, 56, -6, -36, 57, 5, 'snow:0', 'roof snow'); m.b(36, 56, -6, 39, 57, 5, 'snow:0', 'roof snow'); m.b(-36, 58, -5, 36, 59, 4, 'snow:1', 'roof snow')
+    m.b(-39, 56, -6, -36, 57, 5, 'snow:0', 'roof snow'); m.b(36, 56, -6, 39, 57, 5, 'snow:0', 'roof snow'); m.b(-36, 58, -4, 36, 59, 4, 'snow:1', 'roof snow')
     for (x0, x1) in ((-31, -11), (-10, 10), (11, 31)):                    # three mission slips
         m.b(x0, 32, -1, x1, 47, 0, 'trimWhite:2', 'mission slip', 'slip'); m.b((x0 + x1) // 2, 46, 0, (x0 + x1) // 2 + 1, 47, 1, 'brass:0', 'pin', 'slip')
     m.b(-31, 7, -1, 31, 30, 0, 'trimWhite:2', 'milestone sheet', 'slip')
@@ -229,7 +238,7 @@ def book_pockets(n):
 
 def barn_book(n=8):
     m = Model('barnBook%d' % n, S, 'The Barn Book: a big book standing open on a table, a ledge on its pages for every item', "Today's Barn Book tab, made a real book", 'S')
-    m.b(-41, 8, -9, 41, 10, 9, 'wood:1', 'table top'); m.b(-41, 9, 8, 41, 10, 9, 'wood:2', 'table edge')
+    tile(m, -41, 8, -9, 41, 10, 9, 'wood', 1, long='x', across='z', L=12, W=4, name='table plank'); m.b(-41, 9, 9, 41, 10, 10, 'wood:2', 'table edge')
     for x in (-40, 37):
         m.b(x, 0, -8, x + 3, 8, -5, 'darkWood:0', 'table leg'); m.b(x, 0, 5, x + 3, 8, 8, 'darkWood:0', 'table leg')
     m.b(-38, 10, -5, 38, 58, -4, 'barnRed:-1', 'cover'); m.b(-1, 10, -5, 1, 58, -2, 'barnRed:-2', 'spine')
@@ -297,14 +306,14 @@ def item_xs(n, x0, span):
 
 
 def put_item(L, kind, key, x, y, z, scale=1.0, flat=None):
-    """kind: skin | burst | sound. A burst is shown as its fullest moment at 34% size over a small stand."""
+    """kind: skin | burst | sound. A burst is shown as its fullest moment over a small stand, its positions drawn in to 42%, its pieces full size."""
     L.shown.append(dict(kind=kind, key=key, x=round(x, 3), y=round(y, 3), z=round(z, 3), scale=scale, cut_out=bool(flat)))
     if kind == 'skin':
         L.put('bomb_' + key, x, z, y=y, scale=scale, flat=flat, glow=0.0 if flat else 0.5, tint=1.0)
     elif kind == 'sound':
         L.put('sound_' + key, x, z, y=y, scale=scale * 1.1, flat=flat, glow=0.0 if flat else 0.6, tint=1.0)
     else:
-        L.extra.append(lambda sc, key=key, x=x, y=y, z=z, scale=scale, flat=flat: (bursts.stand(sc, x, y, z, scale * 1.0), bursts.place(sc, key, x, y + 0.05 * scale, z, 0.34 * scale, flat)))
+        L.extra.append(lambda sc, key=key, x=x, y=y, z=z, scale=scale, flat=flat: (bursts.stand(sc, x, y, z, 1.0), bursts.place(sc, key, x, y + 0.15, z, flat=flat, spread=0.42 * scale)))
 
 
 def market(picked='oat', festive=True):

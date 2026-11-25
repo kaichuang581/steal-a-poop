@@ -19,9 +19,30 @@ RAR = {'ember': 'common', 'peppermint': 'common', 'plum': 'uncommon', 'gold': 'r
 NAMES = {**{k: v['name'] for k, v in skins.SKINS.items()}, **{k: v['name'] for k, v in bursts.BURSTS.items()}, **{k: v[0] for k, v in sounds.SOUNDS.items()}}
 
 
+def bomb_faces(img, cam, L):
+    """Outside a game, every bomb's face shows 10 in its own digit colour: the bomb as it looks when a turn starts."""
+    d = ImageDraw.Draw(img)
+    for sh in L.shown:
+        if sh['kind'] != 'skin' or sh['cut_out']:
+            continue
+        meta = MODELS['bomb_' + sh['key']].meta
+        cx, cy, cz = meta['face']['centre_cells']
+        c = MODELS['bomb_' + sh['key']].cell * sh['scale']
+        x, y, z = sh['x'] + cx * c, sh['y'] + cy * c, sh['z'] + cz * c
+        px, py = P(cam, x, y, z)
+        if not (0 <= px <= img.width):
+            continue
+        h = abs(P(cam, x, y + 0.1 * sh['scale'], z)[1] - py) * 2
+        f = F(FR, max(8, int(h * 0.62)))
+        bb = d.textbbox((0, 0), '10', font=f)
+        col = meta['digit'].replace('lit:', '')
+        d.text((px - (bb[0] + bb[2]) / 2, py - (bb[1] + bb[3]) / 2), '10', font=f, fill=col)
+
+
 def frame(stop, picked='oat', coins=1240, bells=15, W=1440, H=900, extra=None, **cam_kw):
     cam = camera(stop, W=W, H=H, **cam_kw)
     img, n, L = shot(cam, picked, extra=extra)
+    bomb_faces(img, cam, L)
     return img, cam, n
 
 
@@ -90,9 +111,9 @@ def stop_sacks(path, picked='oat', coins=1240, bells=15, found=('ember', 'plum')
 def thumb(kind, key, size=72, bg=PAPER):
     if kind == 'burst':
         from render import Camera, Scene, render, sky_gradient
-        cam = Camera(W=size, H=size, A=size * 0.42, CAM=8, EYE=0.9, lane_frac=0.9, cam_x=0, ss=3)
+        cam = Camera(W=size, H=size, A=size * 0.95, CAM=8, EYE=0.45, lane_frac=0.9, cam_x=0, ss=3)
         sc = Scene(); sc.box(-9, -0.2, -9, 9, 0, 6, bg, True, 1.0)
-        bursts.place(sc, key, 0, 0, 0)
+        bursts.place(sc, key, 0, 0, 0, spread=0.42)
         img, _ = render(sc, cam, sky_gradient(cam, [(0, bg), (1, bg), (cam.H / max(cam.hy, 1), bg)]), studio.WARM)
         return img
     m = MODELS[('bomb_' if kind == 'skin' else 'sound_') + key]
@@ -255,7 +276,7 @@ def sheets():
         m = skins.bomb(k)
         img, cam = studio.shot(m, fill=0.74, glow=0.4)
         cells.append((img, m.meta['name'], m.meta['source']))
-    studio.sheet(os.path.join(REF, 'models-bombs.png'), cells, 4, 'The eight bombs (shown with their maker\'s mark; in a game the face shows the seconds)')
+    studio.sheet(os.path.join(REF, 'models-bombs.png'), cells, 4, 'The eight bombs: round outlines, every part at least 0.05 m (face left plain here; the game paints the seconds on it)')
     cells = []
     for m in sounds.all_models():
         img, cam = studio.shot(m, W=300, H=300, fill=0.62)

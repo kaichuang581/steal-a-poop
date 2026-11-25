@@ -78,7 +78,7 @@ def render(scene, cam, sky, light=DEFAULT_LIGHT, fog=None):
 
     def put(r0, r1, c0, c1, mask, depth, colour):
         sub = zb[r0:r1, c0:c1]
-        ok = mask & (depth < sub)
+        ok = mask & (depth <= sub)   # a later box wins a tie, as the game's fill() does: the last box to set a cell owns it
         if ok.any():
             sub[ok] = np.broadcast_to(depth, sub.shape)[ok]
             img[r0:r1, c0:c1][ok] = colour

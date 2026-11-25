@@ -9,11 +9,14 @@ describe('the bomb (T2)', () => {
     expect(fusePiecesFor(0.01)).toBe(1);
     expect(fusePiecesFor(0)).toBe(0);
   });
-  it("the fuse's last piece ends where each skin's spark glow is", () => {
+  it('each fuse piece is one 2 x 2 x 2 block of the model, and the twelve hold every fuse box (VOXEL_GRAIN.md)', async () => {
+    const { MODELS, PARTS } = await import('../models');
+    const { fuseCube } = await import('../bomb');
     for (const s of Object.values(SKINS)) {
-      const [x, y] = fuseCentre(s, FUSE_PIECES - 1);
-      expect(x).toBe(9);
-      expect(y).toBe(s.cap_top_cells + 4); // the tip's cube spans y-1 to y+1; the glow sits on its top
+      const fuse = MODELS[`bomb_${s.key}`].boxes.filter((b) => b[7] === PARTS.indexOf('fuse'));
+      const cubes = Array.from({ length: FUSE_PIECES }, (_, k) => fuseCube(s, k));
+      for (const b of fuse) expect(cubes.some(({ at: [x, y], size }) => b[0] >= x && b[3] <= x + size && b[1] >= y && b[4] <= y + size), s.key).toBe(true);
+      expect(fuseCentre(s, 0)[1], s.key).toBeGreaterThan(s.fuse_start_cells[1]);
     }
   });
 });

@@ -16,8 +16,8 @@ from render import Camera, Scene, render, sky_gradient, srgb_to_lin, hexrgb
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS = {m.id: m for m in models_farm.all_models() + mp.all_models() + skins.all_models()}
-MODELS['bomb_ice_low'] = skins.bomb('ice', fuse=4, emblem=False, id='bomb_ice_low')
-MODELS['bomb_ice_game'] = skins.bomb('ice', emblem=False, id='bomb_ice_game')
+MODELS['bomb_ice_low'] = skins.bomb('ice', fuse=3, id='bomb_ice_low')
+MODELS['bomb_ice_game'] = skins.bomb('ice', id='bomb_ice_game')
 MODELS['sheepStandIn'] = mp.sheep_standin()
 MODELS['dogStandIn'] = mp.dog_standin()
 LIGHT = {'top': (0.60, 0.69, 0.96), 'front': (0.40, 0.47, 0.72), 'left': (0.25, 0.30, 0.52), 'right': (0.31, 0.37, 0.60), 'bottom': (0.14, 0.17, 0.32)}

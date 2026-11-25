@@ -18,7 +18,7 @@ import { BURSTS, SKINS } from './models.gen';
  * `?preview=models&board=bombs|sounds|market|rink`), straight from in front, to lay beside reference/models-*.png.
  */
 const BOARDS: Record<string, { title: string; ids: string[] }> = {
-  bombs: { title: 'The eight bombs (T2), with their maker\'s mark', ids: ['bomb_ice', 'bomb_ember', 'bomb_peppermint', 'bomb_plum', 'bomb_gold', 'bomb_diamond', 'bomb_brassBell', 'bomb_aurora'] },
+  bombs: { title: 'The eight bombs (T2), at rest (10 on the face)', ids: ['bomb_ice', 'bomb_ember', 'bomb_peppermint', 'bomb_plum', 'bomb_gold', 'bomb_diamond', 'bomb_brassBell', 'bomb_aurora'] },
   sounds: { title: 'The eight fuse sounds (T4)', ids: ['sound_iceChime', 'sound_eightBit', 'sound_woodBlock', 'sound_cowbell', 'sound_sleighBells', 'sound_musicBox', 'sound_owl', 'sound_lullaby'] },
   market: { title: 'The market row (T1, T5, T6)', ids: ['feedStall', 'sack_oat', 'sack_corn', 'sack_barley', 'sackCrate_straw', 'sackCrate_brass', 'sackCrate_wood', 'sampleBench', 'oddsBoard', 'barrel', 'stallLantern', 'rowPost', 'bellStand', 'bigBell', 'noticeBoard', 'barnBook8', 'barnBook10'] },
   rink: { title: 'The rink (P1, P2, P3)', ids: ['rinkBoards', 'rinkBoardsFront', 'tileRack', 'snowBank', 'tallyBoard', 'coachChair', 'whistle', 'practiceCrate', 'broom', 'lightPost', 'iceBlock', 'bibEasy', 'bibMedium', 'bibHard'] },

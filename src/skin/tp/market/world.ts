@@ -4,8 +4,8 @@ import { FESTIVE } from '../../../config';
 import { Gather, meshModel, toGeometry, tokenColour } from '../../dream/models';
 import type { Arrays } from '../../dream/models';
 import * as DREAM from '../../dream/models.gen';
-import { SKIN_OF } from '../bomb';
-import { BURST_OF } from '../burst';
+import { makeBomb, SKIN_OF } from '../bomb';
+import { BURST_OF, drawIn } from '../burst';
 import { addModels, COLOURS, MODELS, PARTS } from '../models';
 
 addModels(MARKET_MODELS);
@@ -136,21 +136,20 @@ const SOUND_OF: Record<string, string> = {
 export const modelOf = (item: Item): string => item.kind === 'bomb' ? `bomb_${SKIN_OF[item.id] ?? 'ice'}` : item.kind === 'tick' ? `sound_${SOUND_OF[item.id] ?? 'iceChime'}` : '';
 
 const CUT = new Color('#CEC0AC');
-const BURST_SCALE = 0.34;
+/** Bursts on a stand are drawn in, never shrunk (VOXEL_GRAIN.md rule 8): 42% on the bench and in the book, 67% on the Bell Shelf's stand, 1.6 times as large. */
+export const SPREAD = { bench: 0.42, shelf: 0.67 } as const;
 const cache = new Map<string, { lit: Arrays; glow: Arrays }>();
-
-/** A burst at its fullest at 34% over its stand (T3 section 3): a dark disc with a brass rim, 0.4 m across. */
-function burstArrays(key: string): { lit: Arrays; glow: Arrays } {
-  const lit = new Gather(), glow = new Gather();
+/** A burst at its fullest, drawn in over its stand (T3 section 3): a dark disc with a brass rim, 0.4 m across (x1.6 on the shelf). */
+function burstArrays(key: string, spread: number): { lit: Arrays; glow: Arrays } {
+  const lit = new Gather(), glow = new Gather(), k = spread / SPREAD.bench;
   const iron = tokenColour('iron:-1', DREAM.GLOW), brass = tokenColour('brass:0', DREAM.GLOW);
-  lit.box([-0.2, 0, -0.2, 0.2, 0.03, 0.2], brass);
-  lit.box([-0.18, 0.03, -0.18, 0.18, 0.045, 0.18], iron);
-  const data = BURSTS[key] ?? BURSTS.frost;
-  const minY = Math.min(...data.boxes_at_fullest.map((b) => b[1]));
+  lit.box([-0.2 * k, 0, -0.2 * k, 0.2 * k, 0.03, 0.2 * k], brass);
+  lit.box([-0.18 * k, 0.03, -0.18 * k, 0.18 * k, 0.045, 0.18 * k], iron);
+  const data = BURSTS[key] ?? BURSTS.frost, at = drawIn(key, spread);
   for (const b of data.boxes_at_fullest) {
     const c = new Color(data.colours[b[6]] ?? BURST_COLOURS[b[6]] ?? '#FFFFFF');
-    const s = BURST_SCALE, y = 0.08 + (b[1] - minY) * s;
-    (b[7] ? glow : lit).box([b[0] * s, y, b[2] * s, (b[0] + b[3]) * s, y + b[4] * s, (b[2] + b[5]) * s], [c.r, c.g, c.b], 1, b[7]);
+    const [w, h, d] = [b[3], b[4], b[5]], [x, y, z] = at([b[0] + w / 2, b[1] + h / 2, b[2] + d / 2]);
+    (b[7] ? glow : lit).box([x - w / 2, y - h / 2, z - d / 2, x + w / 2, y + h / 2, z + d / 2], [c.r, c.g, c.b], 1, b[7]);
   }
   return { lit: lit.a, glow: glow.a };
 }
@@ -159,11 +158,13 @@ function burstArrays(key: string): { lit: Arrays; glow: Arrays } {
  * An item as it stands in the market: the real model (a burst over its stand), or a flat paper cut-out of its own shape
  * (every box `trimWhite -2`, unshaded) for one not found in the Barn Book.
  */
-export function itemGroup(item: Item, mats: { lit: Material; glow: Material; flat: Material }, cut = false): Group {
-  const key = `${item.id}|${cut}`;
+export function itemGroup(item: Item, mats: { lit: Material; glow: Material; flat: Material }, cut = false, spread: number = SPREAD.bench): Group {
+  // A bomb shows 10 on its face outside a game (T2, VOXEL_GRAIN.md): the built bomb, not the bare model.
+  if (item.kind === 'bomb' && !cut) { const b = makeBomb(SKIN_OF[item.id] ?? 'ice', { rest: true, lit: mats.lit }); b.group.userData.item = item.id; return b.group; }
+  const key = `${item.id}|${cut}|${spread}`;
   let a = cache.get(key);
   if (!a) {
-    const full = item.kind === 'blast' ? burstArrays(BURST_OF[item.id] ?? 'frost') : (() => { const mm = tpMesh(modelOf(item)); return { lit: mm.lit, glow: mm.glow }; })();
+    const full = item.kind === 'blast' ? burstArrays(BURST_OF[item.id] ?? 'frost', spread) : (() => { const mm = tpMesh(modelOf(item)); return { lit: mm.lit, glow: mm.glow }; })();
     if (cut) {
       const pos = [...full.lit.pos, ...full.glow.pos], n = full.lit.pos.length / 3;
       a = { lit: { pos, nor: [...full.lit.nor, ...full.glow.nor], col: pos.map((_, i) => [CUT.r, CUT.g, CUT.b][i % 3]), idx: [...full.lit.idx, ...full.glow.idx.map((i) => i + n)] }, glow: { pos: [], nor: [], col: [], idx: [] } };

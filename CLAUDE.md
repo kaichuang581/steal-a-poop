@@ -2806,8 +2806,13 @@ from its JSON; nothing random in a model, pattern or effect; the data wins over 
   the shared colour and part lists; ships with the game), market.gen.ts and rink.gen.ts (loaded with their screens,
   which register them with `addModels`). The dream's grid mesher reads "#hex" and "lit:#hex" colours too.
   `?preview=models&board=bombs|sounds|market|rink|seconds|bursts` shows them.
-- The bomb (T2) everywhere: src/skin/tp/bomb.ts (`makeBomb`: a mesh per part, the mark hidden in a game with the face
-  filled under it, the seconds as a face texture, 12 fuse pieces burning ceil(12 s), the spark on the tip). The table's
+- Pack version 2 (2026-11-25, same day): VOXEL_GRAIN.md, one detail size. Every visible part is at least 0.05 m, big
+  surfaces are boards, the data is rebuilt to it, and the pack's `tools/checks.py` (379) and `tools/grain_audit.py` must
+  pass (they need numpy and scipy). Where boxes overlap the later one wins: the packer writes boxes last first.
+- The bomb (T2) everywhere: src/skin/tp/bomb.ts (`makeBomb`: a mesh per part, no maker's mark; the face shows the
+  seconds in a game and 10 at rest (`rest: true`: the shop, the Barn Book, Home's demo game); 12 fuse pieces, each one
+  2 x 2 x 2 block from `fuse_start_cells` and `fuse_pieces`, burning ceil(12 s), the lit spark replacing the last).
+  Shop bursts are drawn in, never shrunk (`drawIn`, `SPREAD`: 0.42 on the bench and in the book, 0.67 on the Bell Shelf). The table's
   Bomb.tsx draws it turned about its upright to the camera; no frost ring or landing puff any more (T3: no mark left).
   Bursts (T3): src/skin/tp/burst.ts, played by table/TpBlast.tsx. The old Blast.tsx and BombAura.tsx are deleted;
   bombSkins.ts, burstActs.ts and the old shop thumbnails stay only because the bake checker (tools/bake) still pins them.

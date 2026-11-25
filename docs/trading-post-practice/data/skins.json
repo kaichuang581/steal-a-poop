@@ -1,53 +1,53 @@
 {
- "about": "The eight bomb skins: where the face is, the colour of its digits, the fuse and spark colours, the maker's mark shown in the Trading Post. Cells are 0.025 m. \"lit:\" colours give light.",
- "fuse_path_steps": [
+ "about": "The eight bomb skins: where the face is, the colour of its seconds, the fuse and spark colours. Cells are 0.025 m; every part is at least 2 cells (0.05 m), as VOXEL_GRAIN.md says. \"lit:\" colours give light. The fuse is 12 pieces of 2 x 2 x 2 cells; with a share s of the turn left, show ceil(12 x s) of them.",
+ "fuse_pieces_cells": [
+  [
+   0,
+   0
+  ],
   [
    0,
    1
   ],
   [
    0,
+   2
+  ],
+  [
+   1,
+   2
+  ],
+  [
+   1,
+   3
+  ],
+  [
+   2,
+   3
+  ],
+  [
+   3,
+   3
+  ],
+  [
+   4,
+   3
+  ],
+  [
+   4,
+   2
+  ],
+  [
+   5,
+   2
+  ],
+  [
+   6,
+   2
+  ],
+  [
+   6,
    1
-  ],
-  [
-   1,
-   1
-  ],
-  [
-   0,
-   1
-  ],
-  [
-   1,
-   1
-  ],
-  [
-   1,
-   0
-  ],
-  [
-   1,
-   1
-  ],
-  [
-   1,
-   0
-  ],
-  [
-   1,
-   0
-  ],
-  [
-   1,
-   -1
-  ],
-  [
-   1,
-   0
-  ],
-  [
-   1,
-   -1
   ]
  ],
  "skins": {
@@ -60,10 +60,10 @@
     "centre_cells": [
      0,
      10,
-     10
+     12
     ],
-    "radius_cells": 4,
-    "rim_radius_cells": 5
+    "disc_cells": "8 across, round",
+    "size_m": 0.2
    },
    "digit": "#1F3A66",
    "danger_digit": "#B3261E",
@@ -76,15 +76,62 @@
     "#BFEFFF",
     "#FFFFFF"
    ],
-   "cap_top_cells": 22,
-   "emblem": [
-    "..XX..",
-    "X.XX.X",
-    ".XXXX.",
-    ".XXXX.",
-    "X.XX.X",
-    "..XX.."
-   ]
+   "fuse_start_cells": [
+    -1,
+    24,
+    -1
+   ],
+   "fuse_pieces": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "fuse_piece_cells": 2
   },
   "ember": {
    "key": "ember",
@@ -95,10 +142,10 @@
     "centre_cells": [
      0,
      10,
-     10
+     12
     ],
-    "radius_cells": 4,
-    "rim_radius_cells": 5
+    "disc_cells": "8 across, round",
+    "size_m": 0.2
    },
    "digit": "#3A2418",
    "danger_digit": "#A3200F",
@@ -111,15 +158,62 @@
     "#F28A3C",
     "#FFC773"
    ],
-   "cap_top_cells": 22,
-   "emblem": [
-    "..X...",
-    "..XX..",
-    ".XXX.X",
-    "XXXXXX",
-    "XXXXXX",
-    ".XXXX."
-   ]
+   "fuse_start_cells": [
+    -1,
+    24,
+    -1
+   ],
+   "fuse_pieces": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "fuse_piece_cells": 2
   },
   "peppermint": {
    "key": "peppermint",
@@ -130,10 +224,10 @@
     "centre_cells": [
      0,
      10,
-     10
+     12
     ],
-    "radius_cells": 4,
-    "rim_radius_cells": 5
+    "disc_cells": "8 across, round",
+    "size_m": 0.2
    },
    "digit": "#7A211C",
    "danger_digit": "#B3261E",
@@ -146,15 +240,62 @@
     "#F2A26A",
     "#FFE7B0"
    ],
-   "cap_top_cells": 22,
-   "emblem": [
-    ".XXXX.",
-    "X....X",
-    "X.XX.X",
-    "X.X..X",
-    "X.XXXX",
-    ".X...."
-   ]
+   "fuse_start_cells": [
+    -1,
+    24,
+    -1
+   ],
+   "fuse_pieces": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "fuse_piece_cells": 2
   },
   "plum": {
    "key": "plum",
@@ -165,10 +306,10 @@
     "centre_cells": [
      0,
      10,
-     10
+     12
     ],
-    "radius_cells": 4,
-    "rim_radius_cells": 5
+    "disc_cells": "8 across, round",
+    "size_m": 0.2
    },
    "digit": "#3B2548",
    "danger_digit": "#B3261E",
@@ -181,15 +322,62 @@
     "#F2A26A",
     "#FFE7B0"
    ],
-   "cap_top_cells": 22,
-   "emblem": [
-    "...XXX",
-    "..XXXX",
-    ".XXXXX",
-    "XXXXX.",
-    "XXXX..",
-    "X....."
-   ]
+   "fuse_start_cells": [
+    -1,
+    24,
+    -1
+   ],
+   "fuse_pieces": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "fuse_piece_cells": 2
   },
   "gold": {
    "key": "gold",
@@ -200,10 +388,10 @@
     "centre_cells": [
      0,
      10,
-     10
+     12
     ],
-    "radius_cells": 4,
-    "rim_radius_cells": 5
+    "disc_cells": "8 across, round",
+    "size_m": 0.2
    },
    "digit": "#4A3312",
    "danger_digit": "#A3200F",
@@ -216,15 +404,62 @@
     "#FFD08A",
     "#FFF8DC"
    ],
-   "cap_top_cells": 22,
-   "emblem": [
-    "......",
-    "X.XX.X",
-    "X.XX.X",
-    "XXXXXX",
-    "XXXXXX",
-    "XXXXXX"
-   ]
+   "fuse_start_cells": [
+    -1,
+    24,
+    -1
+   ],
+   "fuse_pieces": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "fuse_piece_cells": 2
   },
   "diamond": {
    "key": "diamond",
@@ -234,11 +469,11 @@
    "face": {
     "centre_cells": [
      0,
-     11,
-     10
+     10,
+     12
     ],
-    "radius_cells": 4,
-    "rim_radius_cells": 5
+    "disc_cells": "8 across, round",
+    "size_m": 0.2
    },
    "digit": "#1E4D59",
    "danger_digit": "#B3261E",
@@ -251,15 +486,62 @@
     "#DFFBFF",
     "#FFFFFF"
    ],
-   "cap_top_cells": 20,
-   "emblem": [
-    ".XXXX.",
-    "XX..XX",
-    "XXXXXX",
-    ".XXXX.",
-    "..XX..",
-    "......"
-   ]
+   "fuse_start_cells": [
+    -1,
+    22,
+    -1
+   ],
+   "fuse_pieces": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "fuse_piece_cells": 2
   },
   "brassBell": {
    "key": "brassBell",
@@ -269,11 +551,11 @@
    "face": {
     "centre_cells": [
      0,
-     9,
-     8
+     8,
+     10
     ],
-    "radius_cells": 4,
-    "rim_radius_cells": 5
+    "disc_cells": "8 across, round",
+    "size_m": 0.2
    },
    "digit": "#4A3312",
    "danger_digit": "#A3200F",
@@ -286,15 +568,62 @@
     "#FFD08A",
     "#FFF8DC"
    ],
-   "cap_top_cells": 22,
-   "emblem": [
-    "..XX..",
-    ".XXXX.",
-    ".XXXX.",
-    ".XXXX.",
-    "XXXXXX",
-    "..XX.."
-   ]
+   "fuse_start_cells": [
+    -1,
+    25,
+    -1
+   ],
+   "fuse_pieces": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "fuse_piece_cells": 2
   },
   "aurora": {
    "key": "aurora",
@@ -305,10 +634,10 @@
     "centre_cells": [
      0,
      10,
-     10
+     12
     ],
-    "radius_cells": 4,
-    "rim_radius_cells": 5
+    "disc_cells": "8 across, round",
+    "size_m": 0.2
    },
    "digit": "lit:#C8F5D6",
    "danger_digit": "lit:#FF9C8A",
@@ -321,15 +650,62 @@
     "#7BC48E",
     "#D6FFE4"
    ],
-   "cap_top_cells": 22,
-   "emblem": [
-    "..XX..",
-    "..XX..",
-    "XXXXXX",
-    ".XXXX.",
-    ".XXXX.",
-    "XX..XX"
-   ]
+   "fuse_start_cells": [
+    -1,
+    24,
+    -1
+   ],
+   "fuse_pieces": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "fuse_piece_cells": 2
   }
  }
 }

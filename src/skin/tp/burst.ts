@@ -33,6 +33,18 @@ function piecesOf(boxes: readonly Box[]): Box[][] {
   return [...groups.values()];
 }
 
+/**
+ * Where a piece stands on a display stand (VOXEL_GRAIN.md rule 8, T3 section 3): drawn in, never shrunk. Its middle
+ * moves to `spread` of its distance from the burst's upright axis and from its lowest piece, which sits `lift` above
+ * the stand; the piece keeps its full size.
+ */
+export function drawIn(key: string, spread: number, lift = 0.08): (p: readonly [number, number, number]) => [number, number, number] {
+  const data = BURSTS[key] ?? BURSTS.frost;
+  const low = Math.min(...data.boxes_at_fullest.map((b) => (b[1] as number) + (b[4] as number) / 2));
+  const half = Math.min(...data.boxes_at_fullest.map((b) => (b[4] as number) / 2));
+  return ([x, y, z]) => [x * spread, lift + half + (y - low) * spread, z * spread];
+}
+
 interface Piece { mesh: Group; home: [number, number, number]; i: number; n: number }
 export interface BurstObject {
   group: Group;
@@ -43,7 +55,8 @@ export interface BurstObject {
 
 const ease = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 
-export function makeBurst(key: string, o: { lit?: Material } = {}): BurstObject {
+/** `spread`: drawn in for a display stand (drawIn), pieces at full size; omitted, the burst as it plays in a game. */
+export function makeBurst(key: string, o: { lit?: Material; spread?: number } = {}): BurstObject {
   const data = BURSTS[key] ?? BURSTS.frost;
   const group = new Group();
   group.name = `burst_${key}`;
@@ -60,7 +73,7 @@ export function makeBurst(key: string, o: { lit?: Material } = {}): BurstObject 
     if (!lit.empty) g.add(new Mesh(lit.geometry(), o.lit ?? flatLit));
     if (!glow.empty) g.add(new Mesh(glow.geometry(), flatGlow));
     group.add(g);
-    return { mesh: g, home: c, i, n: all.length };
+    return { mesh: g, home: o.spread ? drawIn(key, o.spread)(c) : c, i, n: all.length };
   });
   const hold = HOLD[key] ?? 0;
 
@@ -74,7 +87,8 @@ export function makeBurst(key: string, o: { lit?: Material } = {}): BurstObject 
     const { mesh: m, home: [hx, hy, hz], i, n } = p;
     const out = ease(ms / OUT_MS);
     const ph = i / Math.max(1, n); // each piece's own beat, from its place in the list
-    let x = ORIGIN[0] + (hx - ORIGIN[0]) * out, y = ORIGIN[1] + (hy - ORIGIN[1]) * out, z = hz * out;
+    const [ox, oy] = o.spread ? drawIn(key, o.spread)([ORIGIN[0], ORIGIN[1], 0]) : ORIGIN;
+    let x = ox + (hx - ox) * out, y = oy + (hy - oy) * out, z = hz * out;
     let s = 0.3 + 0.7 * out, rx = 0, rz = 0;
     const after = Math.max(0, ms - OUT_MS - hold), span = TOTAL_MS - OUT_MS - hold, u = Math.min(1, after / span);
     switch (key) {

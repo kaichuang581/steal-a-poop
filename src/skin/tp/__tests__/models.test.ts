@@ -43,12 +43,12 @@ describe('the Trading Post and Practice models (X2 S1)', () => {
       e.forEach((v, k) => expect(Math.abs(v - size_m[k]), `${id} axis ${k}`).toBeLessThan(0.001));
     }
   });
-  it('every bomb has the parts of T2 and no others (detail only where the skin has one: Peppermint and the Brass Bell paint theirs on the shell)', () => {
-    const seven = ['cap', 'detail', 'emblem', 'face', 'fuse', 'shell', 'spark'];
+  it('every bomb has shell, face, cap, fuse and spark, plus detail where the skin has one, and no mark (T2, VOXEL_GRAIN.md)', () => {
+    const six = ['cap', 'detail', 'face', 'fuse', 'shell', 'spark'];
     for (const id of Object.keys(MODELS).filter((k) => k.startsWith('bomb_'))) {
       const parts = new Set(MODELS[id].boxes.map((b) => PARTS[b[7]]));
-      for (const p of parts) expect(seven, `${id} ${p}`).toContain(p);
-      for (const p of seven.filter((q) => q !== 'detail')) expect(parts.has(p), `${id} ${p}`).toBe(true);
+      for (const p of parts) expect(six, `${id} ${p}`).toContain(p);
+      for (const p of six.filter((q) => q !== 'detail')) expect(parts.has(p), `${id} ${p}`).toBe(true);
     }
   });
 });

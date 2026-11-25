@@ -10,7 +10,7 @@ import { makeBurst, BURST_OF } from '../burst';
 import type { BurstObject } from '../burst';
 import { MARKET } from '../market.gen';
 import type { ShiftView } from '../camera';
-import { buildRow, glowSprite, itemGroup, itemHeight, modelGroup, rowMaterials, STOP_X, STOPS, stopAt, tpPart } from './world';
+import { buildRow, glowSprite, itemGroup, itemHeight, modelGroup, rowMaterials, SPREAD, STOP_X, STOPS, stopAt, tpPart } from './world';
 import type { StopId } from './world';
 
 /**
@@ -147,8 +147,9 @@ export class MarketWorld {
     this.shelf.clear();
     this.shelfItems = items.map((item, i) => {
       const [x, y, z] = shelfPlace(i, items.length);
-      const s = item.kind === 'blast' ? 1.6 : 1;
-      const inner = itemGroup(item, this.itemMats), g = new Group(); g.add(inner);
+      // A burst here is drawn in at 67% over a stand 1.6 times as large, every piece its full size (VOXEL_GRAIN.md rule 8).
+      const s = 1;
+      const inner = itemGroup(item, this.itemMats, false, SPREAD.shelf), g = new Group(); g.add(inner);
       this.shelf.add(g);
       return { g, inner, item, x, y, z, s, at: -1e9 };
     });
@@ -203,25 +204,26 @@ export class MarketWorld {
   private revealSprite: ReturnType<typeof glowSprite> | null = null;
   endReveal(): void { this.reveal = null; this.revealItem?.removeFromParent(); this.revealItem = null; }
 
-  /** "See it lit": the bomb's face counts 9 to 0 with its fuse burning, once. */
+  /** "See it lit": the bomb's face counts 10 to 0 with its fuse burning, once. */
   seeLit(item: Item, now: number): void {
     const p = this.placeOf(item.id);
     if (!p) return;
     this.stopShow();
-    const bomb = makeBomb(SKIN_OF[item.id] ?? 'ice', { emblem: true, lit: this.focusMats.lit });
+    const bomb = makeBomb(SKIN_OF[item.id] ?? 'ice', { rest: true, lit: this.focusMats.lit });
     const holder = new Group(); holder.add(bomb.group);
     p.g.parent?.add(holder);
     this.lit = { bomb, at: now, holder };
   }
-  /** "Try it": the burst plays once, at the size it is shown. */
+  /** "Try it": the burst plays once, drawn in as it is shown (its pieces full size). */
   tryBurst(item: Item, now: number): void {
     const p = this.placeOf(item.id);
     if (!p) return;
     this.stopShow();
-    const burst = makeBurst(BURST_OF[item.id] ?? 'frost', { lit: this.focusMats.lit });
+    const spread = this.shelfItems.includes(p) ? SPREAD.shelf : SPREAD.bench;
+    const burst = makeBurst(BURST_OF[item.id] ?? 'frost', { lit: this.focusMats.lit, spread });
     const holder = new Group(); holder.add(burst.group);
-    holder.scale.setScalar(0.34 * p.s);
-    holder.position.set(p.x, p.y + 0.02, p.z + 0.05);
+    holder.scale.setScalar(p.s);
+    holder.position.set(p.x, p.y, p.z + 0.05);
     p.g.parent?.add(holder);
     this.tried = { burst, at: now, holder };
   }
@@ -287,10 +289,10 @@ export class MarketWorld {
     // The close view's shows.
     if (this.lit) {
       const p = this.placeOf(this.focus?.id ?? '');
-      const e = now - this.lit.at, sec = 9 - Math.floor(e / 1000);
+      const e = now - this.lit.at, sec = 10 - Math.floor(e / 1000); // T6: the face counts down from 10 to 0, once
       if (p) { this.lit.holder.position.set(p.x, p.y, p.z); this.lit.holder.scale.setScalar(p.s); this.lit.holder.rotation.y = p.g.rotation.y; }
       if (sec < 0) this.stopShow();
-      else { this.lit.bomb.setSeconds(sec, sec <= 3); this.lit.bomb.setFuse(1 - e / 10000); this.lit.bomb.setSpark(sec <= 3 ? 1.6 : 1); }
+      else { this.lit.bomb.setSeconds(sec, sec <= 3); this.lit.bomb.setFuse(1 - e / 11000); this.lit.bomb.setSpark(sec <= 3 ? 1.6 : 1); }
     }
     if (this.tried) {
       const e = now - this.tried.at;

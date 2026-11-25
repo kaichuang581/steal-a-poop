@@ -67,7 +67,7 @@ A paper tag hangs beside it (260 wide):
 - the name (Fraunces 800 22), its kind and rarity;
 - its one line (for bombs: the lines in `T2`);
 - where it comes from, if not found;
-- tiles: "Wear it" / "Wearing"; for a burst, "Try it" (plays it once); for a fuse sound, "Listen"; for a bomb, "See it lit" (the face swaps its mark for a count from 9 to 0 with the fuse burning, once).
+- tiles: "Wear it" / "Wearing"; for a burst, "Try it" (plays it once); for a fuse sound, "Listen"; for a bomb, "See it lit" (the face counts down from 10 to 0 with the fuse burning, once).
 Pressing outside, or Escape, steps back.
 
 ## 5. Phones

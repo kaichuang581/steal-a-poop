@@ -47,14 +47,54 @@ for e in idx:
     if e['group'] == 'bomb skin':
         ok(all(c.startswith(('#', 'lit:#')) for c in m['colours']), f"{m['id']}: skin colours only ({len(m['colours'])})", quiet=True)
         parts = {b['part'] for b in m['boxes']}
-        ok({'shell', 'face', 'emblem', 'cap', 'fuse', 'spark'} <= parts, f"{m['id']}: has shell, face, emblem, cap, fuse, spark")
-        ok(len({(b['b'][0], b['b'][1]) for b in m['boxes'] if b['part'] == 'fuse'}) >= 12, f"{m['id']}: a 12-piece fuse", quiet=True)
+        ok({'shell', 'face', 'cap', 'fuse', 'spark'} <= parts, f"{m['id']}: has shell, face, cap, fuse, spark")
+        fuse_cells = sum((b['b'][3] - b['b'][0]) * (b['b'][4] - b['b'][1]) * (b['b'][5] - b['b'][2]) for b in m['boxes'] if b['part'] == 'fuse')
+        ok(fuse_cells == 11 * 8 and 'spark' in parts, f"{m['id']}: a 12-piece fuse: 11 pieces of 2 x 2 x 2 cells and the burning tip ({fuse_cells // 8} + 1)", quiet=True)
     else:
         bad = [c for c in m['colours'] if not ladder_ok(c) and not (m['id'] == 'practiceCrate' and c.startswith('#'))]
         ok(not bad, f"{m['id']}: scenery colours are LADDER tokens or named glows {bad or ''}", quiet=True)
         mats = {c.split(':')[0] for c in m['colours'] if not c.startswith(('glow:', '#'))}
         ok(len(mats) <= 6 or m['id'] in ('feedStall', 'bellStand'), f"{m['id']}: {len(mats)} materials", quiet=True)
 print(f'      ({len(idx)} models checked for colours and parts)')
+
+# ---- one detail size (VOXEL_GRAIN.md) ----------------------------------------------------------------
+import grain_audit
+for e in idx:
+    m = json.load(open(os.path.join(D, e['file'])))
+    want = grain_audit.cell_for(m['id'])
+    ok(abs(m['cell_m'] - want) < 1e-9, f"{m['id']}: cell {m['cell_m']} m (its role's cell is {want})", quiet=True)
+    occ = grain_audit.voxels(m)
+    slabs = grain_audit.plain_regions(occ, m['cell_m'])
+    ok(not slabs, f"{m['id']}: no plain area holding a square over 0.4 m {slabs[:2] if slabs else ''}", quiet=True)
+    thin = grain_audit.thin_parts(m)
+    ok(not thin, f"{m['id']}: seen from the front, no part under 0.05 m (only the fuse's sparks are smaller) {thin[:3] if thin else ''}", quiet=True)
+print(f'      ({len(idx)} models checked for their cell, plain areas and the 0.05 m detail size)')
+
+def screen_px(cell, scale, A, z, cam=9.0):
+    return cell * scale * A * cam / (cam - z)
+
+mk = json.load(open(os.path.join(D, 'market.json')))
+rk = json.load(open(os.path.join(D, 'rink.json')))
+cells = {e['id']: e['cell_m'] for e in idx}
+grain_rows = []
+for it in mk['items']:
+    if it['model'] in cells and it['z'] > -4.5:
+        stop = min(mk['stops_x_m'], key=lambda k: abs(mk['stops_x_m'][k] - it['x']))
+        grain_rows.append((it['model'], screen_px(max(cells[it['model']], 0.05), it.get('scale', 1.0), mk['cameras'][stop]['A'], it['z'])))
+for sh in mk['shown']:
+    stop = min(mk['stops_x_m'], key=lambda k: abs(mk['stops_x_m'][k] - sh['x']))
+    cell = 0.05 if sh['kind'] == 'burst' else 0.05 * sh['scale']          # the detail size (0.05 m) on screen
+    grain_rows.append((sh['kind'] + ' ' + sh['key'], screen_px(cell, 1.0, mk['cameras'][stop]['A'], sh['z'])))
+for it in rk['items']:
+    if it['model'] in cells and it['z'] > -4.5:
+        grain_rows.append((it['model'], screen_px(max(cells[it['model']], 0.05), 1.0, 210.0, it['z'])))
+grain_rows.append(('the worn bomb (Practice)', screen_px(0.05, 1.0, 210.0, 0.35)))
+scales = [it.get('scale', 1.0) for it in mk['items'] if it['model'] in cells] + [sh['scale'] for sh in mk['shown'] if sh['kind'] != 'burst']
+ok(all(0.8 - 1e-9 <= s <= 1.0 + 1e-9 for s in scales), f'no model is shrunk below 0.8 or blown up past 1.0 (scales used: {sorted(set(scales))}); bursts are drawn in, never shrunk')
+lo, hi = min(r[1] for r in grain_rows), max(r[1] for r in grain_rows)
+ok(lo >= 6 and hi <= 15, f'one detail size on screen: every placed model\'s smallest part (0.05 m, or its cell where that is larger) is {lo:.1f} to {hi:.1f} px at 1440 x 900 (6 to 15)')
+for name, px in grain_rows:
+    ok(6 <= px <= 15, f'  {name}: {px:.1f} px', quiet=True)
 
 sk = json.load(open(os.path.join(D, 'skins.json')))['skins']
 for k, s in sk.items():
@@ -67,6 +107,8 @@ bj = json.load(open(os.path.join(D, 'bursts.json')))['bursts']
 ok(len(bj) == 10, 'ten bursts')
 for k, b in bj.items():
     ok(b['pieces'] <= 24 and len(b['colours']) <= 3, f"{b['name']}: {b['pieces']} pieces, {len(b['colours'])} colours (at most 24 and 3)")
+    bad = [p for p in bursts.pieces(k) if any(abs(s / 0.05 - round(s / 0.05)) > 1e-6 or s < 0.05 - 1e-9 for s in p[3:6])]
+    ok(not bad, f"{b['name']}: every box is whole 0.05 m cells" + (f" ({len(bad)} are not)" if bad else ''), quiet=True)
 
 cat = json.load(open(os.path.join(D, 'catalogue.json')))
 ok(sum(cat['odds'].values()) == 100, 'the odds add up to 100')

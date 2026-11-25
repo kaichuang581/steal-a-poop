@@ -84,7 +84,7 @@ def board(img, cam, count, letter, clock, best=None, flash=False, out=False, ste
 def face(img, cam, bx, bz, secs, danger=False):
     """The seconds on the bomb's face (the worn skin's own digit colour)."""
     d = ImageDraw.Draw(img)
-    x0, y0, x1, y1 = rect(cam, bx - 0.1, 0.15, bx + 0.1, 0.35, bz + 0.275)
+    x0, y0, x1, y1 = rect(cam, bx - 0.1, 0.15, bx + 0.1, 0.35, bz + 0.25)
     centred(d, (x0, y0 + 1, x1, y1), str(secs), F(FR, int((y1 - y0) * (0.74 if secs < 10 else 0.60))), SK['danger'] if danger else SK['digit'])
 
 

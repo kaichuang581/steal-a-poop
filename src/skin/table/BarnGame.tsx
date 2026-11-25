@@ -56,8 +56,8 @@ export function BarnGame({ reduced, phone, sleepy }: { reduced: boolean; phone: 
   useEffect(() => () => { mat.dispose(); }, [mat]);
   const platform = useMemo(() => platformGeometry(), []);
   const mound = useMemo(() => pileGeometry(pileWidth(6 + (turn % WORDS.length))), [turn]);
-  // The starter skin (docs/trading-post-practice/T2), its mark showing: nobody's seconds run in this game.
-  const ice = useMemo(() => makeBomb('ice', { emblem: true, lit: mat }), [mat]);
+  // The starter skin (docs/trading-post-practice/T2), its face showing 10: nobody's seconds run in this game.
+  const ice = useMemo(() => makeBomb('ice', { rest: true, lit: mat }), [mat]);
 
   // The bomb is tossed to the new speaker in an arc, as at the table.
   const bomb = useRef<Group>(null);

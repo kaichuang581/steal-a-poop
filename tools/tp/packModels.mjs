@@ -36,7 +36,9 @@ export function renderAll() {
   const rows = { core: [], market: [], rink: [] };
   for (const entry of [...index].sort((a, b) => a.id.localeCompare(b.id))) {
     const m = read(entry.file);
-    const boxes = m.boxes.map((b) => row([...b.b, ci(b.c), pi(b.part), b.season ? 1 : 0])).join(',');
+    // Where two boxes overlap the later one wins (VOXEL_GRAIN.md rule 9); the mesher keeps the first box to claim a
+    // cell, so the boxes are written last first.
+    const boxes = [...m.boxes].reverse().map((b) => row([...b.b, ci(b.c), pi(b.part), b.season ? 1 : 0])).join(',');
     const lights = (m.lights ?? []).map((l) => row([...l.at, ci(l.c), l.radius_m, l.strength])).join(',');
     rows[where(m.id)].push(`  ${JSON.stringify(m.id)}: { cell: ${num(m.cell_m)}, size: ${row(m.size_m)}, bounds: ${row(m.bounds_cells)}, lights: [${lights}], boxes: [${boxes}] },`);
   }
@@ -51,12 +53,11 @@ export function renderAll() {
     `export const GLOW: Record<string, string> = ${JSON.stringify(glow)};`,
     '/** A model: its cell and size in metres, its bounds in cells, its glows [x, y, z, colour, radius_m, strength], its boxes [x0, y0, z0, x1, y1, z1, colour, part, season]. */',
     'export interface ModelData { cell: number; size: readonly number[]; bounds: readonly number[]; lights: readonly (readonly number[])[]; boxes: readonly (readonly number[])[] }',
-    '/** A bomb skin (T2): where its face is, its digit, danger and face colours, its fuse and spark, its cap and maker\'s mark. */',
-    'export interface SkinData { key: string; name: string; source: string; line: string; face: { centre_cells: readonly number[]; radius_cells: number; rim_radius_cells: number }; digit: string; danger_digit: string; face_colour: string; fuse: readonly string[]; spark: readonly string[]; cap_top_cells: number; emblem: readonly string[] }',
+    '/** A bomb skin (T2, VOXEL_GRAIN.md): its face (middle in cells, size in metres), digit, danger and face colours, its fuse (first piece\'s corner in cells, the 12 pieces in 2-cell steps) and spark. */',
+    'export interface SkinData { key: string; name: string; source: string; line: string; face: { centre_cells: readonly number[]; size_m: number; disc_cells?: string }; digit: string; danger_digit: string; face_colour: string; fuse: readonly string[]; spark: readonly string[]; fuse_start_cells: readonly number[]; fuse_pieces: readonly (readonly number[])[]; fuse_piece_cells: number }',
     '/** A burst (T3) at its fullest: boxes [x, y, z, w, h, d, colour key, lit] in metres from the bomb\'s spot. */',
     'export interface BurstData { name: string; colours: Record<string, string>; pieces: number; move: string; sound?: string; boxes_at_fullest: readonly (readonly [number, number, number, number, number, number, string, boolean])[] }',
     'export const MODELS: Record<string, ModelData> = {', ...rows.core, '};',
-    `export const FUSE_STEPS: readonly (readonly [number, number])[] = ${JSON.stringify(skins.fuse_path_steps)};`,
     `export const SKINS: Record<string, SkinData> = ${JSON.stringify(skins.skins)};`,
     `export const BURST_COLOURS: Record<string, string> = ${JSON.stringify(bursts.all_colours)};`,
     `export const BURSTS: Record<string, BurstData> = ${JSON.stringify(bursts.bursts)};`,

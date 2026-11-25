@@ -8,11 +8,11 @@
    "what": "Ice: The classic frozen bomb.",
    "cell_m": 0.025,
    "size_m": [
-    0.575,
-    0.775,
-    0.5
+    0.6,
+    0.8,
+    0.55
    ],
-   "boxes": 515
+   "boxes": 494
   },
   {
    "id": "bomb_ember",
@@ -21,11 +21,11 @@
    "what": "Ember: Banked coals in an iron shell.",
    "cell_m": 0.025,
    "size_m": [
-    0.575,
-    0.775,
-    0.5
+    0.6,
+    0.8,
+    0.55
    ],
-   "boxes": 548
+   "boxes": 551
   },
   {
    "id": "bomb_peppermint",
@@ -34,11 +34,11 @@
    "what": "Peppermint: A boiled sweet with a short temper.",
    "cell_m": 0.025,
    "size_m": [
-    0.575,
-    0.775,
-    0.5
+    0.6,
+    0.8,
+    0.55
    ],
-   "boxes": 519
+   "boxes": 487
   },
   {
    "id": "bomb_plum",
@@ -47,11 +47,11 @@
    "what": "Plum: Ripe, with a leaf still on.",
    "cell_m": 0.025,
    "size_m": [
-    0.575,
-    0.775,
-    0.5
+    0.6,
+    0.8,
+    0.55
    ],
-   "boxes": 463
+   "boxes": 441
   },
   {
    "id": "bomb_gold",
@@ -60,11 +60,11 @@
    "what": "Gold: Polished. Heavier than it looks.",
    "cell_m": 0.025,
    "size_m": [
-    0.575,
-    0.775,
-    0.5
+    0.6,
+    0.8,
+    0.55
    ],
-   "boxes": 511
+   "boxes": 515
   },
   {
    "id": "bomb_diamond",
@@ -73,11 +73,11 @@
    "what": "Diamond: Cut, not round. Every face catches light.",
    "cell_m": 0.025,
    "size_m": [
-    0.575,
-    0.725,
-    0.5
+    0.6,
+    0.75,
+    0.55
    ],
-   "boxes": 530
+   "boxes": 519
   },
   {
    "id": "bomb_brassBell",
@@ -86,11 +86,11 @@
    "what": "Brass Bell: Rings once. Loudly.",
    "cell_m": 0.025,
    "size_m": [
-    0.575,
-    0.775,
+    0.6,
+    0.825,
     0.5
    ],
-   "boxes": 398
+   "boxes": 383
   },
   {
    "id": "bomb_aurora",
@@ -99,11 +99,11 @@
    "what": "Aurora: A piece of the night sky.",
    "cell_m": 0.025,
    "size_m": [
-    0.575,
-    0.775,
-    0.5
+    0.6,
+    0.8,
+    0.55
    ],
-   "boxes": 572
+   "boxes": 542
   },
   {
    "id": "sound_iceChime",
@@ -112,11 +112,11 @@
    "what": "Ice chime",
    "cell_m": 0.025,
    "size_m": [
-    0.45,
-    0.525,
-    0.15
+    0.6,
+    0.65,
+    0.2
    ],
-   "boxes": 19
+   "boxes": 20
   },
   {
    "id": "sound_eightBit",
@@ -125,11 +125,11 @@
    "what": "8-bit",
    "cell_m": 0.025,
    "size_m": [
-    0.3,
-    0.475,
-    0.125
+    0.5,
+    0.6,
+    0.2
    ],
-   "boxes": 15
+   "boxes": 14
   },
   {
    "id": "sound_woodBlock",
@@ -139,8 +139,8 @@
    "cell_m": 0.025,
    "size_m": [
     0.4,
-    0.25,
-    0.225
+    0.3,
+    0.2
    ],
    "boxes": 8
   },
@@ -151,11 +151,11 @@
    "what": "Cowbell",
    "cell_m": 0.025,
    "size_m": [
-    0.3,
-    0.5,
-    0.175
+    0.35,
+    0.65,
+    0.25
    ],
-   "boxes": 20
+   "boxes": 84
   },
   {
    "id": "sound_sleighBells",
@@ -164,11 +164,11 @@
    "what": "Sleigh bells",
    "cell_m": 0.025,
    "size_m": [
-    0.55,
-    0.35,
-    0.125
+    0.75,
+    0.5,
+    0.15
    ],
-   "boxes": 22
+   "boxes": 113
   },
   {
    "id": "sound_musicBox",
@@ -178,10 +178,10 @@
    "cell_m": 0.025,
    "size_m": [
     0.5,
-    0.4,
-    0.275
+    0.45,
+    0.35
    ],
-   "boxes": 14
+   "boxes": 12
   },
   {
    "id": "sound_owl",
@@ -190,11 +190,11 @@
    "what": "Owl",
    "cell_m": 0.025,
    "size_m": [
-    0.5,
-    0.475,
+    0.6,
+    0.65,
     0.2
    ],
-   "boxes": 27
+   "boxes": 165
   },
   {
    "id": "sound_lullaby",
@@ -203,11 +203,11 @@
    "what": "Lullaby",
    "cell_m": 0.025,
    "size_m": [
-    0.45,
     0.55,
-    0.15
+    0.65,
+    0.1
    ],
-   "boxes": 33
+   "boxes": 59
   },
   {
    "id": "feedStall",
@@ -220,7 +220,7 @@
     3.05,
     2.45
    ],
-   "boxes": 200
+   "boxes": 209
   },
   {
    "id": "sampleBench",
@@ -233,7 +233,7 @@
     0.35,
     0.6
    ],
-   "boxes": 7
+   "boxes": 10
   },
   {
    "id": "oddsBoard",
@@ -252,14 +252,14 @@
    "id": "barrel",
    "file": "models/barrel.json",
    "group": "trading post",
-   "what": "A barrel at the stall end",
+   "what": "A barrel at the stall end: staves two cells wide in turn, two iron hoops",
    "cell_m": 0.05,
    "size_m": [
     0.7,
     0.85,
     0.7
    ],
-   "boxes": 18
+   "boxes": 167
   },
   {
    "id": "stallLantern",
@@ -279,13 +279,13 @@
    "file": "models/bigBell.json",
    "group": "trading post",
    "what": "The big brass bell that hangs at the Bell Shelf",
-   "cell_m": 0.04,
+   "cell_m": 0.05,
    "size_m": [
     0.8,
-    1.08,
+    1.1,
     0.8
    ],
-   "boxes": 299
+   "boxes": 212
   },
   {
    "id": "bellStand",
@@ -298,7 +298,7 @@
     3.05,
     2.15
    ],
-   "boxes": 87
+   "boxes": 121
   },
   {
    "id": "noticeBoard",
@@ -322,9 +322,9 @@
    "size_m": [
     4.1,
     2.95,
-    0.9
+    0.95
    ],
-   "boxes": 29
+   "boxes": 33
   },
   {
    "id": "barnBook10",
@@ -335,9 +335,9 @@
    "size_m": [
     4.1,
     2.95,
-    0.9
+    0.95
    ],
-   "boxes": 33
+   "boxes": 37
   },
   {
    "id": "rowPost",
@@ -402,7 +402,7 @@
     0.35,
     0.6
    ],
-   "boxes": 14
+   "boxes": 16
   },
   {
    "id": "sackCrate_brass",
@@ -415,7 +415,7 @@
     0.35,
     0.6
    ],
-   "boxes": 14
+   "boxes": 16
   },
   {
    "id": "sackCrate_wood",
@@ -428,7 +428,7 @@
     0.35,
     0.6
    ],
-   "boxes": 14
+   "boxes": 16
   },
   {
    "id": "rinkBoards",
@@ -506,7 +506,7 @@
     2.5,
     0.8
    ],
-   "boxes": 19
+   "boxes": 26
   },
   {
    "id": "tileRack",
@@ -529,10 +529,10 @@
    "cell_m": 0.05,
    "size_m": [
     1.5,
-    1.6,
+    1.7,
     0.9
    ],
-   "boxes": 20
+   "boxes": 22
   },
   {
    "id": "practiceCrate",
@@ -545,20 +545,20 @@
     0.85,
     0.7
    ],
-   "boxes": 28
+   "boxes": 34
   },
   {
    "id": "whistle",
    "file": "models/whistle.json",
    "group": "practice",
-   "what": "The coach's whistle on its cord: an accessory for the sheepdog",
-   "cell_m": 0.025,
+   "what": "The coach's whistle on its cord: an accessory for the sheepdog, on the animals' 0.04 m grid",
+   "cell_m": 0.04,
    "size_m": [
-    0.275,
-    0.25,
-    0.05
+    0.28,
+    0.24,
+    0.08
    ],
-   "boxes": 9
+   "boxes": 6
   },
   {
    "id": "bibEasy",
@@ -571,7 +571,7 @@
     0.56,
     0.68
    ],
-   "boxes": 20
+   "boxes": 24
   },
   {
    "id": "bibMedium",
@@ -584,7 +584,7 @@
     0.56,
     0.68
    ],
-   "boxes": 23
+   "boxes": 27
   },
   {
    "id": "bibHard",
@@ -597,7 +597,7 @@
     0.56,
     0.68
    ],
-   "boxes": 25
+   "boxes": 29
   },
   {
    "id": "lightPost",

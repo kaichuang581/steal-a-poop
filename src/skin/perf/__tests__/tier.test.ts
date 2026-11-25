@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  applyPendingTier, createSlowWatch, createTierJudge, exemptShot, FAIL_MS, getTier, pendingTier, proposeTier,
+  applyPendingTier, createSlowWatch, readRemembered, createTierJudge, exemptShot, FAIL_MS, getTier, pendingTier, proposeTier,
   resetTierForTests, resetTierRulesForTests, setExemptShot,
 } from '../tier';
 import type { FrameSample, Tier } from '../tier';
@@ -116,5 +116,20 @@ describe('the failure card', () => {
     expect(run(125, 8, w)).toBe(false);
     w.frame(5000);
     expect(run(125, 8, w)).toBe(false);
+  });
+});
+
+describe('A remembered tier', () => {
+  const DAY = 86_400_000;
+  it('keeps Low for a week, then forgets it', () => {
+    expect(readRemembered(`low@${10 * DAY}`, 12 * DAY)).toBe('low');
+    expect(readRemembered(`low@${10 * DAY}`, 18 * DAY)).toBeNull();
+    expect(readRemembered('low', 12 * DAY)).toBeNull();
+  });
+  it('reads High with or without a time, and nothing else', () => {
+    expect(readRemembered('high')).toBe('high');
+    expect(readRemembered('high@5')).toBe('high');
+    expect(readRemembered('fast')).toBeNull();
+    expect(readRemembered(null)).toBeNull();
   });
 });

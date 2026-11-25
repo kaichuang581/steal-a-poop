@@ -2,7 +2,7 @@ import { Canvas, addAfterEffect, invalidate, useFrame, useStore, useThree } from
 import type { CanvasProps } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ACESFilmicToneMapping, Color, FogExp2, HalfFloatType, NeutralToneMapping, PCFShadowMap, Vector2, WebGLRenderTarget } from 'three';
-import type { DirectionalLight, HemisphereLight, PointLight, ToneMapping } from 'three';
+import type { Camera, DirectionalLight, HemisphereLight, Material, Object3D, PointLight, ToneMapping, WebGLRenderer } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -456,6 +456,7 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
     if (home && !exempt && !LOOK.tilt) want.tiltShift = false; // ?tilt=0 (look.ts): off but on the wendigo's shot
     const key = `${want.bloomMaxW}|${want.tiltShift}`;
     if (key !== plan.current) { plan.current = key; fit(want.bloomMaxW, want.tiltShift); }
+    if (holdForShaders(gl, scene, camera)) return;
     gl.info.reset();
     composer.render();
   }, 1);
@@ -465,6 +466,47 @@ export function Effects({ tiltShift = 0, home = false }: { tiltShift?: number; h
 /** The camera's horizontal heading (0 = looking toward +z) from a position and a target. */
 export function yawToward(from: readonly number[], to: readonly number[]): number {
   return Math.atan2(to[0] - from[0], to[2] - from[2]);
+}
+
+/**
+ * Shaders compiled off the page's thread (Brian, 2026-11-25: "optimize completely"). The first picture with a material
+ * three has not compiled yet used to wait for the graphics driver on the page's thread: opening Counting Sheep froze
+ * the page about 1.8 s on a fast Mac, Home about 0.3 s, and a weak laptop many times that. Now a scene with unseen
+ * materials is handed to three's compileAsync (the browser's parallel compile) and the canvas keeps its last picture
+ * until they are ready, then draws. Without the browser's KHR_parallel_shader_compile nothing changes.
+ */
+const warmingFor = new WeakMap<WebGLRenderer, boolean>();
+const WARM_MAX_MS = 4000;
+export const warming = (gl: WebGLRenderer): boolean => warmingFor.get(gl) === true;
+function unseenMaterial(gl: WebGLRenderer, scene: Object3D): boolean {
+  let found = false;
+  scene.traverseVisible((o) => {
+    const m = (o as Object3D & { material?: Material | Material[] }).material;
+    if (found || !m) return;
+    for (const x of Array.isArray(m) ? m : [m]) if (x.visible && !(gl.properties.get(x) as { programs?: unknown }).programs) found = true;
+  });
+  return found;
+}
+/** True when this frame must not draw: its shaders are compiling (started here when an unseen material is found). */
+export function holdForShaders(gl: WebGLRenderer, scene: Object3D, camera: Camera): boolean {
+  if (warmingFor.get(gl)) return true;
+  if (!gl.extensions.has('KHR_parallel_shader_compile') || !unseenMaterial(gl, scene)) return false;
+  warmingFor.set(gl, true);
+  // At most WARM_MAX_MS: a context lost mid-compile never reports its programs ready, and then a frozen picture would stay.
+  Promise.race([gl.compileAsync(scene, camera), new Promise((ok) => setTimeout(ok, WARM_MAX_MS))])
+    .catch(() => {})
+    .finally(() => { warmingFor.set(gl, false); invalidateFor.get(gl)?.(); });
+  return true;
+}
+const invalidateFor = new WeakMap<WebGLRenderer, () => void>();
+/** Every scene drawn on this renderer goes through holdForShaders. Bare meshes (a composer pass's quad) are not held. */
+function compileAhead(gl: WebGLRenderer, again: () => void): void {
+  invalidateFor.set(gl, again);
+  const render = gl.render.bind(gl);
+  gl.render = (scene, camera) => {
+    if ((scene as { isScene?: boolean }).isScene && holdForShaders(gl, scene, camera)) return;
+    render(scene, camera);
+  };
 }
 
 /**
@@ -478,6 +520,7 @@ export function MarkDrawn() {
   const frames = useRef(0);
   useFrame((state) => {
     if (frames.current >= DRAWN_AFTER) return;
+    if (warming(gl)) { frames.current = 0; return; } // nothing is drawn while shaders compile: the count starts after
     if (++frames.current === DRAWN_AFTER) gl.domElement.setAttribute('data-drawn', '');
     else state.invalidate();
   });
@@ -779,6 +822,7 @@ export function AdaptiveCanvas({ maxDpr, minDpr = 0.75, memory, fps, judgeTier =
   // costs, and its WebGL context being taken away (asked back with preventDefault) or given back. What the player sees
   // then, "Redrawing the farm..." or the card, is SceneBoundary's, which stands round this canvas.
   const onCreated: CanvasProps['onCreated'] = (root) => {
+    compileAhead(root.gl, () => root.invalidate());
     watchScene(memory, root.gl, addAfterEffect);
     given.onCreated?.(root);
   };

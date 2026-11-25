@@ -2766,3 +2766,23 @@ The pack's stops for Brian (V1 to V7) were not kept, by his standing "do all of 
   kept, not two at a time. Low tier cuts follow each world's section 9.
 - Pack checks not run: the recorded night replayed to the millisecond, the flash test, the light targets beyond the
   track's top, the harshness measure (tools/depth/measure.py), the style lint as a test, the 3x detail sheet.
+
+## Optimization pass (Brian, 2026-11-25: "optimize completely and then we'll deploy site")
+Measured first on the production build, real graphics chip, 1440 x 900 at 2x (scratch scripts, not kept): every 3D
+screen already held its 60-a-second cap but Home on Medium (about 48); the cost players feel was freezes while a
+screen opens. Changed, nothing visible:
+- A device that fell to Low starts on Low for LOW_KEPT_DAYS (7) (perf/tier.ts `readRemembered`; sap:gfx is now
+  `tier@time`, an old plain value still reads). Before, every visit started on Medium and lagged until it fell again.
+- Shaders compile off the page's thread (Rendering.tsx `holdForShaders`, `compileAhead`): a scene with a material
+  three has not compiled is given to compileAsync and the canvas keeps its last picture until it is ready (at most
+  4 s), then draws. MarkDrawn counts only frames drawn after. Opening Counting Sheep waited ~1.8 s on the driver
+  under load, Home ~0.3 s; both now nearly nothing. Needs KHR_parallel_shader_compile, else nothing changes.
+- The house mesher answers "is a voxel there" from a bit grid over the model's box (voxel/mesher.ts `solidOf`, a
+  Set when the box is too sparse) and makes no arrays per face: identical geometry (checked model by model on the
+  barn, farmstead, distance and sheep), meshing on Home's load about 1.4 s to 0.6 s. The dream's models.ts skips
+  empty cells before making anything (identical, 20% faster).
+- public/boot-check.js probes WebGL only when it shows a card (it made a context on every visit, ~70 ms).
+- Frozen time while opening, before and after: Home 2.4 s to 1.8, the table 0.27 to 0.19, practice 0.25 to 0.12,
+  Counting Sheep 0.63 to 0.40. Left: the Grid's string keys (primitives.ts, read by a dozen files), the first
+  AudioContext on the first click (~0.1 to 0.2 s, must be in that click), the 0.6 s build of the dream's first world
+  under its loading screen, and the 2.3 MB of JavaScript parsed at load.

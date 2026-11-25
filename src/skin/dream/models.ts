@@ -76,6 +76,7 @@ function build(m: ModelData, colours: readonly string[], glow: Record<string, st
   const n = [bx1 - bx0, by1 - by0, bz1 - bz0];
   const grid = new Int16Array(n[0] * n[1] * n[2]);
   const at = (x: number, y: number, z: number) => (x * n[1] + y) * n[2] + z;
+  const stride = [n[1] * n[2], n[2], 1];
   let cells = 0;
   for (const b of m.boxes) {
     const [x0, y0, z0, x1, y1, z1, c, part, season] = b;
@@ -102,19 +103,21 @@ function build(m: ModelData, colours: readonly string[], glow: Record<string, st
     const na = n[f.t1], nb = n[f.t2];
     const mask = new Int32Array(na * nb);
     const aoOf = new Uint8Array(na * nb * 4);
+    const corners = cornersFor(f.axis, f.sign);
     for (let layer = 0; layer < n[f.axis]; layer++) {
       mask.fill(0);
       for (let a = 0; a < na; a++)
         for (let b = 0; b < nb; b++) {
+          // Most of the grid is empty: look before making anything.
+          const v = grid[layer * stride[f.axis] + a * stride[f.t1] + b * stride[f.t2]];
+          if (!v) continue;
           const P = [0, 0, 0];
           P[f.axis] = layer; P[f.t1] = a; P[f.t2] = b;
-          const v = grid[at(P[0], P[1], P[2])];
-          if (!v) continue;
           const out = [...P]; out[f.axis] += f.sign;
           if (filled(out)) continue;
           const glowing = isGlow(colours[v - 1]);
           const aos = [0, 0, 0, 0];
-          if (!glowing && o.ao !== false) cornersFor(f.axis, f.sign).forEach(([u, w], k) => {
+          if (!glowing && o.ao !== false) corners.forEach(([u, w], k) => {
             const d1 = u ? 1 : -1, d2 = w ? 1 : -1;
             const s1 = [...out]; s1[f.t1] += d1;
             const s2 = [...out]; s2[f.t2] += d2;

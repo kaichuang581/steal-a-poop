@@ -2815,6 +2815,27 @@ from its JSON; nothing random in a model, pattern or effect; the data wins over 
   The size budget went up 11,000 for it. The Barn Book's names stay on one line on the 10-item pages, and in a
   window under 820 px tall the 8-item pages show the rarity's square and a short source (Oat Sack, Bell Shelf,
   Mission) on one line, or the labels ran into the cards below.
+- The market, pass 2 (2026-11-25, Brian: "a tad bit too high voxelrate", signs "poorly made", "weird blank cards", then
+  "literally just putting a bunch of squares on top of each other ... the entire market"). Rules for any change there:
+  - Its interface is the game's kit, never its own paper rectangles: the leaderboards' bar on top (`tp-bar hm rc
+    rc-bar`: title tag, slab tabs, Home's coin slabs, a close slab, Lights), Home's night bar at the foot, ink labels
+    with wool words in the scene (`.tp-tag`; the picked one in lantern), slabs for buttons (`.tp-btn`), ink cards for
+    notes, lantern-filled wells for meters. The Barn Book's own words stay ink on its paper pages.
+  - Inside `.tp` the size unit `--u` is a plain number; inside `.hm` (the bar and the foot) it is a length. Do not mix.
+  - The packer's `restyle()` repaints the pack's models without touching its data: a stall's sign is its fascia (a
+    board post to post in the awning's colour); sack patches are burlap; the notice board and the odds board are night
+    boards; no pins. `coarsenBomb()` packs the bombs 16 cubes across (cell 0.03125 m), the fuse relaid in the new cube.
+  - Sack names are one-line labels on their crates. Bell Shelf: no "More on the way", the price inside the item's label.
+- The snowy boards (2026-11-25, Brian: "all that snowy blue ui is meant to look similar ... remake the ui to look
+  better and more cohesive"): every one is kit/modern's `Dialog` or built from its parts: `Ribbon` (the lantern title
+  tag, with an icon), `IconTile`, `Group`, `Row` (icon, name, a line saying what it does, the control), the wide switch
+  with a tick, the lantern slider, `md-pop` for a board that drops from a button. No dialog is cream paper or a brown
+  frame any more (Feedback, Admin, legal, and the account form through CSS on `.classic-panel`). `md-legacy` on a
+  dialog redraws old kit pieces inside it. No text under 12 px on a board; no middle dots (commas).
+- Eyes (2026-11-25, Brian: "fix the eye issue again ... make a permanent fix", then "why do all of em have 4 eyes"):
+  one cube an eye, at the head's front corner (`front` in each species' `smallEyes` is its head's outer column; the
+  horse's is `proud`, a cube out from its long head's side), pale where it sits on a dark patch. Never a second cube
+  round the corner. voxel/__tests__/eyesSeen.test.ts checks every animal from the front, both sides and 45 degrees.
 - Depth offsets (2026-11-25, Brian: flicker "especially on the barn"): `voxelMaterial({ layer })` and the animals'
   face layers use a fixed polygon offset (units) only. Never a slope factor: it pulls faces seen edge-on through
   whatever is in front of them, as blinking hairlines.

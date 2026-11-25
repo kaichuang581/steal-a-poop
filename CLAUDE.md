@@ -2792,3 +2792,7 @@ screen opens. Changed, nothing visible:
   uneven puffs (PUFF_SIZES) along the top and sides, small round corners (the chip and the counter sit near them), and
   wide circles along the bottom that dip at most CORNER_H (12 px, where the room's canvas stands behind) and shape only
   the bottom band. Same rim, shade and clip as before; frame.test.ts checks the cloud's rules on every screen size.
+- The farmer, closer to the sheet (2026-11-25, while making his model page): the cap's tail and pom hang back-left
+  (z -13.5 to -7.5, pivot z -10), so they show behind his head from either side as on the sheet; and a jaw beard
+  either side (x +-8.5 to 9.5, y 58 to 64, z 1.5 to 9.5), where the model showed bare cheek. farmerBoxes.ts and the
+  pack's docs/dream/data/farmer.boxes.json changed together (108 boxes); the outline match stays 0.913 front, 0.904 back.

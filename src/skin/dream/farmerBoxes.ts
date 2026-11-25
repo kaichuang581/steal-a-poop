@@ -96,6 +96,9 @@ export const FARMER_BOXES: readonly FarmerBox[] = [
   ['head', '#B9B2A6', 6.5, 8.5, 62, 73, 8.5, 9.5], // sideburn (his left)
   ['head', '#B9B2A6', -8.5, -6.5, 62, 73, 8.5, 9.5], // sideburn (his right)
   ['head', '#B9B2A6', -4.5, 4.5, 62, 64, 8.5, 9.5], // moustache
+  // The beard runs along his jaw to just before each ear, as the sheet's side views show (no bare cheek under the hair).
+  ['head', '#B9B2A6', 8.5, 9.5, 58, 64, 1.5, 9.5], // jaw beard (his left)
+  ['head', '#B9B2A6', -9.5, -8.5, 58, 64, 1.5, 9.5], // jaw beard (his right)
   ['head', '#A69E92', -3.5, 3.5, 60, 61, 10.5, 10.7], // beard shade row
   ['head', '#6A5142', -1.5, 1.5, 61, 62, 10.5, 10.8], // mouth
   ['head', '#B9B2A6', -6.5, 6.5, 56, 58, 3.5, 10.5], // beard under the chin
@@ -106,8 +109,9 @@ export const FARMER_BOXES: readonly FarmerBox[] = [
   ['cap', '#E1DAD0', -8.5, 8.5, 78, 80, -8.5, 8.5], // dome 2
   ['cap', '#E1DAD0', -7.5, 7.5, 80, 82, -7.5, 7.5], // dome 3
   ['cap', '#E1DAD0', -5.5, 5.5, 82, 84, -5.5, 5.5], // dome 4
-  ['capTail', '#E1DAD0', 9.5, 12.5, 75, 79, -1.5, 1.5], // tail root
-  ['capTail', '#E1DAD0', 9.5, 12.5, 65, 75, -1.5, 1.5], // tail
-  ['capTail', '#B5594C', 9.5, 12.5, 64, 65, -1.5, 1.5], // tail ring
-  ['capTail', '#E9E3DA', 8.5, 13.5, 59, 64, -2.5, 2.5], // pom-pom
+  // The tail hangs back as well as to his left (Brian's sheet, 2026-11-25): its pom shows behind his head from either side.
+  ['capTail', '#E1DAD0', 9.5, 12.5, 75, 79, -12.5, -7.5], // tail root
+  ['capTail', '#E1DAD0', 9.5, 12.5, 65, 75, -13.5, -10.5], // tail
+  ['capTail', '#B5594C', 9.5, 12.5, 64, 65, -13.5, -10.5], // tail ring
+  ['capTail', '#E9E3DA', 8.5, 13.5, 59, 64, -14.5, -9.5], // pom-pom
 ];

@@ -13,7 +13,7 @@ const hex = (c: readonly number[]) => c.map((v) => v.toFixed(3)).join(',');
 describe('the farmer, box by box', () => {
   it('is the plan\'s data file, unchanged', () => {
     const data = JSON.parse(readFileSync('docs/dream/data/farmer.boxes.json', 'utf8')) as { boxes: { part: string; colour: string; x0: number; x1: number; y0: number; y1: number; z0: number; z1: number }[] };
-    expect(FARMER_BOXES).toHaveLength(106);
+    expect(FARMER_BOXES).toHaveLength(108); // 106, plus the jaw beard either side (2026-11-25)
     expect(FARMER_BOXES.map((b) => [...b])).toEqual(data.boxes.map((b) => [b.part, b.colour, b.x0, b.x1, b.y0, b.y1, b.z0, b.z1]));
   });
 

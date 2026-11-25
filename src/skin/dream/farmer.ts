@@ -48,7 +48,7 @@ export const PIVOT: Record<Piece, readonly [number, number, number]> = {
   torso: [0, WAIST, -6.5], // the small of his back
   head: [0, 57, 0], // the base of his neck
   cap: [0, 74, 0],
-  capTail: [11, 78, 0], // where the tail leaves the cap, on his left
+  capTail: [11, 78, -10], // where the tail leaves the cap, on his left toward the back
   armL: [13.5, 53, -0.5], armR: [-13.5, 53, -0.5],
   foreL: [15.5, ELBOW, 0], foreR: [-15.5, ELBOW, 0],
   handL: [15.5, 30.5, 0], handR: [-15.5, 30.5, 0],

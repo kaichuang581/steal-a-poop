@@ -1,355 +1,148 @@
 /*
- * The Trading Post's interface pieces (docs/trading-post-practice/T7): paper tags on red yarn, wool tiles, lantern
- * tiles, chalk on the boards, the knitted level strip. Sizes are px at 1440 x 900, times --u. Fraunces 800 for names,
- * numbers and buttons; Nunito 800 for small labels (700 for the footer). Corners are stepped, never rounded.
+ * The Trading Post's screen: the layer over the scene and each stop's signs. The art is signs.css and art.ts: every
+ * tag, button, note and list here is one of its boards (cut in nine, one ink outline, lit from the top left), sized in
+ * whole art pixels (--p). Type is px times --u: Fraunces 800 for names, numbers and buttons, Nunito for the rest, and
+ * nothing under 12 px.
  */
-.tp {
-  --step: polygon(4px 0, calc(100% - 4px) 0, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px), 0 4px, 2px 4px, 2px 2px, 4px 2px);
-  position: fixed; inset: 0; z-index: 45; overflow: hidden; color: var(--tp-ink);
-  font-family: var(--skin-font-body); font-weight: 800; animation: tp-in 200ms ease-out both;
-}
+.tp { position: fixed; inset: 0; z-index: 45; overflow: hidden; color: var(--mk-ink); font-family: var(--skin-font-body); font-weight: 800; animation: tp-in 200ms ease-out both; }
 @keyframes tp-in { from { opacity: 0; } }
-.tp :is(h2, h3, h4, p, ul) { margin: 0; }
+.tp :is(h1, h2, h3, h4, p, ul) { margin: 0; }
 .tp b, .tp h2, .tp h3, .tp h4 { font-family: var(--skin-font-display); font-weight: 800; }
 .tp-sky { position: absolute; inset: 0; background: var(--horizon); }
-.tp-sky i { position: absolute; background: var(--paper); }
 .tp-canvas { position: absolute !important; inset: 0; }
 .tp-layer { position: absolute; inset: 0; pointer-events: none; }
 .tp-layer > *, .tp-layer > span > *, .tp-layer > div > span > * { pointer-events: auto; }
 .tp-at { position: absolute; left: 0; top: 0; will-change: transform; }
 .tp-icon { display: inline-block; vertical-align: middle; flex: none; }
 .tp button { font: inherit; color: inherit; cursor: pointer; }
-.tp button:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
+.tp button:focus-visible { outline: calc(2 * var(--p)) solid var(--t-lantern-hi); outline-offset: var(--p); }
+:where(.tp) small { font-size: max(12px, 0.8em); }
+.tp[data-reduced] *, .tp[data-reduced] { animation: none !important; transition: none !important; }
 
 /* Buttons laid over a model: as big as its box, clear. */
 .tp-hit { background: none; border: 0; padding: 0; min-width: 44px; min-height: 44px; }
 
-/* The paper tag: hangs on a 2 px yarn string from the point its anchor projects. */
+/* A sign hung at a point of the scene: centred on it, below it (`--free`: above it; `--plaque`: on it). */
 .tp-hang { display: flex; flex-direction: column; align-items: center; width: 0; }
 .tp-hang > * { position: relative; flex: none; }
-.tp-hang::before { content: ''; position: absolute; left: -1px; top: 0; width: 2px; height: calc(10px * var(--u)); background: var(--yarn-shade); }
-.tp-hang > :first-child { margin-top: calc(10px * var(--u)); }
-.tp-hang--free::before, .tp-hang--shelf::before, .tp-hang--plaque::before { display: none; }
+.tp-hang > :first-child { margin-top: calc(3 * var(--p)); }
 .tp-hang--plaque > :first-child { margin-top: 0; transform: translateY(-50%); }
-.tp-tag--sack::before { display: none; }
-/* One line, so the label stays on the crate's front and clear of the fuses of the things on the bench below. */
-.tp:not([data-phone]) .tp-tag--sack { flex-direction: row; align-items: baseline; gap: calc(8px * var(--u)); width: auto; min-width: calc(128px * var(--u)); min-height: 0; padding: calc(5px * var(--u)) calc(12px * var(--u)); }
 .tp-hang--free > :first-child { margin-top: 0; transform: translateY(-100%); }
-.tp-hang--shelf > :first-child { margin-top: calc(-14px * var(--u)); }
-.tp-tag {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: var(--paper);
-  border: 1px solid var(--tp-ink); box-shadow: 0 3px 0 var(--lip); clip-path: var(--step); padding: calc(6px * var(--u)) calc(10px * var(--u));
-  text-align: center; white-space: nowrap; line-height: 1.1;
-}
-.tp-tag::before { content: ''; position: absolute; top: 3px; left: 50%; width: 4px; height: 4px; margin-left: -2px; background: var(--tp-ink); }
-.tp-tag--sack { width: calc(152px * var(--u)); min-height: calc(52px * var(--u)); }
-.tp-tag--sack b { font-size: max(11px, calc(16px * var(--u))); }
-.tp-tag--sack small, .tp-tag small { font-size: max(11px, calc(11px * var(--u))); color: var(--soft); }
-.tp-tag[data-on] { outline: 3px solid var(--lantern); outline-offset: -3px; }
-.tp-tag small[data-all] { color: var(--green); }
-.tp-tag--item { width: calc(116px * var(--u)); min-height: calc(44px * var(--u)); }
-.tp-tag--item b { font-size: max(11px, calc(14px * var(--u))); }
-.tp-tag--small { font-size: max(11px, calc(12px * var(--u))); padding: 4px 10px; }
-.tp-tag--small::before, .tp-tag--mark::before, .tp-tag--close::before, .tp-tag--reveal::before { display: none; }
-.tp-rarity { display: inline-flex; align-items: center; gap: 4px; font-size: max(11px, calc(11px * var(--u))); color: var(--soft); }
-.tp-rarity i, .tp-rarity-sq { width: 8px; height: 8px; display: inline-block; flex: none; }
-.tp-rarity-sq { margin-right: 6px; }
-.tp-green { color: var(--green); font-size: max(11px, calc(11px * var(--u))); display: inline-flex; align-items: center; gap: 3px; }
-.tp-from { color: var(--soft); font-size: max(11px, calc(11px * var(--u))); display: inline-flex; align-items: center; gap: 3px; }
-.tp-listen { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--tp-ink); background: var(--woolt); padding: 2px 8px; font-size: 12px; min-height: 28px; }
-.tp-listen--small { position: absolute; right: -14px; top: -14px; padding: 2px; min-height: 0; width: 26px; height: 26px; justify-content: center; }
-.tp-listen[data-on] { background: var(--lantern-hi); }
+.tp-hang--shelf > :first-child { margin-top: calc(-6 * var(--p)); }
 
-/* Signs and chalk. */
+/* ---- tags ---- */
+.tp-tag { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(1.5 * var(--p)); padding: calc(1.5 * var(--p)) calc(4 * var(--p)) calc(1 * var(--p)); text-align: center; white-space: nowrap; line-height: 1.1; filter: var(--sign-shadow); }
+.tp-tag b { font-size: calc(16px * var(--u)); color: var(--ink); }
+.tp-tag small { font: 800 max(12px, calc(12.5px * var(--u)))/1.1 var(--skin-font-body); color: var(--soft); }
+.tp-tag small[data-all] { display: inline-flex; align-items: center; gap: calc(1.5 * var(--p)); color: var(--mk-green); }
+.tp:not([data-phone]) .tp-tag--sack { flex-direction: row; align-items: baseline; gap: calc(4 * var(--p)); min-width: calc(128px * var(--u)); padding: calc(2 * var(--p)) calc(5 * var(--p)) calc(1.5 * var(--p)); }
+.tp-tag--sack b { font-size: calc(18px * var(--u)); }
+.tp-tag--item { min-width: calc(104px * var(--u)); }
+.tp-tag--item.tp-tag--tight { min-width: 0; width: calc(104px * var(--u)); padding-left: calc(1 * var(--p)); padding-right: calc(1 * var(--p)); }
+.tp-tag--item.tp-tag--tight b { font-size: calc(13.5px * var(--u)); letter-spacing: -0.01em; }
+.tp-tag--item:has(.tp-listen) { flex-direction: row; flex-wrap: wrap; column-gap: calc(3 * var(--p)); } .tp-tag--item:has(.tp-listen) b { flex-basis: 100%; }
+.tp-tag--small { flex-direction: row; gap: calc(2 * var(--p)); padding: calc(1 * var(--p)) calc(4 * var(--p)); font: 800 calc(14.5px * var(--u))/1.2 var(--skin-font-display); }
+.tp-rarity { display: inline-flex; align-items: center; gap: calc(2.5 * var(--p)); font: 800 max(12px, calc(12.5px * var(--u)))/1.1 var(--skin-font-body); color: var(--soft); }
+.tp-rarity i, .tp-chalk li i, .tp-roll-rows li i { flex: none; display: inline-block; width: calc(3 * var(--p)); height: calc(3 * var(--p)); margin: var(--p); box-shadow: 0 0 0 var(--p) var(--mk-outline); }
+.tp-rarity .tp-icon { width: calc(8 * var(--p)); height: auto; }
+.tp-green, .tp-wearing { display: inline-flex; align-items: center; gap: calc(2 * var(--p)); color: var(--mk-green); font: 800 max(12px, calc(12.5px * var(--u)))/1.1 var(--skin-font-body); }
+.tp-wearing { min-height: calc(18 * var(--p)); font: 800 calc(15px * var(--u))/1 var(--skin-font-display); }
+.tp-from { display: inline-flex; align-items: center; gap: calc(2 * var(--p)); color: var(--soft); font: 800 max(12px, calc(12.5px * var(--u)))/1.1 var(--skin-font-body); }
+.tp-listen { display: inline-flex; align-items: center; justify-content: center; gap: calc(2 * var(--p)); min-height: calc(18 * var(--p)); padding: 0 calc(4 * var(--p)); font: 800 calc(15px * var(--u))/1 var(--skin-font-display); color: var(--ink); }
+.tp-listen--small { min-height: 0; width: calc(14 * var(--p)); height: calc(13 * var(--p)); padding: 0; }
+.tp-listen .tp-icon { width: calc(10 * var(--p)); height: auto; } .tp-listen--small .tp-icon { width: calc(7.5 * var(--p)); }
+
+/* ---- words written on the scene's own boards: a stall's sign, the odds slate ---- */
 .tp-sign { display: flex; align-items: center; justify-content: center; pointer-events: none !important; }
-.tp-sign span { font-family: var(--skin-font-display); font-size: calc(9px * var(--fit, 1)); color: var(--paper); text-shadow: 0 calc(0.45px * var(--fit, 1)) 0 color-mix(in srgb, var(--tp-ink) 50%, transparent); letter-spacing: 0.02em; }
-.tp-chalk { color: var(--chalk); padding: calc(12px * var(--u)) calc(14px * var(--u)); font-size: max(11px, calc(12px * var(--u))); pointer-events: none !important; display: flex; flex-direction: column; gap: calc(6px * var(--u)); }
-.tp-chalk h4 { font-size: max(11px, calc(19px * var(--u))); }
-.tp-chalk-sub { margin-top: -4px !important; }
-.tp-chalk ul { list-style: none; padding: 0; display: grid; gap: calc(6px * var(--u)); margin-top: calc(6px * var(--u)) !important; }
-.tp-chalk li { display: flex; align-items: center; gap: 8px; font-size: max(11px, calc(14px * var(--u))); }
-.tp-chalk li i { width: 8px; height: 8px; }
-.tp-chalk li b { margin-left: auto; font-size: max(11px, calc(15px * var(--u))); }
-.tp-chalk hr { border: 0; border-top: 1px solid var(--chalk); width: 100%; margin: 2px 0; }
-.tp-chalk p { font-size: max(11px, calc(12px * var(--u))); line-height: 1.25; }
+.tp-sign span { font-family: var(--skin-font-display); font-size: calc(9px * var(--fit, 1)); color: var(--mk-wool); text-shadow: 0 calc(0.5px * var(--fit, 1)) 0 var(--mk-shade-2); letter-spacing: 0.02em; }
+.tp-chalk { display: flex; flex-direction: column; gap: calc(3 * var(--p)); padding: calc(12px * var(--u)) calc(14px * var(--u)); color: var(--mk-wool); pointer-events: none !important; }
+.tp-chalk h4 { font-size: calc(22px * var(--u)); line-height: 1; }
+.tp-chalk-sub, .tp-chalk p { font: 700 max(12px, calc(13px * var(--u)))/1.25 var(--skin-font-body); color: var(--mk-frost); }
+.tp-chalk ul { list-style: none; padding: 0; display: grid; gap: calc(3.5 * var(--p)); margin: calc(3 * var(--p)) 0 calc(1 * var(--p)) !important; }
+.tp-chalk li { display: flex; align-items: center; gap: calc(3 * var(--p)); font: 800 calc(15px * var(--u))/1 var(--skin-font-body); }
+.tp-chalk li b { margin-left: auto; font-size: calc(18px * var(--u)); color: var(--mk-gold); font-variant-numeric: lining-nums; }
+.tp-chalk hr { width: 100%; height: var(--p); margin: calc(1 * var(--p)) 0; border: 0; background: var(--t-night-hi); }
+.tp-chalk p b { font: 800 calc(14.5px * var(--u))/1.2 var(--skin-font-body); color: var(--mk-wool); }
 
-/* Tiles: a face, a 6 px side, an ink outline, a light line along the top. */
-.tp-btn {
-  border: 1px solid var(--tp-ink); background: var(--lantern); box-shadow: inset 0 2px 0 var(--lantern-hi), 0 6px 0 var(--lantern-lip);
-  clip-path: var(--step); padding: 6px 14px; font-family: var(--skin-font-display) !important; font-weight: 800; font-size: max(11px, calc(16px * var(--u)));
-  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-height: 44px;
-}
-.tp-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 2px 0 var(--lantern-hi), 0 3px 0 var(--lantern-lip); }
-.tp-btn[data-pale], .tp-btn:disabled { background: var(--pale); color: var(--soft); box-shadow: 0 6px 0 var(--pale-side); cursor: default; }
-.tp-btn--wool, .tp-btn--pale-ok { background: var(--woolt); box-shadow: inset 0 2px 0 var(--paper), 0 6px 0 var(--wool-side); }
-.tp-btn--tile { width: calc(160px * var(--u)); min-height: max(36px, calc(36px * var(--u))); flex-direction: row; gap: 6px; }
-.tp-btn--main { position: absolute; left: 50%; top: calc(772px * var(--u) + (100vh - 900px * var(--u)) - 27px * var(--u)); transform: translateX(-50%); width: calc(340px * var(--u)); min-height: calc(54px * var(--u)); }
-.tp-btn--main b { display: inline-flex; gap: 8px; align-items: center; font-size: max(11px, calc(19px * var(--u))); }
-.tp-btn--main small { font-family: var(--skin-font-body); font-weight: 800; font-size: max(11px, calc(11px * var(--u))); }
-.tp-btn--main:active:not(:disabled) { transform: translate(-50%, 3px); }
-.tp-tiles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
-.tp-wearing { color: var(--green); display: inline-flex; gap: 4px; align-items: center; font-size: 13px; min-height: 36px; }
+/* ---- buttons ---- */
+.tp-btn { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-height: max(44px, calc(22 * var(--p))); padding: 0 calc(6 * var(--p)); font: 800 calc(16.5px * var(--u))/1.1 var(--skin-font-display) !important; color: var(--ink); white-space: nowrap; }
+.tp-btn--tile { flex-direction: row; gap: calc(3 * var(--p)); min-width: calc(150px * var(--u)); }
+.tp-btn--main { position: absolute; left: 50%; bottom: calc(56px * var(--u)); min-width: calc(360px * var(--u)); min-height: calc(32 * var(--p)); gap: calc(2 * var(--p)); padding: calc(1 * var(--p)) calc(12 * var(--p)) 0; translate: -50% 0; }
+.tp-btn--main b { display: inline-flex; align-items: center; gap: calc(4 * var(--p)); font-size: calc(22px * var(--u)); }
+.tp-btn--main b .tp-icon { width: calc(10 * var(--p)); height: auto; }
+.tp-btn--main small { font: 800 max(12px, calc(13px * var(--u)))/1 var(--skin-font-body); color: var(--soft); }
+.tp-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(3 * var(--p)); margin-top: calc(3 * var(--p)); }
+.tp-page-turn { position: absolute; z-index: 3; left: 50%; bottom: 84px; min-width: 140px; min-height: 44px; translate: -50% 0; font: 800 15px/1 var(--skin-font-display); }
 
+/* ---- a stop's note and the passing word: night boards over the paving ---- */
+.tp-note { position: absolute; left: 50%; bottom: calc(62px * var(--u)); display: flex; align-items: center; gap: calc(5 * var(--p)); padding: calc(2 * var(--p)) calc(7 * var(--p)) calc(1 * var(--p)) calc(5 * var(--p)); font: 700 max(12px, calc(13.5px * var(--u)))/1.4 var(--skin-font-body); white-space: nowrap; translate: -50% 0; filter: var(--sign-shadow); }
+.tp-note .tp-icon { width: calc(10 * var(--p)); height: auto; }
+.tp-note b { margin: 0 0.15em; font: 800 calc(15.5px * var(--u))/1 var(--skin-font-display); color: var(--mk-gold); }
+.tp-toast { position: absolute; z-index: 6; left: 50%; top: calc(104px * var(--u)); padding: calc(2 * var(--p)) calc(7 * var(--p)) calc(1 * var(--p)); font: 800 calc(15px * var(--u))/1.3 var(--skin-font-display); white-space: nowrap; translate: -50% 0; filter: var(--sign-shadow); }
+.tp-skip { position: absolute; left: 50%; bottom: calc(70px * var(--u)); translate: -50% 0; font: 800 calc(14px * var(--u))/1 var(--skin-font-body); color: var(--mk-wool); text-shadow: 0 var(--p) 0 var(--mk-outline); }
 
-/* Notes and the strip. */
-.tp-note {
-  position: absolute; left: 50%; bottom: calc(100px * var(--u)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
-  background: var(--paper); border: 1px solid var(--tp-ink); box-shadow: 0 3px 0 var(--lip); clip-path: var(--step); padding: 10px 16px; font-size: max(11px, calc(13px * var(--u))); white-space: nowrap;
-}
-.tp-note--wide { width: calc(660px * var(--u)); white-space: normal; }
-.tp-knit { position: relative; flex: 1; min-width: 40px; height: 12px; background: var(--paper-dim); display: inline-block; vertical-align: middle; }
-.tp-knit i { position: absolute; inset: 0 auto 0 0; background: var(--stitch) 0 0 / 8px 12px repeat-x; }
-.tp-toast { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); background: var(--paper); border: 1px solid var(--tp-ink); padding: 8px 14px; clip-path: var(--step); }
-.tp-skip { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); color: var(--paper); text-shadow: 1px 1px 0 var(--tp-ink); }
+/* ---- the reveal's sign ---- */
+.tp-tag--reveal { min-width: calc(210px * var(--u)); gap: calc(3 * var(--p)); padding: calc(4 * var(--p)) calc(7 * var(--p)) calc(3 * var(--p)); border-bottom-width: calc(5 * var(--p)); border-image-source: var(--src); border-image-slice: 3 3 5 3; }
+.tp-tag--reveal > b { font-size: calc(24px * var(--u)); }
+.tp-reveal-line { display: inline-flex; align-items: center; gap: calc(4 * var(--p)); } .tp-reveal-line em { font: 800 max(12px, calc(13px * var(--u)))/1 var(--skin-font-body); font-style: normal; color: var(--soft); }
+.tp-reveal-line .tp-new { color: var(--mk-green); }
+.tp-refund { display: inline-flex; align-items: center; gap: calc(2 * var(--p)); font: 800 calc(15px * var(--u))/1 var(--skin-font-display); }
 
-/* The reveal's tag. */
-.tp-hang--reveal::before { display: none; }
-.tp-tag--reveal { min-width: calc(200px * var(--u)); padding: 10px 14px; outline: 2px solid var(--green); outline-offset: -4px; }
-.tp-tag--reveal b { font-size: max(11px, calc(19px * var(--u))); }
-.tp-reveal-line { display: inline-flex; gap: 8px; align-items: center; }
-.tp-reveal-line em { font-style: normal; font-size: 12px; }
-.tp-new { color: var(--green); }
-.tp-refund { display: inline-flex; gap: 4px; align-items: center; font-family: var(--skin-font-display); }
+/* ---- the Bell Shelf ---- */
+.tp-shelf-tags { display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--p)); }
+.tp-tag--shelf { min-width: calc(170px * var(--u)); gap: calc(2 * var(--p)); padding: calc(2 * var(--p)) calc(5 * var(--p)) calc(1.5 * var(--p)); }
+.tp-tag--shelf b { font-size: calc(19px * var(--u)); }
+.tp-price-in { display: inline-flex; align-items: center; gap: calc(1.5 * var(--p)); margin-left: calc(4 * var(--p)); font: 800 calc(15px * var(--u))/1 var(--skin-font-display); color: var(--ink); vertical-align: middle; } .tp-price-in .tp-icon { width: calc(8 * var(--p)); height: auto; }
+.tp-btn--tile.tp-btn--need { flex-direction: column; gap: calc(2 * var(--p)); padding-top: calc(2 * var(--p)); padding-bottom: calc(1 * var(--p)); }
+.tp-btn--need .mk-meter { width: 100%; height: calc(7 * var(--p)); }
 
-/* Bell Shelf. */
-.tp-shelf-tags { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.tp-price { display: inline-flex; gap: 4px; align-items: center; background: var(--brass); border: 1px solid var(--tp-ink); padding: 0 8px; height: 26px; font-family: var(--skin-font-display); font-size: 16px; clip-path: var(--step); }
-.tp-tag--shelf { width: calc(160px * var(--u)); min-height: calc(50px * var(--u)); }
-.tp-tag--shelf b { font-size: max(11px, calc(16px * var(--u))); }
-
-/* Missions. */
-.tp-slip { display: grid; grid-template-columns: 34% 1fr; grid-template-rows: calc(70px * var(--u)) auto 1fr auto; gap: 2px 8px; padding: calc(12px * var(--u)) calc(12px * var(--u)) calc(8px * var(--u)); pointer-events: none !important; font-size: max(11px, calc(12px * var(--u))); }
-.tp-slip-head { grid-column: 2; display: flex; flex-direction: column; }
-.tp-slip-head b { font-size: max(11px, calc(19px * var(--u))); }
-.tp-slip-head small { color: var(--soft); }
-.tp-slip-goal { grid-column: 1 / 3; }
-.tp-slip .tp-knit, .tp-slip .tp-stamps { grid-column: 1 / 3; }
-.tp-stamps { display: flex; gap: 4px; }
-.tp-stamps i { width: calc(20px * var(--u)); height: calc(20px * var(--u)); border: 1px solid var(--soft); background: var(--paper-dim); display: inline-flex; align-items: center; justify-content: center; }
-.tp-stamps i[data-on] { background: var(--stamp); border-color: var(--stamp-dark); }
-.tp-slip-goal { min-height: 2.3em; line-height: 1.15; align-self: start; }
-.tp-slip-prog { grid-column: 1 / 3; display: flex; align-items: center; gap: calc(10px * var(--u)); align-self: end; }
-.tp-slip-count { flex: none; font-family: var(--skin-font-display); font-size: max(11px, calc(15px * var(--u))); }
-/* A red stamp (square: the kit allows no rounded corners) across the reward's picture (T6 section 2), never over the name. */
-.tp-stamp { position: absolute; left: calc(14px * var(--u)); top: calc(10px * var(--u)); width: calc(74px * var(--u)); height: calc(74px * var(--u)); display: grid; place-items: center; transform: rotate(-12deg); color: var(--stamp); border: 3px solid var(--stamp); background: color-mix(in srgb, var(--paper) 55%, transparent); font-family: var(--skin-font-display); font-size: max(11px, calc(17px * var(--u))); }
-.tp-sheet { padding: calc(12px * var(--u)) calc(16px * var(--u)); pointer-events: none !important; font-size: max(11px, calc(13px * var(--u))); }
-.tp-sheet h3 { font-size: max(11px, calc(20px * var(--u))); margin-bottom: 4px !important; }
-.tp-sheet h3 small { font-family: var(--skin-font-body); font-size: max(11px, calc(12px * var(--u))); color: var(--soft); margin-left: 8px; }
-.tp-sheet ul { list-style: none; padding: 0; }
-.tp-sheet li { position: relative; height: calc(30px * var(--u)); display: flex; align-items: center; border-top: 1px solid var(--rule); }
-.tp-sheet li > * { position: absolute; }
-.tp-ms-goal { left: 0; }
-.tp-ms-bar { left: 42%; width: 22%; display: flex; }
-.tp-ms-count { right: 21%; font-family: var(--skin-font-display); font-size: max(11px, calc(14px * var(--u))); }
-.tp-ms-pay { left: 81.5%; display: inline-flex; gap: 3px; align-items: center; font-family: var(--skin-font-display); }
-.tp-ms-bells { left: 91.5%; }
-.tp-sheet li[data-paid] { color: var(--paid); }
-
-/* The Barn Book. */
-.tp-marks { display: flex; gap: 8px; }
-.tp-tag--mark { width: calc(140px * var(--u)); height: calc(32px * var(--u)); min-height: 32px; font-family: var(--skin-font-display) !important; font-size: max(11px, calc(15px * var(--u))); }
-.tp-tag--mark[data-on] { background: var(--lantern); outline: 0; }
-.tp-book-head { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; pointer-events: none !important; }
-.tp-book-head b { font-size: max(11px, calc(22px * var(--u))); }
-.tp-book-head small { font-size: max(11px, calc(13px * var(--u))); color: var(--soft); }
-.tp-book-head--right { transform-origin: 0 0; }
-.tp-book-head--right > * { transform: translateX(-100%); }
-.tp-ledge { display: flex; flex-direction: column; align-items: center; width: 0; pointer-events: none !important; white-space: nowrap; }
-.tp-ledge b { font-size: max(11px, calc(15px * var(--u))); margin-top: 4px; }
-/* Ten to a spread: three columns 0.57 m apart, so each line wraps inside its own column. */
+/* ---- the Barn Book: its words are written on its pages, in the pages' ink ---- */
+.tp-marks { display: flex; gap: calc(4 * var(--p)); }
+.tp .tp-tag--mark { min-width: calc(128px * var(--u)); padding: calc(2 * var(--p)) calc(6 * var(--p)) calc(1.5 * var(--p)); font: 800 calc(16px * var(--u))/1 var(--skin-font-display); }
+.tp-book-head { display: flex; align-items: baseline; gap: calc(4 * var(--p)); white-space: nowrap; pointer-events: none !important; }
+.tp-book-head b { font-size: calc(23px * var(--u)); } .tp-book-head small { font: 800 max(12px, calc(13px * var(--u)))/1 var(--skin-font-body); color: var(--mk-soft); }
+.tp-book-head--right { transform-origin: 0 0; } .tp-book-head--right > * { transform: translateX(-100%); }
+.tp-ledge { display: flex; flex-direction: column; align-items: center; gap: calc(1.5 * var(--p)); width: 0; pointer-events: none !important; white-space: nowrap; color: var(--mk-ink); }
+.tp-ledge b { display: inline-flex; align-items: center; margin-top: calc(2 * var(--p)); font-size: calc(17px * var(--u)); }
+.tp-pip { flex: none; display: inline-block; width: calc(3 * var(--p)); height: calc(3 * var(--p)); margin: 0 calc(3 * var(--p)) 0 var(--p); box-shadow: 0 0 0 var(--p) var(--mk-outline); } .tp-ledge :is(.tp-rarity, .tp-from) { color: var(--mk-soft); } .tp-ledge .tp-from .tp-icon { width: calc(6 * var(--p)); height: auto; }
+/* Ten to a spread: three columns 0.57 m apart, so each line wraps inside its own column; a name stays on one line. */
 .tp-ledge--tight > * { width: max-content; max-width: calc(108px * var(--u)); white-space: normal; text-align: center; justify-content: center; }
-/* A name stays on one line, a size smaller, so a long one (Northern Lights) does not push its tags into the row below. */
-.tp-ledge--tight > b { max-width: none; white-space: nowrap; font-size: max(11px, calc(13px * var(--u))); }
+.tp-ledge--tight > b { max-width: none; white-space: nowrap; font-size: calc(13.5px * var(--u)); }
 
-/* The close view. */
-.tp-dim { position: absolute; inset: 0; z-index: -1; background: none; border: 0; }
-.tp-tag--close { width: calc(260px * var(--u)); align-items: flex-start; text-align: left; white-space: normal; padding: 12px 14px; gap: 4px; }
-.tp-close-name { font-size: max(11px, calc(22px * var(--u))); }
-.tp-close-kind { display: inline-flex; gap: 10px; align-items: center; font-size: 12px; color: var(--soft); }
-.tp-close-line { font-size: 13px; font-weight: 700; }
-.tp-tag--close .tp-tiles { justify-content: flex-start; }
-.tp-back { background: none; border: 0; padding: 4px 0; font-size: 12px; color: var(--soft); text-decoration: underline; min-height: 32px; }
-.tp-closeat { z-index: 2; }
-.tp-close-phone { position: absolute; left: 14px; right: 14px; bottom: 70px; }
-.tp-close-phone .tp-tag--close { width: 100%; }
-
-/* Phones: the band on top, one paper roll under it. */
-.tp[data-phone] .tp-tag--sack { width: 92px; min-height: 22px; padding: 2px 4px; }
-.tp[data-phone] .tp-tag--sack b { font-size: 12px; }
-.tp-roll-wrap { position: absolute; left: 14px; right: 14px; top: 47%; bottom: 52px; display: flex; flex-direction: column; gap: 14px; }
-.tp-roll {
-  flex: 1; overflow-y: auto; background: var(--paper); border: 1px solid var(--tp-ink); padding: 12px 14px 16px; font-size: 12px;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), 95% 100%, 90% calc(100% - 6px), 85% 100%, 80% calc(100% - 6px), 75% 100%, 70% calc(100% - 6px), 65% 100%, 60% calc(100% - 6px), 55% 100%, 50% calc(100% - 6px), 45% 100%, 40% calc(100% - 6px), 35% 100%, 30% calc(100% - 6px), 25% 100%, 20% calc(100% - 6px), 15% 100%, 10% calc(100% - 6px), 5% 100%, 0 calc(100% - 6px));
-}
-.tp-roll h3 { display: flex; justify-content: space-between; align-items: baseline; font-size: 17px; margin: 4px 0 6px !important; }
-.tp-roll h3 small { font-family: var(--skin-font-body); font-size: 11px; color: var(--soft); }
-.tp-roll-rows { list-style: none; padding: 0; }
-.tp-roll-rows li { position: relative; display: flex; align-items: center; gap: 8px; height: 30px; border-top: 1px solid var(--rule); }
-.tp-roll-rows li i { width: 8px; height: 8px; }
-.tp-roll-rows li b { font-size: 15px; width: 40%; }
-.tp-roll-rows li small { color: var(--soft); flex: 1; }
-.tp-roll-rows .tp-listen--small { position: static; }
-.tp-roll-odds { margin-top: 8px !important; line-height: 1.5; }
-.tp-roll-shelf { padding: 14px 0; border-bottom: 1px solid var(--rule); }
-.tp-roll-note { margin-top: 10px !important; display: flex; gap: 6px; align-items: flex-start; }
-.tp-roll-slip { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
-.tp-roll-slip b { font-size: 16px; }
-.tp-roll-slip .tp-stamp { left: auto; right: 10px; top: 10px; }
-.tp-roll-ms { list-style: none; padding: 0; }
-.tp-roll-ms li { padding: 6px 0; border-top: 1px solid var(--rule); }
-.tp-roll-ms-row { display: flex; align-items: center; gap: 6px; }
-.tp-roll-ms li[data-paid] { color: var(--paid); }
-.tp[data-phone] .tp-btn--main { position: static; transform: none; width: 100%; }
-.tp[data-phone] .tp-ledge b { font-size: 12px; }
-
-.tp[data-reduced] *, .tp[data-reduced] { animation: none !important; }
-
-/* The close view (T6 section 4): the rest of the stop dims to 60%, its words with its models; the item's own tag does not. */
+/* ---- the close view: the rest of the stop dims, its words with its models; the item's own sign does not ---- */
 .tp[data-focus] .tp-layer > :not(.tp-closeat):not(.tp-dim) { opacity: 0.6; transition: opacity 200ms; }
-/* Six or seven bench items share 3.6 m: their tags narrow to fit the gap. */
-.tp-tag--item.tp-tag--tight { width: calc(114px * var(--u)); padding-left: 3px; padding-right: 3px; }
-.tp-tag--item.tp-tag--tight b { font-size: max(11px, calc(12.5px * var(--u))); letter-spacing: -0.01em; }
-/* A fuse sound's Listen tile sits inside its bench tag, beside the rarity (the tag's stepped corners clip anything outside it). */
-.tp-tag--item .tp-listen--small { position: static; width: 22px; height: 22px; margin-top: 1px; }
-.tp-tag--item:has(.tp-listen) { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 6px; }
-.tp-tag--item:has(.tp-listen) b { flex-basis: 100%; }
+/* The Barn Book's bookmarks would float up into the head when the camera steps in: they wait until it steps back. */
+.tp[data-focus] .tp-hang--free { visibility: hidden; }
+.tp-dim { position: absolute; inset: 0; z-index: -1; background: none; border: 0; }
+.tp-closeat { z-index: 2; }
+.tp-tag--close { align-items: flex-start; gap: calc(3 * var(--p)); width: calc(280px * var(--u)); padding: calc(4 * var(--p)) calc(6 * var(--p)) calc(2 * var(--p)); border-bottom-width: calc(5 * var(--p)); border-image-source: var(--src); border-image-slice: 3 3 5 3; text-align: left; white-space: normal; }
+.tp-close-name { font-size: calc(26px * var(--u)) !important; }
+.tp-close-kind { display: inline-flex; align-items: center; gap: calc(5 * var(--p)); font: 800 max(12px, calc(13px * var(--u)))/1 var(--skin-font-body); color: var(--soft); }
+.tp-close-line { font: 700 max(12px, calc(14px * var(--u)))/1.3 var(--skin-font-body); color: var(--ink); }
+.tp-tag--close .tp-tiles { justify-content: flex-start; }
+.tp-back { min-height: 32px; padding: calc(2 * var(--p)) 0; background: none; border: 0; font: 800 max(12px, calc(13px * var(--u)))/1 var(--skin-font-body); color: var(--soft); text-decoration: underline; text-underline-offset: 3px; }
+.tp-close-phone { position: absolute; left: 14px; right: 14px; bottom: 70px; } .tp-close-phone .tp-tag--close { width: 100%; }
 
-/* Nothing under 11 px (X2 check 7), however small the window scales the screen: a <small> is 0.8 of its line. */
-:where(.tp) small { font-size: max(11px, 0.8em); } /* weightless: a rule that sets its own size wins */
+/* ---- phones: the stalls on top, one cream board that scrolls under them ---- */
+.tp-roll-wrap { position: absolute; left: 12px; right: 12px; top: 49%; bottom: calc(48px * var(--u) + 10px); display: flex; flex-direction: column; gap: 12px; }
+.tp-roll { flex: 1; overflow-y: auto; padding: 8px 12px 10px; font: 700 13px/1.35 var(--skin-font-body); filter: var(--sign-shadow); }
+.tp-roll h3 { display: flex; align-items: baseline; justify-content: space-between; margin: 2px 0 6px !important; font-size: 19px; } .tp-roll h3 small { font: 800 12px/1 var(--skin-font-body); color: var(--soft); }
+.tp-roll-rows, .tp-roll-ms { list-style: none; padding: 0; }
+.tp-roll-rows li { position: relative; display: flex; align-items: center; gap: 8px; min-height: 34px; box-shadow: inset 0 var(--p) 0 var(--t-cream-lo); }
+.tp-roll-rows li b { width: 42%; font-size: 16px; } .tp-roll-rows li small { flex: 1; color: var(--soft); }
+.tp-roll-odds { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin: 0; padding: 0; list-style: none; } .tp-roll-odds li { display: flex; align-items: center; gap: 6px; } .tp-roll-odds li b { margin-left: auto; font-size: 16px; } .tp-roll-odds li i { flex: none; width: calc(3 * var(--p)); height: calc(3 * var(--p)); margin: var(--p); box-shadow: 0 0 0 var(--p) var(--mk-outline); }
+.tp-roll h3 + .tp-roll-odds { margin-top: 0; } .tp-roll-rows + h3 { margin-top: 12px !important; }
+.tp-roll-shelf { padding: 12px 0; box-shadow: inset 0 calc(-1 * var(--p)) 0 var(--t-cream-lo); }
+.tp-roll-note { display: flex; align-items: flex-start; gap: 6px; margin-top: 10px !important; color: var(--soft); }
+.tp-roll-slip { display: flex; flex-direction: column; gap: 5px; padding: 10px 0; box-shadow: inset 0 calc(-1 * var(--p)) 0 var(--t-cream-lo); }
+.tp-roll-slip > span:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; } .tp-roll-slip b { font-size: 18px; }
+.tp-roll-ms li { display: flex; align-items: center; gap: 10px; padding: 7px 0; box-shadow: inset 0 var(--p) 0 var(--t-cream-lo); } .tp-roll-ms li > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.tp-roll-ms li b { font-size: 15px; } .tp-roll-ms li[data-paid] { color: var(--soft); }
+.tp[data-phone] .tp-tag--sack { min-width: 0; padding: 2px 6px; } .tp[data-phone] .tp-tag--sack b { font-size: 13px; }
+.tp[data-phone] .tp-btn--main { position: static; width: 100%; min-width: 0; translate: none; }
+.tp[data-phone] .tp-ledge b { font-size: 12.5px; }
+.tp-marks-phone { position: absolute; z-index: 3; left: 0; right: 0; top: 150px; display: flex; justify-content: center; } .tp-marks-phone .tp-marks { gap: 6px; } .tp-marks-phone .tp-tag--mark { min-width: 0; }
 
-/* Phones: the Barn Book's bookmarks in a row under the tabs (the camera frames one page). */
-.tp-marks-phone { position: absolute; left: 0; right: 0; top: 160px; display: flex; justify-content: center; z-index: 3; }
-.tp-marks-phone .tp-marks { gap: 6px; }
-.tp-page-turn { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 3; min-height: 44px; min-width: 140px; justify-content: center; }
-/* Six on the bench: a fuse sound's tag keeps its three lines tight, so it clears the Open button. */
-.tp-tag--item.tp-tag--tight:has(.tp-listen) { padding-top: 2px; padding-bottom: 2px; line-height: 1.1; row-gap: 0; }
-.tp-tag--item .tp-listen--small { width: 20px; height: 20px; }
-
-/* Longer words (French): tabs and sack tags grow with their words rather than cut them, and an item's name may take
-   two lines. Sizes in English are unchanged: these are minimums there. */
-.tp[data-lang="fr"]:not([data-phone]) .tp-tag--sack { width: auto; min-width: calc(152px * var(--u)); white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+/* Longer words (French): sack tags grow with their words rather than cut them, and an item's name may take two lines. */
 .tp[data-lang="fr"] .tp-tag--item b { white-space: normal; text-align: center; line-height: 1.05; }
-
-/* The Bell Shelf's price sits inside the item's one card. */
-.tp-price-in { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-family: var(--skin-font-display); color: var(--tp-ink); font-size: max(11px, calc(14px * var(--u))); vertical-align: middle; }
-
-
-/* ================================================================================================================
-   The market in the game's own kit (Brian, 2026-11-25: "everything just looks awful and terribly low effort. like
-   youre literally just putting a bunch of squares on top of each other"; "the entire market"). Its interface was its
-   own: flat cream rectangles with a hairline of ink, one on another. It is now the leaderboards' and Home's: the night
-   bar with its lantern edge and string of lights, slab tabs and buttons with a lit top and a side, ink labels with wool
-   words, dark tiles, lantern meters. One language with every other screen.
-   ================================================================================================================ */
-
-/* ---- The top bar (kit units: inside .hm, --u is a length). ---- */
-.tp-bar { position: absolute; z-index: 4; left: 0; right: 0; top: 0; height: calc(64 * var(--u)); box-sizing: border-box; display: flex; align-items: center; gap: calc(14 * var(--u));
-  padding: env(safe-area-inset-top, 0px) calc(20 * var(--u)) calc(6 * var(--u)); color: var(--hm-wool); --shadow: drop-shadow(0 calc(4 * var(--u)) 0 rgba(14, 21, 40, 0.38)); }
-.tp-bar > .rc-snowcap { z-index: 0; left: 0; right: 0; top: 0; }
-.tp-bar > :is(.tp-titletag, .tp-tabs, .tp-wallet) { position: relative; z-index: 1; }
-.tp-bar .rc-lights { position: absolute; left: 0; right: 0; top: 100%; height: calc(32 * var(--u)); pointer-events: none; }
-.tp-titletag h1 { margin: 0; }
-.tp-tabs { display: flex; gap: calc(8 * var(--u)); margin: 0 auto; }
-.tp-bar .tp-tab { --depth: calc(6 * var(--u)); position: relative; flex: none; gap: calc(8 * var(--u)); min-width: calc(136 * var(--u)); height: calc(44 * var(--u)); padding: 0 calc(14 * var(--u)) var(--depth);
-  filter: var(--shadow); font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-ink); white-space: nowrap; }
-.tp-bar .tp-tab > span { position: relative; }
-.tp-dot { position: absolute; right: calc(6 * var(--u)); top: calc(5 * var(--u)); width: calc(8 * var(--u)); height: calc(8 * var(--u)); background: var(--hm-barn); box-shadow: 0 0 0 calc(2 * var(--u)) var(--hm-wool); }
-.tp-wallet { display: flex; align-items: center; gap: calc(8 * var(--u)); }
-.tp-bar .tp-purse { --depth: calc(4 * var(--u)); gap: calc(7 * var(--u)); height: calc(36 * var(--u) + var(--depth)); min-width: calc(74 * var(--u)); padding: 0 calc(12 * var(--u)) var(--depth) calc(10 * var(--u)); justify-content: flex-start; filter: var(--shadow); }
-.tp-bar .tp-purse b { font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); font-variant-numeric: tabular-nums; }
-.tp-bar .tp-x { --depth: calc(6 * var(--u)); width: calc(44 * var(--u)); height: calc(44 * var(--u)); padding: 0 0 var(--depth); filter: var(--shadow); }
-.tp-bar .tp-x svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
-@media (max-width: 1180px) { .tp-bar .tp-tab { min-width: 0; padding: 0 calc(10 * var(--u)) var(--depth); } .tp-bar .tp-titletag { display: none; } }
-/* Phones: the purse and the close on the bar; the four tabs share the row under it. */
-.tp-bar[data-phone] { height: auto; flex-wrap: wrap; row-gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 12px; }
-.tp-bar[data-phone] .tp-wallet { order: 1; width: 100%; justify-content: flex-end; }
-.tp-bar[data-phone] .tp-tabs { order: 2; width: 100%; margin: 0; gap: 6px; }
-.tp-bar[data-phone] .tp-tab { flex: 1 1 0; min-width: 0; height: 48px; padding: 0 2px 6px; flex-direction: column; gap: 3px; font-size: 12px; white-space: normal; text-align: center; }
-
-/* ---- The foot: a night bar, as Home's. ---- */
-.tp-foot { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: calc(14 * var(--u)); height: calc(40 * var(--u)); min-height: 36px; box-sizing: border-box; padding: 0 calc(20 * var(--u));
-  background: var(--hm-night) var(--felt) 0 0 / var(--felt-size); box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern), inset 0 calc(3 * var(--u) + var(--s)) 0 var(--hm-ink);
-  color: var(--hm-wool); font: 700 max(12px, calc(12.5 * var(--u)))/1 var(--skin-font-body); white-space: nowrap; }
-.tp-foot .tp-level { height: calc(24 * var(--u)); min-height: 22px; font: 800 max(12px, calc(13 * var(--u)))/1 var(--skin-font-display); }
-.tp-foot .tp-knit { flex: 0 1 calc(260 * var(--u)); min-width: 60px; height: calc(12 * var(--u)); min-height: 10px; }
-.tp-foot :is(.tp-xp, .tp-today) { display: inline-flex; align-items: center; gap: 5px; color: var(--hm-frost); }
-.tp-foot :is(.tp-xp, .tp-today) b { font: 800 max(13px, calc(14 * var(--u)))/1 var(--skin-font-display); color: var(--hm-wool); }
-.tp-foot .tp-fine { margin: 0 0 0 auto; overflow: hidden; text-overflow: ellipsis; font: 700 max(11px, calc(11.5 * var(--u)))/1.2 var(--skin-font-body); color: var(--hm-frost); }
-.tp-foot[data-phone] { gap: 8px; padding: 0 10px; }
-.tp-foot[data-phone] .tp-xp { display: none; }
-
-/* ---- In the scene: labels are the kit's ink labels (the name tags' make), wool words on ink, one lit row on top. ---- */
-.tp { --soft: var(--hm-frost); --green: #7BC48E; --paper-dim: var(--hm-night-deep); }
-.tp-hang::before, .tp-tag::before { display: none !important; }
-.tp-hang > :first-child { margin-top: calc(6px * var(--u)); }
-.tp-tag { background: var(--hm-ink); border: 0; color: var(--hm-wool); box-shadow: inset 0 3px 0 var(--hm-ink-hi), inset 0 -3px 0 var(--hm-ink-side); filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35)); }
-.tp-tag b { color: var(--hm-wool); }
-.tp-tag small, .tp-tag--sack small { color: var(--hm-frost); }
-.tp-tag small[data-all] { color: var(--green); }
-.tp-tag[data-on] { outline: 0; background: var(--hm-lantern); box-shadow: inset 0 3px 0 var(--hm-lantern-hi), inset 0 -3px 0 var(--hm-lantern-lip); }
-.tp-tag[data-on] :is(b, small) { color: var(--hm-ink); }
-.tp-rarity, .tp-from { color: var(--hm-frost); }
-.tp-price-in { color: var(--hm-lantern-hi); }
-.tp-listen { border: 0; background: var(--hm-wool); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -4px 0 var(--hm-wool-lip); }
-.tp-listen[data-on] { background: var(--hm-lantern); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -4px 0 var(--hm-lantern-lip); }
-/* The Barn Book's words are written on its paper pages, so they keep the page's ink. */
-.tp-ledge, .tp-ledge :is(.tp-rarity, .tp-from), .tp-book-head small { color: var(--tp-ink); }
-.tp-ledge .tp-green { color: #2F7A4C; }
-.tp-book-head small, .tp-ledge :is(.tp-rarity, .tp-from) { opacity: 0.78; }
-
-/* ---- Buttons are slabs: a face with a lit top row, a side under it, an ink edge, a shadow on the ground. ---- */
-.tp-btn { border: 0; background: var(--hm-lantern); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 5px 0 var(--hm-lantern-hi), inset 0 -8px 0 var(--hm-lantern-lip); padding: 4px 16px 10px;
-  filter: drop-shadow(0 4px 0 rgba(14, 21, 40, 0.38)); transition: transform 80ms steps(2); }
-.tp-btn:hover:not(:disabled):not([data-pale]) { transform: translateY(-2px); }
-.tp-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 5px 0 var(--hm-lantern-hi), inset 0 -5px 0 var(--hm-lantern-lip); }
-.tp-btn[data-pale], .tp-btn:disabled { background: var(--hm-disabled); color: var(--hm-frost); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -8px 0 var(--hm-disabled-lip); cursor: default; }
-.tp-btn--wool, .tp-btn--pale-ok { background: var(--hm-wool); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 5px 0 var(--hm-wool-hi), inset 0 -8px 0 var(--hm-wool-lip); }
-.tp-btn--main { min-height: calc(60px * var(--u)); }
-.tp-btn--main:hover:not(:disabled):not([data-pale]) { transform: translate(-50%, -2px); }
-.tp-btn--main small { color: inherit; opacity: 0.85; }
-.tp-wearing { color: var(--green); }
-.tp-back { color: var(--hm-lantern-hi); }
-
-/* ---- Notes and the toast: the kit's ink card, a lantern bar down its left. ---- */
-.tp-note, .tp-toast { background: var(--hm-ink); border: 0; color: var(--hm-wool); box-shadow: inset 6px 0 0 var(--hm-lantern), inset 0 3px 0 var(--hm-ink-hi); padding: 10px 18px 10px 22px; filter: drop-shadow(0 3px 0 rgba(14, 21, 40, 0.35));
-  font: 700 max(12.5px, calc(13px * var(--u)))/1.4 var(--skin-font-body); }
-.tp-note { bottom: calc(40px * var(--u) + 26px); }
-.tp-skip { bottom: calc(40px * var(--u) + 40px); font: 800 14px/1 var(--skin-font-body); }
-
-/* ---- Meters: a sunk well filled in lantern. ---- */
-.tp-knit { background: var(--hm-night-deep); box-shadow: inset 0 2px 0 var(--hm-ink), inset 0 -2px 0 var(--hm-night-3); }
-.tp-knit i { background: var(--hm-lantern); box-shadow: inset 0 2px 0 var(--hm-lantern-hi), inset 0 -2px 0 var(--hm-lantern-lip); }
-
-/* ---- Missions: the notice board's face is a night board, its slips raised tiles (the packer paints the board to
-   match), so the words are wool and frost. ---- */
-.tp-slip, .tp-sheet { color: var(--hm-wool); }
-.tp-slip-head small, .tp-sheet h3 small, .tp-slip-goal { color: var(--hm-frost); }
-.tp-slip-goal { font-weight: 700; }
-.tp-sheet li[data-paid] { color: var(--hm-frost); }
-.tp-ms-pay { color: var(--hm-lantern-hi); }
-
-/* ---- Phones: the roll is a board. ---- */
-.tp-roll { background: var(--hm-night); border: 0; color: var(--hm-wool); box-shadow: inset 0 0 0 3px var(--hm-ink), inset 0 6px 0 var(--hm-night-3); clip-path: none; padding: 16px 16px 18px; font-size: 13px; }
-.tp-roll h3 small, .tp-roll-rows li small { color: var(--hm-frost); }
-.tp-roll-rows li, .tp-roll-ms li, .tp-roll-shelf, .tp-roll-slip { border-color: var(--hm-night-3); }
-.tp-roll-ms li[data-paid] { color: var(--hm-frost); }
-.tp-roll-wrap { top: 49%; bottom: 46px; }
-.tp-bar .tp-x { color: var(--hm-ink); }
-.tp-foot .tp-knit { flex: 0 1 calc(170 * var(--u)); }
-.tp-foot .tp-fine { font-size: max(11px, calc(11 * var(--u))); }
-@media (max-width: 1320px) { .tp-foot:not([data-phone]) .tp-today { display: none; } }
-.tp-note .tp-icon, .tp-toast .tp-icon { display: none; }
-/* A slab's words are ink on its face whatever it sits on (`.tp button` would hand it the label's wool). */
-.tp .tp-btn { color: var(--hm-ink); }
-.tp .tp-btn[data-pale], .tp .tp-btn:disabled { color: var(--hm-frost); }
-/* The Barn Book's three bookmarks are small slabs: wool, the open one in lantern. */
-.tp .tp-tag--mark { background: var(--hm-wool); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 4px 0 var(--hm-wool-hi), inset 0 -6px 0 var(--hm-wool-lip); padding: 5px 16px 9px; font: 800 max(13px, calc(15px * var(--u)))/1 var(--skin-font-display); }
-.tp .tp-tag--mark[data-on] { background: var(--hm-lantern); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 4px 0 var(--hm-lantern-hi), inset 0 -6px 0 var(--hm-lantern-lip); }
-.tp .tp-page-turn { background: var(--hm-wool); color: var(--hm-ink); box-shadow: inset 0 0 0 2px var(--hm-ink), inset 0 -6px 0 var(--hm-wool-lip); padding: 6px 16px 10px; }
-/* The odds board: a night board; the sack's name in wool, the odds in the lantern's light, the quiet lines in frost. */
-.tp-chalk { color: var(--hm-wool); }
-.tp-chalk h4 { color: var(--hm-wool); }
-.tp-chalk-sub, .tp-chalk p { color: var(--hm-frost); font-weight: 700; }
-.tp-chalk p b { color: var(--hm-wool); font-family: var(--skin-font-body); font-weight: 800; }
-.tp-chalk li b { color: var(--hm-lantern-hi); }
-.tp-chalk hr { border-top: 2px solid var(--hm-night-3); }
+.tp-roll-prog { display: flex; align-items: center; gap: 10px; } .tp-roll-prog .mk-meter { flex: 1; } .tp-roll-prog b { margin-left: auto; font-size: 15px; white-space: nowrap; }

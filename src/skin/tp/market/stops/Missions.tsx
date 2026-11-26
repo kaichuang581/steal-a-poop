@@ -3,73 +3,96 @@ import { KIND_ONE } from '../../../shop/catalog';
 import { ACHIEVEMENTS, BELLS, MISSIONS } from '../../../shop/economy';
 import type { Wallet } from '../../../shop/economy';
 import { formatCoins } from '../../../shop/format';
-import { SHEET, SLIPS } from '../MarketWorld';
-import { At, Icon, Knit } from '../pieces';
+import { BEAM, PLAQUES, RAIL } from '../MarketWorld';
+import { At, Icon } from '../pieces';
+import { Lantern, Meter, Moons, Snow, Sprite, TICK } from '../signs';
+import type { ToneName } from '../art';
 
-/** Stop 3, Missions (T6 section 2). */
+/** Each kind's colour, the colour of its prize's niche in the case. */
+const KIND_TONE: Record<string, ToneName> = { bomb: 'red', blast: 'green', tick: 'violet' };
+
+/**
+ * Stop 3, Missions. The prizes stand in the case (the scene); under each hangs its plaque: the name, what earns it, a
+ * moon for every night (a meter when there are too many to count), the count. The milestones are a rail of lanterns
+ * on the snow in front: each lights when its target is passed, and the next one fills from the bottom as it nears.
+ */
 export function MissionsStop({ wallet, items }: { wallet: Wallet; items: Item[] }) {
   const done = (id: string) => wallet.owned.includes(id);
+  // Milestones in the rail's order, in groups that count the same thing (the words, then the rare letters).
+  const groups: { label: string; have: number; of: typeof ACHIEVEMENTS }[] = [];
+  for (const a of ACHIEVEMENTS) {
+    const label = a.label.replace(/^[\d,]+ /, ''), g = groups[groups.length - 1];
+    if (g && g.label === label) g.of.push(a); else groups.push({ label, have: a.have(wallet), of: [a] });
+  }
   return (
     <>
+      <At p={[BEAM.x, BEAM.y, BEAM.z]} className="mk-beam"><p>Missions are earned by playing, never found in a sack. Each one is yours for good.</p></At>
       {MISSIONS.map((m, i) => {
-        const item = items[i], slip = SLIPS[i], have = Math.min(m.have(wallet), m.need), d = done(m.itemId);
+        const item = items[i], q = PLAQUES[i], have = Math.min(m.have(wallet), m.need), d = done(m.itemId);
         return (
-          <At key={m.id} box={[slip.x0, slip.y0, slip.x1, slip.y1, slip.z]} className="tp-slip" data-done={d || undefined}>
-            <span className="tp-slip-head"><b>{item.name}</b><small>{KIND_ONE[item.kind]}</small></span>
-            <span className="tp-slip-goal">{m.label}</span>
-            <span className="tp-slip-prog"><Knit value={have / m.need} label={`${have} of ${m.need}`} /><span className="tp-slip-count">{`${formatCoins(have)} / ${formatCoins(m.need)}`}</span></span>
-            {d && <span className="tp-stamp" aria-label="Done">Done</span>}
+          <At key={m.id} box={[q.x0, q.y0, q.x1, q.y1, q.z]} className="mk-plaque mk-board mk-board--cream" data-done={d || undefined}>
+            <span className={`mk-board mk-board--${KIND_TONE[item.kind] ?? 'night'} mk-board--thin mk-plaque-kind`}>{KIND_ONE[item.kind]}</span>
+            <span className="mk-plaque-head"><b>{item.name}</b>{d ? <span className="mk-plaque-done"><Sprite g={TICK} />Yours</span> : <span className="mk-plaque-count"><b>{formatCoins(have)}</b>{` / ${formatCoins(m.need)}`}</span>}</span>
+            <span className="mk-plaque-goal">{m.label}</span>
+            {m.need <= 7 ? <Moons have={have} need={m.need} label={`${have} of ${m.need}`} /> : <Meter pale marks={10} value={have / m.need} label={`${have} of ${m.need}`} />}
           </At>
         );
       })}
-      <At box={[SHEET.x0, SHEET.y0, SHEET.x1, SHEET.y1, SHEET.z]} className="tp-sheet">
-        <h3>Milestones <small>Different words played at the table. Each pays once.</small></h3>
-        <ul>
-          {ACHIEVEMENTS.map((a) => {
-            const paid = wallet.achieved.includes(a.id), have = Math.min(a.have(wallet), a.need);
-            return (
-              <li key={a.id} data-paid={paid || undefined}>
-                <span className="tp-ms-goal">{a.label}</span>
-                <span className="tp-ms-bar">{paid ? <Icon name="tick" size={14} /> : <Knit value={have / a.need} label={`${have} of ${a.need}`} />}</span>
-                <span className="tp-ms-count">{`${formatCoins(have)} / ${formatCoins(a.need)}`}</span>
-                <span className="tp-ms-pay"><Icon name="coin" size={14} />{`+${a.coins}`}</span>
-                <span className="tp-ms-pay tp-ms-bells"><Icon name="bell" size={14} />{`+${BELLS.achievement}`}</span>
-              </li>
-            );
-          })}
-        </ul>
+      <At box={[RAIL.x0, RAIL.y0, RAIL.x1, RAIL.y1, RAIL.z]} className={`mk-rail mk-board mk-board--night`}>
+        <Snow />
+        <div className="mk-rail-title"><h3>Milestones</h3><p>Each pays once,<br />with <Icon name="bell" size={16} /><b>{`+${BELLS.achievement}`}</b></p></div>
+        {groups.map((g) => {
+          const next = g.of.findIndex((a) => !wallet.achieved.includes(a.id) && g.have < a.need);
+          return (
+            <div key={g.label} className="mk-rail-group">
+              <p className="mk-rail-what"><b>{formatCoins(g.have)}</b>{g.label}</p>
+              <ul>
+                {g.of.map((a, k) => {
+                  const paid = wallet.achieved.includes(a.id) || g.have >= a.need, from = k ? g.of[k - 1].need : 0;
+                  return (
+                    <li key={a.id} data-paid={paid || undefined}>
+                      <Lantern fill={paid ? 1 : k === next ? Math.max(0, (g.have - from) / (a.need - from)) : 0} />
+                      <span className="mk-rail-node"><b>{formatCoins(a.need)}</b><span className="mk-rail-pay"><Icon name="coin" size={16} />{`+${a.coins}`}</span></span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
       </At>
     </>
   );
 }
 
-/** Phones: this stop's part of the paper roll under the band (T5 section 6, T6 section 5). */
+/** Phones: this stop's part of the board under the stalls. */
 export function MissionsRoll({ wallet, items }: { wallet: Wallet; items: Item[] }) {
   return (
     <div className="tp-roll">
-        
-          <>
-            {MISSIONS.map((m, k) => {
-              const it = items[k], have = Math.min(m.have(wallet), m.need), d = wallet.owned.includes(m.itemId);
-              return (
-                <div key={m.id} className="tp-roll-slip" data-done={d || undefined}>
-                  <b>{it.name}</b> <small>{KIND_ONE[it.kind]}</small>
-                  <span>{m.label}</span>
-                  {m.need <= 7 ? <span className="tp-stamps">{Array.from({ length: m.need }, (_, j) => <i key={j} data-on={j < have || undefined}>{j < have && <Icon name="tick" size={10} />}</i>)}</span> : <Knit value={have / m.need} label={`${have} of ${m.need}`} />}
-                  <span className="tp-slip-count">{`${formatCoins(have)} / ${formatCoins(m.need)}`}</span>
-                  {d && <span className="tp-stamp">Done</span>}
-                </div>
-              );
-            })}
-            <h3>Milestones</h3>
-            <ul className="tp-roll-ms">
-              {ACHIEVEMENTS.map((a) => {
-                const paid = wallet.achieved.includes(a.id), have = Math.min(a.have(wallet), a.need);
-                return <li key={a.id} data-paid={paid || undefined}><span>{a.label}</span><span className="tp-roll-ms-row">{paid ? <Icon name="tick" size={12} /> : <Knit value={have / a.need} label={`${have} of ${a.need}`} />}<b>{`${formatCoins(have)} / ${formatCoins(a.need)}`}</b><Icon name="coin" size={12} />{`+${a.coins}`}<Icon name="bell" size={12} />{`+${BELLS.achievement}`}</span></li>;
-              })}
-            </ul>
-            <p className="tp-roll-note">Missions are earned by playing, never found in a sack. Each one is yours for good.</p>
-          </>
+      {MISSIONS.map((m, k) => {
+        const it = items[k], have = Math.min(m.have(wallet), m.need), d = wallet.owned.includes(m.itemId);
+        return (
+          <div key={m.id} className="tp-roll-slip" data-done={d || undefined}>
+            <span><b>{it.name}</b>{d ? <span className="tp-green"><Sprite g={TICK} />Yours</span> : <small>{KIND_ONE[it.kind]}</small>}</span>
+            <span>{m.label}</span>
+            <span className="tp-roll-prog">{m.need <= 7 ? <Moons have={have} need={m.need} label={`${have} of ${m.need}`} /> : <Meter pale marks={10} value={have / m.need} label={`${have} of ${m.need}`} />}{!d && <b>{`${formatCoins(have)} / ${formatCoins(m.need)}`}</b>}</span>
+          </div>
+        );
+      })}
+      <h3>Milestones<small>{`Each pays once, with +${BELLS.achievement} Bells`}</small></h3>
+      <ul className="tp-roll-ms">
+        {ACHIEVEMENTS.map((a) => {
+          const paid = wallet.achieved.includes(a.id), have = Math.min(a.have(wallet), a.need);
+          return (
+            <li key={a.id} data-paid={paid || undefined}>
+              <Lantern fill={paid ? 1 : have / a.need} />
+              <span><span>{a.label}</span>{!paid && <Meter pale value={have / a.need} label={`${have} of ${a.need}`} />}</span>
+              <b>{paid ? 'Paid' : `+${a.coins}`}</b>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="tp-roll-note">Missions are earned by playing, never found in a sack. Each one is yours for good.</p>
     </div>
   );
 }

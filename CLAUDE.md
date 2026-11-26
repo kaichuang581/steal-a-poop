@@ -2855,3 +2855,22 @@ from its JSON; nothing random in a model, pattern or effect; the data wins over 
   the old reel); Peppermint and Brass Bell have no `detail` part and two bursts have a fourth colour (the data wins);
   burst and fuse-sound names stay the catalogue's (Harvest Fair, Heather, Tin toy, Barn owl); `sap:book-filter` is gone;
   the size limit is raised by 42,000 bytes.
+
+- The market's signs are pixel art, not CSS boxes (Brian, 2026-11-25, after eight rejected mock-ups: "its not even the fact
+  that the market is bad, its that ur executing it at such low quality ... critically analyze and go with whats best. do not
+  copy the start screen or be bland"). Built on local branch `tp/signs`. The rules, for anything added to the Trading Post:
+  - Every sign is drawn in src/skin/tp/market/art.ts on ONE pixel grid (`--p`, 2 px at 1440 x 900), in three tones lit from
+    the top left, with one ink outline added by `outlined`. signs.tsx places them; signs.css and market.css lay them out.
+    Borders, depth, gaps and sprites are whole multiples of `--p`. Never size part of a sign in another unit, never draw a
+    sign's shape with a CSS border, box-shadow outline or clip-path, and never scale a small picture up (it blurs).
+  - A sign is a board cut in nine (`mk-board` and a tone; `tp-tag`, `tp-btn`, `tp-note`, `tp-toast`, `tp-roll` are boards
+    too). Tones are `TONE` in art.ts and reach the CSS as `--t-<tone>-<part>`: the stylesheets hold no raw colours.
+  - Each stall has its colour (`STALL_TONE`: feed red, bells green, missions violet, book amber): its awning tab, its
+    plaques. The open tab is the lantern board. Kinds have theirs (bomb red, burst green, fuse sound violet).
+  - What is earned lights up: a moon token for a night counted, a lantern that fills and then burns for a milestone.
+  - The scene shows the things, large: the Missions prizes stand in a voxel display case (the packer's `noticeBoard`
+    restyle: three niches with arches, a shelf, bulbs), about a metre tall, not as pictures on a card. `FRAMING` in
+    Bazaar.tsx frames a stop closer than the pack's camera so its signs are large; type is 12 px at least.
+  - Check every stop at 1280 x 720, 1440 x 900, 1920 x 1080 and 390 x 844, plus the close view and a sack opening.
+  - Not his kit: the Home slabs and the leaderboards' snowy boards are not used at the market (he asked for something novel,
+    then said not to copy the start screen). Do not bring `hm-slab`, `rc-*` or `md-*` back here.

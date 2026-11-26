@@ -5,6 +5,7 @@ import type { Wallet } from '../../../shop/economy';
 import { formatCoins } from '../../../shop/format';
 import { partRect, STOP_X } from '../world';
 import { At, Icon } from '../pieces';
+import { Meter } from '../signs';
 
 const BELL_SIGN = partRect('bellStand', 'sign');
 
@@ -32,7 +33,7 @@ export function ShelfTags({ item, wallet, buy, wear, busy }: { item: Item; walle
       <span className="tp-tag tp-tag--shelf"><b>{item.name}</b><small>{KIND_ONE[item.kind]}{!owned && <span className="tp-price-in" aria-label={`${item.price} Golden Bells`}><Icon name="bell" size={14} />{formatCoins(item.price ?? 0)}</span>}</small></span>
       {worn ? <span className="tp-tag tp-tag--small tp-wearing"><Icon name="tick" size={14} />Wearing</span>
         : owned ? <button type="button" className="tp-btn tp-btn--lantern tp-btn--tile" onClick={() => wear(item)}>Wear it</button>
-        : need > 0 ? <button type="button" className="tp-btn tp-btn--tile" data-pale disabled>{`${need} more Bells`}</button>
+        : need > 0 ? <button type="button" className="tp-btn tp-btn--tile tp-btn--need" data-pale disabled>{`${need} more Bells`}<Meter pale value={wallet.bells / (item.price ?? 1)} label={`${wallet.bells} of ${item.price} Golden Bells`} /></button>
         : <button type="button" className="tp-btn tp-btn--lantern tp-btn--tile" disabled={busy} onClick={() => buy(item)} aria-label={`Buy ${item.name} for ${item.price} Golden Bells`}>Buy</button>}
     </span>
   );

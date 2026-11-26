@@ -1,0 +1,95 @@
+/*
+ * The market's signs (art.ts draws them, signs.tsx places them). One art pixel is --p: 2 px at 1440 x 900. A sign's
+ * borders, depth, gaps and sprites are whole pixels of it and nothing else, so no part of a sign is finer or coarser
+ * than the part beside it. Type is px times --u: Fraunces 800 for names and numbers, Nunito for the rest, 12 px at least.
+ */
+.tp { --p: calc(2px * var(--u)); }
+.mk-sprite { display: block; flex: none; width: calc(var(--w) * var(--p)); height: calc(var(--h) * var(--p)); }
+
+/* ---- a board, cut in nine from art.ts's `board`: lit top and left, shaded right and bottom, three pixels thick.
+   The market's own classes (tags, buttons, notes) are boards too: market.css lists them beside these. ---- */
+:is(.mk-board, .tp-tag, .tp-btn, .tp-note, .tp-toast, .tp-roll, .tp-listen, .tp-page-turn) { box-sizing: border-box; border-style: solid; border-color: transparent; border-width: calc(3 * var(--p)) calc(3 * var(--p)) calc(5 * var(--p)); border-image: var(--src) 3 3 5 3 stretch; background: var(--face) var(--wv) 0 0 / calc(8 * var(--p)) calc(6 * var(--p)); background-clip: padding-box; color: var(--ink); }
+:is(.mk-board--thin, .tp-tag, .tp-listen) { border-bottom-width: calc(3 * var(--p)); border-image-source: var(--src-thin); border-image-slice: 3; }
+:is(.mk-board--cream, .tp-tag, .tp-btn--wool, .tp-btn--pale-ok, .tp-listen, .tp-roll, .tp-page-turn) { --src: var(--bd-cream); --src-thin: var(--bd-cream-thin); --face: var(--mk-wool); --wv: var(--wv-cream); --ink: var(--mk-ink); --soft: var(--mk-soft); }
+:is(.mk-board--night, .tp-note, .tp-toast) { --src: var(--bd-night); --src-thin: var(--bd-night-thin); --face: var(--t-night-base); --wv: var(--wv-night); --ink: var(--mk-wool); --soft: var(--mk-frost); }
+:is(.mk-board--lantern, .tp-btn, .tp-tag[data-on], .tp-listen[data-on]) { --src: var(--bd-lantern); --src-thin: var(--bd-lantern-thin); --face: var(--t-lantern-base); --wv: var(--wv-lantern); --ink: var(--mk-ink); --soft: var(--t-lantern-soft); }
+.mk-board--red { --src: var(--bd-red); --src-thin: var(--bd-red-thin); --face: var(--t-red-base); --wv: var(--wv-red); --ink: var(--mk-wool); --soft: var(--t-red-soft); }
+.mk-board--green { --src: var(--bd-green); --src-thin: var(--bd-green-thin); --face: var(--t-green-base); --wv: var(--wv-green); --ink: var(--mk-wool); --soft: var(--t-green-soft); }
+.mk-board--violet { --src: var(--bd-violet); --src-thin: var(--bd-violet-thin); --face: var(--t-violet-base); --wv: var(--wv-violet); --ink: var(--mk-wool); --soft: var(--t-violet-soft); }
+.mk-board--amber { --src: var(--bd-amber); --src-thin: var(--bd-amber-thin); --face: var(--t-amber-base); --wv: var(--wv-amber); --ink: var(--mk-ink); --soft: var(--t-lantern-soft); }
+.tp :is(.tp-btn[data-pale], .tp-btn:disabled) { --src: var(--bd-pale); --src-thin: var(--bd-pale-thin); --face: var(--t-pale-base); --wv: var(--wv-pale); --ink: var(--t-pale-text); --soft: var(--t-pale-text); cursor: default; }
+/* A board that is pressed sinks two of its three pixels. */
+.tp :is(button.mk-board, .tp-btn, button.tp-tag, .tp-listen, .tp-page-turn) { cursor: pointer; filter: var(--sign-shadow); transition: transform 90ms, filter 90ms; }
+.tp :is(button.mk-board, .tp-btn, button.tp-tag, .tp-listen, .tp-page-turn):not(:disabled):not([data-pale]):hover { filter: var(--sign-shadow) brightness(1.06); }
+.tp :is(button.mk-board, .tp-btn, .tp-listen, .tp-page-turn):not(:disabled):not([data-pale]):active { transform: translateY(calc(2 * var(--p))); filter: none; }
+
+/* ---- the head: the banner, the four stalls' tabs, the purse ---- */
+.mk-head { position: absolute; z-index: 5; left: 0; right: 0; top: 0; height: 0; }
+.mk-banner { position: absolute; left: calc(16px * var(--u)); top: calc(16px * var(--u)); box-sizing: border-box; margin: 0; height: calc(18 * var(--p)); border-style: solid; border-color: transparent; border-width: 0 calc(10 * var(--p)); border-image: var(--banner) 0 10 fill stretch; filter: var(--sign-shadow); }
+.mk-banner span { display: block; margin: 0 calc(-2 * var(--p)); padding-top: calc(2 * var(--p)); font: 800 calc(20px * var(--u))/calc(11 * var(--p)) var(--skin-font-display); color: var(--mk-wool); text-shadow: 0 var(--p) 0 var(--t-red-side); white-space: nowrap; }
+.mk-tabs { position: absolute; left: 50%; top: calc(8px * var(--u)); display: flex; gap: calc(6 * var(--p)); transform: translateX(-50%); }
+.tp .mk-tab { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0; border: 0; background: none; filter: var(--sign-shadow); transition: transform 110ms; }
+.mk-tab .mk-awn { position: relative; z-index: 1; }
+.mk-tab-sign { display: flex; align-items: center; justify-content: center; gap: calc(3 * var(--p)); width: calc(74 * var(--p)); height: calc(26 * var(--p)); margin-top: calc(-4 * var(--p)); padding-top: calc(3 * var(--p)); white-space: nowrap; }
+.mk-tab-sign b { font: 800 calc(16.5px * var(--u))/1 var(--skin-font-display); }
+.mk-tab[data-on] { transform: translateY(calc(2 * var(--p))); }
+.mk-tab:not([data-on]):hover { transform: translateY(var(--p)); }
+.mk-tab-mark { position: absolute; left: 50%; top: 100%; margin: calc(-2 * var(--p)) 0 0 calc(-4.5 * var(--p)); }
+.mk-tab .tp-dot { position: absolute; z-index: 2; right: calc(2 * var(--p)); top: calc(12 * var(--p)); width: calc(5 * var(--p)); height: calc(5 * var(--p)); background: var(--t-red-base); box-shadow: 0 0 0 var(--p) var(--mk-outline); }
+.mk-purse { position: absolute; right: calc(16px * var(--u)); top: calc(16px * var(--u)); display: flex; align-items: flex-start; gap: calc(4 * var(--p)); }
+.mk-plate { display: inline-flex; align-items: center; gap: calc(3 * var(--p)); height: calc(24 * var(--p)); padding: 0 calc(4 * var(--p)) 0 calc(3 * var(--p)); filter: var(--sign-shadow); }
+.mk-plate b { font: 800 calc(20px * var(--u))/1 var(--skin-font-display); font-variant-numeric: lining-nums tabular-nums; }
+.mk-plate .tp-icon { width: calc(10 * var(--p)); height: auto; }
+.tp .mk-close { display: grid; place-items: center; width: calc(24 * var(--p)); height: calc(24 * var(--p)); padding: 0; filter: var(--sign-shadow); }
+.mk-admin { align-self: center; padding: calc(1 * var(--p)) calc(3 * var(--p)); background: var(--mk-outline); color: var(--mk-wool); font: 800 calc(12px * var(--u))/1.4 var(--skin-font-body); }
+
+/* ---- the foot: the level, the wool to the next one, today's coins, the small print ---- */
+.mk-foot { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; box-sizing: border-box; height: calc(48px * var(--u)); display: flex; align-items: center; gap: calc(14px * var(--u)); padding: calc(3 * var(--p)) calc(16px * var(--u)) 0; background: var(--t-night-base) var(--wv-night) 0 0 / calc(8 * var(--p)) calc(6 * var(--p)); box-shadow: inset 0 var(--p) 0 var(--mk-outline), inset 0 calc(2 * var(--p)) 0 var(--t-lantern-base), inset 0 calc(3 * var(--p)) 0 var(--mk-outline); color: var(--mk-frost); font: 700 max(12px, calc(13px * var(--u)))/1 var(--skin-font-body); white-space: nowrap; }
+.mk-level { flex: none; padding: calc(1 * var(--p)) calc(4 * var(--p)); font: 800 calc(14.5px * var(--u))/1.2 var(--skin-font-display); }
+.mk-foot .mk-meter { flex: none; width: calc(180px * var(--u)); }
+.mk-foot b { margin-right: 0.35em; font: 800 calc(15px * var(--u))/1 var(--skin-font-display); color: var(--mk-wool); font-variant-numeric: lining-nums; }
+.mk-foot-today { display: inline-flex; align-items: center; gap: calc(3 * var(--p)); } .mk-foot-today .tp-icon { width: calc(10 * var(--p)); height: auto; }
+.mk-fine { flex: 1; min-width: 0; margin: 0; text-align: right; font: 700 max(12px, calc(12px * var(--u)))/1.25 var(--skin-font-body); white-space: normal; text-wrap: balance; }
+
+/* ---- meters, moons, lanterns ---- */
+.mk-meter { position: relative; display: block; box-sizing: border-box; height: calc(9 * var(--p)); border-style: solid; border-color: transparent; border-width: calc(2 * var(--p)); border-image: var(--well) 2 fill stretch; }
+.mk-meter[data-pale] { border-image-source: var(--well-pale); }
+.mk-meter i { position: absolute; left: 0; top: 0; bottom: 0; min-width: calc(2 * var(--p)); background: var(--t-lantern-base); box-shadow: inset 0 var(--p) 0 var(--t-lantern-hi), inset 0 calc(-1 * var(--p)) 0 var(--t-lantern-lo), inset calc(-1 * var(--p)) 0 0 var(--t-lantern-lo); }
+.mk-meter u { position: absolute; top: 0; bottom: 0; width: var(--p); margin-left: calc(-0.5 * var(--p)); background: var(--mk-shade); }
+.mk-moons { display: inline-flex; gap: var(--p); }
+
+/* ---- Missions: the line on the beam, a plaque under each niche, the lantern rail on the snow ---- */
+.mk-beam { width: 0; display: flex; justify-content: center; }
+.mk-beam p { flex: none; margin: 0; transform: translateY(-50%); font: 800 calc(13.5px * var(--u))/1 var(--skin-font-body); color: var(--mk-wool); white-space: nowrap; text-shadow: 0 var(--p) 0 var(--mk-shade-2); }
+.mk-plaque { display: flex; flex-direction: column; justify-content: center; gap: calc(3.5 * var(--p)); padding: calc(3 * var(--p)) calc(4 * var(--p)) calc(1 * var(--p)); filter: var(--sign-shadow); }
+.mk-plaque-kind { position: absolute; left: calc(4 * var(--p)); top: calc(-8 * var(--p)); padding: 0 calc(3 * var(--p)); font: 800 max(12px, calc(12px * var(--u)))/1.5 var(--skin-font-body); white-space: nowrap; }
+.mk-plaque-head { display: flex; align-items: baseline; justify-content: space-between; gap: calc(4 * var(--p)); white-space: nowrap; }
+.mk-plaque-head > b { font: 800 calc(24px * var(--u))/1 var(--skin-font-display); color: var(--ink); }
+.mk-plaque-count { font: 800 calc(14px * var(--u))/1 var(--skin-font-display); color: var(--soft); font-variant-numeric: lining-nums; } .mk-plaque-count b { margin-right: 0.15em; font-size: calc(22px * var(--u)); color: var(--ink); }
+.mk-plaque-done { display: inline-flex; align-items: center; gap: calc(2 * var(--p)); font: 800 calc(15px * var(--u))/1 var(--skin-font-display); color: var(--mk-green); }
+.mk-plaque-goal { font: 700 max(12px, calc(13.5px * var(--u)))/1.2 var(--skin-font-body); color: var(--soft); white-space: nowrap; }
+.mk-plaque .mk-moons { justify-content: space-between; }
+.mk-rail { display: flex; align-items: center; justify-content: space-between; gap: calc(6 * var(--p)); padding: 0 calc(8 * var(--p)) 0 calc(7 * var(--p)); filter: var(--sign-shadow); }
+.mk-rail-title { flex: none; } .mk-rail-title h3 { font: 800 calc(22px * var(--u))/1 var(--skin-font-display); color: var(--mk-wool); } .mk-rail-title p { margin-top: calc(3 * var(--p)); font: 700 max(12px, calc(13px * var(--u)))/1.45 var(--skin-font-body); color: var(--mk-frost); white-space: nowrap; } .mk-rail-title p b { font: 800 calc(15px * var(--u))/1 var(--skin-font-display); color: var(--mk-gold); } .mk-rail-title .tp-icon { width: calc(8 * var(--p)); height: auto; margin: 0 calc(1.5 * var(--p)) calc(1 * var(--p)); }
+.mk-rail-title + .mk-rail-group { flex: 1; }
+.mk-rail-group { flex: none; display: flex; flex-direction: column; gap: calc(4 * var(--p)); padding-left: calc(8 * var(--p)); box-shadow: inset var(--p) 0 0 var(--mk-outline), inset calc(2 * var(--p)) 0 0 var(--t-night-hi); }
+.mk-rail-what { font: 700 max(12px, calc(12.5px * var(--u)))/1 var(--skin-font-body); color: var(--mk-frost); white-space: nowrap; } .mk-rail-what b { margin-right: 0.4em; font: 800 calc(16px * var(--u))/1 var(--skin-font-display); color: var(--mk-gold); font-variant-numeric: lining-nums; }
+.mk-rail ul { display: flex; justify-content: space-between; gap: calc(9 * var(--p)); margin: 0; padding: 0; list-style: none; }
+.mk-rail li { display: flex; align-items: center; gap: calc(3 * var(--p)); }
+.mk-rail-node { display: flex; flex-direction: column; gap: calc(2 * var(--p)); white-space: nowrap; } .mk-rail-node > b { font: 800 calc(20px * var(--u))/1 var(--skin-font-display); color: var(--mk-wool); font-variant-numeric: lining-nums; }
+.mk-rail li[data-paid] .mk-rail-node > b { color: var(--mk-gold); }
+.mk-rail-pay { display: inline-flex; align-items: center; gap: calc(1.5 * var(--p)); font: 800 calc(14px * var(--u))/1 var(--skin-font-display); color: var(--mk-wool); font-variant-numeric: lining-nums; } .mk-rail-pay .tp-icon { width: calc(8 * var(--p)); height: auto; }
+
+/* ---- phones: the purse on top, the four stalls' tabs in a row under it ---- */
+.mk-head[data-phone] .mk-purse { top: calc(8px + env(safe-area-inset-top, 0px)); right: 8px; gap: calc(3 * var(--p)); }
+.mk-head[data-phone] .mk-tabs { top: calc(60px + env(safe-area-inset-top, 0px)); gap: calc(2 * var(--p)); }
+.mk-head[data-phone] .mk-tab-sign { width: calc(44 * var(--p)); height: calc(21 * var(--p)); } .mk-head[data-phone] .mk-tab-sign b { font-size: 12px; }
+.mk-foot[data-phone] { gap: 8px; padding-left: 8px; padding-right: 8px; } .mk-foot[data-phone] .mk-meter { width: auto; flex: 1; min-width: 40px; }
+
+/* A lit lantern breathes: two steps of light, slow. */
+.mk-rail li[data-paid] .mk-lantern, .tp-roll-ms li[data-paid] .mk-lantern { animation: mk-breathe 2.6s steps(1) infinite; }
+@keyframes mk-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.88; } }
+
+/* Snow lies on what stands out in the open: the rail, a stop's note. */
+.mk-snow { position: absolute; top: calc(-5 * var(--p)); pointer-events: none; } .mk-snow--l { left: calc(2 * var(--p)); } .mk-snow--r { right: calc(2 * var(--p)); }
+.mk-rail, .tp-note { position: absolute; }

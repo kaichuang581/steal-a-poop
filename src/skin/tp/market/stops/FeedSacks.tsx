@@ -122,7 +122,9 @@ export function FeedSacksRoll({ wallet, sack, pool, listen }: { wallet: Wallet; 
             <ul className="tp-roll-rows">
               {pool.map((i) => <li key={i.id}><i style={{ background: rarityOf(i).colour }} /><b>{i.name}</b><small>{rarityOf(i).word}</small>{wallet.owned.includes(i.id) && <span className="tp-green"><Icon name="tick" size={12} />Found</span>}{i.kind === 'tick' && <ListenTile item={i} onListen={listen} small />}</li>)}
             </ul>
-            <p className="tp-roll-odds"><small>The odds, every time</small><br />{RARITIES.map((r) => `${RARITY_LABEL[r]} ${SACK.odds[r]}%`).join('   ')}<br />{`Rare or better within ${Math.max(1, SACK.pity.rare - pity.sinceRare)} sacks. Legendary within ${Math.max(1, SACK.pity.legendary - pity.sinceLegendary)}.`}</p>
+            <h3>The odds<small>every time</small></h3>
+            <ul className="tp-roll-odds">{RARITIES.map((r) => <li key={r}><i style={{ background: RARITY_COLOR[r] }} />{RARITY_LABEL[r]}<b>{`${SACK.odds[r]}%`}</b></li>)}</ul>
+            <p className="tp-roll-note">{`Rare or better within ${Math.max(1, SACK.pity.rare - pity.sinceRare)} sacks. Legendary within ${Math.max(1, SACK.pity.legendary - pity.sinceLegendary)}.`}</p>
           </>
         ); })()}
     </div>

@@ -56,7 +56,14 @@ function restyle(m) {
     const post = Math.max(...m.boxes.filter((b) => /front post/.test(b.n)).map((b) => b.b[3]));
     const [, y0, , , y1, z1] = face, z0 = z1 - 3, c = FASCIA[m.id], trim = 'trimWhite:1';
     const box = (n, b, col, part = 'body') => ({ n, part, c: col, season: false, b });
-    return { ...m, boxes: [...m.boxes.filter((b) => b.part !== 'sign'),
+    // The bell stand's back wall was three metres of bare boards over two things for sale: a rail of small brass
+    // bells hangs along it, over the upper step.
+    const bells = [];
+    if (m.id === 'bellStand') {
+      bells.push(box('bell rail', [-25, 46, -28, 25, 47, -26], 'darkWood:0'));
+      for (const x of [-20, -10, 0, 10, 20]) bells.push(box('small bell string', [x, 44, -28, x + 1, 46, -27], 'darkWood:-2'), box('small bell crown', [x - 1, 43, -28, x + 2, 44, -25], 'brass:1'), box('small bell', [x - 2, 40, -28, x + 3, 43, -25], 'brass:0'), box('small bell rim', [x - 3, 39, -28, x + 4, 40, -24], 'brass:-1'), box('small bell clapper', [x, 38, -27, x + 1, 39, -26], 'brass:-2'));
+    }
+    return { ...m, boxes: [...bells, ...m.boxes.filter((b) => b.part !== 'sign'),
       box('fascia', [-post, y0 - 1, z0, post, y1 + 1, z1 - 1], c),
       box('fascia face', [-post + 2, y0, z1 - 1, post - 2, y1, z1], c),
       box('fascia trim', [-post, y1, z0, post, y1 + 1, z1], trim), box('fascia trim', [-post, y0 - 1, z0, post, y0, z1], trim),
@@ -66,9 +73,31 @@ function restyle(m) {
   // The odds board's face is a night board too, so its words are the kit's (wool, with the odds in the lantern's light).
   if (m.id === 'oddsBoard') return { ...m, boxes: m.boxes.map((b) => (b.part === 'face' ? { ...b, c: '#131D3B' } : b)) };
   if (m.id.startsWith('sack_')) return { ...m, boxes: m.boxes.map((b) => (b.part === 'patch' ? { ...b, c: 'hay:2' } : b)) };
-  // The notice board's face is a night board and its slips raised tiles (Midnight's own tones), so its words are the
-  // kit's wool on dark, like every other board in the game, not ink on cream paper.
-  if (m.id === 'noticeBoard') return { ...m, boxes: m.boxes.filter((b) => b.n !== 'pin').map((b) => (b.n === 'cork' ? { ...b, c: '#131D3B' } : b.part === 'slip' ? { ...b, c: '#1B2A52' } : b)) };
+  // The notice board is a display case (Brian, 2026-11-25: the slips were "textureless blue cards", and the prizes
+  // 0.3 m pictures on them). Three niches, each in its prize's own colour with a lighter arch let into its back, a
+  // shelf the prizes stand on at a metre, a string of bulbs under the head rail, and a band under the shelf where the
+  // three plaques hang. The posts, the frame and the roof are the pack's.
+  if (m.id === 'noticeBoard') {
+    const box = (n, b, c, part = 'body') => ({ n, part, c, season: false, b });
+    const keep = m.boxes.filter((b) => b.part !== 'slip' && b.n !== 'cork' && b.n !== 'pin');
+    const NICHE = [[-32, -12, '#7C2A24', '#A84237'], [-10, 10, '#27603D', '#3A8553'], [12, 32, '#313989', '#4852B4']];
+    const made = [
+      box('case back', [-34, 4, -5, 34, 50, -4], 'darkWood:-2'),
+      box('case side', [-34, 6, -4, -32, 48, -2], 'barnRed:-2'), box('case side', [32, 6, -4, 34, 48, -2], 'barnRed:-2'), box('case head', [-32, 47, -4, 32, 48, -2], 'barnRed:-2'),
+      box('plaque band', [-32, 6, -4, 32, 19, -1], 'barnRed:-2', 'face'),
+      box('shelf', [-32, 19, -4, 32, 20, 3], 'trimWhite:1'), box('shelf lip', [-32, 18, 2, 32, 19, 3], 'trimWhite:0'),
+      box('divider', [-12, 20, -4, -10, 47, 1], 'trimWhite:1'), box('divider', [10, 20, -4, 12, 47, 1], 'trimWhite:1'),
+      box('divider shade', [-12, 20, -4, -11, 47, 0], 'trimWhite:0'), box('divider shade', [10, 20, -4, 11, 47, 0], 'trimWhite:0'),
+    ];
+    for (const [x0, x1, back, arch] of NICHE) {
+      made.push(box('niche back', [x0, 20, -4, x1, 47, -3], back));
+      made.push(box('niche arch', [x0 + 3, 20, -3, x1 - 3, 38, -2], arch), box('niche arch', [x0 + 4, 38, -3, x1 - 4, 41, -2], arch), box('niche arch', [x0 + 5, 41, -3, x1 - 5, 43, -2], arch), box('niche arch', [x0 + 7, 43, -3, x1 - 7, 44, -2], arch));
+      // The bulbs: a wire under the head rail and five small lights hanging from it.
+      made.push(box('bulb wire', [x0, 46, -1, x1, 47, 0], 'darkWood:-2'));
+      for (let k = 0; k < 5; k++) made.push(box('bulb', [x0 + 2 + k * 4, 45, -1, x0 + 3 + k * 4, 46, 0], k % 2 ? 'lit:#FFF1C4' : 'lit:#FFD98A'));
+    }
+    return { ...m, boxes: [...keep, ...made] };
+  }
   return m;
 }
 

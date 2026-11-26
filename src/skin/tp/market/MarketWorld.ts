@@ -10,7 +10,7 @@ import { makeBurst, BURST_OF } from '../burst';
 import type { BurstObject } from '../burst';
 import { MARKET } from '../market.gen';
 import type { ShiftView } from '../camera';
-import { buildRow, glowSprite, itemGroup, itemHeight, modelGroup, rowMaterials, spreadFor, STOP_X, STOPS, stopAt, tpPart } from './world';
+import { buildRow, glowSprite, itemGroup, itemHeight, itemWidth, modelGroup, rowMaterials, spreadFor, STOP_X, STOPS, stopAt, tpPart } from './world';
 import type { StopId } from './world';
 
 /**
@@ -43,8 +43,13 @@ export function pocket(i: number, n: 8 | 10): [number, number, number] {
 const NB = { x: STOP_X.missions, z: -0.3 };
 /** An item's size in a Barn Book pocket: the pack's 0.8, or less where a tall one (a bomb with its fuse) would stand out of the pocket's 0.62 m. */
 const bookScale = (item: Item): number => Math.min(0.8, 0.6 / itemHeight(item));
-export const SLIPS = [[-31, -11], [-10, 10], [11, 31]].map(([a, b]) => ({ x0: NB.x + a * 0.05, x1: NB.x + b * 0.05, y0: 1.6, y1: 2.35, z: NB.z }));
-export const SHEET = { x0: NB.x - 1.55, x1: NB.x + 1.55, y0: 0.35, y1: 1.5, z: NB.z };
+/** The display case (the packer's `noticeBoard`): each niche's middle, the shelf's top, and the plaque that hangs under each niche. */
+export const NICHES = [-1.1, 0, 1.1].map((dx) => ({ x: NB.x + dx, shelf: 1.0, z: NB.z - 0.02 }));
+export const PLAQUES = NICHES.map((n) => ({ x0: n.x - 0.54, x1: n.x + 0.54, y0: 0.37, y1: 0.93, z: NB.z - 0.04 }));
+/** The milestones' rail stands on the snow in front of the case. */
+export const RAIL = { x0: NB.x - 1.86, x1: NB.x + 1.86, y0: 0.0, y1: 0.47, z: 0.95 };
+/** The line of words on the beam over the niches. */
+export const BEAM = { x: NB.x, y: 2.45, z: NB.z };
 
 const keep = <M extends Material>(m: M): M => { m.userData.keep = true; return m; };
 const ease = (t: number) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
@@ -160,22 +165,15 @@ export class MarketWorld {
     });
   }
 
-  /** The mission rewards' pictures, on each slip's top left, each on a dark square. */
+  /** The mission rewards stand in the case's niches, each as large as its niche allows. */
   setMissions(items: Item[]): void {
     this.missions.clear();
     items.forEach((item, i) => {
-      const slip = SLIPS[i];
-      if (!slip) return;
-      const cx = slip.x0 + 0.2, cy = slip.y1 - 0.22, z = slip.z + 0.03;
-      {
-        // Every reward on the same dark square: one of three on a tile and two on bare paper read as three makes.
-        const sq = new Mesh(new BoxGeometry(0.32, 0.32, 0.02), new MeshBasicMaterial({ color: '#0E152C' }));
-        sq.position.set(cx, cy, z);
-        this.missions.add(sq);
-      }
-      const g = itemGroup(item, this.itemMats), h = itemHeight(item), s = 0.28 / Math.max(h, 0.4);
+      const n = NICHES[i];
+      if (!n) return;
+      const g = itemGroup(item, this.itemMats), s = Math.min(1.02 / Math.max(itemHeight(item), 0.3), 0.8 / Math.max(itemWidth(item), 0.3));
       g.scale.setScalar(s);
-      g.position.set(cx, cy - (h * s) / 2, z + 0.05);
+      g.position.set(n.x, n.shelf, n.z);
       this.missions.add(g);
     });
   }

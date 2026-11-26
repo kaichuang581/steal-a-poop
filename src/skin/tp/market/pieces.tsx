@@ -13,10 +13,9 @@ import type { ShiftView } from '../camera';
 import { PIXEL_ART, SKINS } from '../models.gen';
 
 /**
- * The Trading Post's shared interface pieces (docs/trading-post-practice/T7), for every stop: pixel icons, the rarity
- * square and word, the knitted row, the Listen tile, and `At`, which lays anything over a projected scene point or box.
- * The paper tag, tiles, yarn and chalk are CSS classes in market.css: `tp-tag` (with `tp-hang` to hang it on yarn from
- * its anchor), `tp-btn` (`--lantern`, `--wool`, `data-pale`, `--tile`), `tp-chalk`, `tp-knit`, `tp-note`.
+ * The Trading Post's shared interface pieces, for every stop: the pack's pixel icons, the rarity square and word, the
+ * Listen tile, and `At`, which lays anything over a projected scene point or box. The signs themselves (boards, awnings,
+ * lanterns, meters) are signs.tsx; market.css makes `tp-tag`, `tp-btn`, `tp-note` and the rest out of its boards.
  */
 
 const INK = '#2B2230';
@@ -44,10 +43,6 @@ export function Rarity({ item, tick }: { item: Item; tick?: boolean }) {
 export const sourceLine = (i: Item): string => i.source === 'sack' ? `In the ${SACKS[i.kind].name}` : i.source === 'bells' ? `${i.price} Bells, Bell Shelf` : i.source === 'mission' ? `Mission: ${MISSIONS.find((m) => m.id === i.mission)?.label.replace(/^Count sheep (\d+) nights in a row$/, '$1 dream nights') ?? 'a mission'}` : 'Starter';
 /** The one line under a bomb's name (T2), or the catalogue's blurb. */
 export const lineOf = (i: Item): string => (i.kind === 'bomb' ? SKINS[SKIN_OF[i.id]]?.line : undefined) ?? i.blurb;
-/** A knitted row: stitches for what is done, plain paper for what is left. */
-export function Knit({ value, label }: { value: number; label: string }) {
-  return <span className="tp-knit" role="img" aria-label={label}><i style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} /></span>;
-}
 export function useCountTo(n: number): number {
   const [shown, set] = useState(n);
   const from = useRef(n);
@@ -105,14 +100,5 @@ export function ListenTile({ item, onListen, small }: { item: Item; onListen: (i
 }
 
 
-/**
- * The screen's colours (T7's table, in one place; market.css uses only these). Paper, ink, soft text, yarn, chalk; wool
- * and lantern are the kit's; stamps, rules and the knitted stitch are the plan's own.
- */
-const STITCH = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="8" height="12" shape-rendering="crispEdges"><rect width="8" height="12" fill="#BF6055"/><path d="M1 3h2v2h2v-2h2v2h-1v2h-1v2h-2v-2h-1v-2h-1z" fill="#AC473D"/></svg>')}")`;
-export const TP_COLOURS = {
-  '--paper': '#FFF6E0', '--lip': '#DCC9A0', '--tp-ink': '#2B2230', '--soft': '#6B5B4B', '--yarn': '#BF6055', '--yarn-shade': '#AC473D',
-  '--chalk': '#F3EEE6', '--lantern': '#F2A444', '--lantern-hi': '#FFD98A', '--lantern-lip': '#B96F1E', '--woolt': '#F4ECDD', '--wool-side': '#D9CBB1',
-  '--pale': '#E9DDC3', '--pale-side': '#CDBE9F', '--paper-dim': '#F3E8CF', '--rule': '#E8DABB', '--paid': '#9A8E80', '--green': '#2F7A4C',
-  '--stamp': '#B33B33', '--stamp-dark': '#7A211C', '--brass': '#F2CE7C', '--peg': '#A57B58', '--horizon': '#E3A482', '--stitch': STITCH,
-} as const;
+/** The colour behind the scene while it loads: the sky at the horizon. Every other colour of the screen is a sign's tone (signs.tsx). */
+export const TP_COLOURS = { '--horizon': '#E3A482' } as const;

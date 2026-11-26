@@ -244,4 +244,5 @@
 ["^Fast asleep from sheep (\\d+)$","Endormi pour de bon dès le mouton $1"],
 ["^Longest: (\\d+)$","Plus longue : $1"],
 ["^Moon shows: (\\d+)$","Spectacles de lune : $1"],
-["^\\+(\\d+) more$","+$1 de plus"]]
+["^\\+(\\d+) more$","+$1 de plus"],
+["^Each pays once, with \\+(\\d+) Bells$", "Chacun paie une fois, avec +$1 cloches"]]

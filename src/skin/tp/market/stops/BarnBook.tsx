@@ -4,13 +4,14 @@ import { SACKS } from '../../../shop/sacks';
 import type { Wallet } from '../../../shop/economy';
 import { MARKET } from '../../market.gen';
 import { STOP_X } from '../world';
-import { At, Icon, Rarity, rarityOf, sourceLine } from '../pieces';
+import { At, rarityOf } from '../pieces';
+import { LOCK, Sprite, TICK } from '../signs';
 
 /** Where a not-found item comes from, in a word or two: the short line of a short window (the close view has the whole line). */
 const shortSource = (i: Item): string => (i.source === 'sack' ? SACKS[i.kind].name.replace(/^The /, '') : i.source === 'bells' ? 'Bell Shelf' : i.source === 'mission' ? 'Mission' : 'Starter');
 
 /** Stop 4, the Barn Book (T6 section 3). */
-export function BookStop({ wallet, kind, items, setFocus, turn, phone, page, flip, short = false }: { wallet: Wallet; kind: Kind; items: Item[]; setFocus: (i: Item) => void; turn: (k: Kind) => void; phone: boolean; page: number; flip?: () => void; short?: boolean }) {
+export function BookStop({ wallet, kind, items, setFocus, turn, phone, page, flip }: { wallet: Wallet; kind: Kind; items: Item[]; setFocus: (i: Item) => void; turn: (k: Kind) => void; phone: boolean; page: number; flip?: () => void }) {
   const n: 8 | 10 = items.length > 8 ? 10 : 8;
   const found = items.filter((i) => wallet.owned.includes(i.id)).length, all = CATALOG.filter((i) => wallet.owned.includes(i.id)).length;
   // The three bookmarks. On a phone the camera frames one page, so they sit in a row under the tabs instead.
@@ -32,15 +33,10 @@ export function BookStop({ wallet, kind, items, setFocus, turn, phone, page, fli
           <span key={item.id}>
             <At as="button" box={[x - 0.3, y, x + 0.3, y + 0.62, 0]} className="tp-hit" aria-label={`Look at ${item.name}`} onClick={() => setFocus(item)} />
             <At p={[x, y, 0]} className={n === 10 ? "tp-ledge tp-ledge--tight" : "tp-ledge"}>
-              <b>{item.name}</b>
-              {/* A short window (under 820 px) has room for two lines between a card and the one below it on the 8-item
-                  pages, where the 11 px floor stops the text shrinking with the book: the rarity's square leads the
-                  second line there, and the rarity's word is in the close view. */}
-              {!(short && n === 8) && <Rarity item={item} />}
-              {(() => {
-                const sq = short && n === 8 ? <i className="tp-rarity-sq" style={{ background: rarityOf(item).colour }} aria-label={rarityOf(item).word} /> : null;
-                return worn ? <span className="tp-green">{sq}<Icon name="tick" size={12} />Wearing</span> : owned ? <span className="tp-green">{sq}<Icon name="tick" size={12} />{n === 10 || short ? 'Wear it' : 'Found. Wear it'}</span> : <span className="tp-from">{sq}<Icon name="lock" size={11} />{sq ? shortSource(item) : sourceLine(item)}</span>;
-              })()}
+              {/* Two lines, so a card's words never reach the card below: the rarity is the square before the name
+                  (its word is in the close view), then whether it is yours or where it comes from. */}
+              <b><i className="tp-pip" style={{ background: rarityOf(item).colour }} aria-label={rarityOf(item).word} />{item.name}</b>
+              {worn ? <span className="tp-green"><Sprite g={TICK} />Wearing</span> : owned ? <span className="tp-green"><Sprite g={TICK} />Wear it</span> : <span className="tp-from"><Sprite g={LOCK} />{shortSource(item)}</span>}
             </At>
           </span>
         );

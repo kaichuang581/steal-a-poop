@@ -24,7 +24,8 @@ import { listen as listenTo, stopListening } from '../tp/listen';
 import { MarketWorld } from '../tp/market/MarketWorld';
 import { STOP_X, STOPS } from '../tp/market/world';
 import type { StopId } from '../tp/market/world';
-import { Anchors, EASE, Icon, Knit, TP_COLOURS, useCountTo } from '../tp/market/pieces';
+import { Anchors, EASE, Icon, TP_COLOURS, useCountTo } from '../tp/market/pieces';
+import { Cross, Meter, SIGN_ART, Snow, StallAwning, StallIcon } from '../tp/market/signs';
 import type { Tick } from '../tp/market/pieces';
 import { FeedSacksRoll, OpenButton, RevealTag, SacksStop } from '../tp/market/stops/FeedSacks';
 import type { Reveal } from '../tp/market/stops/FeedSacks';
@@ -35,15 +36,12 @@ import { CloseView } from '../tp/market/stops/CloseView';
 import { TIMINGS } from '../tp/models.gen';
 import { MARKET } from '../tp/market.gen';
 import { getLang } from '../../lib/lang';
-import { FESTIVE } from '../../config';
-import { CloseIcon } from '../components/Icons';
-import { Lights, SnowCap } from '../kit/surfaces';
-import { useUnit } from '../profile/Profile';
 import '../home/home.css';
 import '../kit/modern.css';
 import '../kit/surfaces.css';
 import '../boards/boards.css';
 import '../tp/market/market.css';
+import '../tp/market/signs.css';
 
 /**
  * The Trading Post (docs/trading-post-practice, T1 to T7): a market row on the farm at dusk, four stops side by side,
@@ -90,8 +88,6 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   revealRef.current = reveal;
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-  const bar = useRef<HTMLElement>(null);
-  const barU = useUnit(bar);
   const [seen, setSeen] = useState<string[]>(seenDone);
   const now = () => performance.now();
 
@@ -215,7 +211,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   const anchors = useMemo(() => ({ add: (t: Tick) => { ticks.add(t); return () => { ticks.delete(t); }; }, view: () => view.current }), [ticks]);
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="The Trading Post" className="tp" data-phone={phone || undefined} data-reduced={reduced || undefined} data-focus={focus ? "" : undefined} data-lang={getLang()} style={{ ...TP_COLOURS, '--u': u } as CSSProperties}
+    <div role="dialog" aria-modal="true" aria-label="The Trading Post" className="tp" data-phone={phone || undefined} data-reduced={reduced || undefined} data-focus={focus ? "" : undefined} data-lang={getLang()} style={{ ...TP_COLOURS, ...SIGN_ART, '--u': u } as CSSProperties}
       onPointerDown={(e) => { if (phone) swipe.current = e.clientX; }}
       onPointerUp={(e) => { if (phone && swipe.current !== null && !reveal && !focus && Math.abs(e.clientX - swipe.current) > 60 && (e.clientY < H * 0.45 || stop === 'book')) swiped(e.clientX < swipe.current ? 1 : -1); swipe.current = null; }}>
       <div className="tp-sky" aria-hidden="true" />
@@ -227,40 +223,38 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
           {stop === 'sacks' && <SacksStop {...{ wallet, sack, pool, pick, focus, setFocus, reveal, phone, listen }} />}
           {stop === 'bells' && <BellsStop {...{ wallet, items: shelfItems, buy, wear, busy, setFocus, phone }} />}
           {stop === 'missions' && !phone && <MissionsStop wallet={wallet} items={missionItems} />}
-          {stop === 'book' && <BookStop {...{ wallet, kind: bookKind, items: bookItems, setFocus, phone, page: bookPage }} short={!phone && H < 820} flip={() => { pageTurn(); setBookPage(bookPage ? 0 : 1); }} turn={(k) => { if (k !== bookKind) { pageTurn(); setBookKind(k); setBookPage(0); } }} />}
+          {stop === 'book' && <BookStop {...{ wallet, kind: bookKind, items: bookItems, setFocus, phone, page: bookPage }} flip={() => { pageTurn(); setBookPage(bookPage ? 0 : 1); }} turn={(k) => { if (k !== bookKind) { pageTurn(); setBookKind(k); setBookPage(0); } }} />}
           {focus && <CloseView item={focus} wallet={wallet} world={world} stop={stop} phone={phone} onWear={wear} onListen={listen} onClose={() => setFocus(null)} />}
           {reveal && <RevealTag reveal={reveal} wallet={wallet} onWear={() => void wearRevealed()} onDone={finishReveal} phone={phone} />}
         </div>
       </Anchors.Provider>
       {focus && <button type="button" className="tp-dim" aria-label="Step back" onClick={() => setFocus(null)} />}
 
-      {/* The top bar is the leaderboards' own: the snowy night bar with its lantern edge, a title tag, slab tabs with
-          the open one in lantern, the purse as Home's coin slabs, a square close slab and the string of lights.
-          (Brian, 2026-11-25: the row of flat cream rectangles read as "a bunch of squares on top of each other".) */}
-      <header ref={bar} className="tp-bar hm rc rc-bar" data-phone={phone || undefined}>
-        <SnowCap />
-        {!phone && <div className="rc-titletag hm-slab hm-knit rc-static tp-titletag"><Icon name="sack" size={22} /><h1>The Trading Post</h1></div>}
-        <div className="tp-tabs" role="tablist" aria-label="The Trading Post">
+      {/* The head is the market's own signs (signs.tsx): the banner, a tab under each stall's awning in the stall's
+          colour, the purse on two night boards. (Brian, 2026-11-25: the row of slabs read as "a bunch of squares on top
+          of each other", and CSS boxes dressed up as signs as "vibecoded and low effort".) */}
+      <header className="mk-head" data-phone={phone || undefined}>
+        {!phone && <h1 className="mk-banner"><span>The Trading Post</span></h1>}
+        <div className="mk-tabs" role="tablist" aria-label="The Trading Post">
           {TABS.map((t) => (
-            <button key={t.id} type="button" role="tab" aria-selected={stop === t.id} tabIndex={stop === t.id ? 0 : -1} className={`tp-tab hm-slab hm-knit ${stop === t.id ? 'hm-slab--lantern' : ''}`} data-on={stop === t.id || undefined} onClick={() => go(t.id)}
+            <button key={t.id} type="button" role="tab" aria-selected={stop === t.id} tabIndex={stop === t.id ? 0 : -1} className="mk-tab" data-on={stop === t.id || undefined} onClick={() => go(t.id)}
               onKeyDown={(e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); step(e.key === 'ArrowRight' ? 1 : -1); } }}>
-              <Icon name={t.icon} size={phone ? 16 : 18} /><span>{t.label}</span>
+              <StallAwning stop={t.id} small={phone} />
+              <span className={`mk-board mk-board--${stop === t.id ? 'lantern' : 'cream'} mk-tab-sign`}>{!phone && <StallIcon stop={t.id} />}<b>{t.label}</b></span>
               {t.id === 'missions' && missionDot && <b className="tp-dot" aria-label="A mission is done" />}
             </button>
           ))}
         </div>
-        <div className="tp-wallet">
-          <span className="tp-purse hm-slab hm-slab--ink hm-slab--sm rc-static" aria-label={`${wallet.coins} Wool Coins`} title="Wool Coins"><Icon name="coin" size={18} /><b>{formatCoins(coins)}</b></span>
-          <span className="tp-purse hm-slab hm-slab--ink hm-slab--sm rc-static" aria-label={`${wallet.bells} Golden Bells`} title="Golden Bells"><Icon name="bell" size={18} /><b>{formatCoins(bells)}</b></span>
-          {admin && <span className="md-tag tp-admin" title="Unlimited Wool Coins and Golden Bells in this browser">Admin</span>}
-          <button type="button" className="tp-x hm-slab hm-knit hm-slab--sm hm-square" onClick={onClose} aria-label="Close" title="Close"><CloseIcon size={16} /></button>
+        <div className="mk-purse">
+          <span className="mk-board mk-board--night mk-plate" aria-label={`${wallet.coins} Wool Coins`} title="Wool Coins"><Icon name="coin" size={20} /><b>{formatCoins(coins)}</b></span>
+          <span className="mk-board mk-board--night mk-plate" aria-label={`${wallet.bells} Golden Bells`} title="Golden Bells"><Icon name="bell" size={20} /><b>{formatCoins(bells)}</b></span>
+          {admin && <span className="mk-admin" title="Unlimited Wool Coins and Golden Bells in this browser">Admin</span>}
+          <button type="button" className="mk-board mk-board--red mk-close" onClick={onClose} aria-label="Close" title="Close"><Cross /></button>
         </div>
-        {FESTIVE && !phone && <Lights u={barU} reduced={reduced} />}
       </header>
 
       {!reveal && !focus && !phone && stop === 'sacks' && <OpenButton wallet={wallet} sack={sack} busy={busy} onOpen={() => void open()} />}
-      {!reveal && !focus && !phone && stop === 'bells' && <p className="tp-note tp-note--wide"><Icon name="bell" size={18} /><span>{`Golden Bells: +${BELLS.level} every level, +${BELLS.achievement} every milestone, +${BELLS.streak7} every 7 dream nights.`}<br />Bells buy only what is on this shelf.</span></p>}
-      {!reveal && !focus && !phone && stop === 'missions' && <p className="tp-note"><Icon name="pin" size={16} /><span>Missions are earned by playing, never found in a sack. Each one is yours for good.</span></p>}
+      {!reveal && !focus && !phone && stop === 'bells' && <p className="tp-note"><Snow /><Icon name="bell" size={20} /><span>{`Golden Bells: +${BELLS.level} every level, +${BELLS.achievement} every milestone, +${BELLS.streak7} every 7 dream nights.`}<br />Bells buy only what is on this shelf.</span></p>}
       {phone && !reveal && !focus && stop !== 'book' && (
         <div className="tp-roll-wrap">
           {stop === 'sacks' && <FeedSacksRoll {...{ wallet, sack, pool, listen }} />}
@@ -270,25 +264,25 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      {/* The foot is Home's: a night bar across the bottom, the level on a lantern pennant, the wool meter, and the
-          one line of small print in frost. */}
-      <footer className="tp-foot hm rc" data-phone={phone || undefined}>
-        <span className="rc-pennant tp-level">{`Level ${lv.level}: ${titleFor(lv.level)}`}</span>
-        <Knit value={lv.into / lv.need} label={`${lv.need - lv.into} XP to level ${lv.level + 1}`} />
-        <span className="tp-xp"><b>{formatCoins(lv.need - lv.into)}</b>{` XP to level ${lv.level + 1}`}</span>
-        <span className="tp-today"><Icon name="coin" size={16} /><b>{`${today} / ${DAILY_CAP}`}</b>{phone ? ' today' : ' from games today'}</span>
-        {!phone && <p className="tp-fine">Only for show: nothing here changes how a game plays. Wool Coins and Golden Bells are earned by playing, never bought.</p>}
+      <footer className="mk-foot" data-phone={phone || undefined}>
+        <span className="mk-board mk-board--lantern mk-board--thin mk-level">{`Level ${lv.level}: ${titleFor(lv.level)}`}</span>
+        <Meter value={lv.into / lv.need} label={`${lv.need - lv.into} XP to level ${lv.level + 1}`} />
+        <span><b>{formatCoins(lv.need - lv.into)}</b>{`XP to level ${lv.level + 1}`}</span>
+        <span className="mk-foot-today"><Icon name="coin" size={20} /><span><b>{`${today} / ${DAILY_CAP}`}</b>{phone ? 'today' : 'from games today'}</span></span>
+        {!phone && <p className="mk-fine">Only for show: nothing here changes how a game plays. Wool Coins and Golden Bells are earned by playing, never bought.</p>}
       </footer>
       {note && <p role="status" className="tp-toast">{note}</p>}
     </div>
   );
 }
 
+/** Where a stop is framed closer than the pack's camera, so its signs are large enough to read with ease. */
+const FRAMING: Partial<Record<StopId, { A: number; lane: number }>> = { bells: { A: 224, lane: 0.8 }, missions: { A: 230, lane: 0.86 }, book: { A: 226, lane: 0.915 } };
 const stopAtX = (x: number): StopId => STOPS.reduce((best, s) => (Math.abs(STOP_X[s] - x) < Math.abs(STOP_X[best] - x) ? s : best), 'sacks' as StopId);
 
 /** A stop's camera (T1 section 2; phones, section 7; the Barn Book on a phone frames one page). */
 function baseView(stop: StopId, W: number, H: number, phone: boolean, page: number): ShiftView {
-  const c = MARKET.cameras[stop], k = Math.min(W / 1440, H / 900);
+  const c = { ...MARKET.cameras[stop], ...FRAMING[stop] }, k = Math.min(W / 1440, H / 900);
   const v: ShiftView = { A: c.A * k, W, H, eye: MARKET.eye_height_m, cam: MARKET.camera_distance_m, line: c.lane, cx: c.cx };
   if (!phone) return v;
   if (stop === 'book') {

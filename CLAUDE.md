@@ -2863,8 +2863,27 @@ from its JSON; nothing random in a model, pattern or effect; the data wins over 
     the top left, with one ink outline added by `outlined`. signs.tsx places them; signs.css and market.css lay them out.
     Borders, depth, gaps and sprites are whole multiples of `--p`. Never size part of a sign in another unit, never draw a
     sign's shape with a CSS border, box-shadow outline or clip-path, and never scale a small picture up (it blurs).
-  - A sign is a board cut in nine (`mk-board` and a tone; `tp-tag`, `tp-btn`, `tp-note`, `tp-toast`, `tp-roll` are boards
-    too). Tones are `TONE` in art.ts and reach the CSS as `--t-<tone>-<part>`: the stylesheets hold no raw colours.
+  - A sign is a board cut in nine (`mk-board` and a tone; `tp-tag`, `tp-note`, `tp-roll` are boards too). Tones are
+    `TONE` in art.ts and reach the CSS as `--t-<tone>-<part>`: the stylesheets hold no raw colours.
+  - No sign is a plain box with words on it (Brian, 2026-11-26, of the rebuild: "ok yeah thats fine, make sure u dont
+    use those stupid just squares with regular text on them for each button/indicator/sign"). What a thing is decides
+    its shape, and each one carries a picture (signs.tsx):
+    - something pressed is a capsule with a seal at its left end, a picture of what it does (`Btn`; a small Listen is
+      its seal alone, `mk-sealbtn`);
+    - a thing's name is a tag with its gem in a crest on the top edge (`Crest`): the gem's cut and colour are its
+      rarity (bead, square cut, diamond, star) or where it comes from (bell, medal); a thing that is yours has the
+      green mark on its corner (`Found`);
+    - a state or a kind is a ribbon with a seal as its medal (`Ribbon`: Wearing, New!, Bomb skin, the level);
+    - an amount is a pill with its coin or bell (`mk-pill`: a price, coins back);
+    - a count of things found is a row of their gems, lit or still empty sockets (`Gems`), not "1 of 5";
+    - the Barn Book's pages are tabs standing on the book's top edge, each with its kind's picture (`mk-booktab`);
+    - a stall's sign in the scene has the pack's striped valance hanging under it (the packer's `restyle`) and what
+      it sells painted either side of its name (`StallPainted`, three art pixels to a voxel, no outline).
+    A new button, tag or indicator takes one of these; if none fits, draw a new piece in art.ts, never a bare board.
+  - The pack's icons (`Icon` in pieces.tsx) are drawn at the signs' pixel size wherever they are put: never give one
+    a size of its own.
+  - French: a name that does not fit wraps or is set smaller (`.tp[data-lang="fr"]` rules), never cut. Look at
+    `?preview=post&lang=fr` after adding words; a phrase split across elements needs its own line in the French files.
   - Each stall has its colour (`STALL_TONE`: feed red, bells green, missions violet, book amber): its awning tab, its
     plaques. The open tab is the lantern board. Kinds have theirs (bomb red, burst green, fuse sound violet).
   - What is earned lights up: a moon token for a night counted, a lantern that fills and then burns for a milestone.
@@ -2872,5 +2891,6 @@ from its JSON; nothing random in a model, pattern or effect; the data wins over 
     restyle: three niches with arches, a shelf, bulbs), about a metre tall, not as pictures on a card. `FRAMING` in
     Bazaar.tsx frames a stop closer than the pack's camera so its signs are large; type is 12 px at least.
   - Check every stop at 1280 x 720, 1440 x 900, 1920 x 1080 and 390 x 844, plus the close view and a sack opening.
+    Every font size is floored at 12 px (`max(12px, calc(Npx * var(--u)))`): at 1280 x 720 `--u` is 0.8.
   - Not his kit: the Home slabs and the leaderboards' snowy boards are not used at the market (he asked for something novel,
     then said not to copy the start screen). Do not bring `hm-slab`, `rc-*` or `md-*` back here.

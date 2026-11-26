@@ -60,10 +60,14 @@ function restyle(m) {
     // bells hangs along it, over the upper step.
     const bells = [];
     if (m.id === 'bellStand') {
-      bells.push(box('bell rail', [-25, 46, -28, 25, 47, -26], 'darkWood:0'));
-      for (const x of [-20, -10, 0, 10, 20]) bells.push(box('small bell string', [x, 44, -28, x + 1, 46, -27], 'darkWood:-2'), box('small bell crown', [x - 1, 43, -28, x + 2, 44, -25], 'brass:1'), box('small bell', [x - 2, 40, -28, x + 3, 43, -25], 'brass:0'), box('small bell rim', [x - 3, 39, -28, x + 4, 40, -24], 'brass:-1'), box('small bell clapper', [x, 38, -27, x + 1, 39, -26], 'brass:-2'));
+      bells.push(box('bell rail', [-25, 43, -28, 25, 44, -26], 'darkWood:0'));
+      for (const x of [-20, -10, 0, 10, 20]) bells.push(box('small bell string', [x, 41, -28, x + 1, 43, -27], 'darkWood:-2'), box('small bell crown', [x - 1, 40, -28, x + 2, 41, -25], 'brass:1'), box('small bell', [x - 2, 37, -28, x + 3, 40, -25], 'brass:0'), box('small bell rim', [x - 3, 36, -28, x + 4, 37, -24], 'brass:-1'), box('small bell clapper', [x, 35, -27, x + 1, 36, -26], 'brass:-2'));
     }
-    return { ...m, boxes: [...bells, ...m.boxes.filter((b) => b.part !== 'sign'),
+    // A board with a name on it is not a sign (Brian, 2026-11-26: "squares with regular text on them"). The pack's
+    // striped valance was hidden behind the fascia: it hangs under it now, two cells and a scallop, as a market
+    // stall's does. (What the stall sells is painted either side of its name by the screen, in the signs' own art.)
+    const valance = m.boxes.filter((b) => /^valance/.test(b.n)).map((b) => ({ ...b, b: /tab/.test(b.n) ? [b.b[0], y0 - 4, z1 - 2, b.b[3], y0 - 3, z1 - 1] : [b.b[0], y0 - 3, z1 - 2, b.b[3], y0 - 1, z1 - 1] }));
+    return { ...m, boxes: [...bells, ...m.boxes.filter((b) => b.part !== 'sign' && !/^valance/.test(b.n)), ...valance,
       box('fascia', [-post, y0 - 1, z0, post, y1 + 1, z1 - 1], c),
       box('fascia face', [-post + 2, y0, z1 - 1, post - 2, y1, z1], c),
       box('fascia trim', [-post, y1, z0, post, y1 + 1, z1], trim), box('fascia trim', [-post, y0 - 1, z0, post, y0, z1], trim),

@@ -11,7 +11,7 @@ import { localDateKey } from '../hooks/useToday';
 import { usePageHistory } from '../hooks/usePageHistory';
 import { CATALOG } from './catalog';
 import type { Item, Kind } from './catalog';
-import { BELLS, DAILY_CAP, levelOf, MISSIONS, titleFor } from './economy';
+import { DAILY_CAP, levelOf, MISSIONS, titleFor } from './economy';
 import { formatCoins } from './format';
 import { RARITIES } from './rarity';
 import { poolFor, SACKS } from './sacks';
@@ -25,11 +25,11 @@ import { MarketWorld } from '../tp/market/MarketWorld';
 import { STOP_X, STOPS } from '../tp/market/world';
 import type { StopId } from '../tp/market/world';
 import { Anchors, EASE, Icon, TP_COLOURS, useCountTo } from '../tp/market/pieces';
-import { Cross, Meter, SIGN_ART, Snow, StallAwning, StallIcon } from '../tp/market/signs';
+import { Bulb, Cross, Meter, Ribbon, SIGN_ART, StallAwning, StallIcon } from '../tp/market/signs';
 import type { Tick } from '../tp/market/pieces';
 import { FeedSacksRoll, OpenButton, RevealTag, SacksStop } from '../tp/market/stops/FeedSacks';
 import type { Reveal } from '../tp/market/stops/FeedSacks';
-import { BellShelfRoll, BellsStop } from '../tp/market/stops/BellShelf';
+import { BellShelfRoll, BellsStop, BellWays } from '../tp/market/stops/BellShelf';
 import { MissionsRoll, MissionsStop } from '../tp/market/stops/Missions';
 import { BookStop } from '../tp/market/stops/BarnBook';
 import { CloseView } from '../tp/market/stops/CloseView';
@@ -225,7 +225,7 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
           {stop === 'missions' && !phone && <MissionsStop wallet={wallet} items={missionItems} />}
           {stop === 'book' && <BookStop {...{ wallet, kind: bookKind, items: bookItems, setFocus, phone, page: bookPage }} flip={() => { pageTurn(); setBookPage(bookPage ? 0 : 1); }} turn={(k) => { if (k !== bookKind) { pageTurn(); setBookKind(k); setBookPage(0); } }} />}
           {focus && <CloseView item={focus} wallet={wallet} world={world} stop={stop} phone={phone} onWear={wear} onListen={listen} onClose={() => setFocus(null)} />}
-          {reveal && <RevealTag reveal={reveal} wallet={wallet} onWear={() => void wearRevealed()} onDone={finishReveal} phone={phone} />}
+          {reveal && <RevealTag reveal={reveal} wallet={wallet} onWear={() => void wearRevealed()} onDone={finishReveal} />}
         </div>
       </Anchors.Provider>
       {focus && <button type="button" className="tp-dim" aria-label="Step back" onClick={() => setFocus(null)} />}
@@ -246,15 +246,15 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="mk-purse">
-          <span className="mk-board mk-board--night mk-plate" aria-label={`${wallet.coins} Wool Coins`} title="Wool Coins"><Icon name="coin" size={20} /><b>{formatCoins(coins)}</b></span>
-          <span className="mk-board mk-board--night mk-plate" aria-label={`${wallet.bells} Golden Bells`} title="Golden Bells"><Icon name="bell" size={20} /><b>{formatCoins(bells)}</b></span>
-          {admin && <span className="mk-admin" title="Unlimited Wool Coins and Golden Bells in this browser">Admin</span>}
+          <span className="mk-board mk-board--night mk-plate" aria-label={`${wallet.coins} Wool Coins`} title="Wool Coins"><Icon name="coin" /><b>{formatCoins(coins)}</b></span>
+          <span className="mk-board mk-board--night mk-plate" aria-label={`${wallet.bells} Golden Bells`} title="Golden Bells"><Icon name="bell" /><b>{formatCoins(bells)}</b></span>
+          {admin && <Ribbon tone="violet" seal="star" className="mk-admin"><span title="Unlimited Wool Coins and Golden Bells in this browser">Admin</span></Ribbon>}
           <button type="button" className="mk-board mk-board--red mk-close" onClick={onClose} aria-label="Close" title="Close"><Cross /></button>
         </div>
       </header>
 
       {!reveal && !focus && !phone && stop === 'sacks' && <OpenButton wallet={wallet} sack={sack} busy={busy} onOpen={() => void open()} />}
-      {!reveal && !focus && !phone && stop === 'bells' && <p className="tp-note"><Snow /><Icon name="bell" size={20} /><span>{`Golden Bells: +${BELLS.level} every level, +${BELLS.achievement} every milestone, +${BELLS.streak7} every 7 dream nights.`}<br />Bells buy only what is on this shelf.</span></p>}
+      {!reveal && !focus && !phone && stop === 'bells' && <BellWays snow />}
       {phone && !reveal && !focus && stop !== 'book' && (
         <div className="tp-roll-wrap">
           {stop === 'sacks' && <FeedSacksRoll {...{ wallet, sack, pool, listen }} />}
@@ -265,13 +265,13 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
       )}
 
       <footer className="mk-foot" data-phone={phone || undefined}>
-        <span className="mk-board mk-board--lantern mk-board--thin mk-level">{`Level ${lv.level}: ${titleFor(lv.level)}`}</span>
+        <Ribbon tone="lantern" seal="star" className="mk-level">{`Level ${lv.level}: ${titleFor(lv.level)}`}</Ribbon>
         <Meter value={lv.into / lv.need} label={`${lv.need - lv.into} XP to level ${lv.level + 1}`} />
         <span><b>{formatCoins(lv.need - lv.into)}</b>{`XP to level ${lv.level + 1}`}</span>
-        <span className="mk-foot-today"><Icon name="coin" size={20} /><span><b>{`${today} / ${DAILY_CAP}`}</b>{phone ? 'today' : 'from games today'}</span></span>
+        <span className="mk-foot-today" title="Wool Coins from games today"><Icon name="coin" /><span><b>{`${today} / ${DAILY_CAP}`}</b>{!phone && 'from games today'}</span></span>
         {!phone && <p className="mk-fine">Only for show: nothing here changes how a game plays. Wool Coins and Golden Bells are earned by playing, never bought.</p>}
       </footer>
-      {note && <p role="status" className="tp-toast">{note}</p>}
+      {note && <p role="status" className="mk-rib mk-rib--night tp-toast"><Bulb on />{note}</p>}
     </div>
   );
 }

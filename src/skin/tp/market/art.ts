@@ -227,3 +227,153 @@ export function stallIcon(stop: 'sacks' | 'bells' | 'missions' | 'book'): Grid {
   else draw(g, 0, 1, BOOK, { R: '#B8473A', r: '#8E2F28', P: '#FFF4DC', l: '#C4AE82' });
   return outlined(g);
 }
+
+// ---------------------------------------------------------------- colour steps for a thing that is one colour
+
+const rgb = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+/** `a` moved `k` of the way to `b`. */
+export const mix = (a: string, b: string, k: number): string => `#${rgb(a).map((v, i) => Math.round(v + (rgb(b)[i] - v) * k).toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+/** One colour as a lit thing: its lit edge, itself, its shaded edge. */
+const lit3 = (c: string) => ({ h: mix(c, '#FFFFFF', 0.55), B: c, s: mix(c, INK, 0.34) });
+
+// ---------------------------------------------------------------- round things: discs, seals, capsules
+
+/** A pixel disc `d` across: how far each row stands in from the square's side. */
+const round = (d: number): number[] => Array.from({ length: d }, (_, y) => { const r = d / 2, dy = y + 0.5 - r; return Math.round(r - Math.sqrt(r * r - dy * dy)); });
+/** Lights a filled shape from above: the top pixel of each column lit, the bottom one shaded. */
+function litFromAbove(g: Grid, base: string, hi: string, lo: string): void {
+  for (let x = 0; x < g[0].length; x++) {
+    const ys = g.map((row, y) => (row[x] === base ? y : -1)).filter((y) => y >= 0);
+    if (ys.length > 1) { g[ys[0]][x] = hi; g[ys[ys.length - 1]][x] = lo; }
+  }
+}
+/**
+ * A seal: a disc `d` across in a tone with a picture set in its middle. It is the left end of every button (what the
+ * button does, as a picture) and the medal on a ribbon.
+ */
+export function seal(d: number, t: Tone, art?: Grid): Grid {
+  const g = grid(d, d), ins = round(d);
+  for (let y = 0; y < d; y++) rect(g, ins[y], y, d - 2 * ins[y], 1, t.base);
+  litFromAbove(g, t.base, t.hi, t.lo);
+  if (art) { const ox = Math.floor((d - art[0].length) / 2), oy = Math.floor((d - art.length) / 2); art.forEach((row, j) => row.forEach((c, i) => { if (c && g[oy + j]?.[ox + i] !== undefined) g[oy + j][ox + i] = c; })); }
+  return outlined(g);
+}
+/**
+ * A button: a capsule whose face is `face` pixels high, standing `depth` thick, to be cut in three across (its round
+ * ends keep their size, its middle stretches). Things that are pressed are capsules; things that are read are boards.
+ */
+export function capsule(face: number, t: Tone, depth = 3): Grid {
+  const ins = round(face), w = Math.ceil(face / 2) * 2 + 2, g = grid(w, face + depth);
+  for (let y = 0; y < face; y++) rect(g, ins[y], y + depth, w - 2 * ins[y], 1, t.side);
+  for (let y = 0; y < face; y++) rect(g, ins[y], y, w - 2 * ins[y], 1, t.base);
+  for (let x = 0; x < w; x++) {
+    const ys = ins.map((n, y) => (n <= Math.min(x, w - 1 - x) ? y : -1)).filter((y) => y >= 0);
+    g[ys[0]][x] = t.hi; g[ys[ys.length - 1]][x] = t.lo;
+  }
+  return outlined(g);
+}
+/** How much of a capsule's width each round end takes (the cut of its border-image). */
+export const capsuleEnd = (face: number): number => Math.ceil(face / 2) + 1;
+
+/** A ribbon, to be cut in three across: a strip eleven pixels high with a notch cut into each end. It says what a thing is or what state it is in. */
+export function ribbon(t: Tone): Grid {
+  const h = 11, w = 12, g = grid(w, h);
+  for (let y = 0; y < h; y++) { const n = Math.max(0, 3 - Math.abs(y - 5)); rect(g, n, y, w - 2 * n, 1, y === 0 ? t.hi : y === h - 1 ? t.lo : t.base); }
+  return outlined(g);
+}
+export const RIBBON_END = 5;
+
+/** A tab that stands on the top of a book or a board: its top corners cut, to be cut in nine. */
+export function tab(t: Tone): Grid {
+  const w = 10, h = 8, g = grid(w, h);
+  rect(g, 0, 0, w, h, t.base); rect(g, 0, 0, w, 1, t.hi); rect(g, 0, 1, 1, h - 1, t.hi); rect(g, w - 1, 1, 1, h - 1, t.lo);
+  for (const [x, y] of [[0, 0], [1, 0], [0, 1]]) { g[y][x] = null; g[y][w - 1 - x] = null; }
+  g[1][1] = t.hi; g[1][w - 2] = t.lo;
+  return outlined(g);
+}
+
+/** The seat a tag's gem is set in: a low round rise on the tag's top edge. Its last two rows lie over the tag's own outline and lit edge. */
+export function crest(t: Tone): Grid {
+  const g = grid(13, 7);
+  draw(g, 0, 0, ['....KKKKK....', '..KKhhhhhKK..', '.KhhBBBBBBBK.', 'KhBBBBBBBBBBK', 'KhBBBBBBBBBBK', 'KBBBBBBBBBBBK', '.BBBBBBBBBBB.'], { K: INK, h: t.hi, B: t.base });
+  return g;
+}
+/** The point on a card's left side that says which thing the card is about. Its right column lies over the card's outline. */
+export function pointer(t: Tone): Grid {
+  const g = grid(5, 9);
+  draw(g, 0, 0, ['....K', '...Kh', '..KhB', '.KhBB', 'KhBBB', '.KBBB', '..KBB', '...KB', '....K'], { K: INK, h: t.hi, B: t.base });
+  return g;
+}
+/** A thin chalk line round a slate, to be cut in nine. */
+export function chalkLine(c: string): Grid {
+  const g = grid(6, 6);
+  rect(g, 1, 0, 4, 1, c); rect(g, 1, 5, 4, 1, c); rect(g, 0, 1, 1, 4, c); rect(g, 5, 1, 1, 4, c);
+  return g;
+}
+
+// ---------------------------------------------------------------- gems: how rare a thing is, or where it comes from
+
+const GEM = {
+  /** Common: a round bead. */
+  bead: ['..hhB..', '.hhBBB.', 'hhBBBBs', 'hBBBBBs', 'BBBBBss', '.BBBss.', '..sss..'],
+  /** Uncommon: a square-cut stone. */
+  cut: ['.hhhhh.', 'hBBBBBs', 'hBhhBBs', 'hBhBBBs', 'hBBBBBs', 'hBBBBBs', '.sssss.'],
+  /** Rare: a diamond. */
+  diamond: ['...h...', '..hBB..', '.hBhBB.', 'hBhBBBs', '.BBBBs.', '..BBs..', '...s...'],
+  /** Legendary: a star. */
+  star: ['...h...', '..hBs..', 'hhBBBBs', '.hBBBs.', '.hBBBs.', '.BB.Bs.', '.B...s.'],
+  /** From the Bell Shelf. */
+  bell: ['...B...', '..hBs..', '.hBBBs.', '.hBBBs.', '.hBBBs.', 'hBBBBBs', '...s...'],
+  /** Earned by a mission: a medal on its ribbon. */
+  medal: ['.r...r.', '.rr.rr.', '..hBs..', '.hBBBs.', '.hBhBs.', '.hBBBs.', '..sss..'],
+} as const;
+export type GemShape = keyof typeof GEM;
+/** A gem in its colour, or (`on` false) the empty socket it will sit in. */
+export function gem(shape: GemShape, colour: string, on = true): Grid {
+  const g = grid(7, 7);
+  draw(g, 0, 0, GEM[shape], on ? { ...lit3(colour), r: TONE.red.base } : { h: '#C2AE82', B: '#D9C8A0', s: '#E9DDBC', r: '#D9C8A0' });
+  return outlined(g);
+}
+
+// ---------------------------------------------------------------- what a thing is: a bomb skin, a burst, a fuse sound
+
+const KIND = {
+  bomb: ['.........y.', '........yoy', '.......f.y.', '......ff...', '...NNNNN...', '..NhhNNNN..', '.NhNNNNNNN.', '.NNNNNNNNd.', '.NNNNNNNdd.', '..NNNNNdd..', '...ddddd...'],
+  blast: ['.....o.....', '.o...o...o.', '.oo.ooo.oo.', '..ooooooo..', '..ooYYYoo..', 'ooooYYYoooo', '..ooYYYoo..', '..ooooooo..', '.oo.ooo.oo.', '.o...o...o.', '.....o.....'],
+  tick: ['....VVVVVV.', '....VvvvvV.', '....V....V.', '....V....V.', '....V....V.', '....V....V.', '..VVV..VVV.', '.VvVV.VvVV.', '.VVVV.VVVV.', '..VV...VV..'],
+} as const;
+export type KindName = keyof typeof KIND;
+const KIND_PAL = { N: '#3A3042', h: '#7A6C8A', d: '#241C2B', f: '#8A5F16', y: '#FFE2A6', o: '#F2A444', Y: '#FFF3CC', V: '#4A54B8', v: '#8C95EA' };
+/** A kind's picture, bare (to set in a seal) or outlined (to stand on a board). */
+export function kindIcon(kind: KindName, bare = false): Grid {
+  const g = grid(11, KIND[kind].length);
+  draw(g, 0, 0, KIND[kind], KIND_PAL);
+  return bare ? g : outlined(g);
+}
+
+// ---------------------------------------------------------------- what a button does, as a picture for its seal
+
+const MARK = {
+  play: ['X.....', 'XXX...', 'XXXXX.', 'XXXXXX', 'XXXXX.', 'XXX...', 'X.....'],
+  back: ['...X....', '..XX....', '.XXXXXXX', 'XXXXXXXX', '.XXXXXXX', '..XX....', '...X....'],
+  speaker: ['...X..s.', '..XX...s', 'XXXX.s.s', 'XXXX.s.s', 'XXXX.s.s', '..XX...s', '...X..s.'],
+  flame: ['...o...', '..oo...', '..ooo..', '.oooo..', '.oyyoo.', 'ooyyyoo', 'ooyYyoo', '.oyYyo.', '..ooo..'],
+  star: ['...X...', '..XXX..', 'XXXXXXX', '.XXXXX.', '.XXXXX.', '.XX.XX.', '.X...X.'],
+  bell: ['...k...', '..hGs..', '.hGGGs.', '.hGGGs.', '.hGGGs.', 'hGGGGGs', '...k...'],
+  tick: ['......XX', '.....XXX', 'XX..XXX.', 'XXXXXX..', '.XXXX...', '..XX....'],
+  smallTick: ['....X', '...XX', 'X.XX.', 'XXX..', '.X...'],
+  lock: ['.XXXX.', 'XX..XX', 'XX..XX', 'XXXXXX', 'XXsXXX', 'XXsXXX', 'XXXXXX'],
+  page: ['XXXXX..', 'XhhhXX.', 'XhhhhhX', 'XhsshhX', 'XhhhhhX', 'XhsshhX', 'XhhhhhX', 'XXXXXXX'],
+} as const;
+export type MarkName = keyof typeof MARK;
+/** A button's picture, bare: `c` is its colour, `shade` its second colour where it has one. */
+export function mark(name: MarkName, c: string, shade = c): Grid {
+  const g = grid(MARK[name][0].length, MARK[name].length);
+  draw(g, 0, 0, MARK[name], { X: c, s: shade, h: '#FFFDF4', o: '#F2A444', y: '#FFD98A', Y: '#FFF3CC', G: '#F2C040', k: '#8A5F16' });
+  return g;
+}
+/** A stall's picture, bare, to set in a seal. */
+export function stallArt(stop: 'sacks' | 'bells' | 'missions' | 'book'): Grid {
+  const o = stallIcon(stop);
+  return o.slice(1, -1).map((row) => row.slice(1, -1).map((c) => (c === INK ? null : c)));
+}

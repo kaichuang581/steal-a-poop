@@ -245,4 +245,5 @@
 ["^Longest: (\\d+)$","Plus longue : $1"],
 ["^Moon shows: (\\d+)$","Spectacles de lune : $1"],
 ["^\\+(\\d+) more$","+$1 de plus"],
-["^Each pays once, with \\+(\\d+) Bells$", "Chacun paie une fois, avec +$1 cloches"]]
+["^Each pays once, with \\+(\\d+) Bells$", "Chacun paie une fois, avec +$1 cloches"],
+["^XP to level (\\d+)$", "XP avant le niveau $1"]]

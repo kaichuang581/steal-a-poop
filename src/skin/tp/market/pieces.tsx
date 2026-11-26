@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Pix } from '../../shop/art';
 import type { Item } from '../../shop/catalog';
 import { MISSIONS } from '../../shop/economy';
-import { RARITY_COLOR, RARITY_LABEL } from '../../shop/rarity';
+import { frameOf, RARITY_COLOR, RARITY_LABEL } from '../../shop/rarity';
 import { SACKS } from '../../shop/sacks';
 import { useSampleOf } from '../../shop/sample';
 import { LADDER } from '../../voxel/paint';
@@ -11,11 +11,12 @@ import { SKIN_OF } from '../bomb';
 import { project } from '../camera';
 import type { ShiftView } from '../camera';
 import { PIXEL_ART, SKINS } from '../models.gen';
+import { Btn, Gem, Seal, Sprite, TICK } from './signs';
 
 /**
  * The Trading Post's shared interface pieces, for every stop: the pack's pixel icons, the rarity square and word, the
  * Listen tile, and `At`, which lays anything over a projected scene point or box. The signs themselves (boards, awnings,
- * lanterns, meters) are signs.tsx; market.css makes `tp-tag`, `tp-btn`, `tp-note` and the rest out of its boards.
+ * lanterns, meters, buttons, ribbons, gems) are signs.tsx; market.css places them at each stop.
  */
 
 const INK = '#2B2230';
@@ -27,17 +28,18 @@ function artColour(c: string): string {
   if (m && m[1] in LADDER) return LADDER[m[1] as keyof typeof LADDER][Number(m[2]) + 2];
   return c;
 }
-export function Icon({ name, size = 16 }: { name: string; size?: number }) {
+/** One of the pack's pixel icons, at the signs' pixel size whatever its place: an icon is never drawn finer or coarser than the sign it is on. */
+export function Icon({ name }: { name: string }) {
   const a = PIXEL_ART[name];
   if (!a) return null;
-  return <Pix rows={a.rows} colors={Object.fromEntries(Object.entries(a.colours).map(([k, v]) => [k, artColour(v)]))} size={size} className="tp-icon" />;
+  return <span className="tp-icon" style={{ '--iw': Math.max(...a.rows.map((r) => r.length)), '--ih': a.rows.length } as CSSProperties}><Pix rows={a.rows} colors={Object.fromEntries(Object.entries(a.colours).map(([k, v]) => [k, artColour(v)]))} size={16} /></span>;
 }
 export const rarityOf = (i: Item): { word: string; colour: string } => i.rarity
   ? { word: RARITY_LABEL[i.rarity], colour: RARITY_COLOR[i.rarity] }
   : i.source === 'bells' ? { word: 'Bell Shelf', colour: '#C98A1E' } : i.source === 'mission' ? { word: 'Mission', colour: '#C8643C' } : { word: 'Starter', colour: '#8E8A84' };
+/** How rare an item is (or where it comes from): its gem and the word. */
 export function Rarity({ item, tick }: { item: Item; tick?: boolean }) {
-  const r = rarityOf(item);
-  return <span className="tp-rarity"><i style={{ background: r.colour }} />{r.word}{tick && <Icon name="tick" size={14} />}</span>;
+  return <span className="tp-rarity"><Gem of={frameOf(item)} />{rarityOf(item).word}{tick && <Sprite g={TICK} />}</span>;
 }
 /** Where a not-found item comes from, from the catalogue's own fields. */
 export const sourceLine = (i: Item): string => i.source === 'sack' ? `In the ${SACKS[i.kind].name}` : i.source === 'bells' ? `${i.price} Bells, Bell Shelf` : i.source === 'mission' ? `Mission: ${MISSIONS.find((m) => m.id === i.mission)?.label.replace(/^Count sheep (\d+) nights in a row$/, '$1 dream nights') ?? 'a mission'}` : 'Starter';
@@ -94,9 +96,12 @@ export function At({ p, box, className, style, children, as = 'div', ...rest }: 
   return <Tag ref={ref as React.RefObject<HTMLDivElement>} className={`tp-at ${className ?? ''}`} style={style} {...rest}>{children}</Tag>;
 }
 
+/** Listen to a fuse sound: a button, or (`small`) its seal alone. The seal is lit while the sound plays. */
 export function ListenTile({ item, onListen, small }: { item: Item; onListen: (i: Item) => void; small?: boolean }) {
   const on = useSampleOf(item.id);
-  return <button type="button" className={`tp-listen ${small ? 'tp-listen--small' : ''}`} data-on={on || undefined} onClick={(e) => { e.stopPropagation(); onListen(item); }} aria-label={`Listen to ${item.name}`}><Icon name="speaker" size={small ? 12 : 16} />{!small && (on ? 'Playing' : 'Listen')}</button>;
+  const click = (e: React.MouseEvent) => { e.stopPropagation(); onListen(item); };
+  if (small) return <button type="button" className="mk-sealbtn" data-on={on || undefined} onClick={click} aria-label={`Listen to ${item.name}`}><Seal name={on ? 'playing' : 'speaker'} /></button>;
+  return <Btn seal={on ? 'playing' : 'speaker'} tone="cream" data-on={on || undefined} onClick={click} aria-label={`Listen to ${item.name}`}>{on ? 'Playing' : 'Listen'}</Btn>;
 }
 
 

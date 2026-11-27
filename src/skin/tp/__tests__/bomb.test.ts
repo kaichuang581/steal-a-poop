@@ -52,3 +52,24 @@ describe('bursts on display (ITEMS_REMODEL.md rule 7, T3 section 3)', () => {
     }
   });
 });
+
+describe('the seconds on the face, in cubes (digits.ts)', () => {
+  it('every number from 0 to 99 is a whole block of rows that fits the face, and no two numbers look alike', async () => {
+    const { FACE_ACROSS, secondsModel, secondsRows } = await import('../digits');
+    const seen = new Set<string>();
+    for (let n = 0; n <= 99; n++) {
+      const rows = secondsRows(n);
+      expect(new Set(rows.map((r) => r.length)).size, `${n}: rows of one length`).toBe(1);
+      expect(rows[0].length, `${n}: width`).toBeLessThanOrEqual(FACE_ACROSS);
+      // The face's full-width rows are its middle eight; a single digit is narrow enough for the two shorter rows above and below.
+      expect(rows.length, `${n}: height`).toBeLessThanOrEqual(n < 10 ? 10 : 8);
+      if (n < 10) expect(rows[0].length, `${n}: a single digit clears the face's cut corners`).toBeLessThanOrEqual(8);
+      seen.add(rows.join('\n'));
+      const { data, w, h } = secondsModel(n, 1);
+      const cubes = data.boxes.reduce((sum, b) => sum + (b[3] - b[0]) * (b[4] - b[1]), 0);
+      expect(cubes, `${n}: a cube for every X`).toBe(rows.join('').split('X').length - 1);
+      expect([w, h]).toEqual([rows[0].length, rows.length]);
+    }
+    expect(seen.size).toBe(100);
+  });
+});

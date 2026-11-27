@@ -2839,6 +2839,14 @@ from its JSON; nothing random in a model, pattern or effect; the data wins over 
 - Depth offsets (2026-11-25, Brian: flicker "especially on the barn"): `voxelMaterial({ layer })` and the animals'
   face layers use a fixed polygon offset (units) only. Never a slope factor: it pulls faces seen edge-on through
   whatever is in front of them, as blinking hairlines.
+- The bomb's numbers are cubes (Brian, 2026-11-26: "can u make the bomb numbers not so ai? the bombs still look like
+  ai"). They were the display face drawn smooth on a canvas and laid over the face as a picture, on a plate with a soft
+  glow of corner shade: smooth serif type on a model made of cubes read as machine-made. src/skin/tp/digits.ts draws
+  each numeral by hand on a grid of half the bomb's cube; bomb.ts meshes a number the first time it shows, standing
+  half a cube proud of the face, lit like the bomb. One digit alone is the big set (6 x 10), two digits the small set
+  (5 x 7, the 1 three wide); upright strokes are one whole bomb cube thick in both. The face is meshed by itself
+  with no corner shade, a flat plate. Never put type from a font, a canvas or a texture on a voxel model: build the
+  numerals or letters from cubes on the model's own grid (or half of it).
 - The bomb (T2) everywhere: src/skin/tp/bomb.ts (`makeBomb`: a mesh per part, no maker's mark; the face shows the
   seconds in a game and 10 at rest (`rest: true`: the shop, the Barn Book, Home's demo game); 12 fuse pieces, each one
   2 x 2 x 2 block from `fuse_start_cells` and `fuse_pieces`, burning ceil(12 s), the lit spark replacing the last).

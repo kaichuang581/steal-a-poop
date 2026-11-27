@@ -1,6 +1,7 @@
-import { CanvasTexture, Group, LinearFilter, Mesh, MeshBasicMaterial, PlaneGeometry, SRGBColorSpace } from 'three';
-import type { Material } from 'three';
+import { Group, Mesh } from 'three';
+import type { BufferGeometry, Material } from 'three';
 import { meshModel, toGeometry } from '../dream/models';
+import { secondsModel } from './digits';
 import type { ModelData } from './models.gen';
 import { COLOURS, MODELS, PARTS, flatGlow, flatLit, partBit } from './models';
 import { GLOW, SKINS } from './models.gen';
@@ -8,7 +9,8 @@ import type { SkinData } from './models.gen';
 
 /**
  * The bomb (docs/trading-post-practice/T2): one anatomy, eight skins, loaded from the pack. Built once per skin as a
- * mesh per part, so the game can burn the fuse piece by piece and move the spark without rebuilding. The seconds are a texture on the flat face, redrawn only when the number changes.
+ * mesh per part, so the game can burn the fuse piece by piece and move the spark without rebuilding. The seconds are
+ * cubes too (digits.ts): half the bomb's cube, standing half a cube proud of the face, one small mesh a number.
  */
 
 /** A catalogue id (shop/catalog.ts) to the pack's skin key. */
@@ -53,6 +55,22 @@ function subModel(m: ModelData, keep: (b: readonly number[]) => boolean): ModelD
   return { ...m, boxes: m.boxes.filter(keep) };
 }
 
+/** The seconds' cube: half the bomb's, so two digits fit the face's six cubes. */
+const SUB = CELL / 2;
+/** A number in a colour, meshed once for every bomb that shows it. A colour that gives light ("lit:#hex") comes back as `glow`. */
+const seconds = new Map<string, { lit?: BufferGeometry; glow?: BufferGeometry; w: number; h: number }>();
+function secondsGeometry(n: number, colour: string) {
+  const key = `${n}|${colour}`;
+  let made = seconds.get(key);
+  if (!made) {
+    const { data, w, h } = secondsModel(n, SUB);
+    const mm = meshModel(`tpd:${key}`, data, [colour], GLOW, { festive: true });
+    made = { lit: mm.lit.idx.length ? toGeometry(mm.lit) : undefined, glow: mm.glow.idx.length ? toGeometry(mm.glow) : undefined, w, h };
+    seconds.set(key, made);
+  }
+  return made;
+}
+
 export interface BombObject {
   group: Group;
   /** The seconds on the face, or null: 10 for a bomb at rest, nothing in a game between turns. */
@@ -76,15 +94,18 @@ export function makeBomb(skinKey: string, o: { rest?: boolean; lit?: Material } 
   const lit = o.lit ?? flatLit;
   const group = new Group();
   group.name = id;
-  const mesh = (key: string, data: ModelData, parts: number) => {
-    const mm = meshModel(`tpb:${skin.key}:${key}`, data, COLOURS, GLOW, { festive: true, back: true, parts });
+  const mesh = (key: string, data: ModelData, parts: number, ao = true) => {
+    const mm = meshModel(`tpb:${skin.key}:${key}`, data, COLOURS, GLOW, { festive: true, back: true, parts, ao });
     const g = new Group();
     if (mm.lit.idx.length) g.add(new Mesh(toGeometry(mm.lit), lit));
     if (mm.glow.idx.length) g.add(new Mesh(toGeometry(mm.glow), flatGlow));
     group.add(g);
     return g;
   };
-  mesh('body', m, partBit('shell', 'detail', 'face', 'cap'));
+  mesh('body', m, partBit('shell', 'detail', 'cap'));
+  // The face is meshed by itself and without corner shade: the shade of its rim, spread over so small a plate, read as
+  // an airbrushed glow behind the number. It is a flat plate in its own colour, as Ember's lit one always was.
+  mesh('face', m, partBit('face'), false);
   const pieces = fusePieces(id, skin).map((p, k) => mesh(`fuse${k}`, p, 0));
   // The spark is the burning tip: it replaces the last piece shown. Its boxes sit round the last piece in the data,
   // so they ride in a group whose origin is that piece's middle.
@@ -96,43 +117,32 @@ export function makeBomb(skinKey: string, o: { rest?: boolean; lit?: Material } 
   spark.add(sparkBody);
   group.add(spark);
 
-  // The seconds: a square of canvas over the face disc, as wide as the disc.
-  const face = skin.face, r = face.size_m / 2;
-  const canvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
-  let tex: CanvasTexture | null = null;
-  let digits: Mesh | null = null;
-  if (canvas) {
-    canvas.width = canvas.height = 128;
-    tex = new CanvasTexture(canvas);
-    tex.colorSpace = SRGBColorSpace;
-    tex.minFilter = LinearFilter;
-    digits = new Mesh(new PlaneGeometry(r * 2, r * 2), new MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, depthWrite: false }));
-    digits.position.set(face.centre_cells[0] * CELL, face.centre_cells[1] * CELL, face.centre_cells[2] * CELL + 0.002);
-    digits.visible = false;
-    group.add(digits);
-  }
-  let shown = '';
+  // The seconds: a number's cubes, centred on the face and standing on it. Each number is meshed the first time it
+  // is shown and kept; only the one showing is visible.
+  const face = skin.face, numbers = new Map<string, Group>();
+  let showing: Group | null = null;
   const draw = (n: number, danger: boolean) => {
-    const text = `${n}|${danger ? 1 : 0}`;
-    if (!digits || !canvas || !tex) return;
-    digits.visible = true;
-    if (text === shown) return;
-    shown = text;
-    const s = String(n);
-    const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, 128, 128);
-    // 74% of the face's height for one digit, 60% for two (T2, section 1).
-    ctx.font = `800 ${Math.round(128 * (s.length > 1 ? 0.6 : 0.74))}px Fraunces, Georgia, serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = (danger ? skin.danger_digit : skin.digit).replace(/^lit:/, '');
-    ctx.fillText(s, 64, 70);
-    tex.needsUpdate = true;
+    const key = `${n}|${danger ? 1 : 0}`;
+    let g = numbers.get(key);
+    if (!g) {
+      const { lit: a, glow: c, w, h } = secondsGeometry(n, danger ? skin.danger_digit : skin.digit);
+      g = new Group();
+      if (a) g.add(new Mesh(a, lit));
+      if (c) g.add(new Mesh(c, flatGlow));
+      g.position.set(face.centre_cells[0] * CELL - (w * SUB) / 2, face.centre_cells[1] * CELL - (h * SUB) / 2, face.centre_cells[2] * CELL);
+      numbers.set(key, g);
+      group.add(g);
+    }
+    if (showing && showing !== g) showing.visible = false;
+    g.visible = true;
+    showing = g;
   };
+  const hide = () => { if (showing) showing.visible = false; showing = null; };
 
   const api: BombObject = {
     group, skin, centreY: 8 * CELL,
     setSeconds(n, danger = false) {
-      if (n === null) { if (o.rest) draw(10, false); else if (digits) digits.visible = false; return; }
+      if (n === null) { if (o.rest) draw(10, false); else hide(); return; }
       draw(Math.max(0, Math.ceil(n)), danger);
     },
     setFuse(share) {

@@ -208,7 +208,7 @@ export function sheepModel(faces: Faces = DEFAULT_FACES): SheepModel {
   const head = new Grid(s);
   cube(head, [-3, 8, 6], [3, 12, 9], () => plain(SKIN[1]));
   cube(head, [-2, 8, 10], [2, 10, 11], (x, y, z) => plain(z === 11 && ((y === 9 && Math.abs(x) <= 1) || (x === 0 && y === 8)) ? SKIN[2] : SKIN[0]));
-  const { eyes, lids, brows } = smallEyes(head, 11, 9, '#141212', [SKIN[0], SKIN[1], SKIN[2]], HEAD_PIVOT, { front: 2, rows: 1, cols: 1, glint: false });
+  const { eyes, lids, brows } = smallEyes(head, 11, 9, '#141212', [SKIN[0], SKIN[1], SKIN[2]], HEAD_PIVOT, { front: 3, rows: 1, cols: 1, glint: false });
   const mouths = noMouths(HEAD_PIVOT); // the T of its nose and mouth is painted on the muzzle; nothing more is drawn
 
   // ---- The head's wool: round the face (a cell at its sides, three rows over it, one under), the same through its

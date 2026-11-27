@@ -54,7 +54,7 @@ describe('what each burst does when the bomb goes off', () => {
 
   it('the table plays the act where the bomb was, watches it, and sounds and flashes softly for it', () => {
     const read = (f: string) => readFileSync(f, 'utf8');
-    expect(read('src/skin/table/Bomb.tsx')).toMatch(/stage=\{stage\.current\}/);
+    expect(read('src/skin/table/Bomb.tsx')).toMatch(/<TpBlast boomKey=\{boomKey\} origin=\{origin\.current\}/);
     // The table stays with the sheep the bomb went off beside for the engine's beat (BarnTable's `dazed`).
     expect(read('src/skin/table/BarnTable.tsx')).toMatch(/speaker \?\? dazed \?\? upNext/);
     expect(read('src/skin/PaintedApp.tsx')).toMatch(/setSoftBoom\(!burstExplodes\(blast\)\)/);

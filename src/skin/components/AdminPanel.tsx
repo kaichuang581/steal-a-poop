@@ -5,8 +5,10 @@ import type { AvatarId } from '../../avatars/ids';
 import { useAdmin } from '../../lib/admin';
 import { PhotoAvatar } from '../avatars/PhotoAvatar';
 import { pokeAvatar, setAvatar, useAvatar } from '../avatars/store';
-import { CloseIcon, LockIcon } from './Icons';
-import { Chip, ClothButton, PaperPanel, WoodButton } from './Materials';
+import { LockIcon } from './Icons';
+import { ClothButton, WoodButton } from './Materials';
+import { Dialog, Scrim } from '../kit/modern';
+import './hud-guide.css';
 import { Brass, Switch, Slider } from '../kit';
 import { rangesFor, setKaiyanLook, useKaiyanLook } from '../avatars/kaiyanLook';
 import { EXPOSURE, EYES, GRAIN, JAW, MENACING, RED, VIGNETTE } from '../avatars/faceTweaks';
@@ -55,12 +57,8 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[55] flex items-center justify-center p-4" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={onClose}>
-      <PaperPanel role="dialog" aria-modal="true" aria-label="Admin access" className="max-h-full w-full max-w-xs overflow-y-auto p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="sk-display flex items-center gap-2 text-xl"><span className="kit-peg kit-peg--light kit-peg--sm" style={{ width: 30, height: 30, cursor: 'default' }}><LockIcon size={16} /></span> Admin access</h2>
-          <Chip className="sk-icon-chip" onClick={onClose} aria-label="Close"><CloseIcon size={16} /></Chip>
-        </div>
+    <Scrim onClose={onClose}>
+      <Dialog title="Admin access" icon={<LockIcon size={18} />} label="Admin access" onClose={onClose} className="hg hg-admin md-legacy" onClick={(e) => e.stopPropagation()}>
         {admin ? (
           <>
             <p className="sk-hand text-lg" style={{ color: 'var(--cloth-dark)' }}>Unlocked on this device.</p>
@@ -158,8 +156,8 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
             </div>
           </form>
         )}
-      </PaperPanel>
-    </div>
+      </Dialog>
+    </Scrim>
   );
 }
 

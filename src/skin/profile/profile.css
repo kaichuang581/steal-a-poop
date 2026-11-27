@@ -9,7 +9,7 @@
   --pn-face: #E9B99A; --pn-face-lip: #C98F72; --pn-nose: #D98C86; --pf-nose: #D98C86; --pasture-hi: #7BC48E; --ember: #F48C6E;
   --rank-wood: #B98A5E; --rank-stone: #A9AEB6; --rank-iron: #8FA3BF; --rank-gold: #E8C15A;
   --rank-crystal: #6FC7D6; --rank-titan: #C0574A; --rank-eclipse: #7B67C0; --rank-zenith: #F4D77A;
-  --pf-locked: color-mix(in srgb, var(--hm-night-2) 60%, var(--hm-night-3));
+  --pf-locked: color-mix(in srgb, var(--hm-night-3) 72%, var(--hm-frost));
 }
 
 .pf-scrim { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: rgba(14, 21, 40, 0.62); }
@@ -71,7 +71,7 @@
 .pf-body[data-scrolled] { box-shadow: inset 0 var(--s) 0 var(--hm-ink); }
 .pf-col { display: flex; flex-direction: column; gap: calc(16 * var(--u)); min-width: 0; }
 .pf-col > :last-child { flex-grow: 1; }
-.pf-foot { grid-column: 1 / -1; display: flex; align-items: center; gap: calc(6 * var(--u)); margin-top: calc(16 * var(--u)); font: 700 calc(11.5 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-frost); }
+.pf-foot { grid-column: 1 / -1; display: flex; align-items: center; gap: calc(6 * var(--u)); margin-top: calc(16 * var(--u)); font: 700 max(12px, calc(11.5 * var(--u)))/1.3 var(--skin-font-body); color: var(--hm-frost); }
 .pf-foot svg { flex: none; width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
 @container (max-width: 899px) {
   .pf:not(.pf--guide) .pf-body { display: flex; flex-direction: column; gap: calc(16 * var(--u)); padding-left: calc(24 * var(--u)); padding-right: calc(24 * var(--u)); }
@@ -81,15 +81,15 @@
 }
 
 /* Small type and tags. */
-.pf-label { font: 800 calc(11.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
-.pf-quiet { font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
+.pf-label { font: 800 max(12px, calc(11.5 * var(--u)))/1.2 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
+.pf-quiet { font: 800 max(12px, calc(11.5 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
 .pf-tag { --s: calc(2 * var(--u)); flex: none; display: inline-flex; align-items: center; gap: calc(6 * var(--u)); height: calc(20 * var(--u)); padding: var(--u) calc(7 * var(--u)) 0; box-sizing: border-box; clip-path: var(--px1);
-  font: 800 calc(11 * var(--u))/1 var(--skin-font-body); white-space: nowrap; background: var(--hm-ink); color: var(--hm-frost); }
+  font: 800 max(12px, calc(11 * var(--u)))/1 var(--skin-font-body); white-space: nowrap; background: var(--hm-ink); color: var(--hm-frost); }
 .pf-tag--lantern { background: var(--hm-lantern); color: var(--hm-ink); font-size: calc(11.5 * var(--u)); }
 .pf-tag--rank { color: var(--hm-wool); padding-top: 0; }
 .pf-tag--rank > i { flex: none; width: calc(6 * var(--u)); height: calc(6 * var(--u)); background: var(--rank); }
 .pf-pennant { --s: calc(2 * var(--u)); display: inline-block; height: calc(16 * var(--u)); padding: var(--u) calc(9 * var(--u)) 0 calc(5 * var(--u)); box-sizing: border-box; margin-left: calc(6 * var(--u)); vertical-align: middle;
-  clip-path: polygon(0 0, 100% 0, calc(100% - var(--s)) 50%, 100% 100%, 0 100%); font: 800 calc(11 * var(--u))/calc(15 * var(--u)) var(--skin-font-body); background: var(--hm-lantern); color: var(--hm-ink); }
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--s)) 50%, 100% 100%, 0 100%); font: 800 max(12px, calc(11 * var(--u)))/calc(15 * var(--u)) var(--skin-font-body); background: var(--hm-lantern); color: var(--hm-ink); }
 
 /* Section cards (v2, 2.2): one raised card each, the title inside it. */
 .pf-card { position: relative; isolation: isolate; box-sizing: border-box; min-width: 0; margin: 0; padding: calc(16 * var(--u)) calc(16 * var(--u)) calc(16 * var(--u) + 3 * var(--u)); list-style: none; }
@@ -111,7 +111,7 @@
 .pf-wool-icon { display: contents; color: var(--hm-wool); }
 
 /* Slabs: Home's, at the sizes the plans give. Every one reaches 44 to the pointer. */
-.pf-slab { --depth: calc(4 * var(--u)); flex: none; gap: calc(6 * var(--u)); height: calc(28 * var(--u) + var(--depth)); padding: 0 calc(10 * var(--u)) var(--depth); white-space: nowrap; font: 800 calc(12 * var(--u))/1 var(--skin-font-body); }
+.pf-slab { --depth: calc(4 * var(--u)); flex: none; gap: calc(6 * var(--u)); height: calc(28 * var(--u) + var(--depth)); padding: 0 calc(10 * var(--u)) var(--depth); white-space: nowrap; font: 800 max(12.5px, calc(12 * var(--u)))/1 var(--skin-font-body); }
 .pf-slab--24 { height: calc(24 * var(--u) + var(--depth)); font-size: calc(11.5 * var(--u)); }
 .pf-slab--34 { height: calc(34 * var(--u)); }
 .pf-slab--40 { height: calc(40 * var(--u)); min-width: calc(76 * var(--u)); font-size: calc(13.5 * var(--u)); }
@@ -127,10 +127,10 @@
 .pf-input { flex: 1; min-width: 0; height: calc(40 * var(--u)); padding: 1px calc(10 * var(--u)) 0; box-sizing: border-box; border: 0; border-radius: 0; outline: 0; clip-path: var(--px1);
   background: var(--hm-ink); box-shadow: inset 0 0 0 var(--s) var(--hm-night-3); color: var(--hm-wool); }
 .pf-input:focus-visible { box-shadow: inset 0 0 0 var(--s) var(--hm-lantern); }
-.pf-input::placeholder { color: var(--hm-frost); opacity: 1; font: 800 calc(13 * var(--u))/1 var(--skin-font-body); letter-spacing: 0; text-transform: none; }
+.pf-input::placeholder { color: var(--hm-frost); opacity: 1; font: 800 max(12.5px, calc(13 * var(--u)))/1 var(--skin-font-body); letter-spacing: 0; text-transform: none; }
 .pf-input--name { font: 800 calc(18 * var(--u))/1 var(--skin-font-display); }
 .pf-input--code { font: 800 calc(17 * var(--u))/1 var(--skin-font-display); letter-spacing: 0.1em; color: var(--hm-lantern-hi); }
-.pf-msg { margin-top: calc(4 * var(--u)); font: 800 calc(12 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-frost); }
+.pf-msg { margin-top: calc(4 * var(--u)); font: 800 max(12.5px, calc(12 * var(--u)))/1.3 var(--skin-font-body); color: var(--hm-frost); }
 .pf-msg[data-bad] { color: var(--ember); }
 
 /* Identity (v2, 5): a small hero, the name as a title over a night band. */
@@ -151,13 +151,13 @@
 form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
 .pf-name-show { min-width: 0; padding: 0; border: 0; background: none; color: var(--hm-wool); cursor: text; text-align: left; font: 800 calc(26 * var(--u))/1.1 var(--skin-font-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-name-show:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
-.pf-saved { display: inline-flex; align-items: center; gap: calc(4 * var(--u)); font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--pasture-hi); }
+.pf-saved { display: inline-flex; align-items: center; gap: calc(4 * var(--u)); font: 800 max(12px, calc(11.5 * var(--u)))/1 var(--skin-font-body); color: var(--pasture-hi); }
 .pf-saved svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
 .pf-level { display: flex; align-items: baseline; gap: calc(6 * var(--u)); margin-top: calc(10 * var(--u)); min-width: 0; }
 .pf-level .pf-tag { align-self: center; }
 .pf-level-name { font: 800 calc(15 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-level-xp { margin-left: auto; white-space: nowrap; font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
-.pf-level-xp b { font: 800 calc(13 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
+.pf-level-xp { margin-left: auto; white-space: nowrap; font: 800 max(12px, calc(11.5 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); }
+.pf-level-xp b { font: 800 max(12.5px, calc(13 * var(--u)))/1 var(--skin-font-display); color: var(--hm-wool); }
 .pf-xp { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: calc(3 * var(--u)); margin-top: calc(8 * var(--u)); }
 .pf-xp i { position: relative; height: calc(10 * var(--u)); background: var(--hm-night-deep); box-shadow: inset 0 var(--u) 0 var(--hm-ink); }
 .pf-xp i::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: var(--fill); background: var(--hm-lantern); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-lantern-hi); }
@@ -174,10 +174,10 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
 .pf-tile[data-stat="longest"] { grid-column: span 7; }
 .pf-tile-text { display: flex; flex-direction: column; gap: calc(2 * var(--u)); min-width: 0; padding-top: calc(-1 * var(--u)); }
 .pf-tile-value { height: calc(22 * var(--u)); font: 800 calc(22 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); white-space: nowrap; }
-.pf-tile-label { font: 800 calc(11.5 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-tile-label { font: 800 max(12px, calc(11.5 * var(--u)))/1.2 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-letters { display: flex; gap: calc(2 * var(--u)); height: calc(22 * var(--u)); }
 .pf-letter { --s: calc(2 * var(--u)); flex: none; display: grid; place-items: center; width: calc(20 * var(--u)); height: calc(22 * var(--u)); padding-bottom: calc(4 * var(--u)); box-sizing: border-box; clip-path: var(--px1);
-  background: var(--hm-wool); box-shadow: inset 0 calc(-4 * var(--u)) 0 var(--hm-wool-lip); font: 800 calc(13 * var(--u))/1 var(--skin-font-display); font-style: normal; color: var(--hm-ink); }
+  background: var(--hm-wool); box-shadow: inset 0 calc(-4 * var(--u)) 0 var(--hm-wool-lip); font: 800 max(12.5px, calc(13 * var(--u)))/1 var(--skin-font-display); font-style: normal; color: var(--hm-ink); }
 .pf-letters[data-small] .pf-letter { width: calc(16 * var(--u)); font-size: calc(11 * var(--u)); }
 .pf-letter[data-more] { background: var(--hm-wool) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' shape-rendering='crispEdges'%3E%3Cg fill='%23090E20'%3E%3Crect x='1' y='5' width='2' height='2'/%3E%3Crect x='4' y='5' width='2' height='2'/%3E%3Crect x='7' y='5' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E") center / 70% no-repeat; }
 .pf-letter[data-empty] { background: var(--hm-night-deep); box-shadow: inset 0 var(--s) 0 var(--hm-ink); }
@@ -190,15 +190,15 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
   background: var(--hm-lantern) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Cg fill='%23FFFFFF'%3E%3Crect x='3' y='1' width='2' height='1'/%3E%3Crect x='5' y='2' width='1' height='1'/%3E%3Crect x='4' y='3' width='1' height='1'/%3E%3Crect x='3' y='4' width='1' height='1'/%3E%3Crect x='3' y='6' width='1' height='1'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 100% 100%; }
 .pf-rk-text { display: flex; flex-direction: column; gap: calc(3 * var(--u)); min-width: 0; }
 .pf-rk-text b { font: 800 calc(20 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); }
-.pf-rk-text span { font: 800 calc(12.5 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-frost); }
-.pf-rk-record { margin-left: auto; align-self: flex-start; text-align: right; white-space: nowrap; font: 800 calc(11.5 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.pf-rk-text span { font: 800 max(12.5px, calc(12.5 * var(--u)))/1.3 var(--skin-font-body); color: var(--hm-frost); }
+.pf-rk-record { margin-left: auto; align-self: flex-start; text-align: right; white-space: nowrap; font: 800 max(12px, calc(11.5 * var(--u)))/1.35 var(--skin-font-body); color: var(--hm-frost); }
 .pf-divs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(3 * var(--u)); margin-top: calc(10 * var(--u)); }
 .pf-divs--top { grid-template-columns: 1fr; }
 .pf-div-col { display: flex; flex-direction: column; align-items: center; gap: calc(4 * var(--u)); min-width: 0; }
 .pf-div { display: block; width: 100%; height: calc(12 * var(--u)); background: var(--hm-night-deep); box-shadow: inset 0 var(--u) 0 var(--hm-ink); }
 .pf-div > i { display: block; height: 100%; width: var(--fill); background: var(--hm-lantern); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-lantern-hi); }
 .pf-divs--top .pf-div > i { background: var(--hm-lantern-hi); }
-.pf-divs small { font: 800 calc(11 * var(--u))/1.1 var(--skin-font-body); color: var(--hm-frost); }
+.pf-divs small { font: 800 max(12px, calc(11 * var(--u)))/1.1 var(--skin-font-body); color: var(--hm-frost); }
 .pf-divs--top small { text-align: left; margin-top: calc(4 * var(--u)); }
 /* The staircase: eight columns, each step 4 higher than the one to its left; the steps' fronts joined by a stepped groove. */
 .pf-stairs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); align-items: end; margin: calc(16 * var(--u)) 0 0; padding: 0; list-style: none; }
@@ -209,10 +209,10 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
 .pf-stair:first-child .pf-step::before { left: 0; }
 .pf-stair:last-child .pf-step::before { right: 0; }
 .pf-stair[data-you] .pf-step { background: var(--hm-lantern); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-lantern-hi), inset 0 calc(-3 * var(--u)) 0 var(--hm-lantern-lip); }
-.pf-stair-name { position: absolute; bottom: 0; font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
+.pf-stair-name { position: absolute; bottom: 0; font: 800 max(12px, calc(11 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; }
 .pf-stair[data-next] .pf-stair-name { color: var(--hm-wool); }
 .pf-stair .pf-pennant, .pf-stair .pf-start { position: absolute; bottom: 0; margin: 0; }
-.pf-start { display: flex; flex-direction: column; align-items: center; gap: calc(2 * var(--u)); font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-lantern-hi); }
+.pf-start { display: flex; flex-direction: column; align-items: center; gap: calc(2 * var(--u)); font: 800 max(12px, calc(11 * var(--u)))/1 var(--skin-font-body); color: var(--hm-lantern-hi); }
 .pf-start i { width: calc(8 * var(--u)); height: calc(4 * var(--u)); background: var(--hm-lantern-hi); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 
 /* Friends (v2, 7.2): the code in a sunk pill; the list grows to fill the card. */
@@ -222,7 +222,7 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
   font: 800 calc(22 * var(--u))/1 var(--skin-font-display); letter-spacing: 0.1em; color: var(--hm-lantern-hi); white-space: nowrap; overflow: hidden; }
 .pf-fr-code::before, .pf-sum::before, .pf-fr-none::before, .pf-cell[data-none]::before, .pf-rg-well::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-deep) var(--felt) 0 0 / var(--felt-size);
   box-shadow: inset 0 var(--s) 0 var(--hm-ink), inset 0 calc(-1 * var(--s)) 0 var(--hm-night-2); }
-.pf-fr-safe { display: flex; align-items: flex-start; gap: calc(6 * var(--u)); margin-top: calc(2 * var(--u)); font: 700 calc(12 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-frost); }
+.pf-fr-safe { display: flex; align-items: flex-start; gap: calc(6 * var(--u)); margin-top: calc(2 * var(--u)); font: 700 max(12.5px, calc(12 * var(--u)))/1.35 var(--skin-font-body); color: var(--hm-frost); }
 .pf-fr-safe svg { flex: none; width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
 .pf-sec--friends .pf-sec-body { flex: 1 1 auto; }
 /* Its own size never counts toward the card's: it takes the height left once the columns are level, and scrolls inside. */
@@ -232,14 +232,14 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
 .pf-fr-row::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night) var(--felt) 0 0 / var(--felt-size); box-shadow: inset 0 var(--s) 0 var(--hm-night-3), inset 0 calc(-3 * var(--u)) 0 var(--hm-night-deep); }
 .pf-fr-row > svg { flex: none; width: calc(24 * var(--u)); height: calc(24 * var(--u)); }
 .pf-fr-name { flex: 1; min-width: 0; font: 800 calc(15 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-fr-ask, .pf-fr-on { font: 800 calc(11.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.pf-fr-ask, .pf-fr-on { font: 800 max(12px, calc(11.5 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); }
 .pf-fr-on[data-on] { color: var(--pasture-hi); }
 .pf-fr-none { position: relative; isolation: isolate; flex: 1 1 auto; min-height: calc(96 * var(--u)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(10 * var(--u)); padding: calc(12 * var(--u));
-  font: 800 calc(12.5 * var(--u))/1.3 var(--skin-font-body); color: var(--hm-frost); text-align: center; }
+  font: 800 max(12.5px, calc(12.5 * var(--u)))/1.3 var(--skin-font-body); color: var(--hm-frost); text-align: center; }
 .pf-fr-pair { display: flex; align-items: center; gap: calc(12 * var(--u)); }
 .pf-fr-pair svg { width: calc(24 * var(--u)); height: auto; }
 .pf-ghost { display: grid; line-height: 0; }
-.pf-ghost rect { fill: var(--hm-night-3); }
+.pf-ghost rect { fill: color-mix(in srgb, var(--hm-night-3) 65%, var(--hm-frost)); }
 .pf-ghost--flip { transform: scaleX(-1); }
 
 /* Practice (v2, 8): the summary strip above the grid. */
@@ -252,7 +252,7 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
 .pf-sum > span, .pf-sum > b { grid-row: 1; text-align: center; font: 800 calc(14 * var(--u))/1.1 var(--skin-font-body); color: var(--hm-wool); }
 .pf-sum > b { font: 800 calc(16 * var(--u))/1 var(--skin-font-display); color: var(--hm-lantern-hi); align-self: center; }
 .pf-sum > .pf-sum-op { color: var(--hm-frost); }
-.pf-sum > small { grid-row: 2; justify-self: center; font: 800 calc(10.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.pf-sum > small { grid-row: 2; justify-self: center; font: 800 max(12px, calc(10.5 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); }
 .pf-grid { display: grid; grid-template-columns: calc(128 * var(--u)) repeat(3, minmax(0, 1fr)); grid-auto-rows: auto; gap: calc(6 * var(--u)); align-items: stretch; }
 .pf-grid-row { display: contents; }
 .pf-grid-col { display: flex; align-items: center; justify-content: center; gap: calc(6 * var(--u)); height: calc(24 * var(--u)); }
@@ -261,12 +261,12 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
 .pf-grid-bot b { font: 800 calc(14 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
 .pf-tree { display: grid; color: var(--pasture-hi); line-height: 0; }
 .pf-tree svg { width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
-.pf-mult { --s: calc(2 * var(--u)); flex: none; display: inline-block; height: calc(18 * var(--u)); padding: var(--u) calc(6 * var(--u)) 0; box-sizing: border-box; clip-path: var(--px1); background: var(--hm-ink); color: var(--hm-frost); font: 800 calc(11 * var(--u))/calc(17 * var(--u)) var(--skin-font-body); }
+.pf-mult { --s: calc(2 * var(--u)); flex: none; display: inline-block; height: calc(18 * var(--u)); padding: var(--u) calc(6 * var(--u)) 0; box-sizing: border-box; clip-path: var(--px1); background: var(--hm-ink); color: var(--hm-frost); font: 800 max(12px, calc(11 * var(--u)))/calc(17 * var(--u)) var(--skin-font-body); }
 .pf-cell { position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(2 * var(--u)); height: calc(46 * var(--u)); padding-bottom: calc(3 * var(--u)); box-sizing: border-box; outline-offset: 2px; }
 .pf-cell:not([data-none])::before { content: ''; position: absolute; z-index: -1; inset: 0; clip-path: var(--px1); background: var(--hm-night-3); box-shadow: inset 0 var(--u) 0 var(--hm-frost), inset 0 calc(-3 * var(--u)) 0 var(--hm-night-deep); }
 .pf-cell[data-none] { padding-bottom: 0; }
 .pf-cell b { font: 800 calc(17 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); }
-.pf-cell small { font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.pf-cell small { font: 800 max(12px, calc(11 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); }
 .pf-cell[data-none] i { width: calc(12 * var(--u)); height: calc(3 * var(--u)); background: var(--hm-night-3); }
 .pf-cell[data-top]::before { background: var(--hm-lantern) var(--knit) 0 0 / var(--knit-size); box-shadow: inset 0 var(--s) 0 var(--hm-lantern-hi), inset 0 calc(-3 * var(--u)) 0 var(--hm-lantern-lip); }
 .pf-cell[data-top] b, .pf-cell[data-top] small { color: var(--hm-ink); }
@@ -274,13 +274,13 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
 .pf-crown svg { width: calc(16 * var(--u)); height: calc(10 * var(--u)); }
 .pf-cell:focus-visible { outline: 3px solid var(--hm-lantern); }
 .pf-tip { --s: calc(2 * var(--u)); position: absolute; z-index: 5; bottom: calc(100% + 6 * var(--u)); left: 50%; translate: -50% 0; width: max-content; max-width: calc(240 * var(--u)); padding: calc(8 * var(--u)) calc(10 * var(--u));
-  clip-path: var(--px1); background: var(--hm-ink); box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern); font: 800 calc(11.5 * var(--u))/1.35 var(--skin-font-body); color: var(--hm-wool); text-align: left; pointer-events: none; visibility: hidden; }
+  clip-path: var(--px1); background: var(--hm-ink); box-shadow: inset 0 calc(3 * var(--u)) 0 var(--hm-lantern); font: 800 max(12px, calc(11.5 * var(--u)))/1.35 var(--skin-font-body); color: var(--hm-wool); text-align: left; pointer-events: none; visibility: hidden; }
 .pf-cell:hover .pf-tip, .pf-cell:focus .pf-tip { visibility: visible; }
 @container (max-width: 560px) { .pf-drill-top { flex-wrap: wrap; } .pf-sum { margin-left: 0; } .pf-grid { grid-template-columns: calc(104 * var(--u)) repeat(3, minmax(0, 1fr)); } .pf-grid-bot .pf-mult { display: none; } }
 
 /* Top players (signed in). */
 .pf-board { display: flex; flex-direction: column; gap: calc(4 * var(--u)); max-height: calc(220 * var(--u)); margin: 0; padding: 0; list-style: none; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--hm-night-3) transparent; }
-.pf-board-row { display: flex; align-items: center; gap: calc(8 * var(--u)); min-height: calc(28 * var(--u)); padding: 0 calc(6 * var(--u)); font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.pf-board-row { display: flex; align-items: center; gap: calc(8 * var(--u)); min-height: calc(28 * var(--u)); padding: 0 calc(6 * var(--u)); font: 800 max(12.5px, calc(12.5 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); }
 .pf-board-row[data-you] { box-shadow: inset calc(6 * var(--u)) 0 0 var(--hm-lantern); padding-left: calc(12 * var(--u)); }
 .pf-board-place { width: calc(28 * var(--u)); font-family: var(--skin-font-display); color: var(--hm-wool); }
 .pf-board-name { flex: 1; min-width: 0; font: 800 calc(14 * var(--u))/1 var(--skin-font-display); color: var(--hm-wool); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -299,21 +299,21 @@ form.pf-name .pf-name-row { gap: calc(6 * var(--u)); }
 .pf-rg-ranks { overflow: hidden; }
 .pf-rg-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(2 * var(--u)); }
 .pf-rg-text b { font: 800 calc(17 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); }
-.pf-rg-text > span { font: 800 calc(12 * var(--u))/1.2 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-rg-text > span { font: 800 max(12.5px, calc(12 * var(--u)))/1.2 var(--skin-font-body); color: var(--hm-frost); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-rg-rules { display: flex; flex-direction: column; gap: calc(10 * var(--u)); min-width: 0; }
 .pf-rule { flex: 1 1 auto; padding: calc(14 * var(--u)) calc(14 * var(--u)) calc(14 * var(--u) + 3 * var(--u)); display: flex; flex-direction: column; gap: calc(8 * var(--u)); }
 .pf-rule h3 { display: flex; align-items: center; gap: calc(10 * var(--u)); margin: 0; font: 800 calc(16 * var(--u))/1.1 var(--skin-font-display); color: var(--hm-wool); }
-.pf-rule p { margin: 0; font: 700 calc(12.5 * var(--u))/calc(18 * var(--u)) var(--skin-font-body); color: var(--hm-frost); text-wrap: pretty; }
+.pf-rule p { margin: 0; font: 700 max(12.5px, calc(12.5 * var(--u)))/calc(18 * var(--u)) var(--skin-font-body); color: var(--hm-frost); text-wrap: pretty; }
 .pf-rule em { font-style: normal; font-weight: 800; color: var(--hm-wool); }
 .pf-rule em[data-good] { color: var(--pasture-hi); }
 .pf-rule em[data-bad] { color: var(--ember); }
 .pf-climb { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(3 * var(--u)); margin-top: calc(2 * var(--u)); }
-.pf-climb-seg { display: grid; place-items: center; height: calc(20 * var(--u)); background: var(--hm-night-deep); box-shadow: inset 0 var(--u) 0 var(--hm-ink); font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.pf-climb-seg { display: grid; place-items: center; height: calc(20 * var(--u)); background: var(--hm-night-deep); box-shadow: inset 0 var(--u) 0 var(--hm-ink); font: 800 max(12px, calc(11 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); }
 .pf-climb-seg[data-on] { background: var(--hm-lantern); box-shadow: inset 0 calc(2 * var(--u)) 0 var(--hm-lantern-hi); color: var(--hm-ink); }
-.pf-climb-note { align-self: flex-end; font: 800 calc(11 * var(--u))/1 var(--skin-font-body); color: var(--hm-frost); }
+.pf-climb-note { align-self: flex-end; font: 800 max(12px, calc(11 * var(--u)))/1 var(--skin-font-body); color: var(--hm-frost); }
 .pf-tags { display: flex; flex-wrap: wrap; gap: calc(6 * var(--u)); }
 .pf-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(6 * var(--u)); }
-.pf-chip { --s: calc(2 * var(--u)); display: flex; align-items: center; height: calc(26 * var(--u)); padding: var(--u) calc(10 * var(--u)) 0; box-sizing: border-box; clip-path: var(--px1); background: var(--hm-ink); font: 800 calc(12 * var(--u))/1 var(--skin-font-body); color: var(--hm-wool); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-chip { --s: calc(2 * var(--u)); display: flex; align-items: center; height: calc(26 * var(--u)); padding: var(--u) calc(10 * var(--u)) 0; box-sizing: border-box; clip-path: var(--px1); background: var(--hm-ink); font: 800 max(12.5px, calc(12 * var(--u)))/1 var(--skin-font-body); color: var(--hm-wool); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @container (max-width: 700px) { .pf-rg-body { display: flex !important; flex-direction: column; gap: calc(16 * var(--u)); } .pf-chips { grid-template-columns: 1fr; } }
 /* A narrow card (a phone): the number tiles two across, the longest word on a row of its own. */
 @container (max-width: 560px) { .pf-tile, .pf-tile[data-stat="streak"] { grid-column: span 6; } .pf-tile[data-stat="longest"] { grid-column: span 12; } }

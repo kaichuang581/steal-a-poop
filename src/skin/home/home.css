@@ -393,6 +393,8 @@
 
 /* ---------- A phone: the panel is a sheet at the bottom whose top edge slants 6 degrees ---------- */
 .hm[data-phone] { --u: 1px; --sheet: min(56vh, calc(100vh - 150px)); }
+/* Seven rows (the Trading Post joined the menu, 2026-11-25): the sheet takes one row more of the screen, so all show. */
+.hm[data-phone][data-rows="7"] { --sheet: min(65vh, calc(100vh - 150px)); }
 .hm[data-phone] .hm-panel { inset: auto 0 var(--foot) 0; height: var(--sheet); }
 .hm[data-phone] .hm-panel-fill { clip-path: polygon(0 11vw, 100% 0, 100% 100%, 0 100%); }
 .hm[data-phone] .hm-panel-edge { clip-path: polygon(0 calc(11vw - 13px), 100% -13px, 100% 0, 0 11vw); }

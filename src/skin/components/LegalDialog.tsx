@@ -1,4 +1,6 @@
-import { CloseIcon } from './Icons';
+import { BookIcon } from './Icons';
+import { Dialog, InkCard, Scrim } from '../kit/modern';
+import './hud-guide.css';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { LEGAL_REVIEWED } from '../../config';
@@ -28,25 +30,19 @@ export function LegalDialog({ initial, onClose }: { initial: LegalSlug; onClose:
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const tab = (on: boolean) => `kit-index-tab ${on ? 'font-black' : ''}`;
   return (
-    <div role="dialog" aria-modal="true" aria-label={LEGAL_TITLES[slug]} className="fixed inset-0 z-50 grid place-items-center p-3" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)' }} onClick={onClose}>
-      <div className="sk-framed kit-paper flex max-h-[92vh] w-full max-w-3xl flex-col p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Legal pages">
-            {SLUGS.map((s) => <button key={s} role="tab" aria-selected={s === slug} className={tab(s === slug)} onClick={() => setSlug(s)}>{LEGAL_TITLES[s]}</button>)}
-          </div>
-          <button className="kit-peg kit-peg--light kit-peg--sm" onClick={onClose} aria-label="Close" title="Close" autoFocus><CloseIcon size={16} /></button>
+    <Scrim onClose={onClose}>
+      <Dialog title={LEGAL_TITLES[slug]} icon={<BookIcon size={20} />} label={LEGAL_TITLES[slug]} onClose={onClose} wide className="hg hg-legal" onClick={(e) => e.stopPropagation()}>
+        <div className="hg-tabs" role="tablist" aria-label="Legal pages">
+          {SLUGS.map((s) => <button key={s} type="button" role="tab" aria-selected={s === slug} className={`hg-tab hm-slab hm-knit ${s === slug ? 'hm-slab--lantern' : ''}`} onClick={() => setSlug(s)}><span>{LEGAL_TITLES[s]}</span></button>)}
         </div>
         {!LEGAL_REVIEWED && (
-          <div role="note" className="kit-paper kit-paper--note mb-3 text-sm font-bold" style={{ color: 'var(--coral-dark)' }}>
-            DRAFT. This text has not been reviewed by a lawyer and is not final.{draftFields > 0 && ` ${draftFields} highlighted field${draftFields === 1 ? ' is' : 's are'} still to be filled in.`}
-          </div>
+          <InkCard tone="barn" size="sm" role="note" title="Draft" sub={`This text has not been reviewed by a lawyer and is not final.${draftFields > 0 ? ` ${draftFields} highlighted field${draftFields === 1 ? ' is' : 's are'} still to be filled in.` : ''}`} />
         )}
-        <article aria-label={LEGAL_TITLES[slug]} className="sk-legal min-h-0 flex-1 overflow-y-auto pr-1 text-sm leading-relaxed [&_a]:underline [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-black [&_h1]:text-[#7a4a12] [&_h2]:mb-1 [&_h2]:mt-4 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[#7a4a12] [&_h3]:font-bold [&_h3]:text-[#7a4a12] [&_mark]:bg-amber-200 [&_mark]:text-[#7a2a00] [&_code]:bg-black/10 [&_code]:text-[#2b221d] [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2 [&_table]:my-2 [&_td]:border [&_td]:border-[#c9b896] [&_td]:p-1 [&_th]:border [&_th]:border-[#c9b896] [&_th]:p-1">
+        <article aria-label={LEGAL_TITLES[slug]} className="sk-legal hg-legal-text rc-well">
           {body ?? <p>Loading…</p>}
         </article>
-      </div>
-    </div>
+      </Dialog>
+    </Scrim>
   );
 }

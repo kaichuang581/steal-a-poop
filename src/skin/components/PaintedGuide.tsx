@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useStore } from '../../state/store';
 import { BASICS, FAQ, GLOSSARY } from '../../ui/guideContent';
-import { Dialog, Scrim, Slab } from '../kit/modern';
+import { Dialog, IconTile, Scrim, Slab } from '../kit/modern';
+import type { TileTone } from '../kit/modern';
 import { ScrollBox } from '../kit/surfaces';
-import { ClockIcon, PlayIcon, SnowflakeIcon, TrophyIcon } from './Icons';
+import { ClockIcon, HelpIcon, PlayIcon, SnowflakeIcon, TrophyIcon } from './Icons';
 import { MiniTile, RulesCard } from './RulesCard';
 import './hud-guide.css';
 
@@ -20,6 +21,7 @@ export const GUIDE_QUESTIONS = FAQ.map((f) => (f.q === 'Is my progress saved?'
   : f));
 
 const TABS = ['Basics', 'Rules', 'Words', 'Questions'] as const;
+const STEP_TONE: TileTone[] = ['dusk', 'barn', 'lantern', 'pasture'];
 type Tab = (typeof TABS)[number];
 
 /** A small picture for each basic, as the rules card draws them: the letter tiles, the name tag's dots, pixel icons. */
@@ -52,7 +54,7 @@ export function PaintedGuide({ onClose }: { onClose: () => void }) {
 
   return (
     <Scrim onClose={onClose}>
-      <Dialog title="How to play" onClose={onClose} className="hg hg-guide" onClick={(e) => e.stopPropagation()}>
+      <Dialog title="How to play" icon={<HelpIcon size={20} />} onClose={onClose} className="hg hg-guide" onClick={(e) => e.stopPropagation()}>
         <div ref={acts} className="md-row">
           <Slab disabled={!ready} onClick={() => startTour('menu')}><PlayIcon size={14} /> Tutorial</Slab>
           <Slab tone="lantern" disabled={!ready} onClick={() => start('practice')}>Practice game</Slab>
@@ -67,12 +69,13 @@ export function PaintedGuide({ onClose }: { onClose: () => void }) {
           {tab === 'Basics' && (
             <ol className="hg-list">
               {BASICS.map((b, i) => (
-                <li key={b.title} className="hg-tile hg-basic rc-tile">
-                  <span className="hg-art" aria-hidden="true">{ART[i] ?? <SnowflakeIcon size={20} />}</span>
-                  <div>
-                    <h3>{i + 1}. {b.title}</h3>
+                <li key={b.title} className="md-rowtile hg-basic rc-tile">
+                  <IconTile tone={STEP_TONE[i % STEP_TONE.length]}><b className="hg-num">{i + 1}</b></IconTile>
+                  <div className="md-rowtext">
+                    <h3>{b.title}</h3>
                     <p>{b.text}</p>
                   </div>
+                  <span className="hg-art" aria-hidden="true">{ART[i] ?? <SnowflakeIcon size={20} />}</span>
                 </li>
               ))}
             </ol>

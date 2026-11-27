@@ -5,10 +5,11 @@ import join from '../assets/menu/join.png';
 import dream from '../assets/menu/dream.png';
 import practice from '../assets/menu/practice.png';
 import tutorial from '../assets/menu/tutorial.png';
+import shop from '../assets/menu/shop.png'; // the Oat Sack, drawn to match (2026-11-25)
 import './home.css';
 
 /** Brian's menu icons (2026-11-20), by menu item. */
-export const MENU_ICONS: Record<string, string> = { queue, lobby, join, dream, repair: dream, practice, tutorial };
+export const MENU_ICONS: Record<string, string> = { queue, lobby, join, dream, repair: dream, practice, tutorial, shop };
 export const MenuIcon = ({ id }: { id: string }) => (MENU_ICONS[id] ? <img src={MENU_ICONS[id]} alt="" draggable={false} /> : null);
 
 /**

@@ -33,12 +33,25 @@ export function Corner({ className, children, ...rest }: HTMLAttributes<HTMLDivE
   return <div {...rest} className={join('md-corner hm rc', className)}>{children}</div>;
 }
 
+export type TileTone = 'dusk' | 'lantern' | 'barn' | 'pasture' | 'frost';
+const TILE: Record<TileTone, string> = { dusk: 'var(--hm-dusk)', lantern: 'var(--hm-lantern-lip)', barn: 'var(--hm-barn)', pasture: 'var(--hm-pasture)', frost: 'var(--hm-night-3)' };
+/** A coloured square with an icon in it (the profile's section tiles): what a row or a section is about, at a glance. */
+export function IconTile({ tone = 'dusk', children, className }: { tone?: TileTone; children: ReactNode; className?: string }) {
+  return <span className={join('md-itile', className)} style={{ ['--tile' as string]: TILE[tone] }} aria-hidden="true">{children}</span>;
+}
+
+/** A dialog's title: the profile's lantern ribbon, hung over the board's left edge, an icon and the name on it. */
+export function Ribbon({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
+  return <h2 className="md-ribbon"><i className="md-ribbon-face" aria-hidden="true" />{icon && <span className="md-ribbon-icon" aria-hidden="true">{icon}</span>}<span>{children}</span></h2>;
+}
+
 /**
- * A dialog: the pen's board (felt, inner frame and brackets, snow with icicles), a title in Fraunces and a square close
- * slab. `onClose` absent: no close button (the caller's buttons close it).
+ * A dialog: the pen's board (felt, inner frame and brackets, snow with icicles), its title on the lantern ribbon and a
+ * square close slab. `onClose` absent: no close button (the caller's buttons close it). Every snowy board in the game
+ * is this one or built from its parts (Brian, 2026-11-25: "all that snowy blue ui is meant to look similar").
  */
-export function Dialog({ title, onClose, closeLabel = 'Close', label, className, children, wide = false, ...rest }: Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
-  title?: ReactNode; onClose?: () => void; closeLabel?: string; label?: string; wide?: boolean;
+export function Dialog({ title, icon, onClose, closeLabel = 'Close', label, className, children, wide = false, ...rest }: Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
+  title?: ReactNode; icon?: ReactNode; onClose?: () => void; closeLabel?: string; label?: string; wide?: boolean;
 }) {
   return (
     <div {...rest} role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)}
@@ -47,11 +60,30 @@ export function Dialog({ title, onClose, closeLabel = 'Close', label, className,
       <SnowCap icicles />
       {(title || onClose) && (
         <header className="md-dialog-head">
-          {title && <h2>{title}</h2>}
+          {title && <Ribbon icon={icon}>{title}</Ribbon>}
           {onClose && <IconSlab onClick={onClose} aria-label={closeLabel} title={closeLabel} className="md-dialog-close"><CloseIcon size={14} /></IconSlab>}
         </header>
       )}
       <div className="md-dialog-body">{children}</div>
+    </div>
+  );
+}
+
+/** A group of rows under a small heading (Settings' "Comfort", "Help"). */
+export function Group({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
+  return <section className={join('md-group', className)}><h3 className="md-group-title">{title}</h3><div className="md-group-rows">{children}</div></section>;
+}
+
+/**
+ * One row of a board: a raised tile with an icon tile, a name, a line under it saying what it does, and its control on
+ * the right. The line is what makes a row readable without guessing; give it whenever the name alone is not the whole story.
+ */
+export function Row({ icon, tone, label, hint, children, className, ...rest }: Omit<HTMLAttributes<HTMLDivElement>, 'title'> & { icon?: ReactNode; tone?: TileTone; label: ReactNode; hint?: ReactNode }) {
+  return (
+    <div {...rest} className={join('md-rowtile rc-tile', className)}>
+      {icon && <IconTile tone={tone}>{icon}</IconTile>}
+      <span className="md-rowtext"><b>{label}</b>{hint && <small>{hint}</small>}</span>
+      {children && <span className="md-rowend">{children}</span>}
     </div>
   );
 }

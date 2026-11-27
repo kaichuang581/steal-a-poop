@@ -41,7 +41,7 @@ export function horseModel(_ch: Character, _faces?: Faces): AnimalModel {
   cube(hg, [-1, 28, 7], [1, 29, 13], () => dark); // the forelock, the crown's whole length
   cube(hg, [-1, 24, 7], [1, 27, 7], () => dark); // the mane over the back of the head, down to the neck's
   step(hg, -1, (v) => v.c === dark);
-  const { eyes, lids, brows } = smallEyes(hg, 25, 11, '#1E1A19', COAT.map((h) => stepHex(h, 1)) as [string, string, string], HEAD, { rows: 1, cols: 1, glint: false });
+  const { eyes, lids, brows } = smallEyes(hg, 25, 11, '#1E1A19', COAT.map((h) => stepHex(h, 1)) as [string, string, string], HEAD, { rows: 1, cols: 1, glint: false, proud: true });
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   const headSolid = solidSet(hg);
   hollow(hg);

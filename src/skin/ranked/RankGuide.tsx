@@ -70,7 +70,7 @@ function Rule({ tone, icon, title, children }: { tone: TileTone; icon: ReactNode
   );
 }
 
-/** A small ink tag with a rank's colour square: "Losses ½", "Stone · ½". */
+/** A small ink tag with a rank's colour square: "Losses ½", "Stone: ½". */
 function RankTag({ id, children }: { id: string; children: ReactNode }) {
   return <span className="pf-tag pf-tag--ink pf-tag--rank"><i style={{ '--rank': rankColor(id) } as CSSProperties} />{children}</span>;
 }
@@ -87,7 +87,7 @@ export function RankGuideBody({ mine }: { mine: number | null }) {
           const from = i * span;
           const start = mine === null && i === 0;
           const loss = lossTag(t.lossShare);
-          const range = top ? `${fmt(TOP_FLOOR)} points and up` : `${fmt(from)}–${fmt(from + span - 1)} points${start ? ' · losses are free' : ''}`;
+          const range = top ? `${fmt(TOP_FLOOR)} points and up` : `${fmt(from)}–${fmt(from + span - 1)} points${start ? ', losses are free' : ''}`;
           return (
             <li key={t.id} className="pf-rg-tile" data-you={mine === i || undefined} style={{ '--rank': rankColor(t.id) } as CSSProperties}>
               {/* At 24, the badge's own size: 32 is no whole multiple of its 24 rows and blurred it (the plan asked 32). */}
@@ -120,9 +120,9 @@ export function RankGuideBody({ mine }: { mine: number | null }) {
         <Rule tone="pasture" icon={<span className="pf-wool-icon"><TreeIcon level="easy" /></span>} title="A gentle start">
           <p>Losses cost less in the first three ranks:</p>
           <span className="pf-tags">
-            <RankTag id={TIERS[0].id}>{`${TIERS[0].name} · free`}</RankTag>
-            <RankTag id={TIERS[1].id}>{`${TIERS[1].name} · ½`}</RankTag>
-            <RankTag id={TIERS[2].id}>{`${TIERS[2].name} · ¾`}</RankTag>
+            <RankTag id={TIERS[0].id}>{`${TIERS[0].name}: free`}</RankTag>
+            <RankTag id={TIERS[1].id}>{`${TIERS[1].name}: ½`}</RankTag>
+            <RankTag id={TIERS[2].id}>{`${TIERS[2].name}: ¾`}</RankTag>
           </span>
           <p>Coming first with no tie always gains at least 1 point.</p>
         </Rule>

@@ -517,10 +517,8 @@ export const LIGHTS: readonly Light[] = [
   { id: 'podium:stage spot', kind: 'spot', element: el('table/Podium.tsx', '<spotLight position={[0, 8, 6]}'), fill: 'the stage\'s key light, from over the audience' },
   { id: 'podium:front fill', kind: 'point', element: el('table/Podium.tsx', '<pointLight position={[0, 3.2, 2.4]}'), fill: 'a warm light in front of the podium, on the dancers\' faces' },
   // What rides a model, and the pages that are not a scene.
-  { id: 'bomb glow', kind: 'point', element: el('table/Bomb.tsx', '<pointLight ref={glow} color={aura.light}'), unseen: 'it is moved to the bomb every frame; the bomb is a model, not part of a scene' },
-  { id: 'burst flash', kind: 'point', element: el('table/Blast.tsx', '<pointLight ref={light} color='), fill: 'the flash of a burst: it is dark between bursts and there is nothing to hang it on' },
+  { id: 'bomb glow', kind: 'point', element: el('table/Bomb.tsx', '<pointLight ref={glow} color={skin.skin.spark[0]'), unseen: 'it is moved to the bomb every frame; the bomb is a model, not part of a scene' },
   { id: 'admin photo glare', kind: 'point', element: el('avatars/AvatarDisc.tsx', '<pointLight ref={lamp} position={[0, bandY, 0]}'), unseen: 'it rides the admin\'s photo disc, the one thing in the game that is not voxels' },
   // (The trophy's own light on first place's crate is gone: it whitened the champion's wool. Brian, 2026-11-21.)
   { id: 'leaderboards:lantern', kind: 'point', element: el('boards/BoardStage.tsx', '<pointLight position={geo.lamp}'), unseen: 'it is inside the lantern on the leaderboards\' island, a scene the checker does not build' },
-  { id: 'barn book:preview', kind: 'point', element: el('shop/PreviewStage.tsx', '<pointLight ref={lamp} color={auraOf(item.id).light}'), unseen: 'it lights the bomb on the Barn Book\'s stand; the preview is not one of the seven scenes' },
 ];

@@ -2,7 +2,7 @@ import { useStore } from '../state/store';
 import { fuseBeat, fuseTones } from './fuseVoices';
 import type { TickVoice } from './fuseVoices';
 
-export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom' | 'poof' | 'doorShut' | 'doorOpen' | 'crunch';
+export type SoundKind = 'play' | 'bank' | 'fanfare' | 'fail' | 'trap' | 'roundEnd' | 'alarm' | 'boom' | 'poof' | 'doorShut' | 'doorOpen' | 'crunch' | 'whistle';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -160,6 +160,10 @@ function schedule(c: AudioContext, kind: SoundKind): void {
     case 'doorOpen': // the latch lifting
       wood(c, 1046.5, 0, 0.03);
       wood(c, 784, 0.06, 0.025);
+      break;
+    case 'whistle': // Practice's coach: one short two-tone whistle, 0.34 s in all
+      tone(c, { freq: 1567.98, dur: 0.14, vol: 0.09 });
+      tone(c, { freq: 2093, at: 0.15, dur: 0.18, vol: 0.09 });
       break;
     case 'alarm': // a new round: a farm hand bell rung three times (was a klaxon and a siren). The dream's alarm clock too.
       [[0, 880], [0.2, 659.25], [0.4, 880]].forEach(([at, f]) => bell(c, f, at, 0.6, 0.075));

@@ -71,6 +71,8 @@ for (const species of BUILT) {
       const light = '#ffffff';
       for (const eye of [named.eye0, named.eye1]) {
         const cols = [...eye.values()].map((v) => hexOf(v.c));
+        // An eye set in a dark patch is drawn pale all over, or it could not be seen (rig.ts `EYE_ON_DARK`; the cow's right eye).
+        if (cols.every((c) => lum(c) >= 0.5)) continue;
         const lights = cols.filter((c) => c === light).length;
         const iris = cols.filter((c) => c !== light && lum(c) < 0.5).length;
         const whites = cols.length - lights - iris;
@@ -86,6 +88,7 @@ for (const species of BUILT) {
       // (the same column on both eyes); on a wrapped side plate in the front two columns of both eyes.
       for (const eye of [named.eye0, named.eye1]) {
         const cells = [...eye.values()];
+        if (cells.every((v) => lum(hexOf(v.c)) >= 0.5)) continue;
         const l = cells.find((v) => hexOf(v.c) === light)!;
         const small = cells.every((v) => hexOf(v.c) === light || lum(hexOf(v.c)) < 0.5);
         if (small && !l) continue;

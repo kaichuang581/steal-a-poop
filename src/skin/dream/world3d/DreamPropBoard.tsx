@@ -4,6 +4,7 @@ import { Color, DirectionalLight, Group, HemisphereLight, Mesh, MeshBasicMateria
 import { LOOK } from '../../look';
 import { meshModel, toGeometry } from '../models';
 import { COLOURS, GLOW, MODELS } from '../models.gen';
+import type { ModelData } from '../models.gen';
 
 /**
  * The prop board (docs/dream/v3/03, section 9, check 3; development only, `?preview=dreamprops&board=farm|world2|
@@ -37,11 +38,15 @@ export function DreamPropBoard() {
   );
 }
 
-/** Draws each model into its own cell of the one canvas, framed from in front, to the left and above. */
-function Board({ ids }: { ids: string[] }) {
+/**
+ * Draws each model into its own cell of the one canvas, framed from in front, to the left and above (or, with `front`,
+ * straight from in front, as the Trading Post pack's boards are drawn). `models` and `colours` default to the dream's.
+ */
+export function Board({ ids, models = MODELS, colours = COLOURS, front = false, cell = CELL, cols = COLS }: { ids: string[]; models?: Record<string, ModelData>; colours?: readonly string[]; front?: boolean; cell?: typeof CELL; cols?: number }) {
+  const COLS = cols, CELL = cell;
   const gl = useThree((s) => s.gl);
   const items = useMemo(() => ids.map((id) => {
-    const m = MODELS[id], mm = meshModel(id, m, COLOURS, GLOW, { festive: true, back: true });
+    const m = models[id], mm = meshModel(models === MODELS ? id : `board:${id}`, m, colours, GLOW, { festive: true, back: true });
     const scene = new Scene(), g = new Group();
     g.add(new Mesh(toGeometry(mm.lit), new MeshLambertMaterial({ vertexColors: true })));
     if (mm.glow.idx.length) g.add(new Mesh(toGeometry(mm.glow), new MeshBasicMaterial({ vertexColors: true })));
@@ -54,10 +59,11 @@ function Board({ ids }: { ids: string[] }) {
     const size = Math.max(x1 - x0, y1 - y0, z1 - z0), mid = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
     const cam = new PerspectiveCamera(30, CELL.w / (CELL.h - CELL.label), size * 0.1, size * 20);
     const d = size * 2.3;
-    cam.position.set(mid[0] - d * 0.32, mid[1] + d * 0.38, mid[2] + d * 0.86);
+    if (front) cam.position.set(mid[0], mid[1], mid[2] + d);
+    else cam.position.set(mid[0] - d * 0.32, mid[1] + d * 0.38, mid[2] + d * 0.86);
     cam.lookAt(mid[0], mid[1], mid[2]);
     return { scene, cam };
-  }), [ids]);
+  }), [ids, models, colours, front, CELL]);
   useFrame(() => {
     const rows = Math.ceil(ids.length / COLS), H = rows * CELL.h;
     gl.setScissorTest(true);

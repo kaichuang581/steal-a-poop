@@ -80,12 +80,12 @@ export function numberSlips(n: LocalNumbers, onlineWins: number | null = null): 
     { id: 'words', value: n.words.toLocaleString(), label: 'words played' },
     onlineWins === null
       ? { id: 'wins', value: n.wins.toLocaleString(), label: 'Quick Game wins' }
-      : { id: 'wins', value: (n.wins + onlineWins).toLocaleString(), label: `Quick ${n.wins.toLocaleString()} · online ${onlineWins.toLocaleString()}` },
+      : { id: 'wins', value: (n.wins + onlineWins).toLocaleString(), label: `Quick ${n.wins.toLocaleString()}, online ${onlineWins.toLocaleString()}` },
     { id: 'sheep', value: n.dreamBest.toLocaleString(), label: 'sheep in a night' },
     n.longest
-      ? { id: 'longest', value: n.longest.toUpperCase(), label: `longest word · ${n.longest.length} letters` }
+      ? { id: 'longest', value: n.longest.toUpperCase(), label: `longest word, ${n.longest.length} letters` }
       : { id: 'longest', value: '', none: true, label: 'longest word' },
-    { id: 'streak', value: n.streak.toLocaleString(), label: `night streak · best ${n.bestStreak.toLocaleString()}` },
+    { id: 'streak', value: n.streak.toLocaleString(), label: `night streak, best ${n.bestStreak.toLocaleString()}` },
   ];
 }
 
@@ -251,7 +251,7 @@ function Identity({ avatar, onAvatar, lv, xp, name, signedIn, onSignIn }: {
         <div className="pf-level">
           <span className="pf-tag pf-tag--lantern">{`Lv ${lv.level}`}</span>
           <b className="pf-level-name">{titleFor(lv.level)}</b>
-          <span className="pf-level-xp"><b>{xp.toLocaleString()}</b>{' XP · '}<b>{(lv.need - lv.into).toLocaleString()}</b>{` to Lv ${lv.level + 1}`}</span>
+          <span className="pf-level-xp"><b>{xp.toLocaleString()}</b>{' XP, '}<b>{(lv.need - lv.into).toLocaleString()}</b>{` to Lv ${lv.level + 1}`}</span>
         </div>
         <span className="pf-xp" role="img" aria-label={`${lv.into} of ${lv.need} XP into level ${lv.level}`}>
           {Array.from({ length: 10 }, (_, i) => <i key={i} style={{ '--fill': `${Math.max(0, Math.min(1, share * 10 - i)) * 100}%` } as CSSProperties} />)}
@@ -269,9 +269,9 @@ const TIMES = String.fromCharCode(0xD7);
 const BOT: Record<Difficulty, { name: string }> = { easy: { name: 'Easy' }, medium: { name: 'Medium' }, hard: { name: 'Hard' } };
 /** "×1.5": what a setting multiplies a run's rating by. */
 const times = (w: number) => `${TIMES}${w}`;
-/** "12 words · Hard · 10 s": a run, in the profile's short form. */
+/** "12 words, Hard, 10 s": a run, in the profile's short form (commas: Brian reads a middle dot as a glitch). */
 export function runLine(cell: { words: number; difficulty: Difficulty; clock: number }): string {
-  return `${cell.words} word${cell.words === 1 ? '' : 's'} · ${BOT[cell.difficulty].name} · ${cell.clock} s`;
+  return `${cell.words} word${cell.words === 1 ? '' : 's'}, ${BOT[cell.difficulty].name}, ${cell.clock} s`;
 }
 /** The rating's sum, written out: "6 × 1.5 × 1.5 = 13.5, rounded to 14", or "24 × 2 × 2 = 96". */
 export function ratingSum(c: PracticeCell): { parts: [number, number, number]; product: number; rating: number } {
@@ -283,7 +283,7 @@ const num = (n: number) => (Number.isInteger(n) ? n.toLocaleString() : n.toLocal
 export function cellTip(c: PracticeCell): string {
   const { parts, product, rating } = ratingSum(c);
   const sum = `${parts.map(num).join(` ${TIMES} `)} = ${num(product)}`;
-  return `${c.words} word${c.words === 1 ? '' : 's'} · ${BOT[c.difficulty].name} bot · ${c.clock} s clock: ${sum}${product === rating ? '' : `, rounded to ${rating.toLocaleString()}`}`;
+  return `${c.words} word${c.words === 1 ? '' : 's'}, ${BOT[c.difficulty].name} bot, ${c.clock} s clock: ${sum}${product === rating ? '' : `, rounded to ${rating.toLocaleString()}`}`;
 }
 
 /**

@@ -135,7 +135,11 @@ export function voxelMaterial(opts: { emissive?: string; emissiveIntensity?: num
   // Who wins where two meshes' faces lie flush (2026-11-22, Brian: "a lot of z-fighting and flickering in the back"): a
   // depth offset, positive behind, negative in front. Pieces built on separate grids meet flush along their edges (the
   // back hills against Home's ground, the forest's feet on the hills); without it the two take turns and the seam crawls.
-  if (opts.layer) { m.polygonOffset = true; m.polygonOffsetFactor = opts.layer; m.polygonOffsetUnits = opts.layer * 2; }
+  // A fixed offset only (units), never one that grows with the face's slope (factor): a face seen nearly edge-on, a
+  // board's end or a wall's top, has an enormous slope, so the factor pulled it forward through whatever stood in front
+  // of it, and it showed as bright hairlines along the voxel edges that blinked as the camera drifted (Brian,
+  // 2026-11-25: "a lot of [flicker], especially on the barn"; the farm's barn shell showed through the inside wall).
+  if (opts.layer) { m.polygonOffset = true; m.polygonOffsetFactor = 0; m.polygonOffsetUnits = opts.layer * 4; }
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uStudio = opts.always ? ALWAYS : STUDIO_SWITCH;
     shader.uniforms.uShoulder = STUDIO_SWITCH; // the scene's, for the animals too

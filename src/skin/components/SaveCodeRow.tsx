@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { applyImport, exportSave, planImport } from '../../lib/savecode';
 import type { ImportPlan } from '../../lib/savecode';
-import { Slab } from '../kit/modern';
+import { IconTile, Slab } from '../kit/modern';
+import { ShareIcon } from './Icons';
 import './hud-guide.css';
 
 const CHANGE: Record<string, string> = { new: 'added', merged: 'merged', same: 'already here', kept: 'kept yours' };
@@ -32,17 +33,18 @@ export function SaveCodeRow() {
   };
 
   return (
-    <section className="hg-tile hg-save rc-tile" aria-label="Save code">
+    <section className="md-rowtile md-rowtile--stack hg-save rc-tile" aria-label="Save code">
       <div className="hg-save-head">
-        <span className="hg-label">Save code</span>
-        <span className="hg-end">
+        <IconTile tone="pasture"><ShareIcon size={18} /></IconTile>
+        <span className="md-rowtext">
+          <b>Save code</b>
+          <small>{copied ? `Copied: ${copied.toLocaleString()} characters. Paste it into Settings on your other browser.` : 'Carry your bests, your dream streak, your name and your avatar to another browser.'}</small>
+        </span>
+        <span className="md-rowend">
           <Slab size="sm" className="hg-copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</Slab>
           <Slab size="sm" onClick={() => { setPasting((p) => !p); setPlan(null); setDone(''); }} aria-expanded={pasting}>Paste</Slab>
         </span>
       </div>
-      <p className="hg-sub">
-        {copied ? `Copied: ${copied.toLocaleString()} characters. Paste it into Settings on your other browser.` : 'Carry your records to another browser: your bests, your dream streak, your name and avatar.'}
-      </p>
       {pasting && (
         <div className="hg-paste">
           <textarea

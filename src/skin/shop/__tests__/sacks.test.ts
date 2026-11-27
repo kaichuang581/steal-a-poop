@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CATALOG } from '../catalog';
 import { BELLS, buy, freshWallet, grantStreakItems, MISSIONS, normalise, openSack, payGame } from '../economy';
-import { NEAR_MISS, REEL, reelFor } from '../FeedSacks';
 import type { Wallet } from '../economy';
 import { forcedTier, freshPity, liveGuarantees, rollSack, tierFor } from '../roll';
 import { POOL, poolFor, poolOf, RARITIES, SACK, SACK_IDS, oddsLine } from '../sacks';
@@ -147,36 +146,6 @@ describe('T1: Feed Sacks', () => {
     }
   });
 
-  it('the reel lands on the real result; a planted near miss is rarer, on the side the pointer leans to, and not the rule', () => {
-    let planted = 0, shortOfTop = 0;
-    for (let k = 0; k < 2400; k++) {
-      const tier = RARITIES[k % 4];
-      const item = poolOf('blast', tier)[0];
-      const reel = reelFor({ sack: 'blast', itemId: item.id, tier, duplicate: false, refund: 0, at: 0 }, mulberry(k));
-      expect(reel.tiles[REEL.stop].id).toBe(item.id);
-      for (const t of reel.tiles) expect(t.kind).toBe('blast');
-      expect(Math.abs(reel.lean)).toBeLessThanOrEqual(0.45);
-      if (tier === 'legendary') { expect(reel.nearMiss).toBe(false); continue; }
-      shortOfTop++;
-      if (!reel.nearMiss) continue;
-      planted++;
-      expect(RARITIES.indexOf(reel.tiles[REEL.stop + Math.sign(reel.lean)].rarity!)).toBeGreaterThan(RARITIES.indexOf(tier));
-    }
-    // About NEAR_MISS of the time (Brian: "less frequent"), and beside more than legendaries ("go close to other stuff too").
-    expect(planted / shortOfTop).toBeGreaterThan(NEAR_MISS - 0.06);
-    expect(planted / shortOfTop).toBeLessThan(NEAR_MISS + 0.06);
-    const beside = new Set<string>();
-    for (let k = 0; k < 600; k++) {
-      const item = poolOf('blast', 'common')[0];
-      const reel = reelFor({ sack: 'blast', itemId: item.id, tier: 'common', duplicate: false, refund: 0, at: 0 }, mulberry(9000 + k));
-      if (reel.nearMiss) beside.add(reel.tiles[REEL.stop + Math.sign(reel.lean)].rarity!);
-    }
-    expect([...beside].sort()).toEqual(['legendary', 'rare', 'uncommon']);
-  });
-  it('the machine says nothing about a near miss', () => {
-    expect(readFileSync(new URL('../FeedSacks.tsx', import.meta.url), 'utf8')).not.toMatch(/so close|was right next to/i);
-  });
-
   it('7. the result is recorded in the wallet the call returns, before any reveal', () => {
     const w = rich();
     const r = openSack(w, 'bomb', mulberry(4), 123);
@@ -196,9 +165,10 @@ describe('T1: Feed Sacks', () => {
 
   it('8. the odds the screen shows are read from sacks.ts, the object the roll uses', () => {
     const roll = readFileSync(new URL('../roll.ts', import.meta.url), 'utf8');
-    const screen = readFileSync(new URL('../FeedSacks.tsx', import.meta.url), 'utf8');
+    // The screen moved to the market row's Feed Sacks stop (docs/trading-post-practice T5); the rule is the same.
+    const screen = readFileSync(new URL('../../tp/market/stops/FeedSacks.tsx', import.meta.url), 'utf8');
     expect(roll).toMatch(/SACK\.odds/);
-    expect(screen).toMatch(/from '\.\/sacks'/);
+    expect(screen).toMatch(/from '[./]*shop\/sacks'/);
     expect(screen).toMatch(/SACK\.odds|oddsLine/);
     expect(screen).not.toMatch(/\b62\b|\b28\b/);
   });

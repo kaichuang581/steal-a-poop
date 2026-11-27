@@ -1,5 +1,5 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { NoToneMapping, SRGBColorSpace } from 'three';
 import type { PerspectiveCamera } from 'three';
@@ -9,6 +9,8 @@ import { useStore } from '../../state/store';
 import { useMotionLevel } from '../hooks/useAmbient';
 import { localDateKey } from '../hooks/useToday';
 import { usePageHistory } from '../hooks/usePageHistory';
+import { SceneBoundary } from '../perf/SceneBoundary';
+import { AdaptiveCanvas, MarkDrawn } from '../table/Rendering';
 import { CATALOG } from './catalog';
 import type { Item, Kind } from './catalog';
 import { DAILY_CAP, levelOf, MISSIONS, titleFor } from './economy';
@@ -91,6 +93,18 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   const [seen, setSeen] = useState<string[]>(seenDone);
   const now = () => performance.now();
 
+  // The scene draws only while something in it moves (Brian's optimization pass, 2026-11-26: the market stood still
+  // and was redrawn at the screen's full rate all the same). Whatever may start a movement wakes it for a while: a
+  // touch, a key, and (below, once they are known) every value the scene is posed from. The driver sends it back to
+  // rest once the camera has arrived, no show is up and that while has passed.
+  const [awake, setAwake] = useState(true);
+  const awakeUntil = useRef(0), isAwake = useRef(true);
+  const wake = useCallback((ms = 2500) => {
+    awakeUntil.current = Math.max(awakeUntil.current, performance.now() + ms);
+    if (!isAwake.current) { isAwake.current = true; setAwake(true); }
+  }, []);
+  const rest = useCallback(() => { if (isAwake.current) { isAwake.current = false; setAwake(false); } }, []);
+
   const world = useRef<MarketWorld | null>(null);
   const ticks = useMemo(() => new Set<Tick>(), []);
   const view = useRef<ShiftView>(baseView(stop, W, H, phone, bookPage));
@@ -119,6 +133,8 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
   useEffect(() => { world.current?.setPicked(sack, now()); world.current?.setBench(pool, now()); }, [sack, pool]);
   useEffect(() => { world.current?.setBook(bookKind, bookItems.map((item) => ({ item, found: wallet.owned.includes(item.id) })), now()); }, [bookKind, bookItems, ownedKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (world.current) world.current.focus = focus ? { id: focus.id, at: now() } : null; if (!focus) world.current?.stopShow(); }, [focus]);
+  // What the scene is posed from: a change in any of it may set something moving.
+  useEffect(() => { wake(); }, [wake, stop, sack, bookKind, bookPage, focus, reveal, W, H, phone, ownedKey, wallet.equipped, wallet.bells, wallet.coins, reduced]);
 
   // Where the camera goes: the stop; pushed in on the counter in a reveal, on an item in the close view.
   const target = useMemo(() => {
@@ -201,7 +217,8 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
     if (r.ok) { bellChime(); world.current?.swingBell(now(), item.id); setNote(`${item.name} is yours.`); } else setNote(SHORT[r.reason]);
   };
   const wear = async (item: Item) => { await equipItem(item.id); setNote(`${item.name} is on.`); };
-  const listen = (item: Item) => { if (useStore.getState().muted) { setNote(SOUND_OFF_NOTE); return; } listenTo(item.id, world.current?.modelOf(item.id)); };
+  // A sound's model moves for as long as its sample plays (listen.ts drives it): the scene stays awake that long.
+  const listen = (item: Item) => { if (useStore.getState().muted) { setNote(SOUND_OFF_NOTE); return; } wake(listenTo(item.id, world.current?.modelOf(item.id)) + 500); };
 
   const lv = levelOf(wallet.xp);
   const day = account ? new Date().toISOString().slice(0, 10) : localDateKey(new Date());
@@ -212,12 +229,18 @@ export function Bazaar({ onClose }: { onClose: () => void }) {
 
   return (
     <div role="dialog" aria-modal="true" aria-label="The Trading Post" className="tp" data-phone={phone || undefined} data-reduced={reduced || undefined} data-focus={focus ? "" : undefined} data-lang={getLang()} style={{ ...TP_COLOURS, ...SIGN_ART, '--u': u } as CSSProperties}
+      onPointerDownCapture={() => wake()} onKeyDownCapture={() => wake()}
       onPointerDown={(e) => { if (phone) swipe.current = e.clientX; }}
       onPointerUp={(e) => { if (phone && swipe.current !== null && !reveal && !focus && Math.abs(e.clientX - swipe.current) > 60 && (e.clientY < H * 0.45 || stop === 'book')) swiped(e.clientX < swipe.current ? 1 : -1); swipe.current = null; }}>
       <div className="tp-sky" aria-hidden="true" />
-      <Canvas className="tp-canvas" camera={{ manual: true, near: 0.5, far: 300 }} dpr={[1, 1.5]} gl={{ alpha: false, antialias: true, outputColorSpace: SRGBColorSpace, toneMapping: NoToneMapping }} style={{ position: 'absolute', inset: 0 }}>
-        <Driver world={worldObj} view={view} target={target} ticks={ticks} reduced={reduced} />
-      </Canvas>
+      {/* The game's own canvas (table/Rendering.tsx): at most 60 pictures a second, none while the market rests, a
+          coarser picture on a device that cannot keep up, and shaders compiled off the page's thread. */}
+      <SceneBoundary scene="the Trading Post">
+        <AdaptiveCanvas className="tp-canvas" maxDpr={1.5} memory="post" fps={awake ? undefined : 0} camera={{ manual: true, near: 0.5, far: 300 }} gl={{ alpha: false, antialias: true, outputColorSpace: SRGBColorSpace, toneMapping: NoToneMapping }} style={{ position: 'absolute', inset: 0 }}>
+          <MarkDrawn />
+          <Driver world={worldObj} view={view} target={target} ticks={ticks} reduced={reduced} awakeUntil={awakeUntil} onRest={rest} />
+        </AdaptiveCanvas>
+      </SceneBoundary>
       <Anchors.Provider value={anchors}>
         <div className="tp-layer" onClick={() => { if (reveal && !reveal.done) land(); }}>
           {stop === 'sacks' && <SacksStop {...{ wallet, sack, pool, pick, focus, setFocus, reveal, phone, listen }} />}
@@ -296,7 +319,7 @@ function baseView(stop: StopId, W: number, H: number, phone: boolean, page: numb
 }
 
 
-function Driver({ world, view, target, ticks, reduced }: { world: MarketWorld; view: React.MutableRefObject<ShiftView>; target: { v: ShiftView; ms: number }; ticks: Set<Tick>; reduced: boolean }) {
+function Driver({ world, view, target, ticks, reduced, awakeUntil, onRest }: { world: MarketWorld; view: React.MutableRefObject<ShiftView>; target: { v: ShiftView; ms: number }; ticks: Set<Tick>; reduced: boolean; awakeUntil: React.MutableRefObject<number>; onRest: () => void }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const scene = useThree((s) => s.scene);
   useEffect(() => { scene.fog = world.fog; scene.background = world.sky; }, [scene, world]);
@@ -310,6 +333,9 @@ function Driver({ world, view, target, ticks, reduced }: { world: MarketWorld; v
     if (import.meta.env.DEV) (window as unknown as { __tpCam: unknown }).__tpCam = camera;
     world.update(now, view.current, reduced);
     for (const tick of ticks) tick(view.current);
+    // Nothing left to move: the camera has arrived (by the clock: the easing curve stops a hair short of 1), no show is
+    // up, and the while since the last touch has passed.
+    if (now - t.t0 >= t.ms && !world.showing && now > awakeUntil.current) onRest();
   });
   return <primitive object={world.root} />;
 }

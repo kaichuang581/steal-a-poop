@@ -306,6 +306,8 @@ export class MarketWorld {
     this.poseReveal(now, motion);
   }
   private focusId(): string { return this.focus?.id ?? ''; }
+  /** Something here moves of itself for as long as it is up: a thing being looked at turns, a show plays, a sack stands open. */
+  get showing(): boolean { return !!(this.focus || this.lit || this.tried || this.reveal); }
 
   private poseReveal(now: number, motion: boolean): void {
     const r = this.reveal;

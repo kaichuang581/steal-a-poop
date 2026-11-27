@@ -2797,6 +2797,30 @@ screen opens. Changed, nothing visible:
   either side (x +-8.5 to 9.5, y 58 to 64, z 1.5 to 9.5), where the model showed bare cheek. farmerBoxes.ts and the
   pack's docs/dream/data/farmer.boxes.json changed together (108 boxes); the outline match stays 0.913 front, 0.904 back.
 
+## Optimization pass 2 (Brian, 2026-11-26: "first run the optimization drill and then push and deploy everything")
+Measured first, as in pass 1: the production build, the real graphics chip, 1440 x 900 at 2x, the frame cap off, twice
+at normal speed and once with the processor slowed four times (scratch scripts, not kept; what they counted: pictures
+the scene sends the chip a second, calls and triangles a picture, and the long tasks while a screen opens). Home, the
+table and Counting Sheep measured as they did after pass 1. The new screens were the cost:
+- The Trading Post drew on a bare canvas: every refresh of the screen (120 a second on a 120 Hz laptop), also while
+  nothing moved, and it compiled shaders on the page's thread (opening a sack froze the page 0.7 s). It is on the
+  game's own canvas now (`AdaptiveCanvas`, memory "post", with `MarkDrawn` and a `SceneBoundary`): at most 60 pictures
+  a second, shaders compiled in the background, a coarser picture on a device that cannot keep up.
+- It rests: Bazaar.tsx keeps `awake`; a touch, a key or a change in any value the scene is posed from wakes it for
+  2.5 s (`wake`; Listen wakes it for the sample's length), and the driver sends it to rest once the camera has
+  arrived, no show is up (`MarketWorld.showing`: a close view, a countdown, a burst, an open sack) and that while has
+  passed. At rest it draws nothing. ANYTHING NEW THAT MOVES IN THE MARKET MUST WAKE IT: add its state to the wake
+  effect's list or to `showing`, or it will stand frozen. The camera's arrival is judged by the clock, never by the
+  easing curve's value (it stops at 0.9999999999999973).
+- The pack's mesher (src/skin/dream/models.ts `build`, used by the market, the rink, the bombs and the dream) made a
+  dozen small arrays for every cube face. Its two inner loops read the grid by index now. Identical output (all 768
+  meshes of the pack's models, hashed before and after), about twice as fast (1,276 ms to 602 ms for the lot).
+- Before and after, frozen time while opening: the Trading Post 0.6 to 0.9 s then 0.6 to 0.8 s (slowed four times:
+  1.5 s to 0.8 s); a sack 0.7 s to none; Practice 0.25 to 0.38 s then 0.18 to 0.23 s (slowed: 0.61 to 0.30 s);
+  Counting Sheep slowed 2.2 s to 1.7 s. Pictures a second with the market left alone: every refresh to none.
+- Left: the 0.6 s the market still takes to build its row on opening (meshing in one go; it could be built a stop at a
+  time), Home's 2 s (unchanged since pass 1), the first AudioContext on the first click.
+
 ## The Trading Post and Practice, rebuilt in voxels (Brian, 2026-11-25) — plan: docs/trading-post-practice/
 Brian sent the pack ("execute this", then "do everything, do not stop"). Steps S1 to S10 of its X2 file, built on local
 branches (tp/s1-models, tp/s2-bombs, the helpers' tp/shop and tp/rink, merged in tp/integrate); nothing pushed. The

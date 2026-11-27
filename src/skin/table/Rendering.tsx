@@ -715,7 +715,7 @@ function TierWatch({ judge, pace, dpr, max, min, onSlow }: { judge: boolean; pac
 }
 
 /** What each scene is called on the failure card. */
-const SCENE_WORDS: Record<string, string> = { farm: 'the farm', table: 'the table', ice: 'the ice', pen: 'the pen', podium: 'the podium', dream: 'the dream', bedroom: 'the bedroom' };
+const SCENE_WORDS: Record<string, string> = { farm: 'the farm', table: 'the table', ice: 'the ice', pen: 'the pen', podium: 'the podium', dream: 'the dream', bedroom: 'the bedroom', rink: 'the rink', post: 'the Trading Post' };
 
 /**
  * What a scene settled on, on this device: the next visit starts there instead of stepping down again. `ceiling` is the

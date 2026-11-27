@@ -106,6 +106,11 @@ interface Props {
    * with the clock's time and read at once. The state still runs the blink, the face and the idle layer underneath.
    */
   rig?: (t: number) => RigPose;
+  /**
+   * Practice draws its own fitted ice block (docs/trading-post-practice P3 section 7): false leaves out this one and the
+   * wind curls, streaks and shards round it. The animal still frosts over and holds its frozen pose.
+   */
+  block?: boolean;
 }
 
 /** The ears hang 20 degrees below level. */
@@ -768,7 +773,7 @@ function flavour(p: Float32Array, f: Face, species: string, live: SheepState, e:
  * model; only level, state and seat differ. Each coat level is its own fleece built to fit the head and legs, so
  * growing or losing wool swaps the fleece rather than scaling it into the other parts.
  */
-export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model, contact = true, rig }: Props) {
+export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = false, still = false, gustFrom = [0, 0.8, -4], scarf = false, headYaw = 0, lookAt, speaking = false, thinking = false, pace = 0, model, contact = true, rig, block = true }: Props) {
   const m = model ?? sheepModel();
   // Low tier: no animal casts a shadow; it stands on its contact patch instead (plan file 02, change 5).
   const low = useTier() === 'low';
@@ -779,10 +784,13 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
   const bodyAlways = am.bodyAlways ?? false;
   const signature: SigPart[] = am.signature ?? [];
   const mat = useMemo(() => animalMaterial(), []);
-  // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice.
-  const faceMat = useMemo(() => animalMaterial(), []);
-  // A lid lies in its eye's cells (rig.ts, lidsAndBrows), so it is pulled a hair toward the camera to win over the eye.
-  const lidMat = useMemo(() => Object.assign(animalMaterial(), { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }), []);
+  // Eyes, brows and mouth frost only lightly, so the scared face still reads through the ice. They sit flush on the
+  // head, in the plane of its own faces, so they are pulled a hair toward the camera: without it the head and the eye
+  // fought for those pixels, and a turned head swallowed an eye (Brian, 2026-11-25: "my chicken dont got eyes"). A fixed
+  // offset only: one that grows with slope pulls faces seen edge-on through whatever is in front (see voxelMaterial).
+  const faceMat = useMemo(() => Object.assign(animalMaterial(), { polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -4 }), []);
+  // A lid lies in its eye's cells (rig.ts, lidsAndBrows), so it is pulled further than the eye, to win over it.
+  const lidMat = useMemo(() => Object.assign(animalMaterial(), { polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -8 }), []);
   const breathMat = useMemo(() => withRoundedEdges(new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.8 })), []);
   const frost = useMemo(() => new Color(FROST), []);
   const white = useMemo(() => new Color('#ffffff'), []);
@@ -1033,6 +1041,7 @@ export function Sheep({ level, state, stateKey = 0, dimmed = false, reduced = fa
     body.traverse((x) => { const role = x.userData.shadow as ShadowRole | undefined; if (role) x.castShadow = cast && !inStandIn(role); });
 
     runFreezeFx(fx, live, e, reduced, gustFrom, state === 'thawing');
+    if (!block) fx.root.visible = false;
     (o.frost as Mesh).visible = level > 0 && ((live === 'freezing' && e >= 0.8 && !reduced) || live === 'frozen') && drawn((o.frost as Mesh).geometry);
     (o.frost as Mesh).scale.setScalar(live === 'freezing' ? clamp01((e - 0.8) / 0.8) : 1);
   });

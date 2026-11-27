@@ -1,24 +1,20 @@
-import { CheckIcon, PlayIcon, ResetIcon } from '../components/Icons';
+import { BookIcon, CheckIcon, GearIcon, GustIcon, LanternIcon, LockIcon, PlayIcon, ResetIcon } from '../components/Icons';
 import { useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
 import { resetTips } from '../../lib/tips';
 import { useStore } from '../../state/store';
 import { AccountPanel } from '../../ui/auth/AccountPanel';
 import { AuthDialog } from '../../ui/auth/AuthDialog';
 import { PaintedCredits } from '../components/PaintedCredits';
 import { Switch } from '../kit';
-import { Dialog, Scrim, Slab } from '../kit/modern';
+import { Dialog, Group, Row, Scrim, Slab } from '../kit/modern';
+import { useAuth } from '../../auth/authStore';
 import { SaveCodeRow } from '../components/SaveCodeRow';
 import '../components/hud-guide.css';
 
-/** One setting: a raised tile (the pen's rows), its name on the left and its control on the right. */
-const Row = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className="hg-tile rc-tile"><span className="hg-label">{label}</span><span className="hg-end">{children}</span></div>
-);
-
 /**
- * Settings: the modern kit's dialog (the pen's board), each setting on its own raised tile, switches lit in lantern when
- * on, small wool slabs for the rest. It grows downward from a fixed top, so opening Paste moves nothing above it.
+ * Settings: the kit's dialog under its ribbon, the settings in four named groups, each on a raised tile with an icon
+ * tile, its name and a line saying what it does; switches lit in lantern when on, small slabs for the rest. It grows
+ * downward from a fixed top, so opening Paste moves nothing above it.
  */
 export function PaintedSettings({ onClose }: { onClose: () => void }) {
   const s = useStore();
@@ -27,6 +23,8 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
   const [tipsCleared, setTipsCleared] = useState(false);
   const [credits, setCredits] = useState(false);
   const [signIn, setSignIn] = useState(false);
+  const status = useAuth((a) => a.status);
+  const signedOut = status !== 'ready' && status !== 'needsProfile';
 
   useEffect(() => {
     rows.current?.closest('.md-dialog')?.querySelector<HTMLElement>('.md-dialog-close')?.focus();
@@ -37,23 +35,33 @@ export function PaintedSettings({ onClose }: { onClose: () => void }) {
 
   return (
     <Scrim onClose={onClose} className="hg-top">
-      <Dialog title={<span id="settings-head">Settings</span>} label="Settings" onClose={onClose} className="hg hg-settings" onClick={(e) => e.stopPropagation()}>
-        <div ref={rows} className="hg-list">
-          <div className="hg-account empty:hidden"><AccountPanel onSignIn={() => setSignIn(true)} /></div>
-          <Row label="Reduce motion"><Switch checked={s.reduceMotion} onChange={s.setReduceMotion} label="Reduce motion" /></Row>
-          <Row label="Larger text"><Switch checked={s.largeText} onChange={s.setLargeText} label="Larger text" /></Row>
-          <Row label="Tutorial">
-            <Slab size="sm" aria-label="Replay tutorial" disabled={!ready} onClick={() => s.startTour('menu')}><PlayIcon size={14} /> Replay</Slab>
-          </Row>
-          <Row label="Gameplay tips">
-            <Slab size="sm" aria-label="Show gameplay tips again" onClick={() => { resetTips(); setTipsCleared(true); }}>
-              {tipsCleared ? <><CheckIcon size={14} /> Reset</> : <><ResetIcon size={16} /> Show again</>}
-            </Slab>
-          </Row>
-          <SaveCodeRow />
-          <Row label="Credits and licenses">
-            <Slab size="sm" aria-label="Credits and licenses" onClick={() => setCredits(true)}>Open</Slab>
-          </Row>
+      <Dialog title={<span id="settings-head">Settings</span>} icon={<GearIcon size={20} />} label="Settings" onClose={onClose} className="hg hg-settings" onClick={(e) => e.stopPropagation()}>
+        <div ref={rows} className="hg-groups">
+          <Group title="Account">
+            {signedOut
+              ? <Row icon={<LockIcon size={18} />} tone="pasture" label="Playing as a guest" hint="Sign in to keep your records on any device."><Slab size="sm" tone="lantern" onClick={() => setSignIn(true)}>Sign in</Slab></Row>
+              : <div className="hg-account empty:hidden"><AccountPanel onSignIn={() => setSignIn(true)} /></div>}
+          </Group>
+          <Group title="Comfort">
+            <Row icon={<GustIcon size={20} />} tone="dusk" label="Reduce motion" hint="Fewer moving things on screen."><Switch checked={s.reduceMotion} onChange={s.setReduceMotion} label="Reduce motion" /></Row>
+            <Row icon={<span className="hg-aa">Aa</span>} tone="dusk" label="Larger text" hint="Bigger words in every game."><Switch checked={s.largeText} onChange={s.setLargeText} label="Larger text" /></Row>
+          </Group>
+          <Group title="Help">
+            <Row icon={<PlayIcon size={18} />} tone="lantern" label="Tutorial" hint="Walk through a first game again.">
+              <Slab size="sm" aria-label="Replay tutorial" disabled={!ready} onClick={() => s.startTour('menu')}>Replay</Slab>
+            </Row>
+            <Row icon={<LanternIcon size={20} />} tone="lantern" label="Gameplay tips" hint="Bring back the tips shown on your first games.">
+              <Slab size="sm" aria-label="Show gameplay tips again" onClick={() => { resetTips(); setTipsCleared(true); }}>
+                {tipsCleared ? <><CheckIcon size={14} /> Reset</> : <><ResetIcon size={16} /> Show again</>}
+              </Slab>
+            </Row>
+          </Group>
+          <Group title="Your records">
+            <SaveCodeRow />
+            <Row icon={<BookIcon size={20} />} tone="frost" label="Credits and licenses" hint="Who and what made the game.">
+              <Slab size="sm" aria-label="Credits and licenses" onClick={() => setCredits(true)}>Open</Slab>
+            </Row>
+          </Group>
         </div>
       </Dialog>
       {credits && <PaintedCredits onClose={() => setCredits(false)} />}

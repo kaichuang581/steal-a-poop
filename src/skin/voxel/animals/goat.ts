@@ -39,7 +39,7 @@ export function goatModel(_ch: Character, _faces?: Faces): AnimalModel {
   const muzzleG = new Grid(S);
   cube(muzzleG, [-2, 12, 11], [2, 14, 13], (x, y, z) => shade(z === 13 && y === 13 && Math.abs(x) <= 1 ? NOSE : COAT[0]));
   for (const v of muzzleG.map.values()) hg.set(v.x, v.y, v.z, v.c);
-  const { eyes, lids, brows } = smallEyes(hg, 15, 10, '#1E1A19', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
+  const { eyes, lids, brows } = smallEyes(hg, 15, 10, '#1E1A19', face, HEAD, { front: 4, rows: 1, cols: 1, glint: false });
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   // Beard: 3 wide, stepping in under the muzzle: three rows at the front, two, then one.
   const beardG = new Grid(S);

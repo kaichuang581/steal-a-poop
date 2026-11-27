@@ -40,14 +40,14 @@ describe('practice on the profile', () => {
     const html = page();
     expect(html.match(/data-top="true"/g)).toHaveLength(1);
     expect(html).toMatch(/pf-rating-value">96</);
-    expect(html).toContain('24 words · Hard · 5 s');
+    expect(html).toContain('24 words, Hard, 5 s');
     expect(html).toContain('24 times 2 times 2 equals 96');
   });
 
   it('writes the tooltip with the rounding when there is one', () => {
     recordPracticeRun(10, 'medium', 6);
     const cell = getPracticeSheet().rows[1].cells[1];
-    expect(cellTip(cell)).toBe('6 words · Medium bot · 10\u202Fs clock: 6 \u00D7 1.5 \u00D7 1.5 = 13.5, rounded to 14');
+    expect(cellTip(cell)).toBe('6 words, Medium bot, 10\u202Fs clock: 6 \u00D7 1.5 \u00D7 1.5 = 13.5, rounded to 14');
   });
 
   it('is honest when nothing has been played', () => {
@@ -55,6 +55,6 @@ describe('practice on the profile', () => {
     expect(html).toContain('Finish a practice run to get a rating.');
     expect(html).not.toContain('data-top');
     expect(html.match(/data-none="true"/g)?.length).toBe(10);
-    expect(runLine({ words: 1, difficulty: 'easy', clock: 15 })).toBe('1 word · Easy · 15\u202Fs');
+    expect(runLine({ words: 1, difficulty: 'easy', clock: 15 })).toBe('1 word, Easy, 15\u202Fs');
   });
 });

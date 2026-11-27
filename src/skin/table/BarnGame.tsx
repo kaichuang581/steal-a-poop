@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Group } from 'three';
 import { BARN, HEAP, homeGameSeat, SHEEP_SCALE } from '../scene/layout';
 import { animalModel } from '../voxel/animals';
-import { BOMB_NECK_Y, BOMB_RADIUS, BOMB_TOSS_S } from '../voxel/bomb';
-import { bombLook } from '../voxel/bombSkins';
+import { BOMB_RADIUS, BOMB_TOSS_S } from '../voxel/bomb';
+import { makeBomb } from '../tp/bomb';
 import { voxelMaterial } from '../voxel/material';
 import { pileGeometry, pileWidth, PLATFORM_HEIGHT, platformGeometry } from '../voxel/table';
 import { LetterBoard } from './BarnTable';
@@ -53,12 +53,11 @@ export function BarnGame({ reduced, phone, sleepy }: { reduced: boolean; phone: 
   }, [turn, before]);
 
   const mat = useMemo(() => voxelMaterial(), []);
-  const bombMat = useMemo(() => voxelMaterial({ emissive: '#3f97d6', emissiveIntensity: 0.1 }), []);
-  const sparkMat = useMemo(() => voxelMaterial({ emissive: '#5fd0ff', emissiveIntensity: 2 }), []);
-  useEffect(() => () => { mat.dispose(); bombMat.dispose(); sparkMat.dispose(); }, [mat, bombMat, sparkMat]);
+  useEffect(() => () => { mat.dispose(); }, [mat]);
   const platform = useMemo(() => platformGeometry(), []);
   const mound = useMemo(() => pileGeometry(pileWidth(6 + (turn % WORDS.length))), [turn]);
-  const look = useMemo(() => bombLook('bomb-ice'), []);
+  // The starter skin (docs/trading-post-practice/T2), its face showing 10: nobody's seconds run in this game.
+  const ice = useMemo(() => makeBomb('ice', { rest: true, lit: mat }), [mat]);
 
   // The bomb is tossed to the new speaker in an arc, as at the table.
   const bomb = useRef<Group>(null);
@@ -86,11 +85,7 @@ export function BarnGame({ reduced, phone, sleepy }: { reduced: boolean; phone: 
       </group>
       <LetterBoard letter={WORDS[turn % WORDS.length][0]} isTrap={false} reduced={reduced} hook={BOARD_HOOK} />
       <group ref={bomb} position={bombAt(speaker)} scale={BOMB_SCALE}>
-        <mesh geometry={look.body} material={bombMat} castShadow />
-        <group position={[0, BOMB_NECK_Y, 0]}>
-          <mesh geometry={look.fuse} material={bombMat} />
-          <mesh geometry={look.spark} material={sparkMat} position={[0, 0.2, 0]} />
-        </group>
+        <primitive object={ice.group} scale={BOMB_RADIUS / 0.25} position={[0, -BOMB_RADIUS, 0]} />
       </group>
       {seats.map((seat) => {
         const p = seatPosition(seat);

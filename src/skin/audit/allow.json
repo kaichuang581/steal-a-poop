@@ -1,5 +1,6 @@
 [
   { "file": "src/skin/screens/PaintedGame.tsx", "selectorOrLine": "transparent 58%", "reason": "Part 4.12: the table's vignette" },
+  { "file": "src/skin/tp/rink/RinkTable.tsx", "selectorOrLine": "linear-gradient(${RINK.sky.top}", "reason": "Part 4.12: light and air, the rink's night sky behind the scene (docs/trading-post-practice P1 section 4)" },
   { "file": "src/skin/table/DuelTable.tsx", "selectorOrLine": "opacity: heat", "reason": "Part 4.12: the table's vignette (the practice duel's pressure vignette is the same device on the ice)" },
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-alarm-flash", "reason": "Part 4.12: light and air, the alarm's flash at the screen's edges (the table's vignette device, in the alarm's colour)" },
   { "file": "src/skin/styles/skin.css", "selectorOrLine": ".sk-results-backdrop", "reason": "Part 4.12: .sk-results-backdrop, the barn dimming" },

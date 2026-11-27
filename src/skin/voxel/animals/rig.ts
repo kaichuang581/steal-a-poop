@@ -302,6 +302,8 @@ export function faceEye(head: Grid, x0: number, rowY: number, n = 2): EyePlace {
  * out from the centre (the sheep, the cow), where they read from the table's camera.
  */
 export interface SmallEyeOpts { front?: number; proud?: boolean; rows?: number; cols?: number; oval?: boolean; glint?: boolean; glintColour?: string }
+/** An eye's colour where the coat under it is dark (see `smallEyes`). */
+const EYE_ON_DARK = '#F3ECE0';
 export function smallEyes(head: Grid, rowY: number, zFront: number, iris: string, face: Tones, pivot: V3, opts: SmallEyeOpts = {}): { eyes: [CPart, CPart]; lids: Record<Lids, Part>; brows: Record<Brows, Part> } {
   const { front, proud = false, oval = false } = opts;
   const rows = opts.rows ?? (oval ? 4 : 2), cols = opts.cols ?? (oval ? 3 : 2);
@@ -313,10 +315,14 @@ export function smallEyes(head: Grid, rowY: number, zFront: number, iris: string
   // voxels; nothing sticks out past the head. `proud` (the horse, the goat) keeps the flat plate one voxel out instead,
   // so eyes on the sides of a long head still show from in front of it.
   const lift = proud ? 0 : -1;
+  // An eye set in a dark patch (the cow's right one, under its black patch) is dark on dark and cannot be seen: there
+  // it is drawn pale instead, so every eye is told from what is round it (voxel/__tests__/eyesSeen.test.ts).
+  const onDark: boolean[] = [];
   const places = raw.map((place, i): EyePlace => {
     const cells: V3[] = [];
     for (let col = 0; col < cols; col++) for (let row = 0; row < rows; row++) cells.push(place(col, row, 0));
     const colourAt = (c: V3) => head.map.get(`${c[0]},${c[1]},${c[2]}`)?.c ?? shade(face[1]);
+    { const u = colourAt(cells[0]) as unknown as readonly number[]; onDark[i] = 0.2126 * u[0] + 0.7152 * u[1] + 0.0722 * u[2] < 0.1; }
     if (front === undefined) {
       const sign = i === 0 ? -1 : 1;
       const plane = sign < 0 ? Math.min(...cells.map((c) => c[0])) : Math.max(...cells.map((c) => c[0]));
@@ -330,7 +336,11 @@ export function smallEyes(head: Grid, rowY: number, zFront: number, iris: string
   const eyes = places.map((place, i) => {
     const g = new Grid(S);
     // On the face's front the glint takes each eye's outer top corner, so it never sits against the pale bridge.
-    eyePlate(g, place, 2, iris, glint, rows, front !== undefined && i === 1 ? cols - 1 : 0, cols, oval, opts.glintColour);
+    eyePlate(g, place, 2, onDark[i] ? EYE_ON_DARK : iris, glint, rows, front !== undefined && i === 1 ? cols - 1 : 0, cols, oval, opts.glintColour);
+    // One cube, never two: an eye is seen from the front and from the side because it stands at the head's front
+    // corner (each species' `front` is its head's outer column), or a cube proud of a long head's side (the horse).
+    // A second cube round the corner for the side view was tried twice and read as four eyes from any angle (Brian,
+    // 2026-11-25: "why do all of em have 4 eyes"). voxel/__tests__/eyesSeen.test.ts holds both rules.
     if (!proud) for (const v of g.map.values()) head.del(v.x, v.y, v.z); // the eye takes the surface voxels' place
     const cs = [...g.map.values()];
     const c = (k: 'x' | 'y' | 'z') => (cs.reduce((a, v) => a + v[k], 0) / cs.length + 0.5) * S;

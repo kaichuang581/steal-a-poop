@@ -26,7 +26,7 @@ describe('how ranks work', () => {
 
   it('shows where an unranked player starts', () => {
     expect(html(null)).toContain('Start here');
-    expect(html(null)).toContain('0–299 points · losses are free');
+    expect(html(null)).toContain('0–299 points, losses are free');
   });
 
   it('marks your own rank, and none when you have none', () => {

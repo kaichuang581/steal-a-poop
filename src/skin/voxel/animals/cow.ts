@@ -50,7 +50,7 @@ export function cowModel(_ch: Character, _faces?: Faces): AnimalModel {
   const muzzleG = new Grid(S);
   cube(muzzleG, [-3, 12, 15], [3, 15, 16], (x, y, z) => shade(z === 16 && y === 14 && Math.abs(x) === 2 ? PINK[2] : PINK[0]));
   for (const v of muzzleG.map.values()) hg.set(v.x, v.y, v.z, v.c);
-  const { eyes, lids, brows } = smallEyes(hg, 17, 14, '#141212', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
+  const { eyes, lids, brows } = smallEyes(hg, 17, 14, '#141212', face, HEAD, { front: 4, rows: 1, cols: 1, glint: false });
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   const headSolid = solidSet(hg);
   hollow(hg);

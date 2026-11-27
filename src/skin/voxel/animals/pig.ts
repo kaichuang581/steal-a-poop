@@ -36,7 +36,7 @@ export function pigModel(_ch: Character): AnimalModel {
   const sg = new Grid(S);
   cube(sg, [-2, 6, 9], [2, 9, 10], (x, y, z) => shade(z === 10 && y === 8 && Math.abs(x) === 1 ? PINK[3] : PINK[1]));
   const snout: SigPart = { ...part(sg, HEAD), name: 'snout', where: 'head', anim: 'snout', cells: sg.map };
-  const { eyes, lids, brows } = smallEyes(hg, 10, 8, '#1E1A19', face, HEAD, { front: 3, rows: 1, cols: 1, glint: false });
+  const { eyes, lids, brows } = smallEyes(hg, 10, 8, '#1E1A19', face, HEAD, { front: 5, rows: 1, cols: 1, glint: false });
   const mouthParts = noMouths(HEAD); // the sheet draws no mouth
   const headSolid = solidSet(hg);
   hollow(hg);

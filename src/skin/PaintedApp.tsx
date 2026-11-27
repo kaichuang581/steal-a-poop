@@ -50,6 +50,10 @@ const PenPreview = DEV ? lazy(() => import('./rooms/PenStage').then((m) => ({ de
 const FarmerBoard = DEV ? lazy(() => import('./dream/FarmerBoard').then((m) => ({ default: m.FarmerBoard }))) : null;
 // ?preview=dreamprops&board=farm|world2|world3|obstacles: the dream's voxel models alone (docs/dream/v3/03, section 9).
 const DreamPropBoard = DEV ? lazy(() => import('./dream/world3d/DreamPropBoard').then((m) => ({ default: m.DreamPropBoard }))) : null;
+// ?preview=models&board=bombs|sounds|market|rink: the Trading Post and Practice pack's models (docs/trading-post-practice, X2 S1).
+// ?preview=post[&stop=sacks|bells|missions|book]: the Trading Post alone, without Home under it (development only).
+const PostPreview = DEV ? lazy(() => import('./shop/Bazaar').then((m) => ({ default: () => <m.Bazaar onClose={() => undefined} /> }))) : null;
+const TpModelPreview = DEV ? lazy(() => import('./tp/ModelPreview').then((m) => ({ default: m.ModelPreview }))) : null;
 const PaletteSwatches = DEV ? lazy(() => import('./scene/style/PropPreview').then((m) => ({ default: m.PaletteSwatches }))) : null;
 // ?preview=boards: the leaderboards alone, without the farm under them, for photographing every tab and state quickly
 // (development only; the boards come from whatever server `sap:server` names, which a test browser can stand in for).
@@ -202,6 +206,8 @@ export function PaintedApp() {
   if (PREVIEW === 'props' && PropBoard) return <Suspense fallback={null}><PropBoard /></Suspense>;
   if (PREVIEW === 'farmer' && FarmerBoard) return <Suspense fallback={null}><FarmerBoard /></Suspense>;
   if (PREVIEW === 'dreamprops' && DreamPropBoard) return <Suspense fallback={null}><DreamPropBoard /></Suspense>;
+  if (PREVIEW === 'post' && PostPreview) return <Suspense fallback={null}><PostPreview /></Suspense>;
+  if (PREVIEW === 'models' && TpModelPreview) return <Suspense fallback={null}><TpModelPreview /></Suspense>;
   if (PREVIEW === 'palette' && PaletteSwatches) return <Suspense fallback={null}><PaletteSwatches /></Suspense>;
   if (PREVIEW === 'boards' && BoardsPreview) return <Suspense fallback={null}><BoardsPreview /></Suspense>;
   if (PREVIEW === 'wendigo') return <div style={{ position: 'fixed', inset: 0 }}><WendigoPreviewCanvas /></div>;

@@ -322,14 +322,36 @@
 .sk-setup-back { min-height: 36px; padding: 0 4px; font-weight: 700; color: var(--ink-soft); }
 .sk-sit { min-height: 56px; font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 24px !important; }
 
-/* ---------- Classic panels shown in the painted skin (community, account): a dark wooden frame ---------- */
+/* ---------- Classic panels shown in the painted skin (community, account): a snowy board ----------
+   Their markup is the classic look's and is not ours to change, so the board is drawn from here: Midnight felt, the
+   stepped frame, a cap of snow, the title on the lantern ribbon, fields in wells, the one thing to press in lantern.
+   (Brian, 2026-11-25: "all that snowy blue ui is meant to look similar"; it was a brown wooden frame.) */
 :root[data-skin="painted"] .classic-panel {
-  background: var(--kit-grain), var(--wood-ink) !important; border: 6px solid var(--wood-dark) !important; border-radius: 3px !important;
-  box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.18), 0 6px 0 rgba(40, 24, 10, 0.35), 0 10px 18px rgba(40, 24, 10, 0.25) !important;
-  font-family: var(--skin-font-body);
+  position: relative; overflow: visible !important; padding: 26px 20px 26px !important; max-width: 400px !important;
+  background: var(--hm-night) !important; border: 3px solid var(--hm-ink) !important; border-radius: 0 !important;
+  box-shadow: inset 0 3px 0 var(--hm-night-3), inset 3px 0 0 var(--hm-night-2), inset -3px 0 0 var(--hm-night-deep), inset 0 -9px 0 var(--hm-night-deep), 0 5px 0 var(--hm-night-deep) !important;
+  color: var(--hm-wool) !important; font: 700 14px/1.45 var(--skin-font-body);
 }
-:root[data-skin="painted"] .classic-panel-title { font-family: var(--skin-font-display) !important; font-weight: 800 !important; font-size: 24px !important; color: var(--glow) !important; text-shadow: 0 -2px 0 rgba(20, 12, 6, 0.7); }
-:root[data-skin="painted"] .classic-panel [role="tab"][aria-selected="true"] { background: var(--glow) !important; color: var(--wood-ink) !important; }
+:root[data-skin="painted"] .classic-panel::before { content: ''; position: absolute; left: 0; right: 0; top: -9px; height: 12px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' shape-rendering='crispEdges'%3E%3Crect x='0' y='3' width='24' height='6' fill='%23FFFDF4'/%3E%3Crect x='3' y='0' width='9' height='3' fill='%23FFFDF4'/%3E%3Crect x='15' y='9' width='3' height='3' fill='%23FFFDF4'/%3E%3Crect x='6' y='9' width='3' height='3' fill='%23D9E4F7'/%3E%3C/svg%3E") 0 0 / 24px 12px repeat-x; }
+:root[data-skin="painted"] .classic-panel-title { position: relative; display: inline-flex; align-items: center; height: 40px; margin: 0 0 0 -26px !important; padding: 0 28px 0 18px;
+  font: 800 20px/1 var(--skin-font-display) !important; color: var(--hm-ink) !important; text-shadow: none;
+  background: var(--hm-lantern); box-shadow: inset 0 0 0 3px var(--hm-ink), inset 0 6px 0 var(--hm-lantern-hi), inset 0 -6px 0 var(--hm-lantern-lip);
+  clip-path: polygon(0 0, 100% 0, 100% 25%, calc(100% - 3px) 25%, calc(100% - 3px) 40%, calc(100% - 6px) 40%, calc(100% - 6px) 60%, calc(100% - 3px) 60%, calc(100% - 3px) 75%, 100% 75%, 100% 100%, 0 100%); }
+:root[data-skin="painted"] .classic-panel :is(p, label, li, span) { color: inherit; }
+:root[data-skin="painted"] .classic-panel :is(.text-white\/60, .text-white\/80, .text-xs) { color: var(--hm-frost) !important; font-size: 12.5px !important; line-height: 1.45; }
+:root[data-skin="painted"] .classic-panel h3 { font: 800 17px/1.2 var(--skin-font-display) !important; color: var(--hm-wool); }
+:root[data-skin="painted"] .classic-panel label { font: 800 13px/1.3 var(--skin-font-body) !important; color: var(--hm-wool); }
+:root[data-skin="painted"] .classic-panel :is(input, select) { margin-top: 6px; min-height: 44px; padding: 0 12px; border: 0 !important; border-radius: 0 !important; outline: 0;
+  background: var(--hm-night-deep) !important; box-shadow: inset 0 3px 0 var(--hm-ink), inset 0 -3px 0 var(--hm-night-2); font: 700 15px/1.2 var(--skin-font-body); color: var(--hm-wool); color-scheme: dark; }
+:root[data-skin="painted"] .classic-panel :is(input, select):focus-visible { box-shadow: inset 0 0 0 3px var(--hm-lantern); }
+:root[data-skin="painted"] .classic-panel button { min-height: 44px; padding: 0 14px 4px; border: 0 !important; border-radius: 0 !important; background: var(--hm-wool) !important; color: var(--hm-ink) !important; opacity: 1 !important;
+  font: 800 15px/1 var(--skin-font-display) !important; box-shadow: inset 0 0 0 3px var(--hm-ink), inset 0 -7px 0 var(--hm-wool-lip), inset 0 6px 0 var(--hm-wool-hi); cursor: pointer; }
+:root[data-skin="painted"] .classic-panel button:is(.bg-amber-400, [role="tab"][aria-selected="true"]) { background: var(--hm-lantern) !important; box-shadow: inset 0 0 0 3px var(--hm-ink), inset 0 -7px 0 var(--hm-lantern-lip), inset 0 6px 0 var(--hm-lantern-hi); }
+:root[data-skin="painted"] .classic-panel button:is(.bg-amber-400, button):disabled { background: var(--hm-disabled) !important; color: var(--hm-frost) !important; box-shadow: inset 0 0 0 3px var(--hm-ink), inset 0 -7px 0 var(--hm-disabled-lip); cursor: not-allowed; }
+:root[data-skin="painted"] .classic-panel button:is(.underline, .text-sm):not(.bg-amber-400) { min-height: 36px; padding: 0 4px; background: none !important; box-shadow: none; color: var(--hm-lantern-hi) !important; font: 800 13px/1.3 var(--skin-font-body) !important; text-decoration: underline 2px var(--hm-lantern-lip); text-underline-offset: 3px; }
+:root[data-skin="painted"] .classic-panel button:focus-visible { outline: 3px solid var(--hm-lantern-hi); outline-offset: 2px; }
+:root[data-skin="painted"] .classic-panel a { color: var(--hm-lantern-hi); }
 
 /* The setup card on the start screen: Back in plain type, Sit down matching Queue. */
 .sk-home .sk-setup-back:hover { color: var(--ink); }
@@ -617,17 +639,7 @@
 /* The sound menu (SoundMenu.tsx): off the speaker button, a dark wool panel, a row each for the game's sounds and the
    music, each with a lever and a rope slider. */
 .sk-sound { position: relative; }
-.sk-sound-menu {
-  position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; display: flex; flex-direction: column; gap: 10px; width: 300px; padding: 14px 16px 12px;
-  border-radius: 4px; background: var(--kit-stitch-dark) 0 0 / 12px 12px, var(--slate); outline: 1.5px dashed rgba(243, 240, 230, 0.4); outline-offset: -5px;
-  box-shadow: 0 4px 0 rgba(30, 18, 8, 0.45); color: var(--chalk); animation: sk-say-in 180ms var(--ease-out) both;
-}
-.sk-sound-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 12px; }
-.sk-sound-name { font: 400 19px/1.1 var(--skin-font-hand); }
-.sk-sound-row .kit-slider { grid-column: 1 / -1; width: 100%; }
-.sk-sound-row .kit-slider:disabled { opacity: 0.4; }
-.sk-sound-note { margin: 0; font: 400 14px/1 var(--skin-font-hand); opacity: 0.6; text-align: right; }
-@media (max-width: 640px) { .sk-sound-menu { width: min(300px, calc(100vw - 24px)); } }
+/* The menu itself is the kit's board (kit/modern.css, .md-pop). */
 
 /* ---------- The winning screen (Podium.tsx, PaintedGame's Results) ---------- */
 .sk-podium { position: fixed; inset: 0; z-index: 40; animation: sk-podium-in 600ms var(--ease-out) both; }

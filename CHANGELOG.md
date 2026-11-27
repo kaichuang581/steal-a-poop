@@ -5,6 +5,19 @@ All user-visible changes, newest first.
 ## Unreleased
 
 - Easier to find on Google: the page title says what the game is ("Fleeced | Free Multiplayer Word Chain Game"), the page names fleeced.io as its one address, search engines get a sitemap, a robots file and a description of the game, and a new About page (linked in the small print) explains how to play.
+## 0.9.9
+
+- The Trading Post is a market on the farm at dusk: four stalls side by side that you walk along. Feed Sacks, the Bell Shelf, Missions and the Barn Book each have their own stop, and the things for sale stand there as models you can look at closely, set off or listen to.
+- The Trading Post's signs are drawn as pixel art. Each stall has a tab under its own striped, snowy awning. Buttons are rounded with a picture of what they do, every item's tag carries a gem for its rarity, a sack's label lights a gem for each thing you have found in it, and the mission prizes stand in a display case with a lantern for each milestone.
+- Practice has its own place: a rink at night with a chalkboard for your count and letter, a sheepdog coach in a high chair, and a report from the coach in chalk when the run ends.
+- All eight bomb skins, ten bursts and eight fuse sounds are remodelled in small cubes, each its own shape, and they are the ones used in every game. A burst in a game is bigger and carries further.
+- The seconds on a bomb are built from cubes like the bomb itself, in place of printed numbers, and the last three still turn red.
+- Every snowy dialog is one family: a ribbon title with a picture, rows with an icon and a line saying what each thing does, and real switches. No cream paper or brown frames are left.
+- Animals keep their eyes from every side: one cube an eye at the head's front corner.
+- The thin flickering lines on the barn are gone.
+- The Trading Post is the last row of the menu as well as the coin button.
+- Lighter on slow computers and on the battery: the Trading Post draws nothing while nothing in it moves, never more than 60 pictures a second when it does, and opening a sack no longer freezes the page. The Trading Post and Practice open with about half the freeze on a slow processor.
+- French: the Trading Post and Practice are translated, and long stall names take two lines instead of running off their signs.
 
 ## 0.9.8
 

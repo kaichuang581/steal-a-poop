@@ -2796,3 +2796,133 @@ screen opens. Changed, nothing visible:
   (z -13.5 to -7.5, pivot z -10), so they show behind his head from either side as on the sheet; and a jaw beard
   either side (x +-8.5 to 9.5, y 58 to 64, z 1.5 to 9.5), where the model showed bare cheek. farmerBoxes.ts and the
   pack's docs/dream/data/farmer.boxes.json changed together (108 boxes); the outline match stays 0.913 front, 0.904 back.
+
+## Optimization pass 2 (Brian, 2026-11-26: "first run the optimization drill and then push and deploy everything")
+Measured first, as in pass 1: the production build, the real graphics chip, 1440 x 900 at 2x, the frame cap off, twice
+at normal speed and once with the processor slowed four times (scratch scripts, not kept; what they counted: pictures
+the scene sends the chip a second, calls and triangles a picture, and the long tasks while a screen opens). Home, the
+table and Counting Sheep measured as they did after pass 1. The new screens were the cost:
+- The Trading Post drew on a bare canvas: every refresh of the screen (120 a second on a 120 Hz laptop), also while
+  nothing moved, and it compiled shaders on the page's thread (opening a sack froze the page 0.7 s). It is on the
+  game's own canvas now (`AdaptiveCanvas`, memory "post", with `MarkDrawn` and a `SceneBoundary`): at most 60 pictures
+  a second, shaders compiled in the background, a coarser picture on a device that cannot keep up.
+- It rests: Bazaar.tsx keeps `awake`; a touch, a key or a change in any value the scene is posed from wakes it for
+  2.5 s (`wake`; Listen wakes it for the sample's length), and the driver sends it to rest once the camera has
+  arrived, no show is up (`MarketWorld.showing`: a close view, a countdown, a burst, an open sack) and that while has
+  passed. At rest it draws nothing. ANYTHING NEW THAT MOVES IN THE MARKET MUST WAKE IT: add its state to the wake
+  effect's list or to `showing`, or it will stand frozen. The camera's arrival is judged by the clock, never by the
+  easing curve's value (it stops at 0.9999999999999973).
+- The pack's mesher (src/skin/dream/models.ts `build`, used by the market, the rink, the bombs and the dream) made a
+  dozen small arrays for every cube face. Its two inner loops read the grid by index now. Identical output (all 768
+  meshes of the pack's models, hashed before and after), about twice as fast (1,276 ms to 602 ms for the lot).
+- Before and after, frozen time while opening: the Trading Post 0.6 to 0.9 s then 0.6 to 0.8 s (slowed four times:
+  1.5 s to 0.8 s); a sack 0.7 s to none; Practice 0.25 to 0.38 s then 0.18 to 0.23 s (slowed: 0.61 to 0.30 s);
+  Counting Sheep slowed 2.2 s to 1.7 s. Pictures a second with the market left alone: every refresh to none.
+- Left: the 0.6 s the market still takes to build its row on opening (meshing in one go; it could be built a stop at a
+  time), Home's 2 s (unchanged since pass 1), the first AudioContext on the first click.
+
+## The Trading Post and Practice, rebuilt in voxels (Brian, 2026-11-25) — plan: docs/trading-post-practice/
+Brian sent the pack ("execute this", then "do everything, do not stop"). Steps S1 to S10 of its X2 file, built on local
+branches (tp/s1-models, tp/s2-bombs, the helpers' tp/shop and tp/rink, merged in tp/integrate); nothing pushed. The
+pack's rules bind: no price, odd, pity, refund, reward, timer or stored value changes; every model, skin and burst comes
+from its JSON; nothing random in a model, pattern or effect; the data wins over the text.
+- Models: `node tools/tp/packModels.mjs` writes src/skin/tp/models.gen.ts (the bombs, skins, bursts, timings, icons and
+  the shared colour and part lists; ships with the game), market.gen.ts and rink.gen.ts (loaded with their screens,
+  which register them with `addModels`). The dream's grid mesher reads "#hex" and "lit:#hex" colours too.
+  `?preview=models&board=bombs|sounds|market|rink|seconds|bursts` shows them.
+- Pack version 2 (2026-11-25, same day): VOXEL_GRAIN.md, one detail size. Every visible part is at least 0.05 m, big
+  surfaces are boards, the data is rebuilt to it, and the pack's `tools/checks.py` (379) and `tools/grain_audit.py` must
+  pass (they need numpy and scipy). Where boxes overlap the later one wins: the packer writes boxes last first.
+- Pack version 3 (2026-11-25, same day): ITEMS_REMODEL.md replaces VOXEL_GRAIN.md (deleted). The 26 items (bombs,
+  fuse sounds, bursts) are tiny 0.025 m cubes with raised parts and named motifs; scenery stays chunky, and the
+  packer's form pass (posts, boards, lips) still runs on scenery only, never on items. Checks: 380, grain audit clean.
+  The size budget went up 11,000 for it. The Barn Book's names stay on one line on the 10-item pages, and in a
+  window under 820 px tall the 8-item pages show the rarity's square and a short source (Oat Sack, Bell Shelf,
+  Mission) on one line, or the labels ran into the cards below.
+- The market, pass 2 (2026-11-25, Brian: "a tad bit too high voxelrate", signs "poorly made", "weird blank cards", then
+  "literally just putting a bunch of squares on top of each other ... the entire market"). Rules for any change there:
+  - Its interface is the game's kit, never its own paper rectangles: the leaderboards' bar on top (`tp-bar hm rc
+    rc-bar`: title tag, slab tabs, Home's coin slabs, a close slab, Lights), Home's night bar at the foot, ink labels
+    with wool words in the scene (`.tp-tag`; the picked one in lantern), slabs for buttons (`.tp-btn`), ink cards for
+    notes, lantern-filled wells for meters. The Barn Book's own words stay ink on its paper pages.
+  - Inside `.tp` the size unit `--u` is a plain number; inside `.hm` (the bar and the foot) it is a length. Do not mix.
+  - The packer's `restyle()` repaints the pack's models without touching its data: a stall's sign is its fascia (a
+    board post to post in the awning's colour); sack patches are burlap; the notice board and the odds board are night
+    boards; no pins. `coarsenBomb()` packs the bombs 16 cubes across (cell 0.03125 m), the fuse relaid in the new cube.
+  - Sack names are one-line labels on their crates. Bell Shelf: no "More on the way", the price inside the item's label.
+- The snowy boards (2026-11-25, Brian: "all that snowy blue ui is meant to look similar ... remake the ui to look
+  better and more cohesive"): every one is kit/modern's `Dialog` or built from its parts: `Ribbon` (the lantern title
+  tag, with an icon), `IconTile`, `Group`, `Row` (icon, name, a line saying what it does, the control), the wide switch
+  with a tick, the lantern slider, `md-pop` for a board that drops from a button. No dialog is cream paper or a brown
+  frame any more (Feedback, Admin, legal, and the account form through CSS on `.classic-panel`). `md-legacy` on a
+  dialog redraws old kit pieces inside it. No text under 12 px on a board; no middle dots (commas).
+- Eyes (2026-11-25, Brian: "fix the eye issue again ... make a permanent fix", then "why do all of em have 4 eyes"):
+  one cube an eye, at the head's front corner (`front` in each species' `smallEyes` is its head's outer column; the
+  horse's is `proud`, a cube out from its long head's side), pale where it sits on a dark patch. Never a second cube
+  round the corner. voxel/__tests__/eyesSeen.test.ts checks every animal from the front, both sides and 45 degrees.
+- Depth offsets (2026-11-25, Brian: flicker "especially on the barn"): `voxelMaterial({ layer })` and the animals'
+  face layers use a fixed polygon offset (units) only. Never a slope factor: it pulls faces seen edge-on through
+  whatever is in front of them, as blinking hairlines.
+- The bomb's numbers are cubes (Brian, 2026-11-26: "can u make the bomb numbers not so ai? the bombs still look like
+  ai"). They were the display face drawn smooth on a canvas and laid over the face as a picture, on a plate with a soft
+  glow of corner shade: smooth serif type on a model made of cubes read as machine-made. src/skin/tp/digits.ts draws
+  each numeral by hand on a grid of half the bomb's cube; bomb.ts meshes a number the first time it shows, standing
+  half a cube proud of the face, lit like the bomb. One digit alone is the big set (6 x 10), two digits the small set
+  (5 x 7, the 1 three wide); upright strokes are one whole bomb cube thick in both. The face is meshed by itself
+  with no corner shade, a flat plate. Never put type from a font, a canvas or a texture on a voxel model: build the
+  numerals or letters from cubes on the model's own grid (or half of it).
+- The bomb (T2) everywhere: src/skin/tp/bomb.ts (`makeBomb`: a mesh per part, no maker's mark; the face shows the
+  seconds in a game and 10 at rest (`rest: true`: the shop, the Barn Book, Home's demo game); 12 fuse pieces, each one
+  2 x 2 x 2 block from `fuse_start_cells` and `fuse_pieces`, burning ceil(12 s), the lit spark replacing the last).
+  Shop bursts are drawn in, never shrunk (`drawIn`, `SPREAD`: 0.42 on the bench and in the book, 0.67 on the Bell Shelf). The table's
+  Bomb.tsx draws it turned about its upright to the camera; no frost ring or landing puff any more (T3: no mark left).
+  Bursts (T3): src/skin/tp/burst.ts, played by table/TpBlast.tsx. The old Blast.tsx and BombAura.tsx are deleted;
+  bombSkins.ts, burstActs.ts and the old shop thumbnails stay only because the bake checker (tools/bake) still pins them.
+- The Trading Post (T1 to T7) is a full screen: src/skin/shop/Bazaar.tsx drives src/skin/tp/market (MarketWorld, world,
+  pieces, stops/*). Portrait windows and phones take the band and paper roll. React may build the world twice in
+  development: the page must drive the copy the canvas draws (fixed once already). `?preview=post` opens it alone.
+- Practice (P1 to P4): src/skin/tp/rink (RinkTable, PracticeRink, board, scene). The countdown runs inside today's
+  1.2 s intro; "Pass" sends the word (Practice has no passes); the chalkboard's words go through `toFrench`.
+- Deviations told to Brian: the reveal has no near miss (the plan's honest-shop rule; his 2026-11-12 near miss was on
+  the old reel); Peppermint and Brass Bell have no `detail` part and two bursts have a fourth colour (the data wins);
+  burst and fuse-sound names stay the catalogue's (Harvest Fair, Heather, Tin toy, Barn owl); `sap:book-filter` is gone;
+  the size limit is raised by 42,000 bytes.
+
+- The market's signs are pixel art, not CSS boxes (Brian, 2026-11-25, after eight rejected mock-ups: "its not even the fact
+  that the market is bad, its that ur executing it at such low quality ... critically analyze and go with whats best. do not
+  copy the start screen or be bland"). Built on local branch `tp/signs`. The rules, for anything added to the Trading Post:
+  - Every sign is drawn in src/skin/tp/market/art.ts on ONE pixel grid (`--p`, 2 px at 1440 x 900), in three tones lit from
+    the top left, with one ink outline added by `outlined`. signs.tsx places them; signs.css and market.css lay them out.
+    Borders, depth, gaps and sprites are whole multiples of `--p`. Never size part of a sign in another unit, never draw a
+    sign's shape with a CSS border, box-shadow outline or clip-path, and never scale a small picture up (it blurs).
+  - A sign is a board cut in nine (`mk-board` and a tone; `tp-tag`, `tp-note`, `tp-roll` are boards too). Tones are
+    `TONE` in art.ts and reach the CSS as `--t-<tone>-<part>`: the stylesheets hold no raw colours.
+  - No sign is a plain box with words on it (Brian, 2026-11-26, of the rebuild: "ok yeah thats fine, make sure u dont
+    use those stupid just squares with regular text on them for each button/indicator/sign"). What a thing is decides
+    its shape, and each one carries a picture (signs.tsx):
+    - something pressed is a capsule with a seal at its left end, a picture of what it does (`Btn`; a small Listen is
+      its seal alone, `mk-sealbtn`);
+    - a thing's name is a tag with its gem in a crest on the top edge (`Crest`): the gem's cut and colour are its
+      rarity (bead, square cut, diamond, star) or where it comes from (bell, medal); a thing that is yours has the
+      green mark on its corner (`Found`);
+    - a state or a kind is a ribbon with a seal as its medal (`Ribbon`: Wearing, New!, Bomb skin, the level);
+    - an amount is a pill with its coin or bell (`mk-pill`: a price, coins back);
+    - a count of things found is a row of their gems, lit or still empty sockets (`Gems`), not "1 of 5";
+    - the Barn Book's pages are tabs standing on the book's top edge, each with its kind's picture (`mk-booktab`);
+    - a stall's sign in the scene has the pack's striped valance hanging under it (the packer's `restyle`) and what
+      it sells painted either side of its name (`StallPainted`, three art pixels to a voxel, no outline).
+    A new button, tag or indicator takes one of these; if none fits, draw a new piece in art.ts, never a bare board.
+  - The pack's icons (`Icon` in pieces.tsx) are drawn at the signs' pixel size wherever they are put: never give one
+    a size of its own.
+  - French: a name that does not fit wraps or is set smaller (`.tp[data-lang="fr"]` rules), never cut. Look at
+    `?preview=post&lang=fr` after adding words; a phrase split across elements needs its own line in the French files.
+  - Each stall has its colour (`STALL_TONE`: feed red, bells green, missions violet, book amber): its awning tab, its
+    plaques. The open tab is the lantern board. Kinds have theirs (bomb red, burst green, fuse sound violet).
+  - What is earned lights up: a moon token for a night counted, a lantern that fills and then burns for a milestone.
+  - The scene shows the things, large: the Missions prizes stand in a voxel display case (the packer's `noticeBoard`
+    restyle: three niches with arches, a shelf, bulbs), about a metre tall, not as pictures on a card. `FRAMING` in
+    Bazaar.tsx frames a stop closer than the pack's camera so its signs are large; type is 12 px at least.
+  - Check every stop at 1280 x 720, 1440 x 900, 1920 x 1080 and 390 x 844, plus the close view and a sack opening.
+    Every font size is floored at 12 px (`max(12px, calc(Npx * var(--u)))`): at 1280 x 720 `--u` is 0.8.
+  - Not his kit: the Home slabs and the leaderboards' snowy boards are not used at the market (he asked for something novel,
+    then said not to copy the start screen). Do not bring `hm-slab`, `rc-*` or `md-*` back here.

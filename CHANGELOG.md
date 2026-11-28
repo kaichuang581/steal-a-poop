@@ -4,6 +4,7 @@ All user-visible changes, newest first.
 
 ## Unreleased
 
+- The admin password is a new, long random one. The old one could be read from the code's history, so anyone could have worn the admin avatars in rooms.
 - Easier to find on Google: the page title says what the game is ("Fleeced | Free Multiplayer Word Chain Game"), the page names fleeced.io as its one address, search engines get a sitemap, a robots file and a description of the game, and a new About page (linked in the small print) explains how to play.
 ## 0.9.9
 

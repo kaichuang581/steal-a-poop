@@ -1,7 +1,7 @@
 /**
  * SHA-256 of the admin password. Never write the password itself into the repo (not in tests either; they set their own
- * hash). This is the hash of a password that was once written into the repo, so it can be found in git history. It was
- * replaced on 2026-11-08 and restored on 2026-11-15 at Kai's request. No imports, so the game server can read it too
- * (server/adminProof.ts); change it to a long random password's hash if the admin avatar ever matters more.
+ * hash). Changed on 2026-11-28 to a long random password: the one before it had been written into the repo and could be
+ * read from git history, which let anyone wear the admin avatars in rooms. No imports, so the game server can read it
+ * too (server/adminProof.ts). The password is under 200 characters (the server's limit for a proof).
  */
-export const ADMIN_HASH = '4303a4957aae4dbf0d0c392f5e0bb4690b8b8be1f032f07d5692b960c8248f90';
+export const ADMIN_HASH = '6c6fef5d34600fae855bcef70766db4c92123965ba1a2fe650690440be78f462';

@@ -216,7 +216,7 @@
     "src/lib/__tests__/stats.test.ts": "755e543cadd5fab9daf84b3fca00c6ffec3bb8965a8d763f81f3a45a03d19c92",
     "src/lib/__tests__/visit.test.ts": "8cc27d22b538b210cfb74222e0ed077ba42cbe5af73eb861669417a8500b800b",
     "src/lib/admin.ts": "6d4b18423446a15bd860060be8ebfa4f24a48b7b047f008b8be3ac670dda6ad1",
-    "src/lib/adminHash.ts": "b04fa9f7a407049aecb6ba19527fa86fb1e966086bded04a63d6397620347763",
+    "src/lib/adminHash.ts": "92cb2354079cdc1fed7fb97bf343dc4cfa9be442746bb365d04f34e4d497f1ea",
     "src/lib/ageRules.ts": "397a2d73bce81df6528a8cc5b98c52c260d96e909cd685c02dd05769c752f077",
     "src/lib/daily.ts": "2f566a7fa692f75cb0df94eb48b0169ac8675f0a8422c77f860331642da903e3",
     "src/lib/define.ts": "470c04f55a32eb4bcac094b78abf466dbbd9aa445831756f7790467a0870e5c7",

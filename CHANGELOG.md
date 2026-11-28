@@ -2,6 +2,9 @@
 
 All user-visible changes, newest first.
 
+## Unreleased
+
+- Easier to find on Google: the page title says what the game is ("Fleeced | Free Multiplayer Word Chain Game"), the page names fleeced.io as its one address, search engines get a sitemap, a robots file and a description of the game, and a new About page (linked in the small print) explains how to play.
 ## 0.9.9
 
 - The Trading Post is a market on the farm at dusk: four stalls side by side that you walk along. Feed Sacks, the Bell Shelf, Missions and the Barn Book each have their own stop, and the things for sale stand there as models you can look at closely, set off or listen to.

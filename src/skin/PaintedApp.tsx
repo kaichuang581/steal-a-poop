@@ -23,7 +23,8 @@ import { useHour } from './hooks/useAmbient';
 import { DreamScreen } from './dream/DreamScreen';
 import { useDreamUi } from './dream/dreamStore';
 import { PaintedGame } from './screens/PaintedGame';
-import { PaintedHome, PAINTED_TITLE, APP_VERSION } from './screens/PaintedHome';
+import { PaintedHome, APP_VERSION } from './screens/PaintedHome';
+import { PAGE_TITLE } from './seo';
 import { AppBoundary, reloadOnceForChunk } from './perf/AppBoundary';
 import { ReportCard } from './perf/ReportCard';
 import { installAudioSleep } from './perf/audioSleep';
@@ -159,7 +160,7 @@ export function PaintedApp() {
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.skin = 'painted';
-    document.title = PAINTED_TITLE;
+    document.title = PAGE_TITLE;
     return () => { delete root.dataset.skin; };
   }, []);
   useEffect(() => { document.documentElement.dataset.hour = hour; }, [hour]);

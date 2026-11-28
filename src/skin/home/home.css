@@ -216,8 +216,9 @@
 .hm-small { display: flex; flex: none; align-items: center; gap: calc(18 * var(--u)); font: 800 calc(12.5 * var(--u))/1 var(--skin-font-body); }
 .hm-small > * { display: inline-flex; align-items: center; min-height: 24px; color: var(--hm-wool); }
 .hm-small .hm-version { color: var(--hm-frost); }
-.hm-small button:hover { color: var(--hm-lantern-hi); }
-.hm-small button:focus-visible, .hm-more:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
+.hm-small button:hover, .hm-small a:hover { color: var(--hm-lantern-hi); }
+.hm-small a { text-decoration: none; }
+.hm-small button:focus-visible, .hm-small a:focus-visible, .hm-more:focus-visible { outline: 3px solid var(--hm-lantern); outline-offset: 2px; }
 
 /* ---------- Panels opened from Home (Set the table, Practice, Join party) ---------- */
 .hm-panel-slot { position: absolute; z-index: 7; left: calc((var(--mid) + 100vw) / 2 - 200 * var(--u)); top: calc(50% - var(--foot) / 2); width: calc(400 * var(--u)); max-height: 82%; overflow-y: auto; transform: translateY(-50%); }
